@@ -11,16 +11,21 @@ use stwo::core::fields::cm31::CM31;
 use stwo::core::fields::m31::{M31, P};
 use stwo::core::fields::qm31::QM31;
 use stwo::core::fields::{ComplexConjugate, FieldExpOps};
-use stwo::core::fri::{fold_circle_into_line, fold_line};
+use stwo::core::fri::{fold_circle_into_line, fold_line, FriLayerProof, FriProof};
+use stwo::core::pcs::PcsConfig;
 use stwo::core::pcs::quotients::{
     accumulate_row_partial_numerators, accumulate_row_quotients,
     build_samples_with_randomness_and_periodicity, denominator_inverses, fri_answers,
-    quotient_constants, ColumnSampleBatch, PointSample,
+    quotient_constants, ColumnSampleBatch, CommitmentSchemeProof, PointSample,
 };
 use stwo::core::pcs::TreeVec;
 use stwo::core::poly::circle::CanonicCoset;
-use stwo::core::poly::line::LineDomain;
+use stwo::core::poly::line::{LineDomain, LinePoly};
+use stwo::core::proof::StarkProof;
 use stwo::core::utils::bit_reverse_index;
+use stwo::core::vcs::blake2_hash::Blake2sHash;
+use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher;
+use stwo::core::vcs_lifted::verifier::MerkleDecommitmentLifted;
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const DEFAULT_COUNT: usize = 256;
@@ -29,6 +34,7 @@ const PCS_LIFTING_LOG_SIZE: u32 = 8;
 const PCS_QUERY_COUNT: usize = 4;
 const FRI_FOLD_VECTOR_COUNT: usize = 32;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
+const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 
 #[derive(Debug, Clone, Serialize)]
 struct Meta {
@@ -160,6 +166,37 @@ struct ProofExtractOodsVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct ProofSizeBreakdownVector {
+    oods_samples: usize,
+    queries_values: usize,
+    fri_samples: usize,
+    fri_decommitments: usize,
+    trace_decommitments: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ProofSizeInnerLayerVector {
+    fri_witness: Vec<[u32; 4]>,
+    decommitment: Vec<[u8; 32]>,
+    commitment: [u8; 32],
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ProofSizeVector {
+    commitments: Vec<[u8; 32]>,
+    sampled_values: Vec<Vec<Vec<[u32; 4]>>>,
+    decommitments: Vec<Vec<[u8; 32]>>,
+    queried_values: Vec<Vec<Vec<u32>>>,
+    proof_of_work: u64,
+    first_layer_witness: Vec<[u32; 4]>,
+    first_layer_decommitment: Vec<[u8; 32]>,
+    first_layer_commitment: [u8; 32],
+    inner_layers: Vec<ProofSizeInnerLayerVector>,
+    last_layer_poly: Vec<[u32; 4]>,
+    expected_breakdown: ProofSizeBreakdownVector,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct FieldVectors {
     meta: Meta,
     m31: Vec<M31Vector>,
@@ -170,6 +207,7 @@ struct FieldVectors {
     pcs_quotients: Vec<PcsQuotientsVector>,
     fri_folds: Vec<FriFoldVector>,
     proof_extract_oods: Vec<ProofExtractOodsVector>,
+    proof_sizes: Vec<ProofSizeVector>,
 }
 
 fn main() {
@@ -308,6 +346,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let pcs_quotients = generate_pcs_quotients_vectors(state, PCS_VECTOR_COUNT);
     let fri_folds = generate_fri_fold_vectors(state, FRI_FOLD_VECTOR_COUNT);
     let proof_extract_oods = generate_proof_extract_oods_vectors(state, PROOF_OODS_VECTOR_COUNT);
+    let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
 
     FieldVectors {
         meta: Meta {
@@ -322,6 +361,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         pcs_quotients,
         fri_folds,
         proof_extract_oods,
+        proof_sizes,
     }
 }
 
@@ -351,6 +391,153 @@ fn generate_proof_extract_oods_vectors(state: &mut u64, count: usize) -> Vec<Pro
             oods_point: encode_secure_circle_point(oods_point),
             composition_values: composition_values.into_iter().map(encode_qm31).collect(),
             expected: encode_qm31(expected),
+        });
+    }
+    out
+}
+
+fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let commitments_len = 1 + (next_u64(state) as usize % 3);
+        let commitments = (0..commitments_len)
+            .map(|_| sample_hash(state))
+            .collect::<Vec<_>>();
+
+        let sampled_tree_count = 1 + (next_u64(state) as usize % 3);
+        let mut sampled_values = Vec::with_capacity(sampled_tree_count);
+        for _ in 0..sampled_tree_count {
+            let cols = 1 + (next_u64(state) as usize % 3);
+            let mut tree = Vec::with_capacity(cols);
+            for _ in 0..cols {
+                let rows = 1 + (next_u64(state) as usize % 3);
+                tree.push((0..rows).map(|_| sample_qm31(state, false)).collect::<Vec<_>>());
+            }
+            sampled_values.push(tree);
+        }
+
+        let decommitment_count = 1 + (next_u64(state) as usize % 3);
+        let mut decommitments = Vec::with_capacity(decommitment_count);
+        for _ in 0..decommitment_count {
+            let witness_len = next_u64(state) as usize % 4;
+            decommitments.push(MerkleDecommitmentLifted::<Blake2sMerkleHasher> {
+                hash_witness: (0..witness_len).map(|_| sample_hash(state)).collect(),
+            });
+        }
+
+        let queried_tree_count = 1 + (next_u64(state) as usize % 3);
+        let mut queried_values = Vec::with_capacity(queried_tree_count);
+        for _ in 0..queried_tree_count {
+            let cols = 1 + (next_u64(state) as usize % 3);
+            let mut tree = Vec::with_capacity(cols);
+            for _ in 0..cols {
+                let rows = 1 + (next_u64(state) as usize % 3);
+                tree.push((0..rows).map(|_| sample_m31(state, false)).collect::<Vec<_>>());
+            }
+            queried_values.push(tree);
+        }
+
+        let first_layer_witness = (0..(next_u64(state) as usize % 4))
+            .map(|_| sample_qm31(state, false))
+            .collect::<Vec<_>>();
+        let first_layer_decommitment = MerkleDecommitmentLifted::<Blake2sMerkleHasher> {
+            hash_witness: (0..(next_u64(state) as usize % 4))
+                .map(|_| sample_hash(state))
+                .collect(),
+        };
+        let first_layer_commitment = sample_hash(state);
+
+        let inner_count = next_u64(state) as usize % 3;
+        let mut inner_layers = Vec::with_capacity(inner_count);
+        for _ in 0..inner_count {
+            inner_layers.push(FriLayerProof {
+                fri_witness: (0..(next_u64(state) as usize % 4))
+                    .map(|_| sample_qm31(state, false))
+                    .collect(),
+                decommitment: MerkleDecommitmentLifted::<Blake2sMerkleHasher> {
+                    hash_witness: (0..(next_u64(state) as usize % 4))
+                        .map(|_| sample_hash(state))
+                        .collect(),
+                },
+                commitment: sample_hash(state),
+            });
+        }
+
+        let last_layer_len = 1usize << (next_u64(state) as usize % 4);
+        let last_layer_poly = (0..last_layer_len)
+            .map(|_| sample_qm31(state, false))
+            .collect::<Vec<_>>();
+
+        let proof = StarkProof::<Blake2sMerkleHasher>(CommitmentSchemeProof {
+            config: PcsConfig::default(),
+            commitments: TreeVec(commitments.clone()),
+            sampled_values: TreeVec(sampled_values.clone()),
+            decommitments: TreeVec(decommitments.clone()),
+            queried_values: TreeVec(queried_values.clone()),
+            proof_of_work: next_u64(state),
+            fri_proof: FriProof {
+                first_layer: FriLayerProof {
+                    fri_witness: first_layer_witness.clone(),
+                    decommitment: first_layer_decommitment.clone(),
+                    commitment: first_layer_commitment,
+                },
+                inner_layers: inner_layers.clone(),
+                last_layer_poly: LinePoly::new(last_layer_poly.clone()),
+            },
+        });
+
+        let breakdown = proof.size_breakdown_estimate();
+        out.push(ProofSizeVector {
+            commitments: commitments.into_iter().map(encode_hash).collect(),
+            sampled_values: sampled_values
+                .into_iter()
+                .map(|tree| {
+                    tree.into_iter()
+                        .map(|col| col.into_iter().map(encode_qm31).collect())
+                        .collect()
+                })
+                .collect(),
+            decommitments: decommitments
+                .into_iter()
+                .map(|decommitment| decommitment.hash_witness.into_iter().map(encode_hash).collect())
+                .collect(),
+            queried_values: queried_values
+                .into_iter()
+                .map(|tree| {
+                    tree.into_iter()
+                        .map(|col| col.into_iter().map(encode_m31).collect())
+                        .collect()
+                })
+                .collect(),
+            proof_of_work: proof.0.proof_of_work,
+            first_layer_witness: first_layer_witness.into_iter().map(encode_qm31).collect(),
+            first_layer_decommitment: first_layer_decommitment
+                .hash_witness
+                .into_iter()
+                .map(encode_hash)
+                .collect(),
+            first_layer_commitment: encode_hash(first_layer_commitment),
+            inner_layers: inner_layers
+                .into_iter()
+                .map(|layer| ProofSizeInnerLayerVector {
+                    fri_witness: layer.fri_witness.into_iter().map(encode_qm31).collect(),
+                    decommitment: layer
+                        .decommitment
+                        .hash_witness
+                        .into_iter()
+                        .map(encode_hash)
+                        .collect(),
+                    commitment: encode_hash(layer.commitment),
+                })
+                .collect(),
+            last_layer_poly: last_layer_poly.into_iter().map(encode_qm31).collect(),
+            expected_breakdown: ProofSizeBreakdownVector {
+                oods_samples: breakdown.oods_samples,
+                queries_values: breakdown.queries_values,
+                fri_samples: breakdown.fri_samples,
+                fri_decommitments: breakdown.fri_decommitments,
+                trace_decommitments: breakdown.trace_decommitments,
+            },
         });
     }
     out
@@ -635,6 +822,10 @@ fn encode_m31(x: M31) -> u32 {
     x.0
 }
 
+fn encode_hash(x: Blake2sHash) -> [u8; 32] {
+    x.0
+}
+
 fn encode_cm31(x: CM31) -> [u32; 2] {
     [x.0 .0, x.1 .0]
 }
@@ -657,6 +848,14 @@ fn sample_scalar(state: &mut u64) -> u64 {
 
 fn sample_scalar_u128(state: &mut u64) -> u128 {
     ((next_u64(state) as u128) << 64) | (next_u64(state) as u128)
+}
+
+fn sample_hash(state: &mut u64) -> Blake2sHash {
+    let mut bytes = [0u8; 32];
+    for chunk in bytes.chunks_exact_mut(8) {
+        chunk.copy_from_slice(&next_u64(state).to_le_bytes());
+    }
+    Blake2sHash(bytes)
 }
 
 fn sample_m31(state: &mut u64, non_zero: bool) -> M31 {

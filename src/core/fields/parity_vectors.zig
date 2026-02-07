@@ -135,6 +135,34 @@ const ProofExtractOodsVector = struct {
     expected: [4]u32,
 };
 
+const ProofSizeBreakdownVector = struct {
+    oods_samples: usize,
+    queries_values: usize,
+    fri_samples: usize,
+    fri_decommitments: usize,
+    trace_decommitments: usize,
+};
+
+const ProofSizeInnerLayerVector = struct {
+    fri_witness: [][4]u32,
+    decommitment: [][32]u8,
+    commitment: [32]u8,
+};
+
+const ProofSizeVector = struct {
+    commitments: [][32]u8,
+    sampled_values: [][][][4]u32,
+    decommitments: [][][32]u8,
+    queried_values: [][][]u32,
+    proof_of_work: u64,
+    first_layer_witness: [][4]u32,
+    first_layer_decommitment: [][32]u8,
+    first_layer_commitment: [32]u8,
+    inner_layers: []ProofSizeInnerLayerVector,
+    last_layer_poly: [][4]u32,
+    expected_breakdown: ProofSizeBreakdownVector,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -148,6 +176,7 @@ const VectorFile = struct {
     pcs_quotients: []PcsQuotientsVector,
     fri_folds: []FriFoldVector,
     proof_extract_oods: []ProofExtractOodsVector,
+    proof_sizes: []ProofSizeVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -291,6 +320,44 @@ fn decodeQueriedValuesTree(
     }
 
     return quotients_mod.TreeVec([][]M31).initOwned(try trees_builder.toOwnedSlice());
+}
+
+fn decodeQm31Tree(
+    allocator: std.mem.Allocator,
+    encoded: [][][][4]u32,
+) !quotients_mod.TreeVec([][]QM31) {
+    var trees_builder = std.ArrayList([][]QM31).init(allocator);
+    defer trees_builder.deinit();
+    errdefer {
+        for (trees_builder.items) |tree| {
+            for (tree) |col| allocator.free(col);
+            allocator.free(tree);
+        }
+    }
+
+    for (encoded) |tree| {
+        var cols_builder = std.ArrayList([]QM31).init(allocator);
+        defer cols_builder.deinit();
+        errdefer {
+            for (cols_builder.items) |col| allocator.free(col);
+        }
+
+        for (tree) |col| {
+            const decoded_col = try allocator.alloc(QM31, col.len);
+            errdefer allocator.free(decoded_col);
+            for (col, 0..) |value, i| decoded_col[i] = qm31From(value);
+            try cols_builder.append(decoded_col);
+        }
+        try trees_builder.append(try cols_builder.toOwnedSlice());
+    }
+
+    return quotients_mod.TreeVec([][]QM31).initOwned(try trees_builder.toOwnedSlice());
+}
+
+fn decodeQm31Slice(allocator: std.mem.Allocator, encoded: [][4]u32) ![]QM31 {
+    const out = try allocator.alloc(QM31, encoded.len);
+    for (encoded, 0..) |value, i| out[i] = qm31From(value);
+    return out;
 }
 
 test "field vectors: m31 parity" {
@@ -620,5 +687,106 @@ test "field vectors: proof extract oods parity" {
             v.composition_log_size,
         ) orelse unreachable;
         try std.testing.expectEqualSlices(u32, v.expected[0..], encodeQM31(extracted)[0..]);
+    }
+}
+
+test "field vectors: proof size breakdown parity" {
+    const alloc = std.testing.allocator;
+    const Hasher = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const vcs_verifier = @import("../vcs_lifted/verifier.zig");
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.proof_sizes.len > 0);
+    for (parsed.value.proof_sizes) |v| {
+        var sampled_values = try decodeQm31Tree(alloc, v.sampled_values);
+        var queried_values = try decodeQueriedValuesTree(alloc, v.queried_values);
+        var sampled_values_moved = false;
+        var queried_values_moved = false;
+        defer if (!sampled_values_moved) sampled_values.deinitDeep(alloc);
+        defer if (!queried_values_moved) queried_values.deinitDeep(alloc);
+
+        var commitments = pcs_mod.TreeVec(Hasher.Hash).initOwned(
+            try alloc.dupe(Hasher.Hash, v.commitments),
+        );
+        var commitments_moved = false;
+        defer if (!commitments_moved) commitments.deinit(alloc);
+
+        const decommitments_vec = try alloc.alloc(vcs_verifier.MerkleDecommitmentLifted(Hasher), v.decommitments.len);
+        errdefer alloc.free(decommitments_vec);
+        var decommitments_initialized: usize = 0;
+        errdefer {
+            for (decommitments_vec[0..decommitments_initialized]) |*decommitment| decommitment.deinit(alloc);
+        }
+        for (v.decommitments, 0..) |witness, i| {
+            decommitments_vec[i] = .{ .hash_witness = try alloc.dupe(Hasher.Hash, witness) };
+            decommitments_initialized += 1;
+        }
+        var decommitments = pcs_mod.TreeVec(vcs_verifier.MerkleDecommitmentLifted(Hasher)).initOwned(decommitments_vec);
+        var decommitments_moved = false;
+        defer if (!decommitments_moved) {
+            for (decommitments.items) |*decommitment| decommitment.deinit(alloc);
+            decommitments.deinit(alloc);
+        };
+
+        const first_layer_witness = try decodeQm31Slice(alloc, v.first_layer_witness);
+        errdefer alloc.free(first_layer_witness);
+        const first_layer_decommitment = vcs_verifier.MerkleDecommitmentLifted(Hasher){
+            .hash_witness = try alloc.dupe(Hasher.Hash, v.first_layer_decommitment),
+        };
+        errdefer {
+            var tmp = first_layer_decommitment;
+            tmp.deinit(alloc);
+        }
+
+        const inner_layers = try alloc.alloc(fri_mod.FriLayerProof(Hasher), v.inner_layers.len);
+        errdefer alloc.free(inner_layers);
+        var inner_layers_initialized: usize = 0;
+        errdefer {
+            for (inner_layers[0..inner_layers_initialized]) |*layer| layer.deinit(alloc);
+        }
+        for (v.inner_layers, 0..) |inner, i| {
+            inner_layers[i] = .{
+                .fri_witness = try decodeQm31Slice(alloc, inner.fri_witness),
+                .decommitment = .{ .hash_witness = try alloc.dupe(Hasher.Hash, inner.decommitment) },
+                .commitment = inner.commitment,
+            };
+            inner_layers_initialized += 1;
+        }
+
+        const last_layer_poly_coeffs = try decodeQm31Slice(alloc, v.last_layer_poly);
+        errdefer alloc.free(last_layer_poly_coeffs);
+
+        sampled_values_moved = true;
+        queried_values_moved = true;
+        commitments_moved = true;
+        decommitments_moved = true;
+        var proof = proof_mod.StarkProof(Hasher){
+            .commitment_scheme_proof = .{
+                .config = pcs_mod.PcsConfig.default(),
+                .commitments = commitments,
+                .sampled_values = sampled_values,
+                .decommitments = decommitments,
+                .queried_values = queried_values,
+                .proof_of_work = v.proof_of_work,
+                .fri_proof = .{
+                    .first_layer = .{
+                        .fri_witness = first_layer_witness,
+                        .decommitment = first_layer_decommitment,
+                        .commitment = v.first_layer_commitment,
+                    },
+                    .inner_layers = inner_layers,
+                    .last_layer_poly = line_mod.LinePoly.initOwned(last_layer_poly_coeffs),
+                },
+            },
+        };
+        defer proof.deinit(alloc);
+
+        const actual = proof.sizeBreakdownEstimate();
+        try std.testing.expectEqual(v.expected_breakdown.oods_samples, actual.oods_samples);
+        try std.testing.expectEqual(v.expected_breakdown.queries_values, actual.queries_values);
+        try std.testing.expectEqual(v.expected_breakdown.fri_samples, actual.fri_samples);
+        try std.testing.expectEqual(v.expected_breakdown.fri_decommitments, actual.fri_decommitments);
+        try std.testing.expectEqual(v.expected_breakdown.trace_decommitments, actual.trace_decommitments);
     }
 }
