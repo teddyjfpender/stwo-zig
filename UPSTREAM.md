@@ -18,6 +18,7 @@ This increment targets:
 - `core/proof`
 - `core/verifier`
 - `core/vcs/verifier`
+- `core/test_utils`
 - `core/vcs/hash`
 - `core/vcs/merkle_hasher`
 - `core/vcs/utils`
