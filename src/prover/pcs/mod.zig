@@ -927,3 +927,106 @@ test "prover pcs: prove values from samples roundtrip with core verifier" {
         &verifier_channel,
     );
 }
+
+test "prover pcs: prove values from samples rejects shape mismatch" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    var scheme = try Scheme.init(alloc, .{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 2),
+    });
+    defer scheme.deinit(alloc);
+
+    const column_values = [_]M31{
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+    };
+    var channel = Channel{};
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{.{ .log_size = 2, .values = column_values[0..] }},
+        &channel,
+    );
+
+    const sampled_points = TreeVec([][]CirclePointQM31).initOwned(try alloc.alloc([][]CirclePointQM31, 0));
+    const sampled_values = TreeVec([][]QM31).initOwned(try alloc.alloc([][]QM31, 0));
+    try std.testing.expectError(
+        CommitmentSchemeError.ShapeMismatch,
+        scheme.proveValuesFromSamples(
+            alloc,
+            sampled_points,
+            sampled_values,
+            &channel,
+        ),
+    );
+}
+
+test "prover pcs: inconsistent sampled values are rejected by fri degree check" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    const config = PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+
+    var prover_channel = Channel{};
+    var scheme = try Scheme.init(alloc, config);
+    defer scheme.deinit(alloc);
+
+    const column_values = [_]M31{
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+    };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{
+            .{ .log_size = 3, .values = column_values[0..] },
+        },
+        &prover_channel,
+    );
+
+    const sample_point = @import("../../core/circle.zig").SECURE_FIELD_CIRCLE_GEN.mul(13);
+    const bad_sample_value = QM31.fromBase(M31.fromCanonical(6));
+
+    const sampled_points_col = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        sample_point,
+    });
+    const sampled_points_tree = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col,
+    });
+    const sampled_points = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree}),
+    );
+
+    const sampled_values_col = try alloc.dupe(QM31, &[_]QM31{bad_sample_value});
+    const sampled_values_tree = try alloc.dupe([]QM31, &[_][]QM31{sampled_values_col});
+    const sampled_values = TreeVec([][]QM31).initOwned(
+        try alloc.dupe([][]QM31, &[_][][]QM31{sampled_values_tree}),
+    );
+
+    try std.testing.expectError(
+        prover_fri.FriProverError.InvalidLastLayerDegree,
+        scheme.proveValuesFromSamples(
+            alloc,
+            sampled_points,
+            sampled_values,
+            &prover_channel,
+        ),
+    );
+}
