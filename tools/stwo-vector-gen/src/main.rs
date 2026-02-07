@@ -14,6 +14,7 @@ use stwo::core::fields::qm31::QM31;
 use stwo::core::fields::{ComplexConjugate, FieldExpOps};
 use stwo::core::fri::{fold_circle_into_line, fold_line, FriLayerProof, FriProof};
 use stwo::core::pcs::PcsConfig;
+use stwo::core::pcs::utils::prepare_preprocessed_query_positions;
 use stwo::core::pcs::quotients::{
     accumulate_row_partial_numerators, accumulate_row_quotients,
     build_samples_with_randomness_and_periodicity, denominator_inverses, fri_answers,
@@ -40,8 +41,9 @@ const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const VECTOR_SCHEMA_VERSION: u32 = 1;
 const VECTOR_SEED: u64 = 0x243f_6a88_85a3_08d3u64;
 const FRI_LAYER_DECOMMIT_SEED: u64 = 0x7b5f_1d0a_9c33_41f2u64;
+const PCS_PREPROCESSED_QUERY_SEED: u64 = 0x51f2_44ab_10ce_d9a7u64;
 const VECTOR_SEED_STRATEGY: &str =
-    "deterministic xorshift64* streams (primary stream + dedicated fri_layer_decommit stream)";
+    "deterministic xorshift64* streams (primary stream + dedicated fri_layer_decommit and pcs_preprocessed_query streams)";
 const DEFAULT_COUNT: usize = 256;
 const PCS_VECTOR_COUNT: usize = 16;
 const PCS_LIFTING_LOG_SIZE: u32 = 8;
@@ -52,6 +54,7 @@ const FRI_LAYER_DECOMMIT_VECTOR_COUNT: usize = 24;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 const PROVER_LINE_VECTOR_COUNT: usize = 32;
+const PCS_PREPROCESSED_QUERY_VECTOR_COUNT: usize = 64;
 const VCS_VERIFIER_VECTOR_COUNT: usize = 24;
 const VCS_PROVER_VECTOR_COUNT: usize = 16;
 const VCS_LIFTED_VERIFIER_VECTOR_COUNT: usize = 24;
@@ -178,6 +181,14 @@ struct PcsQuotientsVector {
     partial_numerators: Vec<Vec<[u32; 4]>>,
     row_quotients: Vec<[u32; 4]>,
     fri_answers: Vec<[u32; 4]>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct PcsPreprocessedQueryVector {
+    query_positions: Vec<usize>,
+    max_log_size: u32,
+    pp_max_log_size: u32,
+    expected: Vec<usize>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -346,6 +357,7 @@ struct FieldVectors {
     fft_m31: Vec<FftM31Vector>,
     blake3: Vec<Blake3Vector>,
     pcs_quotients: Vec<PcsQuotientsVector>,
+    pcs_preprocessed_queries: Vec<PcsPreprocessedQueryVector>,
     fri_folds: Vec<FriFoldVector>,
     fri_decommit: Vec<FriDecommitVector>,
     fri_layer_decommit: Vec<FriLayerDecommitVector>,
@@ -531,6 +543,11 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let mut fri_layer_state = FRI_LAYER_DECOMMIT_SEED;
     let fri_layer_decommit =
         generate_fri_layer_decommit_vectors(&mut fri_layer_state, FRI_LAYER_DECOMMIT_VECTOR_COUNT);
+    let mut pcs_preprocessed_query_state = PCS_PREPROCESSED_QUERY_SEED;
+    let pcs_preprocessed_queries = generate_pcs_preprocessed_query_vectors(
+        &mut pcs_preprocessed_query_state,
+        PCS_PREPROCESSED_QUERY_VECTOR_COUNT,
+    );
 
     FieldVectors {
         meta: Meta {
@@ -547,6 +564,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         fft_m31,
         blake3,
         pcs_quotients,
+        pcs_preprocessed_queries,
         fri_folds,
         fri_decommit,
         fri_layer_decommit,
@@ -1427,6 +1445,46 @@ fn merkle_error_name_lifted(err: MerkleVerificationErrorLifted) -> &'static str 
         MerkleVerificationErrorLifted::WitnessTooLong => "WitnessTooLong",
         MerkleVerificationErrorLifted::RootMismatch => "RootMismatch",
     }
+}
+
+fn generate_pcs_preprocessed_query_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<PcsPreprocessedQueryVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let max_log_size = (next_u64(state) as u32) % 10;
+        let mode = (next_u64(state) as usize) % 3;
+        let pp_max_log_size = match mode {
+            0 => 0,
+            1 => max_log_size + 1 + ((next_u64(state) as u32) % 3),
+            _ => (next_u64(state) as u32) % (max_log_size + 1),
+        };
+
+        let domain_log = std::cmp::max(max_log_size, pp_max_log_size).max(1);
+        let domain_size = 1usize << domain_log;
+        let n_queries = 1 + (next_u64(state) as usize % domain_size.min(8));
+        let mut query_positions = Vec::with_capacity(n_queries);
+        while query_positions.len() < n_queries {
+            let q = next_u64(state) as usize & (domain_size - 1);
+            if !query_positions.contains(&q) {
+                query_positions.push(q);
+            }
+        }
+        query_positions.sort_unstable();
+
+        out.push(PcsPreprocessedQueryVector {
+            expected: prepare_preprocessed_query_positions(
+                &query_positions,
+                max_log_size,
+                pp_max_log_size,
+            ),
+            query_positions,
+            max_log_size,
+            pp_max_log_size,
+        });
+    }
+    out
 }
 
 fn generate_fri_fold_vectors(state: &mut u64, count: usize) -> Vec<FriFoldVector> {

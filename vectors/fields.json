@@ -4,7 +4,7 @@
     "sample_count": 256,
     "schema_version": 1,
     "seed": 2611923443488327891,
-    "seed_strategy": "deterministic xorshift64* streams (primary stream + dedicated fri_layer_decommit stream)"
+    "seed_strategy": "deterministic xorshift64* streams (primary stream + dedicated fri_layer_decommit and pcs_preprocessed_query streams)"
   },
   "m31": [
     {
@@ -64567,6 +64567,829 @@
           617298209
         ]
       ]
+    }
+  ],
+  "pcs_preprocessed_queries": [
+    {
+      "query_positions": [
+        1
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 1,
+      "expected": [
+        0,
+        1
+      ]
+    },
+    {
+      "query_positions": [
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 3,
+      "expected": [
+        1,
+        4,
+        5,
+        4,
+        5
+      ]
+    },
+    {
+      "query_positions": [
+        6,
+        7,
+        13,
+        19,
+        28,
+        29
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 5,
+      "expected": [
+        24,
+        25,
+        49,
+        73,
+        112,
+        113
+      ]
+    },
+    {
+      "query_positions": [
+        472,
+        1798,
+        2235,
+        2370,
+        2440,
+        2954,
+        3489,
+        3551
+      ],
+      "max_log_size": 9,
+      "pp_max_log_size": 12,
+      "expected": [
+        3776,
+        14384,
+        17873,
+        18960,
+        19520,
+        23632,
+        27905,
+        28401
+      ]
+    },
+    {
+      "query_positions": [
+        190
+      ],
+      "max_log_size": 8,
+      "pp_max_log_size": 8,
+      "expected": [
+        190
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        11
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 1,
+      "expected": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "query_positions": [
+        22,
+        42,
+        55,
+        60,
+        70,
+        85,
+        105
+      ],
+      "max_log_size": 7,
+      "pp_max_log_size": 2,
+      "expected": [
+        0,
+        0,
+        1,
+        0,
+        2,
+        3,
+        3
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 1,
+      "pp_max_log_size": 1,
+      "expected": [
+        0,
+        1
+      ]
+    },
+    {
+      "query_positions": [
+        245,
+        382
+      ],
+      "max_log_size": 6,
+      "pp_max_log_size": 9,
+      "expected": [
+        1953,
+        3056
+      ]
+    },
+    {
+      "query_positions": [
+        5,
+        12,
+        15,
+        19
+      ],
+      "max_log_size": 5,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 1,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        1
+      ],
+      "max_log_size": 2,
+      "pp_max_log_size": 3,
+      "expected": [
+        1
+      ]
+    },
+    {
+      "query_positions": [
+        217,
+        569,
+        658,
+        1409,
+        1676
+      ],
+      "max_log_size": 8,
+      "pp_max_log_size": 11,
+      "expected": [
+        1729,
+        4545,
+        5264,
+        11265,
+        13408
+      ]
+    },
+    {
+      "query_positions": [
+        0
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        1
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        66,
+        105
+      ],
+      "max_log_size": 7,
+      "pp_max_log_size": 1,
+      "expected": [
+        0,
+        1
+      ]
+    },
+    {
+      "query_positions": [
+        2
+      ],
+      "max_log_size": 2,
+      "pp_max_log_size": 2,
+      "expected": [
+        2
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        1
+      ],
+      "max_log_size": 1,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        2,
+        3,
+        8,
+        13,
+        15
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 1,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        3
+      ],
+      "max_log_size": 1,
+      "pp_max_log_size": 4,
+      "expected": [
+        17
+      ]
+    },
+    {
+      "query_positions": [
+        4,
+        5,
+        7
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        9,
+        14
+      ],
+      "max_log_size": 5,
+      "pp_max_log_size": 4,
+      "expected": [
+        0,
+        5,
+        6
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        1
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        7
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        74,
+        177
+      ],
+      "max_log_size": 7,
+      "pp_max_log_size": 8,
+      "expected": [
+        148,
+        353
+      ]
+    },
+    {
+      "query_positions": [
+        111
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 7,
+      "expected": [
+        881
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        2
+      ],
+      "max_log_size": 2,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        31,
+        47,
+        76
+      ],
+      "max_log_size": 7,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        2,
+        3
+      ],
+      "max_log_size": 2,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        1,
+        3,
+        5
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 3,
+      "expected": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        1,
+        3,
+        4,
+        5,
+        7
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 1,
+      "expected": [
+        0,
+        1,
+        1,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "query_positions": [
+        0
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        1,
+        3,
+        6,
+        9,
+        10,
+        11,
+        13,
+        15
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 4,
+      "expected": [
+        1,
+        3,
+        6,
+        9,
+        10,
+        11,
+        13,
+        15
+      ]
+    },
+    {
+      "query_positions": [
+        11,
+        20,
+        56,
+        66,
+        100,
+        141,
+        188,
+        235
+      ],
+      "max_log_size": 8,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        7
+      ],
+      "max_log_size": 2,
+      "pp_max_log_size": 3,
+      "expected": [
+        13
+      ]
+    },
+    {
+      "query_positions": [
+        44
+      ],
+      "max_log_size": 7,
+      "pp_max_log_size": 8,
+      "expected": [
+        88
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        1,
+        4
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 2,
+      "expected": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "query_positions": [
+        7,
+        37,
+        90,
+        108,
+        116,
+        117,
+        120
+      ],
+      "max_log_size": 6,
+      "pp_max_log_size": 7,
+      "expected": [
+        13,
+        73,
+        180,
+        216,
+        232,
+        233,
+        240
+      ]
+    },
+    {
+      "query_positions": [
+        63,
+        129,
+        130,
+        154
+      ],
+      "max_log_size": 5,
+      "pp_max_log_size": 8,
+      "expected": [
+        497,
+        1025,
+        1040,
+        1232
+      ]
+    },
+    {
+      "query_positions": [
+        0
+      ],
+      "max_log_size": 0,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        103
+      ],
+      "max_log_size": 9,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        9,
+        37,
+        72,
+        80,
+        96,
+        123
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 7,
+      "expected": [
+        65,
+        289,
+        576,
+        640,
+        768,
+        977
+      ]
+    },
+    {
+      "query_positions": [
+        3,
+        9,
+        14,
+        15
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 1,
+      "expected": [
+        1,
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "query_positions": [
+        17,
+        159,
+        176,
+        182,
+        221
+      ],
+      "max_log_size": 8,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        0,
+        1
+      ],
+      "max_log_size": 1,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        37,
+        38
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 6,
+      "expected": [
+        145,
+        152
+      ]
+    },
+    {
+      "query_positions": [
+        324,
+        809,
+        948
+      ],
+      "max_log_size": 9,
+      "pp_max_log_size": 10,
+      "expected": [
+        648,
+        1617,
+        1896
+      ]
+    },
+    {
+      "query_positions": [
+        7,
+        371,
+        447
+      ],
+      "max_log_size": 6,
+      "pp_max_log_size": 9,
+      "expected": [
+        49,
+        2961,
+        3569
+      ]
+    },
+    {
+      "query_positions": [
+        106
+      ],
+      "max_log_size": 8,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        356,
+        810,
+        1785
+      ],
+      "max_log_size": 8,
+      "pp_max_log_size": 11,
+      "expected": [
+        2848,
+        6480,
+        14273
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        5,
+        9,
+        13,
+        17,
+        20,
+        30
+      ],
+      "max_log_size": 2,
+      "pp_max_log_size": 5,
+      "expected": [
+        0,
+        33,
+        65,
+        97,
+        129,
+        160,
+        240
+      ]
+    },
+    {
+      "query_positions": [
+        0,
+        8,
+        15
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 4,
+      "expected": [
+        0,
+        8,
+        15
+      ]
+    },
+    {
+      "query_positions": [
+        1,
+        5,
+        13,
+        14
+      ],
+      "max_log_size": 4,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        5,
+        9,
+        11,
+        12,
+        13,
+        17,
+        20,
+        28
+      ],
+      "max_log_size": 5,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        225
+      ],
+      "max_log_size": 6,
+      "pp_max_log_size": 8,
+      "expected": [
+        897
+      ]
+    },
+    {
+      "query_positions": [
+        20,
+        68
+      ],
+      "max_log_size": 7,
+      "pp_max_log_size": 5,
+      "expected": [
+        4,
+        16
+      ]
+    },
+    {
+      "query_positions": [
+        4,
+        7
+      ],
+      "max_log_size": 3,
+      "pp_max_log_size": 0,
+      "expected": []
+    },
+    {
+      "query_positions": [
+        73,
+        100,
+        109,
+        139,
+        156,
+        194,
+        210
+      ],
+      "max_log_size": 8,
+      "pp_max_log_size": 0,
+      "expected": []
     }
   ],
   "fri_folds": [

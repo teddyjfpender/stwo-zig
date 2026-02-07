@@ -4,6 +4,7 @@ const constraints_mod = @import("../constraints.zig");
 const fft_mod = @import("../fft.zig");
 const fri_mod = @import("../fri.zig");
 const pcs_mod = @import("../pcs/mod.zig");
+const pcs_utils_mod = @import("../pcs/utils.zig");
 const proof_mod = @import("../proof.zig");
 const quotients_mod = @import("../pcs/quotients.zig");
 const canonic_mod = @import("../poly/circle/canonic.zig");
@@ -131,6 +132,13 @@ const PcsQuotientsVector = struct {
     partial_numerators: [][][4]u32,
     row_quotients: [][4]u32,
     fri_answers: [][4]u32,
+};
+
+const PcsPreprocessedQueryVector = struct {
+    query_positions: []usize,
+    max_log_size: u32,
+    pp_max_log_size: u32,
+    expected: []usize,
 };
 
 const FriFoldVector = struct {
@@ -271,6 +279,7 @@ const VectorFile = struct {
     fft_m31: []FftM31Vector,
     blake3: []Blake3Vector,
     pcs_quotients: []PcsQuotientsVector,
+    pcs_preprocessed_queries: []PcsPreprocessedQueryVector,
     fri_folds: []FriFoldVector,
     fri_decommit: []FriDecommitVector,
     fri_layer_decommit: []FriLayerDecommitVector,
@@ -709,6 +718,24 @@ test "field vectors: pcs quotients parity" {
         for (v.fri_answers, 0..) |expected, i| {
             try std.testing.expectEqualSlices(u32, expected[0..], encodeQM31(fri_answers[i])[0..]);
         }
+    }
+}
+
+test "field vectors: pcs preprocessed query positions parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.pcs_preprocessed_queries.len > 0);
+    for (parsed.value.pcs_preprocessed_queries) |v| {
+        const actual = try pcs_utils_mod.preparePreprocessedQueryPositions(
+            alloc,
+            v.query_positions,
+            v.max_log_size,
+            v.pp_max_log_size,
+        );
+        defer alloc.free(actual);
+        try std.testing.expectEqualSlices(usize, v.expected, actual);
     }
 }
 

@@ -14,6 +14,7 @@ This increment targets:
 - `core/fri`
 - `core/pcs/quotients`
 - `core/pcs/verifier`
+- `core/pcs/utils`
 - `core/proof`
 - `core/verifier`
 - `core/vcs/verifier`
