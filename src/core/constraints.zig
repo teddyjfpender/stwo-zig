@@ -3,7 +3,6 @@ const circle = @import("circle.zig");
 const m31 = @import("fields/m31.zig");
 const qm31 = @import("fields/qm31.zig");
 const canonic = @import("poly/circle/canonic.zig");
-const quotients = @import("pcs/quotients.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -85,11 +84,11 @@ pub fn complexConjugateLine(
     return value.add(frac);
 }
 
-pub fn complexConjugateLineCoeffs(sample: *const quotients.PointSample, alpha: QM31) !LineCoeffs {
-    if (sample.point.y.eql(sample.point.y.complexConjugate())) return error.DegenerateLine;
-    const a = sample.value.complexConjugate().sub(sample.value);
-    const c = sample.point.complexConjugate().y.sub(sample.point.y);
-    const b = sample.value.mul(c).sub(a.mul(sample.point.y));
+pub fn complexConjugateLineCoeffs(point: circle.CirclePointQM31, value: QM31, alpha: QM31) !LineCoeffs {
+    if (point.y.eql(point.y.complexConjugate())) return error.DegenerateLine;
+    const a = value.complexConjugate().sub(value);
+    const c = point.complexConjugate().y.sub(point.y);
+    const b = value.mul(c).sub(a.mul(point.y));
     return .{
         .a = alpha.mul(a),
         .b = alpha.mul(b),

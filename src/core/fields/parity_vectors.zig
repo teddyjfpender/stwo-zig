@@ -1,15 +1,25 @@
 const std = @import("std");
 const circle_mod = @import("../circle.zig");
+const constraints_mod = @import("../constraints.zig");
 const fft_mod = @import("../fft.zig");
+const quotients_mod = @import("../pcs/quotients.zig");
+const canonic_mod = @import("../poly/circle/canonic.zig");
+const utils_mod = @import("../utils.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
 
 const CirclePointM31 = circle_mod.CirclePointM31;
+const CirclePointQM31 = circle_mod.CirclePointQM31;
 const M31_CIRCLE_GEN = circle_mod.M31_CIRCLE_GEN;
 const M31 = m31_mod.M31;
 const CM31 = cm31_mod.CM31;
 const QM31 = qm31_mod.QM31;
+const PointSample = quotients_mod.PointSample;
+const SampleWithRandomness = quotients_mod.SampleWithRandomness;
+const NumeratorData = quotients_mod.NumeratorData;
+const ColumnSampleBatch = quotients_mod.ColumnSampleBatch;
+const LineCoeffs = constraints_mod.LineCoeffs;
 
 const M31Vector = struct {
     a: u32,
@@ -61,6 +71,49 @@ const FftM31Vector = struct {
     ibutterfly: [2]u32,
 };
 
+const PointSampleVector = struct {
+    point: [2][4]u32,
+    value: [4]u32,
+};
+
+const SampleWithRandomnessVector = struct {
+    sample: PointSampleVector,
+    random_coeff: [4]u32,
+};
+
+const NumeratorDataVector = struct {
+    column_index: usize,
+    sample_value: [4]u32,
+    random_coeff: [4]u32,
+};
+
+const ColumnSampleBatchVector = struct {
+    point: [2][4]u32,
+    cols_vals_randpows: []NumeratorDataVector,
+};
+
+const LineCoeffVector = struct {
+    a: [4]u32,
+    b: [4]u32,
+    c: [4]u32,
+};
+
+const PcsQuotientsVector = struct {
+    lifting_log_size: u32,
+    column_log_sizes: [][]u32,
+    samples: [][][]PointSampleVector,
+    random_coeff: [4]u32,
+    query_positions: []usize,
+    queried_values: [][][]u32,
+    samples_with_randomness: [][][]SampleWithRandomnessVector,
+    sample_batches: []ColumnSampleBatchVector,
+    line_coeffs: [][]LineCoeffVector,
+    denominator_inverses: [][][2]u32,
+    partial_numerators: [][][4]u32,
+    row_quotients: [][4]u32,
+    fri_answers: [][4]u32,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -71,6 +124,7 @@ const VectorFile = struct {
     qm31: []QM31Vector,
     circle_m31: []CircleM31Vector,
     fft_m31: []FftM31Vector,
+    pcs_quotients: []PcsQuotientsVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -92,11 +146,128 @@ fn qm31From(v: [4]u32) QM31 {
     return QM31.fromU32Unchecked(v[0], v[1], v[2], v[3]);
 }
 
+fn encodeCM31(v: CM31) [2]u32 {
+    return .{ v.a.toU32(), v.b.toU32() };
+}
+
+fn encodeQM31(v: QM31) [4]u32 {
+    return .{
+        v.c0.a.toU32(),
+        v.c0.b.toU32(),
+        v.c1.a.toU32(),
+        v.c1.b.toU32(),
+    };
+}
+
 fn circleM31From(v: [2]u32) CirclePointM31 {
     return .{
         .x = m31From(v[0]),
         .y = m31From(v[1]),
     };
+}
+
+fn circleQM31From(v: [2][4]u32) CirclePointQM31 {
+    return .{
+        .x = qm31From(v[0]),
+        .y = qm31From(v[1]),
+    };
+}
+
+fn pointSampleFrom(v: PointSampleVector) PointSample {
+    return .{
+        .point = circleQM31From(v.point),
+        .value = qm31From(v.value),
+    };
+}
+
+fn sampleWithRandomnessFrom(v: SampleWithRandomnessVector) SampleWithRandomness {
+    return .{
+        .sample = pointSampleFrom(v.sample),
+        .random_coeff = qm31From(v.random_coeff),
+    };
+}
+
+fn decodeColumnLogSizes(
+    allocator: std.mem.Allocator,
+    encoded: [][]u32,
+) !quotients_mod.TreeVec([]u32) {
+    const trees = try allocator.alloc([]u32, encoded.len);
+    errdefer allocator.free(trees);
+
+    var initialized: usize = 0;
+    errdefer {
+        for (trees[0..initialized]) |tree| allocator.free(tree);
+    }
+
+    for (encoded, 0..) |tree, i| {
+        trees[i] = try allocator.dupe(u32, tree);
+        initialized += 1;
+    }
+    return quotients_mod.TreeVec([]u32).initOwned(trees);
+}
+
+fn decodeSamplesTree(
+    allocator: std.mem.Allocator,
+    encoded: [][][]PointSampleVector,
+) !quotients_mod.TreeVec([][]PointSample) {
+    var trees_builder = std.ArrayList([][]PointSample).init(allocator);
+    defer trees_builder.deinit();
+    errdefer {
+        for (trees_builder.items) |tree| {
+            for (tree) |col| allocator.free(col);
+            allocator.free(tree);
+        }
+    }
+
+    for (encoded) |tree| {
+        var cols_builder = std.ArrayList([]PointSample).init(allocator);
+        defer cols_builder.deinit();
+        errdefer {
+            for (cols_builder.items) |col| allocator.free(col);
+        }
+
+        for (tree) |col| {
+            const decoded_col = try allocator.alloc(PointSample, col.len);
+            errdefer allocator.free(decoded_col);
+            for (col, 0..) |sample, i| decoded_col[i] = pointSampleFrom(sample);
+            try cols_builder.append(decoded_col);
+        }
+        try trees_builder.append(try cols_builder.toOwnedSlice());
+    }
+
+    return quotients_mod.TreeVec([][]PointSample).initOwned(try trees_builder.toOwnedSlice());
+}
+
+fn decodeQueriedValuesTree(
+    allocator: std.mem.Allocator,
+    encoded: [][][]u32,
+) !quotients_mod.TreeVec([][]M31) {
+    var trees_builder = std.ArrayList([][]M31).init(allocator);
+    defer trees_builder.deinit();
+    errdefer {
+        for (trees_builder.items) |tree| {
+            for (tree) |col| allocator.free(col);
+            allocator.free(tree);
+        }
+    }
+
+    for (encoded) |tree| {
+        var cols_builder = std.ArrayList([]M31).init(allocator);
+        defer cols_builder.deinit();
+        errdefer {
+            for (cols_builder.items) |col| allocator.free(col);
+        }
+
+        for (tree) |col| {
+            const decoded_col = try allocator.alloc(M31, col.len);
+            errdefer allocator.free(decoded_col);
+            for (col, 0..) |value, i| decoded_col[i] = m31From(value);
+            try cols_builder.append(decoded_col);
+        }
+        try trees_builder.append(try cols_builder.toOwnedSlice());
+    }
+
+    return quotients_mod.TreeVec([][]M31).initOwned(try trees_builder.toOwnedSlice());
 }
 
 test "field vectors: m31 parity" {
@@ -183,5 +354,152 @@ test "field vectors: fft m31 parity" {
         fft_mod.ibutterfly(M31, &a, &b, itwid);
         try std.testing.expect(a.eql(m31From(v.ibutterfly[0])));
         try std.testing.expect(b.eql(m31From(v.ibutterfly[1])));
+    }
+}
+
+test "field vectors: pcs quotients parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.pcs_quotients.len > 0);
+    for (parsed.value.pcs_quotients) |v| {
+        var column_log_sizes = try decodeColumnLogSizes(alloc, v.column_log_sizes);
+        defer column_log_sizes.deinitDeep(alloc);
+        var samples = try decodeSamplesTree(alloc, v.samples);
+        defer samples.deinitDeep(alloc);
+        var queried_values = try decodeQueriedValuesTree(alloc, v.queried_values);
+        defer queried_values.deinitDeep(alloc);
+        const random_coeff = qm31From(v.random_coeff);
+
+        var samples_with_randomness = try quotients_mod.buildSamplesWithRandomnessAndPeriodicity(
+            alloc,
+            samples,
+            column_log_sizes,
+            v.lifting_log_size,
+            random_coeff,
+        );
+        defer samples_with_randomness.deinitDeep(alloc);
+
+        try std.testing.expectEqual(v.samples_with_randomness.len, samples_with_randomness.items.len);
+        for (v.samples_with_randomness, 0..) |expected_tree, tree_idx| {
+            try std.testing.expectEqual(expected_tree.len, samples_with_randomness.items[tree_idx].len);
+            for (expected_tree, 0..) |expected_col, col_idx| {
+                try std.testing.expectEqual(expected_col.len, samples_with_randomness.items[tree_idx][col_idx].len);
+                for (expected_col, 0..) |expected_sample, sample_idx| {
+                    const actual = samples_with_randomness.items[tree_idx][col_idx][sample_idx];
+                    const decoded_expected = sampleWithRandomnessFrom(expected_sample);
+                    try std.testing.expect(actual.sample.point.eql(decoded_expected.sample.point));
+                    try std.testing.expect(actual.sample.value.eql(decoded_expected.sample.value));
+                    try std.testing.expect(actual.random_coeff.eql(decoded_expected.random_coeff));
+                }
+            }
+        }
+
+        var flat_samples = std.ArrayList([]const SampleWithRandomness).init(alloc);
+        defer flat_samples.deinit();
+        for (samples_with_randomness.items) |tree| {
+            for (tree) |col| try flat_samples.append(col);
+        }
+
+        const sample_batches = try ColumnSampleBatch.newVec(alloc, flat_samples.items);
+        defer ColumnSampleBatch.deinitSlice(alloc, sample_batches);
+
+        try std.testing.expectEqual(v.sample_batches.len, sample_batches.len);
+        for (v.sample_batches, 0..) |expected_batch, batch_idx| {
+            const actual_batch = sample_batches[batch_idx];
+            try std.testing.expect(actual_batch.point.eql(circleQM31From(expected_batch.point)));
+            try std.testing.expectEqual(expected_batch.cols_vals_randpows.len, actual_batch.cols_vals_randpows.len);
+            for (expected_batch.cols_vals_randpows, 0..) |expected_num, num_idx| {
+                const actual_num: NumeratorData = actual_batch.cols_vals_randpows[num_idx];
+                try std.testing.expectEqual(expected_num.column_index, actual_num.column_index);
+                try std.testing.expect(actual_num.sample_value.eql(qm31From(expected_num.sample_value)));
+                try std.testing.expect(actual_num.random_coeff.eql(qm31From(expected_num.random_coeff)));
+            }
+        }
+
+        var q_consts = try quotients_mod.quotientConstants(alloc, sample_batches);
+        defer q_consts.deinit(alloc);
+
+        try std.testing.expectEqual(v.line_coeffs.len, q_consts.line_coeffs.len);
+        for (v.line_coeffs, 0..) |expected_batch_coeffs, batch_idx| {
+            try std.testing.expectEqual(expected_batch_coeffs.len, q_consts.line_coeffs[batch_idx].len);
+            for (expected_batch_coeffs, 0..) |expected_coeff, coeff_idx| {
+                const actual: LineCoeffs = q_consts.line_coeffs[batch_idx][coeff_idx];
+                try std.testing.expect(actual.a.eql(qm31From(expected_coeff.a)));
+                try std.testing.expect(actual.b.eql(qm31From(expected_coeff.b)));
+                try std.testing.expect(actual.c.eql(qm31From(expected_coeff.c)));
+            }
+        }
+
+        var queried_values_flat = std.ArrayList([]const M31).init(alloc);
+        defer queried_values_flat.deinit();
+        for (queried_values.items) |tree| {
+            for (tree) |col| try queried_values_flat.append(col);
+        }
+
+        const row_values = try alloc.alloc(M31, queried_values_flat.items.len);
+        defer alloc.free(row_values);
+        const sample_points = try alloc.alloc(CirclePointQM31, sample_batches.len);
+        defer alloc.free(sample_points);
+        for (sample_batches, 0..) |batch, i| sample_points[i] = batch.point;
+
+        const domain = canonic_mod.CanonicCoset.new(v.lifting_log_size).circleDomain();
+        try std.testing.expectEqual(v.query_positions.len, v.denominator_inverses.len);
+        try std.testing.expectEqual(v.query_positions.len, v.partial_numerators.len);
+        try std.testing.expectEqual(v.query_positions.len, v.row_quotients.len);
+        try std.testing.expectEqual(v.query_positions.len, v.fri_answers.len);
+
+        for (v.query_positions, 0..) |position, row_idx| {
+            for (queried_values_flat.items, 0..) |column, col_idx| {
+                row_values[col_idx] = column[row_idx];
+            }
+            const domain_point = domain.at(utils_mod.bitReverseIndex(position, v.lifting_log_size));
+
+            const den_inv = try quotients_mod.denominatorInverses(alloc, sample_points, domain_point);
+            defer alloc.free(den_inv);
+            try std.testing.expectEqual(v.denominator_inverses[row_idx].len, den_inv.len);
+            for (v.denominator_inverses[row_idx], 0..) |expected_inv, i| {
+                const encoded_inv = encodeCM31(den_inv[i]);
+                try std.testing.expectEqualSlices(u32, expected_inv[0..], encoded_inv[0..]);
+            }
+
+            try std.testing.expectEqual(v.partial_numerators[row_idx].len, sample_batches.len);
+            for (sample_batches, 0..) |batch, batch_idx| {
+                const partial = try quotients_mod.accumulateRowPartialNumerators(
+                    &batch,
+                    row_values,
+                    q_consts.line_coeffs[batch_idx],
+                );
+                try std.testing.expectEqualSlices(
+                    u32,
+                    v.partial_numerators[row_idx][batch_idx][0..],
+                    encodeQM31(partial)[0..],
+                );
+            }
+
+            const row_quot = try quotients_mod.accumulateRowQuotients(
+                alloc,
+                sample_batches,
+                row_values,
+                &q_consts,
+                domain_point,
+            );
+            try std.testing.expectEqualSlices(u32, v.row_quotients[row_idx][0..], encodeQM31(row_quot)[0..]);
+        }
+
+        const fri_answers = try quotients_mod.friAnswers(
+            alloc,
+            column_log_sizes,
+            samples,
+            random_coeff,
+            v.query_positions,
+            queried_values,
+            v.lifting_log_size,
+        );
+        defer alloc.free(fri_answers);
+        for (v.fri_answers, 0..) |expected, i| {
+            try std.testing.expectEqualSlices(u32, expected[0..], encodeQM31(fri_answers[i])[0..]);
+        }
     }
 }
