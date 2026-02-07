@@ -1,8 +1,16 @@
 const std = @import("std");
+const circle = @import("circle.zig");
+const fft = @import("fft.zig");
+const m31 = @import("fields/m31.zig");
 const qm31 = @import("fields/qm31.zig");
 const line = @import("poly/line.zig");
+const canonic = @import("poly/circle/canonic.zig");
+const circle_domain = @import("poly/circle/domain.zig");
+const queries_mod = @import("queries.zig");
+const core_utils = @import("utils.zig");
 const vcs_verifier = @import("vcs_lifted/verifier.zig");
 
+const M31 = m31.M31;
 const QM31 = qm31.QM31;
 
 /// FRI proof configuration.
@@ -194,6 +202,221 @@ pub fn ExtendedFriProof(comptime H: type) type {
     };
 }
 
+pub const SparseEvaluation = struct {
+    subset_evals: [][]QM31,
+    subset_domain_initial_indexes: []usize,
+
+    pub const Error = error{
+        InvalidSubsetSize,
+        ShapeMismatch,
+    };
+
+    pub fn initOwned(
+        subset_evals: [][]QM31,
+        subset_domain_initial_indexes: []usize,
+    ) Error!SparseEvaluation {
+        const fold_factor = @as(usize, 1) << @intCast(FOLD_STEP);
+        for (subset_evals) |subset| {
+            if (subset.len != fold_factor) return Error.InvalidSubsetSize;
+        }
+        if (subset_evals.len != subset_domain_initial_indexes.len) return Error.ShapeMismatch;
+        return .{
+            .subset_evals = subset_evals,
+            .subset_domain_initial_indexes = subset_domain_initial_indexes,
+        };
+    }
+
+    pub fn deinit(self: *SparseEvaluation, allocator: std.mem.Allocator) void {
+        for (self.subset_evals) |subset| allocator.free(subset);
+        allocator.free(self.subset_evals);
+        allocator.free(self.subset_domain_initial_indexes);
+        self.* = undefined;
+    }
+
+    pub fn foldLineSubsets(
+        self: SparseEvaluation,
+        allocator: std.mem.Allocator,
+        fold_alpha: QM31,
+        source_domain: line.LineDomain,
+    ) ![]QM31 {
+        const out = try allocator.alloc(QM31, self.subset_evals.len);
+        var i: usize = 0;
+        while (i < self.subset_evals.len) : (i += 1) {
+            const domain_initial_index = self.subset_domain_initial_indexes[i];
+            const fold_domain_initial = source_domain.coset().indexAt(domain_initial_index);
+            const fold_domain = try line.LineDomain.init(circle.Coset.new(fold_domain_initial, FOLD_STEP));
+            const folded = try foldLine(allocator, self.subset_evals[i], fold_domain, fold_alpha);
+            defer allocator.free(folded.values);
+            out[i] = folded.values[0];
+        }
+        return out;
+    }
+
+    pub fn foldCircleSubsets(
+        self: SparseEvaluation,
+        allocator: std.mem.Allocator,
+        fold_alpha: QM31,
+        source_domain: circle_domain.CircleDomain,
+    ) ![]QM31 {
+        const out = try allocator.alloc(QM31, self.subset_evals.len);
+        var i: usize = 0;
+        while (i < self.subset_evals.len) : (i += 1) {
+            const domain_initial_index = self.subset_domain_initial_indexes[i];
+            const fold_domain_initial = source_domain.indexAt(domain_initial_index);
+            const fold_domain = circle_domain.CircleDomain.new(
+                circle.Coset.new(fold_domain_initial, CIRCLE_TO_LINE_FOLD_STEP - 1),
+            );
+            const buffer = try allocator.alloc(QM31, fold_domain.half_coset.size());
+            defer allocator.free(buffer);
+            @memset(buffer, QM31.zero());
+            try foldCircleIntoLine(buffer, self.subset_evals[i], fold_domain, fold_alpha);
+            out[i] = buffer[0];
+        }
+        return out;
+    }
+};
+
+pub const ComputeDecommitmentResult = struct {
+    decommitment_positions: []usize,
+    sparse_evaluation: SparseEvaluation,
+    consumed_witness: usize,
+
+    pub fn deinit(self: *ComputeDecommitmentResult, allocator: std.mem.Allocator) void {
+        allocator.free(self.decommitment_positions);
+        self.sparse_evaluation.deinit(allocator);
+        self.* = undefined;
+    }
+};
+
+pub fn computeDecommitmentPositionsAndRebuildEvals(
+    allocator: std.mem.Allocator,
+    queries: queries_mod.Queries,
+    query_evals: []const QM31,
+    witness_evals: []const QM31,
+    fold_step: u32,
+) !ComputeDecommitmentResult {
+    if (query_evals.len != queries.positions.len) return error.ShapeMismatch;
+
+    var decommitment_positions = std.ArrayList(usize).init(allocator);
+    defer decommitment_positions.deinit();
+    var subset_evals = std.ArrayList([]QM31).init(allocator);
+    defer subset_evals.deinit();
+    errdefer {
+        for (subset_evals.items) |subset| allocator.free(subset);
+    }
+    var subset_domain_initial_indexes = std.ArrayList(usize).init(allocator);
+    defer subset_domain_initial_indexes.deinit();
+
+    const subset_size: usize = @as(usize, 1) << @intCast(fold_step);
+
+    var query_idx: usize = 0;
+    var witness_idx: usize = 0;
+    while (query_idx < queries.positions.len) {
+        const subset_group = queries.positions[query_idx] >> @intCast(fold_step);
+        const subset_start = subset_group << @intCast(fold_step);
+
+        var subset_end_idx = query_idx;
+        while (subset_end_idx < queries.positions.len and
+            (queries.positions[subset_end_idx] >> @intCast(fold_step)) == subset_group)
+        {
+            subset_end_idx += 1;
+        }
+
+        var pos: usize = subset_start;
+        while (pos < subset_start + subset_size) : (pos += 1) {
+            try decommitment_positions.append(pos);
+        }
+
+        const subset = try allocator.alloc(QM31, subset_size);
+        errdefer allocator.free(subset);
+
+        var subset_query_idx = query_idx;
+        var subset_pos: usize = 0;
+        while (subset_pos < subset_size) : (subset_pos += 1) {
+            const absolute_pos = subset_start + subset_pos;
+            if (subset_query_idx < subset_end_idx and queries.positions[subset_query_idx] == absolute_pos) {
+                subset[subset_pos] = query_evals[subset_query_idx];
+                subset_query_idx += 1;
+            } else {
+                if (witness_idx >= witness_evals.len) return error.InsufficientWitness;
+                subset[subset_pos] = witness_evals[witness_idx];
+                witness_idx += 1;
+            }
+        }
+
+        try subset_evals.append(subset);
+        try subset_domain_initial_indexes.append(
+            core_utils.bitReverseIndex(subset_start, queries.log_domain_size),
+        );
+        query_idx = subset_end_idx;
+    }
+
+    return .{
+        .decommitment_positions = try decommitment_positions.toOwnedSlice(),
+        .sparse_evaluation = try SparseEvaluation.initOwned(
+            try subset_evals.toOwnedSlice(),
+            try subset_domain_initial_indexes.toOwnedSlice(),
+        ),
+        .consumed_witness = witness_idx,
+    };
+}
+
+pub const FoldLineResult = struct {
+    domain: line.LineDomain,
+    values: []QM31,
+};
+
+pub fn foldLine(
+    allocator: std.mem.Allocator,
+    eval: []const QM31,
+    domain: line.LineDomain,
+    alpha: QM31,
+) !FoldLineResult {
+    if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
+
+    const folded_values = try allocator.alloc(QM31, eval.len / 2);
+    var i: usize = 0;
+    while (i < folded_values.len) : (i += 1) {
+        const x = domain.at(core_utils.bitReverseIndex(i << @intCast(FOLD_STEP), domain.logSize()));
+        const inv_x = try x.inv();
+        var f0 = eval[i * 2];
+        var f1 = eval[i * 2 + 1];
+        fft.ibutterfly(QM31, &f0, &f1, inv_x);
+        folded_values[i] = f0.add(alpha.mul(f1));
+    }
+
+    return .{
+        .domain = domain.double(),
+        .values = folded_values,
+    };
+}
+
+pub fn foldCircleIntoLine(
+    dst: []QM31,
+    src: []const QM31,
+    src_domain: circle_domain.CircleDomain,
+    alpha: QM31,
+) !void {
+    if ((src.len >> @intCast(CIRCLE_TO_LINE_FOLD_STEP)) != dst.len) {
+        return error.ShapeMismatch;
+    }
+
+    const alpha_sq = alpha.square();
+    var i: usize = 0;
+    while (i < dst.len) : (i += 1) {
+        const p = src_domain.at(core_utils.bitReverseIndex(
+            i << @intCast(CIRCLE_TO_LINE_FOLD_STEP),
+            src_domain.logSize(),
+        ));
+        const inv_py = try p.y.inv();
+        var f0_px = src[i * 2];
+        var f1_px = src[i * 2 + 1];
+        fft.ibutterfly(QM31, &f0_px, &f1_px, inv_py);
+        const f_prime = alpha.mul(f1_px).add(f0_px);
+        dst[i] = dst[i].mul(alpha_sq).add(f_prime);
+    }
+}
+
 pub fn accumulateLine(layer_query_evals: []QM31, column_query_evals: []const QM31, folding_alpha: QM31) void {
     std.debug.assert(layer_query_evals.len == column_query_evals.len);
     const alpha_sq = folding_alpha.square();
@@ -242,6 +465,130 @@ test "fri: accumulate line" {
     const alpha_sq = alpha.square();
     try std.testing.expect(layer[0].eql(QM31.fromU32Unchecked(1, 0, 0, 0).mul(alpha_sq).add(folded[0])));
     try std.testing.expect(layer[1].eql(QM31.fromU32Unchecked(2, 0, 0, 0).mul(alpha_sq).add(folded[1])));
+}
+
+test "fri: compute decommitment positions and rebuild evals" {
+    const alloc = std.testing.allocator;
+    const raw_queries = [_]usize{ 1, 2, 5 };
+    var queries = try queries_mod.Queries.init(alloc, raw_queries[0..], 3);
+    defer queries.deinit(alloc);
+
+    const q1 = QM31.fromU32Unchecked(11, 0, 0, 0);
+    const q2 = QM31.fromU32Unchecked(22, 0, 0, 0);
+    const q5 = QM31.fromU32Unchecked(55, 0, 0, 0);
+    const query_evals = [_]QM31{ q1, q2, q5 };
+    const witness = [_]QM31{
+        QM31.fromU32Unchecked(10, 0, 0, 0),
+        QM31.fromU32Unchecked(30, 0, 0, 0),
+        QM31.fromU32Unchecked(40, 0, 0, 0),
+    };
+
+    var result = try computeDecommitmentPositionsAndRebuildEvals(
+        alloc,
+        queries,
+        query_evals[0..],
+        witness[0..],
+        1,
+    );
+    defer result.deinit(alloc);
+
+    try std.testing.expectEqualSlices(usize, &[_]usize{ 0, 1, 2, 3, 4, 5 }, result.decommitment_positions);
+    try std.testing.expectEqual(@as(usize, 3), result.sparse_evaluation.subset_evals.len);
+    try std.testing.expectEqual(@as(usize, 3), result.consumed_witness);
+    try std.testing.expect(result.sparse_evaluation.subset_evals[0][0].eql(witness[0]));
+    try std.testing.expect(result.sparse_evaluation.subset_evals[0][1].eql(q1));
+    try std.testing.expect(result.sparse_evaluation.subset_evals[1][0].eql(q2));
+    try std.testing.expect(result.sparse_evaluation.subset_evals[1][1].eql(witness[1]));
+    try std.testing.expect(result.sparse_evaluation.subset_evals[2][0].eql(witness[2]));
+    try std.testing.expect(result.sparse_evaluation.subset_evals[2][1].eql(q5));
+}
+
+test "fri: compute decommitment fails on insufficient witness" {
+    const alloc = std.testing.allocator;
+    const raw_queries = [_]usize{ 1, 2, 5 };
+    var queries = try queries_mod.Queries.init(alloc, raw_queries[0..], 3);
+    defer queries.deinit(alloc);
+
+    const query_evals = [_]QM31{
+        QM31.fromU32Unchecked(11, 0, 0, 0),
+        QM31.fromU32Unchecked(22, 0, 0, 0),
+        QM31.fromU32Unchecked(55, 0, 0, 0),
+    };
+    const short_witness = [_]QM31{
+        QM31.fromU32Unchecked(10, 0, 0, 0),
+        QM31.fromU32Unchecked(30, 0, 0, 0),
+    };
+
+    try std.testing.expectError(
+        error.InsufficientWitness,
+        computeDecommitmentPositionsAndRebuildEvals(
+            alloc,
+            queries,
+            query_evals[0..],
+            short_witness[0..],
+            1,
+        ),
+    );
+}
+
+test "fri: fold line matches pairwise butterfly formula" {
+    const alloc = std.testing.allocator;
+    const domain = try line.LineDomain.init(circle.Coset.halfOdds(2));
+    const alpha = QM31.fromU32Unchecked(9, 0, 0, 0);
+    const eval = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 0, 0),
+        QM31.fromU32Unchecked(3, 4, 0, 0),
+        QM31.fromU32Unchecked(5, 6, 0, 0),
+        QM31.fromU32Unchecked(7, 8, 0, 0),
+    };
+
+    const folded = try foldLine(alloc, eval[0..], domain, alpha);
+    defer alloc.free(folded.values);
+
+    try std.testing.expectEqual(@as(u32, domain.logSize() - 1), folded.domain.logSize());
+    try std.testing.expectEqual(@as(usize, 2), folded.values.len);
+
+    var expected0_f0 = eval[0];
+    var expected0_f1 = eval[1];
+    fft.ibutterfly(QM31, &expected0_f0, &expected0_f1, try domain.at(core_utils.bitReverseIndex(0, domain.logSize())).inv());
+    const expected0 = expected0_f0.add(alpha.mul(expected0_f1));
+
+    var expected1_f0 = eval[2];
+    var expected1_f1 = eval[3];
+    fft.ibutterfly(QM31, &expected1_f0, &expected1_f1, try domain.at(core_utils.bitReverseIndex(2, domain.logSize())).inv());
+    const expected1 = expected1_f0.add(alpha.mul(expected1_f1));
+
+    try std.testing.expect(folded.values[0].eql(expected0));
+    try std.testing.expect(folded.values[1].eql(expected1));
+}
+
+test "fri: fold circle into line accumulates correctly" {
+    const src_domain = canonic.CanonicCoset.new(2).circleDomain();
+    const alpha = QM31.fromU32Unchecked(7, 0, 0, 0);
+    const src = [_]QM31{
+        QM31.fromU32Unchecked(1, 0, 0, 0),
+        QM31.fromU32Unchecked(2, 0, 0, 0),
+        QM31.fromU32Unchecked(3, 0, 0, 0),
+        QM31.fromU32Unchecked(4, 0, 0, 0),
+    };
+    var dst = [_]QM31{ QM31.zero(), QM31.zero() };
+
+    try foldCircleIntoLine(dst[0..], src[0..], src_domain, alpha);
+
+    var expected = [_]QM31{ QM31.zero(), QM31.zero() };
+    const alpha_sq = alpha.square();
+    var i: usize = 0;
+    while (i < expected.len) : (i += 1) {
+        const p = src_domain.at(core_utils.bitReverseIndex(i << @intCast(CIRCLE_TO_LINE_FOLD_STEP), src_domain.logSize()));
+        var f0 = src[i * 2];
+        var f1 = src[i * 2 + 1];
+        fft.ibutterfly(QM31, &f0, &f1, try p.y.inv());
+        const f_prime = alpha.mul(f1).add(f0);
+        expected[i] = expected[i].mul(alpha_sq).add(f_prime);
+    }
+
+    try std.testing.expect(dst[0].eql(expected[0]));
+    try std.testing.expect(dst[1].eql(expected[1]));
 }
 
 test "fri proof containers: deinit owned buffers" {
