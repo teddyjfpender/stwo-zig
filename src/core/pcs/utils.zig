@@ -18,12 +18,7 @@ pub fn TreeVec(comptime T: type) type {
 
         /// Frees nested slices (when `T` is a slice type) and the outer storage.
         pub fn deinitDeep(self: *Self, allocator: std.mem.Allocator) void {
-            const ti = @typeInfo(T);
-            if (ti != .pointer or ti.pointer.size != .slice) {
-                @compileError("deinitDeep requires TreeVec of slices");
-            }
-            for (self.items) |inner| allocator.free(inner);
-            allocator.free(self.items);
+            deepFree(T, allocator, self.items);
             self.* = undefined;
         }
 
@@ -44,6 +39,38 @@ pub fn TreeVec(comptime T: type) type {
     };
 }
 
+fn deepFree(comptime T: type, allocator: std.mem.Allocator, slice: []T) void {
+    const ti = @typeInfo(T);
+    if (ti == .pointer and ti.pointer.size == .slice) {
+        const Child = ti.pointer.child;
+        for (slice) |inner| {
+            deepFree(Child, allocator, inner);
+        }
+    }
+    allocator.free(slice);
+}
+
+fn cloneValue(comptime T: type, allocator: std.mem.Allocator, value: T) !T {
+    const ti = @typeInfo(T);
+    if (ti == .pointer and ti.pointer.size == .slice) {
+        const Child = ti.pointer.child;
+        const out = try allocator.alloc(Child, value.len);
+        var i: usize = 0;
+        while (i < value.len) : (i += 1) {
+            out[i] = try cloneValue(Child, allocator, value[i]);
+        }
+        return out;
+    }
+    return value;
+}
+
+fn freeValue(comptime T: type, allocator: std.mem.Allocator, value: T) void {
+    const ti = @typeInfo(T);
+    if (ti == .pointer and ti.pointer.size == .slice) {
+        deepFree(ti.pointer.child, allocator, value);
+    }
+}
+
 /// Concatenates tree column vectors by tree index.
 ///
 /// Input type: `[]const TreeVec([]T)`.
@@ -54,11 +81,18 @@ pub fn concatCols(comptime T: type, allocator: std.mem.Allocator, trees: []const
     var builders = try allocator.alloc(std.ArrayList(T), n_trees);
     defer allocator.free(builders);
     for (builders) |*b| b.* = std.ArrayList(T).init(allocator);
-    defer for (builders) |*b| b.deinit();
+    defer {
+        for (builders) |*b| {
+            for (b.items) |item| freeValue(T, allocator, item);
+            b.deinit();
+        }
+    }
 
     for (trees) |tree| {
         for (tree.items, 0..) |cols, tree_index| {
-            try builders[tree_index].appendSlice(cols);
+            for (cols) |col| {
+                try builders[tree_index].append(try cloneValue(T, allocator, col));
+            }
         }
     }
 
@@ -77,15 +111,24 @@ pub fn appendCols(comptime T: type, allocator: std.mem.Allocator, self: *TreeVec
     var builders = try allocator.alloc(std.ArrayList(T), n_trees);
     defer allocator.free(builders);
     for (builders) |*b| b.* = std.ArrayList(T).init(allocator);
-    defer for (builders) |*b| b.deinit();
+    defer {
+        for (builders) |*b| {
+            for (b.items) |item| freeValue(T, allocator, item);
+            b.deinit();
+        }
+    }
 
     var i: usize = 0;
     while (i < self.items.len) : (i += 1) {
-        try builders[i].appendSlice(self.items[i]);
+        for (self.items[i]) |item| {
+            try builders[i].append(try cloneValue(T, allocator, item));
+        }
     }
     i = 0;
     while (i < other.items.len) : (i += 1) {
-        try builders[i].appendSlice(other.items[i]);
+        for (other.items[i]) |item| {
+            try builders[i].append(try cloneValue(T, allocator, item));
+        }
     }
 
     self.deinitDeep(allocator);
