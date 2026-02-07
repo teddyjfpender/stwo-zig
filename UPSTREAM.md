@@ -31,6 +31,7 @@ This increment targets:
 - `prover/vcs_lifted/ops`
 - `prover/line`
 - `prover/fri` (decommit helper + layer decommit slices)
+- `prover/channel` (logging channel slice)
 - `prover/secure_column`
 - `tracing/mod`
 
