@@ -25,6 +25,7 @@ use stwo::core::poly::line::{LineDomain, LinePoly};
 use stwo::core::proof::StarkProof;
 use stwo::core::utils::bit_reverse_index;
 use stwo::core::vcs::blake2_hash::Blake2sHash;
+use stwo::core::vcs::blake3_hash::{Blake3Hash, Blake3Hasher};
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher as VcsMerkleHasher;
 use stwo::core::vcs::MerkleHasher;
 use stwo::core::vcs::verifier::{MerkleDecommitment, MerkleVerifier, MerkleVerificationError};
@@ -40,6 +41,7 @@ const FRI_FOLD_VECTOR_COUNT: usize = 32;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 const VCS_VERIFIER_VECTOR_COUNT: usize = 24;
+const BLAKE3_VECTOR_COUNT: usize = 64;
 
 #[derive(Debug, Clone, Serialize)]
 struct Meta {
@@ -100,6 +102,15 @@ struct FftM31Vector {
     twid: u32,
     butterfly: [u32; 2],
     ibutterfly: [u32; 2],
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct Blake3Vector {
+    data: Vec<u8>,
+    hash: [u8; 32],
+    left: [u8; 32],
+    right: [u8; 32],
+    concat_hash: [u8; 32],
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -227,6 +238,7 @@ struct FieldVectors {
     qm31: Vec<QM31Vector>,
     circle_m31: Vec<CircleM31Vector>,
     fft_m31: Vec<FftM31Vector>,
+    blake3: Vec<Blake3Vector>,
     pcs_quotients: Vec<PcsQuotientsVector>,
     fri_folds: Vec<FriFoldVector>,
     proof_extract_oods: Vec<ProofExtractOodsVector>,
@@ -281,6 +293,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let mut qm31 = Vec::with_capacity(sample_count);
     let mut circle_m31 = Vec::with_capacity(sample_count);
     let mut fft_m31 = Vec::with_capacity(sample_count);
+    let mut blake3 = Vec::with_capacity(BLAKE3_VECTOR_COUNT);
 
     for _ in 0..sample_count {
         let a = sample_m31(state, true);
@@ -373,6 +386,29 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
     let vcs_verifier = generate_vcs_verifier_vectors(state, VCS_VERIFIER_VECTOR_COUNT);
 
+    for _ in 0..BLAKE3_VECTOR_COUNT {
+        let data_len = next_u64(state) as usize % 96;
+        let mut data = vec![0u8; data_len];
+        fill_bytes(state, &mut data);
+        let hash = Blake3Hasher::hash(&data);
+
+        let mut left_data = vec![0u8; next_u64(state) as usize % 64];
+        fill_bytes(state, &mut left_data);
+        let mut right_data = vec![0u8; next_u64(state) as usize % 64];
+        fill_bytes(state, &mut right_data);
+        let left = Blake3Hasher::hash(&left_data);
+        let right = Blake3Hasher::hash(&right_data);
+        let concat_hash = Blake3Hasher::concat_and_hash(&left, &right);
+
+        blake3.push(Blake3Vector {
+            data,
+            hash: encode_blake3_hash(hash),
+            left: encode_blake3_hash(left),
+            right: encode_blake3_hash(right),
+            concat_hash: encode_blake3_hash(concat_hash),
+        });
+    }
+
     FieldVectors {
         meta: Meta {
             upstream_commit: UPSTREAM_COMMIT,
@@ -383,6 +419,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         qm31,
         circle_m31,
         fft_m31,
+        blake3,
         pcs_quotients,
         fri_folds,
         proof_extract_oods,
@@ -1138,6 +1175,12 @@ fn encode_hash(x: Blake2sHash) -> [u8; 32] {
     x.0
 }
 
+fn encode_blake3_hash(x: Blake3Hash) -> [u8; 32] {
+    x.as_ref()
+        .try_into()
+        .expect("blake3 hash should be 32 bytes")
+}
+
 fn encode_cm31(x: CM31) -> [u32; 2] {
     [x.0 .0, x.1 .0]
 }
@@ -1164,10 +1207,16 @@ fn sample_scalar_u128(state: &mut u64) -> u128 {
 
 fn sample_hash(state: &mut u64) -> Blake2sHash {
     let mut bytes = [0u8; 32];
-    for chunk in bytes.chunks_exact_mut(8) {
-        chunk.copy_from_slice(&next_u64(state).to_le_bytes());
-    }
+    fill_bytes(state, &mut bytes);
     Blake2sHash(bytes)
+}
+
+fn fill_bytes(state: &mut u64, bytes: &mut [u8]) {
+    for chunk in bytes.chunks_mut(8) {
+        let block = next_u64(state).to_le_bytes();
+        let n = chunk.len();
+        chunk.copy_from_slice(&block[..n]);
+    }
 }
 
 fn sample_m31(state: &mut u64, non_zero: bool) -> M31 {

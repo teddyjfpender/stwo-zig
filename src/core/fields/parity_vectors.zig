@@ -10,6 +10,7 @@ const canonic_mod = @import("../poly/circle/canonic.zig");
 const line_mod = @import("../poly/line.zig");
 const utils_mod = @import("../utils.zig");
 const vcs_verifier_mod = @import("../vcs/verifier.zig");
+const vcs_blake3 = @import("../vcs/blake3_hash.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
@@ -74,6 +75,14 @@ const FftM31Vector = struct {
     twid: u32,
     butterfly: [2]u32,
     ibutterfly: [2]u32,
+};
+
+const Blake3Vector = struct {
+    data: []u8,
+    hash: [32]u8,
+    left: [32]u8,
+    right: [32]u8,
+    concat_hash: [32]u8,
 };
 
 const PointSampleVector = struct {
@@ -190,6 +199,7 @@ const VectorFile = struct {
     qm31: []QM31Vector,
     circle_m31: []CircleM31Vector,
     fft_m31: []FftM31Vector,
+    blake3: []Blake3Vector,
     pcs_quotients: []PcsQuotientsVector,
     fri_folds: []FriFoldVector,
     proof_extract_oods: []ProofExtractOodsVector,
@@ -462,6 +472,20 @@ test "field vectors: fft m31 parity" {
         fft_mod.ibutterfly(M31, &a, &b, itwid);
         try std.testing.expect(a.eql(m31From(v.ibutterfly[0])));
         try std.testing.expect(b.eql(m31From(v.ibutterfly[1])));
+    }
+}
+
+test "field vectors: blake3 parity" {
+    var parsed = try parseVectors(std.testing.allocator);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.blake3.len > 0);
+    for (parsed.value.blake3) |v| {
+        const hash = vcs_blake3.Blake3Hasher.hash(v.data);
+        try std.testing.expectEqualSlices(u8, v.hash[0..], hash[0..]);
+
+        const concat = vcs_blake3.Blake3Hasher.concatAndHash(v.left, v.right);
+        try std.testing.expectEqualSlices(u8, v.concat_hash[0..], concat[0..]);
     }
 }
 
