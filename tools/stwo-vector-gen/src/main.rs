@@ -1,8 +1,9 @@
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde::Serialize;
+use stwo::core::circle::{CirclePoint, M31_CIRCLE_GEN, M31_CIRCLE_LOG_ORDER};
 use stwo::core::fields::cm31::CM31;
 use stwo::core::fields::m31::{M31, P};
 use stwo::core::fields::qm31::QM31;
@@ -51,11 +52,25 @@ struct QM31Vector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct CircleM31Vector {
+    a_scalar: u64,
+    b_scalar: u64,
+    log_order_a: u32,
+    a: [u32; 2],
+    b: [u32; 2],
+    add: [u32; 2],
+    sub: [u32; 2],
+    double_a: [u32; 2],
+    conjugate_a: [u32; 2],
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct FieldVectors {
     meta: Meta,
     m31: Vec<M31Vector>,
     cm31: Vec<CM31Vector>,
     qm31: Vec<QM31Vector>,
+    circle_m31: Vec<CircleM31Vector>,
 }
 
 fn main() {
@@ -103,6 +118,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let mut m31 = Vec::with_capacity(sample_count);
     let mut cm31 = Vec::with_capacity(sample_count);
     let mut qm31 = Vec::with_capacity(sample_count);
+    let mut circle_m31 = Vec::with_capacity(sample_count);
 
     for _ in 0..sample_count {
         let a = sample_m31(state, true);
@@ -146,6 +162,26 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         });
     }
 
+    for _ in 0..sample_count {
+        let a_scalar = sample_scalar(state);
+        let b_scalar = sample_scalar(state);
+        let a = M31_CIRCLE_GEN.mul(a_scalar as u128);
+        let b = M31_CIRCLE_GEN.mul(b_scalar as u128);
+        let log_order_a = a.log_order();
+        debug_assert!(log_order_a <= M31_CIRCLE_LOG_ORDER);
+        circle_m31.push(CircleM31Vector {
+            a_scalar,
+            b_scalar,
+            log_order_a,
+            a: encode_circle_point(a),
+            b: encode_circle_point(b),
+            add: encode_circle_point(a + b),
+            sub: encode_circle_point(a - b),
+            double_a: encode_circle_point(a.double()),
+            conjugate_a: encode_circle_point(a.conjugate()),
+        });
+    }
+
     FieldVectors {
         meta: Meta {
             upstream_commit: UPSTREAM_COMMIT,
@@ -154,6 +190,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         m31,
         cm31,
         qm31,
+        circle_m31,
     }
 }
 
@@ -167,6 +204,14 @@ fn encode_cm31(x: CM31) -> [u32; 2] {
 
 fn encode_qm31(x: QM31) -> [u32; 4] {
     [x.0 .0 .0, x.0 .1 .0, x.1 .0 .0, x.1 .1 .0]
+}
+
+fn encode_circle_point(p: CirclePoint<M31>) -> [u32; 2] {
+    [p.x.0, p.y.0]
+}
+
+fn sample_scalar(state: &mut u64) -> u64 {
+    next_u64(state) & ((1u64 << M31_CIRCLE_LOG_ORDER) - 1)
 }
 
 fn sample_m31(state: &mut u64, non_zero: bool) -> M31 {
@@ -213,9 +258,4 @@ fn next_u64(state: &mut u64) -> u64 {
     x ^= x >> 27;
     *state = x;
     x.wrapping_mul(0x2545_f491_4f6c_dd1d)
-}
-
-#[allow(dead_code)]
-fn _assert_relative(path: &Path) {
-    let _ = path;
 }
