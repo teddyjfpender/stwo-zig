@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::collections::BTreeMap;
 
 use serde::Serialize;
 use stwo::core::circle::{
@@ -24,7 +25,10 @@ use stwo::core::poly::line::{LineDomain, LinePoly};
 use stwo::core::proof::StarkProof;
 use stwo::core::utils::bit_reverse_index;
 use stwo::core::vcs::blake2_hash::Blake2sHash;
-use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher;
+use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher as VcsMerkleHasher;
+use stwo::core::vcs::MerkleHasher;
+use stwo::core::vcs::verifier::{MerkleDecommitment, MerkleVerifier, MerkleVerificationError};
+use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher as LiftedMerkleHasher;
 use stwo::core::vcs_lifted::verifier::MerkleDecommitmentLifted;
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
@@ -35,6 +39,7 @@ const PCS_QUERY_COUNT: usize = 4;
 const FRI_FOLD_VECTOR_COUNT: usize = 32;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
+const VCS_VERIFIER_VECTOR_COUNT: usize = 24;
 
 #[derive(Debug, Clone, Serialize)]
 struct Meta {
@@ -197,6 +202,24 @@ struct ProofSizeVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct VcsLogSizeQueriesVector {
+    log_size: u32,
+    queries: Vec<usize>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct VcsVerifierVector {
+    case: String,
+    root: [u8; 32],
+    column_log_sizes: Vec<u32>,
+    queries_per_log_size: Vec<VcsLogSizeQueriesVector>,
+    queried_values: Vec<u32>,
+    hash_witness: Vec<[u8; 32]>,
+    column_witness: Vec<u32>,
+    expected: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct FieldVectors {
     meta: Meta,
     m31: Vec<M31Vector>,
@@ -208,6 +231,7 @@ struct FieldVectors {
     fri_folds: Vec<FriFoldVector>,
     proof_extract_oods: Vec<ProofExtractOodsVector>,
     proof_sizes: Vec<ProofSizeVector>,
+    vcs_verifier: Vec<VcsVerifierVector>,
 }
 
 fn main() {
@@ -347,6 +371,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let fri_folds = generate_fri_fold_vectors(state, FRI_FOLD_VECTOR_COUNT);
     let proof_extract_oods = generate_proof_extract_oods_vectors(state, PROOF_OODS_VECTOR_COUNT);
     let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
+    let vcs_verifier = generate_vcs_verifier_vectors(state, VCS_VERIFIER_VECTOR_COUNT);
 
     FieldVectors {
         meta: Meta {
@@ -362,6 +387,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         fri_folds,
         proof_extract_oods,
         proof_sizes,
+        vcs_verifier,
     }
 }
 
@@ -420,7 +446,7 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
         let mut decommitments = Vec::with_capacity(decommitment_count);
         for _ in 0..decommitment_count {
             let witness_len = next_u64(state) as usize % 4;
-            decommitments.push(MerkleDecommitmentLifted::<Blake2sMerkleHasher> {
+            decommitments.push(MerkleDecommitmentLifted::<LiftedMerkleHasher> {
                 hash_witness: (0..witness_len).map(|_| sample_hash(state)).collect(),
             });
         }
@@ -440,7 +466,7 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
         let first_layer_witness = (0..(next_u64(state) as usize % 4))
             .map(|_| sample_qm31(state, false))
             .collect::<Vec<_>>();
-        let first_layer_decommitment = MerkleDecommitmentLifted::<Blake2sMerkleHasher> {
+        let first_layer_decommitment = MerkleDecommitmentLifted::<LiftedMerkleHasher> {
             hash_witness: (0..(next_u64(state) as usize % 4))
                 .map(|_| sample_hash(state))
                 .collect(),
@@ -454,7 +480,7 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
                 fri_witness: (0..(next_u64(state) as usize % 4))
                     .map(|_| sample_qm31(state, false))
                     .collect(),
-                decommitment: MerkleDecommitmentLifted::<Blake2sMerkleHasher> {
+                decommitment: MerkleDecommitmentLifted::<LiftedMerkleHasher> {
                     hash_witness: (0..(next_u64(state) as usize % 4))
                         .map(|_| sample_hash(state))
                         .collect(),
@@ -468,7 +494,7 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
             .map(|_| sample_qm31(state, false))
             .collect::<Vec<_>>();
 
-        let proof = StarkProof::<Blake2sMerkleHasher>(CommitmentSchemeProof {
+        let proof = StarkProof::<LiftedMerkleHasher>(CommitmentSchemeProof {
             config: PcsConfig::default(),
             commitments: TreeVec(commitments.clone()),
             sampled_values: TreeVec(sampled_values.clone()),
@@ -541,6 +567,292 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
         });
     }
     out
+}
+
+fn generate_vcs_verifier_vectors(state: &mut u64, count: usize) -> Vec<VcsVerifierVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let mut cases = build_vcs_verifier_cases(state);
+        if cases.is_empty() {
+            continue;
+        }
+        let remaining = count - out.len();
+        if cases.len() > remaining {
+            cases.truncate(remaining);
+        }
+        out.extend(cases);
+    }
+    out
+}
+
+fn build_vcs_verifier_cases(state: &mut u64) -> Vec<VcsVerifierVector> {
+    let n_columns = 2 + (next_u64(state) as usize % 4);
+    let mut column_log_sizes = Vec::with_capacity(n_columns);
+    let mut columns = Vec::with_capacity(n_columns);
+    for _ in 0..n_columns {
+        let log_size = 1 + (next_u64(state) as u32 % 4);
+        column_log_sizes.push(log_size);
+        let col = (0..(1usize << log_size))
+            .map(|_| sample_m31(state, false))
+            .collect::<Vec<_>>();
+        columns.push(col);
+    }
+
+    let max_log_size = *column_log_sizes.iter().max().expect("at least one column");
+    let mut columns_by_layer = BTreeMap::<u32, Vec<Vec<M31>>>::new();
+    for (log_size, column) in column_log_sizes.iter().copied().zip(columns.iter().cloned()) {
+        columns_by_layer.entry(log_size).or_default().push(column);
+    }
+
+    let mut queries_per_log_size = BTreeMap::<u32, Vec<usize>>::new();
+    for log_size in 0..=max_log_size {
+        if !columns_by_layer.contains_key(&log_size) {
+            continue;
+        }
+        let n_queries = 1 + (next_u64(state) as usize % 3);
+        let mut queries = Vec::with_capacity(n_queries);
+        while queries.len() < n_queries {
+            let q = next_u64(state) as usize & ((1usize << log_size) - 1);
+            if !queries.contains(&q) {
+                queries.push(q);
+            }
+        }
+        queries.sort_unstable();
+        queries_per_log_size.insert(log_size, queries);
+    }
+
+    let mut layer_hashes = BTreeMap::<u32, Vec<Blake2sHash>>::new();
+    for layer_log_size in (0..=max_log_size).rev() {
+        let n_nodes = 1usize << layer_log_size;
+        let layer_columns = columns_by_layer
+            .get(&layer_log_size)
+            .cloned()
+            .unwrap_or_default();
+        let prev_layer = if layer_log_size == max_log_size {
+            None
+        } else {
+            Some(
+                layer_hashes
+                    .get(&(layer_log_size + 1))
+                    .expect("previous layer should be available"),
+            )
+        };
+
+        let mut hashes = Vec::with_capacity(n_nodes);
+        for node_index in 0..n_nodes {
+            let children = prev_layer.map(|p| (p[2 * node_index], p[2 * node_index + 1]));
+            let node_values = layer_columns
+                .iter()
+                .map(|column| column[node_index])
+                .collect::<Vec<_>>();
+            hashes.push(VcsMerkleHasher::hash_node(children, &node_values));
+        }
+        layer_hashes.insert(layer_log_size, hashes);
+    }
+    let root = layer_hashes
+        .get(&0)
+        .expect("root layer")
+        .first()
+        .copied()
+        .expect("non-empty root layer");
+
+    let mut queried_values = Vec::<M31>::new();
+    let mut hash_witness = Vec::<Blake2sHash>::new();
+    let mut column_witness = Vec::<M31>::new();
+
+    let mut last_layer_queries = Vec::<usize>::new();
+    for layer_log_size in (0..=max_log_size).rev() {
+        let layer_columns = columns_by_layer
+            .get(&layer_log_size)
+            .cloned()
+            .unwrap_or_default();
+        let previous_layer_hashes = if layer_log_size == max_log_size {
+            None
+        } else {
+            Some(
+                layer_hashes
+                    .get(&(layer_log_size + 1))
+                    .expect("previous layer hashes"),
+            )
+        };
+
+        let mut layer_total_queries = Vec::<usize>::new();
+        let mut prev_layer_queries = last_layer_queries.iter().copied().peekable();
+        let mut layer_column_queries = queries_per_log_size
+            .get(&layer_log_size)
+            .map(|v| v.iter().copied())
+            .into_iter()
+            .flatten()
+            .peekable();
+
+        while let Some(node_index) =
+            next_decommitment_node_for_prover(&mut prev_layer_queries, &mut layer_column_queries)
+        {
+            if let Some(prev_hashes) = previous_layer_hashes {
+                if prev_layer_queries.next_if_eq(&(2 * node_index)).is_none() {
+                    hash_witness.push(prev_hashes[2 * node_index]);
+                }
+                if prev_layer_queries.next_if_eq(&(2 * node_index + 1)).is_none() {
+                    hash_witness.push(prev_hashes[2 * node_index + 1]);
+                }
+            }
+
+            let node_values = layer_columns
+                .iter()
+                .map(|column| column[node_index])
+                .collect::<Vec<_>>();
+            if layer_column_queries.next_if_eq(&node_index).is_some() {
+                queried_values.extend(node_values);
+            } else {
+                column_witness.extend(node_values);
+            }
+            layer_total_queries.push(node_index);
+        }
+
+        last_layer_queries = layer_total_queries;
+    }
+
+    let base_decommitment = MerkleDecommitment::<VcsMerkleHasher> {
+        hash_witness,
+        column_witness,
+    };
+    let base_expected = run_vcs_verifier(
+        root,
+        column_log_sizes.clone(),
+        queries_per_log_size.clone(),
+        queried_values.clone(),
+        base_decommitment.clone(),
+    );
+    if base_expected != "ok" {
+        return vec![];
+    }
+
+    let mut out = Vec::<VcsVerifierVector>::new();
+    let mut push_case = |case: &str,
+                         case_root: Blake2sHash,
+                         case_queried_values: Vec<M31>,
+                         case_decommitment: MerkleDecommitment<VcsMerkleHasher>| {
+        let expected = run_vcs_verifier(
+            case_root,
+            column_log_sizes.clone(),
+            queries_per_log_size.clone(),
+            case_queried_values.clone(),
+            case_decommitment.clone(),
+        );
+        out.push(VcsVerifierVector {
+            case: case.to_string(),
+            root: encode_hash(case_root),
+            column_log_sizes: column_log_sizes.clone(),
+            queries_per_log_size: queries_per_log_size
+                .iter()
+                .map(|(log_size, queries)| VcsLogSizeQueriesVector {
+                    log_size: *log_size,
+                    queries: queries.clone(),
+                })
+                .collect(),
+            queried_values: case_queried_values.into_iter().map(encode_m31).collect(),
+            hash_witness: case_decommitment
+                .hash_witness
+                .into_iter()
+                .map(encode_hash)
+                .collect(),
+            column_witness: case_decommitment
+                .column_witness
+                .into_iter()
+                .map(encode_m31)
+                .collect(),
+            expected,
+        });
+    };
+
+    push_case("valid", root, queried_values.clone(), base_decommitment.clone());
+
+    let mut bad_root = root;
+    bad_root.0[0] ^= 1;
+    push_case(
+        "root_mismatch",
+        bad_root,
+        queried_values.clone(),
+        base_decommitment.clone(),
+    );
+
+    if !base_decommitment.hash_witness.is_empty() || !base_decommitment.column_witness.is_empty() {
+        let mut short = base_decommitment.clone();
+        if !short.hash_witness.is_empty() {
+            short.hash_witness.pop();
+        } else {
+            short.column_witness.pop();
+        }
+        push_case(
+            "witness_too_short",
+            root,
+            queried_values.clone(),
+            short,
+        );
+    }
+
+    let mut long = base_decommitment.clone();
+    long.hash_witness.push(sample_hash(state));
+    push_case("witness_too_long", root, queried_values.clone(), long);
+
+    if !queried_values.is_empty() {
+        let mut short_values = queried_values.clone();
+        short_values.pop();
+        push_case(
+            "queried_values_too_short",
+            root,
+            short_values,
+            base_decommitment.clone(),
+        );
+    }
+
+    let mut long_values = queried_values.clone();
+    long_values.push(sample_m31(state, false));
+    push_case(
+        "queried_values_too_long",
+        root,
+        long_values,
+        base_decommitment,
+    );
+
+    out
+}
+
+fn next_decommitment_node_for_prover(
+    prev_queries: &mut std::iter::Peekable<impl Iterator<Item = usize>>,
+    layer_queries: &mut std::iter::Peekable<impl Iterator<Item = usize>>,
+) -> Option<usize> {
+    let prev = prev_queries.peek().map(|q| *q / 2);
+    let layer = layer_queries.peek().copied();
+    match (prev, layer) {
+        (None, None) => None,
+        (Some(v), None) | (None, Some(v)) => Some(v),
+        (Some(a), Some(b)) => Some(a.min(b)),
+    }
+}
+
+fn run_vcs_verifier(
+    root: Blake2sHash,
+    column_log_sizes: Vec<u32>,
+    queries_per_log_size: BTreeMap<u32, Vec<usize>>,
+    queried_values: Vec<M31>,
+    decommitment: MerkleDecommitment<VcsMerkleHasher>,
+) -> String {
+    let verifier = MerkleVerifier::<VcsMerkleHasher>::new(root, column_log_sizes);
+    match verifier.verify(&queries_per_log_size, queried_values, decommitment) {
+        Ok(()) => "ok".to_string(),
+        Err(err) => merkle_error_name(err).to_string(),
+    }
+}
+
+fn merkle_error_name(err: MerkleVerificationError) -> &'static str {
+    match err {
+        MerkleVerificationError::WitnessTooShort => "WitnessTooShort",
+        MerkleVerificationError::WitnessTooLong => "WitnessTooLong",
+        MerkleVerificationError::TooManyQueriedValues => "TooManyQueriedValues",
+        MerkleVerificationError::TooFewQueriedValues => "TooFewQueriedValues",
+        MerkleVerificationError::RootMismatch => "RootMismatch",
+    }
 }
 
 fn generate_fri_fold_vectors(state: &mut u64, count: usize) -> Vec<FriFoldVector> {

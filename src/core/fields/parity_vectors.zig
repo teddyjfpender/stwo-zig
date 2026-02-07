@@ -9,6 +9,7 @@ const quotients_mod = @import("../pcs/quotients.zig");
 const canonic_mod = @import("../poly/circle/canonic.zig");
 const line_mod = @import("../poly/line.zig");
 const utils_mod = @import("../utils.zig");
+const vcs_verifier_mod = @import("../vcs/verifier.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
@@ -163,6 +164,22 @@ const ProofSizeVector = struct {
     expected_breakdown: ProofSizeBreakdownVector,
 };
 
+const VcsLogSizeQueriesVector = struct {
+    log_size: u32,
+    queries: []usize,
+};
+
+const VcsVerifierVector = struct {
+    case: []const u8,
+    root: [32]u8,
+    column_log_sizes: []u32,
+    queries_per_log_size: []VcsLogSizeQueriesVector,
+    queried_values: []u32,
+    hash_witness: [][32]u8,
+    column_witness: []u32,
+    expected: []const u8,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -177,6 +194,7 @@ const VectorFile = struct {
     fri_folds: []FriFoldVector,
     proof_extract_oods: []ProofExtractOodsVector,
     proof_sizes: []ProofSizeVector,
+    vcs_verifier: []VcsVerifierVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -789,4 +807,58 @@ test "field vectors: proof size breakdown parity" {
         try std.testing.expectEqual(v.expected_breakdown.fri_decommitments, actual.fri_decommitments);
         try std.testing.expectEqual(v.expected_breakdown.trace_decommitments, actual.trace_decommitments);
     }
+}
+
+test "field vectors: vcs verifier parity" {
+    const alloc = std.testing.allocator;
+    const Hasher = @import("../vcs/blake2_merkle.zig").Blake2sMerkleHasher;
+    const Verifier = vcs_verifier_mod.MerkleVerifier(Hasher);
+    const Decommitment = vcs_verifier_mod.MerkleDecommitment(Hasher);
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.vcs_verifier.len > 0);
+    for (parsed.value.vcs_verifier) |v| {
+        var verifier = try Verifier.init(alloc, v.root, v.column_log_sizes);
+        defer verifier.deinit(alloc);
+
+        const queries = try alloc.alloc(vcs_verifier_mod.LogSizeQueries, v.queries_per_log_size.len);
+        defer alloc.free(queries);
+        for (v.queries_per_log_size, 0..) |entry, i| {
+            queries[i] = .{
+                .log_size = entry.log_size,
+                .queries = entry.queries,
+            };
+        }
+
+        const queried_values = try alloc.alloc(M31, v.queried_values.len);
+        defer alloc.free(queried_values);
+        for (v.queried_values, 0..) |value, i| queried_values[i] = m31From(value);
+
+        var decommitment = Decommitment{
+            .hash_witness = try alloc.dupe(Hasher.Hash, v.hash_witness),
+            .column_witness = try alloc.alloc(M31, v.column_witness.len),
+        };
+        for (v.column_witness, 0..) |value, i| decommitment.column_witness[i] = m31From(value);
+        defer decommitment.deinit(alloc);
+
+        if (std.mem.eql(u8, v.expected, "ok")) {
+            try verifier.verify(alloc, queries, queried_values, decommitment);
+        } else {
+            try std.testing.expectError(
+                expectedVcsError(v.expected),
+                verifier.verify(alloc, queries, queried_values, decommitment),
+            );
+        }
+    }
+}
+
+fn expectedVcsError(name: []const u8) vcs_verifier_mod.MerkleVerificationError {
+    if (std.mem.eql(u8, name, "WitnessTooShort")) return vcs_verifier_mod.MerkleVerificationError.WitnessTooShort;
+    if (std.mem.eql(u8, name, "WitnessTooLong")) return vcs_verifier_mod.MerkleVerificationError.WitnessTooLong;
+    if (std.mem.eql(u8, name, "TooManyQueriedValues")) return vcs_verifier_mod.MerkleVerificationError.TooManyQueriedValues;
+    if (std.mem.eql(u8, name, "TooFewQueriedValues")) return vcs_verifier_mod.MerkleVerificationError.TooFewQueriedValues;
+    if (std.mem.eql(u8, name, "RootMismatch")) return vcs_verifier_mod.MerkleVerificationError.RootMismatch;
+    unreachable;
 }

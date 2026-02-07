@@ -16,6 +16,7 @@ This increment targets:
 - `core/pcs/verifier`
 - `core/proof`
 - `core/verifier`
+- `core/vcs/verifier`
 
 ## Upgrade Policy
 

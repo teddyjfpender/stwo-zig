@@ -13,6 +13,8 @@ pub const Blake2sM31MerkleHasher = Blake2sMerkleHasherGeneric(true);
 
 pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
     return struct {
+        pub const Hash = Blake2sHash;
+
         pub fn hashNode(
             children_hashes: ?struct { left: Blake2sHash, right: Blake2sHash },
             column_values: []const M31,
