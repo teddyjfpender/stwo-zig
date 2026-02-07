@@ -862,10 +862,55 @@ test "field vectors: fri layer decommit parity" {
                 try std.testing.expectEqual(v.value_map_positions[i], entry.position);
                 try std.testing.expect(entry.value.eql(qm31From(v.value_map_values[i])));
             }
+
+            var extended = try prover_fri_mod.decommitLayerExtended(
+                Hasher,
+                alloc,
+                merkle,
+                secure_column,
+                v.query_positions,
+                v.fold_step,
+            );
+            defer extended.deinit(alloc);
+
+            try std.testing.expect(std.mem.eql(
+                u8,
+                std.mem.asBytes(&v.commitment),
+                std.mem.asBytes(&extended.proof.commitment),
+            ));
+            try std.testing.expectEqual(v.fri_witness.len, extended.proof.fri_witness.len);
+            for (v.fri_witness, 0..) |expected, i| {
+                try std.testing.expect(extended.proof.fri_witness[i].eql(qm31From(expected)));
+            }
+            try std.testing.expectEqual(v.hash_witness.len, extended.proof.decommitment.hash_witness.len);
+            for (v.hash_witness, 0..) |expected, i| {
+                try std.testing.expect(std.mem.eql(
+                    u8,
+                    std.mem.asBytes(&expected),
+                    std.mem.asBytes(&extended.proof.decommitment.hash_witness[i]),
+                ));
+            }
+            try std.testing.expectEqual(@as(usize, 1), extended.aux.all_values.len);
+            try std.testing.expectEqual(v.value_map_positions.len, extended.aux.all_values[0].len);
+            for (extended.aux.all_values[0], 0..) |indexed, i| {
+                try std.testing.expectEqual(v.value_map_positions[i], indexed.index);
+                try std.testing.expect(indexed.value.eql(qm31From(v.value_map_values[i])));
+            }
         } else {
             try std.testing.expectError(
                 expectedFriDecommitError(v.expected),
                 prover_fri_mod.decommitLayer(
+                    Hasher,
+                    alloc,
+                    merkle,
+                    secure_column,
+                    v.query_positions,
+                    v.fold_step,
+                ),
+            );
+            try std.testing.expectError(
+                expectedFriDecommitError(v.expected),
+                prover_fri_mod.decommitLayerExtended(
                     Hasher,
                     alloc,
                     merkle,

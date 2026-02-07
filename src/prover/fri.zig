@@ -47,6 +47,77 @@ pub fn LayerDecommitResult(comptime H: type) type {
     };
 }
 
+/// Produces an extended FRI layer proof (proof + aux) for one layer decommitment.
+pub fn decommitLayerExtended(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    merkle_tree: vcs_lifted_prover.MerkleProverLifted(H),
+    column: secure_column.SecureColumnByCoords,
+    query_positions: []const usize,
+    fold_step: u32,
+) (std.mem.Allocator.Error || FriDecommitError)!core_fri.ExtendedFriLayerProof(H) {
+    const column_values = try column.toVec(allocator);
+    defer allocator.free(column_values);
+
+    const helper = try computeDecommitmentPositionsAndWitnessEvals(
+        allocator,
+        column_values,
+        query_positions,
+        fold_step,
+    );
+    errdefer {
+        allocator.free(helper.decommitment_positions);
+        allocator.free(helper.witness_evals);
+        allocator.free(helper.value_map);
+    }
+
+    const IndexedValue = core_fri.FriLayerProofAux(H).IndexedValue;
+    const indexed_values = try allocator.alloc(IndexedValue, helper.value_map.len);
+    errdefer allocator.free(indexed_values);
+    for (helper.value_map, 0..) |entry, i| {
+        indexed_values[i] = .{
+            .index = entry.position,
+            .value = entry.value,
+        };
+    }
+    const all_values = try allocator.alloc([]IndexedValue, 1);
+    errdefer {
+        allocator.free(indexed_values);
+        allocator.free(all_values);
+    }
+    all_values[0] = indexed_values;
+
+    const column_refs = [_][]const M31{
+        column.columns[0],
+        column.columns[1],
+        column.columns[2],
+        column.columns[3],
+    };
+    const merkle_decommit = try merkle_tree.decommit(
+        allocator,
+        helper.decommitment_positions,
+        column_refs[0..],
+    );
+    defer {
+        for (merkle_decommit.queried_values) |col| allocator.free(col);
+        allocator.free(merkle_decommit.queried_values);
+    }
+
+    allocator.free(helper.decommitment_positions);
+    allocator.free(helper.value_map);
+    return .{
+        .proof = .{
+            .fri_witness = helper.witness_evals,
+            .decommitment = merkle_decommit.decommitment.decommitment,
+            .commitment = merkle_tree.root(),
+        },
+        .aux = .{
+            .all_values = all_values,
+            .decommitment = merkle_decommit.decommitment.aux,
+        },
+    };
+}
+
 /// Returns Merkle decommitment positions and witness evals needed for one FRI layer decommitment.
 ///
 /// `query_positions` are expected in sorted ascending order.
@@ -226,6 +297,90 @@ test "prover fri: fold step too large fails" {
             column[0..],
             queries[0..],
             @bitSizeOf(usize),
+        ),
+    );
+}
+
+test "prover fri: layer decommit extended contains proof and aux values" {
+    const Hasher = @import("../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const LiftedProver = vcs_lifted_prover.MerkleProverLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const values = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+    };
+    var column = try secure_column.SecureColumnByCoords.fromSecureSlice(alloc, values[0..]);
+    defer column.deinit(alloc);
+
+    const coord_columns = [_][]const M31{
+        column.columns[0],
+        column.columns[1],
+        column.columns[2],
+        column.columns[3],
+    };
+    var merkle = try LiftedProver.commit(alloc, coord_columns[0..]);
+    defer merkle.deinit(alloc);
+
+    const query_positions = [_]usize{1};
+    var extended = try decommitLayerExtended(
+        Hasher,
+        alloc,
+        merkle,
+        column,
+        query_positions[0..],
+        1,
+    );
+    defer extended.deinit(alloc);
+
+    try std.testing.expect(std.mem.eql(
+        u8,
+        std.mem.asBytes(&extended.proof.commitment),
+        std.mem.asBytes(&merkle.root()),
+    ));
+    try std.testing.expectEqual(@as(usize, 1), extended.aux.all_values.len);
+    try std.testing.expectEqual(@as(usize, 2), extended.aux.all_values[0].len);
+    try std.testing.expectEqual(@as(usize, 0), extended.aux.all_values[0][0].index);
+    try std.testing.expect(extended.aux.all_values[0][0].value.eql(values[0]));
+    try std.testing.expectEqual(@as(usize, 1), extended.aux.all_values[0][1].index);
+    try std.testing.expect(extended.aux.all_values[0][1].value.eql(values[1]));
+}
+
+test "prover fri: layer decommit extended query out of range fails" {
+    const Hasher = @import("../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const LiftedProver = vcs_lifted_prover.MerkleProverLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const values = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+    };
+    var column = try secure_column.SecureColumnByCoords.fromSecureSlice(alloc, values[0..]);
+    defer column.deinit(alloc);
+
+    const coord_columns = [_][]const M31{
+        column.columns[0],
+        column.columns[1],
+        column.columns[2],
+        column.columns[3],
+    };
+    var merkle = try LiftedProver.commit(alloc, coord_columns[0..]);
+    defer merkle.deinit(alloc);
+
+    const query_positions = [_]usize{7};
+    try std.testing.expectError(
+        FriDecommitError.QueryOutOfRange,
+        decommitLayerExtended(
+            Hasher,
+            alloc,
+            merkle,
+            column,
+            query_positions[0..],
+            1,
         ),
     );
 }
