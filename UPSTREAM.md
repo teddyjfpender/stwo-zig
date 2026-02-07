@@ -29,7 +29,7 @@ This increment targets:
 - `prover/vcs_lifted/prover`
 - `prover/vcs_lifted/ops`
 - `prover/line`
-- `prover/fri` (decommit helper slice)
+- `prover/fri` (decommit helper + layer decommit slices)
 - `prover/secure_column`
 - `tracing/mod`
 

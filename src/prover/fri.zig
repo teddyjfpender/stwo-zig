@@ -1,6 +1,12 @@
 const std = @import("std");
+const core_fri = @import("../core/fri.zig");
+const m31 = @import("../core/fields/m31.zig");
 const qm31 = @import("../core/fields/qm31.zig");
+const vcs_lifted_verifier = @import("../core/vcs_lifted/verifier.zig");
+const secure_column = @import("secure_column.zig");
+const vcs_lifted_prover = @import("vcs_lifted/prover.zig");
 
+const M31 = m31.M31;
 const QM31 = qm31.QM31;
 
 pub const FriDecommitError = error{
@@ -25,6 +31,21 @@ pub const DecommitmentPositionsResult = struct {
         self.* = undefined;
     }
 };
+
+pub fn LayerDecommitResult(comptime H: type) type {
+    return struct {
+        decommitment_positions: []usize,
+        proof: core_fri.FriLayerProof(H),
+        value_map: []ValueEntry,
+
+        pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+            allocator.free(self.decommitment_positions);
+            self.proof.deinit(allocator);
+            allocator.free(self.value_map);
+            self.* = undefined;
+        }
+    };
+}
 
 /// Returns Merkle decommitment positions and witness evals needed for one FRI layer decommitment.
 ///
@@ -85,6 +106,58 @@ pub fn computeDecommitmentPositionsAndWitnessEvals(
         .decommitment_positions = try decommitment_positions.toOwnedSlice(),
         .witness_evals = try witness_evals.toOwnedSlice(),
         .value_map = try value_map.toOwnedSlice(),
+    };
+}
+
+/// Produces a FRI layer decommitment proof for `query_positions`.
+pub fn decommitLayer(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    merkle_tree: vcs_lifted_prover.MerkleProverLifted(H),
+    column: secure_column.SecureColumnByCoords,
+    query_positions: []const usize,
+    fold_step: u32,
+) (std.mem.Allocator.Error || FriDecommitError)!LayerDecommitResult(H) {
+    const column_values = try column.toVec(allocator);
+    defer allocator.free(column_values);
+
+    const helper = try computeDecommitmentPositionsAndWitnessEvals(
+        allocator,
+        column_values,
+        query_positions,
+        fold_step,
+    );
+    errdefer {
+        allocator.free(helper.decommitment_positions);
+        allocator.free(helper.witness_evals);
+        allocator.free(helper.value_map);
+    }
+
+    const column_refs = [_][]const M31{
+        column.columns[0],
+        column.columns[1],
+        column.columns[2],
+        column.columns[3],
+    };
+    var merkle_decommit = try merkle_tree.decommit(
+        allocator,
+        helper.decommitment_positions,
+        column_refs[0..],
+    );
+    defer {
+        for (merkle_decommit.queried_values) |col| allocator.free(col);
+        allocator.free(merkle_decommit.queried_values);
+        merkle_decommit.decommitment.aux.deinit(allocator);
+    }
+
+    return .{
+        .decommitment_positions = helper.decommitment_positions,
+        .proof = .{
+            .fri_witness = helper.witness_evals,
+            .decommitment = merkle_decommit.decommitment.decommitment,
+            .commitment = merkle_tree.root(),
+        },
+        .value_map = helper.value_map,
     };
 }
 
@@ -153,6 +226,144 @@ test "prover fri: fold step too large fails" {
             column[0..],
             queries[0..],
             @bitSizeOf(usize),
+        ),
+    );
+}
+
+test "prover fri: layer decommit verifies with lifted merkle verifier" {
+    const Hasher = @import("../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const LiftedProver = vcs_lifted_prover.MerkleProverLifted(Hasher);
+    const LiftedVerifier = vcs_lifted_verifier.MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const values = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+        QM31.fromU32Unchecked(17, 18, 19, 20),
+        QM31.fromU32Unchecked(21, 22, 23, 24),
+        QM31.fromU32Unchecked(25, 26, 27, 28),
+        QM31.fromU32Unchecked(29, 30, 31, 32),
+    };
+    var column = try secure_column.SecureColumnByCoords.fromSecureSlice(alloc, values[0..]);
+    defer column.deinit(alloc);
+
+    const coord_columns = [_][]const M31{
+        column.columns[0],
+        column.columns[1],
+        column.columns[2],
+        column.columns[3],
+    };
+    var merkle = try LiftedProver.commit(alloc, coord_columns[0..]);
+    defer merkle.deinit(alloc);
+
+    const query_positions = [_]usize{ 1, 3, 6 };
+    var decommit = try decommitLayer(
+        Hasher,
+        alloc,
+        merkle,
+        column,
+        query_positions[0..],
+        1,
+    );
+    defer decommit.deinit(alloc);
+
+    const queried_values = try alloc.alloc([]const M31, qm31.SECURE_EXTENSION_DEGREE);
+    defer alloc.free(queried_values);
+    const queried_values_owned = try alloc.alloc([]M31, qm31.SECURE_EXTENSION_DEGREE);
+    defer {
+        for (queried_values_owned) |col_vals| alloc.free(col_vals);
+        alloc.free(queried_values_owned);
+    }
+
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
+        queried_values_owned[coord] = try alloc.alloc(M31, decommit.value_map.len);
+        for (decommit.value_map, 0..) |entry, i| {
+            const coords = entry.value.toM31Array();
+            queried_values_owned[coord][i] = coords[coord];
+        }
+        queried_values[coord] = queried_values_owned[coord];
+    }
+
+    const log_size = @as(u32, @intCast(std.math.log2_int(usize, values.len)));
+    const repeated_sizes = [_]u32{ log_size, log_size, log_size, log_size };
+    var verifier = try LiftedVerifier.init(alloc, merkle.root(), repeated_sizes[0..]);
+    defer verifier.deinit(alloc);
+    try verifier.verify(
+        alloc,
+        decommit.decommitment_positions,
+        queried_values,
+        decommit.proof.decommitment,
+    );
+}
+
+test "prover fri: layer decommit corrupted witness fails" {
+    const Hasher = @import("../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const LiftedProver = vcs_lifted_prover.MerkleProverLifted(Hasher);
+    const LiftedVerifier = vcs_lifted_verifier.MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const values = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+    };
+    var column = try secure_column.SecureColumnByCoords.fromSecureSlice(alloc, values[0..]);
+    defer column.deinit(alloc);
+
+    const coord_columns = [_][]const M31{
+        column.columns[0],
+        column.columns[1],
+        column.columns[2],
+        column.columns[3],
+    };
+    var merkle = try LiftedProver.commit(alloc, coord_columns[0..]);
+    defer merkle.deinit(alloc);
+
+    const query_positions = [_]usize{1};
+    var decommit = try decommitLayer(
+        Hasher,
+        alloc,
+        merkle,
+        column,
+        query_positions[0..],
+        1,
+    );
+    defer decommit.deinit(alloc);
+
+    decommit.proof.decommitment.hash_witness[0][0] ^= 1;
+
+    const queried_values = try alloc.alloc([]const M31, qm31.SECURE_EXTENSION_DEGREE);
+    defer alloc.free(queried_values);
+    const queried_values_owned = try alloc.alloc([]M31, qm31.SECURE_EXTENSION_DEGREE);
+    defer {
+        for (queried_values_owned) |col_vals| alloc.free(col_vals);
+        alloc.free(queried_values_owned);
+    }
+
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
+        queried_values_owned[coord] = try alloc.alloc(M31, decommit.value_map.len);
+        for (decommit.value_map, 0..) |entry, i| {
+            const coords = entry.value.toM31Array();
+            queried_values_owned[coord][i] = coords[coord];
+        }
+        queried_values[coord] = queried_values_owned[coord];
+    }
+
+    const log_size = @as(u32, @intCast(std.math.log2_int(usize, values.len)));
+    const repeated_sizes = [_]u32{ log_size, log_size, log_size, log_size };
+    var verifier = try LiftedVerifier.init(alloc, merkle.root(), repeated_sizes[0..]);
+    defer verifier.deinit(alloc);
+
+    try std.testing.expectError(
+        vcs_lifted_verifier.MerkleVerificationError.RootMismatch,
+        verifier.verify(
+            alloc,
+            decommit.decommitment_positions,
+            queried_values,
+            decommit.proof.decommitment,
         ),
     );
 }

@@ -12,6 +12,7 @@ const utils_mod = @import("../utils.zig");
 const vcs_verifier_mod = @import("../vcs/verifier.zig");
 const vcs_blake3 = @import("../vcs/blake3_hash.zig");
 const prover_fri_mod = @import("../../prover/fri.zig");
+const prover_secure_column_mod = @import("../../prover/secure_column.zig");
 const vcs_prover_mod = @import("../../prover/vcs/prover.zig");
 const vcs_lifted_prover_mod = @import("../../prover/vcs_lifted/prover.zig");
 const prover_line_mod = @import("../../prover/line.zig");
@@ -154,6 +155,20 @@ const FriDecommitVector = struct {
     expected: []const u8,
 };
 
+const FriLayerDecommitVector = struct {
+    case: []const u8,
+    fold_step: u32,
+    column: [][4]u32,
+    query_positions: []usize,
+    commitment: [32]u8,
+    decommitment_positions: []usize,
+    fri_witness: [][4]u32,
+    hash_witness: [][32]u8,
+    value_map_positions: []usize,
+    value_map_values: [][4]u32,
+    expected: []const u8,
+};
+
 const ProofExtractOodsVector = struct {
     composition_log_size: u32,
     oods_point: [2][4]u32,
@@ -258,6 +273,7 @@ const VectorFile = struct {
     pcs_quotients: []PcsQuotientsVector,
     fri_folds: []FriFoldVector,
     fri_decommit: []FriDecommitVector,
+    fri_layer_decommit: []FriLayerDecommitVector,
     proof_extract_oods: []ProofExtractOodsVector,
     proof_sizes: []ProofSizeVector,
     prover_line: []ProverLineVector,
@@ -768,6 +784,92 @@ test "field vectors: fri decommit parity" {
                 prover_fri_mod.computeDecommitmentPositionsAndWitnessEvals(
                     alloc,
                     column,
+                    v.query_positions,
+                    v.fold_step,
+                ),
+            );
+        }
+    }
+}
+
+test "field vectors: fri layer decommit parity" {
+    const alloc = std.testing.allocator;
+    const Hasher = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const Prover = vcs_lifted_prover_mod.MerkleProverLifted(Hasher);
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.fri_layer_decommit.len > 0);
+    for (parsed.value.fri_layer_decommit) |v| {
+        const column = try alloc.alloc(QM31, v.column.len);
+        defer alloc.free(column);
+        for (v.column, 0..) |value, i| column[i] = qm31From(value);
+
+        var secure_column = try prover_secure_column_mod.SecureColumnByCoords.fromSecureSlice(alloc, column);
+        defer secure_column.deinit(alloc);
+
+        const coord_columns = [_][]const M31{
+            secure_column.columns[0],
+            secure_column.columns[1],
+            secure_column.columns[2],
+            secure_column.columns[3],
+        };
+        var merkle = try Prover.commit(alloc, coord_columns[0..]);
+        defer merkle.deinit(alloc);
+
+        const root = merkle.root();
+        try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&v.commitment), std.mem.asBytes(&root)));
+
+        if (std.mem.eql(u8, v.expected, "ok")) {
+            var result = try prover_fri_mod.decommitLayer(
+                Hasher,
+                alloc,
+                merkle,
+                secure_column,
+                v.query_positions,
+                v.fold_step,
+            );
+            defer result.deinit(alloc);
+
+            try std.testing.expect(std.mem.eql(
+                u8,
+                std.mem.asBytes(&v.commitment),
+                std.mem.asBytes(&result.proof.commitment),
+            ));
+            try std.testing.expectEqualSlices(
+                usize,
+                v.decommitment_positions,
+                result.decommitment_positions,
+            );
+
+            try std.testing.expectEqual(v.fri_witness.len, result.proof.fri_witness.len);
+            for (v.fri_witness, 0..) |expected, i| {
+                try std.testing.expect(result.proof.fri_witness[i].eql(qm31From(expected)));
+            }
+
+            try std.testing.expectEqual(v.hash_witness.len, result.proof.decommitment.hash_witness.len);
+            for (v.hash_witness, 0..) |expected, i| {
+                try std.testing.expect(std.mem.eql(
+                    u8,
+                    std.mem.asBytes(&expected),
+                    std.mem.asBytes(&result.proof.decommitment.hash_witness[i]),
+                ));
+            }
+
+            try std.testing.expectEqual(v.value_map_positions.len, result.value_map.len);
+            for (result.value_map, 0..) |entry, i| {
+                try std.testing.expectEqual(v.value_map_positions[i], entry.position);
+                try std.testing.expect(entry.value.eql(qm31From(v.value_map_values[i])));
+            }
+        } else {
+            try std.testing.expectError(
+                expectedFriDecommitError(v.expected),
+                prover_fri_mod.decommitLayer(
+                    Hasher,
+                    alloc,
+                    merkle,
+                    secure_column,
                     v.query_positions,
                     v.fold_step,
                 ),

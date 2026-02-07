@@ -39,13 +39,16 @@ use stwo::core::vcs_lifted::verifier::{
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const VECTOR_SCHEMA_VERSION: u32 = 1;
 const VECTOR_SEED: u64 = 0x243f_6a88_85a3_08d3u64;
-const VECTOR_SEED_STRATEGY: &str = "single deterministic xorshift64* stream";
+const FRI_LAYER_DECOMMIT_SEED: u64 = 0x7b5f_1d0a_9c33_41f2u64;
+const VECTOR_SEED_STRATEGY: &str =
+    "deterministic xorshift64* streams (primary stream + dedicated fri_layer_decommit stream)";
 const DEFAULT_COUNT: usize = 256;
 const PCS_VECTOR_COUNT: usize = 16;
 const PCS_LIFTING_LOG_SIZE: u32 = 8;
 const PCS_QUERY_COUNT: usize = 4;
 const FRI_FOLD_VECTOR_COUNT: usize = 32;
 const FRI_DECOMMIT_VECTOR_COUNT: usize = 32;
+const FRI_LAYER_DECOMMIT_VECTOR_COUNT: usize = 24;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 const PROVER_LINE_VECTOR_COUNT: usize = 32;
@@ -202,6 +205,21 @@ struct FriDecommitVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct FriLayerDecommitVector {
+    case: String,
+    fold_step: u32,
+    column: Vec<[u32; 4]>,
+    query_positions: Vec<usize>,
+    commitment: [u8; 32],
+    decommitment_positions: Vec<usize>,
+    fri_witness: Vec<[u32; 4]>,
+    hash_witness: Vec<[u8; 32]>,
+    value_map_positions: Vec<usize>,
+    value_map_values: Vec<[u32; 4]>,
+    expected: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ProofExtractOodsVector {
     composition_log_size: u32,
     oods_point: [[u32; 4]; 2],
@@ -330,6 +348,7 @@ struct FieldVectors {
     pcs_quotients: Vec<PcsQuotientsVector>,
     fri_folds: Vec<FriFoldVector>,
     fri_decommit: Vec<FriDecommitVector>,
+    fri_layer_decommit: Vec<FriLayerDecommitVector>,
     proof_extract_oods: Vec<ProofExtractOodsVector>,
     proof_sizes: Vec<ProofSizeVector>,
     prover_line: Vec<ProverLineVector>,
@@ -509,6 +528,10 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         });
     }
 
+    let mut fri_layer_state = FRI_LAYER_DECOMMIT_SEED;
+    let fri_layer_decommit =
+        generate_fri_layer_decommit_vectors(&mut fri_layer_state, FRI_LAYER_DECOMMIT_VECTOR_COUNT);
+
     FieldVectors {
         meta: Meta {
             upstream_commit: UPSTREAM_COMMIT,
@@ -526,6 +549,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         pcs_quotients,
         fri_folds,
         fri_decommit,
+        fri_layer_decommit,
         proof_extract_oods,
         proof_sizes,
         prover_line,
@@ -1597,6 +1621,171 @@ fn compute_fri_decommit_outputs(
         witness_evals,
         value_map_positions,
         value_map_values,
+    })
+}
+
+fn generate_fri_layer_decommit_vectors(state: &mut u64, count: usize) -> Vec<FriLayerDecommitVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let mut cases = build_fri_layer_decommit_cases(state);
+        if cases.is_empty() {
+            continue;
+        }
+        let remaining = count - out.len();
+        if cases.len() > remaining {
+            cases.truncate(remaining);
+        }
+        out.extend(cases);
+    }
+    out
+}
+
+fn build_fri_layer_decommit_cases(state: &mut u64) -> Vec<FriLayerDecommitVector> {
+    let line_log_size = 2 + ((next_u64(state) as u32) % 6);
+    let line_len = 1usize << line_log_size;
+    let column = (0..line_len)
+        .map(|_| sample_qm31(state, false))
+        .collect::<Vec<_>>();
+
+    let max_fold_step = line_log_size.min(3);
+    let fold_step = (next_u64(state) as u32) % (max_fold_step + 1);
+
+    let mut query_positions = Vec::new();
+    let n_queries = 1 + (next_u64(state) as usize % line_len.min(4));
+    while query_positions.len() < n_queries {
+        let q = next_u64(state) as usize % line_len;
+        if !query_positions.contains(&q) {
+            query_positions.push(q);
+        }
+    }
+    query_positions.sort_unstable();
+
+    let base_commitment = match compute_fri_layer_decommit_outputs(&column, &query_positions, fold_step) {
+        Ok(outputs) => outputs.commitment,
+        Err(_) => return vec![],
+    };
+
+    let mut out = Vec::<FriLayerDecommitVector>::new();
+    let mut push_case = |case: &str, case_fold_step: u32, case_queries: Vec<usize>| {
+        let (expected, outputs) = match compute_fri_layer_decommit_outputs(
+            &column,
+            &case_queries,
+            case_fold_step,
+        ) {
+            Ok(outputs) => ("ok".to_string(), outputs),
+            Err(err) => (
+                err.to_string(),
+                FriLayerDecommitOutputs {
+                    commitment: base_commitment,
+                    decommitment_positions: Vec::new(),
+                    fri_witness: Vec::new(),
+                    hash_witness: Vec::new(),
+                    value_map_positions: Vec::new(),
+                    value_map_values: Vec::new(),
+                },
+            ),
+        };
+
+        out.push(FriLayerDecommitVector {
+            case: case.to_string(),
+            fold_step: case_fold_step,
+            column: column.iter().copied().map(encode_qm31).collect(),
+            query_positions: case_queries,
+            commitment: encode_hash(outputs.commitment),
+            decommitment_positions: outputs.decommitment_positions,
+            fri_witness: outputs.fri_witness.into_iter().map(encode_qm31).collect(),
+            hash_witness: outputs.hash_witness.into_iter().map(encode_hash).collect(),
+            value_map_positions: outputs.value_map_positions,
+            value_map_values: outputs.value_map_values.into_iter().map(encode_qm31).collect(),
+            expected,
+        });
+    };
+
+    push_case("valid", fold_step, query_positions.clone());
+
+    let mut out_of_range_queries = query_positions.clone();
+    out_of_range_queries.push(line_len + 1 + (next_u64(state) as usize % 4));
+    out_of_range_queries.sort_unstable();
+    push_case("query_out_of_range", fold_step, out_of_range_queries);
+
+    push_case("fold_step_too_large", usize::BITS, query_positions);
+
+    out
+}
+
+struct FriLayerDecommitOutputs {
+    commitment: Blake2sHash,
+    decommitment_positions: Vec<usize>,
+    fri_witness: Vec<QM31>,
+    hash_witness: Vec<Blake2sHash>,
+    value_map_positions: Vec<usize>,
+    value_map_values: Vec<QM31>,
+}
+
+fn compute_fri_layer_decommit_outputs(
+    column: &[QM31],
+    query_positions: &[usize],
+    fold_step: u32,
+) -> Result<FriLayerDecommitOutputs, &'static str> {
+    let helper = compute_fri_decommit_outputs(column, query_positions, fold_step)?;
+
+    let mut base_columns = vec![Vec::with_capacity(column.len()); 4];
+    for value in column {
+        let coords = value.to_m31_array();
+        for coord in 0..4 {
+            base_columns[coord].push(coords[coord]);
+        }
+    }
+    let sorted_columns = base_columns.iter().collect::<Vec<_>>();
+    let leaves = build_vcs_lifted_leaves(&sorted_columns);
+    let mut layers = vec![leaves];
+    while layers.last().expect("at least one layer").len() > 1 {
+        let prev = layers.last().expect("previous layer");
+        layers.push(
+            (0..(prev.len() >> 1))
+                .map(|i| LiftedMerkleHasher::hash_children((prev[2 * i], prev[2 * i + 1])))
+                .collect(),
+        );
+    }
+    layers.reverse();
+    let commitment = layers
+        .first()
+        .expect("root layer")
+        .first()
+        .copied()
+        .expect("root hash");
+
+    let mut hash_witness = Vec::<Blake2sHash>::new();
+    let mut prev_layer_queries = helper.decommitment_positions.clone();
+    prev_layer_queries.dedup();
+    for layer_log_size in (0..layers.len() - 1).rev() {
+        let prev_layer_hashes = layers
+            .get(layer_log_size + 1)
+            .expect("previous layer hashes");
+        let mut curr_layer_queries = Vec::<usize>::new();
+        let mut p: usize = 0;
+        while p < prev_layer_queries.len() {
+            let first = prev_layer_queries[p];
+            let mut chunk_len = 1;
+            if p + 1 < prev_layer_queries.len() && ((first ^ 1) == prev_layer_queries[p + 1]) {
+                chunk_len = 2;
+            }
+            if chunk_len == 1 {
+                hash_witness.push(prev_layer_hashes[first ^ 1]);
+            }
+            curr_layer_queries.push(first >> 1);
+            p += chunk_len;
+        }
+        prev_layer_queries = curr_layer_queries;
+    }
+
+    Ok(FriLayerDecommitOutputs {
+        commitment,
+        decommitment_positions: helper.decommitment_positions,
+        fri_witness: helper.witness_evals,
+        hash_witness,
+        value_map_positions: helper.value_map_positions,
+        value_map_values: helper.value_map_values,
     })
 }
 
