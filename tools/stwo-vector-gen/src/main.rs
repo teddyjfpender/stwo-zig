@@ -4,13 +4,14 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 use stwo::core::circle::{
-    CirclePoint, M31_CIRCLE_GEN, M31_CIRCLE_LOG_ORDER, SECURE_FIELD_CIRCLE_GEN,
+    CirclePoint, Coset, M31_CIRCLE_GEN, M31_CIRCLE_LOG_ORDER, SECURE_FIELD_CIRCLE_GEN,
 };
 use stwo::core::fft::{butterfly, ibutterfly};
 use stwo::core::fields::cm31::CM31;
 use stwo::core::fields::m31::{M31, P};
 use stwo::core::fields::qm31::QM31;
 use stwo::core::fields::{ComplexConjugate, FieldExpOps};
+use stwo::core::fri::{fold_circle_into_line, fold_line};
 use stwo::core::pcs::quotients::{
     accumulate_row_partial_numerators, accumulate_row_quotients,
     build_samples_with_randomness_and_periodicity, denominator_inverses, fri_answers,
@@ -18,6 +19,7 @@ use stwo::core::pcs::quotients::{
 };
 use stwo::core::pcs::TreeVec;
 use stwo::core::poly::circle::CanonicCoset;
+use stwo::core::poly::line::LineDomain;
 use stwo::core::utils::bit_reverse_index;
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
@@ -25,6 +27,7 @@ const DEFAULT_COUNT: usize = 256;
 const PCS_VECTOR_COUNT: usize = 16;
 const PCS_LIFTING_LOG_SIZE: u32 = 8;
 const PCS_QUERY_COUNT: usize = 4;
+const FRI_FOLD_VECTOR_COUNT: usize = 32;
 
 #[derive(Debug, Clone, Serialize)]
 struct Meta {
@@ -137,6 +140,17 @@ struct PcsQuotientsVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct FriFoldVector {
+    line_log_size: u32,
+    line_eval: Vec<[u32; 4]>,
+    alpha: [u32; 4],
+    fold_line_values: Vec<[u32; 4]>,
+    circle_log_size: u32,
+    circle_eval: Vec<[u32; 4]>,
+    fold_circle_values: Vec<[u32; 4]>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct FieldVectors {
     meta: Meta,
     m31: Vec<M31Vector>,
@@ -145,6 +159,7 @@ struct FieldVectors {
     circle_m31: Vec<CircleM31Vector>,
     fft_m31: Vec<FftM31Vector>,
     pcs_quotients: Vec<PcsQuotientsVector>,
+    fri_folds: Vec<FriFoldVector>,
 }
 
 fn main() {
@@ -281,6 +296,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     }
 
     let pcs_quotients = generate_pcs_quotients_vectors(state, PCS_VECTOR_COUNT);
+    let fri_folds = generate_fri_fold_vectors(state, FRI_FOLD_VECTOR_COUNT);
 
     FieldVectors {
         meta: Meta {
@@ -293,7 +309,49 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         circle_m31,
         fft_m31,
         pcs_quotients,
+        fri_folds,
     }
+}
+
+fn generate_fri_fold_vectors(state: &mut u64, count: usize) -> Vec<FriFoldVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let line_log_size = 2 + ((next_u64(state) as u32) % 5);
+        let line_len = 1usize << line_log_size;
+        let line_eval = (0..line_len)
+            .map(|_| sample_qm31(state, false))
+            .collect::<Vec<_>>();
+
+        let circle_log_size = 2 + ((next_u64(state) as u32) % 5);
+        let circle_len = 1usize << circle_log_size;
+        let circle_eval = (0..circle_len)
+            .map(|_| sample_qm31(state, false))
+            .collect::<Vec<_>>();
+
+        let alpha = sample_qm31(state, true);
+        let line_domain = LineDomain::new(Coset::half_odds(line_log_size));
+        let (_, fold_line_values_raw) = fold_line(&line_eval, line_domain, alpha);
+
+        let circle_domain = CanonicCoset::new(circle_log_size).circle_domain();
+        let mut fold_circle_values_raw = vec![QM31::from(0); circle_eval.len() >> 1];
+        fold_circle_into_line(
+            &mut fold_circle_values_raw,
+            &circle_eval,
+            circle_domain,
+            alpha,
+        );
+
+        out.push(FriFoldVector {
+            line_log_size,
+            line_eval: line_eval.into_iter().map(encode_qm31).collect(),
+            alpha: encode_qm31(alpha),
+            fold_line_values: fold_line_values_raw.into_iter().map(encode_qm31).collect(),
+            circle_log_size,
+            circle_eval: circle_eval.into_iter().map(encode_qm31).collect(),
+            fold_circle_values: fold_circle_values_raw.into_iter().map(encode_qm31).collect(),
+        });
+    }
+    out
 }
 
 fn generate_pcs_quotients_vectors(state: &mut u64, count: usize) -> Vec<PcsQuotientsVector> {

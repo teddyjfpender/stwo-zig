@@ -2,8 +2,10 @@ const std = @import("std");
 const circle_mod = @import("../circle.zig");
 const constraints_mod = @import("../constraints.zig");
 const fft_mod = @import("../fft.zig");
+const fri_mod = @import("../fri.zig");
 const quotients_mod = @import("../pcs/quotients.zig");
 const canonic_mod = @import("../poly/circle/canonic.zig");
+const line_mod = @import("../poly/line.zig");
 const utils_mod = @import("../utils.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
@@ -114,6 +116,16 @@ const PcsQuotientsVector = struct {
     fri_answers: [][4]u32,
 };
 
+const FriFoldVector = struct {
+    line_log_size: u32,
+    line_eval: [][4]u32,
+    alpha: [4]u32,
+    fold_line_values: [][4]u32,
+    circle_log_size: u32,
+    circle_eval: [][4]u32,
+    fold_circle_values: [][4]u32,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -125,6 +137,7 @@ const VectorFile = struct {
     circle_m31: []CircleM31Vector,
     fft_m31: []FftM31Vector,
     pcs_quotients: []PcsQuotientsVector,
+    fri_folds: []FriFoldVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -500,6 +513,41 @@ test "field vectors: pcs quotients parity" {
         defer alloc.free(fri_answers);
         for (v.fri_answers, 0..) |expected, i| {
             try std.testing.expectEqualSlices(u32, expected[0..], encodeQM31(fri_answers[i])[0..]);
+        }
+    }
+}
+
+test "field vectors: fri fold parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.fri_folds.len > 0);
+    for (parsed.value.fri_folds) |v| {
+        const line_domain = try line_mod.LineDomain.init(circle_mod.Coset.halfOdds(v.line_log_size));
+        const line_eval = try alloc.alloc(QM31, v.line_eval.len);
+        defer alloc.free(line_eval);
+        for (v.line_eval, 0..) |value, i| line_eval[i] = qm31From(value);
+
+        const folded_line = try fri_mod.foldLine(alloc, line_eval, line_domain, qm31From(v.alpha));
+        defer alloc.free(folded_line.values);
+        try std.testing.expectEqual(v.fold_line_values.len, folded_line.values.len);
+        for (v.fold_line_values, 0..) |expected, i| {
+            try std.testing.expectEqualSlices(u32, expected[0..], encodeQM31(folded_line.values[i])[0..]);
+        }
+
+        const circle_domain = canonic_mod.CanonicCoset.new(v.circle_log_size).circleDomain();
+        const circle_eval = try alloc.alloc(QM31, v.circle_eval.len);
+        defer alloc.free(circle_eval);
+        for (v.circle_eval, 0..) |value, i| circle_eval[i] = qm31From(value);
+
+        const folded_circle = try alloc.alloc(QM31, v.fold_circle_values.len);
+        defer alloc.free(folded_circle);
+        @memset(folded_circle, QM31.zero());
+        try fri_mod.foldCircleIntoLine(folded_circle, circle_eval, circle_domain, qm31From(v.alpha));
+        try std.testing.expectEqual(v.fold_circle_values.len, folded_circle.len);
+        for (v.fold_circle_values, 0..) |expected, i| {
+            try std.testing.expectEqualSlices(u32, expected[0..], encodeQM31(folded_circle[i])[0..]);
         }
     }
 }
