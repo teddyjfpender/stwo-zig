@@ -4,5 +4,6 @@ pub const blake2_merkle = @import("blake2_merkle.zig");
 pub const blake3_hash = @import("blake3_hash.zig");
 pub const hash = @import("hash.zig");
 pub const merkle_hasher = @import("merkle_hasher.zig");
+pub const test_utils = @import("test_utils.zig");
 pub const utils = @import("utils.zig");
 pub const verifier = @import("verifier.zig");

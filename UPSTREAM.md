@@ -20,8 +20,10 @@ This increment targets:
 - `core/vcs/hash`
 - `core/vcs/merkle_hasher`
 - `core/vcs/utils`
+- `core/vcs/test_utils`
 - `core/vcs_lifted/merkle_hasher`
 - `core/vcs_lifted/verifier`
+- `core/vcs_lifted/test_utils`
 - `prover/vcs/prover`
 - `prover/vcs/ops`
 - `prover/vcs_lifted/prover`
