@@ -3,7 +3,7 @@ const circle = @import("../circle.zig");
 const fri = @import("../fri.zig");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
-const verifier = @import("../verifier.zig");
+const verifier_types = @import("../verifier_types.zig");
 const mod_pcs = @import("mod.zig");
 const quotients = @import("quotients.zig");
 const pcs_utils = @import("utils.zig");
@@ -82,16 +82,16 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             sampled_points: TreeVec([][]CirclePointQM31),
             proof_in: CommitmentSchemeProof,
             channel: anytype,
-        ) (std.mem.Allocator.Error || verifier.VerificationError)!void {
+        ) (std.mem.Allocator.Error || verifier_types.VerificationError)!void {
             var sampled_points_owned = sampled_points;
             defer sampled_points_owned.deinitDeep(allocator);
 
             var proof = proof_in;
             defer cleanupProofWithoutFri(&proof, allocator);
 
-            if (self.trees.items.len == 0) return verifier.VerificationError.EmptyTrees;
-            if (proof.decommitments.items.len != self.trees.items.len) return verifier.VerificationError.ShapeMismatch;
-            if (proof.queried_values.items.len != self.trees.items.len) return verifier.VerificationError.ShapeMismatch;
+            if (self.trees.items.len == 0) return verifier_types.VerificationError.EmptyTrees;
+            if (proof.decommitments.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
+            if (proof.queried_values.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
 
             const sampled_values_flat = try flattenSampledValues(allocator, proof.sampled_values);
             defer allocator.free(sampled_values_flat);
@@ -103,7 +103,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
 
             const lifting_log_size = try computeLiftingLogSize(column_log_sizes, sampled_points_owned);
             if (lifting_log_size < self.config.fri_config.log_blowup_factor) {
-                return verifier.VerificationError.ShapeMismatch;
+                return verifier_types.VerificationError.ShapeMismatch;
             }
             const bound = fri.CirclePolyDegreeBound.init(lifting_log_size - self.config.fri_config.log_blowup_factor);
             var fri_verifier = try FriVerifier.commit(
@@ -116,15 +116,15 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             defer fri_verifier.deinit(allocator);
 
             if (!channel.verifyPowNonce(self.config.pow_bits, proof.proof_of_work)) {
-                return verifier.VerificationError.ProofOfWork;
+                return verifier_types.VerificationError.ProofOfWork;
             }
             channel.mixU64(proof.proof_of_work);
 
             const query_positions = try fri_verifier.sampleQueryPositions(allocator, channel);
             defer allocator.free(query_positions);
 
-            const pp_max_log_size = if (column_log_sizes.items.len > verifier.PREPROCESSED_TRACE_IDX)
-                maxOrDefault(column_log_sizes.items[verifier.PREPROCESSED_TRACE_IDX], 0)
+            const pp_max_log_size = if (column_log_sizes.items.len > verifier_types.PREPROCESSED_TRACE_IDX)
+                maxOrDefault(column_log_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX], 0)
             else
                 0;
 
@@ -139,7 +139,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             const query_positions_tree = try allocator.alloc([]const usize, self.trees.items.len);
             defer allocator.free(query_positions_tree);
             for (query_positions_tree, 0..) |*positions, i| {
-                positions.* = if (i == verifier.PREPROCESSED_TRACE_IDX)
+                positions.* = if (i == verifier_types.PREPROCESSED_TRACE_IDX)
                     preprocessed_query_positions
                 else
                     query_positions;
@@ -221,26 +221,26 @@ fn flattenSampledValues(
 fn computeLiftingLogSize(
     column_log_sizes: TreeVec([]u32),
     sampled_points: TreeVec([][]CirclePointQM31),
-) verifier.VerificationError!u32 {
-    if (column_log_sizes.items.len != sampled_points.items.len) return verifier.VerificationError.ShapeMismatch;
+) verifier_types.VerificationError!u32 {
+    if (column_log_sizes.items.len != sampled_points.items.len) return verifier_types.VerificationError.ShapeMismatch;
 
     var max_log_size: ?u32 = null;
     for (column_log_sizes.items, sampled_points.items) |sizes_per_tree, points_per_tree| {
-        if (sizes_per_tree.len != points_per_tree.len) return verifier.VerificationError.ShapeMismatch;
+        if (sizes_per_tree.len != points_per_tree.len) return verifier_types.VerificationError.ShapeMismatch;
         for (sizes_per_tree, points_per_tree) |log_size, points| {
             if (points.len == 0) continue;
             max_log_size = if (max_log_size) |cur| @max(cur, log_size) else log_size;
         }
     }
-    return max_log_size orelse verifier.VerificationError.EmptySampledSet;
+    return max_log_size orelse verifier_types.VerificationError.EmptySampledSet;
 }
 
 fn buildPointSamples(
     allocator: std.mem.Allocator,
     sampled_points: TreeVec([][]CirclePointQM31),
     sampled_values: TreeVec([][]QM31),
-) (std.mem.Allocator.Error || verifier.VerificationError)!TreeVec([][]quotients.PointSample) {
-    if (sampled_points.items.len != sampled_values.items.len) return verifier.VerificationError.ShapeMismatch;
+) (std.mem.Allocator.Error || verifier_types.VerificationError)!TreeVec([][]quotients.PointSample) {
+    if (sampled_points.items.len != sampled_values.items.len) return verifier_types.VerificationError.ShapeMismatch;
 
     var trees_builder = std.ArrayList([][]quotients.PointSample).init(allocator);
     defer trees_builder.deinit();
@@ -252,7 +252,7 @@ fn buildPointSamples(
     }
 
     for (sampled_points.items, sampled_values.items) |points_per_tree, values_per_tree| {
-        if (points_per_tree.len != values_per_tree.len) return verifier.VerificationError.ShapeMismatch;
+        if (points_per_tree.len != values_per_tree.len) return verifier_types.VerificationError.ShapeMismatch;
         var cols_builder = std.ArrayList([]quotients.PointSample).init(allocator);
         defer cols_builder.deinit();
         errdefer {
@@ -260,7 +260,7 @@ fn buildPointSamples(
         }
 
         for (points_per_tree, values_per_tree) |points_col, values_col| {
-            if (points_col.len != values_col.len) return verifier.VerificationError.ShapeMismatch;
+            if (points_col.len != values_col.len) return verifier_types.VerificationError.ShapeMismatch;
             const out_col = try allocator.alloc(quotients.PointSample, points_col.len);
             errdefer allocator.free(out_col);
             for (points_col, values_col, 0..) |point, value, i| {
@@ -352,7 +352,7 @@ test "pcs verifier: verify_values fails on invalid proof-of-work" {
 
     var channel = Channel{};
     try std.testing.expectError(
-        verifier.VerificationError.ProofOfWork,
+        verifier_types.VerificationError.ProofOfWork,
         verifier_instance.verifyValues(
             alloc,
             sampled_points,

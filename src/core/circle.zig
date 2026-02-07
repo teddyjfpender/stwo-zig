@@ -151,6 +151,21 @@ pub const SECURE_FIELD_CIRCLE_GEN: CirclePointQM31 = .{
 /// Order of `SECURE_FIELD_CIRCLE_GEN`.
 pub const SECURE_FIELD_CIRCLE_ORDER: u128 = qm31.P4 - 1;
 
+pub fn secureFieldPoint(index: u128) CirclePointQM31 {
+    std.debug.assert(index < SECURE_FIELD_CIRCLE_ORDER);
+    return SECURE_FIELD_CIRCLE_GEN.mul(index);
+}
+
+pub fn randomSecureFieldPoint(channel: anytype) CirclePointQM31 {
+    const t = channel.drawSecureFelt();
+    const t_square = t.square();
+    const one_plus_t_square_inv = t_square.add(QM31.one()).inv() catch unreachable;
+
+    const x = QM31.one().sub(t_square).mul(one_plus_t_square_inv);
+    const y = t.add(t).mul(one_plus_t_square_inv);
+    return .{ .x = x, .y = y };
+}
+
 /// Backwards-compatible alias for the M31 generator.
 pub const GENERATOR: CirclePointM31 = M31_CIRCLE_GEN;
 
@@ -445,4 +460,15 @@ test "circle: half-odds plus conjugate equals odds(parent)" {
     while (seen_it.next()) |k| {
         try std.testing.expect(odds_seen.contains(k.*));
     }
+}
+
+test "circle: random secure point is deterministic and on-curve" {
+    const Channel = @import("channel/blake2s.zig").Blake2sChannel;
+    var channel0 = Channel{};
+    var channel1 = Channel{};
+
+    const p0 = randomSecureFieldPoint(&channel0);
+    const p1 = randomSecureFieldPoint(&channel1);
+    try std.testing.expect(p0.eql(p1));
+    try std.testing.expect(p0.isOnCircle());
 }

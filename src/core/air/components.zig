@@ -4,7 +4,7 @@ const circle = @import("../circle.zig");
 const qm31 = @import("../fields/qm31.zig");
 const pcs = @import("../pcs/mod.zig");
 const pcs_utils = @import("../pcs/utils.zig");
-const verifier = @import("../verifier.zig");
+const verifier_types = @import("../verifier_types.zig");
 
 const QM31 = qm31.QM31;
 const Point = circle.CirclePointQM31;
@@ -104,7 +104,7 @@ pub const Components = struct {
         var mask_points = try pcs_utils.concatCols([]Point, allocator, all_masks.items);
         errdefer mask_points.deinitDeep(allocator);
 
-        if (verifier.PREPROCESSED_TRACE_IDX >= mask_points.items.len) return Error.MissingPreprocessedTree;
+        if (verifier_types.PREPROCESSED_TRACE_IDX >= mask_points.items.len) return Error.MissingPreprocessedTree;
 
         var new_preprocessed = try allocator.alloc([]Point, self.n_preprocessed_columns);
         var init_count: usize = 0;
@@ -136,8 +136,8 @@ pub const Components = struct {
             }
         }
 
-        freeNestedSlice([]Point, allocator, mask_points.items[verifier.PREPROCESSED_TRACE_IDX]);
-        mask_points.items[verifier.PREPROCESSED_TRACE_IDX] = new_preprocessed;
+        freeNestedSlice([]Point, allocator, mask_points.items[verifier_types.PREPROCESSED_TRACE_IDX]);
+        mask_points.items[verifier_types.PREPROCESSED_TRACE_IDX] = new_preprocessed;
         return mask_points;
     }
 
@@ -178,10 +178,10 @@ pub const Components = struct {
         defer for (all_sizes.items) |*tv| tv.deinitDeep(allocator);
 
         for (self.components, all_sizes.items) |component, trace_sizes| {
-            if (verifier.PREPROCESSED_TRACE_IDX >= trace_sizes.items.len) return Error.MissingPreprocessedTree;
+            if (verifier_types.PREPROCESSED_TRACE_IDX >= trace_sizes.items.len) return Error.MissingPreprocessedTree;
             const pre = try component.preprocessedColumnIndices(allocator);
             defer allocator.free(pre);
-            const logs = trace_sizes.items[verifier.PREPROCESSED_TRACE_IDX];
+            const logs = trace_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX];
 
             const n = @min(pre.len, logs.len);
             var i: usize = 0;
@@ -205,10 +205,10 @@ pub const Components = struct {
 
         var out = try pcs_utils.concatCols(u32, allocator, all_sizes.items);
         errdefer out.deinitDeep(allocator);
-        if (verifier.PREPROCESSED_TRACE_IDX >= out.items.len) return Error.MissingPreprocessedTree;
+        if (verifier_types.PREPROCESSED_TRACE_IDX >= out.items.len) return Error.MissingPreprocessedTree;
 
-        allocator.free(out.items[verifier.PREPROCESSED_TRACE_IDX]);
-        out.items[verifier.PREPROCESSED_TRACE_IDX] = preprocessed_sizes;
+        allocator.free(out.items[verifier_types.PREPROCESSED_TRACE_IDX]);
+        out.items[verifier_types.PREPROCESSED_TRACE_IDX] = preprocessed_sizes;
         preprocessed_sizes_moved = true;
         return out;
     }
@@ -322,11 +322,11 @@ test "air components: orchestration" {
     var column_sizes = try components.columnLogSizes(alloc);
     defer column_sizes.deinitDeep(alloc);
     try std.testing.expectEqual(@as(usize, 2), column_sizes.items.len);
-    try std.testing.expectEqual(@as(usize, 1), column_sizes.items[verifier.PREPROCESSED_TRACE_IDX].len);
-    try std.testing.expectEqual(@as(u32, 5), column_sizes.items[verifier.PREPROCESSED_TRACE_IDX][0]);
+    try std.testing.expectEqual(@as(usize, 1), column_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX].len);
+    try std.testing.expectEqual(@as(u32, 5), column_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX][0]);
 
     var mask = try components.maskPoints(alloc, point, 10, true);
     defer mask.deinitDeep(alloc);
-    try std.testing.expectEqual(@as(usize, 1), mask.items[verifier.PREPROCESSED_TRACE_IDX][0].len);
-    try std.testing.expect(mask.items[verifier.PREPROCESSED_TRACE_IDX][0][0].eql(point));
+    try std.testing.expectEqual(@as(usize, 1), mask.items[verifier_types.PREPROCESSED_TRACE_IDX][0].len);
+    try std.testing.expect(mask.items[verifier_types.PREPROCESSED_TRACE_IDX][0][0].eql(point));
 }

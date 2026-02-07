@@ -8,11 +8,14 @@ This repository is porting StarkWare `stwo` to Zig with strict parity checkpoint
 
 ## Current Parity Slice
 
-This increment targets the foundational field layer:
+This increment targets:
 
-- `core/fields/m31`
-- `core/fields/cm31`
-- `core/fields/qm31`
+- `core/fields/*`
+- `core/fri`
+- `core/pcs/quotients`
+- `core/pcs/verifier`
+- `core/proof`
+- `core/verifier`
 
 ## Upgrade Policy
 

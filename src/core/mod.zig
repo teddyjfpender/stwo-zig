@@ -16,6 +16,8 @@ pub const constraints = @import("constraints.zig");
 pub const air = @import("air/mod.zig");
 pub const fri = @import("fri.zig");
 pub const pcs = @import("pcs/mod.zig");
+pub const proof = @import("proof.zig");
+pub const verifier_types = @import("verifier_types.zig");
 pub const verifier = @import("verifier.zig");
 
 /// Vector where each element relates by index to a trace column.

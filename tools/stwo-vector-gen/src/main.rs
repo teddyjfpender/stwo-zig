@@ -28,6 +28,7 @@ const PCS_VECTOR_COUNT: usize = 16;
 const PCS_LIFTING_LOG_SIZE: u32 = 8;
 const PCS_QUERY_COUNT: usize = 4;
 const FRI_FOLD_VECTOR_COUNT: usize = 32;
+const PROOF_OODS_VECTOR_COUNT: usize = 32;
 
 #[derive(Debug, Clone, Serialize)]
 struct Meta {
@@ -151,6 +152,14 @@ struct FriFoldVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct ProofExtractOodsVector {
+    composition_log_size: u32,
+    oods_point: [[u32; 4]; 2],
+    composition_values: Vec<[u32; 4]>,
+    expected: [u32; 4],
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct FieldVectors {
     meta: Meta,
     m31: Vec<M31Vector>,
@@ -160,6 +169,7 @@ struct FieldVectors {
     fft_m31: Vec<FftM31Vector>,
     pcs_quotients: Vec<PcsQuotientsVector>,
     fri_folds: Vec<FriFoldVector>,
+    proof_extract_oods: Vec<ProofExtractOodsVector>,
 }
 
 fn main() {
@@ -297,6 +307,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
 
     let pcs_quotients = generate_pcs_quotients_vectors(state, PCS_VECTOR_COUNT);
     let fri_folds = generate_fri_fold_vectors(state, FRI_FOLD_VECTOR_COUNT);
+    let proof_extract_oods = generate_proof_extract_oods_vectors(state, PROOF_OODS_VECTOR_COUNT);
 
     FieldVectors {
         meta: Meta {
@@ -310,7 +321,39 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         fft_m31,
         pcs_quotients,
         fri_folds,
+        proof_extract_oods,
     }
+}
+
+fn generate_proof_extract_oods_vectors(state: &mut u64, count: usize) -> Vec<ProofExtractOodsVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let composition_log_size = 2 + ((next_u64(state) as u32) % 8);
+        let oods_point = sample_secure_point_non_degenerate(state);
+
+        let mut composition_values = Vec::with_capacity(2 * 4);
+        for _ in 0..(2 * 4) {
+            composition_values.push(sample_qm31(state, false));
+        }
+
+        let left = composition_values[0..4]
+            .try_into()
+            .expect("left composition coordinates length");
+        let right = composition_values[4..8]
+            .try_into()
+            .expect("right composition coordinates length");
+        let left_eval = QM31::from_partial_evals(left);
+        let right_eval = QM31::from_partial_evals(right);
+        let expected = left_eval + oods_point.repeated_double(composition_log_size - 2).x * right_eval;
+
+        out.push(ProofExtractOodsVector {
+            composition_log_size,
+            oods_point: encode_secure_circle_point(oods_point),
+            composition_values: composition_values.into_iter().map(encode_qm31).collect(),
+            expected: encode_qm31(expected),
+        });
+    }
+    out
 }
 
 fn generate_fri_fold_vectors(state: &mut u64, count: usize) -> Vec<FriFoldVector> {

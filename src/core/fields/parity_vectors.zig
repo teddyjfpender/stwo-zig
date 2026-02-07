@@ -3,6 +3,8 @@ const circle_mod = @import("../circle.zig");
 const constraints_mod = @import("../constraints.zig");
 const fft_mod = @import("../fft.zig");
 const fri_mod = @import("../fri.zig");
+const pcs_mod = @import("../pcs/mod.zig");
+const proof_mod = @import("../proof.zig");
 const quotients_mod = @import("../pcs/quotients.zig");
 const canonic_mod = @import("../poly/circle/canonic.zig");
 const line_mod = @import("../poly/line.zig");
@@ -126,6 +128,13 @@ const FriFoldVector = struct {
     fold_circle_values: [][4]u32,
 };
 
+const ProofExtractOodsVector = struct {
+    composition_log_size: u32,
+    oods_point: [2][4]u32,
+    composition_values: [][4]u32,
+    expected: [4]u32,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -138,6 +147,7 @@ const VectorFile = struct {
     fft_m31: []FftM31Vector,
     pcs_quotients: []PcsQuotientsVector,
     fri_folds: []FriFoldVector,
+    proof_extract_oods: []ProofExtractOodsVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -549,5 +559,66 @@ test "field vectors: fri fold parity" {
         for (v.fold_circle_values, 0..) |expected, i| {
             try std.testing.expectEqualSlices(u32, expected[0..], encodeQM31(folded_circle[i])[0..]);
         }
+    }
+}
+
+test "field vectors: proof extract oods parity" {
+    const alloc = std.testing.allocator;
+    const Hasher = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const vcs_verifier = @import("../vcs_lifted/verifier.zig");
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.proof_extract_oods.len > 0);
+    for (parsed.value.proof_extract_oods) |v| {
+        const composition_tree = try alloc.alloc([]QM31, v.composition_values.len);
+        var initialized: usize = 0;
+        errdefer {
+            for (composition_tree[0..initialized]) |col| alloc.free(col);
+            alloc.free(composition_tree);
+        }
+        for (v.composition_values, 0..) |value, i| {
+            composition_tree[i] = try alloc.alloc(QM31, 1);
+            composition_tree[i][0] = qm31From(value);
+            initialized += 1;
+        }
+
+        const sampled_values = quotients_mod.TreeVec([][]QM31).initOwned(
+            try alloc.dupe([][]QM31, &[_][][]QM31{composition_tree}),
+        );
+        var proof = proof_mod.StarkProof(Hasher){
+            .commitment_scheme_proof = .{
+                .config = pcs_mod.PcsConfig.default(),
+                .commitments = quotients_mod.TreeVec(Hasher.Hash).initOwned(
+                    try alloc.alloc(Hasher.Hash, 0),
+                ),
+                .sampled_values = sampled_values,
+                .decommitments = quotients_mod.TreeVec(vcs_verifier.MerkleDecommitmentLifted(Hasher)).initOwned(
+                    try alloc.alloc(vcs_verifier.MerkleDecommitmentLifted(Hasher), 0),
+                ),
+                .queried_values = quotients_mod.TreeVec([][]M31).initOwned(
+                    try alloc.alloc([][]M31, 0),
+                ),
+                .proof_of_work = 0,
+                .fri_proof = .{
+                    .first_layer = .{
+                        .fri_witness = try alloc.alloc(QM31, 0),
+                        .decommitment = .{ .hash_witness = try alloc.alloc(Hasher.Hash, 0) },
+                        .commitment = [_]u8{0} ** 32,
+                    },
+                    .inner_layers = try alloc.alloc(fri_mod.FriLayerProof(Hasher), 0),
+                    .last_layer_poly = line_mod.LinePoly.initOwned(
+                        try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
+                    ),
+                },
+            },
+        };
+        defer proof.deinit(alloc);
+
+        const extracted = proof.extractCompositionOodsEval(
+            circleQM31From(v.oods_point),
+            v.composition_log_size,
+        ) orelse unreachable;
+        try std.testing.expectEqualSlices(u32, v.expected[0..], encodeQM31(extracted)[0..]);
     }
 }
