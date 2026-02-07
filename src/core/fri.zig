@@ -87,6 +87,10 @@ pub const CirclePolyDegreeBound = struct {
         return .{ .log_degree_bound = log_degree_bound };
     }
 
+    pub inline fn logDegreeBound(self: CirclePolyDegreeBound) u32 {
+        return self.log_degree_bound;
+    }
+
     pub inline fn foldToLine(self: CirclePolyDegreeBound) LinePolyDegreeBound {
         return .{ .log_degree_bound = self.log_degree_bound - CIRCLE_TO_LINE_FOLD_STEP };
     }
@@ -95,11 +99,123 @@ pub const CirclePolyDegreeBound = struct {
 pub const LinePolyDegreeBound = struct {
     log_degree_bound: u32,
 
+    pub inline fn logDegreeBound(self: LinePolyDegreeBound) u32 {
+        return self.log_degree_bound;
+    }
+
     pub fn fold(self: LinePolyDegreeBound, n_folds: u32) ?LinePolyDegreeBound {
         if (self.log_degree_bound < n_folds) return null;
         return .{ .log_degree_bound = self.log_degree_bound - n_folds };
     }
 };
+
+pub fn FriVerifier(comptime H: type, comptime MC: type) type {
+    return struct {
+        config: FriConfig,
+        first_layer: FriFirstLayerVerifier(H),
+        inner_layers: []FriInnerLayerVerifier(H),
+        last_layer_domain: line.LineDomain,
+        last_layer_poly: line.LinePoly,
+        queries: ?queries_mod.Queries = null,
+
+        const Self = @This();
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            self.first_layer.deinit(allocator);
+            for (self.inner_layers) |*layer| layer.deinit(allocator);
+            allocator.free(self.inner_layers);
+            self.last_layer_poly.deinit(allocator);
+            if (self.queries) |*queries| queries.deinit(allocator);
+            self.* = undefined;
+        }
+
+        pub fn commit(
+            allocator: std.mem.Allocator,
+            channel: anytype,
+            config: FriConfig,
+            proof: FriProof(H),
+            column_bound: CirclePolyDegreeBound,
+        ) FriVerificationError!Self {
+            defer allocator.free(proof.inner_layers);
+            errdefer proof.last_layer_poly.deinit(allocator);
+
+            MC.mixRoot(channel, proof.first_layer.commitment);
+
+            const column_commitment_domain = canonic.CanonicCoset
+                .new(column_bound.logDegreeBound() + config.log_blowup_factor)
+                .circleDomain();
+            var first_layer = FriFirstLayerVerifier(H){
+                .column_commitment_domain = column_commitment_domain,
+                .folding_alpha = channel.drawSecureFelt(),
+                .proof = proof.first_layer,
+            };
+            errdefer first_layer.deinit(allocator);
+
+            var layer_bound = column_bound.foldToLine();
+            var layer_domain = line.LineDomain.init(
+                circle.Coset.halfOdds(layer_bound.logDegreeBound() + config.log_blowup_factor),
+            ) catch return FriVerificationError.InvalidNumFriLayers;
+
+            const inner_layers = try allocator.alloc(FriInnerLayerVerifier(H), proof.inner_layers.len);
+            errdefer allocator.free(inner_layers);
+            var initialized: usize = 0;
+            errdefer {
+                for (inner_layers[0..initialized]) |*layer| layer.deinit(allocator);
+            }
+
+            for (proof.inner_layers, 0..) |inner_proof, i| {
+                MC.mixRoot(channel, inner_proof.commitment);
+                inner_layers[i] = .{
+                    .domain = layer_domain,
+                    .folding_alpha = channel.drawSecureFelt(),
+                    .layer_index = i,
+                    .proof = inner_proof,
+                };
+                initialized += 1;
+
+                layer_bound = layer_bound.fold(FOLD_STEP) orelse return FriVerificationError.InvalidNumFriLayers;
+                layer_domain = layer_domain.double();
+            }
+
+            if (layer_bound.logDegreeBound() != config.log_last_layer_degree_bound) {
+                return FriVerificationError.InvalidNumFriLayers;
+            }
+            if (proof.last_layer_poly.len() > (@as(usize, 1) << @intCast(config.log_last_layer_degree_bound))) {
+                return FriVerificationError.LastLayerDegreeInvalid;
+            }
+
+            channel.mixFelts(proof.last_layer_poly.coefficients());
+
+            return .{
+                .config = config,
+                .first_layer = first_layer,
+                .inner_layers = inner_layers,
+                .last_layer_domain = layer_domain,
+                .last_layer_poly = proof.last_layer_poly,
+                .queries = null,
+            };
+        }
+
+        pub fn sampleQueryPositions(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            channel: anytype,
+        ) ![]usize {
+            const first_layer_log_size = self.first_layer.column_commitment_domain.logSize();
+            const unsorted = try queries_mod.drawQueries(
+                channel,
+                allocator,
+                first_layer_log_size,
+                self.config.n_queries,
+            );
+            defer allocator.free(unsorted);
+
+            if (self.queries) |*queries| queries.deinit(allocator);
+            self.queries = try queries_mod.Queries.init(allocator, unsorted, first_layer_log_size);
+            return allocator.dupe(usize, self.queries.?.positions);
+        }
+    };
+}
 
 pub fn FriLayerProof(comptime H: type) type {
     return struct {
@@ -112,6 +228,37 @@ pub fn FriLayerProof(comptime H: type) type {
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
             allocator.free(self.fri_witness);
             self.decommitment.deinit(allocator);
+            self.* = undefined;
+        }
+    };
+}
+
+fn FriFirstLayerVerifier(comptime H: type) type {
+    return struct {
+        column_commitment_domain: circle_domain.CircleDomain,
+        folding_alpha: QM31,
+        proof: FriLayerProof(H),
+
+        const Self = @This();
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            self.proof.deinit(allocator);
+            self.* = undefined;
+        }
+    };
+}
+
+fn FriInnerLayerVerifier(comptime H: type) type {
+    return struct {
+        domain: line.LineDomain,
+        folding_alpha: QM31,
+        layer_index: usize,
+        proof: FriLayerProof(H),
+
+        const Self = @This();
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            self.proof.deinit(allocator);
             self.* = undefined;
         }
     };
@@ -589,6 +736,73 @@ test "fri: fold circle into line accumulates correctly" {
 
     try std.testing.expect(dst[0].eql(expected[0]));
     try std.testing.expect(dst[1].eql(expected[1]));
+}
+
+test "fri verifier: commit and sample query positions" {
+    const Hasher = @import("vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("channel/blake2s.zig").Blake2sChannel;
+    const Verifier = FriVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    var channel = Channel{};
+    const config = try FriConfig.init(2, 1, 4);
+    var verifier = try Verifier.commit(
+        alloc,
+        &channel,
+        config,
+        .{
+            .first_layer = .{
+                .fri_witness = try alloc.alloc(QM31, 0),
+                .decommitment = .{ .hash_witness = try alloc.alloc(Hasher.Hash, 0) },
+                .commitment = [_]u8{2} ** 32,
+            },
+            .inner_layers = try alloc.alloc(FriLayerProof(Hasher), 0),
+            .last_layer_poly = line.LinePoly.initOwned(
+                try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
+            ),
+        },
+        CirclePolyDegreeBound.init(3),
+    );
+    defer verifier.deinit(alloc);
+
+    const positions = try verifier.sampleQueryPositions(alloc, &channel);
+    defer alloc.free(positions);
+    try std.testing.expect(positions.len <= config.n_queries);
+    for (positions) |pos| {
+        try std.testing.expect(pos < (@as(usize, 1) << @intCast(3 + config.log_blowup_factor)));
+    }
+}
+
+test "fri verifier: invalid layer count fails commit" {
+    const Hasher = @import("vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("channel/blake2s.zig").Blake2sChannel;
+    const Verifier = FriVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    var channel = Channel{};
+    const config = try FriConfig.init(1, 1, 2);
+    try std.testing.expectError(
+        FriVerificationError.InvalidNumFriLayers,
+        Verifier.commit(
+            alloc,
+            &channel,
+            config,
+            .{
+                .first_layer = .{
+                    .fri_witness = try alloc.alloc(QM31, 0),
+                    .decommitment = .{ .hash_witness = try alloc.alloc(Hasher.Hash, 0) },
+                    .commitment = [_]u8{9} ** 32,
+                },
+                .inner_layers = try alloc.alloc(FriLayerProof(Hasher), 0),
+                .last_layer_poly = line.LinePoly.initOwned(
+                    try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
+                ),
+            },
+            CirclePolyDegreeBound.init(3),
+        ),
+    );
 }
 
 test "fri proof containers: deinit owned buffers" {
