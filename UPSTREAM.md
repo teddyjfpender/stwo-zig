@@ -32,7 +32,7 @@ This increment targets:
 - `prover/vcs_lifted/ops`
 - `prover/line`
 - `prover/fri` (decommit helper + layer decommit slices)
-- `prover/pcs` (quotient-ops slice)
+- `prover/pcs` (quotient-ops + commitment tree/decommit slices)
 - `prover/channel` (logging channel slice)
 - `prover/lookups` (utils + mle + sumcheck + gkr verifier + gkr prover prove-batch slice)
 - `prover/poly` (module + twiddles + circle namespace scaffolding)
