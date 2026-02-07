@@ -23,7 +23,7 @@ use stwo::core::pcs::TreeVec;
 use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::poly::line::{LineDomain, LinePoly};
 use stwo::core::proof::StarkProof;
-use stwo::core::utils::bit_reverse_index;
+use stwo::core::utils::{bit_reverse, bit_reverse_index};
 use stwo::core::vcs::blake2_hash::Blake2sHash;
 use stwo::core::vcs::blake3_hash::{Blake3Hash, Blake3Hasher};
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher as VcsMerkleHasher;
@@ -37,6 +37,9 @@ use stwo::core::vcs_lifted::verifier::{
 };
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
+const VECTOR_SCHEMA_VERSION: u32 = 1;
+const VECTOR_SEED: u64 = 0x243f_6a88_85a3_08d3u64;
+const VECTOR_SEED_STRATEGY: &str = "single deterministic xorshift64* stream";
 const DEFAULT_COUNT: usize = 256;
 const PCS_VECTOR_COUNT: usize = 16;
 const PCS_LIFTING_LOG_SIZE: u32 = 8;
@@ -44,6 +47,7 @@ const PCS_QUERY_COUNT: usize = 4;
 const FRI_FOLD_VECTOR_COUNT: usize = 32;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
+const PROVER_LINE_VECTOR_COUNT: usize = 32;
 const VCS_VERIFIER_VECTOR_COUNT: usize = 24;
 const VCS_PROVER_VECTOR_COUNT: usize = 16;
 const VCS_LIFTED_VERIFIER_VECTOR_COUNT: usize = 24;
@@ -54,6 +58,9 @@ const BLAKE3_VECTOR_COUNT: usize = 64;
 struct Meta {
     upstream_commit: &'static str,
     sample_count: usize,
+    schema_version: u32,
+    seed: u64,
+    seed_strategy: &'static str,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -220,6 +227,14 @@ struct ProofSizeVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct ProverLineVector {
+    line_log_size: u32,
+    values: Vec<[u32; 4]>,
+    coeffs_bit_reversed: Vec<[u32; 4]>,
+    coeffs_ordered: Vec<[u32; 4]>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct VcsLogSizeQueriesVector {
     log_size: u32,
     queries: Vec<usize>,
@@ -302,6 +317,7 @@ struct FieldVectors {
     fri_folds: Vec<FriFoldVector>,
     proof_extract_oods: Vec<ProofExtractOodsVector>,
     proof_sizes: Vec<ProofSizeVector>,
+    prover_line: Vec<ProverLineVector>,
     vcs_verifier: Vec<VcsVerifierVector>,
     vcs_prover: Vec<VcsProverVector>,
     vcs_lifted_verifier: Vec<VcsLiftedVerifierVector>,
@@ -310,7 +326,7 @@ struct FieldVectors {
 
 fn main() {
     let (out_path, sample_count) = parse_args();
-    let mut state = 0x243f_6a88_85a3_08d3u64;
+    let mut state = VECTOR_SEED;
     let vectors = generate_vectors(&mut state, sample_count);
 
     if let Some(parent) = out_path.parent() {
@@ -446,6 +462,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let fri_folds = generate_fri_fold_vectors(state, FRI_FOLD_VECTOR_COUNT);
     let proof_extract_oods = generate_proof_extract_oods_vectors(state, PROOF_OODS_VECTOR_COUNT);
     let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
+    let prover_line = generate_prover_line_vectors(state, PROVER_LINE_VECTOR_COUNT);
     let vcs_verifier = generate_vcs_verifier_vectors(state, VCS_VERIFIER_VECTOR_COUNT);
     let vcs_prover = generate_vcs_prover_vectors(state, VCS_PROVER_VECTOR_COUNT);
     let vcs_lifted_verifier =
@@ -480,6 +497,9 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         meta: Meta {
             upstream_commit: UPSTREAM_COMMIT,
             sample_count,
+            schema_version: VECTOR_SCHEMA_VERSION,
+            seed: VECTOR_SEED,
+            seed_strategy: VECTOR_SEED_STRATEGY,
         },
         m31,
         cm31,
@@ -491,6 +511,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         fri_folds,
         proof_extract_oods,
         proof_sizes,
+        prover_line,
         vcs_verifier,
         vcs_prover,
         vcs_lifted_verifier,
@@ -674,6 +695,50 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
         });
     }
     out
+}
+
+fn generate_prover_line_vectors(state: &mut u64, count: usize) -> Vec<ProverLineVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let line_log_size = 1 + ((next_u64(state) as u32) % 6);
+        let line_len = 1usize << line_log_size;
+        let mut values = (0..line_len)
+            .map(|_| sample_qm31(state, false))
+            .collect::<Vec<_>>();
+        let coeffs_bit_reversed = interpolate_line_values(values.clone(), line_log_size);
+
+        let mut coeffs_ordered = coeffs_bit_reversed.clone();
+        bit_reverse(&mut coeffs_ordered);
+
+        out.push(ProverLineVector {
+            line_log_size,
+            values: values.drain(..).map(encode_qm31).collect(),
+            coeffs_bit_reversed: coeffs_bit_reversed.into_iter().map(encode_qm31).collect(),
+            coeffs_ordered: coeffs_ordered.into_iter().map(encode_qm31).collect(),
+        });
+    }
+    out
+}
+
+fn interpolate_line_values(mut values: Vec<QM31>, line_log_size: u32) -> Vec<QM31> {
+    bit_reverse(&mut values);
+    line_ifft(&mut values, LineDomain::new(Coset::half_odds(line_log_size)));
+    let len_inv = M31::from(values.len() as u32).inverse();
+    values.iter_mut().for_each(|v| *v *= len_inv);
+    values
+}
+
+fn line_ifft(values: &mut [QM31], mut domain: LineDomain) {
+    assert_eq!(values.len(), domain.size());
+    while domain.size() > 1 {
+        for chunk in values.chunks_exact_mut(domain.size()) {
+            let (l, r) = chunk.split_at_mut(domain.size() / 2);
+            for (i, x) in domain.iter().take(domain.size() / 2).enumerate() {
+                ibutterfly(&mut l[i], &mut r[i], x.inverse());
+            }
+        }
+        domain = domain.double();
+    }
 }
 
 fn generate_vcs_verifier_vectors(state: &mut u64, count: usize) -> Vec<VcsVerifierVector> {
@@ -1033,7 +1098,8 @@ fn build_vcs_base_case(state: &mut u64) -> Option<VcsBaseCase> {
         if !columns_by_layer.contains_key(&log_size) {
             continue;
         }
-        let n_queries = 1 + (next_u64(state) as usize % 3);
+        let layer_size = 1usize << log_size;
+        let n_queries = 1 + (next_u64(state) as usize % layer_size.min(3));
         let mut queries = Vec::with_capacity(n_queries);
         while queries.len() < n_queries {
             let q = next_u64(state) as usize & ((1usize << log_size) - 1);

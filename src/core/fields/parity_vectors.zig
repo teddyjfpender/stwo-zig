@@ -13,6 +13,7 @@ const vcs_verifier_mod = @import("../vcs/verifier.zig");
 const vcs_blake3 = @import("../vcs/blake3_hash.zig");
 const vcs_prover_mod = @import("../../prover/vcs/prover.zig");
 const vcs_lifted_prover_mod = @import("../../prover/vcs_lifted/prover.zig");
+const prover_line_mod = @import("../../prover/line.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
@@ -175,6 +176,13 @@ const ProofSizeVector = struct {
     expected_breakdown: ProofSizeBreakdownVector,
 };
 
+const ProverLineVector = struct {
+    line_log_size: u32,
+    values: [][4]u32,
+    coeffs_bit_reversed: [][4]u32,
+    coeffs_ordered: [][4]u32,
+};
+
 const VcsLogSizeQueriesVector = struct {
     log_size: u32,
     queries: []usize,
@@ -224,6 +232,9 @@ const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
         sample_count: usize,
+        schema_version: u32,
+        seed: u64,
+        seed_strategy: []const u8,
     },
     m31: []M31Vector,
     cm31: []CM31Vector,
@@ -235,6 +246,7 @@ const VectorFile = struct {
     fri_folds: []FriFoldVector,
     proof_extract_oods: []ProofExtractOodsVector,
     proof_sizes: []ProofSizeVector,
+    prover_line: []ProverLineVector,
     vcs_verifier: []VcsVerifierVector,
     vcs_prover: []VcsProverVector,
     vcs_lifted_verifier: []VcsLiftedVerifierVector,
@@ -864,6 +876,58 @@ test "field vectors: proof size breakdown parity" {
         try std.testing.expectEqual(v.expected_breakdown.fri_samples, actual.fri_samples);
         try std.testing.expectEqual(v.expected_breakdown.fri_decommitments, actual.fri_decommitments);
         try std.testing.expectEqual(v.expected_breakdown.trace_decommitments, actual.trace_decommitments);
+    }
+}
+
+test "field vectors: prover line interpolation parity" {
+    const alloc = std.testing.allocator;
+    const LineEvaluation = prover_line_mod.LineEvaluation;
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.meta.schema_version >= 1);
+    try std.testing.expect(parsed.value.prover_line.len > 0);
+    for (parsed.value.prover_line) |v| {
+        const domain = try line_mod.LineDomain.init(circle_mod.Coset.halfOdds(v.line_log_size));
+
+        const values = try alloc.alloc(QM31, v.values.len);
+        for (v.values, 0..) |value, i| values[i] = qm31From(value);
+
+        var eval = try LineEvaluation.initOwned(domain, values);
+        var poly = try eval.interpolate(alloc);
+        defer poly.deinit(alloc);
+
+        const coeffs_bit_reversed = poly.coefficients();
+        try std.testing.expectEqual(v.coeffs_bit_reversed.len, coeffs_bit_reversed.len);
+        for (v.coeffs_bit_reversed, 0..) |expected, i| {
+            try std.testing.expect(coeffs_bit_reversed[i].eql(qm31From(expected)));
+        }
+
+        const coeffs_ordered = poly.intoOrderedCoefficients();
+        try std.testing.expectEqual(v.coeffs_ordered.len, coeffs_ordered.len);
+        for (v.coeffs_ordered, 0..) |expected, i| {
+            try std.testing.expect(coeffs_ordered[i].eql(qm31From(expected)));
+        }
+
+        if (v.values.len > 0) {
+            const mutated_values = try alloc.alloc(QM31, v.values.len);
+            for (v.values, 0..) |value, i| mutated_values[i] = qm31From(value);
+            mutated_values[0] = mutated_values[0].add(QM31.one());
+
+            var mutated_eval = try LineEvaluation.initOwned(domain, mutated_values);
+            var mutated_poly = try mutated_eval.interpolate(alloc);
+            defer mutated_poly.deinit(alloc);
+
+            var differs = false;
+            for (mutated_poly.coefficients(), 0..) |actual, i| {
+                if (!actual.eql(qm31From(v.coeffs_bit_reversed[i]))) {
+                    differs = true;
+                    break;
+                }
+            }
+            try std.testing.expect(differs);
+        }
     }
 }
 
