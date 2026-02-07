@@ -18,6 +18,7 @@ This increment targets:
 - `core/verifier`
 - `core/vcs/verifier`
 - `prover/vcs/prover`
+- `prover/vcs_lifted/prover`
 
 ## Upgrade Policy
 

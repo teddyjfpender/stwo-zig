@@ -12,6 +12,7 @@ const utils_mod = @import("../utils.zig");
 const vcs_verifier_mod = @import("../vcs/verifier.zig");
 const vcs_blake3 = @import("../vcs/blake3_hash.zig");
 const vcs_prover_mod = @import("../../prover/vcs/prover.zig");
+const vcs_lifted_prover_mod = @import("../../prover/vcs_lifted/prover.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
@@ -200,6 +201,15 @@ const VcsProverVector = struct {
     column_witness: []u32,
 };
 
+const VcsLiftedProverVector = struct {
+    root: [32]u8,
+    column_log_sizes: []u32,
+    columns: [][]u32,
+    query_positions: []usize,
+    queried_values: [][]u32,
+    hash_witness: [][32]u8,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -217,6 +227,7 @@ const VectorFile = struct {
     proof_sizes: []ProofSizeVector,
     vcs_verifier: []VcsVerifierVector,
     vcs_prover: []VcsProverVector,
+    vcs_lifted_prover: []VcsLiftedProverVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -967,6 +978,75 @@ test "field vectors: vcs prover parity" {
             alloc,
             queries,
             decommitment.queried_values,
+            decommitment.decommitment.decommitment,
+        );
+    }
+}
+
+test "field vectors: vcs lifted prover parity" {
+    const alloc = std.testing.allocator;
+    const Hasher = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const Prover = vcs_lifted_prover_mod.MerkleProverLifted(Hasher);
+    const Verifier = @import("../vcs_lifted/verifier.zig").MerkleVerifierLifted(Hasher);
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.vcs_lifted_prover.len > 0);
+    for (parsed.value.vcs_lifted_prover) |v| {
+        const columns = try alloc.alloc([]const M31, v.columns.len);
+        defer alloc.free(columns);
+
+        const owned_columns = try alloc.alloc([]M31, v.columns.len);
+        defer {
+            for (owned_columns) |col| alloc.free(col);
+            alloc.free(owned_columns);
+        }
+
+        for (v.columns, 0..) |column, i| {
+            owned_columns[i] = try alloc.alloc(M31, column.len);
+            for (column, 0..) |value, j| owned_columns[i][j] = m31From(value);
+            columns[i] = owned_columns[i];
+        }
+
+        var prover = try Prover.commit(alloc, columns);
+        defer prover.deinit(alloc);
+
+        try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&prover.root()), std.mem.asBytes(&v.root)));
+
+        var decommitment = try prover.decommit(alloc, v.query_positions, columns);
+        defer decommitment.deinit(alloc);
+
+        try std.testing.expectEqual(v.queried_values.len, decommitment.queried_values.len);
+        for (v.queried_values, 0..) |column, i| {
+            try std.testing.expectEqual(column.len, decommitment.queried_values[i].len);
+            for (column, 0..) |value, j| {
+                try std.testing.expect(m31From(value).eql(decommitment.queried_values[i][j]));
+            }
+        }
+
+        try std.testing.expectEqual(
+            v.hash_witness.len,
+            decommitment.decommitment.decommitment.hash_witness.len,
+        );
+        for (v.hash_witness, 0..) |hash, i| {
+            try std.testing.expect(std.mem.eql(
+                u8,
+                std.mem.asBytes(&hash),
+                std.mem.asBytes(&decommitment.decommitment.decommitment.hash_witness[i]),
+            ));
+        }
+
+        const queried_values = try alloc.alloc([]const M31, decommitment.queried_values.len);
+        defer alloc.free(queried_values);
+        for (decommitment.queried_values, 0..) |column, i| queried_values[i] = column;
+
+        var verifier = try Verifier.init(alloc, prover.root(), v.column_log_sizes);
+        defer verifier.deinit(alloc);
+        try verifier.verify(
+            alloc,
+            v.query_positions,
+            queried_values,
             decommitment.decommitment.decommitment,
         );
     }

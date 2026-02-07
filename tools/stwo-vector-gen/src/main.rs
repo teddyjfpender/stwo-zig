@@ -30,7 +30,8 @@ use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher as VcsMerkleHasher;
 use stwo::core::vcs::MerkleHasher;
 use stwo::core::vcs::verifier::{MerkleDecommitment, MerkleVerifier, MerkleVerificationError};
 use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher as LiftedMerkleHasher;
-use stwo::core::vcs_lifted::verifier::MerkleDecommitmentLifted;
+use stwo::core::vcs_lifted::MerkleHasherLifted;
+use stwo::core::vcs_lifted::verifier::{MerkleDecommitmentLifted, MerkleVerifierLifted};
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const DEFAULT_COUNT: usize = 256;
@@ -42,6 +43,7 @@ const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 const VCS_VERIFIER_VECTOR_COUNT: usize = 24;
 const VCS_PROVER_VECTOR_COUNT: usize = 16;
+const VCS_LIFTED_PROVER_VECTOR_COUNT: usize = 16;
 const BLAKE3_VECTOR_COUNT: usize = 64;
 
 #[derive(Debug, Clone, Serialize)]
@@ -242,6 +244,16 @@ struct VcsProverVector {
     column_witness: Vec<u32>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct VcsLiftedProverVector {
+    root: [u8; 32],
+    column_log_sizes: Vec<u32>,
+    columns: Vec<Vec<u32>>,
+    query_positions: Vec<usize>,
+    queried_values: Vec<Vec<u32>>,
+    hash_witness: Vec<[u8; 32]>,
+}
+
 #[derive(Clone)]
 struct VcsBaseCase {
     root: Blake2sHash,
@@ -250,6 +262,16 @@ struct VcsBaseCase {
     queries_per_log_size: BTreeMap<u32, Vec<usize>>,
     queried_values: Vec<M31>,
     decommitment: MerkleDecommitment<VcsMerkleHasher>,
+}
+
+#[derive(Clone)]
+struct VcsLiftedBaseCase {
+    root: Blake2sHash,
+    column_log_sizes: Vec<u32>,
+    columns: Vec<Vec<M31>>,
+    query_positions: Vec<usize>,
+    queried_values: Vec<Vec<M31>>,
+    decommitment: MerkleDecommitmentLifted<LiftedMerkleHasher>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -267,6 +289,7 @@ struct FieldVectors {
     proof_sizes: Vec<ProofSizeVector>,
     vcs_verifier: Vec<VcsVerifierVector>,
     vcs_prover: Vec<VcsProverVector>,
+    vcs_lifted_prover: Vec<VcsLiftedProverVector>,
 }
 
 fn main() {
@@ -409,6 +432,8 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
     let vcs_verifier = generate_vcs_verifier_vectors(state, VCS_VERIFIER_VECTOR_COUNT);
     let vcs_prover = generate_vcs_prover_vectors(state, VCS_PROVER_VECTOR_COUNT);
+    let vcs_lifted_prover =
+        generate_vcs_lifted_prover_vectors(state, VCS_LIFTED_PROVER_VECTOR_COUNT);
 
     for _ in 0..BLAKE3_VECTOR_COUNT {
         let data_len = next_u64(state) as usize % 96;
@@ -450,6 +475,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         proof_sizes,
         vcs_verifier,
         vcs_prover,
+        vcs_lifted_prover,
     }
 }
 
@@ -685,6 +711,177 @@ fn generate_vcs_prover_vectors(state: &mut u64, count: usize) -> Vec<VcsProverVe
         });
     }
     out
+}
+
+fn generate_vcs_lifted_prover_vectors(state: &mut u64, count: usize) -> Vec<VcsLiftedProverVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let Some(base) = build_vcs_lifted_base_case(state) else {
+            continue;
+        };
+        out.push(VcsLiftedProverVector {
+            root: encode_hash(base.root),
+            column_log_sizes: base.column_log_sizes.clone(),
+            columns: base
+                .columns
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect())
+                .collect(),
+            query_positions: base.query_positions.clone(),
+            queried_values: base
+                .queried_values
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect())
+                .collect(),
+            hash_witness: base
+                .decommitment
+                .hash_witness
+                .into_iter()
+                .map(encode_hash)
+                .collect(),
+        });
+    }
+    out
+}
+
+fn build_vcs_lifted_base_case(state: &mut u64) -> Option<VcsLiftedBaseCase> {
+    let n_columns = 2 + (next_u64(state) as usize % 4);
+    let mut column_log_sizes = Vec::with_capacity(n_columns);
+    let mut columns = Vec::with_capacity(n_columns);
+    for _ in 0..n_columns {
+        let log_size = 1 + (next_u64(state) as u32 % 4);
+        column_log_sizes.push(log_size);
+        let col = (0..(1usize << log_size))
+            .map(|_| sample_m31(state, false))
+            .collect::<Vec<_>>();
+        columns.push(col);
+    }
+
+    let max_log_size = *column_log_sizes.iter().max().expect("at least one column");
+    let mut query_positions = Vec::with_capacity(4);
+    let n_queries = 1 + (next_u64(state) as usize % 4);
+    while query_positions.len() < n_queries {
+        let q = next_u64(state) as usize & ((1usize << max_log_size) - 1);
+        if !query_positions.contains(&q) {
+            query_positions.push(q);
+        }
+    }
+    query_positions.sort_unstable();
+
+    let mut sorted_indices = (0..columns.len()).collect::<Vec<_>>();
+    sorted_indices.sort_by_key(|&i| (column_log_sizes[i], i));
+    let sorted_columns = sorted_indices
+        .iter()
+        .map(|&i| &columns[i])
+        .collect::<Vec<_>>();
+
+    let leaves = build_vcs_lifted_leaves(&sorted_columns);
+    let mut layers = vec![leaves];
+    while layers.last().expect("at least one layer").len() > 1 {
+        let prev = layers.last().expect("previous layer");
+        layers.push(
+            (0..(prev.len() >> 1))
+                .map(|i| LiftedMerkleHasher::hash_children((prev[2 * i], prev[2 * i + 1])))
+                .collect(),
+        );
+    }
+    layers.reverse();
+    let root = layers
+        .first()
+        .expect("root layer")
+        .first()
+        .copied()
+        .expect("root hash");
+
+    let max_layer_log_size = layers.len() - 1;
+    let queried_values = columns
+        .iter()
+        .map(|col| {
+            let log_size = col.len().ilog2() as usize;
+            let shift = max_layer_log_size - log_size;
+            query_positions
+                .iter()
+                .map(|pos| col[(pos >> (shift + 1) << 1) + (pos & 1)])
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    let mut hash_witness = Vec::<Blake2sHash>::new();
+    let mut prev_layer_queries = query_positions.clone();
+    prev_layer_queries.dedup();
+    for layer_log_size in (0..layers.len() - 1).rev() {
+        let prev_layer_hashes = layers
+            .get(layer_log_size + 1)
+            .expect("previous layer hashes");
+        let mut curr_layer_queries = Vec::<usize>::new();
+        let mut p: usize = 0;
+        while p < prev_layer_queries.len() {
+            let first = prev_layer_queries[p];
+            let mut chunk_len = 1;
+            if p + 1 < prev_layer_queries.len() && ((first ^ 1) == prev_layer_queries[p + 1]) {
+                chunk_len = 2;
+            }
+            if chunk_len == 1 {
+                hash_witness.push(prev_layer_hashes[first ^ 1]);
+            }
+            curr_layer_queries.push(first >> 1);
+            p += chunk_len;
+        }
+        prev_layer_queries = curr_layer_queries;
+    }
+
+    let decommitment = MerkleDecommitmentLifted::<LiftedMerkleHasher> { hash_witness };
+    let verifier = MerkleVerifierLifted::<LiftedMerkleHasher>::new(root, column_log_sizes.clone());
+    if verifier
+        .verify(&query_positions, queried_values.clone(), decommitment.clone())
+        .is_err()
+    {
+        return None;
+    }
+
+    Some(VcsLiftedBaseCase {
+        root,
+        column_log_sizes,
+        columns,
+        query_positions,
+        queried_values,
+        decommitment,
+    })
+}
+
+fn build_vcs_lifted_leaves(columns: &[&Vec<M31>]) -> Vec<Blake2sHash> {
+    let hasher = LiftedMerkleHasher::default_with_initial_state();
+    if columns.is_empty() {
+        return vec![hasher.finalize()];
+    }
+    assert!(columns[0].len() >= 2, "A column must be of length >= 2.");
+
+    let mut prev_layer: Vec<LiftedMerkleHasher> = vec![hasher; 2];
+    let mut prev_layer_log_size: u32 = 1;
+
+    let mut group_start: usize = 0;
+    while group_start < columns.len() {
+        let log_size = columns[group_start].len().ilog2();
+        let mut group_end = group_start + 1;
+        while group_end < columns.len() && columns[group_end].len().ilog2() == log_size {
+            group_end += 1;
+        }
+
+        let log_ratio = log_size - prev_layer_log_size;
+        prev_layer = (0..(1usize << log_size))
+            .map(|idx| prev_layer[(idx >> (log_ratio + 1) << 1) + (idx & 1)].clone())
+            .collect();
+
+        for column in &columns[group_start..group_end] {
+            for (i, hasher) in prev_layer.iter_mut().enumerate() {
+                hasher.update_leaf(&[column[i]]);
+            }
+        }
+        prev_layer_log_size = log_size;
+        group_start = group_end;
+    }
+
+    prev_layer.into_iter().map(|h| h.finalize()).collect()
 }
 
 fn build_vcs_base_case(state: &mut u64) -> Option<VcsBaseCase> {
