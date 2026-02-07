@@ -1,8 +1,10 @@
 const fri = @import("../fri.zig");
 const qm31 = @import("../fields/qm31.zig");
+pub const utils = @import("utils.zig");
 
 const FriConfig = fri.FriConfig;
 const QM31 = qm31.QM31;
+pub const TreeVec = utils.TreeVec;
 
 pub const TreeSubspan = struct {
     tree_index: usize,
