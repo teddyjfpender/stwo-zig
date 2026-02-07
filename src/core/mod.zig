@@ -9,3 +9,4 @@ pub const queries = @import("queries.zig");
 pub const fraction = @import("fraction.zig");
 pub const fft = @import("fft.zig");
 pub const poly = @import("poly/mod.zig");
+pub const constraints = @import("constraints.zig");

@@ -63,6 +63,10 @@ pub const M31 = struct {
         return .{ .v = Modulus - a.v };
     }
 
+    pub inline fn complexConjugate(self: M31) M31 {
+        return self;
+    }
+
     pub inline fn mul(a: M31, b: M31) M31 {
         const prod: u64 = @as(u64, a.v) * @as(u64, b.v);
         return .{ .v = reduce64(prod) };

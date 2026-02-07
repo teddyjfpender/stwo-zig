@@ -89,6 +89,13 @@ pub fn CirclePoint(comptime F: type) type {
             return .{ .x = self.x, .y = self.y.neg() };
         }
 
+        pub inline fn complexConjugate(self: Self) Self {
+            return .{
+                .x = self.x.complexConjugate(),
+                .y = self.y.complexConjugate(),
+            };
+        }
+
         pub inline fn inv(self: Self) Self {
             return self.conjugate();
         }
