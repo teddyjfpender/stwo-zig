@@ -1,128 +1,73 @@
-You asked me to port the entire starkware-libs/stwo repository to Zig top-to-bottom, prioritizing API equivalence, test equivalence, and especially test-vector equivalence, with real quality gating and no scaffolding, and to deliver a downloadable zip.
+# Handoff (Current)
 
-✅ What I have completed so far (real implementation, not placeholders):
+## Scope Anchor
+- Upstream: `https://github.com/starkware-libs/stwo`
+- Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
+- Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
-I have created a Zig repository (stwo-zig/) with a correctness-first implementation of several critical Stwo primitives and with formal engineering gates:
+## Newly Landed Parity Slices
 
-✅ Implemented (fully, with unit tests)
-	•	M31 field arithmetic (p = 2³¹−1), including:
-	•	canonical reduction using Mersenne reduction
-	•	add/sub/mul/div/pow/inv
-	•	serialization helpers
-	•	randomized property testing (10k iterations)
-	•	Circle group point operations over M31:
-	•	correct group law (complex multiplication)
-	•	generator constant derived from the standard t=2 parametrization
-(verified to have order 2³¹; i.e. g^(2³⁰)=(-1,0) and g^(2³¹)=(1,0))
-	•	Merkle tree VCS primitive:
-	•	Blake2s-256 hashing
-	•	domain-separated leaf/node hashing
-	•	proof generation + verification
-	•	negative test by corrupting path
-	•	Fiat–Shamir transcript channel:
-	•	deterministic, domain-separated absorb/squeeze
-	•	rejection sampling into M31 challenges
-	•	determinism tests
-	•	Proof-of-work helper:
-	•	Blake3-based PoW solver/verifier
-	•	leading-zero-bit difficulty checks
-	•	integration test with low difficulty
+### Prover Lookups
+- `src/prover/lookups/gkr_prover.zig`
+  - Full `proveBatch` flow ported.
+  - Added full layer model, multivariate oracle, mask extraction, challenge progression, and artifact/proof assembly.
+  - Added prove+verify tests for:
+    - grand product
+    - logup generic
+    - logup singles
+    - logup multiplicities
 
-✅ Engineering infrastructure (quality gates)
-	•	zig build test → runs all unit tests
-	•	zig build fmt → formatting gate (zig fmt --check)
-	•	zig build vectors → placeholder gate for parity test-vector generation (see below)
+### Prover PCS
+- `src/prover/pcs/quotient_ops.zig`
+  - Ported quotient computation flow over lifted domain.
+  - Added mixed-log-size handling and failure checks (shape/log-size/length invariants).
 
-✅ Formal engineering specification included
-	•	SPEC.md contains a staged parity strategy:
-	•	deterministic primitives first
-	•	parity-vector generation architecture
-	•	acceptance criteria per milestone
-	•	security requirements
-	•	explicit test gating requirements
+- `src/prover/pcs/mod.zig`
+  - Ported commitment tree prover/decommit path.
+  - Ported commitment scheme prover slices:
+    - commit roots + log-size tracking
+    - tree builder
+    - per-tree query-position handling (including preprocessed tree mapping)
+    - per-tree decommit extraction
+  - Added `proveValuesFromSamples` wiring:
+    - sampled-values channel mixing
+    - quotient computation
+    - FRI commitment/decommit
+    - PoW nonce grind + transcript mixing
+    - final `ExtendedCommitmentSchemeProof` assembly
+  - Added roundtrip test against `core/pcs/verifier.zig`.
+  - Added negative tests for shape mismatch and inconsistent sampled-value rejection.
 
-⸻
+### Prover FRI
+- `src/prover/fri.zig`
+  - Ported full `FriProver` commit/decommit flow (in addition to earlier layer decommit helpers).
+  - Includes:
+    - first layer commit/decommit
+    - inner layer commit/decommit loop
+    - last layer interpolation + degree enforcement
+    - query sampling + decommit on sampled queries
+  - Added roundtrip prover->verifier test with `core/fri.zig` verifier.
+  - Added failure tests for non-canonic domain and high-degree rejection.
 
-⚠️ What is not yet complete
+## Current Quality Gates (Passing)
+- `zig build fmt`
+- `zig build test`
+- `python3 scripts/parity_fields.py`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
 
-Your request requires a complete port of the full prover/verifier stack (core/fft, fri, pcs, proof format, verifier, prover backend, etc.) and parity vectors proving equivalence against upstream Rust.
+## Current Known Gaps
+1. `CommitmentSchemeProver.proveValues` parity is currently implemented as `proveValuesFromSamples`.
+   - It requires sampled values as input instead of computing them directly from committed polynomials.
+2. Missing upstream `prover/poly/circle/*` parity (evaluation/poly/secure_poly/ops), which blocks native sampled-value computation path parity.
+3. Top-level `prover::prove/prove_ex` pipeline parity is still incomplete due pending `prover/air/*` + `prover/poly/*` dependencies.
 
-I have not yet completed:
-	•	Full Circle FFT
-	•	Full FRI
-	•	Full PCS integration
-	•	Full proof format + verifier
-	•	Full prover
-	•	Full Rust→Zig API parity surface replication
-	•	Full test-vector parity harness (generator + Zig vector runner)
-	•	Repository zip export (not yet packaged)
+## Next Highest-Impact Targets
+1. Port `prover/poly/circle/*` minimal parity slice needed for in-prover sampled-value evaluation.
+2. Upgrade `CommitmentSchemeProver` from `proveValuesFromSamples` to full upstream-style `proveValues` path.
+3. Port `prover/air/component_prover` + accumulation wiring, then stitch `prover::prove_ex` end-to-end.
+4. Expand differential vectors to cover newly landed prover FRI/PCS/GKR flows.
 
-I also began generating golden test vectors (starting with M31) to embed into Zig tests, but did not finish integrating the vector file into the repo before tool access was cut off.
-
-⸻
-
-Current repo structure (already created)
-
-stwo-zig/
-  build.zig
-  build.zig.zon
-  README.md
-  SPEC.md
-  LICENSE
-  src/
-    stwo.zig
-    core/
-      mod.zig
-      circle.zig
-      proof_of_work.zig
-      fields/
-        mod.zig
-        m31.zig
-      vcs/
-        mod.zig
-        merkle.zig
-      channel/
-        mod.zig
-    prover/mod.zig
-    tracing/mod.zig
-  tools/
-    stwo-vector-gen/   (created, not yet filled out completely)
-  scripts/
-
-
-⸻
-
-Why I didn’t finish everything you demanded
-
-Porting Stwo fully is a large multi-crate cryptographic prover system, and in this session I ran into hard tool-call limits that prevented me from downloading and ingesting enough upstream Rust source to proceed with an accurate full API-parity port in one continuous pass.
-
-Also, Zig wasn’t available in the execution environment, so I couldn’t compile-run the entire suite while building out the remaining layers.
-
-⸻
-
-Next step (if you want me to continue)
-
-If you want, I can continue from this point and complete:
-
-✅ The test-vector embedding (starting with M31 vectors)
-✅ The Rust vector generator tool that pins stwo = "=2.0.0" and emits JSON
-✅ The Zig test harness that consumes those vectors for parity
-✅ The next core milestone: Circle FFT + correctness vectors
-✅ And then FRI + PCS + proof + verifier + prover
-
-…and once done I will output the zip of the full repository.
-
-⸻
-
-If you want the partial repo zip now
-
-I can also package the current repository state into a zip immediately—just tell me “zip the current milestone” and I will do it in the next response.
-
-⸻
-
-Summary
-
-✅ Implemented: M31, Circle group, Merkle VCS, Transcript, PoW + tests + build gates + SPEC
-❌ Not implemented yet: full Circle-STARK system + parity vector harness + zip
-
-If you confirm you want me to continue toward full prover/verifier parity, I’ll proceed with the next milestone (FFT → FRI → PCS → Proof → Verifier → Prover) and include parity vectors at each gate.
+## Divergence Record (Active)
+- Temporary API divergence:
+  - `CommitmentSchemeProver` currently exposes `proveValuesFromSamples` as the executable parity path.
+  - Closure plan: remove this as primary path once `prover/poly/circle` parity lands and full `proveValues` is wired.
