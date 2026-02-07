@@ -12,3 +12,4 @@ pub const poly = @import("poly/mod.zig");
 pub const constraints = @import("constraints.zig");
 pub const air = @import("air/mod.zig");
 pub const fri = @import("fri.zig");
+pub const pcs = @import("pcs/mod.zig");
