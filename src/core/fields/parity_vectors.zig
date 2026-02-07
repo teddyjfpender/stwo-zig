@@ -11,6 +11,7 @@ const line_mod = @import("../poly/line.zig");
 const utils_mod = @import("../utils.zig");
 const vcs_verifier_mod = @import("../vcs/verifier.zig");
 const vcs_blake3 = @import("../vcs/blake3_hash.zig");
+const prover_fri_mod = @import("../../prover/fri.zig");
 const vcs_prover_mod = @import("../../prover/vcs/prover.zig");
 const vcs_lifted_prover_mod = @import("../../prover/vcs_lifted/prover.zig");
 const prover_line_mod = @import("../../prover/line.zig");
@@ -141,6 +142,18 @@ const FriFoldVector = struct {
     fold_circle_values: [][4]u32,
 };
 
+const FriDecommitVector = struct {
+    case: []const u8,
+    fold_step: u32,
+    column: [][4]u32,
+    query_positions: []usize,
+    decommitment_positions: []usize,
+    witness_evals: [][4]u32,
+    value_map_positions: []usize,
+    value_map_values: [][4]u32,
+    expected: []const u8,
+};
+
 const ProofExtractOodsVector = struct {
     composition_log_size: u32,
     oods_point: [2][4]u32,
@@ -244,6 +257,7 @@ const VectorFile = struct {
     blake3: []Blake3Vector,
     pcs_quotients: []PcsQuotientsVector,
     fri_folds: []FriFoldVector,
+    fri_decommit: []FriDecommitVector,
     proof_extract_oods: []ProofExtractOodsVector,
     proof_sizes: []ProofSizeVector,
     prover_line: []ProverLineVector,
@@ -713,6 +727,51 @@ test "field vectors: fri fold parity" {
         try std.testing.expectEqual(v.fold_circle_values.len, folded_circle.len);
         for (v.fold_circle_values, 0..) |expected, i| {
             try std.testing.expectEqualSlices(u32, expected[0..], encodeQM31(folded_circle[i])[0..]);
+        }
+    }
+}
+
+test "field vectors: fri decommit parity" {
+    const alloc = std.testing.allocator;
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.fri_decommit.len > 0);
+    for (parsed.value.fri_decommit) |v| {
+        const column = try alloc.alloc(QM31, v.column.len);
+        defer alloc.free(column);
+        for (v.column, 0..) |value, i| column[i] = qm31From(value);
+
+        if (std.mem.eql(u8, v.expected, "ok")) {
+            var result = try prover_fri_mod.computeDecommitmentPositionsAndWitnessEvals(
+                alloc,
+                column,
+                v.query_positions,
+                v.fold_step,
+            );
+            defer result.deinit(alloc);
+
+            try std.testing.expectEqualSlices(usize, v.decommitment_positions, result.decommitment_positions);
+            try std.testing.expectEqual(v.witness_evals.len, result.witness_evals.len);
+            for (v.witness_evals, 0..) |expected, i| {
+                try std.testing.expect(result.witness_evals[i].eql(qm31From(expected)));
+            }
+            try std.testing.expectEqual(v.value_map_positions.len, result.value_map.len);
+            for (result.value_map, 0..) |entry, i| {
+                try std.testing.expectEqual(v.value_map_positions[i], entry.position);
+                try std.testing.expect(entry.value.eql(qm31From(v.value_map_values[i])));
+            }
+        } else {
+            try std.testing.expectError(
+                expectedFriDecommitError(v.expected),
+                prover_fri_mod.computeDecommitmentPositionsAndWitnessEvals(
+                    alloc,
+                    column,
+                    v.query_positions,
+                    v.fold_step,
+                ),
+            );
         }
     }
 }
@@ -1188,6 +1247,12 @@ fn expectedVcsError(name: []const u8) vcs_verifier_mod.MerkleVerificationError {
     if (std.mem.eql(u8, name, "TooManyQueriedValues")) return vcs_verifier_mod.MerkleVerificationError.TooManyQueriedValues;
     if (std.mem.eql(u8, name, "TooFewQueriedValues")) return vcs_verifier_mod.MerkleVerificationError.TooFewQueriedValues;
     if (std.mem.eql(u8, name, "RootMismatch")) return vcs_verifier_mod.MerkleVerificationError.RootMismatch;
+    unreachable;
+}
+
+fn expectedFriDecommitError(name: []const u8) prover_fri_mod.FriDecommitError {
+    if (std.mem.eql(u8, name, "QueryOutOfRange")) return prover_fri_mod.FriDecommitError.QueryOutOfRange;
+    if (std.mem.eql(u8, name, "FoldStepTooLarge")) return prover_fri_mod.FriDecommitError.FoldStepTooLarge;
     unreachable;
 }
 

@@ -29,6 +29,7 @@ This increment targets:
 - `prover/vcs_lifted/prover`
 - `prover/vcs_lifted/ops`
 - `prover/line`
+- `prover/fri` (decommit helper slice)
 - `tracing/mod`
 
 ## Upgrade Policy

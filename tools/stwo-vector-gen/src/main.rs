@@ -45,6 +45,7 @@ const PCS_VECTOR_COUNT: usize = 16;
 const PCS_LIFTING_LOG_SIZE: u32 = 8;
 const PCS_QUERY_COUNT: usize = 4;
 const FRI_FOLD_VECTOR_COUNT: usize = 32;
+const FRI_DECOMMIT_VECTOR_COUNT: usize = 32;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 const PROVER_LINE_VECTOR_COUNT: usize = 32;
@@ -188,6 +189,19 @@ struct FriFoldVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct FriDecommitVector {
+    case: String,
+    fold_step: u32,
+    column: Vec<[u32; 4]>,
+    query_positions: Vec<usize>,
+    decommitment_positions: Vec<usize>,
+    witness_evals: Vec<[u32; 4]>,
+    value_map_positions: Vec<usize>,
+    value_map_values: Vec<[u32; 4]>,
+    expected: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ProofExtractOodsVector {
     composition_log_size: u32,
     oods_point: [[u32; 4]; 2],
@@ -315,6 +329,7 @@ struct FieldVectors {
     blake3: Vec<Blake3Vector>,
     pcs_quotients: Vec<PcsQuotientsVector>,
     fri_folds: Vec<FriFoldVector>,
+    fri_decommit: Vec<FriDecommitVector>,
     proof_extract_oods: Vec<ProofExtractOodsVector>,
     proof_sizes: Vec<ProofSizeVector>,
     prover_line: Vec<ProverLineVector>,
@@ -460,6 +475,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
 
     let pcs_quotients = generate_pcs_quotients_vectors(state, PCS_VECTOR_COUNT);
     let fri_folds = generate_fri_fold_vectors(state, FRI_FOLD_VECTOR_COUNT);
+    let fri_decommit = generate_fri_decommit_vectors(state, FRI_DECOMMIT_VECTOR_COUNT);
     let proof_extract_oods = generate_proof_extract_oods_vectors(state, PROOF_OODS_VECTOR_COUNT);
     let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
     let prover_line = generate_prover_line_vectors(state, PROVER_LINE_VECTOR_COUNT);
@@ -509,6 +525,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         blake3,
         pcs_quotients,
         fri_folds,
+        fri_decommit,
         proof_extract_oods,
         proof_sizes,
         prover_line,
@@ -1427,6 +1444,160 @@ fn generate_fri_fold_vectors(state: &mut u64, count: usize) -> Vec<FriFoldVector
         });
     }
     out
+}
+
+fn generate_fri_decommit_vectors(state: &mut u64, count: usize) -> Vec<FriDecommitVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let mut cases = build_fri_decommit_cases(state);
+        if cases.is_empty() {
+            continue;
+        }
+        let remaining = count - out.len();
+        if cases.len() > remaining {
+            cases.truncate(remaining);
+        }
+        out.extend(cases);
+    }
+    out
+}
+
+fn build_fri_decommit_cases(state: &mut u64) -> Vec<FriDecommitVector> {
+    let line_log_size = 2 + ((next_u64(state) as u32) % 6);
+    let line_len = 1usize << line_log_size;
+    let column = (0..line_len)
+        .map(|_| sample_qm31(state, false))
+        .collect::<Vec<_>>();
+
+    let max_fold_step = line_log_size.min(3);
+    let fold_step = (next_u64(state) as u32) % (max_fold_step + 1);
+
+    let mut query_positions = Vec::new();
+    let n_queries = 1 + (next_u64(state) as usize % line_len.min(4));
+    while query_positions.len() < n_queries {
+        let q = next_u64(state) as usize % line_len;
+        if !query_positions.contains(&q) {
+            query_positions.push(q);
+        }
+    }
+    query_positions.sort_unstable();
+
+    let base_expected = compute_fri_decommit_outputs(&column, &query_positions, fold_step);
+    if !matches!(base_expected, Ok(_)) {
+        return vec![];
+    }
+
+    let mut out = Vec::<FriDecommitVector>::new();
+    let mut push_case =
+        |case: &str, case_fold_step: u32, case_queries: Vec<usize>| {
+            let (expected, outputs) = match compute_fri_decommit_outputs(
+                &column,
+                &case_queries,
+                case_fold_step,
+            ) {
+                Ok(outputs) => ("ok".to_string(), outputs),
+                Err(err) => (
+                    err.to_string(),
+                    FriDecommitOutputs {
+                        decommitment_positions: Vec::new(),
+                        witness_evals: Vec::new(),
+                        value_map_positions: Vec::new(),
+                        value_map_values: Vec::new(),
+                    },
+                ),
+            };
+
+            out.push(FriDecommitVector {
+                case: case.to_string(),
+                fold_step: case_fold_step,
+                column: column.iter().copied().map(encode_qm31).collect(),
+                query_positions: case_queries,
+                decommitment_positions: outputs.decommitment_positions,
+                witness_evals: outputs.witness_evals.into_iter().map(encode_qm31).collect(),
+                value_map_positions: outputs.value_map_positions,
+                value_map_values: outputs.value_map_values.into_iter().map(encode_qm31).collect(),
+                expected,
+            });
+        };
+
+    push_case("valid", fold_step, query_positions.clone());
+
+    let mut out_of_range_queries = query_positions.clone();
+    out_of_range_queries.push(line_len + 1 + (next_u64(state) as usize % 4));
+    out_of_range_queries.sort_unstable();
+    push_case("query_out_of_range", fold_step, out_of_range_queries);
+
+    push_case(
+        "fold_step_too_large",
+        usize::BITS,
+        query_positions,
+    );
+
+    out
+}
+
+struct FriDecommitOutputs {
+    decommitment_positions: Vec<usize>,
+    witness_evals: Vec<QM31>,
+    value_map_positions: Vec<usize>,
+    value_map_values: Vec<QM31>,
+}
+
+fn compute_fri_decommit_outputs(
+    column: &[QM31],
+    query_positions: &[usize],
+    fold_step: u32,
+) -> Result<FriDecommitOutputs, &'static str> {
+    if fold_step >= usize::BITS {
+        return Err("FoldStepTooLarge");
+    }
+
+    let mut decommitment_positions = Vec::<usize>::new();
+    let mut witness_evals = Vec::<QM31>::new();
+    let mut value_map_positions = Vec::<usize>::new();
+    let mut value_map_values = Vec::<QM31>::new();
+
+    let subset_len = 1usize << fold_step;
+
+    let mut subset_start_idx = 0usize;
+    while subset_start_idx < query_positions.len() {
+        let subset_key = query_positions[subset_start_idx] >> fold_step;
+        let mut subset_end_idx = subset_start_idx + 1;
+        while subset_end_idx < query_positions.len()
+            && (query_positions[subset_end_idx] >> fold_step) == subset_key
+        {
+            subset_end_idx += 1;
+        }
+
+        let subset_queries = &query_positions[subset_start_idx..subset_end_idx];
+        let subset_start = subset_key << fold_step;
+        let mut subset_query_at = 0usize;
+
+        for position in subset_start..subset_start + subset_len {
+            if position >= column.len() {
+                return Err("QueryOutOfRange");
+            }
+            decommitment_positions.push(position);
+            let eval = column[position];
+            value_map_positions.push(position);
+            value_map_values.push(eval);
+
+            if subset_query_at < subset_queries.len() && subset_queries[subset_query_at] == position {
+                subset_query_at += 1;
+            } else {
+                witness_evals.push(eval);
+            }
+        }
+
+        subset_start_idx = subset_end_idx;
+    }
+
+    Ok(FriDecommitOutputs {
+        decommitment_positions,
+        witness_evals,
+        value_map_positions,
+        value_map_values,
+    })
 }
 
 fn generate_pcs_quotients_vectors(state: &mut u64, count: usize) -> Vec<PcsQuotientsVector> {
