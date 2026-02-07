@@ -214,6 +214,62 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             self.queries = try queries_mod.Queries.init(allocator, unsorted, first_layer_log_size);
             return allocator.dupe(usize, self.queries.?.positions);
         }
+
+        pub fn decommit(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            first_layer_query_evals: []const QM31,
+        ) !void {
+            const queries = self.queries orelse return FriVerificationError.FirstLayerEvaluationsInvalid;
+            var first_layer_sparse_eval = try self.first_layer.verify(
+                allocator,
+                queries,
+                first_layer_query_evals,
+            );
+            defer first_layer_sparse_eval.deinit(allocator);
+
+            var layer_queries = try queries.fold(allocator, CIRCLE_TO_LINE_FOLD_STEP);
+            defer layer_queries.deinit(allocator);
+            var layer_query_evals = try first_layer_sparse_eval.foldCircleSubsets(
+                allocator,
+                self.first_layer.folding_alpha,
+                self.first_layer.column_commitment_domain,
+            );
+            defer allocator.free(layer_query_evals);
+
+            for (self.inner_layers) |layer| {
+                const folded = try layer.verifyAndFold(allocator, layer_queries, layer_query_evals);
+
+                layer_queries.deinit(allocator);
+                allocator.free(layer_query_evals);
+                layer_queries = folded.queries;
+                layer_query_evals = folded.evals;
+            }
+
+            try self.decommitLastLayer(allocator, layer_queries, layer_query_evals);
+        }
+
+        fn decommitLastLayer(
+            self: Self,
+            allocator: std.mem.Allocator,
+            queries: queries_mod.Queries,
+            query_evals: []const QM31,
+        ) !void {
+            if (queries.positions.len != query_evals.len) {
+                return FriVerificationError.LastLayerEvaluationsInvalid;
+            }
+
+            for (queries.positions, query_evals) |query, query_eval| {
+                const x = self.last_layer_domain.at(core_utils.bitReverseIndex(
+                    query,
+                    self.last_layer_domain.logSize(),
+                ));
+                const expected = try self.last_layer_poly.evalAtPoint(allocator, QM31.fromBase(x));
+                if (!query_eval.eql(expected)) {
+                    return FriVerificationError.LastLayerEvaluationsInvalid;
+                }
+            }
+        }
     };
 }
 
@@ -245,6 +301,55 @@ fn FriFirstLayerVerifier(comptime H: type) type {
             self.proof.deinit(allocator);
             self.* = undefined;
         }
+
+        fn verify(
+            self: Self,
+            allocator: std.mem.Allocator,
+            queries: queries_mod.Queries,
+            column_query_evals: []const QM31,
+        ) !SparseEvaluation {
+            if (queries.log_domain_size != self.column_commitment_domain.logSize()) {
+                return FriVerificationError.FirstLayerEvaluationsInvalid;
+            }
+
+            var rebuilt = computeDecommitmentPositionsAndRebuildEvals(
+                allocator,
+                queries,
+                column_query_evals,
+                self.proof.fri_witness,
+                CIRCLE_TO_LINE_FOLD_STEP,
+            ) catch return FriVerificationError.FirstLayerEvaluationsInvalid;
+            errdefer rebuilt.deinit(allocator);
+
+            if (rebuilt.consumed_witness != self.proof.fri_witness.len) {
+                return FriVerificationError.FirstLayerEvaluationsInvalid;
+            }
+
+            const decommitmented_values = try sparseToBaseColumns(allocator, rebuilt.sparse_evaluation);
+            defer freeBaseColumns(allocator, decommitmented_values);
+            const repeated_sizes = [_]u32{
+                self.column_commitment_domain.logSize(),
+                self.column_commitment_domain.logSize(),
+                self.column_commitment_domain.logSize(),
+                self.column_commitment_domain.logSize(),
+            };
+            var merkle_verifier = try vcs_verifier.MerkleVerifierLifted(H).init(
+                allocator,
+                self.proof.commitment,
+                repeated_sizes[0..],
+            );
+            defer merkle_verifier.deinit(allocator);
+
+            merkle_verifier.verify(
+                allocator,
+                rebuilt.decommitment_positions,
+                decommitmented_values,
+                self.proof.decommitment,
+            ) catch return FriVerificationError.FirstLayerCommitmentInvalid;
+
+            allocator.free(rebuilt.decommitment_positions);
+            return rebuilt.sparse_evaluation;
+        }
     };
 }
 
@@ -261,7 +366,112 @@ fn FriInnerLayerVerifier(comptime H: type) type {
             self.proof.deinit(allocator);
             self.* = undefined;
         }
+
+        fn verifyAndFold(
+            self: Self,
+            allocator: std.mem.Allocator,
+            queries: queries_mod.Queries,
+            evals_at_queries: []const QM31,
+        ) !FoldedLayerState {
+            if (queries.log_domain_size != self.domain.logSize()) {
+                return FriVerificationError.InnerLayerEvaluationsInvalid;
+            }
+
+            var rebuilt = computeDecommitmentPositionsAndRebuildEvals(
+                allocator,
+                queries,
+                evals_at_queries,
+                self.proof.fri_witness,
+                FOLD_STEP,
+            ) catch return FriVerificationError.InnerLayerEvaluationsInvalid;
+            errdefer rebuilt.deinit(allocator);
+
+            if (rebuilt.consumed_witness != self.proof.fri_witness.len) {
+                return FriVerificationError.InnerLayerEvaluationsInvalid;
+            }
+
+            const decommitmented_values = try sparseToBaseColumns(allocator, rebuilt.sparse_evaluation);
+            defer freeBaseColumns(allocator, decommitmented_values);
+            const repeated_sizes = [_]u32{
+                self.domain.logSize(),
+                self.domain.logSize(),
+                self.domain.logSize(),
+                self.domain.logSize(),
+            };
+            var merkle_verifier = try vcs_verifier.MerkleVerifierLifted(H).init(
+                allocator,
+                self.proof.commitment,
+                repeated_sizes[0..],
+            );
+            defer merkle_verifier.deinit(allocator);
+
+            merkle_verifier.verify(
+                allocator,
+                rebuilt.decommitment_positions,
+                decommitmented_values,
+                self.proof.decommitment,
+            ) catch return FriVerificationError.InnerLayerCommitmentInvalid;
+
+            var folded_queries = try queries.fold(allocator, FOLD_STEP);
+            errdefer folded_queries.deinit(allocator);
+            const folded_evals = try rebuilt.sparse_evaluation.foldLineSubsets(
+                allocator,
+                self.folding_alpha,
+                self.domain,
+            );
+
+            allocator.free(rebuilt.decommitment_positions);
+            rebuilt.sparse_evaluation.deinit(allocator);
+            return .{
+                .queries = folded_queries,
+                .evals = folded_evals,
+            };
+        }
     };
+}
+
+const FoldedLayerState = struct {
+    queries: queries_mod.Queries,
+    evals: []QM31,
+
+    fn deinit(self: *FoldedLayerState, allocator: std.mem.Allocator) void {
+        self.queries.deinit(allocator);
+        allocator.free(self.evals);
+        self.* = undefined;
+    }
+};
+
+fn sparseToBaseColumns(allocator: std.mem.Allocator, sparse: SparseEvaluation) ![][]M31 {
+    var columns = [_]std.ArrayList(M31){
+        std.ArrayList(M31).init(allocator),
+        std.ArrayList(M31).init(allocator),
+        std.ArrayList(M31).init(allocator),
+        std.ArrayList(M31).init(allocator),
+    };
+    defer {
+        for (&columns) |*column| column.deinit();
+    }
+
+    for (sparse.subset_evals) |subset| {
+        for (subset) |value| {
+            const arr = value.toM31Array();
+            inline for (arr, 0..) |coord, i| {
+                try columns[i].append(coord);
+            }
+        }
+    }
+
+    const out = try allocator.alloc([]M31, qm31.SECURE_EXTENSION_DEGREE);
+    var i: usize = 0;
+    while (i < out.len) : (i += 1) {
+        out[i] = try columns[i].toOwnedSlice();
+    }
+    return out;
+}
+
+fn freeBaseColumns(allocator: std.mem.Allocator, columns: [][]M31) void {
+    for (columns) |column| allocator.free(column);
+    allocator.free(columns);
 }
 
 pub fn FriLayerProofAux(comptime H: type) type {
