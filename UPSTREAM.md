@@ -33,6 +33,7 @@ This increment targets:
 - `prover/fri` (decommit helper + layer decommit slices)
 - `prover/channel` (logging channel slice)
 - `prover/lookups` (utils + mle + sumcheck + gkr verifier + gkr prover helper slices)
+- `prover/poly` (module + twiddles + circle namespace scaffolding)
 - `prover/secure_column`
 - `tracing/mod`
 
