@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 use stwo::core::circle::{CirclePoint, M31_CIRCLE_GEN, M31_CIRCLE_LOG_ORDER};
+use stwo::core::fft::{butterfly, ibutterfly};
 use stwo::core::fields::cm31::CM31;
 use stwo::core::fields::m31::{M31, P};
 use stwo::core::fields::qm31::QM31;
@@ -65,12 +66,22 @@ struct CircleM31Vector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct FftM31Vector {
+    a: u32,
+    b: u32,
+    twid: u32,
+    butterfly: [u32; 2],
+    ibutterfly: [u32; 2],
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct FieldVectors {
     meta: Meta,
     m31: Vec<M31Vector>,
     cm31: Vec<CM31Vector>,
     qm31: Vec<QM31Vector>,
     circle_m31: Vec<CircleM31Vector>,
+    fft_m31: Vec<FftM31Vector>,
 }
 
 fn main() {
@@ -119,6 +130,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let mut cm31 = Vec::with_capacity(sample_count);
     let mut qm31 = Vec::with_capacity(sample_count);
     let mut circle_m31 = Vec::with_capacity(sample_count);
+    let mut fft_m31 = Vec::with_capacity(sample_count);
 
     for _ in 0..sample_count {
         let a = sample_m31(state, true);
@@ -182,6 +194,29 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         });
     }
 
+    for _ in 0..sample_count {
+        let a = sample_m31(state, false);
+        let b = sample_m31(state, false);
+        let twid = sample_m31(state, true);
+        let itwid = twid.inverse();
+
+        let mut v0 = a;
+        let mut v1 = b;
+        butterfly(&mut v0, &mut v1, twid);
+        let butterfly_out = [encode_m31(v0), encode_m31(v1)];
+
+        ibutterfly(&mut v0, &mut v1, itwid);
+        let ibutterfly_out = [encode_m31(v0), encode_m31(v1)];
+
+        fft_m31.push(FftM31Vector {
+            a: encode_m31(a),
+            b: encode_m31(b),
+            twid: encode_m31(twid),
+            butterfly: butterfly_out,
+            ibutterfly: ibutterfly_out,
+        });
+    }
+
     FieldVectors {
         meta: Meta {
             upstream_commit: UPSTREAM_COMMIT,
@@ -191,6 +226,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         cm31,
         qm31,
         circle_m31,
+        fft_m31,
     }
 }
 

@@ -7,3 +7,4 @@ pub const crypto = @import("crypto/mod.zig");
 pub const utils = @import("utils.zig");
 pub const queries = @import("queries.zig");
 pub const fraction = @import("fraction.zig");
+pub const fft = @import("fft.zig");

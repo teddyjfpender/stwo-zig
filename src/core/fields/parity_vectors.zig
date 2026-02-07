@@ -1,5 +1,6 @@
 const std = @import("std");
 const circle_mod = @import("../circle.zig");
+const fft_mod = @import("../fft.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
@@ -52,6 +53,14 @@ const CircleM31Vector = struct {
     conjugate_a: [2]u32,
 };
 
+const FftM31Vector = struct {
+    a: u32,
+    b: u32,
+    twid: u32,
+    butterfly: [2]u32,
+    ibutterfly: [2]u32,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -61,6 +70,7 @@ const VectorFile = struct {
     cm31: []CM31Vector,
     qm31: []QM31Vector,
     circle_m31: []CircleM31Vector,
+    fft_m31: []FftM31Vector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -152,5 +162,26 @@ test "field vectors: circle m31 parity" {
         try std.testing.expect(a.sub(b).eql(circleM31From(v.sub)));
         try std.testing.expect(a.double().eql(circleM31From(v.double_a)));
         try std.testing.expect(a.conjugate().eql(circleM31From(v.conjugate_a)));
+    }
+}
+
+test "field vectors: fft m31 parity" {
+    var parsed = try parseVectors(std.testing.allocator);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.fft_m31.len == parsed.value.meta.sample_count);
+    for (parsed.value.fft_m31) |v| {
+        var a = m31From(v.a);
+        var b = m31From(v.b);
+        const twid = m31From(v.twid);
+
+        fft_mod.butterfly(M31, &a, &b, twid);
+        try std.testing.expect(a.eql(m31From(v.butterfly[0])));
+        try std.testing.expect(b.eql(m31From(v.butterfly[1])));
+
+        const itwid = try twid.inv();
+        fft_mod.ibutterfly(M31, &a, &b, itwid);
+        try std.testing.expect(a.eql(m31From(v.ibutterfly[0])));
+        try std.testing.expect(b.eql(m31From(v.ibutterfly[1])));
     }
 }
