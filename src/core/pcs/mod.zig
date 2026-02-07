@@ -5,6 +5,7 @@ const qm31 = @import("../fields/qm31.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
 pub const utils = @import("utils.zig");
 pub const quotients = @import("quotients.zig");
+pub const verifier = @import("verifier.zig");
 
 const FriConfig = fri.FriConfig;
 const FriProof = fri.FriProof;
