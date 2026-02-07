@@ -23,7 +23,9 @@ This increment targets:
 - `core/vcs_lifted/merkle_hasher`
 - `core/vcs_lifted/verifier`
 - `prover/vcs/prover`
+- `prover/vcs/ops`
 - `prover/vcs_lifted/prover`
+- `prover/vcs_lifted/ops`
 
 ## Upgrade Policy
 
