@@ -4,6 +4,7 @@ const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const core_utils = @import("../utils.zig");
 const poly_utils = @import("utils.zig");
+const circle_domain = @import("circle/domain.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -34,6 +35,10 @@ pub const LineDomain = struct {
             },
         }
         return .{ .coset_value = c };
+    }
+
+    pub fn fromCircleDomain(domain: circle_domain.CircleDomain) LineDomain {
+        return .{ .coset_value = domain.half_coset };
     }
 
     pub fn at(self: LineDomain, index: usize) M31 {
