@@ -11,6 +11,7 @@ const line_mod = @import("../poly/line.zig");
 const utils_mod = @import("../utils.zig");
 const vcs_verifier_mod = @import("../vcs/verifier.zig");
 const vcs_blake3 = @import("../vcs/blake3_hash.zig");
+const vcs_prover_mod = @import("../../prover/vcs/prover.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
@@ -189,6 +190,16 @@ const VcsVerifierVector = struct {
     expected: []const u8,
 };
 
+const VcsProverVector = struct {
+    root: [32]u8,
+    column_log_sizes: []u32,
+    columns: [][]u32,
+    queries_per_log_size: []VcsLogSizeQueriesVector,
+    queried_values: []u32,
+    hash_witness: [][32]u8,
+    column_witness: []u32,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -205,6 +216,7 @@ const VectorFile = struct {
     proof_extract_oods: []ProofExtractOodsVector,
     proof_sizes: []ProofSizeVector,
     vcs_verifier: []VcsVerifierVector,
+    vcs_prover: []VcsProverVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -875,6 +887,88 @@ test "field vectors: vcs verifier parity" {
                 verifier.verify(alloc, queries, queried_values, decommitment),
             );
         }
+    }
+}
+
+test "field vectors: vcs prover parity" {
+    const alloc = std.testing.allocator;
+    const Hasher = @import("../vcs/blake2_merkle.zig").Blake2sMerkleHasher;
+    const Prover = vcs_prover_mod.MerkleProver(Hasher);
+    const Verifier = vcs_verifier_mod.MerkleVerifier(Hasher);
+    const LogSizeQueries = vcs_verifier_mod.LogSizeQueries;
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.vcs_prover.len > 0);
+    for (parsed.value.vcs_prover) |v| {
+        const columns = try alloc.alloc([]const M31, v.columns.len);
+        defer alloc.free(columns);
+
+        const owned_columns = try alloc.alloc([]M31, v.columns.len);
+        defer {
+            for (owned_columns) |col| alloc.free(col);
+            alloc.free(owned_columns);
+        }
+
+        for (v.columns, 0..) |column, i| {
+            owned_columns[i] = try alloc.alloc(M31, column.len);
+            for (column, 0..) |value, j| owned_columns[i][j] = m31From(value);
+            columns[i] = owned_columns[i];
+        }
+
+        var prover = try Prover.commit(alloc, columns);
+        defer prover.deinit(alloc);
+
+        try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&prover.root()), std.mem.asBytes(&v.root)));
+
+        const queries = try alloc.alloc(LogSizeQueries, v.queries_per_log_size.len);
+        defer alloc.free(queries);
+        for (v.queries_per_log_size, 0..) |entry, i| {
+            queries[i] = .{
+                .log_size = entry.log_size,
+                .queries = entry.queries,
+            };
+        }
+
+        var decommitment = try prover.decommit(alloc, queries, columns);
+        defer decommitment.deinit(alloc);
+
+        try std.testing.expectEqual(v.queried_values.len, decommitment.queried_values.len);
+        for (v.queried_values, 0..) |value, i| {
+            try std.testing.expect(m31From(value).eql(decommitment.queried_values[i]));
+        }
+
+        try std.testing.expectEqual(
+            v.hash_witness.len,
+            decommitment.decommitment.decommitment.hash_witness.len,
+        );
+        for (v.hash_witness, 0..) |hash, i| {
+            try std.testing.expect(std.mem.eql(
+                u8,
+                std.mem.asBytes(&hash),
+                std.mem.asBytes(&decommitment.decommitment.decommitment.hash_witness[i]),
+            ));
+        }
+
+        try std.testing.expectEqual(
+            v.column_witness.len,
+            decommitment.decommitment.decommitment.column_witness.len,
+        );
+        for (v.column_witness, 0..) |value, i| {
+            try std.testing.expect(m31From(value).eql(
+                decommitment.decommitment.decommitment.column_witness[i],
+            ));
+        }
+
+        var verifier = try Verifier.init(alloc, prover.root(), v.column_log_sizes);
+        defer verifier.deinit(alloc);
+        try verifier.verify(
+            alloc,
+            queries,
+            decommitment.queried_values,
+            decommitment.decommitment.decommitment,
+        );
     }
 }
 

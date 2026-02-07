@@ -41,6 +41,7 @@ const FRI_FOLD_VECTOR_COUNT: usize = 32;
 const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 const VCS_VERIFIER_VECTOR_COUNT: usize = 24;
+const VCS_PROVER_VECTOR_COUNT: usize = 16;
 const BLAKE3_VECTOR_COUNT: usize = 64;
 
 #[derive(Debug, Clone, Serialize)]
@@ -231,6 +232,27 @@ struct VcsVerifierVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct VcsProverVector {
+    root: [u8; 32],
+    column_log_sizes: Vec<u32>,
+    columns: Vec<Vec<u32>>,
+    queries_per_log_size: Vec<VcsLogSizeQueriesVector>,
+    queried_values: Vec<u32>,
+    hash_witness: Vec<[u8; 32]>,
+    column_witness: Vec<u32>,
+}
+
+#[derive(Clone)]
+struct VcsBaseCase {
+    root: Blake2sHash,
+    column_log_sizes: Vec<u32>,
+    columns: Vec<Vec<M31>>,
+    queries_per_log_size: BTreeMap<u32, Vec<usize>>,
+    queried_values: Vec<M31>,
+    decommitment: MerkleDecommitment<VcsMerkleHasher>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct FieldVectors {
     meta: Meta,
     m31: Vec<M31Vector>,
@@ -244,6 +266,7 @@ struct FieldVectors {
     proof_extract_oods: Vec<ProofExtractOodsVector>,
     proof_sizes: Vec<ProofSizeVector>,
     vcs_verifier: Vec<VcsVerifierVector>,
+    vcs_prover: Vec<VcsProverVector>,
 }
 
 fn main() {
@@ -385,6 +408,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let proof_extract_oods = generate_proof_extract_oods_vectors(state, PROOF_OODS_VECTOR_COUNT);
     let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
     let vcs_verifier = generate_vcs_verifier_vectors(state, VCS_VERIFIER_VECTOR_COUNT);
+    let vcs_prover = generate_vcs_prover_vectors(state, VCS_PROVER_VECTOR_COUNT);
 
     for _ in 0..BLAKE3_VECTOR_COUNT {
         let data_len = next_u64(state) as usize % 96;
@@ -425,6 +449,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         proof_extract_oods,
         proof_sizes,
         vcs_verifier,
+        vcs_prover,
     }
 }
 
@@ -622,7 +647,47 @@ fn generate_vcs_verifier_vectors(state: &mut u64, count: usize) -> Vec<VcsVerifi
     out
 }
 
-fn build_vcs_verifier_cases(state: &mut u64) -> Vec<VcsVerifierVector> {
+fn generate_vcs_prover_vectors(state: &mut u64, count: usize) -> Vec<VcsProverVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let Some(base) = build_vcs_base_case(state) else {
+            continue;
+        };
+        out.push(VcsProverVector {
+            root: encode_hash(base.root),
+            column_log_sizes: base.column_log_sizes.clone(),
+            columns: base
+                .columns
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect())
+                .collect(),
+            queries_per_log_size: base
+                .queries_per_log_size
+                .iter()
+                .map(|(log_size, queries)| VcsLogSizeQueriesVector {
+                    log_size: *log_size,
+                    queries: queries.clone(),
+                })
+                .collect(),
+            queried_values: base.queried_values.into_iter().map(encode_m31).collect(),
+            hash_witness: base
+                .decommitment
+                .hash_witness
+                .into_iter()
+                .map(encode_hash)
+                .collect(),
+            column_witness: base
+                .decommitment
+                .column_witness
+                .into_iter()
+                .map(encode_m31)
+                .collect(),
+        });
+    }
+    out
+}
+
+fn build_vcs_base_case(state: &mut u64) -> Option<VcsBaseCase> {
     let n_columns = 2 + (next_u64(state) as usize % 4);
     let mut column_log_sizes = Vec::with_capacity(n_columns);
     let mut columns = Vec::with_capacity(n_columns);
@@ -761,8 +826,29 @@ fn build_vcs_verifier_cases(state: &mut u64) -> Vec<VcsVerifierVector> {
         base_decommitment.clone(),
     );
     if base_expected != "ok" {
-        return vec![];
+        return None;
     }
+
+    Some(VcsBaseCase {
+        root,
+        column_log_sizes,
+        columns,
+        queries_per_log_size,
+        queried_values,
+        decommitment: base_decommitment,
+    })
+}
+
+fn build_vcs_verifier_cases(state: &mut u64) -> Vec<VcsVerifierVector> {
+    let Some(base) = build_vcs_base_case(state) else {
+        return vec![];
+    };
+
+    let root = base.root;
+    let column_log_sizes = base.column_log_sizes.clone();
+    let queries_per_log_size = base.queries_per_log_size.clone();
+    let queried_values = base.queried_values.clone();
+    let base_decommitment = base.decommitment.clone();
 
     let mut out = Vec::<VcsVerifierVector>::new();
     let mut push_case = |case: &str,
