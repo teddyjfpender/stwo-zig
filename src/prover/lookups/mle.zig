@@ -86,6 +86,31 @@ pub fn Mle(comptime F: type) type {
             return try Mle(QM31).initOwned(out);
         }
 
+        /// Returns `f(x_0) = sum_{x_1..x_{n-1}} g(x_0, x_1, ..., x_{n-1})`.
+        pub fn sumAsPolyInFirstVariable(
+            self: Self,
+            allocator: std.mem.Allocator,
+            claim: QM31,
+        ) !lookup_utils.UnivariatePoly(QM31) {
+            if (self.evals.len == 1) {
+                return lookup_utils.UnivariatePoly(QM31).initOwned(
+                    try allocator.dupe(QM31, &[_]QM31{asSecure(F, self.evals[0])}),
+                );
+            }
+
+            const half = self.evals.len / 2;
+            var eval_at_0 = QM31.zero();
+            for (self.evals[0..half]) |value| {
+                eval_at_0 = eval_at_0.add(asSecure(F, value));
+            }
+            const eval_at_1 = claim.sub(eval_at_0);
+
+            const coeffs = try allocator.alloc(QM31, 2);
+            coeffs[0] = eval_at_0;
+            coeffs[1] = eval_at_1.sub(eval_at_0);
+            return lookup_utils.UnivariatePoly(QM31).initOwned(coeffs);
+        }
+
         /// Evaluates the multilinear extension at `point`.
         pub fn evalAtPoint(
             self: Self,
