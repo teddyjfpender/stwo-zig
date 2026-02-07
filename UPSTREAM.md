@@ -26,6 +26,7 @@ This increment targets:
 - `prover/vcs/ops`
 - `prover/vcs_lifted/prover`
 - `prover/vcs_lifted/ops`
+- `tracing/mod`
 
 ## Upgrade Policy
 
