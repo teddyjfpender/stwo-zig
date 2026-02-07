@@ -1,6 +1,6 @@
 const std = @import("std");
-const hash256 = @import("core/crypto/hash256.zig");
-const m31 = @import("core/fields/m31.zig");
+const hash256 = @import("../crypto/hash256.zig");
+const m31 = @import("../fields/m31.zig");
 
 const Hasher256 = hash256.Hasher256;
 const Digest32 = hash256.Digest32;
@@ -106,9 +106,9 @@ test "transcript: determinism" {
     const c2 = t2.challengeM31();
     try std.testing.expect(c1.eql(c2));
 
-    const u1 = t1.challengeU64();
-    const u2 = t2.challengeU64();
-    try std.testing.expect(u1 == u2);
+    const n1 = t1.challengeU64();
+    const n2 = t2.challengeU64();
+    try std.testing.expect(n1 == n2);
 }
 
 test "transcript: domain separation" {

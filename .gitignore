@@ -1,0 +1,4 @@
+.zig-cache/
+zig-out/
+tools/stwo-vector-gen/target/
+vectors/.fields.tmp.json

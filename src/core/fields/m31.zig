@@ -141,7 +141,7 @@ fn reduce64(x: u64) u32 {
     var t: u64 = (x & p) + (x >> 31);
     t = (t & p) + (t >> 31);
 
-    var r: u32 = @intCast(t);
+    const r: u32 = @intCast(t);
     // t is in [0, p+1].
     if (r == Modulus) return 0;
     if (r > Modulus) return r - Modulus;

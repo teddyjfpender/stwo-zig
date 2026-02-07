@@ -1,5 +1,5 @@
 const std = @import("std");
-const hash256 = @import("core/crypto/hash256.zig");
+const hash256 = @import("../crypto/hash256.zig");
 
 pub const Hash = hash256.Digest32;
 

@@ -1,0 +1,22 @@
+# Upstream Pin
+
+This repository is porting StarkWare `stwo` to Zig with strict parity checkpoints.
+
+- Upstream repository: `https://github.com/starkware-libs/stwo`
+- Pinned commit: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
+- Pin date: `2026-02-07`
+
+## Current Parity Slice
+
+This increment targets the foundational field layer:
+
+- `core/fields/m31`
+- `core/fields/cm31`
+- `core/fields/qm31`
+
+## Upgrade Policy
+
+1. Bump the pin in this file to a specific upstream commit.
+2. Re-run vector generation for all committed parity fixtures.
+3. Require Zig parity tests to pass before merging.
+4. Document any intentional divergence in `handoff.md`.

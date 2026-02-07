@@ -1,5 +1,5 @@
 const std = @import("std");
-const m31 = @import("core/fields/m31.zig");
+const m31 = @import("fields/m31.zig");
 
 const M31 = m31.M31;
 
