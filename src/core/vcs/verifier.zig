@@ -1,5 +1,7 @@
 const std = @import("std");
 const m31 = @import("../fields/m31.zig");
+const vcs_hash = @import("hash.zig");
+const vcs_merkle_hasher = @import("merkle_hasher.zig");
 const vcs_utils = @import("utils.zig");
 
 const M31 = m31.M31;
@@ -74,6 +76,7 @@ pub fn ExtendedMerkleDecommitment(comptime H: type) type {
 }
 
 pub fn MerkleVerifier(comptime H: type) type {
+    comptime vcs_merkle_hasher.assertMerkleHasher(H);
     return struct {
         root: H.Hash,
         column_log_sizes: []u32,
@@ -234,15 +237,11 @@ pub fn MerkleVerifier(comptime H: type) type {
             if (last_layer_hashes.len != 1) {
                 return MerkleVerificationError.RootMismatch;
             }
-            if (!hashEql(last_layer_hashes[0].hash, self.root)) {
+            if (!vcs_hash.eql(last_layer_hashes[0].hash, self.root)) {
                 return MerkleVerificationError.RootMismatch;
             }
         }
     };
-}
-
-fn hashEql(a: anytype, b: @TypeOf(a)) bool {
-    return std.mem.eql(u8, std.mem.asBytes(&a), std.mem.asBytes(&b));
 }
 
 fn countColumnsAtLogSize(column_log_sizes: []const u32, log_size: u32) usize {

@@ -1,10 +1,12 @@
 const std = @import("std");
 const m31 = @import("../../core/fields/m31.zig");
+const lifted_merkle_hasher = @import("../../core/vcs_lifted/merkle_hasher.zig");
 const vcs_lifted_verifier = @import("../../core/vcs_lifted/verifier.zig");
 
 const M31 = m31.M31;
 
 pub fn MerkleProverLifted(comptime H: type) type {
+    comptime lifted_merkle_hasher.assertMerkleHasherLifted(H);
     return struct {
         /// Merkle layers from root to largest layer.
         layers: [][]H.Hash,

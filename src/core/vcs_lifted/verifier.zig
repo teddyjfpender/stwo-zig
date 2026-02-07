@@ -1,5 +1,7 @@
 const std = @import("std");
 const m31 = @import("../fields/m31.zig");
+const vcs_hash = @import("../vcs/hash.zig");
+const lifted_merkle_hasher = @import("merkle_hasher.zig");
 
 const M31 = m31.M31;
 
@@ -61,6 +63,7 @@ pub fn ExtendedMerkleDecommitmentLifted(comptime H: type) type {
 }
 
 pub fn MerkleVerifierLifted(comptime H: type) type {
+    comptime lifted_merkle_hasher.assertMerkleHasherLifted(H);
     return struct {
         root: H.Hash,
         column_log_sizes: []u32,
@@ -197,7 +200,7 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                 return MerkleVerificationError.WitnessTooLong;
             }
             if (prev_layer.items.len != 1) return MerkleVerificationError.RootMismatch;
-            if (!std.mem.eql(u8, std.mem.asBytes(&prev_layer.items[0].hash), std.mem.asBytes(&self.root))) {
+            if (!vcs_hash.eql(prev_layer.items[0].hash, self.root)) {
                 return MerkleVerificationError.RootMismatch;
             }
         }
