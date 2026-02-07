@@ -1,8 +1,12 @@
 const std = @import("std");
 const circle = @import("../circle.zig");
 const m31 = @import("../fields/m31.zig");
+const qm31 = @import("../fields/qm31.zig");
+const core_utils = @import("../utils.zig");
+const poly_utils = @import("utils.zig");
 
 const M31 = m31.M31;
+const QM31 = qm31.QM31;
 const Coset = circle.Coset;
 
 /// Domain comprising x-coordinates of points in a circle coset.
@@ -66,6 +70,59 @@ pub const LineDomainIterator = struct {
     }
 };
 
+/// Univariate polynomial over line-domain FFT basis.
+pub const LinePoly = struct {
+    coeffs: []QM31,
+    log_size: u32,
+
+    pub fn initOwned(coeffs: []QM31) LinePoly {
+        std.debug.assert(coeffs.len != 0 and (coeffs.len & (coeffs.len - 1)) == 0);
+        return .{
+            .coeffs = coeffs,
+            .log_size = @intCast(std.math.log2_int(usize, coeffs.len)),
+        };
+    }
+
+    pub fn deinit(self: *LinePoly, allocator: std.mem.Allocator) void {
+        allocator.free(self.coeffs);
+        self.* = undefined;
+    }
+
+    pub fn evalAtPoint(self: LinePoly, allocator: std.mem.Allocator, x: QM31) !QM31 {
+        const doublings = try allocator.alloc(QM31, self.log_size);
+        defer allocator.free(doublings);
+
+        var cur = x;
+        for (doublings) |*d| {
+            d.* = cur;
+            cur = circle.CirclePoint(QM31).doubleX(cur);
+        }
+        return poly_utils.fold(QM31, self.coeffs, doublings);
+    }
+
+    pub fn len(self: LinePoly) usize {
+        return @as(usize, 1) << @intCast(self.log_size);
+    }
+
+    pub fn coefficients(self: LinePoly) []const QM31 {
+        return self.coeffs;
+    }
+
+    pub fn coefficientsMut(self: *LinePoly) []QM31 {
+        return self.coeffs;
+    }
+
+    pub fn intoOrderedCoefficients(self: *LinePoly) []QM31 {
+        core_utils.bitReverse(QM31, self.coeffs);
+        return self.coeffs;
+    }
+
+    pub fn fromOrderedCoefficients(coeffs: []QM31) LinePoly {
+        core_utils.bitReverse(QM31, coeffs);
+        return initOwned(coeffs);
+    }
+};
+
 test "line domain: invalid coset with non-unique x coordinates" {
     const coset = Coset.odds(2);
     try std.testing.expectError(LineDomain.Error.NonUniqueXCoordinates, LineDomain.init(coset));
@@ -114,4 +171,42 @@ test "line domain: iterator matches at(i)" {
         try std.testing.expect(x.eql(domain.at(i)));
     }
     try std.testing.expectEqual(domain.size(), i);
+}
+
+test "line poly: len and ordered roundtrip" {
+    const alloc = std.testing.allocator;
+    const expected = [_]QM31{
+        QM31.fromBase(M31.fromCanonical(1)),
+        QM31.fromBase(M31.fromCanonical(2)),
+        QM31.fromBase(M31.fromCanonical(3)),
+        QM31.fromBase(M31.fromCanonical(4)),
+    };
+
+    const coeffs = try alloc.alloc(QM31, expected.len);
+    @memcpy(coeffs, expected[0..]);
+
+    var poly = LinePoly.fromOrderedCoefficients(coeffs);
+    defer poly.deinit(alloc);
+
+    try std.testing.expectEqual(expected.len, poly.len());
+    const ordered = poly.intoOrderedCoefficients();
+    for (expected, 0..) |e, idx| {
+        try std.testing.expect(ordered[idx].eql(e));
+    }
+}
+
+test "line poly: constant polynomial evaluates to constant" {
+    const alloc = std.testing.allocator;
+    const coeffs = try alloc.alloc(QM31, 4);
+    coeffs[0] = QM31.fromBase(M31.fromCanonical(19));
+    coeffs[1] = QM31.zero();
+    coeffs[2] = QM31.zero();
+    coeffs[3] = QM31.zero();
+
+    var poly = LinePoly.fromOrderedCoefficients(coeffs);
+    defer poly.deinit(alloc);
+
+    const point = QM31.fromU32Unchecked(1, 2, 3, 4);
+    const value = try poly.evalAtPoint(alloc, point);
+    try std.testing.expect(value.eql(QM31.fromBase(M31.fromCanonical(19))));
 }
