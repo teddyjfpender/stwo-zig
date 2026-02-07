@@ -26,6 +26,40 @@ pub fn MerkleDecommitmentLifted(comptime H: type) type {
     };
 }
 
+pub fn MerkleDecommitmentLiftedAux(comptime H: type) type {
+    return struct {
+        all_node_values: [][]NodeValue,
+
+        pub const NodeValue = struct {
+            index: usize,
+            hash: H.Hash,
+        };
+
+        const Self = @This();
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            for (self.all_node_values) |layer_values| allocator.free(layer_values);
+            allocator.free(self.all_node_values);
+            self.* = undefined;
+        }
+    };
+}
+
+pub fn ExtendedMerkleDecommitmentLifted(comptime H: type) type {
+    return struct {
+        decommitment: MerkleDecommitmentLifted(H),
+        aux: MerkleDecommitmentLiftedAux(H),
+
+        const Self = @This();
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            self.decommitment.deinit(allocator);
+            self.aux.deinit(allocator);
+            self.* = undefined;
+        }
+    };
+}
+
 pub fn MerkleVerifierLifted(comptime H: type) type {
     return struct {
         root: H.Hash,
