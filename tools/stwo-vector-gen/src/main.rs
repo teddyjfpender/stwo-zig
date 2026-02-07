@@ -31,7 +31,10 @@ use stwo::core::vcs::MerkleHasher;
 use stwo::core::vcs::verifier::{MerkleDecommitment, MerkleVerifier, MerkleVerificationError};
 use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher as LiftedMerkleHasher;
 use stwo::core::vcs_lifted::MerkleHasherLifted;
-use stwo::core::vcs_lifted::verifier::{MerkleDecommitmentLifted, MerkleVerifierLifted};
+use stwo::core::vcs_lifted::verifier::{
+    MerkleDecommitmentLifted, MerkleVerificationError as MerkleVerificationErrorLifted,
+    MerkleVerifierLifted,
+};
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const DEFAULT_COUNT: usize = 256;
@@ -43,6 +46,7 @@ const PROOF_OODS_VECTOR_COUNT: usize = 32;
 const PROOF_SIZE_VECTOR_COUNT: usize = 16;
 const VCS_VERIFIER_VECTOR_COUNT: usize = 24;
 const VCS_PROVER_VECTOR_COUNT: usize = 16;
+const VCS_LIFTED_VERIFIER_VECTOR_COUNT: usize = 24;
 const VCS_LIFTED_PROVER_VECTOR_COUNT: usize = 16;
 const BLAKE3_VECTOR_COUNT: usize = 64;
 
@@ -254,6 +258,17 @@ struct VcsLiftedProverVector {
     hash_witness: Vec<[u8; 32]>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct VcsLiftedVerifierVector {
+    case: String,
+    root: [u8; 32],
+    column_log_sizes: Vec<u32>,
+    query_positions: Vec<usize>,
+    queried_values: Vec<Vec<u32>>,
+    hash_witness: Vec<[u8; 32]>,
+    expected: String,
+}
+
 #[derive(Clone)]
 struct VcsBaseCase {
     root: Blake2sHash,
@@ -289,6 +304,7 @@ struct FieldVectors {
     proof_sizes: Vec<ProofSizeVector>,
     vcs_verifier: Vec<VcsVerifierVector>,
     vcs_prover: Vec<VcsProverVector>,
+    vcs_lifted_verifier: Vec<VcsLiftedVerifierVector>,
     vcs_lifted_prover: Vec<VcsLiftedProverVector>,
 }
 
@@ -432,6 +448,8 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
     let proof_sizes = generate_proof_size_vectors(state, PROOF_SIZE_VECTOR_COUNT);
     let vcs_verifier = generate_vcs_verifier_vectors(state, VCS_VERIFIER_VECTOR_COUNT);
     let vcs_prover = generate_vcs_prover_vectors(state, VCS_PROVER_VECTOR_COUNT);
+    let vcs_lifted_verifier =
+        generate_vcs_lifted_verifier_vectors(state, VCS_LIFTED_VERIFIER_VECTOR_COUNT);
     let vcs_lifted_prover =
         generate_vcs_lifted_prover_vectors(state, VCS_LIFTED_PROVER_VECTOR_COUNT);
 
@@ -475,6 +493,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         proof_sizes,
         vcs_verifier,
         vcs_prover,
+        vcs_lifted_verifier,
         vcs_lifted_prover,
     }
 }
@@ -713,6 +732,111 @@ fn generate_vcs_prover_vectors(state: &mut u64, count: usize) -> Vec<VcsProverVe
     out
 }
 
+fn generate_vcs_lifted_verifier_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<VcsLiftedVerifierVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let mut cases = build_vcs_lifted_verifier_cases(state);
+        if cases.is_empty() {
+            continue;
+        }
+        let remaining = count - out.len();
+        if cases.len() > remaining {
+            cases.truncate(remaining);
+        }
+        out.extend(cases);
+    }
+    out
+}
+
+fn build_vcs_lifted_verifier_cases(state: &mut u64) -> Vec<VcsLiftedVerifierVector> {
+    let Some(base) = build_vcs_lifted_base_case(state) else {
+        return vec![];
+    };
+
+    let root = base.root;
+    let column_log_sizes = base.column_log_sizes.clone();
+    let query_positions = base.query_positions.clone();
+    let queried_values = base.queried_values.clone();
+    let base_decommitment = base.decommitment.clone();
+
+    let mut out = Vec::<VcsLiftedVerifierVector>::new();
+    let mut push_case = |case: &str,
+                         case_root: Blake2sHash,
+                         case_queried_values: Vec<Vec<M31>>,
+                         case_decommitment: MerkleDecommitmentLifted<LiftedMerkleHasher>| {
+        let expected = run_vcs_lifted_verifier(
+            case_root,
+            column_log_sizes.clone(),
+            query_positions.clone(),
+            case_queried_values.clone(),
+            case_decommitment.clone(),
+        );
+        out.push(VcsLiftedVerifierVector {
+            case: case.to_string(),
+            root: encode_hash(case_root),
+            column_log_sizes: column_log_sizes.clone(),
+            query_positions: query_positions.clone(),
+            queried_values: case_queried_values
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect())
+                .collect(),
+            hash_witness: case_decommitment
+                .hash_witness
+                .into_iter()
+                .map(encode_hash)
+                .collect(),
+            expected,
+        });
+    };
+
+    push_case(
+        "valid",
+        root,
+        queried_values.clone(),
+        base_decommitment.clone(),
+    );
+
+    let mut bad_root = root;
+    bad_root.0[0] ^= 1;
+    push_case(
+        "root_mismatch",
+        bad_root,
+        queried_values.clone(),
+        base_decommitment.clone(),
+    );
+
+    if !base_decommitment.hash_witness.is_empty() {
+        let mut short = base_decommitment.clone();
+        short.hash_witness.pop();
+        push_case(
+            "witness_too_short",
+            root,
+            queried_values.clone(),
+            short,
+        );
+    }
+
+    let mut long = base_decommitment.clone();
+    long.hash_witness.push(sample_hash(state));
+    push_case("witness_too_long", root, queried_values.clone(), long);
+
+    if !queried_values.is_empty() && !queried_values[0].is_empty() {
+        let mut bad_values = queried_values.clone();
+        bad_values[0][0] = sample_m31(state, false);
+        push_case(
+            "queried_values_mismatch",
+            root,
+            bad_values,
+            base_decommitment,
+        );
+    }
+
+    out
+}
+
 fn generate_vcs_lifted_prover_vectors(state: &mut u64, count: usize) -> Vec<VcsLiftedProverVector> {
     let mut out = Vec::with_capacity(count);
     while out.len() < count {
@@ -758,10 +882,11 @@ fn build_vcs_lifted_base_case(state: &mut u64) -> Option<VcsLiftedBaseCase> {
     }
 
     let max_log_size = *column_log_sizes.iter().max().expect("at least one column");
+    let domain_size = 1usize << max_log_size;
     let mut query_positions = Vec::with_capacity(4);
-    let n_queries = 1 + (next_u64(state) as usize % 4);
+    let n_queries = 1 + (next_u64(state) as usize % domain_size.min(4));
     while query_positions.len() < n_queries {
-        let q = next_u64(state) as usize & ((1usize << max_log_size) - 1);
+        let q = next_u64(state) as usize & (domain_size - 1);
         if !query_positions.contains(&q) {
             query_positions.push(q);
         }
@@ -1172,6 +1297,28 @@ fn merkle_error_name(err: MerkleVerificationError) -> &'static str {
         MerkleVerificationError::TooManyQueriedValues => "TooManyQueriedValues",
         MerkleVerificationError::TooFewQueriedValues => "TooFewQueriedValues",
         MerkleVerificationError::RootMismatch => "RootMismatch",
+    }
+}
+
+fn run_vcs_lifted_verifier(
+    root: Blake2sHash,
+    column_log_sizes: Vec<u32>,
+    query_positions: Vec<usize>,
+    queried_values: Vec<Vec<M31>>,
+    decommitment: MerkleDecommitmentLifted<LiftedMerkleHasher>,
+) -> String {
+    let verifier = MerkleVerifierLifted::<LiftedMerkleHasher>::new(root, column_log_sizes);
+    match verifier.verify(&query_positions, queried_values, decommitment) {
+        Ok(()) => "ok".to_string(),
+        Err(err) => merkle_error_name_lifted(err).to_string(),
+    }
+}
+
+fn merkle_error_name_lifted(err: MerkleVerificationErrorLifted) -> &'static str {
+    match err {
+        MerkleVerificationErrorLifted::WitnessTooShort => "WitnessTooShort",
+        MerkleVerificationErrorLifted::WitnessTooLong => "WitnessTooLong",
+        MerkleVerificationErrorLifted::RootMismatch => "RootMismatch",
     }
 }
 

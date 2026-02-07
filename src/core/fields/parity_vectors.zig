@@ -210,6 +210,16 @@ const VcsLiftedProverVector = struct {
     hash_witness: [][32]u8,
 };
 
+const VcsLiftedVerifierVector = struct {
+    case: []const u8,
+    root: [32]u8,
+    column_log_sizes: []u32,
+    query_positions: []usize,
+    queried_values: [][]u32,
+    hash_witness: [][32]u8,
+    expected: []const u8,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -227,6 +237,7 @@ const VectorFile = struct {
     proof_sizes: []ProofSizeVector,
     vcs_verifier: []VcsVerifierVector,
     vcs_prover: []VcsProverVector,
+    vcs_lifted_verifier: []VcsLiftedVerifierVector,
     vcs_lifted_prover: []VcsLiftedProverVector,
 };
 
@@ -983,6 +994,61 @@ test "field vectors: vcs prover parity" {
     }
 }
 
+test "field vectors: vcs lifted verifier parity" {
+    const alloc = std.testing.allocator;
+    const Hasher = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const Verifier = @import("../vcs_lifted/verifier.zig").MerkleVerifierLifted(Hasher);
+    const Decommitment = @import("../vcs_lifted/verifier.zig").MerkleDecommitmentLifted(Hasher);
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.vcs_lifted_verifier.len > 0);
+    for (parsed.value.vcs_lifted_verifier) |v| {
+        var verifier = try Verifier.init(alloc, v.root, v.column_log_sizes);
+        defer verifier.deinit(alloc);
+
+        const queried_values = try alloc.alloc([]const M31, v.queried_values.len);
+        defer alloc.free(queried_values);
+
+        const queried_values_owned = try alloc.alloc([]M31, v.queried_values.len);
+        defer {
+            for (queried_values_owned) |col| alloc.free(col);
+            alloc.free(queried_values_owned);
+        }
+
+        for (v.queried_values, 0..) |column, i| {
+            queried_values_owned[i] = try alloc.alloc(M31, column.len);
+            for (column, 0..) |value, j| queried_values_owned[i][j] = m31From(value);
+            queried_values[i] = queried_values_owned[i];
+        }
+
+        var decommitment = Decommitment{
+            .hash_witness = try alloc.dupe(Hasher.Hash, v.hash_witness),
+        };
+        defer decommitment.deinit(alloc);
+
+        if (std.mem.eql(u8, v.expected, "ok")) {
+            try verifier.verify(
+                alloc,
+                v.query_positions,
+                queried_values,
+                decommitment,
+            );
+        } else {
+            try std.testing.expectError(
+                expectedVcsLiftedError(v.expected),
+                verifier.verify(
+                    alloc,
+                    v.query_positions,
+                    queried_values,
+                    decommitment,
+                ),
+            );
+        }
+    }
+}
+
 test "field vectors: vcs lifted prover parity" {
     const alloc = std.testing.allocator;
     const Hasher = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
@@ -1058,5 +1124,13 @@ fn expectedVcsError(name: []const u8) vcs_verifier_mod.MerkleVerificationError {
     if (std.mem.eql(u8, name, "TooManyQueriedValues")) return vcs_verifier_mod.MerkleVerificationError.TooManyQueriedValues;
     if (std.mem.eql(u8, name, "TooFewQueriedValues")) return vcs_verifier_mod.MerkleVerificationError.TooFewQueriedValues;
     if (std.mem.eql(u8, name, "RootMismatch")) return vcs_verifier_mod.MerkleVerificationError.RootMismatch;
+    unreachable;
+}
+
+fn expectedVcsLiftedError(name: []const u8) @import("../vcs_lifted/verifier.zig").MerkleVerificationError {
+    const lifted_verifier = @import("../vcs_lifted/verifier.zig");
+    if (std.mem.eql(u8, name, "WitnessTooShort")) return lifted_verifier.MerkleVerificationError.WitnessTooShort;
+    if (std.mem.eql(u8, name, "WitnessTooLong")) return lifted_verifier.MerkleVerificationError.WitnessTooLong;
+    if (std.mem.eql(u8, name, "RootMismatch")) return lifted_verifier.MerkleVerificationError.RootMismatch;
     unreachable;
 }
