@@ -32,6 +32,7 @@ This increment targets:
 - `prover/line`
 - `prover/fri` (decommit helper + layer decommit slices)
 - `prover/channel` (logging channel slice)
+- `prover/lookups` (utils slice)
 - `prover/secure_column`
 - `tracing/mod`
 
