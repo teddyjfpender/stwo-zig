@@ -1,18 +1,26 @@
 const std = @import("std");
+const circle = @import("../../core/circle.zig");
 const m31 = @import("../../core/fields/m31.zig");
+const qm31 = @import("../../core/fields/qm31.zig");
 const pcs_core = @import("../../core/pcs/mod.zig");
 const pcs_utils = @import("../../core/pcs/utils.zig");
+const core_quotients = @import("../../core/pcs/quotients.zig");
 const verifier_types = @import("../../core/verifier_types.zig");
 const vcs_verifier = @import("../../core/vcs_lifted/verifier.zig");
+const canonic = @import("../../core/poly/circle/canonic.zig");
+const prover_fri = @import("../fri.zig");
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 
 pub const quotient_ops = @import("quotient_ops.zig");
 
 const M31 = m31.M31;
+const QM31 = qm31.QM31;
+const CirclePointQM31 = circle.CirclePointQM31;
 const PcsConfig = pcs_core.PcsConfig;
 const TreeVec = pcs_core.TreeVec;
 const TreeSubspan = pcs_core.TreeSubspan;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
+const PointSample = core_quotients.PointSample;
 
 pub const CommitmentSchemeError = error{
     ShapeMismatch,
@@ -292,6 +300,114 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             };
         }
 
+        /// Proves sampled values for already-committed trees using precomputed point evaluations.
+        ///
+        /// Inputs:
+        /// - `sampled_points`: per tree -> per column sampled points.
+        /// - `sampled_values`: per tree -> per column sampled values (same shape as points).
+        ///
+        /// Invariants:
+        /// - `sampled_points` and `sampled_values` must match the tree/column shape.
+        /// - Values are assumed to match the committed columns at those points.
+        pub fn proveValuesFromSamples(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            sampled_values: TreeVec([][]QM31),
+            channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            var scheme = self;
+            defer scheme.deinit(allocator);
+
+            if (scheme.trees.items.len != sampled_points.items.len) {
+                return CommitmentSchemeError.ShapeMismatch;
+            }
+            if (scheme.trees.items.len != sampled_values.items.len) {
+                return CommitmentSchemeError.ShapeMismatch;
+            }
+
+            for (scheme.trees.items, sampled_points.items, sampled_values.items) |tree, tree_points, tree_values| {
+                if (tree.columns.len != tree_points.len) return CommitmentSchemeError.ShapeMismatch;
+                if (tree.columns.len != tree_values.len) return CommitmentSchemeError.ShapeMismatch;
+            }
+
+            const sampled_values_flat = try flattenSampledValues(allocator, sampled_values);
+            defer allocator.free(sampled_values_flat);
+            channel.mixFelts(sampled_values_flat);
+            const random_coeff = channel.drawSecureFelt();
+
+            const lifting_log_size = try scheme.maxTreeLogSize();
+            const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
+
+            var samples = try buildPointSamples(allocator, sampled_points, sampled_values);
+            defer samples.deinitDeep(allocator);
+
+            var borrowed_columns = try borrowedColumnsTree(allocator, scheme.trees);
+            defer borrowed_columns.deinitDeep(allocator);
+
+            const quotients_column = try quotient_ops.computeFriQuotients(
+                allocator,
+                borrowed_columns,
+                samples,
+                random_coeff,
+                lifting_log_size,
+                scheme.config.fri_config.log_blowup_factor,
+            );
+
+            var fri_prover = try prover_fri.FriProver(H, MC).commit(
+                allocator,
+                channel,
+                scheme.config.fri_config,
+                domain,
+                quotients_column,
+            );
+
+            const proof_of_work = grind(channel, scheme.config.pow_bits);
+            channel.mixU64(proof_of_work);
+
+            var fri_decommit = try fri_prover.decommit(allocator, channel);
+            errdefer fri_decommit.deinit(allocator);
+
+            var query_positions_tree = try scheme.buildQueryPositionsTree(
+                allocator,
+                fri_decommit.query_positions,
+                lifting_log_size,
+            );
+            defer query_positions_tree.deinitDeep(allocator);
+
+            const query_positions_const = try allocator.alloc([]const usize, query_positions_tree.items.len);
+            defer allocator.free(query_positions_const);
+            for (query_positions_tree.items, 0..) |positions, i| {
+                query_positions_const[i] = positions;
+            }
+
+            var trace_decommit = try scheme.decommitByTreePositions(
+                allocator,
+                TreeVec([]const usize).initOwned(query_positions_const),
+            );
+            errdefer trace_decommit.deinit(allocator);
+
+            var commitments = try scheme.roots(allocator);
+            errdefer commitments.deinit(allocator);
+
+            return .{
+                .proof = .{
+                    .config = scheme.config,
+                    .commitments = commitments,
+                    .sampled_values = sampled_values,
+                    .decommitments = trace_decommit.decommitments,
+                    .queried_values = trace_decommit.queried_values,
+                    .proof_of_work = proof_of_work,
+                    .fri_proof = fri_decommit.fri_proof.proof,
+                },
+                .aux = .{
+                    .unsorted_query_locations = fri_decommit.unsorted_query_locations,
+                    .trace_decommitment = trace_decommit.aux,
+                    .fri = fri_decommit.fri_proof.aux,
+                },
+            };
+        }
+
         fn appendCommittedTree(
             self: *Self,
             allocator: std.mem.Allocator,
@@ -314,6 +430,15 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         fn maxLogSize(columns: []const ColumnEvaluation) u32 {
             var max_size: u32 = 0;
             for (columns) |column| max_size = @max(max_size, column.log_size);
+            return max_size;
+        }
+
+        fn maxTreeLogSize(self: Self) !u32 {
+            if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
+            var max_size: u32 = 0;
+            for (self.trees.items) |tree| {
+                max_size = @max(max_size, maxLogSize(tree.columns));
+            }
             return max_size;
         }
     };
@@ -364,6 +489,104 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
             try self.commitment_scheme.appendCommittedTree(self.allocator, tree, channel);
         }
     };
+}
+
+fn flattenSampledValues(
+    allocator: std.mem.Allocator,
+    sampled_values: TreeVec([][]QM31),
+) ![]QM31 {
+    var total: usize = 0;
+    for (sampled_values.items) |tree| {
+        for (tree) |column| total += column.len;
+    }
+
+    const out = try allocator.alloc(QM31, total);
+    var at: usize = 0;
+    for (sampled_values.items) |tree| {
+        for (tree) |column| {
+            @memcpy(out[at .. at + column.len], column);
+            at += column.len;
+        }
+    }
+    return out;
+}
+
+fn buildPointSamples(
+    allocator: std.mem.Allocator,
+    sampled_points: TreeVec([][]CirclePointQM31),
+    sampled_values: TreeVec([][]QM31),
+) (std.mem.Allocator.Error || CommitmentSchemeError)!TreeVec([][]PointSample) {
+    if (sampled_points.items.len != sampled_values.items.len) return CommitmentSchemeError.ShapeMismatch;
+
+    var trees = std.ArrayList([][]PointSample).init(allocator);
+    defer trees.deinit();
+    errdefer {
+        for (trees.items) |tree| {
+            for (tree) |column| allocator.free(column);
+            allocator.free(tree);
+        }
+    }
+
+    for (sampled_points.items, sampled_values.items) |points_tree, values_tree| {
+        if (points_tree.len != values_tree.len) return CommitmentSchemeError.ShapeMismatch;
+
+        var cols = std.ArrayList([]PointSample).init(allocator);
+        defer cols.deinit();
+        errdefer {
+            for (cols.items) |column| allocator.free(column);
+        }
+
+        for (points_tree, values_tree) |points_col, values_col| {
+            if (points_col.len != values_col.len) return CommitmentSchemeError.ShapeMismatch;
+            const out_col = try allocator.alloc(PointSample, points_col.len);
+            errdefer allocator.free(out_col);
+            for (points_col, values_col, 0..) |point, value, i| {
+                out_col[i] = .{
+                    .point = point,
+                    .value = value,
+                };
+            }
+            try cols.append(out_col);
+        }
+        try trees.append(try cols.toOwnedSlice());
+    }
+
+    return TreeVec([][]PointSample).initOwned(try trees.toOwnedSlice());
+}
+
+fn borrowedColumnsTree(
+    allocator: std.mem.Allocator,
+    trees: anytype,
+) !TreeVec([]ColumnEvaluation) {
+    const tree_count = trees.items.len;
+    const out = try allocator.alloc([]ColumnEvaluation, tree_count);
+    errdefer allocator.free(out);
+
+    var initialized: usize = 0;
+    errdefer {
+        for (out[0..initialized]) |tree_cols| allocator.free(tree_cols);
+    }
+
+    for (trees.items, 0..) |tree, i| {
+        const cols = try allocator.alloc(ColumnEvaluation, tree.columns.len);
+        out[i] = cols;
+        initialized += 1;
+        for (tree.columns, 0..) |column, j| {
+            cols[j] = .{
+                .log_size = column.log_size,
+                .values = column.values,
+            };
+        }
+    }
+
+    return TreeVec([]ColumnEvaluation).initOwned(out);
+}
+
+fn grind(channel: anytype, pow_bits: u32) u64 {
+    var nonce: u64 = 0;
+    while (true) : (nonce += 1) {
+        if (channel.verifyPowNonce(pow_bits, nonce)) return nonce;
+    }
 }
 
 test "prover pcs: commitment tree decommit verifies" {
@@ -614,5 +837,93 @@ test "prover pcs: decommit by tree positions verifies" {
         tree1_queries,
         decommit.queried_values.items[1],
         decommit.decommitments.items[1],
+    );
+}
+
+test "prover pcs: prove values from samples roundtrip with core verifier" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const Verifier = @import("../../core/pcs/verifier.zig").CommitmentSchemeVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    const config = PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+
+    var prover_channel = Channel{};
+    var scheme = try Scheme.init(alloc, config);
+
+    const column_values = [_]M31{
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+    };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{
+            .{ .log_size = 3, .values = column_values[0..] },
+        },
+        &prover_channel,
+    );
+
+    const sample_point = @import("../../core/circle.zig").SECURE_FIELD_CIRCLE_GEN.mul(13);
+    const sample_value = QM31.fromBase(M31.fromCanonical(5));
+
+    const sampled_points_col_prover = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        sample_point,
+    });
+    const sampled_points_tree_prover = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col_prover,
+    });
+    const sampled_points_prover = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_prover}),
+    );
+
+    const sampled_values_col = try alloc.dupe(QM31, &[_]QM31{sample_value});
+    const sampled_values_tree = try alloc.dupe([]QM31, &[_][]QM31{sampled_values_col});
+    const sampled_values = TreeVec([][]QM31).initOwned(
+        try alloc.dupe([][]QM31, &[_][][]QM31{sampled_values_tree}),
+    );
+
+    var extended_proof = try scheme.proveValuesFromSamples(
+        alloc,
+        sampled_points_prover,
+        sampled_values,
+        &prover_channel,
+    );
+    defer extended_proof.aux.deinit(alloc);
+
+    const sampled_points_col_verify = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        sample_point,
+    });
+    const sampled_points_tree_verify = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col_verify,
+    });
+    const sampled_points_verify = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_verify}),
+    );
+
+    var verifier_channel = Channel{};
+    var verifier = try Verifier.init(alloc, config);
+    defer verifier.deinit(alloc);
+    try verifier.commit(
+        alloc,
+        extended_proof.proof.commitments.items[0],
+        &[_]u32{3},
+        &verifier_channel,
+    );
+    try verifier.verifyValues(
+        alloc,
+        sampled_points_verify,
+        extended_proof.proof,
+        &verifier_channel,
     );
 }
