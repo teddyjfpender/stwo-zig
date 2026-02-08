@@ -531,6 +531,55 @@ def write_report(report_out: Path, report: dict[str, Any]) -> None:
         shutil.copyfile(report_out, latest)
 
 
+def compute_summary(
+    *,
+    examples: list[str],
+    steps: list[dict[str, Any]],
+) -> dict[str, Any]:
+    step_by_name = {str(step.get("name", "")): step for step in steps}
+
+    cases_total = len(examples) * 2
+    cases_executed = 0
+    cases_passed = 0
+    for example in examples:
+        for name in (
+            f"{example}_rust_to_zig_verify",
+            f"{example}_zig_to_rust_verify",
+        ):
+            step = step_by_name.get(name)
+            if step is None:
+                continue
+            cases_executed += 1
+            if step.get("status") == "ok":
+                cases_passed += 1
+    cases_failed = cases_executed - cases_passed
+
+    tamper_steps = [step for step in steps if step.get("expect_failure")]
+    tamper_rejection_counts: dict[str, int] = {}
+    for step in tamper_steps:
+        rejection_class = str(step.get("rejection_class", REJECTION_CLASS_OTHER))
+        tamper_rejection_counts[rejection_class] = tamper_rejection_counts.get(rejection_class, 0) + 1
+
+    tamper_cases_total = len(examples) * 8
+    tamper_cases_executed = len(tamper_steps)
+    tamper_cases_passed = len([step for step in tamper_steps if step.get("status") == "ok"])
+    tamper_cases_failed = tamper_cases_executed - tamper_cases_passed
+
+    return {
+        "examples": examples,
+        "cases_total": cases_total,
+        "cases_executed": cases_executed,
+        "cases_passed": cases_passed,
+        "cases_failed": cases_failed,
+        "tamper_cases_total": tamper_cases_total,
+        "tamper_cases_executed": tamper_cases_executed,
+        "tamper_cases_passed": tamper_cases_passed,
+        "tamper_cases_failed": tamper_cases_failed,
+        "tamper_rejection_classes": tamper_rejection_counts,
+        "steps_total": len(steps),
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Cross-language proof exchange gate")
     parser.add_argument(
@@ -629,28 +678,13 @@ def main() -> int:
         status = "failed"
         failure = {"message": str(exc)}
 
-    tamper_steps = [step for step in steps if step.get("expect_failure")]
-    tamper_rejection_counts: dict[str, int] = {}
-    for step in tamper_steps:
-        rejection_class = str(step.get("rejection_class", REJECTION_CLASS_OTHER))
-        tamper_rejection_counts[rejection_class] = tamper_rejection_counts.get(rejection_class, 0) + 1
-
     report = {
         "status": status,
         "schema_version": SCHEMA_VERSION,
         "exchange_mode": EXCHANGE_MODE,
         "upstream_commit": UPSTREAM_COMMIT,
         "rust_toolchain": args.rust_toolchain,
-        "summary": {
-            "examples": args.examples,
-            "cases_total": len(args.examples) * 2,
-            "cases_passed": len(cases) * 2 if status == "ok" else len(cases) * 2,
-            "tamper_cases_total": len(args.examples) * 8,
-            "tamper_cases_executed": len(tamper_steps),
-            "tamper_cases_passed": len([step for step in tamper_steps if step.get("status") == "ok"]),
-            "tamper_rejection_classes": tamper_rejection_counts,
-            "steps_total": len(steps),
-        },
+        "summary": compute_summary(examples=list(args.examples), steps=steps),
         "cases": cases,
         "steps": steps,
         "artifacts": {
