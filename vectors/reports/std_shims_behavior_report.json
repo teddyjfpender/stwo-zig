@@ -10,7 +10,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.040561,
+        "seconds": 0.039804,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -19,7 +19,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.03467,
+        "seconds": 0.034248,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -35,7 +35,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035403,
+        "seconds": 0.034617,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -44,7 +44,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.03388,
+        "seconds": 0.034372,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -61,9 +61,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.110569,
+        "seconds": 0.11124,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x10458ead3 in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1045552d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1045105c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x10449462f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x1044933f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1044964c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1044994df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x102ad0d7b in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x102a97d83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x102a50dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x1029d862f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x1029d73f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1029da4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1029dd4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -71,9 +71,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113673,
+        "seconds": 0.110822,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x1050d6ad3 in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x10509d2d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1050585c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x104fdc62f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x104fdc08b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x104fdb397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104fde517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104fe1543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x102e18d7b in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x102ddfd83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x102d98dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x102d2062f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x102d2008b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x102d1f397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102d22517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102d25543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -88,9 +88,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113172,
+        "seconds": 0.111309,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x100aac537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x100a3062f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x100a2f3f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100a324c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100a354df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x104d40d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x104cc862f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x104cc73f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104cca4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104ccd4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -98,9 +98,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.115843,
+        "seconds": 0.111027,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102760537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x1026e462f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x1026e408b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x1026e3397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1026e6517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1026e9543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x100a34d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x1009bc62f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x1009bc08b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x1009bb397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1009be517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1009c1543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -115,9 +115,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.113549,
+        "seconds": 0.105674,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x104c5af8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104c5e4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104c614df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x102ffef8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1030024c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1030054df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -125,9 +125,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.111171,
+        "seconds": 0.107796,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1049fef8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104a02517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104a05543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x102356f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x10235a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x10235d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -141,7 +141,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.036266,
+        "seconds": 0.032844,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -150,7 +150,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.037017,
+        "seconds": 0.03147,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -166,7 +166,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035833,
+        "seconds": 0.032346,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -175,7 +175,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.033349,
+        "seconds": 0.031451,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -192,9 +192,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113908,
+        "seconds": 0.11067,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x100d36ad3 in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x100cfd2d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x100cb85c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x100c3e3eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x100c3bc2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100c3e4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100c414df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x102b3cd7b in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x102b03d83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x102abcdc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x102a463eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x102a43c2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x102a464c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x102a494df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -202,9 +202,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.111706,
+        "seconds": 0.11348,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x100752ad3 in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1007192d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1006d45c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x10065a3eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x100659e23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x100657bd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x10065a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x10065d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x102d28d7b in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x102cefd83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x102ca8dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x102c323eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x102c31e23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x102c2fbd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102c32517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102c35543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -219,9 +219,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.114543,
+        "seconds": 0.108559,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102f24537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x102eaa3eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x102ea7c2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x102eaa4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x102ead4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x100fd8d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x100f623eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x100f5fc2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100f624c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100f654df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -229,9 +229,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112139,
+        "seconds": 0.108171,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x10447c537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x1044023eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x104401e23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x1043ffbd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104402517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104405543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x10492cd37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x1048b63eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x1048b5e23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x1048b3bd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1048b6517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1048b9543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -246,9 +246,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.113829,
+        "seconds": 0.107103,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x100c8af8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100c8e4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100c914df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x102c7ef8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x102c824c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x102c854df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -256,9 +256,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.112692,
+        "seconds": 0.105011,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1029faf8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1029fe517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102a01543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1006daf8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1006de517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1006e1543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -272,7 +272,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035497,
+        "seconds": 0.03364,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -281,7 +281,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.033819,
+        "seconds": 0.032061,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -297,7 +297,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035396,
+        "seconds": 0.032976,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -306,7 +306,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.033409,
+        "seconds": 0.032115,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -323,9 +323,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112502,
+        "seconds": 0.106142,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x104f1cb5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x104ea10f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x104e9f6a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104ea24c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104ea54df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x1050ad35b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1050350f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x1050336a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1050364c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1050394df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -333,9 +333,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.11184,
+        "seconds": 0.106969,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x102510b5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1024950f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x102494aaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x10249364b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102496517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102499543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x10087135b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1007f90f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x1007f8aaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x1007f764b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1007fa517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1007fd543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -350,9 +350,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113983,
+        "seconds": 0.111297,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x100c74b5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x100bf90f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x100bf76a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100bfa4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100bfd4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x10029135b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1002190f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x1002176a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x10021a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x10021d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -360,9 +360,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112573,
+        "seconds": 0.113143,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x100948b5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1008cd0f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x1008ccaaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x1008cb64b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1008ce517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1008d1543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x10472535b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1046ad0f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x1046acaaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x1046ab64b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1046ae517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1046b1543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -377,9 +377,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.111234,
+        "seconds": 0.107292,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1002c2f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1002c64c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1002c94df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1009f6f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1009fa4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1009fd4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -387,9 +387,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.112261,
+        "seconds": 0.105924,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x104172f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104176517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104179543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x103032f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x103036517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x103039543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -403,7 +403,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.034936,
+        "seconds": 0.033205,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -412,7 +412,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.034196,
+        "seconds": 0.031861,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -428,7 +428,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035641,
+        "seconds": 0.032534,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -437,7 +437,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.034064,
+        "seconds": 0.032655,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -454,9 +454,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113642,
+        "seconds": 0.109404,
         "status": "failed",
-        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x10086f197 in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1008352d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1007f05c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x100775d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x10077394f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1007764c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1007794df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x100cf543f in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x100cbbd83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x100c74dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x100bfdd0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x100bfb94f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100bfe4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100c014df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -464,9 +464,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112119,
+        "seconds": 0.108305,
         "status": "failed",
-        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x100223197 in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1001e92d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1001a45c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x100129d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x10012961f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x1001278f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x10012a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x10012d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x1008e943f in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1008afd83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x100868dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x1007f1d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x1007f161f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x1007ef8f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1007f2517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1007f5543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -481,9 +481,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112973,
+        "seconds": 0.105069,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x104294537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x104219d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x10421794f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x10421a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x10421d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x1023d8d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x102361d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x10235f94f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1023624c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1023654df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -491,9 +491,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.111659,
+        "seconds": 0.106493,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102db4537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x102d39d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x102d3961f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x102d378f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102d3a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102d3d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x1043e8d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x104371d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x10437161f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x10436f8f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104372517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104375543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -508,9 +508,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.112758,
+        "seconds": 0.10881,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1028d6f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1028da4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1028dd4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1048a6f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1048aa4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1048ad4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -518,9 +518,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.11176,
+        "seconds": 0.104014,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1042e6f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1042ea517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1042ed543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1042caf8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1042ce517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1042d1543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -534,7 +534,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.038524,
+        "seconds": 0.033685,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -543,7 +543,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.035261,
+        "seconds": 0.033148,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -559,7 +559,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.036401,
+        "seconds": 0.033841,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -568,7 +568,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.035058,
+        "seconds": 0.032724,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -585,9 +585,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.116558,
+        "seconds": 0.104367,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x10467aad3 in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1046412d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1045fc5c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x10458062f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x10457f3f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1045824c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1045854df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x10492cd7b in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1048f3d83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1048acdc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x10483462f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x1048333f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1048364c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1048394df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -595,9 +595,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.111993,
+        "seconds": 0.103061,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x104c36ad3 in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x104bfd2d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x104bb85c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x104b3c62f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x104b3c08b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x104b3b397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104b3e517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104b41543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: WitnessTooShort\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:181:29: 0x100c20d7b in verify (interop_cli)\n                            return MerkleVerificationError.WitnessTooShort;\n                            ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x100be7d83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x100ba0dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x100b2862f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x100b2808b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x100b27397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x100b2a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x100b2d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -612,9 +612,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113838,
+        "seconds": 0.103136,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x104c44537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x104bc862f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x104bc73f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104bca4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104bcd4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102a64d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x1029ec62f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:643:13: 0x1029eb3f3 in runVerifyImpl (interop_cli)\n            try plonk.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1029ee4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1029f14df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -622,9 +622,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.115054,
+        "seconds": 0.101548,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x100578537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x1004fc62f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x1004fc08b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x1004fb397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1004fe517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x100501543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102558d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/plonk.zig:227:5: 0x1024e062f in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:27:5: 0x1024e008b in verifyPlonk (interop_cli)\n    try examples_plonk.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:641:13: 0x1024df397 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1024e2517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1024e5543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -639,9 +639,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.113768,
+        "seconds": 0.101089,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x10022af8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x10022e4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1002314df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x102a52f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x102a564c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x102a594df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -649,9 +649,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.111832,
+        "seconds": 0.099682,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x100306f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x10030a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x10030d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x104f62f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104f66517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104f69543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -665,7 +665,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.036991,
+        "seconds": 0.031175,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -674,7 +674,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.035621,
+        "seconds": 0.029697,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -690,7 +690,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035984,
+        "seconds": 0.029807,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -699,7 +699,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.036009,
+        "seconds": 0.029982,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -716,9 +716,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.116306,
+        "seconds": 0.101923,
         "status": "failed",
-        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x10043f197 in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1004052d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1003c05c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x1003463eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x100343c2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1003464c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1003494df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x10086143f in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x100827d83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1007e0dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x10076a3eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x100767c2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x10076a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x10076d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -726,9 +726,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.114708,
+        "seconds": 0.101353,
         "status": "failed",
-        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x100427197 in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1003ed2d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1003a85c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x10032e3eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x10032de23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x10032bbd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x10032e517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x100331543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: RootMismatch\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:209:17: 0x10317943f in verify (interop_cli)\n                return MerkleVerificationError.RootMismatch;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x10313fd83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1030f8dc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x1030823eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x103081e23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x10307fbd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x103082517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x103085543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -743,9 +743,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113787,
+        "seconds": 0.102363,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x1001cc537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x1001523eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x10014fc2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1001524c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1001554df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x104c90d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x104c1a3eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:673:13: 0x104c17c2f in runVerifyImpl (interop_cli)\n            try xor.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104c1a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104c1d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -753,9 +753,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.111664,
+        "seconds": 0.101016,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102880537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x1028063eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x102805e23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x102803bd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102806517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102809543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102b78d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/xor.zig:224:5: 0x102b023eb in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:18:5: 0x102b01e23 in verifyXor (interop_cli)\n    try examples_xor.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:671:13: 0x102affbd3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102b02517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102b05543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -770,9 +770,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.11323,
+        "seconds": 0.101117,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x105096f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x10509a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x10509d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x104f76f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104f7a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104f7d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -780,9 +780,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.109942,
+        "seconds": 0.099694,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1027faf8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1027fe517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102801543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1003cef8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1003d2517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1003d5543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -796,7 +796,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035554,
+        "seconds": 0.030827,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -805,7 +805,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.035739,
+        "seconds": 0.029907,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -821,7 +821,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035985,
+        "seconds": 0.03057,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -830,7 +830,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.035514,
+        "seconds": 0.029522,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -847,9 +847,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112127,
+        "seconds": 0.100944,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x100774b5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1006f90f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x1006f76a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1006fa4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1006fd4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x10480d35b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1047950f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x1047936a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1047964c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1047994df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -857,9 +857,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112913,
+        "seconds": 0.101354,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x10502cb5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x104fb10f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x104fb0aaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x104faf64b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x104fb2517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x104fb5543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x1024d135b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1024590f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x102458aaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x10245764b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x10245a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x10245d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -874,9 +874,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112819,
+        "seconds": 0.101087,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x102240b5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1021c50f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x1021c36a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1021c64c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1021c94df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x10232135b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x1022a90f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:653:13: 0x1022a76a7 in runVerifyImpl (interop_cli)\n            try state_machine.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1022aa4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1022ad4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -884,9 +884,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.114224,
+        "seconds": 0.101096,
         "status": "failed",
-        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x102b30b5b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x102ab50f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x102ab4aaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x102ab364b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102ab6517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102ab9543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: StatementNotSatisfied\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:248:14: 0x102ad935b in verifyStatement (interop_cli)\n    if (!ok) return Error.StatementNotSatisfied;\n             ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/state_machine.zig:417:5: 0x102a610f7 in verify (interop_cli)\n    try verifyStatement(statement, elements);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:36:5: 0x102a60aaf in verifyStateMachine (interop_cli)\n    try examples_state_machine.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:651:13: 0x102a5f64b in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102a62517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102a65543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -901,9 +901,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.111948,
+        "seconds": 0.101105,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x100a8ef8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100a924c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100a954df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1044e6f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1044ea4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1044ed4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -911,9 +911,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.110016,
+        "seconds": 0.099144,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x104436f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x10443a517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x10443d543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1045aef8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1045b2517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1045b5543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -927,7 +927,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.035198,
+        "seconds": 0.030756,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -936,7 +936,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.034842,
+        "seconds": 0.029523,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -952,7 +952,7 @@
       "standard": {
         "mode": "verify",
         "return_code": 0,
-        "seconds": 0.034906,
+        "seconds": 0.030124,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -961,7 +961,7 @@
       "std_shims": {
         "mode": "verify_std_shims",
         "return_code": 0,
-        "seconds": 0.034462,
+        "seconds": 0.029333,
         "status": "ok",
         "stderr_tail": "",
         "stdout_tail": ""
@@ -978,9 +978,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.113999,
+        "seconds": 0.101249,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooLong\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:205:17: 0x104672f0f in verify (interop_cli)\n                return MerkleVerificationError.WitnessTooLong;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1046392d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1045f45c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x104579d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x10457794f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x10457a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x10457d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: WitnessTooLong\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:205:17: 0x10091d1b7 in verify (interop_cli)\n                return MerkleVerificationError.WitnessTooLong;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1008e3d83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x10089cdc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x100825d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x10082394f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x1008264c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x1008294df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -988,9 +988,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.11222,
+        "seconds": 0.100294,
         "status": "failed",
-        "stderr_tail": "error: WitnessTooLong\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:205:17: 0x10299ef0f in verify (interop_cli)\n                return MerkleVerificationError.WitnessTooLong;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x1029652d3 in verifyValues__anon_26360 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x1029205c3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x1028a5d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x1028a561f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x1028a38f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1028a6517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1028a9543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: WitnessTooLong\n/Users/theodorepender/Coding/stwo-zig/src/core/vcs_lifted/verifier.zig:205:17: 0x10258d1b7 in verify (interop_cli)\n                return MerkleVerificationError.WitnessTooLong;\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/pcs/verifier.zig:149:17: 0x102553d83 in verifyValues__anon_26364 (interop_cli)\n                try tree.verify(\n                ^\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:108:5: 0x10250cdc3 in verify__anon_24337 (interop_cli)\n    try commitment_scheme.verifyValues(allocator, sample_points, pcs_proof, channel);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x102495d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x10249561f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x1024938f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x102496517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102499543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -1005,9 +1005,9 @@
         "mode": "verify",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.112482,
+        "seconds": 0.100535,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x102df4537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x102d79d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x102d7794f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x102d7a4c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x102d7d4df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x104ec8d37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x104e51d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:663:13: 0x104e4f94f in runVerifyImpl (interop_cli)\n            try wide_fibonacci.verify(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104e524c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104e554df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -1015,9 +1015,9 @@
         "mode": "verify_std_shims",
         "rejection_class": "verifier_semantic",
         "return_code": 1,
-        "seconds": 0.11143,
+        "seconds": 0.10134,
         "status": "failed",
-        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x100180537 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x100105d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x10010561f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x1001038f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x100106517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x100109543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: OodsNotMatching\n/Users/theodorepender/Coding/stwo-zig/src/core/verifier.zig:102:9: 0x10086cd37 in verify__anon_24337 (interop_cli)\n        return VerificationError.OodsNotMatching;\n        ^\n/Users/theodorepender/Coding/stwo-zig/src/examples/wide_fibonacci.zig:242:5: 0x1007f5d0b in verify (interop_cli)\n    try core_verifier.verify(\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/std_shims/verifier_profile.zig:45:5: 0x1007f561f in verifyWideFibonacci (interop_cli)\n    try examples_wide_fibonacci.verify(allocator, pcs_config, statement, proof);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:661:13: 0x1007f38f3 in runVerifyImpl (interop_cli)\n            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);\n            ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1007f6517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x1007f9543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     },
@@ -1032,9 +1032,9 @@
         "mode": "verify",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.110854,
+        "seconds": 0.100462,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x104f82f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x104f864c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x104f894df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x100bb2f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:603:5: 0x100bb64c3 in runVerify (interop_cli)\n    return runVerifyImpl(allocator, cli, false);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:120:20: 0x100bb94df in main (interop_cli)\n        .verify => try runVerify(gpa, cli),\n                   ^\n",
         "stdout_tail": ""
       },
       "status": "ok",
@@ -1042,16 +1042,16 @@
         "mode": "verify_std_shims",
         "rejection_class": "metadata_policy",
         "return_code": 1,
-        "seconds": 0.111498,
+        "seconds": 0.099267,
         "status": "failed",
-        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x100fc6f8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x100fca517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x100fcd543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
+        "stderr_tail": "error: UnsupportedProveMode\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:628:42: 0x1028faf8f in runVerifyImpl (interop_cli)\n        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;\n                                         ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:607:5: 0x1028fe517 in runVerifyStdShims (interop_cli)\n    return runVerifyImpl(allocator, cli, true);\n    ^\n/Users/theodorepender/Coding/stwo-zig/src/interop_cli.zig:121:30: 0x102901543 in main (interop_cli)\n        .verify_std_shims => try runVerifyStdShims(gpa, cli),\n                             ^\n",
         "stdout_tail": ""
       }
     }
   ],
-  "duration_seconds": 6.55614,
+  "duration_seconds": 6.0632,
   "failures": [],
-  "generated_at_unix": 1770560602,
+  "generated_at_unix": 1770561462,
   "source_report": "vectors/reports/prove_checkpoints_report.json",
   "status": "ok",
   "summary": {
