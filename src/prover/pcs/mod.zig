@@ -28,6 +28,7 @@ const PointSample = core_quotients.PointSample;
 pub const CommitmentSchemeError = error{
     ShapeMismatch,
     InvalidPreprocessedTree,
+    UnsupportedBlowup,
 };
 
 pub const ColumnEvaluation = quotient_ops.ColumnEvaluation;
@@ -359,6 +360,9 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             channel: anytype,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
+            if (scheme.config.fri_config.log_blowup_factor != 0) {
+                return CommitmentSchemeError.UnsupportedBlowup;
+            }
             const lifting_log_size = try scheme.maxTreeLogSize();
             const sampled_values = try evaluateSampledValues(
                 allocator,
@@ -392,6 +396,10 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             defer scheme.deinit(allocator);
+
+            if (scheme.config.fri_config.log_blowup_factor != 0) {
+                return CommitmentSchemeError.UnsupportedBlowup;
+            }
 
             if (scheme.trees.items.len != sampled_points.items.len) {
                 return CommitmentSchemeError.ShapeMismatch;
@@ -1217,6 +1225,80 @@ test "prover pcs: prove values from samples rejects shape mismatch" {
             alloc,
             sampled_points,
             sampled_values,
+            &channel,
+        ),
+    );
+}
+
+test "prover pcs: prove values paths reject unsupported blowup" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    var scheme_samples = try Scheme.init(alloc, .{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(1, 1, 2),
+    });
+
+    const column_values = [_]M31{
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+        M31.fromCanonical(5),
+    };
+    var channel = Channel{};
+    try scheme_samples.commit(
+        alloc,
+        &[_]ColumnEvaluation{.{ .log_size = 2, .values = column_values[0..] }},
+        &channel,
+    );
+
+    const sample_point = @import("../../core/circle.zig").SECURE_FIELD_CIRCLE_GEN.mul(31);
+    const sampled_points_col = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{sample_point});
+    const sampled_points_tree = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{sampled_points_col});
+    const sampled_points = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree}),
+    );
+
+    const sampled_values_col = try alloc.dupe(QM31, &[_]QM31{QM31.fromBase(M31.fromCanonical(5))});
+    const sampled_values_tree = try alloc.dupe([]QM31, &[_][]QM31{sampled_values_col});
+    const sampled_values = TreeVec([][]QM31).initOwned(
+        try alloc.dupe([][]QM31, &[_][][]QM31{sampled_values_tree}),
+    );
+
+    try std.testing.expectError(
+        CommitmentSchemeError.UnsupportedBlowup,
+        scheme_samples.proveValuesFromSamples(
+            alloc,
+            sampled_points,
+            sampled_values,
+            &channel,
+        ),
+    );
+
+    var scheme_points = try Scheme.init(alloc, .{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(1, 1, 2),
+    });
+    try scheme_points.commit(
+        alloc,
+        &[_]ColumnEvaluation{.{ .log_size = 2, .values = column_values[0..] }},
+        &channel,
+    );
+
+    const sampled_points_col_only = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{sample_point});
+    const sampled_points_tree_only = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{sampled_points_col_only});
+    const sampled_points_only = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_only}),
+    );
+
+    try std.testing.expectError(
+        CommitmentSchemeError.UnsupportedBlowup,
+        scheme_points.proveValues(
+            alloc,
+            sampled_points_only,
             &channel,
         ),
     );

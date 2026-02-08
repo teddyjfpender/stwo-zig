@@ -36,6 +36,7 @@
     - FRI commitment/decommit
     - PoW nonce grind + transcript mixing
     - final `ExtendedCommitmentSchemeProof` assembly
+  - Added explicit safety gate: current `proveValues` paths reject non-zero blowup (`UnsupportedBlowup`) until extended-domain commit semantics are fully ported.
   - Added roundtrip test against `core/pcs/verifier.zig`.
   - Added negative tests for shape mismatch, inconsistent sampled-value rejection, and sampled-point-on-domain rejection.
 
