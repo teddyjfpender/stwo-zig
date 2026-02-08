@@ -8,6 +8,7 @@ const core_quotients = @import("../../core/pcs/quotients.zig");
 const verifier_types = @import("../../core/verifier_types.zig");
 const vcs_verifier = @import("../../core/vcs_lifted/verifier.zig");
 const canonic = @import("../../core/poly/circle/canonic.zig");
+const component_prover = @import("../air/component_prover.zig");
 const prover_fri = @import("../fri.zig");
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 
@@ -201,6 +202,44 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 out[i] = tree.root();
             }
             return TreeVec(H.Hash).initOwned(out);
+        }
+
+        /// Returns committed columns as prover-air `Poly` views.
+        ///
+        /// The returned wrappers borrow underlying column storage from the commitment scheme.
+        pub fn polynomials(
+            self: Self,
+            allocator: std.mem.Allocator,
+        ) !TreeVec([]component_prover.Poly) {
+            const out = try allocator.alloc([]component_prover.Poly, self.trees.items.len);
+            errdefer allocator.free(out);
+
+            var initialized: usize = 0;
+            errdefer {
+                for (out[0..initialized]) |tree_polys| allocator.free(tree_polys);
+            }
+
+            for (self.trees.items, 0..) |tree, tree_idx| {
+                const polys = try allocator.alloc(component_prover.Poly, tree.columns.len);
+                out[tree_idx] = polys;
+                initialized += 1;
+                for (tree.columns, 0..) |column, col_idx| {
+                    polys[col_idx] = .{
+                        .log_size = column.log_size,
+                        .values = column.values,
+                    };
+                }
+            }
+            return TreeVec([]component_prover.Poly).initOwned(out);
+        }
+
+        pub fn trace(
+            self: Self,
+            allocator: std.mem.Allocator,
+        ) !component_prover.Trace {
+            return .{
+                .polys = try self.polynomials(allocator),
+            };
         }
 
         pub fn columnLogSizes(self: Self, allocator: std.mem.Allocator) !TreeVec([]u32) {
@@ -682,6 +721,42 @@ test "prover pcs: commitment scheme commit, roots and log sizes" {
     try std.testing.expectEqual(@as(usize, 2), sizes.items.len);
     try std.testing.expectEqualSlices(u32, &[_]u32{2}, sizes.items[0]);
     try std.testing.expectEqualSlices(u32, &[_]u32{2}, sizes.items[1]);
+}
+
+test "prover pcs: polynomials and trace expose committed columns" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    var scheme = try Scheme.init(alloc, PcsConfig.default());
+    defer scheme.deinit(alloc);
+
+    var channel = Channel{};
+    const tree0_col = [_]M31{
+        M31.fromCanonical(1),
+        M31.fromCanonical(2),
+        M31.fromCanonical(3),
+        M31.fromCanonical(4),
+    };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{.{ .log_size = 2, .values = tree0_col[0..] }},
+        &channel,
+    );
+
+    var polys = try scheme.polynomials(alloc);
+    defer polys.deinitDeep(alloc);
+    try std.testing.expectEqual(@as(usize, 1), polys.items.len);
+    try std.testing.expectEqual(@as(usize, 1), polys.items[0].len);
+    try std.testing.expectEqual(@as(u32, 2), polys.items[0][0].log_size);
+    try std.testing.expectEqualSlices(M31, tree0_col[0..], polys.items[0][0].values);
+
+    var trace = try scheme.trace(alloc);
+    defer trace.polys.deinitDeep(alloc);
+    try std.testing.expectEqual(@as(usize, 1), trace.polys.items.len);
+    try std.testing.expectEqualSlices(M31, tree0_col[0..], trace.polys.items[0][0].values);
 }
 
 test "prover pcs: tree builder extends and commits" {
