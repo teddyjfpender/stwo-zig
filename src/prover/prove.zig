@@ -679,7 +679,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     var scheme = try Scheme.init(alloc, config);
     var prover_channel = Channel{};
 
-    const preprocessed_col = [_]M31{
+    const preprocessed_col_0 = [_]M31{
         M31.fromCanonical(1),
         M31.fromCanonical(1),
         M31.fromCanonical(1),
@@ -689,10 +689,21 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         M31.fromCanonical(1),
         M31.fromCanonical(1),
     };
+    const preprocessed_col_1 = [_]M31{
+        M31.fromCanonical(3),
+        M31.fromCanonical(3),
+        M31.fromCanonical(3),
+        M31.fromCanonical(3),
+        M31.fromCanonical(3),
+        M31.fromCanonical(3),
+        M31.fromCanonical(3),
+        M31.fromCanonical(3),
+    };
     try scheme.commit(
         alloc,
         &[_]pcs_prover.ColumnEvaluation{
-            .{ .log_size = 3, .values = preprocessed_col[0..] },
+            .{ .log_size = 3, .values = preprocessed_col_0[0..] },
+            .{ .log_size = 3, .values = preprocessed_col_1[0..] },
         },
         &prover_channel,
     );
@@ -734,6 +745,48 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     );
     defer ext_proof.aux.deinit(alloc);
 
+    const preprocessed_sampled = ext_proof.proof.commitment_scheme_proof.sampled_values.items[
+        PREPROCESSED_TRACE_IDX
+    ];
+    try std.testing.expectEqual(@as(usize, 2), preprocessed_sampled.len);
+    try std.testing.expectEqual(@as(usize, 1), preprocessed_sampled[0].len);
+    try std.testing.expectEqual(@as(usize, 0), preprocessed_sampled[1].len);
+
+    var prove_scheme = try Scheme.init(alloc, config);
+    var prove_channel = Channel{};
+    try prove_scheme.commit(
+        alloc,
+        &[_]pcs_prover.ColumnEvaluation{
+            .{ .log_size = 3, .values = preprocessed_col_0[0..] },
+            .{ .log_size = 3, .values = preprocessed_col_1[0..] },
+        },
+        &prove_channel,
+    );
+    try prove_scheme.commit(
+        alloc,
+        &[_]pcs_prover.ColumnEvaluation{
+            .{ .log_size = 3, .values = main_col[0..] },
+        },
+        &prove_channel,
+    );
+
+    var proof_from_prove = try prove(
+        Hasher,
+        MerkleChannel,
+        alloc,
+        components_arr[0..],
+        &prove_channel,
+        prove_scheme,
+    );
+    defer proof_from_prove.deinit(alloc);
+
+    const proof_wire = @import("../interop/proof_wire.zig");
+    const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, ext_proof.proof);
+    defer alloc.free(prove_ex_bytes);
+    const prove_bytes = try proof_wire.encodeProofBytes(alloc, proof_from_prove);
+    defer alloc.free(prove_bytes);
+    try std.testing.expectEqualSlices(u8, prove_ex_bytes, prove_bytes);
+
     var verifier = try VerifierScheme.init(alloc, config);
     defer verifier.deinit(alloc);
 
@@ -741,7 +794,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     try verifier.commit(
         alloc,
         ext_proof.proof.commitment_scheme_proof.commitments.items[0],
-        &[_]u32{3},
+        &[_]u32{ 3, 3 },
         &verifier_channel,
     );
     try verifier.commit(
