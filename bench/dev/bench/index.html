@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>stwo-zig benchmark parity</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 24px; color: #222; background: #f6f8fa; }
+    h1 { margin: 0 0 8px; }
+    p { margin: 0 0 16px; }
+    .card { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .chart { display: grid; grid-template-columns: 220px 1fr 80px; row-gap: 6px; column-gap: 8px; align-items: center; }
+    .label { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-wrap { height: 14px; background: #eaeef2; border-radius: 3px; overflow: hidden; }
+    .bar { height: 100%; }
+    .bar.prove { background: #1f6feb; }
+    .bar.verify { background: #fb8500; }
+    .bar.size { background: #2a9d8f; }
+    .value { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; border-bottom: 1px solid #d8dee4; padding: 6px 8px; }
+    th { background: #f0f3f6; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body>
+  <h1>stwo-zig Benchmark Parity</h1>
+  <p>Generated from committed benchmark data.</p>
+
+  <div class="card">
+    <h2>Prove Ratio (Zig over Rust)</h2>
+    <div id="proveChart" class="chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>Verify Ratio (Zig over Rust)</h2>
+    <div id="verifyChart" class="chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>Proof-Size Ratio (Zig over Rust)</h2>
+    <div id="sizeChart" class="chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>Raw Averages (seconds)</h2>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Family</th>
+          <th>Zig/Rust Prove</th>
+          <th>Zig/Rust Verify</th>
+          <th>Zig/Rust Proof Size</th>
+          <th>Rust Prove</th>
+          <th>Zig Prove</th>
+          <th>Rust Verify</th>
+          <th>Zig Verify</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="mono" id="meta"></p>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    const data = window.BENCHMARK_FULL_DATA;
+    const rows = data.rows || [];
+
+    function renderBars(targetId, key, barClass) {
+      const target = document.getElementById(targetId);
+      const max = Math.max(...rows.map(r => r[key]), 0.000001);
+      rows.forEach((r) => {
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = r.family;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'bar-wrap';
+        const bar = document.createElement('div');
+        bar.className = `bar ${barClass}`;
+        const pct = Math.min((r[key] / max) * 100, 100);
+        bar.style.width = `${pct.toFixed(2)}%`;
+        wrap.appendChild(bar);
+
+        const value = document.createElement('div');
+        value.className = 'value';
+        value.textContent = r[key].toFixed(6);
+
+        target.appendChild(label);
+        target.appendChild(wrap);
+        target.appendChild(value);
+      });
+    }
+
+    renderBars('proveChart', 'zig_over_rust_prove', 'prove');
+    renderBars('verifyChart', 'zig_over_rust_verify', 'verify');
+    renderBars('sizeChart', 'zig_over_rust_proof_wire_bytes', 'size');
+
+    const tbody = document.querySelector('#dataTable tbody');
+    rows.forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.family}</td>
+        <td>${r.zig_over_rust_prove.toFixed(6)}</td>
+        <td>${r.zig_over_rust_verify.toFixed(6)}</td>
+        <td>${r.zig_over_rust_proof_wire_bytes.toFixed(6)}</td>
+        <td>${r.rust_prove_avg_seconds.toFixed(6)}</td>
+        <td>${r.zig_prove_avg_seconds.toFixed(6)}</td>
+        <td>${r.rust_verify_avg_seconds.toFixed(6)}</td>
+        <td>${r.zig_verify_avg_seconds.toFixed(6)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('meta').textContent =
+      `source=${data.source_report} head=${data.git_head_sha}`;
+  </script>
+</body>
+</html>
