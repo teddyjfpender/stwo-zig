@@ -77,13 +77,14 @@ def load_report(path: Path, *, name: str) -> tuple[dict[str, Any], dict[str, Any
 
 def gate_steps(gate_mode: str) -> list[dict[str, str]]:
     benchmark_cmd = (
-        "python3 scripts/benchmark_smoke.py --include-medium"
+        "python3 scripts/benchmark_smoke.py --include-medium --warmups 2 --repeats 7"
         if gate_mode == "strict"
         else "python3 scripts/benchmark_smoke.py"
     )
     steps = [
         {"name": "fmt", "command": "zig fmt --check build.zig src tools"},
         {"name": "test", "command": "zig test src/stwo.zig"},
+        {"name": "api_parity", "command": "python3 scripts/check_api_parity.py"},
         {"name": "vectors_fields", "command": "python3 scripts/parity_fields.py --skip-zig"},
         {"name": "vectors_constraint", "command": "python3 scripts/parity_constraint_expr.py --skip-zig"},
         {"name": "vectors_air_derive", "command": "python3 scripts/parity_air_derive.py --skip-zig"},
@@ -92,8 +93,8 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
         {"name": "profile", "command": "python3 scripts/profile_smoke.py"},
     ]
     if gate_mode == "strict":
-        steps.insert(2, {"name": "deep_gate", "command": "zig test src/stwo_deep.zig"})
-        steps.insert(7, {"name": "prove_checkpoints", "command": "python3 scripts/prove_checkpoints.py"})
+        steps.insert(3, {"name": "deep_gate", "command": "zig test src/stwo_deep.zig"})
+        steps.insert(8, {"name": "prove_checkpoints", "command": "python3 scripts/prove_checkpoints.py"})
         steps.append(
             {
                 "name": "std_shims",

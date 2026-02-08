@@ -65,19 +65,30 @@ pub fn build(b: *std.Build) void {
     const bench_smoke_step = b.step("bench-smoke", "Run benchmark smoke harness and emit report");
     bench_smoke_step.dependOn(&bench_smoke_cmd.step);
 
-    // Benchmark strict gate with medium workloads enabled.
+    // Benchmark strict gate with medium workloads enabled and stabilized sampling.
     const bench_strict_cmd = b.addSystemCommand(&.{
         "python3",
         "scripts/benchmark_smoke.py",
         "--include-medium",
+        "--warmups",
+        "2",
+        "--repeats",
+        "7",
     });
-    const bench_strict_step = b.step("bench-strict", "Run strict benchmark harness (base + medium workloads)");
+    const bench_strict_step = b.step("bench-strict", "Run strict benchmark harness (base + medium workloads, stabilized samples)");
     bench_strict_step.dependOn(&bench_strict_cmd.step);
 
     // Full benchmark matrix gate (11 upstream family labels).
     const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
     const bench_full_step = b.step("bench-full", "Run full 11-family Rust-vs-Zig benchmark harness");
     bench_full_step.dependOn(&bench_full_cmd.step);
+    const bench_pages_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_pages.py" });
+    bench_pages_cmd.step.dependOn(&bench_full_cmd.step);
+    const bench_pages_step = b.step("bench-pages", "Render static benchmark pages assets from committed full benchmark report");
+    bench_pages_step.dependOn(&bench_pages_cmd.step);
+    const bench_pages_validate_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_pages.py", "--validate" });
+    const bench_pages_validate_step = b.step("bench-pages-validate", "Validate static benchmark pages assets are current");
+    bench_pages_validate_step.dependOn(&bench_pages_validate_cmd.step);
 
     // Profiling smoke gate with coarse wall-clock and peak-RSS collection.
     const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
@@ -198,6 +209,10 @@ pub fn build(b: *std.Build) void {
         "python3",
         "scripts/benchmark_smoke.py",
         "--include-medium",
+        "--warmups",
+        "2",
+        "--repeats",
+        "7",
     });
     rgs_bench.step.dependOn(&rgs_prove_checkpoints.step);
     const rgs_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });

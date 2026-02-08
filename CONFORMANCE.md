@@ -119,6 +119,7 @@ Production conformance for this port is reached only when all items below pass:
    - allocation count and bytes
 4. Results MUST include warmup and repeated runs with statistical summary.
 5. Raw benchmark data MUST be preserved in machine-readable format.
+6. A full benchmark parity track MUST cover the upstream 11-family surface (`bit_rev`, `eval_at_point`, `barycentric_eval_at_point`, `eval_at_point_by_folding`, `fft`, `field`, `fri`, `lookups`, `merkle`, `prefix_sum`, `pcs`) and publish static chart artifacts from committed data.
 
 ### 9.2 Performance Acceptance
 

@@ -5,6 +5,42 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (Final Signoff + Full Benchmark Parity Add-on)
+
+### Strict Signoff Gate Hardening
+- `build.zig`
+  - strict benchmark stage now runs deterministic stabilized sampling:
+    - `python3 scripts/benchmark_smoke.py --include-medium --warmups 2 --repeats 7`
+  - added benchmark artifact pipeline steps:
+    - `zig build bench-full`
+    - `zig build bench-pages`
+    - `zig build bench-pages-validate`
+- `scripts/release_evidence.py`
+  - command matrix now explicitly includes:
+    - `api_parity`
+    - strict benchmark sampling args (`--warmups 2 --repeats 7`)
+
+### Full Benchmark Family + Static Pages
+- Added full benchmark harness:
+  - `scripts/benchmark_full.py`
+  - `src/bench/full_runner.zig`
+  - enforces all 11 upstream benchmark family labels:
+    - `bit_rev`, `eval_at_point`, `barycentric_eval_at_point`,
+      `eval_at_point_by_folding`, `fft`, `field`, `fri`, `lookups`,
+      `merkle`, `prefix_sum`, `pcs`
+- Added deterministic static pages generator:
+  - `scripts/benchmark_pages.py`
+  - outputs:
+    - `bench/dev/bench/index.html`
+    - `bench/dev/bench/data.js`
+  - page is self-contained (no network/CDN dependency).
+
+### Validation (Passing)
+- `zig build release-gate-strict`
+- `zig build bench-full`
+- `zig build bench-pages`
+- `zig build bench-pages-validate`
+
 ## Latest Slice (Examples Parity Milestone: plonk)
 
 ### New Zig/Rust Example Wiring
@@ -95,7 +131,7 @@
 
 ### Validation (Passing)
 - `python3 scripts/benchmark_smoke.py`
-- `python3 scripts/benchmark_smoke.py --include-medium`
+- `python3 scripts/benchmark_smoke.py --include-medium --warmups 2 --repeats 7`
 - `zig build bench-smoke`
 - `zig build bench-strict`
 - `zig build release-gate-strict`

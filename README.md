@@ -25,6 +25,9 @@ zig build interop
 zig build prove-checkpoints
 zig build bench-smoke
 zig build bench-strict
+zig build bench-full
+zig build bench-pages
+zig build bench-pages-validate
 zig build profile-smoke
 zig build deep-gate
 zig build std-shims-smoke
@@ -43,7 +46,10 @@ zig build release-gate-strict
 - `release-gate-strict`: release-signoff path.
 
 Strict sequence:
-`fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence`
+`fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict (warmups=2,repeats=7) -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence`
+
+Full benchmark add-on:
+`zig build bench-full` then `zig build bench-pages` / `zig build bench-pages-validate`.
 
 ## Reports
 
@@ -54,6 +60,7 @@ Important artifacts:
 - `e2e_interop_report.json`
 - `prove_checkpoints_report.json`
 - `benchmark_smoke_report.json`
+- `benchmark_full_report.json`
 - `profile_smoke_report.json`
 - `std_shims_behavior_report.json`
 - `release_evidence.json`
