@@ -41,7 +41,8 @@ zig build release-evidence
 zig build deep-gate
 ```
 
-`zig build interop` performs true Rust<->Zig proof exchange for `xor` and `state_machine`
+`zig build interop` performs true Rust<->Zig proof exchange for `xor`,
+`state_machine`, and `wide_fibonacci`
 (`proof_exchange_json_wire_v1`) and includes semantic statement-tamper plus
 proof-byte tamper rejection checks. It uses
 Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).

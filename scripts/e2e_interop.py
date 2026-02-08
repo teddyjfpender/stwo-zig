@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Cross-language interoperability gate for proof exchange artifacts.
 
-This gate enforces true bidirectional exchange for the `xor` and `state_machine`
+This gate enforces true bidirectional exchange for the `xor`, `state_machine`,
+and `wide_fibonacci`
 example wrappers:
 1. Rust-generated proof artifact verifies in Zig.
 2. Zig-generated proof artifact verifies in Rust.
@@ -30,7 +31,7 @@ RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 SCHEMA_VERSION = 1
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
-SUPPORTED_EXAMPLES = ("xor", "state_machine")
+SUPPORTED_EXAMPLES = ("xor", "state_machine", "wide_fibonacci")
 M31_MODULUS = 2147483647
 REJECTION_CLASS_VERIFIER = "verifier_semantic"
 REJECTION_CLASS_PARSER = "parser"
@@ -123,6 +124,8 @@ def classify_rejection(stdout_tail: str, stderr_tail: str) -> str:
         "oodsnotmatching",
         "statementnotsatisfied",
         "statement not satisfied",
+        "invalidproofshape",
+        "invalid proof shape",
         "deep-ali",
         "verify failed",
         "verification failed",
@@ -213,6 +216,11 @@ def tamper_statement(src: Path, dst: Path, *, example: str) -> None:
         if not isinstance(public_input[1], list) or len(public_input[1]) < 1:
             raise RuntimeError(f"{rel(src)} invalid state_machine_statement.public_input[1]")
         public_input[1][0] = (int(public_input[1][0]) + 1) % M31_MODULUS
+    elif example == "wide_fibonacci":
+        stmt = artifact.get("wide_fibonacci_statement")
+        if not isinstance(stmt, dict):
+            raise RuntimeError(f"{rel(src)} missing wide_fibonacci_statement")
+        stmt["sequence_len"] = int(stmt.get("sequence_len", 0)) + 1
     else:
         raise RuntimeError(f"unsupported example for statement tamper: {example}")
 

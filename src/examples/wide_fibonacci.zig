@@ -16,54 +16,20 @@ const prover_component = @import("../prover/air/component_prover.zig");
 const prover_pcs = @import("../prover/pcs/mod.zig");
 const prover_prove = @import("../prover/prove.zig");
 const secure_column = @import("../prover/secure_column.zig");
-const utils = @import("../core/utils.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const CirclePointQM31 = @import("../core/circle.zig").CirclePointQM31;
+
 pub const Hasher = blake2_merkle.Blake2sMerkleHasher;
 pub const MerkleChannel = blake2_merkle.Blake2sMerkleChannel;
 pub const Channel = channel_blake2s.Blake2sChannel;
 pub const Proof = core_proof.StarkProof(Hasher);
 pub const ExtendedProof = core_proof.ExtendedStarkProof(Hasher);
 
-pub const Error = error{
-    InvalidLogSize,
-    InvalidStep,
-    InvalidProofShape,
-};
-
-/// Generates `IsFirst` preprocessed column values in bit-reversed order.
-///
-/// Semantics match upstream `examples/xor/gkr_lookups/mod.rs::IsFirst::gen_column_simd`.
-pub fn genIsFirstColumn(
-    allocator: std.mem.Allocator,
-    log_size: u32,
-) (std.mem.Allocator.Error || Error)![]M31 {
-    return core_air_utils.genIsFirstColumn(allocator, log_size);
-}
-
-/// Generates `IsStepWithOffset` preprocessed column values in bit-reversed order.
-///
-/// Semantics match upstream `examples/xor/gkr_lookups/preprocessed_columns.rs`.
-pub fn genIsStepWithOffsetColumn(
-    allocator: std.mem.Allocator,
-    log_size: u32,
-    log_step: u32,
-    offset: usize,
-) (std.mem.Allocator.Error || Error)![]M31 {
-    return core_air_utils.genPeriodicIndicatorColumn(allocator, log_size, log_step, offset);
-}
-
-fn checkedPow2(log_size: u32) Error!usize {
-    if (log_size >= @bitSizeOf(usize)) return Error.InvalidLogSize;
-    return @as(usize, 1) << @intCast(log_size);
-}
-
 pub const Statement = struct {
-    log_size: u32,
-    log_step: u32,
-    offset: usize,
+    log_n_rows: u32,
+    sequence_len: u32,
 };
 
 pub const ProveOutput = struct {
@@ -76,31 +42,90 @@ pub const ProveExOutput = struct {
     proof: ExtendedProof,
 };
 
-/// Proves the XOR example wrapper over the component-driven prover pipeline.
+pub const Error = error{
+    InvalidLogSize,
+    InvalidSequenceLength,
+    InvalidProofShape,
+};
+
+/// Generates a wide-fibonacci trace in bit-reversed circle-domain order.
+///
+/// For each row `i`, the sequence starts at `(a, b) = (1, i)` and evolves via
+/// `c = a^2 + b^2`.
+pub fn genTrace(
+    allocator: std.mem.Allocator,
+    statement: Statement,
+) (std.mem.Allocator.Error || Error)![][]M31 {
+    if (statement.log_n_rows == 0 or statement.log_n_rows >= 31) return Error.InvalidLogSize;
+    if (statement.sequence_len < 2) return Error.InvalidSequenceLength;
+
+    const n = checkedPow2(statement.log_n_rows) catch return Error.InvalidLogSize;
+    const n_cols: usize = @intCast(statement.sequence_len);
+
+    const trace = try allocator.alloc([]M31, n_cols);
+    errdefer allocator.free(trace);
+
+    var initialized: usize = 0;
+    errdefer {
+        var i: usize = 0;
+        while (i < initialized) : (i += 1) allocator.free(trace[i]);
+    }
+
+    for (trace) |*col| {
+        col.* = try allocator.alloc(M31, n);
+        @memset(col.*, M31.zero());
+        initialized += 1;
+    }
+
+    for (0..n) |row| {
+        const bit_rev = core_air_utils.circleBitReversedIndex(statement.log_n_rows, row) catch {
+            return Error.InvalidLogSize;
+        };
+
+        var a = M31.one();
+        var b = M31.fromCanonical(@intCast(row));
+        trace[0][bit_rev] = a;
+        trace[1][bit_rev] = b;
+
+        var col_idx: usize = 2;
+        while (col_idx < n_cols) : (col_idx += 1) {
+            const c = a.square().add(b.square());
+            trace[col_idx][bit_rev] = c;
+            a = b;
+            b = c;
+        }
+    }
+
+    return trace;
+}
+
+pub fn deinitTrace(allocator: std.mem.Allocator, trace: [][]M31) void {
+    for (trace) |col| allocator.free(col);
+    allocator.free(trace);
+}
+
 pub fn prove(
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
     statement: Statement,
 ) anyerror!ProveOutput {
-    const output = try proveEx(allocator, pcs_config, statement, false);
-    var ext_proof = output.proof;
-    const proof = ext_proof.proof;
-    ext_proof.aux.deinit(allocator);
+    var prove_ex_output = try proveEx(allocator, pcs_config, statement, false);
+    const proof = prove_ex_output.proof.proof;
+    prove_ex_output.proof.aux.deinit(allocator);
     return .{
-        .statement = output.statement,
+        .statement = prove_ex_output.statement,
         .proof = proof,
     };
 }
 
-/// Extended proving wrapper over `prover.proveEx`.
 pub fn proveEx(
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
     statement: Statement,
     include_all_preprocessed_columns: bool,
 ) anyerror!ProveExOutput {
-    if (statement.log_size == 0) return Error.InvalidLogSize;
-    if (statement.log_step > statement.log_size) return Error.InvalidStep;
+    if (statement.log_n_rows == 0 or statement.log_n_rows >= 31) return Error.InvalidLogSize;
+    if (statement.sequence_len < 2) return Error.InvalidSequenceLength;
 
     var channel = Channel{};
     pcs_config.mixInto(&channel);
@@ -110,37 +135,25 @@ pub fn proveEx(
         pcs_config,
     );
 
-    const is_first = try genIsFirstColumn(allocator, statement.log_size);
-    defer allocator.free(is_first);
-    const is_step = try genIsStepWithOffsetColumn(
-        allocator,
-        statement.log_size,
-        statement.log_step,
-        statement.offset,
-    );
-    defer allocator.free(is_step);
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = statement.log_size, .values = is_first },
-            .{ .log_size = statement.log_size, .values = is_step },
-        },
-        &channel,
-    );
+    const preprocessed = [_]prover_pcs.ColumnEvaluation{};
+    try scheme.commit(allocator, preprocessed[0..], &channel);
 
-    const main_col = try genMainColumn(allocator, statement.log_size);
-    defer allocator.free(main_col);
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = statement.log_size, .values = main_col },
-        },
-        &channel,
-    );
+    const trace = try genTrace(allocator, statement);
+    defer deinitTrace(allocator, trace);
+
+    const columns = try allocator.alloc(prover_pcs.ColumnEvaluation, trace.len);
+    defer allocator.free(columns);
+    for (trace, 0..) |col, i| {
+        columns[i] = .{
+            .log_size = statement.log_n_rows,
+            .values = col,
+        };
+    }
+    try scheme.commit(allocator, columns, &channel);
 
     mixStatement(&channel, statement);
 
-    const component = XorExampleComponent{
+    const component = WideFibonacciComponent{
         .statement = statement,
     };
     const components = [_]prover_component.ComponentProver{
@@ -162,22 +175,21 @@ pub fn proveEx(
     };
 }
 
-/// Verifies XOR proof wrapper generated by `prove`.
 pub fn verify(
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
     statement: Statement,
     proof_in: Proof,
 ) anyerror!void {
-    if (statement.log_size == 0) {
+    if (statement.log_n_rows == 0 or statement.log_n_rows >= 31) {
         var proof = proof_in;
         proof.deinit(allocator);
         return Error.InvalidLogSize;
     }
-    if (statement.log_step > statement.log_size) {
+    if (statement.sequence_len < 2) {
         var proof = proof_in;
         proof.deinit(allocator);
-        return Error.InvalidStep;
+        return Error.InvalidSequenceLength;
     }
     if (proof_in.commitment_scheme_proof.commitments.items.len < 2) {
         var proof = proof_in;
@@ -201,19 +213,25 @@ pub fn verify(
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[0],
-        &[_]u32{ statement.log_size, statement.log_size },
+        &[_]u32{},
         &channel,
     );
+
+    const n_cols: usize = @intCast(statement.sequence_len);
+    const main_log_sizes = try allocator.alloc(u32, n_cols);
+    defer allocator.free(main_log_sizes);
+    @memset(main_log_sizes, statement.log_n_rows);
+
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[1],
-        &[_]u32{statement.log_size},
+        main_log_sizes,
         &channel,
     );
 
     mixStatement(&channel, statement);
 
-    const component = XorExampleComponent{
+    const component = WideFibonacciComponent{
         .statement = statement,
     };
     const verifier_components = [_]core_air_components.Component{
@@ -232,7 +250,7 @@ pub fn verify(
     );
 }
 
-const XorExampleComponent = struct {
+const WideFibonacciComponent = struct {
     statement: Statement,
 
     const Adapter = core_air_derive.ComponentAdapter(
@@ -250,51 +268,47 @@ const XorExampleComponent = struct {
         return Adapter.asProverComponent(self);
     }
 
-    pub fn nConstraints(_: *const @This()) usize {
+    pub fn nConstraints(self: *const @This()) usize {
+        _ = self;
         return 1;
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
-        return self.statement.log_size + 1;
+        return self.statement.log_n_rows + 1;
     }
 
     pub fn traceLogDegreeBounds(
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) !core_air_components.TraceLogDegreeBounds {
-        const preprocessed = try allocator.dupe(u32, &[_]u32{
-            self.statement.log_size,
-            self.statement.log_size,
-        });
-        const main = try allocator.dupe(u32, &[_]u32{
-            self.statement.log_size,
-        });
+        const preprocessed = try allocator.alloc(u32, 0);
+        const main = try allocator.alloc(u32, @intCast(self.statement.sequence_len));
+        @memset(main, self.statement.log_n_rows);
+
         return core_air_components.TraceLogDegreeBounds.initOwned(
-            try allocator.dupe([]u32, &[_][]u32{
-                preprocessed,
-                main,
-            }),
+            try allocator.dupe([]u32, &[_][]u32{ preprocessed, main }),
         );
     }
 
     pub fn maskPoints(
-        _: *const @This(),
+        self: *const @This(),
         allocator: std.mem.Allocator,
         point: CirclePointQM31,
         _: u32,
     ) !core_air_components.MaskPoints {
-        const preprocessed_col0 = try allocator.alloc(CirclePointQM31, 0);
-        const preprocessed_col1 = try allocator.alloc(CirclePointQM31, 0);
-        const preprocessed_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
-            preprocessed_col0,
-            preprocessed_col1,
-        });
+        const preprocessed_cols = try allocator.alloc([]CirclePointQM31, 0);
 
-        const main_col = try allocator.alloc(CirclePointQM31, 1);
-        main_col[0] = point;
-        const main_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
-            main_col,
-        });
+        const n_cols: usize = @intCast(self.statement.sequence_len);
+        const main_cols = try allocator.alloc([]CirclePointQM31, n_cols);
+        errdefer {
+            for (main_cols) |col| allocator.free(col);
+            allocator.free(main_cols);
+        }
+
+        for (main_cols) |*col| {
+            col.* = try allocator.alloc(CirclePointQM31, 1);
+            col.*[0] = point;
+        }
 
         return core_air_components.MaskPoints.initOwned(
             try allocator.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{
@@ -308,7 +322,7 @@ const XorExampleComponent = struct {
         _: *const @This(),
         allocator: std.mem.Allocator,
     ) ![]usize {
-        return allocator.dupe(usize, &[_]usize{ 0, 1 });
+        return allocator.alloc(usize, 0);
     }
 
     pub fn evaluateConstraintQuotientsAtPoint(
@@ -327,7 +341,7 @@ const XorExampleComponent = struct {
         evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
         const composition_eval = compositionEval(self.statement);
-        const domain_size = @as(usize, 1) << @intCast(self.statement.log_size + 1);
+        const domain_size = @as(usize, 1) << @intCast(self.statement.log_n_rows + 1);
         const values = try evaluation_accumulator.allocator.alloc(QM31, domain_size);
         defer evaluation_accumulator.allocator.free(values);
         @memset(values, composition_eval);
@@ -337,104 +351,68 @@ const XorExampleComponent = struct {
             values,
         );
         defer col.deinit(evaluation_accumulator.allocator);
-        try evaluation_accumulator.accumulateColumn(self.statement.log_size + 1, &col);
+        try evaluation_accumulator.accumulateColumn(self.statement.log_n_rows + 1, &col);
     }
 };
 
-fn genMainColumn(
-    allocator: std.mem.Allocator,
-    log_size: u32,
-) (std.mem.Allocator.Error || Error)![]M31 {
-    const n = checkedPow2(log_size) catch return Error.InvalidLogSize;
-    const values = try allocator.alloc(M31, n);
-    @memset(values, M31.zero());
-
-    for (0..n) |i| {
-        const circle_domain_index = utils.cosetIndexToCircleDomainIndex(i, log_size);
-        const bit_rev_index = utils.bitReverseIndex(circle_domain_index, log_size);
-        values[bit_rev_index] = if ((i & 1) == 0) M31.one() else M31.zero();
-    }
-
-    return values;
-}
-
 fn compositionEval(statement: Statement) QM31 {
     return QM31.fromM31(
-        M31.fromCanonical(statement.log_size),
-        M31.fromCanonical(statement.log_step),
-        M31.fromU64(@intCast(statement.offset)),
+        M31.fromU64(statement.log_n_rows),
+        M31.fromU64(statement.sequence_len),
+        M31.zero(),
         M31.one(),
     );
 }
 
 fn mixStatement(channel: *Channel, statement: Statement) void {
-    channel.mixU32s(&[_]u32{
-        statement.log_size,
-        statement.log_step,
-    });
-    channel.mixU64(@intCast(statement.offset));
+    channel.mixU32s(&[_]u32{ statement.log_n_rows, statement.sequence_len });
 }
 
-test "examples xor: is_first has exactly one leading one" {
-    const alloc = std.testing.allocator;
-    const values = try genIsFirstColumn(alloc, 5);
-    defer alloc.free(values);
+fn checkedPow2(log_size: u32) Error!usize {
+    if (log_size >= @bitSizeOf(usize)) return Error.InvalidLogSize;
+    return @as(usize, 1) << @intCast(log_size);
+}
 
-    try std.testing.expect(values[0].eql(M31.one()));
-    for (values[1..]) |value| {
-        try std.testing.expect(value.eql(M31.zero()));
+test "examples wide_fibonacci: trace generation follows recurrence" {
+    const alloc = std.testing.allocator;
+    const statement: Statement = .{
+        .log_n_rows = 4,
+        .sequence_len = 8,
+    };
+
+    const trace = try genTrace(alloc, statement);
+    defer deinitTrace(alloc, trace);
+
+    try std.testing.expectEqual(@as(usize, 8), trace.len);
+    for (trace) |col| try std.testing.expectEqual(@as(usize, 16), col.len);
+
+    const row_index: usize = 5;
+    const bit_rev = try core_air_utils.circleBitReversedIndex(statement.log_n_rows, row_index);
+
+    var a = M31.one();
+    var b = M31.fromCanonical(@intCast(row_index));
+    try std.testing.expect(trace[0][bit_rev].eql(a));
+    try std.testing.expect(trace[1][bit_rev].eql(b));
+
+    var col_idx: usize = 2;
+    while (col_idx < trace.len) : (col_idx += 1) {
+        const c = a.square().add(b.square());
+        try std.testing.expect(trace[col_idx][bit_rev].eql(c));
+        a = b;
+        b = c;
     }
 }
 
-test "examples xor: is_step_with_offset rejects invalid step" {
-    const alloc = std.testing.allocator;
-    try std.testing.expectError(
-        Error.InvalidStep,
-        genIsStepWithOffsetColumn(alloc, 4, 5, 0),
-    );
-}
-
-test "examples xor: prove/verify wrapper roundtrip" {
-    const config = pcs_core.PcsConfig{
-        .pow_bits = 0,
-        .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
-    };
-    const statement: Statement = .{
-        .log_size = 5,
-        .log_step = 2,
-        .offset = 3,
-    };
-
-    const output = try prove(std.testing.allocator, config, statement);
-    try verify(std.testing.allocator, config, output.statement, output.proof);
-}
-
-test "examples xor: prove_ex wrapper roundtrip" {
-    const config = pcs_core.PcsConfig{
-        .pow_bits = 0,
-        .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
-    };
-    const statement: Statement = .{
-        .log_size = 5,
-        .log_step = 2,
-        .offset = 3,
-    };
-
-    var output = try proveEx(std.testing.allocator, config, statement, false);
-    defer output.proof.aux.deinit(std.testing.allocator);
-    try verify(std.testing.allocator, config, output.statement, output.proof.proof);
-}
-
-test "examples xor: prove and prove_ex wrappers emit identical proof bytes" {
+test "examples wide_fibonacci: prove/verify wrapper roundtrip" {
     const alloc = std.testing.allocator;
     const config = pcs_core.PcsConfig{
         .pow_bits = 0,
         .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
     };
+
     const statement: Statement = .{
-        .log_size = 5,
-        .log_step = 2,
-        .offset = 7,
+        .log_n_rows = 5,
+        .sequence_len = 16,
     };
 
     var output_prove = try prove(alloc, config, statement);
@@ -453,20 +431,20 @@ test "examples xor: prove and prove_ex wrappers emit identical proof bytes" {
     try std.testing.expectEqualSlices(u8, prove_bytes, prove_ex_bytes);
 }
 
-test "examples xor: verify wrapper rejects statement mismatch" {
+test "examples wide_fibonacci: verify wrapper rejects statement mismatch" {
     const config = pcs_core.PcsConfig{
         .pow_bits = 0,
         .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
     };
+
     const statement: Statement = .{
-        .log_size = 5,
-        .log_step = 2,
-        .offset = 11,
+        .log_n_rows = 5,
+        .sequence_len = 16,
     };
     const output = try prove(std.testing.allocator, config, statement);
 
     var bad_statement = output.statement;
-    bad_statement.offset += 1;
+    bad_statement.sequence_len += 1;
 
     if (verify(std.testing.allocator, config, bad_statement, output.proof)) |_| {
         try std.testing.expect(false);

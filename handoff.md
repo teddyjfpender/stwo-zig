@@ -5,6 +5,71 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (AIR Derive Generation Layer)
+
+### New Module
+- Added `src/core/air/derive.zig` with a comptime `ComponentAdapter(...)`
+  that derives both:
+  - `core/air/components.zig::Component` bindings
+  - `prover/air/component_prover.zig::ComponentProver` bindings
+- Exported derive layer via `src/core/air/mod.zig`.
+
+### Integration
+- Replaced manual verifier/prover vtable wiring in:
+  - `src/examples/xor.zig`
+  - `src/examples/state_machine.zig`
+- Example components now expose stable method contracts and use the shared
+  derive adapter for interface generation.
+
+### Validation (Passing)
+- `zig build test`
+- `zig test src/stwo.zig --test-filter "examples xor: prove/verify wrapper roundtrip"`
+- `zig test src/stwo.zig --test-filter "examples state_machine: prove/verify wrapper roundtrip"`
+
+## Latest Slice (Examples Parity Milestone: wide_fibonacci)
+
+### New Zig Example
+- Added `src/examples/wide_fibonacci.zig` with:
+  - deterministic trace generation (`genTrace`) in bit-reversed circle-domain order
+  - full wrappers:
+    - `prove(...)`
+    - `proveEx(...)`
+    - `verify(...)`
+  - explicit failure modes for invalid statement/proof shape
+  - wrapper tests for roundtrip and statement-tamper rejection
+- Exported from `src/examples/mod.zig`.
+
+### Interop Wire/CLI Extension
+- `src/interop/examples_artifact.zig`
+  - added `WideFibonacciStatementWire`
+  - added `wide_fibonacci_statement` artifact field
+  - added statement wire conversion helpers.
+- `src/interop_cli.zig`
+  - added `--example wide_fibonacci`
+  - added wide-fibonacci generate/verify flow
+  - added CLI args:
+    - `--wf-log-n-rows`
+    - `--wf-sequence-len`.
+- `tools/stwo-interop-rs/src/main.rs`
+  - added `wide_fibonacci` example support (generate + verify)
+  - added statement wire schema and conversion
+  - added proving/verification flow and component wiring parity.
+
+### Interop Harness Extension
+- `scripts/e2e_interop.py`
+  - expanded matrix to include `wide_fibonacci`
+  - added semantic statement tamper mutation for wide-fibonacci artifacts
+  - widened verifier-rejection classification markers for proof-shape failures.
+- `README.md`
+  - updated interop gate description to include `wide_fibonacci`.
+
+### Validation (Passing)
+- `cargo +nightly-2025-07-14 check --manifest-path tools/stwo-interop-rs/Cargo.toml`
+- `zig build test`
+- `zig build interop`
+- `python3 scripts/e2e_interop.py`
+- `zig test src/stwo.zig --test-filter "examples wide_fibonacci:"`
+
 ## Latest Slice (Constraint-Framework Expression Core)
 
 ### New Zig Module

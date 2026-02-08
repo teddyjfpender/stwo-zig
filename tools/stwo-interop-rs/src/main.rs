@@ -41,6 +41,7 @@ enum Mode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Example {
     StateMachine,
+    WideFibonacci,
     Xor,
 }
 
@@ -66,6 +67,9 @@ struct Cli {
     sm_log_n_rows: u32,
     sm_initial_0: u32,
     sm_initial_1: u32,
+
+    wf_log_n_rows: u32,
+    wf_sequence_len: u32,
 
     xor_log_size: u32,
     xor_log_step: u32,
@@ -145,6 +149,12 @@ struct XorStatementWire {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct WideFibonacciStatementWire {
+    log_n_rows: u32,
+    sequence_len: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct InteropArtifact {
     schema_version: u32,
     upstream_commit: String,
@@ -154,6 +164,7 @@ struct InteropArtifact {
     prove_mode: Option<String>,
     pcs_config: PcsConfigWire,
     state_machine_statement: Option<StateMachineStatementWire>,
+    wide_fibonacci_statement: Option<WideFibonacciStatementWire>,
     xor_statement: Option<XorStatementWire>,
     proof_bytes_hex: String,
 }
@@ -181,6 +192,12 @@ struct XorStatement {
 }
 
 #[derive(Debug, Clone, Copy)]
+struct WideFibonacciStatement {
+    log_n_rows: u32,
+    sequence_len: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
 struct StateMachineComponent {
     trace_log_size: u32,
     composition_eval: SecureField,
@@ -189,6 +206,11 @@ struct StateMachineComponent {
 #[derive(Debug, Clone, Copy)]
 struct XorComponent {
     statement: XorStatement,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct WideFibonacciComponent {
+    statement: WideFibonacciStatement,
 }
 
 fn main() -> Result<()> {
@@ -228,6 +250,33 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
                 state_machine_statement: Some(state_machine_statement_to_wire(statement)),
+                wide_fibonacci_statement: None,
+                xor_statement: None,
+                proof_bytes_hex: hex::encode(proof_bytes),
+            }
+        }
+        Example::WideFibonacci => {
+            let statement = WideFibonacciStatement {
+                log_n_rows: cli.wf_log_n_rows,
+                sequence_len: cli.wf_sequence_len,
+            };
+            let (statement, proof) = wide_fibonacci_prove(
+                config,
+                statement,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
+            )?;
+            let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
+            InteropArtifact {
+                schema_version: SCHEMA_VERSION,
+                upstream_commit: UPSTREAM_COMMIT.to_string(),
+                exchange_mode: EXCHANGE_MODE.to_string(),
+                generator: "rust".to_string(),
+                example: "wide_fibonacci".to_string(),
+                prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
+                pcs_config: pcs_config_to_wire(config),
+                state_machine_statement: None,
+                wide_fibonacci_statement: Some(wide_fibonacci_statement_to_wire(statement)),
                 xor_statement: None,
                 proof_bytes_hex: hex::encode(proof_bytes),
             }
@@ -254,6 +303,7 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
                 state_machine_statement: None,
+                wide_fibonacci_statement: None,
                 xor_statement: Some(xor_statement_to_wire(statement)?),
                 proof_bytes_hex: hex::encode(proof_bytes),
             }
@@ -303,6 +353,14 @@ fn run_verify(cli: &Cli) -> Result<()> {
             let statement = state_machine_statement_from_wire(statement_wire)?;
             state_machine_verify(config, statement, proof)?;
         }
+        "wide_fibonacci" => {
+            let statement_wire = artifact
+                .wide_fibonacci_statement
+                .as_ref()
+                .ok_or_else(|| anyhow!("missing wide_fibonacci_statement"))?;
+            let statement = wide_fibonacci_statement_from_wire(statement_wire)?;
+            wide_fibonacci_verify(config, statement, proof)?;
+        }
         "xor" => {
             let statement_wire = artifact
                 .xor_statement
@@ -348,6 +406,9 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
     let mut sm_initial_0 = 9u32;
     let mut sm_initial_1 = 3u32;
 
+    let mut wf_log_n_rows = 5u32;
+    let mut wf_sequence_len = 16u32;
+
     let mut xor_log_size = 5u32;
     let mut xor_log_step = 2u32;
     let mut xor_offset = 3usize;
@@ -375,6 +436,7 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
             "--example" => {
                 example = match value.as_str() {
                     "state_machine" => Some(Example::StateMachine),
+                    "wide_fibonacci" => Some(Example::WideFibonacci),
                     "xor" => Some(Example::Xor),
                     _ => bail!("invalid example {value}"),
                 }
@@ -400,6 +462,8 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
             "--sm-log-n-rows" => sm_log_n_rows = value.parse()?,
             "--sm-initial-0" => sm_initial_0 = value.parse()?,
             "--sm-initial-1" => sm_initial_1 = value.parse()?,
+            "--wf-log-n-rows" => wf_log_n_rows = value.parse()?,
+            "--wf-sequence-len" => wf_sequence_len = value.parse()?,
             "--xor-log-size" => xor_log_size = value.parse()?,
             "--xor-log-step" => xor_log_step = value.parse()?,
             "--xor-offset" => xor_offset = value.parse()?,
@@ -420,6 +484,8 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
         sm_log_n_rows,
         sm_initial_0,
         sm_initial_1,
+        wf_log_n_rows,
+        wf_sequence_len,
         xor_log_size,
         xor_log_step,
         xor_offset,
@@ -737,6 +803,24 @@ fn xor_statement_from_wire(wire: &XorStatementWire) -> Result<XorStatement> {
     })
 }
 
+fn wide_fibonacci_statement_to_wire(
+    statement: WideFibonacciStatement,
+) -> WideFibonacciStatementWire {
+    WideFibonacciStatementWire {
+        log_n_rows: statement.log_n_rows,
+        sequence_len: statement.sequence_len,
+    }
+}
+
+fn wide_fibonacci_statement_from_wire(
+    wire: &WideFibonacciStatementWire,
+) -> Result<WideFibonacciStatement> {
+    Ok(WideFibonacciStatement {
+        log_n_rows: wire.log_n_rows,
+        sequence_len: wire.sequence_len,
+    })
+}
+
 fn state_machine_prove(
     config: PcsConfig,
     log_n_rows: u32,
@@ -856,6 +940,98 @@ fn state_machine_verify(
 
     verify(&[&component], &mut channel, &mut commitment_scheme, proof)
         .map_err(|err| anyhow!("state_machine verify failed: {err}"))
+}
+
+fn wide_fibonacci_prove(
+    config: PcsConfig,
+    statement: WideFibonacciStatement,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
+) -> Result<(WideFibonacciStatement, StarkProof<Blake2sMerkleHasher>)> {
+    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
+        bail!("invalid wide_fibonacci log_n_rows");
+    }
+    if statement.sequence_len < 2 {
+        bail!("invalid wide_fibonacci sequence_len");
+    }
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let twiddles = CpuBackend::precompute_twiddles(
+        CanonicCoset::new(statement.log_n_rows + config.fri_config.log_blowup_factor + 1)
+            .circle_domain()
+            .half_coset,
+    );
+    let mut scheme =
+        CommitmentSchemeProver::<CpuBackend, Blake2sMerkleChannel>::new(config, &twiddles);
+
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(vec![]);
+    builder.commit(&mut channel);
+
+    let trace = gen_wide_fibonacci_trace(statement.log_n_rows, statement.sequence_len)?;
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(
+        trace
+            .into_iter()
+            .map(|col| cpu_eval(statement.log_n_rows, col))
+            .collect(),
+    );
+    builder.commit(&mut channel);
+
+    mix_wide_fibonacci_statement(&mut channel, statement);
+
+    let component = WideFibonacciComponent { statement };
+    let proof = match prove_mode {
+        ProveMode::Prove => {
+            prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?
+        }
+        ProveMode::ProveEx => {
+            prove_ex::<CpuBackend, Blake2sMerkleChannel>(
+                &[&component],
+                &mut channel,
+                scheme,
+                include_all_preprocessed_columns,
+            )?
+            .proof
+        }
+    };
+
+    Ok((statement, proof))
+}
+
+fn wide_fibonacci_verify(
+    config: PcsConfig,
+    statement: WideFibonacciStatement,
+    proof: StarkProof<Blake2sMerkleHasher>,
+) -> Result<()> {
+    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
+        bail!("invalid wide_fibonacci log_n_rows");
+    }
+    if statement.sequence_len < 2 {
+        bail!("invalid wide_fibonacci sequence_len");
+    }
+    if proof.0.commitments.len() < 2 {
+        bail!("invalid proof shape: expected at least 2 commitments");
+    }
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let c0 = proof.0.commitments[0];
+    let c1 = proof.0.commitments[1];
+
+    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
+    commitment_scheme.commit(c0, &[], &mut channel);
+    let main_log_sizes = vec![statement.log_n_rows; statement.sequence_len as usize];
+    commitment_scheme.commit(c1, &main_log_sizes, &mut channel);
+
+    mix_wide_fibonacci_statement(&mut channel, statement);
+
+    let component = WideFibonacciComponent { statement };
+    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
+        .map_err(|err| anyhow!("wide_fibonacci verify failed: {err}"))
 }
 
 fn xor_prove(
@@ -987,6 +1163,38 @@ fn gen_trace(log_size: u32, initial_state: [M31; 2], inc_index: usize) -> Result
     }
 
     Ok([col0, col1])
+}
+
+fn gen_wide_fibonacci_trace(log_n_rows: u32, sequence_len: u32) -> Result<Vec<Vec<M31>>> {
+    if log_n_rows == 0 || log_n_rows >= 31 {
+        bail!("invalid log_n_rows");
+    }
+    if sequence_len < 2 {
+        bail!("invalid sequence_len");
+    }
+
+    let n = checked_pow2(log_n_rows)?;
+    let n_cols = sequence_len as usize;
+    let mut trace = vec![vec![M31::zero(); n]; n_cols];
+
+    for row in 0..n {
+        let bit_rev_index = bit_reverse_index(
+            coset_index_to_circle_domain_index(row, log_n_rows),
+            log_n_rows,
+        );
+        let mut a = M31::one();
+        let mut b = M31::from(row as u32);
+        trace[0][bit_rev_index] = a;
+        trace[1][bit_rev_index] = b;
+        for col in trace.iter_mut().skip(2) {
+            let c = a.square() + b.square();
+            col[bit_rev_index] = c;
+            a = b;
+            b = c;
+        }
+    }
+
+    Ok(trace)
 }
 
 fn gen_is_step_with_offset(log_size: u32, log_step: u32, offset: usize) -> Result<Vec<M31>> {
@@ -1123,6 +1331,19 @@ fn mix_state_machine_stmt1(
     channel.mix_felts(&[x_claim, y_claim]);
 }
 
+fn wide_fibonacci_composition_eval(statement: WideFibonacciStatement) -> SecureField {
+    SecureField::from_m31(
+        M31::from(statement.log_n_rows),
+        M31::from(statement.sequence_len),
+        M31::zero(),
+        M31::one(),
+    )
+}
+
+fn mix_wide_fibonacci_statement(channel: &mut Blake2sChannel, statement: WideFibonacciStatement) {
+    channel.mix_u32s(&[statement.log_n_rows, statement.sequence_len]);
+}
+
 fn xor_composition_eval(statement: XorStatement) -> SecureField {
     SecureField::from_m31(
         M31::from(statement.log_size),
@@ -1186,6 +1407,63 @@ impl ComponentProver<CpuBackend> for StateMachineComponent {
         let domain_size = 1usize << (self.trace_log_size + 1);
         for i in 0..domain_size {
             col.accumulate(i, self.composition_eval);
+        }
+    }
+}
+
+impl Component for WideFibonacciComponent {
+    fn n_constraints(&self) -> usize {
+        1
+    }
+
+    fn max_constraint_log_degree_bound(&self) -> u32 {
+        self.statement.log_n_rows + 1
+    }
+
+    fn trace_log_degree_bounds(&self) -> TreeVec<Vec<u32>> {
+        TreeVec::new(vec![
+            vec![],
+            vec![self.statement.log_n_rows; self.statement.sequence_len as usize],
+        ])
+    }
+
+    fn mask_points(
+        &self,
+        point: CirclePoint<SecureField>,
+        _max_log_degree_bound: u32,
+    ) -> TreeVec<Vec<Vec<CirclePoint<SecureField>>>> {
+        TreeVec::new(vec![
+            vec![],
+            vec![vec![point]; self.statement.sequence_len as usize],
+        ])
+    }
+
+    fn preprocessed_column_indices(&self) -> Vec<usize> {
+        vec![]
+    }
+
+    fn evaluate_constraint_quotients_at_point(
+        &self,
+        _point: CirclePoint<SecureField>,
+        _mask: &TreeVec<Vec<Vec<SecureField>>>,
+        evaluation_accumulator: &mut PointEvaluationAccumulator,
+        _max_log_degree_bound: u32,
+    ) {
+        evaluation_accumulator.accumulate(wide_fibonacci_composition_eval(self.statement));
+    }
+}
+
+impl ComponentProver<CpuBackend> for WideFibonacciComponent {
+    fn evaluate_constraint_quotients_on_domain(
+        &self,
+        _trace: &Trace<'_, CpuBackend>,
+        evaluation_accumulator: &mut DomainEvaluationAccumulator<CpuBackend>,
+    ) {
+        let composition_eval = wide_fibonacci_composition_eval(self.statement);
+        let [mut col] = evaluation_accumulator.columns([(self.statement.log_n_rows + 1, 1)]);
+        let domain_size = 1usize << (self.statement.log_n_rows + 1);
+        for i in 0..domain_size {
+            col.accumulate(i, composition_eval);
         }
     }
 }

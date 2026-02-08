@@ -21,16 +21,6 @@ pub fn ComponentAdapter(
     comptime ProverTraceType: type,
     comptime DomainEvaluationAccumulatorType: type,
 ) type {
-    comptime {
-        requireMethod(Impl, "nConstraints");
-        requireMethod(Impl, "maxConstraintLogDegreeBound");
-        requireMethod(Impl, "traceLogDegreeBounds");
-        requireMethod(Impl, "maskPoints");
-        requireMethod(Impl, "preprocessedColumnIndices");
-        requireMethod(Impl, "evaluateConstraintQuotientsAtPoint");
-        requireMethod(Impl, "evaluateConstraintQuotientsOnDomain");
-    }
-
     return struct {
         pub fn asVerifierComponent(self: *const Impl) components.Component {
             return .{
@@ -119,10 +109,4 @@ pub fn ComponentAdapter(
             return cast(ctx).evaluateConstraintQuotientsOnDomain(trace, evaluation_accumulator);
         }
     };
-}
-
-fn requireMethod(comptime T: type, comptime name: []const u8) void {
-    if (!std.meta.hasFn(T, name)) {
-        @compileError(@typeName(T) ++ " must declare method " ++ name);
-    }
 }

@@ -5,6 +5,7 @@ const m31 = stwo.core.fields.m31;
 const fri = stwo.core.fri;
 const pcs = stwo.core.pcs;
 const state_machine = stwo.examples.state_machine;
+const wide_fibonacci = stwo.examples.wide_fibonacci;
 const xor = stwo.examples.xor;
 const examples_artifact = stwo.interop.examples_artifact;
 const proof_wire = stwo.interop.proof_wire;
@@ -18,6 +19,7 @@ const Mode = enum {
 
 const Example = enum {
     state_machine,
+    wide_fibonacci,
     xor,
 };
 
@@ -41,6 +43,9 @@ const Cli = struct {
     sm_log_n_rows: u32 = 5,
     sm_initial_0: u32 = 9,
     sm_initial_1: u32 = 3,
+
+    wf_log_n_rows: u32 = 5,
+    wf_sequence_len: u32 = 16,
 
     xor_log_size: u32 = 5,
     xor_log_step: u32 = 2,
@@ -121,6 +126,57 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
                 .state_machine_statement = examples_artifact.stateMachineStatementToWire(statement),
+                .wide_fibonacci_statement = null,
+                .xor_statement = null,
+                .proof_bytes_hex = proof_bytes_hex,
+            });
+        },
+        .wide_fibonacci => {
+            const statement: wide_fibonacci.Statement = .{
+                .log_n_rows = cli.wf_log_n_rows,
+                .sequence_len = cli.wf_sequence_len,
+            };
+            var proved_statement: wide_fibonacci.Statement = undefined;
+            var proof: wide_fibonacci.Proof = undefined;
+            var deinit_proof = false;
+            defer if (deinit_proof) proof.deinit(allocator);
+            switch (cli.prove_mode) {
+                .prove => {
+                    const output = try wide_fibonacci.prove(allocator, config, statement);
+                    proved_statement = output.statement;
+                    proof = output.proof;
+                    deinit_proof = true;
+                },
+                .prove_ex => {
+                    const output = try wide_fibonacci.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    proved_statement = output.statement;
+                    var ext_proof = output.proof;
+                    proof = ext_proof.proof;
+                    ext_proof.aux.deinit(allocator);
+                    deinit_proof = true;
+                },
+            }
+
+            const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
+            defer allocator.free(proof_bytes);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(allocator, proof_bytes);
+            defer allocator.free(proof_bytes_hex);
+
+            try examples_artifact.writeArtifact(allocator, cli.artifact_path, .{
+                .schema_version = examples_artifact.SCHEMA_VERSION,
+                .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
+                .exchange_mode = examples_artifact.EXCHANGE_MODE,
+                .generator = "zig",
+                .example = "wide_fibonacci",
+                .prove_mode = prove_mode,
+                .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .state_machine_statement = null,
+                .wide_fibonacci_statement = examples_artifact.wideFibonacciStatementToWire(proved_statement),
                 .xor_statement = null,
                 .proof_bytes_hex = proof_bytes_hex,
             });
@@ -171,6 +227,7 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
                 .state_machine_statement = null,
+                .wide_fibonacci_statement = null,
                 .xor_statement = examples_artifact.xorStatementToWire(proved_statement),
                 .proof_bytes_hex = proof_bytes_hex,
             });
@@ -209,6 +266,12 @@ fn runVerify(allocator: std.mem.Allocator, cli: Cli) !void {
         const statement_wire = artifact.state_machine_statement orelse return error.MissingStateMachineStatement;
         const statement = try examples_artifact.stateMachineStatementFromWire(statement_wire);
         try state_machine.verify(allocator, config, statement, proof);
+        return;
+    }
+    if (std.mem.eql(u8, artifact.example, "wide_fibonacci")) {
+        const statement_wire = artifact.wide_fibonacci_statement orelse return error.MissingWideFibonacciStatement;
+        const statement = try examples_artifact.wideFibonacciStatementFromWire(statement_wire);
+        try wide_fibonacci.verify(allocator, config, statement, proof);
         return;
     }
     if (std.mem.eql(u8, artifact.example, "xor")) {
@@ -251,6 +314,9 @@ fn parseArgs(args: []const []const u8) !Cli {
     var sm_initial_0: u32 = 9;
     var sm_initial_1: u32 = 3;
 
+    var wf_log_n_rows: u32 = 5;
+    var wf_sequence_len: u32 = 16;
+
     var xor_log_size: u32 = 5;
     var xor_log_step: u32 = 2;
     var xor_offset: usize = 3;
@@ -288,6 +354,10 @@ fn parseArgs(args: []const []const u8) !Cli {
             sm_initial_0 = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--sm-initial-1")) {
             sm_initial_1 = try parseInt(u32, value);
+        } else if (std.mem.eql(u8, flag, "--wf-log-n-rows")) {
+            wf_log_n_rows = try parseInt(u32, value);
+        } else if (std.mem.eql(u8, flag, "--wf-sequence-len")) {
+            wf_sequence_len = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--xor-log-size")) {
             xor_log_size = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--xor-log-step")) {
@@ -312,6 +382,8 @@ fn parseArgs(args: []const []const u8) !Cli {
         .sm_log_n_rows = sm_log_n_rows,
         .sm_initial_0 = sm_initial_0,
         .sm_initial_1 = sm_initial_1,
+        .wf_log_n_rows = wf_log_n_rows,
+        .wf_sequence_len = wf_sequence_len,
         .xor_log_size = xor_log_size,
         .xor_log_step = xor_log_step,
         .xor_offset = xor_offset,
@@ -326,6 +398,7 @@ fn parseMode(value: []const u8) ?Mode {
 
 fn parseExample(value: []const u8) ?Example {
     if (std.mem.eql(u8, value, "state_machine")) return .state_machine;
+    if (std.mem.eql(u8, value, "wide_fibonacci")) return .wide_fibonacci;
     if (std.mem.eql(u8, value, "xor")) return .xor;
     return null;
 }
@@ -365,7 +438,7 @@ fn m31FromCanonical(value: u32) !M31 {
 fn printUsage() void {
     std.debug.print(
         "usage:\n" ++
-            "  zig run src/interop_cli.zig -- --mode generate --example <state_machine|xor> --artifact <path> [options]\n" ++
+            "  zig run src/interop_cli.zig -- --mode generate --example <state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
             "    [--prove-mode <prove|prove_ex>] [--include-all-preprocessed-columns <0|1>]\n" ++
             "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n",
         .{},

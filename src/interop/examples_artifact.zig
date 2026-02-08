@@ -4,6 +4,7 @@ const m31 = @import("../core/fields/m31.zig");
 const qm31 = @import("../core/fields/qm31.zig");
 const pcs = @import("../core/pcs/mod.zig");
 const state_machine = @import("../examples/state_machine.zig");
+const wide_fibonacci = @import("../examples/wide_fibonacci.zig");
 const xor = @import("../examples/xor.zig");
 const proof_wire = @import("proof_wire.zig");
 
@@ -35,6 +36,11 @@ pub const XorStatementWire = struct {
     offset: u64,
 };
 
+pub const WideFibonacciStatementWire = struct {
+    log_n_rows: u32,
+    sequence_len: u32,
+};
+
 pub const InteropArtifact = struct {
     schema_version: u32,
     upstream_commit: []const u8,
@@ -44,6 +50,7 @@ pub const InteropArtifact = struct {
     prove_mode: ?[]const u8 = null,
     pcs_config: PcsConfigWire,
     state_machine_statement: ?StateMachineStatementWire = null,
+    wide_fibonacci_statement: ?WideFibonacciStatementWire = null,
     xor_statement: ?XorStatementWire = null,
     proof_bytes_hex: []const u8,
 };
@@ -189,6 +196,20 @@ pub fn xorStatementFromWire(wire: XorStatementWire) ArtifactError!xor.Statement 
     };
 }
 
+pub fn wideFibonacciStatementToWire(statement: wide_fibonacci.Statement) WideFibonacciStatementWire {
+    return .{
+        .log_n_rows = statement.log_n_rows,
+        .sequence_len = statement.sequence_len,
+    };
+}
+
+pub fn wideFibonacciStatementFromWire(wire: WideFibonacciStatementWire) ArtifactError!wide_fibonacci.Statement {
+    return .{
+        .log_n_rows = wire.log_n_rows,
+        .sequence_len = wire.sequence_len,
+    };
+}
+
 fn m31FromU32(value: u32) ArtifactError!M31 {
     if (value >= m31.Modulus) return ArtifactError.NonCanonicalM31;
     return M31.fromCanonical(value);
@@ -224,4 +245,17 @@ test "interop artifact: hex roundtrip" {
     defer alloc.free(decoded);
 
     try std.testing.expectEqualSlices(u8, bytes, decoded);
+}
+
+test "interop artifact: wide fibonacci statement wire roundtrip" {
+    const statement: wide_fibonacci.Statement = .{
+        .log_n_rows = 5,
+        .sequence_len = 16,
+    };
+
+    const wire = wideFibonacciStatementToWire(statement);
+    const decoded = try wideFibonacciStatementFromWire(wire);
+
+    try std.testing.expectEqual(statement.log_n_rows, decoded.log_n_rows);
+    try std.testing.expectEqual(statement.sequence_len, decoded.sequence_len);
 }

@@ -457,15 +457,15 @@ const ExampleStateMachineComponent = struct {
         return Adapter.asProverComponent(self);
     }
 
-    fn nConstraints(_: *const @This()) usize {
+    pub fn nConstraints(_: *const @This()) usize {
         return 1;
     }
 
-    fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
+    pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
         return self.trace_log_size + 1;
     }
 
-    fn traceLogDegreeBounds(
+    pub fn traceLogDegreeBounds(
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) !core_air_components.TraceLogDegreeBounds {
@@ -482,7 +482,7 @@ const ExampleStateMachineComponent = struct {
         );
     }
 
-    fn maskPoints(
+    pub fn maskPoints(
         _: *const @This(),
         allocator: std.mem.Allocator,
         point: CirclePointQM31,
@@ -510,14 +510,14 @@ const ExampleStateMachineComponent = struct {
         );
     }
 
-    fn preprocessedColumnIndices(
+    pub fn preprocessedColumnIndices(
         _: *const @This(),
         allocator: std.mem.Allocator,
     ) ![]usize {
         return allocator.dupe(usize, &[_]usize{0});
     }
 
-    fn evaluateConstraintQuotientsAtPoint(
+    pub fn evaluateConstraintQuotientsAtPoint(
         self: *const @This(),
         _: CirclePointQM31,
         _: *const core_air_components.MaskValues,
@@ -527,7 +527,7 @@ const ExampleStateMachineComponent = struct {
         evaluation_accumulator.accumulate(self.composition_eval);
     }
 
-    fn evaluateConstraintQuotientsOnDomain(
+    pub fn evaluateConstraintQuotientsOnDomain(
         self: *const @This(),
         _: *const prover_component.Trace,
         evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
