@@ -1,0 +1,581 @@
+{
+  "collector": "time -l + sample",
+  "failures": [],
+  "profiles": [
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.profile_artifacts/rust_state_machine_deep.json",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "15",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "example": "state_machine",
+      "hotspot_hints": [
+        "Target field/circle multiplication hot loops for SIMD-friendly batching.",
+        "Investigate hashing/Merkle batching and vectorized digest paths."
+      ],
+      "hotspots": [
+        {
+          "samples": 197,
+          "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
+        },
+        {
+          "samples": 194,
+          "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
+        },
+        {
+          "samples": 34,
+          "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
+        },
+        {
+          "samples": 14,
+          "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
+        },
+        {
+          "samples": 6,
+          "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
+        }
+      ],
+      "repeats": 2,
+      "runs": [
+        {
+          "cycles_elapsed": 2609210591,
+          "instructions_retired": 9394226215,
+          "peak_memory_footprint_bytes": 24985912,
+          "peak_rss_kb": 55148544,
+          "seconds": 0.764941,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                  35  involuntary context switches",
+            "          9394226215  instructions retired",
+            "          2609210591  cycles elapsed",
+            "            24985912  peak memory footprint"
+          ]
+        },
+        {
+          "cycles_elapsed": 2604070306,
+          "instructions_retired": 9394292600,
+          "peak_memory_footprint_bytes": 24625464,
+          "peak_rss_kb": 47316992,
+          "seconds": 0.601636,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                  11  involuntary context switches",
+            "          9394292600  instructions retired",
+            "          2604070306  cycles elapsed",
+            "            24625464  peak memory footprint"
+          ]
+        }
+      ],
+      "runtime": "rust",
+      "sample": {
+        "available": true,
+        "hotspots": [
+          {
+            "samples": 197,
+            "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
+          },
+          {
+            "samples": 194,
+            "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
+          },
+          {
+            "samples": 34,
+            "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
+          },
+          {
+            "samples": 14,
+            "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
+          },
+          {
+            "samples": 6,
+            "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
+          }
+        ],
+        "sample_file": "vectors/.profile_samples/rust_state_machine_deep.sample.txt"
+      },
+      "summary": {
+        "avg_cycles_elapsed": 2606640448.5,
+        "avg_instructions_retired": 9394259407.5,
+        "avg_peak_rss_kb": 51232768.0,
+        "avg_seconds": 0.683288,
+        "max_peak_rss_kb": 55148544,
+        "max_seconds": 0.764941,
+        "min_seconds": 0.601636
+      },
+      "workload": "state_machine_deep"
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.profile_artifacts/zig_state_machine_deep.json",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "15",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "example": "state_machine",
+      "hotspot_hints": [
+        "Prioritize quotient/FRI loop optimization and allocation reuse in PCS decommit paths.",
+        "Reduce allocator churn by reusing large buffers across prove stages.",
+        "Target field/circle multiplication hot loops for SIMD-friendly batching.",
+        "Investigate hashing/Merkle batching and vectorized digest paths."
+      ],
+      "hotspots": [
+        {
+          "samples": 172,
+          "symbol": "core.pcs.quotients.friAnswers"
+        },
+        {
+          "samples": 166,
+          "symbol": "prover.poly.circle.evaluation.CircleEvaluation.barycentricWeights"
+        },
+        {
+          "samples": 137,
+          "symbol": "core.constraints.cosetVanishing__anon_9723"
+        },
+        {
+          "samples": 118,
+          "symbol": "__munmap"
+        },
+        {
+          "samples": 80,
+          "symbol": "core.circle.CirclePointIndex.toPoint"
+        },
+        {
+          "samples": 38,
+          "symbol": "__mmap"
+        },
+        {
+          "samples": 31,
+          "symbol": "crypto.blake2.Blake2s(256).round"
+        },
+        {
+          "samples": 26,
+          "symbol": "core.fields.mod.batchInverseClassic__anon_6883"
+        }
+      ],
+      "repeats": 2,
+      "runs": [
+        {
+          "cycles_elapsed": 4192918951,
+          "instructions_retired": 12668228176,
+          "peak_memory_footprint_bytes": 38076704,
+          "peak_rss_kb": 38535168,
+          "seconds": 0.942782,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                  11  involuntary context switches",
+            "         12668228176  instructions retired",
+            "          4192918951  cycles elapsed",
+            "            38076704  peak memory footprint"
+          ]
+        },
+        {
+          "cycles_elapsed": 4209691001,
+          "instructions_retired": 12663558648,
+          "peak_memory_footprint_bytes": 38076704,
+          "peak_rss_kb": 38535168,
+          "seconds": 0.946745,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                  29  involuntary context switches",
+            "         12663558648  instructions retired",
+            "          4209691001  cycles elapsed",
+            "            38076704  peak memory footprint"
+          ]
+        }
+      ],
+      "runtime": "zig",
+      "sample": {
+        "available": true,
+        "hotspots": [
+          {
+            "samples": 172,
+            "symbol": "core.pcs.quotients.friAnswers"
+          },
+          {
+            "samples": 166,
+            "symbol": "prover.poly.circle.evaluation.CircleEvaluation.barycentricWeights"
+          },
+          {
+            "samples": 137,
+            "symbol": "core.constraints.cosetVanishing__anon_9723"
+          },
+          {
+            "samples": 118,
+            "symbol": "__munmap"
+          },
+          {
+            "samples": 80,
+            "symbol": "core.circle.CirclePointIndex.toPoint"
+          },
+          {
+            "samples": 38,
+            "symbol": "__mmap"
+          },
+          {
+            "samples": 31,
+            "symbol": "crypto.blake2.Blake2s(256).round"
+          },
+          {
+            "samples": 26,
+            "symbol": "core.fields.mod.batchInverseClassic__anon_6883"
+          }
+        ],
+        "sample_file": "vectors/.profile_samples/zig_state_machine_deep.sample.txt"
+      },
+      "summary": {
+        "avg_cycles_elapsed": 4201304976.0,
+        "avg_instructions_retired": 12665893412.0,
+        "avg_peak_rss_kb": 38535168.0,
+        "avg_seconds": 0.944763,
+        "max_peak_rss_kb": 38535168,
+        "max_seconds": 0.946745,
+        "min_seconds": 0.942782
+      },
+      "workload": "state_machine_deep"
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
+        "--mode",
+        "generate",
+        "--example",
+        "xor",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.profile_artifacts/rust_xor_deep.json",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--xor-log-size",
+        "15",
+        "--xor-log-step",
+        "3",
+        "--xor-offset",
+        "5"
+      ],
+      "example": "xor",
+      "hotspot_hints": [
+        "Target field/circle multiplication hot loops for SIMD-friendly batching.",
+        "Investigate hashing/Merkle batching and vectorized digest paths.",
+        "Reduce allocator churn by reusing large buffers across prove stages."
+      ],
+      "hotspots": [
+        {
+          "samples": 208,
+          "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
+        },
+        {
+          "samples": 190,
+          "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
+        },
+        {
+          "samples": 44,
+          "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
+        },
+        {
+          "samples": 11,
+          "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
+        },
+        {
+          "samples": 5,
+          "symbol": "free_tiny"
+        }
+      ],
+      "repeats": 2,
+      "runs": [
+        {
+          "cycles_elapsed": 2613415971,
+          "instructions_retired": 9394383803,
+          "peak_memory_footprint_bytes": 24576288,
+          "peak_rss_kb": 47415296,
+          "seconds": 0.606307,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                  63  involuntary context switches",
+            "          9394383803  instructions retired",
+            "          2613415971  cycles elapsed",
+            "            24576288  peak memory footprint"
+          ]
+        },
+        {
+          "cycles_elapsed": 2605985488,
+          "instructions_retired": 9393347970,
+          "peak_memory_footprint_bytes": 24576288,
+          "peak_rss_kb": 47415296,
+          "seconds": 0.600762,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                   7  involuntary context switches",
+            "          9393347970  instructions retired",
+            "          2605985488  cycles elapsed",
+            "            24576288  peak memory footprint"
+          ]
+        }
+      ],
+      "runtime": "rust",
+      "sample": {
+        "available": true,
+        "hotspots": [
+          {
+            "samples": 208,
+            "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
+          },
+          {
+            "samples": 190,
+            "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
+          },
+          {
+            "samples": 44,
+            "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
+          },
+          {
+            "samples": 11,
+            "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
+          },
+          {
+            "samples": 5,
+            "symbol": "free_tiny"
+          }
+        ],
+        "sample_file": "vectors/.profile_samples/rust_xor_deep.sample.txt"
+      },
+      "summary": {
+        "avg_cycles_elapsed": 2609700729.5,
+        "avg_instructions_retired": 9393865886.5,
+        "avg_peak_rss_kb": 47415296.0,
+        "avg_seconds": 0.603535,
+        "max_peak_rss_kb": 47415296,
+        "max_seconds": 0.606307,
+        "min_seconds": 0.600762
+      },
+      "workload": "xor_deep"
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "xor",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.profile_artifacts/zig_xor_deep.json",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--xor-log-size",
+        "15",
+        "--xor-log-step",
+        "3",
+        "--xor-offset",
+        "5"
+      ],
+      "example": "xor",
+      "hotspot_hints": [
+        "Prioritize quotient/FRI loop optimization and allocation reuse in PCS decommit paths.",
+        "Reduce allocator churn by reusing large buffers across prove stages.",
+        "Target field/circle multiplication hot loops for SIMD-friendly batching.",
+        "Investigate hashing/Merkle batching and vectorized digest paths."
+      ],
+      "hotspots": [
+        {
+          "samples": 174,
+          "symbol": "prover.poly.circle.evaluation.CircleEvaluation.barycentricWeights"
+        },
+        {
+          "samples": 157,
+          "symbol": "core.pcs.quotients.friAnswers"
+        },
+        {
+          "samples": 150,
+          "symbol": "__munmap"
+        },
+        {
+          "samples": 130,
+          "symbol": "core.constraints.cosetVanishing__anon_9723"
+        },
+        {
+          "samples": 91,
+          "symbol": "core.circle.CirclePointIndex.toPoint"
+        },
+        {
+          "samples": 44,
+          "symbol": "crypto.blake2.Blake2s(256).round"
+        },
+        {
+          "samples": 41,
+          "symbol": "__mmap"
+        },
+        {
+          "samples": 22,
+          "symbol": "core.fields.mod.batchInverseClassic__anon_6883"
+        }
+      ],
+      "repeats": 2,
+      "runs": [
+        {
+          "cycles_elapsed": 4333766799,
+          "instructions_retired": 12667991852,
+          "peak_memory_footprint_bytes": 38093112,
+          "peak_rss_kb": 38535168,
+          "seconds": 0.978125,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                  24  involuntary context switches",
+            "         12667991852  instructions retired",
+            "          4333766799  cycles elapsed",
+            "            38093112  peak memory footprint"
+          ]
+        },
+        {
+          "cycles_elapsed": 4402571943,
+          "instructions_retired": 12658655888,
+          "peak_memory_footprint_bytes": 38076704,
+          "peak_rss_kb": 38535168,
+          "seconds": 0.997268,
+          "stderr_tail": [
+            "                   0  messages sent",
+            "                   0  messages received",
+            "                   0  signals received",
+            "                   0  voluntary context switches",
+            "                  96  involuntary context switches",
+            "         12658655888  instructions retired",
+            "          4402571943  cycles elapsed",
+            "            38076704  peak memory footprint"
+          ]
+        }
+      ],
+      "runtime": "zig",
+      "sample": {
+        "available": true,
+        "hotspots": [
+          {
+            "samples": 174,
+            "symbol": "prover.poly.circle.evaluation.CircleEvaluation.barycentricWeights"
+          },
+          {
+            "samples": 157,
+            "symbol": "core.pcs.quotients.friAnswers"
+          },
+          {
+            "samples": 150,
+            "symbol": "__munmap"
+          },
+          {
+            "samples": 130,
+            "symbol": "core.constraints.cosetVanishing__anon_9723"
+          },
+          {
+            "samples": 91,
+            "symbol": "core.circle.CirclePointIndex.toPoint"
+          },
+          {
+            "samples": 44,
+            "symbol": "crypto.blake2.Blake2s(256).round"
+          },
+          {
+            "samples": 41,
+            "symbol": "__mmap"
+          },
+          {
+            "samples": 22,
+            "symbol": "core.fields.mod.batchInverseClassic__anon_6883"
+          }
+        ],
+        "sample_file": "vectors/.profile_samples/zig_xor_deep.sample.txt"
+      },
+      "summary": {
+        "avg_cycles_elapsed": 4368169371.0,
+        "avg_instructions_retired": 12663323870.0,
+        "avg_peak_rss_kb": 38535168.0,
+        "avg_seconds": 0.987696,
+        "max_peak_rss_kb": 38535168,
+        "max_seconds": 0.997268,
+        "min_seconds": 0.978125
+      },
+      "workload": "xor_deep"
+    }
+  ],
+  "schema_version": 2,
+  "settings": {
+    "hotspot_top_n": 8,
+    "repeats": 2,
+    "report_label": "optimization_track",
+    "rust_toolchain": "nightly-2025-07-14",
+    "sample_duration_seconds": 1,
+    "zig_cpu": "native",
+    "zig_opt_mode": "ReleaseFast"
+  },
+  "settings_hash": "15a08703b829c26a6f6019b7a4491842d33c23c67c9fcacc922992ad999f6503",
+  "status": "ok",
+  "summary": {
+    "avg_seconds_rust": 0.643412,
+    "avg_seconds_zig": 0.96623,
+    "failure_count": 0,
+    "profiles": 4
+  }
+}

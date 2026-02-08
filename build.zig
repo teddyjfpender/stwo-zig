@@ -78,6 +78,29 @@ pub fn build(b: *std.Build) void {
     const bench_strict_step = b.step("bench-strict", "Run strict benchmark harness (base + medium workloads, stabilized samples)");
     bench_strict_step.dependOn(&bench_strict_cmd.step);
 
+    // Optimization-track benchmark gate (native tuned, non-release-authoritative).
+    const bench_opt_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/benchmark_smoke.py",
+        "--include-medium",
+        "--warmups",
+        "3",
+        "--repeats",
+        "11",
+        "--max-zig-over-rust",
+        "10.0",
+        "--zig-opt-mode",
+        "ReleaseFast",
+        "--zig-cpu",
+        "native",
+        "--report-label",
+        "optimization_track",
+        "--report-out",
+        "vectors/reports/benchmark_opt_report.json",
+    });
+    const bench_opt_step = b.step("bench-opt", "Run optimization-track benchmark harness (native CPU)");
+    bench_opt_step.dependOn(&bench_opt_cmd.step);
+
     // Full benchmark matrix gate (11 upstream family labels).
     const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
     const bench_full_step = b.step("bench-full", "Run full 11-family Rust-vs-Zig benchmark harness");
@@ -94,6 +117,22 @@ pub fn build(b: *std.Build) void {
     const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
     const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");
     profile_smoke_step.dependOn(&profile_smoke_cmd.step);
+
+    // Optimization-track profiling gate (native tuned, non-release-authoritative).
+    const profile_opt_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/profile_smoke.py",
+        "--zig-opt-mode",
+        "ReleaseFast",
+        "--zig-cpu",
+        "native",
+        "--report-label",
+        "optimization_track",
+        "--report-out",
+        "vectors/reports/profile_opt_report.json",
+    });
+    const profile_opt_step = b.step("profile-opt", "Run optimization-track profile harness (native CPU)");
+    profile_opt_step.dependOn(&profile_opt_cmd.step);
 
     // Freestanding verifier profile compile check.
     const std_shims_smoke_cmd = b.addSystemCommand(&.{

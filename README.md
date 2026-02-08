@@ -25,10 +25,12 @@ zig build interop
 zig build prove-checkpoints
 zig build bench-smoke
 zig build bench-strict
+zig build bench-opt
 zig build bench-full
 zig build bench-pages
 zig build bench-pages-validate
 zig build profile-smoke
+zig build profile-opt
 zig build deep-gate
 zig build std-shims-smoke
 zig build std-shims-behavior
@@ -51,6 +53,12 @@ Strict sequence:
 Full benchmark add-on:
 `zig build bench-full` then `zig build bench-pages` / `zig build bench-pages-validate`.
 
+Optimization track (non-authoritative for release conformance):
+- `zig build bench-opt`
+- `zig build profile-opt`
+- Native-tuned measurements are compared against frozen baseline via
+  `python3 scripts/compare_optimization.py`.
+
 ## Reports
 
 Primary machine-readable outputs are written under:
@@ -60,10 +68,14 @@ Important artifacts:
 - `e2e_interop_report.json`
 - `prove_checkpoints_report.json`
 - `benchmark_smoke_report.json`
+- `benchmark_opt_report.json`
 - `benchmark_full_report.json`
 - `profile_smoke_report.json`
+- `profile_opt_report.json`
 - `std_shims_behavior_report.json`
 - `release_evidence.json`
+- `optimization_baseline.json`
+- `optimization_compare_report.json`
 
 ## Conformance References
 
