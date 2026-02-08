@@ -103,18 +103,23 @@ pub const ComponentProvers = struct {
         return max_bound;
     }
 
+    pub fn totalConstraints(self: ComponentProvers) usize {
+        var total: usize = 0;
+        for (self.components) |component| total += component.nConstraints();
+        return total;
+    }
+
     pub fn computeCompositionEvaluation(
         self: ComponentProvers,
         allocator: std.mem.Allocator,
         random_coeff: QM31,
         trace: *const Trace,
-        total_constraints: usize,
     ) anyerror!SecureColumnByCoords {
         var accumulator = try accumulation.DomainEvaluationAccumulator.init(
             allocator,
             random_coeff,
             self.compositionLogDegreeBound(),
-            total_constraints,
+            self.totalConstraints(),
         );
         defer accumulator.deinit();
 
@@ -221,7 +226,6 @@ test "prover air component prover: composition accumulation" {
         alloc,
         QM31.fromU32Unchecked(7, 0, 0, 0),
         &trace,
-        1,
     );
     defer combined.deinit(alloc);
 
