@@ -1,5 +1,6 @@
 const std = @import("std");
 const circle = @import("../../core/circle.zig");
+const fields = @import("../../core/fields/mod.zig");
 const m31 = @import("../../core/fields/m31.zig");
 const utils = @import("../../core/utils.zig");
 
@@ -37,13 +38,21 @@ pub fn precomputeM31(
     allocator: std.mem.Allocator,
     root_coset: Coset,
 ) (std.mem.Allocator.Error || TwiddleError)!TwiddleTree([]M31) {
+    const chunk_size: usize = 1 << 12;
     const twiddles = try slowPrecomputeM31Twiddles(allocator, root_coset);
     errdefer allocator.free(twiddles);
 
     const itwiddles = try allocator.alloc(M31, twiddles.len);
     errdefer allocator.free(itwiddles);
-    for (twiddles, 0..) |twid, i| {
-        itwiddles[i] = twid.inv() catch return TwiddleError.SingularTwiddle;
+
+    if (chunk_size > root_coset.size()) {
+        for (twiddles, 0..) |twid, i| {
+            itwiddles[i] = twid.inv() catch return TwiddleError.SingularTwiddle;
+        }
+    } else {
+        fields.batchInverseChunked(M31, twiddles, itwiddles, chunk_size) catch {
+            return TwiddleError.SingularTwiddle;
+        };
     }
 
     return TwiddleTree([]M31).init(root_coset, twiddles, itwiddles);
@@ -104,5 +113,19 @@ test "twiddle tree: precompute m31 twiddles and inverses" {
 
     for (tree.twiddles, tree.itwiddles) |twid, itwid| {
         try std.testing.expect(twid.mul(itwid).eql(M31.one()));
+    }
+}
+
+test "twiddle tree: precompute m31 uses chunked inverse path for large domains" {
+    const alloc = std.testing.allocator;
+    var tree = try precomputeM31(alloc, Coset.halfOdds(13));
+    defer deinitM31(alloc, &tree);
+
+    try std.testing.expectEqual(@as(usize, Coset.halfOdds(13).size()), tree.twiddles.len);
+    try std.testing.expectEqual(tree.twiddles.len, tree.itwiddles.len);
+
+    var i: usize = 0;
+    while (i < tree.twiddles.len) : (i += 521) {
+        try std.testing.expect(tree.twiddles[i].mul(tree.itwiddles[i]).eql(M31.one()));
     }
 }

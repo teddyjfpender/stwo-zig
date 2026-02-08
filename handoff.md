@@ -257,3 +257,20 @@
 - `zig build test --summary all`
 - `python3 scripts/parity_fields.py`
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+
+## Latest Slice (Twiddle Inversion Parity: Chunked Path)
+- `src/prover/poly/twiddles.zig`
+  - `precomputeM31` now mirrors upstream inversion strategy:
+    - small domains: direct per-element inversion.
+    - large domains: chunked `batchInverseChunked` inversion path.
+  - Added large-domain regression:
+    - `twiddle tree: precompute m31 uses chunked inverse path for large domains`
+  - Keeps existing twiddle/inverse product invariants and deterministic behavior.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig test tmp_deep_probe.zig --test-filter "twiddle tree: precompute m31 uses chunked inverse path for large domains"`
+- `zig test tmp_deep_probe.zig --test-filter "prover prove"`
+- `zig build fmt`
+- `zig build test --summary all`
+- `python3 scripts/parity_fields.py`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
