@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const channel_blake2s = @import("../channel/blake2s.zig");
 const m31 = @import("../fields/m31.zig");
 const blake2_hash = @import("../vcs/blake2_hash.zig");
@@ -13,6 +14,7 @@ pub const Blake2sM31MerkleHasher = Blake2sMerkleHasherGeneric(true);
 
 pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
     const InnerHasher = blake2_hash.Blake2sHasherGeneric(is_m31_output);
+    const pack_chunk_elems = 32;
     return struct {
         inner: InnerHasher,
         pub const Hash = blake2_hash.Blake2sHash;
@@ -30,17 +32,54 @@ pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
         }
 
         pub fn hashChildren(children: struct { left: Hash, right: Hash }) Hash {
+            var payload: [64 + 32 + 32]u8 = undefined;
+            @memcpy(payload[0..64], NODE_PREFIX[0..]);
+            @memcpy(payload[64..96], children.left[0..]);
+            @memcpy(payload[96..128], children.right[0..]);
+            return InnerHasher.hash(payload[0..]);
+        }
+
+        /// Pre-hashed node-domain separator state used to avoid reprocessing
+        /// `NODE_PREFIX` for every parent hash on one Merkle layer.
+        pub fn nodeSeed() Self {
             var hasher = Self.init();
             hasher.inner.update(NODE_PREFIX[0..]);
+            return hasher;
+        }
+
+        pub fn hashChildrenWithSeed(seed: Self, children: struct { left: Hash, right: Hash }) Hash {
+            var hasher = seed;
             hasher.inner.update(children.left[0..]);
             hasher.inner.update(children.right[0..]);
             return hasher.inner.finalize();
         }
 
         pub fn updateLeaf(self: *Self, column_values: []const M31) void {
-            for (column_values) |x| {
-                const bytes = x.toBytesLe();
-                self.inner.update(bytes[0..]);
+            if (column_values.len == 0) return;
+
+            var at: usize = 0;
+            if (builtin.cpu.arch.endian() == .little) {
+                var words: [pack_chunk_elems]u32 = undefined;
+                while (at < column_values.len) {
+                    const chunk = @min(pack_chunk_elems, column_values.len - at);
+                    for (0..chunk) |i| {
+                        words[i] = column_values[at + i].toU32();
+                    }
+                    self.inner.update(std.mem.sliceAsBytes(words[0..chunk]));
+                    at += chunk;
+                }
+            } else {
+                var bytes: [pack_chunk_elems * 4]u8 = undefined;
+                while (at < column_values.len) {
+                    const chunk = @min(pack_chunk_elems, column_values.len - at);
+                    for (0..chunk) |i| {
+                        const value_bytes = column_values[at + i].toBytesLe();
+                        const start = i * 4;
+                        @memcpy(bytes[start .. start + 4], value_bytes[0..]);
+                    }
+                    self.inner.update(bytes[0 .. chunk * 4]);
+                    at += chunk;
+                }
             }
         }
 

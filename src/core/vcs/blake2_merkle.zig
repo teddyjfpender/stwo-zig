@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const m31 = @import("../fields/m31.zig");
 const blake2_hash = @import("blake2_hash.zig");
 
@@ -12,6 +13,8 @@ pub const Blake2sMerkleHasher = Blake2sMerkleHasherGeneric(false);
 pub const Blake2sM31MerkleHasher = Blake2sMerkleHasherGeneric(true);
 
 pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
+    const Hasher = blake2_hash.Blake2sHasherGeneric(is_m31_output);
+    const pack_chunk_elems = 32;
     return struct {
         pub const Hash = Blake2sHash;
 
@@ -19,7 +22,6 @@ pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
             children_hashes: ?struct { left: Blake2sHash, right: Blake2sHash },
             column_values: []const M31,
         ) Blake2sHash {
-            const Hasher = blake2_hash.Blake2sHasherGeneric(is_m31_output);
             var hasher = Hasher.init();
 
             if (children_hashes) |children| {
@@ -30,9 +32,29 @@ pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
                 hasher.update(LEAF_PREFIX[0..]);
             }
 
-            for (column_values) |value| {
-                const bytes = value.toBytesLe();
-                hasher.update(bytes[0..]);
+            var at: usize = 0;
+            if (builtin.cpu.arch.endian() == .little) {
+                var words: [pack_chunk_elems]u32 = undefined;
+                while (at < column_values.len) {
+                    const chunk = @min(pack_chunk_elems, column_values.len - at);
+                    for (0..chunk) |i| {
+                        words[i] = column_values[at + i].toU32();
+                    }
+                    hasher.update(std.mem.sliceAsBytes(words[0..chunk]));
+                    at += chunk;
+                }
+            } else {
+                var bytes: [pack_chunk_elems * 4]u8 = undefined;
+                while (at < column_values.len) {
+                    const chunk = @min(pack_chunk_elems, column_values.len - at);
+                    for (0..chunk) |i| {
+                        const value_bytes = column_values[at + i].toBytesLe();
+                        const start = i * 4;
+                        @memcpy(bytes[start .. start + 4], value_bytes[0..]);
+                    }
+                    hasher.update(bytes[0 .. chunk * 4]);
+                    at += chunk;
+                }
             }
 
             return hasher.finalize();

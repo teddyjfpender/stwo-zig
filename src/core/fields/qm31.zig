@@ -174,7 +174,8 @@ pub const QM31 = struct {
         const b2 = self.c1.square();
         const ib2 = mulByI(b2);
         const denom = self.c0.square().sub(b2.add(b2).add(ib2));
-        const denom_inverse = denom.inv() catch return Error.DivisionByZero;
+        if (denom.isZero()) return Error.DivisionByZero;
+        const denom_inverse = denom.invUncheckedNonZero();
         return .{
             .c0 = self.c0.mul(denom_inverse),
             .c1 = self.c1.neg().mul(denom_inverse),

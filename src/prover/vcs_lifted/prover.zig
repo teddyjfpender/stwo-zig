@@ -283,7 +283,57 @@ pub fn MerkleProverLifted(comptime H: type) type {
         ) ![]H.Hash {
             std.debug.assert(prev_layer.len > 1 and std.math.isPowerOfTwo(prev_layer.len));
             const out = try allocator.alloc(H.Hash, prev_layer.len >> 1);
-            for (0..out.len) |i| {
+
+            if (comptime @hasDecl(H, "nodeSeed") and @hasDecl(H, "hashChildrenWithSeed")) {
+                const seed = H.nodeSeed();
+                var i_seeded: usize = 0;
+                while (i_seeded + 4 <= out.len) : (i_seeded += 4) {
+                    out[i_seeded] = H.hashChildrenWithSeed(seed, .{
+                        .left = prev_layer[2 * i_seeded],
+                        .right = prev_layer[2 * i_seeded + 1],
+                    });
+                    out[i_seeded + 1] = H.hashChildrenWithSeed(seed, .{
+                        .left = prev_layer[2 * (i_seeded + 1)],
+                        .right = prev_layer[2 * (i_seeded + 1) + 1],
+                    });
+                    out[i_seeded + 2] = H.hashChildrenWithSeed(seed, .{
+                        .left = prev_layer[2 * (i_seeded + 2)],
+                        .right = prev_layer[2 * (i_seeded + 2) + 1],
+                    });
+                    out[i_seeded + 3] = H.hashChildrenWithSeed(seed, .{
+                        .left = prev_layer[2 * (i_seeded + 3)],
+                        .right = prev_layer[2 * (i_seeded + 3) + 1],
+                    });
+                }
+                while (i_seeded < out.len) : (i_seeded += 1) {
+                    out[i_seeded] = H.hashChildrenWithSeed(seed, .{
+                        .left = prev_layer[2 * i_seeded],
+                        .right = prev_layer[2 * i_seeded + 1],
+                    });
+                }
+                return out;
+            }
+
+            var i: usize = 0;
+            while (i + 4 <= out.len) : (i += 4) {
+                out[i] = H.hashChildren(.{
+                    .left = prev_layer[2 * i],
+                    .right = prev_layer[2 * i + 1],
+                });
+                out[i + 1] = H.hashChildren(.{
+                    .left = prev_layer[2 * (i + 1)],
+                    .right = prev_layer[2 * (i + 1) + 1],
+                });
+                out[i + 2] = H.hashChildren(.{
+                    .left = prev_layer[2 * (i + 2)],
+                    .right = prev_layer[2 * (i + 2) + 1],
+                });
+                out[i + 3] = H.hashChildren(.{
+                    .left = prev_layer[2 * (i + 3)],
+                    .right = prev_layer[2 * (i + 3) + 1],
+                });
+            }
+            while (i < out.len) : (i += 1) {
                 out[i] = H.hashChildren(.{
                     .left = prev_layer[2 * i],
                     .right = prev_layer[2 * i + 1],

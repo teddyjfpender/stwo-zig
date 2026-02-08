@@ -92,8 +92,16 @@ pub const M31 = struct {
     /// Errors if `self == 0`.
     pub fn inv(self: M31) Error!M31 {
         if (self.isZero()) return Error.DivisionByZero;
-        // Fermat: a^(p-2)
-        return self.pow(@as(u64, Modulus - 2));
+        return self.invUncheckedNonZero();
+    }
+
+    /// Multiplicative inverse for known non-zero elements.
+    ///
+    /// Preconditions:
+    /// - `self != 0`.
+    pub inline fn invUncheckedNonZero(self: M31) M31 {
+        std.debug.assert(!self.isZero());
+        return powPMinus2(self);
     }
 
     pub fn div(a: M31, b: M31) Error!M31 {
@@ -150,6 +158,20 @@ fn reduce64(x: u64) u32 {
     if (r == Modulus) return 0;
     if (r > Modulus) return r - Modulus;
     return r;
+}
+
+/// Fixed-exponent inversion for `p = 2^31 - 1`, computing `a^(p-2)`.
+/// Exponent bits: `111...1101` (31 bits).
+fn powPMinus2(a: M31) M31 {
+    var acc = a;
+    inline for (0..30) |step| {
+        acc = acc.square();
+        const bit = 29 - step;
+        if (bit >= 2 or bit == 0) {
+            acc = acc.mul(a);
+        }
+    }
+    return acc;
 }
 
 fn randElem(rng: std.Random) M31 {

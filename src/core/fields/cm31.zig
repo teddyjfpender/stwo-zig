@@ -137,8 +137,17 @@ pub const CM31 = struct {
 
     pub fn inv(self: CM31) Error!CM31 {
         if (self.isZero()) return Error.DivisionByZero;
+        return self.invUncheckedNonZero();
+    }
+
+    /// Multiplicative inverse for known non-zero elements.
+    ///
+    /// Preconditions:
+    /// - `self != 0`.
+    pub inline fn invUncheckedNonZero(self: CM31) CM31 {
+        std.debug.assert(!self.isZero());
         const denom = self.a.square().add(self.b.square());
-        const inv_denom = denom.inv() catch return Error.DivisionByZero;
+        const inv_denom = denom.invUncheckedNonZero();
         return .{
             .a = self.a.mul(inv_denom),
             .b = self.b.neg().mul(inv_denom),

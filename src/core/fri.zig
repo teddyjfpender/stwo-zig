@@ -1,6 +1,7 @@
 const std = @import("std");
 const circle = @import("circle.zig");
 const fft = @import("fft.zig");
+const fields = @import("fields/mod.zig");
 const m31 = @import("fields/m31.zig");
 const qm31 = @import("fields/qm31.zig");
 const line = @import("poly/line.zig");
@@ -751,10 +752,22 @@ pub fn foldLine(
     if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
 
     const folded_values = try allocator.alloc(QM31, eval.len / 2);
+    const x_values = try allocator.alloc(M31, folded_values.len);
+    defer allocator.free(x_values);
+    const inv_x_values = try allocator.alloc(M31, folded_values.len);
+    defer allocator.free(inv_x_values);
+
     var i: usize = 0;
+    const fold_shift: std.math.Log2Int(usize) = @intCast(FOLD_STEP);
+    const domain_log_size = domain.logSize();
     while (i < folded_values.len) : (i += 1) {
-        const x = domain.at(core_utils.bitReverseIndex(i << @intCast(FOLD_STEP), domain.logSize()));
-        const inv_x = try x.inv();
+        x_values[i] = domain.at(core_utils.bitReverseIndex(i << fold_shift, domain_log_size));
+    }
+    try fields.batchInverseInPlace(M31, x_values, inv_x_values);
+
+    i = 0;
+    while (i < folded_values.len) : (i += 1) {
+        const inv_x = inv_x_values[i];
         var f0 = eval[i * 2];
         var f1 = eval[i * 2 + 1];
         fft.ibutterfly(QM31, &f0, &f1, inv_x);
@@ -778,13 +791,25 @@ pub fn foldCircleIntoLine(
     }
 
     const alpha_sq = alpha.square();
+    const fold_shift: std.math.Log2Int(usize) = @intCast(CIRCLE_TO_LINE_FOLD_STEP);
+    const domain_log_size = src_domain.logSize();
+    var scratch_state = std.heap.stackFallback(4 * 1024, std.heap.page_allocator);
+    const scratch = scratch_state.get();
+    const py_values = try scratch.alloc(M31, dst.len);
+    defer scratch.free(py_values);
+    const inv_py_values = try scratch.alloc(M31, dst.len);
+    defer scratch.free(inv_py_values);
+
     var i: usize = 0;
     while (i < dst.len) : (i += 1) {
-        const p = src_domain.at(core_utils.bitReverseIndex(
-            i << @intCast(CIRCLE_TO_LINE_FOLD_STEP),
-            src_domain.logSize(),
-        ));
-        const inv_py = try p.y.inv();
+        const p = src_domain.at(core_utils.bitReverseIndex(i << fold_shift, domain_log_size));
+        py_values[i] = p.y;
+    }
+    try fields.batchInverseInPlace(M31, py_values, inv_py_values);
+
+    i = 0;
+    while (i < dst.len) : (i += 1) {
+        const inv_py = inv_py_values[i];
         var f0_px = src[i * 2];
         var f1_px = src[i * 2 + 1];
         fft.ibutterfly(QM31, &f0_px, &f1_px, inv_py);
