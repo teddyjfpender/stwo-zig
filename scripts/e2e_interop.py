@@ -31,6 +31,7 @@ UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 SCHEMA_VERSION = 1
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 SUPPORTED_EXAMPLES = ("xor", "state_machine")
+M31_MODULUS = 2147483647
 
 
 def rel(path: Path) -> str:
@@ -130,6 +131,30 @@ def tamper_proof_bytes_hex(src: Path, dst: Path) -> None:
     dst.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def tamper_statement(src: Path, dst: Path, *, example: str) -> None:
+    artifact = json.loads(src.read_text(encoding="utf-8"))
+
+    if example == "xor":
+        stmt = artifact.get("xor_statement")
+        if not isinstance(stmt, dict):
+            raise RuntimeError(f"{rel(src)} missing xor_statement")
+        stmt["offset"] = int(stmt.get("offset", 0)) + 1
+    elif example == "state_machine":
+        stmt = artifact.get("state_machine_statement")
+        if not isinstance(stmt, dict):
+            raise RuntimeError(f"{rel(src)} missing state_machine_statement")
+        public_input = stmt.get("public_input")
+        if not isinstance(public_input, list) or len(public_input) < 2:
+            raise RuntimeError(f"{rel(src)} invalid state_machine_statement.public_input")
+        if not isinstance(public_input[1], list) or len(public_input[1]) < 1:
+            raise RuntimeError(f"{rel(src)} invalid state_machine_statement.public_input[1]")
+        public_input[1][0] = (int(public_input[1][0]) + 1) % M31_MODULUS
+    else:
+        raise RuntimeError(f"unsupported example for statement tamper: {example}")
+
+    dst.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def run_example_case(
     *,
     example: str,
@@ -139,7 +164,9 @@ def run_example_case(
 ) -> dict[str, Any]:
     rust_artifact = artifact_dir / f"{example}_rust_to_zig.json"
     zig_artifact = artifact_dir / f"{example}_zig_to_rust.json"
+    rust_statement_tampered = artifact_dir / f"{example}_rust_to_zig_statement_tampered.json"
     rust_tampered = artifact_dir / f"{example}_rust_to_zig_tampered.json"
+    zig_statement_tampered = artifact_dir / f"{example}_zig_to_rust_statement_tampered.json"
     zig_tampered = artifact_dir / f"{example}_zig_to_rust_tampered.json"
 
     start_index = len(all_steps)
@@ -177,6 +204,23 @@ def run_example_case(
             str(rust_artifact),
         ],
         steps=all_steps,
+    )
+
+    tamper_statement(rust_artifact, rust_statement_tampered, example=example)
+    run_step(
+        name=f"{example}_rust_to_zig_statement_tamper_reject",
+        cmd=[
+            "zig",
+            "run",
+            "src/interop_cli.zig",
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(rust_statement_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
     )
 
     tamper_proof_bytes_hex(rust_artifact, rust_tampered)
@@ -231,6 +275,25 @@ def run_example_case(
         steps=all_steps,
     )
 
+    tamper_statement(zig_artifact, zig_statement_tampered, example=example)
+    run_step(
+        name=f"{example}_zig_to_rust_statement_tamper_reject",
+        cmd=[
+            "cargo",
+            f"+{rust_toolchain}",
+            "run",
+            "--manifest-path",
+            str(RUST_MANIFEST),
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(zig_statement_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
+    )
+
     tamper_proof_bytes_hex(zig_artifact, zig_tampered)
     run_step(
         name=f"{example}_zig_to_rust_tamper_reject",
@@ -255,8 +318,10 @@ def run_example_case(
         "status": "ok",
         "artifacts": {
             "rust_to_zig": rel(rust_artifact),
+            "rust_to_zig_statement_tampered": rel(rust_statement_tampered),
             "rust_to_zig_tampered": rel(rust_tampered),
             "zig_to_rust": rel(zig_artifact),
+            "zig_to_rust_statement_tampered": rel(zig_statement_tampered),
             "zig_to_rust_tampered": rel(zig_tampered),
         },
         "steps": [step["name"] for step in all_steps[start_index:]],
@@ -380,8 +445,8 @@ def main() -> int:
             "examples": args.examples,
             "cases_total": len(args.examples) * 2,
             "cases_passed": len(cases) * 2 if status == "ok" else len(cases) * 2,
-            "tamper_cases_total": len(args.examples) * 2,
-            "tamper_cases_passed": len(cases) * 2 if status == "ok" else len(cases) * 2,
+            "tamper_cases_total": len(args.examples) * 4,
+            "tamper_cases_passed": len(cases) * 4 if status == "ok" else len(cases) * 4,
             "steps_total": len(steps),
         },
         "cases": cases,

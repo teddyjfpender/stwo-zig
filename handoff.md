@@ -12,6 +12,9 @@
   - Rust-generated proof artifacts verify in Zig.
   - Zig-generated proof artifacts verify in Rust.
   - Tampered artifacts are rejected in both directions.
+  - Tamper coverage now includes both:
+    - semantic statement mutation rejection
+    - proof-byte corruption rejection.
 - New exchange mode:
   - `proof_exchange_json_wire_v1`
 - New interop artifact directory:

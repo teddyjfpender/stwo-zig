@@ -38,7 +38,8 @@ zig build profile-smoke
 ```
 
 `zig build interop` performs true Rust<->Zig proof exchange for `xor` and `state_machine`
-(`proof_exchange_json_wire_v1`) and includes tamper-rejection checks. It uses
+(`proof_exchange_json_wire_v1`) and includes semantic statement-tamper plus
+proof-byte tamper rejection checks. It uses
 Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
 
 `zig build bench-smoke` now runs a matched Rust-vs-Zig workload matrix over release
