@@ -13,6 +13,7 @@ pub const fraction = @import("fraction.zig");
 pub const fft = @import("fft.zig");
 pub const poly = @import("poly/mod.zig");
 pub const constraints = @import("constraints.zig");
+pub const constraint_framework = @import("constraint_framework/mod.zig");
 pub const air = @import("air/mod.zig");
 pub const fri = @import("fri.zig");
 pub const pcs = @import("pcs/mod.zig");

@@ -5,6 +5,41 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (Constraint-Framework Expression Core)
+
+### New Zig Module
+- Added `src/core/constraint_framework/expr.zig` and `src/core/constraint_framework/mod.zig`.
+- Ported core expression-model surface from `crates/constraint-framework`:
+  - base/ext expression ASTs (`BaseExpr`, `ExtExpr`, `ColumnExpr`)
+  - deterministic expression allocator/arena (`ExprArena`)
+  - expression evaluation against explicit assignments
+  - degree-bound analysis with named-intermediate resolution (`NamedExprs`)
+  - arithmetic simplification and formatting parity helpers
+  - deterministic variable collection and assignment generation (`ExprVariables`)
+- Wired module into `src/core/mod.zig` as `core.constraint_framework`.
+
+### Differential Vector Coverage
+- Added new Rust differential vector generator:
+  - `tools/stwo-cf-vector-gen/Cargo.toml`
+  - `tools/stwo-cf-vector-gen/src/main.rs`
+- Added deterministic fixture:
+  - `vectors/constraint_expr.json`
+- Added parity gate script:
+  - `scripts/parity_constraint_expr.py`
+  - uses pinned upstream nightly toolchain `nightly-2025-07-14`.
+
+### Build Gate Wiring
+- Updated `build.zig` `vectors` stage and both release chains to validate:
+  - `scripts/parity_fields.py`
+  - `scripts/parity_constraint_expr.py`
+- Updated `README.md` conformance gate docs to reflect the dual-vector gate.
+
+### Validation (Passing)
+- `python3 scripts/parity_constraint_expr.py --skip-zig`
+- `zig build test`
+- `zig build vectors`
+- `zig build deep-gate`
+
 ## Latest Slice (True Proof Exchange Interop)
 
 ### Rust<->Zig Artifact Exchange

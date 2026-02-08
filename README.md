@@ -46,6 +46,10 @@ zig build deep-gate
 proof-byte tamper rejection checks. It uses
 Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
 
+`zig build vectors` now validates both:
+- `vectors/fields.json` via `scripts/parity_fields.py`
+- `vectors/constraint_expr.json` via `scripts/parity_constraint_expr.py`
+
 `zig build prove-checkpoints` runs deterministic `prove`/`prove_ex` checkpoint parity
 for `xor` and `state_machine` across base and non-zero blowup settings, and enforces
 semantic tamper rejection plus invalid-`prove_mode` metadata rejection in both Zig and Rust

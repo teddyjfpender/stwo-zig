@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "upstream_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+    "schema_version": 1,
+    "sample_count": 3,
+    "seed_strategy": "fixed deterministic assignments and named-expression degree fixtures"
+  },
+  "cases": [
+    {
+      "name": "base_arith",
+      "columns": [
+        {
+          "interaction": 1,
+          "idx": 0,
+          "offset": 0,
+          "value": 12
+        },
+        {
+          "interaction": 1,
+          "idx": 1,
+          "offset": -1,
+          "value": 5
+        }
+      ],
+      "params": [
+        {
+          "name": "a",
+          "value": 3
+        },
+        {
+          "name": "b",
+          "value": 4
+        },
+        {
+          "name": "c",
+          "value": 7
+        }
+      ],
+      "ext_params": [],
+      "base_eval": 1840700284,
+      "ext_eval": null,
+      "base_degree": 2,
+      "ext_degree": null,
+      "base_format": "(trace_1_column_0_offset_0 + a) * (trace_1_column_1_offset_neg_1 - (b)) + 1 / (c)",
+      "ext_format": null,
+      "base_simplified_format": "(trace_1_column_0_offset_0 + a) * (trace_1_column_1_offset_neg_1 - (b)) + 1 / (c)",
+      "ext_simplified_format": null
+    },
+    {
+      "name": "ext_arith",
+      "columns": [
+        {
+          "interaction": 1,
+          "idx": 0,
+          "offset": 0,
+          "value": 12
+        },
+        {
+          "interaction": 1,
+          "idx": 1,
+          "offset": 0,
+          "value": 5
+        }
+      ],
+      "params": [
+        {
+          "name": "a",
+          "value": 3
+        },
+        {
+          "name": "b",
+          "value": 4
+        }
+      ],
+      "ext_params": [
+        {
+          "name": "q",
+          "value": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "base_eval": null,
+      "ext_eval": [
+        2147483612,
+        30,
+        1431655758,
+        48
+      ],
+      "base_degree": null,
+      "ext_degree": 1,
+      "base_format": null,
+      "ext_format": "QM31Impl::from_partial_evals([trace_1_column_0_offset_0 - (trace_1_column_1_offset_0), (trace_1_column_1_offset_0) * (-(a)), a + 1 / (a), (b) * (m31(7).into())]) + (q) * (q) - (m31(1).into())",
+      "base_simplified_format": null,
+      "ext_simplified_format": "QM31Impl::from_partial_evals([trace_1_column_0_offset_0 - (trace_1_column_1_offset_0), -((trace_1_column_1_offset_0) * (a)), a + 1 / (a), (b) * (m31(7).into())]) + (q) * (q) - (qm31(1, 0, 0, 0))"
+    },
+    {
+      "name": "degree_named",
+      "columns": [],
+      "params": [],
+      "ext_params": [],
+      "base_eval": null,
+      "ext_eval": null,
+      "base_degree": 3,
+      "ext_degree": 5,
+      "base_format": "(intermediate) * (trace_2_column_1_offset_0)",
+      "ext_format": "(QM31Impl::from_partial_evals([trace_2_column_1_offset_0, (intermediate) * (trace_2_column_1_offset_0), m31(0).into(), m31(1).into()])) * (qintermediate)",
+      "base_simplified_format": "(intermediate) * (trace_2_column_1_offset_0)",
+      "ext_simplified_format": "(QM31Impl::from_partial_evals([trace_2_column_1_offset_0, (intermediate) * (trace_2_column_1_offset_0), m31(0).into(), m31(1).into()])) * (qintermediate)"
+    }
+  ]
+}

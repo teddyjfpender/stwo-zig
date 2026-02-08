@@ -31,9 +31,15 @@ pub fn build(b: *std.Build) void {
     deep_gate_step.dependOn(&deep_gate_cmd.step);
 
     // Deterministic parity vectors gate (Rust upstream -> JSON fixtures).
-    const vectors_cmd = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
+    const vectors_fields_cmd = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
+    const vectors_constraint_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/parity_constraint_expr.py",
+        "--skip-zig",
+    });
+    vectors_constraint_cmd.step.dependOn(&vectors_fields_cmd.step);
     const vectors_step = b.step("vectors", "Validate committed parity vectors");
-    vectors_step.dependOn(&vectors_cmd.step);
+    vectors_step.dependOn(&vectors_constraint_cmd.step);
 
     // Cross-language interoperability gate (true Rust<->Zig proof exchange + tamper rejection).
     const interop_cmd = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
@@ -90,10 +96,16 @@ pub fn build(b: *std.Build) void {
     const rg_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const rg_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
     rg_test.step.dependOn(&rg_fmt.step);
-    const rg_vectors = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
-    rg_vectors.step.dependOn(&rg_test.step);
+    const rg_vectors_fields = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
+    rg_vectors_fields.step.dependOn(&rg_test.step);
+    const rg_vectors_constraint = b.addSystemCommand(&.{
+        "python3",
+        "scripts/parity_constraint_expr.py",
+        "--skip-zig",
+    });
+    rg_vectors_constraint.step.dependOn(&rg_vectors_fields.step);
     const rg_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
-    rg_interop.step.dependOn(&rg_vectors.step);
+    rg_interop.step.dependOn(&rg_vectors_constraint.step);
     const rg_bench = b.addSystemCommand(&.{ "python3", "scripts/benchmark_smoke.py" });
     rg_bench.step.dependOn(&rg_interop.step);
     const rg_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
@@ -112,10 +124,16 @@ pub fn build(b: *std.Build) void {
     rgs_test.step.dependOn(&rgs_fmt.step);
     const rgs_deep = b.addSystemCommand(&.{ "zig", "test", "src/stwo_deep.zig" });
     rgs_deep.step.dependOn(&rgs_test.step);
-    const rgs_vectors = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
-    rgs_vectors.step.dependOn(&rgs_deep.step);
+    const rgs_vectors_fields = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
+    rgs_vectors_fields.step.dependOn(&rgs_deep.step);
+    const rgs_vectors_constraint = b.addSystemCommand(&.{
+        "python3",
+        "scripts/parity_constraint_expr.py",
+        "--skip-zig",
+    });
+    rgs_vectors_constraint.step.dependOn(&rgs_vectors_fields.step);
     const rgs_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
-    rgs_interop.step.dependOn(&rgs_vectors.step);
+    rgs_interop.step.dependOn(&rgs_vectors_constraint.step);
     const rgs_prove_checkpoints = b.addSystemCommand(&.{ "python3", "scripts/prove_checkpoints.py" });
     rgs_prove_checkpoints.step.dependOn(&rgs_interop.step);
     const rgs_bench = b.addSystemCommand(&.{
