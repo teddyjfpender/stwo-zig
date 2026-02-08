@@ -173,6 +173,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         trees: TreeVec(CommitmentTreeProver(H)),
         config: PcsConfig,
         store_polynomials_coefficients: bool,
+        twiddle_cache: std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 
         const Self = @This();
 
@@ -182,13 +183,15 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     try allocator.alloc(CommitmentTreeProver(H), 0),
                 ),
                 .config = config,
-                .store_polynomials_coefficients = false,
+                .store_polynomials_coefficients = true,
+                .twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator),
             };
         }
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
             for (self.trees.items) |*tree| tree.deinit(allocator);
             self.trees.deinit(allocator);
+            deinitTwiddleCache(allocator, &self.twiddle_cache);
             self.* = undefined;
         }
 
@@ -207,6 +210,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 columns,
                 self.config.fri_config.log_blowup_factor,
                 self.store_polynomials_coefficients,
+                &self.twiddle_cache,
             );
             errdefer prepared.deinit(allocator);
 
@@ -236,8 +240,6 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             channel: anytype,
         ) !void {
             const blowup = self.config.fri_config.log_blowup_factor;
-            var twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator);
-            defer deinitTwiddleCache(allocator, &twiddle_cache);
 
             const columns = try allocator.alloc(ColumnEvaluation, polys.len);
             errdefer allocator.free(columns);
@@ -253,7 +255,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     return CommitmentSchemeError.ShapeMismatch;
                 const twiddle_tree = try getCachedTwiddleTree(
                     allocator,
-                    &twiddle_cache,
+                    &self.twiddle_cache,
                     extended_log_size,
                 );
                 const extended_eval = try poly.evaluateWithTwiddles(
@@ -762,6 +764,7 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
                 base_columns,
                 self.commitment_scheme.config.fri_config.log_blowup_factor,
                 self.commitment_scheme.store_polynomials_coefficients,
+                &self.commitment_scheme.twiddle_cache,
             );
             errdefer prepared.deinit(self.allocator);
 
@@ -885,6 +888,7 @@ fn prepareColumnsForCommitBorrowed(
     columns: []const ColumnEvaluation,
     log_blowup_factor: u32,
     store_coefficients: bool,
+    twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 ) !PreparedCommitmentColumns {
     const owned = try allocator.alloc(ColumnEvaluation, columns.len);
     errdefer allocator.free(owned);
@@ -908,6 +912,7 @@ fn prepareColumnsForCommitBorrowed(
         owned,
         log_blowup_factor,
         store_coefficients,
+        twiddle_cache,
     );
 }
 
@@ -916,21 +921,20 @@ fn prepareColumnsForCommitOwned(
     owned_columns: []ColumnEvaluation,
     log_blowup_factor: u32,
     store_coefficients: bool,
+    twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 ) !PreparedCommitmentColumns {
     if (log_blowup_factor == 0) {
         return .{
             .columns = owned_columns,
             .coefficients = if (store_coefficients)
-                try interpolateCoefficientColumns(allocator, owned_columns)
+                try interpolateCoefficientColumns(allocator, owned_columns, twiddle_cache)
             else
                 null,
         };
     }
 
-    const coeffs = try interpolateCoefficientColumns(allocator, owned_columns);
+    const coeffs = try interpolateCoefficientColumns(allocator, owned_columns, twiddle_cache);
     errdefer deinitOwnedCoefficientColumns(allocator, coeffs);
-    var twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator);
-    defer deinitTwiddleCache(allocator, &twiddle_cache);
 
     const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
 
@@ -950,7 +954,7 @@ fn prepareColumnsForCommitOwned(
 
         const twiddle_tree = try getCachedTwiddleTree(
             allocator,
-            &twiddle_cache,
+            twiddle_cache,
             extended_log_size,
         );
         const extended_eval = try coeff.evaluateWithTwiddles(
@@ -983,10 +987,8 @@ fn prepareColumnsForCommitOwned(
 fn interpolateCoefficientColumns(
     allocator: std.mem.Allocator,
     columns: []const ColumnEvaluation,
+    twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 ) ![]prover_circle.CircleCoefficients {
-    var twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator);
-    defer deinitTwiddleCache(allocator, &twiddle_cache);
-
     const out = try allocator.alloc(prover_circle.CircleCoefficients, columns.len);
     errdefer allocator.free(out);
 
@@ -998,7 +1000,7 @@ fn interpolateCoefficientColumns(
 
     for (columns, 0..) |column, i| {
         const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
-        const twiddle_tree = try getCachedTwiddleTree(allocator, &twiddle_cache, column.log_size);
+        const twiddle_tree = try getCachedTwiddleTree(allocator, twiddle_cache, column.log_size);
         const evaluation = try prover_circle.CircleEvaluation.init(domain, column.values);
         out[i] = try prover_circle.poly.interpolateFromEvaluationWithTwiddles(
             allocator,

@@ -23,12 +23,14 @@ pub const EvaluationError = error{
 pub const BarycentricContext = struct {
     log_size: u32,
     coset: CanonicCoset,
+    vanishing_shift: CirclePointQM31,
     domain_points: []CirclePointQM31,
     si_values: []QM31,
 
     pub fn init(allocator: std.mem.Allocator, log_size: u32) !BarycentricContext {
         const coset = CanonicCoset.new(log_size);
         const domain = coset.circleDomain();
+        const coset_m31 = coset.coset();
         const n = domain.size();
 
         const domain_points = try allocator.alloc(CirclePointQM31, n);
@@ -52,6 +54,7 @@ pub const BarycentricContext = struct {
         return .{
             .log_size = log_size,
             .coset = coset,
+            .vanishing_shift = pointM31IntoQM31(coset_m31.initial).neg().add(pointM31IntoQM31(coset_m31.half_step)),
             .domain_points = domain_points,
             .si_values = si_values,
         };
@@ -75,38 +78,58 @@ pub const BarycentricContext = struct {
         try workspace.ensureCapacity(allocator, n);
         const denominators = workspace.denominators[0..n];
         const weights = workspace.weights[0..n];
+        const factors = workspace.factors[0..n];
 
         for (self.domain_points, self.si_values, 0..) |domain_point, si_i, i| {
-            const vi_p = constraints.pointVanishing(QM31, domain_point, point) catch {
+            const h = point.sub(domain_point);
+            const one_plus_x = QM31.one().add(h.x);
+            if (one_plus_x.isZero()) {
                 return EvaluationError.PointOnDomain;
-            };
-            denominators[i] = si_i.mul(vi_p);
+            }
+
+            // Equivalent to `si_i * pointVanishing(domain_point, point)` without
+            // per-element inversion: denominator is `si_i * h.y`, and we apply
+            // `1 + h.x` as a post-factor after the shared batch inverse.
+            denominators[i] = si_i.mul(h.y);
+            factors[i] = one_plus_x;
         }
 
         try batchInverseInto(denominators, weights);
 
-        const vn_p = constraints.cosetVanishing(QM31, self.coset.coset(), point);
-        for (weights) |*weight| {
-            weight.* = vn_p.mul(weight.*);
+        const vn_p = self.cosetVanishingAtPoint(point);
+        for (weights, factors) |*weight, factor| {
+            weight.* = vn_p.mul(weight.*).mul(factor);
         }
         return weights;
+    }
+
+    fn cosetVanishingAtPoint(self: *const BarycentricContext, point: CirclePointQM31) QM31 {
+        var x = point.add(self.vanishing_shift).x;
+        var i: u32 = 1;
+        while (i < self.log_size) : (i += 1) {
+            x = circle.CirclePoint(QM31).doubleX(x);
+        }
+        return x;
     }
 };
 
 pub const BarycentricWorkspace = struct {
     denominators: []QM31,
     weights: []QM31,
+    factors: []QM31,
 
     pub fn init() BarycentricWorkspace {
         return .{
             .denominators = &[_]QM31{},
             .weights = &[_]QM31{},
+            .factors = &[_]QM31{},
         };
     }
 
     pub fn deinit(self: *BarycentricWorkspace, allocator: std.mem.Allocator) void {
         if (self.denominators.len != 0) allocator.free(self.denominators);
         if (self.weights.len != 0) allocator.free(self.weights);
+        if (self.factors.len != 0) allocator.free(self.factors);
         self.* = undefined;
     }
 
@@ -122,6 +145,10 @@ pub const BarycentricWorkspace = struct {
         if (self.weights.len < len) {
             if (self.weights.len != 0) allocator.free(self.weights);
             self.weights = try allocator.alloc(QM31, len);
+        }
+        if (self.factors.len < len) {
+            if (self.factors.len != 0) allocator.free(self.factors);
+            self.factors = try allocator.alloc(QM31, len);
         }
     }
 };
@@ -141,12 +168,12 @@ fn batchInverseInto(values: []const QM31, out: []QM31) EvaluationError!void {
     };
 
     var j: usize = values.len;
-    while (j > 0) {
+    while (j > 1) {
         j -= 1;
-        const prefix = if (j == 0) QM31.one() else out[j];
-        out[j] = inv.mul(prefix);
+        out[j] = inv.mul(out[j]);
         inv = inv.mul(values[j]);
     }
+    out[0] = inv;
 }
 
 fn barycentricWeightsReference(
