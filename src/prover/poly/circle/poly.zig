@@ -1,5 +1,6 @@
 const std = @import("std");
 const circle = @import("../../../core/circle.zig");
+const fft = @import("../../../core/fft.zig");
 const m31 = @import("../../../core/fields/m31.zig");
 const qm31 = @import("../../../core/fields/qm31.zig");
 const domain_mod = @import("../../../core/poly/circle/domain.zig");
@@ -114,15 +115,60 @@ pub const CircleCoefficients = struct {
         if (domain.logSize() < self.log_size) return PolyError.InvalidLogSize;
         const values = try allocator.alloc(M31, domain.size());
         errdefer allocator.free(values);
+        @memset(values, M31.zero());
+        @memcpy(values[0..self.coeffs.len], self.coeffs);
 
-        for (values, 0..) |*value, i| {
-            const point = pointM31IntoQM31(
-                domain.at(utils.bitReverseIndex(i, domain.logSize())),
-            );
-            const secure_eval = self.evalAtPoint(point);
-            value.* = secure_eval.tryIntoM31() catch return PolyError.NonBaseEvaluation;
+        const log_size = domain.logSize();
+        if (log_size == 1) {
+            var v0 = values[0];
+            var v1 = values[1];
+            fft.butterfly(M31, &v0, &v1, domain.half_coset.initial.y);
+            values[0] = v0;
+            values[1] = v1;
+            return eval_mod.CircleEvaluation.init(domain, values);
+        }
+        if (log_size == 2) {
+            var v0 = values[0];
+            var v1 = values[1];
+            var v2 = values[2];
+            var v3 = values[3];
+            const x = domain.half_coset.initial.x;
+            const y = domain.half_coset.initial.y;
+            fft.butterfly(M31, &v0, &v2, x);
+            fft.butterfly(M31, &v1, &v3, x);
+            fft.butterfly(M31, &v0, &v1, y);
+            fft.butterfly(M31, &v2, &v3, y.neg());
+            values[0] = v0;
+            values[1] = v1;
+            values[2] = v2;
+            values[3] = v3;
+            return eval_mod.CircleEvaluation.init(domain, values);
         }
 
+        const log_line_size = log_size - 1;
+        const twiddles = try slowPrecomputeTwiddles(allocator, domain.half_coset);
+        defer allocator.free(twiddles);
+
+        var layer_idx: usize = log_line_size;
+        while (layer_idx > 0) {
+            layer_idx -= 1;
+            const layer: u32 = @intCast(layer_idx);
+            const layer_twiddles = lineTwiddlesLayer(twiddles, log_line_size, layer);
+            for (layer_twiddles, 0..) |twid, h| {
+                fftLayerLoop(values, layer + 1, h, twid, false);
+            }
+        }
+
+        const first_line_twiddles = lineTwiddlesLayer(twiddles, log_line_size, 0);
+        for (0..values.len / 2) |h| {
+            fftLayerLoop(
+                values,
+                0,
+                h,
+                circleTwiddleFromFirstLine(first_line_twiddles, h),
+                false,
+            );
+        }
         return eval_mod.CircleEvaluation.init(domain, values);
     }
 
@@ -169,60 +215,76 @@ pub fn interpolateFromEvaluation(
     const n = evaluation.values.len;
     if (n == 0 or !std.math.isPowerOfTwo(n)) return PolyError.InvalidLength;
     if (evaluation.domain.size() != n) return PolyError.InvalidLength;
+    const coeffs = try allocator.dupe(M31, evaluation.values);
+    errdefer allocator.free(coeffs);
 
     const log_size = evaluation.domain.logSize();
-    const row_width = n + 1;
-    const aug = try allocator.alloc(M31, n * row_width);
-    defer allocator.free(aug);
+    if (log_size == 1) {
+        const y = evaluation.domain.half_coset.initial.y;
+        const n_f = M31.fromCanonical(2);
+        const yn_inv = y.mul(n_f).inv() catch return PolyError.SingularSystem;
+        const y_inv = yn_inv.mul(n_f);
+        const n_inv = yn_inv.mul(y);
 
-    for (0..n) |row| {
-        const row_slice = aug[row * row_width .. (row + 1) * row_width];
-        const point = evaluation.domain.at(utils.bitReverseIndex(row, log_size));
-        const mappings = buildMappingsM31(point, log_size);
-        for (0..n) |col| {
-            row_slice[col] = twiddleAtM31(mappings[0..log_size], col);
-        }
-        row_slice[n] = evaluation.values[row];
+        var v0 = coeffs[0];
+        var v1 = coeffs[1];
+        fft.ibutterfly(M31, &v0, &v1, y_inv);
+        coeffs[0] = v0.mul(n_inv);
+        coeffs[1] = v1.mul(n_inv);
+        return CircleCoefficients.initOwned(coeffs);
+    }
+    if (log_size == 2) {
+        const x = evaluation.domain.half_coset.initial.x;
+        const y = evaluation.domain.half_coset.initial.y;
+        const n_f = M31.fromCanonical(4);
+        const xyn_inv = x.mul(y).mul(n_f).inv() catch return PolyError.SingularSystem;
+        const x_inv = xyn_inv.mul(y).mul(n_f);
+        const y_inv = xyn_inv.mul(x).mul(n_f);
+        const n_inv = xyn_inv.mul(x).mul(y);
+
+        var v0 = coeffs[0];
+        var v1 = coeffs[1];
+        var v2 = coeffs[2];
+        var v3 = coeffs[3];
+        fft.ibutterfly(M31, &v0, &v1, y_inv);
+        fft.ibutterfly(M31, &v2, &v3, y_inv.neg());
+        fft.ibutterfly(M31, &v0, &v2, x_inv);
+        fft.ibutterfly(M31, &v1, &v3, x_inv);
+        coeffs[0] = v0.mul(n_inv);
+        coeffs[1] = v1.mul(n_inv);
+        coeffs[2] = v2.mul(n_inv);
+        coeffs[3] = v3.mul(n_inv);
+        return CircleCoefficients.initOwned(coeffs);
     }
 
-    // Gauss-Jordan elimination over M31.
-    for (0..n) |col| {
-        var pivot_row = col;
-        while (pivot_row < n and aug[pivot_row * row_width + col].isZero()) : (pivot_row += 1) {}
-        if (pivot_row == n) return PolyError.SingularSystem;
+    const log_line_size = log_size - 1;
+    const twiddles = try slowPrecomputeTwiddles(allocator, evaluation.domain.half_coset);
+    defer allocator.free(twiddles);
+    const itwiddles = try inverseTwiddles(allocator, twiddles);
+    defer allocator.free(itwiddles);
 
-        if (pivot_row != col) {
-            for (0..row_width) |j| {
-                const a_idx = col * row_width + j;
-                const b_idx = pivot_row * row_width + j;
-                const tmp = aug[a_idx];
-                aug[a_idx] = aug[b_idx];
-                aug[b_idx] = tmp;
-            }
-        }
+    const first_line_itwiddles = lineTwiddlesLayer(itwiddles, log_line_size, 0);
+    for (0..coeffs.len / 2) |h| {
+        fftLayerLoop(
+            coeffs,
+            0,
+            h,
+            circleTwiddleFromFirstLine(first_line_itwiddles, h),
+            true,
+        );
+    }
 
-        const pivot = aug[col * row_width + col];
-        const pivot_inv = pivot.inv() catch return PolyError.SingularSystem;
-        for (col..row_width) |j| {
-            const idx = col * row_width + j;
-            aug[idx] = aug[idx].mul(pivot_inv);
-        }
-
-        for (0..n) |row| {
-            if (row == col) continue;
-            const factor = aug[row * row_width + col];
-            if (factor.isZero()) continue;
-            for (col..row_width) |j| {
-                const idx = row * row_width + j;
-                const pivot_idx = col * row_width + j;
-                aug[idx] = aug[idx].sub(factor.mul(aug[pivot_idx]));
-            }
+    var layer: u32 = 0;
+    while (layer < log_line_size) : (layer += 1) {
+        const layer_twiddles = lineTwiddlesLayer(itwiddles, log_line_size, layer);
+        for (layer_twiddles, 0..) |twid, h| {
+            fftLayerLoop(coeffs, layer + 1, h, twid, true);
         }
     }
 
-    const coeffs = try allocator.alloc(M31, n);
-    for (0..n) |i| {
-        coeffs[i] = aug[i * row_width + n];
+    const n_inv = M31.fromCanonical(@intCast(n)).inv() catch return PolyError.SingularSystem;
+    for (coeffs) |*coeff| {
+        coeff.* = coeff.*.mul(n_inv);
     }
     return CircleCoefficients.initOwned(coeffs);
 }
@@ -239,33 +301,94 @@ fn pointM31IntoQM31(point: circle.CirclePointM31) CirclePointQM31 {
     };
 }
 
-fn buildMappingsM31(point: circle.CirclePointM31, log_size: u32) [circle.M31_CIRCLE_LOG_ORDER]M31 {
-    var mappings: [circle.M31_CIRCLE_LOG_ORDER]M31 = undefined;
-    if (log_size == 0) return mappings;
-    mappings[log_size - 1] = point.y;
-    if (log_size > 1) {
-        var x = point.x;
-        var i: usize = log_size - 1;
-        while (i > 0) {
-            i -= 1;
-            mappings[i] = x;
-            x = circle.CirclePoint(M31).doubleX(x);
+fn slowPrecomputeTwiddles(
+    allocator: std.mem.Allocator,
+    root_coset: circle.Coset,
+) ![]M31 {
+    var coset = root_coset;
+    const out = try allocator.alloc(M31, root_coset.size());
+
+    var at: usize = 0;
+    var i: u32 = 0;
+    while (i < root_coset.logSize()) : (i += 1) {
+        const layer_len = coset.size() / 2;
+        var it = coset.iter();
+        var j: usize = 0;
+        while (j < layer_len) : (j += 1) {
+            out[at + j] = it.next().?.x;
         }
+        utils.bitReverse(M31, out[at .. at + layer_len]);
+        at += layer_len;
+        coset = coset.double();
     }
-    return mappings;
+
+    std.debug.assert(at + 1 == out.len);
+    out[at] = M31.one();
+    return out;
 }
 
-fn twiddleAtM31(mappings: []const M31, mut_index: usize) M31 {
-    var index = mut_index;
-    var product = M31.one();
-    for (mappings) |mapping| {
-        if ((index & 1) == 1) {
-            product = product.mul(mapping);
-        }
-        index >>= 1;
-        if (index == 0) break;
+fn inverseTwiddles(
+    allocator: std.mem.Allocator,
+    twiddles: []const M31,
+) ![]M31 {
+    const out = try allocator.alloc(M31, twiddles.len);
+    for (twiddles, 0..) |twid, i| {
+        out[i] = twid.inv() catch return PolyError.SingularSystem;
     }
-    return product;
+    return out;
+}
+
+fn lineTwiddlesLayer(
+    twiddle_buffer: []const M31,
+    log_line_size: u32,
+    layer: u32,
+) []const M31 {
+    std.debug.assert(layer < log_line_size);
+    const len: usize = @as(usize, 1) << @intCast(log_line_size - 1 - layer);
+    const end = twiddle_buffer.len - len;
+    const start = end - len;
+    return twiddle_buffer[start..end];
+}
+
+fn circleTwiddleFromFirstLine(
+    first_line_twiddles: []const M31,
+    h: usize,
+) M31 {
+    const pair_idx = h / 4;
+    const pair_off = h % 4;
+    const x = first_line_twiddles[pair_idx * 2];
+    const y = first_line_twiddles[pair_idx * 2 + 1];
+    return switch (pair_off) {
+        0 => y,
+        1 => y.neg(),
+        2 => x.neg(),
+        3 => x,
+        else => unreachable,
+    };
+}
+
+fn fftLayerLoop(
+    values: []M31,
+    i: u32,
+    h: usize,
+    twid: M31,
+    comptime inverse: bool,
+) void {
+    const half_block: usize = @as(usize, 1) << @intCast(i);
+    var l: usize = 0;
+    while (l < half_block) : (l += 1) {
+        const idx0 = (h << @intCast(i + 1)) + l;
+        const idx1 = idx0 + half_block;
+        var v0 = values[idx0];
+        var v1 = values[idx1];
+        if (inverse) {
+            fft.ibutterfly(M31, &v0, &v1, twid);
+        } else {
+            fft.butterfly(M31, &v0, &v1, twid);
+        }
+        values[idx0] = v0;
+        values[idx1] = v1;
+    }
 }
 
 test "prover poly circle poly: eval at point for constant polynomial" {

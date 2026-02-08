@@ -205,19 +205,19 @@ pub const CirclePointIndex = struct {
     }
 
     pub fn add(lhs: CirclePointIndex, rhs: CirclePointIndex) CirclePointIndex {
-        return .{ .v = lhs.v + rhs.v }.reduce();
+        return (CirclePointIndex{ .v = lhs.v + rhs.v }).reduce();
     }
 
     pub fn sub(lhs: CirclePointIndex, rhs: CirclePointIndex) CirclePointIndex {
-        return .{ .v = lhs.v + circleOrder() - rhs.v }.reduce();
+        return (CirclePointIndex{ .v = lhs.v + circleOrder() - rhs.v }).reduce();
     }
 
     pub fn mul(lhs: CirclePointIndex, rhs: usize) CirclePointIndex {
-        return .{ .v = lhs.v *% rhs }.reduce();
+        return (CirclePointIndex{ .v = lhs.v *% rhs }).reduce();
     }
 
     pub fn neg(self: CirclePointIndex) CirclePointIndex {
-        return .{ .v = circleOrder() - self.v }.reduce();
+        return (CirclePointIndex{ .v = circleOrder() - self.v }).reduce();
     }
 };
 

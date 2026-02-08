@@ -56,10 +56,11 @@
     - `CircleCoefficients` ownership + invariants
     - `evalAtPoint`
     - `extend`
-    - `evaluate` (naive domain evaluation path)
-    - `interpolateFromEvaluation` (deterministic Gaussian-elimination reference path)
+    - `evaluate` (FFT-layer path with upstream small-domain special cases)
+    - `interpolateFromEvaluation` (FFT inverse-layer path with upstream small-domain special cases)
     - `splitAtMid`
   - Added split-identity, domain-evaluation, and interpolation roundtrip tests.
+  - Added deterministic twiddle generation + FFT layer helpers (`slowPrecomputeTwiddles`, line/circle twiddle slicing, butterfly/ibutterfly loops).
 - `src/prover/poly/circle/secure_poly.zig`
   - Ported secure-coordinate polynomial wrapper slice:
     - `SecureCirclePoly.evalAtPoint`
@@ -116,7 +117,7 @@
 
 ## Current Known Gaps
 1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover, but does not yet use/store circle coefficients + shared weights hash-map optimization path from upstream.
-2. `prover/poly/circle` is now executable but still missing full upstream FFT/twiddle-backed interpolation/evaluation parity.
+2. `prover/poly/circle` now has FFT-layer interpolation/evaluation, but still lacks full upstream TwiddleTree backend parity (precompute/caching and backend-specific SIMD/CPU paths).
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current executable entrypoints are sampled-points (`prove`/`proveEx`), component-driven (`proveExComponents`/`proveComponents`), and prepared sampled-values (`provePrepared`) paths.
    - Component-driven slice now allows non-zero PCS blowup, but still uses reference interpolation/evaluation in composition commit path.
@@ -130,4 +131,5 @@
 ## Divergence Record (Active)
 - Temporary implementation divergence:
   - `CommitmentSchemeProver.proveValues` currently evaluates from committed column evaluations only (no stored-coefficients fast path and no weights cache map).
+  - `prover/poly/circle` currently uses local twiddle generation per operation (no shared TwiddleTree cache wiring yet).
   - Closure plan: complete `prover/poly/circle` coefficient stack and route `setStorePolynomialsCoefficients` through upstream-equivalent branching.
