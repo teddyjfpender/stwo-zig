@@ -5,20 +5,20 @@
     "baseline_avg_zig_profile_seconds": 1.066566,
     "baseline_max_zig_over_rust_prove": 1.410479,
     "baseline_max_zig_over_rust_verify": 1.162447,
-    "current_avg_zig_profile_seconds": 0.18159,
-    "current_max_zig_over_rust_prove": 0.926307,
-    "current_max_zig_over_rust_verify": 0.981203,
+    "current_avg_zig_profile_seconds": 0.151517,
+    "current_max_zig_over_rust_prove": 0.871865,
+    "current_max_zig_over_rust_verify": 0.998937,
     "per_workload_deltas": {
       "state_machine_default": {
-        "prove_delta_pct": -22.67049,
-        "verify_delta_pct": -10.319119
+        "prove_delta_pct": -27.215391,
+        "verify_delta_pct": -16.787511
       },
       "state_machine_medium": {
-        "prove_delta_pct": -40.70447,
-        "verify_delta_pct": -18.693669
+        "prove_delta_pct": -41.927742,
+        "verify_delta_pct": -14.066018
       }
     },
-    "prove_improvement_pct": 34.326778,
+    "prove_improvement_pct": 38.186602,
     "prove_regression_pct": 0.0,
     "verify_regression_pct": 0.0,
     "zig_profile_regression_pct": 0.0
