@@ -60,6 +60,32 @@
 - `zig build vectors`
 - `zig build deep-gate`
 
+## Latest Slice (AIR Utilities Trace/Periodic Helpers)
+
+### New AIR Utilities Module
+- Added `src/core/air/utils.zig` and exported it in `src/core/air/mod.zig`.
+- Ported deterministic helper semantics used by upstream AIR utilities/examples:
+  - `checkedPow2`
+  - `circleBitReversedIndex`
+  - `genIsFirstColumn`
+  - `genPeriodicIndicatorColumn`
+- Added failure-path coverage for invalid periodic parameters and out-of-range
+  query/index mapping.
+
+### Integration
+- Refactored `src/examples/xor.zig`:
+  - `genIsFirstColumn` now uses `core.air.utils.genIsFirstColumn`
+  - `genIsStepWithOffsetColumn` now uses
+    `core.air.utils.genPeriodicIndicatorColumn`
+- Refactored `src/examples/state_machine.zig`:
+  - `genTrace` bit-reversed index mapping now uses
+    `core.air.utils.circleBitReversedIndex`.
+
+### Validation (Passing)
+- `zig build test`
+- `zig build vectors`
+- `zig build deep-gate`
+
 ## Latest Slice (True Proof Exchange Interop)
 
 ### Rust<->Zig Artifact Exchange

@@ -1,6 +1,7 @@
 const std = @import("std");
 const core_air_accumulation = @import("../core/air/accumulation.zig");
 const core_air_components = @import("../core/air/components.zig");
+const core_air_utils = @import("../core/air/utils.zig");
 const channel_blake2s = @import("../core/channel/blake2s.zig");
 const m31 = @import("../core/fields/m31.zig");
 const qm31 = @import("../core/fields/qm31.zig");
@@ -38,11 +39,7 @@ pub fn genIsFirstColumn(
     allocator: std.mem.Allocator,
     log_size: u32,
 ) (std.mem.Allocator.Error || Error)![]M31 {
-    const n = checkedPow2(log_size) catch return Error.InvalidLogSize;
-    const values = try allocator.alloc(M31, n);
-    @memset(values, M31.zero());
-    values[0] = M31.one();
-    return values;
+    return core_air_utils.genIsFirstColumn(allocator, log_size);
 }
 
 /// Generates `IsStepWithOffset` preprocessed column values in bit-reversed order.
@@ -54,21 +51,7 @@ pub fn genIsStepWithOffsetColumn(
     log_step: u32,
     offset: usize,
 ) (std.mem.Allocator.Error || Error)![]M31 {
-    if (log_step > log_size) return Error.InvalidStep;
-    const n = checkedPow2(log_size) catch return Error.InvalidLogSize;
-    const step = checkedPow2(log_step) catch return Error.InvalidLogSize;
-
-    const values = try allocator.alloc(M31, n);
-    @memset(values, M31.zero());
-
-    var i = offset % step;
-    while (i < n) : (i += step) {
-        const circle_domain_index = utils.cosetIndexToCircleDomainIndex(i, log_size);
-        const bit_rev_index = utils.bitReverseIndex(circle_domain_index, log_size);
-        values[bit_rev_index] = M31.one();
-    }
-
-    return values;
+    return core_air_utils.genPeriodicIndicatorColumn(allocator, log_size, log_step, offset);
 }
 
 fn checkedPow2(log_size: u32) Error!usize {

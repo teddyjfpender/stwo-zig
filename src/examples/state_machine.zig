@@ -1,6 +1,7 @@
 const std = @import("std");
 const core_air_accumulation = @import("../core/air/accumulation.zig");
 const core_air_components = @import("../core/air/components.zig");
+const core_air_utils = @import("../core/air/utils.zig");
 const channel_blake2s = @import("../core/channel/blake2s.zig");
 const m31 = @import("../core/fields/m31.zig");
 const qm31 = @import("../core/fields/qm31.zig");
@@ -14,7 +15,6 @@ const prover_component = @import("../prover/air/component_prover.zig");
 const prover_pcs = @import("../prover/pcs/mod.zig");
 const prover_prove = @import("../prover/prove.zig");
 const secure_column = @import("../prover/secure_column.zig");
-const utils = @import("../core/utils.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -59,10 +59,9 @@ pub fn genTrace(
 
     var curr_state = initial_state;
     for (0..n) |i| {
-        const bit_rev_index = utils.bitReverseIndex(
-            utils.cosetIndexToCircleDomainIndex(i, log_size),
-            log_size,
-        );
+        const bit_rev_index = core_air_utils.circleBitReversedIndex(log_size, i) catch {
+            return Error.InvalidLogSize;
+        };
         col0[bit_rev_index] = curr_state[0];
         col1[bit_rev_index] = curr_state[1];
         curr_state[inc_index] = curr_state[inc_index].add(M31.one());
