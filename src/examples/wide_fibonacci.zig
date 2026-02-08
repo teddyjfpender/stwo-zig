@@ -139,17 +139,8 @@ pub fn proveEx(
     try scheme.commit(allocator, preprocessed[0..], &channel);
 
     const trace = try genTrace(allocator, statement);
-    defer deinitTrace(allocator, trace);
-
-    const columns = try allocator.alloc(prover_pcs.ColumnEvaluation, trace.len);
-    defer allocator.free(columns);
-    for (trace, 0..) |col, i| {
-        columns[i] = .{
-            .log_size = statement.log_n_rows,
-            .values = col,
-        };
-    }
-    try scheme.commit(allocator, columns, &channel);
+    const owned_columns = try traceIntoOwnedColumns(allocator, statement.log_n_rows, trace);
+    try scheme.commitOwned(allocator, owned_columns, &channel);
 
     mixStatement(&channel, statement);
 
@@ -371,6 +362,26 @@ fn mixStatement(channel: *Channel, statement: Statement) void {
 fn checkedPow2(log_size: u32) Error!usize {
     if (log_size >= @bitSizeOf(usize)) return Error.InvalidLogSize;
     return @as(usize, 1) << @intCast(log_size);
+}
+
+fn traceIntoOwnedColumns(
+    allocator: std.mem.Allocator,
+    log_n_rows: u32,
+    trace: [][]M31,
+) ![]prover_pcs.ColumnEvaluation {
+    const columns = allocator.alloc(prover_pcs.ColumnEvaluation, trace.len) catch |err| {
+        deinitTrace(allocator, trace);
+        return err;
+    };
+
+    for (trace, 0..) |column, i| {
+        columns[i] = .{
+            .log_size = log_n_rows,
+            .values = column,
+        };
+    }
+    allocator.free(trace);
+    return columns;
 }
 
 test "examples wide_fibonacci: trace generation follows recurrence" {

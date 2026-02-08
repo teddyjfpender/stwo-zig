@@ -25,6 +25,7 @@ const TreeVec = pcs_core.TreeVec;
 const TreeSubspan = pcs_core.TreeSubspan;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
 const PointSample = core_quotients.PointSample;
+const COEFFICIENT_STORAGE_MAX_BYTES: usize = std.math.maxInt(usize);
 
 pub const CommitmentSchemeError = error{
     ShapeMismatch,
@@ -208,6 +209,36 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             var prepared = try prepareColumnsForCommitBorrowed(
                 allocator,
                 columns,
+                self.config.fri_config.log_blowup_factor,
+                self.store_polynomials_coefficients,
+                &self.twiddle_cache,
+            );
+            errdefer prepared.deinit(allocator);
+
+            var tree = try CommitmentTreeProver(H).initOwnedWithCoefficients(
+                allocator,
+                prepared.columns,
+                prepared.coefficients,
+            );
+            errdefer tree.deinit(allocator);
+            try self.appendCommittedTree(allocator, tree, channel);
+        }
+
+        /// Commits owned evaluation columns directly, avoiding an extra column clone.
+        ///
+        /// Ownership:
+        /// - On success, ownership is transferred into the commitment tree.
+        /// - On failure, owned columns are fully deinitialized.
+        pub fn commitOwned(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            owned_columns: []ColumnEvaluation,
+            channel: anytype,
+        ) !void {
+            errdefer freeOwnedColumnEvaluations(allocator, owned_columns);
+            var prepared = try prepareColumnsForCommitOwned(
+                allocator,
+                owned_columns,
                 self.config.fri_config.log_blowup_factor,
                 self.store_polynomials_coefficients,
                 &self.twiddle_cache,
@@ -470,15 +501,11 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             const lifting_log_size = try scheme.maxTreeLogSize();
-            const sampled_values = try evaluateSampledValues(
+            const sampled_values = try scheme.evaluateSampledValuesAndRelease(
                 allocator,
-                scheme.trees,
                 sampled_points,
                 lifting_log_size,
             );
-            // Coefficients are only needed to evaluate sampled points; release them
-            // before quotient/FRI proving to reduce peak prover RSS.
-            dropTreeCoefficients(&scheme, allocator);
             return scheme.proveValuesFromSamples(
                 allocator,
                 sampled_points,
@@ -622,16 +649,6 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             self.trees.items = out;
         }
 
-        fn dropTreeCoefficients(self: *Self, allocator: std.mem.Allocator) void {
-            for (self.trees.items) |*tree| {
-                if (tree.coefficients) |coeffs| {
-                    for (coeffs) |*coeff| coeff.deinit(allocator);
-                    allocator.free(coeffs);
-                    tree.coefficients = null;
-                }
-            }
-        }
-
         fn maxLogSize(columns: []const ColumnEvaluation) u32 {
             var max_size: u32 = 0;
             for (columns) |column| max_size = @max(max_size, column.log_size);
@@ -647,13 +664,13 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             return max_size;
         }
 
-        fn evaluateSampledValues(
+        fn evaluateSampledValuesAndRelease(
+            self: *Self,
             allocator: std.mem.Allocator,
-            trees: TreeVec(CommitmentTreeProver(H)),
             sampled_points: TreeVec([][]CirclePointQM31),
             lifting_log_size: u32,
         ) !TreeVec([][]QM31) {
-            if (trees.items.len != sampled_points.items.len) return CommitmentSchemeError.ShapeMismatch;
+            if (self.trees.items.len != sampled_points.items.len) return CommitmentSchemeError.ShapeMismatch;
 
             var barycentric_cache = std.AutoHashMap(u32, BarycentricContextCacheEntry).init(allocator);
             defer {
@@ -662,7 +679,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 barycentric_cache.deinit();
             }
 
-            const out = try allocator.alloc([][]QM31, trees.items.len);
+            const out = try allocator.alloc([][]QM31, self.trees.items.len);
             errdefer allocator.free(out);
 
             var initialized_trees: usize = 0;
@@ -673,7 +690,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 }
             }
 
-            for (trees.items, sampled_points.items, 0..) |tree, tree_points, tree_idx| {
+            for (self.trees.items, sampled_points.items, 0..) |*tree, tree_points, tree_idx| {
                 if (tree.columns.len != tree_points.len) return CommitmentSchemeError.ShapeMismatch;
                 if (tree.coefficients) |coeffs| {
                     if (coeffs.len != tree.columns.len) return CommitmentSchemeError.ShapeMismatch;
@@ -721,6 +738,12 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                             );
                         }
                     }
+                }
+
+                if (tree.coefficients) |coeffs| {
+                    for (coeffs) |*coeff| coeff.deinit(allocator);
+                    allocator.free(coeffs);
+                    tree.coefficients = null;
                 }
             }
 
@@ -932,10 +955,11 @@ fn prepareColumnsForCommitOwned(
     store_coefficients: bool,
     twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 ) !PreparedCommitmentColumns {
+    const retain_coefficients = shouldRetainCoefficients(owned_columns, store_coefficients);
     if (log_blowup_factor == 0) {
         return .{
             .columns = owned_columns,
-            .coefficients = if (store_coefficients)
+            .coefficients = if (retain_coefficients)
                 try interpolateCoefficientColumns(allocator, owned_columns, twiddle_cache)
             else
                 null,
@@ -979,7 +1003,7 @@ fn prepareColumnsForCommitOwned(
     }
 
     freeOwnedColumnEvaluations(allocator, owned_columns);
-    if (!store_coefficients) {
+    if (!retain_coefficients) {
         deinitOwnedCoefficientColumns(allocator, coeffs);
         return .{
             .columns = extended,
@@ -991,6 +1015,21 @@ fn prepareColumnsForCommitOwned(
         .columns = extended,
         .coefficients = coeffs,
     };
+}
+
+fn shouldRetainCoefficients(
+    columns: []const ColumnEvaluation,
+    store_coefficients: bool,
+) bool {
+    if (!store_coefficients) return false;
+
+    var total_bytes: usize = 0;
+    for (columns) |column| {
+        const column_bytes = std.math.mul(usize, column.values.len, @sizeOf(M31)) catch return true;
+        total_bytes = std.math.add(usize, total_bytes, column_bytes) catch return true;
+        if (total_bytes > COEFFICIENT_STORAGE_MAX_BYTES) return false;
+    }
+    return true;
 }
 
 fn interpolateCoefficientColumns(
