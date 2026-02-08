@@ -281,7 +281,7 @@
 ## Latest Slice (True Proof Exchange Interop)
 
 ### Rust<->Zig Artifact Exchange
-- Replaced fixture-bridge interop path with true bidirectional proof exchange:
+- Replaced the legacy interop compatibility path with true bidirectional proof exchange:
   - Rust-generated proof artifacts verify in Zig.
   - Zig-generated proof artifacts verify in Rust.
   - Tampered artifacts are rejected in both directions.
