@@ -32,6 +32,10 @@ SCHEMA_VERSION = 1
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 SUPPORTED_EXAMPLES = ("xor", "state_machine")
 M31_MODULUS = 2147483647
+REJECTION_CLASS_VERIFIER = "verifier_semantic"
+REJECTION_CLASS_PARSER = "parser"
+REJECTION_CLASS_METADATA = "metadata_policy"
+REJECTION_CLASS_OTHER = "other"
 
 
 def rel(path: Path) -> str:
@@ -53,7 +57,8 @@ def run_step(
     cmd: list[str],
     steps: list[dict[str, Any]],
     expect_failure: bool = False,
-) -> None:
+    required_rejection_class: Optional[str] = None,
+) -> dict[str, Any]:
     start = time.perf_counter()
     proc = subprocess.run(
         cmd,
@@ -76,14 +81,60 @@ def run_step(
         "stdout_tail": trim_tail(proc.stdout),
         "stderr_tail": trim_tail(proc.stderr),
     }
+    if expect_failure:
+        step["rejection_class"] = classify_rejection(step["stdout_tail"], step["stderr_tail"])
     steps.append(step)
     if succeeded:
-        return
+        if required_rejection_class and step.get("rejection_class") != required_rejection_class:
+            raise RuntimeError(
+                f"{name} rejected with class {step.get('rejection_class')}, expected {required_rejection_class}"
+            )
+        return step
 
     expectation = "non-zero exit code" if expect_failure else "zero exit code"
     raise RuntimeError(
         f"{name} failed (expected {expectation}, got {proc.returncode})"
     )
+
+
+def classify_rejection(stdout_tail: str, stderr_tail: str) -> str:
+    combined = f"{stdout_tail}\n{stderr_tail}".lower()
+
+    parser_markers = (
+        "syntaxerror",
+        "unexpectedtoken",
+        "expected value at line",
+        "line 1 column 1",
+    )
+    if any(marker in combined for marker in parser_markers):
+        return REJECTION_CLASS_PARSER
+
+    metadata_markers = (
+        "unsupportedupstreamcommit",
+        "unsupported upstream commit",
+        "unsupportedgenerator",
+        "unsupported generator",
+        "unknown artifact generator",
+    )
+    if any(marker in combined for marker in metadata_markers):
+        return REJECTION_CLASS_METADATA
+
+    verifier_markers = (
+        "oodsnotmatching",
+        "statementnotsatisfied",
+        "statement not satisfied",
+        "deep-ali",
+        "verify failed",
+        "verification failed",
+        "not matching",
+        "witnesstooshort",
+        "merkleverificationerror",
+        "fri verification",
+    )
+    if any(marker in combined for marker in verifier_markers):
+        return REJECTION_CLASS_VERIFIER
+
+    return REJECTION_CLASS_OTHER
 
 
 def assert_artifact_metadata(artifact_path: Path, *, expected_generator: str, example: str) -> None:
@@ -123,10 +174,23 @@ def tamper_proof_bytes_hex(src: Path, dst: Path) -> None:
     if not isinstance(proof_hex, str) or len(proof_hex) == 0:
         raise RuntimeError(f"{rel(src)} missing proof_bytes_hex")
 
-    # Deterministic one-nibble mutation that preserves hex encoding.
-    first = proof_hex[0]
-    replacement = "0" if first != "0" else "1"
-    artifact["proof_bytes_hex"] = replacement + proof_hex[1:]
+    # Deterministically mutate a commitment byte inside the decoded proof wire.
+    # The resulting artifact remains valid JSON and proof-wire encoded bytes.
+    proof_bytes = bytes.fromhex(proof_hex)
+    proof_wire = json.loads(proof_bytes.decode("utf-8"))
+    commitments = proof_wire.get("commitments")
+    if not isinstance(commitments, list) or len(commitments) == 0:
+        raise RuntimeError(f"{rel(src)} missing proof commitments")
+    if not isinstance(commitments[0], list) or len(commitments[0]) == 0:
+        raise RuntimeError(f"{rel(src)} invalid first commitment")
+
+    commitments[0][0] = (int(commitments[0][0]) + 1) % 256
+    mutated_proof_bytes = json.dumps(
+        proof_wire,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    artifact["proof_bytes_hex"] = mutated_proof_bytes.hex()
 
     dst.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -207,7 +271,7 @@ def run_example_case(
     )
 
     tamper_statement(rust_artifact, rust_statement_tampered, example=example)
-    run_step(
+    rust_to_zig_statement_tamper_step = run_step(
         name=f"{example}_rust_to_zig_statement_tamper_reject",
         cmd=[
             "zig",
@@ -224,7 +288,7 @@ def run_example_case(
     )
 
     tamper_proof_bytes_hex(rust_artifact, rust_tampered)
-    run_step(
+    rust_to_zig_tamper_step = run_step(
         name=f"{example}_rust_to_zig_tamper_reject",
         cmd=[
             "zig",
@@ -238,6 +302,7 @@ def run_example_case(
         ],
         steps=all_steps,
         expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_VERIFIER,
     )
 
     run_step(
@@ -276,7 +341,7 @@ def run_example_case(
     )
 
     tamper_statement(zig_artifact, zig_statement_tampered, example=example)
-    run_step(
+    zig_to_rust_statement_tamper_step = run_step(
         name=f"{example}_zig_to_rust_statement_tamper_reject",
         cmd=[
             "cargo",
@@ -295,7 +360,7 @@ def run_example_case(
     )
 
     tamper_proof_bytes_hex(zig_artifact, zig_tampered)
-    run_step(
+    zig_to_rust_tamper_step = run_step(
         name=f"{example}_zig_to_rust_tamper_reject",
         cmd=[
             "cargo",
@@ -311,6 +376,7 @@ def run_example_case(
         ],
         steps=all_steps,
         expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_VERIFIER,
     )
 
     return {
@@ -323,6 +389,12 @@ def run_example_case(
             "zig_to_rust": rel(zig_artifact),
             "zig_to_rust_statement_tampered": rel(zig_statement_tampered),
             "zig_to_rust_tampered": rel(zig_tampered),
+        },
+        "tamper_rejections": {
+            "rust_to_zig_statement_tamper": rust_to_zig_statement_tamper_step.get("rejection_class"),
+            "rust_to_zig_proof_tamper": rust_to_zig_tamper_step.get("rejection_class"),
+            "zig_to_rust_statement_tamper": zig_to_rust_statement_tamper_step.get("rejection_class"),
+            "zig_to_rust_proof_tamper": zig_to_rust_tamper_step.get("rejection_class"),
         },
         "steps": [step["name"] for step in all_steps[start_index:]],
     }
