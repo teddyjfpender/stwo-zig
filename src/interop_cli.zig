@@ -136,6 +136,12 @@ fn runVerify(allocator: std.mem.Allocator, cli: Cli) !void {
     if (!std.mem.eql(u8, artifact.exchange_mode, examples_artifact.EXCHANGE_MODE)) {
         return error.UnsupportedExchangeMode;
     }
+    if (!std.mem.eql(u8, artifact.upstream_commit, examples_artifact.UPSTREAM_COMMIT)) {
+        return error.UnsupportedUpstreamCommit;
+    }
+    if (!isSupportedGenerator(artifact.generator)) {
+        return error.UnsupportedGenerator;
+    }
 
     const config = try examples_artifact.pcsConfigFromWire(artifact.pcs_config);
     const proof_bytes = try examples_artifact.hexToBytesAlloc(allocator, artifact.proof_bytes_hex);
@@ -156,6 +162,10 @@ fn runVerify(allocator: std.mem.Allocator, cli: Cli) !void {
         return;
     }
     return error.UnknownExample;
+}
+
+fn isSupportedGenerator(generator: []const u8) bool {
+    return std.mem.eql(u8, generator, "rust") or std.mem.eql(u8, generator, "zig");
 }
 
 fn parseArgs(args: []const []const u8) !Cli {

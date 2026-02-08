@@ -219,6 +219,21 @@ def tamper_statement(src: Path, dst: Path, *, example: str) -> None:
     dst.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def tamper_metadata(
+    src: Path,
+    dst: Path,
+    *,
+    upstream_commit: Optional[str] = None,
+    generator: Optional[str] = None,
+) -> None:
+    artifact = json.loads(src.read_text(encoding="utf-8"))
+    if upstream_commit is not None:
+        artifact["upstream_commit"] = upstream_commit
+    if generator is not None:
+        artifact["generator"] = generator
+    dst.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def run_example_case(
     *,
     example: str,
@@ -230,8 +245,12 @@ def run_example_case(
     zig_artifact = artifact_dir / f"{example}_zig_to_rust.json"
     rust_statement_tampered = artifact_dir / f"{example}_rust_to_zig_statement_tampered.json"
     rust_tampered = artifact_dir / f"{example}_rust_to_zig_tampered.json"
+    rust_commit_tampered = artifact_dir / f"{example}_rust_to_zig_commit_tampered.json"
+    rust_generator_tampered = artifact_dir / f"{example}_rust_to_zig_generator_tampered.json"
     zig_statement_tampered = artifact_dir / f"{example}_zig_to_rust_statement_tampered.json"
     zig_tampered = artifact_dir / f"{example}_zig_to_rust_tampered.json"
+    zig_commit_tampered = artifact_dir / f"{example}_zig_to_rust_commit_tampered.json"
+    zig_generator_tampered = artifact_dir / f"{example}_zig_to_rust_generator_tampered.json"
 
     start_index = len(all_steps)
 
@@ -303,6 +322,44 @@ def run_example_case(
         steps=all_steps,
         expect_failure=True,
         required_rejection_class=REJECTION_CLASS_VERIFIER,
+    )
+    tamper_metadata(
+        rust_artifact,
+        rust_commit_tampered,
+        upstream_commit="0000000000000000000000000000000000000000",
+    )
+    rust_to_zig_commit_tamper_step = run_step(
+        name=f"{example}_rust_to_zig_commit_tamper_reject",
+        cmd=[
+            "zig",
+            "run",
+            "src/interop_cli.zig",
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(rust_commit_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_METADATA,
+    )
+    tamper_metadata(rust_artifact, rust_generator_tampered, generator="invalid-generator")
+    rust_to_zig_generator_tamper_step = run_step(
+        name=f"{example}_rust_to_zig_generator_tamper_reject",
+        cmd=[
+            "zig",
+            "run",
+            "src/interop_cli.zig",
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(rust_generator_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_METADATA,
     )
 
     run_step(
@@ -378,6 +435,48 @@ def run_example_case(
         expect_failure=True,
         required_rejection_class=REJECTION_CLASS_VERIFIER,
     )
+    tamper_metadata(
+        zig_artifact,
+        zig_commit_tampered,
+        upstream_commit="0000000000000000000000000000000000000000",
+    )
+    zig_to_rust_commit_tamper_step = run_step(
+        name=f"{example}_zig_to_rust_commit_tamper_reject",
+        cmd=[
+            "cargo",
+            f"+{rust_toolchain}",
+            "run",
+            "--manifest-path",
+            str(RUST_MANIFEST),
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(zig_commit_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_METADATA,
+    )
+    tamper_metadata(zig_artifact, zig_generator_tampered, generator="invalid-generator")
+    zig_to_rust_generator_tamper_step = run_step(
+        name=f"{example}_zig_to_rust_generator_tamper_reject",
+        cmd=[
+            "cargo",
+            f"+{rust_toolchain}",
+            "run",
+            "--manifest-path",
+            str(RUST_MANIFEST),
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(zig_generator_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_METADATA,
+    )
 
     return {
         "example": example,
@@ -386,15 +485,23 @@ def run_example_case(
             "rust_to_zig": rel(rust_artifact),
             "rust_to_zig_statement_tampered": rel(rust_statement_tampered),
             "rust_to_zig_tampered": rel(rust_tampered),
+            "rust_to_zig_commit_tampered": rel(rust_commit_tampered),
+            "rust_to_zig_generator_tampered": rel(rust_generator_tampered),
             "zig_to_rust": rel(zig_artifact),
             "zig_to_rust_statement_tampered": rel(zig_statement_tampered),
             "zig_to_rust_tampered": rel(zig_tampered),
+            "zig_to_rust_commit_tampered": rel(zig_commit_tampered),
+            "zig_to_rust_generator_tampered": rel(zig_generator_tampered),
         },
         "tamper_rejections": {
             "rust_to_zig_statement_tamper": rust_to_zig_statement_tamper_step.get("rejection_class"),
             "rust_to_zig_proof_tamper": rust_to_zig_tamper_step.get("rejection_class"),
+            "rust_to_zig_commit_tamper": rust_to_zig_commit_tamper_step.get("rejection_class"),
+            "rust_to_zig_generator_tamper": rust_to_zig_generator_tamper_step.get("rejection_class"),
             "zig_to_rust_statement_tamper": zig_to_rust_statement_tamper_step.get("rejection_class"),
             "zig_to_rust_proof_tamper": zig_to_rust_tamper_step.get("rejection_class"),
+            "zig_to_rust_commit_tamper": zig_to_rust_commit_tamper_step.get("rejection_class"),
+            "zig_to_rust_generator_tamper": zig_to_rust_generator_tamper_step.get("rejection_class"),
         },
         "steps": [step["name"] for step in all_steps[start_index:]],
     }
@@ -507,6 +614,12 @@ def main() -> int:
         status = "failed"
         failure = {"message": str(exc)}
 
+    tamper_steps = [step for step in steps if step.get("expect_failure")]
+    tamper_rejection_counts: dict[str, int] = {}
+    for step in tamper_steps:
+        rejection_class = str(step.get("rejection_class", REJECTION_CLASS_OTHER))
+        tamper_rejection_counts[rejection_class] = tamper_rejection_counts.get(rejection_class, 0) + 1
+
     report = {
         "status": status,
         "schema_version": SCHEMA_VERSION,
@@ -517,8 +630,10 @@ def main() -> int:
             "examples": args.examples,
             "cases_total": len(args.examples) * 2,
             "cases_passed": len(cases) * 2 if status == "ok" else len(cases) * 2,
-            "tamper_cases_total": len(args.examples) * 4,
-            "tamper_cases_passed": len(cases) * 4 if status == "ok" else len(cases) * 4,
+            "tamper_cases_total": len(args.examples) * 8,
+            "tamper_cases_executed": len(tamper_steps),
+            "tamper_cases_passed": len([step for step in tamper_steps if step.get("status") == "ok"]),
+            "tamper_rejection_classes": tamper_rejection_counts,
             "steps_total": len(steps),
         },
         "cases": cases,

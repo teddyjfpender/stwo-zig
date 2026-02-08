@@ -255,6 +255,12 @@ fn run_verify(cli: &Cli) -> Result<()> {
     if artifact.exchange_mode != EXCHANGE_MODE {
         bail!("unsupported exchange mode {}", artifact.exchange_mode);
     }
+    if artifact.upstream_commit != UPSTREAM_COMMIT {
+        bail!("unsupported upstream commit {}", artifact.upstream_commit);
+    }
+    if artifact.generator != "rust" && artifact.generator != "zig" {
+        bail!("unsupported generator {}", artifact.generator);
+    }
 
     let config = pcs_config_from_wire(&artifact.pcs_config)?;
     let proof_bytes = hex::decode(&artifact.proof_bytes_hex)?;
