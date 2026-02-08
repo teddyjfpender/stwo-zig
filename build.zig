@@ -101,6 +101,33 @@ pub fn build(b: *std.Build) void {
     const bench_opt_step = b.step("bench-opt", "Run optimization-track benchmark harness (native CPU)");
     bench_opt_step.dependOn(&bench_opt_cmd.step);
 
+    // Large contrast benchmark (adds wide_fibonacci fib(100)-style workload).
+    const bench_contrast_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/benchmark_smoke.py",
+        "--include-medium",
+        "--include-large",
+        "--warmups",
+        "2",
+        "--repeats",
+        "7",
+        "--max-zig-over-rust",
+        "10.0",
+        "--zig-opt-mode",
+        "ReleaseFast",
+        "--zig-cpu",
+        "native",
+        "--report-label",
+        "benchmark_contrast",
+        "--report-out",
+        "vectors/reports/benchmark_contrast_report.json",
+    });
+    const bench_contrast_step = b.step(
+        "bench-contrast",
+        "Run heavy contrast benchmark harness (includes wide_fibonacci fib(100) workload)",
+    );
+    bench_contrast_step.dependOn(&bench_contrast_cmd.step);
+
     // Full benchmark matrix gate (11 upstream family labels).
     const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
     const bench_full_step = b.step("bench-full", "Run full 11-family Rust-vs-Zig benchmark harness");

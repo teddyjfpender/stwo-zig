@@ -71,6 +71,19 @@ MEDIUM_WORKLOADS: List[Dict[str, Any]] = [
     },
 ]
 
+LARGE_WORKLOADS: List[Dict[str, Any]] = [
+    {
+        "name": "wide_fibonacci_fib100",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "9",
+            "--wf-sequence-len",
+            "100",
+        ],
+    },
+]
+
 SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 
 
@@ -289,6 +302,11 @@ def main() -> int:
         help="Include medium-size workloads (stricter, may be slower).",
     )
     parser.add_argument(
+        "--include-large",
+        action="store_true",
+        help="Include larger contrast workloads (e.g. wide_fibonacci fib(100)).",
+    )
+    parser.add_argument(
         "--report-out",
         type=Path,
         default=REPORT_DEFAULT,
@@ -303,6 +321,8 @@ def main() -> int:
     workloads = list(BASE_WORKLOADS)
     if args.include_medium:
         workloads.extend(MEDIUM_WORKLOADS)
+    if args.include_large:
+        workloads.extend(LARGE_WORKLOADS)
 
     workloads_report: List[Dict[str, Any]] = []
     failures: List[str] = []
@@ -360,31 +380,41 @@ def main() -> int:
     verify_ratios = [w["ratios"]["zig_over_rust_verify"] for w in workloads_report]
     status = "ok" if not failures else "failed"
 
+    workload_tier = "base_only"
+    if args.include_medium:
+        workload_tier = "base_plus_medium"
+    if args.include_large:
+        workload_tier = "base_plus_medium_plus_large" if args.include_medium else "base_plus_large"
+
     settings = {
         "warmups": args.warmups,
         "repeats": args.repeats,
         "rust_toolchain": args.rust_toolchain,
         "include_medium": args.include_medium,
-        "workload_tier": "base_plus_medium" if args.include_medium else "base_only",
+        "workload_tier": workload_tier,
         "collector": "time -l" if TIME_BIN.exists() else "wall-clock-only",
         "zig_opt_mode": args.zig_opt_mode,
         "zig_cpu": args.zig_cpu,
         "report_label": args.report_label,
     }
+    if args.include_large:
+        settings["include_large"] = True
     thresholds = {
         "max_zig_over_rust_ratio": args.max_zig_over_rust,
         "conformance_reference": "CONFORMANCE.md Section 9.2",
     }
 
-    settings_hash = canonical_hash(
-        {
-            "common_config_args": COMMON_CONFIG_ARGS,
-            "base_workloads": BASE_WORKLOADS,
-            "medium_workloads": MEDIUM_WORKLOADS,
-            "settings": settings,
-            "thresholds": thresholds,
-        }
-    )
+    settings_hash_payload: Dict[str, Any] = {
+        "common_config_args": COMMON_CONFIG_ARGS,
+        "base_workloads": BASE_WORKLOADS,
+        "medium_workloads": MEDIUM_WORKLOADS,
+        "settings": settings,
+        "thresholds": thresholds,
+    }
+    if args.include_large:
+        settings_hash_payload["large_workloads"] = LARGE_WORKLOADS
+
+    settings_hash = canonical_hash(settings_hash_payload)
 
     report = {
         "schema_version": 2,

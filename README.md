@@ -26,6 +26,7 @@ zig build prove-checkpoints
 zig build bench-smoke
 zig build bench-strict
 zig build bench-opt
+zig build bench-contrast
 zig build bench-full
 zig build bench-pages
 zig build bench-pages-validate
@@ -56,6 +57,7 @@ Full benchmark add-on:
 
 Optimization track (non-authoritative for release conformance):
 - `zig build bench-opt`
+- `zig build bench-contrast` (adds large contrast workload including `wide_fibonacci` fib(100)-style case)
 - `zig build profile-opt`
 - `zig build opt-gate` (runs baseline-compatible bench/profile plus comparator thresholds)
 - Native-tuned measurements can also be compared manually via
@@ -71,6 +73,7 @@ Important artifacts:
 - `prove_checkpoints_report.json`
 - `benchmark_smoke_report.json`
 - `benchmark_opt_report.json`
+- `benchmark_contrast_report.json`
 - `benchmark_full_report.json`
 - `profile_smoke_report.json`
 - `profile_opt_report.json`
