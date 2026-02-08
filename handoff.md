@@ -29,6 +29,7 @@
     - tree builder
     - per-tree query-position handling (including preprocessed tree mapping)
     - per-tree decommit extraction
+    - in-prover sampled-value computation (`proveValues`) from committed columns via barycentric circle evaluation
   - Added `proveValuesFromSamples` wiring:
     - sampled-values channel mixing
     - quotient computation
@@ -36,7 +37,16 @@
     - PoW nonce grind + transcript mixing
     - final `ExtendedCommitmentSchemeProof` assembly
   - Added roundtrip test against `core/pcs/verifier.zig`.
-  - Added negative tests for shape mismatch and inconsistent sampled-value rejection.
+  - Added negative tests for shape mismatch, inconsistent sampled-value rejection, and sampled-point-on-domain rejection.
+
+### Prover Poly (Circle)
+- `src/prover/poly/circle/evaluation.zig`
+  - Ported circle evaluation slice for base-field columns in bit-reversed order.
+  - Added barycentric weights/evaluation path matching upstream canonic-coset semantics.
+  - Added deterministic tests for:
+    - constant-column out-of-domain evaluation
+    - x-coordinate polynomial evaluation
+    - point-on-domain rejection.
 
 ### Prover FRI
 - `src/prover/fri.zig`
@@ -78,20 +88,19 @@
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
 
 ## Current Known Gaps
-1. `CommitmentSchemeProver.proveValues` parity is currently implemented as `proveValuesFromSamples`.
-   - It requires sampled values as input instead of computing them directly from committed polynomials.
-2. Missing upstream `prover/poly/circle/*` parity (evaluation/poly/secure_poly/ops), which blocks native sampled-value computation path parity.
+1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover, but does not yet use/store circle coefficients + shared weights hash-map optimization path from upstream.
+2. Missing upstream `prover/poly/circle/*` parity for `poly`, `secure_poly`, and `ops` modules.
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current entrypoint is `provePrepared` (prepared sampled-values path).
-   - Full upstream-style `prove/prove_ex` still depends on `prover/poly/circle/*` and deeper `prover/air` parity.
+   - Full upstream-style `prove/prove_ex` still depends on deeper `prover/air` parity and composition polynomial wiring.
 
 ## Next Highest-Impact Targets
-1. Port `prover/poly/circle/*` minimal parity slice needed for in-prover sampled-value evaluation.
-2. Upgrade `CommitmentSchemeProver` from `proveValuesFromSamples` to full upstream-style `proveValues` path.
-3. Extend `prover/air` to full upstream constraint-domain evaluation flow and stitch `prover::prove_ex` end-to-end.
-4. Expand differential vectors to cover newly landed prover FRI/PCS/GKR flows.
+1. Complete `prover/poly/circle/{poly,secure_poly,ops}` and wire coefficient-backed eval path.
+2. Extend `prover/air/component_prover` to expose full upstream component bridge (`mask_points`, composition-point eval path).
+3. Implement full `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
+4. Expand differential vectors to cover prover-side circle evaluation and full `proveValues`.
 
 ## Divergence Record (Active)
-- Temporary API divergence:
-  - `CommitmentSchemeProver` currently exposes `proveValuesFromSamples` as the executable parity path.
-  - Closure plan: remove this as primary path once `prover/poly/circle` parity lands and full `proveValues` is wired.
+- Temporary implementation divergence:
+  - `CommitmentSchemeProver.proveValues` currently evaluates from committed column evaluations only (no stored-coefficients fast path and no weights cache map).
+  - Closure plan: complete `prover/poly/circle` coefficient stack and route `setStorePolynomialsCoefficients` through upstream-equivalent branching.

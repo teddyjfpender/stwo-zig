@@ -9,6 +9,8 @@ const verifier_types = @import("../../core/verifier_types.zig");
 const vcs_verifier = @import("../../core/vcs_lifted/verifier.zig");
 const canonic = @import("../../core/poly/circle/canonic.zig");
 const component_prover = @import("../air/component_prover.zig");
+const prover_circle = @import("../poly/circle/mod.zig");
+const prover_circle_eval = @import("../poly/circle/evaluation.zig");
 const prover_fri = @import("../fri.zig");
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 
@@ -339,6 +341,39 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             };
         }
 
+        /// Proves sampled values for already-committed trees.
+        ///
+        /// Inputs:
+        /// - `sampled_points`: per tree -> per column sampled points.
+        ///
+        /// Output:
+        /// - full PCS opening proof with sampled values computed in-prover.
+        ///
+        /// Invariants:
+        /// - sampled-point tree/column shape must match committed trees/columns.
+        /// - every sampled point is folded to each column's log size before evaluation.
+        pub fn proveValues(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            var scheme = self;
+            const lifting_log_size = try scheme.maxTreeLogSize();
+            const sampled_values = try evaluateSampledValues(
+                allocator,
+                scheme.trees,
+                sampled_points,
+                lifting_log_size,
+            );
+            return scheme.proveValuesFromSamples(
+                allocator,
+                sampled_points,
+                sampled_values,
+                channel,
+            );
+        }
+
         /// Proves sampled values for already-committed trees using precomputed point evaluations.
         ///
         /// Inputs:
@@ -479,6 +514,65 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 max_size = @max(max_size, maxLogSize(tree.columns));
             }
             return max_size;
+        }
+
+        fn evaluateSampledValues(
+            allocator: std.mem.Allocator,
+            trees: TreeVec(CommitmentTreeProver(H)),
+            sampled_points: TreeVec([][]CirclePointQM31),
+            lifting_log_size: u32,
+        ) !TreeVec([][]QM31) {
+            if (trees.items.len != sampled_points.items.len) return CommitmentSchemeError.ShapeMismatch;
+
+            const out = try allocator.alloc([][]QM31, trees.items.len);
+            errdefer allocator.free(out);
+
+            var initialized_trees: usize = 0;
+            errdefer {
+                for (out[0..initialized_trees]) |tree_values| {
+                    for (tree_values) |column_values| allocator.free(column_values);
+                    allocator.free(tree_values);
+                }
+            }
+
+            for (trees.items, sampled_points.items, 0..) |tree, tree_points, tree_idx| {
+                if (tree.columns.len != tree_points.len) return CommitmentSchemeError.ShapeMismatch;
+
+                const tree_values = try allocator.alloc([]QM31, tree.columns.len);
+                out[tree_idx] = tree_values;
+                initialized_trees += 1;
+
+                var initialized_columns: usize = 0;
+                errdefer {
+                    for (tree_values[0..initialized_columns]) |column_values| allocator.free(column_values);
+                    allocator.free(tree_values);
+                }
+
+                for (tree.columns, tree_points, 0..) |column, points, col_idx| {
+                    if (column.log_size > lifting_log_size) return CommitmentSchemeError.ShapeMismatch;
+                    try column.validate();
+
+                    const eval_domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
+                    const evaluation = try prover_circle.CircleEvaluation.init(
+                        eval_domain,
+                        column.values,
+                    );
+
+                    const values = try allocator.alloc(QM31, points.len);
+                    tree_values[col_idx] = values;
+                    initialized_columns += 1;
+
+                    const fold_count = lifting_log_size - column.log_size;
+                    for (points, 0..) |point, i| {
+                        values[i] = try evaluation.evalAtPoint(
+                            allocator,
+                            point.repeatedDouble(fold_count),
+                        );
+                    }
+                }
+            }
+
+            return TreeVec([][]QM31).initOwned(out);
         }
     };
 }
@@ -1003,6 +1097,92 @@ test "prover pcs: prove values from samples roundtrip with core verifier" {
     );
 }
 
+test "prover pcs: prove values computes sampled values in prover" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const Verifier = @import("../../core/pcs/verifier.zig").CommitmentSchemeVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    const config = PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+
+    var prover_channel = Channel{};
+    var scheme = try Scheme.init(alloc, config);
+
+    const column_values = [_]M31{
+        M31.fromCanonical(19),
+        M31.fromCanonical(19),
+        M31.fromCanonical(19),
+        M31.fromCanonical(19),
+        M31.fromCanonical(19),
+        M31.fromCanonical(19),
+        M31.fromCanonical(19),
+        M31.fromCanonical(19),
+    };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{
+            .{ .log_size = 3, .values = column_values[0..] },
+        },
+        &prover_channel,
+    );
+
+    const sample_point = @import("../../core/circle.zig").SECURE_FIELD_CIRCLE_GEN.mul(73);
+    const sampled_points_col_prover = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        sample_point,
+    });
+    const sampled_points_tree_prover = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col_prover,
+    });
+    const sampled_points_prover = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_prover}),
+    );
+
+    var extended_proof = try scheme.proveValues(
+        alloc,
+        sampled_points_prover,
+        &prover_channel,
+    );
+    defer extended_proof.aux.deinit(alloc);
+
+    try std.testing.expectEqual(@as(usize, 1), extended_proof.proof.sampled_values.items.len);
+    try std.testing.expectEqual(@as(usize, 1), extended_proof.proof.sampled_values.items[0].len);
+    try std.testing.expectEqual(@as(usize, 1), extended_proof.proof.sampled_values.items[0][0].len);
+    try std.testing.expect(extended_proof.proof.sampled_values.items[0][0][0].eql(
+        QM31.fromBase(M31.fromCanonical(19)),
+    ));
+
+    const sampled_points_col_verify = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        sample_point,
+    });
+    const sampled_points_tree_verify = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col_verify,
+    });
+    const sampled_points_verify = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_verify}),
+    );
+
+    var verifier_channel = Channel{};
+    var verifier = try Verifier.init(alloc, config);
+    defer verifier.deinit(alloc);
+    try verifier.commit(
+        alloc,
+        extended_proof.proof.commitments.items[0],
+        &[_]u32{3},
+        &verifier_channel,
+    );
+    try verifier.verifyValues(
+        alloc,
+        sampled_points_verify,
+        extended_proof.proof,
+        &verifier_channel,
+    );
+}
+
 test "prover pcs: prove values from samples rejects shape mismatch" {
     const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
     const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
@@ -1103,5 +1283,57 @@ test "prover pcs: inconsistent sampled values are rejected by fri degree check" 
             sampled_values,
             &prover_channel,
         ),
+    );
+}
+
+test "prover pcs: prove values rejects sampled point on domain" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+    const canonic_domain = canonic.CanonicCoset.new(3).circleDomain();
+
+    var prover_channel = Channel{};
+    var scheme = try Scheme.init(alloc, .{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 3),
+    });
+    defer scheme.deinit(alloc);
+
+    const column_values = [_]M31{
+        M31.fromCanonical(1),
+        M31.fromCanonical(1),
+        M31.fromCanonical(1),
+        M31.fromCanonical(1),
+        M31.fromCanonical(1),
+        M31.fromCanonical(1),
+        M31.fromCanonical(1),
+        M31.fromCanonical(1),
+    };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{
+            .{ .log_size = 3, .values = column_values[0..] },
+        },
+        &prover_channel,
+    );
+
+    const sampled_points_col = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        .{
+            .x = QM31.fromBase(canonic_domain.at(0).x),
+            .y = QM31.fromBase(canonic_domain.at(0).y),
+        },
+    });
+    const sampled_points_tree = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col,
+    });
+    const sampled_points = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree}),
+    );
+
+    try std.testing.expectError(
+        prover_circle_eval.EvaluationError.PointOnDomain,
+        scheme.proveValues(alloc, sampled_points, &prover_channel),
     );
 }
