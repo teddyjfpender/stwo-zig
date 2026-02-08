@@ -411,6 +411,31 @@
 - `python3 scripts/e2e_examples.py`
 - `zig build test --summary all`
 
+## Latest Slice (State-Machine Statement API Wiring)
+- `src/examples/state_machine.zig`
+  - Added statement API types for parity with upstream state-machine flow:
+    - `Statement0`
+    - `Statement1`
+    - `PreparedStatement`
+  - Added entrypoints:
+    - `prepareStatement(log_n_rows, initial_state, elements)`
+    - `verifyStatement(statement, elements)`
+  - `verifyStatement` returns `StatementNotSatisfied` on equation failure.
+  - Added roundtrip tests for:
+    - prepare/verify success path
+    - failure-path via perturbed claimed sum.
+- `src/core/fields/parity_vectors.zig`
+  - Updated state-machine statement parity test to exercise new API directly:
+    - validates `prepareStatement` output fields and claims.
+    - validates `verifyStatement` success and expected rejection path.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig build fmt`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `python3 scripts/parity_fields.py`
+- `python3 scripts/e2e_examples.py`
+- `zig build test --summary all`
+
 ## Latest Slice (State-Machine Statement Equation Parity)
 - `src/examples/state_machine.zig`
   - Added statement validator:

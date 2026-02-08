@@ -1689,6 +1689,21 @@ test "field vectors: examples state machine statement parity" {
         try std.testing.expect(x_claim.eql(qm31From(v.x_axis_claimed_sum)));
         try std.testing.expect(y_claim.eql(qm31From(v.y_axis_claimed_sum)));
 
+        const prepared = try example_state_machine_mod.prepareStatement(
+            v.log_n_rows,
+            initial,
+            elements,
+        );
+        try std.testing.expect(prepared.public_input[0][0].eql(initial[0]));
+        try std.testing.expect(prepared.public_input[0][1].eql(initial[1]));
+        try std.testing.expect(prepared.public_input[1][0].eql(final[0]));
+        try std.testing.expect(prepared.public_input[1][1].eql(final[1]));
+        try std.testing.expectEqual(v.log_n_rows, prepared.stmt0.n);
+        try std.testing.expectEqual(v.log_n_rows - 1, prepared.stmt0.m);
+        try std.testing.expect(prepared.stmt1.x_axis_claimed_sum.eql(x_claim));
+        try std.testing.expect(prepared.stmt1.y_axis_claimed_sum.eql(y_claim));
+        try example_state_machine_mod.verifyStatement(prepared, elements);
+
         const satisfies = try example_state_machine_mod.claimsSatisfyStatement(
             initial,
             final,
@@ -1700,14 +1715,20 @@ test "field vectors: examples state machine statement parity" {
 
         if (vec_idx == 0) {
             const bad = y_claim.add(QM31.one());
-            const bad_satisfies = try example_state_machine_mod.claimsSatisfyStatement(
-                initial,
-                final,
-                x_claim,
-                bad,
-                elements,
+            try std.testing.expectError(
+                example_state_machine_mod.Error.StatementNotSatisfied,
+                example_state_machine_mod.verifyStatement(
+                    .{
+                        .public_input = .{ initial, final },
+                        .stmt0 = .{ .n = v.log_n_rows, .m = v.log_n_rows - 1 },
+                        .stmt1 = .{
+                            .x_axis_claimed_sum = x_claim,
+                            .y_axis_claimed_sum = bad,
+                        },
+                    },
+                    elements,
+                ),
             );
-            try std.testing.expect(!bad_satisfies);
         }
     }
 }

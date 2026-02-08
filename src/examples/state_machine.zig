@@ -12,6 +12,7 @@ pub const Error = error{
     InvalidIncIndex,
     InvalidLogSize,
     DegenerateDenominator,
+    StatementNotSatisfied,
 };
 
 /// Generates two trace columns in bit-reversed circle-domain order.
@@ -57,6 +58,22 @@ pub fn deinitTrace(allocator: std.mem.Allocator, trace: *[2][]M31) void {
 pub const TransitionStates = struct {
     intermediate: State,
     final: State,
+};
+
+pub const Statement0 = struct {
+    n: u32,
+    m: u32,
+};
+
+pub const Statement1 = struct {
+    x_axis_claimed_sum: QM31,
+    y_axis_claimed_sum: QM31,
+};
+
+pub const PreparedStatement = struct {
+    public_input: [2]State,
+    stmt0: Statement0,
+    stmt1: Statement1,
 };
 
 /// State-machine lookup elements (`z`, `alpha`) used for relation combination.
@@ -170,6 +187,43 @@ pub fn claimsSatisfyStatement(
     return lhs.eql(rhs);
 }
 
+/// Builds the public state-machine statements used by proving/verifying entrypoints.
+pub fn prepareStatement(
+    log_n_rows: u32,
+    initial_state: State,
+    elements: Elements,
+) Error!PreparedStatement {
+    const transitions = try transitionStates(log_n_rows, initial_state);
+    const x_axis_claimed_sum = try claimedSumTelescoping(log_n_rows, initial_state, 0, elements);
+    const y_axis_claimed_sum = try claimedSumTelescoping(
+        log_n_rows - 1,
+        transitions.intermediate,
+        1,
+        elements,
+    );
+
+    return .{
+        .public_input = .{ initial_state, transitions.final },
+        .stmt0 = .{ .n = log_n_rows, .m = log_n_rows - 1 },
+        .stmt1 = .{
+            .x_axis_claimed_sum = x_axis_claimed_sum,
+            .y_axis_claimed_sum = y_axis_claimed_sum,
+        },
+    };
+}
+
+/// Verifies that the prepared statement satisfies the claimed-sum equation.
+pub fn verifyStatement(statement: PreparedStatement, elements: Elements) Error!void {
+    const ok = try claimsSatisfyStatement(
+        statement.public_input[0],
+        statement.public_input[1],
+        statement.stmt1.x_axis_claimed_sum,
+        statement.stmt1.y_axis_claimed_sum,
+        elements,
+    );
+    if (!ok) return Error.StatementNotSatisfied;
+}
+
 fn checkedPow2(log_size: u32) Error!usize {
     if (log_size >= @bitSizeOf(usize)) return Error.InvalidLogSize;
     return @as(usize, 1) << @intCast(log_size);
@@ -268,4 +322,24 @@ test "examples state_machine: claimed sums satisfy public statement equation" {
         elements,
     );
     try std.testing.expect(ok);
+}
+
+test "examples state_machine: prepare/verify statement roundtrip" {
+    const elements: Elements = .{
+        .z = QM31.fromU32Unchecked(37, 19, 5, 11),
+        .alpha = QM31.fromU32Unchecked(7, 3, 13, 17),
+    };
+    const initial: State = .{
+        M31.fromCanonical(12),
+        M31.fromCanonical(4),
+    };
+
+    const statement = try prepareStatement(8, initial, elements);
+    try std.testing.expectEqual(@as(u32, 8), statement.stmt0.n);
+    try std.testing.expectEqual(@as(u32, 7), statement.stmt0.m);
+    try verifyStatement(statement, elements);
+
+    var bad = statement;
+    bad.stmt1.y_axis_claimed_sum = bad.stmt1.y_axis_claimed_sum.add(QM31.one());
+    try std.testing.expectError(Error.StatementNotSatisfied, verifyStatement(bad, elements));
 }
