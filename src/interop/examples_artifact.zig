@@ -73,9 +73,7 @@ pub fn writeArtifact(
     path: []const u8,
     artifact: InteropArtifact,
 ) !void {
-    const rendered = try std.json.Stringify.valueAlloc(allocator, artifact, .{
-        .whitespace = .indent_2,
-    });
+    const rendered = try std.json.Stringify.valueAlloc(allocator, artifact, .{});
     defer allocator.free(rendered);
 
     const file = try std.fs.cwd().createFile(path, .{ .truncate = true });

@@ -413,6 +413,10 @@ fn collectProofMetricsFromWire(
 }
 
 fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const gen_alloc = arena.allocator();
+
     const example = cli.example orelse return error.MissingExample;
     const config = try pcsConfigFromCli(cli);
     const prove_mode = proveModeToString(cli.prove_mode);
@@ -423,37 +427,28 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .log_n_rows = cli.plonk_log_n_rows,
             };
             var proved_statement: plonk.Statement = undefined;
-            var proof: plonk.Proof = undefined;
-            var deinit_proof = false;
-            defer if (deinit_proof) proof.deinit(allocator);
-            switch (cli.prove_mode) {
-                .prove => {
-                    const output = try plonk.prove(allocator, config, statement);
+            const proof: plonk.Proof = switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try plonk.prove(gen_alloc, config, statement);
                     proved_statement = output.statement;
-                    proof = output.proof;
-                    deinit_proof = true;
+                    break :blk output.proof;
                 },
-                .prove_ex => {
+                .prove_ex => blk: {
                     const output = try plonk.proveEx(
-                        allocator,
+                        gen_alloc,
                         config,
                         statement,
                         cli.include_all_preprocessed_columns,
                     );
                     proved_statement = output.statement;
-                    var ext_proof = output.proof;
-                    proof = ext_proof.proof;
-                    ext_proof.aux.deinit(allocator);
-                    deinit_proof = true;
+                    break :blk output.proof.proof;
                 },
-            }
+            };
 
-            const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
-            defer allocator.free(proof_bytes);
-            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(allocator, proof_bytes);
-            defer allocator.free(proof_bytes_hex);
+            const proof_bytes = try proof_wire.encodeProofBytes(gen_alloc, proof);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(gen_alloc, proof_bytes);
 
-            try examples_artifact.writeArtifact(allocator, cli.artifact_path, .{
+            try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
                 .schema_version = examples_artifact.SCHEMA_VERSION,
                 .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
                 .exchange_mode = examples_artifact.EXCHANGE_MODE,
@@ -474,43 +469,34 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 try m31FromCanonical(cli.sm_initial_1),
             };
             var statement: state_machine.PreparedStatement = undefined;
-            var proof: state_machine.Proof = undefined;
-            var deinit_proof = false;
-            defer if (deinit_proof) proof.deinit(allocator);
-            switch (cli.prove_mode) {
-                .prove => {
+            const proof: state_machine.Proof = switch (cli.prove_mode) {
+                .prove => blk: {
                     const output = try state_machine.prove(
-                        allocator,
+                        gen_alloc,
                         config,
                         cli.sm_log_n_rows,
                         initial_state,
                     );
                     statement = output.statement;
-                    proof = output.proof;
-                    deinit_proof = true;
+                    break :blk output.proof;
                 },
-                .prove_ex => {
+                .prove_ex => blk: {
                     const output = try state_machine.proveEx(
-                        allocator,
+                        gen_alloc,
                         config,
                         cli.sm_log_n_rows,
                         initial_state,
                         cli.include_all_preprocessed_columns,
                     );
                     statement = output.statement;
-                    var ext_proof = output.proof;
-                    proof = ext_proof.proof;
-                    ext_proof.aux.deinit(allocator);
-                    deinit_proof = true;
+                    break :blk output.proof.proof;
                 },
-            }
+            };
 
-            const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
-            defer allocator.free(proof_bytes);
-            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(allocator, proof_bytes);
-            defer allocator.free(proof_bytes_hex);
+            const proof_bytes = try proof_wire.encodeProofBytes(gen_alloc, proof);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(gen_alloc, proof_bytes);
 
-            try examples_artifact.writeArtifact(allocator, cli.artifact_path, .{
+            try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
                 .schema_version = examples_artifact.SCHEMA_VERSION,
                 .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
                 .exchange_mode = examples_artifact.EXCHANGE_MODE,
@@ -531,37 +517,28 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .sequence_len = cli.wf_sequence_len,
             };
             var proved_statement: wide_fibonacci.Statement = undefined;
-            var proof: wide_fibonacci.Proof = undefined;
-            var deinit_proof = false;
-            defer if (deinit_proof) proof.deinit(allocator);
-            switch (cli.prove_mode) {
-                .prove => {
-                    const output = try wide_fibonacci.prove(allocator, config, statement);
+            const proof: wide_fibonacci.Proof = switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try wide_fibonacci.prove(gen_alloc, config, statement);
                     proved_statement = output.statement;
-                    proof = output.proof;
-                    deinit_proof = true;
+                    break :blk output.proof;
                 },
-                .prove_ex => {
+                .prove_ex => blk: {
                     const output = try wide_fibonacci.proveEx(
-                        allocator,
+                        gen_alloc,
                         config,
                         statement,
                         cli.include_all_preprocessed_columns,
                     );
                     proved_statement = output.statement;
-                    var ext_proof = output.proof;
-                    proof = ext_proof.proof;
-                    ext_proof.aux.deinit(allocator);
-                    deinit_proof = true;
+                    break :blk output.proof.proof;
                 },
-            }
+            };
 
-            const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
-            defer allocator.free(proof_bytes);
-            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(allocator, proof_bytes);
-            defer allocator.free(proof_bytes_hex);
+            const proof_bytes = try proof_wire.encodeProofBytes(gen_alloc, proof);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(gen_alloc, proof_bytes);
 
-            try examples_artifact.writeArtifact(allocator, cli.artifact_path, .{
+            try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
                 .schema_version = examples_artifact.SCHEMA_VERSION,
                 .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
                 .exchange_mode = examples_artifact.EXCHANGE_MODE,
@@ -583,37 +560,28 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .offset = cli.xor_offset,
             };
             var proved_statement: xor.Statement = undefined;
-            var proof: xor.Proof = undefined;
-            var deinit_proof = false;
-            defer if (deinit_proof) proof.deinit(allocator);
-            switch (cli.prove_mode) {
-                .prove => {
-                    const output = try xor.prove(allocator, config, statement);
+            const proof: xor.Proof = switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try xor.prove(gen_alloc, config, statement);
                     proved_statement = output.statement;
-                    proof = output.proof;
-                    deinit_proof = true;
+                    break :blk output.proof;
                 },
-                .prove_ex => {
+                .prove_ex => blk: {
                     const output = try xor.proveEx(
-                        allocator,
+                        gen_alloc,
                         config,
                         statement,
                         cli.include_all_preprocessed_columns,
                     );
                     proved_statement = output.statement;
-                    var ext_proof = output.proof;
-                    proof = ext_proof.proof;
-                    ext_proof.aux.deinit(allocator);
-                    deinit_proof = true;
+                    break :blk output.proof.proof;
                 },
-            }
+            };
 
-            const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
-            defer allocator.free(proof_bytes);
-            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(allocator, proof_bytes);
-            defer allocator.free(proof_bytes_hex);
+            const proof_bytes = try proof_wire.encodeProofBytes(gen_alloc, proof);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(gen_alloc, proof_bytes);
 
-            try examples_artifact.writeArtifact(allocator, cli.artifact_path, .{
+            try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
                 .schema_version = examples_artifact.SCHEMA_VERSION,
                 .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
                 .exchange_mode = examples_artifact.EXCHANGE_MODE,
