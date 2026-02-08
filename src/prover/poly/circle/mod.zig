@@ -1,4 +1,9 @@
 pub const CanonicCoset = @import("../../../core/poly/circle/canonic.zig").CanonicCoset;
 pub const CircleDomain = @import("../../../core/poly/circle/domain.zig").CircleDomain;
 pub const evaluation = @import("evaluation.zig");
+pub const poly = @import("poly.zig");
+pub const secure_poly = @import("secure_poly.zig");
+pub const ops = @import("ops.zig");
 pub const CircleEvaluation = evaluation.CircleEvaluation;
+pub const CircleCoefficients = poly.CircleCoefficients;
+pub const SecureCirclePoly = secure_poly.SecureCirclePoly;

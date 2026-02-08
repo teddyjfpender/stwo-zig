@@ -37,7 +37,7 @@ This increment targets:
 - `prover/pcs` (quotient-ops + commitment tree/decommit + prove-values + prove-values-from-samples slices)
 - `prover/channel` (logging channel slice)
 - `prover/lookups` (utils + mle + sumcheck + gkr verifier + gkr prover prove-batch slice)
-- `prover/poly` (module + twiddles + circle evaluation slice)
+- `prover/poly` (module + twiddles + circle evaluation/poly/secure_poly/ops slices)
 - `prover/secure_column`
 - `tracing/mod`
 

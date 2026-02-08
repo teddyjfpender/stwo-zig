@@ -47,6 +47,21 @@
     - constant-column out-of-domain evaluation
     - x-coordinate polynomial evaluation
     - point-on-domain rejection.
+- `src/prover/poly/circle/poly.zig`
+  - Ported circle coefficient polynomial slice with:
+    - `CircleCoefficients` ownership + invariants
+    - `evalAtPoint`
+    - `extend`
+    - `evaluate` (naive domain evaluation path)
+    - `splitAtMid`
+  - Added split-identity and domain-evaluation tests.
+- `src/prover/poly/circle/secure_poly.zig`
+  - Ported secure-coordinate polynomial wrapper slice:
+    - `SecureCirclePoly.evalAtPoint`
+    - `splitAtMid`
+  - Added secure split-identity and shape-failure tests.
+- `src/prover/poly/circle/ops.zig`
+  - Added circle-poly operation helpers (`evaluateOnCanonicDomain`, split helpers) to stabilize call sites.
 
 ### Prover FRI
 - `src/prover/fri.zig`
@@ -89,16 +104,16 @@
 
 ## Current Known Gaps
 1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover, but does not yet use/store circle coefficients + shared weights hash-map optimization path from upstream.
-2. Missing upstream `prover/poly/circle/*` parity for `poly`, `secure_poly`, and `ops` modules.
+2. `prover/poly/circle` is now executable but still missing full upstream FFT/twiddle-backed interpolation/evaluation parity.
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current entrypoint is `provePrepared` (prepared sampled-values path).
    - Full upstream-style `prove/prove_ex` still depends on deeper `prover/air` parity and composition polynomial wiring.
 
 ## Next Highest-Impact Targets
-1. Complete `prover/poly/circle/{poly,secure_poly,ops}` and wire coefficient-backed eval path.
+1. Complete FFT/twiddle-backed circle interpolation/evaluation parity and wire `store_polynomials_coefficients` fast path.
 2. Extend `prover/air/component_prover` to expose full upstream component bridge (`mask_points`, composition-point eval path).
 3. Implement full `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
-4. Expand differential vectors to cover prover-side circle evaluation and full `proveValues`.
+4. Expand differential vectors to cover prover-side circle poly slices and full `proveValues`.
 
 ## Divergence Record (Active)
 - Temporary implementation divergence:
