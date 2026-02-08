@@ -105,7 +105,7 @@ const ExampleProveOutput = struct {
 };
 
 pub fn main() !void {
-    const gpa = std.heap.page_allocator;
+    const gpa = std.heap.c_allocator;
 
     const args = try std.process.argsAlloc(gpa);
     defer std.process.argsFree(gpa, args);
@@ -135,12 +135,14 @@ fn runBench(allocator: std.mem.Allocator, cli: Cli) !void {
 
     const total_runs = cli.bench_warmups + cli.bench_repeats;
     for (0..total_runs) |run_idx| {
+        var prove_arena = std.heap.ArenaAllocator.init(allocator);
+        defer prove_arena.deinit();
+        const prove_alloc = prove_arena.allocator();
+
         const start_ns = std.time.nanoTimestamp();
-        var output = try proveExample(allocator, config, cli, example);
-        const encoded = try proof_wire.encodeProofBytes(allocator, output.proof);
-        allocator.free(encoded);
+        const output = try proveExample(prove_alloc, config, cli, example);
+        _ = try proof_wire.encodeProofBytes(prove_alloc, output.proof);
         const end_ns = std.time.nanoTimestamp();
-        output.proof.deinit(allocator);
 
         if (run_idx >= cli.bench_warmups) {
             const sample_idx = run_idx - cli.bench_warmups;
@@ -149,16 +151,22 @@ fn runBench(allocator: std.mem.Allocator, cli: Cli) !void {
         }
     }
 
-    var baseline = try proveExample(allocator, config, cli, example);
-    defer baseline.proof.deinit(allocator);
-    const encoded_proof = try proof_wire.encodeProofBytes(allocator, baseline.proof);
-    defer allocator.free(encoded_proof);
-    const metrics = try collectProofMetricsFromWire(allocator, encoded_proof);
+    var baseline_arena = std.heap.ArenaAllocator.init(allocator);
+    defer baseline_arena.deinit();
+    const baseline_alloc = baseline_arena.allocator();
+
+    const baseline = try proveExample(baseline_alloc, config, cli, example);
+    const encoded_proof = try proof_wire.encodeProofBytes(baseline_alloc, baseline.proof);
+    const metrics = try collectProofMetricsFromWire(baseline_alloc, encoded_proof);
 
     for (0..total_runs) |run_idx| {
+        var verify_arena = std.heap.ArenaAllocator.init(allocator);
+        defer verify_arena.deinit();
+        const verify_alloc = verify_arena.allocator();
+
         const start_ns = std.time.nanoTimestamp();
-        const decoded_proof = try proof_wire.decodeProofBytes(allocator, encoded_proof);
-        try verifyExample(allocator, config, baseline.statement, decoded_proof);
+        const decoded_proof = try proof_wire.decodeProofBytes(verify_alloc, encoded_proof);
+        try verifyExample(verify_alloc, config, baseline.statement, decoded_proof);
         const end_ns = std.time.nanoTimestamp();
 
         if (run_idx >= cli.bench_warmups) {
