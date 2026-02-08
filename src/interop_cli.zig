@@ -4,6 +4,7 @@ const stwo = @import("stwo.zig");
 const m31 = stwo.core.fields.m31;
 const fri = stwo.core.fri;
 const pcs = stwo.core.pcs;
+const blake2_hash = stwo.core.vcs.blake2_hash;
 const blake = stwo.examples.blake;
 const plonk = stwo.examples.plonk;
 const poseidon = stwo.examples.poseidon;
@@ -42,6 +43,7 @@ const Cli = struct {
     example: ?Example = null,
     artifact_path: []const u8,
     prove_mode: ProveMode = .prove,
+    blake2_backend: blake2_hash.BackendMode = .auto,
     include_all_preprocessed_columns: bool = false,
 
     pow_bits: u32 = 0,
@@ -125,6 +127,7 @@ pub fn main() !void {
         printUsage();
         return err;
     };
+    blake2_hash.setBackendMode(cli.blake2_backend);
 
     switch (cli.mode) {
         .generate => try runGenerate(gpa, cli),
@@ -886,6 +889,7 @@ fn parseArgs(args: []const []const u8) !Cli {
     var example: ?Example = null;
     var artifact_path: ?[]const u8 = null;
     var prove_mode: ProveMode = .prove;
+    var blake2_backend: blake2_hash.BackendMode = .auto;
     var include_all_preprocessed_columns = false;
 
     var pow_bits: u32 = 0;
@@ -931,6 +935,8 @@ fn parseArgs(args: []const []const u8) !Cli {
             artifact_path = value;
         } else if (std.mem.eql(u8, flag, "--prove-mode")) {
             prove_mode = parseProveMode(value) orelse return error.InvalidProveMode;
+        } else if (std.mem.eql(u8, flag, "--blake2-backend")) {
+            blake2_backend = parseBlake2Backend(value) orelse return error.InvalidBlake2Backend;
         } else if (std.mem.eql(u8, flag, "--include-all-preprocessed-columns")) {
             include_all_preprocessed_columns = try parseBool(value);
         } else if (std.mem.eql(u8, flag, "--pow-bits")) {
@@ -979,6 +985,7 @@ fn parseArgs(args: []const []const u8) !Cli {
         .example = example,
         .artifact_path = artifact_path orelse return error.MissingArtifactPath,
         .prove_mode = prove_mode,
+        .blake2_backend = blake2_backend,
         .include_all_preprocessed_columns = include_all_preprocessed_columns,
         .pow_bits = pow_bits,
         .fri_log_blowup = fri_log_blowup,
@@ -1025,6 +1032,13 @@ fn parseProveMode(value: []const u8) ?ProveMode {
     return null;
 }
 
+fn parseBlake2Backend(value: []const u8) ?blake2_hash.BackendMode {
+    if (std.mem.eql(u8, value, "auto")) return .auto;
+    if (std.mem.eql(u8, value, "scalar")) return .scalar;
+    if (std.mem.eql(u8, value, "simd")) return .simd;
+    return null;
+}
+
 fn parseBool(value: []const u8) !bool {
     if (std.mem.eql(u8, value, "1") or std.mem.eql(u8, value, "true")) return true;
     if (std.mem.eql(u8, value, "0") or std.mem.eql(u8, value, "false")) return false;
@@ -1055,11 +1069,11 @@ fn printUsage() void {
     std.debug.print(
         "usage:\n" ++
             "  zig run src/interop_cli.zig -- --mode generate --example <blake|plonk|poseidon|state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
-            "    [--prove-mode <prove|prove_ex>] [--include-all-preprocessed-columns <0|1>]\n" ++
+            "    [--prove-mode <prove|prove_ex>] [--blake2-backend <auto|scalar|simd>] [--include-all-preprocessed-columns <0|1>]\n" ++
             "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n" ++
             "  zig run src/interop_cli.zig -- --mode verify_std_shims --artifact <path>\n" ++
             "  zig run src/interop_cli.zig -- --mode bench --example <blake|plonk|poseidon|state_machine|wide_fibonacci|xor> --artifact <ignored> [options]\n" ++
-            "    [--bench-warmups <n>] [--bench-repeats <n>]\n",
+            "    [--bench-warmups <n>] [--bench-repeats <n>] [--blake2-backend <auto|scalar|simd>]\n",
         .{},
     );
 }

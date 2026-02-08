@@ -1,17 +1,10 @@
 const std = @import("std");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
+const blake2_hash = @import("../vcs/blake2_hash.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
-
-const Blake2s256 = blk: {
-    if (@hasDecl(std.crypto.hash, "Blake2s256")) break :blk std.crypto.hash.Blake2s256;
-    if (@hasDecl(std.crypto.hash, "blake2") and @hasDecl(std.crypto.hash.blake2, "Blake2s256")) {
-        break :blk std.crypto.hash.blake2.Blake2s256;
-    }
-    @compileError("Blake2s256 not found in std.crypto.hash");
-};
 
 pub const Digest32 = [32]u8;
 pub const BLAKE_BYTES_PER_HASH: usize = 32;
@@ -21,6 +14,8 @@ pub const Blake2sChannel = Blake2sChannelGeneric(false);
 pub const Blake2sM31Channel = Blake2sChannelGeneric(true);
 
 pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
+    const Hasher = blake2_hash.Blake2sHasherGeneric(is_m31_output);
+
     return struct {
         digest: Digest32 = [_]u8{0} ** 32,
         n_draws: u32 = 0,
@@ -38,7 +33,7 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         }
 
         pub fn mixFelts(self: *Self, felts: []const QM31) void {
-            var hasher = Blake2s256.init(.{});
+            var hasher = Hasher.init();
             hasher.update(self.digest[0..]);
             for (felts) |felt| {
                 const arr = felt.toM31Array();
@@ -47,17 +42,17 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
                     hasher.update(bytes[0..]);
                 }
             }
-            self.updateDigest(finalizeHash(hasher));
+            self.updateDigest(hasher.finalize());
         }
 
         pub fn mixU32s(self: *Self, data: []const u32) void {
-            var hasher = Blake2s256.init(.{});
+            var hasher = Hasher.init();
             hasher.update(self.digest[0..]);
             for (data) |word| {
                 const bytes = u32ToBytesLe(word);
                 hasher.update(bytes[0..]);
             }
-            self.updateDigest(finalizeHash(hasher));
+            self.updateDigest(hasher.finalize());
         }
 
         pub fn mixU64(self: *Self, value: u64) void {
@@ -113,20 +108,20 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         /// Verifies that `H(H(POW_PREFIX, [0u8;12], digest, n_bits), nonce)` has at least
         /// `n_bits` trailing zero bits in the first 128 bits (little-endian), matching upstream.
         pub fn verifyPowNonce(self: Self, n_bits: u32, nonce: u64) bool {
-            var prefixed_hasher = Blake2s256.init(.{});
+            var prefixed_hasher = Hasher.init();
             const prefix_bytes = u32ToBytesLe(POW_PREFIX);
             const bits_bytes = u32ToBytesLe(n_bits);
             prefixed_hasher.update(prefix_bytes[0..]);
             prefixed_hasher.update(&[_]u8{0} ** 12);
             prefixed_hasher.update(self.digest[0..]);
             prefixed_hasher.update(bits_bytes[0..]);
-            const prefixed_digest = finalizeHash(prefixed_hasher);
+            const prefixed_digest = prefixed_hasher.finalize();
 
-            var hasher = Blake2s256.init(.{});
+            var hasher = Hasher.init();
             hasher.update(prefixed_digest[0..]);
             const nonce_bytes = u64ToBytesLe(nonce);
             hasher.update(nonce_bytes[0..]);
-            const out = finalizeHash(hasher);
+            const out = hasher.finalize();
             return trailingZeroBits(out[0..16]) >= n_bits;
         }
 
@@ -152,32 +147,11 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         }
 
         fn hashBytes(data: []const u8) Digest32 {
-            var hasher = Blake2s256.init(.{});
+            var hasher = Hasher.init();
             hasher.update(data);
-            return finalizeHash(hasher);
-        }
-
-        fn finalizeHash(hasher: Blake2s256) Digest32 {
-            var out: Digest32 = undefined;
-            var h = hasher;
-            h.final(&out);
-            if (!is_m31_output) return out;
-            return reduceToM31(out);
+            return hasher.finalize();
         }
     };
-}
-
-fn reduceToM31(value: Digest32) Digest32 {
-    var out: Digest32 = undefined;
-    var i: usize = 0;
-    while (i < 8) : (i += 1) {
-        const start = i * 4;
-        const word = readU32Le(value[start .. start + 4]);
-        const reduced = M31.fromU64(word);
-        const bytes = reduced.toBytesLe();
-        @memcpy(out[start .. start + 4], bytes[0..]);
-    }
-    return out;
 }
 
 fn trailingZeroBits(bytes: []const u8) u32 {

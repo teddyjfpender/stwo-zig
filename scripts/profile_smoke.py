@@ -134,6 +134,7 @@ LONG_WORKLOADS: List[Dict[str, Any]] = [
 ]
 
 SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
+SUPPORTED_BLAKE2_BACKENDS = ("auto", "scalar", "simd")
 
 
 def run(cmd: List[str]) -> None:
@@ -329,7 +330,13 @@ def profile_runtime_workload(
     repeats: int,
     sample_duration_seconds: int,
     hotspot_top_n: int,
+    zig_blake2_backend: str,
 ) -> Dict[str, Any]:
+    backend_args = (
+        ["--blake2-backend", zig_blake2_backend]
+        if runtime == "zig"
+        else []
+    )
     cmd = (
         runtime_cmd(runtime)
         + [
@@ -340,6 +347,7 @@ def profile_runtime_workload(
             "--artifact",
             str(ARTIFACT_DIR / f"{runtime}_{workload['name']}.json"),
         ]
+        + backend_args
         + COMMON_CONFIG_ARGS
         + workload["args"]
     )
@@ -419,6 +427,12 @@ def main() -> int:
         help="Zig CPU target. Use 'baseline' to omit -mcpu, or 'native' for tuned local runs.",
     )
     parser.add_argument(
+        "--blake2-backend",
+        default="auto",
+        choices=SUPPORTED_BLAKE2_BACKENDS,
+        help="Blake2 backend selector for Zig runtime profile runs.",
+    )
+    parser.add_argument(
         "--report-label",
         default="profile_smoke",
         help="Logical label used in emitted report metadata.",
@@ -458,6 +472,7 @@ def main() -> int:
                 repeats=args.repeats,
                 sample_duration_seconds=args.sample_duration_seconds,
                 hotspot_top_n=args.hotspot_top_n,
+                zig_blake2_backend=args.blake2_backend,
             )
             profiles.append(entry)
             if SAMPLE_BIN.exists() and not entry["hotspots"]:
@@ -477,6 +492,7 @@ def main() -> int:
         "rust_toolchain": args.rust_toolchain,
         "zig_opt_mode": args.zig_opt_mode,
         "zig_cpu": args.zig_cpu,
+        "blake2_backend": args.blake2_backend,
         "report_label": args.report_label,
     }
     if args.include_large:

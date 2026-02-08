@@ -172,6 +172,7 @@ LONG_WORKLOADS: List[Dict[str, Any]] = [
 ]
 
 SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
+SUPPORTED_BLAKE2_BACKENDS = ("auto", "scalar", "simd")
 
 
 def run(cmd: List[str]) -> None:
@@ -324,9 +325,15 @@ def benchmark_runtime(
     workload: Dict[str, Any],
     warmups: int,
     repeats: int,
+    zig_blake2_backend: str,
 ) -> Dict[str, Any]:
     prefix = runtime_cmd(runtime)
     artifact_path = ARTIFACT_DIR / f"{runtime}_{workload['name']}.json"
+    backend_args = (
+        ["--blake2-backend", zig_blake2_backend]
+        if runtime == "zig"
+        else []
+    )
 
     generate_cmd = (
         prefix
@@ -338,10 +345,11 @@ def benchmark_runtime(
             "--artifact",
             str(artifact_path),
         ]
+        + backend_args
         + COMMON_CONFIG_ARGS
         + workload["args"]
     )
-    verify_cmd = prefix + ["--mode", "verify", "--artifact", str(artifact_path)]
+    verify_cmd = prefix + ["--mode", "verify", "--artifact", str(artifact_path)] + backend_args
 
     prove_stats = summarize_samples(
         f"{runtime}_{workload['name']}_prove",
@@ -388,6 +396,12 @@ def main() -> int:
         "--zig-cpu",
         default="baseline",
         help="Zig CPU target. Use 'baseline' to omit -mcpu, or 'native' for tuned local runs.",
+    )
+    parser.add_argument(
+        "--blake2-backend",
+        default="auto",
+        choices=SUPPORTED_BLAKE2_BACKENDS,
+        help="Blake2 backend selector for Zig runtime benchmark runs.",
     )
     parser.add_argument(
         "--report-label",
@@ -438,12 +452,14 @@ def main() -> int:
             workload=workload,
             warmups=args.warmups,
             repeats=args.repeats,
+            zig_blake2_backend=args.blake2_backend,
         )
         zig = benchmark_runtime(
             runtime="zig",
             workload=workload,
             warmups=args.warmups,
             repeats=args.repeats,
+            zig_blake2_backend=args.blake2_backend,
         )
 
         prove_ratio = ratio(zig["prove"]["avg_seconds"], rust["prove"]["avg_seconds"])
@@ -507,6 +523,7 @@ def main() -> int:
         "collector": "time -l" if TIME_BIN.exists() else "wall-clock-only",
         "zig_opt_mode": args.zig_opt_mode,
         "zig_cpu": args.zig_cpu,
+        "blake2_backend": args.blake2_backend,
         "report_label": args.report_label,
     }
     if args.include_large:
