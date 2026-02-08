@@ -355,3 +355,30 @@
 - `python3 scripts/parity_fields.py --regenerate --skip-zig`
 - `python3 scripts/parity_fields.py`
 - `zig build test --summary all`
+
+## Latest Slice (Examples Cross-Language Harness Report)
+- `scripts/e2e_examples.py`
+  - Added a dedicated examples parity harness that gates:
+    - Rust fixture generation (`tools/stwo-vector-gen`)
+    - committed-vector consistency checks
+    - Zig parity execution (`zig build test`)
+  - Added strict required-section coverage checks for:
+    - `example_state_machine_trace`
+    - `example_state_machine_transitions`
+    - `example_state_machine_claimed_sum`
+    - `example_xor_is_first`
+    - `example_xor_is_step_with_offset`
+  - Added machine-readable harness report output:
+    - `vectors/reports/examples_parity_report.json`
+    - convenience mirror `vectors/reports/latest_examples_parity_report.json`
+  - Supports both:
+    - check mode (must match committed vectors)
+    - regenerate mode (`--regenerate`)
+
+### Additional Gate/Probe Coverage (Passing)
+- `python3 scripts/e2e_examples.py`
+- `python3 scripts/e2e_examples.py --regenerate --skip-zig`
+- `zig build fmt`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `python3 scripts/parity_fields.py`
+- `zig build test --summary all`
