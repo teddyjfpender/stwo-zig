@@ -37,6 +37,7 @@ zig build prove-checkpoints
 zig build bench-smoke
 zig build bench-strict
 zig build profile-smoke
+zig build std-shims-smoke
 zig build release-evidence
 zig build deep-gate
 ```
@@ -66,6 +67,9 @@ the benchmark requirement for release signoff.
 
 `zig build profile-smoke` now runs deep proving workloads with `time -l` metrics and
 `sample`-based hotspot attribution, and emits mitigation hints in the profile report.
+
+`zig build std-shims-smoke` builds `src/std_shims/verifier_profile.zig` for
+`wasm32-freestanding` to enforce freestanding verifier profile compile parity.
 
 `zig build release-evidence` generates the canonical machine-readable release manifest:
 `vectors/reports/release_evidence.json`.

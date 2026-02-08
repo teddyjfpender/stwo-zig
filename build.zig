@@ -73,6 +73,23 @@ pub fn build(b: *std.Build) void {
     const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");
     profile_smoke_step.dependOn(&profile_smoke_cmd.step);
 
+    // Freestanding verifier profile compile check.
+    const std_shims_smoke_cmd = b.addSystemCommand(&.{
+        "zig",
+        "build-lib",
+        "src/std_shims_freestanding.zig",
+        "-target",
+        "wasm32-freestanding",
+        "-O",
+        "ReleaseSmall",
+        "-femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
+    });
+    const std_shims_smoke_step = b.step(
+        "std-shims-smoke",
+        "Build freestanding verifier profile shim (wasm32-freestanding)",
+    );
+    std_shims_smoke_step.dependOn(&std_shims_smoke_cmd.step);
+
     // Canonical release evidence manifest generator.
     const release_evidence_cmd = b.addSystemCommand(&.{
         "python3",
@@ -118,7 +135,7 @@ pub fn build(b: *std.Build) void {
     release_gate_step.dependOn(&rg_profile.step);
 
     // Strict release gate sequence:
-    // fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke
+    // fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke
     const rgs_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const rgs_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
     rgs_test.step.dependOn(&rgs_fmt.step);
@@ -144,17 +161,28 @@ pub fn build(b: *std.Build) void {
     rgs_bench.step.dependOn(&rgs_prove_checkpoints.step);
     const rgs_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
     rgs_profile.step.dependOn(&rgs_bench.step);
+    const rgs_std_shims = b.addSystemCommand(&.{
+        "zig",
+        "build-lib",
+        "src/std_shims_freestanding.zig",
+        "-target",
+        "wasm32-freestanding",
+        "-O",
+        "ReleaseSmall",
+        "-femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
+    });
+    rgs_std_shims.step.dependOn(&rgs_profile.step);
     const rgs_evidence = b.addSystemCommand(&.{
         "python3",
         "scripts/release_evidence.py",
         "--gate-mode",
         "strict",
     });
-    rgs_evidence.step.dependOn(&rgs_profile.step);
+    rgs_evidence.step.dependOn(&rgs_std_shims.step);
 
     const release_gate_strict_step = b.step(
         "release-gate-strict",
-        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> release-evidence)",
+        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> release-evidence)",
     );
     release_gate_strict_step.dependOn(&rgs_evidence.step);
 }

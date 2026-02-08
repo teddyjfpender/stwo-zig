@@ -70,6 +70,36 @@
 - `python3 scripts/e2e_interop.py`
 - `zig test src/stwo.zig --test-filter "examples wide_fibonacci:"`
 
+## Latest Slice (std-shims Freestanding Verifier Profile)
+
+### New Module
+- Added:
+  - `src/std_shims/mod.zig`
+  - `src/std_shims/verifier_profile.zig`
+- Exposed via `src/stwo.zig` as `stwo.std_shims`.
+- Added verification-only wrappers:
+  - `verifyXor(...)`
+  - `verifyStateMachine(...)`
+  - `verifyWideFibonacci(...)`
+
+### Build/Gate Wiring
+- `build.zig`:
+  - added `zig build std-shims-smoke`:
+    - compiles `src/std_shims_freestanding.zig` (entrypoint for
+      `src/std_shims/verifier_profile.zig`) for `wasm32-freestanding`.
+  - extended strict gate chain to include `std-shims-smoke` before
+    `release-evidence`.
+- `scripts/release_evidence.py`:
+  - strict gate command matrix now includes the freestanding std-shims compile
+    step.
+- `README.md`:
+  - documented `zig build std-shims-smoke`.
+
+### Validation (Passing)
+- `zig build test`
+- `zig test src/stwo.zig --test-filter "std_shims verifier profile:"`
+- `zig build std-shims-smoke`
+
 ## Latest Slice (Constraint-Framework Expression Core)
 
 ### New Zig Module

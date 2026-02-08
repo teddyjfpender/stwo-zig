@@ -5,6 +5,7 @@ pub const core = @import("core/mod.zig");
 pub const prover = @import("prover/mod.zig");
 pub const examples = @import("examples/mod.zig");
 pub const interop = @import("interop/mod.zig");
+pub const std_shims = @import("std_shims/mod.zig");
 pub const tracing = @import("tracing/mod.zig");
 
 test {

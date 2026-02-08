@@ -79,7 +79,7 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
         if gate_mode == "strict"
         else "python3 scripts/benchmark_smoke.py"
     )
-    return [
+    steps = [
         {"name": "fmt", "command": "zig fmt --check build.zig src tools"},
         {"name": "test", "command": "zig test src/stwo.zig"},
         {"name": "vectors", "command": "python3 scripts/parity_fields.py --skip-zig"},
@@ -87,6 +87,14 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
         {"name": "benchmark", "command": benchmark_cmd},
         {"name": "profile", "command": "python3 scripts/profile_smoke.py"},
     ]
+    if gate_mode == "strict":
+        steps.append(
+            {
+                "name": "std_shims",
+                "command": "zig build-lib src/std_shims_freestanding.zig -target wasm32-freestanding -O ReleaseSmall -femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
+            }
+        )
+    return steps
 
 
 def parse_args() -> argparse.Namespace:
