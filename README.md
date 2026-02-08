@@ -31,6 +31,7 @@ zig build bench-pages
 zig build bench-pages-validate
 zig build profile-smoke
 zig build profile-opt
+zig build opt-gate
 zig build deep-gate
 zig build std-shims-smoke
 zig build std-shims-behavior
@@ -56,7 +57,8 @@ Full benchmark add-on:
 Optimization track (non-authoritative for release conformance):
 - `zig build bench-opt`
 - `zig build profile-opt`
-- Native-tuned measurements are compared against frozen baseline via
+- `zig build opt-gate` (runs baseline-compatible bench/profile plus comparator thresholds)
+- Native-tuned measurements can also be compared manually via
   `python3 scripts/compare_optimization.py`.
 
 ## Reports

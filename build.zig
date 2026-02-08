@@ -134,6 +134,31 @@ pub fn build(b: *std.Build) void {
     const profile_opt_step = b.step("profile-opt", "Run optimization-track profile harness (native CPU)");
     profile_opt_step.dependOn(&profile_opt_cmd.step);
 
+    // Optimization acceptance gate against frozen baseline (additive to strict conformance gate).
+    const opt_compare_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/compare_optimization.py",
+        "--benchmark-report",
+        "vectors/reports/benchmark_smoke_report.json",
+        "--profile-report",
+        "vectors/reports/profile_smoke_report.json",
+        "--max-prove-regression-pct",
+        "1.0",
+        "--max-verify-regression-pct",
+        "5.0",
+        "--max-zig-profile-regression-pct",
+        "5.0",
+    });
+    opt_compare_cmd.step.dependOn(&bench_strict_cmd.step);
+    opt_compare_cmd.step.dependOn(&profile_smoke_cmd.step);
+    opt_compare_cmd.step.dependOn(&bench_opt_cmd.step);
+    opt_compare_cmd.step.dependOn(&profile_opt_cmd.step);
+    const opt_gate_step = b.step(
+        "opt-gate",
+        "Run optimization acceptance gate (bench/profile + baseline comparator)",
+    );
+    opt_gate_step.dependOn(&opt_compare_cmd.step);
+
     // Freestanding verifier profile compile check.
     const std_shims_smoke_cmd = b.addSystemCommand(&.{
         "zig",

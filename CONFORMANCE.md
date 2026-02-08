@@ -132,6 +132,7 @@ Production conformance for this port is reached only when all items below pass:
 1. Each major milestone MUST include a profiling report.
 2. Reports MUST identify top hotspots and show before/after when optimizations are claimed.
 3. Optimizations without measurement evidence are non-conformant.
+4. Optimization-track claims MUST include a baseline comparator report (`optimization_compare_report.json`) with explicit regression tolerances and settings-hash match.
 
 ## 10. Velocity and Scope-Divergence Controls
 

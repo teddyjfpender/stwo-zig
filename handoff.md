@@ -5,6 +5,43 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (Optimization Wave 2: Core Kernel + Opt Gate)
+
+### Core Runtime Optimizations
+- `src/interop_cli.zig`
+  - reduced bench-path allocator churn using per-run arenas
+  - switched CLI root allocator to `c_allocator` for lower `mmap/munmap` overhead
+- `src/prover/poly/circle/evaluation.zig`
+  - added reusable `BarycentricContext` + `BarycentricWorkspace`
+  - added in-place batch inverse path and context-based eval API
+- `src/core/circle.zig`, `src/core/constraints.zig`
+  - cached `Coset.half_step` to eliminate repeated `step_size.half().toPoint()` in vanishing hot paths
+- `src/core/pcs/quotients.zig`
+  - reworked `friAnswers` to reuse denominator scratch/inverse buffers
+  - added zero-copy row accumulation path from flattened queried columns
+- `src/core/fields/cm31.zig`, `src/core/fields/qm31.zig`
+  - replaced schoolbook CM31/QM31 multiply/square kernels with reduced-multiplication formulas
+  - specialized QM31 `mulByR` path for `R = 2 + i`
+- `src/prover/pcs/mod.zig`
+  - `evaluateSampledValues` now uses log-size scoped barycentric context/workspace cache
+    instead of per-point weight-map allocations
+
+### Optimization Acceptance Gate (Additive, Non-Authoritative)
+- `build.zig`
+  - added `zig build opt-gate`
+  - chain:
+    - `bench-strict` (baseline-comparable matrix)
+    - `profile-smoke` (baseline-comparable profile)
+    - `bench-opt` + `profile-opt` (native track evidence)
+    - `scripts/compare_optimization.py` with explicit regression tolerances
+- Strict release authority remains unchanged:
+  - `zig build release-gate-strict`
+
+### Validation (Passing)
+- `zig build release-gate-strict`
+- `zig build opt-gate`
+- `python3 scripts/compare_optimization.py`
+
 ## Latest Slice (Final Signoff + Full Benchmark Parity Add-on)
 
 ### Strict Signoff Gate Hardening
