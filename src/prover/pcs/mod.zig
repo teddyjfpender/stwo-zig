@@ -28,7 +28,6 @@ const PointSample = core_quotients.PointSample;
 pub const CommitmentSchemeError = error{
     ShapeMismatch,
     InvalidPreprocessedTree,
-    UnsupportedBlowup,
 };
 
 pub const ColumnEvaluation = quotient_ops.ColumnEvaluation;
@@ -185,7 +184,14 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             columns: []const ColumnEvaluation,
             channel: anytype,
         ) !void {
-            var tree = try CommitmentTreeProver(H).init(allocator, columns);
+            const committed_columns = try prepareColumnsForCommitBorrowed(
+                allocator,
+                columns,
+                self.config.fri_config.log_blowup_factor,
+            );
+            errdefer freeOwnedColumnEvaluations(allocator, committed_columns);
+
+            var tree = try CommitmentTreeProver(H).initOwned(allocator, committed_columns);
             errdefer tree.deinit(allocator);
             try self.appendCommittedTree(allocator, tree, channel);
         }
@@ -360,9 +366,6 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             channel: anytype,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
-            if (scheme.config.fri_config.log_blowup_factor != 0) {
-                return CommitmentSchemeError.UnsupportedBlowup;
-            }
             const lifting_log_size = try scheme.maxTreeLogSize();
             const sampled_values = try evaluateSampledValues(
                 allocator,
@@ -396,10 +399,6 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             defer scheme.deinit(allocator);
-
-            if (scheme.config.fri_config.log_blowup_factor != 0) {
-                return CommitmentSchemeError.UnsupportedBlowup;
-            }
 
             if (scheme.trees.items.len != sampled_points.items.len) {
                 return CommitmentSchemeError.ShapeMismatch;
@@ -618,14 +617,20 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
         }
 
         pub fn commit(self: *Self, channel: anytype) !void {
-            const owned = try self.columns.toOwnedSlice();
+            const base_columns = try self.columns.toOwnedSlice();
             self.columns = std.ArrayList(ColumnEvaluation).init(self.allocator);
             errdefer {
-                for (owned) |column| self.allocator.free(column.values);
-                self.allocator.free(owned);
+                freeOwnedColumnEvaluations(self.allocator, base_columns);
             }
 
-            var tree = try CommitmentTreeProver(H).initOwned(self.allocator, owned);
+            const committed_columns = try prepareColumnsForCommitOwned(
+                self.allocator,
+                base_columns,
+                self.commitment_scheme.config.fri_config.log_blowup_factor,
+            );
+            errdefer freeOwnedColumnEvaluations(self.allocator, committed_columns);
+
+            var tree = try CommitmentTreeProver(H).initOwned(self.allocator, committed_columns);
             errdefer tree.deinit(self.allocator);
             try self.commitment_scheme.appendCommittedTree(self.allocator, tree, channel);
         }
@@ -721,6 +726,85 @@ fn borrowedColumnsTree(
     }
 
     return TreeVec([]ColumnEvaluation).initOwned(out);
+}
+
+fn prepareColumnsForCommitBorrowed(
+    allocator: std.mem.Allocator,
+    columns: []const ColumnEvaluation,
+    log_blowup_factor: u32,
+) ![]ColumnEvaluation {
+    const owned = try allocator.alloc(ColumnEvaluation, columns.len);
+    errdefer allocator.free(owned);
+
+    var initialized: usize = 0;
+    errdefer {
+        for (owned[0..initialized]) |column| allocator.free(column.values);
+    }
+
+    for (columns, 0..) |column, i| {
+        try column.validate();
+        owned[i] = .{
+            .log_size = column.log_size,
+            .values = try allocator.dupe(M31, column.values),
+        };
+        initialized += 1;
+    }
+
+    return prepareColumnsForCommitOwned(allocator, owned, log_blowup_factor);
+}
+
+fn prepareColumnsForCommitOwned(
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+) ![]ColumnEvaluation {
+    if (log_blowup_factor == 0) {
+        return owned_columns;
+    }
+
+    const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
+
+    var initialized: usize = 0;
+    errdefer {
+        for (extended[0..initialized]) |column| allocator.free(column.values);
+        allocator.free(extended);
+    }
+
+    for (owned_columns, 0..) |column, i| {
+        try column.validate();
+        const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
+        const evaluation = try prover_circle.CircleEvaluation.init(domain, column.values);
+        const extended_log_size = std.math.add(
+            u32,
+            column.log_size,
+            log_blowup_factor,
+        ) catch return CommitmentSchemeError.ShapeMismatch;
+
+        var coeffs = try prover_circle.poly.interpolateFromEvaluation(allocator, evaluation);
+        defer coeffs.deinit(allocator);
+
+        const extended_eval = try prover_circle.ops.evaluateOnCanonicDomain(
+            allocator,
+            coeffs,
+            log_blowup_factor,
+        );
+        extended[i] = .{
+            .log_size = extended_log_size,
+            .values = extended_eval.values,
+        };
+        initialized += 1;
+    }
+
+    freeOwnedColumnEvaluations(allocator, owned_columns);
+    return extended;
+}
+
+fn freeOwnedColumnEvaluations(
+    allocator: std.mem.Allocator,
+    columns: []const ColumnEvaluation,
+) void {
+    for (columns) |column| allocator.free(column.values);
+    allocator.free(columns);
 }
 
 fn grind(channel: anytype, pow_bits: u32) u64 {
@@ -1230,16 +1314,17 @@ test "prover pcs: prove values from samples rejects shape mismatch" {
     );
 }
 
-test "prover pcs: prove values paths reject unsupported blowup" {
+test "prover pcs: prove values paths support non-zero blowup" {
     const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
     const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
     const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
     const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const Verifier = @import("../../core/pcs/verifier.zig").CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
     var scheme_samples = try Scheme.init(alloc, .{
         .pow_bits = 0,
-        .fri_config = try @import("../../core/fri.zig").FriConfig.init(1, 1, 2),
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 2, 2),
     });
 
     const column_values = [_]M31{
@@ -1254,12 +1339,19 @@ test "prover pcs: prove values paths reject unsupported blowup" {
         &[_]ColumnEvaluation{.{ .log_size = 2, .values = column_values[0..] }},
         &channel,
     );
+    try std.testing.expectEqual(@as(u32, 4), scheme_samples.trees.items[0].columns[0].log_size);
+    try std.testing.expectEqual(@as(usize, 16), scheme_samples.trees.items[0].columns[0].values.len);
 
     const sample_point = @import("../../core/circle.zig").SECURE_FIELD_CIRCLE_GEN.mul(31);
     const sampled_points_col = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{sample_point});
     const sampled_points_tree = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{sampled_points_col});
     const sampled_points = TreeVec([][]CirclePointQM31).initOwned(
         try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree}),
+    );
+    const sampled_points_col_verify = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{sample_point});
+    const sampled_points_tree_verify = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{sampled_points_col_verify});
+    const sampled_points_verify = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_verify}),
     );
 
     const sampled_values_col = try alloc.dupe(QM31, &[_]QM31{QM31.fromBase(M31.fromCanonical(5))});
@@ -1268,19 +1360,37 @@ test "prover pcs: prove values paths reject unsupported blowup" {
         try alloc.dupe([][]QM31, &[_][][]QM31{sampled_values_tree}),
     );
 
-    try std.testing.expectError(
-        CommitmentSchemeError.UnsupportedBlowup,
-        scheme_samples.proveValuesFromSamples(
-            alloc,
-            sampled_points,
-            sampled_values,
-            &channel,
-        ),
+    var proof_samples = try scheme_samples.proveValuesFromSamples(
+        alloc,
+        sampled_points,
+        sampled_values,
+        &channel,
+    );
+    defer proof_samples.aux.deinit(alloc);
+
+    var verifier_samples = try Verifier.init(alloc, .{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 2, 2),
+    });
+    defer verifier_samples.deinit(alloc);
+
+    var verifier_channel = Channel{};
+    try verifier_samples.commit(
+        alloc,
+        proof_samples.proof.commitments.items[0],
+        &[_]u32{2},
+        &verifier_channel,
+    );
+    try verifier_samples.verifyValues(
+        alloc,
+        sampled_points_verify,
+        proof_samples.proof,
+        &verifier_channel,
     );
 
     var scheme_points = try Scheme.init(alloc, .{
         .pow_bits = 0,
-        .fri_config = try @import("../../core/fri.zig").FriConfig.init(1, 1, 2),
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 2, 2),
     });
     try scheme_points.commit(
         alloc,
@@ -1293,14 +1403,37 @@ test "prover pcs: prove values paths reject unsupported blowup" {
     const sampled_points_only = TreeVec([][]CirclePointQM31).initOwned(
         try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_only}),
     );
+    const sampled_points_col_only_verify = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{sample_point});
+    const sampled_points_tree_only_verify = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{sampled_points_col_only_verify});
+    const sampled_points_only_verify = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_only_verify}),
+    );
 
-    try std.testing.expectError(
-        CommitmentSchemeError.UnsupportedBlowup,
-        scheme_points.proveValues(
-            alloc,
-            sampled_points_only,
-            &channel,
-        ),
+    var proof_points = try scheme_points.proveValues(
+        alloc,
+        sampled_points_only,
+        &channel,
+    );
+    defer proof_points.aux.deinit(alloc);
+
+    var verifier_points = try Verifier.init(alloc, .{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 2, 2),
+    });
+    defer verifier_points.deinit(alloc);
+
+    var verifier_points_channel = Channel{};
+    try verifier_points.commit(
+        alloc,
+        proof_points.proof.commitments.items[0],
+        &[_]u32{2},
+        &verifier_points_channel,
+    );
+    try verifier_points.verifyValues(
+        alloc,
+        sampled_points_only_verify,
+        proof_points.proof,
+        &verifier_points_channel,
     );
 }
 

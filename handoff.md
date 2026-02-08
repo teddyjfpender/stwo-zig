@@ -36,7 +36,10 @@
     - FRI commitment/decommit
     - PoW nonce grind + transcript mixing
     - final `ExtendedCommitmentSchemeProof` assembly
-  - Added explicit safety gate: current `proveValues` paths reject non-zero blowup (`UnsupportedBlowup`) until extended-domain commit semantics are fully ported.
+  - Ported non-zero blowup commit semantics:
+    - columns are now committed on the extended domain (`log_size + log_blowup_factor`) via interpolation + canonic-domain evaluation.
+    - `proveValues` / `proveValuesFromSamples` no longer reject non-zero blowup.
+    - added non-zero blowup roundtrip coverage for both sampled-values and in-prover sampled-point paths.
   - Added roundtrip test against `core/pcs/verifier.zig`.
   - Added negative tests for shape mismatch, inconsistent sampled-value rejection, and sampled-point-on-domain rejection.
 
@@ -116,16 +119,15 @@
 2. `prover/poly/circle` is now executable but still missing full upstream FFT/twiddle-backed interpolation/evaluation parity.
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current executable entrypoints are sampled-points (`prove`/`proveEx`), component-driven (`proveExComponents`/`proveComponents`), and prepared sampled-values (`provePrepared`) paths.
-   - Component-driven slice currently enforces zero PCS blowup (`log_blowup_factor == 0`) while composition commit uses reference evaluation/interpolation.
+   - Component-driven slice now allows non-zero PCS blowup, but still uses reference interpolation/evaluation in composition commit path.
 
 ## Next Highest-Impact Targets
 1. Complete FFT/twiddle-backed circle interpolation/evaluation parity and wire `store_polynomials_coefficients` fast path.
-2. Generalize component-driven proving to non-zero blowup (align `ColumnEvaluation`/commit semantics with upstream extended-domain handling).
-3. Implement full upstream `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
-4. Expand differential vectors to cover prover-side circle poly slices and full `proveValues`.
+2. Implement full upstream `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
+3. Expand differential vectors to cover prover-side circle poly slices and full `proveValues` (including non-zero blowup cases).
+4. Strengthen component-driven `proveEx` parity coverage with non-zero blowup fixtures.
 
 ## Divergence Record (Active)
 - Temporary implementation divergence:
   - `CommitmentSchemeProver.proveValues` currently evaluates from committed column evaluations only (no stored-coefficients fast path and no weights cache map).
-  - Component-driven `proveExComponents` currently supports only `log_blowup_factor == 0`.
   - Closure plan: complete `prover/poly/circle` coefficient stack and route `setStorePolynomialsCoefficients` through upstream-equivalent branching.
