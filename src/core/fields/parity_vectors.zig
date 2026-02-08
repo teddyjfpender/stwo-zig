@@ -17,6 +17,8 @@ const prover_secure_column_mod = @import("../../prover/secure_column.zig");
 const vcs_prover_mod = @import("../../prover/vcs/prover.zig");
 const vcs_lifted_prover_mod = @import("../../prover/vcs_lifted/prover.zig");
 const prover_line_mod = @import("../../prover/line.zig");
+const example_state_machine_mod = @import("../../examples/state_machine.zig");
+const example_xor_mod = @import("../../examples/xor.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
 const qm31_mod = @import("qm31.zig");
@@ -264,6 +266,32 @@ const VcsLiftedVerifierVector = struct {
     expected: []const u8,
 };
 
+const ExampleStateMachineTraceVector = struct {
+    log_size: u32,
+    initial_state: [2]u32,
+    inc_index: usize,
+    columns: [][]u32,
+};
+
+const ExampleStateMachineTransitionVector = struct {
+    log_n_rows: u32,
+    initial_state: [2]u32,
+    intermediate_state: [2]u32,
+    final_state: [2]u32,
+};
+
+const ExampleXorIsFirstVector = struct {
+    log_size: u32,
+    values: []u32,
+};
+
+const ExampleXorIsStepWithOffsetVector = struct {
+    log_size: u32,
+    log_step: u32,
+    offset: usize,
+    values: []u32,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -290,6 +318,10 @@ const VectorFile = struct {
     vcs_prover: []VcsProverVector,
     vcs_lifted_verifier: []VcsLiftedVerifierVector,
     vcs_lifted_prover: []VcsLiftedProverVector,
+    example_state_machine_trace: []ExampleStateMachineTraceVector,
+    example_state_machine_transitions: []ExampleStateMachineTransitionVector,
+    example_xor_is_first: []ExampleXorIsFirstVector,
+    example_xor_is_step_with_offset: []ExampleXorIsStepWithOffsetVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -1418,6 +1450,157 @@ test "field vectors: vcs lifted prover parity" {
             queried_values,
             decommitment.decommitment.decommitment,
         );
+    }
+}
+
+test "field vectors: examples state machine trace parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_state_machine_trace.len > 0);
+    for (parsed.value.example_state_machine_trace, 0..) |v, vec_idx| {
+        try std.testing.expectEqual(@as(usize, 2), v.columns.len);
+
+        var trace = try example_state_machine_mod.genTrace(
+            alloc,
+            v.log_size,
+            .{ m31From(v.initial_state[0]), m31From(v.initial_state[1]) },
+            v.inc_index,
+        );
+        defer example_state_machine_mod.deinitTrace(alloc, &trace);
+
+        try std.testing.expectEqual(v.columns[0].len, trace[0].len);
+        try std.testing.expectEqual(v.columns[1].len, trace[1].len);
+        for (v.columns[0], 0..) |expected, i| {
+            try std.testing.expect(trace[0][i].eql(m31From(expected)));
+        }
+        for (v.columns[1], 0..) |expected, i| {
+            try std.testing.expect(trace[1][i].eql(m31From(expected)));
+        }
+
+        if (vec_idx == 0) {
+            const alt_inc_index = (v.inc_index + 1) % 2;
+            var alt_trace = try example_state_machine_mod.genTrace(
+                alloc,
+                v.log_size,
+                .{ m31From(v.initial_state[0]), m31From(v.initial_state[1]) },
+                alt_inc_index,
+            );
+            defer example_state_machine_mod.deinitTrace(alloc, &alt_trace);
+
+            var differs = false;
+            for (alt_trace[0], 0..) |value, i| {
+                if (!value.eql(trace[0][i]) or !alt_trace[1][i].eql(trace[1][i])) {
+                    differs = true;
+                    break;
+                }
+            }
+            try std.testing.expect(differs);
+        }
+    }
+}
+
+test "field vectors: examples state machine transitions parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_state_machine_transitions.len > 0);
+    for (parsed.value.example_state_machine_transitions, 0..) |v, vec_idx| {
+        const initial: example_state_machine_mod.State = .{
+            m31From(v.initial_state[0]),
+            m31From(v.initial_state[1]),
+        };
+        const states = try example_state_machine_mod.transitionStates(v.log_n_rows, initial);
+
+        try std.testing.expect(states.intermediate[0].eql(m31From(v.intermediate_state[0])));
+        try std.testing.expect(states.intermediate[1].eql(m31From(v.intermediate_state[1])));
+        try std.testing.expect(states.final[0].eql(m31From(v.final_state[0])));
+        try std.testing.expect(states.final[1].eql(m31From(v.final_state[1])));
+
+        if (vec_idx == 0) {
+            const mutated_initial: example_state_machine_mod.State = .{
+                initial[0].add(M31.one()),
+                initial[1],
+            };
+            const mutated_states = try example_state_machine_mod.transitionStates(v.log_n_rows, mutated_initial);
+            const equal_intermediate = mutated_states.intermediate[0].eql(states.intermediate[0]) and
+                mutated_states.intermediate[1].eql(states.intermediate[1]);
+            const equal_final = mutated_states.final[0].eql(states.final[0]) and
+                mutated_states.final[1].eql(states.final[1]);
+            try std.testing.expect(!equal_intermediate or !equal_final);
+        }
+    }
+}
+
+test "field vectors: examples xor is_first parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_xor_is_first.len > 0);
+    for (parsed.value.example_xor_is_first, 0..) |v, vec_idx| {
+        const values = try example_xor_mod.genIsFirstColumn(alloc, v.log_size);
+        defer alloc.free(values);
+
+        try std.testing.expectEqual(v.values.len, values.len);
+        for (v.values, 0..) |expected, i| {
+            try std.testing.expect(values[i].eql(m31From(expected)));
+        }
+
+        if (vec_idx == 0) {
+            const alt_values = try example_xor_mod.genIsFirstColumn(alloc, v.log_size + 1);
+            defer alloc.free(alt_values);
+            try std.testing.expect(alt_values.len != values.len);
+        }
+    }
+}
+
+test "field vectors: examples xor is_step_with_offset parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_xor_is_step_with_offset.len > 0);
+    for (parsed.value.example_xor_is_step_with_offset, 0..) |v, vec_idx| {
+        const values = try example_xor_mod.genIsStepWithOffsetColumn(
+            alloc,
+            v.log_size,
+            v.log_step,
+            v.offset,
+        );
+        defer alloc.free(values);
+
+        try std.testing.expectEqual(v.values.len, values.len);
+        for (v.values, 0..) |expected, i| {
+            try std.testing.expect(values[i].eql(m31From(expected)));
+        }
+
+        if (vec_idx == 0) {
+            var alt_log_step = v.log_step;
+            var alt_offset = v.offset +% 1;
+            if (v.log_step == 0) {
+                alt_log_step = 1;
+                alt_offset = v.offset;
+            }
+            const alt_values = try example_xor_mod.genIsStepWithOffsetColumn(
+                alloc,
+                v.log_size,
+                alt_log_step,
+                alt_offset,
+            );
+            defer alloc.free(alt_values);
+
+            var differs = false;
+            for (alt_values, 0..) |value, i| {
+                if (!value.eql(values[i])) {
+                    differs = true;
+                    break;
+                }
+            }
+            try std.testing.expect(differs);
+        }
     }
 }
 

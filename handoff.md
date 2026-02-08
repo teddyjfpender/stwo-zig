@@ -274,3 +274,45 @@
 - `zig build test --summary all`
 - `python3 scripts/parity_fields.py`
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+
+## Latest Slice (Examples Parity Vectors: state_machine + xor)
+- `src/examples/mod.zig`
+  - Added exported examples module surface:
+    - `state_machine`
+    - `xor`
+- `src/examples/state_machine.zig`
+  - Added deterministic trace generation parity slice:
+    - `genTrace(allocator, log_size, initial_state, inc_index)` using bit-reversed circle-domain indexing.
+    - `deinitTrace(...)` ownership helper.
+  - Added public-state transition parity helper:
+    - `transitionStates(log_n_rows, initial_state)` with upstream-equivalent intermediate/final formulas.
+  - Added tests for success and failure paths (`InvalidIncIndex`, `InvalidLogSize`).
+- `src/examples/xor.zig`
+  - Added deterministic preprocessed-column generators:
+    - `genIsFirstColumn(...)`
+    - `genIsStepWithOffsetColumn(...)` using bit-reversed circle-domain indexing.
+  - Added tests for success and failure paths (`InvalidStep`).
+- `tools/stwo-vector-gen/src/main.rs`
+  - Extended field-vector schema and generation with:
+    - `example_state_machine_trace`
+    - `example_state_machine_transitions`
+    - `example_xor_is_first`
+    - `example_xor_is_step_with_offset`
+  - Added deterministic generators for each section and state encoding helper.
+- `src/core/fields/parity_vectors.zig`
+  - Extended JSON parser schema for all new example sections.
+  - Added parity tests that compare Rust-generated vectors against Zig example implementations.
+  - Added explicit negative differential checks in each new parity slice:
+    - state-machine trace (`inc_index` perturbation)
+    - state-machine transitions (mutated initial state)
+    - xor `is_first` (different `log_size`)
+    - xor `is_step_with_offset` (step/offset perturbation)
+- `vectors/fields.json`
+  - Regenerated deterministically with new example vector sections.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig build fmt`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `python3 scripts/parity_fields.py --regenerate --skip-zig`
+- `python3 scripts/parity_fields.py`
+- `zig build test --summary all`

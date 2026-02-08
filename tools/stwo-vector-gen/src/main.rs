@@ -1,7 +1,7 @@
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::collections::BTreeMap;
 
 use serde::Serialize;
 use stwo::core::circle::{
@@ -13,29 +13,29 @@ use stwo::core::fields::m31::{M31, P};
 use stwo::core::fields::qm31::QM31;
 use stwo::core::fields::{ComplexConjugate, FieldExpOps};
 use stwo::core::fri::{fold_circle_into_line, fold_line, FriLayerProof, FriProof};
-use stwo::core::pcs::PcsConfig;
-use stwo::core::pcs::utils::prepare_preprocessed_query_positions;
 use stwo::core::pcs::quotients::{
     accumulate_row_partial_numerators, accumulate_row_quotients,
     build_samples_with_randomness_and_periodicity, denominator_inverses, fri_answers,
     quotient_constants, ColumnSampleBatch, CommitmentSchemeProof, PointSample,
 };
+use stwo::core::pcs::utils::prepare_preprocessed_query_positions;
+use stwo::core::pcs::PcsConfig;
 use stwo::core::pcs::TreeVec;
 use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::poly::line::{LineDomain, LinePoly};
 use stwo::core::proof::StarkProof;
-use stwo::core::utils::{bit_reverse, bit_reverse_index};
+use stwo::core::utils::{bit_reverse, bit_reverse_index, coset_index_to_circle_domain_index};
 use stwo::core::vcs::blake2_hash::Blake2sHash;
-use stwo::core::vcs::blake3_hash::{Blake3Hash, Blake3Hasher};
 use stwo::core::vcs::blake2_merkle::Blake2sMerkleHasher as VcsMerkleHasher;
+use stwo::core::vcs::blake3_hash::{Blake3Hash, Blake3Hasher};
+use stwo::core::vcs::verifier::{MerkleDecommitment, MerkleVerificationError, MerkleVerifier};
 use stwo::core::vcs::MerkleHasher;
-use stwo::core::vcs::verifier::{MerkleDecommitment, MerkleVerifier, MerkleVerificationError};
 use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher as LiftedMerkleHasher;
-use stwo::core::vcs_lifted::MerkleHasherLifted;
 use stwo::core::vcs_lifted::verifier::{
     MerkleDecommitmentLifted, MerkleVerificationError as MerkleVerificationErrorLifted,
     MerkleVerifierLifted,
 };
+use stwo::core::vcs_lifted::MerkleHasherLifted;
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const VECTOR_SCHEMA_VERSION: u32 = 1;
@@ -60,6 +60,10 @@ const VCS_PROVER_VECTOR_COUNT: usize = 16;
 const VCS_LIFTED_VERIFIER_VECTOR_COUNT: usize = 24;
 const VCS_LIFTED_PROVER_VECTOR_COUNT: usize = 16;
 const BLAKE3_VECTOR_COUNT: usize = 64;
+const EXAMPLE_STATE_MACHINE_TRACE_VECTOR_COUNT: usize = 24;
+const EXAMPLE_STATE_MACHINE_TRANSITION_VECTOR_COUNT: usize = 24;
+const EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT: usize = 24;
+const EXAMPLE_XOR_IS_STEP_WITH_OFFSET_VECTOR_COUNT: usize = 32;
 
 #[derive(Debug, Clone, Serialize)]
 struct Meta {
@@ -327,6 +331,36 @@ struct VcsLiftedVerifierVector {
     expected: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct ExampleStateMachineTraceVector {
+    log_size: u32,
+    initial_state: [u32; 2],
+    inc_index: usize,
+    columns: Vec<Vec<u32>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ExampleStateMachineTransitionVector {
+    log_n_rows: u32,
+    initial_state: [u32; 2],
+    intermediate_state: [u32; 2],
+    final_state: [u32; 2],
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ExampleXorIsFirstVector {
+    log_size: u32,
+    values: Vec<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ExampleXorIsStepWithOffsetVector {
+    log_size: u32,
+    log_step: u32,
+    offset: usize,
+    values: Vec<u32>,
+}
+
 #[derive(Clone)]
 struct VcsBaseCase {
     root: Blake2sHash,
@@ -368,6 +402,10 @@ struct FieldVectors {
     vcs_prover: Vec<VcsProverVector>,
     vcs_lifted_verifier: Vec<VcsLiftedVerifierVector>,
     vcs_lifted_prover: Vec<VcsLiftedProverVector>,
+    example_state_machine_trace: Vec<ExampleStateMachineTraceVector>,
+    example_state_machine_transitions: Vec<ExampleStateMachineTransitionVector>,
+    example_xor_is_first: Vec<ExampleXorIsFirstVector>,
+    example_xor_is_step_with_offset: Vec<ExampleXorIsStepWithOffsetVector>,
 }
 
 fn main() {
@@ -516,6 +554,20 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         generate_vcs_lifted_verifier_vectors(state, VCS_LIFTED_VERIFIER_VECTOR_COUNT);
     let vcs_lifted_prover =
         generate_vcs_lifted_prover_vectors(state, VCS_LIFTED_PROVER_VECTOR_COUNT);
+    let example_state_machine_trace = generate_example_state_machine_trace_vectors(
+        state,
+        EXAMPLE_STATE_MACHINE_TRACE_VECTOR_COUNT,
+    );
+    let example_state_machine_transitions = generate_example_state_machine_transition_vectors(
+        state,
+        EXAMPLE_STATE_MACHINE_TRANSITION_VECTOR_COUNT,
+    );
+    let example_xor_is_first =
+        generate_example_xor_is_first_vectors(state, EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT);
+    let example_xor_is_step_with_offset = generate_example_xor_is_step_with_offset_vectors(
+        state,
+        EXAMPLE_XOR_IS_STEP_WITH_OFFSET_VECTOR_COUNT,
+    );
 
     for _ in 0..BLAKE3_VECTOR_COUNT {
         let data_len = next_u64(state) as usize % 96;
@@ -575,10 +627,123 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         vcs_prover,
         vcs_lifted_verifier,
         vcs_lifted_prover,
+        example_state_machine_trace,
+        example_state_machine_transitions,
+        example_xor_is_first,
+        example_xor_is_step_with_offset,
     }
 }
 
-fn generate_proof_extract_oods_vectors(state: &mut u64, count: usize) -> Vec<ProofExtractOodsVector> {
+fn generate_example_state_machine_trace_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleStateMachineTraceVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let log_size = 2 + ((next_u64(state) as u32) % 9);
+        let n = 1usize << log_size;
+        let inc_index = (next_u64(state) as usize) % 2;
+
+        let initial_state = [sample_m31(state, false), sample_m31(state, false)];
+        let mut curr_state = initial_state;
+
+        let mut columns = vec![vec![M31::from(0); n], vec![M31::from(0); n]];
+        for i in 0..n {
+            let idx = bit_reverse_index(coset_index_to_circle_domain_index(i, log_size), log_size);
+            columns[0][idx] = curr_state[0];
+            columns[1][idx] = curr_state[1];
+            curr_state[inc_index] += M31::from(1);
+        }
+
+        out.push(ExampleStateMachineTraceVector {
+            log_size,
+            initial_state: encode_state(initial_state),
+            inc_index,
+            columns: columns
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect())
+                .collect(),
+        });
+    }
+    out
+}
+
+fn generate_example_state_machine_transition_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleStateMachineTransitionVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let log_n_rows = 1 + ((next_u64(state) as u32) % 30);
+        let initial_state = [sample_m31(state, false), sample_m31(state, false)];
+
+        let mut intermediate_state = initial_state;
+        intermediate_state[0] += M31::from(1u32 << log_n_rows);
+
+        let mut final_state = intermediate_state;
+        final_state[1] += M31::from(1u32 << (log_n_rows - 1));
+
+        out.push(ExampleStateMachineTransitionVector {
+            log_n_rows,
+            initial_state: encode_state(initial_state),
+            intermediate_state: encode_state(intermediate_state),
+            final_state: encode_state(final_state),
+        });
+    }
+    out
+}
+
+fn generate_example_xor_is_first_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleXorIsFirstVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let log_size = 1 + ((next_u64(state) as u32) % 10);
+        let n = 1usize << log_size;
+        let mut values = vec![0u32; n];
+        values[0] = 1;
+
+        out.push(ExampleXorIsFirstVector { log_size, values });
+    }
+    out
+}
+
+fn generate_example_xor_is_step_with_offset_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleXorIsStepWithOffsetVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let log_size = 1 + ((next_u64(state) as u32) % 10);
+        let n = 1usize << log_size;
+        let log_step = (next_u64(state) as u32) % (log_size + 1);
+        let step = 1usize << log_step;
+        let offset = (next_u64(state) as usize) % (n.saturating_mul(2).max(1));
+
+        let mut values = vec![0u32; n];
+        let mut i = offset % step;
+        while i < n {
+            let circle_domain_idx = coset_index_to_circle_domain_index(i, log_size);
+            let bit_rev_idx = bit_reverse_index(circle_domain_idx, log_size);
+            values[bit_rev_idx] = 1;
+            i += step;
+        }
+
+        out.push(ExampleXorIsStepWithOffsetVector {
+            log_size,
+            log_step,
+            offset,
+            values,
+        });
+    }
+    out
+}
+
+fn generate_proof_extract_oods_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ProofExtractOodsVector> {
     let mut out = Vec::with_capacity(count);
     for _ in 0..count {
         let composition_log_size = 2 + ((next_u64(state) as u32) % 8);
@@ -597,7 +762,8 @@ fn generate_proof_extract_oods_vectors(state: &mut u64, count: usize) -> Vec<Pro
             .expect("right composition coordinates length");
         let left_eval = QM31::from_partial_evals(left);
         let right_eval = QM31::from_partial_evals(right);
-        let expected = left_eval + oods_point.repeated_double(composition_log_size - 2).x * right_eval;
+        let expected =
+            left_eval + oods_point.repeated_double(composition_log_size - 2).x * right_eval;
 
         out.push(ProofExtractOodsVector {
             composition_log_size,
@@ -624,7 +790,11 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
             let mut tree = Vec::with_capacity(cols);
             for _ in 0..cols {
                 let rows = 1 + (next_u64(state) as usize % 3);
-                tree.push((0..rows).map(|_| sample_qm31(state, false)).collect::<Vec<_>>());
+                tree.push(
+                    (0..rows)
+                        .map(|_| sample_qm31(state, false))
+                        .collect::<Vec<_>>(),
+                );
             }
             sampled_values.push(tree);
         }
@@ -645,7 +815,11 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
             let mut tree = Vec::with_capacity(cols);
             for _ in 0..cols {
                 let rows = 1 + (next_u64(state) as usize % 3);
-                tree.push((0..rows).map(|_| sample_m31(state, false)).collect::<Vec<_>>());
+                tree.push(
+                    (0..rows)
+                        .map(|_| sample_m31(state, false))
+                        .collect::<Vec<_>>(),
+                );
             }
             queried_values.push(tree);
         }
@@ -712,7 +886,13 @@ fn generate_proof_size_vectors(state: &mut u64, count: usize) -> Vec<ProofSizeVe
                 .collect(),
             decommitments: decommitments
                 .into_iter()
-                .map(|decommitment| decommitment.hash_witness.into_iter().map(encode_hash).collect())
+                .map(|decommitment| {
+                    decommitment
+                        .hash_witness
+                        .into_iter()
+                        .map(encode_hash)
+                        .collect()
+                })
                 .collect(),
             queried_values: queried_values
                 .into_iter()
@@ -781,7 +961,10 @@ fn generate_prover_line_vectors(state: &mut u64, count: usize) -> Vec<ProverLine
 
 fn interpolate_line_values(mut values: Vec<QM31>, line_log_size: u32) -> Vec<QM31> {
     bit_reverse(&mut values);
-    line_ifft(&mut values, LineDomain::new(Coset::half_odds(line_log_size)));
+    line_ifft(
+        &mut values,
+        LineDomain::new(Coset::half_odds(line_log_size)),
+    );
     let len_inv = M31::from(values.len() as u32).inverse();
     values.iter_mut().for_each(|v| *v *= len_inv);
     values
@@ -887,34 +1070,35 @@ fn build_vcs_lifted_verifier_cases(state: &mut u64) -> Vec<VcsLiftedVerifierVect
     let base_decommitment = base.decommitment.clone();
 
     let mut out = Vec::<VcsLiftedVerifierVector>::new();
-    let mut push_case = |case: &str,
-                         case_root: Blake2sHash,
-                         case_queried_values: Vec<Vec<M31>>,
-                         case_decommitment: MerkleDecommitmentLifted<LiftedMerkleHasher>| {
-        let expected = run_vcs_lifted_verifier(
-            case_root,
-            column_log_sizes.clone(),
-            query_positions.clone(),
-            case_queried_values.clone(),
-            case_decommitment.clone(),
-        );
-        out.push(VcsLiftedVerifierVector {
-            case: case.to_string(),
-            root: encode_hash(case_root),
-            column_log_sizes: column_log_sizes.clone(),
-            query_positions: query_positions.clone(),
-            queried_values: case_queried_values
-                .into_iter()
-                .map(|column| column.into_iter().map(encode_m31).collect())
-                .collect(),
-            hash_witness: case_decommitment
-                .hash_witness
-                .into_iter()
-                .map(encode_hash)
-                .collect(),
-            expected,
-        });
-    };
+    let mut push_case =
+        |case: &str,
+         case_root: Blake2sHash,
+         case_queried_values: Vec<Vec<M31>>,
+         case_decommitment: MerkleDecommitmentLifted<LiftedMerkleHasher>| {
+            let expected = run_vcs_lifted_verifier(
+                case_root,
+                column_log_sizes.clone(),
+                query_positions.clone(),
+                case_queried_values.clone(),
+                case_decommitment.clone(),
+            );
+            out.push(VcsLiftedVerifierVector {
+                case: case.to_string(),
+                root: encode_hash(case_root),
+                column_log_sizes: column_log_sizes.clone(),
+                query_positions: query_positions.clone(),
+                queried_values: case_queried_values
+                    .into_iter()
+                    .map(|column| column.into_iter().map(encode_m31).collect())
+                    .collect(),
+                hash_witness: case_decommitment
+                    .hash_witness
+                    .into_iter()
+                    .map(encode_hash)
+                    .collect(),
+                expected,
+            });
+        };
 
     push_case(
         "valid",
@@ -935,12 +1119,7 @@ fn build_vcs_lifted_verifier_cases(state: &mut u64) -> Vec<VcsLiftedVerifierVect
     if !base_decommitment.hash_witness.is_empty() {
         let mut short = base_decommitment.clone();
         short.hash_witness.pop();
-        push_case(
-            "witness_too_short",
-            root,
-            queried_values.clone(),
-            short,
-        );
+        push_case("witness_too_short", root, queried_values.clone(), short);
     }
 
     let mut long = base_decommitment.clone();
@@ -1082,7 +1261,11 @@ fn build_vcs_lifted_base_case(state: &mut u64) -> Option<VcsLiftedBaseCase> {
     let decommitment = MerkleDecommitmentLifted::<LiftedMerkleHasher> { hash_witness };
     let verifier = MerkleVerifierLifted::<LiftedMerkleHasher>::new(root, column_log_sizes.clone());
     if verifier
-        .verify(&query_positions, queried_values.clone(), decommitment.clone())
+        .verify(
+            &query_positions,
+            queried_values.clone(),
+            decommitment.clone(),
+        )
         .is_err()
     {
         return None;
@@ -1148,7 +1331,11 @@ fn build_vcs_base_case(state: &mut u64) -> Option<VcsBaseCase> {
 
     let max_log_size = *column_log_sizes.iter().max().expect("at least one column");
     let mut columns_by_layer = BTreeMap::<u32, Vec<Vec<M31>>>::new();
-    for (log_size, column) in column_log_sizes.iter().copied().zip(columns.iter().cloned()) {
+    for (log_size, column) in column_log_sizes
+        .iter()
+        .copied()
+        .zip(columns.iter().cloned())
+    {
         columns_by_layer.entry(log_size).or_default().push(column);
     }
 
@@ -1241,7 +1428,10 @@ fn build_vcs_base_case(state: &mut u64) -> Option<VcsBaseCase> {
                 if prev_layer_queries.next_if_eq(&(2 * node_index)).is_none() {
                     hash_witness.push(prev_hashes[2 * node_index]);
                 }
-                if prev_layer_queries.next_if_eq(&(2 * node_index + 1)).is_none() {
+                if prev_layer_queries
+                    .next_if_eq(&(2 * node_index + 1))
+                    .is_none()
+                {
                     hash_witness.push(prev_hashes[2 * node_index + 1]);
                 }
             }
@@ -1298,44 +1488,50 @@ fn build_vcs_verifier_cases(state: &mut u64) -> Vec<VcsVerifierVector> {
     let base_decommitment = base.decommitment.clone();
 
     let mut out = Vec::<VcsVerifierVector>::new();
-    let mut push_case = |case: &str,
-                         case_root: Blake2sHash,
-                         case_queried_values: Vec<M31>,
-                         case_decommitment: MerkleDecommitment<VcsMerkleHasher>| {
-        let expected = run_vcs_verifier(
-            case_root,
-            column_log_sizes.clone(),
-            queries_per_log_size.clone(),
-            case_queried_values.clone(),
-            case_decommitment.clone(),
-        );
-        out.push(VcsVerifierVector {
-            case: case.to_string(),
-            root: encode_hash(case_root),
-            column_log_sizes: column_log_sizes.clone(),
-            queries_per_log_size: queries_per_log_size
-                .iter()
-                .map(|(log_size, queries)| VcsLogSizeQueriesVector {
-                    log_size: *log_size,
-                    queries: queries.clone(),
-                })
-                .collect(),
-            queried_values: case_queried_values.into_iter().map(encode_m31).collect(),
-            hash_witness: case_decommitment
-                .hash_witness
-                .into_iter()
-                .map(encode_hash)
-                .collect(),
-            column_witness: case_decommitment
-                .column_witness
-                .into_iter()
-                .map(encode_m31)
-                .collect(),
-            expected,
-        });
-    };
+    let mut push_case =
+        |case: &str,
+         case_root: Blake2sHash,
+         case_queried_values: Vec<M31>,
+         case_decommitment: MerkleDecommitment<VcsMerkleHasher>| {
+            let expected = run_vcs_verifier(
+                case_root,
+                column_log_sizes.clone(),
+                queries_per_log_size.clone(),
+                case_queried_values.clone(),
+                case_decommitment.clone(),
+            );
+            out.push(VcsVerifierVector {
+                case: case.to_string(),
+                root: encode_hash(case_root),
+                column_log_sizes: column_log_sizes.clone(),
+                queries_per_log_size: queries_per_log_size
+                    .iter()
+                    .map(|(log_size, queries)| VcsLogSizeQueriesVector {
+                        log_size: *log_size,
+                        queries: queries.clone(),
+                    })
+                    .collect(),
+                queried_values: case_queried_values.into_iter().map(encode_m31).collect(),
+                hash_witness: case_decommitment
+                    .hash_witness
+                    .into_iter()
+                    .map(encode_hash)
+                    .collect(),
+                column_witness: case_decommitment
+                    .column_witness
+                    .into_iter()
+                    .map(encode_m31)
+                    .collect(),
+                expected,
+            });
+        };
 
-    push_case("valid", root, queried_values.clone(), base_decommitment.clone());
+    push_case(
+        "valid",
+        root,
+        queried_values.clone(),
+        base_decommitment.clone(),
+    );
 
     let mut bad_root = root;
     bad_root.0[0] ^= 1;
@@ -1353,12 +1549,7 @@ fn build_vcs_verifier_cases(state: &mut u64) -> Vec<VcsVerifierVector> {
         } else {
             short.column_witness.pop();
         }
-        push_case(
-            "witness_too_short",
-            root,
-            queried_values.clone(),
-            short,
-        );
+        push_case("witness_too_short", root, queried_values.clone(), short);
     }
 
     let mut long = base_decommitment.clone();
@@ -1522,7 +1713,10 @@ fn generate_fri_fold_vectors(state: &mut u64, count: usize) -> Vec<FriFoldVector
             fold_line_values: fold_line_values_raw.into_iter().map(encode_qm31).collect(),
             circle_log_size,
             circle_eval: circle_eval.into_iter().map(encode_qm31).collect(),
-            fold_circle_values: fold_circle_values_raw.into_iter().map(encode_qm31).collect(),
+            fold_circle_values: fold_circle_values_raw
+                .into_iter()
+                .map(encode_qm31)
+                .collect(),
         });
     }
     out
@@ -1570,13 +1764,9 @@ fn build_fri_decommit_cases(state: &mut u64) -> Vec<FriDecommitVector> {
     }
 
     let mut out = Vec::<FriDecommitVector>::new();
-    let mut push_case =
-        |case: &str, case_fold_step: u32, case_queries: Vec<usize>| {
-            let (expected, outputs) = match compute_fri_decommit_outputs(
-                &column,
-                &case_queries,
-                case_fold_step,
-            ) {
+    let mut push_case = |case: &str, case_fold_step: u32, case_queries: Vec<usize>| {
+        let (expected, outputs) =
+            match compute_fri_decommit_outputs(&column, &case_queries, case_fold_step) {
                 Ok(outputs) => ("ok".to_string(), outputs),
                 Err(err) => (
                     err.to_string(),
@@ -1589,18 +1779,22 @@ fn build_fri_decommit_cases(state: &mut u64) -> Vec<FriDecommitVector> {
                 ),
             };
 
-            out.push(FriDecommitVector {
-                case: case.to_string(),
-                fold_step: case_fold_step,
-                column: column.iter().copied().map(encode_qm31).collect(),
-                query_positions: case_queries,
-                decommitment_positions: outputs.decommitment_positions,
-                witness_evals: outputs.witness_evals.into_iter().map(encode_qm31).collect(),
-                value_map_positions: outputs.value_map_positions,
-                value_map_values: outputs.value_map_values.into_iter().map(encode_qm31).collect(),
-                expected,
-            });
-        };
+        out.push(FriDecommitVector {
+            case: case.to_string(),
+            fold_step: case_fold_step,
+            column: column.iter().copied().map(encode_qm31).collect(),
+            query_positions: case_queries,
+            decommitment_positions: outputs.decommitment_positions,
+            witness_evals: outputs.witness_evals.into_iter().map(encode_qm31).collect(),
+            value_map_positions: outputs.value_map_positions,
+            value_map_values: outputs
+                .value_map_values
+                .into_iter()
+                .map(encode_qm31)
+                .collect(),
+            expected,
+        });
+    };
 
     push_case("valid", fold_step, query_positions.clone());
 
@@ -1609,11 +1803,7 @@ fn build_fri_decommit_cases(state: &mut u64) -> Vec<FriDecommitVector> {
     out_of_range_queries.sort_unstable();
     push_case("query_out_of_range", fold_step, out_of_range_queries);
 
-    push_case(
-        "fold_step_too_large",
-        usize::BITS,
-        query_positions,
-    );
+    push_case("fold_step_too_large", usize::BITS, query_positions);
 
     out
 }
@@ -1664,7 +1854,8 @@ fn compute_fri_decommit_outputs(
             value_map_positions.push(position);
             value_map_values.push(eval);
 
-            if subset_query_at < subset_queries.len() && subset_queries[subset_query_at] == position {
+            if subset_query_at < subset_queries.len() && subset_queries[subset_query_at] == position
+            {
                 subset_query_at += 1;
             } else {
                 witness_evals.push(eval);
@@ -1682,7 +1873,10 @@ fn compute_fri_decommit_outputs(
     })
 }
 
-fn generate_fri_layer_decommit_vectors(state: &mut u64, count: usize) -> Vec<FriLayerDecommitVector> {
+fn generate_fri_layer_decommit_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<FriLayerDecommitVector> {
     let mut out = Vec::with_capacity(count);
     while out.len() < count {
         let mut cases = build_fri_layer_decommit_cases(state);
@@ -1718,31 +1912,29 @@ fn build_fri_layer_decommit_cases(state: &mut u64) -> Vec<FriLayerDecommitVector
     }
     query_positions.sort_unstable();
 
-    let base_commitment = match compute_fri_layer_decommit_outputs(&column, &query_positions, fold_step) {
-        Ok(outputs) => outputs.commitment,
-        Err(_) => return vec![],
-    };
+    let base_commitment =
+        match compute_fri_layer_decommit_outputs(&column, &query_positions, fold_step) {
+            Ok(outputs) => outputs.commitment,
+            Err(_) => return vec![],
+        };
 
     let mut out = Vec::<FriLayerDecommitVector>::new();
     let mut push_case = |case: &str, case_fold_step: u32, case_queries: Vec<usize>| {
-        let (expected, outputs) = match compute_fri_layer_decommit_outputs(
-            &column,
-            &case_queries,
-            case_fold_step,
-        ) {
-            Ok(outputs) => ("ok".to_string(), outputs),
-            Err(err) => (
-                err.to_string(),
-                FriLayerDecommitOutputs {
-                    commitment: base_commitment,
-                    decommitment_positions: Vec::new(),
-                    fri_witness: Vec::new(),
-                    hash_witness: Vec::new(),
-                    value_map_positions: Vec::new(),
-                    value_map_values: Vec::new(),
-                },
-            ),
-        };
+        let (expected, outputs) =
+            match compute_fri_layer_decommit_outputs(&column, &case_queries, case_fold_step) {
+                Ok(outputs) => ("ok".to_string(), outputs),
+                Err(err) => (
+                    err.to_string(),
+                    FriLayerDecommitOutputs {
+                        commitment: base_commitment,
+                        decommitment_positions: Vec::new(),
+                        fri_witness: Vec::new(),
+                        hash_witness: Vec::new(),
+                        value_map_positions: Vec::new(),
+                        value_map_values: Vec::new(),
+                    },
+                ),
+            };
 
         out.push(FriLayerDecommitVector {
             case: case.to_string(),
@@ -1754,7 +1946,11 @@ fn build_fri_layer_decommit_cases(state: &mut u64) -> Vec<FriLayerDecommitVector
             fri_witness: outputs.fri_witness.into_iter().map(encode_qm31).collect(),
             hash_witness: outputs.hash_witness.into_iter().map(encode_hash).collect(),
             value_map_positions: outputs.value_map_positions,
-            value_map_values: outputs.value_map_values.into_iter().map(encode_qm31).collect(),
+            value_map_values: outputs
+                .value_map_values
+                .into_iter()
+                .map(encode_qm31)
+                .collect(),
             expected,
         });
     };
@@ -1928,10 +2124,8 @@ fn try_generate_pcs_quotients_vector(state: &mut u64) -> Option<PcsQuotientsVect
         random_coeff,
     );
 
-    let flattened_samples_with_randomness = samples_with_randomness
-        .iter()
-        .flatten()
-        .collect::<Vec<_>>();
+    let flattened_samples_with_randomness =
+        samples_with_randomness.iter().flatten().collect::<Vec<_>>();
     let sample_batches = ColumnSampleBatch::new_vec(&flattened_samples_with_randomness);
 
     let sample_points = sample_batches.iter().map(|b| b.point).collect::<Vec<_>>();
@@ -1958,7 +2152,8 @@ fn try_generate_pcs_quotients_vector(state: &mut u64) -> Option<PcsQuotientsVect
         .cloned()
         .collect::<Vec<_>>();
 
-    let mut denominator_inverses_out: Vec<Vec<[u32; 2]>> = Vec::with_capacity(query_positions.len());
+    let mut denominator_inverses_out: Vec<Vec<[u32; 2]>> =
+        Vec::with_capacity(query_positions.len());
     let mut partial_numerators_out: Vec<Vec<[u32; 4]>> = Vec::with_capacity(query_positions.len());
     let mut row_quotients_out: Vec<[u32; 4]> = Vec::with_capacity(query_positions.len());
 
@@ -1975,7 +2170,13 @@ fn try_generate_pcs_quotients_vector(state: &mut u64) -> Option<PcsQuotientsVect
         let partials = sample_batches
             .iter()
             .zip(line_coeffs_raw.iter())
-            .map(|(batch, coeffs)| encode_qm31(accumulate_row_partial_numerators(batch, &queried_values_at_row, coeffs)))
+            .map(|(batch, coeffs)| {
+                encode_qm31(accumulate_row_partial_numerators(
+                    batch,
+                    &queried_values_at_row,
+                    coeffs,
+                ))
+            })
             .collect::<Vec<_>>();
         partial_numerators_out.push(partials);
 
@@ -2083,6 +2284,10 @@ fn encode_point_sample(sample: &PointSample) -> PointSampleVector {
 
 fn encode_m31(x: M31) -> u32 {
     x.0
+}
+
+fn encode_state(state: [M31; 2]) -> [u32; 2] {
+    [encode_m31(state[0]), encode_m31(state[1])]
 }
 
 fn encode_hash(x: Blake2sHash) -> [u8; 32] {

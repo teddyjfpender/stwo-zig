@@ -3,6 +3,7 @@ const std = @import("std");
 
 pub const core = @import("core/mod.zig");
 pub const prover = @import("prover/mod.zig");
+pub const examples = @import("examples/mod.zig");
 pub const tracing = @import("tracing/mod.zig");
 
 test {
