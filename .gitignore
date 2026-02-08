@@ -3,6 +3,8 @@ zig-out/
 tools/stwo-vector-gen/target/
 tools/stwo-interop-rs/target/
 vectors/.fields.tmp.json
+vectors/.bench*
+vectors/.profile*
 vectors/reports/e2e_interop_report.json
 vectors/reports/latest_e2e_interop_report.json
 vectors/reports/interop_artifacts/

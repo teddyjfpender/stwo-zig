@@ -46,6 +46,38 @@
 - `zig build interop`
 - `zig build release-gate`
 
+## Latest Slice (Benchmark/Profile Protocol Upgrade)
+
+### Benchmark Harness
+- `scripts/benchmark_smoke.py`
+  - Upgraded from fixture smoke timing to matched Rust-vs-Zig proving protocol on
+    release interop binaries.
+  - Benchmarks deterministic workload matrix (`xor` + `state_machine`) on shared
+    config inputs and records:
+    - prove latency samples
+    - verify latency samples
+    - per-sample peak RSS (`time -l`)
+    - proof wire size
+    - commitments/decommitments shape metrics
+  - Enforces default Zig/Rust latency gate:
+    - `zig_over_rust <= 1.50` (per `CONFORMANCE.md` section 9.2).
+  - Supports stricter optional matrix:
+    - `--include-medium`
+
+### Profiling Harness
+- `scripts/profile_smoke.py`
+  - Upgraded from coarse smoke to hotspot-attribution profiling:
+    - deep proving workloads (`state_machine_deep`, `xor_deep`)
+    - repeated `time -l` metrics (wall, RSS, instructions, cycles)
+    - `sample`-based hotspot extraction (`Sort by top of stack`)
+  - Emits actionable mitigation hints keyed by hotspot classes
+    (quotient/FRI, hash/Merkle, allocator churn, field/circle mul).
+
+### Additional Gate Coverage (Passing)
+- `zig build bench-smoke`
+- `zig build profile-smoke`
+- `zig build release-gate`
+
 ## Latest Slice (Examples Wrappers + Gate Harnesses)
 
 ### Example Proof Wrappers

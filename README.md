@@ -41,6 +41,13 @@ zig build profile-smoke
 (`proof_exchange_json_wire_v1`) and includes tamper-rejection checks. It uses
 Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
 
+`zig build bench-smoke` now runs a matched Rust-vs-Zig workload matrix over release
+interop binaries, records raw prove/verify timing samples, RSS, proof-size/decommit
+shape metrics, and enforces `<= 1.50x` Zig-over-Rust latency threshold by default.
+
+`zig build profile-smoke` now runs deep proving workloads with `time -l` metrics and
+`sample`-based hotspot attribution, and emits mitigation hints in the profile report.
+
 ### Deterministic release sequence
 
 ```bash

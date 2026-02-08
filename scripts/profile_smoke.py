@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Profiling smoke harness for parity workloads.
-
-Collects coarse wall-clock and peak RSS data using `/usr/bin/time -l` when available.
-"""
+"""Profiling harness with hotspot attribution for Rust/Zig proving workloads."""
 
 from __future__ import annotations
 
@@ -13,19 +10,119 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
+from typing import Any, Dict, List
 
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORT_DEFAULT = ROOT / "vectors" / "reports" / "profile_smoke_report.json"
-GEN_MANIFEST = ROOT / "tools" / "stwo-vector-gen" / "Cargo.toml"
-TMP_VECTORS = ROOT / "vectors" / ".profile.fields.tmp.json"
-RSS_RE = re.compile(r"^\s*(\d+)\s+maximum resident set size\s*$", re.MULTILINE)
+
+RUST_MANIFEST = ROOT / "tools" / "stwo-interop-rs" / "Cargo.toml"
+RUST_BIN = ROOT / "tools" / "stwo-interop-rs" / "target" / "release" / "stwo-interop-rs"
+ZIG_BIN = ROOT / "vectors" / ".bench.zig_interop"
+ARTIFACT_DIR = ROOT / "vectors" / ".profile_artifacts"
+SAMPLE_DIR = ROOT / "vectors" / ".profile_samples"
+
+RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
 TIME_BIN = Path("/usr/bin/time")
+SAMPLE_BIN = Path("/usr/bin/sample")
+
+RSS_RE = re.compile(r"^\s*(\d+)\s+maximum resident set size\s*$", re.MULTILINE)
+INSTR_RE = re.compile(r"^\s*(\d+)\s+instructions retired\s*$", re.MULTILINE)
+CYCLES_RE = re.compile(r"^\s*(\d+)\s+cycles elapsed\s*$", re.MULTILINE)
+PEAK_FOOTPRINT_RE = re.compile(r"^\s*(\d+)\s+peak memory footprint\s*$", re.MULTILINE)
+HOTSPOT_LINE_RE = re.compile(r"^\s*(.+?)\s+\(in [^)]+\)\s+(\d+)\s*$")
+
+COMMON_CONFIG_ARGS = [
+    "--pow-bits",
+    "0",
+    "--fri-log-blowup",
+    "1",
+    "--fri-log-last-layer",
+    "0",
+    "--fri-n-queries",
+    "3",
+]
+
+WORKLOADS: List[Dict[str, Any]] = [
+    {
+        "name": "state_machine_deep",
+        "example": "state_machine",
+        "args": [
+            "--sm-log-n-rows",
+            "15",
+            "--sm-initial-0",
+            "9",
+            "--sm-initial-1",
+            "3",
+        ],
+    },
+    {
+        "name": "xor_deep",
+        "example": "xor",
+        "args": [
+            "--xor-log-size",
+            "15",
+            "--xor-log-step",
+            "3",
+            "--xor-offset",
+            "5",
+        ],
+    },
+]
 
 
-def run_profiled(name: str, cmd: list[str]) -> dict:
+def run(cmd: List[str]) -> None:
+    subprocess.run(cmd, cwd=ROOT, check=True)
+
+
+def ensure_binaries(rust_toolchain: str) -> None:
+    run(
+        [
+            "cargo",
+            f"+{rust_toolchain}",
+            "build",
+            "--release",
+            "--manifest-path",
+            str(RUST_MANIFEST),
+        ]
+    )
+    run(
+        [
+            "zig",
+            "build-exe",
+            "src/interop_cli.zig",
+            "-O",
+            "ReleaseFast",
+            "-femit-bin=" + str(ZIG_BIN),
+        ]
+    )
+
+
+def runtime_cmd(runtime: str) -> List[str]:
+    if runtime == "rust":
+        return [str(RUST_BIN)]
+    if runtime == "zig":
+        return [str(ZIG_BIN)]
+    raise ValueError(f"unknown runtime {runtime}")
+
+
+def parse_time_metrics(stderr: str) -> Dict[str, Any]:
+    rss = RSS_RE.search(stderr)
+    instructions = INSTR_RE.search(stderr)
+    cycles = CYCLES_RE.search(stderr)
+    peak_footprint = PEAK_FOOTPRINT_RE.search(stderr)
+    return {
+        "peak_rss_kb": int(rss.group(1)) if rss else None,
+        "instructions_retired": int(instructions.group(1)) if instructions else None,
+        "cycles_elapsed": int(cycles.group(1)) if cycles else None,
+        "peak_memory_footprint_bytes": int(peak_footprint.group(1))
+        if peak_footprint
+        else None,
+    }
+
+
+def run_profiled_once(cmd: List[str]) -> Dict[str, Any]:
     start = time.perf_counter()
-
     if TIME_BIN.exists():
         proc = subprocess.run(
             [str(TIME_BIN), "-l", *cmd],
@@ -34,27 +131,190 @@ def run_profiled(name: str, cmd: list[str]) -> dict:
             capture_output=True,
             check=True,
         )
-        stderr = proc.stderr
-        match = RSS_RE.search(stderr)
-        peak_rss_kb = int(match.group(1)) if match else None
+        metrics = parse_time_metrics(proc.stderr)
     else:
         subprocess.run(cmd, cwd=ROOT, check=True)
-        stderr = ""
-        peak_rss_kb = None
-
+        proc = None
+        metrics = {
+            "peak_rss_kb": None,
+            "instructions_retired": None,
+            "cycles_elapsed": None,
+            "peak_memory_footprint_bytes": None,
+        }
     elapsed = time.perf_counter() - start
     return {
-        "name": name,
-        "command": cmd,
         "seconds": round(elapsed, 6),
-        "peak_rss_kb": peak_rss_kb,
-        "time_stderr": stderr.splitlines()[-8:] if stderr else [],
+        **metrics,
+        "stderr_tail": proc.stderr.splitlines()[-8:] if proc else [],
+    }
+
+
+def parse_hotspots(sample_text: str, top_n: int) -> List[Dict[str, Any]]:
+    marker = "Sort by top of stack, same collapsed"
+    start = sample_text.find(marker)
+    if start < 0:
+        return []
+
+    lines = sample_text[start:].splitlines()[1:]
+    hotspots: List[Dict[str, Any]] = []
+    for line in lines:
+        if not line.strip():
+            continue
+        if line.startswith("Binary Images:"):
+            break
+        match = HOTSPOT_LINE_RE.match(line)
+        if not match:
+            continue
+        symbol = match.group(1).strip()
+        samples = int(match.group(2))
+        hotspots.append({"symbol": symbol, "samples": samples})
+        if len(hotspots) >= top_n:
+            break
+    return hotspots
+
+
+def sample_hotspots(
+    *,
+    cmd: List[str],
+    sample_file: Path,
+    duration_seconds: int,
+    top_n: int,
+) -> Dict[str, Any]:
+    if not SAMPLE_BIN.exists():
+        return {"available": False, "sample_file": None, "hotspots": []}
+
+    with subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) as proc:
+        sample_cmd = [
+            str(SAMPLE_BIN),
+            str(proc.pid),
+            str(duration_seconds),
+            "-mayDie",
+            "-file",
+            str(sample_file),
+        ]
+        sample_proc = subprocess.run(
+            sample_cmd,
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        proc.wait()
+        if sample_proc.returncode != 0:
+            return {
+                "available": True,
+                "sample_file": str(sample_file.relative_to(ROOT)),
+                "hotspots": [],
+                "sample_error": sample_proc.stderr.splitlines()[-8:],
+            }
+
+    sample_text = sample_file.read_text(encoding="utf-8")
+    return {
+        "available": True,
+        "sample_file": str(sample_file.relative_to(ROOT)),
+        "hotspots": parse_hotspots(sample_text, top_n=top_n),
+    }
+
+
+def hotspot_hints(hotspots: List[Dict[str, Any]]) -> List[str]:
+    hints: List[str] = []
+
+    def add_hint(msg: str) -> None:
+        if msg not in hints:
+            hints.append(msg)
+
+    for hotspot in hotspots:
+        symbol = hotspot["symbol"].lower()
+        if "frianswers" in symbol or "compute_fri_quotients" in symbol or "quotient" in symbol:
+            add_hint("Prioritize quotient/FRI loop optimization and allocation reuse in PCS decommit paths.")
+        if "blake2" in symbol or "merkle" in symbol or "hash" in symbol:
+            add_hint("Investigate hashing/Merkle batching and vectorized digest paths.")
+        if "mmap" in symbol or "munmap" in symbol or "alloc" in symbol or "free_" in symbol:
+            add_hint("Reduce allocator churn by reusing large buffers across prove stages.")
+        if "circlepoint" in symbol or "::mul" in symbol:
+            add_hint("Target field/circle multiplication hot loops for SIMD-friendly batching.")
+    return hints[:4]
+
+
+def avg(values: List[float]) -> float:
+    return (sum(values) / len(values)) if values else 0.0
+
+
+def profile_runtime_workload(
+    *,
+    runtime: str,
+    workload: Dict[str, Any],
+    repeats: int,
+    sample_duration_seconds: int,
+    hotspot_top_n: int,
+) -> Dict[str, Any]:
+    cmd = (
+        runtime_cmd(runtime)
+        + [
+            "--mode",
+            "generate",
+            "--example",
+            workload["example"],
+            "--artifact",
+            str(ARTIFACT_DIR / f"{runtime}_{workload['name']}.json"),
+        ]
+        + COMMON_CONFIG_ARGS
+        + workload["args"]
+    )
+
+    runs = [run_profiled_once(cmd) for _ in range(repeats)]
+    sample_file = SAMPLE_DIR / f"{runtime}_{workload['name']}.sample.txt"
+    hotspot_info = sample_hotspots(
+        cmd=cmd,
+        sample_file=sample_file,
+        duration_seconds=sample_duration_seconds,
+        top_n=hotspot_top_n,
+    )
+
+    seconds = [float(run["seconds"]) for run in runs]
+    peak_rss_values = [int(run["peak_rss_kb"]) for run in runs if run["peak_rss_kb"] is not None]
+    instructions = [
+        int(run["instructions_retired"])
+        for run in runs
+        if run["instructions_retired"] is not None
+    ]
+    cycles = [int(run["cycles_elapsed"]) for run in runs if run["cycles_elapsed"] is not None]
+
+    hotspots = hotspot_info.get("hotspots", [])
+    return {
+        "runtime": runtime,
+        "workload": workload["name"],
+        "example": workload["example"],
+        "command": cmd,
+        "repeats": repeats,
+        "runs": runs,
+        "summary": {
+            "avg_seconds": round(avg(seconds), 6),
+            "max_seconds": round(max(seconds), 6) if seconds else 0.0,
+            "min_seconds": round(min(seconds), 6) if seconds else 0.0,
+            "avg_peak_rss_kb": round(avg([float(v) for v in peak_rss_values]), 2)
+            if peak_rss_values
+            else None,
+            "max_peak_rss_kb": max(peak_rss_values) if peak_rss_values else None,
+            "avg_instructions_retired": round(avg([float(v) for v in instructions]), 2)
+            if instructions
+            else None,
+            "avg_cycles_elapsed": round(avg([float(v) for v in cycles]), 2)
+            if cycles
+            else None,
+        },
+        "hotspots": hotspots,
+        "hotspot_hints": hotspot_hints(hotspots),
+        "sample": hotspot_info,
     }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Profile smoke harness")
-    parser.add_argument("--count", type=int, default=128)
+    parser = argparse.ArgumentParser(description="Profiling harness with hotspot attribution")
+    parser.add_argument("--rust-toolchain", default=RUST_TOOLCHAIN_DEFAULT)
+    parser.add_argument("--repeats", type=int, default=2)
+    parser.add_argument("--sample-duration-seconds", type=int, default=1)
+    parser.add_argument("--hotspot-top-n", type=int, default=8)
     parser.add_argument(
         "--report-out",
         type=Path,
@@ -63,63 +323,65 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    steps = [
-        run_profiled(
-            "rust_vector_generation_profile",
-            [
-                "cargo",
-                "run",
-                "--quiet",
-                "--manifest-path",
-                str(GEN_MANIFEST),
-                "--",
-                "--out",
-                str(TMP_VECTORS),
-                "--count",
-                str(args.count),
-            ],
-        ),
-        run_profiled(
-            "zig_state_machine_wrapper_profile",
-            [
-                "zig",
-                "test",
-                "src/stwo.zig",
-                "--test-filter",
-                "examples state_machine: prove/verify wrapper roundtrip",
-            ],
-        ),
-        run_profiled(
-            "zig_xor_wrapper_profile",
-            [
-                "zig",
-                "test",
-                "src/stwo.zig",
-                "--test-filter",
-                "examples xor: prove/verify wrapper roundtrip",
-            ],
-        ),
-    ]
+    if args.repeats <= 0:
+        raise ValueError("--repeats must be positive")
+    if args.sample_duration_seconds <= 0:
+        raise ValueError("--sample-duration-seconds must be positive")
 
-    TMP_VECTORS.unlink(missing_ok=True)
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+    SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
 
+    ensure_binaries(args.rust_toolchain)
+
+    profiles: List[Dict[str, Any]] = []
+    failures: List[str] = []
+
+    for workload in WORKLOADS:
+        for runtime in ("rust", "zig"):
+            entry = profile_runtime_workload(
+                runtime=runtime,
+                workload=workload,
+                repeats=args.repeats,
+                sample_duration_seconds=args.sample_duration_seconds,
+                hotspot_top_n=args.hotspot_top_n,
+            )
+            profiles.append(entry)
+            if SAMPLE_BIN.exists() and not entry["hotspots"]:
+                failures.append(f"{runtime}/{workload['name']} produced no hotspot attribution")
+
+    by_runtime: Dict[str, List[float]] = {"rust": [], "zig": []}
+    for entry in profiles:
+        by_runtime[entry["runtime"]].append(entry["summary"]["avg_seconds"])
+
+    status = "ok" if not failures else "failed"
     report = {
-        "status": "ok",
-        "collector": "time -l" if TIME_BIN.exists() else "wall-clock-only",
-        "workloads": steps,
+        "status": status,
+        "collector": "time -l + sample" if SAMPLE_BIN.exists() else "time -l",
+        "settings": {
+            "repeats": args.repeats,
+            "sample_duration_seconds": args.sample_duration_seconds,
+            "hotspot_top_n": args.hotspot_top_n,
+            "rust_toolchain": args.rust_toolchain,
+        },
+        "summary": {
+            "profiles": len(profiles),
+            "avg_seconds_rust": round(avg(by_runtime["rust"]), 6) if by_runtime["rust"] else 0.0,
+            "avg_seconds_zig": round(avg(by_runtime["zig"]), 6) if by_runtime["zig"] else 0.0,
+            "failure_count": len(failures),
+        },
+        "profiles": profiles,
+        "failures": failures,
     }
 
     out = args.report_out
     out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2, sort_keys=True)
-        f.write("\n")
+    out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     latest = out.parent / "latest_profile_smoke_report.json"
     if latest != out:
         shutil.copyfile(out, latest)
 
-    return 0
+    return 0 if status == "ok" else 1
 
 
 if __name__ == "__main__":
