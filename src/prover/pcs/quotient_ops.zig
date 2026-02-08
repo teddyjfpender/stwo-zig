@@ -3,6 +3,8 @@ const m31 = @import("../../core/fields/m31.zig");
 const qm31 = @import("../../core/fields/qm31.zig");
 const quotients = @import("../../core/pcs/quotients.zig");
 const pcs_utils = @import("../../core/pcs/utils.zig");
+const canonic = @import("../../core/poly/circle/canonic.zig");
+const core_utils = @import("../../core/utils.zig");
 const secure_column = @import("../secure_column.zig");
 
 const M31 = m31.M31;
@@ -10,11 +12,17 @@ const QM31 = qm31.QM31;
 const TreeVec = pcs_utils.TreeVec;
 const PointSample = quotients.PointSample;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
+const MATERIALIZE_LIFTED_THRESHOLD_BYTES: usize = 128 * 1024 * 1024;
 
 pub const QuotientOpsError = error{
     ShapeMismatch,
     InvalidColumnLogSize,
     InvalidColumnLength,
+};
+
+const LiftingColumnView = struct {
+    values: []const M31,
+    shift_amt: std.math.Log2Int(usize),
 };
 
 /// One committed trace/evaluation column.
@@ -88,39 +96,99 @@ pub fn computeFriQuotients(
     var column_log_sizes = try buildColumnLogSizes(allocator, columns);
     defer column_log_sizes.deinitDeep(allocator);
 
-    var queried_values = try buildLiftedQueriedValues(allocator, columns, lifting_log_size);
-    defer queried_values.deinitDeep(allocator);
+    const domain_size = try checkedPow2(lifting_log_size);
+    const flat_column_count = countColumns(columns);
+    if (!shouldUseStreamingQuotients(flat_column_count, domain_size)) {
+        var queried_values = try buildLiftedQueriedValues(allocator, columns, lifting_log_size);
+        defer queried_values.deinitDeep(allocator);
 
-    const query_positions = try fullQueryPositions(allocator, lifting_log_size);
-    defer allocator.free(query_positions);
+        const query_positions = try fullQueryPositions(allocator, lifting_log_size);
+        defer allocator.free(query_positions);
 
-    const quot_values = try quotients.friAnswers(
+        const quot_values = try quotients.friAnswers(
+            allocator,
+            column_log_sizes,
+            samples,
+            random_coeff,
+            query_positions,
+            queried_values,
+            lifting_log_size,
+        );
+        defer allocator.free(quot_values);
+
+        return SecureColumnByCoords.fromSecureSlice(allocator, quot_values);
+    }
+
+    var samples_with_randomness = try quotients.buildSamplesWithRandomnessAndPeriodicity(
         allocator,
-        column_log_sizes,
         samples,
-        random_coeff,
-        query_positions,
-        queried_values,
+        column_log_sizes,
         lifting_log_size,
+        random_coeff,
     );
-    defer allocator.free(quot_values);
+    defer samples_with_randomness.deinitDeep(allocator);
 
-    return SecureColumnByCoords.fromSecureSlice(allocator, quot_values);
+    var flat_samples = std.ArrayList([]const quotients.SampleWithRandomness).empty;
+    defer flat_samples.deinit(allocator);
+    for (samples_with_randomness.items) |tree_samples| {
+        for (tree_samples) |col_samples| {
+            try flat_samples.append(allocator, col_samples);
+        }
+    }
+
+    const sample_batches = try quotients.ColumnSampleBatch.newVec(allocator, flat_samples.items);
+    defer quotients.ColumnSampleBatch.deinitSlice(allocator, sample_batches);
+
+    var q_consts = try quotients.quotientConstants(allocator, sample_batches);
+    defer q_consts.deinit(allocator);
+
+    const flat_columns = try flattenColumns(allocator, columns);
+    defer allocator.free(flat_columns);
+    try validateSampleBatchColumnIndices(sample_batches, flat_columns.len);
+
+    const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
+    std.debug.assert(domain.size() == domain_size);
+
+    const column_views = try buildLiftingColumnViews(allocator, flat_columns, lifting_log_size);
+    defer allocator.free(column_views);
+
+    var workspace = try quotients.RowQuotientWorkspace.init(allocator, sample_batches);
+    defer workspace.deinit(allocator);
+
+    const row_values = try allocator.alloc(M31, column_views.len);
+    defer allocator.free(row_values);
+
+    var out = try SecureColumnByCoords.uninitialized(allocator, domain_size);
+    errdefer out.deinit(allocator);
+
+    for (0..domain_size) |position| {
+        const domain_point = domain.at(core_utils.bitReverseIndex(position, lifting_log_size));
+
+        for (column_views, 0..) |view, col_idx| {
+            const idx = ((position >> view.shift_amt) << 1) + (position & 1);
+            std.debug.assert(idx < view.values.len);
+            row_values[col_idx] = view.values[idx];
+        }
+
+        const quotient_value = try quotients.accumulateRowQuotientsWithWorkspace(
+            sample_batches,
+            row_values,
+            &q_consts,
+            domain_point,
+            &workspace,
+        );
+        const coords = quotient_value.toM31Array();
+        inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
+            out.columns[coord][position] = coords[coord];
+        }
+    }
+
+    return out;
 }
 
 fn checkedPow2(log_size: u32) QuotientOpsError!usize {
     if (log_size >= @bitSizeOf(usize)) return QuotientOpsError.InvalidColumnLogSize;
     return @as(usize, 1) << @intCast(log_size);
-}
-
-fn fullQueryPositions(
-    allocator: std.mem.Allocator,
-    lifting_log_size: u32,
-) (std.mem.Allocator.Error || QuotientOpsError)![]usize {
-    const domain_size = try checkedPow2(lifting_log_size);
-    const out = try allocator.alloc(usize, domain_size);
-    for (out, 0..) |*position, i| position.* = i;
-    return out;
 }
 
 fn buildColumnLogSizes(
@@ -144,6 +212,65 @@ fn buildColumnLogSizes(
     }
 
     return TreeVec([]u32).initOwned(out);
+}
+
+fn countColumns(columns: TreeVec([]ColumnEvaluation)) usize {
+    var total: usize = 0;
+    for (columns.items) |tree_columns| total += tree_columns.len;
+    return total;
+}
+
+fn shouldUseStreamingQuotients(column_count: usize, domain_size: usize) bool {
+    const lifted_cells = std.math.mul(usize, column_count, domain_size) catch return true;
+    const lifted_bytes = std.math.mul(usize, lifted_cells, @sizeOf(M31)) catch return true;
+    return lifted_bytes > MATERIALIZE_LIFTED_THRESHOLD_BYTES;
+}
+
+fn flattenColumns(
+    allocator: std.mem.Allocator,
+    columns: TreeVec([]ColumnEvaluation),
+) ![]ColumnEvaluation {
+    var total: usize = 0;
+    for (columns.items) |tree_columns| total += tree_columns.len;
+
+    const out = try allocator.alloc(ColumnEvaluation, total);
+    var at: usize = 0;
+    for (columns.items) |tree_columns| {
+        @memcpy(out[at .. at + tree_columns.len], tree_columns);
+        at += tree_columns.len;
+    }
+    return out;
+}
+
+fn buildLiftingColumnViews(
+    allocator: std.mem.Allocator,
+    flat_columns: []const ColumnEvaluation,
+    lifting_log_size: u32,
+) ![]LiftingColumnView {
+    const views = try allocator.alloc(LiftingColumnView, flat_columns.len);
+    errdefer allocator.free(views);
+
+    for (flat_columns, 0..) |column, i| {
+        if (column.log_size > lifting_log_size) return QuotientOpsError.InvalidColumnLogSize;
+        const log_shift = lifting_log_size - column.log_size;
+        if (log_shift >= @bitSizeOf(usize)) return QuotientOpsError.InvalidColumnLogSize;
+        views[i] = .{
+            .values = column.values,
+            .shift_amt = @intCast(log_shift + 1),
+        };
+    }
+
+    return views;
+}
+
+fn fullQueryPositions(
+    allocator: std.mem.Allocator,
+    lifting_log_size: u32,
+) (std.mem.Allocator.Error || QuotientOpsError)![]usize {
+    const domain_size = try checkedPow2(lifting_log_size);
+    const out = try allocator.alloc(usize, domain_size);
+    for (out, 0..) |*position, i| position.* = i;
+    return out;
 }
 
 fn buildLiftedQueriedValues(
@@ -187,6 +314,17 @@ fn buildLiftedQueriedValues(
     }
 
     return TreeVec([][]M31).initOwned(out);
+}
+
+fn validateSampleBatchColumnIndices(
+    sample_batches: []const quotients.ColumnSampleBatch,
+    queried_values_cols: usize,
+) !void {
+    for (sample_batches) |batch| {
+        for (batch.cols_vals_randpows) |sample_data| {
+            if (sample_data.column_index >= queried_values_cols) return error.ColumnIndexOutOfBounds;
+        }
+    }
 }
 
 test "prover pcs quotient ops: compute fri quotients matches direct fri answers" {

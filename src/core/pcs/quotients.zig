@@ -204,6 +204,51 @@ const SamplePointComponents = struct {
     piy: CM31,
 };
 
+/// Scratch workspace for row-by-row quotient accumulation.
+///
+/// Invariants:
+/// - `sample_point_components.len == denominator_scratch.len == denominator_inverses.len`.
+/// - lengths match the number of sample batches for the current quotient context.
+pub const RowQuotientWorkspace = struct {
+    sample_point_components: []SamplePointComponents,
+    denominator_scratch: []CM31,
+    denominator_inverses: []CM31,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        sample_batches: []const ColumnSampleBatch,
+    ) !RowQuotientWorkspace {
+        const sample_point_components = try allocator.alloc(SamplePointComponents, sample_batches.len);
+        errdefer allocator.free(sample_point_components);
+        const denominator_scratch = try allocator.alloc(CM31, sample_batches.len);
+        errdefer allocator.free(denominator_scratch);
+        const denominator_inverses = try allocator.alloc(CM31, sample_batches.len);
+        errdefer allocator.free(denominator_inverses);
+
+        for (sample_batches, 0..) |batch, i| {
+            sample_point_components[i] = .{
+                .prx = batch.point.x.c0,
+                .pry = batch.point.y.c0,
+                .pix = batch.point.x.c1,
+                .piy = batch.point.y.c1,
+            };
+        }
+
+        return .{
+            .sample_point_components = sample_point_components,
+            .denominator_scratch = denominator_scratch,
+            .denominator_inverses = denominator_inverses,
+        };
+    }
+
+    pub fn deinit(self: *RowQuotientWorkspace, allocator: std.mem.Allocator) void {
+        allocator.free(self.sample_point_components);
+        allocator.free(self.denominator_scratch);
+        allocator.free(self.denominator_inverses);
+        self.* = undefined;
+    }
+};
+
 fn denominatorInversesIntoFromComponents(
     sample_point_components: []const SamplePointComponents,
     domain_point: CirclePointM31,
@@ -244,6 +289,48 @@ fn batchInverseIntoCM31(values: []const CM31, out: []CM31) !void {
         out[j] = inv_total.mul(prefix);
         inv_total = inv_total.mul(values[j]);
     }
+}
+
+/// Computes one quotient row using caller-provided reusable scratch.
+///
+/// This mirrors `accumulateRowQuotients` semantics while avoiding per-row allocations.
+pub fn accumulateRowQuotientsWithWorkspace(
+    sample_batches: []const ColumnSampleBatch,
+    queried_values_at_row: []const M31,
+    quotient_constants: *const QuotientConstants,
+    domain_point: CirclePointM31,
+    workspace: *RowQuotientWorkspace,
+) !QM31 {
+    if (sample_batches.len != quotient_constants.line_coeffs.len) return error.ShapeMismatch;
+    if (workspace.sample_point_components.len != sample_batches.len) return error.ShapeMismatch;
+    if (workspace.denominator_scratch.len != sample_batches.len) return error.ShapeMismatch;
+    if (workspace.denominator_inverses.len != sample_batches.len) return error.ShapeMismatch;
+
+    try denominatorInversesIntoFromComponents(
+        workspace.sample_point_components,
+        domain_point,
+        workspace.denominator_scratch,
+        workspace.denominator_inverses,
+    );
+
+    const domain_y = domain_point.y;
+    var row_accumulator = QM31.zero();
+    for (sample_batches, 0..) |batch, batch_idx| {
+        const line_coeffs = quotient_constants.line_coeffs[batch_idx];
+        if (batch.cols_vals_randpows.len != line_coeffs.len) return error.ShapeMismatch;
+
+        var numerator = QM31.zero();
+        for (batch.cols_vals_randpows, 0..) |sample_data, i| {
+            if (sample_data.column_index >= queried_values_at_row.len) {
+                return error.ColumnIndexOutOfBounds;
+            }
+            const value = QM31.fromBase(queried_values_at_row[sample_data.column_index]).mul(line_coeffs[i].c);
+            const linear_term = line_coeffs[i].a.mulM31(domain_y).add(line_coeffs[i].b);
+            numerator = numerator.add(value.sub(linear_term));
+        }
+        row_accumulator = row_accumulator.add(numerator.mulCM31(workspace.denominator_inverses[batch_idx]));
+    }
+    return row_accumulator;
 }
 
 /// Computes the partial numerator sum for one row:
@@ -495,21 +582,8 @@ pub fn friAnswers(
 
     try validateSampleBatchColumnIndices(sample_batches, queried_values_flat.len);
 
-    const sample_point_components = try allocator.alloc(SamplePointComponents, sample_batches.len);
-    defer allocator.free(sample_point_components);
-    for (sample_batches, 0..) |batch, i| {
-        sample_point_components[i] = .{
-            .prx = batch.point.x.c0,
-            .pry = batch.point.y.c0,
-            .pix = batch.point.x.c1,
-            .piy = batch.point.y.c1,
-        };
-    }
-
-    const denominator_scratch = try allocator.alloc(CM31, sample_batches.len);
-    defer allocator.free(denominator_scratch);
-    const denominator_inverses = try allocator.alloc(CM31, sample_batches.len);
-    defer allocator.free(denominator_inverses);
+    var workspace = try RowQuotientWorkspace.init(allocator, sample_batches);
+    defer workspace.deinit(allocator);
 
     const out = try allocator.alloc(QM31, query_positions.len);
     for (query_positions, 0..) |position, row_idx| {
@@ -521,9 +595,9 @@ pub fn friAnswers(
             row_idx,
             &q_consts,
             domain_point,
-            sample_point_components,
-            denominator_scratch,
-            denominator_inverses,
+            workspace.sample_point_components,
+            workspace.denominator_scratch,
+            workspace.denominator_inverses,
         );
     }
     return out;

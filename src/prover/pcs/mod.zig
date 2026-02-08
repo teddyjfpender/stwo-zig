@@ -476,6 +476,9 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 sampled_points,
                 lifting_log_size,
             );
+            // Coefficients are only needed to evaluate sampled points; release them
+            // before quotient/FRI proving to reduce peak prover RSS.
+            dropTreeCoefficients(&scheme, allocator);
             return scheme.proveValuesFromSamples(
                 allocator,
                 sampled_points,
@@ -617,6 +620,16 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
 
             allocator.free(self.trees.items);
             self.trees.items = out;
+        }
+
+        fn dropTreeCoefficients(self: *Self, allocator: std.mem.Allocator) void {
+            for (self.trees.items) |*tree| {
+                if (tree.coefficients) |coeffs| {
+                    for (coeffs) |*coeff| coeff.deinit(allocator);
+                    allocator.free(coeffs);
+                    tree.coefficients = null;
+                }
+            }
         }
 
         fn maxLogSize(columns: []const ColumnEvaluation) u32 {
