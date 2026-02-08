@@ -57,18 +57,13 @@ pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
         pub fn updateLeaf(self: *Self, column_values: []const M31) void {
             if (column_values.len == 0) return;
 
-            var at: usize = 0;
             if (builtin.cpu.arch.endian() == .little) {
-                var words: [pack_chunk_elems]u32 = undefined;
-                while (at < column_values.len) {
-                    const chunk = @min(pack_chunk_elems, column_values.len - at);
-                    for (0..chunk) |i| {
-                        words[i] = column_values[at + i].toU32();
-                    }
-                    self.inner.update(std.mem.sliceAsBytes(words[0..chunk]));
-                    at += chunk;
-                }
+                // M31 is represented as canonical u32 words, so little-endian
+                // hosts can stream the bytes directly without repacking.
+                self.inner.update(std.mem.sliceAsBytes(column_values));
+                return;
             } else {
+                var at: usize = 0;
                 var bytes: [pack_chunk_elems * 4]u8 = undefined;
                 while (at < column_values.len) {
                     const chunk = @min(pack_chunk_elems, column_values.len - at);
@@ -125,4 +120,26 @@ test "vcs_lifted blake2: mix root changes channel digest" {
     const before = channel.digestBytes();
     Blake2sMerkleChannel.mixRoot(&channel, [_]u8{3} ** 32);
     try std.testing.expect(!std.mem.eql(u8, before[0..], channel.digestBytes()[0..]));
+}
+
+test "vcs_lifted blake2: updateLeaf matches explicit byte packing" {
+    var prng = std.Random.DefaultPrng.init(0x5ca1_ab1e_1234_5678);
+    const rng = prng.random();
+    var values: [65]M31 = undefined;
+    for (values[0..]) |*value| {
+        value.* = M31.fromU64(rng.int(u32));
+    }
+
+    var lifted = Blake2sMerkleHasher.defaultWithInitialState();
+    lifted.updateLeaf(values[0..]);
+    const digest = lifted.finalize();
+
+    var manual = blake2_hash.Blake2sHasher.init();
+    manual.update(LEAF_PREFIX[0..]);
+    for (values[0..]) |value| {
+        const encoded = value.toBytesLe();
+        manual.update(encoded[0..]);
+    }
+    const expected = manual.finalize();
+    try std.testing.expect(std.mem.eql(u8, digest[0..], expected[0..]));
 }

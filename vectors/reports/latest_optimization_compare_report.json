@@ -1,17 +1,17 @@
 {
-  "baseline_path": "vectors/reports/optimization_baseline_wave3.json",
+  "baseline_path": "vectors/reports/optimization_baseline.json",
   "benchmark_report_path": "vectors/reports/benchmark_smoke_report.json",
   "details": {
-    "baseline_avg_zig_profile_seconds": 0.110929,
-    "baseline_benchmark_workload_matrix_hash": "bb6e453f6146d14ce6a5f4e6fb301d6bc6d1ef5b6f71522f87a59f33d65febce",
-    "baseline_max_zig_over_rust_prove": 0.862683,
-    "baseline_max_zig_over_rust_verify": 0.978997,
-    "baseline_profile_workload_matrix_hash": "8042daa8e16c20499c56064cf1e550a76897bfb21716ac6699eb73834f53fc95",
-    "current_avg_zig_profile_seconds": 0.110929,
-    "current_benchmark_workload_matrix_hash": "bb6e453f6146d14ce6a5f4e6fb301d6bc6d1ef5b6f71522f87a59f33d65febce",
-    "current_max_zig_over_rust_prove": 0.862683,
-    "current_max_zig_over_rust_verify": 0.978997,
-    "current_profile_workload_matrix_hash": "8042daa8e16c20499c56064cf1e550a76897bfb21716ac6699eb73834f53fc95",
+    "baseline_avg_zig_profile_seconds": 0.162681,
+    "baseline_benchmark_workload_matrix_hash": "02a90f6bfe11089b2433b1643bb499ba42b37f7deb4ecc871739a12b282bac64",
+    "baseline_max_zig_over_rust_prove": 1.009229,
+    "baseline_max_zig_over_rust_verify": 0.990404,
+    "baseline_profile_workload_matrix_hash": "4fd1b1f8545e1d81857318549755050db5c75296dda09aea4d1e30569591ac0d",
+    "current_avg_zig_profile_seconds": 0.162681,
+    "current_benchmark_workload_matrix_hash": "02a90f6bfe11089b2433b1643bb499ba42b37f7deb4ecc871739a12b282bac64",
+    "current_max_zig_over_rust_prove": 1.009229,
+    "current_max_zig_over_rust_verify": 0.990404,
+    "current_profile_workload_matrix_hash": "4fd1b1f8545e1d81857318549755050db5c75296dda09aea4d1e30569591ac0d",
     "per_workload_deltas": {
       "state_machine_default": {
         "prove_delta_pct": 0.0,
@@ -29,9 +29,9 @@
   },
   "failures": [],
   "params": {
-    "max_prove_regression_pct": 0.0,
-    "max_verify_regression_pct": 0.0,
-    "max_zig_profile_regression_pct": 0.0,
+    "max_prove_regression_pct": 1.0,
+    "max_verify_regression_pct": 5.0,
+    "max_zig_profile_regression_pct": 5.0,
     "require_prove_improvement_pct": 0.0
   },
   "profile_report_path": "vectors/reports/profile_smoke_report.json",

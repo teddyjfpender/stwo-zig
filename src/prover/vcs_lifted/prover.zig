@@ -263,11 +263,11 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 allocator.free(prev_layer);
                 prev_layer = expanded;
 
-                for (sorted_columns[group_start..group_end]) |column| {
+                const group_columns = sorted_columns[group_start..group_end];
+                for (group_columns) |column| {
                     var idx: usize = 0;
                     while (idx < layer_size) : (idx += 1) {
-                        const value = [_]M31{column.values[idx]};
-                        prev_layer[idx].updateLeaf(value[0..]);
+                        prev_layer[idx].updateLeaf(column.values[idx .. idx + 1]);
                     }
                 }
 
