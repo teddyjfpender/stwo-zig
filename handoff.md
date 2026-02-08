@@ -81,6 +81,18 @@
 - `zig build profile-smoke`
 - `zig build release-gate`
 
+## Latest Slice (Prover API Surface Tightening)
+
+- `src/prover/prove.zig`
+  - Tightened public API surface to upstream-equivalent entrypoints only:
+    - public: `prove`, `proveEx`
+    - internal-only helpers: sampled-point/prepared/component helper paths used for internal testing and staged parity closure.
+  - This removes non-upstream helper functions from exported contracts while preserving current deterministic test coverage.
+
+### Additional Gate Coverage (Passing)
+- `zig build test --summary all`
+- `zig build release-gate`
+
 ## Latest Slice (Examples Wrappers + Gate Harnesses)
 
 ### Example Proof Wrappers
@@ -225,14 +237,14 @@
   - Aligned top-level API with upstream component-driven flow:
     - `prove(components, ..., commitment_scheme)` -> `StarkProof`
     - `proveEx(components, ..., commitment_scheme, include_all_preprocessed_columns)` -> `ExtendedStarkProof`
-  - Kept sampled-point proving path as explicit non-upstream helper entrypoints:
+  - Added sampled-point proving helper paths for staged parity closure:
     - `proveSampledPoints`
     - `proveExSampledPoints`
   - Added component-driven proving slice (`proveExComponents` / `proveComponents`) with:
     - AIR mask-point derivation via `ComponentProvers.componentsView`
     - composition OODS sanity check against sampled values
     - in-prover composition polynomial generation + direct coefficient commit path
-  - Retained prepared-samples proving entrypoint (`provePrepared`) as compatibility path.
+  - Retained prepared-samples helper entrypoint (`provePrepared`) as compatibility path.
   - Added roundtrip tests against core verifier for prepared, sampled-points, and component-driven slices.
 
 ### Toolchain/Runtime Stabilization

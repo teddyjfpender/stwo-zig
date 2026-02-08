@@ -75,7 +75,7 @@ pub fn proveEx(
 /// Sampled-points proving entrypoint.
 ///
 /// This path proves with caller-provided sample points (without AIR component orchestration).
-pub fn proveSampledPoints(
+fn proveSampledPoints(
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
@@ -94,7 +94,7 @@ pub fn proveSampledPoints(
 }
 
 /// Extended sampled-points proving entrypoint.
-pub fn proveExSampledPoints(
+fn proveExSampledPoints(
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
@@ -122,7 +122,7 @@ pub fn proveExSampledPoints(
 ///
 /// Preconditions:
 /// - `commitment_scheme` contains at least preprocessed/main trace trees.
-pub fn proveExComponents(
+fn proveExComponents(
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
@@ -217,7 +217,7 @@ pub fn proveExComponents(
     return ext_proof;
 }
 
-pub fn proveComponents(
+fn proveComponents(
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
@@ -241,7 +241,7 @@ pub fn proveComponents(
 ///
 /// This is a stepping-stone API until full in-prover sampled-value computation
 /// parity is wired through prover/poly modules.
-pub fn provePrepared(
+fn provePrepared(
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
