@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -70,12 +71,19 @@ WORKLOADS: List[Dict[str, Any]] = [
     },
 ]
 
+SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
+
 
 def run(cmd: List[str]) -> None:
     subprocess.run(cmd, cwd=ROOT, check=True)
 
 
-def ensure_binaries(rust_toolchain: str) -> None:
+def canonical_hash(payload: Any) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def ensure_binaries(rust_toolchain: str, zig_opt_mode: str, zig_cpu: str) -> None:
     run(
         [
             "cargo",
@@ -86,16 +94,17 @@ def ensure_binaries(rust_toolchain: str) -> None:
             str(RUST_MANIFEST),
         ]
     )
-    run(
-        [
-            "zig",
-            "build-exe",
-            "src/interop_cli.zig",
-            "-O",
-            "ReleaseFast",
-            "-femit-bin=" + str(ZIG_BIN),
-        ]
-    )
+    zig_cmd = [
+        "zig",
+        "build-exe",
+        "src/interop_cli.zig",
+        "-O",
+        zig_opt_mode,
+        "-femit-bin=" + str(ZIG_BIN),
+    ]
+    if zig_cpu != "baseline":
+        zig_cmd.append("-mcpu=" + zig_cpu)
+    run(zig_cmd)
 
 
 def runtime_cmd(runtime: str) -> List[str]:
@@ -316,6 +325,22 @@ def main() -> int:
     parser.add_argument("--sample-duration-seconds", type=int, default=1)
     parser.add_argument("--hotspot-top-n", type=int, default=8)
     parser.add_argument(
+        "--zig-opt-mode",
+        default="ReleaseFast",
+        choices=SUPPORTED_ZIG_OPT_MODES,
+        help="Zig optimization level used for interop profile binary build.",
+    )
+    parser.add_argument(
+        "--zig-cpu",
+        default="baseline",
+        help="Zig CPU target. Use 'baseline' to omit -mcpu, or 'native' for tuned local runs.",
+    )
+    parser.add_argument(
+        "--report-label",
+        default="profile_smoke",
+        help="Logical label used in emitted report metadata.",
+    )
+    parser.add_argument(
         "--report-out",
         type=Path,
         default=REPORT_DEFAULT,
@@ -331,7 +356,7 @@ def main() -> int:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
 
-    ensure_binaries(args.rust_toolchain)
+    ensure_binaries(args.rust_toolchain, args.zig_opt_mode, args.zig_cpu)
 
     profiles: List[Dict[str, Any]] = []
     failures: List[str] = []
@@ -354,15 +379,30 @@ def main() -> int:
         by_runtime[entry["runtime"]].append(entry["summary"]["avg_seconds"])
 
     status = "ok" if not failures else "failed"
+    settings = {
+        "repeats": args.repeats,
+        "sample_duration_seconds": args.sample_duration_seconds,
+        "hotspot_top_n": args.hotspot_top_n,
+        "rust_toolchain": args.rust_toolchain,
+        "zig_opt_mode": args.zig_opt_mode,
+        "zig_cpu": args.zig_cpu,
+        "report_label": args.report_label,
+    }
+    settings_hash = canonical_hash(
+        {
+            "collector": "time -l + sample" if SAMPLE_BIN.exists() else "time -l",
+            "common_config_args": COMMON_CONFIG_ARGS,
+            "workloads": WORKLOADS,
+            "settings": settings,
+        }
+    )
+
     report = {
+        "schema_version": 2,
         "status": status,
         "collector": "time -l + sample" if SAMPLE_BIN.exists() else "time -l",
-        "settings": {
-            "repeats": args.repeats,
-            "sample_duration_seconds": args.sample_duration_seconds,
-            "hotspot_top_n": args.hotspot_top_n,
-            "rust_toolchain": args.rust_toolchain,
-        },
+        "settings_hash": settings_hash,
+        "settings": settings,
         "summary": {
             "profiles": len(profiles),
             "avg_seconds_rust": round(avg(by_runtime["rust"]), 6) if by_runtime["rust"] else 0.0,

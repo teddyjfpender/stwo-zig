@@ -8,6 +8,7 @@ and records proof-size/decommit shape metrics from exchanged artifacts.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import subprocess
@@ -69,6 +70,8 @@ MEDIUM_WORKLOADS: List[Dict[str, Any]] = [
         ],
     },
 ]
+
+SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 
 
 def run(cmd: List[str]) -> None:
@@ -167,7 +170,12 @@ def proof_metrics(artifact_path: Path) -> Dict[str, Any]:
     }
 
 
-def ensure_binaries(rust_toolchain: str) -> None:
+def canonical_hash(payload: Any) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def ensure_binaries(rust_toolchain: str, zig_opt_mode: str, zig_cpu: str) -> None:
     run(
         [
             "cargo",
@@ -178,16 +186,17 @@ def ensure_binaries(rust_toolchain: str) -> None:
             str(RUST_MANIFEST),
         ]
     )
-    run(
-        [
-            "zig",
-            "build-exe",
-            "src/interop_cli.zig",
-            "-O",
-            "ReleaseFast",
-            "-femit-bin=" + str(ZIG_BIN),
-        ]
-    )
+    zig_cmd = [
+        "zig",
+        "build-exe",
+        "src/interop_cli.zig",
+        "-O",
+        zig_opt_mode,
+        "-femit-bin=" + str(ZIG_BIN),
+    ]
+    if zig_cpu != "baseline":
+        zig_cmd.append("-mcpu=" + zig_cpu)
+    run(zig_cmd)
 
 
 def runtime_cmd(runtime: str) -> List[str]:
@@ -259,6 +268,22 @@ def main() -> int:
     parser.add_argument("--rust-toolchain", default=RUST_TOOLCHAIN_DEFAULT)
     parser.add_argument("--max-zig-over-rust", type=float, default=1.50)
     parser.add_argument(
+        "--zig-opt-mode",
+        default="ReleaseFast",
+        choices=SUPPORTED_ZIG_OPT_MODES,
+        help="Zig optimization level used for interop benchmark binary build.",
+    )
+    parser.add_argument(
+        "--zig-cpu",
+        default="baseline",
+        help="Zig CPU target. Use 'baseline' to omit -mcpu, or 'native' for tuned local runs.",
+    )
+    parser.add_argument(
+        "--report-label",
+        default="benchmark_smoke",
+        help="Logical label used in emitted report metadata.",
+    )
+    parser.add_argument(
         "--include-medium",
         action="store_true",
         help="Include medium-size workloads (stricter, may be slower).",
@@ -273,7 +298,7 @@ def main() -> int:
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 
-    ensure_binaries(args.rust_toolchain)
+    ensure_binaries(args.rust_toolchain, args.zig_opt_mode, args.zig_cpu)
 
     workloads = list(BASE_WORKLOADS)
     if args.include_medium:
@@ -335,21 +360,39 @@ def main() -> int:
     verify_ratios = [w["ratios"]["zig_over_rust_verify"] for w in workloads_report]
     status = "ok" if not failures else "failed"
 
+    settings = {
+        "warmups": args.warmups,
+        "repeats": args.repeats,
+        "rust_toolchain": args.rust_toolchain,
+        "include_medium": args.include_medium,
+        "workload_tier": "base_plus_medium" if args.include_medium else "base_only",
+        "collector": "time -l" if TIME_BIN.exists() else "wall-clock-only",
+        "zig_opt_mode": args.zig_opt_mode,
+        "zig_cpu": args.zig_cpu,
+        "report_label": args.report_label,
+    }
+    thresholds = {
+        "max_zig_over_rust_ratio": args.max_zig_over_rust,
+        "conformance_reference": "CONFORMANCE.md Section 9.2",
+    }
+
+    settings_hash = canonical_hash(
+        {
+            "common_config_args": COMMON_CONFIG_ARGS,
+            "base_workloads": BASE_WORKLOADS,
+            "medium_workloads": MEDIUM_WORKLOADS,
+            "settings": settings,
+            "thresholds": thresholds,
+        }
+    )
+
     report = {
+        "schema_version": 2,
         "status": status,
         "protocol": "matched_workload_matrix_v1",
-        "thresholds": {
-            "max_zig_over_rust_ratio": args.max_zig_over_rust,
-            "conformance_reference": "CONFORMANCE.md Section 9.2",
-        },
-        "settings": {
-            "warmups": args.warmups,
-            "repeats": args.repeats,
-            "rust_toolchain": args.rust_toolchain,
-            "include_medium": args.include_medium,
-            "workload_tier": "base_plus_medium" if args.include_medium else "base_only",
-            "collector": "time -l" if TIME_BIN.exists() else "wall-clock-only",
-        },
+        "settings_hash": settings_hash,
+        "thresholds": thresholds,
+        "settings": settings,
         "summary": {
             "workloads": len(workloads_report),
             "max_zig_over_rust_prove": max(prove_ratios) if prove_ratios else 0.0,

@@ -1,0 +1,47 @@
+{
+  "benchmark": {
+    "report_path": "vectors/reports/benchmark_smoke_report.json",
+    "settings_hash": "845b164bcab18c525fdbe7c8c1992a2a9a4621b848a9b0f9b76b9e3ab569133a",
+    "summary": {
+      "avg_zig_over_rust_prove": 1.304175,
+      "avg_zig_over_rust_verify": 1.128276,
+      "failure_count": 0,
+      "max_zig_over_rust_prove": 1.410479,
+      "max_zig_over_rust_verify": 1.162447,
+      "workloads": 2
+    },
+    "thresholds": {
+      "conformance_reference": "CONFORMANCE.md Section 9.2",
+      "max_zig_over_rust_ratio": 1.5
+    },
+    "workload_ratios": {
+      "state_machine_default": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.19787,
+        "zig_over_rust_verify": 1.094105
+      },
+      "state_machine_medium": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.410479,
+        "zig_over_rust_verify": 1.162447
+      }
+    }
+  },
+  "created_at_unix": 1770557583,
+  "git_head_sha": "a49e1e04cbe39d73655a7eeedcaf594cb35d3d62",
+  "profile": {
+    "report_path": "vectors/reports/profile_smoke_report.json",
+    "settings_hash": "c87a165df5f8aa5f28185b19946adaa26f20f55e3fa6dcd15a57c8f476a88298",
+    "summary": {
+      "avg_seconds_rust": 0.65514,
+      "avg_seconds_zig": 1.066566,
+      "failure_count": 0,
+      "profiles": 4
+    },
+    "zig_avg_seconds_by_workload": {
+      "state_machine_deep": 1.107298,
+      "xor_deep": 1.025834
+    }
+  },
+  "schema_version": 1
+}
