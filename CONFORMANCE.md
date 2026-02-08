@@ -38,7 +38,7 @@ Any item marked `MUST` is a release blocker.
 ### 4.2 API Conformance
 
 1. Public Zig APIs MUST map 1:1 to the intended Rust Stwo API surface for the pinned commit.
-2. Every exported Zig symbol MUST have a Rust parity mapping or a documented compatibility rationale.
+2. Every exported Zig symbol MUST have a Rust parity mapping or a documented compatibility rationale in `API_PARITY.md`.
 3. Public API additions without parity rationale are prohibited.
 
 ### 4.3 Proof Interoperability Conformance
@@ -62,7 +62,7 @@ All gates are mandatory for production readiness.
 | G7 | Rust->Zig and Zig->Rust e2e proof verification | e2e compatibility report |
 | G8 | Benchmark harness comparability | benchmark config + raw metrics |
 | G9 | Profiling and hotspot attribution | profiling report and flamegraphs |
-| G10 | Documentation and divergence log current | `README.md`, `UPSTREAM.md`, `handoff.md`, this file |
+| G10 | Documentation and divergence log current | `README.md`, `UPSTREAM.md`, `API_PARITY.md`, `handoff.md`, this file |
 
 ## 6. TDD and Test Formalities
 

@@ -123,13 +123,20 @@ pub fn build(b: *std.Build) void {
     const fmt_step = b.step("fmt", "Check formatting (zig fmt --check)");
     fmt_step.dependOn(&fmt_cmd.step);
 
+    // API parity ledger validation.
+    const api_parity_cmd = b.addSystemCommand(&.{ "python3", "scripts/check_api_parity.py" });
+    const api_parity_step = b.step("api-parity", "Validate API parity ledger coverage");
+    api_parity_step.dependOn(&api_parity_cmd.step);
+
     // Deterministic release gate sequence:
-    // fmt -> test -> vectors -> interop -> bench-smoke -> profile-smoke
+    // fmt -> test -> api-parity -> vectors -> interop -> bench-smoke -> profile-smoke
     const rg_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const rg_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
     rg_test.step.dependOn(&rg_fmt.step);
+    const rg_api_parity = b.addSystemCommand(&.{ "python3", "scripts/check_api_parity.py" });
+    rg_api_parity.step.dependOn(&rg_test.step);
     const rg_vectors_fields = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
-    rg_vectors_fields.step.dependOn(&rg_test.step);
+    rg_vectors_fields.step.dependOn(&rg_api_parity.step);
     const rg_vectors_constraint = b.addSystemCommand(&.{
         "python3",
         "scripts/parity_constraint_expr.py",
@@ -151,17 +158,19 @@ pub fn build(b: *std.Build) void {
 
     const release_gate_step = b.step(
         "release-gate",
-        "Run release gate sequence (fmt -> test -> vectors -> interop -> bench-smoke -> profile-smoke)",
+        "Run release gate sequence (fmt -> test -> api-parity -> vectors -> interop -> bench-smoke -> profile-smoke)",
     );
     release_gate_step.dependOn(&rg_profile.step);
 
     // Strict release gate sequence:
-    // fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior
+    // fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior
     const rgs_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const rgs_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
     rgs_test.step.dependOn(&rgs_fmt.step);
+    const rgs_api_parity = b.addSystemCommand(&.{ "python3", "scripts/check_api_parity.py" });
+    rgs_api_parity.step.dependOn(&rgs_test.step);
     const rgs_deep = b.addSystemCommand(&.{ "zig", "test", "src/stwo_deep.zig" });
-    rgs_deep.step.dependOn(&rgs_test.step);
+    rgs_deep.step.dependOn(&rgs_api_parity.step);
     const rgs_vectors_fields = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
     rgs_vectors_fields.step.dependOn(&rgs_deep.step);
     const rgs_vectors_constraint = b.addSystemCommand(&.{
@@ -211,7 +220,7 @@ pub fn build(b: *std.Build) void {
 
     const release_gate_strict_step = b.step(
         "release-gate-strict",
-        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence)",
+        "Run strict release gate sequence (fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence)",
     );
     release_gate_strict_step.dependOn(&rgs_evidence.step);
 }
