@@ -226,6 +226,7 @@ pub const Coset = struct {
     initial: CirclePointM31,
     step_size: CirclePointIndex,
     step: CirclePointM31,
+    half_step: CirclePointM31,
     log_size: u32,
 
     pub fn eql(lhs: Coset, rhs: Coset) bool {
@@ -233,17 +234,20 @@ pub const Coset = struct {
             lhs.initial.eql(rhs.initial) and
             lhs.step_size.eql(rhs.step_size) and
             lhs.step.eql(rhs.step) and
+            lhs.half_step.eql(rhs.half_step) and
             lhs.log_size == rhs.log_size;
     }
 
     pub fn new(initial_index: CirclePointIndex, log_size: u32) Coset {
         std.debug.assert(log_size <= M31_CIRCLE_LOG_ORDER);
         const step_size = CirclePointIndex.subgroupGen(log_size);
+        const half_step_size = step_size.half();
         return .{
             .initial_index = initial_index,
             .initial = initial_index.toPoint(),
             .step_size = step_size,
             .step = step_size.toPoint(),
+            .half_step = half_step_size.toPoint(),
             .log_size = log_size,
         };
     }
@@ -291,6 +295,7 @@ pub const Coset = struct {
             .initial = self.initial.double(),
             .step_size = self.step_size.mul(2),
             .step = self.step.double(),
+            .half_step = self.step,
             .log_size = self.log_size - 1,
         };
     }
@@ -328,6 +333,7 @@ pub const Coset = struct {
             .initial = initial_index.toPoint(),
             .step_size = self.step_size,
             .step = self.step,
+            .half_step = self.half_step,
             .log_size = self.log_size,
         };
     }
@@ -340,6 +346,7 @@ pub const Coset = struct {
             .initial = initial_index.toPoint(),
             .step_size = step_size,
             .step = step_size.toPoint(),
+            .half_step = self.half_step.conjugate(),
             .log_size = self.log_size,
         };
     }
@@ -471,4 +478,21 @@ test "circle: random secure point is deterministic and on-curve" {
     const p1 = randomSecureFieldPoint(&channel1);
     try std.testing.expect(p0.eql(p1));
     try std.testing.expect(p0.isOnCircle());
+}
+
+test "circle: coset cached half-step invariants" {
+    const coset = Coset.new(.{ .v = 13 }, 8);
+    try std.testing.expect(coset.half_step.double().eql(coset.step));
+
+    const shifted = coset.shift(.{ .v = 17 });
+    try std.testing.expect(shifted.half_step.eql(coset.half_step));
+    try std.testing.expect(shifted.half_step.double().eql(shifted.step));
+
+    const conjugated = coset.conjugate();
+    try std.testing.expect(conjugated.half_step.double().eql(conjugated.step));
+    try std.testing.expect(conjugated.half_step.eql(coset.half_step.conjugate()));
+
+    const doubled = coset.double();
+    try std.testing.expect(doubled.half_step.eql(coset.step));
+    try std.testing.expect(doubled.half_step.double().eql(doubled.step));
 }

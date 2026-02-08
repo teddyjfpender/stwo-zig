@@ -17,7 +17,7 @@ pub const LineCoeffs = struct {
 pub fn cosetVanishing(comptime F: type, coset: circle.Coset, p_in: circle.CirclePoint(F)) F {
     const p = p_in
         .sub(pointInto(F, coset.initial))
-        .add(pointInto(F, coset.step_size.half().toPoint()));
+        .add(pointInto(F, coset.half_step));
     var x = p.x;
     var i: u32 = 1;
     while (i < coset.log_size) : (i += 1) {
@@ -109,6 +109,18 @@ fn pointInto(comptime F: type, p: circle.CirclePointM31) circle.CirclePoint(F) {
     };
 }
 
+fn cosetVanishingReference(comptime F: type, coset: circle.Coset, p_in: circle.CirclePoint(F)) F {
+    const p = p_in
+        .sub(pointInto(F, coset.initial))
+        .add(pointInto(F, coset.step_size.half().toPoint()));
+    var x = p.x;
+    var i: u32 = 1;
+    while (i < coset.log_size) : (i += 1) {
+        x = circle.CirclePoint(F).doubleX(x);
+    }
+    return x;
+}
+
 test "constraints: coset vanishing" {
     const cosets = [_]circle.Coset{
         circle.Coset.halfOdds(5),
@@ -164,4 +176,22 @@ test "constraints: point vanishing success and failure" {
     const fail_coset = circle.Coset.halfOdds(6);
     const point = fail_coset.at(4);
     try std.testing.expectError(error.DivisionByZero, pointVanishing(M31, point, point.antipode()));
+}
+
+test "constraints: cached half-step vanishing matches reference formula" {
+    const cosets = [_]circle.Coset{
+        circle.Coset.halfOdds(5),
+        circle.Coset.odds(6),
+        circle.Coset.new(.{ .v = 17 }, 5),
+        circle.Coset.halfOdds(6).conjugate(),
+    };
+
+    for (cosets) |c| {
+        var it = c.iter();
+        while (it.next()) |p| {
+            const fast = cosetVanishing(M31, c, p);
+            const reference = cosetVanishingReference(M31, c, p);
+            try std.testing.expect(fast.eql(reference));
+        }
+    }
 }
