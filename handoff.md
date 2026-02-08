@@ -144,13 +144,13 @@
     - `zig build profile-smoke`
 - Added new harnesses:
   - `scripts/e2e_interop.py`
-    - fixture-bridge interop gate (Rust vectors + Zig wrapper proof-path checks + optional upstream examples check).
+    - true Rust<->Zig proof-exchange gate with semantic tamper rejection and metadata policy checks.
   - `scripts/benchmark_smoke.py`
-    - deterministic short benchmark runs with JSON report output.
+    - matched Rust-vs-Zig benchmark protocol with base and medium workload tiers.
   - `scripts/profile_smoke.py`
-    - coarse profiling smoke (`/usr/bin/time -l` peak RSS + wall-clock) with JSON report output.
+    - profiling protocol with deep workloads, RSS/wall metrics, and hotspot attribution reports.
 - `README.md`
-  - Added smoke-gate command documentation for vectors/interop/bench/profile steps.
+  - Added gate documentation for vectors/interop/bench/profile/release-evidence and strict release flow.
 
 ## Newly Landed Parity Slices
 
