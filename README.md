@@ -78,6 +78,7 @@ zig build release-gate-strict
 `zig build release-gate` is the fast/base CI gate.
 `zig build release-gate-strict` is the required release-signoff gate.
 The strict gate emits `vectors/reports/release_evidence.json` after profile checks.
+It includes `deep-gate` and `prove-checkpoints` before benchmark/profile stages.
 
 ## Layout
 

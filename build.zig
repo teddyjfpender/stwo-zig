@@ -106,7 +106,7 @@ pub fn build(b: *std.Build) void {
     release_gate_step.dependOn(&rg_profile.step);
 
     // Strict release gate sequence:
-    // fmt -> test -> deep-gate -> vectors -> interop -> bench-strict -> profile-smoke
+    // fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke
     const rgs_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const rgs_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
     rgs_test.step.dependOn(&rgs_fmt.step);
@@ -116,12 +116,14 @@ pub fn build(b: *std.Build) void {
     rgs_vectors.step.dependOn(&rgs_deep.step);
     const rgs_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
     rgs_interop.step.dependOn(&rgs_vectors.step);
+    const rgs_prove_checkpoints = b.addSystemCommand(&.{ "python3", "scripts/prove_checkpoints.py" });
+    rgs_prove_checkpoints.step.dependOn(&rgs_interop.step);
     const rgs_bench = b.addSystemCommand(&.{
         "python3",
         "scripts/benchmark_smoke.py",
         "--include-medium",
     });
-    rgs_bench.step.dependOn(&rgs_interop.step);
+    rgs_bench.step.dependOn(&rgs_prove_checkpoints.step);
     const rgs_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
     rgs_profile.step.dependOn(&rgs_bench.step);
     const rgs_evidence = b.addSystemCommand(&.{
@@ -134,7 +136,7 @@ pub fn build(b: *std.Build) void {
 
     const release_gate_strict_step = b.step(
         "release-gate-strict",
-        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> bench-strict -> profile-smoke -> release-evidence)",
+        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> release-evidence)",
     );
     release_gate_strict_step.dependOn(&rgs_evidence.step);
 }
