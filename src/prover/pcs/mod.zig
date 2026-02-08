@@ -1295,6 +1295,61 @@ test "prover pcs: commit polys applies blowup and stores coefficients" {
     try std.testing.expectEqual(@as(usize, 1), scheme.trees.items[0].coefficients.?.len);
 }
 
+test "prover pcs: commit polys supports mixed log sizes with twiddle cache" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    const config = PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+
+    var scheme = try Scheme.init(alloc, config);
+    defer scheme.deinit(alloc);
+
+    const coeffs_log2 = [_]M31{
+        M31.fromCanonical(3),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+    };
+    const coeffs_log3 = [_]M31{
+        M31.fromCanonical(11),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+    };
+    const poly0 = try prover_circle.CircleCoefficients.initBorrowed(coeffs_log2[0..]);
+    const poly1 = try prover_circle.CircleCoefficients.initBorrowed(coeffs_log3[0..]);
+
+    var channel = Channel{};
+    try scheme.commitPolys(
+        alloc,
+        &[_]prover_circle.CircleCoefficients{ poly0, poly1 },
+        &channel,
+    );
+
+    try std.testing.expectEqual(@as(usize, 1), scheme.trees.items.len);
+    try std.testing.expectEqual(@as(usize, 2), scheme.trees.items[0].columns.len);
+    try std.testing.expectEqual(@as(u32, 3), scheme.trees.items[0].columns[0].log_size);
+    try std.testing.expectEqual(@as(u32, 4), scheme.trees.items[0].columns[1].log_size);
+    try std.testing.expectEqual(@as(usize, 8), scheme.trees.items[0].columns[0].values.len);
+    try std.testing.expectEqual(@as(usize, 16), scheme.trees.items[0].columns[1].values.len);
+    for (scheme.trees.items[0].columns[0].values) |value| {
+        try std.testing.expect(value.eql(M31.fromCanonical(3)));
+    }
+    for (scheme.trees.items[0].columns[1].values) |value| {
+        try std.testing.expect(value.eql(M31.fromCanonical(11)));
+    }
+}
+
 test "prover pcs: build query positions tree applies preprocessed mapping" {
     const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
     const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;

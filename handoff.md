@@ -241,3 +241,19 @@
 - `zig build test --summary all`
 - `python3 scripts/parity_fields.py`
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+
+## Latest Slice (PCS Mixed-Log Twiddle Cache Coverage)
+- `src/prover/pcs/mod.zig`
+  - Added edge regression test:
+    - `prover pcs: commit polys supports mixed log sizes with twiddle cache`
+  - Validates `commitPolys` twiddle-cache behavior when committing multiple coefficient polynomials with different log sizes in one call.
+  - Asserts extended-domain log-size/length expectations and constant-value preservation across both committed columns.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig test tmp_deep_probe.zig --test-filter "prover pcs: commit polys supports mixed log sizes with twiddle cache"`
+- `zig test tmp_deep_probe.zig --test-filter "secure poly: interpolate with twiddles matches interpolate"`
+- `zig test tmp_deep_probe.zig --test-filter "prover prove"`
+- `zig build fmt`
+- `zig build test --summary all`
+- `python3 scripts/parity_fields.py`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
