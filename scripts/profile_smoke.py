@@ -6,12 +6,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -137,8 +138,16 @@ SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall"
 SUPPORTED_BLAKE2_BACKENDS = ("auto", "scalar", "simd")
 
 
-def run(cmd: List[str]) -> None:
-    subprocess.run(cmd, cwd=ROOT, check=True)
+def merged_env(extra_env: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+    if not extra_env:
+        return None
+    env = dict(os.environ)
+    env.update(extra_env)
+    return env
+
+
+def run(cmd: List[str], env: Optional[Dict[str, str]] = None) -> None:
+    subprocess.run(cmd, cwd=ROOT, check=True, env=merged_env(env))
 
 
 def canonical_hash(payload: Any) -> str:
@@ -204,7 +213,7 @@ def parse_time_metrics(stderr: str) -> Dict[str, Any]:
     }
 
 
-def run_profiled_once(cmd: List[str]) -> Dict[str, Any]:
+def run_profiled_once(cmd: List[str], env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     start = time.perf_counter()
     if TIME_BIN.exists():
         proc = subprocess.run(
@@ -213,10 +222,11 @@ def run_profiled_once(cmd: List[str]) -> Dict[str, Any]:
             text=True,
             capture_output=True,
             check=True,
+            env=merged_env(env),
         )
         metrics = parse_time_metrics(proc.stderr)
     else:
-        subprocess.run(cmd, cwd=ROOT, check=True)
+        subprocess.run(cmd, cwd=ROOT, check=True, env=merged_env(env))
         proc = None
         metrics = {
             "peak_rss_kb": None,
@@ -262,11 +272,18 @@ def sample_hotspots(
     sample_file: Path,
     duration_seconds: int,
     top_n: int,
+    env: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     if not SAMPLE_BIN.exists():
         return {"available": False, "sample_file": None, "hotspots": []}
 
-    with subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) as proc:
+    with subprocess.Popen(
+        cmd,
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env=merged_env(env),
+    ) as proc:
         sample_cmd = [
             str(SAMPLE_BIN),
             str(proc.pid),
@@ -331,11 +348,17 @@ def profile_runtime_workload(
     sample_duration_seconds: int,
     hotspot_top_n: int,
     zig_blake2_backend: str,
+    merkle_workers: Optional[int],
 ) -> Dict[str, Any]:
     backend_args = (
         ["--blake2-backend", zig_blake2_backend]
         if runtime == "zig"
         else []
+    )
+    runtime_env = (
+        {"STWO_ZIG_MERKLE_WORKERS": str(merkle_workers)}
+        if runtime == "zig" and merkle_workers is not None
+        else None
     )
     cmd = (
         runtime_cmd(runtime)
@@ -352,13 +375,14 @@ def profile_runtime_workload(
         + workload["args"]
     )
 
-    runs = [run_profiled_once(cmd) for _ in range(repeats)]
+    runs = [run_profiled_once(cmd, runtime_env) for _ in range(repeats)]
     sample_file = SAMPLE_DIR / f"{runtime}_{workload['name']}.sample.txt"
     hotspot_info = sample_hotspots(
         cmd=cmd,
         sample_file=sample_file,
         duration_seconds=sample_duration_seconds,
         top_n=hotspot_top_n,
+        env=runtime_env,
     )
 
     seconds = [float(run["seconds"]) for run in runs]
@@ -433,6 +457,12 @@ def main() -> int:
         help="Blake2 backend selector for Zig runtime profile runs.",
     )
     parser.add_argument(
+        "--merkle-workers",
+        type=int,
+        default=None,
+        help="Optional STWO_ZIG_MERKLE_WORKERS override for Zig runtime profile runs.",
+    )
+    parser.add_argument(
         "--report-label",
         default="profile_smoke",
         help="Logical label used in emitted report metadata.",
@@ -449,6 +479,8 @@ def main() -> int:
         raise ValueError("--repeats must be positive")
     if args.sample_duration_seconds <= 0:
         raise ValueError("--sample-duration-seconds must be positive")
+    if args.merkle_workers is not None and args.merkle_workers <= 0:
+        raise ValueError("--merkle-workers must be positive when provided")
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
@@ -473,6 +505,7 @@ def main() -> int:
                 sample_duration_seconds=args.sample_duration_seconds,
                 hotspot_top_n=args.hotspot_top_n,
                 zig_blake2_backend=args.blake2_backend,
+                merkle_workers=args.merkle_workers,
             )
             profiles.append(entry)
             if SAMPLE_BIN.exists() and not entry["hotspots"]:
@@ -495,6 +528,8 @@ def main() -> int:
         "blake2_backend": args.blake2_backend,
         "report_label": args.report_label,
     }
+    if args.merkle_workers is not None:
+        settings["merkle_workers"] = args.merkle_workers
     if args.include_large:
         settings["include_large"] = True
     if args.include_long:

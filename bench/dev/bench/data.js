@@ -2,123 +2,123 @@ window.BENCHMARK_FULL_DATA = {
   "rows": [
     {
       "family": "bit_rev",
-      "rust_prove_avg_seconds": 0.066611694,
-      "rust_verify_avg_seconds": 0.00019443033333333334,
+      "rust_prove_avg_seconds": 0.3039253606666667,
+      "rust_verify_avg_seconds": 0.000256278,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 2.001035,
-      "zig_over_rust_verify": 7.733704,
-      "zig_prove_avg_seconds": 0.13329233333333332,
-      "zig_verify_avg_seconds": 0.0015036666666666664
+      "zig_over_rust_prove": 0.190245,
+      "zig_over_rust_verify": 1.737696,
+      "zig_prove_avg_seconds": 0.057820333333333335,
+      "zig_verify_avg_seconds": 0.00044533333333333333
     },
     {
       "family": "eval_at_point",
-      "rust_prove_avg_seconds": 0.06618215266666667,
-      "rust_verify_avg_seconds": 0.00019876366666666666,
+      "rust_prove_avg_seconds": 0.03240213866666666,
+      "rust_verify_avg_seconds": 0.00039773599999999993,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 2.00204,
-      "zig_over_rust_verify": 8.108457,
-      "zig_prove_avg_seconds": 0.13249933333333333,
-      "zig_verify_avg_seconds": 0.0016116666666666666
+      "zig_over_rust_prove": 1.053027,
+      "zig_over_rust_verify": 1.132242,
+      "zig_prove_avg_seconds": 0.034120333333333336,
+      "zig_verify_avg_seconds": 0.00045033333333333335
     },
     {
       "family": "barycentric_eval_at_point",
-      "rust_prove_avg_seconds": 0.06838105566666668,
-      "rust_verify_avg_seconds": 0.000198653,
+      "rust_prove_avg_seconds": 0.066770014,
+      "rust_verify_avg_seconds": 0.00021777733333333332,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 2.032103,
-      "zig_over_rust_verify": 5.886311,
-      "zig_prove_avg_seconds": 0.13895733333333335,
-      "zig_verify_avg_seconds": 0.0011693333333333332
+      "zig_over_rust_prove": 0.267705,
+      "zig_over_rust_verify": 1.650003,
+      "zig_prove_avg_seconds": 0.017874666666666667,
+      "zig_verify_avg_seconds": 0.0003593333333333333
     },
     {
       "family": "eval_at_point_by_folding",
-      "rust_prove_avg_seconds": 0.066262125,
-      "rust_verify_avg_seconds": 0.000191889,
+      "rust_prove_avg_seconds": 0.10627016700000001,
+      "rust_verify_avg_seconds": 0.0006740833333333334,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.806502,
-      "zig_over_rust_verify": 6.302255,
-      "zig_prove_avg_seconds": 0.11970266666666667,
-      "zig_verify_avg_seconds": 0.0012093333333333333
+      "zig_over_rust_prove": 1.296974,
+      "zig_over_rust_verify": 1.073062,
+      "zig_prove_avg_seconds": 0.13782966666666666,
+      "zig_verify_avg_seconds": 0.0007233333333333333
     },
     {
       "family": "fft",
-      "rust_prove_avg_seconds": 0.074773486,
-      "rust_verify_avg_seconds": 0.00019369466666666667,
+      "rust_prove_avg_seconds": 0.107124736,
+      "rust_verify_avg_seconds": 0.0006578746666666668,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.658837,
-      "zig_over_rust_verify": 7.045453,
-      "zig_prove_avg_seconds": 0.124037,
-      "zig_verify_avg_seconds": 0.0013646666666666668
+      "zig_over_rust_prove": 1.298387,
+      "zig_over_rust_verify": 1.159795,
+      "zig_prove_avg_seconds": 0.13908933333333331,
+      "zig_verify_avg_seconds": 0.0007630000000000001
     },
     {
       "family": "field",
-      "rust_prove_avg_seconds": 0.06711348633333333,
-      "rust_verify_avg_seconds": 0.00020061166666666668,
+      "rust_prove_avg_seconds": 0.6899692776666666,
+      "rust_verify_avg_seconds": 0.00028481933333333333,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.668646,
-      "zig_over_rust_verify": 5.885334,
-      "zig_prove_avg_seconds": 0.11198866666666667,
-      "zig_verify_avg_seconds": 0.0011806666666666667
+      "zig_over_rust_prove": 0.156363,
+      "zig_over_rust_verify": 1.90062,
+      "zig_prove_avg_seconds": 0.10788533333333333,
+      "zig_verify_avg_seconds": 0.0005413333333333333
     },
     {
       "family": "fri",
-      "rust_prove_avg_seconds": 0.06704936166666667,
-      "rust_verify_avg_seconds": 0.00019219433333333332,
+      "rust_prove_avg_seconds": 0.06730656933333333,
+      "rust_verify_avg_seconds": 0.00019931999999999998,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.644634,
-      "zig_over_rust_verify": 7.459464,
-      "zig_prove_avg_seconds": 0.11027166666666666,
-      "zig_verify_avg_seconds": 0.0014336666666666664
+      "zig_over_rust_prove": 0.254849,
+      "zig_over_rust_verify": 1.480032,
+      "zig_prove_avg_seconds": 0.017153,
+      "zig_verify_avg_seconds": 0.00029499999999999996
     },
     {
       "family": "lookups",
-      "rust_prove_avg_seconds": 0.06632898633333334,
-      "rust_verify_avg_seconds": 0.00018763866666666668,
+      "rust_prove_avg_seconds": 0.14299133333333333,
+      "rust_verify_avg_seconds": 0.000255333,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.883671,
-      "zig_over_rust_verify": 7.09875,
-      "zig_prove_avg_seconds": 0.124942,
-      "zig_verify_avg_seconds": 0.0013319999999999999
+      "zig_over_rust_prove": 0.220783,
+      "zig_over_rust_verify": 1.599219,
+      "zig_prove_avg_seconds": 0.03157000000000001,
+      "zig_verify_avg_seconds": 0.0004083333333333333
     },
     {
       "family": "merkle",
-      "rust_prove_avg_seconds": 0.06661173599999999,
-      "rust_verify_avg_seconds": 0.00019237533333333332,
+      "rust_prove_avg_seconds": 0.06683011100000001,
+      "rust_verify_avg_seconds": 0.00023986133333333333,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.774677,
-      "zig_over_rust_verify": 6.206617,
-      "zig_prove_avg_seconds": 0.11821433333333332,
-      "zig_verify_avg_seconds": 0.001194
+      "zig_over_rust_prove": 0.271544,
+      "zig_over_rust_verify": 1.731556,
+      "zig_prove_avg_seconds": 0.018147333333333335,
+      "zig_verify_avg_seconds": 0.0004153333333333333
     },
     {
       "family": "prefix_sum",
-      "rust_prove_avg_seconds": 0.06531448599999999,
-      "rust_verify_avg_seconds": 0.00020144433333333333,
+      "rust_prove_avg_seconds": 0.06809525033333333,
+      "rust_verify_avg_seconds": 0.000183861,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.91468,
-      "zig_over_rust_verify": 6.039717,
-      "zig_prove_avg_seconds": 0.12505633333333332,
-      "zig_verify_avg_seconds": 0.001216666666666667
+      "zig_over_rust_prove": 0.249626,
+      "zig_over_rust_verify": 1.43768,
+      "zig_prove_avg_seconds": 0.016998333333333334,
+      "zig_verify_avg_seconds": 0.0002643333333333334
     },
     {
       "family": "pcs",
-      "rust_prove_avg_seconds": 0.06524015266666668,
-      "rust_verify_avg_seconds": 0.000196097,
+      "rust_prove_avg_seconds": 0.06704220833333334,
+      "rust_verify_avg_seconds": 0.00022663866666666668,
       "zig_over_rust_proof_wire_bytes": 1.0,
-      "zig_over_rust_prove": 1.784423,
-      "zig_over_rust_verify": 6.423692,
-      "zig_prove_avg_seconds": 0.116416,
-      "zig_verify_avg_seconds": 0.0012596666666666667
+      "zig_over_rust_prove": 0.267941,
+      "zig_over_rust_verify": 1.659028,
+      "zig_prove_avg_seconds": 0.01796333333333333,
+      "zig_verify_avg_seconds": 0.00037600000000000003
     }
   ],
   "schema_version": 1,
   "source_report": "vectors/reports/benchmark_full_report.json",
   "summary": {
-    "avg_zig_over_rust_prove": 1.83375,
-    "avg_zig_over_rust_verify": 6.744523,
+    "avg_zig_over_rust_prove": 0.502495,
+    "avg_zig_over_rust_verify": 1.505539,
     "failure_count": 0,
     "families": 11,
-    "max_zig_over_rust_prove": 2.032103,
-    "max_zig_over_rust_verify": 8.108457
+    "max_zig_over_rust_prove": 1.298387,
+    "max_zig_over_rust_verify": 1.90062
   }
 };

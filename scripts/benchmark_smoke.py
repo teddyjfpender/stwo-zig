@@ -10,11 +10,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import re
 
 
@@ -175,11 +176,19 @@ SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall"
 SUPPORTED_BLAKE2_BACKENDS = ("auto", "scalar", "simd")
 
 
-def run(cmd: List[str]) -> None:
-    subprocess.run(cmd, cwd=ROOT, check=True)
+def merged_env(extra_env: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+    if not extra_env:
+        return None
+    env = dict(os.environ)
+    env.update(extra_env)
+    return env
 
 
-def run_timed(cmd: List[str]) -> Dict[str, Any]:
+def run(cmd: List[str], env: Optional[Dict[str, str]] = None) -> None:
+    subprocess.run(cmd, cwd=ROOT, check=True, env=merged_env(env))
+
+
+def run_timed(cmd: List[str], env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     start = time.perf_counter()
     if TIME_BIN.exists():
         proc = subprocess.run(
@@ -188,11 +197,12 @@ def run_timed(cmd: List[str]) -> Dict[str, Any]:
             text=True,
             capture_output=True,
             check=True,
+            env=merged_env(env),
         )
         match = RSS_RE.search(proc.stderr)
         peak_rss_kb = int(match.group(1)) if match else None
     else:
-        subprocess.run(cmd, cwd=ROOT, check=True)
+        subprocess.run(cmd, cwd=ROOT, check=True, env=merged_env(env))
         peak_rss_kb = None
     elapsed = time.perf_counter() - start
     return {
@@ -201,7 +211,13 @@ def run_timed(cmd: List[str]) -> Dict[str, Any]:
     }
 
 
-def summarize_samples(name: str, cmd: List[str], warmups: int, repeats: int) -> Dict[str, Any]:
+def summarize_samples(
+    name: str,
+    cmd: List[str],
+    warmups: int,
+    repeats: int,
+    env: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
     if repeats <= 0:
         raise ValueError("--repeats must be positive")
     if warmups < 0:
@@ -212,7 +228,7 @@ def summarize_samples(name: str, cmd: List[str], warmups: int, repeats: int) -> 
     rss_samples: List[int] = []
 
     for i in range(warmups + repeats):
-        run_result = run_timed(cmd)
+        run_result = run_timed(cmd, env)
         raw_runs.append(
             {
                 "kind": "warmup" if i < warmups else "sample",
@@ -326,6 +342,7 @@ def benchmark_runtime(
     warmups: int,
     repeats: int,
     zig_blake2_backend: str,
+    merkle_workers: Optional[int],
 ) -> Dict[str, Any]:
     prefix = runtime_cmd(runtime)
     artifact_path = ARTIFACT_DIR / f"{runtime}_{workload['name']}.json"
@@ -333,6 +350,11 @@ def benchmark_runtime(
         ["--blake2-backend", zig_blake2_backend]
         if runtime == "zig"
         else []
+    )
+    runtime_env = (
+        {"STWO_ZIG_MERKLE_WORKERS": str(merkle_workers)}
+        if runtime == "zig" and merkle_workers is not None
+        else None
     )
 
     generate_cmd = (
@@ -356,6 +378,7 @@ def benchmark_runtime(
         generate_cmd,
         warmups,
         repeats,
+        runtime_env,
     )
     metrics = proof_metrics(artifact_path)
     verify_stats = summarize_samples(
@@ -363,6 +386,7 @@ def benchmark_runtime(
         verify_cmd,
         warmups,
         repeats,
+        runtime_env,
     )
 
     return {
@@ -404,6 +428,12 @@ def main() -> int:
         help="Blake2 backend selector for Zig runtime benchmark runs.",
     )
     parser.add_argument(
+        "--merkle-workers",
+        type=int,
+        default=None,
+        help="Optional STWO_ZIG_MERKLE_WORKERS override for Zig runtime benchmark runs.",
+    )
+    parser.add_argument(
         "--report-label",
         default="benchmark_smoke",
         help="Logical label used in emitted report metadata.",
@@ -430,6 +460,8 @@ def main() -> int:
         help="Path for JSON report output",
     )
     args = parser.parse_args()
+    if args.merkle_workers is not None and args.merkle_workers <= 0:
+        raise ValueError("--merkle-workers must be positive when provided")
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -453,6 +485,7 @@ def main() -> int:
             warmups=args.warmups,
             repeats=args.repeats,
             zig_blake2_backend=args.blake2_backend,
+            merkle_workers=args.merkle_workers,
         )
         zig = benchmark_runtime(
             runtime="zig",
@@ -460,6 +493,7 @@ def main() -> int:
             warmups=args.warmups,
             repeats=args.repeats,
             zig_blake2_backend=args.blake2_backend,
+            merkle_workers=args.merkle_workers,
         )
 
         prove_ratio = ratio(zig["prove"]["avg_seconds"], rust["prove"]["avg_seconds"])
@@ -526,6 +560,8 @@ def main() -> int:
         "blake2_backend": args.blake2_backend,
         "report_label": args.report_label,
     }
+    if args.merkle_workers is not None:
+        settings["merkle_workers"] = args.merkle_workers
     if args.include_large:
         settings["include_large"] = True
     if args.include_long:
