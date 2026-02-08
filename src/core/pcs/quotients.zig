@@ -1,7 +1,6 @@
 const std = @import("std");
 const circle = @import("../circle.zig");
 const constraints = @import("../constraints.zig");
-const fields = @import("../fields/mod.zig");
 const cm31_mod = @import("../fields/cm31.zig");
 const m31_mod = @import("../fields/m31.zig");
 const qm31_mod = @import("../fields/qm31.zig");
@@ -168,6 +167,21 @@ pub fn denominatorInverses(
 ) ![]CM31 {
     const denominators = try allocator.alloc(CM31, sample_points.len);
     defer allocator.free(denominators);
+    const inverses = try allocator.alloc(CM31, sample_points.len);
+    errdefer allocator.free(inverses);
+
+    try denominatorInversesInto(sample_points, domain_point, denominators, inverses);
+    return inverses;
+}
+
+fn denominatorInversesInto(
+    sample_points: []const CirclePointQM31,
+    domain_point: CirclePointM31,
+    denominators: []CM31,
+    denominator_inverses: []CM31,
+) !void {
+    if (denominators.len != sample_points.len) return error.ShapeMismatch;
+    if (denominator_inverses.len != sample_points.len) return error.ShapeMismatch;
 
     const domain_x = CM31.fromBase(domain_point.x);
     const domain_y = CM31.fromBase(domain_point.y);
@@ -180,7 +194,30 @@ pub fn denominatorInverses(
         denominators[i] = prx.sub(domain_x).mul(piy).sub(pry.sub(domain_y).mul(pix));
     }
 
-    return fields.batchInverse(CM31, allocator, denominators) catch return error.DivisionByZero;
+    try batchInverseIntoCM31(denominators, denominator_inverses);
+}
+
+fn batchInverseIntoCM31(values: []const CM31, out: []CM31) !void {
+    if (values.len != out.len) return error.ShapeMismatch;
+    if (values.len == 0) return;
+
+    out[0] = CM31.one();
+    var i: usize = 1;
+    while (i < values.len) : (i += 1) {
+        out[i] = out[i - 1].mul(values[i - 1]);
+    }
+
+    var inv_total = out[values.len - 1].mul(values[values.len - 1]).inv() catch {
+        return error.DivisionByZero;
+    };
+
+    var j: usize = values.len;
+    while (j > 0) {
+        j -= 1;
+        const prefix = if (j == 0) CM31.one() else out[j];
+        out[j] = inv_total.mul(prefix);
+        inv_total = inv_total.mul(values[j]);
+    }
 }
 
 /// Computes the partial numerator sum for one row:
@@ -217,8 +254,16 @@ pub fn accumulateRowQuotients(
     defer allocator.free(sample_points);
     for (sample_batches, 0..) |batch, i| sample_points[i] = batch.point;
 
-    const denominator_inverses = try denominatorInverses(allocator, sample_points, domain_point);
+    const denominator_scratch = try allocator.alloc(CM31, sample_batches.len);
+    defer allocator.free(denominator_scratch);
+    const denominator_inverses = try allocator.alloc(CM31, sample_batches.len);
     defer allocator.free(denominator_inverses);
+    try denominatorInversesInto(
+        sample_points,
+        domain_point,
+        denominator_scratch,
+        denominator_inverses,
+    );
 
     var row_accumulator = QM31.zero();
     for (sample_batches, 0..) |batch, batch_idx| {
@@ -231,6 +276,48 @@ pub fn accumulateRowQuotients(
                 return error.ColumnIndexOutOfBounds;
             }
             const value = QM31.fromBase(queried_values_at_row[sample_data.column_index]).mul(line_coeffs[i].c);
+            const linear_term = line_coeffs[i].a.mulM31(domain_point.y).add(line_coeffs[i].b);
+            numerator = numerator.add(value.sub(linear_term));
+        }
+        row_accumulator = row_accumulator.add(numerator.mulCM31(denominator_inverses[batch_idx]));
+    }
+    return row_accumulator;
+}
+
+fn accumulateRowQuotientsFromColumns(
+    sample_batches: []const ColumnSampleBatch,
+    queried_values_flat: []const []const M31,
+    row_idx: usize,
+    quotient_constants: *const QuotientConstants,
+    domain_point: CirclePointM31,
+    sample_points: []const CirclePointQM31,
+    denominator_scratch: []CM31,
+    denominator_inverses: []CM31,
+) !QM31 {
+    if (sample_batches.len != quotient_constants.line_coeffs.len) return error.ShapeMismatch;
+    if (sample_points.len != sample_batches.len) return error.ShapeMismatch;
+    if (denominator_scratch.len != sample_batches.len) return error.ShapeMismatch;
+    if (denominator_inverses.len != sample_batches.len) return error.ShapeMismatch;
+
+    try denominatorInversesInto(
+        sample_points,
+        domain_point,
+        denominator_scratch,
+        denominator_inverses,
+    );
+
+    var row_accumulator = QM31.zero();
+    for (sample_batches, 0..) |batch, batch_idx| {
+        const line_coeffs = quotient_constants.line_coeffs[batch_idx];
+        if (batch.cols_vals_randpows.len != line_coeffs.len) return error.ShapeMismatch;
+
+        var numerator = QM31.zero();
+        for (batch.cols_vals_randpows, 0..) |sample_data, i| {
+            if (sample_data.column_index >= queried_values_flat.len) return error.ColumnIndexOutOfBounds;
+            const column_queries = queried_values_flat[sample_data.column_index];
+            if (row_idx >= column_queries.len) return error.ShapeMismatch;
+
+            const value = QM31.fromBase(column_queries[row_idx]).mul(line_coeffs[i].c);
             const linear_term = line_coeffs[i].a.mulM31(domain_point.y).add(line_coeffs[i].b);
             numerator = numerator.add(value.sub(linear_term));
         }
@@ -371,22 +458,28 @@ pub fn friAnswers(
     const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
     const domain_size = domain.size();
 
-    const queried_values_at_row = try allocator.alloc(M31, queried_values_flat.len);
-    defer allocator.free(queried_values_at_row);
+    const sample_points = try allocator.alloc(CirclePointQM31, sample_batches.len);
+    defer allocator.free(sample_points);
+    for (sample_batches, 0..) |batch, i| sample_points[i] = batch.point;
+
+    const denominator_scratch = try allocator.alloc(CM31, sample_batches.len);
+    defer allocator.free(denominator_scratch);
+    const denominator_inverses = try allocator.alloc(CM31, sample_batches.len);
+    defer allocator.free(denominator_inverses);
 
     const out = try allocator.alloc(QM31, query_positions.len);
     for (query_positions, 0..) |position, row_idx| {
         if (position >= domain_size) return error.QueryPositionOutOfRange;
-        for (queried_values_flat, 0..) |column_queries, col_idx| {
-            queried_values_at_row[col_idx] = column_queries[row_idx];
-        }
         const domain_point = domain.at(core_utils.bitReverseIndex(position, lifting_log_size));
-        out[row_idx] = try accumulateRowQuotients(
-            allocator,
+        out[row_idx] = try accumulateRowQuotientsFromColumns(
             sample_batches,
-            queried_values_at_row,
+            queried_values_flat,
+            row_idx,
             &q_consts,
             domain_point,
+            sample_points,
+            denominator_scratch,
+            denominator_inverses,
         );
     }
     return out;
@@ -584,6 +677,124 @@ test "pcs quotients: row accumulators match direct formulas" {
     }
     const expected_row = numerator.mulCM31(inverses[0]);
     try std.testing.expect(row.eql(expected_row));
+}
+
+test "pcs quotients: zero-copy row accumulation matches row-copy path" {
+    const alloc = std.testing.allocator;
+    const lifting_log_size: u32 = 6;
+    const query_positions = [_]usize{ 0, 1, 2, 3 };
+
+    const point0 = circle.SECURE_FIELD_CIRCLE_GEN.mul(5);
+    const point1 = circle.SECURE_FIELD_CIRCLE_GEN.mul(29);
+    const col0_samples = try alloc.dupe(PointSample, &[_]PointSample{
+        .{ .point = point0, .value = QM31.fromU32Unchecked(1, 1, 1, 1) },
+    });
+    defer alloc.free(col0_samples);
+    const col1_samples = try alloc.dupe(PointSample, &[_]PointSample{
+        .{ .point = point0, .value = QM31.fromU32Unchecked(2, 2, 2, 2) },
+        .{ .point = point1, .value = QM31.fromU32Unchecked(3, 3, 3, 3) },
+    });
+    defer alloc.free(col1_samples);
+
+    const tree_samples = try alloc.dupe([]PointSample, &[_][]PointSample{
+        col0_samples,
+        col1_samples,
+    });
+    defer alloc.free(tree_samples);
+    const samples_items = try alloc.dupe([][]PointSample, &[_][][]PointSample{tree_samples});
+    defer alloc.free(samples_items);
+    const samples = TreeVec([][]PointSample).initOwned(samples_items);
+
+    const col_sizes_tree = try alloc.dupe(u32, &[_]u32{ 5, 5 });
+    defer alloc.free(col_sizes_tree);
+    const col_sizes = try alloc.dupe([]u32, &[_][]u32{col_sizes_tree});
+    defer alloc.free(col_sizes);
+    const column_log_sizes = TreeVec([]u32).initOwned(col_sizes);
+
+    const q0 = try alloc.dupe(M31, &[_]M31{
+        M31.fromCanonical(10),
+        M31.fromCanonical(11),
+        M31.fromCanonical(12),
+        M31.fromCanonical(13),
+    });
+    defer alloc.free(q0);
+    const q1 = try alloc.dupe(M31, &[_]M31{
+        M31.fromCanonical(20),
+        M31.fromCanonical(21),
+        M31.fromCanonical(22),
+        M31.fromCanonical(23),
+    });
+    defer alloc.free(q1);
+    const queried_tree = try alloc.dupe([]M31, &[_][]M31{ q0, q1 });
+    defer alloc.free(queried_tree);
+    const queried_items = try alloc.dupe([][]M31, &[_][][]M31{queried_tree});
+    defer alloc.free(queried_items);
+    const queried_values = TreeVec([][]M31).initOwned(queried_items);
+
+    const alpha = QM31.fromU32Unchecked(7, 0, 5, 0);
+    var samples_with_randomness = try buildSamplesWithRandomnessAndPeriodicity(
+        alloc,
+        samples,
+        column_log_sizes,
+        lifting_log_size,
+        alpha,
+    );
+    defer samples_with_randomness.deinitDeep(alloc);
+
+    var flat_samples = std.ArrayList([]const SampleWithRandomness).empty;
+    defer flat_samples.deinit(alloc);
+    for (samples_with_randomness.items) |tree_samples_slice| {
+        for (tree_samples_slice) |col_samples| {
+            try flat_samples.append(alloc, col_samples);
+        }
+    }
+
+    const sample_batches = try ColumnSampleBatch.newVec(alloc, flat_samples.items);
+    defer ColumnSampleBatch.deinitSlice(alloc, sample_batches);
+
+    var q_consts = try quotientConstants(alloc, sample_batches);
+    defer q_consts.deinit(alloc);
+
+    const queried_values_flat = try pcs_utils.flatten([]M31, alloc, queried_values);
+    defer alloc.free(queried_values_flat);
+
+    const sample_points = try alloc.alloc(CirclePointQM31, sample_batches.len);
+    defer alloc.free(sample_points);
+    for (sample_batches, 0..) |batch, i| sample_points[i] = batch.point;
+
+    const denominator_scratch = try alloc.alloc(CM31, sample_batches.len);
+    defer alloc.free(denominator_scratch);
+    const denominator_inverses = try alloc.alloc(CM31, sample_batches.len);
+    defer alloc.free(denominator_inverses);
+
+    const row_buffer = try alloc.alloc(M31, queried_values_flat.len);
+    defer alloc.free(row_buffer);
+
+    const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
+    for (query_positions, 0..) |position, row_idx| {
+        for (queried_values_flat, 0..) |column_queries, col_idx| {
+            row_buffer[col_idx] = column_queries[row_idx];
+        }
+        const domain_point = domain.at(core_utils.bitReverseIndex(position, lifting_log_size));
+        const row_copy = try accumulateRowQuotients(
+            alloc,
+            sample_batches,
+            row_buffer,
+            &q_consts,
+            domain_point,
+        );
+        const zero_copy = try accumulateRowQuotientsFromColumns(
+            sample_batches,
+            queried_values_flat,
+            row_idx,
+            &q_consts,
+            domain_point,
+            sample_points,
+            denominator_scratch,
+            denominator_inverses,
+        );
+        try std.testing.expect(row_copy.eql(zero_copy));
+    }
 }
 
 test "pcs quotients: fri answers smoke test" {
