@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const m31 = @import("../../core/fields/m31.zig");
 const lifted_merkle_hasher = @import("../../core/vcs_lifted/merkle_hasher.zig");
 const vcs_lifted_verifier = @import("../../core/vcs_lifted/verifier.zig");
@@ -15,6 +16,8 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const NodeValue = vcs_lifted_verifier.MerkleDecommitmentLiftedAux(H).NodeValue;
         const ExtendedDecommitment = vcs_lifted_verifier.ExtendedMerkleDecommitmentLifted(H);
         const Decommitment = vcs_lifted_verifier.MerkleDecommitmentLifted(H);
+        const parallel_min_nodes: usize = 1 << 13;
+        const parallel_min_nodes_per_worker: usize = 1 << 12;
 
         pub const DecommitmentResult = struct {
             queried_values: [][]M31,
@@ -283,6 +286,20 @@ pub fn MerkleProverLifted(comptime H: type) type {
         ) ![]H.Hash {
             std.debug.assert(prev_layer.len > 1 and std.math.isPowerOfTwo(prev_layer.len));
             const out = try allocator.alloc(H.Hash, prev_layer.len >> 1);
+            const workers = parallelWorkersForLayer(out.len);
+
+            if (workers > 1) {
+                if (comptime @hasDecl(H, "nodeSeed") and @hasDecl(H, "hashChildrenWithSeed")) {
+                    const seed = H.nodeSeed();
+                    if (buildNextLayerSeededParallel(allocator, out, prev_layer, seed, workers)) |_| {
+                        return out;
+                    } else |_| {}
+                } else {
+                    if (buildNextLayerBasicParallel(allocator, out, prev_layer, workers)) |_| {
+                        return out;
+                    } else |_| {}
+                }
+            }
 
             if (comptime @hasDecl(H, "nodeSeed") and @hasDecl(H, "hashChildrenWithSeed")) {
                 const seed = H.nodeSeed();
@@ -340,6 +357,136 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 });
             }
             return out;
+        }
+
+        fn parallelWorkersForLayer(out_len: usize) usize {
+            if (builtin.single_threaded) return 1;
+            if (out_len < parallel_min_nodes) return 1;
+            const cpu_count_raw = std.Thread.getCpuCount() catch return 1;
+            const cpu_count: usize = @intCast(cpu_count_raw);
+            if (cpu_count <= 1) return 1;
+            const capacity = out_len / parallel_min_nodes_per_worker;
+            if (capacity < 2) return 1;
+            return @min(cpu_count, capacity);
+        }
+
+        const SeededRangeCtx = struct {
+            out: []H.Hash,
+            prev_layer: []const H.Hash,
+            start: usize,
+            end: usize,
+            seed: H,
+        };
+
+        fn hashSeededRange(ctx: *const SeededRangeCtx) void {
+            var i = ctx.start;
+            while (i < ctx.end) : (i += 1) {
+                ctx.out[i] = H.hashChildrenWithSeed(ctx.seed, .{
+                    .left = ctx.prev_layer[2 * i],
+                    .right = ctx.prev_layer[2 * i + 1],
+                });
+            }
+        }
+
+        fn hashSeededRangeThread(ctx: *const SeededRangeCtx) void {
+            hashSeededRange(ctx);
+        }
+
+        fn buildNextLayerSeededParallel(
+            allocator: std.mem.Allocator,
+            out: []H.Hash,
+            prev_layer: []const H.Hash,
+            seed: H,
+            worker_count: usize,
+        ) !void {
+            std.debug.assert(worker_count > 1);
+            const contexts = try allocator.alloc(SeededRangeCtx, worker_count);
+            defer allocator.free(contexts);
+            const threads = try allocator.alloc(std.Thread, worker_count - 1);
+            defer allocator.free(threads);
+
+            const chunk_len = (out.len + worker_count - 1) / worker_count;
+            var actual_workers: usize = 0;
+            var start: usize = 0;
+            while (start < out.len and actual_workers < worker_count) : (actual_workers += 1) {
+                const end = @min(out.len, start + chunk_len);
+                contexts[actual_workers] = .{
+                    .out = out,
+                    .prev_layer = prev_layer,
+                    .start = start,
+                    .end = end,
+                    .seed = seed,
+                };
+                start = end;
+            }
+            if (actual_workers <= 1) {
+                hashSeededRange(&contexts[0]);
+                return;
+            }
+
+            for (1..actual_workers) |i| {
+                threads[i - 1] = try std.Thread.spawn(.{}, hashSeededRangeThread, .{&contexts[i]});
+            }
+            hashSeededRange(&contexts[0]);
+            for (0..actual_workers - 1) |i| threads[i].join();
+        }
+
+        const BasicRangeCtx = struct {
+            out: []H.Hash,
+            prev_layer: []const H.Hash,
+            start: usize,
+            end: usize,
+        };
+
+        fn hashBasicRange(ctx: *const BasicRangeCtx) void {
+            var i = ctx.start;
+            while (i < ctx.end) : (i += 1) {
+                ctx.out[i] = H.hashChildren(.{
+                    .left = ctx.prev_layer[2 * i],
+                    .right = ctx.prev_layer[2 * i + 1],
+                });
+            }
+        }
+
+        fn hashBasicRangeThread(ctx: *const BasicRangeCtx) void {
+            hashBasicRange(ctx);
+        }
+
+        fn buildNextLayerBasicParallel(
+            allocator: std.mem.Allocator,
+            out: []H.Hash,
+            prev_layer: []const H.Hash,
+            worker_count: usize,
+        ) !void {
+            std.debug.assert(worker_count > 1);
+            const contexts = try allocator.alloc(BasicRangeCtx, worker_count);
+            defer allocator.free(contexts);
+            const threads = try allocator.alloc(std.Thread, worker_count - 1);
+            defer allocator.free(threads);
+
+            const chunk_len = (out.len + worker_count - 1) / worker_count;
+            var actual_workers: usize = 0;
+            var start: usize = 0;
+            while (start < out.len and actual_workers < worker_count) : (actual_workers += 1) {
+                const end = @min(out.len, start + chunk_len);
+                contexts[actual_workers] = .{
+                    .out = out,
+                    .prev_layer = prev_layer,
+                    .start = start,
+                    .end = end,
+                };
+                start = end;
+            }
+            if (actual_workers <= 1) {
+                hashBasicRange(&contexts[0]);
+                return;
+            }
+
+            for (1..actual_workers) |i| {
+                threads[i - 1] = try std.Thread.spawn(.{}, hashBasicRangeThread, .{&contexts[i]});
+            }
+            hashBasicRange(&contexts[0]);
+            for (0..actual_workers - 1) |i| threads[i].join();
         }
     };
 }
