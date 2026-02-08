@@ -8,6 +8,7 @@ const plonk = stwo.examples.plonk;
 const state_machine = stwo.examples.state_machine;
 const wide_fibonacci = stwo.examples.wide_fibonacci;
 const xor = stwo.examples.xor;
+const std_shims_verifier_profile = stwo.std_shims.verifier_profile;
 const examples_artifact = stwo.interop.examples_artifact;
 const proof_wire = stwo.interop.proof_wire;
 
@@ -16,6 +17,7 @@ const M31 = m31.M31;
 const Mode = enum {
     generate,
     verify,
+    verify_std_shims,
     bench,
 };
 
@@ -116,6 +118,7 @@ pub fn main() !void {
     switch (cli.mode) {
         .generate => try runGenerate(gpa, cli),
         .verify => try runVerify(gpa, cli),
+        .verify_std_shims => try runVerifyStdShims(gpa, cli),
         .bench => try runBench(gpa, cli),
     }
 }
@@ -324,6 +327,20 @@ fn verifyExample(
         .state_machine => |s| try state_machine.verify(allocator, config, s, proof),
         .wide_fibonacci => |s| try wide_fibonacci.verify(allocator, config, s, proof),
         .xor => |s| try xor.verify(allocator, config, s, proof),
+    }
+}
+
+fn verifyExampleStdShims(
+    allocator: std.mem.Allocator,
+    config: pcs.PcsConfig,
+    statement: ExampleStatement,
+    proof: proof_wire.Proof,
+) !void {
+    switch (statement) {
+        .plonk => |s| try std_shims_verifier_profile.verifyPlonk(allocator, config, s, proof),
+        .state_machine => |s| try std_shims_verifier_profile.verifyStateMachine(allocator, config, s, proof),
+        .wide_fibonacci => |s| try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, s, proof),
+        .xor => |s| try std_shims_verifier_profile.verifyXor(allocator, config, s, proof),
     }
 }
 
@@ -607,6 +624,14 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
 }
 
 fn runVerify(allocator: std.mem.Allocator, cli: Cli) !void {
+    return runVerifyImpl(allocator, cli, false);
+}
+
+fn runVerifyStdShims(allocator: std.mem.Allocator, cli: Cli) !void {
+    return runVerifyImpl(allocator, cli, true);
+}
+
+fn runVerifyImpl(allocator: std.mem.Allocator, cli: Cli, use_std_shims: bool) !void {
     const parsed = try examples_artifact.readArtifact(allocator, cli.artifact_path);
     defer parsed.deinit();
 
@@ -636,25 +661,41 @@ fn runVerify(allocator: std.mem.Allocator, cli: Cli) !void {
     if (std.mem.eql(u8, artifact.example, "plonk")) {
         const statement_wire = artifact.plonk_statement orelse return error.MissingPlonkStatement;
         const statement = try examples_artifact.plonkStatementFromWire(statement_wire);
-        try plonk.verify(allocator, config, statement, proof);
+        if (use_std_shims) {
+            try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);
+        } else {
+            try plonk.verify(allocator, config, statement, proof);
+        }
         return;
     }
     if (std.mem.eql(u8, artifact.example, "state_machine")) {
         const statement_wire = artifact.state_machine_statement orelse return error.MissingStateMachineStatement;
         const statement = try examples_artifact.stateMachineStatementFromWire(statement_wire);
-        try state_machine.verify(allocator, config, statement, proof);
+        if (use_std_shims) {
+            try std_shims_verifier_profile.verifyStateMachine(allocator, config, statement, proof);
+        } else {
+            try state_machine.verify(allocator, config, statement, proof);
+        }
         return;
     }
     if (std.mem.eql(u8, artifact.example, "wide_fibonacci")) {
         const statement_wire = artifact.wide_fibonacci_statement orelse return error.MissingWideFibonacciStatement;
         const statement = try examples_artifact.wideFibonacciStatementFromWire(statement_wire);
-        try wide_fibonacci.verify(allocator, config, statement, proof);
+        if (use_std_shims) {
+            try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, statement, proof);
+        } else {
+            try wide_fibonacci.verify(allocator, config, statement, proof);
+        }
         return;
     }
     if (std.mem.eql(u8, artifact.example, "xor")) {
         const statement_wire = artifact.xor_statement orelse return error.MissingXorStatement;
         const statement = try examples_artifact.xorStatementFromWire(statement_wire);
-        try xor.verify(allocator, config, statement, proof);
+        if (use_std_shims) {
+            try std_shims_verifier_profile.verifyXor(allocator, config, statement, proof);
+        } else {
+            try xor.verify(allocator, config, statement, proof);
+        }
         return;
     }
     return error.UnknownExample;
@@ -784,6 +825,7 @@ fn parseArgs(args: []const []const u8) !Cli {
 fn parseMode(value: []const u8) ?Mode {
     if (std.mem.eql(u8, value, "generate")) return .generate;
     if (std.mem.eql(u8, value, "verify")) return .verify;
+    if (std.mem.eql(u8, value, "verify_std_shims")) return .verify_std_shims;
     if (std.mem.eql(u8, value, "bench")) return .bench;
     return null;
 }
@@ -834,6 +876,7 @@ fn printUsage() void {
             "  zig run src/interop_cli.zig -- --mode generate --example <plonk|state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
             "    [--prove-mode <prove|prove_ex>] [--include-all-preprocessed-columns <0|1>]\n" ++
             "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n" ++
+            "  zig run src/interop_cli.zig -- --mode verify_std_shims --artifact <path>\n" ++
             "  zig run src/interop_cli.zig -- --mode bench --example <plonk|state_machine|wide_fibonacci|xor> --artifact <ignored> [options]\n" ++
             "    [--bench-warmups <n>] [--bench-repeats <n>]\n",
         .{},

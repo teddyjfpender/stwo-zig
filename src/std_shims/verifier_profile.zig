@@ -1,4 +1,5 @@
 const std = @import("std");
+const examples_plonk = @import("../examples/plonk.zig");
 const examples_xor = @import("../examples/xor.zig");
 const examples_state_machine = @import("../examples/state_machine.zig");
 const examples_wide_fibonacci = @import("../examples/wide_fibonacci.zig");
@@ -15,6 +16,15 @@ pub fn verifyXor(
     proof: examples_xor.Proof,
 ) anyerror!void {
     try examples_xor.verify(allocator, pcs_config, statement, proof);
+}
+
+pub fn verifyPlonk(
+    allocator: std.mem.Allocator,
+    pcs_config: @import("../core/pcs/mod.zig").PcsConfig,
+    statement: examples_plonk.Statement,
+    proof: examples_plonk.Proof,
+) anyerror!void {
+    try examples_plonk.verify(allocator, pcs_config, statement, proof);
 }
 
 pub fn verifyStateMachine(
@@ -59,4 +69,28 @@ test "std_shims verifier profile: xor verification parity with standard path" {
 
     const shim_proof = try proof_wire.decodeProofBytes(alloc, bytes);
     try verifyXor(alloc, config, output.statement, shim_proof);
+}
+
+test "std_shims verifier profile: plonk verification parity with standard path" {
+    const alloc = std.testing.allocator;
+    const config = @import("../core/pcs/mod.zig").PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+    const statement: examples_plonk.Statement = .{
+        .log_n_rows = 5,
+    };
+
+    var output = try examples_plonk.prove(alloc, config, statement);
+    defer output.proof.deinit(alloc);
+
+    const proof_wire = @import("../interop/proof_wire.zig");
+    const bytes = try proof_wire.encodeProofBytes(alloc, output.proof);
+    defer alloc.free(bytes);
+
+    const standard_proof = try proof_wire.decodeProofBytes(alloc, bytes);
+    try examples_plonk.verify(alloc, config, output.statement, standard_proof);
+
+    const shim_proof = try proof_wire.decodeProofBytes(alloc, bytes);
+    try verifyPlonk(alloc, config, output.statement, shim_proof);
 }
