@@ -30,9 +30,9 @@ pub fn build(b: *std.Build) void {
     const vectors_step = b.step("vectors", "Validate committed parity vectors");
     vectors_step.dependOn(&vectors_cmd.step);
 
-    // Cross-language interoperability gate (Rust fixtures + Zig wrapper proof-path checks).
+    // Cross-language interoperability gate (true Rust<->Zig proof exchange + tamper rejection).
     const interop_cmd = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
-    const interop_step = b.step("interop", "Run interoperability harness (Rust <-> Zig fixtures/wrappers)");
+    const interop_step = b.step("interop", "Run interoperability harness (Rust <-> Zig proof exchange)");
     interop_step.dependOn(&interop_cmd.step);
 
     // Benchmark smoke gate with deterministic short workloads.
@@ -49,4 +49,24 @@ pub fn build(b: *std.Build) void {
     const fmt_cmd = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const fmt_step = b.step("fmt", "Check formatting (zig fmt --check)");
     fmt_step.dependOn(&fmt_cmd.step);
+
+    // Deterministic release gate sequence:
+    // fmt -> test -> vectors -> interop -> bench-smoke -> profile-smoke
+    const rg_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
+    const rg_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
+    rg_test.step.dependOn(&rg_fmt.step);
+    const rg_vectors = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
+    rg_vectors.step.dependOn(&rg_test.step);
+    const rg_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
+    rg_interop.step.dependOn(&rg_vectors.step);
+    const rg_bench = b.addSystemCommand(&.{ "python3", "scripts/benchmark_smoke.py" });
+    rg_bench.step.dependOn(&rg_interop.step);
+    const rg_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
+    rg_profile.step.dependOn(&rg_bench.step);
+
+    const release_gate_step = b.step(
+        "release-gate",
+        "Run release gate sequence (fmt -> test -> vectors -> interop -> bench-smoke -> profile-smoke)",
+    );
+    release_gate_step.dependOn(&rg_profile.step);
 }

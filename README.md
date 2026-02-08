@@ -28,13 +28,23 @@ zig build test
 zig build fmt
 ```
 
-### Conformance gates (smoke)
+### Conformance gates
 
 ```bash
 zig build vectors
 zig build interop
 zig build bench-smoke
 zig build profile-smoke
+```
+
+`zig build interop` performs true Rust<->Zig proof exchange for `xor` and `state_machine`
+(`proof_exchange_json_wire_v1`) and includes tamper-rejection checks. It uses
+Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
+
+### Deterministic release sequence
+
+```bash
+zig build release-gate
 ```
 
 ## Layout

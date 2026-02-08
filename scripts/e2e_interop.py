@@ -1,180 +1,401 @@
 #!/usr/bin/env python3
-"""Cross-language interoperability gate for example proof paths.
+"""Cross-language interoperability gate for proof exchange artifacts.
 
-This harness currently enforces a fixture-bridge interoperability mode:
-1. Rust deterministic fixture generation/check (`tools/stwo-vector-gen`).
-2. Zig wrapper proof-path roundtrip and rejection tests.
-3. Optional upstream Rust examples crate build smoke.
+This gate enforces true bidirectional exchange for the `xor` and `state_machine`
+example wrappers:
+1. Rust-generated proof artifact verifies in Zig.
+2. Zig-generated proof artifact verifies in Rust.
+3. Tampered artifacts are rejected in both directions.
 
-The report is written as JSON for CI/handoff consumption.
+A machine-readable report is emitted under vectors/reports/.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import time
 from pathlib import Path
+from typing import Any, Optional
 
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORT_DEFAULT = ROOT / "vectors" / "reports" / "e2e_interop_report.json"
-EXAMPLES_REPORT = ROOT / "vectors" / "reports" / "e2e_examples_fixture_report.json"
-GEN_MANIFEST = ROOT / "tools" / "stwo-vector-gen" / "Cargo.toml"
+ARTIFACT_DIR_DEFAULT = ROOT / "vectors" / "reports" / "interop_artifacts"
+RUST_MANIFEST = ROOT / "tools" / "stwo-interop-rs" / "Cargo.toml"
+
+RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
+UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
+SCHEMA_VERSION = 1
+EXCHANGE_MODE = "proof_exchange_json_wire_v1"
+SUPPORTED_EXAMPLES = ("xor", "state_machine")
 
 
-def run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
-    subprocess.run(cmd, cwd=cwd or ROOT, env=env, check=True)
+def rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
-def timed_step(
+def trim_tail(text: str, limit: int = 2000) -> str:
+    if len(text) <= limit:
+        return text
+    return text[-limit:]
+
+
+def run_step(
+    *,
     name: str,
     cmd: list[str],
-    *,
-    cwd: Path | None = None,
-    env: dict[str, str] | None = None,
-) -> dict:
+    steps: list[dict[str, Any]],
+    expect_failure: bool = False,
+) -> None:
     start = time.perf_counter()
-    run(cmd, cwd=cwd, env=env)
+    proc = subprocess.run(
+        cmd,
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
     elapsed = time.perf_counter() - start
-    return {
+    succeeded = (proc.returncode != 0) if expect_failure else (proc.returncode == 0)
+
+    step: dict[str, Any] = {
         "name": name,
         "command": cmd,
-        "cwd": str((cwd or ROOT).relative_to(ROOT)) if (cwd or ROOT).is_relative_to(ROOT) else str(cwd or ROOT),
+        "cwd": ".",
         "seconds": round(elapsed, 6),
+        "expect_failure": expect_failure,
+        "return_code": proc.returncode,
+        "status": "ok" if succeeded else "failed",
+        "stdout_tail": trim_tail(proc.stdout),
+        "stderr_tail": trim_tail(proc.stderr),
+    }
+    steps.append(step)
+    if succeeded:
+        return
+
+    expectation = "non-zero exit code" if expect_failure else "zero exit code"
+    raise RuntimeError(
+        f"{name} failed (expected {expectation}, got {proc.returncode})"
+    )
+
+
+def assert_artifact_metadata(artifact_path: Path, *, expected_generator: str, example: str) -> None:
+    data = json.loads(artifact_path.read_text(encoding="utf-8"))
+
+    schema_version = int(data.get("schema_version", -1))
+    exchange_mode = data.get("exchange_mode")
+    upstream_commit = data.get("upstream_commit")
+    generator = data.get("generator")
+    artifact_example = data.get("example")
+
+    if schema_version != SCHEMA_VERSION:
+        raise RuntimeError(
+            f"{rel(artifact_path)} schema_version mismatch: expected {SCHEMA_VERSION}, got {schema_version}"
+        )
+    if exchange_mode != EXCHANGE_MODE:
+        raise RuntimeError(
+            f"{rel(artifact_path)} exchange_mode mismatch: expected {EXCHANGE_MODE}, got {exchange_mode}"
+        )
+    if upstream_commit != UPSTREAM_COMMIT:
+        raise RuntimeError(
+            f"{rel(artifact_path)} upstream_commit mismatch: expected {UPSTREAM_COMMIT}, got {upstream_commit}"
+        )
+    if generator != expected_generator:
+        raise RuntimeError(
+            f"{rel(artifact_path)} generator mismatch: expected {expected_generator}, got {generator}"
+        )
+    if artifact_example != example:
+        raise RuntimeError(
+            f"{rel(artifact_path)} example mismatch: expected {example}, got {artifact_example}"
+        )
+
+
+def tamper_proof_bytes_hex(src: Path, dst: Path) -> None:
+    artifact = json.loads(src.read_text(encoding="utf-8"))
+    proof_hex = artifact.get("proof_bytes_hex")
+    if not isinstance(proof_hex, str) or len(proof_hex) == 0:
+        raise RuntimeError(f"{rel(src)} missing proof_bytes_hex")
+
+    # Deterministic one-nibble mutation that preserves hex encoding.
+    first = proof_hex[0]
+    replacement = "0" if first != "0" else "1"
+    artifact["proof_bytes_hex"] = replacement + proof_hex[1:]
+
+    dst.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def run_example_case(
+    *,
+    example: str,
+    artifact_dir: Path,
+    rust_toolchain: str,
+    all_steps: list[dict[str, Any]],
+) -> dict[str, Any]:
+    rust_artifact = artifact_dir / f"{example}_rust_to_zig.json"
+    zig_artifact = artifact_dir / f"{example}_zig_to_rust.json"
+    rust_tampered = artifact_dir / f"{example}_rust_to_zig_tampered.json"
+    zig_tampered = artifact_dir / f"{example}_zig_to_rust_tampered.json"
+
+    start_index = len(all_steps)
+
+    run_step(
+        name=f"{example}_rust_generate",
+        cmd=[
+            "cargo",
+            f"+{rust_toolchain}",
+            "run",
+            "--manifest-path",
+            str(RUST_MANIFEST),
+            "--",
+            "--mode",
+            "generate",
+            "--example",
+            example,
+            "--artifact",
+            str(rust_artifact),
+        ],
+        steps=all_steps,
+    )
+    assert_artifact_metadata(rust_artifact, expected_generator="rust", example=example)
+
+    run_step(
+        name=f"{example}_rust_to_zig_verify",
+        cmd=[
+            "zig",
+            "run",
+            "src/interop_cli.zig",
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(rust_artifact),
+        ],
+        steps=all_steps,
+    )
+
+    tamper_proof_bytes_hex(rust_artifact, rust_tampered)
+    run_step(
+        name=f"{example}_rust_to_zig_tamper_reject",
+        cmd=[
+            "zig",
+            "run",
+            "src/interop_cli.zig",
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(rust_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
+    )
+
+    run_step(
+        name=f"{example}_zig_generate",
+        cmd=[
+            "zig",
+            "run",
+            "src/interop_cli.zig",
+            "--",
+            "--mode",
+            "generate",
+            "--example",
+            example,
+            "--artifact",
+            str(zig_artifact),
+        ],
+        steps=all_steps,
+    )
+    assert_artifact_metadata(zig_artifact, expected_generator="zig", example=example)
+
+    run_step(
+        name=f"{example}_zig_to_rust_verify",
+        cmd=[
+            "cargo",
+            f"+{rust_toolchain}",
+            "run",
+            "--manifest-path",
+            str(RUST_MANIFEST),
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(zig_artifact),
+        ],
+        steps=all_steps,
+    )
+
+    tamper_proof_bytes_hex(zig_artifact, zig_tampered)
+    run_step(
+        name=f"{example}_zig_to_rust_tamper_reject",
+        cmd=[
+            "cargo",
+            f"+{rust_toolchain}",
+            "run",
+            "--manifest-path",
+            str(RUST_MANIFEST),
+            "--",
+            "--mode",
+            "verify",
+            "--artifact",
+            str(zig_tampered),
+        ],
+        steps=all_steps,
+        expect_failure=True,
+    )
+
+    return {
+        "example": example,
         "status": "ok",
+        "artifacts": {
+            "rust_to_zig": rel(rust_artifact),
+            "rust_to_zig_tampered": rel(rust_tampered),
+            "zig_to_rust": rel(zig_artifact),
+            "zig_to_rust_tampered": rel(zig_tampered),
+        },
+        "steps": [step["name"] for step in all_steps[start_index:]],
     }
 
 
-def maybe_find_upstream_examples_manifest() -> Path | None:
-    candidates = sorted(
-        Path.home().glob(".cargo/git/checkouts/stwo-*/*/crates/examples/Cargo.toml"),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
-    return candidates[0] if candidates else None
+def write_report(report_out: Path, report: dict[str, Any]) -> None:
+    report_out.parent.mkdir(parents=True, exist_ok=True)
+    report_out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    latest = report_out.parent / "latest_e2e_interop_report.json"
+    if latest != report_out:
+        shutil.copyfile(report_out, latest)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Cross-language interoperability gate")
-    parser.add_argument("--count", type=int, default=256)
-    parser.add_argument(
-        "--skip-upstream-examples-check",
-        action="store_true",
-        help="Skip optional upstream examples cargo check",
-    )
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Cross-language proof exchange gate")
     parser.add_argument(
         "--report-out",
         type=Path,
         default=REPORT_DEFAULT,
         help="Path for JSON report output",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--artifact-dir",
+        type=Path,
+        default=ARTIFACT_DIR_DEFAULT,
+        help="Directory where generated/tampered artifacts are written",
+    )
+    parser.add_argument(
+        "--rust-toolchain",
+        default=RUST_TOOLCHAIN_DEFAULT,
+        help="Rust nightly toolchain used for stwo prover builds",
+    )
+    parser.add_argument(
+        "--examples",
+        nargs="+",
+        default=list(SUPPORTED_EXAMPLES),
+        choices=SUPPORTED_EXAMPLES,
+        help="Examples to include in the exchange matrix",
+    )
 
-    steps: list[dict] = []
+    # Retained for compatibility with previous harness invocations.
+    parser.add_argument("--count", type=int, default=256, help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--skip-upstream-examples-check",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    return parser.parse_args()
 
-    # 1) Rust fixture generation/check + schema parity (without rerunning full zig test gate).
-    steps.append(
-        timed_step(
-            "examples_fixture_bridge",
-            [
-                "python3",
-                "scripts/e2e_examples.py",
-                "--count",
-                str(args.count),
-                "--skip-zig",
-                "--report-out",
-                str(EXAMPLES_REPORT),
+
+def main() -> int:
+    args = parse_args()
+
+    steps: list[dict[str, Any]] = []
+    cases: list[dict[str, Any]] = []
+    failure: Optional[dict[str, Any]] = None
+    started_at = time.time()
+
+    artifact_dir = args.artifact_dir
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        run_step(
+            name="rust_interop_tool_check",
+            cmd=[
+                "cargo",
+                f"+{args.rust_toolchain}",
+                "check",
+                "--manifest-path",
+                str(RUST_MANIFEST),
             ],
+            steps=steps,
         )
-    )
 
-    # 2) Rust-side toolchain gate for parity fixture producer.
-    steps.append(
-        timed_step(
-            "rust_vector_gen_check",
-            ["cargo", "check", "--manifest-path", str(GEN_MANIFEST)],
+        run_step(
+            name="zig_interop_proof_wire_test",
+            cmd=[
+                "zig",
+                "test",
+                "src/stwo.zig",
+                "--test-filter",
+                "interop proof wire:",
+            ],
+            steps=steps,
         )
-    )
+        run_step(
+            name="zig_interop_artifact_test",
+            cmd=[
+                "zig",
+                "test",
+                "src/stwo.zig",
+                "--test-filter",
+                "interop artifact:",
+            ],
+            steps=steps,
+        )
 
-    # 3) Zig wrapper proof-path gates.
-    wrapper_filters = [
-        "examples state_machine: prove/verify wrapper roundtrip",
-        "examples state_machine: verify wrapper rejects tampered statement",
-        "examples xor: prove/verify wrapper roundtrip",
-        "examples xor: verify wrapper rejects statement mismatch",
-    ]
-    for test_filter in wrapper_filters:
-        steps.append(
-            timed_step(
-                f"zig_{test_filter}",
-                [
-                    "zig",
-                    "test",
-                    "src/stwo.zig",
-                    "--test-filter",
-                    test_filter,
-                ],
+        for example in args.examples:
+            case = run_example_case(
+                example=example,
+                artifact_dir=artifact_dir,
+                rust_toolchain=args.rust_toolchain,
+                all_steps=steps,
             )
-        )
+            cases.append(case)
 
-    # 4) Optional upstream examples build smoke (requires nightly feature gate env).
-    upstream_status: dict
-    if args.skip_upstream_examples_check:
-        upstream_status = {
-            "status": "skipped",
-            "reason": "--skip-upstream-examples-check",
-        }
-    else:
-        manifest = maybe_find_upstream_examples_manifest()
-        if manifest is None:
-            upstream_status = {
-                "status": "skipped",
-                "reason": "upstream checkout not present under ~/.cargo/git/checkouts",
-            }
-        else:
-            env = dict(os.environ)
-            env["RUSTC_BOOTSTRAP"] = "1"
-            step = timed_step(
-                "upstream_examples_cargo_check",
-                ["cargo", "check", "-q"],
-                cwd=manifest.parent,
-                env=env,
-            )
-            step["manifest"] = str(manifest)
-            steps.append(step)
-            upstream_status = {
-                "status": "ok",
-                "manifest": str(manifest),
-            }
+        status = "ok"
+    except Exception as exc:  # pylint: disable=broad-except
+        status = "failed"
+        failure = {"message": str(exc)}
 
     report = {
-        "status": "ok",
-        "exchange_mode": "fixture_bridge",
+        "status": status,
+        "schema_version": SCHEMA_VERSION,
+        "exchange_mode": EXCHANGE_MODE,
+        "upstream_commit": UPSTREAM_COMMIT,
+        "rust_toolchain": args.rust_toolchain,
         "summary": {
-            "mandatory_steps": len([s for s in steps if s["status"] == "ok"]),
-            "optional_upstream_examples": upstream_status,
+            "examples": args.examples,
+            "cases_total": len(args.examples) * 2,
+            "cases_passed": len(cases) * 2 if status == "ok" else len(cases) * 2,
+            "tamper_cases_total": len(args.examples) * 2,
+            "tamper_cases_passed": len(cases) * 2 if status == "ok" else len(cases) * 2,
+            "steps_total": len(steps),
         },
+        "cases": cases,
         "steps": steps,
         "artifacts": {
-            "examples_parity_report": str(EXAMPLES_REPORT.relative_to(ROOT)),
+            "artifact_dir": rel(artifact_dir),
         },
+        "failure": failure,
+        "generated_at_unix": int(started_at),
+        "duration_seconds": round(time.time() - started_at, 6),
     }
 
-    out = args.report_out
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2, sort_keys=True)
-        f.write("\n")
-
-    latest = out.parent / "latest_e2e_interop_report.json"
-    if latest != out:
-        shutil.copyfile(out, latest)
-
-    return 0
+    write_report(args.report_out, report)
+    return 0 if status == "ok" else 1
 
 
 if __name__ == "__main__":

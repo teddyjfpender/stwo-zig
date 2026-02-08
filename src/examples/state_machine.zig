@@ -182,7 +182,9 @@ pub fn claimedSumTelescoping(
     const last = elements.combine(last_state);
 
     if (first.isZero() or last.isZero()) return Error.DegenerateDenominator;
-    return (try first.inv()).sub(try last.inv());
+    const first_inv = first.inv() catch unreachable;
+    const last_inv = last.inv() catch unreachable;
+    return first_inv.sub(last_inv);
 }
 
 /// Validates the upstream state-machine claimed-sum statement:

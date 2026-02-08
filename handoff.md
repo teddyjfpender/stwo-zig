@@ -5,6 +5,47 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (True Proof Exchange Interop)
+
+### Rust<->Zig Artifact Exchange
+- Replaced fixture-bridge interop path with true bidirectional proof exchange:
+  - Rust-generated proof artifacts verify in Zig.
+  - Zig-generated proof artifacts verify in Rust.
+  - Tampered artifacts are rejected in both directions.
+- New exchange mode:
+  - `proof_exchange_json_wire_v1`
+- New interop artifact directory:
+  - `vectors/reports/interop_artifacts/`
+
+### Harness + Tooling
+- `scripts/e2e_interop.py`
+  - Rewritten to run proof-exchange matrix for:
+    - `xor`
+    - `state_machine`
+  - Emits machine-readable report:
+    - `vectors/reports/e2e_interop_report.json`
+    - `vectors/reports/latest_e2e_interop_report.json`
+  - Hard-validates artifact metadata:
+    - schema version
+    - exchange mode
+    - pinned upstream commit
+    - generator/runtime ownership.
+- `tools/stwo-interop-rs/src/main.rs`
+  - Fixed compile path to use public `stwo::prover` exports.
+  - Requires upstream-pinned nightly toolchain (`nightly-2025-07-14`).
+- `build.zig`
+  - `interop` step now points to proof-exchange harness semantics.
+  - Added deterministic `release-gate` sequence:
+    - `fmt -> test -> vectors -> interop -> bench-smoke -> profile-smoke`
+- `README.md`
+  - Updated conformance gate docs with true exchange behavior and new `release-gate`.
+
+### Additional Gate Coverage (Passing)
+- `cargo +nightly-2025-07-14 check --manifest-path tools/stwo-interop-rs/Cargo.toml`
+- `python3 scripts/e2e_interop.py`
+- `zig build interop`
+- `zig build release-gate`
+
 ## Latest Slice (Examples Wrappers + Gate Harnesses)
 
 ### Example Proof Wrappers

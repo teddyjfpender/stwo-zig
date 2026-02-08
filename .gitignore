@@ -1,4 +1,14 @@
 .zig-cache/
 zig-out/
 tools/stwo-vector-gen/target/
+tools/stwo-interop-rs/target/
 vectors/.fields.tmp.json
+vectors/reports/e2e_interop_report.json
+vectors/reports/latest_e2e_interop_report.json
+vectors/reports/interop_artifacts/
+vectors/reports/benchmark_smoke_report.json
+vectors/reports/latest_benchmark_smoke_report.json
+vectors/reports/profile_smoke_report.json
+vectors/reports/latest_profile_smoke_report.json
+vectors/reports/*_artifact.json
+target/
