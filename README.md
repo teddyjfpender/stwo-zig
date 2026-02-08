@@ -37,6 +37,7 @@ zig build bench-smoke
 zig build bench-strict
 zig build profile-smoke
 zig build release-evidence
+zig build deep-gate
 ```
 
 `zig build interop` performs true Rust<->Zig proof exchange for `xor` and `state_machine`
@@ -57,6 +58,9 @@ the benchmark requirement for release signoff.
 
 `zig build release-evidence` generates the canonical machine-readable release manifest:
 `vectors/reports/release_evidence.json`.
+
+`zig build deep-gate` runs expanded compile/test graph coverage (`refAllDeclsRecursive`
+paths) to catch legacy modules outside the minimal default test path.
 
 ### Deterministic release sequence
 

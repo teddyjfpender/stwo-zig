@@ -207,7 +207,6 @@ test "prover pcs quotient ops: compute fri quotients matches direct fri answers"
         .{ .log_size = lifting_log_size, .values = col0 },
         .{ .log_size = col1_log_size, .values = col1 },
     });
-    defer alloc.free(tree_columns);
     var columns = TreeVec([]ColumnEvaluation).initOwned(
         try alloc.dupe([]ColumnEvaluation, &[_][]ColumnEvaluation{tree_columns}),
     );
@@ -246,10 +245,8 @@ test "prover pcs quotient ops: compute fri quotients matches direct fri answers"
     defer col_sizes.deinitDeep(alloc);
 
     const q0 = try alloc.dupe(M31, col0);
-    defer alloc.free(q0);
 
     const q1 = try alloc.alloc(M31, domain_size);
-    defer alloc.free(q1);
     const shift: u32 = lifting_log_size - col1_log_size;
     const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
     for (0..domain_size) |position| {
@@ -293,7 +290,6 @@ test "prover pcs quotient ops: rejects invalid column length" {
     const tree_columns = try alloc.dupe(ColumnEvaluation, &[_]ColumnEvaluation{
         .{ .log_size = 2, .values = bad_column[0..] },
     });
-    defer alloc.free(tree_columns);
     var columns = TreeVec([]ColumnEvaluation).initOwned(
         try alloc.dupe([]ColumnEvaluation, &[_][]ColumnEvaluation{tree_columns}),
     );
@@ -321,7 +317,6 @@ test "prover pcs quotient ops: rejects column log size above lifting" {
     const tree_columns = try alloc.dupe(ColumnEvaluation, &[_]ColumnEvaluation{
         .{ .log_size = 2, .values = column[0..] },
     });
-    defer alloc.free(tree_columns);
     var columns = TreeVec([]ColumnEvaluation).initOwned(
         try alloc.dupe([]ColumnEvaluation, &[_][]ColumnEvaluation{tree_columns}),
     );
@@ -349,7 +344,6 @@ test "prover pcs quotient ops: rejects shape mismatch" {
     const tree_columns = try alloc.dupe(ColumnEvaluation, &[_]ColumnEvaluation{
         .{ .log_size = 1, .values = column[0..] },
     });
-    defer alloc.free(tree_columns);
     var columns = TreeVec([]ColumnEvaluation).initOwned(
         try alloc.dupe([]ColumnEvaluation, &[_][]ColumnEvaluation{tree_columns}),
     );

@@ -87,7 +87,8 @@ pub const CircleCoefficients = struct {
             var bit_words = idx;
             while (bit_idx < self.log_size and bit_words != 0) : (bit_idx += 1) {
                 if ((bit_words & 1) == 1) {
-                    twiddle = twiddle.mul(mappings[bit_idx]);
+                    const mapping_idx = self.log_size - 1 - bit_idx;
+                    twiddle = twiddle.mul(mappings[mapping_idx]);
                 }
                 bit_words >>= 1;
             }

@@ -173,6 +173,7 @@ test "prover poly circle secure poly: split-at-mid identity" {
     }
 
     var secure_poly = try SecureCirclePoly.init(coordinate_polys);
+    initialized = 0;
     defer secure_poly.deinit(alloc);
 
     var split = try secure_poly.splitAtMid(alloc);
@@ -222,6 +223,7 @@ test "prover poly circle secure poly: interpolate from evaluation roundtrip" {
     }
 
     var secure_poly = try SecureCirclePoly.init(coordinate_polys);
+    initialized_polys = 0;
     defer secure_poly.deinit(alloc);
 
     var eval_columns: [qm31.SECURE_EXTENSION_DEGREE][]M31 = undefined;

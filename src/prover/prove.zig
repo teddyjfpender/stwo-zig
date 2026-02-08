@@ -40,7 +40,7 @@ pub fn prove(
     channel: anytype,
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
 ) !proof_mod.StarkProof(H) {
-    return (try proveEx(
+    var extended = try proveEx(
         H,
         MC,
         allocator,
@@ -48,7 +48,10 @@ pub fn prove(
         channel,
         commitment_scheme,
         false,
-    )).proof;
+    );
+    const proof = extended.proof;
+    extended.aux.deinit(allocator);
+    return proof;
 }
 
 /// Extended proving entrypoint matching upstream component-driven `prove_ex`.
@@ -83,14 +86,17 @@ fn proveSampledPoints(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
     sampled_points: TreeVec([][]CirclePointQM31),
 ) !proof_mod.StarkProof(H) {
-    return (try proveExSampledPoints(
+    var extended = try proveExSampledPoints(
         H,
         MC,
         allocator,
         channel,
         commitment_scheme,
         sampled_points,
-    )).proof;
+    );
+    const proof = extended.proof;
+    extended.aux.deinit(allocator);
+    return proof;
 }
 
 /// Extended sampled-points proving entrypoint.
@@ -226,7 +232,7 @@ fn proveComponents(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
     include_all_preprocessed_columns: bool,
 ) !proof_mod.StarkProof(H) {
-    return (try proveExComponents(
+    var extended = try proveExComponents(
         H,
         MC,
         allocator,
@@ -234,7 +240,10 @@ fn proveComponents(
         channel,
         commitment_scheme,
         include_all_preprocessed_columns,
-    )).proof;
+    );
+    const proof = extended.proof;
+    extended.aux.deinit(allocator);
+    return proof;
 }
 
 /// Proving entrypoint for already-prepared sampled values.

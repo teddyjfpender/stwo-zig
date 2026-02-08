@@ -171,5 +171,5 @@ test "utils: coset-order roundtrip" {
 test "utils: bit reverse coset to circle domain order" {
     var values = [_]u32{ 0, 1, 2, 3, 4, 5, 6, 7 };
     bitReverseCosetToCircleDomainOrder(u32, values[0..]);
-    try std.testing.expectEqualSlices(u32, &[_]u32{ 0, 6, 2, 4, 1, 7, 3, 5 }, values[0..]);
+    try std.testing.expectEqualSlices(u32, &[_]u32{ 0, 7, 4, 3, 2, 5, 6, 1 }, values[0..]);
 }

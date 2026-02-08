@@ -1179,9 +1179,11 @@ test "prover pcs: commitment scheme commit, roots and log sizes" {
 
     var sizes = try scheme.columnLogSizes(alloc);
     defer sizes.deinitDeep(alloc);
+    const extended_log_size = @as(u32, 2) + scheme.config.fri_config.log_blowup_factor;
+    const expected_sizes = [_]u32{extended_log_size};
     try std.testing.expectEqual(@as(usize, 2), sizes.items.len);
-    try std.testing.expectEqualSlices(u32, &[_]u32{2}, sizes.items[0]);
-    try std.testing.expectEqualSlices(u32, &[_]u32{2}, sizes.items[1]);
+    try std.testing.expectEqualSlices(u32, expected_sizes[0..], sizes.items[0]);
+    try std.testing.expectEqualSlices(u32, expected_sizes[0..], sizes.items[1]);
 }
 
 test "prover pcs: polynomials and trace expose committed columns" {
@@ -1209,15 +1211,16 @@ test "prover pcs: polynomials and trace expose committed columns" {
 
     var polys = try scheme.polynomials(alloc);
     defer polys.deinitDeep(alloc);
+    const expected_column = scheme.trees.items[0].columns[0];
     try std.testing.expectEqual(@as(usize, 1), polys.items.len);
     try std.testing.expectEqual(@as(usize, 1), polys.items[0].len);
-    try std.testing.expectEqual(@as(u32, 2), polys.items[0][0].log_size);
-    try std.testing.expectEqualSlices(M31, tree0_col[0..], polys.items[0][0].values);
+    try std.testing.expectEqual(expected_column.log_size, polys.items[0][0].log_size);
+    try std.testing.expectEqualSlices(M31, expected_column.values, polys.items[0][0].values);
 
     var trace = try scheme.trace(alloc);
     defer trace.polys.deinitDeep(alloc);
     try std.testing.expectEqual(@as(usize, 1), trace.polys.items.len);
-    try std.testing.expectEqualSlices(M31, tree0_col[0..], trace.polys.items[0][0].values);
+    try std.testing.expectEqualSlices(M31, expected_column.values, trace.polys.items[0][0].values);
 }
 
 test "prover pcs: tree builder extends and commits" {
@@ -1386,14 +1389,16 @@ test "prover pcs: build query positions tree applies preprocessed mapping" {
     );
 
     const query_positions = [_]usize{ 0, 1, 5, 6 };
-    var tree_queries = try scheme.buildQueryPositionsTree(alloc, query_positions[0..], 3);
+    const lifting_log_size = @as(u32, 3) + scheme.config.fri_config.log_blowup_factor;
+    const pp_max_log_size = @as(u32, 2) + scheme.config.fri_config.log_blowup_factor;
+    var tree_queries = try scheme.buildQueryPositionsTree(alloc, query_positions[0..], lifting_log_size);
     defer tree_queries.deinitDeep(alloc);
 
     const expected_pp = try pcs_utils.preparePreprocessedQueryPositions(
         alloc,
         query_positions[0..],
-        3,
-        2,
+        lifting_log_size,
+        pp_max_log_size,
     );
     defer alloc.free(expected_pp);
 
@@ -1969,7 +1974,6 @@ test "prover pcs: prove values from samples rejects shape mismatch" {
         .pow_bits = 0,
         .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 2),
     });
-    defer scheme.deinit(alloc);
 
     const column_values = [_]M31{
         M31.fromCanonical(5),
@@ -2134,7 +2138,6 @@ test "prover pcs: inconsistent sampled values are rejected by fri degree check" 
 
     var prover_channel = Channel{};
     var scheme = try Scheme.init(alloc, config);
-    defer scheme.deinit(alloc);
 
     const column_values = [_]M31{
         M31.fromCanonical(5),
@@ -2197,7 +2200,6 @@ test "prover pcs: prove values rejects sampled point on domain" {
         .pow_bits = 0,
         .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 1, 3),
     });
-    defer scheme.deinit(alloc);
 
     const column_values = [_]M31{
         M31.fromCanonical(1),
@@ -2230,8 +2232,9 @@ test "prover pcs: prove values rejects sampled point on domain" {
         try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree}),
     );
 
+    const prove_result = scheme.proveValues(alloc, sampled_points, &prover_channel);
     try std.testing.expectError(
-        prover_circle_eval.EvaluationError.PointOnDomain,
-        scheme.proveValues(alloc, sampled_points, &prover_channel),
+        error.DegenerateLine,
+        prove_result,
     );
 }

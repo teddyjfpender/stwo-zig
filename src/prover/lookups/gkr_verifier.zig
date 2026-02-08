@@ -215,10 +215,8 @@ pub fn partiallyVerifyBatch(
             sumcheck_proof,
             channel,
         ) catch |err| switch (err) {
-            sumcheck.SumcheckError.DegreeInvalid,
-            sumcheck.SumcheckError.SumInvalid,
-            => return GkrError.InvalidSumcheck,
-            else => return err,
+            std.mem.Allocator.Error.OutOfMemory => return error.OutOfMemory,
+            else => return GkrError.InvalidSumcheck,
         };
         defer sumcheck_artifact.deinit(allocator);
 

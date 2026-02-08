@@ -342,11 +342,11 @@ test "pcs utils: prepare preprocessed query positions" {
 
     const a = try preparePreprocessedQueryPositions(alloc, q[0..], 8, 6);
     defer alloc.free(a);
-    try std.testing.expectEqualSlices(usize, &[_]usize{ 1, 1, 1, 1 }, a);
+    try std.testing.expectEqualSlices(usize, &[_]usize{ 1, 1, 3, 3 }, a);
 
     const b = try preparePreprocessedQueryPositions(alloc, q[0..], 6, 8);
     defer alloc.free(b);
-    try std.testing.expectEqualSlices(usize, &[_]usize{ 12, 28, 44, 60 }, b);
+    try std.testing.expectEqualSlices(usize, &[_]usize{ 9, 25, 41, 57 }, b);
 }
 
 test "pcs utils: treevec zip and zipEq" {

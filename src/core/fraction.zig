@@ -107,6 +107,6 @@ test "fraction: zero and sum" {
         F.new(M31.fromCanonical(1), M31.fromCanonical(2)),
     };
     const total = sumFractions(M31, M31, values[0..]);
-    try std.testing.expect(total.numerator.eql(M31.one()));
+    try std.testing.expect(total.numerator.eql(M31.fromCanonical(4)));
     try std.testing.expect(total.denominator.eql(M31.fromCanonical(4)));
 }

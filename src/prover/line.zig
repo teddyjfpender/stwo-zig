@@ -148,14 +148,11 @@ test "prover line: interpolation roundtrip" {
     const eval_values = try allocator.alloc(QM31, coeffs_ordered.len);
     defer allocator.free(eval_values);
 
+    var source_poly = LinePoly.fromOrderedCoefficients(try allocator.dupe(QM31, coeffs_ordered[0..]));
+    defer source_poly.deinit(allocator);
     for (0..eval_values.len) |i| {
-        const x = domain.at(i);
-        const xq = QM31.fromBase(x);
-        const pix = circle.CirclePoint(QM31).doubleX(xq);
-        eval_values[i] = coeffs_ordered[0]
-            .add(coeffs_ordered[1].mul(pix))
-            .add(coeffs_ordered[2].mul(xq))
-            .add(coeffs_ordered[3].mul(pix.mul(xq)));
+        const xq = QM31.fromBase(domain.at(i));
+        eval_values[i] = try source_poly.evalAtPoint(allocator, xq);
     }
     core_utils.bitReverse(QM31, eval_values);
 

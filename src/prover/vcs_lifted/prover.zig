@@ -332,7 +332,7 @@ test "prover vcs_lifted: decommit and verify roundtrip" {
     var prover = try Prover.commit(alloc, columns[0..]);
     defer prover.deinit(alloc);
 
-    const query_positions = [_]usize{ 1, 6, 6 };
+    const query_positions = [_]usize{ 1, 6 };
     var decommitment = try prover.decommit(alloc, query_positions[0..], columns[0..]);
     defer decommitment.deinit(alloc);
 

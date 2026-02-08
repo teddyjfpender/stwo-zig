@@ -976,6 +976,10 @@ test "fri verifier: commit and sample query positions" {
 
     var channel = Channel{};
     const config = try FriConfig.init(2, 1, 4);
+    var last_layer_poly = line.LinePoly.initOwned(
+        try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
+    );
+    defer last_layer_poly.deinit(alloc);
     var verifier = try Verifier.commit(
         alloc,
         &channel,
@@ -987,9 +991,7 @@ test "fri verifier: commit and sample query positions" {
                 .commitment = [_]u8{2} ** 32,
             },
             .inner_layers = try alloc.alloc(FriLayerProof(Hasher), 0),
-            .last_layer_poly = line.LinePoly.initOwned(
-                try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
-            ),
+            .last_layer_poly = last_layer_poly,
         },
         CirclePolyDegreeBound.init(3),
     );
@@ -1012,6 +1014,10 @@ test "fri verifier: invalid layer count fails commit" {
 
     var channel = Channel{};
     const config = try FriConfig.init(1, 1, 2);
+    var last_layer_poly = line.LinePoly.initOwned(
+        try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
+    );
+    defer last_layer_poly.deinit(alloc);
     try std.testing.expectError(
         FriVerificationError.InvalidNumFriLayers,
         Verifier.commit(
@@ -1025,9 +1031,7 @@ test "fri verifier: invalid layer count fails commit" {
                     .commitment = [_]u8{9} ** 32,
                 },
                 .inner_layers = try alloc.alloc(FriLayerProof(Hasher), 0),
-                .last_layer_poly = line.LinePoly.initOwned(
-                    try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
-                ),
+                .last_layer_poly = last_layer_poly,
             },
             CirclePolyDegreeBound.init(3),
         ),

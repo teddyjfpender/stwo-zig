@@ -30,6 +30,8 @@ pub const Error = error{
     InvalidIncIndex,
     InvalidLogSize,
     DegenerateDenominator,
+    DivisionByZero,
+    NonBaseField,
     StatementNotSatisfied,
     InvalidProofShape,
 };

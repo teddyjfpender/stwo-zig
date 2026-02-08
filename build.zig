@@ -25,6 +25,11 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
 
+    // Expanded compile/test graph gate.
+    const deep_gate_cmd = b.addSystemCommand(&.{ "zig", "test", "src/stwo_deep.zig" });
+    const deep_gate_step = b.step("deep-gate", "Run expanded deep graph coverage");
+    deep_gate_step.dependOn(&deep_gate_cmd.step);
+
     // Deterministic parity vectors gate (Rust upstream -> JSON fixtures).
     const vectors_cmd = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
     const vectors_step = b.step("vectors", "Validate committed parity vectors");
@@ -93,12 +98,14 @@ pub fn build(b: *std.Build) void {
     release_gate_step.dependOn(&rg_profile.step);
 
     // Strict release gate sequence:
-    // fmt -> test -> vectors -> interop -> bench-strict -> profile-smoke
+    // fmt -> test -> deep-gate -> vectors -> interop -> bench-strict -> profile-smoke
     const rgs_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const rgs_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
     rgs_test.step.dependOn(&rgs_fmt.step);
+    const rgs_deep = b.addSystemCommand(&.{ "zig", "test", "src/stwo_deep.zig" });
+    rgs_deep.step.dependOn(&rgs_test.step);
     const rgs_vectors = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
-    rgs_vectors.step.dependOn(&rgs_test.step);
+    rgs_vectors.step.dependOn(&rgs_deep.step);
     const rgs_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
     rgs_interop.step.dependOn(&rgs_vectors.step);
     const rgs_bench = b.addSystemCommand(&.{
@@ -119,7 +126,7 @@ pub fn build(b: *std.Build) void {
 
     const release_gate_strict_step = b.step(
         "release-gate-strict",
-        "Run strict release gate sequence (fmt -> test -> vectors -> interop -> bench-strict -> profile-smoke -> release-evidence)",
+        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> bench-strict -> profile-smoke -> release-evidence)",
     );
     release_gate_strict_step.dependOn(&rgs_evidence.step);
 }

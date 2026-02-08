@@ -14,6 +14,8 @@ pub const SumcheckError = error{
     DegreeInvalid,
     SumInvalid,
     DivisionByZero,
+    NotPowerOfTwo,
+    PointDimensionMismatch,
 };
 
 pub const SumcheckProof = struct {
@@ -54,6 +56,16 @@ pub const PartialVerifyResult = struct {
     }
 };
 
+fn OracleErrorSet(comptime O: type) type {
+    const clone_ret = @typeInfo(@typeInfo(@TypeOf(O.cloneOwned)).@"fn".return_type.?);
+    const sum_ret = @typeInfo(@typeInfo(@TypeOf(O.sumAsPolyInFirstVariable)).@"fn".return_type.?);
+    const fix_ret = @typeInfo(@typeInfo(@TypeOf(O.fixFirstVariable)).@"fn".return_type.?);
+
+    return clone_ret.error_union.error_set ||
+        sum_ret.error_union.error_set ||
+        fix_ret.error_union.error_set;
+}
+
 /// Performs batched sum-check on a random linear combination of oracle polynomials.
 ///
 /// Required oracle interface (on type `O`):
@@ -68,7 +80,7 @@ pub fn proveBatch(
     multivariate_polys_in: []const O,
     lambda: QM31,
     channel: anytype,
-) (std.mem.Allocator.Error || SumcheckError)!ProveBatchResult(O) {
+) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
     if (claims_in.len == 0) return SumcheckError.EmptyBatch;
     if (claims_in.len != multivariate_polys_in.len) return SumcheckError.ShapeMismatch;
 

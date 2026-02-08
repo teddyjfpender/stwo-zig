@@ -425,7 +425,8 @@ test "interop proof wire: encode/decode xor proof" {
         .offset = 3,
     };
 
-    const output = try xor.prove(alloc, config, statement);
+    var output = try xor.prove(alloc, config, statement);
+    defer output.proof.deinit(alloc);
     const encoded = try encodeProofBytes(alloc, output.proof);
     defer alloc.free(encoded);
 

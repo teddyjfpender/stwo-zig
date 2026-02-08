@@ -17,6 +17,8 @@ pub const GkrProverError = error{
     InvalidK,
     DivisionByZero,
     ShapeMismatch,
+    NotPowerOfTwo,
+    PointDimensionMismatch,
     NotOutputLayer,
     NotConstantPoly,
     InvalidLayerStructure,
@@ -405,7 +407,7 @@ pub fn proveBatch(
     const n_instances = input_layer_by_instance.len;
 
     const n_layers_by_instance = try allocator.alloc(usize, n_instances);
-    errdefer allocator.free(n_layers_by_instance);
+    defer allocator.free(n_layers_by_instance);
 
     var n_layers: usize = 0;
     for (input_layer_by_instance, 0..) |layer, i| {
@@ -556,13 +558,8 @@ pub fn proveBatch(
             sumcheck_alpha,
             channel,
         ) catch |err| switch (err) {
-            sumcheck.SumcheckError.EmptyBatch,
-            sumcheck.SumcheckError.ShapeMismatch,
-            sumcheck.SumcheckError.DegreeInvalid,
-            sumcheck.SumcheckError.SumInvalid,
-            sumcheck.SumcheckError.DivisionByZero,
-            => return GkrProverError.InvalidSumcheck,
-            else => return err,
+            std.mem.Allocator.Error.OutOfMemory => return error.OutOfMemory,
+            else => return GkrProverError.InvalidSumcheck,
         };
 
         try sumcheck_proofs.append(allocator, sumcheck_result.proof);
