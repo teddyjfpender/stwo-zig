@@ -19,6 +19,8 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const parallel_min_nodes: usize = 1 << 13;
         const parallel_min_nodes_per_worker: usize = 1 << 12;
         const max_parallel_workers: usize = 16;
+        const ThreadPool = std.Thread.Pool;
+        const WaitGroup = std.Thread.WaitGroup;
 
         pub const DecommitmentResult = struct {
             queried_values: [][]M31,
@@ -28,6 +30,36 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 for (self.queried_values) |column| allocator.free(column);
                 allocator.free(self.queried_values);
                 self.decommitment.deinit(allocator);
+                self.* = undefined;
+            }
+        };
+
+        const LayerExecutor = struct {
+            enabled: bool = false,
+            max_workers: usize = 1,
+            pool: ThreadPool = undefined,
+
+            fn init(self: *LayerExecutor, max_workers: usize) void {
+                self.* = .{
+                    .enabled = false,
+                    .max_workers = max_workers,
+                };
+                if (builtin.single_threaded or max_workers <= 1) return;
+
+                self.pool.init(.{
+                    // Keep pool task allocation decoupled from caller allocators
+                    // (including test allocators) to avoid cross-thread contention.
+                    .allocator = std.heap.page_allocator,
+                    // Previous implementation used one caller worker + N-1 spawned workers.
+                    .n_jobs = max_workers - 1,
+                }) catch return;
+                self.enabled = true;
+            }
+
+            fn deinit(self: *LayerExecutor) void {
+                if (self.enabled) {
+                    self.pool.deinit();
+                }
                 self.* = undefined;
             }
         };
@@ -46,6 +78,14 @@ pub fn MerkleProverLifted(comptime H: type) type {
             allocator: std.mem.Allocator,
             columns: []const []const M31,
         ) !Self {
+            return commitWithWorkerOverride(allocator, columns, merkleWorkerOverride(allocator));
+        }
+
+        fn commitWithWorkerOverride(
+            allocator: std.mem.Allocator,
+            columns: []const []const M31,
+            worker_override: ?usize,
+        ) !Self {
             const sorted = try sortColumnsByLogSizeAsc(allocator, columns);
             defer allocator.free(sorted);
 
@@ -61,11 +101,18 @@ pub fn MerkleProverLifted(comptime H: type) type {
             if (leaves.len > 1) {
                 std.debug.assert(std.math.isPowerOfTwo(leaves.len));
                 const max_log_size = std.math.log2_int(usize, leaves.len);
+                const max_out_len = leaves.len >> 1;
+                var executor: LayerExecutor = undefined;
+                executor.init(parallelWorkersForLayer(max_out_len, worker_override));
+                defer executor.deinit();
+
                 var i: usize = 0;
                 while (i < max_log_size) : (i += 1) {
                     const next_layer = try buildNextLayer(
                         allocator,
                         layers_bottom_up.items[layers_bottom_up.items.len - 1],
+                        &executor,
+                        worker_override,
                     );
                     try layers_bottom_up.append(allocator, next_layer);
                 }
@@ -77,6 +124,14 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 out_layers[i] = layers_bottom_up.items[out_layers.len - 1 - i];
             }
             return .{ .layers = out_layers };
+        }
+
+        fn merkleWorkerOverride(allocator: std.mem.Allocator) ?usize {
+            const raw = std.process.getEnvVarOwned(allocator, "STWO_ZIG_MERKLE_WORKERS") catch return null;
+            defer allocator.free(raw);
+            const parsed = std.fmt.parseInt(usize, raw, 10) catch return null;
+            if (parsed == 0) return null;
+            return parsed;
         }
 
         pub fn decommit(
@@ -284,19 +339,21 @@ pub fn MerkleProverLifted(comptime H: type) type {
         fn buildNextLayer(
             allocator: std.mem.Allocator,
             prev_layer: []const H.Hash,
+            executor: *LayerExecutor,
+            worker_override: ?usize,
         ) ![]H.Hash {
             std.debug.assert(prev_layer.len > 1 and std.math.isPowerOfTwo(prev_layer.len));
             const out = try allocator.alloc(H.Hash, prev_layer.len >> 1);
-            const workers = parallelWorkersForLayer(out.len);
+            const workers = parallelWorkersForLayer(out.len, worker_override);
 
-            if (workers > 1) {
+            if (workers > 1 and executor.enabled) {
                 if (comptime @hasDecl(H, "nodeSeed") and @hasDecl(H, "hashChildrenWithSeed")) {
                     const seed = H.nodeSeed();
-                    if (buildNextLayerSeededParallel(out, prev_layer, seed, workers)) |_| {
+                    if (buildNextLayerSeededParallel(out, prev_layer, seed, workers, executor)) |_| {
                         return out;
                     } else |_| {}
                 } else {
-                    if (buildNextLayerBasicParallel(out, prev_layer, workers)) |_| {
+                    if (buildNextLayerBasicParallel(out, prev_layer, workers, executor)) |_| {
                         return out;
                     } else |_| {}
                 }
@@ -360,14 +417,18 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return out;
         }
 
-        fn parallelWorkersForLayer(out_len: usize) usize {
+        fn parallelWorkersForLayer(out_len: usize, worker_override: ?usize) usize {
             if (builtin.single_threaded) return 1;
             if (out_len < parallel_min_nodes) return 1;
+            const capacity = out_len / parallel_min_nodes_per_worker;
+            if (capacity < 2) return 1;
+            if (worker_override) |requested| {
+                if (requested <= 1) return 1;
+                return @min(@min(requested, max_parallel_workers), capacity);
+            }
             const cpu_count_raw = std.Thread.getCpuCount() catch return 1;
             const cpu_count: usize = @intCast(cpu_count_raw);
             if (cpu_count <= 1) return 1;
-            const capacity = out_len / parallel_min_nodes_per_worker;
-            if (capacity < 2) return 1;
             return @min(@min(cpu_count, capacity), max_parallel_workers);
         }
 
@@ -398,11 +459,12 @@ pub fn MerkleProverLifted(comptime H: type) type {
             prev_layer: []const H.Hash,
             seed: H,
             worker_count: usize,
+            executor: *LayerExecutor,
         ) !void {
             std.debug.assert(worker_count > 1);
             std.debug.assert(worker_count <= max_parallel_workers);
+            std.debug.assert(executor.enabled);
             var contexts: [max_parallel_workers]SeededRangeCtx = undefined;
-            var threads: [max_parallel_workers - 1]std.Thread = undefined;
 
             const chunk_len = (out.len + worker_count - 1) / worker_count;
             var actual_workers: usize = 0;
@@ -423,11 +485,12 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 return;
             }
 
+            var wait_group: WaitGroup = .{};
             for (1..actual_workers) |i| {
-                threads[i - 1] = try std.Thread.spawn(.{}, hashSeededRangeThread, .{&contexts[i]});
+                executor.pool.spawnWg(&wait_group, hashSeededRangeThread, .{&contexts[i]});
             }
             hashSeededRange(&contexts[0]);
-            for (0..actual_workers - 1) |i| threads[i].join();
+            wait_group.wait();
         }
 
         const BasicRangeCtx = struct {
@@ -455,11 +518,12 @@ pub fn MerkleProverLifted(comptime H: type) type {
             out: []H.Hash,
             prev_layer: []const H.Hash,
             worker_count: usize,
+            executor: *LayerExecutor,
         ) !void {
             std.debug.assert(worker_count > 1);
             std.debug.assert(worker_count <= max_parallel_workers);
+            std.debug.assert(executor.enabled);
             var contexts: [max_parallel_workers]BasicRangeCtx = undefined;
-            var threads: [max_parallel_workers - 1]std.Thread = undefined;
 
             const chunk_len = (out.len + worker_count - 1) / worker_count;
             var actual_workers: usize = 0;
@@ -479,11 +543,12 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 return;
             }
 
+            var wait_group: WaitGroup = .{};
             for (1..actual_workers) |i| {
-                threads[i - 1] = try std.Thread.spawn(.{}, hashBasicRangeThread, .{&contexts[i]});
+                executor.pool.spawnWg(&wait_group, hashBasicRangeThread, .{&contexts[i]});
             }
             hashBasicRange(&contexts[0]);
-            for (0..actual_workers - 1) |i| threads[i].join();
+            wait_group.wait();
         }
     };
 }
@@ -599,4 +664,44 @@ test "prover vcs_lifted: empty columns root matches mixed-degree prover" {
     defer mixed.deinit(alloc);
 
     try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&lifted.root()), std.mem.asBytes(&mixed.root())));
+}
+
+test "prover vcs_lifted: root is stable across large-layer worker-count overrides" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const Prover = MerkleProverLifted(Hasher);
+    const alloc = std.testing.allocator;
+    const log_size: u32 = 14;
+    const n = @as(usize, 1) << @intCast(log_size);
+
+    var col0 = try alloc.alloc(M31, n);
+    defer alloc.free(col0);
+    var col1 = try alloc.alloc(M31, n);
+    defer alloc.free(col1);
+
+    for (0..n) |i| {
+        col0[i] = M31.fromU64(@as(u64, @intCast(i + 1)));
+        col1[i] = M31.fromU64(@as(u64, @intCast((i * 17) + 3)));
+    }
+
+    const columns = [_][]const M31{
+        col0,
+        col1,
+    };
+
+    var prover_auto = try Prover.commitWithWorkerOverride(alloc, columns[0..], null);
+    defer prover_auto.deinit(alloc);
+    var prover_single = try Prover.commitWithWorkerOverride(alloc, columns[0..], 1);
+    defer prover_single.deinit(alloc);
+    var prover_two = try Prover.commitWithWorkerOverride(alloc, columns[0..], 2);
+    defer prover_two.deinit(alloc);
+    var prover_four = try Prover.commitWithWorkerOverride(alloc, columns[0..], 4);
+    defer prover_four.deinit(alloc);
+
+    const root_auto = prover_auto.root();
+    const root_single = prover_single.root();
+    const root_two = prover_two.root();
+    const root_four = prover_four.root();
+    try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&root_auto), std.mem.asBytes(&root_single)));
+    try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&root_auto), std.mem.asBytes(&root_two)));
+    try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&root_auto), std.mem.asBytes(&root_four)));
 }
