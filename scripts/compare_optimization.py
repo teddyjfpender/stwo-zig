@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import subprocess
@@ -46,6 +47,46 @@ def load_json(path: Path, *, name: str) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise CompareError(f"invalid {name} payload at {rel(path)}")
     return payload
+
+
+def canonical_hash(payload: Any) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def benchmark_workload_matrix_hash(report: Dict[str, Any]) -> str:
+    existing = report.get("workload_matrix_hash")
+    if isinstance(existing, str) and existing:
+        return existing
+
+    workloads = report.get("workloads", [])
+    matrix = [
+        {
+            "name": str(workload.get("name", "unknown")),
+            "example": str(workload.get("example", "unknown")),
+            "params": workload.get("params", []),
+        }
+        for workload in workloads
+    ]
+    return canonical_hash(matrix)
+
+
+def profile_workload_matrix_hash(report: Dict[str, Any]) -> str:
+    existing = report.get("workload_matrix_hash")
+    if isinstance(existing, str) and existing:
+        return existing
+
+    profiles = report.get("profiles", [])
+    matrix = [
+        {
+            "runtime": str(profile.get("runtime", "unknown")),
+            "workload": str(profile.get("workload", "unknown")),
+            "example": str(profile.get("example", "unknown")),
+            "command": profile.get("command", []),
+        }
+        for profile in profiles
+    ]
+    return canonical_hash(matrix)
 
 
 def workload_ratios(report: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
@@ -95,11 +136,12 @@ def capture_baseline(
         raise CompareError("profile report missing settings_hash")
 
     baseline = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at_unix": int(time.time()),
         "git_head_sha": run_capture(["git", "rev-parse", "HEAD"]),
         "benchmark": {
             "settings_hash": benchmark_settings_hash,
+            "workload_matrix_hash": benchmark_workload_matrix_hash(benchmark_report),
             "report_path": rel(benchmark_report_path),
             "summary": benchmark_report.get("summary", {}),
             "thresholds": benchmark_report.get("thresholds", {}),
@@ -107,6 +149,7 @@ def capture_baseline(
         },
         "profile": {
             "settings_hash": profile_settings_hash,
+            "workload_matrix_hash": profile_workload_matrix_hash(profile_report),
             "report_path": rel(profile_report_path),
             "summary": profile_report.get("summary", {}),
             "zig_avg_seconds_by_workload": zig_profile_seconds(profile_report),
@@ -137,11 +180,19 @@ def evaluate_comparison(
     baseline_profile_hash = baseline_profile.get("settings_hash")
     current_bench_hash = benchmark_report.get("settings_hash")
     current_profile_hash = profile_report.get("settings_hash")
+    baseline_bench_matrix_hash = baseline_bench.get("workload_matrix_hash")
+    baseline_profile_matrix_hash = baseline_profile.get("workload_matrix_hash")
+    current_bench_matrix_hash = benchmark_workload_matrix_hash(benchmark_report)
+    current_profile_matrix_hash = profile_workload_matrix_hash(profile_report)
 
     if baseline_bench_hash != current_bench_hash:
         failures.append("benchmark settings hash mismatch versus baseline")
     if baseline_profile_hash != current_profile_hash:
         failures.append("profile settings hash mismatch versus baseline")
+    if baseline_bench_matrix_hash and baseline_bench_matrix_hash != current_bench_matrix_hash:
+        failures.append("benchmark workload matrix hash mismatch versus baseline")
+    if baseline_profile_matrix_hash and baseline_profile_matrix_hash != current_profile_matrix_hash:
+        failures.append("profile workload matrix hash mismatch versus baseline")
 
     base_summary = baseline_bench.get("summary", {})
     curr_summary = benchmark_report.get("summary", {})
@@ -202,6 +253,10 @@ def evaluate_comparison(
         }
 
     details = {
+        "baseline_benchmark_workload_matrix_hash": baseline_bench_matrix_hash,
+        "current_benchmark_workload_matrix_hash": current_bench_matrix_hash,
+        "baseline_profile_workload_matrix_hash": baseline_profile_matrix_hash,
+        "current_profile_workload_matrix_hash": current_profile_matrix_hash,
         "baseline_max_zig_over_rust_prove": base_max_prove,
         "current_max_zig_over_rust_prove": curr_max_prove,
         "baseline_max_zig_over_rust_verify": base_max_verify,

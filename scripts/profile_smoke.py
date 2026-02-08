@@ -104,6 +104,17 @@ def canonical_hash(payload: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def workload_matrix(workloads: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [
+        {
+            "name": workload["name"],
+            "example": workload["example"],
+            "args": workload["args"],
+        }
+        for workload in workloads
+    ]
+
+
 def ensure_binaries(rust_toolchain: str, zig_opt_mode: str, zig_cpu: str) -> None:
     run(
         [
@@ -433,9 +444,11 @@ def main() -> int:
 
     report = {
         "schema_version": 2,
+        "generated_at_unix": int(time.time()),
         "status": status,
         "collector": "time -l + sample" if SAMPLE_BIN.exists() else "time -l",
         "settings_hash": settings_hash,
+        "workload_matrix_hash": canonical_hash(workload_matrix(workloads)),
         "settings": settings,
         "summary": {
             "profiles": len(profiles),
