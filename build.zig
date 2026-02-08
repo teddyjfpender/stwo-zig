@@ -96,6 +96,15 @@ pub fn build(b: *std.Build) void {
     );
     std_shims_smoke_step.dependOn(&std_shims_smoke_cmd.step);
 
+    // Std-shims behavior parity against standard verifier over checkpoint artifacts.
+    const std_shims_behavior_cmd = b.addSystemCommand(&.{ "python3", "scripts/std_shims_behavior.py" });
+    const std_shims_behavior_step = b.step(
+        "std-shims-behavior",
+        "Validate std-shims verifier behavior parity against standard verifier",
+    );
+    std_shims_behavior_cmd.step.dependOn(&prove_checkpoints_cmd.step);
+    std_shims_behavior_step.dependOn(&std_shims_behavior_cmd.step);
+
     // Canonical release evidence manifest generator.
     const release_evidence_cmd = b.addSystemCommand(&.{
         "python3",
@@ -147,7 +156,7 @@ pub fn build(b: *std.Build) void {
     release_gate_step.dependOn(&rg_profile.step);
 
     // Strict release gate sequence:
-    // fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke
+    // fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior
     const rgs_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const rgs_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
     rgs_test.step.dependOn(&rgs_fmt.step);
@@ -190,17 +199,19 @@ pub fn build(b: *std.Build) void {
         "-femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
     });
     rgs_std_shims.step.dependOn(&rgs_profile.step);
+    const rgs_std_shims_behavior = b.addSystemCommand(&.{ "python3", "scripts/std_shims_behavior.py" });
+    rgs_std_shims_behavior.step.dependOn(&rgs_std_shims.step);
     const rgs_evidence = b.addSystemCommand(&.{
         "python3",
         "scripts/release_evidence.py",
         "--gate-mode",
         "strict",
     });
-    rgs_evidence.step.dependOn(&rgs_std_shims.step);
+    rgs_evidence.step.dependOn(&rgs_std_shims_behavior.step);
 
     const release_gate_strict_step = b.step(
         "release-gate-strict",
-        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> release-evidence)",
+        "Run strict release gate sequence (fmt -> test -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence)",
     );
     release_gate_strict_step.dependOn(&rgs_evidence.step);
 }

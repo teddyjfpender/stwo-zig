@@ -22,6 +22,7 @@ INTEROP_REPORT_DEFAULT = REPORTS_DIR / "e2e_interop_report.json"
 BENCHMARK_REPORT_DEFAULT = REPORTS_DIR / "benchmark_smoke_report.json"
 PROFILE_REPORT_DEFAULT = REPORTS_DIR / "profile_smoke_report.json"
 PROVE_CHECKPOINTS_REPORT_DEFAULT = REPORTS_DIR / "prove_checkpoints_report.json"
+STD_SHIMS_BEHAVIOR_REPORT_DEFAULT = REPORTS_DIR / "std_shims_behavior_report.json"
 
 SCHEMA_VERSION = 1
 MANIFEST_TYPE = "release_evidence_v1"
@@ -99,6 +100,12 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
                 "command": "zig build-lib src/std_shims_freestanding.zig -target wasm32-freestanding -O ReleaseSmall -femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
             }
         )
+        steps.append(
+            {
+                "name": "std_shims_behavior",
+                "command": "python3 scripts/std_shims_behavior.py",
+            }
+        )
     return steps
 
 
@@ -140,6 +147,12 @@ def parse_args() -> argparse.Namespace:
         default=PROVE_CHECKPOINTS_REPORT_DEFAULT,
         help="Prove/prove_ex checkpoints report path",
     )
+    parser.add_argument(
+        "--std-shims-behavior-report",
+        type=Path,
+        default=STD_SHIMS_BEHAVIOR_REPORT_DEFAULT,
+        help="Std-shims behavior parity report path",
+    )
     return parser.parse_args()
 
 
@@ -157,7 +170,12 @@ def main() -> int:
             args.prove_checkpoints_report,
             name="prove_checkpoints",
         )
+        _, std_shims_behavior_manifest = load_report(
+            args.std_shims_behavior_report,
+            name="std_shims_behavior",
+        )
         reports.append(prove_checkpoints_manifest)
+        reports.append(std_shims_behavior_manifest)
     failures: list[str] = []
 
     for report in reports:
