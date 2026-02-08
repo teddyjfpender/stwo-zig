@@ -64,6 +64,13 @@ pub const Elements = struct {
     z: QM31,
     alpha: QM31,
 
+    pub fn draw(channel: anytype) Elements {
+        return .{
+            .z = channel.drawSecureFelt(),
+            .alpha = channel.drawSecureFelt(),
+        };
+    }
+
     /// Combines a state as `state[0] + alpha * state[1] - z`.
     pub fn combine(self: Elements, state: State) QM31 {
         return QM31.fromBase(state[0])
@@ -208,4 +215,12 @@ test "examples state_machine: claimed-sum accumulation equals telescoping form" 
     const direct = try claimedSumFromInitial(6, initial, 1, elements);
     const telescoping = try claimedSumTelescoping(6, initial, 1, elements);
     try std.testing.expect(direct.eql(telescoping));
+}
+
+test "examples state_machine: draw yields distinct lookup elements on successive calls" {
+    const Channel = @import("../core/channel/blake2s.zig").Blake2sChannel;
+    var channel = Channel{};
+    const e0 = Elements.draw(&channel);
+    const e1 = Elements.draw(&channel);
+    try std.testing.expect(!e0.z.eql(e1.z) or !e0.alpha.eql(e1.alpha));
 }

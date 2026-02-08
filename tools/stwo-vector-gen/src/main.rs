@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::Serialize;
+use stwo::core::channel::{Blake2sChannel, Channel};
 use stwo::core::circle::{
     CirclePoint, Coset, M31_CIRCLE_GEN, M31_CIRCLE_LOG_ORDER, SECURE_FIELD_CIRCLE_GEN,
 };
@@ -63,6 +64,7 @@ const BLAKE3_VECTOR_COUNT: usize = 64;
 const EXAMPLE_STATE_MACHINE_TRACE_VECTOR_COUNT: usize = 24;
 const EXAMPLE_STATE_MACHINE_TRANSITION_VECTOR_COUNT: usize = 24;
 const EXAMPLE_STATE_MACHINE_CLAIMED_SUM_VECTOR_COUNT: usize = 24;
+const EXAMPLE_STATE_MACHINE_LOOKUP_DRAW_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_STEP_WITH_OFFSET_VECTOR_COUNT: usize = 32;
 
@@ -360,6 +362,14 @@ struct ExampleStateMachineClaimedSumVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct ExampleStateMachineLookupDrawVector {
+    mix_u64: u64,
+    mix_u32s: Vec<u32>,
+    z: [u32; 4],
+    alpha: [u32; 4],
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ExampleXorIsFirstVector {
     log_size: u32,
     values: Vec<u32>,
@@ -417,6 +427,7 @@ struct FieldVectors {
     example_state_machine_trace: Vec<ExampleStateMachineTraceVector>,
     example_state_machine_transitions: Vec<ExampleStateMachineTransitionVector>,
     example_state_machine_claimed_sum: Vec<ExampleStateMachineClaimedSumVector>,
+    example_state_machine_lookup_draw: Vec<ExampleStateMachineLookupDrawVector>,
     example_xor_is_first: Vec<ExampleXorIsFirstVector>,
     example_xor_is_step_with_offset: Vec<ExampleXorIsStepWithOffsetVector>,
 }
@@ -579,6 +590,10 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         state,
         EXAMPLE_STATE_MACHINE_CLAIMED_SUM_VECTOR_COUNT,
     );
+    let example_state_machine_lookup_draw = generate_example_state_machine_lookup_draw_vectors(
+        state,
+        EXAMPLE_STATE_MACHINE_LOOKUP_DRAW_VECTOR_COUNT,
+    );
     let example_xor_is_first =
         generate_example_xor_is_first_vectors(state, EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT);
     let example_xor_is_step_with_offset = generate_example_xor_is_step_with_offset_vectors(
@@ -647,6 +662,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         example_state_machine_trace,
         example_state_machine_transitions,
         example_state_machine_claimed_sum,
+        example_state_machine_lookup_draw,
         example_xor_is_first,
         example_xor_is_step_with_offset,
     }
@@ -765,6 +781,34 @@ fn generate_example_state_machine_claimed_sum_vectors(
             alpha: encode_qm31(alpha),
             claimed_sum: encode_qm31(claimed_sum),
             telescoping_claim: encode_qm31(telescoping_claim),
+        });
+    }
+    out
+}
+
+fn generate_example_state_machine_lookup_draw_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleStateMachineLookupDrawVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let mix_u64 = next_u64(state);
+        let n_u32s = 1 + ((next_u64(state) as usize) % 6);
+        let mix_u32s = (0..n_u32s)
+            .map(|_| next_u64(state) as u32)
+            .collect::<Vec<_>>();
+
+        let mut channel = Blake2sChannel::default();
+        channel.mix_u64(mix_u64);
+        channel.mix_u32s(&mix_u32s);
+        let z = channel.draw_secure_felt();
+        let alpha = channel.draw_secure_felt();
+
+        out.push(ExampleStateMachineLookupDrawVector {
+            mix_u64,
+            mix_u32s,
+            z: encode_qm31(z),
+            alpha: encode_qm31(alpha),
         });
     }
     out

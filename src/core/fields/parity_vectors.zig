@@ -290,6 +290,13 @@ const ExampleStateMachineClaimedSumVector = struct {
     telescoping_claim: [4]u32,
 };
 
+const ExampleStateMachineLookupDrawVector = struct {
+    mix_u64: u64,
+    mix_u32s: []u32,
+    z: [4]u32,
+    alpha: [4]u32,
+};
+
 const ExampleXorIsFirstVector = struct {
     log_size: u32,
     values: []u32,
@@ -331,6 +338,7 @@ const VectorFile = struct {
     example_state_machine_trace: []ExampleStateMachineTraceVector,
     example_state_machine_transitions: []ExampleStateMachineTransitionVector,
     example_state_machine_claimed_sum: []ExampleStateMachineClaimedSumVector,
+    example_state_machine_lookup_draw: []ExampleStateMachineLookupDrawVector,
     example_xor_is_first: []ExampleXorIsFirstVector,
     example_xor_is_step_with_offset: []ExampleXorIsStepWithOffsetVector,
 };
@@ -1594,6 +1602,32 @@ test "field vectors: examples state machine claimed-sum parity" {
                 // Degenerate denominator after perturbation is an expected differential failure mode.
                 try std.testing.expect(true);
             }
+        }
+    }
+}
+
+test "field vectors: examples state machine lookup draw parity" {
+    const alloc = std.testing.allocator;
+    const Channel = @import("../channel/blake2s.zig").Blake2sChannel;
+
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_state_machine_lookup_draw.len > 0);
+    for (parsed.value.example_state_machine_lookup_draw, 0..) |v, vec_idx| {
+        var channel = Channel{};
+        channel.mixU64(v.mix_u64);
+        channel.mixU32s(v.mix_u32s);
+        const elements = example_state_machine_mod.Elements.draw(&channel);
+        try std.testing.expect(elements.z.eql(qm31From(v.z)));
+        try std.testing.expect(elements.alpha.eql(qm31From(v.alpha)));
+
+        if (vec_idx == 0) {
+            var altered_channel = Channel{};
+            altered_channel.mixU64(v.mix_u64 +% 1);
+            altered_channel.mixU32s(v.mix_u32s);
+            const altered = example_state_machine_mod.Elements.draw(&altered_channel);
+            try std.testing.expect(!altered.z.eql(elements.z) or !altered.alpha.eql(elements.alpha));
         }
     }
 }

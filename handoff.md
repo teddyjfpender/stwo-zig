@@ -382,3 +382,31 @@
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
 - `python3 scripts/parity_fields.py`
 - `zig build test --summary all`
+
+## Latest Slice (State-Machine Lookup Draw Parity)
+- `src/examples/state_machine.zig`
+  - Added `Elements.draw(channel)` for channel-driven lookup element sampling (`z`, `alpha`).
+  - Added regression test to ensure successive draws evolve channel state.
+- `tools/stwo-vector-gen/src/main.rs`
+  - Extended vector schema with:
+    - `example_state_machine_lookup_draw`
+  - Added deterministic generator vectors that include:
+    - `mix_u64`
+    - `mix_u32s`
+    - sampled `z` and `alpha` after channel mixing.
+- `src/core/fields/parity_vectors.zig`
+  - Added parser schema for `example_state_machine_lookup_draw`.
+  - Added parity test that replays channel mixing and validates `Elements.draw`.
+  - Added negative differential case:
+    - perturb `mix_u64` and require a changed draw output.
+- `vectors/fields.json`
+  - Regenerated deterministically with lookup-draw vectors.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig build fmt`
+- `cargo fmt --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `python3 scripts/parity_fields.py --regenerate --skip-zig`
+- `python3 scripts/parity_fields.py`
+- `python3 scripts/e2e_examples.py`
+- `zig build test --summary all`
