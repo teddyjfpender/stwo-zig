@@ -28,6 +28,15 @@ zig build test
 zig build fmt
 ```
 
+### Conformance gates (smoke)
+
+```bash
+zig build vectors
+zig build interop
+zig build bench-smoke
+zig build profile-smoke
+```
+
 ## Layout
 
 - `src/core/fields/m31.zig` — M31 field

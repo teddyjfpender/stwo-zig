@@ -30,6 +30,21 @@ pub fn build(b: *std.Build) void {
     const vectors_step = b.step("vectors", "Validate committed parity vectors");
     vectors_step.dependOn(&vectors_cmd.step);
 
+    // Cross-language interoperability gate (Rust fixtures + Zig wrapper proof-path checks).
+    const interop_cmd = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
+    const interop_step = b.step("interop", "Run interoperability harness (Rust <-> Zig fixtures/wrappers)");
+    interop_step.dependOn(&interop_cmd.step);
+
+    // Benchmark smoke gate with deterministic short workloads.
+    const bench_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_smoke.py" });
+    const bench_smoke_step = b.step("bench-smoke", "Run benchmark smoke harness and emit report");
+    bench_smoke_step.dependOn(&bench_smoke_cmd.step);
+
+    // Profiling smoke gate with coarse wall-clock and peak-RSS collection.
+    const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
+    const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");
+    profile_smoke_step.dependOn(&profile_smoke_cmd.step);
+
     // Formatting gate.
     const fmt_cmd = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const fmt_step = b.step("fmt", "Check formatting (zig fmt --check)");

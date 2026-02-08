@@ -5,6 +5,45 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (Examples Wrappers + Gate Harnesses)
+
+### Example Proof Wrappers
+- `src/examples/state_machine.zig`
+  - Added end-to-end `prove(...)` / `verify(...)` wrappers over real component-driven pipeline:
+    - `prover/prove.zig::prove`
+    - `core/verifier.zig::verify`
+    - `prover/pcs::CommitmentSchemeProver`
+    - `core/pcs/verifier::CommitmentSchemeVerifier`
+  - Added transcript wiring for config/statement/public-input/claim mixing.
+  - Added wrapper-specific component adapter implementing both prover and verifier component vtables.
+  - Added wrapper tests:
+    - roundtrip prove+verify
+    - statement tamper rejection.
+
+- `src/examples/xor.zig`
+  - Added end-to-end `prove(...)` / `verify(...)` wrappers over the same real proving/verifying path.
+  - Added deterministic preprocessed/main commitment wiring and statement mixing.
+  - Added wrapper-specific prover/verifier component adapter.
+  - Added wrapper tests:
+    - roundtrip prove+verify
+    - statement mismatch rejection.
+
+### Build Gates + Harness Scripts
+- `build.zig`
+  - Added explicit conformance-smoke steps:
+    - `zig build interop`
+    - `zig build bench-smoke`
+    - `zig build profile-smoke`
+- Added new harnesses:
+  - `scripts/e2e_interop.py`
+    - fixture-bridge interop gate (Rust vectors + Zig wrapper proof-path checks + optional upstream examples check).
+  - `scripts/benchmark_smoke.py`
+    - deterministic short benchmark runs with JSON report output.
+  - `scripts/profile_smoke.py`
+    - coarse profiling smoke (`/usr/bin/time -l` peak RSS + wall-clock) with JSON report output.
+- `README.md`
+  - Added smoke-gate command documentation for vectors/interop/bench/profile steps.
+
 ## Newly Landed Parity Slices
 
 ### Prover Lookups
@@ -131,8 +170,11 @@
 
 ## Current Quality Gates (Passing)
 - `zig build fmt`
-- `zig build test`
+- `zig build test --summary all`
 - `python3 scripts/parity_fields.py`
+- `zig build interop`
+- `zig build bench-smoke`
+- `zig build profile-smoke`
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
 
 ## Current Known Gaps
