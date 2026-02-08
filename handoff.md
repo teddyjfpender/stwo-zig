@@ -95,8 +95,11 @@
 ### Prover Entrypoint
 - `src/prover/prove.zig`
   - Added sampled-points proving entrypoints (`prove`, `proveEx`) backed by in-prover PCS `proveValues`.
+  - Added component-driven proving slice (`proveExComponents` / `proveComponents`) with:
+    - AIR mask-point derivation via `ComponentProvers.componentsView`
+    - composition OODS sanity check against sampled values
   - Retained prepared-samples proving entrypoint (`provePrepared`) as compatibility path.
-  - Added roundtrip tests against core PCS verifier for both prepared and sampled-points paths.
+  - Added roundtrip tests against core verifier for prepared, sampled-points, and component-driven slices.
 
 ## Current Quality Gates (Passing)
 - `zig build fmt`
@@ -108,13 +111,13 @@
 1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover, but does not yet use/store circle coefficients + shared weights hash-map optimization path from upstream.
 2. `prover/poly/circle` is now executable but still missing full upstream FFT/twiddle-backed interpolation/evaluation parity.
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
-   - Current executable entrypoints are sampled-points (`prove`/`proveEx`) and prepared sampled-values (`provePrepared`) paths.
-   - Full upstream-style component-driven `prove/prove_ex` still depends on deeper `prover/air` parity and composition polynomial wiring.
+   - Current executable entrypoints are sampled-points (`prove`/`proveEx`), component-driven (`proveExComponents`/`proveComponents`), and prepared sampled-values (`provePrepared`) paths.
+   - Component-driven slice still assumes composition tree is pre-committed externally (composition polynomial generation/commit not yet fully wired inside `prove_ex`).
 
 ## Next Highest-Impact Targets
 1. Complete FFT/twiddle-backed circle interpolation/evaluation parity and wire `store_polynomials_coefficients` fast path.
-2. Wire top-level `prover::prove_ex` to consume the new `ComponentProvers.componentsView` bridge and run full composition OODS sanity checks.
-3. Implement full `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
+2. Implement in-prover composition polynomial generation/commit (remove pre-committed composition-tree assumption in `proveExComponents`).
+3. Implement full upstream `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
 4. Expand differential vectors to cover prover-side circle poly slices and full `proveValues`.
 
 ## Divergence Record (Active)
