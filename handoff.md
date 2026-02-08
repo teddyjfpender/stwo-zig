@@ -177,3 +177,21 @@
 - `zig build test --summary all`
 - `python3 scripts/parity_fields.py`
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+
+## Latest Slice (PCS Sampled-Value Parity: Weights Cache)
+- `src/prover/pcs/mod.zig`
+  - `evaluateSampledValues` now matches upstream-style non-coefficient evaluation semantics by caching barycentric weights keyed by `(log_size, folded_point)`.
+  - Reuses `CircleEvaluation.barycentricWeights` outputs across repeated sampled points instead of recomputing per sample.
+  - Cache lifecycle is allocator-safe: all cached weight vectors are freed before function return.
+  - Maintains existing coefficient fast path (`evalAtPoint`) when `store_polynomials_coefficients` is enabled.
+- Added regression/integration test:
+  - `prover pcs: prove values handles repeated sampled points across columns`
+  - Covers repeated sampled points on multiple columns, sampled-value shape/value assertions, and full verifier roundtrip acceptance.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig test tmp_deep_probe.zig --test-filter "prover pcs: prove values handles repeated sampled points across columns"`
+- `zig test tmp_deep_probe.zig --test-filter "prover prove"`
+- `zig build fmt`
+- `zig build test --summary all`
+- `python3 scripts/parity_fields.py`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
