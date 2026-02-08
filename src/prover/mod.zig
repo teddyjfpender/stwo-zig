@@ -8,3 +8,4 @@ pub const poly = @import("poly/mod.zig");
 pub const secure_column = @import("secure_column.zig");
 pub const vcs = @import("vcs/mod.zig");
 pub const vcs_lifted = @import("vcs_lifted/mod.zig");
+pub const prove = @import("prove.zig");
