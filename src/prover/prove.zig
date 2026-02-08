@@ -6,23 +6,28 @@ const core_air_components = @import("../core/air/components.zig");
 const m31 = @import("../core/fields/m31.zig");
 const qm31 = @import("../core/fields/qm31.zig");
 const pcs_core = @import("../core/pcs/mod.zig");
+const canonic = @import("../core/poly/circle/canonic.zig");
 const proof_mod = @import("../core/proof.zig");
 const verifier_types = @import("../core/verifier_types.zig");
 const component_prover = @import("air/component_prover.zig");
 const prover_air_accumulation = @import("air/accumulation.zig");
+const prover_circle = @import("poly/circle/mod.zig");
 const pcs_prover = @import("pcs/mod.zig");
+const secure_column = @import("secure_column.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
 const COMPOSITION_LOG_SPLIT = verifier_types.COMPOSITION_LOG_SPLIT;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
+const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 const TreeVec = pcs_core.TreeVec;
 
 pub const ProvingError = error{
     MissingPreprocessedTree,
     InvalidStructure,
     ConstraintsNotSatisfied,
+    UnsupportedBlowup,
 };
 
 /// Temporary prove entrypoint on top of the sampled-points PCS path.
@@ -76,8 +81,7 @@ pub fn proveEx(
 /// Component-driven proving slice that derives OODS sample points from AIR components.
 ///
 /// Preconditions:
-/// - `commitment_scheme` already contains trace trees and composition tree commitment.
-/// - the last committed tree corresponds to composition columns.
+/// - `commitment_scheme` contains at least preprocessed/main trace trees.
 pub fn proveExComponents(
     comptime H: type,
     comptime MC: type,
@@ -87,20 +91,56 @@ pub fn proveExComponents(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
     include_all_preprocessed_columns: bool,
 ) !proof_mod.ExtendedStarkProof(H) {
-    if (commitment_scheme.trees.items.len <= PREPROCESSED_TRACE_IDX) {
+    var scheme = commitment_scheme;
+
+    if (scheme.trees.items.len <= PREPROCESSED_TRACE_IDX) {
         return ProvingError.MissingPreprocessedTree;
+    }
+    if (scheme.config.fri_config.log_blowup_factor != 0) {
+        return ProvingError.UnsupportedBlowup;
     }
 
     const component_provers = component_prover.ComponentProvers{
         .components = components,
-        .n_preprocessed_columns = commitment_scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
+        .n_preprocessed_columns = scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
     };
 
     const composition_log_size = component_provers.compositionLogDegreeBound();
     if (composition_log_size <= COMPOSITION_LOG_SPLIT) return ProvingError.InvalidStructure;
     const max_log_degree_bound = composition_log_size - COMPOSITION_LOG_SPLIT;
 
+    var trace = try scheme.trace(allocator);
+    defer trace.polys.deinitDeep(allocator);
+
     const random_coeff = channel.drawSecureFelt();
+
+    var composition_eval = try component_provers.computeCompositionEvaluation(
+        allocator,
+        random_coeff,
+        &trace,
+    );
+    defer composition_eval.deinit(allocator);
+
+    var composition_poly = try prover_circle.secure_poly.interpolateFromEvaluation(
+        allocator,
+        canonic.CanonicCoset.new(composition_log_size).circleDomain(),
+        &composition_eval,
+    );
+    defer composition_poly.deinit(allocator);
+
+    var composition_split = try composition_poly.splitAtMid(allocator);
+    defer composition_split.deinit(allocator);
+
+    try commitCompositionSplit(
+        H,
+        MC,
+        allocator,
+        &scheme,
+        composition_split.left,
+        composition_split.right,
+        channel,
+    );
+
     const oods_point = circle.randomSecureFieldPoint(channel);
 
     var components_view = try component_provers.componentsView(allocator);
@@ -120,7 +160,7 @@ pub fn proveExComponents(
         MC,
         allocator,
         channel,
-        commitment_scheme,
+        scheme,
         sample_points,
     );
 
@@ -188,6 +228,46 @@ pub fn provePrepared(
         },
         .aux = commitment_proof.aux,
     };
+}
+
+fn commitCompositionSplit(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    commitment_scheme: *pcs_prover.CommitmentSchemeProver(H, MC),
+    left: prover_circle.SecureCirclePoly,
+    right: prover_circle.SecureCirclePoly,
+    channel: anytype,
+) !void {
+    const split_log_size = left.logSize();
+    if (right.logSize() != split_log_size) return ProvingError.InvalidStructure;
+
+    const eval_domain = canonic.CanonicCoset.new(split_log_size).circleDomain();
+    var builder = commitment_scheme.treeBuilder(allocator);
+    defer builder.deinit();
+
+    for (left.polys) |coord_poly| {
+        const evaluation = try coord_poly.evaluate(allocator, eval_domain);
+        defer allocator.free(@constCast(evaluation.values));
+        _ = try builder.extendColumns(&[_]pcs_prover.ColumnEvaluation{
+            .{
+                .log_size = split_log_size,
+                .values = evaluation.values,
+            },
+        });
+    }
+    for (right.polys) |coord_poly| {
+        const evaluation = try coord_poly.evaluate(allocator, eval_domain);
+        defer allocator.free(@constCast(evaluation.values));
+        _ = try builder.extendColumns(&[_]pcs_prover.ColumnEvaluation{
+            .{
+                .log_size = split_log_size,
+                .values = evaluation.values,
+            },
+        });
+    }
+
+    try builder.commit(channel);
 }
 
 fn appendCompositionMaskTree(
@@ -474,14 +554,23 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         }
 
         fn evaluateConstraintQuotientsOnDomain(
-            _: *const anyopaque,
+            ctx: *const anyopaque,
             _: *const component_prover.Trace,
-            _: *prover_air_accumulation.DomainEvaluationAccumulator,
-        ) !void {}
+            evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
+        ) !void {
+            const self = cast(ctx);
+            const domain_size = @as(usize, 1) << @intCast(self.max_log_degree_bound);
+            const values = try std.testing.allocator.alloc(QM31, domain_size);
+            defer std.testing.allocator.free(values);
+            @memset(values, self.value);
+
+            var col = try SecureColumnByCoords.fromSecureSlice(std.testing.allocator, values);
+            defer col.deinit(std.testing.allocator);
+            try evaluation_accumulator.accumulateColumn(self.max_log_degree_bound, &col);
+        }
     };
 
     const target_composition_eval = QM31.fromU32Unchecked(9, 8, 7, 6);
-    const target_coords = target_composition_eval.toM31Array();
 
     var scheme = try Scheme.init(alloc, config);
     var prover_channel = Channel{};
@@ -519,22 +608,6 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         &[_]pcs_prover.ColumnEvaluation{
             .{ .log_size = 3, .values = main_col[0..] },
         },
-        &prover_channel,
-    );
-
-    var composition_col_values: [2 * qm31.SECURE_EXTENSION_DEGREE][8]M31 = undefined;
-    var composition_columns: [2 * qm31.SECURE_EXTENSION_DEGREE]pcs_prover.ColumnEvaluation = undefined;
-    for (0..2 * qm31.SECURE_EXTENSION_DEGREE) |i| {
-        const fill_value = if (i < qm31.SECURE_EXTENSION_DEGREE) target_coords[i] else M31.zero();
-        @memset(composition_col_values[i][0..], fill_value);
-        composition_columns[i] = .{
-            .log_size = 3,
-            .values = composition_col_values[i][0..],
-        };
-    }
-    try scheme.commit(
-        alloc,
-        composition_columns[0..],
         &prover_channel,
     );
 

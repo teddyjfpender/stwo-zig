@@ -2,12 +2,17 @@ const std = @import("std");
 const circle = @import("../../../core/circle.zig");
 const m31 = @import("../../../core/fields/m31.zig");
 const qm31 = @import("../../../core/fields/qm31.zig");
+const domain_mod = @import("../../../core/poly/circle/domain.zig");
 const poly = @import("poly.zig");
+const eval_mod = @import("evaluation.zig");
+const secure_column = @import("../../secure_column.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
+const CircleDomain = domain_mod.CircleDomain;
 const CircleCoefficients = poly.CircleCoefficients;
+const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 
 pub const SecurePolyError = error{
     ShapeMismatch,
@@ -97,6 +102,29 @@ pub const SecureCirclePoly = struct {
     }
 };
 
+pub fn interpolateFromEvaluation(
+    allocator: std.mem.Allocator,
+    domain: CircleDomain,
+    values: *const SecureColumnByCoords,
+) (std.mem.Allocator.Error || SecurePolyError || poly.PolyError)!SecureCirclePoly {
+    if (domain.size() != values.len()) return SecurePolyError.ShapeMismatch;
+
+    var coordinate_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
+    var initialized: usize = 0;
+    errdefer {
+        var i: usize = 0;
+        while (i < initialized) : (i += 1) coordinate_polys[i].deinit(allocator);
+    }
+
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |i| {
+        const evaluation = try eval_mod.CircleEvaluation.init(domain, values.columns[i]);
+        coordinate_polys[i] = try poly.interpolateFromEvaluation(allocator, evaluation);
+        initialized += 1;
+    }
+
+    return SecureCirclePoly.init(coordinate_polys);
+}
+
 test "prover poly circle secure poly: split-at-mid identity" {
     const alloc = std.testing.allocator;
     const log_size: u32 = 6;
@@ -143,4 +171,58 @@ test "prover poly circle secure poly: rejects mixed coordinate log sizes" {
         SecurePolyError.ShapeMismatch,
         SecureCirclePoly.init(.{ p0, p0, p0, p1 }),
     );
+}
+
+test "prover poly circle secure poly: interpolate from evaluation roundtrip" {
+    const alloc = std.testing.allocator;
+    const log_size: u32 = 4;
+    const domain = @import("../../../core/poly/circle/canonic.zig").CanonicCoset.new(log_size).circleDomain();
+    const n = domain.size();
+
+    var coordinate_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
+    var initialized_polys: usize = 0;
+    errdefer {
+        var i: usize = 0;
+        while (i < initialized_polys) : (i += 1) coordinate_polys[i].deinit(alloc);
+    }
+
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
+        const coeffs = try alloc.alloc(M31, n);
+        for (coeffs, 0..) |*coeff, i| {
+            const canonical: u32 = @intCast((i * 7 + coord * 5 + 1) % m31.Modulus);
+            coeff.* = M31.fromCanonical(canonical);
+        }
+        coordinate_polys[coord] = try CircleCoefficients.initOwned(coeffs);
+        initialized_polys += 1;
+    }
+
+    var secure_poly = try SecureCirclePoly.init(coordinate_polys);
+    defer secure_poly.deinit(alloc);
+
+    var eval_columns: [qm31.SECURE_EXTENSION_DEGREE][]M31 = undefined;
+    var initialized_eval_cols: usize = 0;
+    errdefer {
+        var i: usize = 0;
+        while (i < initialized_eval_cols) : (i += 1) alloc.free(eval_columns[i]);
+    }
+
+    for (secure_poly.polys, 0..) |coord_poly, i| {
+        const eval = try coord_poly.evaluate(alloc, domain);
+        eval_columns[i] = @constCast(eval.values);
+        initialized_eval_cols += 1;
+    }
+
+    var secure_eval = try SecureColumnByCoords.initOwned(eval_columns);
+    defer secure_eval.deinit(alloc);
+
+    var interpolated = try interpolateFromEvaluation(alloc, domain, &secure_eval);
+    defer interpolated.deinit(alloc);
+
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |i| {
+        try std.testing.expectEqualSlices(
+            M31,
+            secure_poly.polys[i].coefficients(),
+            interpolated.polys[i].coefficients(),
+        );
+    }
 }

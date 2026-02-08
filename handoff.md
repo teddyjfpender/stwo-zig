@@ -53,13 +53,15 @@
     - `evalAtPoint`
     - `extend`
     - `evaluate` (naive domain evaluation path)
+    - `interpolateFromEvaluation` (deterministic Gaussian-elimination reference path)
     - `splitAtMid`
-  - Added split-identity and domain-evaluation tests.
+  - Added split-identity, domain-evaluation, and interpolation roundtrip tests.
 - `src/prover/poly/circle/secure_poly.zig`
   - Ported secure-coordinate polynomial wrapper slice:
     - `SecureCirclePoly.evalAtPoint`
     - `splitAtMid`
-  - Added secure split-identity and shape-failure tests.
+    - `interpolateFromEvaluation`
+  - Added secure split-identity, shape-failure, and interpolation roundtrip tests.
 - `src/prover/poly/circle/ops.zig`
   - Added circle-poly operation helpers (`evaluateOnCanonicDomain`, split helpers) to stabilize call sites.
 
@@ -98,6 +100,7 @@
   - Added component-driven proving slice (`proveExComponents` / `proveComponents`) with:
     - AIR mask-point derivation via `ComponentProvers.componentsView`
     - composition OODS sanity check against sampled values
+    - in-prover composition polynomial generation + commit (reference interpolation path)
   - Retained prepared-samples proving entrypoint (`provePrepared`) as compatibility path.
   - Added roundtrip tests against core verifier for prepared, sampled-points, and component-driven slices.
 
@@ -112,15 +115,16 @@
 2. `prover/poly/circle` is now executable but still missing full upstream FFT/twiddle-backed interpolation/evaluation parity.
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current executable entrypoints are sampled-points (`prove`/`proveEx`), component-driven (`proveExComponents`/`proveComponents`), and prepared sampled-values (`provePrepared`) paths.
-   - Component-driven slice still assumes composition tree is pre-committed externally (composition polynomial generation/commit not yet fully wired inside `prove_ex`).
+   - Component-driven slice currently enforces zero PCS blowup (`log_blowup_factor == 0`) while composition commit uses reference evaluation/interpolation.
 
 ## Next Highest-Impact Targets
 1. Complete FFT/twiddle-backed circle interpolation/evaluation parity and wire `store_polynomials_coefficients` fast path.
-2. Implement in-prover composition polynomial generation/commit (remove pre-committed composition-tree assumption in `proveExComponents`).
+2. Generalize component-driven proving to non-zero blowup (align `ColumnEvaluation`/commit semantics with upstream extended-domain handling).
 3. Implement full upstream `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
 4. Expand differential vectors to cover prover-side circle poly slices and full `proveValues`.
 
 ## Divergence Record (Active)
 - Temporary implementation divergence:
   - `CommitmentSchemeProver.proveValues` currently evaluates from committed column evaluations only (no stored-coefficients fast path and no weights cache map).
+  - Component-driven `proveExComponents` currently supports only `log_blowup_factor == 0`.
   - Closure plan: complete `prover/poly/circle` coefficient stack and route `setStorePolynomialsCoefficients` through upstream-equivalent branching.

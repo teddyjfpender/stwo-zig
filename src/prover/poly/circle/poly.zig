@@ -15,6 +15,7 @@ pub const PolyError = error{
     InvalidLength,
     InvalidLogSize,
     NonBaseEvaluation,
+    SingularSystem,
 };
 
 /// Polynomial coefficients in the circle-FFT basis.
@@ -158,6 +159,74 @@ pub const CircleCoefficients = struct {
     }
 };
 
+/// Interpolates circle coefficients from bit-reversed domain evaluations.
+///
+/// This is a deterministic reference implementation (Gaussian elimination).
+pub fn interpolateFromEvaluation(
+    allocator: std.mem.Allocator,
+    evaluation: eval_mod.CircleEvaluation,
+) (std.mem.Allocator.Error || PolyError)!CircleCoefficients {
+    const n = evaluation.values.len;
+    if (n == 0 or !std.math.isPowerOfTwo(n)) return PolyError.InvalidLength;
+    if (evaluation.domain.size() != n) return PolyError.InvalidLength;
+
+    const log_size = evaluation.domain.logSize();
+    const row_width = n + 1;
+    const aug = try allocator.alloc(M31, n * row_width);
+    defer allocator.free(aug);
+
+    for (0..n) |row| {
+        const row_slice = aug[row * row_width .. (row + 1) * row_width];
+        const point = evaluation.domain.at(utils.bitReverseIndex(row, log_size));
+        const mappings = buildMappingsM31(point, log_size);
+        for (0..n) |col| {
+            row_slice[col] = twiddleAtM31(mappings[0..log_size], col);
+        }
+        row_slice[n] = evaluation.values[row];
+    }
+
+    // Gauss-Jordan elimination over M31.
+    for (0..n) |col| {
+        var pivot_row = col;
+        while (pivot_row < n and aug[pivot_row * row_width + col].isZero()) : (pivot_row += 1) {}
+        if (pivot_row == n) return PolyError.SingularSystem;
+
+        if (pivot_row != col) {
+            for (0..row_width) |j| {
+                const a_idx = col * row_width + j;
+                const b_idx = pivot_row * row_width + j;
+                const tmp = aug[a_idx];
+                aug[a_idx] = aug[b_idx];
+                aug[b_idx] = tmp;
+            }
+        }
+
+        const pivot = aug[col * row_width + col];
+        const pivot_inv = pivot.inv() catch return PolyError.SingularSystem;
+        for (col..row_width) |j| {
+            const idx = col * row_width + j;
+            aug[idx] = aug[idx].mul(pivot_inv);
+        }
+
+        for (0..n) |row| {
+            if (row == col) continue;
+            const factor = aug[row * row_width + col];
+            if (factor.isZero()) continue;
+            for (col..row_width) |j| {
+                const idx = row * row_width + j;
+                const pivot_idx = col * row_width + j;
+                aug[idx] = aug[idx].sub(factor.mul(aug[pivot_idx]));
+            }
+        }
+    }
+
+    const coeffs = try allocator.alloc(M31, n);
+    for (0..n) |i| {
+        coeffs[i] = aug[i * row_width + n];
+    }
+    return CircleCoefficients.initOwned(coeffs);
+}
+
 fn checkedPow2(log_size: u32) PolyError!usize {
     if (log_size >= @bitSizeOf(usize)) return PolyError.InvalidLogSize;
     return @as(usize, 1) << @intCast(log_size);
@@ -168,6 +237,35 @@ fn pointM31IntoQM31(point: circle.CirclePointM31) CirclePointQM31 {
         .x = QM31.fromBase(point.x),
         .y = QM31.fromBase(point.y),
     };
+}
+
+fn buildMappingsM31(point: circle.CirclePointM31, log_size: u32) [circle.M31_CIRCLE_LOG_ORDER]M31 {
+    var mappings: [circle.M31_CIRCLE_LOG_ORDER]M31 = undefined;
+    if (log_size == 0) return mappings;
+    mappings[log_size - 1] = point.y;
+    if (log_size > 1) {
+        var x = point.x;
+        var i: usize = log_size - 1;
+        while (i > 0) {
+            i -= 1;
+            mappings[i] = x;
+            x = circle.CirclePoint(M31).doubleX(x);
+        }
+    }
+    return mappings;
+}
+
+fn twiddleAtM31(mappings: []const M31, mut_index: usize) M31 {
+    var index = mut_index;
+    var product = M31.one();
+    for (mappings) |mapping| {
+        if ((index & 1) == 1) {
+            product = product.mul(mapping);
+        }
+        index >>= 1;
+        if (index == 0) break;
+    }
+    return product;
 }
 
 test "prover poly circle poly: eval at point for constant polynomial" {
@@ -217,4 +315,26 @@ test "prover poly circle poly: evaluate on domain returns base values" {
     for (evaluation.values) |value| {
         try std.testing.expect(value.eql(M31.fromCanonical(1)));
     }
+}
+
+test "prover poly circle poly: interpolation roundtrip" {
+    const alloc = std.testing.allocator;
+    const log_size: u32 = 4;
+    const n = @as(usize, 1) << @intCast(log_size);
+
+    const coeffs = try alloc.alloc(M31, n);
+    defer alloc.free(coeffs);
+    for (coeffs, 0..) |*coeff, i| {
+        const canonical: u32 = @intCast((i * 19 + 3) % m31.Modulus);
+        coeff.* = M31.fromCanonical(canonical);
+    }
+
+    const poly = try CircleCoefficients.initBorrowed(coeffs);
+    const domain = @import("../../../core/poly/circle/canonic.zig").CanonicCoset.new(log_size).circleDomain();
+    const evaluation = try poly.evaluate(alloc, domain);
+    defer alloc.free(@constCast(evaluation.values));
+
+    var interpolated = try interpolateFromEvaluation(alloc, evaluation);
+    defer interpolated.deinit(alloc);
+    try std.testing.expectEqualSlices(M31, poly.coefficients(), interpolated.coefficients());
 }
