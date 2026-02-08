@@ -166,12 +166,18 @@ def render_index_html() -> str:
     .card { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
     .chart { display: grid; grid-template-columns: 220px 1fr 90px; row-gap: 6px; column-gap: 8px; align-items: center; }
     .label { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .bar-wrap { height: 14px; background: #eaeef2; border-radius: 3px; overflow: hidden; }
-    .bar { height: 100%; }
+    .chart-axis-label { color: #57606a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+    .bar-wrap { position: relative; height: 14px; background: #eaeef2; border-radius: 3px; overflow: hidden; }
+    .bar { position: relative; z-index: 1; height: 100%; }
     .bar.prove { background: #1f6feb; }
     .bar.verify { background: #fb8500; }
     .bar.size { background: #2a9d8f; }
     .bar.rss { background: #0e9f6e; }
+    .one-marker { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(17, 24, 39, 0.45); z-index: 2; pointer-events: none; }
+    .axis-wrap { height: 18px; overflow: visible; background: #f0f3f6; }
+    .axis-tick { position: absolute; top: -2px; transform: translateX(-50%); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #57606a; white-space: nowrap; }
+    .axis-tick.left { left: 0; transform: none; }
+    .axis-tick.right { right: 0; left: auto; transform: none; }
     .value { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { text-align: left; border-bottom: 1px solid #d8dee4; padding: 6px 8px; }
@@ -262,9 +268,65 @@ def render_index_html() -> str:
     const familyRows = data.family_rows || [];
     const exampleRows = data.example_rows || [];
 
-    function renderBars(rows, targetId, key, barClass, labelKey) {
+    const ratioKeys = [
+      'zig_over_rust_prove',
+      'zig_over_rust_verify',
+      'zig_over_rust_proof_wire_bytes',
+      'zig_over_rust_peak_rss_kb',
+    ];
+
+    function computeSharedAxisMax(family, examples) {
+      const values = [];
+      [family, examples].forEach((rows) => {
+        rows.forEach((row) => {
+          ratioKeys.forEach((key) => {
+            const value = Number(row[key]);
+            if (Number.isFinite(value) && value >= 0) {
+              values.push(value);
+            }
+          });
+        });
+      });
+      const observedMax = values.length > 0 ? Math.max(...values) : 1.0;
+      return Math.max(1.0, Math.ceil(observedMax * 10.0) / 10.0);
+    }
+
+    function renderAxisRow(target, axisMax, oneMarkerPct) {
+      const label = document.createElement('div');
+      label.className = 'label chart-axis-label';
+      label.textContent = 'shared scale';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'bar-wrap axis-wrap';
+
+      const tickLeft = document.createElement('div');
+      tickLeft.className = 'axis-tick left';
+      tickLeft.textContent = '0.0x';
+      wrap.appendChild(tickLeft);
+
+      const tickOne = document.createElement('div');
+      tickOne.className = 'axis-tick';
+      tickOne.style.left = `${oneMarkerPct.toFixed(4)}%`;
+      tickOne.textContent = '1.0x';
+      wrap.appendChild(tickOne);
+
+      const tickRight = document.createElement('div');
+      tickRight.className = 'axis-tick right';
+      tickRight.textContent = `${axisMax.toFixed(1)}x`;
+      wrap.appendChild(tickRight);
+
+      const value = document.createElement('div');
+      value.className = 'value';
+      value.textContent = 'ratio';
+
+      target.appendChild(label);
+      target.appendChild(wrap);
+      target.appendChild(value);
+    }
+
+    function renderBars(rows, targetId, key, barClass, labelKey, axisMax, oneMarkerPct) {
       const target = document.getElementById(targetId);
-      const max = Math.max(...rows.map(r => r[key]), 0.000001);
+      renderAxisRow(target, axisMax, oneMarkerPct);
       rows.forEach((r) => {
         const label = document.createElement('div');
         label.className = 'label';
@@ -272,9 +334,15 @@ def render_index_html() -> str:
 
         const wrap = document.createElement('div');
         wrap.className = 'bar-wrap';
+
+        const marker = document.createElement('div');
+        marker.className = 'one-marker';
+        marker.style.left = `${oneMarkerPct.toFixed(4)}%`;
+        wrap.appendChild(marker);
+
         const bar = document.createElement('div');
         bar.className = `bar ${barClass}`;
-        const pct = Math.min((r[key] / max) * 100, 100);
+        const pct = Math.min((Number(r[key]) / axisMax) * 100, 100);
         bar.style.width = `${pct.toFixed(2)}%`;
         wrap.appendChild(bar);
 
@@ -288,15 +356,18 @@ def render_index_html() -> str:
       });
     }
 
-    renderBars(familyRows, 'familyProveChart', 'zig_over_rust_prove', 'prove', 'family');
-    renderBars(familyRows, 'familyVerifyChart', 'zig_over_rust_verify', 'verify', 'family');
-    renderBars(familyRows, 'familySizeChart', 'zig_over_rust_proof_wire_bytes', 'size', 'family');
-    renderBars(familyRows, 'familyRssChart', 'zig_over_rust_peak_rss_kb', 'rss', 'family');
+    const sharedAxisMax = computeSharedAxisMax(familyRows, exampleRows);
+    const oneMarkerPct = Math.min((1.0 / sharedAxisMax) * 100.0, 100.0);
 
-    renderBars(exampleRows, 'exampleProveChart', 'zig_over_rust_prove', 'prove', 'name');
-    renderBars(exampleRows, 'exampleVerifyChart', 'zig_over_rust_verify', 'verify', 'name');
-    renderBars(exampleRows, 'exampleSizeChart', 'zig_over_rust_proof_wire_bytes', 'size', 'name');
-    renderBars(exampleRows, 'exampleRssChart', 'zig_over_rust_peak_rss_kb', 'rss', 'name');
+    renderBars(familyRows, 'familyProveChart', 'zig_over_rust_prove', 'prove', 'family', sharedAxisMax, oneMarkerPct);
+    renderBars(familyRows, 'familyVerifyChart', 'zig_over_rust_verify', 'verify', 'family', sharedAxisMax, oneMarkerPct);
+    renderBars(familyRows, 'familySizeChart', 'zig_over_rust_proof_wire_bytes', 'size', 'family', sharedAxisMax, oneMarkerPct);
+    renderBars(familyRows, 'familyRssChart', 'zig_over_rust_peak_rss_kb', 'rss', 'family', sharedAxisMax, oneMarkerPct);
+
+    renderBars(exampleRows, 'exampleProveChart', 'zig_over_rust_prove', 'prove', 'name', sharedAxisMax, oneMarkerPct);
+    renderBars(exampleRows, 'exampleVerifyChart', 'zig_over_rust_verify', 'verify', 'name', sharedAxisMax, oneMarkerPct);
+    renderBars(exampleRows, 'exampleSizeChart', 'zig_over_rust_proof_wire_bytes', 'size', 'name', sharedAxisMax, oneMarkerPct);
+    renderBars(exampleRows, 'exampleRssChart', 'zig_over_rust_peak_rss_kb', 'rss', 'name', sharedAxisMax, oneMarkerPct);
 
     const familyBody = document.querySelector('#familyTable tbody');
     familyRows.forEach((r) => {
@@ -340,7 +411,7 @@ def render_index_html() -> str:
       exampleBody.appendChild(tr);
     });
 
-    document.getElementById('meta').textContent = `families_source=${data.sources.families_report} | examples_source=${data.sources.examples_report}`;
+    document.getElementById('meta').textContent = `families_source=${data.sources.families_report} | examples_source=${data.sources.examples_report} | shared_ratio_axis_max=${sharedAxisMax.toFixed(1)}x`;
   </script>
 </body>
 </html>
