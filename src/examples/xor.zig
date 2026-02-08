@@ -1,6 +1,7 @@
 const std = @import("std");
 const core_air_accumulation = @import("../core/air/accumulation.zig");
 const core_air_components = @import("../core/air/components.zig");
+const core_air_derive = @import("../core/air/derive.zig");
 const core_air_utils = @import("../core/air/utils.zig");
 const channel_blake2s = @import("../core/channel/blake2s.zig");
 const m31 = @import("../core/fields/m31.zig");
@@ -234,52 +235,33 @@ pub fn verify(
 const XorExampleComponent = struct {
     statement: Statement,
 
+    const Adapter = core_air_derive.ComponentAdapter(
+        @This(),
+        prover_component.ComponentProver,
+        prover_component.Trace,
+        prover_air_accumulation.DomainEvaluationAccumulator,
+    );
+
     fn asVerifierComponent(self: *const @This()) core_air_components.Component {
-        return .{
-            .ctx = self,
-            .vtable = &.{
-                .nConstraints = nConstraints,
-                .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
-                .traceLogDegreeBounds = traceLogDegreeBounds,
-                .maskPoints = maskPoints,
-                .preprocessedColumnIndices = preprocessedColumnIndices,
-                .evaluateConstraintQuotientsAtPoint = evaluateConstraintQuotientsAtPoint,
-            },
-        };
+        return Adapter.asVerifierComponent(self);
     }
 
     fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return .{
-            .ctx = self,
-            .vtable = &.{
-                .nConstraints = nConstraints,
-                .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
-                .traceLogDegreeBounds = traceLogDegreeBounds,
-                .maskPoints = maskPoints,
-                .preprocessedColumnIndices = preprocessedColumnIndices,
-                .evaluateConstraintQuotientsAtPoint = evaluateConstraintQuotientsAtPoint,
-                .evaluateConstraintQuotientsOnDomain = evaluateConstraintQuotientsOnDomain,
-            },
-        };
+        return Adapter.asProverComponent(self);
     }
 
-    fn cast(ctx: *const anyopaque) *const @This() {
-        return @ptrCast(@alignCast(ctx));
-    }
-
-    fn nConstraints(_: *const anyopaque) usize {
+    fn nConstraints(_: *const @This()) usize {
         return 1;
     }
 
-    fn maxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
-        return cast(ctx).statement.log_size + 1;
+    fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
+        return self.statement.log_size + 1;
     }
 
     fn traceLogDegreeBounds(
-        ctx: *const anyopaque,
+        self: *const @This(),
         allocator: std.mem.Allocator,
     ) !core_air_components.TraceLogDegreeBounds {
-        const self = cast(ctx);
         const preprocessed = try allocator.dupe(u32, &[_]u32{
             self.statement.log_size,
             self.statement.log_size,
@@ -296,7 +278,7 @@ const XorExampleComponent = struct {
     }
 
     fn maskPoints(
-        _: *const anyopaque,
+        _: *const @This(),
         allocator: std.mem.Allocator,
         point: CirclePointQM31,
         _: u32,
@@ -323,30 +305,29 @@ const XorExampleComponent = struct {
     }
 
     fn preprocessedColumnIndices(
-        _: *const anyopaque,
+        _: *const @This(),
         allocator: std.mem.Allocator,
     ) ![]usize {
         return allocator.dupe(usize, &[_]usize{ 0, 1 });
     }
 
     fn evaluateConstraintQuotientsAtPoint(
-        ctx: *const anyopaque,
+        self: *const @This(),
         _: CirclePointQM31,
         _: *const core_air_components.MaskValues,
         evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
         _: u32,
     ) !void {
-        evaluation_accumulator.accumulate(compositionEval(cast(ctx).statement));
+        evaluation_accumulator.accumulate(compositionEval(self.statement));
     }
 
     fn evaluateConstraintQuotientsOnDomain(
-        ctx: *const anyopaque,
+        self: *const @This(),
         _: *const prover_component.Trace,
         evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
-        const self = cast(ctx).statement;
-        const composition_eval = compositionEval(self);
-        const domain_size = @as(usize, 1) << @intCast(self.log_size + 1);
+        const composition_eval = compositionEval(self.statement);
+        const domain_size = @as(usize, 1) << @intCast(self.statement.log_size + 1);
         const values = try evaluation_accumulator.allocator.alloc(QM31, domain_size);
         defer evaluation_accumulator.allocator.free(values);
         @memset(values, composition_eval);
@@ -356,7 +337,7 @@ const XorExampleComponent = struct {
             values,
         );
         defer col.deinit(evaluation_accumulator.allocator);
-        try evaluation_accumulator.accumulateColumn(self.log_size + 1, &col);
+        try evaluation_accumulator.accumulateColumn(self.statement.log_size + 1, &col);
     }
 };
 
