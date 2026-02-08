@@ -44,6 +44,17 @@ class Case:
 
 CASES = (
     Case(
+        case_id="plonk_base",
+        example="plonk",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "1",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "plonk-log-n-rows": "5",
+        },
+    ),
+    Case(
         case_id="xor_base",
         example="xor",
         args={
@@ -79,6 +90,17 @@ CASES = (
             "fri-n-queries": "3",
             "wf-log-n-rows": "5",
             "wf-sequence-len": "16",
+        },
+    ),
+    Case(
+        case_id="plonk_blowup2",
+        example="plonk",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "2",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "plonk-log-n-rows": "5",
         },
     ),
     Case(
@@ -220,7 +242,12 @@ def write_artifact(path: Path, artifact: dict[str, Any]) -> None:
 
 def tamper_statement(artifact_path: Path, out_path: Path, example: str) -> None:
     artifact = parse_artifact(artifact_path)
-    if example == "xor":
+    if example == "plonk":
+        stmt = artifact.get("plonk_statement")
+        if not isinstance(stmt, dict) or "log_n_rows" not in stmt:
+            raise ValueError("missing plonk_statement.log_n_rows")
+        stmt["log_n_rows"] = int(stmt["log_n_rows"]) + 1
+    elif example == "xor":
         stmt = artifact.get("xor_statement")
         if not isinstance(stmt, dict) or "offset" not in stmt:
             raise ValueError("missing xor statement offset")

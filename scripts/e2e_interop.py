@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Cross-language interoperability gate for proof exchange artifacts.
 
-This gate enforces true bidirectional exchange for the `xor`, `state_machine`,
-and `wide_fibonacci`
+This gate enforces true bidirectional exchange for the `plonk`, `xor`,
+`state_machine`, and `wide_fibonacci`
 example wrappers:
 1. Rust-generated proof artifact verifies in Zig.
 2. Zig-generated proof artifact verifies in Rust.
@@ -31,7 +31,7 @@ RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 SCHEMA_VERSION = 1
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
-SUPPORTED_EXAMPLES = ("xor", "state_machine", "wide_fibonacci")
+SUPPORTED_EXAMPLES = ("plonk", "xor", "state_machine", "wide_fibonacci")
 M31_MODULUS = 2147483647
 REJECTION_CLASS_VERIFIER = "verifier_semantic"
 REJECTION_CLASS_PARSER = "parser"
@@ -201,7 +201,12 @@ def tamper_proof_bytes_hex(src: Path, dst: Path) -> None:
 def tamper_statement(src: Path, dst: Path, *, example: str) -> None:
     artifact = json.loads(src.read_text(encoding="utf-8"))
 
-    if example == "xor":
+    if example == "plonk":
+        stmt = artifact.get("plonk_statement")
+        if not isinstance(stmt, dict):
+            raise RuntimeError(f"{rel(src)} missing plonk_statement")
+        stmt["log_n_rows"] = int(stmt.get("log_n_rows", 0)) + 1
+    elif example == "xor":
         stmt = artifact.get("xor_statement")
         if not isinstance(stmt, dict):
             raise RuntimeError(f"{rel(src)} missing xor_statement")
@@ -312,6 +317,7 @@ def run_example_case(
         ],
         steps=all_steps,
         expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_VERIFIER,
     )
 
     tamper_proof_bytes_hex(rust_artifact, rust_tampered)
@@ -422,6 +428,7 @@ def run_example_case(
         ],
         steps=all_steps,
         expect_failure=True,
+        required_rejection_class=REJECTION_CLASS_VERIFIER,
     )
 
     tamper_proof_bytes_hex(zig_artifact, zig_tampered)

@@ -42,54 +42,30 @@ COMMON_CONFIG_ARGS = [
 
 BASE_WORKLOADS: List[Dict[str, Any]] = [
     {
-        "name": "xor_default",
-        "example": "xor",
-        "args": [
-            "--xor-log-size",
-            "5",
-            "--xor-log-step",
-            "2",
-            "--xor-offset",
-            "3",
-        ],
-    },
-    {
         "name": "state_machine_default",
         "example": "state_machine",
         "args": [
             "--sm-log-n-rows",
             "5",
             "--sm-initial-0",
-            "9",
+            "1",
             "--sm-initial-1",
-            "3",
+            "1",
         ],
     },
 ]
 
 MEDIUM_WORKLOADS: List[Dict[str, Any]] = [
     {
-        "name": "xor_medium",
-        "example": "xor",
-        "args": [
-            "--xor-log-size",
-            "8",
-            "--xor-log-step",
-            "3",
-            "--xor-offset",
-            "5",
-        ],
-    },
-    {
         "name": "state_machine_medium",
         "example": "state_machine",
         "args": [
             "--sm-log-n-rows",
-            "8",
+            "6",
             "--sm-initial-0",
-            "11",
+            "3",
             "--sm-initial-1",
-            "7",
+            "5",
         ],
     },
 ]

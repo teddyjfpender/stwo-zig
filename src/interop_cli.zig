@@ -4,6 +4,7 @@ const stwo = @import("stwo.zig");
 const m31 = stwo.core.fields.m31;
 const fri = stwo.core.fri;
 const pcs = stwo.core.pcs;
+const plonk = stwo.examples.plonk;
 const state_machine = stwo.examples.state_machine;
 const wide_fibonacci = stwo.examples.wide_fibonacci;
 const xor = stwo.examples.xor;
@@ -15,9 +16,11 @@ const M31 = m31.M31;
 const Mode = enum {
     generate,
     verify,
+    bench,
 };
 
 const Example = enum {
+    plonk,
     state_machine,
     wide_fibonacci,
     xor,
@@ -44,12 +47,59 @@ const Cli = struct {
     sm_initial_0: u32 = 9,
     sm_initial_1: u32 = 3,
 
+    plonk_log_n_rows: u32 = 5,
+
     wf_log_n_rows: u32 = 5,
     wf_sequence_len: u32 = 16,
 
     xor_log_size: u32 = 5,
     xor_log_step: u32 = 2,
     xor_offset: usize = 3,
+
+    bench_warmups: usize = 1,
+    bench_repeats: usize = 5,
+};
+
+const BenchTiming = struct {
+    warmups: usize,
+    repeats: usize,
+    samples_seconds: []const f64,
+    min_seconds: f64,
+    max_seconds: f64,
+    avg_seconds: f64,
+};
+
+const BenchProofMetrics = struct {
+    proof_wire_bytes: usize,
+    commitments_count: usize,
+    decommitments_count: usize,
+    trace_decommit_hashes: usize,
+    fri_inner_layers_count: usize,
+    fri_first_layer_witness_len: usize,
+    fri_last_layer_poly_len: usize,
+    fri_decommit_hashes_total: usize,
+};
+
+const BenchReport = struct {
+    runtime: []const u8,
+    example: []const u8,
+    prove_mode: []const u8,
+    include_all_preprocessed_columns: bool,
+    prove: BenchTiming,
+    verify: BenchTiming,
+    proof_metrics: BenchProofMetrics,
+};
+
+const ExampleStatement = union(Example) {
+    plonk: plonk.Statement,
+    state_machine: state_machine.PreparedStatement,
+    wide_fibonacci: wide_fibonacci.Statement,
+    xor: xor.Statement,
+};
+
+const ExampleProveOutput = struct {
+    statement: ExampleStatement,
+    proof: proof_wire.Proof,
 };
 
 pub fn main() !void {
@@ -66,7 +116,275 @@ pub fn main() !void {
     switch (cli.mode) {
         .generate => try runGenerate(gpa, cli),
         .verify => try runVerify(gpa, cli),
+        .bench => try runBench(gpa, cli),
     }
+}
+
+fn runBench(allocator: std.mem.Allocator, cli: Cli) !void {
+    const example = cli.example orelse return error.MissingExample;
+    if (cli.bench_repeats == 0) return error.InvalidBenchRepeats;
+    const config = try pcsConfigFromCli(cli);
+
+    const prove_samples = try allocator.alloc(f64, cli.bench_repeats);
+    defer allocator.free(prove_samples);
+    const verify_samples = try allocator.alloc(f64, cli.bench_repeats);
+    defer allocator.free(verify_samples);
+
+    const total_runs = cli.bench_warmups + cli.bench_repeats;
+    for (0..total_runs) |run_idx| {
+        const start_ns = std.time.nanoTimestamp();
+        var output = try proveExample(allocator, config, cli, example);
+        const encoded = try proof_wire.encodeProofBytes(allocator, output.proof);
+        allocator.free(encoded);
+        const end_ns = std.time.nanoTimestamp();
+        output.proof.deinit(allocator);
+
+        if (run_idx >= cli.bench_warmups) {
+            const sample_idx = run_idx - cli.bench_warmups;
+            const elapsed_ns = end_ns - start_ns;
+            prove_samples[sample_idx] = @as(f64, @floatFromInt(elapsed_ns)) / std.time.ns_per_s;
+        }
+    }
+
+    var baseline = try proveExample(allocator, config, cli, example);
+    defer baseline.proof.deinit(allocator);
+    const encoded_proof = try proof_wire.encodeProofBytes(allocator, baseline.proof);
+    defer allocator.free(encoded_proof);
+    const metrics = try collectProofMetricsFromWire(allocator, encoded_proof);
+
+    for (0..total_runs) |run_idx| {
+        const start_ns = std.time.nanoTimestamp();
+        const decoded_proof = try proof_wire.decodeProofBytes(allocator, encoded_proof);
+        try verifyExample(allocator, config, baseline.statement, decoded_proof);
+        const end_ns = std.time.nanoTimestamp();
+
+        if (run_idx >= cli.bench_warmups) {
+            const sample_idx = run_idx - cli.bench_warmups;
+            const elapsed_ns = end_ns - start_ns;
+            verify_samples[sample_idx] = @as(f64, @floatFromInt(elapsed_ns)) / std.time.ns_per_s;
+        }
+    }
+
+    const report = BenchReport{
+        .runtime = "zig",
+        .example = exampleName(example),
+        .prove_mode = proveModeToString(cli.prove_mode),
+        .include_all_preprocessed_columns = cli.include_all_preprocessed_columns,
+        .prove = summarizeBenchTiming(cli.bench_warmups, cli.bench_repeats, prove_samples),
+        .verify = summarizeBenchTiming(cli.bench_warmups, cli.bench_repeats, verify_samples),
+        .proof_metrics = metrics,
+    };
+
+    const rendered = try std.json.Stringify.valueAlloc(allocator, report, .{});
+    defer allocator.free(rendered);
+    try std.fs.File.stdout().writeAll(rendered);
+    try std.fs.File.stdout().writeAll("\n");
+}
+
+fn proveExample(
+    allocator: std.mem.Allocator,
+    config: pcs.PcsConfig,
+    cli: Cli,
+    example: Example,
+) !ExampleProveOutput {
+    switch (example) {
+        .plonk => {
+            const statement: plonk.Statement = .{
+                .log_n_rows = cli.plonk_log_n_rows,
+            };
+            return switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try plonk.prove(allocator, config, statement);
+                    break :blk .{
+                        .statement = .{ .plonk = output.statement },
+                        .proof = output.proof,
+                    };
+                },
+                .prove_ex => blk: {
+                    var output = try plonk.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    const proof = output.proof.proof;
+                    output.proof.aux.deinit(allocator);
+                    break :blk .{
+                        .statement = .{ .plonk = output.statement },
+                        .proof = proof,
+                    };
+                },
+            };
+        },
+        .state_machine => {
+            const initial_state: state_machine.State = .{
+                try m31FromCanonical(cli.sm_initial_0),
+                try m31FromCanonical(cli.sm_initial_1),
+            };
+            return switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try state_machine.prove(
+                        allocator,
+                        config,
+                        cli.sm_log_n_rows,
+                        initial_state,
+                    );
+                    break :blk .{
+                        .statement = .{ .state_machine = output.statement },
+                        .proof = output.proof,
+                    };
+                },
+                .prove_ex => blk: {
+                    var output = try state_machine.proveEx(
+                        allocator,
+                        config,
+                        cli.sm_log_n_rows,
+                        initial_state,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    const proof = output.proof.proof;
+                    output.proof.aux.deinit(allocator);
+                    break :blk .{
+                        .statement = .{ .state_machine = output.statement },
+                        .proof = proof,
+                    };
+                },
+            };
+        },
+        .wide_fibonacci => {
+            const statement: wide_fibonacci.Statement = .{
+                .log_n_rows = cli.wf_log_n_rows,
+                .sequence_len = cli.wf_sequence_len,
+            };
+            return switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try wide_fibonacci.prove(allocator, config, statement);
+                    break :blk .{
+                        .statement = .{ .wide_fibonacci = output.statement },
+                        .proof = output.proof,
+                    };
+                },
+                .prove_ex => blk: {
+                    var output = try wide_fibonacci.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    const proof = output.proof.proof;
+                    output.proof.aux.deinit(allocator);
+                    break :blk .{
+                        .statement = .{ .wide_fibonacci = output.statement },
+                        .proof = proof,
+                    };
+                },
+            };
+        },
+        .xor => {
+            const statement: xor.Statement = .{
+                .log_size = cli.xor_log_size,
+                .log_step = cli.xor_log_step,
+                .offset = cli.xor_offset,
+            };
+            return switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try xor.prove(allocator, config, statement);
+                    break :blk .{
+                        .statement = .{ .xor = output.statement },
+                        .proof = output.proof,
+                    };
+                },
+                .prove_ex => blk: {
+                    var output = try xor.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    const proof = output.proof.proof;
+                    output.proof.aux.deinit(allocator);
+                    break :blk .{
+                        .statement = .{ .xor = output.statement },
+                        .proof = proof,
+                    };
+                },
+            };
+        },
+    }
+}
+
+fn verifyExample(
+    allocator: std.mem.Allocator,
+    config: pcs.PcsConfig,
+    statement: ExampleStatement,
+    proof: proof_wire.Proof,
+) !void {
+    switch (statement) {
+        .plonk => |s| try plonk.verify(allocator, config, s, proof),
+        .state_machine => |s| try state_machine.verify(allocator, config, s, proof),
+        .wide_fibonacci => |s| try wide_fibonacci.verify(allocator, config, s, proof),
+        .xor => |s| try xor.verify(allocator, config, s, proof),
+    }
+}
+
+fn exampleName(example: Example) []const u8 {
+    return switch (example) {
+        .plonk => "plonk",
+        .state_machine => "state_machine",
+        .wide_fibonacci => "wide_fibonacci",
+        .xor => "xor",
+    };
+}
+
+fn summarizeBenchTiming(warmups: usize, repeats: usize, samples: []const f64) BenchTiming {
+    var min_v = samples[0];
+    var max_v = samples[0];
+    var sum: f64 = 0.0;
+    for (samples) |value| {
+        if (value < min_v) min_v = value;
+        if (value > max_v) max_v = value;
+        sum += value;
+    }
+    return .{
+        .warmups = warmups,
+        .repeats = repeats,
+        .samples_seconds = samples,
+        .min_seconds = min_v,
+        .max_seconds = max_v,
+        .avg_seconds = sum / @as(f64, @floatFromInt(samples.len)),
+    };
+}
+
+fn collectProofMetricsFromWire(
+    allocator: std.mem.Allocator,
+    encoded_proof: []const u8,
+) !BenchProofMetrics {
+    const parsed = try std.json.parseFromSlice(proof_wire.ProofWire, allocator, encoded_proof, .{
+        .ignore_unknown_fields = false,
+    });
+    defer parsed.deinit();
+
+    const wire = parsed.value;
+    var trace_decommit_hashes: usize = 0;
+    for (wire.decommitments) |decommitment| {
+        trace_decommit_hashes += decommitment.hash_witness.len;
+    }
+
+    var fri_decommit_hashes_total = wire.fri_proof.first_layer.decommitment.hash_witness.len;
+    for (wire.fri_proof.inner_layers) |layer| {
+        fri_decommit_hashes_total += layer.decommitment.hash_witness.len;
+    }
+
+    return .{
+        .proof_wire_bytes = encoded_proof.len,
+        .commitments_count = wire.commitments.len,
+        .decommitments_count = wire.decommitments.len,
+        .trace_decommit_hashes = trace_decommit_hashes,
+        .fri_inner_layers_count = wire.fri_proof.inner_layers.len,
+        .fri_first_layer_witness_len = wire.fri_proof.first_layer.fri_witness.len,
+        .fri_last_layer_poly_len = wire.fri_proof.last_layer_poly.len,
+        .fri_decommit_hashes_total = fri_decommit_hashes_total,
+    };
 }
 
 fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
@@ -75,6 +393,56 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
     const prove_mode = proveModeToString(cli.prove_mode);
 
     switch (example) {
+        .plonk => {
+            const statement: plonk.Statement = .{
+                .log_n_rows = cli.plonk_log_n_rows,
+            };
+            var proved_statement: plonk.Statement = undefined;
+            var proof: plonk.Proof = undefined;
+            var deinit_proof = false;
+            defer if (deinit_proof) proof.deinit(allocator);
+            switch (cli.prove_mode) {
+                .prove => {
+                    const output = try plonk.prove(allocator, config, statement);
+                    proved_statement = output.statement;
+                    proof = output.proof;
+                    deinit_proof = true;
+                },
+                .prove_ex => {
+                    const output = try plonk.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    proved_statement = output.statement;
+                    var ext_proof = output.proof;
+                    proof = ext_proof.proof;
+                    ext_proof.aux.deinit(allocator);
+                    deinit_proof = true;
+                },
+            }
+
+            const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
+            defer allocator.free(proof_bytes);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(allocator, proof_bytes);
+            defer allocator.free(proof_bytes_hex);
+
+            try examples_artifact.writeArtifact(allocator, cli.artifact_path, .{
+                .schema_version = examples_artifact.SCHEMA_VERSION,
+                .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
+                .exchange_mode = examples_artifact.EXCHANGE_MODE,
+                .generator = "zig",
+                .example = "plonk",
+                .prove_mode = prove_mode,
+                .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .plonk_statement = examples_artifact.plonkStatementToWire(proved_statement),
+                .state_machine_statement = null,
+                .wide_fibonacci_statement = null,
+                .xor_statement = null,
+                .proof_bytes_hex = proof_bytes_hex,
+            });
+        },
         .state_machine => {
             const initial_state: state_machine.State = .{
                 try m31FromCanonical(cli.sm_initial_0),
@@ -125,6 +493,7 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .example = "state_machine",
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .plonk_statement = null,
                 .state_machine_statement = examples_artifact.stateMachineStatementToWire(statement),
                 .wide_fibonacci_statement = null,
                 .xor_statement = null,
@@ -175,6 +544,7 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .example = "wide_fibonacci",
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .plonk_statement = null,
                 .state_machine_statement = null,
                 .wide_fibonacci_statement = examples_artifact.wideFibonacciStatementToWire(proved_statement),
                 .xor_statement = null,
@@ -226,6 +596,7 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .example = "xor",
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .plonk_statement = null,
                 .state_machine_statement = null,
                 .wide_fibonacci_statement = null,
                 .xor_statement = examples_artifact.xorStatementToWire(proved_statement),
@@ -262,6 +633,12 @@ fn runVerify(allocator: std.mem.Allocator, cli: Cli) !void {
 
     const proof = try proof_wire.decodeProofBytes(allocator, proof_bytes);
 
+    if (std.mem.eql(u8, artifact.example, "plonk")) {
+        const statement_wire = artifact.plonk_statement orelse return error.MissingPlonkStatement;
+        const statement = try examples_artifact.plonkStatementFromWire(statement_wire);
+        try plonk.verify(allocator, config, statement, proof);
+        return;
+    }
     if (std.mem.eql(u8, artifact.example, "state_machine")) {
         const statement_wire = artifact.state_machine_statement orelse return error.MissingStateMachineStatement;
         const statement = try examples_artifact.stateMachineStatementFromWire(statement_wire);
@@ -314,12 +691,17 @@ fn parseArgs(args: []const []const u8) !Cli {
     var sm_initial_0: u32 = 9;
     var sm_initial_1: u32 = 3;
 
+    var plonk_log_n_rows: u32 = 5;
+
     var wf_log_n_rows: u32 = 5;
     var wf_sequence_len: u32 = 16;
 
     var xor_log_size: u32 = 5;
     var xor_log_step: u32 = 2;
     var xor_offset: usize = 3;
+
+    var bench_warmups: usize = 1;
+    var bench_repeats: usize = 5;
 
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
@@ -354,6 +736,8 @@ fn parseArgs(args: []const []const u8) !Cli {
             sm_initial_0 = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--sm-initial-1")) {
             sm_initial_1 = try parseInt(u32, value);
+        } else if (std.mem.eql(u8, flag, "--plonk-log-n-rows")) {
+            plonk_log_n_rows = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--wf-log-n-rows")) {
             wf_log_n_rows = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--wf-sequence-len")) {
@@ -364,6 +748,10 @@ fn parseArgs(args: []const []const u8) !Cli {
             xor_log_step = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--xor-offset")) {
             xor_offset = try parseInt(usize, value);
+        } else if (std.mem.eql(u8, flag, "--bench-warmups")) {
+            bench_warmups = try parseInt(usize, value);
+        } else if (std.mem.eql(u8, flag, "--bench-repeats")) {
+            bench_repeats = try parseInt(usize, value);
         } else {
             return error.InvalidArgument;
         }
@@ -382,21 +770,26 @@ fn parseArgs(args: []const []const u8) !Cli {
         .sm_log_n_rows = sm_log_n_rows,
         .sm_initial_0 = sm_initial_0,
         .sm_initial_1 = sm_initial_1,
+        .plonk_log_n_rows = plonk_log_n_rows,
         .wf_log_n_rows = wf_log_n_rows,
         .wf_sequence_len = wf_sequence_len,
         .xor_log_size = xor_log_size,
         .xor_log_step = xor_log_step,
         .xor_offset = xor_offset,
+        .bench_warmups = bench_warmups,
+        .bench_repeats = bench_repeats,
     };
 }
 
 fn parseMode(value: []const u8) ?Mode {
     if (std.mem.eql(u8, value, "generate")) return .generate;
     if (std.mem.eql(u8, value, "verify")) return .verify;
+    if (std.mem.eql(u8, value, "bench")) return .bench;
     return null;
 }
 
 fn parseExample(value: []const u8) ?Example {
+    if (std.mem.eql(u8, value, "plonk")) return .plonk;
     if (std.mem.eql(u8, value, "state_machine")) return .state_machine;
     if (std.mem.eql(u8, value, "wide_fibonacci")) return .wide_fibonacci;
     if (std.mem.eql(u8, value, "xor")) return .xor;
@@ -438,9 +831,11 @@ fn m31FromCanonical(value: u32) !M31 {
 fn printUsage() void {
     std.debug.print(
         "usage:\n" ++
-            "  zig run src/interop_cli.zig -- --mode generate --example <state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
+            "  zig run src/interop_cli.zig -- --mode generate --example <plonk|state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
             "    [--prove-mode <prove|prove_ex>] [--include-all-preprocessed-columns <0|1>]\n" ++
-            "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n",
+            "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n" ++
+            "  zig run src/interop_cli.zig -- --mode bench --example <plonk|state_machine|wide_fibonacci|xor> --artifact <ignored> [options]\n" ++
+            "    [--bench-warmups <n>] [--bench-repeats <n>]\n",
         .{},
     );
 }

@@ -5,6 +5,101 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (Examples Parity Milestone: plonk)
+
+### New Zig/Rust Example Wiring
+- Added `src/examples/plonk.zig` with deterministic trace generation and wrappers:
+  - `prove(...)`
+  - `proveEx(...)`
+  - `verify(...)`
+- Extended interop artifact schema and CLIs for `plonk`:
+  - `src/interop/examples_artifact.zig` (`plonk_statement`)
+  - `src/interop_cli.zig` (`--example plonk`, `--plonk-log-n-rows`)
+  - `tools/stwo-interop-rs/src/main.rs` (`plonk` generate+verify path)
+
+### Interop + Checkpoint Harness Expansion
+- `scripts/e2e_interop.py`
+  - matrix now includes `plonk`
+  - statement/proof/metadata tamper rejection checks enforced for `plonk`
+- `scripts/prove_checkpoints.py`
+  - added `plonk_base` and `plonk_blowup2` prove/prove_ex checkpoints
+  - includes proof/statement/prove_mode tamper rejection in Zig and Rust
+
+### Validation (Passing)
+- `python3 scripts/e2e_interop.py`
+- `python3 scripts/prove_checkpoints.py`
+- `zig test src/stwo.zig --test-filter "examples plonk:"`
+
+## Latest Slice (Examples Vector Coverage Expansion)
+
+### New Vector Sections
+- Extended `tools/stwo-vector-gen/src/main.rs` and `vectors/fields.json` with:
+  - `example_wide_fibonacci_trace`
+  - `example_plonk_trace`
+- Extended `src/core/fields/parity_vectors.zig` with deterministic parity tests for
+  both sections.
+- Updated `scripts/e2e_examples.py` required coverage keys to include both new sections.
+
+### Validation (Passing)
+- `python3 scripts/parity_fields.py`
+- `python3 scripts/e2e_examples.py`
+- `zig test src/stwo.zig --test-filter "field vectors: examples wide_fibonacci trace parity"`
+- `zig test src/stwo.zig --test-filter "field vectors: examples plonk trace parity"`
+
+## Latest Slice (air-utils-derive Lookup Row Helpers + Differential Vectors)
+
+### Derive Layer Expansion
+- Extended `src/core/air/derive.zig` with `LookupRowsAdapter(...)`:
+  - `allocUninitialized(...)` / `deinit(...)`
+  - shape validation (`validateShape`)
+  - row access (`rowMutAt`, `iterMut`, `forEachRowMut`)
+  - deterministic partitioning (`partitionRanges`)
+- Added law/failure tests for mixed field shapes (`[]T`, `[N][]T`) and shape/bounds errors.
+
+### Cross-Language Differential Vector Lane
+- Added Rust vector generator:
+  - `tools/stwo-air-derive-vector-gen/Cargo.toml`
+  - `tools/stwo-air-derive-vector-gen/src/main.rs`
+- Added committed fixture:
+  - `vectors/air_derive.json`
+- Added parity gate:
+  - `scripts/parity_air_derive.py`
+- Added Zig vector-parity tests in `src/core/air/derive.zig`.
+- Wired `build.zig` vectors stage and release chains to include
+  `scripts/parity_air_derive.py`.
+
+### Validation (Passing)
+- `python3 scripts/parity_air_derive.py`
+- `zig test src/stwo.zig --test-filter "air derive: vector parity"`
+
+## Latest Slice (Strict Benchmark Stabilization + Bench Mode Surface)
+
+### Benchmark Harness Policy Update
+- `scripts/benchmark_smoke.py`
+  - retained command-level matched Rust-vs-Zig `generate`/`verify` protocol for
+    release gating.
+  - benchmark workload matrix now uses deterministic `state_machine` tiers:
+    - base: `--sm-log-n-rows 5 --sm-initial-0 1 --sm-initial-1 1`
+    - medium: `--sm-log-n-rows 6 --sm-initial-0 3 --sm-initial-1 5`
+  - strict threshold remains unchanged:
+    - `zig_over_rust <= 1.50` (per `CONFORMANCE.md` section 9.2).
+
+### In-Process Bench Mode (CLI Surface)
+- Added explicit `--mode bench` support to:
+  - `src/interop_cli.zig`
+  - `tools/stwo-interop-rs/src/main.rs`
+- Bench mode emits machine-readable JSON with:
+  - prove/verify timing samples and aggregate stats
+  - proof wire/decommitment shape metrics.
+- This mode is currently exposed for profiling and future protocol upgrades.
+
+### Validation (Passing)
+- `python3 scripts/benchmark_smoke.py`
+- `python3 scripts/benchmark_smoke.py --include-medium`
+- `zig build bench-smoke`
+- `zig build bench-strict`
+- `zig build release-gate-strict`
+
 ## Latest Slice (AIR Derive Generation Layer)
 
 ### New Module

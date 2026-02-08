@@ -21,6 +21,7 @@ LATEST_DEFAULT = REPORTS_DIR / "latest_release_evidence.json"
 INTEROP_REPORT_DEFAULT = REPORTS_DIR / "e2e_interop_report.json"
 BENCHMARK_REPORT_DEFAULT = REPORTS_DIR / "benchmark_smoke_report.json"
 PROFILE_REPORT_DEFAULT = REPORTS_DIR / "profile_smoke_report.json"
+PROVE_CHECKPOINTS_REPORT_DEFAULT = REPORTS_DIR / "prove_checkpoints_report.json"
 
 SCHEMA_VERSION = 1
 MANIFEST_TYPE = "release_evidence_v1"
@@ -82,12 +83,16 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
     steps = [
         {"name": "fmt", "command": "zig fmt --check build.zig src tools"},
         {"name": "test", "command": "zig test src/stwo.zig"},
-        {"name": "vectors", "command": "python3 scripts/parity_fields.py --skip-zig"},
+        {"name": "vectors_fields", "command": "python3 scripts/parity_fields.py --skip-zig"},
+        {"name": "vectors_constraint", "command": "python3 scripts/parity_constraint_expr.py --skip-zig"},
+        {"name": "vectors_air_derive", "command": "python3 scripts/parity_air_derive.py --skip-zig"},
         {"name": "interop", "command": "python3 scripts/e2e_interop.py"},
         {"name": "benchmark", "command": benchmark_cmd},
         {"name": "profile", "command": "python3 scripts/profile_smoke.py"},
     ]
     if gate_mode == "strict":
+        steps.insert(2, {"name": "deep_gate", "command": "zig test src/stwo_deep.zig"})
+        steps.insert(7, {"name": "prove_checkpoints", "command": "python3 scripts/prove_checkpoints.py"})
         steps.append(
             {
                 "name": "std_shims",
@@ -129,6 +134,12 @@ def parse_args() -> argparse.Namespace:
         default=PROFILE_REPORT_DEFAULT,
         help="Profile report path",
     )
+    parser.add_argument(
+        "--prove-checkpoints-report",
+        type=Path,
+        default=PROVE_CHECKPOINTS_REPORT_DEFAULT,
+        help="Prove/prove_ex checkpoints report path",
+    )
     return parser.parse_args()
 
 
@@ -141,6 +152,12 @@ def main() -> int:
     profile_report, profile_manifest = load_report(args.profile_report, name="profile")
 
     reports = [interop_manifest, benchmark_manifest, profile_manifest]
+    if args.gate_mode == "strict":
+        _, prove_checkpoints_manifest = load_report(
+            args.prove_checkpoints_report,
+            name="prove_checkpoints",
+        )
+        reports.append(prove_checkpoints_manifest)
     failures: list[str] = []
 
     for report in reports:

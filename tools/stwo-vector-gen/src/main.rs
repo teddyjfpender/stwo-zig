@@ -68,6 +68,8 @@ const EXAMPLE_STATE_MACHINE_LOOKUP_DRAW_VECTOR_COUNT: usize = 24;
 const EXAMPLE_STATE_MACHINE_STATEMENT_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_STEP_WITH_OFFSET_VECTOR_COUNT: usize = 32;
+const EXAMPLE_WIDE_FIBONACCI_TRACE_VECTOR_COUNT: usize = 24;
+const EXAMPLE_PLONK_TRACE_VECTOR_COUNT: usize = 24;
 
 #[derive(Debug, Clone, Serialize)]
 struct Meta {
@@ -396,6 +398,20 @@ struct ExampleXorIsStepWithOffsetVector {
     values: Vec<u32>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct ExampleWideFibonacciTraceVector {
+    log_n_rows: u32,
+    sequence_len: u32,
+    columns: Vec<Vec<u32>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ExamplePlonkTraceVector {
+    log_n_rows: u32,
+    preprocessed: Vec<Vec<u32>>,
+    main: Vec<Vec<u32>>,
+}
+
 #[derive(Clone)]
 struct VcsBaseCase {
     root: Blake2sHash,
@@ -444,6 +460,8 @@ struct FieldVectors {
     example_state_machine_statement: Vec<ExampleStateMachineStatementVector>,
     example_xor_is_first: Vec<ExampleXorIsFirstVector>,
     example_xor_is_step_with_offset: Vec<ExampleXorIsStepWithOffsetVector>,
+    example_wide_fibonacci_trace: Vec<ExampleWideFibonacciTraceVector>,
+    example_plonk_trace: Vec<ExamplePlonkTraceVector>,
 }
 
 fn main() {
@@ -618,6 +636,12 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         state,
         EXAMPLE_XOR_IS_STEP_WITH_OFFSET_VECTOR_COUNT,
     );
+    let example_wide_fibonacci_trace = generate_example_wide_fibonacci_trace_vectors(
+        state,
+        EXAMPLE_WIDE_FIBONACCI_TRACE_VECTOR_COUNT,
+    );
+    let example_plonk_trace =
+        generate_example_plonk_trace_vectors(state, EXAMPLE_PLONK_TRACE_VECTOR_COUNT);
 
     for _ in 0..BLAKE3_VECTOR_COUNT {
         let data_len = next_u64(state) as usize % 96;
@@ -684,6 +708,8 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         example_state_machine_statement,
         example_xor_is_first,
         example_xor_is_step_with_offset,
+        example_wide_fibonacci_trace,
+        example_plonk_trace,
     }
 }
 
@@ -919,6 +945,97 @@ fn generate_example_xor_is_step_with_offset_vectors(
             log_step,
             offset,
             values,
+        });
+    }
+    out
+}
+
+fn generate_example_wide_fibonacci_trace_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleWideFibonacciTraceVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let log_n_rows = 2 + ((next_u64(state) as u32) % 9);
+        let sequence_len = 2 + ((next_u64(state) as u32) % 15);
+        let n = 1usize << log_n_rows;
+        let n_cols = sequence_len as usize;
+
+        let mut trace = vec![vec![M31::from(0); n]; n_cols];
+        for row in 0..n {
+            let bit_rev = bit_reverse_index(
+                coset_index_to_circle_domain_index(row, log_n_rows),
+                log_n_rows,
+            );
+
+            let mut a = M31::from(1);
+            let mut b = M31::from(row as u32);
+            trace[0][bit_rev] = a;
+            trace[1][bit_rev] = b;
+            for col in trace.iter_mut().skip(2) {
+                let c = a.square() + b.square();
+                col[bit_rev] = c;
+                a = b;
+                b = c;
+            }
+        }
+
+        out.push(ExampleWideFibonacciTraceVector {
+            log_n_rows,
+            sequence_len,
+            columns: trace
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect::<Vec<u32>>())
+                .collect(),
+        });
+    }
+    out
+}
+
+fn generate_example_plonk_trace_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExamplePlonkTraceVector> {
+    let mut out = Vec::with_capacity(count);
+    for _ in 0..count {
+        let log_n_rows = 2 + ((next_u64(state) as u32) % 9);
+        let n = 1usize << log_n_rows;
+
+        let mut preprocessed = vec![vec![M31::from(0); n]; 4];
+        let mut main = vec![vec![M31::from(0); n]; 4];
+        let mut fib = vec![M31::from(0); n + 2];
+        fib[0] = M31::from(1);
+        fib[1] = M31::from(1);
+        for i in 2..fib.len() {
+            fib[i] = fib[i - 1] + fib[i - 2];
+        }
+
+        for i in 0..n {
+            preprocessed[0][i] = M31::from(i as u32);
+            preprocessed[1][i] = M31::from((i + 1) as u32);
+            preprocessed[2][i] = M31::from((i + 2) as u32);
+            preprocessed[3][i] = M31::from(1);
+
+            main[0][i] = M31::from(1);
+            main[1][i] = fib[i];
+            main[2][i] = fib[i + 1];
+            main[3][i] = fib[i + 2];
+        }
+        if n >= 2 {
+            main[0][n - 1] = M31::from(0);
+            main[0][n - 2] = M31::from(1);
+        }
+
+        out.push(ExamplePlonkTraceVector {
+            log_n_rows,
+            preprocessed: preprocessed
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect::<Vec<u32>>())
+                .collect(),
+            main: main
+                .into_iter()
+                .map(|column| column.into_iter().map(encode_m31).collect::<Vec<u32>>())
+                .collect(),
         });
     }
     out

@@ -42,7 +42,7 @@ zig build release-evidence
 zig build deep-gate
 ```
 
-`zig build interop` performs true Rust<->Zig proof exchange for `xor`,
+`zig build interop` performs true Rust<->Zig proof exchange for `plonk`, `xor`,
 `state_machine`, and `wide_fibonacci`
 (`proof_exchange_json_wire_v1`) and includes semantic statement-tamper plus
 proof-byte tamper rejection checks. It uses
@@ -51,9 +51,10 @@ Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
 `zig build vectors` now validates both:
 - `vectors/fields.json` via `scripts/parity_fields.py`
 - `vectors/constraint_expr.json` via `scripts/parity_constraint_expr.py`
+- `vectors/air_derive.json` via `scripts/parity_air_derive.py`
 
 `zig build prove-checkpoints` runs deterministic `prove`/`prove_ex` checkpoint parity
-for `xor`, `state_machine`, and `wide_fibonacci` across base and non-zero blowup
+for `plonk`, `xor`, `state_machine`, and `wide_fibonacci` across base and non-zero blowup
 settings, and enforces
 semantic tamper rejection plus invalid-`prove_mode` metadata rejection in both Zig and Rust
 verifiers.
@@ -61,7 +62,8 @@ verifiers.
 `zig build bench-smoke` now runs a matched Rust-vs-Zig workload matrix over release
 interop binaries, records raw prove/verify timing samples, RSS, proof-size/decommit
 shape metrics, and enforces `<= 1.50x` Zig-over-Rust latency threshold by default on
-the base workload tier.
+the base workload tier. The current release matrix uses deterministic
+`state_machine` workloads for base/medium tiers.
 
 `zig build bench-strict` runs the same protocol with `--include-medium` enabled and is
 the benchmark requirement for release signoff.

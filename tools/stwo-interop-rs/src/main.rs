@@ -36,10 +36,12 @@ const EXCHANGE_MODE: &str = "proof_exchange_json_wire_v1";
 enum Mode {
     Generate,
     Verify,
+    Bench,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Example {
+    Plonk,
     StateMachine,
     WideFibonacci,
     Xor,
@@ -68,12 +70,17 @@ struct Cli {
     sm_initial_0: u32,
     sm_initial_1: u32,
 
+    plonk_log_n_rows: u32,
+
     wf_log_n_rows: u32,
     wf_sequence_len: u32,
 
     xor_log_size: u32,
     xor_log_step: u32,
     xor_offset: usize,
+
+    bench_warmups: usize,
+    bench_repeats: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,6 +156,11 @@ struct XorStatementWire {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct PlonkStatementWire {
+    log_n_rows: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct WideFibonacciStatementWire {
     log_n_rows: u32,
     sequence_len: u32,
@@ -163,10 +175,52 @@ struct InteropArtifact {
     example: String,
     prove_mode: Option<String>,
     pcs_config: PcsConfigWire,
+    plonk_statement: Option<PlonkStatementWire>,
     state_machine_statement: Option<StateMachineStatementWire>,
     wide_fibonacci_statement: Option<WideFibonacciStatementWire>,
     xor_statement: Option<XorStatementWire>,
     proof_bytes_hex: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct BenchTiming {
+    warmups: usize,
+    repeats: usize,
+    samples_seconds: Vec<f64>,
+    min_seconds: f64,
+    max_seconds: f64,
+    avg_seconds: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct BenchProofMetrics {
+    proof_wire_bytes: usize,
+    commitments_count: usize,
+    decommitments_count: usize,
+    trace_decommit_hashes: usize,
+    fri_inner_layers_count: usize,
+    fri_first_layer_witness_len: usize,
+    fri_last_layer_poly_len: usize,
+    fri_decommit_hashes_total: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct BenchReport {
+    runtime: String,
+    example: String,
+    prove_mode: String,
+    include_all_preprocessed_columns: bool,
+    prove: BenchTiming,
+    verify: BenchTiming,
+    proof_metrics: BenchProofMetrics,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ExampleStatement {
+    Plonk(PlonkStatement),
+    StateMachine(StateMachineStatement),
+    WideFibonacci(WideFibonacciStatement),
+    Xor(XorStatement),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -198,6 +252,11 @@ struct WideFibonacciStatement {
 }
 
 #[derive(Debug, Clone, Copy)]
+struct PlonkStatement {
+    log_n_rows: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
 struct StateMachineComponent {
     trace_log_size: u32,
     composition_eval: SecureField,
@@ -213,11 +272,17 @@ struct WideFibonacciComponent {
     statement: WideFibonacciStatement,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PlonkComponent {
+    statement: PlonkStatement,
+}
+
 fn main() -> Result<()> {
     let cli = parse_cli(env::args().collect())?;
     match cli.mode {
         Mode::Generate => run_generate(&cli),
         Mode::Verify => run_verify(&cli),
+        Mode::Bench => run_bench(&cli),
     }
 }
 
@@ -228,6 +293,32 @@ fn run_generate(cli: &Cli) -> Result<()> {
     let config = pcs_config_from_cli(cli)?;
 
     let artifact = match example {
+        Example::Plonk => {
+            let statement = PlonkStatement {
+                log_n_rows: cli.plonk_log_n_rows,
+            };
+            let (statement, proof) = plonk_prove(
+                config,
+                statement,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
+            )?;
+            let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
+            InteropArtifact {
+                schema_version: SCHEMA_VERSION,
+                upstream_commit: UPSTREAM_COMMIT.to_string(),
+                exchange_mode: EXCHANGE_MODE.to_string(),
+                generator: "rust".to_string(),
+                example: "plonk".to_string(),
+                prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
+                pcs_config: pcs_config_to_wire(config),
+                plonk_statement: Some(plonk_statement_to_wire(statement)),
+                state_machine_statement: None,
+                wide_fibonacci_statement: None,
+                xor_statement: None,
+                proof_bytes_hex: hex::encode(proof_bytes),
+            }
+        }
         Example::StateMachine => {
             let initial_state = [
                 checked_m31(cli.sm_initial_0)?,
@@ -249,6 +340,7 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 example: "state_machine".to_string(),
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
+                plonk_statement: None,
                 state_machine_statement: Some(state_machine_statement_to_wire(statement)),
                 wide_fibonacci_statement: None,
                 xor_statement: None,
@@ -275,6 +367,7 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 example: "wide_fibonacci".to_string(),
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
+                plonk_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: Some(wide_fibonacci_statement_to_wire(statement)),
                 xor_statement: None,
@@ -302,6 +395,7 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 example: "xor".to_string(),
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
+                plonk_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: None,
                 xor_statement: Some(xor_statement_to_wire(statement)?),
@@ -345,6 +439,14 @@ fn run_verify(cli: &Cli) -> Result<()> {
     let proof = wire_to_proof(proof_wire)?;
 
     match artifact.example.as_str() {
+        "plonk" => {
+            let statement_wire = artifact
+                .plonk_statement
+                .as_ref()
+                .ok_or_else(|| anyhow!("missing plonk_statement"))?;
+            let statement = plonk_statement_from_wire(statement_wire)?;
+            plonk_verify(config, statement, proof)?;
+        }
         "state_machine" => {
             let statement_wire = artifact
                 .state_machine_statement
@@ -375,6 +477,77 @@ fn run_verify(cli: &Cli) -> Result<()> {
     Ok(())
 }
 
+fn run_bench(cli: &Cli) -> Result<()> {
+    let example = cli
+        .example
+        .ok_or_else(|| anyhow!("--example is required for bench mode"))?;
+    if cli.bench_repeats == 0 {
+        bail!("--bench-repeats must be positive");
+    }
+    let config = pcs_config_from_cli(cli)?;
+    let total_runs = cli.bench_warmups + cli.bench_repeats;
+
+    let mut prove_samples = Vec::with_capacity(cli.bench_repeats);
+    for i in 0..total_runs {
+        let start = std::time::Instant::now();
+        let (_, proof) = prove_example(
+            config,
+            example,
+            cli,
+            cli.prove_mode,
+            cli.include_all_preprocessed_columns,
+        )?;
+        let _encoded = serde_json::to_vec(&proof_to_wire(&proof)?)?;
+        let elapsed = start.elapsed().as_secs_f64();
+        drop(proof);
+        if i >= cli.bench_warmups {
+            prove_samples.push(elapsed);
+        }
+    }
+
+    let (statement, baseline_proof) = prove_example(
+        config,
+        example,
+        cli,
+        cli.prove_mode,
+        cli.include_all_preprocessed_columns,
+    )?;
+    let proof_metrics = proof_metrics_from_proof(&baseline_proof)?;
+    let baseline_wire = proof_to_wire(&baseline_proof)?;
+    let baseline_wire_bytes = serde_json::to_vec(&baseline_wire)?;
+
+    let mut verify_samples = Vec::with_capacity(cli.bench_repeats);
+    for i in 0..total_runs {
+        let start = std::time::Instant::now();
+        let decoded_wire: ProofWire = serde_json::from_slice(&baseline_wire_bytes)?;
+        let decoded_proof = wire_to_proof(decoded_wire)?;
+        verify_example(config, statement, decoded_proof)?;
+        let elapsed = start.elapsed().as_secs_f64();
+        if i >= cli.bench_warmups {
+            verify_samples.push(elapsed);
+        }
+    }
+
+    let report = BenchReport {
+        runtime: "rust".to_string(),
+        example: match example {
+            Example::Plonk => "plonk",
+            Example::StateMachine => "state_machine",
+            Example::WideFibonacci => "wide_fibonacci",
+            Example::Xor => "xor",
+        }
+        .to_string(),
+        prove_mode: prove_mode_to_str(cli.prove_mode).to_string(),
+        include_all_preprocessed_columns: cli.include_all_preprocessed_columns,
+        prove: summarize_timing(cli.bench_warmups, cli.bench_repeats, prove_samples)?,
+        verify: summarize_timing(cli.bench_warmups, cli.bench_repeats, verify_samples)?,
+        proof_metrics,
+    };
+
+    println!("{}", serde_json::to_string(&report)?);
+    Ok(())
+}
+
 fn prove_mode_to_str(mode: ProveMode) -> &'static str {
     match mode {
         ProveMode::Prove => "prove",
@@ -388,6 +561,28 @@ fn prove_mode_from_str(value: &str) -> Option<ProveMode> {
         "prove_ex" => Some(ProveMode::ProveEx),
         _ => None,
     }
+}
+
+fn summarize_timing(warmups: usize, repeats: usize, samples: Vec<f64>) -> Result<BenchTiming> {
+    if samples.is_empty() {
+        bail!("benchmark samples are empty");
+    }
+    let mut min_seconds = samples[0];
+    let mut max_seconds = samples[0];
+    let mut total = 0.0f64;
+    for sample in &samples {
+        min_seconds = min_seconds.min(*sample);
+        max_seconds = max_seconds.max(*sample);
+        total += *sample;
+    }
+    Ok(BenchTiming {
+        warmups,
+        repeats,
+        avg_seconds: total / samples.len() as f64,
+        min_seconds,
+        max_seconds,
+        samples_seconds: samples,
+    })
 }
 
 fn parse_cli(args: Vec<String>) -> Result<Cli> {
@@ -406,12 +601,17 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
     let mut sm_initial_0 = 9u32;
     let mut sm_initial_1 = 3u32;
 
+    let mut plonk_log_n_rows = 5u32;
+
     let mut wf_log_n_rows = 5u32;
     let mut wf_sequence_len = 16u32;
 
     let mut xor_log_size = 5u32;
     let mut xor_log_step = 2u32;
     let mut xor_offset = 3usize;
+
+    let mut bench_warmups = 1usize;
+    let mut bench_repeats = 5usize;
 
     let mut i = 1usize;
     while i < args.len() {
@@ -430,11 +630,13 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
                 mode = match value.as_str() {
                     "generate" => Some(Mode::Generate),
                     "verify" => Some(Mode::Verify),
+                    "bench" => Some(Mode::Bench),
                     _ => bail!("invalid mode {value}"),
                 }
             }
             "--example" => {
                 example = match value.as_str() {
+                    "plonk" => Some(Example::Plonk),
                     "state_machine" => Some(Example::StateMachine),
                     "wide_fibonacci" => Some(Example::WideFibonacci),
                     "xor" => Some(Example::Xor),
@@ -462,11 +664,14 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
             "--sm-log-n-rows" => sm_log_n_rows = value.parse()?,
             "--sm-initial-0" => sm_initial_0 = value.parse()?,
             "--sm-initial-1" => sm_initial_1 = value.parse()?,
+            "--plonk-log-n-rows" => plonk_log_n_rows = value.parse()?,
             "--wf-log-n-rows" => wf_log_n_rows = value.parse()?,
             "--wf-sequence-len" => wf_sequence_len = value.parse()?,
             "--xor-log-size" => xor_log_size = value.parse()?,
             "--xor-log-step" => xor_log_step = value.parse()?,
             "--xor-offset" => xor_offset = value.parse()?,
+            "--bench-warmups" => bench_warmups = value.parse()?,
+            "--bench-repeats" => bench_repeats = value.parse()?,
             _ => bail!("unknown flag {flag}"),
         }
     }
@@ -484,11 +689,14 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
         sm_log_n_rows,
         sm_initial_0,
         sm_initial_1,
+        plonk_log_n_rows,
         wf_log_n_rows,
         wf_sequence_len,
         xor_log_size,
         xor_log_step,
         xor_offset,
+        bench_warmups,
+        bench_repeats,
     })
 }
 
@@ -821,6 +1029,123 @@ fn wide_fibonacci_statement_from_wire(
     })
 }
 
+fn plonk_statement_to_wire(statement: PlonkStatement) -> PlonkStatementWire {
+    PlonkStatementWire {
+        log_n_rows: statement.log_n_rows,
+    }
+}
+
+fn plonk_statement_from_wire(wire: &PlonkStatementWire) -> Result<PlonkStatement> {
+    Ok(PlonkStatement {
+        log_n_rows: wire.log_n_rows,
+    })
+}
+
+fn prove_example(
+    config: PcsConfig,
+    example: Example,
+    cli: &Cli,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
+) -> Result<(ExampleStatement, StarkProof<Blake2sMerkleHasher>)> {
+    match example {
+        Example::Plonk => {
+            let statement = PlonkStatement {
+                log_n_rows: cli.plonk_log_n_rows,
+            };
+            let (statement, proof) = plonk_prove(
+                config,
+                statement,
+                prove_mode,
+                include_all_preprocessed_columns,
+            )?;
+            Ok((ExampleStatement::Plonk(statement), proof))
+        }
+        Example::StateMachine => {
+            let initial_state = [
+                checked_m31(cli.sm_initial_0)?,
+                checked_m31(cli.sm_initial_1)?,
+            ];
+            let (statement, proof) = state_machine_prove(
+                config,
+                cli.sm_log_n_rows,
+                initial_state,
+                prove_mode,
+                include_all_preprocessed_columns,
+            )?;
+            Ok((ExampleStatement::StateMachine(statement), proof))
+        }
+        Example::WideFibonacci => {
+            let statement = WideFibonacciStatement {
+                log_n_rows: cli.wf_log_n_rows,
+                sequence_len: cli.wf_sequence_len,
+            };
+            let (statement, proof) = wide_fibonacci_prove(
+                config,
+                statement,
+                prove_mode,
+                include_all_preprocessed_columns,
+            )?;
+            Ok((ExampleStatement::WideFibonacci(statement), proof))
+        }
+        Example::Xor => {
+            let statement = XorStatement {
+                log_size: cli.xor_log_size,
+                log_step: cli.xor_log_step,
+                offset: cli.xor_offset,
+            };
+            let (statement, proof) = xor_prove(
+                config,
+                statement,
+                prove_mode,
+                include_all_preprocessed_columns,
+            )?;
+            Ok((ExampleStatement::Xor(statement), proof))
+        }
+    }
+}
+
+fn verify_example(
+    config: PcsConfig,
+    statement: ExampleStatement,
+    proof: StarkProof<Blake2sMerkleHasher>,
+) -> Result<()> {
+    match statement {
+        ExampleStatement::Plonk(s) => plonk_verify(config, s, proof),
+        ExampleStatement::StateMachine(s) => state_machine_verify(config, s, proof),
+        ExampleStatement::WideFibonacci(s) => wide_fibonacci_verify(config, s, proof),
+        ExampleStatement::Xor(s) => xor_verify(config, s, proof),
+    }
+}
+
+fn proof_metrics_from_proof(proof: &StarkProof<Blake2sMerkleHasher>) -> Result<BenchProofMetrics> {
+    let wire = proof_to_wire(proof)?;
+    let proof_wire_bytes = serde_json::to_vec(&wire)?.len();
+    let trace_decommit_hashes: usize = wire
+        .decommitments
+        .iter()
+        .map(|decommitment| decommitment.hash_witness.len())
+        .sum();
+    let fri_decommit_hashes_total = wire.fri_proof.first_layer.decommitment.hash_witness.len()
+        + wire
+            .fri_proof
+            .inner_layers
+            .iter()
+            .map(|layer| layer.decommitment.hash_witness.len())
+            .sum::<usize>();
+
+    Ok(BenchProofMetrics {
+        proof_wire_bytes,
+        commitments_count: wire.commitments.len(),
+        decommitments_count: wire.decommitments.len(),
+        trace_decommit_hashes,
+        fri_inner_layers_count: wire.fri_proof.inner_layers.len(),
+        fri_first_layer_witness_len: wire.fri_proof.first_layer.fri_witness.len(),
+        fri_last_layer_poly_len: wire.fri_proof.last_layer_poly.len(),
+        fri_decommit_hashes_total,
+    })
+}
+
 fn state_machine_prove(
     config: PcsConfig,
     log_n_rows: u32,
@@ -1034,6 +1359,97 @@ fn wide_fibonacci_verify(
         .map_err(|err| anyhow!("wide_fibonacci verify failed: {err}"))
 }
 
+fn plonk_prove(
+    config: PcsConfig,
+    statement: PlonkStatement,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
+) -> Result<(PlonkStatement, StarkProof<Blake2sMerkleHasher>)> {
+    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
+        bail!("invalid plonk log_n_rows");
+    }
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let twiddles = CpuBackend::precompute_twiddles(
+        CanonicCoset::new(statement.log_n_rows + config.fri_config.log_blowup_factor + 1)
+            .circle_domain()
+            .half_coset,
+    );
+    let mut scheme =
+        CommitmentSchemeProver::<CpuBackend, Blake2sMerkleChannel>::new(config, &twiddles);
+
+    let (preprocessed, main) = gen_plonk_trace(statement.log_n_rows)?;
+
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(
+        preprocessed
+            .into_iter()
+            .map(|col| cpu_eval(statement.log_n_rows, col))
+            .collect(),
+    );
+    builder.commit(&mut channel);
+
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(
+        main.into_iter()
+            .map(|col| cpu_eval(statement.log_n_rows, col))
+            .collect(),
+    );
+    builder.commit(&mut channel);
+
+    mix_plonk_statement(&mut channel, statement);
+
+    let component = PlonkComponent { statement };
+    let proof = match prove_mode {
+        ProveMode::Prove => {
+            prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?
+        }
+        ProveMode::ProveEx => {
+            prove_ex::<CpuBackend, Blake2sMerkleChannel>(
+                &[&component],
+                &mut channel,
+                scheme,
+                include_all_preprocessed_columns,
+            )?
+            .proof
+        }
+    };
+
+    Ok((statement, proof))
+}
+
+fn plonk_verify(
+    config: PcsConfig,
+    statement: PlonkStatement,
+    proof: StarkProof<Blake2sMerkleHasher>,
+) -> Result<()> {
+    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
+        bail!("invalid plonk log_n_rows");
+    }
+    if proof.0.commitments.len() < 2 {
+        bail!("invalid proof shape: expected at least 2 commitments");
+    }
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let c0 = proof.0.commitments[0];
+    let c1 = proof.0.commitments[1];
+
+    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
+    let log_sizes = [statement.log_n_rows; 4];
+    commitment_scheme.commit(c0, &log_sizes, &mut channel);
+    commitment_scheme.commit(c1, &log_sizes, &mut channel);
+
+    mix_plonk_statement(&mut channel, statement);
+
+    let component = PlonkComponent { statement };
+    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
+        .map_err(|err| anyhow!("plonk verify failed: {err}"))
+}
+
 fn xor_prove(
     config: PcsConfig,
     statement: XorStatement,
@@ -1231,6 +1647,42 @@ fn gen_xor_main(log_size: u32) -> Result<Vec<M31>> {
     Ok(values)
 }
 
+fn gen_plonk_trace(log_n_rows: u32) -> Result<([Vec<M31>; 4], [Vec<M31>; 4])> {
+    if log_n_rows == 0 || log_n_rows >= 31 {
+        bail!("invalid plonk log_n_rows");
+    }
+    let n = checked_pow2(log_n_rows)?;
+
+    let mut preprocessed = std::array::from_fn(|_| vec![M31::zero(); n]);
+    let mut main = std::array::from_fn(|_| vec![M31::zero(); n]);
+
+    let mut fib = vec![M31::zero(); n + 2];
+    fib[0] = M31::one();
+    fib[1] = M31::one();
+    for i in 2..fib.len() {
+        fib[i] = fib[i - 1] + fib[i - 2];
+    }
+
+    for i in 0..n {
+        preprocessed[0][i] = M31::from(i as u32);
+        preprocessed[1][i] = M31::from((i + 1) as u32);
+        preprocessed[2][i] = M31::from((i + 2) as u32);
+        preprocessed[3][i] = M31::one();
+
+        main[0][i] = M31::one();
+        main[1][i] = fib[i];
+        main[2][i] = fib[i + 1];
+        main[3][i] = fib[i + 2];
+    }
+
+    if n >= 2 {
+        main[0][n - 1] = M31::zero();
+        main[0][n - 2] = M31::one();
+    }
+
+    Ok((preprocessed, main))
+}
+
 fn state_machine_combine(elements: StateMachineElements, state: [M31; 2]) -> SecureField {
     SecureField::from(state[0]) + elements.alpha * SecureField::from(state[1]) - elements.z
 }
@@ -1342,6 +1794,19 @@ fn wide_fibonacci_composition_eval(statement: WideFibonacciStatement) -> SecureF
 
 fn mix_wide_fibonacci_statement(channel: &mut Blake2sChannel, statement: WideFibonacciStatement) {
     channel.mix_u32s(&[statement.log_n_rows, statement.sequence_len]);
+}
+
+fn plonk_composition_eval(statement: PlonkStatement) -> SecureField {
+    SecureField::from_m31(
+        M31::from(statement.log_n_rows),
+        M31::from(4u32),
+        M31::from(1u32),
+        M31::one(),
+    )
+}
+
+fn mix_plonk_statement(channel: &mut Blake2sChannel, statement: PlonkStatement) {
+    channel.mix_u32s(&[statement.log_n_rows]);
 }
 
 fn xor_composition_eval(statement: XorStatement) -> SecureField {
@@ -1460,6 +1925,60 @@ impl ComponentProver<CpuBackend> for WideFibonacciComponent {
         evaluation_accumulator: &mut DomainEvaluationAccumulator<CpuBackend>,
     ) {
         let composition_eval = wide_fibonacci_composition_eval(self.statement);
+        let [mut col] = evaluation_accumulator.columns([(self.statement.log_n_rows + 1, 1)]);
+        let domain_size = 1usize << (self.statement.log_n_rows + 1);
+        for i in 0..domain_size {
+            col.accumulate(i, composition_eval);
+        }
+    }
+}
+
+impl Component for PlonkComponent {
+    fn n_constraints(&self) -> usize {
+        1
+    }
+
+    fn max_constraint_log_degree_bound(&self) -> u32 {
+        self.statement.log_n_rows + 1
+    }
+
+    fn trace_log_degree_bounds(&self) -> TreeVec<Vec<u32>> {
+        TreeVec::new(vec![
+            vec![self.statement.log_n_rows; 4],
+            vec![self.statement.log_n_rows; 4],
+        ])
+    }
+
+    fn mask_points(
+        &self,
+        point: CirclePoint<SecureField>,
+        _max_log_degree_bound: u32,
+    ) -> TreeVec<Vec<Vec<CirclePoint<SecureField>>>> {
+        TreeVec::new(vec![vec![vec![point]; 4], vec![vec![point]; 4]])
+    }
+
+    fn preprocessed_column_indices(&self) -> Vec<usize> {
+        vec![0, 1, 2, 3]
+    }
+
+    fn evaluate_constraint_quotients_at_point(
+        &self,
+        _point: CirclePoint<SecureField>,
+        _mask: &TreeVec<Vec<Vec<SecureField>>>,
+        evaluation_accumulator: &mut PointEvaluationAccumulator,
+        _max_log_degree_bound: u32,
+    ) {
+        evaluation_accumulator.accumulate(plonk_composition_eval(self.statement));
+    }
+}
+
+impl ComponentProver<CpuBackend> for PlonkComponent {
+    fn evaluate_constraint_quotients_on_domain(
+        &self,
+        _trace: &Trace<'_, CpuBackend>,
+        evaluation_accumulator: &mut DomainEvaluationAccumulator<CpuBackend>,
+    ) {
+        let composition_eval = plonk_composition_eval(self.statement);
         let [mut col] = evaluation_accumulator.columns([(self.statement.log_n_rows + 1, 1)]);
         let domain_size = 1usize << (self.statement.log_n_rows + 1);
         for i in 0..domain_size {

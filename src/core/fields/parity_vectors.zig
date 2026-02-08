@@ -17,7 +17,9 @@ const prover_secure_column_mod = @import("../../prover/secure_column.zig");
 const vcs_prover_mod = @import("../../prover/vcs/prover.zig");
 const vcs_lifted_prover_mod = @import("../../prover/vcs_lifted/prover.zig");
 const prover_line_mod = @import("../../prover/line.zig");
+const example_plonk_mod = @import("../../examples/plonk.zig");
 const example_state_machine_mod = @import("../../examples/state_machine.zig");
+const example_wide_fibonacci_mod = @import("../../examples/wide_fibonacci.zig");
 const example_xor_mod = @import("../../examples/xor.zig");
 const cm31_mod = @import("cm31.zig");
 const m31_mod = @import("m31.zig");
@@ -320,6 +322,18 @@ const ExampleXorIsStepWithOffsetVector = struct {
     values: []u32,
 };
 
+const ExampleWideFibonacciTraceVector = struct {
+    log_n_rows: u32,
+    sequence_len: u32,
+    columns: [][]u32,
+};
+
+const ExamplePlonkTraceVector = struct {
+    log_n_rows: u32,
+    preprocessed: [][]u32,
+    main: [][]u32,
+};
+
 const VectorFile = struct {
     meta: struct {
         upstream_commit: []const u8,
@@ -353,6 +367,8 @@ const VectorFile = struct {
     example_state_machine_statement: []ExampleStateMachineStatementVector,
     example_xor_is_first: []ExampleXorIsFirstVector,
     example_xor_is_step_with_offset: []ExampleXorIsStepWithOffsetVector,
+    example_wide_fibonacci_trace: []ExampleWideFibonacciTraceVector,
+    example_plonk_trace: []ExamplePlonkTraceVector,
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
@@ -1799,6 +1815,95 @@ test "field vectors: examples xor is_step_with_offset parity" {
                 }
             }
             try std.testing.expect(differs);
+        }
+    }
+}
+
+test "field vectors: examples wide_fibonacci trace parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_wide_fibonacci_trace.len > 0);
+    for (parsed.value.example_wide_fibonacci_trace, 0..) |v, vec_idx| {
+        const statement: example_wide_fibonacci_mod.Statement = .{
+            .log_n_rows = v.log_n_rows,
+            .sequence_len = v.sequence_len,
+        };
+        const trace = try example_wide_fibonacci_mod.genTrace(alloc, statement);
+        defer example_wide_fibonacci_mod.deinitTrace(alloc, trace);
+
+        try std.testing.expectEqual(v.columns.len, trace.len);
+        for (v.columns, 0..) |expected_col, col_idx| {
+            try std.testing.expectEqual(expected_col.len, trace[col_idx].len);
+            for (expected_col, 0..) |expected, row_idx| {
+                try std.testing.expect(trace[col_idx][row_idx].eql(m31From(expected)));
+            }
+        }
+
+        if (vec_idx == 0) {
+            var alt_statement = statement;
+            alt_statement.sequence_len += 1;
+            const alt_trace = try example_wide_fibonacci_mod.genTrace(alloc, alt_statement);
+            defer example_wide_fibonacci_mod.deinitTrace(alloc, alt_trace);
+
+            if (alt_trace.len != trace.len) {
+                try std.testing.expect(true);
+            } else {
+                var differs = false;
+                for (alt_trace, 0..) |col, col_idx| {
+                    if (col.len != trace[col_idx].len) {
+                        differs = true;
+                        break;
+                    }
+                    for (col, 0..) |value, row_idx| {
+                        if (!value.eql(trace[col_idx][row_idx])) {
+                            differs = true;
+                            break;
+                        }
+                    }
+                    if (differs) break;
+                }
+                try std.testing.expect(differs);
+            }
+        }
+    }
+}
+
+test "field vectors: examples plonk trace parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_plonk_trace.len > 0);
+    for (parsed.value.example_plonk_trace, 0..) |v, vec_idx| {
+        const statement: example_plonk_mod.Statement = .{
+            .log_n_rows = v.log_n_rows,
+        };
+        var trace = try example_plonk_mod.genTrace(alloc, statement);
+        defer example_plonk_mod.deinitTrace(alloc, &trace);
+
+        try std.testing.expectEqual(@as(usize, 4), v.preprocessed.len);
+        try std.testing.expectEqual(@as(usize, 4), v.main.len);
+        for (v.preprocessed, 0..) |expected_col, col_idx| {
+            try std.testing.expectEqual(expected_col.len, trace.preprocessed[col_idx].len);
+            for (expected_col, 0..) |expected, row_idx| {
+                try std.testing.expect(trace.preprocessed[col_idx][row_idx].eql(m31From(expected)));
+            }
+        }
+        for (v.main, 0..) |expected_col, col_idx| {
+            try std.testing.expectEqual(expected_col.len, trace.main[col_idx].len);
+            for (expected_col, 0..) |expected, row_idx| {
+                try std.testing.expect(trace.main[col_idx][row_idx].eql(m31From(expected)));
+            }
+        }
+
+        if (vec_idx == 0) {
+            var alt_statement = statement;
+            alt_statement.log_n_rows += 1;
+            var alt_trace = try example_plonk_mod.genTrace(alloc, alt_statement);
+            defer example_plonk_mod.deinitTrace(alloc, &alt_trace);
+            try std.testing.expect(alt_trace.main[0].len != trace.main[0].len);
         }
     }
 }

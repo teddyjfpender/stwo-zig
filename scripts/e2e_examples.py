@@ -30,6 +30,8 @@ EXAMPLE_KEYS = (
     "example_state_machine_claimed_sum",
     "example_xor_is_first",
     "example_xor_is_step_with_offset",
+    "example_wide_fibonacci_trace",
+    "example_plonk_trace",
 )
 
 

@@ -38,8 +38,14 @@ pub fn build(b: *std.Build) void {
         "--skip-zig",
     });
     vectors_constraint_cmd.step.dependOn(&vectors_fields_cmd.step);
+    const vectors_air_derive_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/parity_air_derive.py",
+        "--skip-zig",
+    });
+    vectors_air_derive_cmd.step.dependOn(&vectors_constraint_cmd.step);
     const vectors_step = b.step("vectors", "Validate committed parity vectors");
-    vectors_step.dependOn(&vectors_constraint_cmd.step);
+    vectors_step.dependOn(&vectors_air_derive_cmd.step);
 
     // Cross-language interoperability gate (true Rust<->Zig proof exchange + tamper rejection).
     const interop_cmd = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
@@ -121,8 +127,14 @@ pub fn build(b: *std.Build) void {
         "--skip-zig",
     });
     rg_vectors_constraint.step.dependOn(&rg_vectors_fields.step);
+    const rg_vectors_air_derive = b.addSystemCommand(&.{
+        "python3",
+        "scripts/parity_air_derive.py",
+        "--skip-zig",
+    });
+    rg_vectors_air_derive.step.dependOn(&rg_vectors_constraint.step);
     const rg_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
-    rg_interop.step.dependOn(&rg_vectors_constraint.step);
+    rg_interop.step.dependOn(&rg_vectors_air_derive.step);
     const rg_bench = b.addSystemCommand(&.{ "python3", "scripts/benchmark_smoke.py" });
     rg_bench.step.dependOn(&rg_interop.step);
     const rg_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
@@ -149,8 +161,14 @@ pub fn build(b: *std.Build) void {
         "--skip-zig",
     });
     rgs_vectors_constraint.step.dependOn(&rgs_vectors_fields.step);
+    const rgs_vectors_air_derive = b.addSystemCommand(&.{
+        "python3",
+        "scripts/parity_air_derive.py",
+        "--skip-zig",
+    });
+    rgs_vectors_air_derive.step.dependOn(&rgs_vectors_constraint.step);
     const rgs_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
-    rgs_interop.step.dependOn(&rgs_vectors_constraint.step);
+    rgs_interop.step.dependOn(&rgs_vectors_air_derive.step);
     const rgs_prove_checkpoints = b.addSystemCommand(&.{ "python3", "scripts/prove_checkpoints.py" });
     rgs_prove_checkpoints.step.dependOn(&rgs_interop.step);
     const rgs_bench = b.addSystemCommand(&.{

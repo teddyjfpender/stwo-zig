@@ -1,8 +1,10 @@
 {
   "example_section_counts": {
+    "example_plonk_trace": 24,
     "example_state_machine_claimed_sum": 24,
     "example_state_machine_trace": 24,
     "example_state_machine_transitions": 24,
+    "example_wide_fibonacci_trace": 24,
     "example_xor_is_first": 24,
     "example_xor_is_step_with_offset": 32
   },
