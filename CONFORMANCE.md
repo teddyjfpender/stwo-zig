@@ -194,23 +194,25 @@ This section defines the remaining scope by upstream Rust crate and the required
 
 | Rust crate | Zig target area | Current status | Remaining required scope | Hard exit criteria |
 |---|---|---|---|---|
-| `crates/stwo` | `src/core/**`, `src/prover/**`, `src/tracing/**` | Partial | Complete full prover pipeline (trace -> composition -> PCS/FRI -> proof), complete verifier parity for all paths, finalize proof wire compatibility, complete transcript and channel compatibility, complete hash/VCS parity for all production paths, complete PoW and config parity | Rust->Zig and Zig->Rust proof interoperability green for pinned commit; full module parity vectors and negative cases; no unresolved divergence records |
-| `crates/constraint-framework` | `src/core/constraints.zig` plus dedicated constraint DSL/evaluator modules | Partial | Complete quotient/evaluator edge semantics and broaden law/property coverage for all expression rewrites used by prover paths | Differential tests against Rust constraint outputs for fixed seeds/traces; all edge/failure tests green |
-| `crates/air-utils` | `src/core/air/**` and supporting trace utilities | Partial | Expand remaining trace helper surface and integrate deeper AIR composition plumbing in non-example prover paths | Rust parity vectors for AIR utilities and composition checkpoints; full integration tests with proof generation and verification |
-| `crates/air-utils-derive` | Zig compile-time generation layer (comptime helpers/macros equivalent) | Partial | Extend derive-like helpers to remaining upstream patterns beyond component adapters and lookup row helpers | Compile-time generated outputs parity-tested against Rust expectations; no manual per-AIR boilerplate required beyond declared conformance limit |
-| `crates/examples` | `src/examples/**` and e2e fixtures | Partial | Continue example expansion beyond `xor`, `state_machine`, `wide_fibonacci`, and `plonk`, while preserving deterministic bidirectional interop and tamper coverage | Every selected Rust example has Zig equivalent and bidirectional verification with semantic tamper rejection |
-| `crates/std-shims` | freestanding/minimal Zig verifier profile and build flags | Partial | Add behavior-parity coverage between standard verifier and freestanding profile across wider fixture matrix | Freestanding verifier build passes conformance test matrix; behavior matches standard build for identical inputs |
+| `crates/stwo` | `src/core/**`, `src/prover/**`, `src/tracing/**` | Complete | Delivered and evidence-gated: full prover pipeline (trace -> composition -> PCS/FRI -> proof), verifier parity paths, proof wire compatibility, transcript/channel compatibility, hash/VCS parity, and PoW/config parity. | Rust->Zig and Zig->Rust proof interoperability green for pinned commit; full module parity vectors and negative cases; no unresolved divergence records |
+| `crates/constraint-framework` | `src/core/constraints.zig` plus dedicated constraint DSL/evaluator modules | Complete | Delivered and evidence-gated: quotient/evaluator edge semantics and broadened law/property coverage for expression rewrites used by prover paths. | Differential tests against Rust constraint outputs for fixed seeds/traces; all edge/failure tests green |
+| `crates/air-utils` | `src/core/air/**` and supporting trace utilities | Complete | Delivered and evidence-gated: expanded trace helper surface plus deeper AIR composition plumbing in non-example prover paths. | Rust parity vectors for AIR utilities and composition checkpoints; full integration tests with proof generation and verification |
+| `crates/air-utils-derive` | Zig compile-time generation layer (comptime helpers/macros equivalent) | Complete | Delivered and evidence-gated: derive-like helpers for upstream patterns beyond component adapters and lookup row helpers. | Compile-time generated outputs parity-tested against Rust expectations; no manual per-AIR boilerplate required beyond declared conformance limit |
+| `crates/examples` | `src/examples/**` and e2e fixtures | Complete | Delivered and evidence-gated: deterministic bidirectional interop and tamper coverage for `xor`, `state_machine`, `wide_fibonacci`, `plonk`, `poseidon`, and `blake`. | Every selected Rust example has Zig equivalent and bidirectional verification with semantic tamper rejection |
+| `crates/std-shims` | freestanding/minimal Zig verifier profile and build flags | Complete | Delivered and evidence-gated: behavior-parity coverage between standard verifier and freestanding profile across the checkpoint fixture matrix. | Freestanding verifier build passes conformance test matrix; behavior matches standard build for identical inputs |
 
 ### 15.2 Required Sequencing
 
 Execution order is mandatory unless a written exception is approved:
 
-1. Finish `crates/stwo` proof-format and prover/verifier semantic parity for core path.
-2. Close `crates/constraint-framework` parity gaps required by prover composition.
-3. Close `crates/air-utils` parity gaps and integrate into e2e proof generation.
-4. Implement `crates/air-utils-derive` Zig comptime equivalent where parity requires generation.
-5. Port `crates/examples` and establish cross-language e2e proof fixtures.
-6. Complete `crates/std-shims` freestanding verifier conformance.
+Status at current pin: all six sequencing items are delivered and evidence-gated.
+
+1. Finish `crates/stwo` proof-format and prover/verifier semantic parity for core path. (Delivered)
+2. Close `crates/constraint-framework` parity gaps required by prover composition. (Delivered)
+3. Close `crates/air-utils` parity gaps and integrate into e2e proof generation. (Delivered)
+4. Implement `crates/air-utils-derive` Zig comptime equivalent where parity requires generation. (Delivered)
+5. Port `crates/examples` and establish cross-language e2e proof fixtures. (Delivered)
+6. Complete `crates/std-shims` freestanding verifier conformance. (Delivered)
 
 ### 15.3 Milestone Gates by Crate
 

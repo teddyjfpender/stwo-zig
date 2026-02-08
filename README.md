@@ -53,7 +53,7 @@ zig build release-gate-strict
 
 - `release-gate`: fast/base confidence path.
 - `release-gate-strict`: release-signoff path.
-- `roadmap-audit`: section-15 closure gate; intentionally fails until all roadmap crate rows are marked `Complete`.
+- `roadmap-audit`: section-15 closure gate; must pass with all roadmap crate rows marked `Complete`.
 
 Strict sequence:
 `fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict (warmups=3,repeats=11) -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence`

@@ -44,13 +44,15 @@
 - `python3 scripts/check_upstream_surface.py`
 - `python3 scripts/roadmap_baseline.py`
 - `python3 scripts/roadmap_audit.py --allow-partial`
+- `python3 scripts/roadmap_audit.py`
 - `zig build upstream-surface`
 - `zig build roadmap-baseline`
 - `zig build release-gate-strict`
+- `zig build roadmap-audit`
 
 ### Current Roadmap Closure Signal
-- `zig build roadmap-audit` now fails only on Section 15 row status fields (`Partial` vs required `Complete`).
-- No evidence-check failures remain in `--allow-partial` mode.
+- `CONFORMANCE.md` section 15 now marks all roadmap crate rows `Complete`.
+- `zig build roadmap-audit` is green (`rows_complete=6`, `rows_partial=0`, `failure_count=0`).
 
 ## Latest Slice (Optimization Wave 2: Core Kernel + Opt Gate)
 

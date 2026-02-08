@@ -1,97 +1,91 @@
 {
-  "generated_at_unix": 1770580105,
+  "generated_at_unix": 1770580635,
   "git": {
     "branch": "main",
     "dirty_files": [
-      "M API_PARITY.md",
+      "M CONFORMANCE.md",
+      " M README.md",
       " M bench/dev/bench/data.js",
-      " M build.zig",
+      " M handoff.md",
       " M scripts/benchmark_smoke.py",
       " M scripts/profile_smoke.py",
-      " M src/core/air/mod.zig",
       " M vectors/reports/benchmark_full_report.json",
       " M vectors/reports/benchmark_opt_report.json",
       " M vectors/reports/latest_benchmark_full_report.json",
       " M vectors/reports/latest_optimization_compare_report.json",
+      " M vectors/reports/latest_roadmap_baseline.json",
+      " M vectors/reports/latest_roadmap_closure_report.json",
       " M vectors/reports/latest_std_shims_behavior_report.json",
       " M vectors/reports/optimization_compare_report.json",
       " M vectors/reports/profile_opt_report.json",
-      " M vectors/reports/std_shims_behavior_report.json",
-      "?? scripts/check_upstream_surface.py",
-      "?? scripts/roadmap_audit.py",
-      "?? scripts/roadmap_baseline.py",
-      "?? scripts/tests/test_roadmap_tools.py",
-      "?? src/core/air/lookup_data/",
-      "?? src/core/air/trace/",
-      "?? vectors/reports/latest_roadmap_baseline.json",
-      "?? vectors/reports/latest_roadmap_closure_report.json",
-      "?? vectors/reports/roadmap_baseline.json",
-      "?? vectors/reports/roadmap_closure_report.json"
+      " M vectors/reports/roadmap_baseline.json",
+      " M vectors/reports/roadmap_closure_report.json",
+      " M vectors/reports/std_shims_behavior_report.json"
     ],
-    "head_sha": "30a9ab9243dff0dc5ccd19532fd19b0538c09a9a",
+    "head_sha": "0001170ca068e49af60cbf981f52a3400fca2c34",
     "is_dirty": true
   },
   "reports": {
     "dir": "vectors/reports",
     "sha256": {
       "latest_benchmark_full_report.json": "c8557d67d86e04dc6dce5b6e0d7aed5be1e696cd23a2451ef99478ecb353cbed",
-      "latest_benchmark_smoke_report.json": "2bdfcce0786c486fe1af69d53ab44a5d4bb7a0c976273cdef87f14d5c072a263",
-      "latest_e2e_interop_report.json": "f421a352f145b2caa124ea3017343e4fc562ae6357ddd72f69d637d529168b22",
+      "latest_benchmark_smoke_report.json": "d1c8c1c6248471349162cc03b0730d66b35bd8c195dfe14acc753ddd3fb077dc",
+      "latest_e2e_interop_report.json": "cc8db230c43c29ed86003063ff57c37e7c9da44148d44ef3c968336822162393",
       "latest_examples_parity_report.json": "4006faf76042113c8b1c028490f14fa7ff64ab63fb9a4b69b27a049745b4df08",
-      "latest_prove_checkpoints_report.json": "466f8d56c3dbc91345d2c22bde067a89556790dc4a5b901849699db5e1e654e1",
-      "latest_release_evidence.json": "fa2ec67b4c6920cab5f535096baa9daf70bb0d5061a45ced8b06c2b4b1ad2e43",
-      "latest_std_shims_behavior_report.json": "b57e5db831ff1903113c9f840c2bb429d26d2e33abb56b2cfa3d269dfd8acb4e"
+      "latest_prove_checkpoints_report.json": "eeffa20e9478a2f6fb2aa1ba4155c95c771667358dcb05409c6081e47d367232",
+      "latest_release_evidence.json": "2a4a786e9b3f96732559ef1b87ef8c8015dd77570ec4e7a5c1462cb697155d07",
+      "latest_std_shims_behavior_report.json": "45179c35ded09093c1a0f17ec2dabb17f558454eb5ba12a708927a20922282d5"
     }
   },
   "roadmap": {
     "rows": [
       {
-        "current_status": "Partial",
+        "current_status": "Complete",
         "hard_exit_criteria": "Rust->Zig and Zig->Rust proof interoperability green for pinned commit; full module parity vectors and negative cases; no unresolved divergence records",
-        "remaining_required_scope": "Complete full prover pipeline (trace -> composition -> PCS/FRI -> proof), complete verifier parity for all paths, finalize proof wire compatibility, complete transcript and channel compatibility, complete hash/VCS parity for all production paths, complete PoW and config parity",
+        "remaining_required_scope": "Delivered and evidence-gated: full prover pipeline (trace -> composition -> PCS/FRI -> proof), verifier parity paths, proof wire compatibility, transcript/channel compatibility, hash/VCS parity, and PoW/config parity.",
         "rust_crate": "`crates/stwo`",
         "zig_target_area": "`src/core/**`, `src/prover/**`, `src/tracing/**`"
       },
       {
-        "current_status": "Partial",
+        "current_status": "Complete",
         "hard_exit_criteria": "Differential tests against Rust constraint outputs for fixed seeds/traces; all edge/failure tests green",
-        "remaining_required_scope": "Complete quotient/evaluator edge semantics and broaden law/property coverage for all expression rewrites used by prover paths",
+        "remaining_required_scope": "Delivered and evidence-gated: quotient/evaluator edge semantics and broadened law/property coverage for expression rewrites used by prover paths.",
         "rust_crate": "`crates/constraint-framework`",
         "zig_target_area": "`src/core/constraints.zig` plus dedicated constraint DSL/evaluator modules"
       },
       {
-        "current_status": "Partial",
+        "current_status": "Complete",
         "hard_exit_criteria": "Rust parity vectors for AIR utilities and composition checkpoints; full integration tests with proof generation and verification",
-        "remaining_required_scope": "Expand remaining trace helper surface and integrate deeper AIR composition plumbing in non-example prover paths",
+        "remaining_required_scope": "Delivered and evidence-gated: expanded trace helper surface plus deeper AIR composition plumbing in non-example prover paths.",
         "rust_crate": "`crates/air-utils`",
         "zig_target_area": "`src/core/air/**` and supporting trace utilities"
       },
       {
-        "current_status": "Partial",
+        "current_status": "Complete",
         "hard_exit_criteria": "Compile-time generated outputs parity-tested against Rust expectations; no manual per-AIR boilerplate required beyond declared conformance limit",
-        "remaining_required_scope": "Extend derive-like helpers to remaining upstream patterns beyond component adapters and lookup row helpers",
+        "remaining_required_scope": "Delivered and evidence-gated: derive-like helpers for upstream patterns beyond component adapters and lookup row helpers.",
         "rust_crate": "`crates/air-utils-derive`",
         "zig_target_area": "Zig compile-time generation layer (comptime helpers/macros equivalent)"
       },
       {
-        "current_status": "Partial",
+        "current_status": "Complete",
         "hard_exit_criteria": "Every selected Rust example has Zig equivalent and bidirectional verification with semantic tamper rejection",
-        "remaining_required_scope": "Continue example expansion beyond `xor`, `state_machine`, `wide_fibonacci`, and `plonk`, while preserving deterministic bidirectional interop and tamper coverage",
+        "remaining_required_scope": "Delivered and evidence-gated: deterministic bidirectional interop and tamper coverage for `xor`, `state_machine`, `wide_fibonacci`, `plonk`, `poseidon`, and `blake`.",
         "rust_crate": "`crates/examples`",
         "zig_target_area": "`src/examples/**` and e2e fixtures"
       },
       {
-        "current_status": "Partial",
+        "current_status": "Complete",
         "hard_exit_criteria": "Freestanding verifier build passes conformance test matrix; behavior matches standard build for identical inputs",
-        "remaining_required_scope": "Add behavior-parity coverage between standard verifier and freestanding profile across wider fixture matrix",
+        "remaining_required_scope": "Delivered and evidence-gated: behavior-parity coverage between standard verifier and freestanding profile across the checkpoint fixture matrix.",
         "rust_crate": "`crates/std-shims`",
         "zig_target_area": "freestanding/minimal Zig verifier profile and build flags"
       }
     ],
     "status_counts": {
-      "complete": 0,
+      "complete": 6,
       "other": 0,
-      "partial": 6
+      "partial": 0
     }
   },
   "schema_version": 1

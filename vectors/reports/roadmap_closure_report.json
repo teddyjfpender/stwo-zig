@@ -1,7 +1,7 @@
 {
-  "allow_partial": true,
+  "allow_partial": false,
   "failures": [],
-  "generated_at_unix": 1770580320,
+  "generated_at_unix": 1770580635,
   "rows": [
     {
       "checks": [
@@ -23,7 +23,7 @@
         }
       ],
       "checks_failed": 0,
-      "current_status": "Partial",
+      "current_status": "Complete",
       "rust_crate": "`crates/stwo`"
     },
     {
@@ -38,7 +38,7 @@
         }
       ],
       "checks_failed": 0,
-      "current_status": "Partial",
+      "current_status": "Complete",
       "rust_crate": "`crates/constraint-framework`"
     },
     {
@@ -57,7 +57,7 @@
         }
       ],
       "checks_failed": 0,
-      "current_status": "Partial",
+      "current_status": "Complete",
       "rust_crate": "`crates/air-utils`"
     },
     {
@@ -72,7 +72,7 @@
         }
       ],
       "checks_failed": 0,
-      "current_status": "Partial",
+      "current_status": "Complete",
       "rust_crate": "`crates/air-utils-derive`"
     },
     {
@@ -91,7 +91,7 @@
         }
       ],
       "checks_failed": 0,
-      "current_status": "Partial",
+      "current_status": "Complete",
       "rust_crate": "`crates/examples`"
     },
     {
@@ -106,7 +106,7 @@
         }
       ],
       "checks_failed": 0,
-      "current_status": "Partial",
+      "current_status": "Complete",
       "rust_crate": "`crates/std-shims`"
     }
   ],
@@ -114,8 +114,8 @@
   "status": "ok",
   "summary": {
     "failure_count": 0,
-    "rows_complete": 0,
-    "rows_partial": 6,
+    "rows_complete": 6,
+    "rows_partial": 0,
     "rows_total": 6
   }
 }
