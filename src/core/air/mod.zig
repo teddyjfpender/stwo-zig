@@ -1,6 +1,8 @@
 pub const accumulation = @import("accumulation.zig");
 pub const components = @import("components.zig");
 pub const derive = @import("derive.zig");
+pub const trace = @import("trace/mod.zig");
+pub const lookup_data = @import("lookup_data/mod.zig");
 pub const utils = @import("utils.zig");
 pub const Component = components.Component;
 pub const Components = components.Components;

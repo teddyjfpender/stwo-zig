@@ -21,6 +21,7 @@ Interop/checkpoint example set: `blake`, `poseidon`, `plonk`, `state_machine`, `
 zig build test
 zig build fmt
 zig build api-parity
+zig build upstream-surface
 zig build vectors
 zig build interop
 zig build prove-checkpoints
@@ -36,6 +37,8 @@ zig build profile-opt
 zig build profile-contrast
 zig build opt-gate
 zig build deep-gate
+zig build roadmap-baseline
+zig build roadmap-audit
 zig build std-shims-smoke
 zig build std-shims-behavior
 zig build release-evidence
@@ -50,6 +53,7 @@ zig build release-gate-strict
 
 - `release-gate`: fast/base confidence path.
 - `release-gate-strict`: release-signoff path.
+- `roadmap-audit`: section-15 closure gate; intentionally fails until all roadmap crate rows are marked `Complete`.
 
 Strict sequence:
 `fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict (warmups=3,repeats=11) -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence`

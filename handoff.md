@@ -5,6 +5,53 @@
 - Pin: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Contract: `CONFORMANCE.md` (strict parity + gated delivery)
 
+## Latest Slice (Roadmap-Closure Instrumentation + air-utils Trace Surface)
+
+### New Closure Instrumentation
+- Added roadmap closure tooling:
+  - `scripts/roadmap_baseline.py`
+  - `scripts/roadmap_audit.py`
+  - `scripts/check_upstream_surface.py`
+- Added build steps:
+  - `zig build upstream-surface`
+  - `zig build roadmap-baseline`
+  - `zig build roadmap-audit`
+- Added report artifacts:
+  - `vectors/reports/roadmap_baseline.json`
+  - `vectors/reports/roadmap_closure_report.json`
+
+### New air-utils Surface (trace + lookup_data)
+- Added `src/core/air/trace/`:
+  - `component_trace.zig`
+  - `row_iterator.zig`
+  - `mod.zig`
+- Added `src/core/air/lookup_data/mod.zig`.
+- Exported new modules from `src/core/air/mod.zig`:
+  - `trace`
+  - `lookup_data`
+
+### API Parity Surface Updates
+- Updated `API_PARITY.md` to include:
+  - `stwo.core.air.trace` -> `crates/air-utils/src/trace/mod.rs`
+  - `stwo.core.air.lookup_data` -> `crates/air-utils/src/lookup_data/mod.rs`
+- Updated std-shims root mapping:
+  - `stwo.std_shims` -> `crates/std-shims/src/lib.rs`
+  - `stwo.std_shims.verifier_profile` -> `crates/std-shims/src/lib.rs`
+
+### Validation (Passing)
+- `python3 -m unittest scripts/tests/test_roadmap_tools.py`
+- `python3 scripts/check_api_parity.py`
+- `python3 scripts/check_upstream_surface.py`
+- `python3 scripts/roadmap_baseline.py`
+- `python3 scripts/roadmap_audit.py --allow-partial`
+- `zig build upstream-surface`
+- `zig build roadmap-baseline`
+- `zig build release-gate-strict`
+
+### Current Roadmap Closure Signal
+- `zig build roadmap-audit` now fails only on Section 15 row status fields (`Partial` vs required `Complete`).
+- No evidence-check failures remain in `--allow-partial` mode.
+
 ## Latest Slice (Optimization Wave 2: Core Kernel + Opt Gate)
 
 ### Core Runtime Optimizations

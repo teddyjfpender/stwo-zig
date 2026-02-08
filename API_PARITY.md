@@ -77,6 +77,18 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/air-utils-derive/src/lib.rs",
       "source": "src/core/air/mod.zig"
     },
+    "stwo.core.air.lookup_data": {
+      "kind": "const",
+      "rationale": null,
+      "rust_path": "crates/air-utils/src/lookup_data/mod.rs",
+      "source": "src/core/air/mod.zig"
+    },
+    "stwo.core.air.trace": {
+      "kind": "const",
+      "rationale": null,
+      "rust_path": "crates/air-utils/src/trace/mod.rs",
+      "source": "src/core/air/mod.zig"
+    },
     "stwo.core.air.utils": {
       "kind": "const",
       "rationale": null,
@@ -734,13 +746,13 @@ This ledger maps every public export in the Zig root/module API surface to the p
     "stwo.std_shims": {
       "kind": "const",
       "rationale": "Zig-specific freestanding verifier shim surface; behavior parity is enforced via std-shims behavior gate.",
-      "rust_path": null,
+      "rust_path": "crates/std-shims/src/lib.rs",
       "source": "src/stwo.zig"
     },
     "stwo.std_shims.verifier_profile": {
       "kind": "const",
       "rationale": "Zig-specific freestanding verifier shim surface; behavior parity is enforced via std-shims behavior gate.",
-      "rust_path": null,
+      "rust_path": "crates/std-shims/src/lib.rs",
       "source": "src/std_shims/mod.zig"
     },
     "stwo.tracing": {

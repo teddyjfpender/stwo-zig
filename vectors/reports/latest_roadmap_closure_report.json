@@ -1,0 +1,121 @@
+{
+  "allow_partial": true,
+  "failures": [],
+  "generated_at_unix": 1770580320,
+  "rows": [
+    {
+      "checks": [
+        {
+          "detail": "ok",
+          "ok": true
+        },
+        {
+          "detail": "ok",
+          "ok": true
+        },
+        {
+          "detail": "ok",
+          "ok": true
+        },
+        {
+          "detail": "handoff divergence signoff present",
+          "ok": true
+        }
+      ],
+      "checks_failed": 0,
+      "current_status": "Partial",
+      "rust_crate": "`crates/stwo`"
+    },
+    {
+      "checks": [
+        {
+          "detail": "constraint_expr vectors present",
+          "ok": true
+        },
+        {
+          "detail": "constraint vector generator present",
+          "ok": true
+        }
+      ],
+      "checks_failed": 0,
+      "current_status": "Partial",
+      "rust_crate": "`crates/constraint-framework`"
+    },
+    {
+      "checks": [
+        {
+          "detail": "air utils module present",
+          "ok": true
+        },
+        {
+          "detail": "air trace component module present",
+          "ok": true
+        },
+        {
+          "detail": "air trace row iterator module present",
+          "ok": true
+        }
+      ],
+      "checks_failed": 0,
+      "current_status": "Partial",
+      "rust_crate": "`crates/air-utils`"
+    },
+    {
+      "checks": [
+        {
+          "detail": "air derive vectors present",
+          "ok": true
+        },
+        {
+          "detail": "air derive vector generator present",
+          "ok": true
+        }
+      ],
+      "checks_failed": 0,
+      "current_status": "Partial",
+      "rust_crate": "`crates/air-utils-derive`"
+    },
+    {
+      "checks": [
+        {
+          "detail": "ok",
+          "ok": true
+        },
+        {
+          "detail": "ok",
+          "ok": true
+        },
+        {
+          "detail": "ok",
+          "ok": true
+        }
+      ],
+      "checks_failed": 0,
+      "current_status": "Partial",
+      "rust_crate": "`crates/examples`"
+    },
+    {
+      "checks": [
+        {
+          "detail": "ok",
+          "ok": true
+        },
+        {
+          "detail": "freestanding std_shims entrypoint present",
+          "ok": true
+        }
+      ],
+      "checks_failed": 0,
+      "current_status": "Partial",
+      "rust_crate": "`crates/std-shims`"
+    }
+  ],
+  "schema_version": 1,
+  "status": "ok",
+  "summary": {
+    "failure_count": 0,
+    "rows_complete": 0,
+    "rows_partial": 6,
+    "rows_total": 6
+  }
+}

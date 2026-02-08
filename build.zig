@@ -93,6 +93,8 @@ pub fn build(b: *std.Build) void {
         "ReleaseFast",
         "--zig-cpu",
         "native",
+        "--merkle-workers",
+        "12",
         "--report-label",
         "optimization_track",
         "--report-out",
@@ -117,6 +119,8 @@ pub fn build(b: *std.Build) void {
         "ReleaseFast",
         "--zig-cpu",
         "native",
+        "--merkle-workers",
+        "12",
         "--report-label",
         "benchmark_contrast",
         "--report-out",
@@ -144,6 +148,8 @@ pub fn build(b: *std.Build) void {
         "ReleaseFast",
         "--zig-cpu",
         "native",
+        "--merkle-workers",
+        "12",
         "--report-label",
         "benchmark_contrast_long",
         "--report-out",
@@ -180,6 +186,8 @@ pub fn build(b: *std.Build) void {
         "ReleaseFast",
         "--zig-cpu",
         "native",
+        "--merkle-workers",
+        "12",
         "--report-label",
         "optimization_track",
         "--report-out",
@@ -200,6 +208,8 @@ pub fn build(b: *std.Build) void {
         "ReleaseFast",
         "--zig-cpu",
         "native",
+        "--merkle-workers",
+        "12",
         "--report-label",
         "profile_contrast",
         "--report-out",
@@ -224,6 +234,8 @@ pub fn build(b: *std.Build) void {
         "ReleaseFast",
         "--zig-cpu",
         "native",
+        "--merkle-workers",
+        "12",
         "--report-label",
         "profile_contrast_long",
         "--report-out",
@@ -308,6 +320,22 @@ pub fn build(b: *std.Build) void {
     const api_parity_cmd = b.addSystemCommand(&.{ "python3", "scripts/check_api_parity.py" });
     const api_parity_step = b.step("api-parity", "Validate API parity ledger coverage");
     api_parity_step.dependOn(&api_parity_cmd.step);
+
+    // Upstream surface audit for rust_path validity at pinned commit.
+    const upstream_surface_cmd = b.addSystemCommand(&.{ "python3", "scripts/check_upstream_surface.py" });
+    const upstream_surface_step = b.step(
+        "upstream-surface",
+        "Validate API parity rust_path entries against pinned upstream commit",
+    );
+    upstream_surface_step.dependOn(&upstream_surface_cmd.step);
+
+    // Capture current roadmap baseline snapshot for section-15 closure tracking.
+    const roadmap_baseline_cmd = b.addSystemCommand(&.{ "python3", "scripts/roadmap_baseline.py" });
+    const roadmap_baseline_step = b.step(
+        "roadmap-baseline",
+        "Capture roadmap baseline snapshot (CONFORMANCE section 15 + report hashes)",
+    );
+    roadmap_baseline_step.dependOn(&roadmap_baseline_cmd.step);
 
     // Deterministic release gate sequence:
     // fmt -> test -> api-parity -> vectors -> interop -> bench-smoke -> profile-smoke
@@ -408,4 +436,12 @@ pub fn build(b: *std.Build) void {
         "Run strict release gate sequence (fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence)",
     );
     release_gate_strict_step.dependOn(&rgs_evidence.step);
+
+    const roadmap_audit_cmd = b.addSystemCommand(&.{ "python3", "scripts/roadmap_audit.py" });
+    roadmap_audit_cmd.step.dependOn(&rgs_evidence.step);
+    const roadmap_audit_step = b.step(
+        "roadmap-audit",
+        "Audit CONFORMANCE section-15 closure status (requires all rows Complete)",
+    );
+    roadmap_audit_step.dependOn(&roadmap_audit_cmd.step);
 }
