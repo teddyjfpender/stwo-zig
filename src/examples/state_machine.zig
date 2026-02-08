@@ -25,6 +25,7 @@ pub const Hasher = blake2_merkle.Blake2sMerkleHasher;
 pub const MerkleChannel = blake2_merkle.Blake2sMerkleChannel;
 pub const Channel = channel_blake2s.Blake2sChannel;
 pub const Proof = core_proof.StarkProof(Hasher);
+pub const ExtendedProof = core_proof.ExtendedStarkProof(Hasher);
 
 pub const Error = error{
     InvalidIncIndex,
@@ -252,6 +253,11 @@ pub const ProveOutput = struct {
     proof: Proof,
 };
 
+pub const ProveExOutput = struct {
+    statement: PreparedStatement,
+    proof: ExtendedProof,
+};
+
 /// Proves the state-machine statement using the shared component-driven prover flow.
 ///
 /// Inputs:
@@ -271,6 +277,24 @@ pub fn prove(
     log_n_rows: u32,
     initial_state: State,
 ) anyerror!ProveOutput {
+    const output = try proveEx(allocator, pcs_config, log_n_rows, initial_state, false);
+    var ext_proof = output.proof;
+    const proof = ext_proof.proof;
+    ext_proof.aux.deinit(allocator);
+    return .{
+        .statement = output.statement,
+        .proof = proof,
+    };
+}
+
+/// Extended proving wrapper over `prover.proveEx`.
+pub fn proveEx(
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    log_n_rows: u32,
+    initial_state: State,
+    include_all_preprocessed_columns: bool,
+) anyerror!ProveExOutput {
     if (log_n_rows == 0 or log_n_rows >= 31) return Error.InvalidLogSize;
 
     var channel = Channel{};
@@ -319,13 +343,14 @@ pub fn prove(
         component.asProverComponent(),
     };
 
-    const proof = try prover_prove.prove(
+    const proof = try prover_prove.proveEx(
         Hasher,
         MerkleChannel,
         allocator,
         components[0..],
         &channel,
         scheme,
+        include_all_preprocessed_columns,
     );
     return .{
         .statement = statement,
@@ -707,6 +732,71 @@ test "examples state_machine: prove/verify wrapper roundtrip" {
         output.statement,
         output.proof,
     );
+}
+
+test "examples state_machine: prove_ex wrapper roundtrip" {
+    const config = pcs_core.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+
+    var output = try proveEx(
+        std.testing.allocator,
+        config,
+        5,
+        .{
+            M31.fromCanonical(9),
+            M31.fromCanonical(3),
+        },
+        false,
+    );
+    defer output.proof.aux.deinit(std.testing.allocator);
+    try verify(
+        std.testing.allocator,
+        config,
+        output.statement,
+        output.proof.proof,
+    );
+}
+
+test "examples state_machine: prove and prove_ex wrappers emit identical proof bytes" {
+    const alloc = std.testing.allocator;
+    const config = pcs_core.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+
+    var output_prove = try prove(
+        alloc,
+        config,
+        5,
+        .{
+            M31.fromCanonical(14),
+            M31.fromCanonical(6),
+        },
+    );
+    defer output_prove.proof.deinit(alloc);
+
+    var output_prove_ex = try proveEx(
+        alloc,
+        config,
+        5,
+        .{
+            M31.fromCanonical(14),
+            M31.fromCanonical(6),
+        },
+        false,
+    );
+    defer output_prove_ex.proof.aux.deinit(alloc);
+    defer output_prove_ex.proof.proof.deinit(alloc);
+
+    const proof_wire = @import("../interop/proof_wire.zig");
+    const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
+    defer alloc.free(prove_bytes);
+    const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);
+    defer alloc.free(prove_ex_bytes);
+
+    try std.testing.expectEqualSlices(u8, prove_bytes, prove_ex_bytes);
 }
 
 test "examples state_machine: verify wrapper rejects tampered statement" {

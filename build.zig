@@ -40,6 +40,14 @@ pub fn build(b: *std.Build) void {
     const interop_step = b.step("interop", "Run interoperability harness (Rust <-> Zig proof exchange)");
     interop_step.dependOn(&interop_cmd.step);
 
+    // Prove/prove_ex checkpoint parity gate (deterministic proof-byte parity + tamper rejection).
+    const prove_checkpoints_cmd = b.addSystemCommand(&.{ "python3", "scripts/prove_checkpoints.py" });
+    const prove_checkpoints_step = b.step(
+        "prove-checkpoints",
+        "Run prove/prove_ex checkpoint harness (Rust -> Zig/Rust verification)",
+    );
+    prove_checkpoints_step.dependOn(&prove_checkpoints_cmd.step);
+
     // Benchmark smoke gate with deterministic short workloads.
     const bench_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_smoke.py" });
     const bench_smoke_step = b.step("bench-smoke", "Run benchmark smoke harness and emit report");

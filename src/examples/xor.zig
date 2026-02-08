@@ -23,6 +23,7 @@ pub const Hasher = blake2_merkle.Blake2sMerkleHasher;
 pub const MerkleChannel = blake2_merkle.Blake2sMerkleChannel;
 pub const Channel = channel_blake2s.Blake2sChannel;
 pub const Proof = core_proof.StarkProof(Hasher);
+pub const ExtendedProof = core_proof.ExtendedStarkProof(Hasher);
 
 pub const Error = error{
     InvalidLogSize,
@@ -86,12 +87,34 @@ pub const ProveOutput = struct {
     proof: Proof,
 };
 
+pub const ProveExOutput = struct {
+    statement: Statement,
+    proof: ExtendedProof,
+};
+
 /// Proves the XOR example wrapper over the component-driven prover pipeline.
 pub fn prove(
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
     statement: Statement,
 ) anyerror!ProveOutput {
+    const output = try proveEx(allocator, pcs_config, statement, false);
+    var ext_proof = output.proof;
+    const proof = ext_proof.proof;
+    ext_proof.aux.deinit(allocator);
+    return .{
+        .statement = output.statement,
+        .proof = proof,
+    };
+}
+
+/// Extended proving wrapper over `prover.proveEx`.
+pub fn proveEx(
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    statement: Statement,
+    include_all_preprocessed_columns: bool,
+) anyerror!ProveExOutput {
     if (statement.log_size == 0) return Error.InvalidLogSize;
     if (statement.log_step > statement.log_size) return Error.InvalidStep;
 
@@ -140,13 +163,14 @@ pub fn prove(
         component.asProverComponent(),
     };
 
-    const proof = try prover_prove.prove(
+    const proof = try prover_prove.proveEx(
         Hasher,
         MerkleChannel,
         allocator,
         components[0..],
         &channel,
         scheme,
+        include_all_preprocessed_columns,
     );
     return .{
         .statement = statement,
@@ -419,6 +443,50 @@ test "examples xor: prove/verify wrapper roundtrip" {
 
     const output = try prove(std.testing.allocator, config, statement);
     try verify(std.testing.allocator, config, output.statement, output.proof);
+}
+
+test "examples xor: prove_ex wrapper roundtrip" {
+    const config = pcs_core.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+    const statement: Statement = .{
+        .log_size = 5,
+        .log_step = 2,
+        .offset = 3,
+    };
+
+    var output = try proveEx(std.testing.allocator, config, statement, false);
+    defer output.proof.aux.deinit(std.testing.allocator);
+    try verify(std.testing.allocator, config, output.statement, output.proof.proof);
+}
+
+test "examples xor: prove and prove_ex wrappers emit identical proof bytes" {
+    const alloc = std.testing.allocator;
+    const config = pcs_core.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../core/fri.zig").FriConfig.init(0, 1, 3),
+    };
+    const statement: Statement = .{
+        .log_size = 5,
+        .log_step = 2,
+        .offset = 7,
+    };
+
+    var output_prove = try prove(alloc, config, statement);
+    defer output_prove.proof.deinit(alloc);
+
+    var output_prove_ex = try proveEx(alloc, config, statement, false);
+    defer output_prove_ex.proof.aux.deinit(alloc);
+    defer output_prove_ex.proof.proof.deinit(alloc);
+
+    const proof_wire = @import("../interop/proof_wire.zig");
+    const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
+    defer alloc.free(prove_bytes);
+    const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);
+    defer alloc.free(prove_ex_bytes);
+
+    try std.testing.expectEqualSlices(u8, prove_bytes, prove_ex_bytes);
 }
 
 test "examples xor: verify wrapper rejects statement mismatch" {

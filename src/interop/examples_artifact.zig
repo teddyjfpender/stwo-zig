@@ -41,6 +41,7 @@ pub const InteropArtifact = struct {
     exchange_mode: []const u8,
     generator: []const u8,
     example: []const u8,
+    prove_mode: ?[]const u8 = null,
     pcs_config: PcsConfigWire,
     state_machine_statement: ?StateMachineStatementWire = null,
     xor_statement: ?XorStatementWire = null,

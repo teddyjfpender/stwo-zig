@@ -25,7 +25,7 @@ use stwo::prover::backend::cpu::{CpuBackend, CpuCircleEvaluation};
 use stwo::prover::poly::circle::PolyOps;
 use stwo::prover::poly::BitReversedOrder;
 use stwo::prover::{
-    prove, CommitmentSchemeProver, ComponentProver, DomainEvaluationAccumulator, Trace,
+    prove, prove_ex, CommitmentSchemeProver, ComponentProver, DomainEvaluationAccumulator, Trace,
 };
 
 const SCHEMA_VERSION: u32 = 1;
@@ -44,11 +44,19 @@ enum Example {
     Xor,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProveMode {
+    Prove,
+    ProveEx,
+}
+
 #[derive(Debug, Clone)]
 struct Cli {
     mode: Mode,
     example: Option<Example>,
     artifact: String,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
 
     pow_bits: u32,
     fri_log_blowup: u32,
@@ -143,6 +151,7 @@ struct InteropArtifact {
     exchange_mode: String,
     generator: String,
     example: String,
+    prove_mode: Option<String>,
     pcs_config: PcsConfigWire,
     state_machine_statement: Option<StateMachineStatementWire>,
     xor_statement: Option<XorStatementWire>,
@@ -202,7 +211,13 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 checked_m31(cli.sm_initial_0)?,
                 checked_m31(cli.sm_initial_1)?,
             ];
-            let (statement, proof) = state_machine_prove(config, cli.sm_log_n_rows, initial_state)?;
+            let (statement, proof) = state_machine_prove(
+                config,
+                cli.sm_log_n_rows,
+                initial_state,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
+            )?;
             let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
             InteropArtifact {
                 schema_version: SCHEMA_VERSION,
@@ -210,6 +225,7 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 exchange_mode: EXCHANGE_MODE.to_string(),
                 generator: "rust".to_string(),
                 example: "state_machine".to_string(),
+                prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
                 state_machine_statement: Some(state_machine_statement_to_wire(statement)),
                 xor_statement: None,
@@ -222,7 +238,12 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 log_step: cli.xor_log_step,
                 offset: cli.xor_offset,
             };
-            let (statement, proof) = xor_prove(config, statement)?;
+            let (statement, proof) = xor_prove(
+                config,
+                statement,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
+            )?;
             let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
             InteropArtifact {
                 schema_version: SCHEMA_VERSION,
@@ -230,6 +251,7 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 exchange_mode: EXCHANGE_MODE.to_string(),
                 generator: "rust".to_string(),
                 example: "xor".to_string(),
+                prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
                 state_machine_statement: None,
                 xor_statement: Some(xor_statement_to_wire(statement)?),
@@ -261,6 +283,11 @@ fn run_verify(cli: &Cli) -> Result<()> {
     if artifact.generator != "rust" && artifact.generator != "zig" {
         bail!("unsupported generator {}", artifact.generator);
     }
+    if let Some(mode) = &artifact.prove_mode {
+        if prove_mode_from_str(mode).is_none() {
+            bail!("unsupported prove mode {}", mode);
+        }
+    }
 
     let config = pcs_config_from_wire(&artifact.pcs_config)?;
     let proof_bytes = hex::decode(&artifact.proof_bytes_hex)?;
@@ -290,10 +317,27 @@ fn run_verify(cli: &Cli) -> Result<()> {
     Ok(())
 }
 
+fn prove_mode_to_str(mode: ProveMode) -> &'static str {
+    match mode {
+        ProveMode::Prove => "prove",
+        ProveMode::ProveEx => "prove_ex",
+    }
+}
+
+fn prove_mode_from_str(value: &str) -> Option<ProveMode> {
+    match value {
+        "prove" => Some(ProveMode::Prove),
+        "prove_ex" => Some(ProveMode::ProveEx),
+        _ => None,
+    }
+}
+
 fn parse_cli(args: Vec<String>) -> Result<Cli> {
     let mut mode: Option<Mode> = None;
     let mut example: Option<Example> = None;
     let mut artifact: Option<String> = None;
+    let mut prove_mode = ProveMode::Prove;
+    let mut include_all_preprocessed_columns = false;
 
     let mut pow_bits = 0u32;
     let mut fri_log_blowup = 1u32;
@@ -336,6 +380,19 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
                 }
             }
             "--artifact" => artifact = Some(value.clone()),
+            "--prove-mode" => {
+                prove_mode = prove_mode_from_str(value)
+                    .ok_or_else(|| anyhow!("invalid prove mode {value}"))?
+            }
+            "--include-all-preprocessed-columns" => {
+                include_all_preprocessed_columns = match value.as_str() {
+                    "0" | "false" => false,
+                    "1" | "true" => true,
+                    _ => bail!(
+                        "invalid boolean value for --include-all-preprocessed-columns: {value}"
+                    ),
+                };
+            }
             "--pow-bits" => pow_bits = value.parse()?,
             "--fri-log-blowup" => fri_log_blowup = value.parse()?,
             "--fri-log-last-layer" => fri_log_last_layer = value.parse()?,
@@ -354,6 +411,8 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
         mode: mode.ok_or_else(|| anyhow!("--mode is required"))?,
         example,
         artifact: artifact.ok_or_else(|| anyhow!("--artifact is required"))?,
+        prove_mode,
+        include_all_preprocessed_columns,
         pow_bits,
         fri_log_blowup,
         fri_log_last_layer,
@@ -682,6 +741,8 @@ fn state_machine_prove(
     config: PcsConfig,
     log_n_rows: u32,
     initial_state: [M31; 2],
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
 ) -> Result<(StateMachineStatement, StarkProof<Blake2sMerkleHasher>)> {
     if log_n_rows == 0 || log_n_rows >= 31 {
         bail!("invalid log_n_rows {log_n_rows}");
@@ -732,7 +793,20 @@ fn state_machine_prove(
         trace_log_size: log_n_rows,
         composition_eval: statement.stmt1_x_axis_claimed_sum + statement.stmt1_y_axis_claimed_sum,
     };
-    let proof = prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?;
+    let proof = match prove_mode {
+        ProveMode::Prove => {
+            prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?
+        }
+        ProveMode::ProveEx => {
+            prove_ex::<CpuBackend, Blake2sMerkleChannel>(
+                &[&component],
+                &mut channel,
+                scheme,
+                include_all_preprocessed_columns,
+            )?
+            .proof
+        }
+    };
 
     Ok((statement, proof))
 }
@@ -787,6 +861,8 @@ fn state_machine_verify(
 fn xor_prove(
     config: PcsConfig,
     statement: XorStatement,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
 ) -> Result<(XorStatement, StarkProof<Blake2sMerkleHasher>)> {
     if statement.log_size == 0 {
         bail!("invalid xor log_size");
@@ -824,7 +900,20 @@ fn xor_prove(
     mix_xor_statement(&mut channel, statement);
 
     let component = XorComponent { statement };
-    let proof = prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?;
+    let proof = match prove_mode {
+        ProveMode::Prove => {
+            prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?
+        }
+        ProveMode::ProveEx => {
+            prove_ex::<CpuBackend, Blake2sMerkleChannel>(
+                &[&component],
+                &mut channel,
+                scheme,
+                include_all_preprocessed_columns,
+            )?
+            .proof
+        }
+    };
 
     Ok((statement, proof))
 }

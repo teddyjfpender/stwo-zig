@@ -13,4 +13,9 @@ vectors/reports/latest_benchmark_smoke_report.json
 vectors/reports/profile_smoke_report.json
 vectors/reports/latest_profile_smoke_report.json
 vectors/reports/*_artifact.json
+vectors/reports/prove_checkpoints_report.json
+vectors/reports/latest_prove_checkpoints_report.json
+vectors/reports/prove_checkpoints_artifacts/
+vectors/reports/release_evidence.json
+vectors/reports/latest_release_evidence.json
 target/

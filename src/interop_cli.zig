@@ -21,10 +21,17 @@ const Example = enum {
     xor,
 };
 
+const ProveMode = enum {
+    prove,
+    prove_ex,
+};
+
 const Cli = struct {
     mode: Mode,
     example: ?Example = null,
     artifact_path: []const u8,
+    prove_mode: ProveMode = .prove,
+    include_all_preprocessed_columns: bool = false,
 
     pow_bits: u32 = 0,
     fri_log_blowup: u32 = 1,
@@ -60,6 +67,7 @@ pub fn main() !void {
 fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
     const example = cli.example orelse return error.MissingExample;
     const config = try pcsConfigFromCli(cli);
+    const prove_mode = proveModeToString(cli.prove_mode);
 
     switch (example) {
         .state_machine => {
@@ -67,15 +75,37 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 try m31FromCanonical(cli.sm_initial_0),
                 try m31FromCanonical(cli.sm_initial_1),
             };
-            const output = try state_machine.prove(
-                allocator,
-                config,
-                cli.sm_log_n_rows,
-                initial_state,
-            );
-
-            var proof = output.proof;
-            defer proof.deinit(allocator);
+            var statement: state_machine.PreparedStatement = undefined;
+            var proof: state_machine.Proof = undefined;
+            var deinit_proof = false;
+            defer if (deinit_proof) proof.deinit(allocator);
+            switch (cli.prove_mode) {
+                .prove => {
+                    const output = try state_machine.prove(
+                        allocator,
+                        config,
+                        cli.sm_log_n_rows,
+                        initial_state,
+                    );
+                    statement = output.statement;
+                    proof = output.proof;
+                    deinit_proof = true;
+                },
+                .prove_ex => {
+                    const output = try state_machine.proveEx(
+                        allocator,
+                        config,
+                        cli.sm_log_n_rows,
+                        initial_state,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    statement = output.statement;
+                    var ext_proof = output.proof;
+                    proof = ext_proof.proof;
+                    ext_proof.aux.deinit(allocator);
+                    deinit_proof = true;
+                },
+            }
 
             const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
             defer allocator.free(proof_bytes);
@@ -88,8 +118,9 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .exchange_mode = examples_artifact.EXCHANGE_MODE,
                 .generator = "zig",
                 .example = "state_machine",
+                .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
-                .state_machine_statement = examples_artifact.stateMachineStatementToWire(output.statement),
+                .state_machine_statement = examples_artifact.stateMachineStatementToWire(statement),
                 .xor_statement = null,
                 .proof_bytes_hex = proof_bytes_hex,
             });
@@ -100,10 +131,31 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .log_step = cli.xor_log_step,
                 .offset = cli.xor_offset,
             };
-            const output = try xor.prove(allocator, config, statement);
-
-            var proof = output.proof;
-            defer proof.deinit(allocator);
+            var proved_statement: xor.Statement = undefined;
+            var proof: xor.Proof = undefined;
+            var deinit_proof = false;
+            defer if (deinit_proof) proof.deinit(allocator);
+            switch (cli.prove_mode) {
+                .prove => {
+                    const output = try xor.prove(allocator, config, statement);
+                    proved_statement = output.statement;
+                    proof = output.proof;
+                    deinit_proof = true;
+                },
+                .prove_ex => {
+                    const output = try xor.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    proved_statement = output.statement;
+                    var ext_proof = output.proof;
+                    proof = ext_proof.proof;
+                    ext_proof.aux.deinit(allocator);
+                    deinit_proof = true;
+                },
+            }
 
             const proof_bytes = try proof_wire.encodeProofBytes(allocator, proof);
             defer allocator.free(proof_bytes);
@@ -116,9 +168,10 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .exchange_mode = examples_artifact.EXCHANGE_MODE,
                 .generator = "zig",
                 .example = "xor",
+                .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
                 .state_machine_statement = null,
-                .xor_statement = examples_artifact.xorStatementToWire(output.statement),
+                .xor_statement = examples_artifact.xorStatementToWire(proved_statement),
                 .proof_bytes_hex = proof_bytes_hex,
             });
         },
@@ -141,6 +194,9 @@ fn runVerify(allocator: std.mem.Allocator, cli: Cli) !void {
     }
     if (!isSupportedGenerator(artifact.generator)) {
         return error.UnsupportedGenerator;
+    }
+    if (artifact.prove_mode) |mode| {
+        if (!isSupportedProveMode(mode)) return error.UnsupportedProveMode;
     }
 
     const config = try examples_artifact.pcsConfigFromWire(artifact.pcs_config);
@@ -168,10 +224,23 @@ fn isSupportedGenerator(generator: []const u8) bool {
     return std.mem.eql(u8, generator, "rust") or std.mem.eql(u8, generator, "zig");
 }
 
+fn isSupportedProveMode(mode: []const u8) bool {
+    return std.mem.eql(u8, mode, "prove") or std.mem.eql(u8, mode, "prove_ex");
+}
+
+fn proveModeToString(mode: ProveMode) []const u8 {
+    return switch (mode) {
+        .prove => "prove",
+        .prove_ex => "prove_ex",
+    };
+}
+
 fn parseArgs(args: []const []const u8) !Cli {
     var mode: ?Mode = null;
     var example: ?Example = null;
     var artifact_path: ?[]const u8 = null;
+    var prove_mode: ProveMode = .prove;
+    var include_all_preprocessed_columns = false;
 
     var pow_bits: u32 = 0;
     var fri_log_blowup: u32 = 1;
@@ -201,6 +270,10 @@ fn parseArgs(args: []const []const u8) !Cli {
             example = parseExample(value) orelse return error.InvalidExample;
         } else if (std.mem.eql(u8, flag, "--artifact")) {
             artifact_path = value;
+        } else if (std.mem.eql(u8, flag, "--prove-mode")) {
+            prove_mode = parseProveMode(value) orelse return error.InvalidProveMode;
+        } else if (std.mem.eql(u8, flag, "--include-all-preprocessed-columns")) {
+            include_all_preprocessed_columns = try parseBool(value);
         } else if (std.mem.eql(u8, flag, "--pow-bits")) {
             pow_bits = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--fri-log-blowup")) {
@@ -230,6 +303,8 @@ fn parseArgs(args: []const []const u8) !Cli {
         .mode = mode orelse return error.MissingMode,
         .example = example,
         .artifact_path = artifact_path orelse return error.MissingArtifactPath,
+        .prove_mode = prove_mode,
+        .include_all_preprocessed_columns = include_all_preprocessed_columns,
         .pow_bits = pow_bits,
         .fri_log_blowup = fri_log_blowup,
         .fri_log_last_layer = fri_log_last_layer,
@@ -253,6 +328,18 @@ fn parseExample(value: []const u8) ?Example {
     if (std.mem.eql(u8, value, "state_machine")) return .state_machine;
     if (std.mem.eql(u8, value, "xor")) return .xor;
     return null;
+}
+
+fn parseProveMode(value: []const u8) ?ProveMode {
+    if (std.mem.eql(u8, value, "prove")) return .prove;
+    if (std.mem.eql(u8, value, "prove_ex")) return .prove_ex;
+    return null;
+}
+
+fn parseBool(value: []const u8) !bool {
+    if (std.mem.eql(u8, value, "1") or std.mem.eql(u8, value, "true")) return true;
+    if (std.mem.eql(u8, value, "0") or std.mem.eql(u8, value, "false")) return false;
+    return error.InvalidBoolean;
 }
 
 fn parseInt(comptime T: type, value: []const u8) !T {
@@ -279,6 +366,7 @@ fn printUsage() void {
     std.debug.print(
         "usage:\n" ++
             "  zig run src/interop_cli.zig -- --mode generate --example <state_machine|xor> --artifact <path> [options]\n" ++
+            "    [--prove-mode <prove|prove_ex>] [--include-all-preprocessed-columns <0|1>]\n" ++
             "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n",
         .{},
     );

@@ -33,6 +33,7 @@ zig build fmt
 ```bash
 zig build vectors
 zig build interop
+zig build prove-checkpoints
 zig build bench-smoke
 zig build bench-strict
 zig build profile-smoke
@@ -44,6 +45,11 @@ zig build deep-gate
 (`proof_exchange_json_wire_v1`) and includes semantic statement-tamper plus
 proof-byte tamper rejection checks. It uses
 Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
+
+`zig build prove-checkpoints` runs deterministic `prove`/`prove_ex` checkpoint parity
+for `xor` and `state_machine` across base and non-zero blowup settings, and enforces
+semantic tamper rejection plus invalid-`prove_mode` metadata rejection in both Zig and Rust
+verifiers.
 
 `zig build bench-smoke` now runs a matched Rust-vs-Zig workload matrix over release
 interop binaries, records raw prove/verify timing samples, RSS, proof-size/decommit
