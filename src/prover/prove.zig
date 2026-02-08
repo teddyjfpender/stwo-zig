@@ -279,32 +279,18 @@ fn commitCompositionSplit(
     const split_log_size = left.logSize();
     if (right.logSize() != split_log_size) return ProvingError.InvalidStructure;
 
-    const eval_domain = canonic.CanonicCoset.new(split_log_size).circleDomain();
-    var builder = commitment_scheme.treeBuilder(allocator);
-    defer builder.deinit();
+    const n_polys = 2 * qm31.SECURE_EXTENSION_DEGREE;
+    const polys = try allocator.alloc(prover_circle.CircleCoefficients, n_polys);
+    defer allocator.free(polys);
 
-    for (left.polys) |coord_poly| {
-        const evaluation = try coord_poly.evaluate(allocator, eval_domain);
-        defer allocator.free(@constCast(evaluation.values));
-        _ = try builder.extendColumns(&[_]pcs_prover.ColumnEvaluation{
-            .{
-                .log_size = split_log_size,
-                .values = evaluation.values,
-            },
-        });
+    for (left.polys, 0..) |coord_poly, i| {
+        polys[i] = coord_poly;
     }
-    for (right.polys) |coord_poly| {
-        const evaluation = try coord_poly.evaluate(allocator, eval_domain);
-        defer allocator.free(@constCast(evaluation.values));
-        _ = try builder.extendColumns(&[_]pcs_prover.ColumnEvaluation{
-            .{
-                .log_size = split_log_size,
-                .values = evaluation.values,
-            },
-        });
+    for (right.polys, 0..) |coord_poly, i| {
+        polys[qm31.SECURE_EXTENSION_DEGREE + i] = coord_poly;
     }
 
-    try builder.commit(channel);
+    try commitment_scheme.commitPolys(allocator, polys, channel);
 }
 
 fn appendCompositionMaskTree(

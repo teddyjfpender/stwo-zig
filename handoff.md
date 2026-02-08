@@ -43,6 +43,9 @@
   - Wired `setStorePolynomialsCoefficients` slice:
     - committed trees can now retain base polynomial coefficients.
     - `proveValues` evaluates sampled points from stored coefficients when present (fallback remains barycentric on committed evaluations).
+  - Added direct coefficient commit path (`commitPolys`):
+    - commits coefficient-form circle polynomials directly to extended-domain columns.
+    - respects `setStorePolynomialsCoefficients` by cloning/storing coefficient columns.
   - Added roundtrip test against `core/pcs/verifier.zig`.
   - Added negative tests for shape mismatch, inconsistent sampled-value rejection, and sampled-point-on-domain rejection.
 
@@ -113,7 +116,7 @@
   - Added component-driven proving slice (`proveExComponents` / `proveComponents`) with:
     - AIR mask-point derivation via `ComponentProvers.componentsView`
     - composition OODS sanity check against sampled values
-    - in-prover composition polynomial generation + commit (reference interpolation path)
+    - in-prover composition polynomial generation + direct coefficient commit path
   - Retained prepared-samples proving entrypoint (`provePrepared`) as compatibility path.
   - Added roundtrip tests against core verifier for prepared, sampled-points, and component-driven slices.
 
@@ -136,8 +139,8 @@
 1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover and supports stored coefficients, but still lacks shared weights hash-map caching and full upstream TwiddleTree-backed coefficient plumbing.
 2. `prover/poly/circle` now has FFT-layer interpolation/evaluation, but still lacks full upstream TwiddleTree backend parity (precompute/caching and backend-specific SIMD/CPU paths).
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
-   - Current executable entrypoints are sampled-points (`prove`/`proveEx`), component-driven (`proveExComponents`/`proveComponents`), and prepared sampled-values (`provePrepared`) paths.
-   - Component-driven slice now allows non-zero PCS blowup, but still uses reference interpolation/evaluation in composition commit path.
+   - Current executable entrypoints are component-driven (`prove`/`proveEx`, plus `proveExComponents`/`proveComponents`), sampled-points (`proveSampledPoints`/`proveExSampledPoints`), and prepared sampled-values (`provePrepared`) paths.
+   - Component-driven slice now allows non-zero PCS blowup and direct composition coefficient commit, but still has remaining divergence from upstream twiddle/weights-cache internals.
 4. Full-repo forced test-graph execution (`refAllDecls(core/prover/...)`) currently surfaces additional legacy failures outside the current default gate (notably FRI ownership/decommit and a few legacy expectation mismatches). These are queued for dedicated cleanup slice.
 
 ## Next Highest-Impact Targets

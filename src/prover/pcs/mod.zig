@@ -218,6 +218,76 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             try self.appendCommittedTree(allocator, tree, channel);
         }
 
+        /// Commits coefficient-form circle polynomials directly.
+        ///
+        /// Inputs:
+        /// - `polys`: coefficient polynomials over canonic cosets.
+        ///
+        /// Semantics:
+        /// - evaluates each polynomial on the commitment domain extended by
+        ///   `config.fri_config.log_blowup_factor`.
+        /// - optionally stores cloned coefficients when
+        ///   `store_polynomials_coefficients` is enabled.
+        pub fn commitPolys(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            polys: []const prover_circle.CircleCoefficients,
+            channel: anytype,
+        ) !void {
+            const blowup = self.config.fri_config.log_blowup_factor;
+
+            const columns = try allocator.alloc(ColumnEvaluation, polys.len);
+            errdefer allocator.free(columns);
+
+            var initialized_columns: usize = 0;
+            errdefer {
+                for (columns[0..initialized_columns]) |column| allocator.free(column.values);
+                allocator.free(columns);
+            }
+
+            for (polys, 0..) |poly, i| {
+                const extended_eval = try prover_circle.ops.evaluateOnCanonicDomain(
+                    allocator,
+                    poly,
+                    blowup,
+                );
+                columns[i] = .{
+                    .log_size = std.math.add(u32, poly.logSize(), blowup) catch
+                        return CommitmentSchemeError.ShapeMismatch,
+                    .values = extended_eval.values,
+                };
+                initialized_columns += 1;
+            }
+
+            var stored_coefficients: ?[]prover_circle.CircleCoefficients = null;
+            if (self.store_polynomials_coefficients) {
+                const coeffs = try allocator.alloc(prover_circle.CircleCoefficients, polys.len);
+                errdefer allocator.free(coeffs);
+
+                var initialized_coeffs: usize = 0;
+                errdefer {
+                    for (coeffs[0..initialized_coeffs]) |*coeff| coeff.deinit(allocator);
+                    allocator.free(coeffs);
+                }
+
+                for (polys, 0..) |poly, i| {
+                    coeffs[i] = try prover_circle.CircleCoefficients.initOwned(
+                        try allocator.dupe(M31, poly.coefficients()),
+                    );
+                    initialized_coeffs += 1;
+                }
+                stored_coefficients = coeffs;
+            }
+
+            var tree = try CommitmentTreeProver(H).initOwnedWithCoefficients(
+                allocator,
+                columns,
+                stored_coefficients,
+            );
+            errdefer tree.deinit(allocator);
+            try self.appendCommittedTree(allocator, tree, channel);
+        }
+
         pub fn treeBuilder(self: *Self, allocator: std.mem.Allocator) TreeBuilder(H, MC) {
             return .{
                 .allocator = allocator,
@@ -1083,6 +1153,45 @@ test "prover pcs: tree builder extends and commits" {
 
     try std.testing.expectEqual(@as(usize, 1), scheme.trees.items.len);
     try std.testing.expectEqual(@as(usize, 2), scheme.trees.items[0].columns.len);
+}
+
+test "prover pcs: commit polys applies blowup and stores coefficients" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    const config = PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 2, 3),
+    };
+
+    var scheme = try Scheme.init(alloc, config);
+    defer scheme.deinit(alloc);
+    scheme.setStorePolynomialsCoefficients();
+
+    const coeffs = [_]M31{
+        M31.fromCanonical(7),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+        M31.zero(),
+    };
+    const poly = try prover_circle.CircleCoefficients.initBorrowed(coeffs[0..]);
+
+    var channel = Channel{};
+    try scheme.commitPolys(alloc, &[_]prover_circle.CircleCoefficients{poly}, &channel);
+
+    try std.testing.expectEqual(@as(usize, 1), scheme.trees.items.len);
+    try std.testing.expectEqual(@as(usize, 1), scheme.trees.items[0].columns.len);
+    try std.testing.expectEqual(@as(u32, 5), scheme.trees.items[0].columns[0].log_size);
+    try std.testing.expectEqual(@as(usize, 32), scheme.trees.items[0].columns[0].values.len);
+    try std.testing.expect(scheme.trees.items[0].coefficients != null);
+    try std.testing.expectEqual(@as(usize, 1), scheme.trees.items[0].coefficients.?.len);
 }
 
 test "prover pcs: build query positions tree applies preprocessed mapping" {
