@@ -128,10 +128,14 @@ pub const QM31 = struct {
     }
 
     pub inline fn mul(lhs: QM31, rhs: QM31) QM31 {
-        // (a + bu) * (c + du) = (ac + rbd) + (ad + bc)u, where r = 2 + i.
+        // Karatsuba over CM31:
+        // (a + bu) * (c + du) = (ac + rbd) + ((a+b)(c+d)-ac-bd)u.
+        const ac = lhs.c0.mul(rhs.c0);
+        const bd = lhs.c1.mul(rhs.c1);
+        const cross = lhs.c0.add(lhs.c1).mul(rhs.c0.add(rhs.c1)).sub(ac).sub(bd);
         return .{
-            .c0 = lhs.c0.mul(rhs.c0).add(R.mul(lhs.c1).mul(rhs.c1)),
-            .c1 = lhs.c0.mul(rhs.c1).add(lhs.c1.mul(rhs.c0)),
+            .c0 = ac.add(mulByR(bd)),
+            .c1 = cross,
         };
     }
 
@@ -143,7 +147,13 @@ pub const QM31 = struct {
     }
 
     pub inline fn square(self: QM31) QM31 {
-        return self.mul(self);
+        const a2 = self.c0.square();
+        const b2 = self.c1.square();
+        const ab = self.c0.mul(self.c1);
+        return .{
+            .c0 = a2.add(mulByR(b2)),
+            .c1 = ab.add(ab),
+        };
     }
 
     pub fn pow(self: QM31, exponent: u64) QM31 {
@@ -162,7 +172,7 @@ pub const QM31 = struct {
 
         // (a + bu)^-1 = (a - bu) / (a^2 - (2+i)b^2).
         const b2 = self.c1.square();
-        const ib2 = CM31.fromM31(b2.b.neg(), b2.a);
+        const ib2 = mulByI(b2);
         const denom = self.c0.square().sub(b2.add(b2).add(ib2));
         const denom_inverse = denom.inv() catch return Error.DivisionByZero;
         return .{
@@ -214,6 +224,47 @@ fn randM31(rng: std.Random) M31 {
 
 fn randElem(rng: std.Random) QM31 {
     return QM31.fromM31(randM31(rng), randM31(rng), randM31(rng), randM31(rng));
+}
+
+fn mulByR(value: CM31) CM31 {
+    // (a + bi) * (2 + i) = (2a - b) + (a + 2b)i.
+    const two_a = value.a.add(value.a);
+    const two_b = value.b.add(value.b);
+    return .{
+        .a = two_a.sub(value.b),
+        .b = value.a.add(two_b),
+    };
+}
+
+fn mulByI(value: CM31) CM31 {
+    return .{
+        .a = value.b.neg(),
+        .b = value.a,
+    };
+}
+
+fn mulReference(lhs: QM31, rhs: QM31) QM31 {
+    return .{
+        .c0 = lhs.c0.mul(rhs.c0).add(R.mul(lhs.c1).mul(rhs.c1)),
+        .c1 = lhs.c0.mul(rhs.c1).add(lhs.c1.mul(rhs.c0)),
+    };
+}
+
+fn squareReference(value: QM31) QM31 {
+    return mulReference(value, value);
+}
+
+test "qm31: mul and square match schoolbook reference" {
+    var prng = std.Random.DefaultPrng.init(0x0b6e_c8a1_3158_44af);
+    const rng = prng.random();
+
+    var i: usize = 0;
+    while (i < 3_000) : (i += 1) {
+        const a = randElem(rng);
+        const b = randElem(rng);
+        try std.testing.expect(a.mul(b).eql(mulReference(a, b)));
+        try std.testing.expect(a.square().eql(squareReference(a)));
+    }
 }
 
 test "qm31: inverse" {

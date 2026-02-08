@@ -95,10 +95,15 @@ pub const CM31 = struct {
     }
 
     pub inline fn mul(lhs: CM31, rhs: CM31) CM31 {
-        // (a + bi) * (c + di) = (ac - bd) + (ad + bc)i.
+        // Karatsuba: 3 base-field multiplies instead of 4.
+        // real = ac - bd
+        // imag = (a+b)(c+d) - ac - bd
+        const ac = lhs.a.mul(rhs.a);
+        const bd = lhs.b.mul(rhs.b);
+        const cross = lhs.a.add(lhs.b).mul(rhs.a.add(rhs.b));
         return .{
-            .a = lhs.a.mul(rhs.a).sub(lhs.b.mul(rhs.b)),
-            .b = lhs.a.mul(rhs.b).add(lhs.b.mul(rhs.a)),
+            .a = ac.sub(bd),
+            .b = cross.sub(ac).sub(bd),
         };
     }
 
@@ -110,7 +115,13 @@ pub const CM31 = struct {
     }
 
     pub inline fn square(self: CM31) CM31 {
-        return self.mul(self);
+        const a2 = self.a.square();
+        const b2 = self.b.square();
+        const ab = self.a.mul(self.b);
+        return .{
+            .a = a2.sub(b2),
+            .b = ab.add(ab),
+        };
     }
 
     pub fn pow(self: CM31, exponent: u64) CM31 {
@@ -175,6 +186,30 @@ fn randElem(rng: std.Random) CM31 {
         if (a != m31.Modulus and b != m31.Modulus) {
             return CM31.fromU32Unchecked(a, b);
         }
+    }
+}
+
+fn mulReference(lhs: CM31, rhs: CM31) CM31 {
+    return .{
+        .a = lhs.a.mul(rhs.a).sub(lhs.b.mul(rhs.b)),
+        .b = lhs.a.mul(rhs.b).add(lhs.b.mul(rhs.a)),
+    };
+}
+
+fn squareReference(value: CM31) CM31 {
+    return mulReference(value, value);
+}
+
+test "cm31: mul and square match schoolbook reference" {
+    var prng = std.Random.DefaultPrng.init(0x4c9a_8b01_b16f_08d2);
+    const rng = prng.random();
+
+    var i: usize = 0;
+    while (i < 5_000) : (i += 1) {
+        const a = randElem(rng);
+        const b = randElem(rng);
+        try std.testing.expect(a.mul(b).eql(mulReference(a, b)));
+        try std.testing.expect(a.square().eql(squareReference(a)));
     }
 }
 
