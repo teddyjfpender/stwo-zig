@@ -89,6 +89,7 @@
     - `Trace`
     - `ComponentProver` vtable
     - `ComponentProvers` composition accumulation wiring
+    - bridge adapter to `core/air/components` (`componentsView`) for mask/point-eval orchestration
   - Added deterministic tests for poly lifting and composition accumulation.
 
 ### Prover Entrypoint
@@ -112,7 +113,7 @@
 
 ## Next Highest-Impact Targets
 1. Complete FFT/twiddle-backed circle interpolation/evaluation parity and wire `store_polynomials_coefficients` fast path.
-2. Extend `prover/air/component_prover` to expose full upstream component bridge (`mask_points`, composition-point eval path).
+2. Wire top-level `prover::prove_ex` to consume the new `ComponentProvers.componentsView` bridge and run full composition OODS sanity checks.
 3. Implement full `prover::prove` / `prover::prove_ex` pipeline parity on top of in-prover PCS `proveValues`.
 4. Expand differential vectors to cover prover-side circle poly slices and full `proveValues`.
 

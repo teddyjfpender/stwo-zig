@@ -1,10 +1,14 @@
 const std = @import("std");
+const circle = @import("../../core/circle.zig");
+const core_air_accumulation = @import("../../core/air/accumulation.zig");
+const core_air_components = @import("../../core/air/components.zig");
 const m31 = @import("../../core/fields/m31.zig");
 const qm31 = @import("../../core/fields/qm31.zig");
 const pcs = @import("../../core/pcs/mod.zig");
 const accumulation = @import("accumulation.zig");
 const secure_column = @import("../secure_column.zig");
 
+const CirclePointQM31 = circle.CirclePointQM31;
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const TreeVec = pcs.TreeVec;
@@ -51,7 +55,21 @@ pub const Trace = struct {
 pub const ComponentProverVTable = struct {
     nConstraints: *const fn (ctx: *const anyopaque) usize,
     maxConstraintLogDegreeBound: *const fn (ctx: *const anyopaque) u32,
+    traceLogDegreeBounds: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror!core_air_components.TraceLogDegreeBounds,
+    maskPoints: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+        point: CirclePointQM31,
+        max_log_degree_bound: u32,
+    ) anyerror!core_air_components.MaskPoints,
     preprocessedColumnIndices: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror![]usize,
+    evaluateConstraintQuotientsAtPoint: *const fn (
+        ctx: *const anyopaque,
+        point: CirclePointQM31,
+        mask: *const core_air_components.MaskValues,
+        evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
+        max_log_degree_bound: u32,
+    ) anyerror!void,
     evaluateConstraintQuotientsOnDomain: *const fn (
         ctx: *const anyopaque,
         trace: *const Trace,
@@ -71,11 +89,48 @@ pub const ComponentProver = struct {
         return self.vtable.maxConstraintLogDegreeBound(self.ctx);
     }
 
+    pub inline fn traceLogDegreeBounds(
+        self: ComponentProver,
+        allocator: std.mem.Allocator,
+    ) anyerror!core_air_components.TraceLogDegreeBounds {
+        return self.vtable.traceLogDegreeBounds(self.ctx, allocator);
+    }
+
+    pub inline fn maskPoints(
+        self: ComponentProver,
+        allocator: std.mem.Allocator,
+        point: CirclePointQM31,
+        max_log_degree_bound: u32,
+    ) anyerror!core_air_components.MaskPoints {
+        return self.vtable.maskPoints(
+            self.ctx,
+            allocator,
+            point,
+            max_log_degree_bound,
+        );
+    }
+
     pub inline fn preprocessedColumnIndices(
         self: ComponentProver,
         allocator: std.mem.Allocator,
     ) anyerror![]usize {
         return self.vtable.preprocessedColumnIndices(self.ctx, allocator);
+    }
+
+    pub inline fn evaluateConstraintQuotientsAtPoint(
+        self: ComponentProver,
+        point: CirclePointQM31,
+        mask: *const core_air_components.MaskValues,
+        evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
+        max_log_degree_bound: u32,
+    ) anyerror!void {
+        return self.vtable.evaluateConstraintQuotientsAtPoint(
+            self.ctx,
+            point,
+            mask,
+            evaluation_accumulator,
+            max_log_degree_bound,
+        );
     }
 
     pub inline fn evaluateConstraintQuotientsOnDomain(
@@ -94,6 +149,52 @@ pub const ComponentProver = struct {
 pub const ComponentProvers = struct {
     components: []const ComponentProver,
     n_preprocessed_columns: usize,
+
+    pub const ComponentsView = struct {
+        prover_components: []ComponentProver,
+        core_components: []core_air_components.Component,
+        n_preprocessed_columns: usize,
+
+        pub fn deinit(self: *ComponentsView, allocator: std.mem.Allocator) void {
+            allocator.free(self.core_components);
+            allocator.free(self.prover_components);
+            self.* = undefined;
+        }
+
+        pub fn asCore(self: ComponentsView) core_air_components.Components {
+            return .{
+                .components = self.core_components,
+                .n_preprocessed_columns = self.n_preprocessed_columns,
+            };
+        }
+    };
+
+    pub fn componentsView(
+        self: ComponentProvers,
+        allocator: std.mem.Allocator,
+    ) !ComponentsView {
+        const prover_components = try allocator.dupe(ComponentProver, self.components);
+        errdefer allocator.free(prover_components);
+
+        const core_components = try allocator.alloc(
+            core_air_components.Component,
+            prover_components.len,
+        );
+        errdefer allocator.free(core_components);
+
+        for (prover_components, 0..) |_, i| {
+            core_components[i] = .{
+                .ctx = &prover_components[i],
+                .vtable = &CORE_COMPONENT_ADAPTER_VTABLE,
+            };
+        }
+
+        return .{
+            .prover_components = prover_components,
+            .core_components = core_components,
+            .n_preprocessed_columns = self.n_preprocessed_columns,
+        };
+    }
 
     pub fn compositionLogDegreeBound(self: ComponentProvers) u32 {
         var max_bound: u32 = 0;
@@ -129,6 +230,69 @@ pub const ComponentProvers = struct {
         return accumulator.finalize();
     }
 };
+
+const CORE_COMPONENT_ADAPTER_VTABLE = core_air_components.ComponentVTable{
+    .nConstraints = coreAdapterNConstraints,
+    .maxConstraintLogDegreeBound = coreAdapterMaxConstraintLogDegreeBound,
+    .traceLogDegreeBounds = coreAdapterTraceLogDegreeBounds,
+    .maskPoints = coreAdapterMaskPoints,
+    .preprocessedColumnIndices = coreAdapterPreprocessedColumnIndices,
+    .evaluateConstraintQuotientsAtPoint = coreAdapterEvaluateConstraintQuotientsAtPoint,
+};
+
+fn coreAdapterCast(ctx: *const anyopaque) *const ComponentProver {
+    return @ptrCast(@alignCast(ctx));
+}
+
+fn coreAdapterNConstraints(ctx: *const anyopaque) usize {
+    return coreAdapterCast(ctx).nConstraints();
+}
+
+fn coreAdapterMaxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
+    return coreAdapterCast(ctx).maxConstraintLogDegreeBound();
+}
+
+fn coreAdapterTraceLogDegreeBounds(
+    ctx: *const anyopaque,
+    allocator: std.mem.Allocator,
+) anyerror!core_air_components.TraceLogDegreeBounds {
+    return coreAdapterCast(ctx).traceLogDegreeBounds(allocator);
+}
+
+fn coreAdapterMaskPoints(
+    ctx: *const anyopaque,
+    allocator: std.mem.Allocator,
+    point: CirclePointQM31,
+    max_log_degree_bound: u32,
+) anyerror!core_air_components.MaskPoints {
+    return coreAdapterCast(ctx).maskPoints(
+        allocator,
+        point,
+        max_log_degree_bound,
+    );
+}
+
+fn coreAdapterPreprocessedColumnIndices(
+    ctx: *const anyopaque,
+    allocator: std.mem.Allocator,
+) anyerror![]usize {
+    return coreAdapterCast(ctx).preprocessedColumnIndices(allocator);
+}
+
+fn coreAdapterEvaluateConstraintQuotientsAtPoint(
+    ctx: *const anyopaque,
+    point: CirclePointQM31,
+    mask: *const core_air_components.MaskValues,
+    evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
+    max_log_degree_bound: u32,
+) anyerror!void {
+    return coreAdapterCast(ctx).evaluateConstraintQuotientsAtPoint(
+        point,
+        mask,
+        evaluation_accumulator,
+        max_log_degree_bound,
+    );
+}
 
 fn checkedPow2(log_size: u32) ComponentProverError!usize {
     if (log_size >= @bitSizeOf(usize)) return ComponentProverError.InvalidLogSize;
@@ -173,7 +337,10 @@ test "prover air component prover: composition accumulation" {
                 .vtable = &.{
                     .nConstraints = nConstraints,
                     .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
+                    .traceLogDegreeBounds = traceLogDegreeBounds,
+                    .maskPoints = maskPoints,
                     .preprocessedColumnIndices = preprocessedColumnIndices,
+                    .evaluateConstraintQuotientsAtPoint = evaluateConstraintQuotientsAtPoint,
                     .evaluateConstraintQuotientsOnDomain = evaluateConstraintQuotientsOnDomain,
                 },
             };
@@ -191,8 +358,48 @@ test "prover air component prover: composition accumulation" {
             return cast(ctx).max_log_size;
         }
 
+        fn traceLogDegreeBounds(
+            ctx: *const anyopaque,
+            allocator: std.mem.Allocator,
+        ) !core_air_components.TraceLogDegreeBounds {
+            const self = cast(ctx);
+            const preprocessed = try allocator.alloc(u32, 0);
+            const main = try allocator.dupe(u32, &[_]u32{self.max_log_size});
+            return core_air_components.TraceLogDegreeBounds.initOwned(
+                try allocator.dupe([]u32, &[_][]u32{ preprocessed, main }),
+            );
+        }
+
+        fn maskPoints(
+            _: *const anyopaque,
+            allocator: std.mem.Allocator,
+            point: CirclePointQM31,
+            _: u32,
+        ) !core_air_components.MaskPoints {
+            const pp_cols = try allocator.alloc([]CirclePointQM31, 0);
+            const main_col = try allocator.alloc(CirclePointQM31, 1);
+            main_col[0] = point;
+            const main_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{main_col});
+            return core_air_components.MaskPoints.initOwned(
+                try allocator.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{
+                    pp_cols,
+                    main_cols,
+                }),
+            );
+        }
+
         fn preprocessedColumnIndices(_: *const anyopaque, allocator: std.mem.Allocator) ![]usize {
             return allocator.alloc(usize, 0);
+        }
+
+        fn evaluateConstraintQuotientsAtPoint(
+            _: *const anyopaque,
+            _: CirclePointQM31,
+            _: *const core_air_components.MaskValues,
+            evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
+            _: u32,
+        ) !void {
+            evaluation_accumulator.accumulate(QM31.fromU32Unchecked(13, 0, 0, 0));
         }
 
         fn evaluateConstraintQuotientsOnDomain(
@@ -234,4 +441,30 @@ test "prover air component prover: composition accumulation" {
     try std.testing.expectEqual(@as(usize, 4), out.len);
     try std.testing.expect(out[0].eql(QM31.fromU32Unchecked(1, 0, 0, 0)));
     try std.testing.expect(out[3].eql(QM31.fromU32Unchecked(4, 0, 0, 0)));
+
+    var view = try component_provers.componentsView(alloc);
+    defer view.deinit(alloc);
+
+    const components = view.asCore();
+    try std.testing.expectEqual(@as(usize, 1), components.components.len);
+    try std.testing.expectEqual(@as(usize, 0), components.n_preprocessed_columns);
+
+    var mask = try components.maskPoints(
+        alloc,
+        circle.SECURE_FIELD_CIRCLE_GEN,
+        mock.max_log_size,
+        true,
+    );
+    defer mask.deinitDeep(alloc);
+    try std.testing.expectEqual(@as(usize, 2), mask.items.len);
+
+    var mask_values = core_air_components.MaskValues.initOwned(try alloc.alloc([][]QM31, 0));
+    defer mask_values.deinitDeep(alloc);
+    const eval = try components.evalCompositionPolynomialAtPoint(
+        circle.SECURE_FIELD_CIRCLE_GEN,
+        &mask_values,
+        QM31.fromU32Unchecked(5, 0, 0, 0),
+        mock.max_log_size,
+    );
+    try std.testing.expect(eval.eql(QM31.fromU32Unchecked(13, 0, 0, 0)));
 }
