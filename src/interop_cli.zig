@@ -4,7 +4,9 @@ const stwo = @import("stwo.zig");
 const m31 = stwo.core.fields.m31;
 const fri = stwo.core.fri;
 const pcs = stwo.core.pcs;
+const blake = stwo.examples.blake;
 const plonk = stwo.examples.plonk;
+const poseidon = stwo.examples.poseidon;
 const state_machine = stwo.examples.state_machine;
 const wide_fibonacci = stwo.examples.wide_fibonacci;
 const xor = stwo.examples.xor;
@@ -22,7 +24,9 @@ const Mode = enum {
 };
 
 const Example = enum {
+    blake,
     plonk,
+    poseidon,
     state_machine,
     wide_fibonacci,
     xor,
@@ -49,7 +53,12 @@ const Cli = struct {
     sm_initial_0: u32 = 9,
     sm_initial_1: u32 = 3,
 
+    blake_log_n_rows: u32 = 5,
+    blake_n_rounds: u32 = 10,
+
     plonk_log_n_rows: u32 = 5,
+
+    poseidon_log_n_instances: u32 = 8,
 
     wf_log_n_rows: u32 = 5,
     wf_sequence_len: u32 = 16,
@@ -93,7 +102,9 @@ const BenchReport = struct {
 };
 
 const ExampleStatement = union(Example) {
+    blake: blake.Statement,
     plonk: plonk.Statement,
+    poseidon: poseidon.Statement,
     state_machine: state_machine.PreparedStatement,
     wide_fibonacci: wide_fibonacci.Statement,
     xor: xor.Statement,
@@ -199,6 +210,35 @@ fn proveExample(
     example: Example,
 ) !ExampleProveOutput {
     switch (example) {
+        .blake => {
+            const statement: blake.Statement = .{
+                .log_n_rows = cli.blake_log_n_rows,
+                .n_rounds = cli.blake_n_rounds,
+            };
+            return switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try blake.prove(allocator, config, statement);
+                    break :blk .{
+                        .statement = .{ .blake = output.statement },
+                        .proof = output.proof,
+                    };
+                },
+                .prove_ex => blk: {
+                    var output = try blake.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    const proof = output.proof.proof;
+                    output.proof.aux.deinit(allocator);
+                    break :blk .{
+                        .statement = .{ .blake = output.statement },
+                        .proof = proof,
+                    };
+                },
+            };
+        },
         .plonk => {
             const statement: plonk.Statement = .{
                 .log_n_rows = cli.plonk_log_n_rows,
@@ -222,6 +262,34 @@ fn proveExample(
                     output.proof.aux.deinit(allocator);
                     break :blk .{
                         .statement = .{ .plonk = output.statement },
+                        .proof = proof,
+                    };
+                },
+            };
+        },
+        .poseidon => {
+            const statement: poseidon.Statement = .{
+                .log_n_instances = cli.poseidon_log_n_instances,
+            };
+            return switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try poseidon.prove(allocator, config, statement);
+                    break :blk .{
+                        .statement = .{ .poseidon = output.statement },
+                        .proof = output.proof,
+                    };
+                },
+                .prove_ex => blk: {
+                    var output = try poseidon.proveEx(
+                        allocator,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    const proof = output.proof.proof;
+                    output.proof.aux.deinit(allocator);
+                    break :blk .{
+                        .statement = .{ .poseidon = output.statement },
                         .proof = proof,
                     };
                 },
@@ -331,7 +399,9 @@ fn verifyExample(
     proof: proof_wire.Proof,
 ) !void {
     switch (statement) {
+        .blake => |s| try blake.verify(allocator, config, s, proof),
         .plonk => |s| try plonk.verify(allocator, config, s, proof),
+        .poseidon => |s| try poseidon.verify(allocator, config, s, proof),
         .state_machine => |s| try state_machine.verify(allocator, config, s, proof),
         .wide_fibonacci => |s| try wide_fibonacci.verify(allocator, config, s, proof),
         .xor => |s| try xor.verify(allocator, config, s, proof),
@@ -345,7 +415,9 @@ fn verifyExampleStdShims(
     proof: proof_wire.Proof,
 ) !void {
     switch (statement) {
+        .blake => |s| try std_shims_verifier_profile.verifyBlake(allocator, config, s, proof),
         .plonk => |s| try std_shims_verifier_profile.verifyPlonk(allocator, config, s, proof),
+        .poseidon => |s| try std_shims_verifier_profile.verifyPoseidon(allocator, config, s, proof),
         .state_machine => |s| try std_shims_verifier_profile.verifyStateMachine(allocator, config, s, proof),
         .wide_fibonacci => |s| try std_shims_verifier_profile.verifyWideFibonacci(allocator, config, s, proof),
         .xor => |s| try std_shims_verifier_profile.verifyXor(allocator, config, s, proof),
@@ -354,7 +426,9 @@ fn verifyExampleStdShims(
 
 fn exampleName(example: Example) []const u8 {
     return switch (example) {
+        .blake => "blake",
         .plonk => "plonk",
+        .poseidon => "poseidon",
         .state_machine => "state_machine",
         .wide_fibonacci => "wide_fibonacci",
         .xor => "xor",
@@ -422,6 +496,50 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
     const prove_mode = proveModeToString(cli.prove_mode);
 
     switch (example) {
+        .blake => {
+            const statement: blake.Statement = .{
+                .log_n_rows = cli.blake_log_n_rows,
+                .n_rounds = cli.blake_n_rounds,
+            };
+            var proved_statement: blake.Statement = undefined;
+            const proof: blake.Proof = switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try blake.prove(gen_alloc, config, statement);
+                    proved_statement = output.statement;
+                    break :blk output.proof;
+                },
+                .prove_ex => blk: {
+                    const output = try blake.proveEx(
+                        gen_alloc,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    proved_statement = output.statement;
+                    break :blk output.proof.proof;
+                },
+            };
+
+            const proof_bytes = try proof_wire.encodeProofBytes(gen_alloc, proof);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(gen_alloc, proof_bytes);
+
+            try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
+                .schema_version = examples_artifact.SCHEMA_VERSION,
+                .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
+                .exchange_mode = examples_artifact.EXCHANGE_MODE,
+                .generator = "zig",
+                .example = "blake",
+                .prove_mode = prove_mode,
+                .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .blake_statement = examples_artifact.blakeStatementToWire(proved_statement),
+                .plonk_statement = null,
+                .poseidon_statement = null,
+                .state_machine_statement = null,
+                .wide_fibonacci_statement = null,
+                .xor_statement = null,
+                .proof_bytes_hex = proof_bytes_hex,
+            });
+        },
         .plonk => {
             const statement: plonk.Statement = .{
                 .log_n_rows = cli.plonk_log_n_rows,
@@ -456,7 +574,52 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .example = "plonk",
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .blake_statement = null,
                 .plonk_statement = examples_artifact.plonkStatementToWire(proved_statement),
+                .poseidon_statement = null,
+                .state_machine_statement = null,
+                .wide_fibonacci_statement = null,
+                .xor_statement = null,
+                .proof_bytes_hex = proof_bytes_hex,
+            });
+        },
+        .poseidon => {
+            const statement: poseidon.Statement = .{
+                .log_n_instances = cli.poseidon_log_n_instances,
+            };
+            var proved_statement: poseidon.Statement = undefined;
+            const proof: poseidon.Proof = switch (cli.prove_mode) {
+                .prove => blk: {
+                    const output = try poseidon.prove(gen_alloc, config, statement);
+                    proved_statement = output.statement;
+                    break :blk output.proof;
+                },
+                .prove_ex => blk: {
+                    const output = try poseidon.proveEx(
+                        gen_alloc,
+                        config,
+                        statement,
+                        cli.include_all_preprocessed_columns,
+                    );
+                    proved_statement = output.statement;
+                    break :blk output.proof.proof;
+                },
+            };
+
+            const proof_bytes = try proof_wire.encodeProofBytes(gen_alloc, proof);
+            const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(gen_alloc, proof_bytes);
+
+            try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
+                .schema_version = examples_artifact.SCHEMA_VERSION,
+                .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
+                .exchange_mode = examples_artifact.EXCHANGE_MODE,
+                .generator = "zig",
+                .example = "poseidon",
+                .prove_mode = prove_mode,
+                .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .blake_statement = null,
+                .plonk_statement = null,
+                .poseidon_statement = examples_artifact.poseidonStatementToWire(proved_statement),
                 .state_machine_statement = null,
                 .wide_fibonacci_statement = null,
                 .xor_statement = null,
@@ -504,7 +667,9 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .example = "state_machine",
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .blake_statement = null,
                 .plonk_statement = null,
+                .poseidon_statement = null,
                 .state_machine_statement = examples_artifact.stateMachineStatementToWire(statement),
                 .wide_fibonacci_statement = null,
                 .xor_statement = null,
@@ -546,7 +711,9 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .example = "wide_fibonacci",
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .blake_statement = null,
                 .plonk_statement = null,
+                .poseidon_statement = null,
                 .state_machine_statement = null,
                 .wide_fibonacci_statement = examples_artifact.wideFibonacciStatementToWire(proved_statement),
                 .xor_statement = null,
@@ -589,7 +756,9 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .example = "xor",
                 .prove_mode = prove_mode,
                 .pcs_config = examples_artifact.pcsConfigToWire(config),
+                .blake_statement = null,
                 .plonk_statement = null,
+                .poseidon_statement = null,
                 .state_machine_statement = null,
                 .wide_fibonacci_statement = null,
                 .xor_statement = examples_artifact.xorStatementToWire(proved_statement),
@@ -634,6 +803,16 @@ fn runVerifyImpl(allocator: std.mem.Allocator, cli: Cli, use_std_shims: bool) !v
 
     const proof = try proof_wire.decodeProofBytes(allocator, proof_bytes);
 
+    if (std.mem.eql(u8, artifact.example, "blake")) {
+        const statement_wire = artifact.blake_statement orelse return error.MissingBlakeStatement;
+        const statement = try examples_artifact.blakeStatementFromWire(statement_wire);
+        if (use_std_shims) {
+            try std_shims_verifier_profile.verifyBlake(allocator, config, statement, proof);
+        } else {
+            try blake.verify(allocator, config, statement, proof);
+        }
+        return;
+    }
     if (std.mem.eql(u8, artifact.example, "plonk")) {
         const statement_wire = artifact.plonk_statement orelse return error.MissingPlonkStatement;
         const statement = try examples_artifact.plonkStatementFromWire(statement_wire);
@@ -641,6 +820,16 @@ fn runVerifyImpl(allocator: std.mem.Allocator, cli: Cli, use_std_shims: bool) !v
             try std_shims_verifier_profile.verifyPlonk(allocator, config, statement, proof);
         } else {
             try plonk.verify(allocator, config, statement, proof);
+        }
+        return;
+    }
+    if (std.mem.eql(u8, artifact.example, "poseidon")) {
+        const statement_wire = artifact.poseidon_statement orelse return error.MissingPoseidonStatement;
+        const statement = try examples_artifact.poseidonStatementFromWire(statement_wire);
+        if (use_std_shims) {
+            try std_shims_verifier_profile.verifyPoseidon(allocator, config, statement, proof);
+        } else {
+            try poseidon.verify(allocator, config, statement, proof);
         }
         return;
     }
@@ -708,7 +897,12 @@ fn parseArgs(args: []const []const u8) !Cli {
     var sm_initial_0: u32 = 9;
     var sm_initial_1: u32 = 3;
 
+    var blake_log_n_rows: u32 = 5;
+    var blake_n_rounds: u32 = 10;
+
     var plonk_log_n_rows: u32 = 5;
+
+    var poseidon_log_n_instances: u32 = 8;
 
     var wf_log_n_rows: u32 = 5;
     var wf_sequence_len: u32 = 16;
@@ -753,8 +947,14 @@ fn parseArgs(args: []const []const u8) !Cli {
             sm_initial_0 = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--sm-initial-1")) {
             sm_initial_1 = try parseInt(u32, value);
+        } else if (std.mem.eql(u8, flag, "--blake-log-n-rows")) {
+            blake_log_n_rows = try parseInt(u32, value);
+        } else if (std.mem.eql(u8, flag, "--blake-n-rounds")) {
+            blake_n_rounds = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--plonk-log-n-rows")) {
             plonk_log_n_rows = try parseInt(u32, value);
+        } else if (std.mem.eql(u8, flag, "--poseidon-log-n-instances")) {
+            poseidon_log_n_instances = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--wf-log-n-rows")) {
             wf_log_n_rows = try parseInt(u32, value);
         } else if (std.mem.eql(u8, flag, "--wf-sequence-len")) {
@@ -787,7 +987,10 @@ fn parseArgs(args: []const []const u8) !Cli {
         .sm_log_n_rows = sm_log_n_rows,
         .sm_initial_0 = sm_initial_0,
         .sm_initial_1 = sm_initial_1,
+        .blake_log_n_rows = blake_log_n_rows,
+        .blake_n_rounds = blake_n_rounds,
         .plonk_log_n_rows = plonk_log_n_rows,
+        .poseidon_log_n_instances = poseidon_log_n_instances,
         .wf_log_n_rows = wf_log_n_rows,
         .wf_sequence_len = wf_sequence_len,
         .xor_log_size = xor_log_size,
@@ -807,7 +1010,9 @@ fn parseMode(value: []const u8) ?Mode {
 }
 
 fn parseExample(value: []const u8) ?Example {
+    if (std.mem.eql(u8, value, "blake")) return .blake;
     if (std.mem.eql(u8, value, "plonk")) return .plonk;
+    if (std.mem.eql(u8, value, "poseidon")) return .poseidon;
     if (std.mem.eql(u8, value, "state_machine")) return .state_machine;
     if (std.mem.eql(u8, value, "wide_fibonacci")) return .wide_fibonacci;
     if (std.mem.eql(u8, value, "xor")) return .xor;
@@ -849,11 +1054,11 @@ fn m31FromCanonical(value: u32) !M31 {
 fn printUsage() void {
     std.debug.print(
         "usage:\n" ++
-            "  zig run src/interop_cli.zig -- --mode generate --example <plonk|state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
+            "  zig run src/interop_cli.zig -- --mode generate --example <blake|plonk|poseidon|state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
             "    [--prove-mode <prove|prove_ex>] [--include-all-preprocessed-columns <0|1>]\n" ++
             "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n" ++
             "  zig run src/interop_cli.zig -- --mode verify_std_shims --artifact <path>\n" ++
-            "  zig run src/interop_cli.zig -- --mode bench --example <plonk|state_machine|wide_fibonacci|xor> --artifact <ignored> [options]\n" ++
+            "  zig run src/interop_cli.zig -- --mode bench --example <blake|plonk|poseidon|state_machine|wide_fibonacci|xor> --artifact <ignored> [options]\n" ++
             "    [--bench-warmups <n>] [--bench-repeats <n>]\n",
         .{},
     );

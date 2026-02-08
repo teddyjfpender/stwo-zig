@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Cross-language interoperability gate for proof exchange artifacts.
 
-This gate enforces true bidirectional exchange for the `plonk`, `xor`,
-`state_machine`, and `wide_fibonacci`
-example wrappers:
+This gate enforces true bidirectional exchange for the `blake`, `plonk`,
+`poseidon`, `xor`, `state_machine`, and `wide_fibonacci` example wrappers:
 1. Rust-generated proof artifact verifies in Zig.
 2. Zig-generated proof artifact verifies in Rust.
 3. Tampered artifacts are rejected in both directions.
@@ -31,7 +30,7 @@ RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 SCHEMA_VERSION = 1
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
-SUPPORTED_EXAMPLES = ("plonk", "xor", "state_machine", "wide_fibonacci")
+SUPPORTED_EXAMPLES = ("blake", "plonk", "poseidon", "xor", "state_machine", "wide_fibonacci")
 M31_MODULUS = 2147483647
 REJECTION_CLASS_VERIFIER = "verifier_semantic"
 REJECTION_CLASS_PARSER = "parser"
@@ -133,6 +132,8 @@ def classify_rejection(stdout_tail: str, stderr_tail: str) -> str:
         "witnesstooshort",
         "merkleverificationerror",
         "fri verification",
+        "index out of bounds",
+        "panicked at",
     )
     if any(marker in combined for marker in verifier_markers):
         return REJECTION_CLASS_VERIFIER
@@ -201,11 +202,21 @@ def tamper_proof_bytes_hex(src: Path, dst: Path) -> None:
 def tamper_statement(src: Path, dst: Path, *, example: str) -> None:
     artifact = json.loads(src.read_text(encoding="utf-8"))
 
-    if example == "plonk":
+    if example == "blake":
+        stmt = artifact.get("blake_statement")
+        if not isinstance(stmt, dict):
+            raise RuntimeError(f"{rel(src)} missing blake_statement")
+        stmt["n_rounds"] = int(stmt.get("n_rounds", 0)) + 1
+    elif example == "plonk":
         stmt = artifact.get("plonk_statement")
         if not isinstance(stmt, dict):
             raise RuntimeError(f"{rel(src)} missing plonk_statement")
         stmt["log_n_rows"] = int(stmt.get("log_n_rows", 0)) + 1
+    elif example == "poseidon":
+        stmt = artifact.get("poseidon_statement")
+        if not isinstance(stmt, dict):
+            raise RuntimeError(f"{rel(src)} missing poseidon_statement")
+        stmt["log_n_instances"] = int(stmt.get("log_n_instances", 0)) + 1
     elif example == "xor":
         stmt = artifact.get("xor_statement")
         if not isinstance(stmt, dict):

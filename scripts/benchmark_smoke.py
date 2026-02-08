@@ -73,6 +73,24 @@ MEDIUM_WORKLOADS: List[Dict[str, Any]] = [
 
 LARGE_WORKLOADS: List[Dict[str, Any]] = [
     {
+        "name": "poseidon_large",
+        "example": "poseidon",
+        "args": [
+            "--poseidon-log-n-instances",
+            "10",
+        ],
+    },
+    {
+        "name": "blake_large",
+        "example": "blake",
+        "args": [
+            "--blake-log-n-rows",
+            "9",
+            "--blake-n-rounds",
+            "10",
+        ],
+    },
+    {
         "name": "wide_fibonacci_fib100",
         "example": "wide_fibonacci",
         "args": [

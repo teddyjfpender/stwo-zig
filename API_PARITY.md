@@ -467,7 +467,19 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/examples/src/lib.rs",
       "source": "src/stwo.zig"
     },
+    "stwo.examples.blake": {
+      "kind": "const",
+      "rationale": null,
+      "rust_path": "crates/examples/src/lib.rs",
+      "source": "src/examples/mod.zig"
+    },
     "stwo.examples.plonk": {
+      "kind": "const",
+      "rationale": null,
+      "rust_path": "crates/examples/src/lib.rs",
+      "source": "src/examples/mod.zig"
+    },
+    "stwo.examples.poseidon": {
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/examples/src/lib.rs",

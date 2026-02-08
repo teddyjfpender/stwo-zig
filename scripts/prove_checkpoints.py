@@ -44,6 +44,18 @@ class Case:
 
 CASES = (
     Case(
+        case_id="blake_base",
+        example="blake",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "1",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "blake-log-n-rows": "5",
+            "blake-n-rounds": "10",
+        },
+    ),
+    Case(
         case_id="plonk_base",
         example="plonk",
         args={
@@ -52,6 +64,17 @@ CASES = (
             "fri-log-last-layer": "0",
             "fri-n-queries": "3",
             "plonk-log-n-rows": "5",
+        },
+    ),
+    Case(
+        case_id="poseidon_base",
+        example="poseidon",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "1",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "poseidon-log-n-instances": "8",
         },
     ),
     Case(
@@ -104,6 +127,17 @@ CASES = (
         },
     ),
     Case(
+        case_id="poseidon_blowup2",
+        example="poseidon",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "2",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "poseidon-log-n-instances": "8",
+        },
+    ),
+    Case(
         case_id="xor_blowup2",
         example="xor",
         args={
@@ -139,6 +173,18 @@ CASES = (
             "fri-n-queries": "3",
             "wf-log-n-rows": "5",
             "wf-sequence-len": "16",
+        },
+    ),
+    Case(
+        case_id="blake_blowup2",
+        example="blake",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "2",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "blake-log-n-rows": "5",
+            "blake-n-rounds": "10",
         },
     ),
 )
@@ -242,11 +288,21 @@ def write_artifact(path: Path, artifact: dict[str, Any]) -> None:
 
 def tamper_statement(artifact_path: Path, out_path: Path, example: str) -> None:
     artifact = parse_artifact(artifact_path)
-    if example == "plonk":
+    if example == "blake":
+        stmt = artifact.get("blake_statement")
+        if not isinstance(stmt, dict) or "n_rounds" not in stmt:
+            raise ValueError("missing blake_statement.n_rounds")
+        stmt["n_rounds"] = int(stmt["n_rounds"]) + 1
+    elif example == "plonk":
         stmt = artifact.get("plonk_statement")
         if not isinstance(stmt, dict) or "log_n_rows" not in stmt:
             raise ValueError("missing plonk_statement.log_n_rows")
         stmt["log_n_rows"] = int(stmt["log_n_rows"]) + 1
+    elif example == "poseidon":
+        stmt = artifact.get("poseidon_statement")
+        if not isinstance(stmt, dict) or "log_n_instances" not in stmt:
+            raise ValueError("missing poseidon_statement.log_n_instances")
+        stmt["log_n_instances"] = int(stmt["log_n_instances"]) + 1
     elif example == "xor":
         stmt = artifact.get("xor_statement")
         if not isinstance(stmt, dict) or "offset" not in stmt:

@@ -79,6 +79,8 @@ def classify_rejection(stdout_tail: str, stderr_tail: str) -> str:
         "fri verification",
         "root mismatch",
         "witness is too short",
+        "index out of bounds",
+        "panicked at",
     )
     if any(marker in combined for marker in verifier_markers):
         return REJECTION_CLASS_VERIFIER

@@ -31,6 +31,20 @@ use stwo::prover::{
 const SCHEMA_VERSION: u32 = 1;
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const EXCHANGE_MODE: &str = "proof_exchange_json_wire_v1";
+const POSEIDON_LOG_INSTANCES_PER_ROW: u32 = 3;
+const POSEIDON_INSTANCES_PER_ROW: usize = 1 << POSEIDON_LOG_INSTANCES_PER_ROW;
+const POSEIDON_STATE: usize = 16;
+const POSEIDON_PARTIAL_ROUNDS: usize = 14;
+const POSEIDON_HALF_FULL_ROUNDS: usize = 4;
+const POSEIDON_FULL_ROUNDS: usize = POSEIDON_HALF_FULL_ROUNDS * 2;
+const POSEIDON_COLUMNS_PER_REP: usize =
+    POSEIDON_STATE * (1 + POSEIDON_FULL_ROUNDS) + POSEIDON_PARTIAL_ROUNDS;
+const POSEIDON_COLUMNS: usize = POSEIDON_COLUMNS_PER_REP * POSEIDON_INSTANCES_PER_ROW;
+const BLAKE_STATE: usize = 16;
+const BLAKE_MESSAGE_WORDS: usize = 16;
+const BLAKE_FELTS_IN_U32: usize = 2;
+const BLAKE_ROUND_INPUT_FELTS: usize =
+    (BLAKE_STATE + BLAKE_STATE + BLAKE_MESSAGE_WORDS) * BLAKE_FELTS_IN_U32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Mode {
@@ -41,7 +55,9 @@ enum Mode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Example {
+    Blake,
     Plonk,
+    Poseidon,
     StateMachine,
     WideFibonacci,
     Xor,
@@ -70,7 +86,12 @@ struct Cli {
     sm_initial_0: u32,
     sm_initial_1: u32,
 
+    blake_log_n_rows: u32,
+    blake_n_rounds: u32,
+
     plonk_log_n_rows: u32,
+
+    poseidon_log_n_instances: u32,
 
     wf_log_n_rows: u32,
     wf_sequence_len: u32,
@@ -161,6 +182,17 @@ struct PlonkStatementWire {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct PoseidonStatementWire {
+    log_n_instances: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BlakeStatementWire {
+    log_n_rows: u32,
+    n_rounds: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct WideFibonacciStatementWire {
     log_n_rows: u32,
     sequence_len: u32,
@@ -175,7 +207,9 @@ struct InteropArtifact {
     example: String,
     prove_mode: Option<String>,
     pcs_config: PcsConfigWire,
+    blake_statement: Option<BlakeStatementWire>,
     plonk_statement: Option<PlonkStatementWire>,
+    poseidon_statement: Option<PoseidonStatementWire>,
     state_machine_statement: Option<StateMachineStatementWire>,
     wide_fibonacci_statement: Option<WideFibonacciStatementWire>,
     xor_statement: Option<XorStatementWire>,
@@ -217,7 +251,9 @@ struct BenchReport {
 
 #[derive(Debug, Clone, Copy)]
 enum ExampleStatement {
+    Blake(BlakeStatement),
     Plonk(PlonkStatement),
+    Poseidon(PoseidonStatement),
     StateMachine(StateMachineStatement),
     WideFibonacci(WideFibonacciStatement),
     Xor(XorStatement),
@@ -257,6 +293,17 @@ struct PlonkStatement {
 }
 
 #[derive(Debug, Clone, Copy)]
+struct PoseidonStatement {
+    log_n_instances: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct BlakeStatement {
+    log_n_rows: u32,
+    n_rounds: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
 struct StateMachineComponent {
     trace_log_size: u32,
     composition_eval: SecureField,
@@ -277,6 +324,16 @@ struct PlonkComponent {
     statement: PlonkStatement,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PoseidonComponent {
+    statement: PoseidonStatement,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct BlakeComponent {
+    statement: BlakeStatement,
+}
+
 fn main() -> Result<()> {
     let cli = parse_cli(env::args().collect())?;
     match cli.mode {
@@ -293,6 +350,35 @@ fn run_generate(cli: &Cli) -> Result<()> {
     let config = pcs_config_from_cli(cli)?;
 
     let artifact = match example {
+        Example::Blake => {
+            let statement = BlakeStatement {
+                log_n_rows: cli.blake_log_n_rows,
+                n_rounds: cli.blake_n_rounds,
+            };
+            let (statement, proof) = blake_prove(
+                config,
+                statement,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
+            )?;
+            let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
+            InteropArtifact {
+                schema_version: SCHEMA_VERSION,
+                upstream_commit: UPSTREAM_COMMIT.to_string(),
+                exchange_mode: EXCHANGE_MODE.to_string(),
+                generator: "rust".to_string(),
+                example: "blake".to_string(),
+                prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
+                pcs_config: pcs_config_to_wire(config),
+                blake_statement: Some(blake_statement_to_wire(statement)),
+                plonk_statement: None,
+                poseidon_statement: None,
+                state_machine_statement: None,
+                wide_fibonacci_statement: None,
+                xor_statement: None,
+                proof_bytes_hex: hex::encode(proof_bytes),
+            }
+        }
         Example::Plonk => {
             let statement = PlonkStatement {
                 log_n_rows: cli.plonk_log_n_rows,
@@ -312,7 +398,37 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 example: "plonk".to_string(),
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
+                blake_statement: None,
                 plonk_statement: Some(plonk_statement_to_wire(statement)),
+                poseidon_statement: None,
+                state_machine_statement: None,
+                wide_fibonacci_statement: None,
+                xor_statement: None,
+                proof_bytes_hex: hex::encode(proof_bytes),
+            }
+        }
+        Example::Poseidon => {
+            let statement = PoseidonStatement {
+                log_n_instances: cli.poseidon_log_n_instances,
+            };
+            let (statement, proof) = poseidon_prove(
+                config,
+                statement,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
+            )?;
+            let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
+            InteropArtifact {
+                schema_version: SCHEMA_VERSION,
+                upstream_commit: UPSTREAM_COMMIT.to_string(),
+                exchange_mode: EXCHANGE_MODE.to_string(),
+                generator: "rust".to_string(),
+                example: "poseidon".to_string(),
+                prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
+                pcs_config: pcs_config_to_wire(config),
+                blake_statement: None,
+                plonk_statement: None,
+                poseidon_statement: Some(poseidon_statement_to_wire(statement)),
                 state_machine_statement: None,
                 wide_fibonacci_statement: None,
                 xor_statement: None,
@@ -340,7 +456,9 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 example: "state_machine".to_string(),
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
+                blake_statement: None,
                 plonk_statement: None,
+                poseidon_statement: None,
                 state_machine_statement: Some(state_machine_statement_to_wire(statement)),
                 wide_fibonacci_statement: None,
                 xor_statement: None,
@@ -367,7 +485,9 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 example: "wide_fibonacci".to_string(),
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
+                blake_statement: None,
                 plonk_statement: None,
+                poseidon_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: Some(wide_fibonacci_statement_to_wire(statement)),
                 xor_statement: None,
@@ -395,7 +515,9 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 example: "xor".to_string(),
                 prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
                 pcs_config: pcs_config_to_wire(config),
+                blake_statement: None,
                 plonk_statement: None,
+                poseidon_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: None,
                 xor_statement: Some(xor_statement_to_wire(statement)?),
@@ -439,6 +561,14 @@ fn run_verify(cli: &Cli) -> Result<()> {
     let proof = wire_to_proof(proof_wire)?;
 
     match artifact.example.as_str() {
+        "blake" => {
+            let statement_wire = artifact
+                .blake_statement
+                .as_ref()
+                .ok_or_else(|| anyhow!("missing blake_statement"))?;
+            let statement = blake_statement_from_wire(statement_wire)?;
+            blake_verify(config, statement, proof)?;
+        }
         "plonk" => {
             let statement_wire = artifact
                 .plonk_statement
@@ -446,6 +576,14 @@ fn run_verify(cli: &Cli) -> Result<()> {
                 .ok_or_else(|| anyhow!("missing plonk_statement"))?;
             let statement = plonk_statement_from_wire(statement_wire)?;
             plonk_verify(config, statement, proof)?;
+        }
+        "poseidon" => {
+            let statement_wire = artifact
+                .poseidon_statement
+                .as_ref()
+                .ok_or_else(|| anyhow!("missing poseidon_statement"))?;
+            let statement = poseidon_statement_from_wire(statement_wire)?;
+            poseidon_verify(config, statement, proof)?;
         }
         "state_machine" => {
             let statement_wire = artifact
@@ -531,7 +669,9 @@ fn run_bench(cli: &Cli) -> Result<()> {
     let report = BenchReport {
         runtime: "rust".to_string(),
         example: match example {
+            Example::Blake => "blake",
             Example::Plonk => "plonk",
+            Example::Poseidon => "poseidon",
             Example::StateMachine => "state_machine",
             Example::WideFibonacci => "wide_fibonacci",
             Example::Xor => "xor",
@@ -601,7 +741,12 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
     let mut sm_initial_0 = 9u32;
     let mut sm_initial_1 = 3u32;
 
+    let mut blake_log_n_rows = 5u32;
+    let mut blake_n_rounds = 10u32;
+
     let mut plonk_log_n_rows = 5u32;
+
+    let mut poseidon_log_n_instances = 8u32;
 
     let mut wf_log_n_rows = 5u32;
     let mut wf_sequence_len = 16u32;
@@ -636,7 +781,9 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
             }
             "--example" => {
                 example = match value.as_str() {
+                    "blake" => Some(Example::Blake),
                     "plonk" => Some(Example::Plonk),
+                    "poseidon" => Some(Example::Poseidon),
                     "state_machine" => Some(Example::StateMachine),
                     "wide_fibonacci" => Some(Example::WideFibonacci),
                     "xor" => Some(Example::Xor),
@@ -664,7 +811,10 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
             "--sm-log-n-rows" => sm_log_n_rows = value.parse()?,
             "--sm-initial-0" => sm_initial_0 = value.parse()?,
             "--sm-initial-1" => sm_initial_1 = value.parse()?,
+            "--blake-log-n-rows" => blake_log_n_rows = value.parse()?,
+            "--blake-n-rounds" => blake_n_rounds = value.parse()?,
             "--plonk-log-n-rows" => plonk_log_n_rows = value.parse()?,
+            "--poseidon-log-n-instances" => poseidon_log_n_instances = value.parse()?,
             "--wf-log-n-rows" => wf_log_n_rows = value.parse()?,
             "--wf-sequence-len" => wf_sequence_len = value.parse()?,
             "--xor-log-size" => xor_log_size = value.parse()?,
@@ -689,7 +839,10 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
         sm_log_n_rows,
         sm_initial_0,
         sm_initial_1,
+        blake_log_n_rows,
+        blake_n_rounds,
         plonk_log_n_rows,
+        poseidon_log_n_instances,
         wf_log_n_rows,
         wf_sequence_len,
         xor_log_size,
@@ -1041,6 +1194,32 @@ fn plonk_statement_from_wire(wire: &PlonkStatementWire) -> Result<PlonkStatement
     })
 }
 
+fn poseidon_statement_to_wire(statement: PoseidonStatement) -> PoseidonStatementWire {
+    PoseidonStatementWire {
+        log_n_instances: statement.log_n_instances,
+    }
+}
+
+fn poseidon_statement_from_wire(wire: &PoseidonStatementWire) -> Result<PoseidonStatement> {
+    Ok(PoseidonStatement {
+        log_n_instances: wire.log_n_instances,
+    })
+}
+
+fn blake_statement_to_wire(statement: BlakeStatement) -> BlakeStatementWire {
+    BlakeStatementWire {
+        log_n_rows: statement.log_n_rows,
+        n_rounds: statement.n_rounds,
+    }
+}
+
+fn blake_statement_from_wire(wire: &BlakeStatementWire) -> Result<BlakeStatement> {
+    Ok(BlakeStatement {
+        log_n_rows: wire.log_n_rows,
+        n_rounds: wire.n_rounds,
+    })
+}
+
 fn prove_example(
     config: PcsConfig,
     example: Example,
@@ -1049,6 +1228,19 @@ fn prove_example(
     include_all_preprocessed_columns: bool,
 ) -> Result<(ExampleStatement, StarkProof<Blake2sMerkleHasher>)> {
     match example {
+        Example::Blake => {
+            let statement = BlakeStatement {
+                log_n_rows: cli.blake_log_n_rows,
+                n_rounds: cli.blake_n_rounds,
+            };
+            let (statement, proof) = blake_prove(
+                config,
+                statement,
+                prove_mode,
+                include_all_preprocessed_columns,
+            )?;
+            Ok((ExampleStatement::Blake(statement), proof))
+        }
         Example::Plonk => {
             let statement = PlonkStatement {
                 log_n_rows: cli.plonk_log_n_rows,
@@ -1060,6 +1252,18 @@ fn prove_example(
                 include_all_preprocessed_columns,
             )?;
             Ok((ExampleStatement::Plonk(statement), proof))
+        }
+        Example::Poseidon => {
+            let statement = PoseidonStatement {
+                log_n_instances: cli.poseidon_log_n_instances,
+            };
+            let (statement, proof) = poseidon_prove(
+                config,
+                statement,
+                prove_mode,
+                include_all_preprocessed_columns,
+            )?;
+            Ok((ExampleStatement::Poseidon(statement), proof))
         }
         Example::StateMachine => {
             let initial_state = [
@@ -1111,7 +1315,9 @@ fn verify_example(
     proof: StarkProof<Blake2sMerkleHasher>,
 ) -> Result<()> {
     match statement {
+        ExampleStatement::Blake(s) => blake_verify(config, s, proof),
         ExampleStatement::Plonk(s) => plonk_verify(config, s, proof),
+        ExampleStatement::Poseidon(s) => poseidon_verify(config, s, proof),
         ExampleStatement::StateMachine(s) => state_machine_verify(config, s, proof),
         ExampleStatement::WideFibonacci(s) => wide_fibonacci_verify(config, s, proof),
         ExampleStatement::Xor(s) => xor_verify(config, s, proof),
@@ -1450,6 +1656,173 @@ fn plonk_verify(
         .map_err(|err| anyhow!("plonk verify failed: {err}"))
 }
 
+fn poseidon_prove(
+    config: PcsConfig,
+    statement: PoseidonStatement,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
+) -> Result<(PoseidonStatement, StarkProof<Blake2sMerkleHasher>)> {
+    let log_n_rows = poseidon_log_n_rows(statement)?;
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let twiddles = CpuBackend::precompute_twiddles(
+        CanonicCoset::new(log_n_rows + config.fri_config.log_blowup_factor + 1)
+            .circle_domain()
+            .half_coset,
+    );
+    let mut scheme =
+        CommitmentSchemeProver::<CpuBackend, Blake2sMerkleChannel>::new(config, &twiddles);
+
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(vec![]);
+    builder.commit(&mut channel);
+
+    let trace = gen_poseidon_trace(log_n_rows)?;
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(
+        trace
+            .into_iter()
+            .map(|col| cpu_eval(log_n_rows, col))
+            .collect(),
+    );
+    builder.commit(&mut channel);
+
+    mix_poseidon_statement(&mut channel, statement);
+
+    let component = PoseidonComponent { statement };
+    let proof = match prove_mode {
+        ProveMode::Prove => {
+            prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?
+        }
+        ProveMode::ProveEx => {
+            prove_ex::<CpuBackend, Blake2sMerkleChannel>(
+                &[&component],
+                &mut channel,
+                scheme,
+                include_all_preprocessed_columns,
+            )?
+            .proof
+        }
+    };
+
+    Ok((statement, proof))
+}
+
+fn poseidon_verify(
+    config: PcsConfig,
+    statement: PoseidonStatement,
+    proof: StarkProof<Blake2sMerkleHasher>,
+) -> Result<()> {
+    let log_n_rows = poseidon_log_n_rows(statement)?;
+    if proof.0.commitments.len() < 2 {
+        bail!("invalid proof shape: expected at least 2 commitments");
+    }
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let c0 = proof.0.commitments[0];
+    let c1 = proof.0.commitments[1];
+
+    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
+    commitment_scheme.commit(c0, &[], &mut channel);
+    let main_log_sizes = vec![log_n_rows; POSEIDON_COLUMNS];
+    commitment_scheme.commit(c1, &main_log_sizes, &mut channel);
+
+    mix_poseidon_statement(&mut channel, statement);
+
+    let component = PoseidonComponent { statement };
+    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
+        .map_err(|err| anyhow!("poseidon verify failed: {err}"))
+}
+
+fn blake_prove(
+    config: PcsConfig,
+    statement: BlakeStatement,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
+) -> Result<(BlakeStatement, StarkProof<Blake2sMerkleHasher>)> {
+    blake_validate_statement(statement)?;
+    let n_columns = blake_n_columns(statement)?;
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let twiddles = CpuBackend::precompute_twiddles(
+        CanonicCoset::new(statement.log_n_rows + config.fri_config.log_blowup_factor + 1)
+            .circle_domain()
+            .half_coset,
+    );
+    let mut scheme =
+        CommitmentSchemeProver::<CpuBackend, Blake2sMerkleChannel>::new(config, &twiddles);
+
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(vec![]);
+    builder.commit(&mut channel);
+
+    let trace = gen_blake_trace(statement)?;
+    let mut builder = scheme.tree_builder();
+    builder.extend_evals(
+        trace
+            .into_iter()
+            .map(|col| cpu_eval(statement.log_n_rows, col))
+            .collect(),
+    );
+    builder.commit(&mut channel);
+
+    mix_blake_statement(&mut channel, statement);
+
+    let component = BlakeComponent { statement };
+    let proof = match prove_mode {
+        ProveMode::Prove => {
+            prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?
+        }
+        ProveMode::ProveEx => {
+            prove_ex::<CpuBackend, Blake2sMerkleChannel>(
+                &[&component],
+                &mut channel,
+                scheme,
+                include_all_preprocessed_columns,
+            )?
+            .proof
+        }
+    };
+
+    let _ = n_columns;
+    Ok((statement, proof))
+}
+
+fn blake_verify(
+    config: PcsConfig,
+    statement: BlakeStatement,
+    proof: StarkProof<Blake2sMerkleHasher>,
+) -> Result<()> {
+    blake_validate_statement(statement)?;
+    let n_columns = blake_n_columns(statement)?;
+    if proof.0.commitments.len() < 2 {
+        bail!("invalid proof shape: expected at least 2 commitments");
+    }
+
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+
+    let c0 = proof.0.commitments[0];
+    let c1 = proof.0.commitments[1];
+
+    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
+    commitment_scheme.commit(c0, &[], &mut channel);
+    let main_log_sizes = vec![statement.log_n_rows; n_columns];
+    commitment_scheme.commit(c1, &main_log_sizes, &mut channel);
+
+    mix_blake_statement(&mut channel, statement);
+
+    let component = BlakeComponent { statement };
+    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
+        .map_err(|err| anyhow!("blake verify failed: {err}"))
+}
+
 fn xor_prove(
     config: PcsConfig,
     statement: XorStatement,
@@ -1683,6 +2056,188 @@ fn gen_plonk_trace(log_n_rows: u32) -> Result<([Vec<M31>; 4], [Vec<M31>; 4])> {
     Ok((preprocessed, main))
 }
 
+fn poseidon_log_n_rows(statement: PoseidonStatement) -> Result<u32> {
+    if statement.log_n_instances < POSEIDON_LOG_INSTANCES_PER_ROW {
+        bail!("invalid poseidon log_n_instances");
+    }
+    let log_n_rows = statement.log_n_instances - POSEIDON_LOG_INSTANCES_PER_ROW;
+    if log_n_rows >= 31 {
+        bail!("invalid poseidon log_n_rows");
+    }
+    Ok(log_n_rows)
+}
+
+fn poseidon_external_round_const(round: usize, state_i: usize) -> M31 {
+    M31::from(((1234u64 + (round as u64 * 37) + state_i as u64) % P as u64) as u32)
+}
+
+fn poseidon_internal_round_const(round: usize) -> M31 {
+    M31::from(((9876u64 + (round as u64 * 17)) % P as u64) as u32)
+}
+
+fn poseidon_pow5(x: M31) -> M31 {
+    let x2 = x.square();
+    let x4 = x2.square();
+    x4 * x
+}
+
+fn poseidon_apply_m4(x: [M31; 4]) -> [M31; 4] {
+    let t0 = x[0] + x[1];
+    let t02 = t0 + t0;
+    let t1 = x[2] + x[3];
+    let t12 = t1 + t1;
+    let t2 = x[1] + x[1] + t1;
+    let t3 = x[3] + x[3] + t0;
+    let t4 = t12 + t12 + t3;
+    let t5 = t02 + t02 + t2;
+    let t6 = t3 + t5;
+    let t7 = t2 + t4;
+    [t6, t5, t7, t4]
+}
+
+fn poseidon_apply_external_round_matrix(state: &mut [M31; POSEIDON_STATE]) {
+    for i in 0..4 {
+        let offset = i * 4;
+        let mixed = poseidon_apply_m4([
+            state[offset],
+            state[offset + 1],
+            state[offset + 2],
+            state[offset + 3],
+        ]);
+        state[offset] = mixed[0];
+        state[offset + 1] = mixed[1];
+        state[offset + 2] = mixed[2];
+        state[offset + 3] = mixed[3];
+    }
+
+    for j in 0..4 {
+        let s = state[j] + state[j + 4] + state[j + 8] + state[j + 12];
+        for i in 0..4 {
+            let idx = i * 4 + j;
+            state[idx] += s;
+        }
+    }
+}
+
+fn poseidon_apply_internal_round_matrix(state: &mut [M31; POSEIDON_STATE]) {
+    let sum = state
+        .iter()
+        .copied()
+        .fold(M31::zero(), |acc, item| acc + item);
+    for (i, value) in state.iter_mut().enumerate() {
+        let coeff = M31::from_u32_unchecked(1u32 << ((i + 1) as u32));
+        *value = *value * coeff + sum;
+    }
+}
+
+fn gen_poseidon_trace(log_n_rows: u32) -> Result<Vec<Vec<M31>>> {
+    if log_n_rows >= 31 {
+        bail!("invalid poseidon log_n_rows");
+    }
+    let n = checked_pow2(log_n_rows)?;
+    let mut trace = vec![vec![M31::zero(); n]; POSEIDON_COLUMNS];
+
+    for row in 0..n {
+        let mut col_index = 0usize;
+        for rep_i in 0..POSEIDON_INSTANCES_PER_ROW {
+            let mut state = std::array::from_fn(|state_i| {
+                M31::from(((row * POSEIDON_STATE + state_i + rep_i) % P as usize) as u32)
+            });
+
+            for value in state {
+                trace[col_index][row] = value;
+                col_index += 1;
+            }
+
+            for round in 0..POSEIDON_HALF_FULL_ROUNDS {
+                for (state_i, value) in state.iter_mut().enumerate() {
+                    *value += poseidon_external_round_const(round, state_i);
+                }
+                poseidon_apply_external_round_matrix(&mut state);
+                for value in state.iter_mut() {
+                    *value = poseidon_pow5(*value);
+                    trace[col_index][row] = *value;
+                    col_index += 1;
+                }
+            }
+
+            for round in 0..POSEIDON_PARTIAL_ROUNDS {
+                state[0] += poseidon_internal_round_const(round);
+                poseidon_apply_internal_round_matrix(&mut state);
+                state[0] = poseidon_pow5(state[0]);
+                trace[col_index][row] = state[0];
+                col_index += 1;
+            }
+
+            for half_round in 0..POSEIDON_HALF_FULL_ROUNDS {
+                let round = half_round + POSEIDON_HALF_FULL_ROUNDS;
+                for (state_i, value) in state.iter_mut().enumerate() {
+                    *value += poseidon_external_round_const(round, state_i);
+                }
+                poseidon_apply_external_round_matrix(&mut state);
+                for value in state.iter_mut() {
+                    *value = poseidon_pow5(*value);
+                    trace[col_index][row] = *value;
+                    col_index += 1;
+                }
+            }
+        }
+        debug_assert_eq!(col_index, POSEIDON_COLUMNS);
+    }
+
+    Ok(trace)
+}
+
+fn blake_validate_statement(statement: BlakeStatement) -> Result<()> {
+    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
+        bail!("invalid blake log_n_rows");
+    }
+    if statement.n_rounds == 0 {
+        bail!("invalid blake n_rounds");
+    }
+    let _ = blake_n_columns(statement)?;
+    Ok(())
+}
+
+fn blake_n_columns(statement: BlakeStatement) -> Result<usize> {
+    (statement.n_rounds as usize)
+        .checked_mul(BLAKE_ROUND_INPUT_FELTS)
+        .ok_or_else(|| anyhow!("blake column count overflow"))
+}
+
+fn blake_next_seed(seed: u64) -> u64 {
+    let mut x = seed;
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+    x
+}
+
+fn gen_blake_trace(statement: BlakeStatement) -> Result<Vec<Vec<M31>>> {
+    blake_validate_statement(statement)?;
+    let n = checked_pow2(statement.log_n_rows)?;
+    let n_columns = blake_n_columns(statement)?;
+    let mut trace = vec![vec![M31::zero(); n]; n_columns];
+
+    for row in 0..n {
+        let mut col_index = 0usize;
+        let mut seed = row as u64 + 1;
+        for round in 0..statement.n_rounds as usize {
+            for cell in 0..BLAKE_ROUND_INPUT_FELTS {
+                seed = blake_next_seed(seed);
+                let mixed = seed
+                    ^ ((round as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15))
+                    ^ (((cell + 1) as u64).wrapping_mul(0x517c_c1b7_2722_0a95));
+                trace[col_index][row] = M31::from((mixed % P as u64) as u32);
+                col_index += 1;
+            }
+        }
+        debug_assert_eq!(col_index, n_columns);
+    }
+
+    Ok(trace)
+}
+
 fn state_machine_combine(elements: StateMachineElements, state: [M31; 2]) -> SecureField {
     SecureField::from(state[0]) + elements.alpha * SecureField::from(state[1]) - elements.z
 }
@@ -1807,6 +2362,32 @@ fn plonk_composition_eval(statement: PlonkStatement) -> SecureField {
 
 fn mix_plonk_statement(channel: &mut Blake2sChannel, statement: PlonkStatement) {
     channel.mix_u32s(&[statement.log_n_rows]);
+}
+
+fn poseidon_composition_eval(statement: PoseidonStatement) -> SecureField {
+    SecureField::from_m31(
+        M31::from(statement.log_n_instances),
+        M31::from(POSEIDON_COLUMNS_PER_REP as u32),
+        M31::from(POSEIDON_COLUMNS as u32),
+        M31::one(),
+    )
+}
+
+fn mix_poseidon_statement(channel: &mut Blake2sChannel, statement: PoseidonStatement) {
+    channel.mix_u32s(&[statement.log_n_instances]);
+}
+
+fn blake_composition_eval(statement: BlakeStatement) -> SecureField {
+    SecureField::from_m31(
+        M31::from(statement.log_n_rows),
+        M31::from(statement.n_rounds),
+        M31::from(blake_n_columns(statement).unwrap_or(0) as u32),
+        M31::one(),
+    )
+}
+
+fn mix_blake_statement(channel: &mut Blake2sChannel, statement: BlakeStatement) {
+    channel.mix_u32s(&[statement.log_n_rows, statement.n_rounds]);
 }
 
 fn xor_composition_eval(statement: XorStatement) -> SecureField {
@@ -1979,6 +2560,112 @@ impl ComponentProver<CpuBackend> for PlonkComponent {
         evaluation_accumulator: &mut DomainEvaluationAccumulator<CpuBackend>,
     ) {
         let composition_eval = plonk_composition_eval(self.statement);
+        let [mut col] = evaluation_accumulator.columns([(self.statement.log_n_rows + 1, 1)]);
+        let domain_size = 1usize << (self.statement.log_n_rows + 1);
+        for i in 0..domain_size {
+            col.accumulate(i, composition_eval);
+        }
+    }
+}
+
+impl Component for PoseidonComponent {
+    fn n_constraints(&self) -> usize {
+        1
+    }
+
+    fn max_constraint_log_degree_bound(&self) -> u32 {
+        poseidon_log_n_rows(self.statement).unwrap_or(0) + 1
+    }
+
+    fn trace_log_degree_bounds(&self) -> TreeVec<Vec<u32>> {
+        let log_n_rows = poseidon_log_n_rows(self.statement).unwrap_or(0);
+        TreeVec::new(vec![vec![], vec![log_n_rows; POSEIDON_COLUMNS]])
+    }
+
+    fn mask_points(
+        &self,
+        point: CirclePoint<SecureField>,
+        _max_log_degree_bound: u32,
+    ) -> TreeVec<Vec<Vec<CirclePoint<SecureField>>>> {
+        TreeVec::new(vec![vec![], vec![vec![point]; POSEIDON_COLUMNS]])
+    }
+
+    fn preprocessed_column_indices(&self) -> Vec<usize> {
+        vec![]
+    }
+
+    fn evaluate_constraint_quotients_at_point(
+        &self,
+        _point: CirclePoint<SecureField>,
+        _mask: &TreeVec<Vec<Vec<SecureField>>>,
+        evaluation_accumulator: &mut PointEvaluationAccumulator,
+        _max_log_degree_bound: u32,
+    ) {
+        evaluation_accumulator.accumulate(poseidon_composition_eval(self.statement));
+    }
+}
+
+impl ComponentProver<CpuBackend> for PoseidonComponent {
+    fn evaluate_constraint_quotients_on_domain(
+        &self,
+        _trace: &Trace<'_, CpuBackend>,
+        evaluation_accumulator: &mut DomainEvaluationAccumulator<CpuBackend>,
+    ) {
+        let log_n_rows = poseidon_log_n_rows(self.statement).unwrap_or(0);
+        let composition_eval = poseidon_composition_eval(self.statement);
+        let [mut col] = evaluation_accumulator.columns([(log_n_rows + 1, 1)]);
+        let domain_size = 1usize << (log_n_rows + 1);
+        for i in 0..domain_size {
+            col.accumulate(i, composition_eval);
+        }
+    }
+}
+
+impl Component for BlakeComponent {
+    fn n_constraints(&self) -> usize {
+        1
+    }
+
+    fn max_constraint_log_degree_bound(&self) -> u32 {
+        self.statement.log_n_rows + 1
+    }
+
+    fn trace_log_degree_bounds(&self) -> TreeVec<Vec<u32>> {
+        let n_columns = blake_n_columns(self.statement).unwrap_or(0);
+        TreeVec::new(vec![vec![], vec![self.statement.log_n_rows; n_columns]])
+    }
+
+    fn mask_points(
+        &self,
+        point: CirclePoint<SecureField>,
+        _max_log_degree_bound: u32,
+    ) -> TreeVec<Vec<Vec<CirclePoint<SecureField>>>> {
+        let n_columns = blake_n_columns(self.statement).unwrap_or(0);
+        TreeVec::new(vec![vec![], vec![vec![point]; n_columns]])
+    }
+
+    fn preprocessed_column_indices(&self) -> Vec<usize> {
+        vec![]
+    }
+
+    fn evaluate_constraint_quotients_at_point(
+        &self,
+        _point: CirclePoint<SecureField>,
+        _mask: &TreeVec<Vec<Vec<SecureField>>>,
+        evaluation_accumulator: &mut PointEvaluationAccumulator,
+        _max_log_degree_bound: u32,
+    ) {
+        evaluation_accumulator.accumulate(blake_composition_eval(self.statement));
+    }
+}
+
+impl ComponentProver<CpuBackend> for BlakeComponent {
+    fn evaluate_constraint_quotients_on_domain(
+        &self,
+        _trace: &Trace<'_, CpuBackend>,
+        evaluation_accumulator: &mut DomainEvaluationAccumulator<CpuBackend>,
+    ) {
+        let composition_eval = blake_composition_eval(self.statement);
         let [mut col] = evaluation_accumulator.columns([(self.statement.log_n_rows + 1, 1)]);
         let domain_size = 1usize << (self.statement.log_n_rows + 1);
         for i in 0..domain_size {

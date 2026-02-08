@@ -3,6 +3,8 @@ const fri = @import("../core/fri.zig");
 const m31 = @import("../core/fields/m31.zig");
 const qm31 = @import("../core/fields/qm31.zig");
 const pcs = @import("../core/pcs/mod.zig");
+const blake = @import("../examples/blake.zig");
+const poseidon = @import("../examples/poseidon.zig");
 const plonk = @import("../examples/plonk.zig");
 const state_machine = @import("../examples/state_machine.zig");
 const wide_fibonacci = @import("../examples/wide_fibonacci.zig");
@@ -46,6 +48,15 @@ pub const PlonkStatementWire = struct {
     log_n_rows: u32,
 };
 
+pub const PoseidonStatementWire = struct {
+    log_n_instances: u32,
+};
+
+pub const BlakeStatementWire = struct {
+    log_n_rows: u32,
+    n_rounds: u32,
+};
+
 pub const InteropArtifact = struct {
     schema_version: u32,
     upstream_commit: []const u8,
@@ -54,7 +65,9 @@ pub const InteropArtifact = struct {
     example: []const u8,
     prove_mode: ?[]const u8 = null,
     pcs_config: PcsConfigWire,
+    blake_statement: ?BlakeStatementWire = null,
     plonk_statement: ?PlonkStatementWire = null,
+    poseidon_statement: ?PoseidonStatementWire = null,
     state_machine_statement: ?StateMachineStatementWire = null,
     wide_fibonacci_statement: ?WideFibonacciStatementWire = null,
     xor_statement: ?XorStatementWire = null,
@@ -226,6 +239,32 @@ pub fn plonkStatementFromWire(wire: PlonkStatementWire) ArtifactError!plonk.Stat
     };
 }
 
+pub fn poseidonStatementToWire(statement: poseidon.Statement) PoseidonStatementWire {
+    return .{
+        .log_n_instances = statement.log_n_instances,
+    };
+}
+
+pub fn poseidonStatementFromWire(wire: PoseidonStatementWire) ArtifactError!poseidon.Statement {
+    return .{
+        .log_n_instances = wire.log_n_instances,
+    };
+}
+
+pub fn blakeStatementToWire(statement: blake.Statement) BlakeStatementWire {
+    return .{
+        .log_n_rows = statement.log_n_rows,
+        .n_rounds = statement.n_rounds,
+    };
+}
+
+pub fn blakeStatementFromWire(wire: BlakeStatementWire) ArtifactError!blake.Statement {
+    return .{
+        .log_n_rows = wire.log_n_rows,
+        .n_rounds = wire.n_rounds,
+    };
+}
+
 fn m31FromU32(value: u32) ArtifactError!M31 {
     if (value >= m31.Modulus) return ArtifactError.NonCanonicalM31;
     return M31.fromCanonical(value);
@@ -283,4 +322,24 @@ test "interop artifact: plonk statement wire roundtrip" {
     const wire = plonkStatementToWire(statement);
     const decoded = try plonkStatementFromWire(wire);
     try std.testing.expectEqual(statement.log_n_rows, decoded.log_n_rows);
+}
+
+test "interop artifact: poseidon statement wire roundtrip" {
+    const statement: poseidon.Statement = .{
+        .log_n_instances = 8,
+    };
+    const wire = poseidonStatementToWire(statement);
+    const decoded = try poseidonStatementFromWire(wire);
+    try std.testing.expectEqual(statement.log_n_instances, decoded.log_n_instances);
+}
+
+test "interop artifact: blake statement wire roundtrip" {
+    const statement: blake.Statement = .{
+        .log_n_rows = 5,
+        .n_rounds = 10,
+    };
+    const wire = blakeStatementToWire(statement);
+    const decoded = try blakeStatementFromWire(wire);
+    try std.testing.expectEqual(statement.log_n_rows, decoded.log_n_rows);
+    try std.testing.expectEqual(statement.n_rounds, decoded.n_rounds);
 }

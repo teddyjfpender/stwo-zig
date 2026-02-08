@@ -7,6 +7,7 @@ The compatibility target is pinned in `/Users/theodorepender/Coding/stwo-zig/UPS
 
 This repository includes prover/verifier plumbing, cross-language proof exchange,
 parity vectors, checkpoint harnesses, and strict conformance gates.
+Interop/checkpoint example set: `blake`, `poseidon`, `plonk`, `state_machine`, `wide_fibonacci`, `xor`.
 
 ## Requirements
 
@@ -58,7 +59,7 @@ Full benchmark add-on:
 
 Optimization track (non-authoritative for release conformance):
 - `zig build bench-opt`
-- `zig build bench-contrast` (adds large contrast workloads: `wide_fibonacci` fib(100/500/1000) + `plonk_large`)
+- `zig build bench-contrast` (adds large contrast workloads: `poseidon_large`, `blake_large`, `wide_fibonacci` fib(100/500/1000), and `plonk_large`)
 - `zig build profile-opt`
 - `zig build profile-contrast` (adds `wide_fibonacci` fib500 + `plonk_deep` hotspot capture)
 - `zig build opt-gate` (runs baseline-compatible bench/profile plus comparator thresholds)
