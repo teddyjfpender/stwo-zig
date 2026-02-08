@@ -35,6 +35,7 @@ pub const ColumnEvaluation = quotient_ops.ColumnEvaluation;
 pub fn CommitmentTreeProver(comptime H: type) type {
     return struct {
         columns: []ColumnEvaluation,
+        coefficients: ?[]prover_circle.CircleCoefficients,
         commitment: vcs_lifted_prover.MerkleProverLifted(H),
 
         const Self = @This();
@@ -45,14 +46,25 @@ pub fn CommitmentTreeProver(comptime H: type) type {
         ) !Self {
             const owned_columns = try cloneColumnsOwned(allocator, columns);
             errdefer freeOwnedColumns(allocator, owned_columns);
-            return initOwned(allocator, owned_columns);
+            return initOwnedWithCoefficients(allocator, owned_columns, null);
         }
 
         pub fn initOwned(
             allocator: std.mem.Allocator,
             owned_columns: []ColumnEvaluation,
         ) !Self {
+            return initOwnedWithCoefficients(allocator, owned_columns, null);
+        }
+
+        pub fn initOwnedWithCoefficients(
+            allocator: std.mem.Allocator,
+            owned_columns: []ColumnEvaluation,
+            owned_coefficients: ?[]prover_circle.CircleCoefficients,
+        ) !Self {
             for (owned_columns) |column| try column.validate();
+            if (owned_coefficients) |coeffs| {
+                if (coeffs.len != owned_columns.len) return CommitmentSchemeError.ShapeMismatch;
+            }
 
             const column_refs = try allocator.alloc([]const M31, owned_columns.len);
             defer allocator.free(column_refs);
@@ -68,12 +80,17 @@ pub fn CommitmentTreeProver(comptime H: type) type {
 
             return .{
                 .columns = owned_columns,
+                .coefficients = owned_coefficients,
                 .commitment = commitment,
             };
         }
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
             freeOwnedColumns(allocator, self.columns);
+            if (self.coefficients) |coeffs| {
+                for (coeffs) |*coeff| coeff.deinit(allocator);
+                allocator.free(coeffs);
+            }
             self.commitment.deinit(allocator);
             self.* = undefined;
         }
@@ -184,14 +201,19 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             columns: []const ColumnEvaluation,
             channel: anytype,
         ) !void {
-            const committed_columns = try prepareColumnsForCommitBorrowed(
+            var prepared = try prepareColumnsForCommitBorrowed(
                 allocator,
                 columns,
                 self.config.fri_config.log_blowup_factor,
+                self.store_polynomials_coefficients,
             );
-            errdefer freeOwnedColumnEvaluations(allocator, committed_columns);
+            errdefer prepared.deinit(allocator);
 
-            var tree = try CommitmentTreeProver(H).initOwned(allocator, committed_columns);
+            var tree = try CommitmentTreeProver(H).initOwnedWithCoefficients(
+                allocator,
+                prepared.columns,
+                prepared.coefficients,
+            );
             errdefer tree.deinit(allocator);
             try self.appendCommittedTree(allocator, tree, channel);
         }
@@ -544,6 +566,9 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
 
             for (trees.items, sampled_points.items, 0..) |tree, tree_points, tree_idx| {
                 if (tree.columns.len != tree_points.len) return CommitmentSchemeError.ShapeMismatch;
+                if (tree.coefficients) |coeffs| {
+                    if (coeffs.len != tree.columns.len) return CommitmentSchemeError.ShapeMismatch;
+                }
 
                 const tree_values = try allocator.alloc([]QM31, tree.columns.len);
                 out[tree_idx] = tree_values;
@@ -559,22 +584,30 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     if (column.log_size > lifting_log_size) return CommitmentSchemeError.ShapeMismatch;
                     try column.validate();
 
-                    const eval_domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
-                    const evaluation = try prover_circle.CircleEvaluation.init(
-                        eval_domain,
-                        column.values,
-                    );
-
                     const values = try allocator.alloc(QM31, points.len);
                     tree_values[col_idx] = values;
                     initialized_columns += 1;
 
                     const fold_count = lifting_log_size - column.log_size;
-                    for (points, 0..) |point, i| {
-                        values[i] = try evaluation.evalAtPoint(
-                            allocator,
-                            point.repeatedDouble(fold_count),
+                    if (tree.coefficients) |coeffs| {
+                        const coeff = coeffs[col_idx];
+                        for (points, 0..) |point, i| {
+                            values[i] = coeff.evalAtPoint(
+                                point.repeatedDouble(fold_count),
+                            );
+                        }
+                    } else {
+                        const eval_domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
+                        const evaluation = try prover_circle.CircleEvaluation.init(
+                            eval_domain,
+                            column.values,
                         );
+                        for (points, 0..) |point, i| {
+                            values[i] = try evaluation.evalAtPoint(
+                                allocator,
+                                point.repeatedDouble(fold_count),
+                            );
+                        }
                     }
                 }
             }
@@ -623,14 +656,19 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
                 freeOwnedColumnEvaluations(self.allocator, base_columns);
             }
 
-            const committed_columns = try prepareColumnsForCommitOwned(
+            var prepared = try prepareColumnsForCommitOwned(
                 self.allocator,
                 base_columns,
                 self.commitment_scheme.config.fri_config.log_blowup_factor,
+                self.commitment_scheme.store_polynomials_coefficients,
             );
-            errdefer freeOwnedColumnEvaluations(self.allocator, committed_columns);
+            errdefer prepared.deinit(self.allocator);
 
-            var tree = try CommitmentTreeProver(H).initOwned(self.allocator, committed_columns);
+            var tree = try CommitmentTreeProver(H).initOwnedWithCoefficients(
+                self.allocator,
+                prepared.columns,
+                prepared.coefficients,
+            );
             errdefer tree.deinit(self.allocator);
             try self.commitment_scheme.appendCommittedTree(self.allocator, tree, channel);
         }
@@ -728,11 +766,25 @@ fn borrowedColumnsTree(
     return TreeVec([]ColumnEvaluation).initOwned(out);
 }
 
+const PreparedCommitmentColumns = struct {
+    columns: []ColumnEvaluation,
+    coefficients: ?[]prover_circle.CircleCoefficients,
+
+    fn deinit(self: *PreparedCommitmentColumns, allocator: std.mem.Allocator) void {
+        freeOwnedColumnEvaluations(allocator, self.columns);
+        if (self.coefficients) |coeffs| {
+            deinitOwnedCoefficientColumns(allocator, coeffs);
+        }
+        self.* = undefined;
+    }
+};
+
 fn prepareColumnsForCommitBorrowed(
     allocator: std.mem.Allocator,
     columns: []const ColumnEvaluation,
     log_blowup_factor: u32,
-) ![]ColumnEvaluation {
+    store_coefficients: bool,
+) !PreparedCommitmentColumns {
     const owned = try allocator.alloc(ColumnEvaluation, columns.len);
     errdefer allocator.free(owned);
 
@@ -750,17 +802,32 @@ fn prepareColumnsForCommitBorrowed(
         initialized += 1;
     }
 
-    return prepareColumnsForCommitOwned(allocator, owned, log_blowup_factor);
+    return prepareColumnsForCommitOwned(
+        allocator,
+        owned,
+        log_blowup_factor,
+        store_coefficients,
+    );
 }
 
 fn prepareColumnsForCommitOwned(
     allocator: std.mem.Allocator,
     owned_columns: []ColumnEvaluation,
     log_blowup_factor: u32,
-) ![]ColumnEvaluation {
+    store_coefficients: bool,
+) !PreparedCommitmentColumns {
     if (log_blowup_factor == 0) {
-        return owned_columns;
+        return .{
+            .columns = owned_columns,
+            .coefficients = if (store_coefficients)
+                try interpolateCoefficientColumns(allocator, owned_columns)
+            else
+                null,
+        };
     }
+
+    const coeffs = try interpolateCoefficientColumns(allocator, owned_columns);
+    errdefer deinitOwnedCoefficientColumns(allocator, coeffs);
 
     const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
 
@@ -770,22 +837,17 @@ fn prepareColumnsForCommitOwned(
         allocator.free(extended);
     }
 
-    for (owned_columns, 0..) |column, i| {
+    for (owned_columns, coeffs, 0..) |column, coeff, i| {
         try column.validate();
-        const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
-        const evaluation = try prover_circle.CircleEvaluation.init(domain, column.values);
         const extended_log_size = std.math.add(
             u32,
             column.log_size,
             log_blowup_factor,
         ) catch return CommitmentSchemeError.ShapeMismatch;
 
-        var coeffs = try prover_circle.poly.interpolateFromEvaluation(allocator, evaluation);
-        defer coeffs.deinit(allocator);
-
         const extended_eval = try prover_circle.ops.evaluateOnCanonicDomain(
             allocator,
-            coeffs,
+            coeff,
             log_blowup_factor,
         );
         extended[i] = .{
@@ -796,7 +858,49 @@ fn prepareColumnsForCommitOwned(
     }
 
     freeOwnedColumnEvaluations(allocator, owned_columns);
-    return extended;
+    if (!store_coefficients) {
+        deinitOwnedCoefficientColumns(allocator, coeffs);
+        return .{
+            .columns = extended,
+            .coefficients = null,
+        };
+    }
+
+    return .{
+        .columns = extended,
+        .coefficients = coeffs,
+    };
+}
+
+fn interpolateCoefficientColumns(
+    allocator: std.mem.Allocator,
+    columns: []const ColumnEvaluation,
+) ![]prover_circle.CircleCoefficients {
+    const out = try allocator.alloc(prover_circle.CircleCoefficients, columns.len);
+    errdefer allocator.free(out);
+
+    var initialized: usize = 0;
+    errdefer {
+        for (out[0..initialized]) |*coeff| coeff.deinit(allocator);
+        allocator.free(out);
+    }
+
+    for (columns, 0..) |column, i| {
+        const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
+        const evaluation = try prover_circle.CircleEvaluation.init(domain, column.values);
+        out[i] = try prover_circle.poly.interpolateFromEvaluation(allocator, evaluation);
+        initialized += 1;
+    }
+
+    return out;
+}
+
+fn deinitOwnedCoefficientColumns(
+    allocator: std.mem.Allocator,
+    columns: []prover_circle.CircleCoefficients,
+) void {
+    for (columns) |*coeff| coeff.deinit(allocator);
+    allocator.free(columns);
 }
 
 fn freeOwnedColumnEvaluations(
@@ -1247,6 +1351,90 @@ test "prover pcs: prove values computes sampled values in prover" {
     try std.testing.expect(extended_proof.proof.sampled_values.items[0][0][0].eql(
         QM31.fromBase(M31.fromCanonical(19)),
     ));
+
+    const sampled_points_col_verify = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        sample_point,
+    });
+    const sampled_points_tree_verify = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col_verify,
+    });
+    const sampled_points_verify = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_verify}),
+    );
+
+    var verifier_channel = Channel{};
+    var verifier = try Verifier.init(alloc, config);
+    defer verifier.deinit(alloc);
+    try verifier.commit(
+        alloc,
+        extended_proof.proof.commitments.items[0],
+        &[_]u32{3},
+        &verifier_channel,
+    );
+    try verifier.verifyValues(
+        alloc,
+        sampled_points_verify,
+        extended_proof.proof,
+        &verifier_channel,
+    );
+}
+
+test "prover pcs: stored coefficients fast path computes sampled values" {
+    const Hasher = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
+    const MerkleChannel = @import("../../core/vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;
+    const Channel = @import("../../core/channel/blake2s.zig").Blake2sChannel;
+    const Scheme = CommitmentSchemeProver(Hasher, MerkleChannel);
+    const Verifier = @import("../../core/pcs/verifier.zig").CommitmentSchemeVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    const config = PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("../../core/fri.zig").FriConfig.init(0, 2, 3),
+    };
+
+    var prover_channel = Channel{};
+    var scheme = try Scheme.init(alloc, config);
+    scheme.setStorePolynomialsCoefficients();
+
+    const column_values = [_]M31{
+        M31.fromCanonical(31),
+        M31.fromCanonical(31),
+        M31.fromCanonical(31),
+        M31.fromCanonical(31),
+        M31.fromCanonical(31),
+        M31.fromCanonical(31),
+        M31.fromCanonical(31),
+        M31.fromCanonical(31),
+    };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{
+            .{ .log_size = 3, .values = column_values[0..] },
+        },
+        &prover_channel,
+    );
+
+    const coeffs = scheme.trees.items[0].coefficients orelse return CommitmentSchemeError.ShapeMismatch;
+    try std.testing.expectEqual(@as(usize, 1), coeffs.len);
+    try std.testing.expectEqual(@as(u32, 3), coeffs[0].logSize());
+
+    const sample_point = @import("../../core/circle.zig").SECURE_FIELD_CIRCLE_GEN.mul(59);
+    const sampled_points_col_prover = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        sample_point,
+    });
+    const sampled_points_tree_prover = try alloc.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
+        sampled_points_col_prover,
+    });
+    const sampled_points_prover = TreeVec([][]CirclePointQM31).initOwned(
+        try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_prover}),
+    );
+
+    var extended_proof = try scheme.proveValues(
+        alloc,
+        sampled_points_prover,
+        &prover_channel,
+    );
+    defer extended_proof.aux.deinit(alloc);
 
     const sampled_points_col_verify = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
         sample_point,

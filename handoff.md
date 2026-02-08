@@ -40,6 +40,9 @@
     - columns are now committed on the extended domain (`log_size + log_blowup_factor`) via interpolation + canonic-domain evaluation.
     - `proveValues` / `proveValuesFromSamples` no longer reject non-zero blowup.
     - added non-zero blowup roundtrip coverage for both sampled-values and in-prover sampled-point paths.
+  - Wired `setStorePolynomialsCoefficients` slice:
+    - committed trees can now retain base polynomial coefficients.
+    - `proveValues` evaluates sampled points from stored coefficients when present (fallback remains barycentric on committed evaluations).
   - Added roundtrip test against `core/pcs/verifier.zig`.
   - Added negative tests for shape mismatch, inconsistent sampled-value rejection, and sampled-point-on-domain rejection.
 
@@ -116,7 +119,7 @@
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
 
 ## Current Known Gaps
-1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover, but does not yet use/store circle coefficients + shared weights hash-map optimization path from upstream.
+1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover and supports stored coefficients, but still lacks shared weights hash-map caching and full upstream TwiddleTree-backed coefficient plumbing.
 2. `prover/poly/circle` now has FFT-layer interpolation/evaluation, but still lacks full upstream TwiddleTree backend parity (precompute/caching and backend-specific SIMD/CPU paths).
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current executable entrypoints are sampled-points (`prove`/`proveEx`), component-driven (`proveExComponents`/`proveComponents`), and prepared sampled-values (`provePrepared`) paths.
@@ -130,6 +133,6 @@
 
 ## Divergence Record (Active)
 - Temporary implementation divergence:
-  - `CommitmentSchemeProver.proveValues` currently evaluates from committed column evaluations only (no stored-coefficients fast path and no weights cache map).
+  - `CommitmentSchemeProver.proveValues` now has a stored-coefficients fast path, but still lacks upstream-equivalent shared weights cache map and backend-integrated coefficient flow.
   - `prover/poly/circle` currently uses local twiddle generation per operation (no shared TwiddleTree cache wiring yet).
   - Closure plan: complete `prover/poly/circle` coefficient stack and route `setStorePolynomialsCoefficients` through upstream-equivalent branching.

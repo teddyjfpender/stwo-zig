@@ -9,7 +9,7 @@ pub fn eql(a: anytype, b: @TypeOf(a)) bool {
 pub fn assertHashType(comptime Hash: type) void {
     comptime {
         _ = std.mem.zeroes(Hash);
-        if (@typeInfo(Hash) == .Pointer) {
+        if (@typeInfo(Hash) == .pointer) {
             @compileError("VCS hash type must be a value type, not a pointer.");
         }
     }
