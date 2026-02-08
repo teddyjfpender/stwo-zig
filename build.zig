@@ -40,6 +40,15 @@ pub fn build(b: *std.Build) void {
     const bench_smoke_step = b.step("bench-smoke", "Run benchmark smoke harness and emit report");
     bench_smoke_step.dependOn(&bench_smoke_cmd.step);
 
+    // Benchmark strict gate with medium workloads enabled.
+    const bench_strict_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/benchmark_smoke.py",
+        "--include-medium",
+    });
+    const bench_strict_step = b.step("bench-strict", "Run strict benchmark harness (base + medium workloads)");
+    bench_strict_step.dependOn(&bench_strict_cmd.step);
+
     // Profiling smoke gate with coarse wall-clock and peak-RSS collection.
     const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
     const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");
@@ -69,4 +78,28 @@ pub fn build(b: *std.Build) void {
         "Run release gate sequence (fmt -> test -> vectors -> interop -> bench-smoke -> profile-smoke)",
     );
     release_gate_step.dependOn(&rg_profile.step);
+
+    // Strict release gate sequence:
+    // fmt -> test -> vectors -> interop -> bench-strict -> profile-smoke
+    const rgs_fmt = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
+    const rgs_test = b.addSystemCommand(&.{ "zig", "test", "src/stwo.zig" });
+    rgs_test.step.dependOn(&rgs_fmt.step);
+    const rgs_vectors = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });
+    rgs_vectors.step.dependOn(&rgs_test.step);
+    const rgs_interop = b.addSystemCommand(&.{ "python3", "scripts/e2e_interop.py" });
+    rgs_interop.step.dependOn(&rgs_vectors.step);
+    const rgs_bench = b.addSystemCommand(&.{
+        "python3",
+        "scripts/benchmark_smoke.py",
+        "--include-medium",
+    });
+    rgs_bench.step.dependOn(&rgs_interop.step);
+    const rgs_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
+    rgs_profile.step.dependOn(&rgs_bench.step);
+
+    const release_gate_strict_step = b.step(
+        "release-gate-strict",
+        "Run strict release gate sequence (fmt -> test -> vectors -> interop -> bench-strict -> profile-smoke)",
+    );
+    release_gate_strict_step.dependOn(&rgs_profile.step);
 }

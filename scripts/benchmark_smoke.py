@@ -370,6 +370,8 @@ def main() -> int:
             "warmups": args.warmups,
             "repeats": args.repeats,
             "rust_toolchain": args.rust_toolchain,
+            "include_medium": args.include_medium,
+            "workload_tier": "base_plus_medium" if args.include_medium else "base_only",
             "collector": "time -l" if TIME_BIN.exists() else "wall-clock-only",
         },
         "summary": {

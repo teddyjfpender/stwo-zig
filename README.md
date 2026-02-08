@@ -34,6 +34,7 @@ zig build fmt
 zig build vectors
 zig build interop
 zig build bench-smoke
+zig build bench-strict
 zig build profile-smoke
 ```
 
@@ -44,7 +45,11 @@ Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
 
 `zig build bench-smoke` now runs a matched Rust-vs-Zig workload matrix over release
 interop binaries, records raw prove/verify timing samples, RSS, proof-size/decommit
-shape metrics, and enforces `<= 1.50x` Zig-over-Rust latency threshold by default.
+shape metrics, and enforces `<= 1.50x` Zig-over-Rust latency threshold by default on
+the base workload tier.
+
+`zig build bench-strict` runs the same protocol with `--include-medium` enabled and is
+the benchmark requirement for release signoff.
 
 `zig build profile-smoke` now runs deep proving workloads with `time -l` metrics and
 `sample`-based hotspot attribution, and emits mitigation hints in the profile report.
@@ -53,7 +58,11 @@ shape metrics, and enforces `<= 1.50x` Zig-over-Rust latency threshold by defaul
 
 ```bash
 zig build release-gate
+zig build release-gate-strict
 ```
+
+`zig build release-gate` is the fast/base CI gate.
+`zig build release-gate-strict` is the required release-signoff gate.
 
 ## Layout
 
