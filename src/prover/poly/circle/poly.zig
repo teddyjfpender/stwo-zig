@@ -67,35 +67,23 @@ pub const CircleCoefficients = struct {
 
         const max_log_size = circle.M31_CIRCLE_LOG_ORDER;
         std.debug.assert(self.log_size <= max_log_size);
-        var mappings: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
-
-        mappings[self.log_size - 1] = point.y;
+        var factors: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
+        factors[0] = point.y;
         if (self.log_size > 1) {
             var x = point.x;
-            var i: usize = self.log_size - 1;
-            while (i > 0) {
-                i -= 1;
-                mappings[i] = x;
+            factors[1] = x;
+            var bit: u32 = 2;
+            while (bit < self.log_size) : (bit += 1) {
                 x = circle.CirclePoint(QM31).doubleX(x);
+                factors[bit] = x;
             }
         }
 
-        var acc = QM31.zero();
-        for (self.coeffs, 0..) |coeff, idx| {
-            var twiddle = QM31.one();
-            var bit_idx: usize = 0;
-            var bit_words = idx;
-            while (bit_idx < self.log_size and bit_words != 0) : (bit_idx += 1) {
-                if ((bit_words & 1) == 1) {
-                    const mapping_idx = self.log_size - 1 - bit_idx;
-                    twiddle = twiddle.mul(mappings[mapping_idx]);
-                }
-                bit_words >>= 1;
-            }
-            acc = acc.add(QM31.fromBase(coeff).mul(twiddle));
-        }
-
-        return acc;
+        return evalAtPointRecursive(
+            self.coeffs,
+            factors[0..self.log_size],
+            self.log_size,
+        );
     }
 
     pub fn extend(
@@ -354,6 +342,52 @@ fn checkedPow2(log_size: u32) PolyError!usize {
     return @as(usize, 1) << @intCast(log_size);
 }
 
+fn evalAtPointRecursive(
+    coeffs: []const M31,
+    factors: []const QM31,
+    bits_left: u32,
+) QM31 {
+    std.debug.assert(coeffs.len == (@as(usize, 1) << @intCast(bits_left)));
+    if (bits_left == 0) return QM31.fromBase(coeffs[0]);
+
+    const mid = coeffs.len / 2;
+    const left = evalAtPointRecursive(coeffs[0..mid], factors, bits_left - 1);
+    const right = evalAtPointRecursive(coeffs[mid..], factors, bits_left - 1);
+    return left.add(right.mul(factors[bits_left - 1]));
+}
+
+fn evalAtPointReference(self: CircleCoefficients, point: CirclePointQM31) QM31 {
+    if (self.log_size == 0) return QM31.fromBase(self.coeffs[0]);
+
+    var mappings: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
+    mappings[self.log_size - 1] = point.y;
+    if (self.log_size > 1) {
+        var x = point.x;
+        var i: usize = self.log_size - 1;
+        while (i > 0) {
+            i -= 1;
+            mappings[i] = x;
+            x = circle.CirclePoint(QM31).doubleX(x);
+        }
+    }
+
+    var acc = QM31.zero();
+    for (self.coeffs, 0..) |coeff, idx| {
+        var twiddle = QM31.one();
+        var bit_idx: usize = 0;
+        var bit_words = idx;
+        while (bit_idx < self.log_size and bit_words != 0) : (bit_idx += 1) {
+            if ((bit_words & 1) == 1) {
+                const mapping_idx = self.log_size - 1 - bit_idx;
+                twiddle = twiddle.mul(mappings[mapping_idx]);
+            }
+            bit_words >>= 1;
+        }
+        acc = acc.add(QM31.fromBase(coeff).mul(twiddle));
+    }
+    return acc;
+}
+
 fn pointM31IntoQM31(point: circle.CirclePointM31) CirclePointQM31 {
     return .{
         .x = QM31.fromBase(point.x),
@@ -407,6 +441,32 @@ test "prover poly circle poly: eval at point for constant polynomial" {
     const poly = try CircleCoefficients.initBorrowed(coeffs[0..]);
     const point = circle.SECURE_FIELD_CIRCLE_GEN.mul(11);
     try std.testing.expect(poly.evalAtPoint(point).eql(QM31.fromBase(M31.fromCanonical(23))));
+}
+
+test "prover poly circle poly: eval at point fast path matches reference" {
+    const alloc = std.testing.allocator;
+    const log_sizes = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
+
+    var prng = std.Random.DefaultPrng.init(0x97d8_114a_3f61_55cc);
+    const random = prng.random();
+
+    for (log_sizes) |log_size| {
+        const n = @as(usize, 1) << @intCast(log_size);
+        const coeffs = try alloc.alloc(M31, n);
+        defer alloc.free(coeffs);
+        for (coeffs) |*coeff| {
+            coeff.* = M31.fromCanonical(random.intRangeLessThan(u32, 0, m31.Modulus));
+        }
+
+        const poly = try CircleCoefficients.initBorrowed(coeffs);
+        var sample_idx: usize = 0;
+        while (sample_idx < 24) : (sample_idx += 1) {
+            const point = circle.SECURE_FIELD_CIRCLE_GEN.mul(@as(u64, random.int(u32)) + 11);
+            const fast = poly.evalAtPoint(point);
+            const reference = evalAtPointReference(poly, point);
+            try std.testing.expect(fast.eql(reference));
+        }
+    }
 }
 
 test "prover poly circle poly: split-at-mid identity" {

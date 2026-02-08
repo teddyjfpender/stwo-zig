@@ -196,7 +196,16 @@ pub const CirclePointIndex = struct {
     }
 
     pub fn toPoint(self: CirclePointIndex) CirclePointM31 {
-        return M31_CIRCLE_GEN.mul(self.v);
+        var acc = CirclePointM31.zero();
+        var bits = self.v & CIRCLE_ORDER_MASK;
+        var bit: usize = 0;
+        while (bits != 0) : (bit += 1) {
+            if ((bits & 1) == 1) {
+                acc = acc.add(GENERATOR_DOUBLES[bit]);
+            }
+            bits >>= 1;
+        }
+        return acc;
     }
 
     pub fn half(self: CirclePointIndex) CirclePointIndex {
@@ -220,6 +229,20 @@ pub const CirclePointIndex = struct {
         return (CirclePointIndex{ .v = circleOrder() - self.v }).reduce();
     }
 };
+
+const CIRCLE_ORDER_MASK: usize = (@as(usize, 1) << @intCast(M31_CIRCLE_LOG_ORDER)) - 1;
+const GENERATOR_DOUBLES = initGeneratorDoubles();
+
+fn initGeneratorDoubles() [M31_CIRCLE_LOG_ORDER]CirclePointM31 {
+    var out: [M31_CIRCLE_LOG_ORDER]CirclePointM31 = undefined;
+    var current = M31_CIRCLE_GEN;
+    var i: usize = 0;
+    while (i < out.len) : (i += 1) {
+        out[i] = current;
+        current = current.double();
+    }
+    return out;
+}
 
 pub const Coset = struct {
     initial_index: CirclePointIndex,
