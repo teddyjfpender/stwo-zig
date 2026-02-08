@@ -82,6 +82,34 @@ LARGE_WORKLOADS: List[Dict[str, Any]] = [
             "100",
         ],
     },
+    {
+        "name": "wide_fibonacci_fib500",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "10",
+            "--wf-sequence-len",
+            "500",
+        ],
+    },
+    {
+        "name": "wide_fibonacci_fib1000",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "11",
+            "--wf-sequence-len",
+            "1000",
+        ],
+    },
+    {
+        "name": "plonk_large",
+        "example": "plonk",
+        "args": [
+            "--plonk-log-n-rows",
+            "12",
+        ],
+    },
 ]
 
 SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
@@ -304,7 +332,7 @@ def main() -> int:
     parser.add_argument(
         "--include-large",
         action="store_true",
-        help="Include larger contrast workloads (e.g. wide_fibonacci fib(100)).",
+        help="Include larger contrast workloads (wide_fibonacci fib(100/500/1000), plonk_large).",
     )
     parser.add_argument(
         "--report-out",

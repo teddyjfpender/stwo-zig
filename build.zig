@@ -101,7 +101,7 @@ pub fn build(b: *std.Build) void {
     const bench_opt_step = b.step("bench-opt", "Run optimization-track benchmark harness (native CPU)");
     bench_opt_step.dependOn(&bench_opt_cmd.step);
 
-    // Large contrast benchmark (adds wide_fibonacci fib(100)-style workload).
+    // Large contrast benchmark (adds long-running workload slices).
     const bench_contrast_cmd = b.addSystemCommand(&.{
         "python3",
         "scripts/benchmark_smoke.py",
@@ -124,7 +124,7 @@ pub fn build(b: *std.Build) void {
     });
     const bench_contrast_step = b.step(
         "bench-contrast",
-        "Run heavy contrast benchmark harness (includes wide_fibonacci fib(100) workload)",
+        "Run heavy contrast benchmark harness (wide_fibonacci fib100/fib500/fib1000 + plonk_large)",
     );
     bench_contrast_step.dependOn(&bench_contrast_cmd.step);
 
@@ -160,6 +160,29 @@ pub fn build(b: *std.Build) void {
     });
     const profile_opt_step = b.step("profile-opt", "Run optimization-track profile harness (native CPU)");
     profile_opt_step.dependOn(&profile_opt_cmd.step);
+
+    const profile_contrast_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/profile_smoke.py",
+        "--include-large",
+        "--repeats",
+        "1",
+        "--sample-duration-seconds",
+        "1",
+        "--zig-opt-mode",
+        "ReleaseFast",
+        "--zig-cpu",
+        "native",
+        "--report-label",
+        "profile_contrast",
+        "--report-out",
+        "vectors/reports/profile_contrast_report.json",
+    });
+    const profile_contrast_step = b.step(
+        "profile-contrast",
+        "Run larger contrast profile harness (adds fib500/plonk_deep hotspots)",
+    );
+    profile_contrast_step.dependOn(&profile_contrast_cmd.step);
 
     // Optimization acceptance gate against frozen baseline (additive to strict conformance gate).
     const opt_compare_cmd = b.addSystemCommand(&.{

@@ -32,6 +32,7 @@ zig build bench-pages
 zig build bench-pages-validate
 zig build profile-smoke
 zig build profile-opt
+zig build profile-contrast
 zig build opt-gate
 zig build deep-gate
 zig build std-shims-smoke
@@ -57,8 +58,9 @@ Full benchmark add-on:
 
 Optimization track (non-authoritative for release conformance):
 - `zig build bench-opt`
-- `zig build bench-contrast` (adds large contrast workload including `wide_fibonacci` fib(100)-style case)
+- `zig build bench-contrast` (adds large contrast workloads: `wide_fibonacci` fib(100/500/1000) + `plonk_large`)
 - `zig build profile-opt`
+- `zig build profile-contrast` (adds `wide_fibonacci` fib500 + `plonk_deep` hotspot capture)
 - `zig build opt-gate` (runs baseline-compatible bench/profile plus comparator thresholds)
 - Native-tuned measurements can also be compared manually via
   `python3 scripts/compare_optimization.py`.

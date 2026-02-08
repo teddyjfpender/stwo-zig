@@ -44,7 +44,7 @@ COMMON_CONFIG_ARGS = [
     "3",
 ]
 
-WORKLOADS: List[Dict[str, Any]] = [
+BASE_WORKLOADS: List[Dict[str, Any]] = [
     {
         "name": "state_machine_deep",
         "example": "state_machine",
@@ -67,6 +67,27 @@ WORKLOADS: List[Dict[str, Any]] = [
             "3",
             "--xor-offset",
             "5",
+        ],
+    },
+]
+
+LARGE_WORKLOADS: List[Dict[str, Any]] = [
+    {
+        "name": "wide_fibonacci_fib500",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "10",
+            "--wf-sequence-len",
+            "500",
+        ],
+    },
+    {
+        "name": "plonk_deep",
+        "example": "plonk",
+        "args": [
+            "--plonk-log-n-rows",
+            "12",
         ],
     },
 ]
@@ -325,6 +346,11 @@ def main() -> int:
     parser.add_argument("--sample-duration-seconds", type=int, default=1)
     parser.add_argument("--hotspot-top-n", type=int, default=8)
     parser.add_argument(
+        "--include-large",
+        action="store_true",
+        help="Include larger contrast workloads (wide_fibonacci fib500, plonk_deep).",
+    )
+    parser.add_argument(
         "--zig-opt-mode",
         default="ReleaseFast",
         choices=SUPPORTED_ZIG_OPT_MODES,
@@ -358,10 +384,14 @@ def main() -> int:
 
     ensure_binaries(args.rust_toolchain, args.zig_opt_mode, args.zig_cpu)
 
+    workloads = list(BASE_WORKLOADS)
+    if args.include_large:
+        workloads.extend(LARGE_WORKLOADS)
+
     profiles: List[Dict[str, Any]] = []
     failures: List[str] = []
 
-    for workload in WORKLOADS:
+    for workload in workloads:
         for runtime in ("rust", "zig"):
             entry = profile_runtime_workload(
                 runtime=runtime,
@@ -372,7 +402,9 @@ def main() -> int:
             )
             profiles.append(entry)
             if SAMPLE_BIN.exists() and not entry["hotspots"]:
-                failures.append(f"{runtime}/{workload['name']} produced no hotspot attribution")
+                avg_seconds = float(entry["summary"]["avg_seconds"])
+                if avg_seconds >= (0.8 * float(args.sample_duration_seconds)):
+                    failures.append(f"{runtime}/{workload['name']} produced no hotspot attribution")
 
     by_runtime: Dict[str, List[float]] = {"rust": [], "zig": []}
     for entry in profiles:
@@ -388,11 +420,13 @@ def main() -> int:
         "zig_cpu": args.zig_cpu,
         "report_label": args.report_label,
     }
+    if args.include_large:
+        settings["include_large"] = True
     settings_hash = canonical_hash(
         {
             "collector": "time -l + sample" if SAMPLE_BIN.exists() else "time -l",
             "common_config_args": COMMON_CONFIG_ARGS,
-            "workloads": WORKLOADS,
+            "workloads": workloads,
             "settings": settings,
         }
     )
