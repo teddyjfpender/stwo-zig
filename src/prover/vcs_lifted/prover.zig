@@ -18,6 +18,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const Decommitment = vcs_lifted_verifier.MerkleDecommitmentLifted(H);
         const parallel_min_nodes: usize = 1 << 13;
         const parallel_min_nodes_per_worker: usize = 1 << 12;
+        const max_parallel_workers: usize = 16;
 
         pub const DecommitmentResult = struct {
             queried_values: [][]M31,
@@ -291,11 +292,11 @@ pub fn MerkleProverLifted(comptime H: type) type {
             if (workers > 1) {
                 if (comptime @hasDecl(H, "nodeSeed") and @hasDecl(H, "hashChildrenWithSeed")) {
                     const seed = H.nodeSeed();
-                    if (buildNextLayerSeededParallel(allocator, out, prev_layer, seed, workers)) |_| {
+                    if (buildNextLayerSeededParallel(out, prev_layer, seed, workers)) |_| {
                         return out;
                     } else |_| {}
                 } else {
-                    if (buildNextLayerBasicParallel(allocator, out, prev_layer, workers)) |_| {
+                    if (buildNextLayerBasicParallel(out, prev_layer, workers)) |_| {
                         return out;
                     } else |_| {}
                 }
@@ -367,7 +368,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
             if (cpu_count <= 1) return 1;
             const capacity = out_len / parallel_min_nodes_per_worker;
             if (capacity < 2) return 1;
-            return @min(cpu_count, capacity);
+            return @min(@min(cpu_count, capacity), max_parallel_workers);
         }
 
         const SeededRangeCtx = struct {
@@ -393,24 +394,22 @@ pub fn MerkleProverLifted(comptime H: type) type {
         }
 
         fn buildNextLayerSeededParallel(
-            allocator: std.mem.Allocator,
             out: []H.Hash,
             prev_layer: []const H.Hash,
             seed: H,
             worker_count: usize,
         ) !void {
             std.debug.assert(worker_count > 1);
-            const contexts = try allocator.alloc(SeededRangeCtx, worker_count);
-            defer allocator.free(contexts);
-            const threads = try allocator.alloc(std.Thread, worker_count - 1);
-            defer allocator.free(threads);
+            std.debug.assert(worker_count <= max_parallel_workers);
+            var contexts: [max_parallel_workers]SeededRangeCtx = undefined;
+            var threads: [max_parallel_workers - 1]std.Thread = undefined;
 
             const chunk_len = (out.len + worker_count - 1) / worker_count;
             var actual_workers: usize = 0;
             var start: usize = 0;
             while (start < out.len and actual_workers < worker_count) : (actual_workers += 1) {
                 const end = @min(out.len, start + chunk_len);
-                contexts[actual_workers] = .{
+                contexts[actual_workers] = SeededRangeCtx{
                     .out = out,
                     .prev_layer = prev_layer,
                     .start = start,
@@ -453,23 +452,21 @@ pub fn MerkleProverLifted(comptime H: type) type {
         }
 
         fn buildNextLayerBasicParallel(
-            allocator: std.mem.Allocator,
             out: []H.Hash,
             prev_layer: []const H.Hash,
             worker_count: usize,
         ) !void {
             std.debug.assert(worker_count > 1);
-            const contexts = try allocator.alloc(BasicRangeCtx, worker_count);
-            defer allocator.free(contexts);
-            const threads = try allocator.alloc(std.Thread, worker_count - 1);
-            defer allocator.free(threads);
+            std.debug.assert(worker_count <= max_parallel_workers);
+            var contexts: [max_parallel_workers]BasicRangeCtx = undefined;
+            var threads: [max_parallel_workers - 1]std.Thread = undefined;
 
             const chunk_len = (out.len + worker_count - 1) / worker_count;
             var actual_workers: usize = 0;
             var start: usize = 0;
             while (start < out.len and actual_workers < worker_count) : (actual_workers += 1) {
                 const end = @min(out.len, start + chunk_len);
-                contexts[actual_workers] = .{
+                contexts[actual_workers] = BasicRangeCtx{
                     .out = out,
                     .prev_layer = prev_layer,
                     .start = start,

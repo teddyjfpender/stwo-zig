@@ -36,7 +36,7 @@ pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
             @memcpy(payload[0..64], NODE_PREFIX[0..]);
             @memcpy(payload[64..96], children.left[0..]);
             @memcpy(payload[96..128], children.right[0..]);
-            return InnerHasher.hash(payload[0..]);
+            return InnerHasher.hashFixed128(&payload);
         }
 
         /// Pre-hashed node-domain separator state used to avoid reprocessing
