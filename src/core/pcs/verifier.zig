@@ -87,7 +87,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             defer sampled_points_owned.deinitDeep(allocator);
 
             var proof = proof_in;
-            defer cleanupProofWithoutFri(&proof, allocator);
+            defer cleanupProof(&proof, allocator);
 
             if (self.trees.items.len == 0) return verifier_types.VerificationError.EmptyTrees;
             if (proof.decommitments.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
@@ -181,12 +181,13 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             self.trees.items = next;
         }
 
-        fn cleanupProofWithoutFri(proof: *CommitmentSchemeProof, allocator: std.mem.Allocator) void {
+        fn cleanupProof(proof: *CommitmentSchemeProof, allocator: std.mem.Allocator) void {
             proof.commitments.deinit(allocator);
             proof.sampled_values.deinitDeep(allocator);
             for (proof.decommitments.items) |*decommitment| decommitment.deinit(allocator);
             proof.decommitments.deinit(allocator);
             proof.queried_values.deinitDeep(allocator);
+            proof.fri_proof.deinit(allocator);
             proof.* = undefined;
         }
     };

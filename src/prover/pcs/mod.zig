@@ -491,20 +491,24 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             defer scheme.deinit(allocator);
+            var sampled_points_owned = sampled_points;
+            defer sampled_points_owned.deinitDeep(allocator);
+            var sampled_values_owned = sampled_values;
+            errdefer sampled_values_owned.deinitDeep(allocator);
 
-            if (scheme.trees.items.len != sampled_points.items.len) {
+            if (scheme.trees.items.len != sampled_points_owned.items.len) {
                 return CommitmentSchemeError.ShapeMismatch;
             }
-            if (scheme.trees.items.len != sampled_values.items.len) {
+            if (scheme.trees.items.len != sampled_values_owned.items.len) {
                 return CommitmentSchemeError.ShapeMismatch;
             }
 
-            for (scheme.trees.items, sampled_points.items, sampled_values.items) |tree, tree_points, tree_values| {
+            for (scheme.trees.items, sampled_points_owned.items, sampled_values_owned.items) |tree, tree_points, tree_values| {
                 if (tree.columns.len != tree_points.len) return CommitmentSchemeError.ShapeMismatch;
                 if (tree.columns.len != tree_values.len) return CommitmentSchemeError.ShapeMismatch;
             }
 
-            const sampled_values_flat = try flattenSampledValues(allocator, sampled_values);
+            const sampled_values_flat = try flattenSampledValues(allocator, sampled_values_owned);
             defer allocator.free(sampled_values_flat);
             channel.mixFelts(sampled_values_flat);
             const random_coeff = channel.drawSecureFelt();
@@ -512,7 +516,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             const lifting_log_size = try scheme.maxTreeLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
 
-            var samples = try buildPointSamples(allocator, sampled_points, sampled_values);
+            var samples = try buildPointSamples(allocator, sampled_points_owned, sampled_values_owned);
             defer samples.deinitDeep(allocator);
 
             var borrowed_columns = try borrowedColumnsTree(allocator, scheme.trees);
@@ -563,11 +567,15 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             var commitments = try scheme.roots(allocator);
             errdefer commitments.deinit(allocator);
 
+            // `query_positions` are only needed for prover-side decommit orchestration.
+            allocator.free(fri_decommit.query_positions);
+            fri_decommit.query_positions = &[_]usize{};
+
             return .{
                 .proof = .{
                     .config = scheme.config,
                     .commitments = commitments,
-                    .sampled_values = sampled_values,
+                    .sampled_values = sampled_values_owned,
                     .decommitments = trace_decommit.decommitments,
                     .queried_values = trace_decommit.queried_values,
                     .proof_of_work = proof_of_work,

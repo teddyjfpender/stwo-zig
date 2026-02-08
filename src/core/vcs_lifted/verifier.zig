@@ -213,7 +213,10 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
 }
 
 fn lessByLogSize(log_sizes: []const u32, lhs: usize, rhs: usize) bool {
-    return log_sizes[lhs] < log_sizes[rhs];
+    const lhs_size = log_sizes[lhs];
+    const rhs_size = log_sizes[rhs];
+    if (lhs_size == rhs_size) return lhs < rhs;
+    return lhs_size < rhs_size;
 }
 
 fn maxLogSize(values: []const u32) u32 {

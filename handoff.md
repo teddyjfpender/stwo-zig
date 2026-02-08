@@ -154,3 +154,26 @@
   - `CommitmentSchemeProver.proveValues` now has a stored-coefficients fast path, but still lacks upstream-equivalent shared weights cache map and backend-integrated coefficient flow.
   - `prover/poly/circle` currently uses local twiddle generation per operation (no shared TwiddleTree cache wiring yet).
   - Closure plan: complete `prover/poly/circle` coefficient stack and route `setStorePolynomialsCoefficients` through upstream-equivalent branching.
+
+## Latest Slice (Deep Validation + Ownership Safety)
+- `src/core/fri.zig`
+  - Hardened `FriVerifier.commit` ownership semantics:
+    - deep-clones first/inner layer proofs and last-layer polynomial into verifier-owned allocations.
+    - avoids aliasing caller-owned proof buffers that caused double-free / UAF hazards under expanded module test graphs.
+  - Added `cloneLayerProof` helper for explicit proof-data cloning.
+- `src/core/vcs_lifted/verifier.zig`
+  - `lessByLogSize` now uses a stable tie-break (`lhs < rhs`) when log sizes are equal.
+  - Prevents nondeterministic equal-size ordering drift in lifted verifier query ordering paths.
+- `src/core/pcs/verifier.zig`
+  - Strengthened proof cleanup to deinitialize `fri_proof` as part of verifier proof ownership teardown.
+- `src/prover/pcs/mod.zig`
+  - `proveValuesFromSamples` now deep-owns `sampled_points`/`sampled_values` inputs and deinitializes them consistently.
+  - Frees prover-only `fri_decommit.query_positions` before returning extended proof to eliminate allocator leaks in deep `prover prove` tests.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig test tmp_deep_probe.zig --test-filter "prover fri"` (temporary probe import of `src/prover/prove.zig` and `src/prover/pcs/mod.zig`)
+- `zig test tmp_deep_probe.zig --test-filter "prover prove"`
+- `zig build fmt`
+- `zig build test --summary all`
+- `python3 scripts/parity_fields.py`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`

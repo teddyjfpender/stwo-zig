@@ -136,11 +136,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             proof_in: FriProof(H),
             column_bound: CirclePolyDegreeBound,
         ) (std.mem.Allocator.Error || FriVerificationError)!Self {
-            var proof = proof_in;
-            defer allocator.free(proof.inner_layers);
-            errdefer proof.last_layer_poly.deinit(allocator);
-
-            MC.mixRoot(channel, proof.first_layer.commitment);
+            MC.mixRoot(channel, proof_in.first_layer.commitment);
 
             const column_commitment_domain = canonic.CanonicCoset
                 .new(column_bound.logDegreeBound() + config.log_blowup_factor)
@@ -148,7 +144,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             var first_layer = FriFirstLayerVerifier(H){
                 .column_commitment_domain = column_commitment_domain,
                 .folding_alpha = channel.drawSecureFelt(),
-                .proof = proof.first_layer,
+                .proof = try cloneLayerProof(H, allocator, proof_in.first_layer),
             };
             errdefer first_layer.deinit(allocator);
 
@@ -157,20 +153,20 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
                 circle.Coset.halfOdds(layer_bound.logDegreeBound() + config.log_blowup_factor),
             ) catch return FriVerificationError.InvalidNumFriLayers;
 
-            const inner_layers = try allocator.alloc(FriInnerLayerVerifier(H), proof.inner_layers.len);
+            const inner_layers = try allocator.alloc(FriInnerLayerVerifier(H), proof_in.inner_layers.len);
             errdefer allocator.free(inner_layers);
             var initialized: usize = 0;
             errdefer {
                 for (inner_layers[0..initialized]) |*layer| layer.deinit(allocator);
             }
 
-            for (proof.inner_layers, 0..) |inner_proof, i| {
+            for (proof_in.inner_layers, 0..) |inner_proof, i| {
                 MC.mixRoot(channel, inner_proof.commitment);
                 inner_layers[i] = .{
                     .domain = layer_domain,
                     .folding_alpha = channel.drawSecureFelt(),
                     .layer_index = i,
-                    .proof = inner_proof,
+                    .proof = try cloneLayerProof(H, allocator, inner_proof),
                 };
                 initialized += 1;
 
@@ -181,18 +177,22 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             if (layer_bound.logDegreeBound() != config.log_last_layer_degree_bound) {
                 return FriVerificationError.InvalidNumFriLayers;
             }
-            if (proof.last_layer_poly.len() > (@as(usize, 1) << @intCast(config.log_last_layer_degree_bound))) {
+            var last_layer_poly = line.LinePoly.initOwned(
+                try allocator.dupe(QM31, proof_in.last_layer_poly.coefficients()),
+            );
+            errdefer last_layer_poly.deinit(allocator);
+            if (last_layer_poly.len() > (@as(usize, 1) << @intCast(config.log_last_layer_degree_bound))) {
                 return FriVerificationError.LastLayerDegreeInvalid;
             }
 
-            channel.mixFelts(proof.last_layer_poly.coefficients());
+            channel.mixFelts(last_layer_poly.coefficients());
 
             return .{
                 .config = config,
                 .first_layer = first_layer,
                 .inner_layers = inner_layers,
                 .last_layer_domain = layer_domain,
-                .last_layer_poly = proof.last_layer_poly,
+                .last_layer_poly = last_layer_poly,
                 .queries = null,
             };
         }
@@ -271,6 +271,23 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
                 }
             }
         }
+    };
+}
+
+fn cloneLayerProof(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    proof: FriLayerProof(H),
+) !FriLayerProof(H) {
+    const fri_witness = try allocator.dupe(QM31, proof.fri_witness);
+    errdefer allocator.free(fri_witness);
+
+    return .{
+        .fri_witness = fri_witness,
+        .decommitment = .{
+            .hash_witness = try allocator.dupe(H.Hash, proof.decommitment.hash_witness),
+        },
+        .commitment = proof.commitment,
     };
 }
 
