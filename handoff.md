@@ -286,8 +286,8 @@
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
 
 ## Current Known Gaps
-1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover and supports stored coefficients, but still lacks shared weights hash-map caching and full upstream TwiddleTree-backed coefficient plumbing.
-2. `prover/poly/circle` now has FFT-layer interpolation/evaluation, but still lacks full upstream TwiddleTree backend parity (precompute/caching and backend-specific SIMD/CPU paths).
+1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover, supports stored coefficients, and uses shared barycentric-weights caching; remaining gap is full upstream-equivalent TwiddleTree/backend plumbing.
+2. `prover/poly/circle` now has FFT-layer interpolation/evaluation and deterministic twiddle helpers, but still lacks full backend parity (shared persistent twiddle cache + upstream CPU/SIMD specialization boundaries).
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current executable entrypoints are component-driven (`prove`/`proveEx`, plus `proveExComponents`/`proveComponents`), sampled-points (`proveSampledPoints`/`proveExSampledPoints`), and prepared sampled-values (`provePrepared`) paths.
    - Component-driven slice now allows non-zero PCS blowup and direct composition coefficient commit, but still has remaining divergence from upstream twiddle/weights-cache internals.
@@ -301,9 +301,9 @@
 
 ## Divergence Record (Active)
 - Temporary implementation divergence:
-  - `CommitmentSchemeProver.proveValues` now has a stored-coefficients fast path, but still lacks upstream-equivalent shared weights cache map and backend-integrated coefficient flow.
-  - `prover/poly/circle` currently uses local twiddle generation per operation (no shared TwiddleTree cache wiring yet).
-  - Closure plan: complete `prover/poly/circle` coefficient stack and route `setStorePolynomialsCoefficients` through upstream-equivalent branching.
+  - `CommitmentSchemeProver.proveValues` now has stored-coefficients and shared weights-cache paths validated on repeated sampled points across same-log and mixed-log columns; remaining divergence is backend-integrated coefficient/twiddle cache reuse strategy.
+  - `prover/poly/circle` still relies on operation-local twiddle lifetimes (no long-lived shared TwiddleTree cache object spanning proving phases).
+  - Closure plan: introduce persistent twiddle/cache ownership in prover poly stack and align branch structure with upstream backend traits.
 
 ## Latest Slice (Deep Validation + Ownership Safety)
 - `src/core/fri.zig`
