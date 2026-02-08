@@ -168,8 +168,6 @@ pub fn build(b: *std.Build) void {
 
     // Full benchmark matrix gate (11 upstream family labels).
     const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
-    const bench_full_step = b.step("bench-full", "Run full 11-family Rust-vs-Zig benchmark harness");
-    bench_full_step.dependOn(&bench_full_cmd.step);
     const bench_targeted_compare_cmd = b.addSystemCommand(&.{
         "python3",
         "scripts/compare_optimization.py",
@@ -204,8 +202,17 @@ pub fn build(b: *std.Build) void {
     bench_targeted_step.dependOn(&bench_targeted_compare_cmd.step);
     const bench_pages_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_pages.py" });
     bench_pages_cmd.step.dependOn(&bench_full_cmd.step);
-    const bench_pages_step = b.step("bench-pages", "Render static benchmark pages assets from committed full benchmark report");
+    bench_pages_cmd.step.dependOn(&bench_contrast_long_cmd.step);
+    const bench_pages_step = b.step(
+        "bench-pages",
+        "Render static benchmark pages assets from family+example benchmark reports (includes RAM metrics)",
+    );
     bench_pages_step.dependOn(&bench_pages_cmd.step);
+    const bench_full_step = b.step(
+        "bench-full",
+        "Run full benchmark suite (11 families + long example matrix) and publish static pages data",
+    );
+    bench_full_step.dependOn(&bench_pages_cmd.step);
     const bench_pages_validate_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_pages.py", "--validate" });
     const bench_pages_validate_step = b.step("bench-pages-validate", "Validate static benchmark pages assets are current");
     bench_pages_validate_step.dependOn(&bench_pages_validate_cmd.step);

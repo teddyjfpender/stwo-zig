@@ -7,17 +7,20 @@
   <style>
     body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 24px; color: #222; background: #f6f8fa; }
     h1 { margin: 0 0 8px; }
+    h2 { margin: 0 0 10px; }
+    h3 { margin: 0 0 10px; }
     p { margin: 0 0 16px; }
     .card { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-    .chart { display: grid; grid-template-columns: 220px 1fr 80px; row-gap: 6px; column-gap: 8px; align-items: center; }
+    .chart { display: grid; grid-template-columns: 220px 1fr 90px; row-gap: 6px; column-gap: 8px; align-items: center; }
     .label { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bar-wrap { height: 14px; background: #eaeef2; border-radius: 3px; overflow: hidden; }
     .bar { height: 100%; }
     .bar.prove { background: #1f6feb; }
     .bar.verify { background: #fb8500; }
     .bar.size { background: #2a9d8f; }
+    .bar.rss { background: #0e9f6e; }
     .value { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { text-align: left; border-bottom: 1px solid #d8dee4; padding: 6px 8px; }
     th { background: #f0f3f6; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -25,36 +28,74 @@
 </head>
 <body>
   <h1>stwo-zig Benchmark Parity</h1>
-  <p>Generated from committed benchmark data.</p>
+  <p>Generated from committed benchmark data and includes peak-RSS RAM metrics.</p>
 
   <div class="card">
-    <h2>Prove Ratio (Zig over Rust)</h2>
-    <div id="proveChart" class="chart"></div>
+    <h2>Family Benchmarks</h2>
+    <h3>Prove Ratio (Zig over Rust)</h3>
+    <div id="familyProveChart" class="chart"></div>
+    <h3>Verify Ratio (Zig over Rust)</h3>
+    <div id="familyVerifyChart" class="chart"></div>
+    <h3>Proof-Size Ratio (Zig over Rust)</h3>
+    <div id="familySizeChart" class="chart"></div>
+    <h3>Peak-RSS Ratio (Zig over Rust)</h3>
+    <div id="familyRssChart" class="chart"></div>
   </div>
 
   <div class="card">
-    <h2>Verify Ratio (Zig over Rust)</h2>
-    <div id="verifyChart" class="chart"></div>
-  </div>
-
-  <div class="card">
-    <h2>Proof-Size Ratio (Zig over Rust)</h2>
-    <div id="sizeChart" class="chart"></div>
-  </div>
-
-  <div class="card">
-    <h2>Raw Averages (seconds)</h2>
-    <table id="dataTable">
+    <h2>Family Raw Metrics</h2>
+    <table id="familyTable">
       <thead>
         <tr>
           <th>Family</th>
+          <th>Example</th>
           <th>Zig/Rust Prove</th>
           <th>Zig/Rust Verify</th>
           <th>Zig/Rust Proof Size</th>
-          <th>Rust Prove</th>
-          <th>Zig Prove</th>
-          <th>Rust Verify</th>
-          <th>Zig Verify</th>
+          <th>Zig/Rust Peak RSS</th>
+          <th>Rust Peak RSS (KB)</th>
+          <th>Zig Peak RSS (KB)</th>
+          <th>Rust Prove (s)</th>
+          <th>Zig Prove (s)</th>
+          <th>Rust Verify (s)</th>
+          <th>Zig Verify (s)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Example Workload Benchmarks</h2>
+    <h3>Prove Ratio (Zig over Rust)</h3>
+    <div id="exampleProveChart" class="chart"></div>
+    <h3>Verify Ratio (Zig over Rust)</h3>
+    <div id="exampleVerifyChart" class="chart"></div>
+    <h3>Proof-Size Ratio (Zig over Rust)</h3>
+    <div id="exampleSizeChart" class="chart"></div>
+    <h3>Peak-RSS Ratio (Zig over Rust)</h3>
+    <div id="exampleRssChart" class="chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>Example Raw Metrics</h2>
+    <table id="exampleTable">
+      <thead>
+        <tr>
+          <th>Workload</th>
+          <th>Example</th>
+          <th>Zig/Rust Prove</th>
+          <th>Zig/Rust Verify</th>
+          <th>Zig/Rust Proof Size</th>
+          <th>Zig/Rust Peak RSS</th>
+          <th>Rust Prove Peak RSS (KB)</th>
+          <th>Zig Prove Peak RSS (KB)</th>
+          <th>Rust Verify Peak RSS (KB)</th>
+          <th>Zig Verify Peak RSS (KB)</th>
+          <th>Rust Prove (s)</th>
+          <th>Zig Prove (s)</th>
+          <th>Rust Verify (s)</th>
+          <th>Zig Verify (s)</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -64,16 +105,17 @@
 
   <script src="data.js"></script>
   <script>
-    const data = window.BENCHMARK_FULL_DATA;
-    const rows = data.rows || [];
+    const data = window.BENCHMARK_PAGE_DATA;
+    const familyRows = data.family_rows || [];
+    const exampleRows = data.example_rows || [];
 
-    function renderBars(targetId, key, barClass) {
+    function renderBars(rows, targetId, key, barClass, labelKey) {
       const target = document.getElementById(targetId);
       const max = Math.max(...rows.map(r => r[key]), 0.000001);
       rows.forEach((r) => {
         const label = document.createElement('div');
         label.className = 'label';
-        label.textContent = r.family;
+        label.textContent = r[labelKey];
 
         const wrap = document.createElement('div');
         wrap.className = 'bar-wrap';
@@ -85,7 +127,7 @@
 
         const value = document.createElement('div');
         value.className = 'value';
-        value.textContent = r[key].toFixed(6);
+        value.textContent = Number(r[key]).toFixed(6);
 
         target.appendChild(label);
         target.appendChild(wrap);
@@ -93,27 +135,59 @@
       });
     }
 
-    renderBars('proveChart', 'zig_over_rust_prove', 'prove');
-    renderBars('verifyChart', 'zig_over_rust_verify', 'verify');
-    renderBars('sizeChart', 'zig_over_rust_proof_wire_bytes', 'size');
+    renderBars(familyRows, 'familyProveChart', 'zig_over_rust_prove', 'prove', 'family');
+    renderBars(familyRows, 'familyVerifyChart', 'zig_over_rust_verify', 'verify', 'family');
+    renderBars(familyRows, 'familySizeChart', 'zig_over_rust_proof_wire_bytes', 'size', 'family');
+    renderBars(familyRows, 'familyRssChart', 'zig_over_rust_peak_rss_kb', 'rss', 'family');
 
-    const tbody = document.querySelector('#dataTable tbody');
-    rows.forEach((r) => {
+    renderBars(exampleRows, 'exampleProveChart', 'zig_over_rust_prove', 'prove', 'name');
+    renderBars(exampleRows, 'exampleVerifyChart', 'zig_over_rust_verify', 'verify', 'name');
+    renderBars(exampleRows, 'exampleSizeChart', 'zig_over_rust_proof_wire_bytes', 'size', 'name');
+    renderBars(exampleRows, 'exampleRssChart', 'zig_over_rust_peak_rss_kb', 'rss', 'name');
+
+    const familyBody = document.querySelector('#familyTable tbody');
+    familyRows.forEach((r) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.family}</td>
-        <td>${r.zig_over_rust_prove.toFixed(6)}</td>
-        <td>${r.zig_over_rust_verify.toFixed(6)}</td>
-        <td>${r.zig_over_rust_proof_wire_bytes.toFixed(6)}</td>
-        <td>${r.rust_prove_avg_seconds.toFixed(6)}</td>
-        <td>${r.zig_prove_avg_seconds.toFixed(6)}</td>
-        <td>${r.rust_verify_avg_seconds.toFixed(6)}</td>
-        <td>${r.zig_verify_avg_seconds.toFixed(6)}</td>
+        <td>${r.example}</td>
+        <td>${Number(r.zig_over_rust_prove).toFixed(6)}</td>
+        <td>${Number(r.zig_over_rust_verify).toFixed(6)}</td>
+        <td>${Number(r.zig_over_rust_proof_wire_bytes).toFixed(6)}</td>
+        <td>${Number(r.zig_over_rust_peak_rss_kb).toFixed(6)}</td>
+        <td>${Number(r.rust_peak_rss_kb).toFixed(2)}</td>
+        <td>${Number(r.zig_peak_rss_kb).toFixed(2)}</td>
+        <td>${Number(r.rust_prove_avg_seconds).toFixed(6)}</td>
+        <td>${Number(r.zig_prove_avg_seconds).toFixed(6)}</td>
+        <td>${Number(r.rust_verify_avg_seconds).toFixed(6)}</td>
+        <td>${Number(r.zig_verify_avg_seconds).toFixed(6)}</td>
       `;
-      tbody.appendChild(tr);
+      familyBody.appendChild(tr);
     });
 
-    document.getElementById('meta').textContent = `source=${data.source_report}`;
+    const exampleBody = document.querySelector('#exampleTable tbody');
+    exampleRows.forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.name}</td>
+        <td>${r.example}</td>
+        <td>${Number(r.zig_over_rust_prove).toFixed(6)}</td>
+        <td>${Number(r.zig_over_rust_verify).toFixed(6)}</td>
+        <td>${Number(r.zig_over_rust_proof_wire_bytes).toFixed(6)}</td>
+        <td>${Number(r.zig_over_rust_peak_rss_kb).toFixed(6)}</td>
+        <td>${Number(r.rust_prove_rss_peak_kb).toFixed(2)}</td>
+        <td>${Number(r.zig_prove_rss_peak_kb).toFixed(2)}</td>
+        <td>${Number(r.rust_verify_rss_peak_kb).toFixed(2)}</td>
+        <td>${Number(r.zig_verify_rss_peak_kb).toFixed(2)}</td>
+        <td>${Number(r.rust_prove_avg_seconds).toFixed(6)}</td>
+        <td>${Number(r.zig_prove_avg_seconds).toFixed(6)}</td>
+        <td>${Number(r.rust_verify_avg_seconds).toFixed(6)}</td>
+        <td>${Number(r.zig_verify_avg_seconds).toFixed(6)}</td>
+      `;
+      exampleBody.appendChild(tr);
+    });
+
+    document.getElementById('meta').textContent = `families_source=${data.sources.families_report} | examples_source=${data.sources.examples_report}`;
   </script>
 </body>
 </html>

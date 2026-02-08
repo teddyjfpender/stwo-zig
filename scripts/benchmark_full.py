@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -21,6 +22,8 @@ ZIG_BIN = ROOT / "vectors" / ".bench_full.zig_interop"
 
 RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
 FAMILY_RUNNER = ROOT / "src" / "bench" / "full_runner.zig"
+TIME_BIN = Path("/usr/bin/time")
+RSS_RE = re.compile(r"^\s*(\d+)\s+maximum resident set size\s*$", re.MULTILINE)
 
 UPSTREAM_FAMILIES = (
     "bit_rev",
@@ -266,6 +269,22 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
+def run_timed(cmd: list[str]) -> tuple[subprocess.CompletedProcess[str], int | None]:
+    if TIME_BIN.exists():
+        proc = subprocess.run(
+            [str(TIME_BIN), "-l", *cmd],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        match = RSS_RE.search(proc.stderr)
+        peak_rss_kb = int(match.group(1)) if match else None
+        return proc, peak_rss_kb
+    proc = run(cmd)
+    return proc, None
+
+
 def ratio(a: float, b: float) -> float:
     return a / b if b != 0.0 else float("inf")
 
@@ -354,7 +373,7 @@ def bench_runtime(
         str(repeats),
     ] + [str(arg) for arg in workload["args"]]
 
-    proc = run(cmd)
+    proc, peak_rss_kb = run_timed(cmd)
     if proc.returncode != 0:
         raise RuntimeError(
             f"{runtime} bench failed for family '{family}'\n"
@@ -364,6 +383,7 @@ def bench_runtime(
     payload = parse_json_stdout(proc.stdout)
     if not isinstance(payload, dict):
         raise RuntimeError(f"{runtime} bench payload for family '{family}' is not an object")
+    payload["peak_rss_kb"] = peak_rss_kb
     return payload
 
 
@@ -437,6 +457,10 @@ def main() -> int:
             float(zig["proof_metrics"]["proof_wire_bytes"]),
             float(rust["proof_metrics"]["proof_wire_bytes"]),
         )
+        peak_rss_ratio = ratio(
+            float(zig.get("peak_rss_kb") or 0.0),
+            float(rust.get("peak_rss_kb") or 0.0),
+        )
 
         if prove_ratio > args.max_zig_over_rust:
             failures.append(
@@ -466,12 +490,14 @@ def main() -> int:
                     "zig_over_rust_prove": round(prove_ratio, 6),
                     "zig_over_rust_verify": round(verify_ratio, 6),
                     "zig_over_rust_proof_wire_bytes": round(proof_size_ratio, 6),
+                    "zig_over_rust_peak_rss_kb": round(peak_rss_ratio, 6),
                 },
             }
         )
 
     prove_ratios = [entry["ratios"]["zig_over_rust_prove"] for entry in families_report]
     verify_ratios = [entry["ratios"]["zig_over_rust_verify"] for entry in families_report]
+    rss_ratios = [entry["ratios"]["zig_over_rust_peak_rss_kb"] for entry in families_report]
     status = "ok" if not failures else "failed"
 
     report = {
@@ -493,6 +519,10 @@ def main() -> int:
             else 0.0,
             "avg_zig_over_rust_verify": round(sum(verify_ratios) / len(verify_ratios), 6)
             if verify_ratios
+            else 0.0,
+            "max_zig_over_rust_peak_rss_kb": max(rss_ratios) if rss_ratios else 0.0,
+            "avg_zig_over_rust_peak_rss_kb": round(sum(rss_ratios) / len(rss_ratios), 6)
+            if rss_ratios
             else 0.0,
             "failure_count": len(failures),
         },
