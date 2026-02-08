@@ -6,6 +6,7 @@ const domain_mod = @import("../../../core/poly/circle/domain.zig");
 const poly = @import("poly.zig");
 const eval_mod = @import("evaluation.zig");
 const secure_column = @import("../../secure_column.zig");
+const twiddles_mod = @import("../twiddles.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -107,6 +108,26 @@ pub fn interpolateFromEvaluation(
     domain: CircleDomain,
     values: *const SecureColumnByCoords,
 ) !SecureCirclePoly {
+    var twiddle_tree_owned = try twiddles_mod.precomputeM31(allocator, domain.half_coset);
+    defer twiddles_mod.deinitM31(allocator, &twiddle_tree_owned);
+    return interpolateFromEvaluationWithTwiddles(
+        allocator,
+        domain,
+        values,
+        .{
+            .root_coset = twiddle_tree_owned.root_coset,
+            .twiddles = twiddle_tree_owned.twiddles,
+            .itwiddles = twiddle_tree_owned.itwiddles,
+        },
+    );
+}
+
+pub fn interpolateFromEvaluationWithTwiddles(
+    allocator: std.mem.Allocator,
+    domain: CircleDomain,
+    values: *const SecureColumnByCoords,
+    twiddle_tree: twiddles_mod.TwiddleTree([]const M31),
+) !SecureCirclePoly {
     if (domain.size() != values.len()) return SecurePolyError.ShapeMismatch;
 
     var coordinate_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
@@ -118,7 +139,11 @@ pub fn interpolateFromEvaluation(
 
     for (0..qm31.SECURE_EXTENSION_DEGREE) |i| {
         const evaluation = try eval_mod.CircleEvaluation.init(domain, values.columns[i]);
-        coordinate_polys[i] = try poly.interpolateFromEvaluation(allocator, evaluation);
+        coordinate_polys[i] = try poly.interpolateFromEvaluationWithTwiddles(
+            allocator,
+            evaluation,
+            twiddle_tree,
+        );
         initialized += 1;
     }
 
@@ -223,6 +248,51 @@ test "prover poly circle secure poly: interpolate from evaluation roundtrip" {
             M31,
             secure_poly.polys[i].coefficients(),
             interpolated.polys[i].coefficients(),
+        );
+    }
+}
+
+test "prover poly circle secure poly: interpolate with twiddles matches interpolate" {
+    const alloc = std.testing.allocator;
+    const log_size: u32 = 5;
+    const domain = @import("../../../core/poly/circle/canonic.zig").CanonicCoset.new(log_size).circleDomain();
+    const n = domain.size();
+
+    var eval_columns: [qm31.SECURE_EXTENSION_DEGREE][]M31 = undefined;
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
+        const values = try alloc.alloc(M31, n);
+        for (values, 0..) |*value, i| {
+            const canonical: u32 = @intCast((i * 13 + coord * 17 + 3) % m31.Modulus);
+            value.* = M31.fromCanonical(canonical);
+        }
+        eval_columns[coord] = values;
+    }
+
+    var secure_eval = try SecureColumnByCoords.initOwned(eval_columns);
+    defer secure_eval.deinit(alloc);
+
+    var interpolated = try interpolateFromEvaluation(alloc, domain, &secure_eval);
+    defer interpolated.deinit(alloc);
+
+    var twiddle_tree = try twiddles_mod.precomputeM31(alloc, domain.half_coset);
+    defer twiddles_mod.deinitM31(alloc, &twiddle_tree);
+    var interpolated_with_twiddles = try interpolateFromEvaluationWithTwiddles(
+        alloc,
+        domain,
+        &secure_eval,
+        .{
+            .root_coset = twiddle_tree.root_coset,
+            .twiddles = twiddle_tree.twiddles,
+            .itwiddles = twiddle_tree.itwiddles,
+        },
+    );
+    defer interpolated_with_twiddles.deinit(alloc);
+
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |i| {
+        try std.testing.expectEqualSlices(
+            M31,
+            interpolated.polys[i].coefficients(),
+            interpolated_with_twiddles.polys[i].coefficients(),
         );
     }
 }

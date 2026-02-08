@@ -226,3 +226,18 @@
 - `zig build test --summary all`
 - `python3 scripts/parity_fields.py`
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+
+## Latest Slice (Secure-Poly Twiddle Reuse)
+- `src/prover/poly/circle/secure_poly.zig`
+  - Added `interpolateFromEvaluationWithTwiddles(...)` so secure interpolation can reuse one precomputed twiddle tree across all secure coordinates.
+  - Routed existing `interpolateFromEvaluation(...)` through owned twiddle precompute + with-twiddles path, preserving API while aligning behavior with upstream twiddle reuse structure.
+  - Added parity regression test:
+    - `prover poly circle secure poly: interpolate with twiddles matches interpolate`
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig test tmp_deep_probe.zig --test-filter "secure poly: interpolate with twiddles matches interpolate"`
+- `zig test tmp_deep_probe.zig --test-filter "prover prove"`
+- `zig build fmt`
+- `zig build test --summary all`
+- `python3 scripts/parity_fields.py`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
