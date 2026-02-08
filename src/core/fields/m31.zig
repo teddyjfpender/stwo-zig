@@ -152,7 +152,7 @@ fn reduce64(x: u64) u32 {
     return r;
 }
 
-fn randElem(rng: std.rand.Random) M31 {
+fn randElem(rng: std.Random) M31 {
     while (true) {
         const x = rng.int(u32) & Modulus;
         if (x != Modulus) return M31.fromCanonical(x);
@@ -189,7 +189,7 @@ test "m31: inversion" {
 }
 
 test "m31: randomized ring laws" {
-    var prng = std.rand.DefaultPrng.init(0x1234_5678_9abc_def0);
+    var prng = std.Random.DefaultPrng.init(0x1234_5678_9abc_def0);
     const rng = prng.random();
 
     var i: usize = 0;

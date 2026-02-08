@@ -242,8 +242,8 @@ fn buildPointSamples(
 ) (std.mem.Allocator.Error || verifier_types.VerificationError)!TreeVec([][]quotients.PointSample) {
     if (sampled_points.items.len != sampled_values.items.len) return verifier_types.VerificationError.ShapeMismatch;
 
-    var trees_builder = std.ArrayList([][]quotients.PointSample).init(allocator);
-    defer trees_builder.deinit();
+    var trees_builder = std.ArrayList([][]quotients.PointSample).empty;
+    defer trees_builder.deinit(allocator);
     errdefer {
         for (trees_builder.items) |tree| {
             for (tree) |column| allocator.free(column);
@@ -253,8 +253,8 @@ fn buildPointSamples(
 
     for (sampled_points.items, sampled_values.items) |points_per_tree, values_per_tree| {
         if (points_per_tree.len != values_per_tree.len) return verifier_types.VerificationError.ShapeMismatch;
-        var cols_builder = std.ArrayList([]quotients.PointSample).init(allocator);
-        defer cols_builder.deinit();
+        var cols_builder = std.ArrayList([]quotients.PointSample).empty;
+        defer cols_builder.deinit(allocator);
         errdefer {
             for (cols_builder.items) |column| allocator.free(column);
         }
@@ -266,12 +266,12 @@ fn buildPointSamples(
             for (points_col, values_col, 0..) |point, value, i| {
                 out_col[i] = .{ .point = point, .value = value };
             }
-            try cols_builder.append(out_col);
+            try cols_builder.append(allocator, out_col);
         }
-        try trees_builder.append(try cols_builder.toOwnedSlice());
+        try trees_builder.append(allocator, try cols_builder.toOwnedSlice(allocator));
     }
 
-    return TreeVec([][]quotients.PointSample).initOwned(try trees_builder.toOwnedSlice());
+    return TreeVec([][]quotients.PointSample).initOwned(try trees_builder.toOwnedSlice(allocator));
 }
 
 test "pcs verifier: commit stores extended log sizes and mixes root" {

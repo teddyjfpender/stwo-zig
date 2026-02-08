@@ -15,13 +15,11 @@ pub fn nextDecommitmentNode(
     else
         null;
 
-    return switch (prev) {
-        null => layer,
-        else => |p| switch (layer) {
-            null => p,
-            else => |l| @min(p, l),
-        },
-    };
+    if (prev) |p| {
+        if (layer) |l| return @min(p, l);
+        return p;
+    }
+    return layer;
 }
 
 /// Returns `slice` if present, otherwise an empty slice.

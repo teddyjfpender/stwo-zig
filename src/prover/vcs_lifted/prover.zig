@@ -45,14 +45,14 @@ pub fn MerkleProverLifted(comptime H: type) type {
             const sorted = try sortColumnsByLogSizeAsc(allocator, columns);
             defer allocator.free(sorted);
 
-            var layers_bottom_up = std.ArrayList([]H.Hash).init(allocator);
-            defer layers_bottom_up.deinit();
+            var layers_bottom_up = std.ArrayList([]H.Hash).empty;
+            defer layers_bottom_up.deinit(allocator);
             errdefer {
                 for (layers_bottom_up.items) |layer| allocator.free(layer);
             }
 
             const leaves = try buildLeaves(allocator, sorted);
-            try layers_bottom_up.append(leaves);
+            try layers_bottom_up.append(allocator, leaves);
 
             if (leaves.len > 1) {
                 std.debug.assert(std.math.isPowerOfTwo(leaves.len));
@@ -63,7 +63,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                         allocator,
                         layers_bottom_up.items[layers_bottom_up.items.len - 1],
                     );
-                    try layers_bottom_up.append(next_layer);
+                    try layers_bottom_up.append(allocator, next_layer);
                 }
             }
 
@@ -97,29 +97,30 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 const log_size: u32 = @intCast(std.math.log2_int(usize, column.len));
                 if (log_size > max_log_size_u32) return error.InvalidColumnSize;
                 const shift = max_log_size_u32 - log_size;
+                const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
 
                 queried_values[i] = try allocator.alloc(M31, query_positions.len);
                 queried_values_initialized += 1;
                 for (query_positions, 0..) |position, j| {
-                    const column_index = ((position >> (@as(usize, @intCast(shift)) + 1)) << 1) + (position & 1);
+                    const column_index = ((position >> shift_amt) << 1) + (position & 1);
                     queried_values[i][j] = column[column_index];
                 }
             }
 
-            var hash_witness = std.ArrayList(H.Hash).init(allocator);
-            defer hash_witness.deinit();
+            var hash_witness = std.ArrayList(H.Hash).empty;
+            defer hash_witness.deinit(allocator);
 
-            var all_node_values = std.ArrayList([]NodeValue).init(allocator);
+            var all_node_values = std.ArrayList([]NodeValue).empty;
             defer {
                 for (all_node_values.items) |layer| allocator.free(layer);
-                all_node_values.deinit();
+                all_node_values.deinit(allocator);
             }
 
-            var prev_layer_queries = std.ArrayList(usize).init(allocator);
-            defer prev_layer_queries.deinit();
+            var prev_layer_queries = std.ArrayList(usize).empty;
+            defer prev_layer_queries.deinit(allocator);
             for (query_positions, 0..) |position, i| {
                 if (i == 0 or query_positions[i - 1] != position) {
-                    try prev_layer_queries.append(position);
+                    try prev_layer_queries.append(allocator, position);
                 }
             }
 
@@ -128,11 +129,11 @@ pub fn MerkleProverLifted(comptime H: type) type {
             while (layer_log_size >= 0) : (layer_log_size -= 1) {
                 const prev_layer_hashes = self.layers[@intCast(layer_log_size + 1)];
 
-                var curr_layer_queries = std.ArrayList(usize).init(allocator);
-                defer curr_layer_queries.deinit();
+                var curr_layer_queries = std.ArrayList(usize).empty;
+                defer curr_layer_queries.deinit(allocator);
 
-                var all_node_values_for_layer = std.ArrayList(NodeValue).init(allocator);
-                defer all_node_values_for_layer.deinit();
+                var all_node_values_for_layer = std.ArrayList(NodeValue).empty;
+                defer all_node_values_for_layer.deinit(allocator);
 
                 var p: usize = 0;
                 while (p < prev_layer_queries.items.len) {
@@ -145,16 +146,16 @@ pub fn MerkleProverLifted(comptime H: type) type {
                     }
 
                     if (chunk_len == 1) {
-                        try hash_witness.append(prev_layer_hashes[first ^ 1]);
+                        try hash_witness.append(allocator, prev_layer_hashes[first ^ 1]);
                     }
 
                     const curr_index = first >> 1;
-                    try curr_layer_queries.append(curr_index);
-                    try all_node_values_for_layer.append(.{
+                    try curr_layer_queries.append(allocator, curr_index);
+                    try all_node_values_for_layer.append(allocator, .{
                         .index = 2 * curr_index,
                         .hash = prev_layer_hashes[2 * curr_index],
                     });
-                    try all_node_values_for_layer.append(.{
+                    try all_node_values_for_layer.append(allocator, .{
                         .index = 2 * curr_index + 1,
                         .hash = prev_layer_hashes[2 * curr_index + 1],
                     });
@@ -162,15 +163,15 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 }
 
                 prev_layer_queries.clearRetainingCapacity();
-                try prev_layer_queries.appendSlice(curr_layer_queries.items);
+                try prev_layer_queries.appendSlice(allocator, curr_layer_queries.items);
 
-                try all_node_values.append(try all_node_values_for_layer.toOwnedSlice());
+                try all_node_values.append(allocator, try all_node_values_for_layer.toOwnedSlice(allocator));
             }
 
-            const hash_witness_owned = try hash_witness.toOwnedSlice();
+            const hash_witness_owned = try hash_witness.toOwnedSlice(allocator);
             errdefer allocator.free(hash_witness_owned);
 
-            const all_node_values_owned = try all_node_values.toOwnedSlice();
+            const all_node_values_owned = try all_node_values.toOwnedSlice(allocator);
             errdefer {
                 for (all_node_values_owned) |layer| allocator.free(layer);
                 allocator.free(all_node_values_owned);
@@ -249,9 +250,10 @@ pub fn MerkleProverLifted(comptime H: type) type {
 
                 const log_ratio = log_size - prev_layer_log_size;
                 const layer_size = @as(usize, 1) << @intCast(log_size);
+                const shift_amt: std.math.Log2Int(usize) = @intCast(log_ratio + 1);
                 const expanded = try allocator.alloc(H, layer_size);
                 for (0..layer_size) |idx| {
-                    const src_idx = ((idx >> (@as(usize, @intCast(log_ratio)) + 1)) << 1) + (idx & 1);
+                    const src_idx = ((idx >> shift_amt) << 1) + (idx & 1);
                     expanded[idx] = prev_layer[src_idx];
                 }
                 allocator.free(prev_layer);

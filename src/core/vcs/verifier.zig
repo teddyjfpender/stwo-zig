@@ -109,7 +109,7 @@ pub fn MerkleVerifier(comptime H: type) type {
             queries_per_log_size: []const LogSizeQueries,
             queried_values: []const M31,
             decommitment: MerkleDecommitment(H),
-        ) MerkleVerificationError!void {
+        ) (std.mem.Allocator.Error || MerkleVerificationError)!void {
             const max_log_size_opt = maxLogSize(self.column_log_sizes);
             if (max_log_size_opt == null) return;
             const max_log_size = max_log_size_opt.?;
@@ -126,8 +126,8 @@ pub fn MerkleVerifier(comptime H: type) type {
                 const layer_size_u32: u32 = @intCast(layer_log_size);
                 const n_columns_in_layer = countColumnsAtLogSize(self.column_log_sizes, layer_size_u32);
 
-                var layer_total_queries = std.ArrayList(Pair).init(allocator);
-                defer layer_total_queries.deinit();
+                var layer_total_queries = std.ArrayList(Pair).empty;
+                defer layer_total_queries.deinit(allocator);
 
                 const layer_queries = queriesForLogSize(queries_per_log_size, layer_size_u32);
 
@@ -151,12 +151,13 @@ pub fn MerkleVerifier(comptime H: type) type {
                         prev_queries_at += 1;
                     }
 
-                    var node_hashes: ?struct { left: H.Hash, right: H.Hash } = null;
+                    var has_children = false;
+                    var left_hash: H.Hash = undefined;
+                    var right_hash: H.Hash = undefined;
                     if (last_layer_hashes.len > 0) {
                         const left_index = node_index * 2;
                         const right_index = left_index + 1;
 
-                        var left_hash: H.Hash = undefined;
                         if (prev_hashes_at < last_layer_hashes.len and
                             last_layer_hashes[prev_hashes_at].idx == left_index)
                         {
@@ -170,7 +171,6 @@ pub fn MerkleVerifier(comptime H: type) type {
                             hash_witness_at += 1;
                         }
 
-                        var right_hash: H.Hash = undefined;
                         if (prev_hashes_at < last_layer_hashes.len and
                             last_layer_hashes[prev_hashes_at].idx == right_index)
                         {
@@ -183,7 +183,7 @@ pub fn MerkleVerifier(comptime H: type) type {
                             right_hash = decommitment.hash_witness[hash_witness_at];
                             hash_witness_at += 1;
                         }
-                        node_hashes = .{ .left = left_hash, .right = right_hash };
+                        has_children = true;
                     }
 
                     const is_queried_node = layer_queries_at < layer_queries.len and
@@ -214,13 +214,19 @@ pub fn MerkleVerifier(comptime H: type) type {
                         column_witness_at += n_columns_in_layer;
                     }
 
-                    try layer_total_queries.append(.{
+                    try layer_total_queries.append(allocator, .{
                         .idx = node_index,
-                        .hash = H.hashNode(node_hashes, node_values),
+                        .hash = H.hashNode(
+                            if (has_children)
+                                .{ .left = left_hash, .right = right_hash }
+                            else
+                                null,
+                            node_values,
+                        ),
                     });
                 }
 
-                const next_last_layer = try layer_total_queries.toOwnedSlice();
+                const next_last_layer = try layer_total_queries.toOwnedSlice(allocator);
                 allocator.free(last_layer_hashes);
                 last_layer_hashes = next_last_layer;
             }

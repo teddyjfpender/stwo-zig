@@ -94,10 +94,10 @@ pub const Components = struct {
         max_log_degree_bound: u32,
         include_all_preprocessed_columns: bool,
     ) !MaskPoints {
-        var all_masks = std.ArrayList(MaskPoints).init(allocator);
-        defer all_masks.deinit();
+        var all_masks = std.ArrayList(MaskPoints).empty;
+        defer all_masks.deinit(allocator);
         for (self.components) |component| {
-            try all_masks.append(try component.maskPoints(allocator, point, max_log_degree_bound));
+            try all_masks.append(allocator, try component.maskPoints(allocator, point, max_log_degree_bound));
         }
         defer for (all_masks.items) |*tv| tv.deinitDeep(allocator);
 
@@ -170,10 +170,10 @@ pub const Components = struct {
         defer allocator.free(visited);
         @memset(visited, false);
 
-        var all_sizes = std.ArrayList(TraceLogDegreeBounds).init(allocator);
-        defer all_sizes.deinit();
+        var all_sizes = std.ArrayList(TraceLogDegreeBounds).empty;
+        defer all_sizes.deinit(allocator);
         for (self.components) |component| {
-            try all_sizes.append(try component.traceLogDegreeBounds(allocator));
+            try all_sizes.append(allocator, try component.traceLogDegreeBounds(allocator));
         }
         defer for (all_sizes.items) |*tv| tv.deinitDeep(allocator);
 

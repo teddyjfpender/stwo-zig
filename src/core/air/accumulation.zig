@@ -28,7 +28,7 @@ pub const PointEvaluationAccumulator = struct {
 };
 
 test "air accumulation: matches direct computation" {
-    var prng = std.rand.DefaultPrng.init(0);
+    var prng = std.Random.DefaultPrng.init(0);
     const rng = prng.random();
 
     const alpha = QM31.fromU32Unchecked(2, 3, 4, 5);

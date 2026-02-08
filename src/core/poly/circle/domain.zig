@@ -148,10 +148,10 @@ test "circle domain: split preserves point order via interleaving" {
     var split_res = try domain.split(std.testing.allocator, 2);
     defer split_res.deinit(std.testing.allocator);
 
-    var domain_points = std.ArrayList(CirclePointM31).init(std.testing.allocator);
-    defer domain_points.deinit();
+    var domain_points = std.ArrayList(CirclePointM31).empty;
+    defer domain_points.deinit(std.testing.allocator);
     var dit = domain.iter();
-    while (dit.next()) |p| try domain_points.append(p);
+    while (dit.next()) |p| try domain_points.append(std.testing.allocator, p);
 
     const n_shifts = split_res.shifts.len;
     const sub_size = split_res.subdomain.size();
@@ -167,13 +167,13 @@ test "circle domain: split preserves point order via interleaving" {
     }
     defer for (points_for_shift) |pts| std.testing.allocator.free(pts);
 
-    var extended = std.ArrayList(CirclePointM31).init(std.testing.allocator);
-    defer extended.deinit();
+    var extended = std.ArrayList(CirclePointM31).empty;
+    defer extended.deinit(std.testing.allocator);
     var point_idx: usize = 0;
     while (point_idx < sub_size) : (point_idx += 1) {
         var shift_idx: usize = 0;
         while (shift_idx < n_shifts) : (shift_idx += 1) {
-            try extended.append(points_for_shift[shift_idx][point_idx]);
+            try extended.append(std.testing.allocator, points_for_shift[shift_idx][point_idx]);
         }
     }
 

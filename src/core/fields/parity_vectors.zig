@@ -293,9 +293,15 @@ const VectorFile = struct {
 };
 
 fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
-    const raw = @embedFile("../../../vectors/fields.json");
+    const raw = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "vectors/fields.json",
+        16 * 1024 * 1024,
+    );
+    defer allocator.free(raw);
     return std.json.parseFromSlice(VectorFile, allocator, raw, .{
         .ignore_unknown_fields = false,
+        .allocate = .alloc_always,
     });
 }
 
@@ -375,8 +381,8 @@ fn decodeSamplesTree(
     allocator: std.mem.Allocator,
     encoded: [][][]PointSampleVector,
 ) !quotients_mod.TreeVec([][]PointSample) {
-    var trees_builder = std.ArrayList([][]PointSample).init(allocator);
-    defer trees_builder.deinit();
+    var trees_builder = std.ArrayList([][]PointSample).empty;
+    defer trees_builder.deinit(allocator);
     errdefer {
         for (trees_builder.items) |tree| {
             for (tree) |col| allocator.free(col);
@@ -385,8 +391,8 @@ fn decodeSamplesTree(
     }
 
     for (encoded) |tree| {
-        var cols_builder = std.ArrayList([]PointSample).init(allocator);
-        defer cols_builder.deinit();
+        var cols_builder = std.ArrayList([]PointSample).empty;
+        defer cols_builder.deinit(allocator);
         errdefer {
             for (cols_builder.items) |col| allocator.free(col);
         }
@@ -395,20 +401,20 @@ fn decodeSamplesTree(
             const decoded_col = try allocator.alloc(PointSample, col.len);
             errdefer allocator.free(decoded_col);
             for (col, 0..) |sample, i| decoded_col[i] = pointSampleFrom(sample);
-            try cols_builder.append(decoded_col);
+            try cols_builder.append(allocator, decoded_col);
         }
-        try trees_builder.append(try cols_builder.toOwnedSlice());
+        try trees_builder.append(allocator, try cols_builder.toOwnedSlice(allocator));
     }
 
-    return quotients_mod.TreeVec([][]PointSample).initOwned(try trees_builder.toOwnedSlice());
+    return quotients_mod.TreeVec([][]PointSample).initOwned(try trees_builder.toOwnedSlice(allocator));
 }
 
 fn decodeQueriedValuesTree(
     allocator: std.mem.Allocator,
     encoded: [][][]u32,
 ) !quotients_mod.TreeVec([][]M31) {
-    var trees_builder = std.ArrayList([][]M31).init(allocator);
-    defer trees_builder.deinit();
+    var trees_builder = std.ArrayList([][]M31).empty;
+    defer trees_builder.deinit(allocator);
     errdefer {
         for (trees_builder.items) |tree| {
             for (tree) |col| allocator.free(col);
@@ -417,8 +423,8 @@ fn decodeQueriedValuesTree(
     }
 
     for (encoded) |tree| {
-        var cols_builder = std.ArrayList([]M31).init(allocator);
-        defer cols_builder.deinit();
+        var cols_builder = std.ArrayList([]M31).empty;
+        defer cols_builder.deinit(allocator);
         errdefer {
             for (cols_builder.items) |col| allocator.free(col);
         }
@@ -427,20 +433,20 @@ fn decodeQueriedValuesTree(
             const decoded_col = try allocator.alloc(M31, col.len);
             errdefer allocator.free(decoded_col);
             for (col, 0..) |value, i| decoded_col[i] = m31From(value);
-            try cols_builder.append(decoded_col);
+            try cols_builder.append(allocator, decoded_col);
         }
-        try trees_builder.append(try cols_builder.toOwnedSlice());
+        try trees_builder.append(allocator, try cols_builder.toOwnedSlice(allocator));
     }
 
-    return quotients_mod.TreeVec([][]M31).initOwned(try trees_builder.toOwnedSlice());
+    return quotients_mod.TreeVec([][]M31).initOwned(try trees_builder.toOwnedSlice(allocator));
 }
 
 fn decodeQm31Tree(
     allocator: std.mem.Allocator,
     encoded: [][][][4]u32,
 ) !quotients_mod.TreeVec([][]QM31) {
-    var trees_builder = std.ArrayList([][]QM31).init(allocator);
-    defer trees_builder.deinit();
+    var trees_builder = std.ArrayList([][]QM31).empty;
+    defer trees_builder.deinit(allocator);
     errdefer {
         for (trees_builder.items) |tree| {
             for (tree) |col| allocator.free(col);
@@ -449,8 +455,8 @@ fn decodeQm31Tree(
     }
 
     for (encoded) |tree| {
-        var cols_builder = std.ArrayList([]QM31).init(allocator);
-        defer cols_builder.deinit();
+        var cols_builder = std.ArrayList([]QM31).empty;
+        defer cols_builder.deinit(allocator);
         errdefer {
             for (cols_builder.items) |col| allocator.free(col);
         }
@@ -459,12 +465,12 @@ fn decodeQm31Tree(
             const decoded_col = try allocator.alloc(QM31, col.len);
             errdefer allocator.free(decoded_col);
             for (col, 0..) |value, i| decoded_col[i] = qm31From(value);
-            try cols_builder.append(decoded_col);
+            try cols_builder.append(allocator, decoded_col);
         }
-        try trees_builder.append(try cols_builder.toOwnedSlice());
+        try trees_builder.append(allocator, try cols_builder.toOwnedSlice(allocator));
     }
 
-    return quotients_mod.TreeVec([][]QM31).initOwned(try trees_builder.toOwnedSlice());
+    return quotients_mod.TreeVec([][]QM31).initOwned(try trees_builder.toOwnedSlice(allocator));
 }
 
 fn decodeQm31Slice(allocator: std.mem.Allocator, encoded: [][4]u32) ![]QM31 {
@@ -613,10 +619,10 @@ test "field vectors: pcs quotients parity" {
             }
         }
 
-        var flat_samples = std.ArrayList([]const SampleWithRandomness).init(alloc);
-        defer flat_samples.deinit();
+        var flat_samples = std.ArrayList([]const SampleWithRandomness).empty;
+        defer flat_samples.deinit(alloc);
         for (samples_with_randomness.items) |tree| {
-            for (tree) |col| try flat_samples.append(col);
+            for (tree) |col| try flat_samples.append(alloc, col);
         }
 
         const sample_batches = try ColumnSampleBatch.newVec(alloc, flat_samples.items);
@@ -649,10 +655,10 @@ test "field vectors: pcs quotients parity" {
             }
         }
 
-        var queried_values_flat = std.ArrayList([]const M31).init(alloc);
-        defer queried_values_flat.deinit();
+        var queried_values_flat = std.ArrayList([]const M31).empty;
+        defer queried_values_flat.deinit(alloc);
         for (queried_values.items) |tree| {
-            for (tree) |col| try queried_values_flat.append(col);
+            for (tree) |col| try queried_values_flat.append(alloc, col);
         }
 
         const row_values = try alloc.alloc(M31, queried_values_flat.items.len);

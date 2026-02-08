@@ -112,6 +112,15 @@
   - Retained prepared-samples proving entrypoint (`provePrepared`) as compatibility path.
   - Added roundtrip tests against core verifier for prepared, sampled-points, and component-driven slices.
 
+### Toolchain/Runtime Stabilization
+- Broad Zig 0.15 compatibility sweep across core/prover paths:
+  - migrated `std.rand` usage to `std.Random`.
+  - migrated `std.ArrayList` callsites to allocator-passing API (`.empty`, `append(allocator, ...)`, `toOwnedSlice(allocator)`, `deinit(allocator)`).
+  - widened several strict error unions that previously rejected allocator or verifier-layer errors on instantiated paths.
+  - normalized hash digest test formatting via `std.fmt.bytesToHex`.
+  - replaced parity vector `@embedFile` use with runtime `readFileAlloc` (`vectors/fields.json`) to avoid package-path violations under root-module testing.
+- Kept root `zig build test` scope aligned with existing project gate while preserving compatibility fixes in touched modules.
+
 ## Current Quality Gates (Passing)
 - `zig build fmt`
 - `zig build test`
@@ -124,6 +133,7 @@
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
    - Current executable entrypoints are sampled-points (`prove`/`proveEx`), component-driven (`proveExComponents`/`proveComponents`), and prepared sampled-values (`provePrepared`) paths.
    - Component-driven slice now allows non-zero PCS blowup, but still uses reference interpolation/evaluation in composition commit path.
+4. Full-repo forced test-graph execution (`refAllDecls(core/prover/...)`) currently surfaces additional legacy failures outside the current default gate (notably FRI ownership/decommit and a few legacy expectation mismatches). These are queued for dedicated cleanup slice.
 
 ## Next Highest-Impact Targets
 1. Complete FFT/twiddle-backed circle interpolation/evaluation parity and wire `store_polynomials_coefficients` fast path.

@@ -66,7 +66,7 @@ pub fn domainLineTwiddlesFromTree(
     allocator: std.mem.Allocator,
     domain: line.LineDomain,
     twiddle_buffer: []const T,
-) Error![][]const T {
+) (std.mem.Allocator.Error || Error)![][]const T {
     if (domain.coset().size() > twiddle_buffer.len) return Error.NotEnoughTwiddles;
 
     const log_size = domain.coset().logSize();

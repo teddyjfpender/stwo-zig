@@ -94,7 +94,7 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             query_positions: []const usize,
             queried_values: []const []const M31,
             decommitment: Decommitment,
-        ) MerkleVerificationError!void {
+        ) (std.mem.Allocator.Error || MerkleVerificationError)!void {
             if (self.column_log_sizes.len == 0) return;
 
             // If duplicate queries appear, all columns should agree on their values.
@@ -121,36 +121,36 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             }
             for (col_indices, 0..) |col_idx, j| {
                 const col = queried_values[col_idx];
-                var dedup = std.ArrayList(M31).init(allocator);
-                defer dedup.deinit();
+                var dedup = std.ArrayList(M31).empty;
+                defer dedup.deinit(allocator);
                 var k: usize = 0;
                 while (k < query_positions.len and k < col.len) : (k += 1) {
                     if (k == 0 or query_positions[k] != query_positions[k - 1]) {
-                        try dedup.append(col[k]);
+                        try dedup.append(allocator, col[k]);
                     }
                 }
-                dedup_cols[j] = try dedup.toOwnedSlice();
+                dedup_cols[j] = try dedup.toOwnedSlice(allocator);
             }
 
             const Pair = struct { idx: usize, hash: H.Hash };
-            var prev_layer = std.ArrayList(Pair).init(allocator);
-            defer prev_layer.deinit();
+            var prev_layer = std.ArrayList(Pair).empty;
+            defer prev_layer.deinit(allocator);
 
             var col_pos = try allocator.alloc(usize, n_cols);
             defer allocator.free(col_pos);
             @memset(col_pos, 0);
 
             for (query_positions) |pos| {
-                var row = std.ArrayList(M31).init(allocator);
-                defer row.deinit();
+                var row = std.ArrayList(M31).empty;
+                defer row.deinit(allocator);
                 for (dedup_cols, 0..) |col, col_i| {
                     if (col_pos[col_i] >= col.len) return MerkleVerificationError.WitnessTooShort;
-                    try row.append(col[col_pos[col_i]]);
+                    try row.append(allocator, col[col_pos[col_i]]);
                     col_pos[col_i] += 1;
                 }
                 var hasher = H.defaultWithInitialState();
                 hasher.updateLeaf(row.items);
-                try prev_layer.append(.{ .idx = pos, .hash = hasher.finalize() });
+                try prev_layer.append(allocator, .{ .idx = pos, .hash = hasher.finalize() });
             }
 
             // Verify all dedup values were consumed.
@@ -162,17 +162,19 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             const max_log_size = maxLogSize(self.column_log_sizes);
             var layer: u32 = 0;
             while (layer < max_log_size) : (layer += 1) {
-                var curr = std.ArrayList(Pair).init(allocator);
-                defer curr.deinit();
+                var curr = std.ArrayList(Pair).empty;
+                defer curr.deinit(allocator);
 
                 var p: usize = 0;
                 while (p < prev_layer.items.len) {
                     const first = prev_layer.items[p];
                     var chunk_len: usize = 1;
-                    var children: struct { left: H.Hash, right: H.Hash } = undefined;
+                    var left_hash: H.Hash = undefined;
+                    var right_hash: H.Hash = undefined;
                     if (p + 1 < prev_layer.items.len and (first.idx ^ 1) == prev_layer.items[p + 1].idx) {
                         const second = prev_layer.items[p + 1];
-                        children = .{ .left = first.hash, .right = second.hash };
+                        left_hash = first.hash;
+                        right_hash = second.hash;
                         chunk_len = 2;
                     } else {
                         if (witness_idx >= decommitment.hash_witness.len) {
@@ -180,20 +182,23 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                         }
                         const witness = decommitment.hash_witness[witness_idx];
                         witness_idx += 1;
-                        children = if ((first.idx & 1) == 0)
-                            .{ .left = first.hash, .right = witness }
-                        else
-                            .{ .left = witness, .right = first.hash };
+                        if ((first.idx & 1) == 0) {
+                            left_hash = first.hash;
+                            right_hash = witness;
+                        } else {
+                            left_hash = witness;
+                            right_hash = first.hash;
+                        }
                     }
-                    try curr.append(.{
+                    try curr.append(allocator, .{
                         .idx = first.idx >> 1,
-                        .hash = H.hashChildren(children),
+                        .hash = H.hashChildren(.{ .left = left_hash, .right = right_hash }),
                     });
                     p += chunk_len;
                 }
 
                 prev_layer.clearRetainingCapacity();
-                try prev_layer.appendSlice(curr.items);
+                try prev_layer.appendSlice(allocator, curr.items);
             }
 
             if (witness_idx != decommitment.hash_witness.len) {

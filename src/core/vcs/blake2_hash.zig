@@ -77,9 +77,7 @@ fn readU32Le(bytes: []const u8) u32 {
 }
 
 fn digestToHex(digest: Blake2sHash) [64]u8 {
-    var out: [64]u8 = undefined;
-    _ = std.fmt.bufPrint(&out, "{}", .{std.fmt.fmtSliceHexLower(&digest)}) catch unreachable;
-    return out;
+    return std.fmt.bytesToHex(digest, .lower);
 }
 
 test "blake2 hash: single hash test" {

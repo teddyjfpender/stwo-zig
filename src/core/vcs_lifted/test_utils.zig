@@ -66,18 +66,18 @@ pub fn prepareMerkle(
     var prover = try Prover.commit(allocator, columns_const);
     defer prover.deinit(allocator);
 
-    var query_positions_builder = std.ArrayList(usize).init(allocator);
-    defer query_positions_builder.deinit();
+    var query_positions_builder = std.ArrayList(usize).empty;
+    defer query_positions_builder.deinit(allocator);
     const query_domain_size = @as(usize, 1) << @intCast(max_log_size);
     const n_queries = random.intRangeAtMost(usize, 1, @min(max_queries, query_domain_size));
     while (query_positions_builder.items.len < n_queries) {
         const q = random.intRangeLessThan(usize, 0, query_domain_size);
         if (std.mem.indexOfScalar(usize, query_positions_builder.items, q) == null) {
-            try query_positions_builder.append(q);
+            try query_positions_builder.append(allocator, q);
         }
     }
     std.sort.heap(usize, query_positions_builder.items, {}, std.sort.asc(usize));
-    const query_positions = try query_positions_builder.toOwnedSlice();
+    const query_positions = try query_positions_builder.toOwnedSlice(allocator);
     errdefer allocator.free(query_positions);
 
     var decommitment_result = try prover.decommit(allocator, query_positions, columns_const);

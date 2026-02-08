@@ -168,7 +168,7 @@ pub const CM31 = struct {
     }
 };
 
-fn randElem(rng: std.rand.Random) CM31 {
+fn randElem(rng: std.Random) CM31 {
     while (true) {
         const a = rng.int(u32) & m31.Modulus;
         const b = rng.int(u32) & m31.Modulus;
@@ -205,7 +205,7 @@ test "cm31: basic ops parity sanity" {
 }
 
 test "cm31: randomized field laws" {
-    var prng = std.rand.DefaultPrng.init(0x9c0f_8411_06f4_8ea3);
+    var prng = std.Random.DefaultPrng.init(0x9c0f_8411_06f4_8ea3);
     const rng = prng.random();
 
     var i: usize = 0;

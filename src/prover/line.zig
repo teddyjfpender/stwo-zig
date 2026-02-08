@@ -15,7 +15,7 @@ const LinePoly = poly_line.LinePoly;
 ///
 /// The values are expected in bit-reversed order, matching Stwo prover conventions.
 pub const LineEvaluation = struct {
-    values: []QM31,
+    values: []const QM31,
     domain_value: LineDomain,
     owns_values: bool = true,
 
@@ -33,7 +33,7 @@ pub const LineEvaluation = struct {
         };
     }
 
-    pub fn initBorrowed(line_domain: LineDomain, values: []QM31) Error!LineEvaluation {
+    pub fn initBorrowed(line_domain: LineDomain, values: []const QM31) Error!LineEvaluation {
         if (values.len != line_domain.size()) return Error.InvalidLength;
         return .{
             .values = values,
@@ -76,9 +76,12 @@ pub const LineEvaluation = struct {
     /// Interpolates this evaluation into a line polynomial.
     ///
     /// Consumes ownership of `values` when this evaluation owns them.
-    pub fn interpolate(self: *LineEvaluation, allocator: std.mem.Allocator) Error!LinePoly {
-        const coeffs = if (self.owns_values)
-            self.values
+    pub fn interpolate(
+        self: *LineEvaluation,
+        allocator: std.mem.Allocator,
+    ) (std.mem.Allocator.Error || Error)!LinePoly {
+        const coeffs: []QM31 = if (self.owns_values)
+            @constCast(self.values)
         else
             try allocator.dupe(QM31, self.values);
 

@@ -82,7 +82,7 @@ pub fn TreeVec(comptime T: type) type {
     };
 }
 
-fn deepFree(comptime T: type, allocator: std.mem.Allocator, slice: []T) void {
+fn deepFree(comptime T: type, allocator: std.mem.Allocator, slice: []const T) void {
     const ti = @typeInfo(T);
     if (ti == .pointer and ti.pointer.size == .slice) {
         const Child = ti.pointer.child;
@@ -123,18 +123,18 @@ pub fn concatCols(comptime T: type, allocator: std.mem.Allocator, trees: []const
 
     var builders = try allocator.alloc(std.ArrayList(T), n_trees);
     defer allocator.free(builders);
-    for (builders) |*b| b.* = std.ArrayList(T).init(allocator);
+    for (builders) |*b| b.* = .empty;
     defer {
         for (builders) |*b| {
             for (b.items) |item| freeValue(T, allocator, item);
-            b.deinit();
+            b.deinit(allocator);
         }
     }
 
     for (trees) |tree| {
         for (tree.items, 0..) |cols, tree_index| {
             for (cols) |col| {
-                try builders[tree_index].append(try cloneValue(T, allocator, col));
+                try builders[tree_index].append(allocator, try cloneValue(T, allocator, col));
             }
         }
     }
@@ -142,7 +142,7 @@ pub fn concatCols(comptime T: type, allocator: std.mem.Allocator, trees: []const
     const out = try allocator.alloc([]T, n_trees);
     errdefer allocator.free(out);
     for (builders, 0..) |*b, i| {
-        out[i] = try b.toOwnedSlice();
+        out[i] = try b.toOwnedSlice(allocator);
     }
     return TreeVec([]T).initOwned(out);
 }
@@ -153,31 +153,31 @@ pub fn appendCols(comptime T: type, allocator: std.mem.Allocator, self: *TreeVec
 
     var builders = try allocator.alloc(std.ArrayList(T), n_trees);
     defer allocator.free(builders);
-    for (builders) |*b| b.* = std.ArrayList(T).init(allocator);
+    for (builders) |*b| b.* = .empty;
     defer {
         for (builders) |*b| {
             for (b.items) |item| freeValue(T, allocator, item);
-            b.deinit();
+            b.deinit(allocator);
         }
     }
 
     var i: usize = 0;
     while (i < self.items.len) : (i += 1) {
         for (self.items[i]) |item| {
-            try builders[i].append(try cloneValue(T, allocator, item));
+            try builders[i].append(allocator, try cloneValue(T, allocator, item));
         }
     }
     i = 0;
     while (i < other.items.len) : (i += 1) {
         for (other.items[i]) |item| {
-            try builders[i].append(try cloneValue(T, allocator, item));
+            try builders[i].append(allocator, try cloneValue(T, allocator, item));
         }
     }
 
     self.deinitDeep(allocator);
     const out = try allocator.alloc([]T, n_trees);
     for (builders, 0..) |*b, idx| {
-        out[idx] = try b.toOwnedSlice();
+        out[idx] = try b.toOwnedSlice(allocator);
     }
     self.* = TreeVec([]T).initOwned(out);
 }

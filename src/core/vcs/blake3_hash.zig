@@ -44,9 +44,7 @@ pub const Blake3Hasher = struct {
 };
 
 fn digestToHex(digest: Blake3Hash) [64]u8 {
-    var out: [64]u8 = undefined;
-    _ = std.fmt.bufPrint(&out, "{}", .{std.fmt.fmtSliceHexLower(&digest)}) catch unreachable;
-    return out;
+    return std.fmt.bytesToHex(digest, .lower);
 }
 
 test "blake3 hash: single hash test" {

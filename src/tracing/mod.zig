@@ -4,7 +4,7 @@ pub const SpanId = u64;
 
 const SpanData = struct {
     class: []u8,
-    start_ns: u64,
+    start_ns: i128,
 };
 
 /// Collects span durations grouped by class label.
@@ -35,7 +35,6 @@ pub const SpanAccumulator = struct {
         var results_it = self.results.iterator();
         while (results_it.next()) |entry| self.allocator.free(entry.key_ptr.*);
         self.results.deinit();
-        self.* = undefined;
     }
 
     pub fn onNewSpan(self: *Self, id: SpanId, class: []const u8) !void {
@@ -75,12 +74,12 @@ pub const SpanAccumulator = struct {
         var rows = std.ArrayList(struct {
             label: []const u8,
             duration_ns: u64,
-        }).init(allocator);
-        defer rows.deinit();
+        }).empty;
+        defer rows.deinit(allocator);
 
         var it = self.results.iterator();
         while (it.next()) |entry| {
-            try rows.append(.{
+            try rows.append(allocator, .{
                 .label = entry.key_ptr.*,
                 .duration_ns = entry.value_ptr.*,
             });
@@ -97,14 +96,14 @@ pub const SpanAccumulator = struct {
             }.less,
         );
 
-        var out = std.ArrayList(u8).init(allocator);
-        defer out.deinit();
-        try out.writer().writeAll("Label,Duration_ms\n");
+        var out = std.ArrayList(u8).empty;
+        defer out.deinit(allocator);
+        try out.writer(allocator).writeAll("Label,Duration_ms\n");
         for (rows.items) |row| {
             const duration_ms = @as(f64, @floatFromInt(row.duration_ns)) / 1_000_000.0;
-            try out.writer().print("{s},{d:.6}\n", .{ row.label, duration_ms });
+            try out.writer(allocator).print("{s},{d:.6}\n", .{ row.label, duration_ms });
         }
-        return out.toOwnedSlice();
+        return out.toOwnedSlice(allocator);
     }
 
     pub fn resultsCount(self: *Self) usize {

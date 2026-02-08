@@ -205,14 +205,14 @@ pub const QM31 = struct {
     }
 };
 
-fn randM31(rng: std.rand.Random) M31 {
+fn randM31(rng: std.Random) M31 {
     while (true) {
         const x = rng.int(u32) & m31_mod.Modulus;
         if (x != m31_mod.Modulus) return M31.fromCanonical(x);
     }
 }
 
-fn randElem(rng: std.rand.Random) QM31 {
+fn randElem(rng: std.Random) QM31 {
     return QM31.fromM31(randM31(rng), randM31(rng), randM31(rng), randM31(rng));
 }
 
@@ -250,7 +250,7 @@ test "qm31: m31 array roundtrip" {
 }
 
 test "qm31: randomized field laws" {
-    var prng = std.rand.DefaultPrng.init(0x7cf5_6f15_72c0_021b);
+    var prng = std.Random.DefaultPrng.init(0x7cf5_6f15_72c0_021b);
     const rng = prng.random();
 
     var i: usize = 0;

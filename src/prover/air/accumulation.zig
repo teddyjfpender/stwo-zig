@@ -186,7 +186,8 @@ fn liftedValueAt(
 
     const shift = lifting_log_size - log_size;
     if (shift >= @bitSizeOf(usize)) return AccumulationError.InvalidLogSize;
-    const idx = ((position >> (@as(usize, @intCast(shift)) + 1)) << 1) + (position & 1);
+    const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
+    const idx = ((position >> shift_amt) << 1) + (position & 1);
     if (idx >= column.len()) return AccumulationError.ShapeMismatch;
     return column.at(idx);
 }
@@ -253,8 +254,9 @@ test "prover air accumulation: lifted combination matches direct formula" {
     defer alloc.free(combined_vec);
 
     const shift: u32 = 1;
+    const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
     for (combined_vec, 0..) |value, position| {
-        const idx_small = ((position >> (@as(usize, @intCast(shift)) + 1)) << 1) + (position & 1);
+        const idx_small = ((position >> shift_amt) << 1) + (position & 1);
         const expected = col_large_values[position].mul(alpha).add(col_small_values[idx_small]);
         try std.testing.expect(value.eql(expected));
     }

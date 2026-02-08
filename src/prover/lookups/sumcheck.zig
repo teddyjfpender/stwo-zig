@@ -97,14 +97,14 @@ pub fn proveBatch(
         claims[i] = claims[i].mulM31(pow2Base(n_unused_variables));
     }
 
-    var round_polys_builder = std.ArrayList(lookup_utils.UnivariatePoly(QM31)).init(allocator);
-    defer round_polys_builder.deinit();
+    var round_polys_builder = std.ArrayList(lookup_utils.UnivariatePoly(QM31)).empty;
+    defer round_polys_builder.deinit(allocator);
     errdefer {
         for (round_polys_builder.items) |*poly| poly.deinit(allocator);
     }
 
-    var assignment_builder = std.ArrayList(QM31).init(allocator);
-    defer assignment_builder.deinit();
+    var assignment_builder = std.ArrayList(QM31).empty;
+    defer assignment_builder.deinit(allocator);
 
     var round: usize = 0;
     while (round < n_variables) : (round += 1) {
@@ -160,13 +160,13 @@ pub fn proveBatch(
             poly.* = fixed;
         }
 
-        try round_polys_builder.append(round_poly);
-        try assignment_builder.append(challenge);
+        try round_polys_builder.append(allocator, round_poly);
+        try assignment_builder.append(allocator, challenge);
     }
 
     return .{
-        .proof = .{ .round_polys = try round_polys_builder.toOwnedSlice() },
-        .assignment = try assignment_builder.toOwnedSlice(),
+        .proof = .{ .round_polys = try round_polys_builder.toOwnedSlice(allocator) },
+        .assignment = try assignment_builder.toOwnedSlice(allocator),
         .constant_polys = multivariate_polys,
         .claimed_evals = claims,
     };
@@ -180,8 +180,8 @@ pub fn partiallyVerify(
     channel: anytype,
 ) (std.mem.Allocator.Error || SumcheckError)!PartialVerifyResult {
     var claim = claim_in;
-    var assignment = std.ArrayList(QM31).init(allocator);
-    defer assignment.deinit();
+    var assignment = std.ArrayList(QM31).empty;
+    defer assignment.deinit(allocator);
 
     for (proof.round_polys) |round_poly| {
         if (round_poly.degree() > MAX_DEGREE) return SumcheckError.DegreeInvalid;
@@ -192,11 +192,11 @@ pub fn partiallyVerify(
         channel.mixFelts(round_poly.coeffsSlice());
         const challenge = channel.drawSecureFelt();
         claim = round_poly.evalAtPoint(challenge);
-        try assignment.append(challenge);
+        try assignment.append(allocator, challenge);
     }
 
     return .{
-        .assignment = try assignment.toOwnedSlice(),
+        .assignment = try assignment.toOwnedSlice(allocator),
         .claimed_eval = claim,
     };
 }

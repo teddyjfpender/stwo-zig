@@ -56,8 +56,8 @@ pub fn MerkleProver(comptime H: type) type {
 
             const max_log_size = sorted[0].log_size;
 
-            var layers_bottom_up = std.ArrayList([]H.Hash).init(allocator);
-            defer layers_bottom_up.deinit();
+            var layers_bottom_up = std.ArrayList([]H.Hash).empty;
+            defer layers_bottom_up.deinit(allocator);
             errdefer {
                 for (layers_bottom_up.items) |layer| allocator.free(layer);
             }
@@ -65,10 +65,10 @@ pub fn MerkleProver(comptime H: type) type {
             var layer_log_size: i64 = @intCast(max_log_size);
             while (layer_log_size >= 0) : (layer_log_size -= 1) {
                 const log_size: u32 = @intCast(layer_log_size);
-                var layer_columns = std.ArrayList(ColumnRef).init(allocator);
-                defer layer_columns.deinit();
+                var layer_columns = std.ArrayList(ColumnRef).empty;
+                defer layer_columns.deinit(allocator);
                 for (sorted) |col| {
-                    if (col.log_size == log_size) try layer_columns.append(col);
+                    if (col.log_size == log_size) try layer_columns.append(allocator, col);
                 }
 
                 const prev_layer = if (layers_bottom_up.items.len == 0)
@@ -77,7 +77,7 @@ pub fn MerkleProver(comptime H: type) type {
                     layers_bottom_up.items[layers_bottom_up.items.len - 1];
 
                 const next_layer = try commitOnLayer(allocator, log_size, prev_layer, layer_columns.items);
-                try layers_bottom_up.append(next_layer);
+                try layers_bottom_up.append(allocator, next_layer);
             }
 
             const out_layers = try allocator.alloc([]H.Hash, layers_bottom_up.items.len);
@@ -97,18 +97,18 @@ pub fn MerkleProver(comptime H: type) type {
             const sorted = try sortColumnsByLogSizeDesc(allocator, columns);
             defer allocator.free(sorted);
 
-            var queried_values_builder = std.ArrayList(M31).init(allocator);
-            defer queried_values_builder.deinit();
+            var queried_values_builder = std.ArrayList(M31).empty;
+            defer queried_values_builder.deinit(allocator);
 
-            var hash_witness = std.ArrayList(H.Hash).init(allocator);
-            defer hash_witness.deinit();
-            var column_witness = std.ArrayList(M31).init(allocator);
-            defer column_witness.deinit();
+            var hash_witness = std.ArrayList(H.Hash).empty;
+            defer hash_witness.deinit(allocator);
+            var column_witness = std.ArrayList(M31).empty;
+            defer column_witness.deinit(allocator);
 
-            var all_node_values = std.ArrayList([]NodeValue).init(allocator);
+            var all_node_values = std.ArrayList([]NodeValue).empty;
             defer {
                 for (all_node_values.items) |layer| allocator.free(layer);
-                all_node_values.deinit();
+                all_node_values.deinit(allocator);
             }
 
             var last_layer_queries = try allocator.alloc(usize, 0);
@@ -118,10 +118,10 @@ pub fn MerkleProver(comptime H: type) type {
             while (layer_log_size >= 0) : (layer_log_size -= 1) {
                 const log_size: u32 = @intCast(layer_log_size);
 
-                var layer_columns = std.ArrayList(ColumnRef).init(allocator);
-                defer layer_columns.deinit();
+                var layer_columns = std.ArrayList(ColumnRef).empty;
+                defer layer_columns.deinit(allocator);
                 for (sorted) |col| {
-                    if (col.log_size == log_size) try layer_columns.append(col);
+                    if (col.log_size == log_size) try layer_columns.append(allocator, col);
                 }
 
                 const previous_layer_hashes = if (log_size + 1 < self.layers.len)
@@ -129,10 +129,10 @@ pub fn MerkleProver(comptime H: type) type {
                 else
                     null;
 
-                var layer_total_queries = std.ArrayList(usize).init(allocator);
-                defer layer_total_queries.deinit();
-                var all_node_values_for_layer = std.ArrayList(NodeValue).init(allocator);
-                defer all_node_values_for_layer.deinit();
+                var layer_total_queries = std.ArrayList(usize).empty;
+                defer layer_total_queries.deinit(allocator);
+                var all_node_values_for_layer = std.ArrayList(NodeValue).empty;
+                defer all_node_values_for_layer.deinit(allocator);
 
                 const layer_column_queries = queriesForLogSize(queries_per_log_size, log_size);
 
@@ -148,11 +148,11 @@ pub fn MerkleProver(comptime H: type) type {
                     if (previous_layer_hashes) |prev_hashes| {
                         const left_index = 2 * node_index;
                         const right_index = left_index + 1;
-                        try all_node_values_for_layer.append(.{
+                        try all_node_values_for_layer.append(allocator, .{
                             .index = left_index,
                             .hash = prev_hashes[left_index],
                         });
-                        try all_node_values_for_layer.append(.{
+                        try all_node_values_for_layer.append(allocator, .{
                             .index = right_index,
                             .hash = prev_hashes[right_index],
                         });
@@ -162,7 +162,7 @@ pub fn MerkleProver(comptime H: type) type {
                         {
                             prev_queries_at += 1;
                         } else {
-                            try hash_witness.append(prev_hashes[left_index]);
+                            try hash_witness.append(allocator, prev_hashes[left_index]);
                         }
 
                         if (prev_queries_at < last_layer_queries.len and
@@ -170,43 +170,43 @@ pub fn MerkleProver(comptime H: type) type {
                         {
                             prev_queries_at += 1;
                         } else {
-                            try hash_witness.append(prev_hashes[right_index]);
+                            try hash_witness.append(allocator, prev_hashes[right_index]);
                         }
                     }
 
-                    var node_values = std.ArrayList(M31).init(allocator);
-                    defer node_values.deinit();
+                    var node_values = std.ArrayList(M31).empty;
+                    defer node_values.deinit(allocator);
                     for (layer_columns.items) |column| {
-                        try node_values.append(column.values[node_index]);
+                        try node_values.append(allocator, column.values[node_index]);
                     }
 
                     if (layer_queries_at < layer_column_queries.len and
                         layer_column_queries[layer_queries_at] == node_index)
                     {
                         layer_queries_at += 1;
-                        try queried_values_builder.appendSlice(node_values.items);
+                        try queried_values_builder.appendSlice(allocator, node_values.items);
                     } else {
-                        try column_witness.appendSlice(node_values.items);
+                        try column_witness.appendSlice(allocator, node_values.items);
                     }
-                    try layer_total_queries.append(node_index);
+                    try layer_total_queries.append(allocator, node_index);
                 }
 
-                const layer_values_owned = try all_node_values_for_layer.toOwnedSlice();
-                try all_node_values.append(layer_values_owned);
+                const layer_values_owned = try all_node_values_for_layer.toOwnedSlice(allocator);
+                try all_node_values.append(allocator, layer_values_owned);
 
                 allocator.free(last_layer_queries);
-                last_layer_queries = try layer_total_queries.toOwnedSlice();
+                last_layer_queries = try layer_total_queries.toOwnedSlice(allocator);
             }
 
             return .{
-                .queried_values = try queried_values_builder.toOwnedSlice(),
+                .queried_values = try queried_values_builder.toOwnedSlice(allocator),
                 .decommitment = .{
                     .decommitment = Decommitment{
-                        .hash_witness = try hash_witness.toOwnedSlice(),
-                        .column_witness = try column_witness.toOwnedSlice(),
+                        .hash_witness = try hash_witness.toOwnedSlice(allocator),
+                        .column_witness = try column_witness.toOwnedSlice(allocator),
                     },
                     .aux = .{
-                        .all_node_values = try all_node_values.toOwnedSlice(),
+                        .all_node_values = try all_node_values.toOwnedSlice(allocator),
                     },
                 },
             };

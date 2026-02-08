@@ -74,20 +74,20 @@ pub fn prepareMerkle(
     var layer_log_size: i32 = @intCast(max_log_size_exclusive - 1);
     while (layer_log_size >= @as(i32, @intCast(min_log_size))) : (layer_log_size -= 1) {
         const log_size: u32 = @intCast(layer_log_size);
-        var layer_queries = std.ArrayList(usize).init(allocator);
-        defer layer_queries.deinit();
+        var layer_queries = std.ArrayList(usize).empty;
+        defer layer_queries.deinit(allocator);
 
         while (layer_queries.items.len < n_queries) {
             const q = random.intRangeLessThan(usize, 0, @as(usize, 1) << @intCast(log_size));
             if (std.mem.indexOfScalar(usize, layer_queries.items, q) == null) {
-                try layer_queries.append(q);
+                try layer_queries.append(allocator, q);
             }
         }
         std.sort.heap(usize, layer_queries.items, {}, std.sort.asc(usize));
 
         queries[q_index] = .{
             .log_size = log_size,
-            .queries = try layer_queries.toOwnedSlice(),
+            .queries = try layer_queries.toOwnedSlice(allocator),
         };
         q_index += 1;
     }

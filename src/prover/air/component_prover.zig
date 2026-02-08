@@ -42,7 +42,8 @@ pub const Poly = struct {
 
         const shift = lifting_log_size - self.log_size;
         if (shift >= @bitSizeOf(usize)) return ComponentProverError.InvalidLogSize;
-        const idx = ((position >> (@as(usize, @intCast(shift)) + 1)) << 1) + (position & 1);
+        const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
+        const idx = ((position >> shift_amt) << 1) + (position & 1);
         if (idx >= self.values.len) return ComponentProverError.InvalidColumnLength;
         return self.values[idx];
     }
@@ -426,7 +427,7 @@ test "prover air component prover: composition accumulation" {
         .n_preprocessed_columns = 0,
     };
 
-    const trace = Trace{ .polys = TreeVec([]const Poly).initOwned(try alloc.alloc([]const Poly, 0)) };
+    var trace = Trace{ .polys = TreeVec([]const Poly).initOwned(try alloc.alloc([]const Poly, 0)) };
     defer trace.polys.deinit(alloc);
 
     var combined = try component_provers.computeCompositionEvaluation(

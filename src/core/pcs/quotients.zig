@@ -61,12 +61,12 @@ pub const ColumnSampleBatch = struct {
             vals: std.ArrayList(NumeratorData),
         };
 
-        var grouped = std.ArrayList(MutableBatch).init(allocator);
+        var grouped = std.ArrayList(MutableBatch).empty;
         defer {
             for (grouped.items) |*batch| {
-                batch.vals.deinit();
+                batch.vals.deinit(allocator);
             }
-            grouped.deinit();
+            grouped.deinit(allocator);
         }
 
         for (samples_with_rand, 0..) |column_samples, column_index| {
@@ -79,13 +79,13 @@ pub const ColumnSampleBatch = struct {
                     }
                 }
                 if (batch_idx == null) {
-                    try grouped.append(.{
+                    try grouped.append(allocator, .{
                         .point = sample_with_rand.sample.point,
-                        .vals = std.ArrayList(NumeratorData).init(allocator),
+                        .vals = std.ArrayList(NumeratorData).empty,
                     });
                     batch_idx = grouped.items.len - 1;
                 }
-                try grouped.items[batch_idx.?].vals.append(.{
+                try grouped.items[batch_idx.?].vals.append(allocator, .{
                     .column_index = column_index,
                     .sample_value = sample_with_rand.sample.value,
                     .random_coeff = sample_with_rand.random_coeff,
@@ -104,7 +104,7 @@ pub const ColumnSampleBatch = struct {
         for (grouped.items, 0..) |*batch, i| {
             out[i] = .{
                 .point = batch.point,
-                .cols_vals_randpows = try batch.vals.toOwnedSlice(),
+                .cols_vals_randpows = try batch.vals.toOwnedSlice(allocator),
             };
             initialized += 1;
         }
@@ -128,8 +128,8 @@ pub fn columnLineCoeffs(
     allocator: std.mem.Allocator,
     sample_batches: []const ColumnSampleBatch,
 ) ![][]constraints.LineCoeffs {
-    var outer = std.ArrayList([]constraints.LineCoeffs).init(allocator);
-    defer outer.deinit();
+    var outer = std.ArrayList([]constraints.LineCoeffs).empty;
+    defer outer.deinit(allocator);
     errdefer {
         for (outer.items) |batch_coeffs| allocator.free(batch_coeffs);
     }
@@ -145,10 +145,10 @@ pub fn columnLineCoeffs(
                 sample_data.random_coeff,
             ) catch return error.DegenerateLine;
         }
-        try outer.append(batch_coeffs);
+        try outer.append(allocator, batch_coeffs);
     }
 
-    return outer.toOwnedSlice();
+    return outer.toOwnedSlice(allocator);
 }
 
 pub fn quotientConstants(
@@ -261,8 +261,8 @@ pub fn buildSamplesWithRandomnessAndPeriodicity(
     var random_pow = QM31.one();
     const lifting_domain_generator = canonic.CanonicCoset.new(lifting_log_size).step();
 
-    var trees_builder = std.ArrayList([][]SampleWithRandomness).init(allocator);
-    defer trees_builder.deinit();
+    var trees_builder = std.ArrayList([][]SampleWithRandomness).empty;
+    defer trees_builder.deinit(allocator);
     errdefer {
         for (trees_builder.items) |tree_samples| {
             freeTreeSamplesWithRandomness(allocator, tree_samples);
@@ -273,8 +273,8 @@ pub fn buildSamplesWithRandomnessAndPeriodicity(
         const sizes_per_tree = column_log_sizes.items[tree_idx];
         if (samples_per_tree.len != sizes_per_tree.len) return error.ShapeMismatch;
 
-        var cols_builder = std.ArrayList([]SampleWithRandomness).init(allocator);
-        defer cols_builder.deinit();
+        var cols_builder = std.ArrayList([]SampleWithRandomness).empty;
+        defer cols_builder.deinit(allocator);
         errdefer {
             for (cols_builder.items) |col_samples| allocator.free(col_samples);
         }
@@ -282,7 +282,10 @@ pub fn buildSamplesWithRandomnessAndPeriodicity(
         for (samples_per_tree, 0..) |samples_per_col, col_idx| {
             const log_size = sizes_per_tree[col_idx];
             if (samples_per_col.len == 0) {
-                try cols_builder.append(try allocator.alloc(SampleWithRandomness, 0));
+                try cols_builder.append(
+                    allocator,
+                    try allocator.alloc(SampleWithRandomness, 0),
+                );
                 continue;
             }
 
@@ -312,13 +315,13 @@ pub fn buildSamplesWithRandomnessAndPeriodicity(
                 };
                 out_i += 1;
             }
-            try cols_builder.append(out_samples);
+            try cols_builder.append(allocator, out_samples);
         }
 
-        try trees_builder.append(try cols_builder.toOwnedSlice());
+        try trees_builder.append(allocator, try cols_builder.toOwnedSlice(allocator));
     }
 
-    return TreeVec([][]SampleWithRandomness).initOwned(try trees_builder.toOwnedSlice());
+    return TreeVec([][]SampleWithRandomness).initOwned(try trees_builder.toOwnedSlice(allocator));
 }
 
 /// Computes FRI answers for queried rows.
@@ -351,11 +354,11 @@ pub fn friAnswers(
     );
     defer samples_with_randomness.deinitDeep(allocator);
 
-    var flat_samples = std.ArrayList([]const SampleWithRandomness).init(allocator);
-    defer flat_samples.deinit();
+    var flat_samples = std.ArrayList([]const SampleWithRandomness).empty;
+    defer flat_samples.deinit(allocator);
     for (samples_with_randomness.items) |tree_samples| {
         for (tree_samples) |col_samples| {
-            try flat_samples.append(col_samples);
+            try flat_samples.append(allocator, col_samples);
         }
     }
 

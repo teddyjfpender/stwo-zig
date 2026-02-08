@@ -94,7 +94,7 @@ test {
     _ = @import("parity_vectors.zig");
 }
 
-fn randNonZeroM31(rng: std.rand.Random) m31.M31 {
+fn randNonZeroM31(rng: std.Random) m31.M31 {
     while (true) {
         const x = rng.int(u32) & m31.Modulus;
         if (x != m31.Modulus and x != 0) return m31.M31.fromCanonical(x);
@@ -102,7 +102,7 @@ fn randNonZeroM31(rng: std.rand.Random) m31.M31 {
 }
 
 test "fields: batch inverse matches scalar inverse (m31)" {
-    var prng = std.rand.DefaultPrng.init(0x91f1_7244_6800_5c3a);
+    var prng = std.Random.DefaultPrng.init(0x91f1_7244_6800_5c3a);
     const rng = prng.random();
 
     var elements: [16]m31.M31 = undefined;
@@ -117,7 +117,7 @@ test "fields: batch inverse matches scalar inverse (m31)" {
 }
 
 test "fields: batch inverse chunked matches batch inverse (m31)" {
-    var prng = std.rand.DefaultPrng.init(0x32c8_4457_f1ab_9920);
+    var prng = std.Random.DefaultPrng.init(0x32c8_4457_f1ab_9920);
     const rng = prng.random();
 
     var elements: [16]m31.M31 = undefined;

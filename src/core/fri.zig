@@ -133,9 +133,10 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             allocator: std.mem.Allocator,
             channel: anytype,
             config: FriConfig,
-            proof: FriProof(H),
+            proof_in: FriProof(H),
             column_bound: CirclePolyDegreeBound,
-        ) FriVerificationError!Self {
+        ) (std.mem.Allocator.Error || FriVerificationError)!Self {
+            var proof = proof_in;
             defer allocator.free(proof.inner_layers);
             errdefer proof.last_layer_poly.deinit(allocator);
 
@@ -443,20 +444,20 @@ const FoldedLayerState = struct {
 
 fn sparseToBaseColumns(allocator: std.mem.Allocator, sparse: SparseEvaluation) ![][]M31 {
     var columns = [_]std.ArrayList(M31){
-        std.ArrayList(M31).init(allocator),
-        std.ArrayList(M31).init(allocator),
-        std.ArrayList(M31).init(allocator),
-        std.ArrayList(M31).init(allocator),
+        .empty,
+        .empty,
+        .empty,
+        .empty,
     };
     defer {
-        for (&columns) |*column| column.deinit();
+        for (&columns) |*column| column.deinit(allocator);
     }
 
     for (sparse.subset_evals) |subset| {
         for (subset) |value| {
             const arr = value.toM31Array();
             inline for (arr, 0..) |coord, i| {
-                try columns[i].append(coord);
+                try columns[i].append(allocator, coord);
             }
         }
     }
@@ -464,7 +465,7 @@ fn sparseToBaseColumns(allocator: std.mem.Allocator, sparse: SparseEvaluation) !
     const out = try allocator.alloc([]M31, qm31.SECURE_EXTENSION_DEGREE);
     var i: usize = 0;
     while (i < out.len) : (i += 1) {
-        out[i] = try columns[i].toOwnedSlice();
+        out[i] = try columns[i].toOwnedSlice(allocator);
     }
     return out;
 }
@@ -654,15 +655,15 @@ pub fn computeDecommitmentPositionsAndRebuildEvals(
 ) !ComputeDecommitmentResult {
     if (query_evals.len != queries.positions.len) return error.ShapeMismatch;
 
-    var decommitment_positions = std.ArrayList(usize).init(allocator);
-    defer decommitment_positions.deinit();
-    var subset_evals = std.ArrayList([]QM31).init(allocator);
-    defer subset_evals.deinit();
+    var decommitment_positions = std.ArrayList(usize).empty;
+    defer decommitment_positions.deinit(allocator);
+    var subset_evals = std.ArrayList([]QM31).empty;
+    defer subset_evals.deinit(allocator);
     errdefer {
         for (subset_evals.items) |subset| allocator.free(subset);
     }
-    var subset_domain_initial_indexes = std.ArrayList(usize).init(allocator);
-    defer subset_domain_initial_indexes.deinit();
+    var subset_domain_initial_indexes = std.ArrayList(usize).empty;
+    defer subset_domain_initial_indexes.deinit(allocator);
 
     const subset_size: usize = @as(usize, 1) << @intCast(fold_step);
 
@@ -681,7 +682,7 @@ pub fn computeDecommitmentPositionsAndRebuildEvals(
 
         var pos: usize = subset_start;
         while (pos < subset_start + subset_size) : (pos += 1) {
-            try decommitment_positions.append(pos);
+            try decommitment_positions.append(allocator, pos);
         }
 
         const subset = try allocator.alloc(QM31, subset_size);
@@ -701,18 +702,19 @@ pub fn computeDecommitmentPositionsAndRebuildEvals(
             }
         }
 
-        try subset_evals.append(subset);
+        try subset_evals.append(allocator, subset);
         try subset_domain_initial_indexes.append(
+            allocator,
             core_utils.bitReverseIndex(subset_start, queries.log_domain_size),
         );
         query_idx = subset_end_idx;
     }
 
     return .{
-        .decommitment_positions = try decommitment_positions.toOwnedSlice(),
+        .decommitment_positions = try decommitment_positions.toOwnedSlice(allocator),
         .sparse_evaluation = try SparseEvaluation.initOwned(
-            try subset_evals.toOwnedSlice(),
-            try subset_domain_initial_indexes.toOwnedSlice(),
+            try subset_evals.toOwnedSlice(allocator),
+            try subset_domain_initial_indexes.toOwnedSlice(allocator),
         ),
         .consumed_witness = witness_idx,
     };

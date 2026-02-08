@@ -106,7 +106,7 @@ pub fn interpolateFromEvaluation(
     allocator: std.mem.Allocator,
     domain: CircleDomain,
     values: *const SecureColumnByCoords,
-) (std.mem.Allocator.Error || SecurePolyError || poly.PolyError)!SecureCirclePoly {
+) !SecureCirclePoly {
     if (domain.size() != values.len()) return SecurePolyError.ShapeMismatch;
 
     var coordinate_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;

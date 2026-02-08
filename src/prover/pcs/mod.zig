@@ -223,7 +223,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 .allocator = allocator,
                 .tree_index = self.trees.items.len,
                 .commitment_scheme = self,
-                .columns = std.ArrayList(ColumnEvaluation).init(allocator),
+                .columns = std.ArrayList(ColumnEvaluation).empty,
             };
         }
 
@@ -241,8 +241,8 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         pub fn polynomials(
             self: Self,
             allocator: std.mem.Allocator,
-        ) !TreeVec([]component_prover.Poly) {
-            const out = try allocator.alloc([]component_prover.Poly, self.trees.items.len);
+        ) !TreeVec([]const component_prover.Poly) {
+            const out = try allocator.alloc([]const component_prover.Poly, self.trees.items.len);
             errdefer allocator.free(out);
 
             var initialized: usize = 0;
@@ -261,7 +261,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     };
                 }
             }
-            return TreeVec([]component_prover.Poly).initOwned(out);
+            return TreeVec([]const component_prover.Poly).initOwned(out);
         }
 
         pub fn trace(
@@ -628,7 +628,7 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
 
         pub fn deinit(self: *Self) void {
             for (self.columns.items) |column| self.allocator.free(column.values);
-            self.columns.deinit();
+            self.columns.deinit(self.allocator);
             self.* = undefined;
         }
 
@@ -636,7 +636,7 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
             const col_start = self.columns.items.len;
             for (cols) |column| {
                 try column.validate();
-                try self.columns.append(.{
+                try self.columns.append(self.allocator, .{
                     .log_size = column.log_size,
                     .values = try self.allocator.dupe(M31, column.values),
                 });
@@ -650,8 +650,8 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
         }
 
         pub fn commit(self: *Self, channel: anytype) !void {
-            const base_columns = try self.columns.toOwnedSlice();
-            self.columns = std.ArrayList(ColumnEvaluation).init(self.allocator);
+            const base_columns = try self.columns.toOwnedSlice(self.allocator);
+            self.columns = std.ArrayList(ColumnEvaluation).empty;
             errdefer {
                 freeOwnedColumnEvaluations(self.allocator, base_columns);
             }
@@ -702,8 +702,8 @@ fn buildPointSamples(
 ) (std.mem.Allocator.Error || CommitmentSchemeError)!TreeVec([][]PointSample) {
     if (sampled_points.items.len != sampled_values.items.len) return CommitmentSchemeError.ShapeMismatch;
 
-    var trees = std.ArrayList([][]PointSample).init(allocator);
-    defer trees.deinit();
+    var trees = std.ArrayList([][]PointSample).empty;
+    defer trees.deinit(allocator);
     errdefer {
         for (trees.items) |tree| {
             for (tree) |column| allocator.free(column);
@@ -714,8 +714,8 @@ fn buildPointSamples(
     for (sampled_points.items, sampled_values.items) |points_tree, values_tree| {
         if (points_tree.len != values_tree.len) return CommitmentSchemeError.ShapeMismatch;
 
-        var cols = std.ArrayList([]PointSample).init(allocator);
-        defer cols.deinit();
+        var cols = std.ArrayList([]PointSample).empty;
+        defer cols.deinit(allocator);
         errdefer {
             for (cols.items) |column| allocator.free(column);
         }
@@ -730,12 +730,12 @@ fn buildPointSamples(
                     .value = value,
                 };
             }
-            try cols.append(out_col);
+            try cols.append(allocator, out_col);
         }
-        try trees.append(try cols.toOwnedSlice());
+        try trees.append(allocator, try cols.toOwnedSlice(allocator));
     }
 
-    return TreeVec([][]PointSample).initOwned(try trees.toOwnedSlice());
+    return TreeVec([][]PointSample).initOwned(try trees.toOwnedSlice(allocator));
 }
 
 fn borrowedColumnsTree(

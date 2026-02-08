@@ -17,4 +17,9 @@ pub const VerificationError = error{
     InvalidPreprocessedTree,
     QueryPositionOutOfRange,
     ColumnIndexOutOfBounds,
+    DivisionByZero,
+    DegenerateLine,
+    NonCanonical,
+    NonUniqueXCoordinates,
+    InvalidEvaluationLength,
 } || fri.FriVerificationError || vcs_verifier.MerkleVerificationError;

@@ -191,19 +191,19 @@ pub fn partiallyVerifyBatch(
         const sumcheck_alpha = channel.drawSecureFelt();
         const instance_lambda = channel.drawSecureFelt();
 
-        var sumcheck_claims = std.ArrayList(QM31).init(allocator);
-        defer sumcheck_claims.deinit();
+        var sumcheck_claims = std.ArrayList(QM31).empty;
+        defer sumcheck_claims.deinit(allocator);
 
-        var sumcheck_instances = std.ArrayList(usize).init(allocator);
-        defer sumcheck_instances.deinit();
+        var sumcheck_instances = std.ArrayList(usize).empty;
+        defer sumcheck_instances.deinit(allocator);
 
         for (claims_to_verify_by_instance, 0..) |maybe_claims, instance| {
             if (maybe_claims) |claims| {
                 const n_unused_variables = n_layers - proof.layer_masks_by_instance[instance].len;
                 const claim = utils.randomLinearCombination(claims, instance_lambda)
                     .mulM31(pow2Base(n_unused_variables));
-                try sumcheck_claims.append(claim);
-                try sumcheck_instances.append(instance);
+                try sumcheck_claims.append(allocator, claim);
+                try sumcheck_instances.append(allocator, instance);
             }
         }
 
@@ -222,8 +222,8 @@ pub fn partiallyVerifyBatch(
         };
         defer sumcheck_artifact.deinit(allocator);
 
-        var layer_evals = std.ArrayList(QM31).init(allocator);
-        defer layer_evals.deinit();
+        var layer_evals = std.ArrayList(QM31).empty;
+        defer layer_evals.deinit(allocator);
 
         for (sumcheck_instances.items) |instance| {
             const n_unused = n_layers - proof.layer_masks_by_instance[instance].len;
@@ -247,6 +247,7 @@ pub fn partiallyVerifyBatch(
             ) catch return GkrError.ShapeMismatch;
 
             try layer_evals.append(
+                allocator,
                 eq_eval.mul(utils.randomLinearCombination(gate_output, instance_lambda)),
             );
         }

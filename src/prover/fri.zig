@@ -24,6 +24,7 @@ pub const FriProverError = error{
     ShapeMismatch,
     InvalidLastLayerSize,
     InvalidLastLayerDegree,
+    InvalidColumnSize,
 };
 
 pub const ValueEntry = struct {
@@ -224,8 +225,8 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
             var layer_queries = try queries.fold(allocator, core_fri.CIRCLE_TO_LINE_FOLD_STEP);
             defer layer_queries.deinit(allocator);
 
-            var inner_layer_proofs = std.ArrayList(core_fri.ExtendedFriLayerProof(H)).init(allocator);
-            defer inner_layer_proofs.deinit();
+            var inner_layer_proofs = std.ArrayList(core_fri.ExtendedFriLayerProof(H)).empty;
+            defer inner_layer_proofs.deinit(allocator);
             errdefer {
                 for (inner_layer_proofs.items) |*proof| proof.deinit(allocator);
             }
@@ -240,14 +241,14 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
                     core_fri.FOLD_STEP,
                 );
                 errdefer inner_proof.deinit(allocator);
-                try inner_layer_proofs.append(inner_proof);
+                try inner_layer_proofs.append(allocator, inner_proof);
 
                 const next_queries = try layer_queries.fold(allocator, core_fri.FOLD_STEP);
                 layer_queries.deinit(allocator);
                 layer_queries = next_queries;
             }
 
-            const inner_extended = try inner_layer_proofs.toOwnedSlice();
+            const inner_extended = try inner_layer_proofs.toOwnedSlice(allocator);
             defer allocator.free(inner_extended);
 
             const inner_proofs = try allocator.alloc(core_fri.FriLayerProof(H), inner_extended.len);
@@ -322,14 +323,14 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
             const first_layer_values = try first_layer.column.toVec(allocator);
             defer allocator.free(first_layer_values);
             try core_fri.foldCircleIntoLine(
-                layer_evaluation.values,
+                @constCast(layer_evaluation.values),
                 first_layer_values,
                 first_layer.domain,
                 folding_alpha,
             );
 
-            var layers = std.ArrayList(InnerLayerProver).init(allocator);
-            defer layers.deinit();
+            var layers = std.ArrayList(InnerLayerProver).empty;
+            defer layers.deinit(allocator);
             errdefer {
                 for (layers.items) |*layer| layer.deinit(allocator);
             }
@@ -367,7 +368,7 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
                     .column = secure_values,
                     .merkle_tree = merkle_tree,
                 };
-                try layers.append(layer);
+                try layers.append(allocator, layer);
 
                 layer_evaluation.deinit(allocator);
                 layer_evaluation = try prover_line.LineEvaluation.initOwned(
@@ -377,7 +378,7 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
             }
 
             return .{
-                .inner_layers = try layers.toOwnedSlice(),
+                .inner_layers = try layers.toOwnedSlice(allocator),
                 .last_layer_evaluation = layer_evaluation,
             };
         }
@@ -419,7 +420,7 @@ pub fn decommitLayerExtended(
     column: secure_column.SecureColumnByCoords,
     query_positions: []const usize,
     fold_step: u32,
-) (std.mem.Allocator.Error || FriDecommitError)!core_fri.ExtendedFriLayerProof(H) {
+) !core_fri.ExtendedFriLayerProof(H) {
     const column_values = try column.toVec(allocator);
     defer allocator.free(column_values);
 
@@ -493,12 +494,12 @@ pub fn computeDecommitmentPositionsAndWitnessEvals(
 ) (std.mem.Allocator.Error || FriDecommitError)!DecommitmentPositionsResult {
     if (fold_step >= @bitSizeOf(usize)) return FriDecommitError.FoldStepTooLarge;
 
-    var decommitment_positions = std.ArrayList(usize).init(allocator);
-    defer decommitment_positions.deinit();
-    var witness_evals = std.ArrayList(QM31).init(allocator);
-    defer witness_evals.deinit();
-    var value_map = std.ArrayList(ValueEntry).init(allocator);
-    defer value_map.deinit();
+    var decommitment_positions = std.ArrayList(usize).empty;
+    defer decommitment_positions.deinit(allocator);
+    var witness_evals = std.ArrayList(QM31).empty;
+    defer witness_evals.deinit(allocator);
+    var value_map = std.ArrayList(ValueEntry).empty;
+    defer value_map.deinit(allocator);
 
     const subset_len = @as(usize, 1) << @intCast(fold_step);
 
@@ -520,9 +521,9 @@ pub fn computeDecommitmentPositionsAndWitnessEvals(
         while (position < subset_start + subset_len) : (position += 1) {
             if (position >= column.len) return FriDecommitError.QueryOutOfRange;
 
-            try decommitment_positions.append(position);
+            try decommitment_positions.append(allocator, position);
             const eval = column[position];
-            try value_map.append(.{
+            try value_map.append(allocator, .{
                 .position = position,
                 .value = eval,
             });
@@ -530,7 +531,7 @@ pub fn computeDecommitmentPositionsAndWitnessEvals(
             if (subset_query_at < subset_queries.len and subset_queries[subset_query_at] == position) {
                 subset_query_at += 1;
             } else {
-                try witness_evals.append(eval);
+                try witness_evals.append(allocator, eval);
             }
         }
 
@@ -538,9 +539,9 @@ pub fn computeDecommitmentPositionsAndWitnessEvals(
     }
 
     return .{
-        .decommitment_positions = try decommitment_positions.toOwnedSlice(),
-        .witness_evals = try witness_evals.toOwnedSlice(),
-        .value_map = try value_map.toOwnedSlice(),
+        .decommitment_positions = try decommitment_positions.toOwnedSlice(allocator),
+        .witness_evals = try witness_evals.toOwnedSlice(allocator),
+        .value_map = try value_map.toOwnedSlice(allocator),
     };
 }
 
@@ -552,7 +553,7 @@ pub fn decommitLayer(
     column: secure_column.SecureColumnByCoords,
     query_positions: []const usize,
     fold_step: u32,
-) (std.mem.Allocator.Error || FriDecommitError)!LayerDecommitResult(H) {
+) !LayerDecommitResult(H) {
     const column_values = try column.toVec(allocator);
     defer allocator.free(column_values);
 

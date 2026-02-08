@@ -463,16 +463,16 @@ pub fn proveBatch(
     defer {
         for (mask_builders) |*builder| {
             for (builder.items) |*mask| mask.deinit(allocator);
-            builder.deinit();
+            builder.deinit(allocator);
         }
         allocator.free(mask_builders);
     }
-    for (mask_builders) |*builder| builder.* = std.ArrayList(gkr_verifier.GkrMask).init(allocator);
+    for (mask_builders) |*builder| builder.* = .empty;
 
-    var sumcheck_proofs = std.ArrayList(sumcheck.SumcheckProof).init(allocator);
+    var sumcheck_proofs = std.ArrayList(sumcheck.SumcheckProof).empty;
     defer {
         for (sumcheck_proofs.items) |*proof| proof.deinit(allocator);
-        sumcheck_proofs.deinit();
+        sumcheck_proofs.deinit(allocator);
     }
 
     var ood_point = try allocator.alloc(QM31, 0);
@@ -513,17 +513,17 @@ pub fn proveBatch(
         const sumcheck_alpha = channel.drawSecureFelt();
         const instance_lambda = channel.drawSecureFelt();
 
-        var sumcheck_oracles = std.ArrayList(GkrMultivariatePolyOracle).init(allocator);
+        var sumcheck_oracles = std.ArrayList(GkrMultivariatePolyOracle).empty;
         defer {
             for (sumcheck_oracles.items) |*oracle| oracle.deinit(allocator);
-            sumcheck_oracles.deinit();
+            sumcheck_oracles.deinit(allocator);
         }
 
-        var sumcheck_claims = std.ArrayList(QM31).init(allocator);
-        defer sumcheck_claims.deinit();
+        var sumcheck_claims = std.ArrayList(QM31).empty;
+        defer sumcheck_claims.deinit(allocator);
 
-        var sumcheck_instances = std.ArrayList(usize).init(allocator);
-        defer sumcheck_instances.deinit();
+        var sumcheck_instances = std.ArrayList(usize).empty;
+        defer sumcheck_instances.deinit(allocator);
 
         instance = 0;
         while (instance < n_instances) : (instance += 1) {
@@ -533,6 +533,7 @@ pub fn proveBatch(
                     &next_layer_idx[instance],
                 );
                 try sumcheck_oracles.append(
+                    allocator,
                     try layer.intoMultivariatePoly(
                         allocator,
                         instance_lambda,
@@ -540,9 +541,10 @@ pub fn proveBatch(
                     ),
                 );
                 try sumcheck_claims.append(
+                    allocator,
                     utils.randomLinearCombination(claims, instance_lambda),
                 );
-                try sumcheck_instances.append(instance);
+                try sumcheck_instances.append(allocator, instance);
             }
         }
 
@@ -563,7 +565,7 @@ pub fn proveBatch(
             else => return err,
         };
 
-        try sumcheck_proofs.append(sumcheck_result.proof);
+        try sumcheck_proofs.append(allocator, sumcheck_result.proof);
 
         const masks = try allocator.alloc(gkr_verifier.GkrMask, sumcheck_result.constant_polys.len);
         var masks_initialized: usize = 0;
@@ -584,7 +586,7 @@ pub fn proveBatch(
             const flattened = try flattenMaskColumns(allocator, &mask);
             defer allocator.free(flattened);
             channel.mixFelts(flattened);
-            try mask_builders[instance_idx].append(mask);
+            try mask_builders[instance_idx].append(allocator, mask);
         }
 
         const challenge = channel.drawSecureFelt();
@@ -610,11 +612,11 @@ pub fn proveBatch(
         allocator.free(masks);
     }
 
-    const proof_sumcheck = try sumcheck_proofs.toOwnedSlice();
+    const proof_sumcheck = try sumcheck_proofs.toOwnedSlice(allocator);
 
     const proof_layer_masks = try allocator.alloc([]gkr_verifier.GkrMask, n_instances);
     for (mask_builders, 0..) |*builder, i| {
-        proof_layer_masks[i] = try builder.toOwnedSlice();
+        proof_layer_masks[i] = try builder.toOwnedSlice(allocator);
     }
 
     const proof_output_claims = try allocator.alloc([]QM31, n_instances);
@@ -716,21 +718,21 @@ fn flattenMaskColumns(allocator: std.mem.Allocator, mask: *const gkr_verifier.Gk
 }
 
 fn genLayers(allocator: std.mem.Allocator, input_layer: Layer) ![]Layer {
-    var out = std.ArrayList(Layer).init(allocator);
+    var out = std.ArrayList(Layer).empty;
     errdefer {
         for (out.items) |*layer| layer.deinit(allocator);
-        out.deinit();
+        out.deinit(allocator);
     }
 
     var current = try input_layer.cloneOwned(allocator);
-    try out.append(current);
+    try out.append(allocator, current);
 
     while (try current.nextLayer(allocator)) |next| {
         current = next;
-        try out.append(next);
+        try out.append(allocator, next);
     }
 
-    return out.toOwnedSlice();
+    return out.toOwnedSlice(allocator);
 }
 
 fn nextGrandProductLayer(allocator: std.mem.Allocator, layer: MleSecure) !Layer {

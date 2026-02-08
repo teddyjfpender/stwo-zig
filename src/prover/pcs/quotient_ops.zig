@@ -46,8 +46,9 @@ pub const ColumnEvaluation = struct {
 
         const log_shift = lifting_log_size - self.log_size;
         if (log_shift >= @bitSizeOf(usize)) return QuotientOpsError.InvalidColumnLogSize;
+        const shift_amt: std.math.Log2Int(usize) = @intCast(log_shift + 1);
 
-        const idx = ((position >> (@as(usize, @intCast(log_shift)) + 1)) << 1) + (position & 1);
+        const idx = ((position >> shift_amt) << 1) + (position & 1);
         if (idx >= self.values.len) return QuotientOpsError.InvalidColumnLength;
         return self.values[idx];
     }
@@ -71,7 +72,7 @@ pub fn computeFriQuotients(
     random_coeff: QM31,
     lifting_log_size: u32,
     log_blowup_factor: u32,
-) (std.mem.Allocator.Error || QuotientOpsError || @typeInfo(@TypeOf(quotients.friAnswers)).Fn.return_type.?.ErrorUnion.error_set)!SecureColumnByCoords {
+) !SecureColumnByCoords {
     _ = log_blowup_factor;
 
     if (columns.items.len != samples.items.len) return QuotientOpsError.ShapeMismatch;
@@ -250,8 +251,9 @@ test "prover pcs quotient ops: compute fri quotients matches direct fri answers"
     const q1 = try alloc.alloc(M31, domain_size);
     defer alloc.free(q1);
     const shift: u32 = lifting_log_size - col1_log_size;
+    const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
     for (0..domain_size) |position| {
-        const idx = ((position >> (@as(usize, @intCast(shift)) + 1)) << 1) + (position & 1);
+        const idx = ((position >> shift_amt) << 1) + (position & 1);
         q1[position] = col1[idx];
     }
 

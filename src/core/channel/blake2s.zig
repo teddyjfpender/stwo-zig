@@ -256,10 +256,10 @@ test "blake2s channel: draw_secure_felts are unique for small sample" {
     const b = try channel.drawSecureFelts(std.testing.allocator, 4);
     defer std.testing.allocator.free(b);
 
-    var all = std.ArrayList(QM31).init(std.testing.allocator);
-    defer all.deinit();
-    try all.appendSlice(a);
-    try all.appendSlice(b);
+    var all = std.ArrayList(QM31).empty;
+    defer all.deinit(std.testing.allocator);
+    try all.appendSlice(std.testing.allocator, a);
+    try all.appendSlice(std.testing.allocator, b);
 
     var i: usize = 0;
     while (i < all.items.len) : (i += 1) {
