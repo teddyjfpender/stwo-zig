@@ -198,12 +198,10 @@ pub const CirclePointIndex = struct {
     pub fn toPoint(self: CirclePointIndex) CirclePointM31 {
         var acc = CirclePointM31.zero();
         var bits = self.v & CIRCLE_ORDER_MASK;
-        var bit: usize = 0;
-        while (bits != 0) : (bit += 1) {
-            if ((bits & 1) == 1) {
-                acc = acc.add(GENERATOR_DOUBLES[bit]);
-            }
-            bits >>= 1;
+        while (bits != 0) {
+            const bit: usize = @intCast(@ctz(bits));
+            acc = acc.add(GENERATOR_DOUBLES[bit]);
+            bits &= bits - 1;
         }
         return acc;
     }
