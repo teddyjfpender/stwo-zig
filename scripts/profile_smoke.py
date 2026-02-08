@@ -92,6 +92,47 @@ LARGE_WORKLOADS: List[Dict[str, Any]] = [
     },
 ]
 
+LONG_WORKLOADS: List[Dict[str, Any]] = [
+    {
+        "name": "poseidon_deep",
+        "example": "poseidon",
+        "args": [
+            "--poseidon-log-n-instances",
+            "12",
+        ],
+    },
+    {
+        "name": "blake_deep",
+        "example": "blake",
+        "args": [
+            "--blake-log-n-rows",
+            "11",
+            "--blake-n-rounds",
+            "16",
+        ],
+    },
+    {
+        "name": "wide_fibonacci_fib2000",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "12",
+            "--wf-sequence-len",
+            "2000",
+        ],
+    },
+    {
+        "name": "wide_fibonacci_fib5000",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "13",
+            "--wf-sequence-len",
+            "5000",
+        ],
+    },
+]
+
 SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 
 
@@ -362,6 +403,11 @@ def main() -> int:
         help="Include larger contrast workloads (wide_fibonacci fib500, plonk_deep).",
     )
     parser.add_argument(
+        "--include-long",
+        action="store_true",
+        help="Include long-running contrast workloads (deeper poseidon/blake and fib2000/fib5000).",
+    )
+    parser.add_argument(
         "--zig-opt-mode",
         default="ReleaseFast",
         choices=SUPPORTED_ZIG_OPT_MODES,
@@ -398,6 +444,8 @@ def main() -> int:
     workloads = list(BASE_WORKLOADS)
     if args.include_large:
         workloads.extend(LARGE_WORKLOADS)
+    if args.include_long:
+        workloads.extend(LONG_WORKLOADS)
 
     profiles: List[Dict[str, Any]] = []
     failures: List[str] = []
@@ -433,6 +481,8 @@ def main() -> int:
     }
     if args.include_large:
         settings["include_large"] = True
+    if args.include_long:
+        settings["include_long"] = True
     settings_hash = canonical_hash(
         {
             "collector": "time -l + sample" if SAMPLE_BIN.exists() else "time -l",

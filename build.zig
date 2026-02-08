@@ -128,6 +128,33 @@ pub fn build(b: *std.Build) void {
     );
     bench_contrast_step.dependOn(&bench_contrast_cmd.step);
 
+    const bench_contrast_long_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/benchmark_smoke.py",
+        "--include-medium",
+        "--include-large",
+        "--include-long",
+        "--warmups",
+        "1",
+        "--repeats",
+        "5",
+        "--max-zig-over-rust",
+        "10.0",
+        "--zig-opt-mode",
+        "ReleaseFast",
+        "--zig-cpu",
+        "native",
+        "--report-label",
+        "benchmark_contrast_long",
+        "--report-out",
+        "vectors/reports/benchmark_contrast_long_report.json",
+    });
+    const bench_contrast_long_step = b.step(
+        "bench-contrast-long",
+        "Run long contrast benchmark harness (fib2000/fib5000 + deep poseidon/blake)",
+    );
+    bench_contrast_long_step.dependOn(&bench_contrast_long_cmd.step);
+
     // Full benchmark matrix gate (11 upstream family labels).
     const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
     const bench_full_step = b.step("bench-full", "Run full 11-family Rust-vs-Zig benchmark harness");
@@ -183,6 +210,30 @@ pub fn build(b: *std.Build) void {
         "Run larger contrast profile harness (adds fib500/plonk_deep hotspots)",
     );
     profile_contrast_step.dependOn(&profile_contrast_cmd.step);
+
+    const profile_contrast_long_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/profile_smoke.py",
+        "--include-large",
+        "--include-long",
+        "--repeats",
+        "1",
+        "--sample-duration-seconds",
+        "2",
+        "--zig-opt-mode",
+        "ReleaseFast",
+        "--zig-cpu",
+        "native",
+        "--report-label",
+        "profile_contrast_long",
+        "--report-out",
+        "vectors/reports/profile_contrast_long_report.json",
+    });
+    const profile_contrast_long_step = b.step(
+        "profile-contrast-long",
+        "Run long contrast profile harness (adds fib2000/fib5000 + deep poseidon/blake hotspots)",
+    );
+    profile_contrast_long_step.dependOn(&profile_contrast_long_cmd.step);
 
     // Optimization acceptance gate against frozen baseline (additive to strict conformance gate).
     const opt_compare_cmd = b.addSystemCommand(&.{

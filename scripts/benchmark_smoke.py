@@ -130,6 +130,47 @@ LARGE_WORKLOADS: List[Dict[str, Any]] = [
     },
 ]
 
+LONG_WORKLOADS: List[Dict[str, Any]] = [
+    {
+        "name": "poseidon_deep",
+        "example": "poseidon",
+        "args": [
+            "--poseidon-log-n-instances",
+            "12",
+        ],
+    },
+    {
+        "name": "blake_deep",
+        "example": "blake",
+        "args": [
+            "--blake-log-n-rows",
+            "11",
+            "--blake-n-rounds",
+            "16",
+        ],
+    },
+    {
+        "name": "wide_fibonacci_fib2000",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "12",
+            "--wf-sequence-len",
+            "2000",
+        ],
+    },
+    {
+        "name": "wide_fibonacci_fib5000",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "13",
+            "--wf-sequence-len",
+            "5000",
+        ],
+    },
+]
+
 SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 
 
@@ -364,6 +405,11 @@ def main() -> int:
         help="Include larger contrast workloads (wide_fibonacci fib(100/500/1000), plonk_large).",
     )
     parser.add_argument(
+        "--include-long",
+        action="store_true",
+        help="Include long-running contrast workloads (deeper poseidon/blake and fib2000/fib5000).",
+    )
+    parser.add_argument(
         "--report-out",
         type=Path,
         default=REPORT_DEFAULT,
@@ -380,6 +426,8 @@ def main() -> int:
         workloads.extend(MEDIUM_WORKLOADS)
     if args.include_large:
         workloads.extend(LARGE_WORKLOADS)
+    if args.include_long:
+        workloads.extend(LONG_WORKLOADS)
 
     workloads_report: List[Dict[str, Any]] = []
     failures: List[str] = []
@@ -442,6 +490,13 @@ def main() -> int:
         workload_tier = "base_plus_medium"
     if args.include_large:
         workload_tier = "base_plus_medium_plus_large" if args.include_medium else "base_plus_large"
+    if args.include_long:
+        if args.include_medium and args.include_large:
+            workload_tier = "base_plus_medium_plus_large_plus_long"
+        elif args.include_large:
+            workload_tier = "base_plus_large_plus_long"
+        else:
+            workload_tier = "base_plus_long"
 
     settings = {
         "warmups": args.warmups,
@@ -456,6 +511,8 @@ def main() -> int:
     }
     if args.include_large:
         settings["include_large"] = True
+    if args.include_long:
+        settings["include_long"] = True
     thresholds = {
         "max_zig_over_rust_ratio": args.max_zig_over_rust,
         "conformance_reference": "CONFORMANCE.md Section 9.2",
@@ -470,6 +527,8 @@ def main() -> int:
     }
     if args.include_large:
         settings_hash_payload["large_workloads"] = LARGE_WORKLOADS
+    if args.include_long:
+        settings_hash_payload["long_workloads"] = LONG_WORKLOADS
 
     settings_hash = canonical_hash(settings_hash_payload)
 
