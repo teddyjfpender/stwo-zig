@@ -1,14 +1,17 @@
 const std = @import("std");
 const m31 = @import("../core/fields/m31.zig");
+const qm31 = @import("../core/fields/qm31.zig");
 const utils = @import("../core/utils.zig");
 
 const M31 = m31.M31;
+const QM31 = qm31.QM31;
 
 pub const State = [2]M31;
 
 pub const Error = error{
     InvalidIncIndex,
     InvalidLogSize,
+    DegenerateDenominator,
 };
 
 /// Generates two trace columns in bit-reversed circle-domain order.
@@ -56,6 +59,19 @@ pub const TransitionStates = struct {
     final: State,
 };
 
+/// State-machine lookup elements (`z`, `alpha`) used for relation combination.
+pub const Elements = struct {
+    z: QM31,
+    alpha: QM31,
+
+    /// Combines a state as `state[0] + alpha * state[1] - z`.
+    pub fn combine(self: Elements, state: State) QM31 {
+        return QM31.fromBase(state[0])
+            .add(self.alpha.mul(QM31.fromBase(state[1])))
+            .sub(self.z);
+    }
+};
+
 /// Computes intermediate/final public states used by state-machine example.
 ///
 /// Semantics match upstream `examples/state_machine/mod.rs::prove_state_machine`.
@@ -72,6 +88,58 @@ pub fn transitionStates(log_n_rows: u32, initial_state: State) Error!TransitionS
         .intermediate = intermediate,
         .final = final,
     };
+}
+
+/// Computes the interaction claimed sum by direct row-wise accumulation.
+///
+/// This matches upstream state-machine interaction numerator/denominator terms:
+/// `(output_denom - input_denom) / (input_denom * output_denom)`.
+pub fn claimedSumFromInitial(
+    log_size: u32,
+    initial_state: State,
+    inc_index: usize,
+    elements: Elements,
+) Error!QM31 {
+    if (inc_index >= 2) return Error.InvalidIncIndex;
+    const n = checkedPow2(log_size) catch return Error.InvalidLogSize;
+
+    var curr_state = initial_state;
+    var sum = QM31.zero();
+    for (0..n) |_| {
+        const input_denom = elements.combine(curr_state);
+        curr_state[inc_index] = curr_state[inc_index].add(M31.one());
+        const output_denom = elements.combine(curr_state);
+        if (input_denom.isZero() or output_denom.isZero()) return Error.DegenerateDenominator;
+
+        const numerator = output_denom.sub(input_denom);
+        const denominator = input_denom.mul(output_denom);
+        sum = sum.add(try numerator.div(denominator));
+    }
+
+    return sum;
+}
+
+/// Computes the same claimed sum via telescoping:
+/// `combine(first)^-1 - combine(last)^-1`.
+pub fn claimedSumTelescoping(
+    log_size: u32,
+    initial_state: State,
+    inc_index: usize,
+    elements: Elements,
+) Error!QM31 {
+    if (inc_index >= 2) return Error.InvalidIncIndex;
+    const n = checkedPow2(log_size) catch return Error.InvalidLogSize;
+
+    const first = elements.combine(initial_state);
+
+    var last_state = initial_state;
+    last_state[inc_index] = last_state[inc_index].add(
+        M31.fromU64(@intCast(n)),
+    );
+    const last = elements.combine(last_state);
+
+    if (first.isZero() or last.isZero()) return Error.DegenerateDenominator;
+    return (try first.inv()).sub(try last.inv());
 }
 
 fn checkedPow2(log_size: u32) Error!usize {
@@ -125,4 +193,19 @@ test "examples state_machine: rejects invalid log size and coordinate index" {
         Error.InvalidIncIndex,
         genTrace(alloc, 4, .{ M31.zero(), M31.zero() }, 2),
     );
+}
+
+test "examples state_machine: claimed-sum accumulation equals telescoping form" {
+    const elements: Elements = .{
+        .z = QM31.fromU32Unchecked(41, 17, 9, 3),
+        .alpha = QM31.fromU32Unchecked(5, 8, 13, 21),
+    };
+    const initial: State = .{
+        M31.fromCanonical(7),
+        M31.fromCanonical(11),
+    };
+
+    const direct = try claimedSumFromInitial(6, initial, 1, elements);
+    const telescoping = try claimedSumTelescoping(6, initial, 1, elements);
+    try std.testing.expect(direct.eql(telescoping));
 }

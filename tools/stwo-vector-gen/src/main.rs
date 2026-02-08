@@ -62,6 +62,7 @@ const VCS_LIFTED_PROVER_VECTOR_COUNT: usize = 16;
 const BLAKE3_VECTOR_COUNT: usize = 64;
 const EXAMPLE_STATE_MACHINE_TRACE_VECTOR_COUNT: usize = 24;
 const EXAMPLE_STATE_MACHINE_TRANSITION_VECTOR_COUNT: usize = 24;
+const EXAMPLE_STATE_MACHINE_CLAIMED_SUM_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_STEP_WITH_OFFSET_VECTOR_COUNT: usize = 32;
 
@@ -348,6 +349,17 @@ struct ExampleStateMachineTransitionVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct ExampleStateMachineClaimedSumVector {
+    log_size: u32,
+    initial_state: [u32; 2],
+    inc_index: usize,
+    z: [u32; 4],
+    alpha: [u32; 4],
+    claimed_sum: [u32; 4],
+    telescoping_claim: [u32; 4],
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ExampleXorIsFirstVector {
     log_size: u32,
     values: Vec<u32>,
@@ -404,6 +416,7 @@ struct FieldVectors {
     vcs_lifted_prover: Vec<VcsLiftedProverVector>,
     example_state_machine_trace: Vec<ExampleStateMachineTraceVector>,
     example_state_machine_transitions: Vec<ExampleStateMachineTransitionVector>,
+    example_state_machine_claimed_sum: Vec<ExampleStateMachineClaimedSumVector>,
     example_xor_is_first: Vec<ExampleXorIsFirstVector>,
     example_xor_is_step_with_offset: Vec<ExampleXorIsStepWithOffsetVector>,
 }
@@ -562,6 +575,10 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         state,
         EXAMPLE_STATE_MACHINE_TRANSITION_VECTOR_COUNT,
     );
+    let example_state_machine_claimed_sum = generate_example_state_machine_claimed_sum_vectors(
+        state,
+        EXAMPLE_STATE_MACHINE_CLAIMED_SUM_VECTOR_COUNT,
+    );
     let example_xor_is_first =
         generate_example_xor_is_first_vectors(state, EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT);
     let example_xor_is_step_with_offset = generate_example_xor_is_step_with_offset_vectors(
@@ -629,6 +646,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         vcs_lifted_prover,
         example_state_machine_trace,
         example_state_machine_transitions,
+        example_state_machine_claimed_sum,
         example_xor_is_first,
         example_xor_is_step_with_offset,
     }
@@ -688,6 +706,65 @@ fn generate_example_state_machine_transition_vectors(
             initial_state: encode_state(initial_state),
             intermediate_state: encode_state(intermediate_state),
             final_state: encode_state(final_state),
+        });
+    }
+    out
+}
+
+fn generate_example_state_machine_claimed_sum_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleStateMachineClaimedSumVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let log_size = 2 + ((next_u64(state) as u32) % 9);
+        let n = 1usize << log_size;
+        let inc_index = (next_u64(state) as usize) % 2;
+        let initial_state = [sample_m31(state, false), sample_m31(state, false)];
+
+        let z = sample_qm31(state, false);
+        let alpha = sample_qm31(state, false);
+
+        let mut curr_state = initial_state;
+        let mut claimed_sum = QM31::from(0);
+        let mut degenerate = false;
+
+        for _ in 0..n {
+            let input = combine_state(curr_state, z, alpha);
+            curr_state[inc_index] += M31::from(1);
+            let output = combine_state(curr_state, z, alpha);
+
+            if input == QM31::from(0) || output == QM31::from(0) {
+                degenerate = true;
+                break;
+            }
+
+            let numerator = output - input;
+            let denominator = input * output;
+            claimed_sum += numerator / denominator;
+        }
+        if degenerate {
+            continue;
+        }
+
+        let mut final_state = initial_state;
+        final_state[inc_index] += M31::from(n as u32);
+        let initial_combined = combine_state(initial_state, z, alpha);
+        let final_combined = combine_state(final_state, z, alpha);
+        if initial_combined == QM31::from(0) || final_combined == QM31::from(0) {
+            continue;
+        }
+
+        let telescoping_claim = initial_combined.inverse() - final_combined.inverse();
+
+        out.push(ExampleStateMachineClaimedSumVector {
+            log_size,
+            initial_state: encode_state(initial_state),
+            inc_index,
+            z: encode_qm31(z),
+            alpha: encode_qm31(alpha),
+            claimed_sum: encode_qm31(claimed_sum),
+            telescoping_claim: encode_qm31(telescoping_claim),
         });
     }
     out
@@ -2288,6 +2365,10 @@ fn encode_m31(x: M31) -> u32 {
 
 fn encode_state(state: [M31; 2]) -> [u32; 2] {
     [encode_m31(state[0]), encode_m31(state[1])]
+}
+
+fn combine_state(state: [M31; 2], z: QM31, alpha: QM31) -> QM31 {
+    QM31::from(state[0]) + alpha * QM31::from(state[1]) - z
 }
 
 fn encode_hash(x: Blake2sHash) -> [u8; 32] {

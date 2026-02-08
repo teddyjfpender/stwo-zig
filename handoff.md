@@ -316,3 +316,42 @@
 - `python3 scripts/parity_fields.py --regenerate --skip-zig`
 - `python3 scripts/parity_fields.py`
 - `zig build test --summary all`
+
+## Latest Slice (State-Machine Lookup Claimed-Sum Parity)
+- `src/examples/state_machine.zig`
+  - Added `Elements` lookup combiner:
+    - `combine(state) = state[0] + alpha * state[1] - z`
+  - Added interaction claimed-sum helpers:
+    - `claimedSumFromInitial(...)` (direct row accumulation)
+    - `claimedSumTelescoping(...)` (first/last inverse form)
+  - Added deterministic parity test:
+    - direct accumulation equals telescoping form.
+  - Added explicit failure mode:
+    - `DegenerateDenominator` when lookup denominator is zero.
+- `tools/stwo-vector-gen/src/main.rs`
+  - Extended vector schema with:
+    - `example_state_machine_claimed_sum`
+  - Added deterministic generator covering:
+    - `log_size`, `initial_state`, `inc_index`
+    - lookup elements (`z`, `alpha`)
+    - `claimed_sum`
+    - `telescoping_claim`
+  - Skips degenerate denominator samples deterministically.
+- `src/core/fields/parity_vectors.zig`
+  - Added parser schema for `example_state_machine_claimed_sum`.
+  - Added parity test that validates:
+    - direct claimed-sum output
+    - telescoping output
+    - direct == telescoping identity
+  - Added negative differential case:
+    - perturbed `alpha` must alter behavior (or trigger expected degeneracy).
+- `vectors/fields.json`
+  - Regenerated deterministically with claimed-sum vectors.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig build fmt`
+- `cargo fmt --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `python3 scripts/parity_fields.py --regenerate --skip-zig`
+- `python3 scripts/parity_fields.py`
+- `zig build test --summary all`

@@ -280,6 +280,16 @@ const ExampleStateMachineTransitionVector = struct {
     final_state: [2]u32,
 };
 
+const ExampleStateMachineClaimedSumVector = struct {
+    log_size: u32,
+    initial_state: [2]u32,
+    inc_index: usize,
+    z: [4]u32,
+    alpha: [4]u32,
+    claimed_sum: [4]u32,
+    telescoping_claim: [4]u32,
+};
+
 const ExampleXorIsFirstVector = struct {
     log_size: u32,
     values: []u32,
@@ -320,6 +330,7 @@ const VectorFile = struct {
     vcs_lifted_prover: []VcsLiftedProverVector,
     example_state_machine_trace: []ExampleStateMachineTraceVector,
     example_state_machine_transitions: []ExampleStateMachineTransitionVector,
+    example_state_machine_claimed_sum: []ExampleStateMachineClaimedSumVector,
     example_xor_is_first: []ExampleXorIsFirstVector,
     example_xor_is_step_with_offset: []ExampleXorIsStepWithOffsetVector,
 };
@@ -1530,6 +1541,59 @@ test "field vectors: examples state machine transitions parity" {
             const equal_final = mutated_states.final[0].eql(states.final[0]) and
                 mutated_states.final[1].eql(states.final[1]);
             try std.testing.expect(!equal_intermediate or !equal_final);
+        }
+    }
+}
+
+test "field vectors: examples state machine claimed-sum parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_state_machine_claimed_sum.len > 0);
+    for (parsed.value.example_state_machine_claimed_sum, 0..) |v, vec_idx| {
+        const initial: example_state_machine_mod.State = .{
+            m31From(v.initial_state[0]),
+            m31From(v.initial_state[1]),
+        };
+        const elements: example_state_machine_mod.Elements = .{
+            .z = qm31From(v.z),
+            .alpha = qm31From(v.alpha),
+        };
+
+        const claimed_sum = try example_state_machine_mod.claimedSumFromInitial(
+            v.log_size,
+            initial,
+            v.inc_index,
+            elements,
+        );
+        const telescoping_claim = try example_state_machine_mod.claimedSumTelescoping(
+            v.log_size,
+            initial,
+            v.inc_index,
+            elements,
+        );
+        try std.testing.expect(claimed_sum.eql(qm31From(v.claimed_sum)));
+        try std.testing.expect(telescoping_claim.eql(qm31From(v.telescoping_claim)));
+        try std.testing.expect(claimed_sum.eql(telescoping_claim));
+
+        if (vec_idx == 0) {
+            const mutated_elements: example_state_machine_mod.Elements = .{
+                .z = elements.z,
+                .alpha = elements.alpha.add(QM31.one()),
+            };
+            const mutated_result = example_state_machine_mod.claimedSumFromInitial(
+                v.log_size,
+                initial,
+                v.inc_index,
+                mutated_elements,
+            );
+            if (mutated_result) |mutated_claim| {
+                try std.testing.expect(!mutated_claim.eql(claimed_sum));
+            } else |_| {
+                // Degenerate denominator after perturbation is an expected differential failure mode.
+                try std.testing.expect(true);
+            }
         }
     }
 }
