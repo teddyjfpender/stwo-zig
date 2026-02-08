@@ -410,3 +410,37 @@
 - `python3 scripts/parity_fields.py`
 - `python3 scripts/e2e_examples.py`
 - `zig build test --summary all`
+
+## Latest Slice (State-Machine Statement Equation Parity)
+- `src/examples/state_machine.zig`
+  - Added statement validator:
+    - `claimsSatisfyStatement(initial, final, x_claim, y_claim, elements)`
+  - Added regression test for the upstream public statement equation.
+- `tools/stwo-vector-gen/src/main.rs`
+  - Extended vector schema with:
+    - `example_state_machine_statement`
+  - Added deterministic vectors for:
+    - `log_n_rows`, `initial_state`
+    - lookup elements (`z`, `alpha`)
+    - `intermediate_state`, `final_state`
+    - `x_axis_claimed_sum`, `y_axis_claimed_sum`
+  - Uses non-degenerate samples only (skips zero-denominator combinations).
+- `src/core/fields/parity_vectors.zig`
+  - Added parser schema and parity test for `example_state_machine_statement`.
+  - Test validates:
+    - transition-state formulas
+    - x/y telescoping claim derivations
+    - statement equation satisfaction
+  - Added negative differential case:
+    - perturbed `y_axis_claimed_sum` must violate the statement.
+- `vectors/fields.json`
+  - Regenerated deterministically with statement vectors.
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig build fmt`
+- `cargo fmt --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+- `python3 scripts/parity_fields.py --regenerate --skip-zig`
+- `python3 scripts/parity_fields.py`
+- `python3 scripts/e2e_examples.py`
+- `zig build test --summary all`

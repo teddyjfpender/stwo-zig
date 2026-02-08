@@ -149,6 +149,27 @@ pub fn claimedSumTelescoping(
     return (try first.inv()).sub(try last.inv());
 }
 
+/// Validates the upstream state-machine claimed-sum statement:
+/// `(x_claim + y_claim) * combine(initial) * combine(final) == combine(final) - combine(initial)`.
+pub fn claimsSatisfyStatement(
+    initial_state: State,
+    final_state: State,
+    x_axis_claimed_sum: QM31,
+    y_axis_claimed_sum: QM31,
+    elements: Elements,
+) Error!bool {
+    const initial_comb = elements.combine(initial_state);
+    const final_comb = elements.combine(final_state);
+    if (initial_comb.isZero() or final_comb.isZero()) return Error.DegenerateDenominator;
+
+    const lhs = x_axis_claimed_sum
+        .add(y_axis_claimed_sum)
+        .mul(initial_comb)
+        .mul(final_comb);
+    const rhs = final_comb.sub(initial_comb);
+    return lhs.eql(rhs);
+}
+
 fn checkedPow2(log_size: u32) Error!usize {
     if (log_size >= @bitSizeOf(usize)) return Error.InvalidLogSize;
     return @as(usize, 1) << @intCast(log_size);
@@ -223,4 +244,28 @@ test "examples state_machine: draw yields distinct lookup elements on successive
     const e0 = Elements.draw(&channel);
     const e1 = Elements.draw(&channel);
     try std.testing.expect(!e0.z.eql(e1.z) or !e0.alpha.eql(e1.alpha));
+}
+
+test "examples state_machine: claimed sums satisfy public statement equation" {
+    const initial: State = .{
+        M31.fromCanonical(3),
+        M31.fromCanonical(9),
+    };
+    const elements: Elements = .{
+        .z = QM31.fromU32Unchecked(27, 4, 19, 8),
+        .alpha = QM31.fromU32Unchecked(2, 7, 11, 13),
+    };
+    const log_n_rows: u32 = 7;
+
+    const transitions = try transitionStates(log_n_rows, initial);
+    const x_claim = try claimedSumTelescoping(log_n_rows, initial, 0, elements);
+    const y_claim = try claimedSumTelescoping(log_n_rows - 1, transitions.intermediate, 1, elements);
+    const ok = try claimsSatisfyStatement(
+        initial,
+        transitions.final,
+        x_claim,
+        y_claim,
+        elements,
+    );
+    try std.testing.expect(ok);
 }

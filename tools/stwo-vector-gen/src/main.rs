@@ -65,6 +65,7 @@ const EXAMPLE_STATE_MACHINE_TRACE_VECTOR_COUNT: usize = 24;
 const EXAMPLE_STATE_MACHINE_TRANSITION_VECTOR_COUNT: usize = 24;
 const EXAMPLE_STATE_MACHINE_CLAIMED_SUM_VECTOR_COUNT: usize = 24;
 const EXAMPLE_STATE_MACHINE_LOOKUP_DRAW_VECTOR_COUNT: usize = 24;
+const EXAMPLE_STATE_MACHINE_STATEMENT_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT: usize = 24;
 const EXAMPLE_XOR_IS_STEP_WITH_OFFSET_VECTOR_COUNT: usize = 32;
 
@@ -370,6 +371,18 @@ struct ExampleStateMachineLookupDrawVector {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct ExampleStateMachineStatementVector {
+    log_n_rows: u32,
+    initial_state: [u32; 2],
+    z: [u32; 4],
+    alpha: [u32; 4],
+    intermediate_state: [u32; 2],
+    final_state: [u32; 2],
+    x_axis_claimed_sum: [u32; 4],
+    y_axis_claimed_sum: [u32; 4],
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ExampleXorIsFirstVector {
     log_size: u32,
     values: Vec<u32>,
@@ -428,6 +441,7 @@ struct FieldVectors {
     example_state_machine_transitions: Vec<ExampleStateMachineTransitionVector>,
     example_state_machine_claimed_sum: Vec<ExampleStateMachineClaimedSumVector>,
     example_state_machine_lookup_draw: Vec<ExampleStateMachineLookupDrawVector>,
+    example_state_machine_statement: Vec<ExampleStateMachineStatementVector>,
     example_xor_is_first: Vec<ExampleXorIsFirstVector>,
     example_xor_is_step_with_offset: Vec<ExampleXorIsStepWithOffsetVector>,
 }
@@ -594,6 +608,10 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         state,
         EXAMPLE_STATE_MACHINE_LOOKUP_DRAW_VECTOR_COUNT,
     );
+    let example_state_machine_statement = generate_example_state_machine_statement_vectors(
+        state,
+        EXAMPLE_STATE_MACHINE_STATEMENT_VECTOR_COUNT,
+    );
     let example_xor_is_first =
         generate_example_xor_is_first_vectors(state, EXAMPLE_XOR_IS_FIRST_VECTOR_COUNT);
     let example_xor_is_step_with_offset = generate_example_xor_is_step_with_offset_vectors(
@@ -663,6 +681,7 @@ fn generate_vectors(state: &mut u64, sample_count: usize) -> FieldVectors {
         example_state_machine_transitions,
         example_state_machine_claimed_sum,
         example_state_machine_lookup_draw,
+        example_state_machine_statement,
         example_xor_is_first,
         example_xor_is_step_with_offset,
     }
@@ -809,6 +828,50 @@ fn generate_example_state_machine_lookup_draw_vectors(
             mix_u32s,
             z: encode_qm31(z),
             alpha: encode_qm31(alpha),
+        });
+    }
+    out
+}
+
+fn generate_example_state_machine_statement_vectors(
+    state: &mut u64,
+    count: usize,
+) -> Vec<ExampleStateMachineStatementVector> {
+    let mut out = Vec::with_capacity(count);
+    while out.len() < count {
+        let log_n_rows = 2 + ((next_u64(state) as u32) % 9);
+        let initial_state = [sample_m31(state, false), sample_m31(state, false)];
+        let z = sample_qm31(state, false);
+        let alpha = sample_qm31(state, false);
+
+        let mut intermediate_state = initial_state;
+        intermediate_state[0] += M31::from(1u32 << log_n_rows);
+
+        let mut final_state = intermediate_state;
+        final_state[1] += M31::from(1u32 << (log_n_rows - 1));
+
+        let initial_comb = combine_state(initial_state, z, alpha);
+        let intermediate_comb = combine_state(intermediate_state, z, alpha);
+        let final_comb = combine_state(final_state, z, alpha);
+        if initial_comb == QM31::from(0)
+            || intermediate_comb == QM31::from(0)
+            || final_comb == QM31::from(0)
+        {
+            continue;
+        }
+
+        let x_axis_claimed_sum = initial_comb.inverse() - intermediate_comb.inverse();
+        let y_axis_claimed_sum = intermediate_comb.inverse() - final_comb.inverse();
+
+        out.push(ExampleStateMachineStatementVector {
+            log_n_rows,
+            initial_state: encode_state(initial_state),
+            z: encode_qm31(z),
+            alpha: encode_qm31(alpha),
+            intermediate_state: encode_state(intermediate_state),
+            final_state: encode_state(final_state),
+            x_axis_claimed_sum: encode_qm31(x_axis_claimed_sum),
+            y_axis_claimed_sum: encode_qm31(y_axis_claimed_sum),
         });
     }
     out

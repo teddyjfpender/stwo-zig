@@ -297,6 +297,17 @@ const ExampleStateMachineLookupDrawVector = struct {
     alpha: [4]u32,
 };
 
+const ExampleStateMachineStatementVector = struct {
+    log_n_rows: u32,
+    initial_state: [2]u32,
+    z: [4]u32,
+    alpha: [4]u32,
+    intermediate_state: [2]u32,
+    final_state: [2]u32,
+    x_axis_claimed_sum: [4]u32,
+    y_axis_claimed_sum: [4]u32,
+};
+
 const ExampleXorIsFirstVector = struct {
     log_size: u32,
     values: []u32,
@@ -339,6 +350,7 @@ const VectorFile = struct {
     example_state_machine_transitions: []ExampleStateMachineTransitionVector,
     example_state_machine_claimed_sum: []ExampleStateMachineClaimedSumVector,
     example_state_machine_lookup_draw: []ExampleStateMachineLookupDrawVector,
+    example_state_machine_statement: []ExampleStateMachineStatementVector,
     example_xor_is_first: []ExampleXorIsFirstVector,
     example_xor_is_step_with_offset: []ExampleXorIsStepWithOffsetVector,
 };
@@ -1628,6 +1640,74 @@ test "field vectors: examples state machine lookup draw parity" {
             altered_channel.mixU32s(v.mix_u32s);
             const altered = example_state_machine_mod.Elements.draw(&altered_channel);
             try std.testing.expect(!altered.z.eql(elements.z) or !altered.alpha.eql(elements.alpha));
+        }
+    }
+}
+
+test "field vectors: examples state machine statement parity" {
+    const alloc = std.testing.allocator;
+    var parsed = try parseVectors(alloc);
+    defer parsed.deinit();
+
+    try std.testing.expect(parsed.value.example_state_machine_statement.len > 0);
+    for (parsed.value.example_state_machine_statement, 0..) |v, vec_idx| {
+        const initial: example_state_machine_mod.State = .{
+            m31From(v.initial_state[0]),
+            m31From(v.initial_state[1]),
+        };
+        const intermediate: example_state_machine_mod.State = .{
+            m31From(v.intermediate_state[0]),
+            m31From(v.intermediate_state[1]),
+        };
+        const final: example_state_machine_mod.State = .{
+            m31From(v.final_state[0]),
+            m31From(v.final_state[1]),
+        };
+        const elements: example_state_machine_mod.Elements = .{
+            .z = qm31From(v.z),
+            .alpha = qm31From(v.alpha),
+        };
+
+        const transitions = try example_state_machine_mod.transitionStates(v.log_n_rows, initial);
+        try std.testing.expect(transitions.intermediate[0].eql(intermediate[0]));
+        try std.testing.expect(transitions.intermediate[1].eql(intermediate[1]));
+        try std.testing.expect(transitions.final[0].eql(final[0]));
+        try std.testing.expect(transitions.final[1].eql(final[1]));
+
+        const x_claim = try example_state_machine_mod.claimedSumTelescoping(
+            v.log_n_rows,
+            initial,
+            0,
+            elements,
+        );
+        const y_claim = try example_state_machine_mod.claimedSumTelescoping(
+            v.log_n_rows - 1,
+            intermediate,
+            1,
+            elements,
+        );
+        try std.testing.expect(x_claim.eql(qm31From(v.x_axis_claimed_sum)));
+        try std.testing.expect(y_claim.eql(qm31From(v.y_axis_claimed_sum)));
+
+        const satisfies = try example_state_machine_mod.claimsSatisfyStatement(
+            initial,
+            final,
+            x_claim,
+            y_claim,
+            elements,
+        );
+        try std.testing.expect(satisfies);
+
+        if (vec_idx == 0) {
+            const bad = y_claim.add(QM31.one());
+            const bad_satisfies = try example_state_machine_mod.claimsSatisfyStatement(
+                initial,
+                final,
+                x_claim,
+                bad,
+                elements,
+            );
+            try std.testing.expect(!bad_satisfies);
         }
     }
 }
