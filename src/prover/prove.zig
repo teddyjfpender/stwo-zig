@@ -29,10 +29,53 @@ pub const ProvingError = error{
     ConstraintsNotSatisfied,
 };
 
-/// Temporary prove entrypoint on top of the sampled-points PCS path.
+/// Proving entrypoint matching upstream component-driven flow.
 ///
-/// This returns only the proof payload (`StarkProof`), dropping auxiliary data.
+/// Returns only the `StarkProof` payload.
 pub fn prove(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
+) !proof_mod.StarkProof(H) {
+    return (try proveEx(
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        false,
+    )).proof;
+}
+
+/// Extended proving entrypoint matching upstream component-driven `prove_ex`.
+pub fn proveEx(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
+    include_all_preprocessed_columns: bool,
+) !proof_mod.ExtendedStarkProof(H) {
+    return proveExComponents(
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+    );
+}
+
+/// Sampled-points proving entrypoint.
+///
+/// This path proves with caller-provided sample points (without AIR component orchestration).
+pub fn proveSampledPoints(
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
@@ -40,7 +83,7 @@ pub fn prove(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
     sampled_points: TreeVec([][]CirclePointQM31),
 ) !proof_mod.StarkProof(H) {
-    return (try proveEx(
+    return (try proveExSampledPoints(
         H,
         MC,
         allocator,
@@ -50,10 +93,8 @@ pub fn prove(
     )).proof;
 }
 
-/// Temporary extended prove entrypoint on top of the sampled-points PCS path.
-///
-/// This is an incremental bridge toward full upstream `prove_ex` parity.
-pub fn proveEx(
+/// Extended sampled-points proving entrypoint.
+pub fn proveExSampledPoints(
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
@@ -151,7 +192,7 @@ pub fn proveExComponents(
     );
     try appendCompositionMaskTree(allocator, &sample_points, oods_point);
 
-    var ext_proof = try proveEx(
+    var ext_proof = try proveExSampledPoints(
         H,
         MC,
         allocator,
@@ -424,7 +465,7 @@ test "prover prove: prove_ex computes sampled values and verifies" {
         try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_prover}),
     );
 
-    var ext_proof = try proveEx(
+    var ext_proof = try proveExSampledPoints(
         Hasher,
         MerkleChannel,
         alloc,
@@ -505,7 +546,7 @@ test "prover prove: prove_ex supports non-zero blowup" {
         try alloc.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{sampled_points_tree_prover}),
     );
 
-    var ext_proof = try proveEx(
+    var ext_proof = try proveExSampledPoints(
         Hasher,
         MerkleChannel,
         alloc,
@@ -696,7 +737,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         mock_component.asProverComponent(),
     };
 
-    var ext_proof = try proveExComponents(
+    var ext_proof = try proveEx(
         Hasher,
         MerkleChannel,
         alloc,

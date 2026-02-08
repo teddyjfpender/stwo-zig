@@ -104,7 +104,12 @@
 
 ### Prover Entrypoint
 - `src/prover/prove.zig`
-  - Added sampled-points proving entrypoints (`prove`, `proveEx`) backed by in-prover PCS `proveValues`.
+  - Aligned top-level API with upstream component-driven flow:
+    - `prove(components, ..., commitment_scheme)` -> `StarkProof`
+    - `proveEx(components, ..., commitment_scheme, include_all_preprocessed_columns)` -> `ExtendedStarkProof`
+  - Kept sampled-point proving path as explicit non-upstream helper entrypoints:
+    - `proveSampledPoints`
+    - `proveExSampledPoints`
   - Added component-driven proving slice (`proveExComponents` / `proveComponents`) with:
     - AIR mask-point derivation via `ComponentProvers.componentsView`
     - composition OODS sanity check against sampled values
