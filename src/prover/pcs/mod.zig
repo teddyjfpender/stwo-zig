@@ -11,6 +11,7 @@ const canonic = @import("../../core/poly/circle/canonic.zig");
 const component_prover = @import("../air/component_prover.zig");
 const prover_circle = @import("../poly/circle/mod.zig");
 const prover_circle_eval = @import("../poly/circle/evaluation.zig");
+const twiddles_mod = @import("../poly/twiddles.zig");
 const prover_fri = @import("../fri.zig");
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 
@@ -235,6 +236,8 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             channel: anytype,
         ) !void {
             const blowup = self.config.fri_config.log_blowup_factor;
+            var twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator);
+            defer deinitTwiddleCache(allocator, &twiddle_cache);
 
             const columns = try allocator.alloc(ColumnEvaluation, polys.len);
             errdefer allocator.free(columns);
@@ -246,14 +249,20 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             }
 
             for (polys, 0..) |poly, i| {
-                const extended_eval = try prover_circle.ops.evaluateOnCanonicDomain(
+                const extended_log_size = std.math.add(u32, poly.logSize(), blowup) catch
+                    return CommitmentSchemeError.ShapeMismatch;
+                const twiddle_tree = try getCachedTwiddleTree(
                     allocator,
-                    poly,
-                    blowup,
+                    &twiddle_cache,
+                    extended_log_size,
+                );
+                const extended_eval = try poly.evaluateWithTwiddles(
+                    allocator,
+                    canonic.CanonicCoset.new(extended_log_size).circleDomain(),
+                    twiddleTreeConst(twiddle_tree),
                 );
                 columns[i] = .{
-                    .log_size = std.math.add(u32, poly.logSize(), blowup) catch
-                        return CommitmentSchemeError.ShapeMismatch,
+                    .log_size = extended_log_size,
                     .values = extended_eval.values,
                 };
                 initialized_columns += 1;
@@ -920,6 +929,8 @@ fn prepareColumnsForCommitOwned(
 
     const coeffs = try interpolateCoefficientColumns(allocator, owned_columns);
     errdefer deinitOwnedCoefficientColumns(allocator, coeffs);
+    var twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator);
+    defer deinitTwiddleCache(allocator, &twiddle_cache);
 
     const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
 
@@ -937,10 +948,15 @@ fn prepareColumnsForCommitOwned(
             log_blowup_factor,
         ) catch return CommitmentSchemeError.ShapeMismatch;
 
-        const extended_eval = try prover_circle.ops.evaluateOnCanonicDomain(
+        const twiddle_tree = try getCachedTwiddleTree(
             allocator,
-            coeff,
-            log_blowup_factor,
+            &twiddle_cache,
+            extended_log_size,
+        );
+        const extended_eval = try coeff.evaluateWithTwiddles(
+            allocator,
+            canonic.CanonicCoset.new(extended_log_size).circleDomain(),
+            twiddleTreeConst(twiddle_tree),
         );
         extended[i] = .{
             .log_size = extended_log_size,
@@ -968,6 +984,9 @@ fn interpolateCoefficientColumns(
     allocator: std.mem.Allocator,
     columns: []const ColumnEvaluation,
 ) ![]prover_circle.CircleCoefficients {
+    var twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator);
+    defer deinitTwiddleCache(allocator, &twiddle_cache);
+
     const out = try allocator.alloc(prover_circle.CircleCoefficients, columns.len);
     errdefer allocator.free(out);
 
@@ -979,8 +998,13 @@ fn interpolateCoefficientColumns(
 
     for (columns, 0..) |column, i| {
         const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
+        const twiddle_tree = try getCachedTwiddleTree(allocator, &twiddle_cache, column.log_size);
         const evaluation = try prover_circle.CircleEvaluation.init(domain, column.values);
-        out[i] = try prover_circle.poly.interpolateFromEvaluation(allocator, evaluation);
+        out[i] = try prover_circle.poly.interpolateFromEvaluationWithTwiddles(
+            allocator,
+            evaluation,
+            twiddleTreeConst(twiddle_tree),
+        );
         initialized += 1;
     }
 
@@ -993,6 +1017,38 @@ fn deinitOwnedCoefficientColumns(
 ) void {
     for (columns) |*coeff| coeff.deinit(allocator);
     allocator.free(columns);
+}
+
+fn twiddleTreeConst(tree: twiddles_mod.TwiddleTree([]M31)) twiddles_mod.TwiddleTree([]const M31) {
+    return .{
+        .root_coset = tree.root_coset,
+        .twiddles = tree.twiddles,
+        .itwiddles = tree.itwiddles,
+    };
+}
+
+fn getCachedTwiddleTree(
+    allocator: std.mem.Allocator,
+    cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
+    log_size: u32,
+) !twiddles_mod.TwiddleTree([]M31) {
+    const gop = try cache.getOrPut(log_size);
+    if (!gop.found_existing) {
+        gop.value_ptr.* = try twiddles_mod.precomputeM31(
+            allocator,
+            canonic.CanonicCoset.new(log_size).circleDomain().half_coset,
+        );
+    }
+    return gop.value_ptr.*;
+}
+
+fn deinitTwiddleCache(
+    allocator: std.mem.Allocator,
+    cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
+) void {
+    var it = cache.valueIterator();
+    while (it.next()) |tree| twiddles_mod.deinitM31(allocator, tree);
+    cache.deinit();
 }
 
 const BarycentricWeightsKey = struct {

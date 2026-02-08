@@ -195,3 +195,34 @@
 - `zig build test --summary all`
 - `python3 scripts/parity_fields.py`
 - `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
+
+## Latest Slice (TwiddleTree-Backed FFT Reuse)
+- `src/prover/poly/twiddles.zig`
+  - Added owned M31 twiddle-tree construction (`precomputeM31`) and teardown (`deinitM31`).
+  - Added deterministic slow twiddle precompute + inverse generation parity helper.
+  - Added invariant test that twiddles and inverse twiddles multiply to one.
+- `src/prover/poly/circle/poly.zig`
+  - Added explicit TwiddleTree-backed APIs:
+    - `CircleCoefficients.evaluateWithTwiddles(...)`
+    - `interpolateFromEvaluationWithTwiddles(...)`
+  - Kept existing API surface stable by routing:
+    - `evaluate(...)` through owned twiddle precompute + `evaluateWithTwiddles`.
+    - `interpolateFromEvaluation(...)` through owned twiddle precompute + `interpolateFromEvaluationWithTwiddles`.
+  - Replaced local ad-hoc twiddle slicing with `core/poly/utils.domainLineTwiddlesFromTree` semantics.
+  - Added parity tests:
+    - `evaluate with twiddles matches evaluate`
+    - `interpolate with twiddles matches interpolate`
+- `src/prover/pcs/mod.zig`
+  - Added per-log-size twiddle cache for interpolation/evaluation commit paths.
+  - `interpolateCoefficientColumns` now reuses cached twiddle trees and calls `interpolateFromEvaluationWithTwiddles`.
+  - `prepareColumnsForCommitOwned` extension path now evaluates coefficients through cached twiddle trees.
+  - `commitPolys` now evaluates coefficient inputs through cached twiddle trees (no per-column precompute churn).
+
+### Additional Gate/Probe Coverage (Passing)
+- `zig test tmp_deep_probe.zig --test-filter "prover poly circle poly: evaluate with twiddles matches evaluate"`
+- `zig test tmp_deep_probe.zig --test-filter "with twiddles"`
+- `zig test tmp_deep_probe.zig --test-filter "prover prove"`
+- `zig build fmt`
+- `zig build test --summary all`
+- `python3 scripts/parity_fields.py`
+- `cargo check --manifest-path tools/stwo-vector-gen/Cargo.toml`
