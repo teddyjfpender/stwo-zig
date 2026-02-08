@@ -640,11 +640,11 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         ) !TreeVec([][]QM31) {
             if (trees.items.len != sampled_points.items.len) return CommitmentSchemeError.ShapeMismatch;
 
-            var weights_cache = std.AutoHashMap(BarycentricWeightsKey, []QM31).init(allocator);
+            var barycentric_cache = std.AutoHashMap(u32, BarycentricContextCacheEntry).init(allocator);
             defer {
-                var it = weights_cache.valueIterator();
-                while (it.next()) |weights| allocator.free(weights.*);
-                weights_cache.deinit();
+                var it = barycentric_cache.valueIterator();
+                while (it.next()) |entry| entry.deinit(allocator);
+                barycentric_cache.deinit();
             }
 
             const out = try allocator.alloc([][]QM31, trees.items.len);
@@ -691,23 +691,23 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                             );
                         }
                     } else {
-                        const canonic_coset = canonic.CanonicCoset.new(column.log_size);
                         const evaluation = try prover_circle.CircleEvaluation.init(
-                            canonic_coset.circleDomain(),
+                            canonic.CanonicCoset.new(column.log_size).circleDomain(),
                             column.values,
+                        );
+                        const cache_entry = try getBarycentricCacheEntry(
+                            allocator,
+                            &barycentric_cache,
+                            column.log_size,
                         );
                         for (points, 0..) |point, i| {
                             const folded_point = point.repeatedDouble(fold_count);
-                            const key = barycentricWeightsKey(column.log_size, folded_point);
-                            const gop = try weights_cache.getOrPut(key);
-                            if (!gop.found_existing) {
-                                gop.value_ptr.* = try prover_circle_eval.CircleEvaluation.barycentricWeights(
-                                    allocator,
-                                    canonic_coset,
-                                    folded_point,
-                                );
-                            }
-                            values[i] = try evaluation.barycentricEvalAtPointWithWeights(gop.value_ptr.*);
+                            values[i] = try evaluation.barycentricEvalAtPointWithContext(
+                                allocator,
+                                &cache_entry.context,
+                                &cache_entry.workspace,
+                                folded_point,
+                            );
                         }
                     }
                 }
@@ -1051,27 +1051,30 @@ fn deinitTwiddleCache(
     cache.deinit();
 }
 
-const BarycentricWeightsKey = struct {
-    log_size: u32,
-    point_words: [8]u32,
+const BarycentricContextCacheEntry = struct {
+    context: prover_circle_eval.BarycentricContext,
+    workspace: prover_circle_eval.BarycentricWorkspace,
+
+    fn deinit(self: *BarycentricContextCacheEntry, allocator: std.mem.Allocator) void {
+        self.context.deinit(allocator);
+        self.workspace.deinit(allocator);
+        self.* = undefined;
+    }
 };
 
-fn barycentricWeightsKey(log_size: u32, point: CirclePointQM31) BarycentricWeightsKey {
-    const x = point.x.toM31Array();
-    const y = point.y.toM31Array();
-    return .{
-        .log_size = log_size,
-        .point_words = .{
-            x[0].toU32(),
-            x[1].toU32(),
-            x[2].toU32(),
-            x[3].toU32(),
-            y[0].toU32(),
-            y[1].toU32(),
-            y[2].toU32(),
-            y[3].toU32(),
-        },
-    };
+fn getBarycentricCacheEntry(
+    allocator: std.mem.Allocator,
+    cache: *std.AutoHashMap(u32, BarycentricContextCacheEntry),
+    log_size: u32,
+) !*BarycentricContextCacheEntry {
+    const gop = try cache.getOrPut(log_size);
+    if (!gop.found_existing) {
+        gop.value_ptr.* = .{
+            .context = try prover_circle_eval.BarycentricContext.init(allocator, log_size),
+            .workspace = prover_circle_eval.BarycentricWorkspace.init(),
+        };
+    }
+    return gop.value_ptr;
 }
 
 fn freeOwnedColumnEvaluations(
