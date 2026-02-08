@@ -3,6 +3,26 @@
 `stwo-zig` is a parity-driven Zig port of StarkWare's Rust `stwo` stack.
 The compatibility target is pinned in `/Users/theodorepender/Coding/stwo-zig/UPSTREAM.md` (`a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`).
 
+## Equivalence Status (Formal)
+
+At current `HEAD`, conformance evidence demonstrates:
+
+- Bidirectional proof roundtrip parity on the pinned upstream commit:
+  - Rust-generated proofs verify in Zig.
+  - Zig-generated proofs verify in Rust.
+  - Interop report: `/Users/theodorepender/Coding/stwo-zig/vectors/reports/latest_e2e_interop_report.json`
+    (`status=ok`, `12/12` cases, `48/48` tamper rejections).
+- Deterministic checkpoint parity:
+  - `prove` and `prove_ex` proof bytes are equal for each checkpoint case.
+  - Checkpoint report: `/Users/theodorepender/Coding/stwo-zig/vectors/reports/latest_prove_checkpoints_report.json`
+    (`status=ok`, `12` cases).
+- Exchange contract:
+  - Interop uses `proof_exchange_json_wire_v1` JSON-wire artifacts.
+  - Guaranteed by gate: schema/semantic compatibility and bidirectional verification.
+  - Current observed state on committed interop artifacts: Rust and Zig `proof_bytes_hex` are byte-identical for the gated example matrix.
+
+Equivalence scope is the pinned commit + gated matrices and fixtures; it is not an unbounded claim over arbitrary future parameters or upstream revisions.
+
 ## Scope
 
 This repository includes prover/verifier plumbing, cross-language proof exchange,
