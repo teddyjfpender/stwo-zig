@@ -40,6 +40,26 @@
 - `zig build vectors`
 - `zig build deep-gate`
 
+## Latest Slice (Constraint-Framework Evaluator + Logup Batching)
+
+### New Evaluator Module
+- Added `src/core/constraint_framework/evaluator.zig` and exported it from
+  `src/core/constraint_framework/mod.zig`.
+- Ported evaluator-side constraint orchestration primitives:
+  - deterministic mask progression (`nextTraceMask`, `nextInteractionMask`,
+    `nextExtensionInteractionMask`)
+  - intermediate registration (`addIntermediate`, `addExtensionIntermediate`)
+  - constraint formatting and degree-bound reporting over expression ASTs
+  - deterministic assignment synthesis with intermediate consistency
+  - logup fraction batching/finalization (`finalizeLogupBatched`,
+    `finalizeLogup`, `finalizeLogupInPairs`) including invalid batching
+    rejection.
+
+### Validation (Passing)
+- `zig build test`
+- `zig build vectors`
+- `zig build deep-gate`
+
 ## Latest Slice (True Proof Exchange Interop)
 
 ### Rust<->Zig Artifact Exchange
