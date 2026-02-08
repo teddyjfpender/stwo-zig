@@ -70,6 +70,18 @@ CASES = (
         },
     ),
     Case(
+        case_id="wide_fibonacci_base",
+        example="wide_fibonacci",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "1",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "wf-log-n-rows": "5",
+            "wf-sequence-len": "16",
+        },
+    ),
+    Case(
         case_id="xor_blowup2",
         example="xor",
         args={
@@ -93,6 +105,18 @@ CASES = (
             "sm-log-n-rows": "5",
             "sm-initial-0": "9",
             "sm-initial-1": "3",
+        },
+    ),
+    Case(
+        case_id="wide_fibonacci_blowup2",
+        example="wide_fibonacci",
+        args={
+            "pow-bits": "0",
+            "fri-log-blowup": "2",
+            "fri-log-last-layer": "0",
+            "fri-n-queries": "3",
+            "wf-log-n-rows": "5",
+            "wf-sequence-len": "16",
         },
     ),
 )
@@ -212,6 +236,11 @@ def tamper_statement(artifact_path: Path, out_path: Path, example: str) -> None:
         if not (isinstance(claim, list) and len(claim) == 4):
             raise ValueError("missing x_axis_claimed_sum")
         claim[0] = (int(claim[0]) + 1) % M31_MODULUS
+    elif example == "wide_fibonacci":
+        stmt = artifact.get("wide_fibonacci_statement")
+        if not isinstance(stmt, dict) or "sequence_len" not in stmt:
+            raise ValueError("missing wide_fibonacci_statement.sequence_len")
+        stmt["sequence_len"] = int(stmt["sequence_len"]) + 1
     else:
         raise ValueError(f"unsupported example {example}")
     write_artifact(out_path, artifact)

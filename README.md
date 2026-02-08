@@ -53,7 +53,8 @@ Rust toolchain `nightly-2025-07-14` (pinned by upstream at `a8fcf4bd...`).
 - `vectors/constraint_expr.json` via `scripts/parity_constraint_expr.py`
 
 `zig build prove-checkpoints` runs deterministic `prove`/`prove_ex` checkpoint parity
-for `xor` and `state_machine` across base and non-zero blowup settings, and enforces
+for `xor`, `state_machine`, and `wide_fibonacci` across base and non-zero blowup
+settings, and enforces
 semantic tamper rejection plus invalid-`prove_mode` metadata rejection in both Zig and Rust
 verifiers.
 

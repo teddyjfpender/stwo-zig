@@ -67,6 +67,7 @@
 - `cargo +nightly-2025-07-14 check --manifest-path tools/stwo-interop-rs/Cargo.toml`
 - `zig build test`
 - `zig build interop`
+- `python3 scripts/prove_checkpoints.py`
 - `python3 scripts/e2e_interop.py`
 - `zig test src/stwo.zig --test-filter "examples wide_fibonacci:"`
 
