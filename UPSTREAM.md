@@ -32,7 +32,7 @@ This increment targets:
 - `prover/vcs_lifted/ops`
 - `prover/line`
 - `prover/air` (accumulation + component-prover slices)
-- `prover/prove` (prepared-samples entrypoint slice)
+- `prover/prove` (prepared-samples + sampled-points prove/prove_ex entrypoint slices)
 - `prover/fri` (full fri prover commit/decommit flow + layer decommit slices)
 - `prover/pcs` (quotient-ops + commitment tree/decommit + prove-values + prove-values-from-samples slices)
 - `prover/channel` (logging channel slice)

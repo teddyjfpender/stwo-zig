@@ -93,8 +93,9 @@
 
 ### Prover Entrypoint
 - `src/prover/prove.zig`
-  - Added prepared-samples proving entrypoint (`provePrepared`) that wraps PCS proving into `ExtendedStarkProof`.
-  - Added roundtrip test against core PCS verifier.
+  - Added sampled-points proving entrypoints (`prove`, `proveEx`) backed by in-prover PCS `proveValues`.
+  - Retained prepared-samples proving entrypoint (`provePrepared`) as compatibility path.
+  - Added roundtrip tests against core PCS verifier for both prepared and sampled-points paths.
 
 ## Current Quality Gates (Passing)
 - `zig build fmt`
@@ -106,8 +107,8 @@
 1. `CommitmentSchemeProver.proveValues` now computes sampled values in-prover, but does not yet use/store circle coefficients + shared weights hash-map optimization path from upstream.
 2. `prover/poly/circle` is now executable but still missing full upstream FFT/twiddle-backed interpolation/evaluation parity.
 3. Top-level `prover::prove/prove_ex` full parity is still incomplete.
-   - Current entrypoint is `provePrepared` (prepared sampled-values path).
-   - Full upstream-style `prove/prove_ex` still depends on deeper `prover/air` parity and composition polynomial wiring.
+   - Current executable entrypoints are sampled-points (`prove`/`proveEx`) and prepared sampled-values (`provePrepared`) paths.
+   - Full upstream-style component-driven `prove/prove_ex` still depends on deeper `prover/air` parity and composition polynomial wiring.
 
 ## Next Highest-Impact Targets
 1. Complete FFT/twiddle-backed circle interpolation/evaluation parity and wire `store_polynomials_coefficients` fast path.
