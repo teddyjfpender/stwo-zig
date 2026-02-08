@@ -1,5 +1,6 @@
 pub const line = @import("line.zig");
 pub const fri = @import("fri.zig");
+pub const air = @import("air/mod.zig");
 pub const channel = @import("channel/mod.zig");
 pub const lookups = @import("lookups/mod.zig");
 pub const pcs = @import("pcs/mod.zig");
