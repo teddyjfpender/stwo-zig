@@ -42,6 +42,22 @@
 - `zig build opt-gate`
 - `python3 scripts/compare_optimization.py`
 
+### Optimization Deltas (Frozen Baseline -> Current)
+- Source: `vectors/reports/optimization_compare_report.json`
+- `max_zig_over_rust_prove`: `1.410479 -> 1.087606` (`-22.89%`)
+- `max_zig_over_rust_verify`: `1.162447 -> 0.947954` (`-18.45%`)
+- `avg_zig_profile_seconds`: `1.066566 -> 0.697294` (`-34.62%`)
+- Per-workload prove deltas:
+  - `state_machine_default`: `-9.21%`
+  - `state_machine_medium`: `-27.42%`
+
+### Residual Hotspot Backlog
+- `profile_smoke` symbol hotspot extraction currently yields empty hotspot lists on this host/toolchain path.
+- Next profiling hardening slice:
+  - raise sample window and capture repeats for symbolized stacks,
+  - emit stable top-symbol tables in `profile_*_report.json`,
+  - then target remaining prover-kernel hotspots with measured attribution.
+
 ## Latest Slice (Final Signoff + Full Benchmark Parity Add-on)
 
 ### Strict Signoff Gate Hardening

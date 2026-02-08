@@ -23,6 +23,9 @@ BENCHMARK_REPORT_DEFAULT = REPORTS_DIR / "benchmark_smoke_report.json"
 PROFILE_REPORT_DEFAULT = REPORTS_DIR / "profile_smoke_report.json"
 PROVE_CHECKPOINTS_REPORT_DEFAULT = REPORTS_DIR / "prove_checkpoints_report.json"
 STD_SHIMS_BEHAVIOR_REPORT_DEFAULT = REPORTS_DIR / "std_shims_behavior_report.json"
+BENCHMARK_OPT_REPORT_DEFAULT = REPORTS_DIR / "benchmark_opt_report.json"
+PROFILE_OPT_REPORT_DEFAULT = REPORTS_DIR / "profile_opt_report.json"
+OPT_COMPARE_REPORT_DEFAULT = REPORTS_DIR / "optimization_compare_report.json"
 
 SCHEMA_VERSION = 1
 MANIFEST_TYPE = "release_evidence_v1"
@@ -73,6 +76,12 @@ def load_report(path: Path, *, name: str) -> tuple[dict[str, Any], dict[str, Any
         "sha256": sha256_file(path),
         "status": status,
     }
+
+
+def load_optional_report(path: Path, *, name: str) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    if not path.exists():
+        return None
+    return load_report(path, name=name)
 
 
 def gate_steps(gate_mode: str) -> list[dict[str, str]]:
@@ -154,6 +163,24 @@ def parse_args() -> argparse.Namespace:
         default=STD_SHIMS_BEHAVIOR_REPORT_DEFAULT,
         help="Std-shims behavior parity report path",
     )
+    parser.add_argument(
+        "--benchmark-opt-report",
+        type=Path,
+        default=BENCHMARK_OPT_REPORT_DEFAULT,
+        help="Optimization-track benchmark report path (optional)",
+    )
+    parser.add_argument(
+        "--profile-opt-report",
+        type=Path,
+        default=PROFILE_OPT_REPORT_DEFAULT,
+        help="Optimization-track profile report path (optional)",
+    )
+    parser.add_argument(
+        "--optimization-compare-report",
+        type=Path,
+        default=OPT_COMPARE_REPORT_DEFAULT,
+        help="Optimization comparator report path (optional)",
+    )
     return parser.parse_args()
 
 
@@ -177,6 +204,32 @@ def main() -> int:
         )
         reports.append(prove_checkpoints_manifest)
         reports.append(std_shims_behavior_manifest)
+
+    optimization_track: dict[str, Any] | None = None
+    maybe_opt_bench = load_optional_report(args.benchmark_opt_report, name="benchmark_opt")
+    maybe_opt_profile = load_optional_report(args.profile_opt_report, name="profile_opt")
+    maybe_opt_compare = load_optional_report(args.optimization_compare_report, name="optimization_compare")
+    if maybe_opt_bench and maybe_opt_profile and maybe_opt_compare:
+        opt_bench_report, opt_bench_manifest = maybe_opt_bench
+        opt_profile_report, opt_profile_manifest = maybe_opt_profile
+        opt_compare_report, opt_compare_manifest = maybe_opt_compare
+        reports.append(opt_bench_manifest)
+        reports.append(opt_profile_manifest)
+        reports.append(opt_compare_manifest)
+        optimization_track = {
+            "present": True,
+            "benchmark_report": opt_bench_manifest["path"],
+            "profile_report": opt_profile_manifest["path"],
+            "compare_report": opt_compare_manifest["path"],
+            "compare_status": opt_compare_manifest["status"],
+            "compare_details": opt_compare_report.get("details", {}),
+            "baseline_path": opt_compare_report.get("baseline_path"),
+            "benchmark_settings_hash": opt_bench_report.get("settings_hash"),
+            "profile_settings_hash": opt_profile_report.get("settings_hash"),
+        }
+    else:
+        optimization_track = {"present": False}
+
     failures: list[str] = []
 
     for report in reports:
@@ -235,6 +288,7 @@ def main() -> int:
             "failure_count": len(failures),
             "failures": failures,
         },
+        "optimization_track": optimization_track,
     }
 
     args.report_out.parent.mkdir(parents=True, exist_ok=True)
