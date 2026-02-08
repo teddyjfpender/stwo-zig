@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 import shutil
 import subprocess
 import time
@@ -188,6 +189,13 @@ def run(cmd: List[str], env: Optional[Dict[str, str]] = None) -> None:
     subprocess.run(cmd, cwd=ROOT, check=True, env=merged_env(env))
 
 
+def maxrss_to_kb(raw_maxrss: int) -> int:
+    # `/usr/bin/time -l` reports max RSS in bytes on Darwin.
+    if sys.platform == "darwin":
+        return int(round(raw_maxrss / 1024.0))
+    return raw_maxrss
+
+
 def run_timed(cmd: List[str], env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     start = time.perf_counter()
     if TIME_BIN.exists():
@@ -200,7 +208,7 @@ def run_timed(cmd: List[str], env: Optional[Dict[str, str]] = None) -> Dict[str,
             env=merged_env(env),
         )
         match = RSS_RE.search(proc.stderr)
-        peak_rss_kb = int(match.group(1)) if match else None
+        peak_rss_kb = maxrss_to_kb(int(match.group(1))) if match else None
     else:
         subprocess.run(cmd, cwd=ROOT, check=True, env=merged_env(env))
         peak_rss_kb = None

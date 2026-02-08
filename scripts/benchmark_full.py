@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 import shutil
 import subprocess
 from pathlib import Path
@@ -269,6 +270,13 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
+def maxrss_to_kb(raw_maxrss: int) -> int:
+    # `/usr/bin/time -l` reports max RSS in bytes on Darwin.
+    if sys.platform == "darwin":
+        return int(round(raw_maxrss / 1024.0))
+    return raw_maxrss
+
+
 def run_timed(cmd: list[str]) -> tuple[subprocess.CompletedProcess[str], int | None]:
     if TIME_BIN.exists():
         proc = subprocess.run(
@@ -279,7 +287,7 @@ def run_timed(cmd: list[str]) -> tuple[subprocess.CompletedProcess[str], int | N
             check=False,
         )
         match = RSS_RE.search(proc.stderr)
-        peak_rss_kb = int(match.group(1)) if match else None
+        peak_rss_kb = maxrss_to_kb(int(match.group(1))) if match else None
         return proc, peak_rss_kb
     proc = run(cmd)
     return proc, None
