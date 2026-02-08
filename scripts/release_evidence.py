@@ -77,7 +77,7 @@ def load_report(path: Path, *, name: str) -> tuple[dict[str, Any], dict[str, Any
 
 def gate_steps(gate_mode: str) -> list[dict[str, str]]:
     benchmark_cmd = (
-        "python3 scripts/benchmark_smoke.py --include-medium --warmups 2 --repeats 7"
+        "python3 scripts/benchmark_smoke.py --include-medium --warmups 3 --repeats 11"
         if gate_mode == "strict"
         else "python3 scripts/benchmark_smoke.py"
     )

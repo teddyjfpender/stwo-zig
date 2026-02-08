@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -15,19 +14,6 @@ SOURCE_REPORT_DEFAULT = ROOT / "vectors" / "reports" / "benchmark_full_report.js
 OUT_DIR_DEFAULT = ROOT / "bench" / "dev" / "bench"
 OUT_DATA_DEFAULT = OUT_DIR_DEFAULT / "data.js"
 OUT_INDEX_DEFAULT = OUT_DIR_DEFAULT / "index.html"
-
-
-def git_head() -> str:
-    proc = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        return "unknown"
-    return proc.stdout.strip()
 
 
 def parse_args() -> argparse.Namespace:
@@ -76,7 +62,6 @@ def build_payload(report: dict[str, Any], report_path: Path) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "source_report": str(report_path.relative_to(ROOT)),
-        "git_head_sha": git_head(),
         "summary": report.get("summary", {}),
         "rows": rows,
     }
@@ -202,8 +187,7 @@ def render_index_html() -> str:
       tbody.appendChild(tr);
     });
 
-    document.getElementById('meta').textContent =
-      `source=${data.source_report} head=${data.git_head_sha}`;
+    document.getElementById('meta').textContent = `source=${data.source_report}`;
   </script>
 </body>
 </html>

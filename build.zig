@@ -71,9 +71,9 @@ pub fn build(b: *std.Build) void {
         "scripts/benchmark_smoke.py",
         "--include-medium",
         "--warmups",
-        "2",
+        "3",
         "--repeats",
-        "7",
+        "11",
     });
     const bench_strict_step = b.step("bench-strict", "Run strict benchmark harness (base + medium workloads, stabilized samples)");
     bench_strict_step.dependOn(&bench_strict_cmd.step);
@@ -210,9 +210,9 @@ pub fn build(b: *std.Build) void {
         "scripts/benchmark_smoke.py",
         "--include-medium",
         "--warmups",
-        "2",
+        "3",
         "--repeats",
-        "7",
+        "11",
     });
     rgs_bench.step.dependOn(&rgs_prove_checkpoints.step);
     const rgs_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });

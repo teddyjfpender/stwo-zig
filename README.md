@@ -46,7 +46,7 @@ zig build release-gate-strict
 - `release-gate-strict`: release-signoff path.
 
 Strict sequence:
-`fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict (warmups=2,repeats=7) -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence`
+`fmt -> test -> api-parity -> deep-gate -> vectors -> interop -> prove-checkpoints -> bench-strict (warmups=3,repeats=11) -> profile-smoke -> std-shims-smoke -> std-shims-behavior -> release-evidence`
 
 Full benchmark add-on:
 `zig build bench-full` then `zig build bench-pages` / `zig build bench-pages-validate`.

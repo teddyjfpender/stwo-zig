@@ -10,7 +10,7 @@
 ### Strict Signoff Gate Hardening
 - `build.zig`
   - strict benchmark stage now runs deterministic stabilized sampling:
-    - `python3 scripts/benchmark_smoke.py --include-medium --warmups 2 --repeats 7`
+    - `python3 scripts/benchmark_smoke.py --include-medium --warmups 3 --repeats 11`
   - added benchmark artifact pipeline steps:
     - `zig build bench-full`
     - `zig build bench-pages`
@@ -18,7 +18,7 @@
 - `scripts/release_evidence.py`
   - command matrix now explicitly includes:
     - `api_parity`
-    - strict benchmark sampling args (`--warmups 2 --repeats 7`)
+    - strict benchmark sampling args (`--warmups 3 --repeats 11`)
 
 ### Full Benchmark Family + Static Pages
 - Added full benchmark harness:
@@ -131,7 +131,7 @@
 
 ### Validation (Passing)
 - `python3 scripts/benchmark_smoke.py`
-- `python3 scripts/benchmark_smoke.py --include-medium --warmups 2 --repeats 7`
+- `python3 scripts/benchmark_smoke.py --include-medium --warmups 3 --repeats 11`
 - `zig build bench-smoke`
 - `zig build bench-strict`
 - `zig build release-gate-strict`
