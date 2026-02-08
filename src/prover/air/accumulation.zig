@@ -12,6 +12,21 @@ pub const AccumulationError = error{
     UnusedCoefficients,
 };
 
+pub const ColumnRequest = struct {
+    log_size: u32,
+    n_cols: usize,
+};
+
+/// Domain accumulator for one specific log-size bucket.
+pub const ColumnAccumulator = struct {
+    random_coeff_powers: []const QM31,
+    col: *SecureColumnByCoords,
+
+    pub fn accumulate(self: *ColumnAccumulator, index: usize, evaluation: QM31) void {
+        self.col.set(index, self.col.at(index).add(evaluation));
+    }
+};
+
 /// Accumulates secure-column evaluations into a random linear combination:
 /// `acc <- acc + alpha^(N-1-i) * eval_i` where columns are added in order.
 pub const DomainEvaluationAccumulator = struct {
@@ -55,6 +70,44 @@ pub const DomainEvaluationAccumulator = struct {
     pub fn skipCoeffs(self: *DomainEvaluationAccumulator, n_coeffs: usize) AccumulationError!void {
         if (n_coeffs > self.next_power_index) return AccumulationError.NotEnoughCoefficients;
         self.next_power_index -= n_coeffs;
+    }
+
+    pub fn logSize(self: DomainEvaluationAccumulator) u32 {
+        return self.max_log_size;
+    }
+
+    /// Returns mutable bucket accumulators for requested log sizes and allocates
+    /// zero-initialized buckets when first accessed.
+    ///
+    /// Coefficients are assigned from the tail of the powers vector (upstream order).
+    pub fn columns(
+        self: *DomainEvaluationAccumulator,
+        allocator: std.mem.Allocator,
+        requests: []const ColumnRequest,
+    ) (std.mem.Allocator.Error || AccumulationError)![]ColumnAccumulator {
+        const out = try allocator.alloc(ColumnAccumulator, requests.len);
+        errdefer allocator.free(out);
+
+        for (requests, 0..) |request, i| {
+            if (request.log_size > self.max_log_size) return AccumulationError.InvalidLogSize;
+            if (request.n_cols > self.next_power_index) return AccumulationError.NotEnoughCoefficients;
+
+            if (self.sub_accumulations[request.log_size] == null) {
+                self.sub_accumulations[request.log_size] = try SecureColumnByCoords.zeros(
+                    self.allocator,
+                    try checkedPow2(request.log_size),
+                );
+            }
+
+            self.next_power_index -= request.n_cols;
+            const start = self.next_power_index;
+            const end = start + request.n_cols;
+            out[i] = .{
+                .random_coeff_powers = self.random_coeff_powers[start..end],
+                .col = &self.sub_accumulations[request.log_size].?,
+            };
+        }
+        return out;
     }
 
     pub fn accumulateColumn(
@@ -227,4 +280,34 @@ test "prover air accumulation: detects unused and missing coefficients" {
 
     try acc.accumulateColumn(2, &col);
     try std.testing.expectError(AccumulationError.NotEnoughCoefficients, acc.accumulateColumn(2, &col));
+}
+
+test "prover air accumulation: columns API assigns tail coefficient chunks" {
+    const alloc = std.testing.allocator;
+    const alpha = QM31.fromU32Unchecked(2, 0, 0, 0);
+
+    var acc = try DomainEvaluationAccumulator.init(alloc, alpha, 2, 3);
+    defer acc.deinit();
+
+    const requests = [_]ColumnRequest{
+        .{ .log_size = 1, .n_cols = 2 },
+        .{ .log_size = 2, .n_cols = 1 },
+    };
+    const cols = try acc.columns(alloc, requests[0..]);
+    defer alloc.free(cols);
+
+    try std.testing.expectEqual(@as(u32, 2), acc.logSize());
+    try std.testing.expectEqual(@as(usize, 2), cols[0].random_coeff_powers.len);
+    try std.testing.expectEqual(@as(usize, 1), cols[1].random_coeff_powers.len);
+    try std.testing.expect(cols[0].random_coeff_powers[0].eql(alpha));
+    try std.testing.expect(cols[0].random_coeff_powers[1].eql(alpha.square()));
+    try std.testing.expect(cols[1].random_coeff_powers[0].eql(QM31.one()));
+
+    var col0 = cols[0];
+    var col1 = cols[1];
+    col0.accumulate(0, QM31.fromU32Unchecked(7, 0, 0, 0));
+    col1.accumulate(3, QM31.fromU32Unchecked(9, 0, 0, 0));
+
+    try std.testing.expect(col0.col.at(0).eql(QM31.fromU32Unchecked(7, 0, 0, 0)));
+    try std.testing.expect(col1.col.at(3).eql(QM31.fromU32Unchecked(9, 0, 0, 0)));
 }
