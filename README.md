@@ -36,6 +36,7 @@ zig build interop
 zig build bench-smoke
 zig build bench-strict
 zig build profile-smoke
+zig build release-evidence
 ```
 
 `zig build interop` performs true Rust<->Zig proof exchange for `xor` and `state_machine`
@@ -54,6 +55,9 @@ the benchmark requirement for release signoff.
 `zig build profile-smoke` now runs deep proving workloads with `time -l` metrics and
 `sample`-based hotspot attribution, and emits mitigation hints in the profile report.
 
+`zig build release-evidence` generates the canonical machine-readable release manifest:
+`vectors/reports/release_evidence.json`.
+
 ### Deterministic release sequence
 
 ```bash
@@ -63,6 +67,7 @@ zig build release-gate-strict
 
 `zig build release-gate` is the fast/base CI gate.
 `zig build release-gate-strict` is the required release-signoff gate.
+The strict gate emits `vectors/reports/release_evidence.json` after profile checks.
 
 ## Layout
 

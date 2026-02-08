@@ -54,6 +54,19 @@ pub fn build(b: *std.Build) void {
     const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");
     profile_smoke_step.dependOn(&profile_smoke_cmd.step);
 
+    // Canonical release evidence manifest generator.
+    const release_evidence_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/release_evidence.py",
+        "--gate-mode",
+        "strict",
+    });
+    const release_evidence_step = b.step(
+        "release-evidence",
+        "Generate canonical release evidence manifest (vectors/reports/release_evidence.json)",
+    );
+    release_evidence_step.dependOn(&release_evidence_cmd.step);
+
     // Formatting gate.
     const fmt_cmd = b.addSystemCommand(&.{ "zig", "fmt", "--check", "build.zig", "src", "tools" });
     const fmt_step = b.step("fmt", "Check formatting (zig fmt --check)");
@@ -96,10 +109,17 @@ pub fn build(b: *std.Build) void {
     rgs_bench.step.dependOn(&rgs_interop.step);
     const rgs_profile = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
     rgs_profile.step.dependOn(&rgs_bench.step);
+    const rgs_evidence = b.addSystemCommand(&.{
+        "python3",
+        "scripts/release_evidence.py",
+        "--gate-mode",
+        "strict",
+    });
+    rgs_evidence.step.dependOn(&rgs_profile.step);
 
     const release_gate_strict_step = b.step(
         "release-gate-strict",
-        "Run strict release gate sequence (fmt -> test -> vectors -> interop -> bench-strict -> profile-smoke)",
+        "Run strict release gate sequence (fmt -> test -> vectors -> interop -> bench-strict -> profile-smoke -> release-evidence)",
     );
-    release_gate_strict_step.dependOn(&rgs_profile.step);
+    release_gate_strict_step.dependOn(&rgs_evidence.step);
 }

@@ -81,6 +81,26 @@
 - `zig build profile-smoke`
 - `zig build release-gate`
 
+## Latest Slice (Canonical Release Evidence Manifest)
+
+- Added `scripts/release_evidence.py`:
+  - emits deterministic machine-readable manifest:
+    - `vectors/reports/release_evidence.json`
+    - `vectors/reports/latest_release_evidence.json`
+  - records:
+    - git SHA / branch / dirty flag
+    - pinned upstream commit (from interop report)
+    - gate command matrix (`release-gate` or `release-gate-strict`)
+    - interop/benchmark/profile report paths + SHA-256 hashes + statuses
+    - overall pass/fail summary.
+- `build.zig`:
+  - added `release-evidence` step.
+  - extended `release-gate-strict` chain with final `release-evidence` stage.
+
+### Additional Gate Coverage (Current)
+- `python3 scripts/release_evidence.py --gate-mode strict`
+  - emits manifest and returns non-zero when strict reports are not all green.
+
 ## Latest Slice (Prover API Surface Tightening)
 
 - `src/prover/prove.zig`
