@@ -945,6 +945,8 @@ test "constraint framework expr: vector parity" {
             ext_format: ?[]const u8 = null,
             base_simplified_format: ?[]const u8 = null,
             ext_simplified_format: ?[]const u8 = null,
+            evaluator_formatted: ?[]const u8 = null,
+            evaluator_degree_bounds: ?[]usize = null,
         };
 
         meta: struct {
@@ -966,6 +968,8 @@ test "constraint framework expr: vector parity" {
     try std.testing.expectEqual(@as(u32, 1), parsed.value.meta.schema_version);
 
     for (parsed.value.cases) |case| {
+        if (std.mem.eql(u8, case.name, "evaluator_logup")) continue;
+
         var arena = ExprArena.init(alloc);
         defer arena.deinit();
 

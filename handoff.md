@@ -59,6 +59,7 @@
 - `zig build test`
 - `zig build vectors`
 - `zig build deep-gate`
+- `python3 scripts/parity_constraint_expr.py`
 
 ## Latest Slice (AIR Utilities Trace/Periodic Helpers)
 

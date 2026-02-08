@@ -7,8 +7,11 @@ use serde::Serialize;
 use stwo::core::fields::m31::BaseField;
 use stwo::core::fields::qm31::SecureField;
 use stwo::core::fields::FieldExpOps;
+use stwo::core::Fraction;
 use stwo_constraint_framework::expr::degree::NamedExprs;
+use stwo_constraint_framework::expr::evaluator::ExprEvaluator;
 use stwo_constraint_framework::expr::{BaseExpr, ExtExpr};
+use stwo_constraint_framework::EvalAtRow;
 
 const UPSTREAM_COMMIT: &str = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 const SCHEMA_VERSION: u32 = 1;
@@ -56,6 +59,8 @@ struct CaseVector {
     ext_format: Option<String>,
     base_simplified_format: Option<String>,
     ext_simplified_format: Option<String>,
+    evaluator_formatted: Option<String>,
+    evaluator_degree_bounds: Option<Vec<usize>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -67,7 +72,12 @@ struct Root {
 fn main() {
     let out_path = parse_out_path();
 
-    let cases = vec![base_arith_case(), ext_arith_case(), degree_named_case()];
+    let cases = vec![
+        base_arith_case(),
+        ext_arith_case(),
+        degree_named_case(),
+        evaluator_logup_case(),
+    ];
 
     let root = Root {
         meta: Meta {
@@ -154,6 +164,8 @@ fn base_arith_case() -> CaseVector {
         ext_format: None,
         base_simplified_format: Some(expr.simplify_and_format()),
         ext_simplified_format: None,
+        evaluator_formatted: None,
+        evaluator_degree_bounds: None,
     }
 }
 
@@ -218,6 +230,8 @@ fn ext_arith_case() -> CaseVector {
         ext_format: Some(expr.format_expr()),
         base_simplified_format: None,
         ext_simplified_format: Some(expr.simplify_and_format()),
+        evaluator_formatted: None,
+        evaluator_degree_bounds: None,
     }
 }
 
@@ -269,6 +283,48 @@ fn degree_named_case() -> CaseVector {
         ext_format: Some(qexpr.format_expr()),
         base_simplified_format: Some(expr.simplify_and_format()),
         ext_simplified_format: Some(qexpr.simplify_and_format()),
+        evaluator_formatted: None,
+        evaluator_degree_bounds: None,
+    }
+}
+
+fn evaluator_logup_case() -> CaseVector {
+    let mut evaluator = ExprEvaluator::new();
+
+    let m0 = evaluator.next_trace_mask();
+    let m1 = evaluator.next_trace_mask();
+    let intermediate = evaluator.add_intermediate(m0.clone() * m1.clone());
+    evaluator.add_constraint(ExtExpr::from(m0 * intermediate));
+
+    evaluator.write_logup_frac(Fraction::new(
+        ExtExpr::from(BaseExpr::Param("n0".to_string())),
+        ExtExpr::from(BaseExpr::Param("d0".to_string())),
+    ));
+    evaluator.write_logup_frac(Fraction::new(
+        ExtExpr::from(BaseExpr::Param("n1".to_string())),
+        ExtExpr::from(BaseExpr::Param("d1".to_string())),
+    ));
+    evaluator.write_logup_frac(Fraction::new(
+        ExtExpr::from(BaseExpr::Param("n2".to_string())),
+        ExtExpr::from(BaseExpr::Param("d2".to_string())),
+    ));
+    evaluator.finalize_logup_batched(&vec![0, 1, 1]);
+
+    CaseVector {
+        name: "evaluator_logup".to_string(),
+        columns: vec![],
+        params: vec![],
+        ext_params: vec![],
+        base_eval: None,
+        ext_eval: None,
+        base_degree: None,
+        ext_degree: None,
+        base_format: None,
+        ext_format: None,
+        base_simplified_format: None,
+        ext_simplified_format: None,
+        evaluator_formatted: Some(evaluator.format_constraints()),
+        evaluator_degree_bounds: Some(evaluator.constraint_degree_bounds()),
     }
 }
 

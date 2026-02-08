@@ -337,8 +337,8 @@ fn sumFractions(arena: *ExprArena, fractions: []const FractionExpr) EvaluatorErr
 
     var acc = fractions[0];
     for (fractions[1..]) |frac| {
-        const left_num = try arena.extMul(acc.numerator, frac.denominator);
-        const right_num = try arena.extMul(frac.numerator, acc.denominator);
+        const left_num = try arena.extMul(frac.denominator, acc.numerator);
+        const right_num = try arena.extMul(acc.denominator, frac.numerator);
         acc = .{
             .numerator = try arena.extAdd(left_num, right_num),
             .denominator = try arena.extMul(acc.denominator, frac.denominator),
@@ -442,4 +442,76 @@ test "constraint framework evaluator: logup batching semantics" {
         EvaluatorError.InvalidBatchingLength,
         evaluator_invalid.finalizeLogupBatched(&[_]usize{0}),
     );
+}
+
+test "constraint framework evaluator: vector parity" {
+    const alloc = std.testing.allocator;
+
+    const input = try std.fs.cwd().readFileAlloc(alloc, "vectors/constraint_expr.json", 1 << 20);
+    defer alloc.free(input);
+
+    const Vectors = struct {
+        const Case = struct {
+            name: []const u8,
+            evaluator_formatted: ?[]const u8 = null,
+            evaluator_degree_bounds: ?[]usize = null,
+        };
+
+        meta: struct {
+            upstream_commit: []const u8,
+            schema_version: u32,
+        },
+        cases: []Case,
+    };
+
+    var parsed = try std.json.parseFromSlice(Vectors, alloc, input, .{
+        .ignore_unknown_fields = true,
+    });
+    defer parsed.deinit();
+
+    try std.testing.expectEqualStrings(
+        "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+        parsed.value.meta.upstream_commit,
+    );
+    try std.testing.expectEqual(@as(u32, 1), parsed.value.meta.schema_version);
+
+    var found = false;
+    for (parsed.value.cases) |case| {
+        if (!std.mem.eql(u8, case.name, "evaluator_logup")) continue;
+        found = true;
+
+        var arena = ExprArena.init(alloc);
+        defer arena.deinit();
+        var evaluator = try ExprEvaluator.init(&arena, alloc);
+        defer evaluator.deinit();
+
+        const m0 = try evaluator.nextTraceMask();
+        const m1 = try evaluator.nextTraceMask();
+        const intermediate = try evaluator.addIntermediate(try arena.baseMul(m0, m1));
+        try evaluator.addConstraint(try arena.extFromBase(try arena.baseMul(m0, intermediate)));
+
+        try evaluator.writeLogupFrac(.{
+            .numerator = try arena.extFromBase(try arena.baseParam("n0")),
+            .denominator = try arena.extFromBase(try arena.baseParam("d0")),
+        });
+        try evaluator.writeLogupFrac(.{
+            .numerator = try arena.extFromBase(try arena.baseParam("n1")),
+            .denominator = try arena.extFromBase(try arena.baseParam("d1")),
+        });
+        try evaluator.writeLogupFrac(.{
+            .numerator = try arena.extFromBase(try arena.baseParam("n2")),
+            .denominator = try arena.extFromBase(try arena.baseParam("d2")),
+        });
+        try evaluator.finalizeLogupBatched(&[_]usize{ 0, 1, 1 });
+
+        const formatted = try evaluator.formatConstraints(alloc);
+        defer alloc.free(formatted);
+        try std.testing.expectEqualStrings(case.evaluator_formatted.?, formatted);
+
+        const degrees = try evaluator.constraintDegreeBounds(alloc);
+        defer alloc.free(degrees);
+        try std.testing.expectEqualSlices(usize, case.evaluator_degree_bounds.?, degrees);
+    }
+
+    try std.testing.expect(found);
 }
