@@ -74,6 +74,11 @@ pub fn build(b: *std.Build) void {
     const bench_strict_step = b.step("bench-strict", "Run strict benchmark harness (base + medium workloads)");
     bench_strict_step.dependOn(&bench_strict_cmd.step);
 
+    // Full benchmark matrix gate (11 upstream family labels).
+    const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
+    const bench_full_step = b.step("bench-full", "Run full 11-family Rust-vs-Zig benchmark harness");
+    bench_full_step.dependOn(&bench_full_cmd.step);
+
     // Profiling smoke gate with coarse wall-clock and peak-RSS collection.
     const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
     const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");

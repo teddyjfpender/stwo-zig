@@ -1,0 +1,1233 @@
+{
+  "failures": [],
+  "families": [
+    {
+      "family": "bit_rev",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.974207,
+        "zig_over_rust_verify": 7.339513
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.06015479166666667,
+          "max_seconds": 0.061061958,
+          "min_seconds": 0.059697,
+          "repeats": 3,
+          "samples_seconds": [
+            0.061061958,
+            0.059697,
+            0.059705417
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017394433333333333,
+          "max_seconds": 0.000178458,
+          "min_seconds": 0.000169375,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000178458,
+            0.000174,
+            0.000169375
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.11875799999999999,
+          "max_seconds": 0.122027,
+          "min_seconds": 0.115733,
+          "repeats": 3,
+          "samples_seconds": [
+            0.115733,
+            0.118514,
+            0.122027
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0012766666666666666,
+          "max_seconds": 0.001279,
+          "min_seconds": 0.001272,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001279,
+            0.001272,
+            0.001279
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "eval_at_point",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.769466,
+        "zig_over_rust_verify": 6.500087
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.05978941666666667,
+          "max_seconds": 0.060066167,
+          "min_seconds": 0.059637625,
+          "repeats": 3,
+          "samples_seconds": [
+            0.059637625,
+            0.059664458,
+            0.060066167
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017697199999999999,
+          "max_seconds": 0.000181667,
+          "min_seconds": 0.000172708,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000181667,
+            0.000176541,
+            0.000172708
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.10579533333333334,
+          "max_seconds": 0.106321,
+          "min_seconds": 0.104835,
+          "repeats": 3,
+          "samples_seconds": [
+            0.104835,
+            0.106321,
+            0.10623
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0011503333333333333,
+          "max_seconds": 0.001177,
+          "min_seconds": 0.00113,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001177,
+            0.00113,
+            0.001144
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "barycentric_eval_at_point",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.829642,
+        "zig_over_rust_verify": 6.734901
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.06004581966666667,
+          "max_seconds": 0.060142625,
+          "min_seconds": 0.059967167,
+          "repeats": 3,
+          "samples_seconds": [
+            0.059967167,
+            0.060027667,
+            0.060142625
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017065333333333334,
+          "max_seconds": 0.000180042,
+          "min_seconds": 0.000162709,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000180042,
+            0.000169209,
+            0.000162709
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.10986233333333334,
+          "max_seconds": 0.112723,
+          "min_seconds": 0.107802,
+          "repeats": 3,
+          "samples_seconds": [
+            0.112723,
+            0.109062,
+            0.107802
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0011493333333333332,
+          "max_seconds": 0.00116,
+          "min_seconds": 0.001132,
+          "repeats": 3,
+          "samples_seconds": [
+            0.00116,
+            0.001132,
+            0.001156
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "eval_at_point_by_folding",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.799667,
+        "zig_over_rust_verify": 6.540971
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.06001294433333334,
+          "max_seconds": 0.060158458,
+          "min_seconds": 0.059875708,
+          "repeats": 3,
+          "samples_seconds": [
+            0.060158458,
+            0.060004667,
+            0.059875708
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017606966666666667,
+          "max_seconds": 0.000179334,
+          "min_seconds": 0.00017175,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000179334,
+            0.000177125,
+            0.00017175
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.10800333333333334,
+          "max_seconds": 0.114175,
+          "min_seconds": 0.104435,
+          "repeats": 3,
+          "samples_seconds": [
+            0.104435,
+            0.1054,
+            0.114175
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0011516666666666665,
+          "max_seconds": 0.001183,
+          "min_seconds": 0.00113,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001183,
+            0.00113,
+            0.001142
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "fft",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.808675,
+        "zig_over_rust_verify": 7.61884
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.05999695833333333,
+          "max_seconds": 0.0602505,
+          "min_seconds": 0.05975825,
+          "repeats": 3,
+          "samples_seconds": [
+            0.05975825,
+            0.0602505,
+            0.059982125
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.000174611,
+          "max_seconds": 0.000179917,
+          "min_seconds": 0.00016975,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000179917,
+            0.000174166,
+            0.00016975
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.10851500000000001,
+          "max_seconds": 0.114605,
+          "min_seconds": 0.104969,
+          "repeats": 3,
+          "samples_seconds": [
+            0.104969,
+            0.105971,
+            0.114605
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0013303333333333333,
+          "max_seconds": 0.001434,
+          "min_seconds": 0.001204,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001204,
+            0.001434,
+            0.001353
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "field",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.664598,
+        "zig_over_rust_verify": 5.732467
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.06317141666666666,
+          "max_seconds": 0.064128958,
+          "min_seconds": 0.062664375,
+          "repeats": 3,
+          "samples_seconds": [
+            0.062664375,
+            0.062720917,
+            0.064128958
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00018595833333333333,
+          "max_seconds": 0.000196333,
+          "min_seconds": 0.0001785,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000196333,
+            0.0001785,
+            0.000183042
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.105155,
+          "max_seconds": 0.107222,
+          "min_seconds": 0.103496,
+          "repeats": 3,
+          "samples_seconds": [
+            0.107222,
+            0.103496,
+            0.104747
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0010659999999999999,
+          "max_seconds": 0.001073,
+          "min_seconds": 0.001062,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001062,
+            0.001073,
+            0.001063
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "fri",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.913573,
+        "zig_over_rust_verify": 6.834324
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.05987369433333333,
+          "max_seconds": 0.059931875,
+          "min_seconds": 0.059812958,
+          "repeats": 3,
+          "samples_seconds": [
+            0.05987625,
+            0.059812958,
+            0.059931875
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017758400000000003,
+          "max_seconds": 0.000181084,
+          "min_seconds": 0.000172334,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000181084,
+            0.000179334,
+            0.000172334
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.11457266666666667,
+          "max_seconds": 0.124268,
+          "min_seconds": 0.103524,
+          "repeats": 3,
+          "samples_seconds": [
+            0.103524,
+            0.115926,
+            0.124268
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0012136666666666667,
+          "max_seconds": 0.001247,
+          "min_seconds": 0.001189,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001247,
+            0.001205,
+            0.001189
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "lookups",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.778918,
+        "zig_over_rust_verify": 6.294781
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.05985793033333333,
+          "max_seconds": 0.06001375,
+          "min_seconds": 0.059711458,
+          "repeats": 3,
+          "samples_seconds": [
+            0.059711458,
+            0.06001375,
+            0.059848583
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017697199999999999,
+          "max_seconds": 0.000182333,
+          "min_seconds": 0.000172042,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000182333,
+            0.000176541,
+            0.000172042
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.10648233333333333,
+          "max_seconds": 0.106811,
+          "min_seconds": 0.106113,
+          "repeats": 3,
+          "samples_seconds": [
+            0.106113,
+            0.106523,
+            0.106811
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.001114,
+          "max_seconds": 0.00113,
+          "min_seconds": 0.001095,
+          "repeats": 3,
+          "samples_seconds": [
+            0.00113,
+            0.001117,
+            0.001095
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "merkle",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.76598,
+        "zig_over_rust_verify": 6.551885
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.060011264,
+          "max_seconds": 0.060166708,
+          "min_seconds": 0.059858667,
+          "repeats": 3,
+          "samples_seconds": [
+            0.059858667,
+            0.060008417,
+            0.060166708
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017470799999999998,
+          "max_seconds": 0.000179208,
+          "min_seconds": 0.000170541,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000179208,
+            0.000174375,
+            0.000170541
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.10597866666666667,
+          "max_seconds": 0.106623,
+          "min_seconds": 0.104997,
+          "repeats": 3,
+          "samples_seconds": [
+            0.104997,
+            0.106623,
+            0.106316
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0011446666666666669,
+          "max_seconds": 0.001203,
+          "min_seconds": 0.0011,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001131,
+            0.0011,
+            0.001203
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "prefix_sum",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.862676,
+        "zig_over_rust_verify": 6.50862
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.060043542000000005,
+          "max_seconds": 0.060172584,
+          "min_seconds": 0.0598845,
+          "repeats": 3,
+          "samples_seconds": [
+            0.0598845,
+            0.060172584,
+            0.060073542
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017515233333333333,
+          "max_seconds": 0.000179833,
+          "min_seconds": 0.000171041,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000179833,
+            0.000174583,
+            0.000171041
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.11184166666666667,
+          "max_seconds": 0.118629,
+          "min_seconds": 0.105329,
+          "repeats": 3,
+          "samples_seconds": [
+            0.111567,
+            0.105329,
+            0.118629
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.00114,
+          "max_seconds": 0.001188,
+          "min_seconds": 0.001114,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001188,
+            0.001118,
+            0.001114
+          ],
+          "warmups": 1
+        }
+      }
+    },
+    {
+      "family": "pcs",
+      "mapped_workload": {
+        "args": [
+          "--pow-bits",
+          "0",
+          "--fri-log-blowup",
+          "1",
+          "--fri-log-last-layer",
+          "0",
+          "--fri-n-queries",
+          "3",
+          "--sm-log-n-rows",
+          "12",
+          "--sm-initial-0",
+          "9",
+          "--sm-initial-1",
+          "3"
+        ],
+        "example": "state_machine",
+        "include_all_preprocessed_columns": "0",
+        "prove_mode": "prove"
+      },
+      "ratios": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 1.747148,
+        "zig_over_rust_verify": 6.34163
+      },
+      "rust": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.05995523566666667,
+          "max_seconds": 0.060126541,
+          "min_seconds": 0.059748958,
+          "repeats": 3,
+          "samples_seconds": [
+            0.059990208,
+            0.059748958,
+            0.060126541
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "rust",
+        "verify": {
+          "avg_seconds": 0.00017513900000000002,
+          "max_seconds": 0.000179875,
+          "min_seconds": 0.000170709,
+          "repeats": 3,
+          "samples_seconds": [
+            0.000179875,
+            0.000174833,
+            0.000170709
+          ],
+          "warmups": 1
+        }
+      },
+      "zig": {
+        "example": "state_machine",
+        "include_all_preprocessed_columns": false,
+        "proof_metrics": {
+          "commitments_count": 3,
+          "decommitments_count": 3,
+          "fri_decommit_hashes_total": 131,
+          "fri_first_layer_witness_len": 3,
+          "fri_inner_layers_count": 11,
+          "fri_last_layer_poly_len": 1,
+          "proof_wire_bytes": 29562,
+          "trace_decommit_hashes": 84
+        },
+        "prove": {
+          "avg_seconds": 0.10475066666666666,
+          "max_seconds": 0.106214,
+          "min_seconds": 0.102827,
+          "repeats": 3,
+          "samples_seconds": [
+            0.106214,
+            0.102827,
+            0.105211
+          ],
+          "warmups": 1
+        },
+        "prove_mode": "prove",
+        "runtime": "zig",
+        "verify": {
+          "avg_seconds": 0.0011106666666666667,
+          "max_seconds": 0.001119,
+          "min_seconds": 0.001106,
+          "repeats": 3,
+          "samples_seconds": [
+            0.001119,
+            0.001106,
+            0.001107
+          ],
+          "warmups": 1
+        }
+      }
+    }
+  ],
+  "protocol": "upstream_family_matrix_v1",
+  "settings": {
+    "max_zig_over_rust": 10.0,
+    "repeats": 3,
+    "rust_toolchain": "nightly-2025-07-14",
+    "warmups": 1
+  },
+  "status": "ok",
+  "summary": {
+    "avg_zig_over_rust_prove": 1.810414,
+    "avg_zig_over_rust_verify": 6.636184,
+    "failure_count": 0,
+    "families": 11,
+    "max_zig_over_rust_prove": 1.974207,
+    "max_zig_over_rust_verify": 7.61884
+  },
+  "upstream_families": [
+    "bit_rev",
+    "eval_at_point",
+    "barycentric_eval_at_point",
+    "eval_at_point_by_folding",
+    "fft",
+    "field",
+    "fri",
+    "lookups",
+    "merkle",
+    "prefix_sum",
+    "pcs"
+  ]
+}
