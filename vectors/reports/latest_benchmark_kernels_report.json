@@ -1,0 +1,94 @@
+{
+  "failures": [],
+  "generated_at_unix": 1770589493,
+  "kernels": [
+    {
+      "checksum": [
+        432165680,
+        734621901,
+        322704094,
+        1532179376
+      ],
+      "iterations": 20000,
+      "log_size": 11,
+      "name": "eval_at_point",
+      "repeats": 3,
+      "summary": {
+        "avg_seconds": 0.551711333,
+        "max_seconds": 0.555646,
+        "min_seconds": 0.546253,
+        "samples_seconds": [
+          0.555646,
+          0.546253,
+          0.553235
+        ]
+      },
+      "warmups": 1
+    },
+    {
+      "checksum": [
+        764660708,
+        0,
+        0,
+        0
+      ],
+      "iterations": 20000,
+      "log_size": 11,
+      "name": "eval_at_point_by_folding",
+      "repeats": 3,
+      "summary": {
+        "avg_seconds": 0.067489333,
+        "max_seconds": 0.069013,
+        "min_seconds": 0.066476,
+        "samples_seconds": [
+          0.066476,
+          0.066979,
+          0.069013
+        ]
+      },
+      "warmups": 1
+    },
+    {
+      "checksum": [
+        2272,
+        0,
+        0,
+        0
+      ],
+      "iterations": 64,
+      "log_size": 10,
+      "name": "fft",
+      "repeats": 3,
+      "summary": {
+        "avg_seconds": 0.000619,
+        "max_seconds": 0.000696,
+        "min_seconds": 0.000552,
+        "samples_seconds": [
+          0.000696,
+          0.000609,
+          0.000552
+        ]
+      },
+      "warmups": 1
+    }
+  ],
+  "protocol": "kernel_matrix_v1",
+  "schema_version": 1,
+  "settings": {
+    "repeats": 3,
+    "report_label": "benchmark_kernels",
+    "warmups": 1,
+    "zig_cpu": "native",
+    "zig_opt_mode": "ReleaseFast"
+  },
+  "settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
+  "status": "ok",
+  "summary": {
+    "avg_seconds": 0.206606555,
+    "failure_count": 0,
+    "kernels": 3,
+    "max_seconds": 0.551711333,
+    "min_seconds": 0.000619
+  },
+  "workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3"
+}

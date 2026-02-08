@@ -1,0 +1,83 @@
+{
+  "benchmark": {
+    "report_path": "vectors/reports/benchmark_smoke_report.json",
+    "settings_hash": "65eb025b01ff6c8fade1ea7a22e0373bb98c42c66065eac04235afa0fd95638d",
+    "summary": {
+      "avg_zig_over_rust_prove": 0.859465,
+      "avg_zig_over_rust_verify": 0.987988,
+      "failure_count": 0,
+      "max_zig_over_rust_prove": 0.861751,
+      "max_zig_over_rust_verify": 1.002025,
+      "workloads": 2
+    },
+    "thresholds": {
+      "conformance_reference": "CONFORMANCE.md Section 9.2",
+      "max_zig_over_rust_ratio": 1.5
+    },
+    "workload_matrix_hash": "02a90f6bfe11089b2433b1643bb499ba42b37f7deb4ecc871739a12b282bac64",
+    "workload_ratios": {
+      "state_machine_default": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 0.861751,
+        "zig_over_rust_verify": 0.973951
+      },
+      "state_machine_medium": {
+        "zig_over_rust_proof_wire_bytes": 1.0,
+        "zig_over_rust_prove": 0.85718,
+        "zig_over_rust_verify": 1.002025
+      }
+    }
+  },
+  "created_at_unix": 1770588041,
+  "git_head_sha": "2a47ea2a0ed0d76838bef2c6b42f96eb00105a0a",
+  "kernels": {
+    "avg_seconds_by_kernel": {
+      "eval_at_point": 0.525738333,
+      "eval_at_point_by_folding": 0.042462667,
+      "fft": 0.000649333
+    },
+    "report_path": "vectors/reports/benchmark_kernels_report.json",
+    "settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
+    "summary": {
+      "avg_seconds": 0.189616778,
+      "failure_count": 0,
+      "kernels": 3,
+      "max_seconds": 0.525738333,
+      "min_seconds": 0.000649333
+    },
+    "workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3"
+  },
+  "profile": {
+    "report_path": "vectors/reports/profile_smoke_report.json",
+    "settings_hash": "cb2378172a74578129bad85d5ded46d3e9fb4304c4fda5eaea561aef1b67c296",
+    "summary": {
+      "avg_seconds_rust": 0.663207,
+      "avg_seconds_zig": 0.110695,
+      "failure_count": 0,
+      "profiles": 4
+    },
+    "workload_matrix_hash": "4fd1b1f8545e1d81857318549755050db5c75296dda09aea4d1e30569591ac0d",
+    "zig_avg_seconds_by_workload": {
+      "state_machine_deep": 0.111062,
+      "xor_deep": 0.110327
+    }
+  },
+  "schema_version": 3,
+  "target_families": {
+    "ratios": {
+      "eval_at_point": {
+        "zig_over_rust_prove": 0.963975,
+        "zig_over_rust_verify": 1.085657
+      },
+      "eval_at_point_by_folding": {
+        "zig_over_rust_prove": 1.212523,
+        "zig_over_rust_verify": 1.069433
+      },
+      "fft": {
+        "zig_over_rust_prove": 1.199749,
+        "zig_over_rust_verify": 1.045542
+      }
+    },
+    "report_path": "vectors/reports/benchmark_full_report.json"
+  }
+}

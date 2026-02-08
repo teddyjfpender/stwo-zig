@@ -197,6 +197,32 @@ fn denominatorInversesInto(
     try batchInverseIntoCM31(denominators, denominator_inverses);
 }
 
+const SamplePointComponents = struct {
+    prx: CM31,
+    pry: CM31,
+    pix: CM31,
+    piy: CM31,
+};
+
+fn denominatorInversesIntoFromComponents(
+    sample_point_components: []const SamplePointComponents,
+    domain_point: CirclePointM31,
+    denominators: []CM31,
+    denominator_inverses: []CM31,
+) !void {
+    if (denominators.len != sample_point_components.len) return error.ShapeMismatch;
+    if (denominator_inverses.len != sample_point_components.len) return error.ShapeMismatch;
+
+    const domain_x = CM31.fromBase(domain_point.x);
+    const domain_y = CM31.fromBase(domain_point.y);
+
+    for (sample_point_components, 0..) |sample, i| {
+        denominators[i] = sample.prx.sub(domain_x).mul(sample.piy).sub(sample.pry.sub(domain_y).mul(sample.pix));
+    }
+
+    try batchInverseIntoCM31(denominators, denominator_inverses);
+}
+
 fn batchInverseIntoCM31(values: []const CM31, out: []CM31) !void {
     if (values.len != out.len) return error.ShapeMismatch;
     if (values.len == 0) return;
@@ -290,22 +316,23 @@ fn accumulateRowQuotientsFromColumns(
     row_idx: usize,
     quotient_constants: *const QuotientConstants,
     domain_point: CirclePointM31,
-    sample_points: []const CirclePointQM31,
+    sample_point_components: []const SamplePointComponents,
     denominator_scratch: []CM31,
     denominator_inverses: []CM31,
 ) !QM31 {
     if (sample_batches.len != quotient_constants.line_coeffs.len) return error.ShapeMismatch;
-    if (sample_points.len != sample_batches.len) return error.ShapeMismatch;
+    if (sample_point_components.len != sample_batches.len) return error.ShapeMismatch;
     if (denominator_scratch.len != sample_batches.len) return error.ShapeMismatch;
     if (denominator_inverses.len != sample_batches.len) return error.ShapeMismatch;
 
-    try denominatorInversesInto(
-        sample_points,
+    try denominatorInversesIntoFromComponents(
+        sample_point_components,
         domain_point,
         denominator_scratch,
         denominator_inverses,
     );
 
+    const domain_y = domain_point.y;
     var row_accumulator = QM31.zero();
     for (sample_batches, 0..) |batch, batch_idx| {
         const line_coeffs = quotient_constants.line_coeffs[batch_idx];
@@ -313,17 +340,25 @@ fn accumulateRowQuotientsFromColumns(
 
         var numerator = QM31.zero();
         for (batch.cols_vals_randpows, 0..) |sample_data, i| {
-            if (sample_data.column_index >= queried_values_flat.len) return error.ColumnIndexOutOfBounds;
             const column_queries = queried_values_flat[sample_data.column_index];
-            if (row_idx >= column_queries.len) return error.ShapeMismatch;
-
             const value = QM31.fromBase(column_queries[row_idx]).mul(line_coeffs[i].c);
-            const linear_term = line_coeffs[i].a.mulM31(domain_point.y).add(line_coeffs[i].b);
+            const linear_term = line_coeffs[i].a.mulM31(domain_y).add(line_coeffs[i].b);
             numerator = numerator.add(value.sub(linear_term));
         }
         row_accumulator = row_accumulator.add(numerator.mulCM31(denominator_inverses[batch_idx]));
     }
     return row_accumulator;
+}
+
+fn validateSampleBatchColumnIndices(
+    sample_batches: []const ColumnSampleBatch,
+    queried_values_cols: usize,
+) !void {
+    for (sample_batches) |batch| {
+        for (batch.cols_vals_randpows) |sample_data| {
+            if (sample_data.column_index >= queried_values_cols) return error.ColumnIndexOutOfBounds;
+        }
+    }
 }
 
 /// Attaches random coefficient powers and periodicity checks to all column samples.
@@ -458,9 +493,18 @@ pub fn friAnswers(
     const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
     const domain_size = domain.size();
 
-    const sample_points = try allocator.alloc(CirclePointQM31, sample_batches.len);
-    defer allocator.free(sample_points);
-    for (sample_batches, 0..) |batch, i| sample_points[i] = batch.point;
+    try validateSampleBatchColumnIndices(sample_batches, queried_values_flat.len);
+
+    const sample_point_components = try allocator.alloc(SamplePointComponents, sample_batches.len);
+    defer allocator.free(sample_point_components);
+    for (sample_batches, 0..) |batch, i| {
+        sample_point_components[i] = .{
+            .prx = batch.point.x.c0,
+            .pry = batch.point.y.c0,
+            .pix = batch.point.x.c1,
+            .piy = batch.point.y.c1,
+        };
+    }
 
     const denominator_scratch = try allocator.alloc(CM31, sample_batches.len);
     defer allocator.free(denominator_scratch);
@@ -477,7 +521,7 @@ pub fn friAnswers(
             row_idx,
             &q_consts,
             domain_point,
-            sample_points,
+            sample_point_components,
             denominator_scratch,
             denominator_inverses,
         );
@@ -758,9 +802,16 @@ test "pcs quotients: zero-copy row accumulation matches row-copy path" {
     const queried_values_flat = try pcs_utils.flatten([]M31, alloc, queried_values);
     defer alloc.free(queried_values_flat);
 
-    const sample_points = try alloc.alloc(CirclePointQM31, sample_batches.len);
-    defer alloc.free(sample_points);
-    for (sample_batches, 0..) |batch, i| sample_points[i] = batch.point;
+    const sample_point_components = try alloc.alloc(SamplePointComponents, sample_batches.len);
+    defer alloc.free(sample_point_components);
+    for (sample_batches, 0..) |batch, i| {
+        sample_point_components[i] = .{
+            .prx = batch.point.x.c0,
+            .pry = batch.point.y.c0,
+            .pix = batch.point.x.c1,
+            .piy = batch.point.y.c1,
+        };
+    }
 
     const denominator_scratch = try alloc.alloc(CM31, sample_batches.len);
     defer alloc.free(denominator_scratch);
@@ -789,7 +840,7 @@ test "pcs quotients: zero-copy row accumulation matches row-copy path" {
             row_idx,
             &q_consts,
             domain_point,
-            sample_points,
+            sample_point_components,
             denominator_scratch,
             denominator_inverses,
         );

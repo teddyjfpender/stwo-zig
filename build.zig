@@ -65,6 +65,11 @@ pub fn build(b: *std.Build) void {
     const bench_smoke_step = b.step("bench-smoke", "Run benchmark smoke harness and emit report");
     bench_smoke_step.dependOn(&bench_smoke_cmd.step);
 
+    // Targeted kernel benchmark gate for eval_at_point/folding/fft hotspots.
+    const bench_kernels_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_kernels.py" });
+    const bench_kernels_step = b.step("bench-kernels", "Run targeted kernel benchmark harness");
+    bench_kernels_step.dependOn(&bench_kernels_cmd.step);
+
     // Benchmark strict gate with medium workloads enabled and stabilized sampling.
     const bench_strict_cmd = b.addSystemCommand(&.{
         "python3",
@@ -165,6 +170,38 @@ pub fn build(b: *std.Build) void {
     const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
     const bench_full_step = b.step("bench-full", "Run full 11-family Rust-vs-Zig benchmark harness");
     bench_full_step.dependOn(&bench_full_cmd.step);
+    const bench_targeted_compare_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/compare_optimization.py",
+        "--baseline",
+        "vectors/reports/optimization_baseline_wave4.json",
+        "--benchmark-report",
+        "vectors/reports/benchmark_smoke_report.json",
+        "--benchmark-full-report",
+        "vectors/reports/benchmark_full_report.json",
+        "--profile-report",
+        "vectors/reports/profile_smoke_report.json",
+        "--kernel-report",
+        "vectors/reports/benchmark_kernels_report.json",
+        "--max-prove-regression-pct",
+        "100.0",
+        "--max-verify-regression-pct",
+        "100.0",
+        "--max-zig-profile-regression-pct",
+        "100.0",
+        "--max-kernel-regression-pct",
+        "100.0",
+        "--max-target-family-regression-pct",
+        "3.0",
+    });
+    bench_targeted_compare_cmd.step.dependOn(&bench_full_cmd.step);
+    bench_targeted_compare_cmd.step.dependOn(&bench_strict_cmd.step);
+    bench_targeted_compare_cmd.step.dependOn(&bench_kernels_cmd.step);
+    const bench_targeted_step = b.step(
+        "bench-targeted-families",
+        "Run full benchmark and block regressions on eval_at_point/eval_at_point_by_folding/fft",
+    );
+    bench_targeted_step.dependOn(&bench_targeted_compare_cmd.step);
     const bench_pages_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_pages.py" });
     bench_pages_cmd.step.dependOn(&bench_full_cmd.step);
     const bench_pages_step = b.step("bench-pages", "Render static benchmark pages assets from committed full benchmark report");
@@ -177,6 +214,7 @@ pub fn build(b: *std.Build) void {
     const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
     const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");
     profile_smoke_step.dependOn(&profile_smoke_cmd.step);
+    bench_targeted_compare_cmd.step.dependOn(&profile_smoke_cmd.step);
 
     // Optimization-track profiling gate (native tuned, non-release-authoritative).
     const profile_opt_cmd = b.addSystemCommand(&.{

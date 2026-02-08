@@ -687,17 +687,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     const fold_count = lifting_log_size - column.log_size;
                     if (tree.coefficients) |coeffs| {
                         const coeff = coeffs[col_idx];
-                        if (fold_count == 0) {
-                            for (points, 0..) |point, i| {
-                                values[i] = coeff.evalAtPoint(point);
-                            }
-                        } else {
-                            for (points, 0..) |point, i| {
-                                values[i] = coeff.evalAtPoint(
-                                    point.repeatedDouble(fold_count),
-                                );
-                            }
-                        }
+                        coeff.evalAtPointsFolded(points, fold_count, values);
                     } else {
                         const evaluation = try prover_circle.CircleEvaluation.init(
                             canonic.CanonicCoset.new(column.log_size).circleDomain(),

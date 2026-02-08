@@ -79,11 +79,35 @@ pub const CircleCoefficients = struct {
             }
         }
 
-        return evalAtPointRecursive(
+        return evalAtPointIterative(
             self.coeffs,
             factors[0..self.log_size],
             self.log_size,
         );
+    }
+
+    pub fn evalAtPointsFolded(
+        self: CircleCoefficients,
+        points: []const CirclePointQM31,
+        fold_count: u32,
+        out: []QM31,
+    ) void {
+        std.debug.assert(points.len == out.len);
+        for (points, 0..) |point, i| {
+            const folded_point = if (fold_count == 0) point else repeatedDoubleOnCircleQM31(point, fold_count);
+            var factors: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
+            factors[0] = folded_point.y;
+            if (self.log_size > 1) {
+                var x = folded_point.x;
+                factors[1] = x;
+                var bit: u32 = 2;
+                while (bit < self.log_size) : (bit += 1) {
+                    x = circle.CirclePoint(QM31).doubleX(x);
+                    factors[bit] = x;
+                }
+            }
+            out[i] = evalAtPointIterative(self.coeffs, factors[0..self.log_size], self.log_size);
+        }
     }
 
     pub fn extend(
@@ -130,8 +154,8 @@ pub const CircleCoefficients = struct {
         if (!domain.half_coset.isDoublingOf(twiddle_tree.root_coset)) return PolyError.InvalidLogSize;
         const values = try allocator.alloc(M31, domain.size());
         errdefer allocator.free(values);
-        @memset(values, M31.zero());
         @memcpy(values[0..self.coeffs.len], self.coeffs);
+        if (self.coeffs.len < values.len) @memset(values[self.coeffs.len..], M31.zero());
 
         const log_size = domain.logSize();
         if (log_size == 1) {
@@ -160,36 +184,35 @@ pub const CircleCoefficients = struct {
             return eval_mod.CircleEvaluation.init(domain, values);
         }
 
-        const line_domain = line_mod.LineDomain.fromCircleDomain(domain);
-        const line_twiddles = poly_utils.domainLineTwiddlesFromTree(
-            M31,
-            allocator,
-            line_domain,
-            twiddle_tree.twiddles,
-        ) catch |err| switch (err) {
-            error.OutOfMemory => return error.OutOfMemory,
-            error.NotEnoughTwiddles => return PolyError.InvalidLogSize,
-        };
-        defer allocator.free(line_twiddles);
-
-        var layer_idx: usize = line_twiddles.len;
+        const line_log_size = domain.half_coset.logSize();
+        const twiddle_len = twiddle_tree.twiddles.len;
+        var layer_idx: u32 = line_log_size;
         while (layer_idx > 0) {
             layer_idx -= 1;
-            const layer_twiddles = line_twiddles[layer_idx];
+            const depth = line_log_size - 1 - layer_idx;
+            const len = @as(usize, 1) << @intCast(depth);
+            const start = twiddle_len - (len * 2);
+            const layer_twiddles = twiddle_tree.twiddles[start .. twiddle_len - len];
             for (layer_twiddles, 0..) |twid, h| {
-                fftLayerLoop(values, @intCast(layer_idx + 1), h, twid, false);
+                fftLayerLoopForwardM31(values, @intCast(layer_idx + 1), h, twid);
             }
         }
 
-        const first_line_twiddles = line_twiddles[0];
-        for (0..values.len / 2) |h| {
-            fftLayerLoop(
-                values,
-                0,
-                h,
-                circleTwiddleFromFirstLine(first_line_twiddles, h),
-                false,
-            );
+        const first_line_len = @as(usize, 1) << @intCast(line_log_size - 1);
+        const first_line_twiddles = twiddle_tree.twiddles[twiddle_len - (first_line_len * 2) .. twiddle_len - first_line_len];
+        var pair_idx: usize = 0;
+        var first_h: usize = 0;
+        const first_half = values.len / 2;
+        while (first_h < first_half) : ({
+            first_h += 4;
+            pair_idx += 1;
+        }) {
+            const x = first_line_twiddles[pair_idx * 2];
+            const y = first_line_twiddles[pair_idx * 2 + 1];
+            fftPairForwardM31(values, first_h, y);
+            fftPairForwardM31(values, first_h + 1, y.neg());
+            fftPairForwardM31(values, first_h + 2, x.neg());
+            fftPairForwardM31(values, first_h + 3, x);
         }
         return eval_mod.CircleEvaluation.init(domain, values);
     }
@@ -301,32 +324,33 @@ pub fn interpolateFromEvaluationWithTwiddles(
         return CircleCoefficients.initOwned(coeffs);
     }
 
-    const line_domain = line_mod.LineDomain.fromCircleDomain(evaluation.domain);
-    const line_itwiddles = poly_utils.domainLineTwiddlesFromTree(
-        M31,
-        allocator,
-        line_domain,
-        twiddle_tree.itwiddles,
-    ) catch |err| switch (err) {
-        error.OutOfMemory => return error.OutOfMemory,
-        error.NotEnoughTwiddles => return PolyError.InvalidLogSize,
-    };
-    defer allocator.free(line_itwiddles);
-
-    const first_line_itwiddles = line_itwiddles[0];
-    for (0..coeffs.len / 2) |h| {
-        fftLayerLoop(
-            coeffs,
-            0,
-            h,
-            circleTwiddleFromFirstLine(first_line_itwiddles, h),
-            true,
-        );
+    const line_log_size = evaluation.domain.half_coset.logSize();
+    const itwiddle_len = twiddle_tree.itwiddles.len;
+    const first_line_len = @as(usize, 1) << @intCast(line_log_size - 1);
+    const first_line_itwiddles = twiddle_tree.itwiddles[itwiddle_len - (first_line_len * 2) .. itwiddle_len - first_line_len];
+    var pair_idx: usize = 0;
+    var first_h: usize = 0;
+    const first_half = coeffs.len / 2;
+    while (first_h < first_half) : ({
+        first_h += 4;
+        pair_idx += 1;
+    }) {
+        const x = first_line_itwiddles[pair_idx * 2];
+        const y = first_line_itwiddles[pair_idx * 2 + 1];
+        fftPairInverseM31(coeffs, first_h, y);
+        fftPairInverseM31(coeffs, first_h + 1, y.neg());
+        fftPairInverseM31(coeffs, first_h + 2, x.neg());
+        fftPairInverseM31(coeffs, first_h + 3, x);
     }
 
-    for (line_itwiddles, 0..) |layer_twiddles, layer_idx| {
+    var layer_idx: u32 = 0;
+    while (layer_idx < line_log_size) : (layer_idx += 1) {
+        const depth = line_log_size - 1 - layer_idx;
+        const len = @as(usize, 1) << @intCast(depth);
+        const start = itwiddle_len - (len * 2);
+        const layer_twiddles = twiddle_tree.itwiddles[start .. itwiddle_len - len];
         for (layer_twiddles, 0..) |twid, h| {
-            fftLayerLoop(coeffs, @intCast(layer_idx + 1), h, twid, true);
+            fftLayerLoopInverseM31(coeffs, @intCast(layer_idx + 1), h, twid);
         }
     }
 
@@ -354,6 +378,32 @@ fn evalAtPointRecursive(
     const left = evalAtPointRecursive(coeffs[0..mid], factors, bits_left - 1);
     const right = evalAtPointRecursive(coeffs[mid..], factors, bits_left - 1);
     return left.add(right.mul(factors[bits_left - 1]));
+}
+
+inline fn evalAtPointIterative(
+    coeffs: []const M31,
+    factors: []const QM31,
+    log_size: u32,
+) QM31 {
+    std.debug.assert(coeffs.len == (@as(usize, 1) << @intCast(log_size)));
+    std.debug.assert(factors.len == log_size);
+
+    if (log_size == 0) return QM31.fromBase(coeffs[0]);
+
+    var pending: [circle.M31_CIRCLE_LOG_ORDER + 1]QM31 = undefined;
+
+    for (coeffs, 0..) |coeff, coeff_idx| {
+        var value = QM31.fromBase(coeff);
+        var level: usize = @as(usize, @intCast(@ctz(~coeff_idx)));
+        if (level > @as(usize, @intCast(log_size))) level = @as(usize, @intCast(log_size));
+        var merge_level: usize = 0;
+        while (merge_level < level) : (merge_level += 1) {
+            value = pending[merge_level].add(value.mul(factors[merge_level]));
+        }
+        pending[level] = value;
+    }
+
+    return pending[log_size];
 }
 
 fn evalAtPointReference(self: CircleCoefficients, point: CirclePointQM31) QM31 {
@@ -395,45 +445,79 @@ fn pointM31IntoQM31(point: circle.CirclePointM31) CirclePointQM31 {
     };
 }
 
-fn circleTwiddleFromFirstLine(
-    first_line_twiddles: []const M31,
-    h: usize,
-) M31 {
-    const pair_idx = h / 4;
-    const pair_off = h % 4;
-    const x = first_line_twiddles[pair_idx * 2];
-    const y = first_line_twiddles[pair_idx * 2 + 1];
-    return switch (pair_off) {
-        0 => y,
-        1 => y.neg(),
-        2 => x.neg(),
-        3 => x,
-        else => unreachable,
-    };
+inline fn repeatedDoubleOnCircleQM31(point: CirclePointQM31, n: u32) CirclePointQM31 {
+    var x = point.x;
+    var y = point.y;
+    var i: u32 = 0;
+    while (i < n) : (i += 1) {
+        const xx = x.square();
+        const xy = x.mul(y);
+        x = xx.add(xx).sub(QM31.one());
+        y = xy.add(xy);
+    }
+    return .{ .x = x, .y = y };
 }
 
-fn fftLayerLoop(
+inline fn fftLayerLoopForwardM31(
     values: []M31,
     i: u32,
     h: usize,
     twid: M31,
-    comptime inverse: bool,
 ) void {
     const half_block: usize = @as(usize, 1) << @intCast(i);
+    const block_start = h << @intCast(i + 1);
+    var idx0 = block_start;
+    var idx1 = block_start + half_block;
     var l: usize = 0;
     while (l < half_block) : (l += 1) {
-        const idx0 = (h << @intCast(i + 1)) + l;
-        const idx1 = idx0 + half_block;
-        var v0 = values[idx0];
-        var v1 = values[idx1];
-        if (inverse) {
-            fft.ibutterfly(M31, &v0, &v1, twid);
-        } else {
-            fft.butterfly(M31, &v0, &v1, twid);
-        }
-        values[idx0] = v0;
-        values[idx1] = v1;
+        const v0 = values[idx0];
+        const v1 = values[idx1];
+        const mul = v1.mul(twid);
+        values[idx0] = v0.add(mul);
+        values[idx1] = v0.sub(mul);
+        idx0 += 1;
+        idx1 += 1;
     }
+}
+
+inline fn fftPairForwardM31(values: []M31, h: usize, twid: M31) void {
+    const idx0 = h << 1;
+    const idx1 = idx0 + 1;
+    const v0 = values[idx0];
+    const v1 = values[idx1];
+    const mul = v1.mul(twid);
+    values[idx0] = v0.add(mul);
+    values[idx1] = v0.sub(mul);
+}
+
+inline fn fftLayerLoopInverseM31(
+    values: []M31,
+    i: u32,
+    h: usize,
+    itwid: M31,
+) void {
+    const half_block: usize = @as(usize, 1) << @intCast(i);
+    const block_start = h << @intCast(i + 1);
+    var idx0 = block_start;
+    var idx1 = block_start + half_block;
+    var l: usize = 0;
+    while (l < half_block) : (l += 1) {
+        const v0 = values[idx0];
+        const v1 = values[idx1];
+        values[idx0] = v0.add(v1);
+        values[idx1] = v0.sub(v1).mul(itwid);
+        idx0 += 1;
+        idx1 += 1;
+    }
+}
+
+inline fn fftPairInverseM31(values: []M31, h: usize, itwid: M31) void {
+    const idx0 = h << 1;
+    const idx1 = idx0 + 1;
+    const v0 = values[idx0];
+    const v1 = values[idx1];
+    values[idx0] = v0.add(v1);
+    values[idx1] = v0.sub(v1).mul(itwid);
 }
 
 test "prover poly circle poly: eval at point for constant polynomial" {
@@ -465,6 +549,44 @@ test "prover poly circle poly: eval at point fast path matches reference" {
             const fast = poly.evalAtPoint(point);
             const reference = evalAtPointReference(poly, point);
             try std.testing.expect(fast.eql(reference));
+        }
+    }
+}
+
+test "prover poly circle poly: eval at point iterative matches recursive oracle" {
+    const alloc = std.testing.allocator;
+    const log_sizes = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
+
+    var prng = std.Random.DefaultPrng.init(0x8a3f_77de_13cc_59e1);
+    const random = prng.random();
+
+    for (log_sizes) |log_size| {
+        const n = @as(usize, 1) << @intCast(log_size);
+        const coeffs = try alloc.alloc(M31, n);
+        defer alloc.free(coeffs);
+        for (coeffs) |*coeff| {
+            coeff.* = M31.fromCanonical(random.intRangeLessThan(u32, 0, m31.Modulus));
+        }
+
+        var sample_idx: usize = 0;
+        while (sample_idx < 24) : (sample_idx += 1) {
+            const point = circle.SECURE_FIELD_CIRCLE_GEN.mul(@as(u64, random.int(u32)) + 29);
+
+            var factors: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
+            factors[0] = point.y;
+            if (log_size > 1) {
+                var x = point.x;
+                factors[1] = x;
+                var bit: u32 = 2;
+                while (bit < log_size) : (bit += 1) {
+                    x = circle.CirclePoint(QM31).doubleX(x);
+                    factors[bit] = x;
+                }
+            }
+
+            const iterative = evalAtPointIterative(coeffs, factors[0..log_size], log_size);
+            const recursive = evalAtPointRecursive(coeffs, factors[0..log_size], log_size);
+            try std.testing.expect(iterative.eql(recursive));
         }
     }
 }

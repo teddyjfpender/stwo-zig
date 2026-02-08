@@ -14,11 +14,34 @@ pub const Error = error{
 pub fn fold(comptime F: type, values: []const F, folding_factors: []const F) F {
     const n = values.len;
     std.debug.assert(n == (@as(usize, 1) << @intCast(folding_factors.len)));
+    if (n == 0) unreachable;
+
+    var pending: [@bitSizeOf(usize) + 1]F = undefined;
+
+    for (values, 0..) |value_raw, value_idx| {
+        var value = value_raw;
+        var level: usize = @as(usize, @intCast(@ctz(~value_idx)));
+        if (level > folding_factors.len) level = folding_factors.len;
+        var merge_level: usize = 0;
+        while (merge_level < level) : (merge_level += 1) {
+            const factor_idx = folding_factors.len - 1 - merge_level;
+            value = pending[merge_level].add(value.mul(folding_factors[factor_idx]));
+        }
+
+        pending[level] = value;
+    }
+
+    return pending[folding_factors.len];
+}
+
+fn foldReference(comptime F: type, values: []const F, folding_factors: []const F) F {
+    const n = values.len;
+    std.debug.assert(n == (@as(usize, 1) << @intCast(folding_factors.len)));
     if (n == 1) return values[0];
 
     const half = n / 2;
-    const lhs = fold(F, values[0..half], folding_factors[1..]);
-    const rhs = fold(F, values[half..], folding_factors[1..]);
+    const lhs = foldReference(F, values[0..half], folding_factors[1..]);
+    const rhs = foldReference(F, values[half..], folding_factors[1..]);
     return lhs.add(rhs.mul(folding_factors[0]));
 }
 
@@ -81,6 +104,28 @@ pub fn domainLineTwiddlesFromTree(
     return out;
 }
 
+/// Returns one line-twiddle layer view in the same order as `domainLineTwiddlesFromTree`.
+///
+/// Preconditions:
+/// - `layer_index < domain.log_size`.
+pub fn domainLineTwiddleLayerFromTree(
+    comptime T: type,
+    domain: line.LineDomain,
+    twiddle_buffer: []const T,
+    layer_index: u32,
+) Error![]const T {
+    if (domain.coset().size() > twiddle_buffer.len) return Error.NotEnoughTwiddles;
+
+    const log_size = domain.coset().logSize();
+    if (layer_index >= log_size) return Error.NotEnoughTwiddles;
+
+    const depth = log_size - 1 - layer_index;
+    const len = @as(usize, 1) << @intCast(depth);
+    const start = twiddle_buffer.len - (len * 2);
+    const end = twiddle_buffer.len - len;
+    return twiddle_buffer[start..end];
+}
+
 test "poly utils: repeat value" {
     const out0 = try repeatValue(u32, std.testing.allocator, &[_]u32{ 1, 2, 3 }, 0);
     defer std.testing.allocator.free(out0);
@@ -110,6 +155,32 @@ test "poly utils: fold basic" {
     const rhs = M31.fromCanonical(3).add(M31.fromCanonical(4).mul(M31.fromCanonical(6)));
     const expected = lhs.add(rhs.mul(M31.fromCanonical(5)));
     try std.testing.expect(got.eql(expected));
+}
+
+test "poly utils: fold iterative matches recursive reference" {
+    const M31 = @import("../fields/m31.zig").M31;
+    var prng = std.Random.DefaultPrng.init(0x44f5_0f0d_3b29_89a7);
+    const random = prng.random();
+
+    const log_sizes = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    for (log_sizes) |log_size| {
+        const n = @as(usize, 1) << @intCast(log_size);
+        const values = try std.testing.allocator.alloc(M31, n);
+        defer std.testing.allocator.free(values);
+        const factors = try std.testing.allocator.alloc(M31, log_size);
+        defer std.testing.allocator.free(factors);
+
+        for (values) |*value| {
+            value.* = M31.fromCanonical(random.intRangeLessThan(u32, 0, @import("../fields/m31.zig").Modulus));
+        }
+        for (factors) |*factor| {
+            factor.* = M31.fromCanonical(random.intRangeLessThan(u32, 1, @import("../fields/m31.zig").Modulus));
+        }
+
+        const got = fold(M31, values, factors);
+        const expected = foldReference(M31, values, factors);
+        try std.testing.expect(got.eql(expected));
+    }
 }
 
 test "poly utils: get folding alphas" {
@@ -145,4 +216,31 @@ test "poly utils: domain line twiddles fails on short buffer" {
         Error.NotEnoughTwiddles,
         domainLineTwiddlesFromTree(u32, std.testing.allocator, domain, &[_]u32{ 0, 1, 2, 3, 4, 5, 6, 7 }),
     );
+}
+
+test "poly utils: domain line twiddle layer view matches allocated layers" {
+    const coset = circle.Coset.halfOdds(4);
+    const domain = try line.LineDomain.init(coset);
+    const twiddle_buffer = [_]u32{
+        0, 1, 2,  3,  4,  5,  6,  7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+    };
+
+    const layers = try domainLineTwiddlesFromTree(
+        u32,
+        std.testing.allocator,
+        domain,
+        twiddle_buffer[0..],
+    );
+    defer std.testing.allocator.free(layers);
+
+    for (layers, 0..) |layer, i| {
+        const view = try domainLineTwiddleLayerFromTree(
+            u32,
+            domain,
+            twiddle_buffer[0..],
+            @intCast(i),
+        );
+        try std.testing.expectEqualSlices(u32, layer, view);
+    }
 }

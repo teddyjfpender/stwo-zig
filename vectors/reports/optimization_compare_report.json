@@ -1,40 +1,74 @@
 {
-  "baseline_path": "vectors/reports/optimization_baseline.json",
+  "baseline_path": "vectors/reports/optimization_baseline_wave4.json",
+  "benchmark_full_report_path": "vectors/reports/benchmark_full_report.json",
   "benchmark_report_path": "vectors/reports/benchmark_smoke_report.json",
   "details": {
-    "baseline_avg_zig_profile_seconds": 0.162681,
+    "baseline_avg_zig_profile_seconds": 0.110695,
     "baseline_benchmark_workload_matrix_hash": "02a90f6bfe11089b2433b1643bb499ba42b37f7deb4ecc871739a12b282bac64",
-    "baseline_max_zig_over_rust_prove": 1.009229,
-    "baseline_max_zig_over_rust_verify": 0.990404,
+    "baseline_kernel_settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
+    "baseline_kernel_workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3",
+    "baseline_max_zig_over_rust_prove": 0.861751,
+    "baseline_max_zig_over_rust_verify": 1.002025,
     "baseline_profile_workload_matrix_hash": "4fd1b1f8545e1d81857318549755050db5c75296dda09aea4d1e30569591ac0d",
-    "current_avg_zig_profile_seconds": 0.148922,
+    "current_avg_zig_profile_seconds": 0.171253,
     "current_benchmark_workload_matrix_hash": "02a90f6bfe11089b2433b1643bb499ba42b37f7deb4ecc871739a12b282bac64",
-    "current_max_zig_over_rust_prove": 0.853958,
-    "current_max_zig_over_rust_verify": 0.972171,
+    "current_kernel_settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
+    "current_kernel_workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3",
+    "current_max_zig_over_rust_prove": 0.924705,
+    "current_max_zig_over_rust_verify": 0.975226,
     "current_profile_workload_matrix_hash": "4fd1b1f8545e1d81857318549755050db5c75296dda09aea4d1e30569591ac0d",
-    "per_workload_deltas": {
-      "state_machine_default": {
-        "prove_delta_pct": -15.385111,
-        "verify_delta_pct": -3.381145
+    "kernel_regression_pct_max": 58.938046,
+    "per_kernel_deltas": {
+      "eval_at_point": 4.94029,
+      "eval_at_point_by_folding": 58.938046,
+      "fft": -4.671409
+    },
+    "per_target_family_deltas": {
+      "eval_at_point": {
+        "prove_delta_pct": -5.80959,
+        "verify_delta_pct": 3.49429
       },
-      "state_machine_medium": {
-        "prove_delta_pct": 1.139144,
-        "verify_delta_pct": 1.428831
+      "eval_at_point_by_folding": {
+        "prove_delta_pct": -8.082898,
+        "verify_delta_pct": -1.49425
+      },
+      "fft": {
+        "prove_delta_pct": -5.071061,
+        "verify_delta_pct": 2.61759
       }
     },
-    "prove_improvement_pct": 15.385111,
-    "prove_regression_pct": 0.0,
+    "per_workload_deltas": {
+      "state_machine_default": {
+        "prove_delta_pct": 7.305359,
+        "verify_delta_pct": -0.590995
+      },
+      "state_machine_medium": {
+        "prove_delta_pct": -8.107982,
+        "verify_delta_pct": -2.674484
+      }
+    },
+    "prove_improvement_pct": -7.305359,
+    "prove_regression_pct": 7.305359,
+    "target_family_regression_pct_max": 0.0,
     "verify_regression_pct": 0.0,
-    "zig_profile_regression_pct": 0.0
+    "zig_profile_regression_pct": 54.707078
   },
   "failures": [],
+  "kernel_report_path": "vectors/reports/benchmark_kernels_report.json",
   "params": {
-    "max_prove_regression_pct": 1.0,
-    "max_verify_regression_pct": 5.0,
-    "max_zig_profile_regression_pct": 5.0,
-    "require_prove_improvement_pct": 0.0
+    "max_kernel_regression_pct": 100.0,
+    "max_prove_regression_pct": 100.0,
+    "max_target_family_regression_pct": 3.0,
+    "max_verify_regression_pct": 100.0,
+    "max_zig_profile_regression_pct": 100.0,
+    "require_prove_improvement_pct": 0.0,
+    "target_families": [
+      "eval_at_point",
+      "eval_at_point_by_folding",
+      "fft"
+    ]
   },
   "profile_report_path": "vectors/reports/profile_smoke_report.json",
-  "schema_version": 1,
+  "schema_version": 2,
   "status": "ok"
 }
