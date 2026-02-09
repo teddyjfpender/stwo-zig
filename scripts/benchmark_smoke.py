@@ -351,6 +351,7 @@ def benchmark_runtime(
     repeats: int,
     zig_blake2_backend: str,
     merkle_workers: Optional[int],
+    merkle_pool_reuse: bool,
 ) -> Dict[str, Any]:
     prefix = runtime_cmd(runtime)
     artifact_path = ARTIFACT_DIR / f"{runtime}_{workload['name']}.json"
@@ -359,11 +360,15 @@ def benchmark_runtime(
         if runtime == "zig"
         else []
     )
-    runtime_env = (
-        {"STWO_ZIG_MERKLE_WORKERS": str(merkle_workers)}
-        if runtime == "zig" and merkle_workers is not None
-        else None
-    )
+    runtime_env: Optional[Dict[str, str]] = None
+    if runtime == "zig":
+        runtime_env = {}
+        if merkle_workers is not None:
+            runtime_env["STWO_ZIG_MERKLE_WORKERS"] = str(merkle_workers)
+        if merkle_pool_reuse:
+            runtime_env["STWO_ZIG_MERKLE_POOL_REUSE"] = "1"
+        if not runtime_env:
+            runtime_env = None
 
     generate_cmd = (
         prefix
@@ -442,6 +447,11 @@ def main() -> int:
         help="Optional STWO_ZIG_MERKLE_WORKERS override for Zig runtime benchmark runs.",
     )
     parser.add_argument(
+        "--merkle-pool-reuse",
+        action="store_true",
+        help="Enable STWO_ZIG_MERKLE_POOL_REUSE=1 for Zig runtime benchmark runs.",
+    )
+    parser.add_argument(
         "--report-label",
         default="benchmark_smoke",
         help="Logical label used in emitted report metadata.",
@@ -494,6 +504,7 @@ def main() -> int:
             repeats=args.repeats,
             zig_blake2_backend=args.blake2_backend,
             merkle_workers=args.merkle_workers,
+            merkle_pool_reuse=args.merkle_pool_reuse,
         )
         zig = benchmark_runtime(
             runtime="zig",
@@ -502,6 +513,7 @@ def main() -> int:
             repeats=args.repeats,
             zig_blake2_backend=args.blake2_backend,
             merkle_workers=args.merkle_workers,
+            merkle_pool_reuse=args.merkle_pool_reuse,
         )
 
         prove_ratio = ratio(zig["prove"]["avg_seconds"], rust["prove"]["avg_seconds"])
@@ -524,6 +536,28 @@ def main() -> int:
         if rust["proof_metrics"]["decommitments_count"] != zig["proof_metrics"]["decommitments_count"]:
             failures.append(f"{workload['name']} decommitments_count mismatch")
 
+        prove_rss_ratio: Optional[float] = None
+        rust_prove_rss = rust["prove"].get("rss_peak_kb")
+        zig_prove_rss = zig["prove"].get("rss_peak_kb")
+        if rust_prove_rss is not None and zig_prove_rss is not None:
+            prove_rss_ratio = ratio(float(zig_prove_rss), float(rust_prove_rss))
+
+        verify_rss_ratio: Optional[float] = None
+        rust_verify_rss = rust["verify"].get("rss_peak_kb")
+        zig_verify_rss = zig["verify"].get("rss_peak_kb")
+        if rust_verify_rss is not None and zig_verify_rss is not None:
+            verify_rss_ratio = ratio(float(zig_verify_rss), float(rust_verify_rss))
+
+        ratios_payload: Dict[str, float] = {
+            "zig_over_rust_prove": round(prove_ratio, 6),
+            "zig_over_rust_verify": round(verify_ratio, 6),
+            "zig_over_rust_proof_wire_bytes": round(proof_size_ratio, 6),
+        }
+        if prove_rss_ratio is not None:
+            ratios_payload["zig_over_rust_peak_rss_kb"] = round(prove_rss_ratio, 6)
+        if verify_rss_ratio is not None:
+            ratios_payload["zig_over_rust_verify_peak_rss_kb"] = round(verify_rss_ratio, 6)
+
         workloads_report.append(
             {
                 "name": workload["name"],
@@ -531,16 +565,17 @@ def main() -> int:
                 "params": workload["args"],
                 "rust": rust,
                 "zig": zig,
-                "ratios": {
-                    "zig_over_rust_prove": round(prove_ratio, 6),
-                    "zig_over_rust_verify": round(verify_ratio, 6),
-                    "zig_over_rust_proof_wire_bytes": round(proof_size_ratio, 6),
-                },
+                "ratios": ratios_payload,
             }
         )
 
     prove_ratios = [w["ratios"]["zig_over_rust_prove"] for w in workloads_report]
     verify_ratios = [w["ratios"]["zig_over_rust_verify"] for w in workloads_report]
+    prove_rss_ratios = [
+        w["ratios"]["zig_over_rust_peak_rss_kb"]
+        for w in workloads_report
+        if "zig_over_rust_peak_rss_kb" in w["ratios"]
+    ]
     status = "ok" if not failures else "failed"
 
     workload_tier = "base_only"
@@ -570,6 +605,8 @@ def main() -> int:
     }
     if args.merkle_workers is not None:
         settings["merkle_workers"] = args.merkle_workers
+    if args.merkle_pool_reuse:
+        settings["merkle_pool_reuse"] = True
     if args.include_large:
         settings["include_large"] = True
     if args.include_long:
@@ -611,6 +648,10 @@ def main() -> int:
             else 0.0,
             "avg_zig_over_rust_verify": round(sum(verify_ratios) / len(verify_ratios), 6)
             if verify_ratios
+            else 0.0,
+            "max_zig_over_rust_peak_rss_kb": max(prove_rss_ratios) if prove_rss_ratios else 0.0,
+            "avg_zig_over_rust_peak_rss_kb": round(sum(prove_rss_ratios) / len(prove_rss_ratios), 6)
+            if prove_rss_ratios
             else 0.0,
             "failure_count": len(failures),
         },

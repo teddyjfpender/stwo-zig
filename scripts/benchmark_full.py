@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import shutil
@@ -260,13 +261,22 @@ WORKLOADS: dict[str, dict[str, Any]] = {
 }
 
 
-def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+def merged_env(extra_env: dict[str, str] | None) -> dict[str, str] | None:
+    if not extra_env:
+        return None
+    env = dict(os.environ)
+    env.update(extra_env)
+    return env
+
+
+def run(cmd: list[str], env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=ROOT,
         text=True,
         capture_output=True,
         check=False,
+        env=merged_env(env),
     )
 
 
@@ -277,7 +287,10 @@ def maxrss_to_kb(raw_maxrss: int) -> int:
     return raw_maxrss
 
 
-def run_timed(cmd: list[str]) -> tuple[subprocess.CompletedProcess[str], int | None]:
+def run_timed(
+    cmd: list[str],
+    env: dict[str, str] | None = None,
+) -> tuple[subprocess.CompletedProcess[str], int | None]:
     if TIME_BIN.exists():
         proc = subprocess.run(
             [str(TIME_BIN), "-l", *cmd],
@@ -285,11 +298,12 @@ def run_timed(cmd: list[str]) -> tuple[subprocess.CompletedProcess[str], int | N
             text=True,
             capture_output=True,
             check=False,
+            env=merged_env(env),
         )
         match = RSS_RE.search(proc.stderr)
         peak_rss_kb = maxrss_to_kb(int(match.group(1))) if match else None
         return proc, peak_rss_kb
-    proc = run(cmd)
+    proc = run(cmd, env=env)
     return proc, None
 
 
@@ -360,6 +374,8 @@ def bench_runtime(
     workload: dict[str, Any],
     warmups: int,
     repeats: int,
+    merkle_workers: int | None,
+    merkle_pool_reuse: bool,
 ) -> dict[str, Any]:
     artifact = ARTIFACT_DIR / f"{runtime}_{family}.json"
     binary = str(RUST_BIN if runtime == "rust" else ZIG_BIN)
@@ -381,7 +397,18 @@ def bench_runtime(
         str(repeats),
     ] + [str(arg) for arg in workload["args"]]
 
-    proc, peak_rss_kb = run_timed(cmd)
+    runtime_env: dict[str, str] | None = None
+    if runtime == "zig":
+        runtime_env = {}
+        if merkle_workers is not None:
+            runtime_env["STWO_ZIG_MERKLE_WORKERS"] = str(merkle_workers)
+        if merkle_pool_reuse:
+            runtime_env["STWO_ZIG_MERKLE_POOL_REUSE"] = "1"
+        if not runtime_env:
+            runtime_env = None
+
+    proc, peak_rss_kb = run_timed(cmd, env=runtime_env)
+
     if proc.returncode != 0:
         raise RuntimeError(
             f"{runtime} bench failed for family '{family}'\n"
@@ -402,6 +429,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-zig-over-rust", type=float, default=10.0)
     parser.add_argument(
+        "--merkle-workers",
+        type=int,
+        default=None,
+        help="Optional STWO_ZIG_MERKLE_WORKERS override for Zig runtime runs.",
+    )
+    parser.add_argument(
+        "--merkle-pool-reuse",
+        action="store_true",
+        help="Enable STWO_ZIG_MERKLE_POOL_REUSE=1 for Zig runtime runs.",
+    )
+    parser.add_argument(
         "--check-families",
         action="store_true",
         help="Validate family registry only (no benchmark execution).",
@@ -417,6 +455,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.merkle_workers is not None and args.merkle_workers <= 0:
+        raise ValueError("--merkle-workers must be positive when provided")
 
     runner_families = list_runner_families()
     if runner_families != UPSTREAM_FAMILIES:
@@ -444,6 +484,8 @@ def main() -> int:
             workload=workload,
             warmups=args.warmups,
             repeats=args.repeats,
+            merkle_workers=args.merkle_workers,
+            merkle_pool_reuse=args.merkle_pool_reuse,
         )
         zig = bench_runtime(
             runtime="zig",
@@ -451,6 +493,8 @@ def main() -> int:
             workload=workload,
             warmups=args.warmups,
             repeats=args.repeats,
+            merkle_workers=args.merkle_workers,
+            merkle_pool_reuse=args.merkle_pool_reuse,
         )
 
         prove_ratio = ratio(
@@ -517,6 +561,8 @@ def main() -> int:
             "repeats": args.repeats,
             "rust_toolchain": args.rust_toolchain,
             "max_zig_over_rust": args.max_zig_over_rust,
+            "merkle_workers": args.merkle_workers,
+            "merkle_pool_reuse": args.merkle_pool_reuse,
         },
         "summary": {
             "families": len(families_report),

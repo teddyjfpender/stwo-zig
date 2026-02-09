@@ -120,10 +120,17 @@ def workload_ratios(report: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
     for workload in report.get("workloads", []):
         name = str(workload.get("name", "unknown"))
         ratios = workload.get("ratios", {})
+        prove_rss_ratio = ratios.get("zig_over_rust_peak_rss_kb")
+        if prove_rss_ratio is None:
+            rust_prove = (((workload.get("rust", {}) or {}).get("prove", {}) or {}).get("rss_peak_kb"))
+            zig_prove = (((workload.get("zig", {}) or {}).get("prove", {}) or {}).get("rss_peak_kb"))
+            if rust_prove not in (None, 0) and zig_prove is not None:
+                prove_rss_ratio = float(zig_prove) / float(rust_prove)
         out[name] = {
             "zig_over_rust_prove": float(ratios.get("zig_over_rust_prove", 0.0)),
             "zig_over_rust_verify": float(ratios.get("zig_over_rust_verify", 0.0)),
             "zig_over_rust_proof_wire_bytes": float(ratios.get("zig_over_rust_proof_wire_bytes", 0.0)),
+            "zig_over_rust_peak_rss_kb": float(prove_rss_ratio) if prove_rss_ratio is not None else 0.0,
         }
     return out
 
@@ -136,6 +143,7 @@ def benchmark_family_ratios(report: Dict[str, Any]) -> Dict[str, Dict[str, float
         out[family_name] = {
             "zig_over_rust_prove": float(ratios.get("zig_over_rust_prove", 0.0)),
             "zig_over_rust_verify": float(ratios.get("zig_over_rust_verify", 0.0)),
+            "zig_over_rust_peak_rss_kb": float(ratios.get("zig_over_rust_peak_rss_kb", 0.0)),
         }
     return out
 
@@ -196,7 +204,7 @@ def capture_baseline(
         raise CompareError("profile report missing settings_hash")
 
     baseline = {
-        "schema_version": 3,
+        "schema_version": 4,
         "created_at_unix": int(time.time()),
         "git_head_sha": run_capture(["git", "rev-parse", "HEAD"]),
         "benchmark": {
@@ -253,9 +261,11 @@ def evaluate_comparison(
     require_prove_improvement_pct: float,
     max_prove_regression_pct: float,
     max_verify_regression_pct: float,
+    max_rss_regression_pct: float,
     max_zig_profile_regression_pct: float,
     max_kernel_regression_pct: float,
     max_target_family_regression_pct: float,
+    max_target_family_rss_regression_pct: float,
 ) -> Tuple[str, list[str], Dict[str, Any]]:
     failures: list[str] = []
 
@@ -287,12 +297,32 @@ def evaluate_comparison(
 
     base_max_prove = float(base_summary.get("max_zig_over_rust_prove", 0.0))
     base_max_verify = float(base_summary.get("max_zig_over_rust_verify", 0.0))
+    base_max_rss = float(base_summary.get("max_zig_over_rust_peak_rss_kb", 0.0))
     curr_max_prove = float(curr_summary.get("max_zig_over_rust_prove", 0.0))
     curr_max_verify = float(curr_summary.get("max_zig_over_rust_verify", 0.0))
+    curr_max_rss = float(curr_summary.get("max_zig_over_rust_peak_rss_kb", 0.0))
+
+    if base_max_rss == 0.0:
+        base_max_rss = max(
+            (
+                float((ratios or {}).get("zig_over_rust_peak_rss_kb", 0.0))
+                for ratios in (baseline_bench.get("workload_ratios", {}) or {}).values()
+            ),
+            default=0.0,
+        )
+    if curr_max_rss == 0.0:
+        curr_max_rss = max(
+            (
+                float((ratios or {}).get("zig_over_rust_peak_rss_kb", 0.0))
+                for ratios in workload_ratios(benchmark_report).values()
+            ),
+            default=0.0,
+        )
 
     prove_improvement_pct = -pct_delta(base_max_prove, curr_max_prove)
     prove_regression_pct = max(pct_delta(base_max_prove, curr_max_prove), 0.0)
     verify_regression_pct = max(pct_delta(base_max_verify, curr_max_verify), 0.0)
+    rss_regression_pct = max(pct_delta(base_max_rss, curr_max_rss), 0.0)
 
     if prove_regression_pct > max_prove_regression_pct:
         failures.append(
@@ -301,6 +331,10 @@ def evaluate_comparison(
     if verify_regression_pct > max_verify_regression_pct:
         failures.append(
             f"verify regression {verify_regression_pct:.4f}% exceeds {max_verify_regression_pct:.4f}%"
+        )
+    if rss_regression_pct > max_rss_regression_pct:
+        failures.append(
+            f"rss regression {rss_regression_pct:.4f}% exceeds {max_rss_regression_pct:.4f}%"
         )
     if require_prove_improvement_pct > 0.0 and prove_improvement_pct < require_prove_improvement_pct:
         failures.append(
@@ -335,6 +369,13 @@ def evaluate_comparison(
                 pct_delta(
                     float(base_ratios.get("zig_over_rust_verify", 0.0)),
                     float(current_ratios.get("zig_over_rust_verify", 0.0)),
+                ),
+                6,
+            ),
+            "rss_delta_pct": round(
+                pct_delta(
+                    float(base_ratios.get("zig_over_rust_peak_rss_kb", 0.0)),
+                    float(current_ratios.get("zig_over_rust_peak_rss_kb", 0.0)),
                 ),
                 6,
             ),
@@ -378,6 +419,7 @@ def evaluate_comparison(
                 )
 
     target_family_regression_pct_max = 0.0
+    target_family_rss_regression_pct_max = 0.0
     per_target_family_deltas: Dict[str, Dict[str, float]] = {}
     if baseline_target_families:
         if benchmark_full_report is None:
@@ -399,19 +441,34 @@ def evaluate_comparison(
                     float(base_ratios.get("zig_over_rust_verify", 0.0)),
                     float(current_ratios.get("zig_over_rust_verify", 0.0)),
                 )
+                rss_delta = pct_delta(
+                    float(base_ratios.get("zig_over_rust_peak_rss_kb", 0.0)),
+                    float(current_ratios.get("zig_over_rust_peak_rss_kb", 0.0)),
+                )
                 per_target_family_deltas[family_key] = {
                     "prove_delta_pct": round(prove_delta, 6),
                     "verify_delta_pct": round(verify_delta, 6),
+                    "rss_delta_pct": round(rss_delta, 6),
                 }
                 target_family_regression_pct_max = max(
                     target_family_regression_pct_max,
                     max(prove_delta, 0.0),
+                )
+                target_family_rss_regression_pct_max = max(
+                    target_family_rss_regression_pct_max,
+                    max(rss_delta, 0.0),
                 )
             if target_family_regression_pct_max > max_target_family_regression_pct:
                 failures.append(
                     "target family regression "
                     f"{target_family_regression_pct_max:.4f}% exceeds "
                     f"{max_target_family_regression_pct:.4f}%"
+                )
+            if target_family_rss_regression_pct_max > max_target_family_rss_regression_pct:
+                failures.append(
+                    "target family rss regression "
+                    f"{target_family_rss_regression_pct_max:.4f}% exceeds "
+                    f"{max_target_family_rss_regression_pct:.4f}%"
                 )
 
     details = {
@@ -427,14 +484,18 @@ def evaluate_comparison(
         "current_max_zig_over_rust_prove": curr_max_prove,
         "baseline_max_zig_over_rust_verify": base_max_verify,
         "current_max_zig_over_rust_verify": curr_max_verify,
+        "baseline_max_zig_over_rust_peak_rss_kb": base_max_rss,
+        "current_max_zig_over_rust_peak_rss_kb": curr_max_rss,
         "prove_improvement_pct": round(prove_improvement_pct, 6),
         "prove_regression_pct": round(prove_regression_pct, 6),
         "verify_regression_pct": round(verify_regression_pct, 6),
+        "rss_regression_pct": round(rss_regression_pct, 6),
         "baseline_avg_zig_profile_seconds": base_zig_avg,
         "current_avg_zig_profile_seconds": curr_zig_avg,
         "zig_profile_regression_pct": round(zig_profile_regression_pct, 6),
         "kernel_regression_pct_max": round(kernel_regression_pct_max, 6),
         "target_family_regression_pct_max": round(target_family_regression_pct_max, 6),
+        "target_family_rss_regression_pct_max": round(target_family_rss_regression_pct_max, 6),
         "per_workload_deltas": per_workload_deltas,
         "per_kernel_deltas": per_kernel_deltas,
         "per_target_family_deltas": per_target_family_deltas,
@@ -451,12 +512,14 @@ def run_self_test() -> None:
             "summary": {
                 "max_zig_over_rust_prove": 1.50,
                 "max_zig_over_rust_verify": 1.20,
+                "max_zig_over_rust_peak_rss_kb": 1.50,
             },
             "workload_ratios": {
                 "w": {
                     "zig_over_rust_prove": 1.50,
                     "zig_over_rust_verify": 1.20,
                     "zig_over_rust_proof_wire_bytes": 1.0,
+                    "zig_over_rust_peak_rss_kb": 1.50,
                 }
             },
         },
@@ -473,6 +536,7 @@ def run_self_test() -> None:
         "summary": {
             "max_zig_over_rust_prove": 1.40,
             "max_zig_over_rust_verify": 1.19,
+            "max_zig_over_rust_peak_rss_kb": 1.30,
         },
         "workloads": [
             {
@@ -481,6 +545,7 @@ def run_self_test() -> None:
                     "zig_over_rust_prove": 1.40,
                     "zig_over_rust_verify": 1.19,
                     "zig_over_rust_proof_wire_bytes": 1.0,
+                    "zig_over_rust_peak_rss_kb": 1.30,
                 },
             }
         ],
@@ -504,9 +569,11 @@ def run_self_test() -> None:
         require_prove_improvement_pct=2.0,
         max_prove_regression_pct=0.0,
         max_verify_regression_pct=0.0,
+        max_rss_regression_pct=0.0,
         max_zig_profile_regression_pct=0.0,
         max_kernel_regression_pct=0.0,
         max_target_family_regression_pct=0.0,
+        max_target_family_rss_regression_pct=0.0,
     )
     if status != "ok" or failures:
         raise CompareError("self-test failed to accept improved run")
@@ -515,6 +582,7 @@ def run_self_test() -> None:
     regressed_bench["summary"] = {
         "max_zig_over_rust_prove": 1.60,
         "max_zig_over_rust_verify": 1.30,
+        "max_zig_over_rust_peak_rss_kb": 1.80,
     }
     regressed_bench["workloads"] = [
         {
@@ -523,6 +591,7 @@ def run_self_test() -> None:
                 "zig_over_rust_prove": 1.60,
                 "zig_over_rust_verify": 1.30,
                 "zig_over_rust_proof_wire_bytes": 1.0,
+                "zig_over_rust_peak_rss_kb": 1.80,
             },
         }
     ]
@@ -536,9 +605,11 @@ def run_self_test() -> None:
         require_prove_improvement_pct=0.0,
         max_prove_regression_pct=0.0,
         max_verify_regression_pct=0.0,
+        max_rss_regression_pct=0.0,
         max_zig_profile_regression_pct=0.0,
         max_kernel_regression_pct=0.0,
         max_target_family_regression_pct=0.0,
+        max_target_family_rss_regression_pct=0.0,
     )
     if status != "failed" or not failures:
         raise CompareError("self-test failed to detect regression")
@@ -572,9 +643,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--require-prove-improvement-pct", type=float, default=0.0)
     parser.add_argument("--max-prove-regression-pct", type=float, default=0.0)
     parser.add_argument("--max-verify-regression-pct", type=float, default=0.0)
+    parser.add_argument("--max-rss-regression-pct", type=float, default=0.0)
     parser.add_argument("--max-zig-profile-regression-pct", type=float, default=0.0)
     parser.add_argument("--max-kernel-regression-pct", type=float, default=5.0)
     parser.add_argument("--max-target-family-regression-pct", type=float, default=0.0)
+    parser.add_argument("--max-target-family-rss-regression-pct", type=float, default=0.0)
     parser.add_argument(
         "--target-families",
         default=TARGET_FAMILY_DEFAULTS,
@@ -635,9 +708,11 @@ def main() -> int:
         require_prove_improvement_pct=args.require_prove_improvement_pct,
         max_prove_regression_pct=args.max_prove_regression_pct,
         max_verify_regression_pct=args.max_verify_regression_pct,
+        max_rss_regression_pct=args.max_rss_regression_pct,
         max_zig_profile_regression_pct=args.max_zig_profile_regression_pct,
         max_kernel_regression_pct=args.max_kernel_regression_pct,
         max_target_family_regression_pct=args.max_target_family_regression_pct,
+        max_target_family_rss_regression_pct=args.max_target_family_rss_regression_pct,
     )
 
     report = {
@@ -652,9 +727,11 @@ def main() -> int:
             "require_prove_improvement_pct": args.require_prove_improvement_pct,
             "max_prove_regression_pct": args.max_prove_regression_pct,
             "max_verify_regression_pct": args.max_verify_regression_pct,
+            "max_rss_regression_pct": args.max_rss_regression_pct,
             "max_zig_profile_regression_pct": args.max_zig_profile_regression_pct,
             "max_kernel_regression_pct": args.max_kernel_regression_pct,
             "max_target_family_regression_pct": args.max_target_family_regression_pct,
+            "max_target_family_rss_regression_pct": args.max_target_family_rss_regression_pct,
             "target_families": target_families,
         },
         "details": details,

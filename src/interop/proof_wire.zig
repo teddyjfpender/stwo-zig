@@ -69,6 +69,21 @@ pub fn encodeProofBytes(allocator: std.mem.Allocator, proof: Proof) ![]u8 {
     return std.json.Stringify.valueAlloc(allocator, wire, .{});
 }
 
+/// Encodes a Stark proof directly to hex JSON-wire bytes without allocating an
+/// intermediate raw byte buffer.
+pub fn encodeProofHexAlloc(allocator: std.mem.Allocator, proof: Proof) ![]u8 {
+    const bytes = try encodeProofBytes(allocator, proof);
+    defer allocator.free(bytes);
+
+    const out = try allocator.alloc(u8, bytes.len * 2);
+    const alphabet = "0123456789abcdef";
+    for (bytes, 0..) |byte, i| {
+        out[2 * i] = alphabet[byte >> 4];
+        out[2 * i + 1] = alphabet[byte & 0x0f];
+    }
+    return out;
+}
+
 /// Decodes wire bytes into a Stark proof with owned allocations.
 pub fn decodeProofBytes(allocator: std.mem.Allocator, encoded: []const u8) !Proof {
     const parsed = try std.json.parseFromSlice(ProofWire, allocator, encoded, .{

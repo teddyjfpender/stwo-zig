@@ -1,6 +1,6 @@
 {
   "failures": [],
-  "generated_at_unix": 1770576311,
+  "generated_at_unix": 1770637137,
   "protocol": "matched_workload_matrix_v1",
   "schema_version": 2,
   "settings": {
@@ -19,11 +19,13 @@
   "settings_hash": "843396328255863c0d9149efb8fd3a30aa70e837a753ceb7a4c13ede825bd7ff",
   "status": "ok",
   "summary": {
-    "avg_zig_over_rust_prove": 0.889111,
-    "avg_zig_over_rust_verify": 1.009916,
+    "avg_zig_over_rust_peak_rss_kb": 0.87241,
+    "avg_zig_over_rust_prove": 0.938172,
+    "avg_zig_over_rust_verify": 1.065856,
     "failure_count": 0,
-    "max_zig_over_rust_prove": 0.912105,
-    "max_zig_over_rust_verify": 1.01337,
+    "max_zig_over_rust_peak_rss_kb": 0.875969,
+    "max_zig_over_rust_prove": 1.0822,
+    "max_zig_over_rust_verify": 1.176977,
     "workloads": 2
   },
   "thresholds": {
@@ -44,9 +46,11 @@
         "1"
       ],
       "ratios": {
+        "zig_over_rust_peak_rss_kb": 0.868852,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.912105,
-        "zig_over_rust_verify": 1.01337
+        "zig_over_rust_prove": 1.0822,
+        "zig_over_rust_verify": 1.176977,
+        "zig_over_rust_verify_peak_rss_kb": 0.893805
       },
       "rust": {
         "artifact": "vectors/.bench_artifacts/rust_state_machine_default.json",
@@ -62,7 +66,7 @@
           "trace_decommit_hashes": 39
         },
         "prove": {
-          "avg_seconds": 0.003891,
+          "avg_seconds": 0.003455,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -86,115 +90,115 @@
             "--sm-initial-1",
             "1"
           ],
-          "max_seconds": 0.004366,
-          "min_seconds": 0.003541,
+          "max_seconds": 0.003888,
+          "min_seconds": 0.003135,
           "name": "rust_state_machine_default_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.122702
+              "peak_rss_kb": 1952,
+              "seconds": 0.129487
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.005092
+              "peak_rss_kb": 1952,
+              "seconds": 0.004701
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.004285
+              "peak_rss_kb": 1952,
+              "seconds": 0.00403
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.004058
+              "peak_rss_kb": 1952,
+              "seconds": 0.003888
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.003541
+              "peak_rss_kb": 1952,
+              "seconds": 0.003444
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.004276
+              "peak_rss_kb": 1952,
+              "seconds": 0.003603
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.003711
+              "peak_rss_kb": 1952,
+              "seconds": 0.003376
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.003683
+              "peak_rss_kb": 1952,
+              "seconds": 0.0036
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.003877
+              "peak_rss_kb": 1952,
+              "seconds": 0.003353
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2080768,
-              "seconds": 0.003626
+              "peak_rss_kb": 1952,
+              "seconds": 0.003135
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.004366
+              "peak_rss_kb": 1952,
+              "seconds": 0.003373
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2064384,
-              "seconds": 0.004098
+              "peak_rss_kb": 1952,
+              "seconds": 0.003242
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.00365
+              "peak_rss_kb": 1952,
+              "seconds": 0.003724
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1998848,
-              "seconds": 0.003911
+              "peak_rss_kb": 1952,
+              "seconds": 0.003268
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 2012253.09,
-          "rss_peak_kb": 2080768,
+          "rss_avg_kb": 1952.0,
+          "rss_peak_kb": 1952,
           "rss_samples_kb": [
-            1998848,
-            1998848,
-            1998848,
-            1998848,
-            1998848,
-            1998848,
-            2080768,
-            1998848,
-            2064384,
-            1998848,
-            1998848
+            1952,
+            1952,
+            1952,
+            1952,
+            1952,
+            1952,
+            1952,
+            1952,
+            1952,
+            1952,
+            1952
           ],
           "samples_seconds": [
-            0.004058,
-            0.003541,
-            0.004276,
-            0.003711,
-            0.003683,
-            0.003877,
-            0.003626,
-            0.004366,
-            0.004098,
-            0.00365,
-            0.003911
+            0.003888,
+            0.003444,
+            0.003603,
+            0.003376,
+            0.0036,
+            0.003353,
+            0.003135,
+            0.003373,
+            0.003242,
+            0.003724,
+            0.003268
           ],
           "warmups": 3
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.003291,
+          "avg_seconds": 0.002554,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -202,109 +206,109 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_state_machine_default.json"
           ],
-          "max_seconds": 0.00384,
-          "min_seconds": 0.003004,
+          "max_seconds": 0.003166,
+          "min_seconds": 0.002271,
           "name": "rust_state_machine_default_verify",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003617
+              "peak_rss_kb": 1808,
+              "seconds": 0.002867
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003205
+              "peak_rss_kb": 1808,
+              "seconds": 0.002718
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003625
+              "peak_rss_kb": 1808,
+              "seconds": 0.002682
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003004
+              "peak_rss_kb": 1808,
+              "seconds": 0.002625
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003606
+              "peak_rss_kb": 1808,
+              "seconds": 0.003166
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003414
+              "peak_rss_kb": 1808,
+              "seconds": 0.002727
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003069
+              "peak_rss_kb": 1808,
+              "seconds": 0.002654
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003212
+              "peak_rss_kb": 1808,
+              "seconds": 0.002511
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003034
+              "peak_rss_kb": 1808,
+              "seconds": 0.002467
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.00384
+              "peak_rss_kb": 1808,
+              "seconds": 0.002449
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003278
+              "peak_rss_kb": 1808,
+              "seconds": 0.002431
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003069
+              "peak_rss_kb": 1808,
+              "seconds": 0.0024
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003633
+              "peak_rss_kb": 1808,
+              "seconds": 0.002387
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003039
+              "peak_rss_kb": 1808,
+              "seconds": 0.002271
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 1851392.0,
-          "rss_peak_kb": 1851392,
+          "rss_avg_kb": 1808.0,
+          "rss_peak_kb": 1808,
           "rss_samples_kb": [
-            1851392,
-            1851392,
-            1851392,
-            1851392,
-            1851392,
-            1851392,
-            1851392,
-            1851392,
-            1851392,
-            1851392,
-            1851392
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808
           ],
           "samples_seconds": [
-            0.003004,
-            0.003606,
-            0.003414,
-            0.003069,
-            0.003212,
-            0.003034,
-            0.00384,
-            0.003278,
-            0.003069,
-            0.003633,
-            0.003039
+            0.002625,
+            0.003166,
+            0.002727,
+            0.002654,
+            0.002511,
+            0.002467,
+            0.002449,
+            0.002431,
+            0.0024,
+            0.002387,
+            0.002271
           ],
           "warmups": 3
         }
@@ -323,7 +327,7 @@
           "trace_decommit_hashes": 39
         },
         "prove": {
-          "avg_seconds": 0.003549,
+          "avg_seconds": 0.003739,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -349,115 +353,115 @@
             "--sm-initial-1",
             "1"
           ],
-          "max_seconds": 0.004105,
-          "min_seconds": 0.003095,
+          "max_seconds": 0.004878,
+          "min_seconds": 0.002816,
           "name": "zig_state_machine_default_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.138203
+              "peak_rss_kb": 1696,
+              "seconds": 0.163629
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003487
+              "peak_rss_kb": 1696,
+              "seconds": 0.005509
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003051
+              "peak_rss_kb": 1696,
+              "seconds": 0.004674
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003814
+              "peak_rss_kb": 1696,
+              "seconds": 0.004579
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003672
+              "peak_rss_kb": 1696,
+              "seconds": 0.004878
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003593
+              "peak_rss_kb": 1696,
+              "seconds": 0.004397
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003414
+              "peak_rss_kb": 1696,
+              "seconds": 0.003836
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.004105
+              "peak_rss_kb": 1696,
+              "seconds": 0.00433
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003584
+              "peak_rss_kb": 1696,
+              "seconds": 0.003534
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003372
+              "peak_rss_kb": 1696,
+              "seconds": 0.003735
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003191
+              "peak_rss_kb": 1696,
+              "seconds": 0.00319
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003095
+              "peak_rss_kb": 1696,
+              "seconds": 0.002984
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003812
+              "peak_rss_kb": 1696,
+              "seconds": 0.002816
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1703936,
-              "seconds": 0.003387
+              "peak_rss_kb": 1696,
+              "seconds": 0.002855
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 1703936.0,
-          "rss_peak_kb": 1703936,
+          "rss_avg_kb": 1696.0,
+          "rss_peak_kb": 1696,
           "rss_samples_kb": [
-            1703936,
-            1703936,
-            1703936,
-            1703936,
-            1703936,
-            1703936,
-            1703936,
-            1703936,
-            1703936,
-            1703936,
-            1703936
+            1696,
+            1696,
+            1696,
+            1696,
+            1696,
+            1696,
+            1696,
+            1696,
+            1696,
+            1696,
+            1696
           ],
           "samples_seconds": [
-            0.003814,
-            0.003672,
-            0.003593,
-            0.003414,
-            0.004105,
-            0.003584,
-            0.003372,
-            0.003191,
-            0.003095,
-            0.003812,
-            0.003387
+            0.004579,
+            0.004878,
+            0.004397,
+            0.003836,
+            0.00433,
+            0.003534,
+            0.003735,
+            0.00319,
+            0.002984,
+            0.002816,
+            0.002855
           ],
           "warmups": 3
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.003335,
+          "avg_seconds": 0.003006,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -467,109 +471,109 @@
             "--blake2-backend",
             "auto"
           ],
-          "max_seconds": 0.003962,
-          "min_seconds": 0.002927,
+          "max_seconds": 0.003802,
+          "min_seconds": 0.002516,
           "name": "zig_state_machine_default_verify",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003745
+              "peak_rss_kb": 1616,
+              "seconds": 0.002731
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003157
+              "peak_rss_kb": 1616,
+              "seconds": 0.002705
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1654784,
-              "seconds": 0.003355
+              "peak_rss_kb": 1616,
+              "seconds": 0.002973
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003449
+              "peak_rss_kb": 1616,
+              "seconds": 0.003413
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003067
+              "peak_rss_kb": 1616,
+              "seconds": 0.003086
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003546
+              "peak_rss_kb": 1616,
+              "seconds": 0.002923
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003042
+              "peak_rss_kb": 1616,
+              "seconds": 0.002692
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003962
+              "peak_rss_kb": 1616,
+              "seconds": 0.003802
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003486
+              "peak_rss_kb": 1616,
+              "seconds": 0.002885
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.002927
+              "peak_rss_kb": 1616,
+              "seconds": 0.002873
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003341
+              "peak_rss_kb": 1616,
+              "seconds": 0.002516
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003106
+              "peak_rss_kb": 1616,
+              "seconds": 0.00273
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003665
+              "peak_rss_kb": 1616,
+              "seconds": 0.002771
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1622016,
-              "seconds": 0.003091
+              "peak_rss_kb": 1616,
+              "seconds": 0.003379
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 1622016.0,
-          "rss_peak_kb": 1622016,
+          "rss_avg_kb": 1616.0,
+          "rss_peak_kb": 1616,
           "rss_samples_kb": [
-            1622016,
-            1622016,
-            1622016,
-            1622016,
-            1622016,
-            1622016,
-            1622016,
-            1622016,
-            1622016,
-            1622016,
-            1622016
+            1616,
+            1616,
+            1616,
+            1616,
+            1616,
+            1616,
+            1616,
+            1616,
+            1616,
+            1616,
+            1616
           ],
           "samples_seconds": [
-            0.003449,
-            0.003067,
-            0.003546,
-            0.003042,
-            0.003962,
-            0.003486,
-            0.002927,
-            0.003341,
-            0.003106,
-            0.003665,
-            0.003091
+            0.003413,
+            0.003086,
+            0.002923,
+            0.002692,
+            0.003802,
+            0.002885,
+            0.002873,
+            0.002516,
+            0.00273,
+            0.002771,
+            0.003379
           ],
           "warmups": 3
         }
@@ -587,9 +591,11 @@
         "5"
       ],
       "ratios": {
+        "zig_over_rust_peak_rss_kb": 0.875969,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.866116,
-        "zig_over_rust_verify": 1.006462
+        "zig_over_rust_prove": 0.794143,
+        "zig_over_rust_verify": 0.954736,
+        "zig_over_rust_verify_peak_rss_kb": 0.894737
       },
       "rust": {
         "artifact": "vectors/.bench_artifacts/rust_state_machine_medium.json",
@@ -605,7 +611,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.004235,
+          "avg_seconds": 0.003449,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -629,115 +635,115 @@
             "--sm-initial-1",
             "5"
           ],
-          "max_seconds": 0.005018,
-          "min_seconds": 0.003671,
+          "max_seconds": 0.003608,
+          "min_seconds": 0.003373,
           "name": "rust_state_machine_medium_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.003941
+              "peak_rss_kb": 1984,
+              "seconds": 0.003532
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 2097152,
-              "seconds": 0.004728
+              "peak_rss_kb": 1984,
+              "seconds": 0.003559
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.004304
+              "peak_rss_kb": 1984,
+              "seconds": 0.003434
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.004075
+              "peak_rss_kb": 2064,
+              "seconds": 0.003424
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.004078
+              "peak_rss_kb": 1984,
+              "seconds": 0.003442
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2097152,
-              "seconds": 0.004199
+              "peak_rss_kb": 1984,
+              "seconds": 0.003452
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.005018
+              "peak_rss_kb": 1984,
+              "seconds": 0.003378
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.004314
+              "peak_rss_kb": 1984,
+              "seconds": 0.003373
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.003757
+              "peak_rss_kb": 1984,
+              "seconds": 0.003499
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.00426
+              "peak_rss_kb": 1984,
+              "seconds": 0.00338
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.004941
+              "peak_rss_kb": 1984,
+              "seconds": 0.003545
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.004122
+              "peak_rss_kb": 1984,
+              "seconds": 0.003608
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.003671
+              "peak_rss_kb": 1984,
+              "seconds": 0.003374
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2031616,
-              "seconds": 0.00415
+              "peak_rss_kb": 1984,
+              "seconds": 0.003468
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 2037573.82,
-          "rss_peak_kb": 2097152,
+          "rss_avg_kb": 1991.27,
+          "rss_peak_kb": 2064,
           "rss_samples_kb": [
-            2031616,
-            2031616,
-            2097152,
-            2031616,
-            2031616,
-            2031616,
-            2031616,
-            2031616,
-            2031616,
-            2031616,
-            2031616
+            2064,
+            1984,
+            1984,
+            1984,
+            1984,
+            1984,
+            1984,
+            1984,
+            1984,
+            1984,
+            1984
           ],
           "samples_seconds": [
-            0.004075,
-            0.004078,
-            0.004199,
-            0.005018,
-            0.004314,
-            0.003757,
-            0.00426,
-            0.004941,
-            0.004122,
-            0.003671,
-            0.00415
+            0.003424,
+            0.003442,
+            0.003452,
+            0.003378,
+            0.003373,
+            0.003499,
+            0.00338,
+            0.003545,
+            0.003608,
+            0.003374,
+            0.003468
           ],
           "warmups": 3
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00325,
+          "avg_seconds": 0.002629,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -745,109 +751,109 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_state_machine_medium.json"
           ],
-          "max_seconds": 0.004048,
-          "min_seconds": 0.00277,
+          "max_seconds": 0.003041,
+          "min_seconds": 0.002373,
           "name": "rust_state_machine_medium_verify",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.003746
+              "peak_rss_kb": 1824,
+              "seconds": 0.002712
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.003595
+              "peak_rss_kb": 1824,
+              "seconds": 0.00349
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.002976
+              "peak_rss_kb": 1824,
+              "seconds": 0.002765
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.002843
+              "peak_rss_kb": 1824,
+              "seconds": 0.002884
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1900544,
-              "seconds": 0.004048
+              "peak_rss_kb": 1824,
+              "seconds": 0.002802
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.00371
+              "peak_rss_kb": 1824,
+              "seconds": 0.00261
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.003309
+              "peak_rss_kb": 1824,
+              "seconds": 0.002582
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.002789
+              "peak_rss_kb": 1824,
+              "seconds": 0.003041
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.002846
+              "peak_rss_kb": 1824,
+              "seconds": 0.002967
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.003548
+              "peak_rss_kb": 1824,
+              "seconds": 0.002494
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.003759
+              "peak_rss_kb": 1824,
+              "seconds": 0.002403
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.003338
+              "peak_rss_kb": 1824,
+              "seconds": 0.002373
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.002789
+              "peak_rss_kb": 1824,
+              "seconds": 0.002375
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1867776,
-              "seconds": 0.00277
+              "peak_rss_kb": 1824,
+              "seconds": 0.002392
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 1870754.91,
-          "rss_peak_kb": 1900544,
+          "rss_avg_kb": 1824.0,
+          "rss_peak_kb": 1824,
           "rss_samples_kb": [
-            1867776,
-            1900544,
-            1867776,
-            1867776,
-            1867776,
-            1867776,
-            1867776,
-            1867776,
-            1867776,
-            1867776,
-            1867776
+            1824,
+            1824,
+            1824,
+            1824,
+            1824,
+            1824,
+            1824,
+            1824,
+            1824,
+            1824,
+            1824
           ],
           "samples_seconds": [
-            0.002843,
-            0.004048,
-            0.00371,
-            0.003309,
-            0.002789,
-            0.002846,
-            0.003548,
-            0.003759,
-            0.003338,
-            0.002789,
-            0.00277
+            0.002884,
+            0.002802,
+            0.00261,
+            0.002582,
+            0.003041,
+            0.002967,
+            0.002494,
+            0.002403,
+            0.002373,
+            0.002375,
+            0.002392
           ],
           "warmups": 3
         }
@@ -866,7 +872,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.003668,
+          "avg_seconds": 0.002739,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -892,115 +898,115 @@
             "--sm-initial-1",
             "5"
           ],
-          "max_seconds": 0.004287,
-          "min_seconds": 0.003108,
+          "max_seconds": 0.003341,
+          "min_seconds": 0.002529,
           "name": "zig_state_machine_medium_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1916928,
-              "seconds": 0.004482
+              "peak_rss_kb": 1808,
+              "seconds": 0.002721
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.004168
+              "peak_rss_kb": 1808,
+              "seconds": 0.003153
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.003359
+              "peak_rss_kb": 1808,
+              "seconds": 0.002754
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.003108
+              "peak_rss_kb": 1808,
+              "seconds": 0.002754
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.003179
+              "peak_rss_kb": 1808,
+              "seconds": 0.002707
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.003981
+              "peak_rss_kb": 1808,
+              "seconds": 0.002605
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.00382
+              "peak_rss_kb": 1808,
+              "seconds": 0.002654
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.00327
+              "peak_rss_kb": 1808,
+              "seconds": 0.002628
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.003195
+              "peak_rss_kb": 1808,
+              "seconds": 0.003341
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.004093
+              "peak_rss_kb": 1808,
+              "seconds": 0.002767
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.004207
+              "peak_rss_kb": 1808,
+              "seconds": 0.002675
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.00377
+              "peak_rss_kb": 1808,
+              "seconds": 0.002617
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1818624,
-              "seconds": 0.003439
+              "peak_rss_kb": 1808,
+              "seconds": 0.002529
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1851392,
-              "seconds": 0.004287
+              "peak_rss_kb": 1808,
+              "seconds": 0.002852
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 1827560.73,
-          "rss_peak_kb": 1851392,
+          "rss_avg_kb": 1808.0,
+          "rss_peak_kb": 1808,
           "rss_samples_kb": [
-            1818624,
-            1851392,
-            1818624,
-            1818624,
-            1818624,
-            1818624,
-            1851392,
-            1818624,
-            1818624,
-            1818624,
-            1851392
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808,
+            1808
           ],
           "samples_seconds": [
-            0.003108,
-            0.003179,
-            0.003981,
-            0.00382,
-            0.00327,
-            0.003195,
-            0.004093,
-            0.004207,
-            0.00377,
-            0.003439,
-            0.004287
+            0.002754,
+            0.002707,
+            0.002605,
+            0.002654,
+            0.002628,
+            0.003341,
+            0.002767,
+            0.002675,
+            0.002617,
+            0.002529,
+            0.002852
           ],
           "warmups": 3
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.003271,
+          "avg_seconds": 0.00251,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -1010,109 +1016,109 @@
             "--blake2-backend",
             "auto"
           ],
-          "max_seconds": 0.00392,
-          "min_seconds": 0.002813,
+          "max_seconds": 0.003428,
+          "min_seconds": 0.002307,
           "name": "zig_state_machine_medium_verify",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.003463
+              "peak_rss_kb": 1632,
+              "seconds": 0.002541
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.004095
+              "peak_rss_kb": 1632,
+              "seconds": 0.003259
             },
             {
               "kind": "warmup",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.003126
+              "peak_rss_kb": 1632,
+              "seconds": 0.002681
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.003028
+              "peak_rss_kb": 1632,
+              "seconds": 0.00251
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.00392
+              "peak_rss_kb": 1632,
+              "seconds": 0.002437
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.003662
+              "peak_rss_kb": 1632,
+              "seconds": 0.002361
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.00331
+              "peak_rss_kb": 1632,
+              "seconds": 0.00237
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.002813
+              "peak_rss_kb": 1632,
+              "seconds": 0.002445
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.002899
+              "peak_rss_kb": 1632,
+              "seconds": 0.003428
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.003703
+              "peak_rss_kb": 1632,
+              "seconds": 0.002497
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.003564
+              "peak_rss_kb": 1632,
+              "seconds": 0.002419
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.003307
+              "peak_rss_kb": 1632,
+              "seconds": 0.00238
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.002841
+              "peak_rss_kb": 1632,
+              "seconds": 0.002454
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1638400,
-              "seconds": 0.00293
+              "peak_rss_kb": 1632,
+              "seconds": 0.002307
             }
           ],
           "repeats": 11,
-          "rss_avg_kb": 1638400.0,
-          "rss_peak_kb": 1638400,
+          "rss_avg_kb": 1632.0,
+          "rss_peak_kb": 1632,
           "rss_samples_kb": [
-            1638400,
-            1638400,
-            1638400,
-            1638400,
-            1638400,
-            1638400,
-            1638400,
-            1638400,
-            1638400,
-            1638400,
-            1638400
+            1632,
+            1632,
+            1632,
+            1632,
+            1632,
+            1632,
+            1632,
+            1632,
+            1632,
+            1632,
+            1632
           ],
           "samples_seconds": [
-            0.003028,
-            0.00392,
-            0.003662,
-            0.00331,
-            0.002813,
-            0.002899,
-            0.003703,
-            0.003564,
-            0.003307,
-            0.002841,
-            0.00293
+            0.00251,
+            0.002437,
+            0.002361,
+            0.00237,
+            0.002445,
+            0.003428,
+            0.002497,
+            0.002419,
+            0.00238,
+            0.002454,
+            0.002307
           ],
           "warmups": 3
         }

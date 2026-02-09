@@ -349,17 +349,22 @@ def profile_runtime_workload(
     hotspot_top_n: int,
     zig_blake2_backend: str,
     merkle_workers: Optional[int],
+    merkle_pool_reuse: bool,
 ) -> Dict[str, Any]:
     backend_args = (
         ["--blake2-backend", zig_blake2_backend]
         if runtime == "zig"
         else []
     )
-    runtime_env = (
-        {"STWO_ZIG_MERKLE_WORKERS": str(merkle_workers)}
-        if runtime == "zig" and merkle_workers is not None
-        else None
-    )
+    runtime_env: Optional[Dict[str, str]] = None
+    if runtime == "zig":
+        runtime_env = {}
+        if merkle_workers is not None:
+            runtime_env["STWO_ZIG_MERKLE_WORKERS"] = str(merkle_workers)
+        if merkle_pool_reuse:
+            runtime_env["STWO_ZIG_MERKLE_POOL_REUSE"] = "1"
+        if not runtime_env:
+            runtime_env = None
     cmd = (
         runtime_cmd(runtime)
         + [
@@ -463,6 +468,11 @@ def main() -> int:
         help="Optional STWO_ZIG_MERKLE_WORKERS override for Zig runtime profile runs.",
     )
     parser.add_argument(
+        "--merkle-pool-reuse",
+        action="store_true",
+        help="Enable STWO_ZIG_MERKLE_POOL_REUSE=1 for Zig runtime profile runs.",
+    )
+    parser.add_argument(
         "--report-label",
         default="profile_smoke",
         help="Logical label used in emitted report metadata.",
@@ -506,6 +516,7 @@ def main() -> int:
                 hotspot_top_n=args.hotspot_top_n,
                 zig_blake2_backend=args.blake2_backend,
                 merkle_workers=args.merkle_workers,
+                merkle_pool_reuse=args.merkle_pool_reuse,
             )
             profiles.append(entry)
             if SAMPLE_BIN.exists() and not entry["hotspots"]:
@@ -530,6 +541,8 @@ def main() -> int:
     }
     if args.merkle_workers is not None:
         settings["merkle_workers"] = args.merkle_workers
+    if args.merkle_pool_reuse:
+        settings["merkle_pool_reuse"] = True
     if args.include_large:
         settings["include_large"] = True
     if args.include_long:

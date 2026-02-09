@@ -185,11 +185,15 @@ pub fn build(b: *std.Build) void {
         "100.0",
         "--max-verify-regression-pct",
         "100.0",
+        "--max-rss-regression-pct",
+        "100.0",
         "--max-zig-profile-regression-pct",
         "100.0",
         "--max-kernel-regression-pct",
         "100.0",
         "--max-target-family-regression-pct",
+        "3.0",
+        "--max-target-family-rss-regression-pct",
         "3.0",
     });
     bench_targeted_compare_cmd.step.dependOn(&bench_full_cmd.step);
@@ -292,23 +296,46 @@ pub fn build(b: *std.Build) void {
     );
     profile_contrast_long_step.dependOn(&profile_contrast_long_cmd.step);
 
+    // Deterministic deep-workload soak for 2/4/8 Merkle workers with opt-in pool reuse.
+    const merkle_worker_stress_cmd = b.addSystemCommand(&.{ "python3", "scripts/merkle_worker_stress.py" });
+    const merkle_worker_stress_step = b.step(
+        "merkle-worker-stress",
+        "Run deterministic deep workload stress checks for opt-in Merkle pool reuse (2/4/8 workers)",
+    );
+    merkle_worker_stress_step.dependOn(&merkle_worker_stress_cmd.step);
+
     // Optimization acceptance gate against frozen baseline (additive to strict conformance gate).
     const opt_compare_cmd = b.addSystemCommand(&.{
         "python3",
         "scripts/compare_optimization.py",
         "--benchmark-report",
         "vectors/reports/benchmark_smoke_report.json",
+        "--benchmark-full-report",
+        "vectors/reports/benchmark_full_report.json",
         "--profile-report",
         "vectors/reports/profile_smoke_report.json",
+        "--kernel-report",
+        "vectors/reports/benchmark_kernels_report.json",
         "--max-prove-regression-pct",
         "1.0",
         "--max-verify-regression-pct",
         "5.0",
+        "--max-rss-regression-pct",
+        "5.0",
         "--max-zig-profile-regression-pct",
+        "5.0",
+        "--max-kernel-regression-pct",
+        "5.0",
+        "--max-target-family-regression-pct",
+        "3.0",
+        "--max-target-family-rss-regression-pct",
         "5.0",
     });
     opt_compare_cmd.step.dependOn(&bench_strict_cmd.step);
     opt_compare_cmd.step.dependOn(&profile_smoke_cmd.step);
+    opt_compare_cmd.step.dependOn(&bench_kernels_cmd.step);
+    opt_compare_cmd.step.dependOn(&bench_full_cmd.step);
+    opt_compare_cmd.step.dependOn(&merkle_worker_stress_cmd.step);
     opt_compare_cmd.step.dependOn(&bench_opt_cmd.step);
     opt_compare_cmd.step.dependOn(&profile_opt_cmd.step);
     const opt_gate_step = b.step(

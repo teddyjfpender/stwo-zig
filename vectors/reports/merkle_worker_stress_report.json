@@ -1,0 +1,1535 @@
+{
+  "artifacts": {
+    "artifact_dir": "vectors/reports/merkle_worker_stress_artifacts"
+  },
+  "cases": [
+    {
+      "case": "state_machine_deep",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_default.json",
+      "example": "state_machine",
+      "mismatches": [],
+      "prove_mode": "prove",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
+    },
+    {
+      "case": "state_machine_deep",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_default.json",
+      "example": "state_machine",
+      "mismatches": [],
+      "prove_mode": "prove_ex",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
+    },
+    {
+      "case": "plonk_deep",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_default.json",
+      "example": "plonk",
+      "mismatches": [],
+      "prove_mode": "prove",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
+    },
+    {
+      "case": "plonk_deep",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_default.json",
+      "example": "plonk",
+      "mismatches": [],
+      "prove_mode": "prove_ex",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
+    },
+    {
+      "case": "blake_deep",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_default.json",
+      "example": "blake",
+      "mismatches": [],
+      "prove_mode": "prove",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
+    },
+    {
+      "case": "blake_deep",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_default.json",
+      "example": "blake",
+      "mismatches": [],
+      "prove_mode": "prove_ex",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
+    }
+  ],
+  "cases_ok": 6,
+  "cases_total": 6,
+  "failures": [],
+  "generated_at_unix": 1770637181,
+  "prove_modes": [
+    "prove",
+    "prove_ex"
+  ],
+  "schema_version": 1,
+  "status": "ok",
+  "steps": [
+    {
+      "command": [
+        "zig",
+        "build-exe",
+        "src/interop_cli.zig",
+        "-O",
+        "ReleaseFast",
+        "-femit-bin=/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop"
+      ],
+      "name": "build_zig_interop_binary",
+      "return_code": 0,
+      "seconds": 6.52549,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_default.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "name": "state_machine_deep:prove:generate_default",
+      "return_code": 0,
+      "seconds": 0.176771,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "state_machine_deep:prove:verify_default",
+      "return_code": 0,
+      "seconds": 0.002708,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_2.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "state_machine_deep:prove:generate_workers_2",
+      "return_code": 0,
+      "seconds": 0.022049,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "state_machine_deep:prove:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.00237,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_4.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "state_machine_deep:prove:generate_workers_4",
+      "return_code": 0,
+      "seconds": 0.019145,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "state_machine_deep:prove:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.002034,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_8.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "state_machine_deep:prove:generate_workers_8",
+      "return_code": 0,
+      "seconds": 0.017602,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "state_machine_deep:prove:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.001981,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_default.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "name": "state_machine_deep:prove_ex:generate_default",
+      "return_code": 0,
+      "seconds": 0.016935,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "state_machine_deep:prove_ex:verify_default",
+      "return_code": 0,
+      "seconds": 0.001894,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_2.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "state_machine_deep:prove_ex:generate_workers_2",
+      "return_code": 0,
+      "seconds": 0.01713,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "state_machine_deep:prove_ex:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.001903,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_4.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "state_machine_deep:prove_ex:generate_workers_4",
+      "return_code": 0,
+      "seconds": 0.016782,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "state_machine_deep:prove_ex:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.001852,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "state_machine",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_8.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--sm-log-n-rows",
+        "12",
+        "--sm-initial-0",
+        "9",
+        "--sm-initial-1",
+        "3"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "state_machine_deep:prove_ex:generate_workers_8",
+      "return_code": 0,
+      "seconds": 0.016792,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/state_machine_deep_prove_ex_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "state_machine_deep:prove_ex:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.001987,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_default.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "name": "plonk_deep:prove:generate_default",
+      "return_code": 0,
+      "seconds": 0.017749,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "plonk_deep:prove:verify_default",
+      "return_code": 0,
+      "seconds": 0.002029,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_2.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "plonk_deep:prove:generate_workers_2",
+      "return_code": 0,
+      "seconds": 0.017727,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "plonk_deep:prove:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.002005,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_4.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "plonk_deep:prove:generate_workers_4",
+      "return_code": 0,
+      "seconds": 0.017674,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "plonk_deep:prove:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.002043,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_8.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "plonk_deep:prove:generate_workers_8",
+      "return_code": 0,
+      "seconds": 0.017691,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "plonk_deep:prove:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.001968,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_default.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "name": "plonk_deep:prove_ex:generate_default",
+      "return_code": 0,
+      "seconds": 0.017771,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "plonk_deep:prove_ex:verify_default",
+      "return_code": 0,
+      "seconds": 0.00199,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_2.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "plonk_deep:prove_ex:generate_workers_2",
+      "return_code": 0,
+      "seconds": 0.01755,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "plonk_deep:prove_ex:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.001983,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_4.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "plonk_deep:prove_ex:generate_workers_4",
+      "return_code": 0,
+      "seconds": 0.017758,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "plonk_deep:prove_ex:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.00197,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "plonk",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_8.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--plonk-log-n-rows",
+        "12"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "plonk_deep:prove_ex:generate_workers_8",
+      "return_code": 0,
+      "seconds": 0.017536,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/plonk_deep_prove_ex_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "plonk_deep:prove_ex:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.001933,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_default.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "name": "blake_deep:prove:generate_default",
+      "return_code": 0,
+      "seconds": 0.188982,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "blake_deep:prove:verify_default",
+      "return_code": 0,
+      "seconds": 0.003662,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_2.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "blake_deep:prove:generate_workers_2",
+      "return_code": 0,
+      "seconds": 0.200742,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "blake_deep:prove:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.003575,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_4.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "blake_deep:prove:generate_workers_4",
+      "return_code": 0,
+      "seconds": 0.187132,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "blake_deep:prove:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.003612,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_8.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "blake_deep:prove:generate_workers_8",
+      "return_code": 0,
+      "seconds": 0.188165,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "blake_deep:prove:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.003793,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_default.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "name": "blake_deep:prove_ex:generate_default",
+      "return_code": 0,
+      "seconds": 0.190572,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "blake_deep:prove_ex:verify_default",
+      "return_code": 0,
+      "seconds": 0.003791,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_2.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "blake_deep:prove_ex:generate_workers_2",
+      "return_code": 0,
+      "seconds": 0.188836,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "blake_deep:prove_ex:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.003763,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_4.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "blake_deep:prove_ex:generate_workers_4",
+      "return_code": 0,
+      "seconds": 0.188753,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "blake_deep:prove_ex:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.00381,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "blake",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_8.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--blake-log-n-rows",
+        "11",
+        "--blake-n-rounds",
+        "16"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "blake_deep:prove_ex:generate_workers_8",
+      "return_code": 0,
+      "seconds": 0.187602,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/blake_deep_prove_ex_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "blake_deep:prove_ex:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.00378,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    }
+  ],
+  "worker_counts": [
+    2,
+    4,
+    8
+  ],
+  "workload_profile": "deep_worker_pool_reuse_soak_v1"
+}

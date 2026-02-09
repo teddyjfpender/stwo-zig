@@ -21,6 +21,12 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const max_parallel_workers: usize = 16;
         const ThreadPool = std.Thread.Pool;
         const WaitGroup = std.Thread.WaitGroup;
+        const SharedPoolState = struct {
+            mutex: std.Thread.Mutex = .{},
+            pool: ?ThreadPool = null,
+            failed: bool = false,
+        };
+        var shared_pool_state: SharedPoolState = .{};
 
         pub const DecommitmentResult = struct {
             queried_values: [][]M31,
@@ -37,30 +43,68 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const LayerExecutor = struct {
             enabled: bool = false,
             max_workers: usize = 1,
-            pool: ThreadPool = undefined,
+            owns_pool: bool = false,
+            owned_pool: ThreadPool = undefined,
+            pool_ptr: ?*ThreadPool = null,
 
-            fn init(self: *LayerExecutor, max_workers: usize) void {
+            fn init(self: *LayerExecutor, max_workers: usize, reuse_pool: bool) void {
                 self.* = .{
                     .enabled = false,
                     .max_workers = max_workers,
+                    .owns_pool = false,
+                    .pool_ptr = null,
                 };
                 if (builtin.single_threaded or max_workers <= 1) return;
 
-                self.pool.init(.{
+                if (reuse_pool) {
+                    if (sharedThreadPool()) |shared_pool| {
+                        self.pool_ptr = shared_pool;
+                        self.enabled = true;
+                        return;
+                    }
+                }
+
+                self.owned_pool.init(.{
                     // Keep pool task allocation decoupled from caller allocators
                     // (including test allocators) to avoid cross-thread contention.
                     .allocator = std.heap.page_allocator,
                     // Previous implementation used one caller worker + N-1 spawned workers.
                     .n_jobs = max_workers - 1,
                 }) catch return;
+                self.owns_pool = true;
+                self.pool_ptr = &self.owned_pool;
                 self.enabled = true;
             }
 
             fn deinit(self: *LayerExecutor) void {
-                if (self.enabled) {
-                    self.pool.deinit();
+                if (self.enabled and self.owns_pool) {
+                    self.owned_pool.deinit();
                 }
                 self.* = undefined;
+            }
+
+            fn pool(self: *LayerExecutor) *ThreadPool {
+                return self.pool_ptr orelse unreachable;
+            }
+
+            fn sharedThreadPool() ?*ThreadPool {
+                shared_pool_state.mutex.lock();
+                defer shared_pool_state.mutex.unlock();
+
+                if (shared_pool_state.failed) return null;
+                if (shared_pool_state.pool == null) {
+                    var thread_pool: ThreadPool = undefined;
+                    thread_pool.init(.{
+                        .allocator = std.heap.page_allocator,
+                        .n_jobs = max_parallel_workers - 1,
+                    }) catch {
+                        shared_pool_state.failed = true;
+                        return null;
+                    };
+                    shared_pool_state.pool = thread_pool;
+                }
+                if (shared_pool_state.pool) |*thread_pool_ptr| return thread_pool_ptr;
+                return null;
             }
         };
 
@@ -78,13 +122,27 @@ pub fn MerkleProverLifted(comptime H: type) type {
             allocator: std.mem.Allocator,
             columns: []const []const M31,
         ) !Self {
-            return commitWithWorkerOverride(allocator, columns, merkleWorkerOverride(allocator));
+            return commitWithOptions(
+                allocator,
+                columns,
+                merkleWorkerOverride(allocator),
+                merklePoolReuseEnabled(allocator),
+            );
         }
 
         fn commitWithWorkerOverride(
             allocator: std.mem.Allocator,
             columns: []const []const M31,
             worker_override: ?usize,
+        ) !Self {
+            return commitWithOptions(allocator, columns, worker_override, false);
+        }
+
+        fn commitWithOptions(
+            allocator: std.mem.Allocator,
+            columns: []const []const M31,
+            worker_override: ?usize,
+            reuse_pool: bool,
         ) !Self {
             const sorted = try sortColumnsByLogSizeAsc(allocator, columns);
             defer allocator.free(sorted);
@@ -103,7 +161,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 const max_log_size = std.math.log2_int(usize, leaves.len);
                 const max_out_len = leaves.len >> 1;
                 var executor: LayerExecutor = undefined;
-                executor.init(parallelWorkersForLayer(max_out_len, worker_override));
+                executor.init(parallelWorkersForLayer(max_out_len, worker_override), reuse_pool);
                 defer executor.deinit();
 
                 var i: usize = 0;
@@ -132,6 +190,21 @@ pub fn MerkleProverLifted(comptime H: type) type {
             const parsed = std.fmt.parseInt(usize, raw, 10) catch return null;
             if (parsed == 0) return null;
             return parsed;
+        }
+
+        fn merklePoolReuseEnabled(allocator: std.mem.Allocator) bool {
+            const raw = std.process.getEnvVarOwned(allocator, "STWO_ZIG_MERKLE_POOL_REUSE") catch return false;
+            defer allocator.free(raw);
+            if (raw.len == 0) return false;
+            if (std.mem.eql(u8, raw, "1")) return true;
+            if (std.mem.eql(u8, raw, "0")) return false;
+            if (std.ascii.eqlIgnoreCase(raw, "true")) return true;
+            if (std.ascii.eqlIgnoreCase(raw, "false")) return false;
+            if (std.ascii.eqlIgnoreCase(raw, "yes")) return true;
+            if (std.ascii.eqlIgnoreCase(raw, "no")) return false;
+            if (std.ascii.eqlIgnoreCase(raw, "on")) return true;
+            if (std.ascii.eqlIgnoreCase(raw, "off")) return false;
+            return false;
         }
 
         pub fn decommit(
@@ -487,7 +560,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
 
             var wait_group: WaitGroup = .{};
             for (1..actual_workers) |i| {
-                executor.pool.spawnWg(&wait_group, hashSeededRangeThread, .{&contexts[i]});
+                executor.pool().spawnWg(&wait_group, hashSeededRangeThread, .{&contexts[i]});
             }
             hashSeededRange(&contexts[0]);
             wait_group.wait();
@@ -545,7 +618,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
 
             var wait_group: WaitGroup = .{};
             for (1..actual_workers) |i| {
-                executor.pool.spawnWg(&wait_group, hashBasicRangeThread, .{&contexts[i]});
+                executor.pool().spawnWg(&wait_group, hashBasicRangeThread, .{&contexts[i]});
             }
             hashBasicRange(&contexts[0]);
             wait_group.wait();
@@ -696,12 +769,16 @@ test "prover vcs_lifted: root is stable across large-layer worker-count override
     defer prover_two.deinit(alloc);
     var prover_four = try Prover.commitWithWorkerOverride(alloc, columns[0..], 4);
     defer prover_four.deinit(alloc);
+    var prover_eight = try Prover.commitWithWorkerOverride(alloc, columns[0..], 8);
+    defer prover_eight.deinit(alloc);
 
     const root_auto = prover_auto.root();
     const root_single = prover_single.root();
     const root_two = prover_two.root();
     const root_four = prover_four.root();
+    const root_eight = prover_eight.root();
     try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&root_auto), std.mem.asBytes(&root_single)));
     try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&root_auto), std.mem.asBytes(&root_two)));
     try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&root_auto), std.mem.asBytes(&root_four)));
+    try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&root_auto), std.mem.asBytes(&root_eight)));
 }
