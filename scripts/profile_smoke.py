@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -144,6 +144,10 @@ def merged_env(extra_env: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
     env = dict(os.environ)
     env.update(extra_env)
     return env
+
+
+def parse_workload_set(raw: str) -> Set[str]:
+    return {item.strip() for item in raw.split(",") if item.strip()}
 
 
 def run(cmd: List[str], env: Optional[Dict[str, str]] = None) -> None:
@@ -350,6 +354,7 @@ def profile_runtime_workload(
     zig_blake2_backend: str,
     merkle_workers: Optional[int],
     merkle_pool_reuse: bool,
+    merkle_pool_reuse_workloads: Set[str],
 ) -> Dict[str, Any]:
     backend_args = (
         ["--blake2-backend", zig_blake2_backend]
@@ -361,7 +366,8 @@ def profile_runtime_workload(
         runtime_env = {}
         if merkle_workers is not None:
             runtime_env["STWO_ZIG_MERKLE_WORKERS"] = str(merkle_workers)
-        if merkle_pool_reuse:
+        enable_pool_reuse = merkle_pool_reuse or workload["name"] in merkle_pool_reuse_workloads
+        if enable_pool_reuse:
             runtime_env["STWO_ZIG_MERKLE_POOL_REUSE"] = "1"
         if not runtime_env:
             runtime_env = None
@@ -473,6 +479,11 @@ def main() -> int:
         help="Enable STWO_ZIG_MERKLE_POOL_REUSE=1 for Zig runtime profile runs.",
     )
     parser.add_argument(
+        "--merkle-pool-reuse-workloads",
+        default="",
+        help="Comma-separated workload names where STWO_ZIG_MERKLE_POOL_REUSE=1 is enabled for Zig runs.",
+    )
+    parser.add_argument(
         "--report-label",
         default="profile_smoke",
         help="Logical label used in emitted report metadata.",
@@ -491,6 +502,7 @@ def main() -> int:
         raise ValueError("--sample-duration-seconds must be positive")
     if args.merkle_workers is not None and args.merkle_workers <= 0:
         raise ValueError("--merkle-workers must be positive when provided")
+    merkle_pool_reuse_workloads = parse_workload_set(args.merkle_pool_reuse_workloads)
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
@@ -517,6 +529,7 @@ def main() -> int:
                 zig_blake2_backend=args.blake2_backend,
                 merkle_workers=args.merkle_workers,
                 merkle_pool_reuse=args.merkle_pool_reuse,
+                merkle_pool_reuse_workloads=merkle_pool_reuse_workloads,
             )
             profiles.append(entry)
             if SAMPLE_BIN.exists() and not entry["hotspots"]:
@@ -543,6 +556,8 @@ def main() -> int:
         settings["merkle_workers"] = args.merkle_workers
     if args.merkle_pool_reuse:
         settings["merkle_pool_reuse"] = True
+    if merkle_pool_reuse_workloads:
+        settings["merkle_pool_reuse_workloads"] = sorted(merkle_pool_reuse_workloads)
     if args.include_large:
         settings["include_large"] = True
     if args.include_long:

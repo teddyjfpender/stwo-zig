@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import statistics
 import shutil
 import subprocess
 import time
@@ -168,6 +169,23 @@ def kernel_avg_seconds(report: Dict[str, Any]) -> Dict[str, float]:
     return out
 
 
+def kernel_effective_seconds(report: Dict[str, Any]) -> Dict[str, float]:
+    out: Dict[str, float] = {}
+    for kernel in report.get("kernels", []):
+        name = str(kernel.get("name", "unknown"))
+        summary = kernel.get("summary", {})
+        samples_raw = summary.get("samples_seconds")
+        if isinstance(samples_raw, list) and samples_raw:
+            samples: list[float] = [float(sample) for sample in samples_raw]
+            out[name] = float(statistics.median(samples))
+            continue
+        if "median_seconds" in summary:
+            out[name] = float(summary.get("median_seconds", 0.0))
+            continue
+        out[name] = float(summary.get("avg_seconds", 0.0))
+    return out
+
+
 def pct_delta(base: float, current: float) -> float:
     if base == 0.0:
         return 0.0
@@ -204,7 +222,7 @@ def capture_baseline(
         raise CompareError("profile report missing settings_hash")
 
     baseline = {
-        "schema_version": 4,
+        "schema_version": 5,
         "created_at_unix": int(time.time()),
         "git_head_sha": run_capture(["git", "rev-parse", "HEAD"]),
         "benchmark": {
@@ -233,6 +251,7 @@ def capture_baseline(
             "report_path": rel(kernel_report_path),
             "summary": kernel_report.get("summary", {}),
             "avg_seconds_by_kernel": kernel_avg_seconds(kernel_report),
+            "effective_seconds_by_kernel": kernel_effective_seconds(kernel_report),
         }
     if benchmark_full_report is not None:
         full_family_ratios = benchmark_family_ratios(benchmark_full_report)
@@ -264,6 +283,8 @@ def evaluate_comparison(
     max_rss_regression_pct: float,
     max_zig_profile_regression_pct: float,
     max_kernel_regression_pct: float,
+    kernel_min_baseline_seconds: float,
+    kernel_min_absolute_delta_seconds: float,
     max_target_family_regression_pct: float,
     max_target_family_rss_regression_pct: float,
 ) -> Tuple[str, list[str], Dict[str, Any]]:
@@ -386,7 +407,12 @@ def evaluate_comparison(
     baseline_kernel_matrix_hash: str | None = None
     current_kernel_matrix_hash: str | None = None
     kernel_regression_pct_max = 0.0
+    kernel_regression_abs_seconds_max = 0.0
+    kernel_regression_pct_ignored_by_abs_floor_max = 0.0
     per_kernel_deltas: Dict[str, float] = {}
+    per_kernel_delta_seconds: Dict[str, float] = {}
+    kernel_compared: list[str] = []
+    kernel_ignored: Dict[str, Dict[str, float | str]] = {}
     if baseline_kernels:
         if kernel_report is None:
             failures.append("missing kernel benchmark report required by baseline")
@@ -403,16 +429,38 @@ def evaluate_comparison(
             ):
                 failures.append("kernel workload matrix hash mismatch versus baseline")
 
-            base_kernel_seconds = baseline_kernels.get("avg_seconds_by_kernel", {})
-            curr_kernel_seconds = kernel_avg_seconds(kernel_report)
+            base_kernel_seconds = baseline_kernels.get("effective_seconds_by_kernel")
+            if not base_kernel_seconds:
+                base_kernel_seconds = baseline_kernels.get("avg_seconds_by_kernel", {})
+            curr_kernel_seconds = kernel_effective_seconds(kernel_report)
             for name, base_seconds_raw in base_kernel_seconds.items():
                 base_seconds = float(base_seconds_raw)
                 if name not in curr_kernel_seconds:
                     failures.append(f"missing kernel in current benchmark report: {name}")
                     continue
+                if base_seconds < kernel_min_baseline_seconds:
+                    kernel_ignored[str(name)] = {
+                        "reason": "baseline_below_floor",
+                        "baseline_seconds": round(base_seconds, 9),
+                        "floor_seconds": round(kernel_min_baseline_seconds, 9),
+                    }
+                    continue
+                kernel_compared.append(str(name))
                 delta_pct = pct_delta(base_seconds, curr_kernel_seconds[name])
+                delta_seconds = curr_kernel_seconds[name] - base_seconds
                 per_kernel_deltas[str(name)] = round(delta_pct, 6)
-                kernel_regression_pct_max = max(kernel_regression_pct_max, max(delta_pct, 0.0))
+                per_kernel_delta_seconds[str(name)] = round(delta_seconds, 9)
+                if delta_seconds > kernel_min_absolute_delta_seconds:
+                    kernel_regression_pct_max = max(kernel_regression_pct_max, max(delta_pct, 0.0))
+                    kernel_regression_abs_seconds_max = max(
+                        kernel_regression_abs_seconds_max,
+                        max(delta_seconds, 0.0),
+                    )
+                else:
+                    kernel_regression_pct_ignored_by_abs_floor_max = max(
+                        kernel_regression_pct_ignored_by_abs_floor_max,
+                        max(delta_pct, 0.0),
+                    )
             if kernel_regression_pct_max > max_kernel_regression_pct:
                 failures.append(
                     f"kernel regression {kernel_regression_pct_max:.4f}% exceeds {max_kernel_regression_pct:.4f}%"
@@ -494,10 +542,20 @@ def evaluate_comparison(
         "current_avg_zig_profile_seconds": curr_zig_avg,
         "zig_profile_regression_pct": round(zig_profile_regression_pct, 6),
         "kernel_regression_pct_max": round(kernel_regression_pct_max, 6),
+        "kernel_regression_abs_seconds_max": round(kernel_regression_abs_seconds_max, 9),
+        "kernel_regression_pct_ignored_by_abs_floor_max": round(
+            kernel_regression_pct_ignored_by_abs_floor_max,
+            6,
+        ),
+        "kernel_min_baseline_seconds": kernel_min_baseline_seconds,
+        "kernel_min_absolute_delta_seconds": kernel_min_absolute_delta_seconds,
+        "kernel_compared": kernel_compared,
+        "kernel_ignored": kernel_ignored,
         "target_family_regression_pct_max": round(target_family_regression_pct_max, 6),
         "target_family_rss_regression_pct_max": round(target_family_rss_regression_pct_max, 6),
         "per_workload_deltas": per_workload_deltas,
         "per_kernel_deltas": per_kernel_deltas,
+        "per_kernel_delta_seconds": per_kernel_delta_seconds,
         "per_target_family_deltas": per_target_family_deltas,
     }
 
@@ -572,6 +630,8 @@ def run_self_test() -> None:
         max_rss_regression_pct=0.0,
         max_zig_profile_regression_pct=0.0,
         max_kernel_regression_pct=0.0,
+        kernel_min_baseline_seconds=0.0,
+        kernel_min_absolute_delta_seconds=0.0,
         max_target_family_regression_pct=0.0,
         max_target_family_rss_regression_pct=0.0,
     )
@@ -608,11 +668,83 @@ def run_self_test() -> None:
         max_rss_regression_pct=0.0,
         max_zig_profile_regression_pct=0.0,
         max_kernel_regression_pct=0.0,
+        kernel_min_baseline_seconds=0.0,
+        kernel_min_absolute_delta_seconds=0.0,
         max_target_family_regression_pct=0.0,
         max_target_family_rss_regression_pct=0.0,
     )
     if status != "failed" or not failures:
         raise CompareError("self-test failed to detect regression")
+
+    baseline_with_kernels = dict(baseline)
+    baseline_with_kernels["kernels"] = {
+        "settings_hash": "hk",
+        "workload_matrix_hash": "mk",
+        "effective_seconds_by_kernel": {
+            "tiny": 0.0005,
+            "big": 0.10,
+        },
+    }
+    kernel_report = {
+        "settings_hash": "hk",
+        "workload_matrix_hash": "mk",
+        "kernels": [
+            {
+                "name": "tiny",
+                "summary": {
+                    "samples_seconds": [0.0010, 0.0010, 0.0010],
+                    "avg_seconds": 0.0010,
+                },
+            },
+            {
+                "name": "big",
+                "summary": {
+                    "samples_seconds": [0.101, 0.101, 0.101],
+                    "avg_seconds": 0.101,
+                },
+            },
+        ],
+    }
+    status, failures, _ = evaluate_comparison(
+        baseline=baseline_with_kernels,
+        benchmark_report=improved_bench,
+        profile_report=improved_profile,
+        kernel_report=kernel_report,
+        benchmark_full_report=None,
+        require_prove_improvement_pct=0.0,
+        max_prove_regression_pct=0.0,
+        max_verify_regression_pct=0.0,
+        max_rss_regression_pct=0.0,
+        max_zig_profile_regression_pct=0.0,
+        max_kernel_regression_pct=0.0,
+        kernel_min_baseline_seconds=0.01,
+        kernel_min_absolute_delta_seconds=0.002,
+        max_target_family_regression_pct=0.0,
+        max_target_family_rss_regression_pct=0.0,
+    )
+    if status != "ok" or failures:
+        raise CompareError("self-test failed to ignore tiny/noise kernel regressions")
+
+    kernel_report["kernels"][1]["summary"]["samples_seconds"] = [0.106, 0.106, 0.106]
+    status, failures, _ = evaluate_comparison(
+        baseline=baseline_with_kernels,
+        benchmark_report=improved_bench,
+        profile_report=improved_profile,
+        kernel_report=kernel_report,
+        benchmark_full_report=None,
+        require_prove_improvement_pct=0.0,
+        max_prove_regression_pct=0.0,
+        max_verify_regression_pct=0.0,
+        max_rss_regression_pct=0.0,
+        max_zig_profile_regression_pct=0.0,
+        max_kernel_regression_pct=0.0,
+        kernel_min_baseline_seconds=0.01,
+        kernel_min_absolute_delta_seconds=0.002,
+        max_target_family_regression_pct=0.0,
+        max_target_family_rss_regression_pct=0.0,
+    )
+    if status != "failed" or not failures:
+        raise CompareError("self-test failed to enforce large absolute kernel regressions")
 
 
 def parse_target_families(raw: str) -> list[str]:
@@ -646,6 +778,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-rss-regression-pct", type=float, default=0.0)
     parser.add_argument("--max-zig-profile-regression-pct", type=float, default=0.0)
     parser.add_argument("--max-kernel-regression-pct", type=float, default=5.0)
+    parser.add_argument(
+        "--kernel-min-baseline-seconds",
+        type=float,
+        default=0.0,
+        help="Ignore kernel regressions for baseline kernels below this runtime floor.",
+    )
+    parser.add_argument(
+        "--kernel-min-absolute-delta-seconds",
+        type=float,
+        default=0.0,
+        help="Ignore kernel regressions when absolute slowdown is below this floor.",
+    )
     parser.add_argument("--max-target-family-regression-pct", type=float, default=0.0)
     parser.add_argument("--max-target-family-rss-regression-pct", type=float, default=0.0)
     parser.add_argument(
@@ -711,6 +855,8 @@ def main() -> int:
         max_rss_regression_pct=args.max_rss_regression_pct,
         max_zig_profile_regression_pct=args.max_zig_profile_regression_pct,
         max_kernel_regression_pct=args.max_kernel_regression_pct,
+        kernel_min_baseline_seconds=args.kernel_min_baseline_seconds,
+        kernel_min_absolute_delta_seconds=args.kernel_min_absolute_delta_seconds,
         max_target_family_regression_pct=args.max_target_family_regression_pct,
         max_target_family_rss_regression_pct=args.max_target_family_rss_regression_pct,
     )
@@ -730,6 +876,8 @@ def main() -> int:
             "max_rss_regression_pct": args.max_rss_regression_pct,
             "max_zig_profile_regression_pct": args.max_zig_profile_regression_pct,
             "max_kernel_regression_pct": args.max_kernel_regression_pct,
+            "kernel_min_baseline_seconds": args.kernel_min_baseline_seconds,
+            "kernel_min_absolute_delta_seconds": args.kernel_min_absolute_delta_seconds,
             "max_target_family_regression_pct": args.max_target_family_regression_pct,
             "max_target_family_rss_regression_pct": args.max_target_family_rss_regression_pct,
             "target_families": target_families,

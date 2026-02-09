@@ -1,7 +1,7 @@
 {
   "collector": "time -l + sample",
   "failures": [],
-  "generated_at_unix": 1770642503,
+  "generated_at_unix": 1770646213,
   "profiles": [
     {
       "command": [
@@ -34,60 +34,60 @@
       ],
       "hotspots": [
         {
-          "samples": 206,
-          "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
-        },
-        {
-          "samples": 194,
+          "samples": 231,
           "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
         },
         {
-          "samples": 48,
+          "samples": 200,
+          "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
+        },
+        {
+          "samples": 34,
           "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
         },
         {
-          "samples": 12,
+          "samples": 13,
           "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
         },
         {
-          "samples": 5,
+          "samples": 7,
           "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
         }
       ],
       "repeats": 2,
       "runs": [
         {
-          "cycles_elapsed": 2608725497,
-          "instructions_retired": 9402286353,
-          "peak_memory_footprint_bytes": 31932776,
-          "peak_rss_kb": 61898752,
-          "seconds": 0.745995,
+          "cycles_elapsed": 2666703314,
+          "instructions_retired": 9398388309,
+          "peak_memory_footprint_bytes": 32981472,
+          "peak_rss_kb": 68681728,
+          "seconds": 0.793311,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                  25  involuntary context switches",
-            "          9402286353  instructions retired",
-            "          2608725497  cycles elapsed",
-            "            31932776  peak memory footprint"
+            "                 474  involuntary context switches",
+            "          9398388309  instructions retired",
+            "          2666703314  cycles elapsed",
+            "            32981472  peak memory footprint"
           ]
         },
         {
-          "cycles_elapsed": 2612514977,
-          "instructions_retired": 9397223610,
-          "peak_memory_footprint_bytes": 23396640,
-          "peak_rss_kb": 47104000,
-          "seconds": 0.602776,
+          "cycles_elapsed": 2660357624,
+          "instructions_retired": 9389626327,
+          "peak_memory_footprint_bytes": 33669576,
+          "peak_rss_kb": 57245696,
+          "seconds": 0.661895,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                  29  involuntary context switches",
-            "          9397223610  instructions retired",
-            "          2612514977  cycles elapsed",
-            "            23396640  peak memory footprint"
+            "                 451  involuntary context switches",
+            "          9389626327  instructions retired",
+            "          2660357624  cycles elapsed",
+            "            33669576  peak memory footprint"
           ]
         }
       ],
@@ -96,36 +96,36 @@
         "available": true,
         "hotspots": [
           {
-            "samples": 206,
-            "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
-          },
-          {
-            "samples": 194,
+            "samples": 231,
             "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
           },
           {
-            "samples": 48,
+            "samples": 200,
+            "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
+          },
+          {
+            "samples": 34,
             "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
           },
           {
-            "samples": 12,
+            "samples": 13,
             "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
           },
           {
-            "samples": 5,
+            "samples": 7,
             "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
           }
         ],
         "sample_file": "vectors/.profile_samples/rust_state_machine_deep.sample.txt"
       },
       "summary": {
-        "avg_cycles_elapsed": 2610620237.0,
-        "avg_instructions_retired": 9399754981.5,
-        "avg_peak_rss_kb": 54501376.0,
-        "avg_seconds": 0.674385,
-        "max_peak_rss_kb": 61898752,
-        "max_seconds": 0.745995,
-        "min_seconds": 0.602776
+        "avg_cycles_elapsed": 2663530469.0,
+        "avg_instructions_retired": 9394007318.0,
+        "avg_peak_rss_kb": 62963712.0,
+        "avg_seconds": 0.727603,
+        "max_peak_rss_kb": 68681728,
+        "max_seconds": 0.793311,
+        "min_seconds": 0.661895
       },
       "workload": "state_machine_deep"
     },
@@ -161,48 +161,48 @@
       ],
       "hotspots": [
         {
-          "samples": 394,
-          "symbol": "__ulock_wait2"
+          "samples": 21,
+          "symbol": "crypto.blake2.Blake2s(256).round"
         },
         {
-          "samples": 30,
-          "symbol": "crypto.blake2.Blake2s(256).round"
+          "samples": 17,
+          "symbol": "__ulock_wait2"
         }
       ],
       "repeats": 2,
       "runs": [
         {
-          "cycles_elapsed": 555719429,
-          "instructions_retired": 2366990775,
-          "peak_memory_footprint_bytes": 82510184,
-          "peak_rss_kb": 83066880,
-          "seconds": 0.358782,
+          "cycles_elapsed": 562406843,
+          "instructions_retired": 2381824228,
+          "peak_memory_footprint_bytes": 80970040,
+          "peak_rss_kb": 81543168,
+          "seconds": 0.264379,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                 182  involuntary context switches",
-            "          2366990775  instructions retired",
-            "           555719429  cycles elapsed",
-            "            82510184  peak memory footprint"
+            "                 397  involuntary context switches",
+            "          2381824228  instructions retired",
+            "           562406843  cycles elapsed",
+            "            80970040  peak memory footprint"
           ]
         },
         {
-          "cycles_elapsed": 546228714,
-          "instructions_retired": 2365334508,
-          "peak_memory_footprint_bytes": 82411832,
-          "peak_rss_kb": 83001344,
-          "seconds": 0.101753,
+          "cycles_elapsed": 564431309,
+          "instructions_retired": 2381361977,
+          "peak_memory_footprint_bytes": 80937272,
+          "peak_rss_kb": 81510400,
+          "seconds": 0.113829,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                 189  involuntary context switches",
-            "          2365334508  instructions retired",
-            "           546228714  cycles elapsed",
-            "            82411832  peak memory footprint"
+            "                 468  involuntary context switches",
+            "          2381361977  instructions retired",
+            "           564431309  cycles elapsed",
+            "            80937272  peak memory footprint"
           ]
         }
       ],
@@ -211,24 +211,24 @@
         "available": true,
         "hotspots": [
           {
-            "samples": 394,
-            "symbol": "__ulock_wait2"
+            "samples": 21,
+            "symbol": "crypto.blake2.Blake2s(256).round"
           },
           {
-            "samples": 30,
-            "symbol": "crypto.blake2.Blake2s(256).round"
+            "samples": 17,
+            "symbol": "__ulock_wait2"
           }
         ],
         "sample_file": "vectors/.profile_samples/zig_state_machine_deep.sample.txt"
       },
       "summary": {
-        "avg_cycles_elapsed": 550974071.5,
-        "avg_instructions_retired": 2366162641.5,
-        "avg_peak_rss_kb": 83034112.0,
-        "avg_seconds": 0.230267,
-        "max_peak_rss_kb": 83066880,
-        "max_seconds": 0.358782,
-        "min_seconds": 0.101753
+        "avg_cycles_elapsed": 563419076.0,
+        "avg_instructions_retired": 2381593102.5,
+        "avg_peak_rss_kb": 81526784.0,
+        "avg_seconds": 0.189104,
+        "max_peak_rss_kb": 81543168,
+        "max_seconds": 0.264379,
+        "min_seconds": 0.113829
       },
       "workload": "state_machine_deep"
     },
@@ -263,64 +263,60 @@
       ],
       "hotspots": [
         {
-          "samples": 208,
+          "samples": 223,
           "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
         },
         {
-          "samples": 186,
+          "samples": 207,
           "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
         },
         {
-          "samples": 50,
+          "samples": 51,
           "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
         },
         {
-          "samples": 7,
+          "samples": 16,
           "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
         },
         {
-          "samples": 6,
-          "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
-        },
-        {
           "samples": 5,
-          "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$stwo..core..fields..FieldExpOps$GT$::inverse::hfff4ac5b38a36ac1"
+          "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
         }
       ],
       "repeats": 2,
       "runs": [
         {
-          "cycles_elapsed": 2608561932,
-          "instructions_retired": 9395215082,
-          "peak_memory_footprint_bytes": 24576288,
-          "peak_rss_kb": 47398912,
-          "seconds": 0.599437,
+          "cycles_elapsed": 2651188004,
+          "instructions_retired": 9402196059,
+          "peak_memory_footprint_bytes": 33948104,
+          "peak_rss_kb": 63946752,
+          "seconds": 0.657111,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                  16  involuntary context switches",
-            "          9395215082  instructions retired",
-            "          2608561932  cycles elapsed",
-            "            24576288  peak memory footprint"
+            "                 415  involuntary context switches",
+            "          9402196059  instructions retired",
+            "          2651188004  cycles elapsed",
+            "            33948104  peak memory footprint"
           ]
         },
         {
-          "cycles_elapsed": 2607989144,
-          "instructions_retired": 9394223993,
-          "peak_memory_footprint_bytes": 24576288,
-          "peak_rss_kb": 47398912,
-          "seconds": 0.596931,
+          "cycles_elapsed": 2644007675,
+          "instructions_retired": 9389007619,
+          "peak_memory_footprint_bytes": 34898472,
+          "peak_rss_kb": 60686336,
+          "seconds": 0.715268,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                  13  involuntary context switches",
-            "          9394223993  instructions retired",
-            "          2607989144  cycles elapsed",
-            "            24576288  peak memory footprint"
+            "                 708  involuntary context switches",
+            "          9389007619  instructions retired",
+            "          2644007675  cycles elapsed",
+            "            34898472  peak memory footprint"
           ]
         }
       ],
@@ -329,40 +325,36 @@
         "available": true,
         "hotspots": [
           {
-            "samples": 208,
+            "samples": 223,
             "symbol": "stwo::core::circle::CirclePoint$LT$F$GT$::mul::hddb76c78be191095"
           },
           {
-            "samples": 186,
+            "samples": 207,
             "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$core..ops..arith..Mul$GT$::mul::h16385b8dd41c71b1"
           },
           {
-            "samples": 50,
+            "samples": 51,
             "symbol": "blake2::Blake2sVarCore::compress::h84009cd80583e0f2"
           },
           {
-            "samples": 7,
+            "samples": 16,
             "symbol": "stwo::core::fields::m31::M31::inverse::h341ceea63a9ae5fa"
           },
           {
-            "samples": 6,
-            "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
-          },
-          {
             "samples": 5,
-            "symbol": "_$LT$stwo..core..fields..qm31..QM31$u20$as$u20$stwo..core..fields..FieldExpOps$GT$::inverse::hfff4ac5b38a36ac1"
+            "symbol": "stwo::core::constraints::coset_vanishing::h6aafd79937834d80"
           }
         ],
         "sample_file": "vectors/.profile_samples/rust_xor_deep.sample.txt"
       },
       "summary": {
-        "avg_cycles_elapsed": 2608275538.0,
-        "avg_instructions_retired": 9394719537.5,
-        "avg_peak_rss_kb": 47398912.0,
-        "avg_seconds": 0.598184,
-        "max_peak_rss_kb": 47398912,
-        "max_seconds": 0.599437,
-        "min_seconds": 0.596931
+        "avg_cycles_elapsed": 2647597839.5,
+        "avg_instructions_retired": 9395601839.0,
+        "avg_peak_rss_kb": 62316544.0,
+        "avg_seconds": 0.68619,
+        "max_peak_rss_kb": 63946752,
+        "max_seconds": 0.715268,
+        "min_seconds": 0.657111
       },
       "workload": "xor_deep"
     },
@@ -398,52 +390,48 @@
       ],
       "hotspots": [
         {
-          "samples": 761,
-          "symbol": "__ulock_wait2"
-        },
-        {
-          "samples": 46,
+          "samples": 36,
           "symbol": "crypto.blake2.Blake2s(256).round"
         },
         {
-          "samples": 11,
-          "symbol": "core.fields.m31.powPMinus2"
+          "samples": 17,
+          "symbol": "__ulock_wait2"
         }
       ],
       "repeats": 2,
       "runs": [
         {
-          "cycles_elapsed": 546483909,
-          "instructions_retired": 2364375510,
-          "peak_memory_footprint_bytes": 82444648,
-          "peak_rss_kb": 83001344,
-          "seconds": 0.101027,
+          "cycles_elapsed": 554320322,
+          "instructions_retired": 2378085247,
+          "peak_memory_footprint_bytes": 80937272,
+          "peak_rss_kb": 81510400,
+          "seconds": 0.111712,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                 183  involuntary context switches",
-            "          2364375510  instructions retired",
-            "           546483909  cycles elapsed",
-            "            82444648  peak memory footprint"
+            "                 284  involuntary context switches",
+            "          2378085247  instructions retired",
+            "           554320322  cycles elapsed",
+            "            80937272  peak memory footprint"
           ]
         },
         {
-          "cycles_elapsed": 546634648,
-          "instructions_retired": 2364279683,
-          "peak_memory_footprint_bytes": 82444648,
-          "peak_rss_kb": 83001344,
-          "seconds": 0.101058,
+          "cycles_elapsed": 563242558,
+          "instructions_retired": 2380107896,
+          "peak_memory_footprint_bytes": 80986448,
+          "peak_rss_kb": 81543168,
+          "seconds": 0.112684,
           "stderr_tail": [
             "                   0  messages sent",
             "                   0  messages received",
             "                   0  signals received",
             "                   0  voluntary context switches",
-            "                 166  involuntary context switches",
-            "          2364279683  instructions retired",
-            "           546634648  cycles elapsed",
-            "            82444648  peak memory footprint"
+            "                 436  involuntary context switches",
+            "          2380107896  instructions retired",
+            "           563242558  cycles elapsed",
+            "            80986448  peak memory footprint"
           ]
         }
       ],
@@ -452,28 +440,24 @@
         "available": true,
         "hotspots": [
           {
-            "samples": 761,
-            "symbol": "__ulock_wait2"
-          },
-          {
-            "samples": 46,
+            "samples": 36,
             "symbol": "crypto.blake2.Blake2s(256).round"
           },
           {
-            "samples": 11,
-            "symbol": "core.fields.m31.powPMinus2"
+            "samples": 17,
+            "symbol": "__ulock_wait2"
           }
         ],
         "sample_file": "vectors/.profile_samples/zig_xor_deep.sample.txt"
       },
       "summary": {
-        "avg_cycles_elapsed": 546559278.5,
-        "avg_instructions_retired": 2364327596.5,
-        "avg_peak_rss_kb": 83001344.0,
-        "avg_seconds": 0.101043,
-        "max_peak_rss_kb": 83001344,
-        "max_seconds": 0.101058,
-        "min_seconds": 0.101027
+        "avg_cycles_elapsed": 558781440.0,
+        "avg_instructions_retired": 2379096571.5,
+        "avg_peak_rss_kb": 81526784.0,
+        "avg_seconds": 0.112198,
+        "max_peak_rss_kb": 81543168,
+        "max_seconds": 0.112684,
+        "min_seconds": 0.111712
       },
       "workload": "xor_deep"
     }
@@ -482,7 +466,6 @@
   "settings": {
     "blake2_backend": "auto",
     "hotspot_top_n": 8,
-    "merkle_pool_reuse": true,
     "merkle_workers": 12,
     "repeats": 2,
     "report_label": "optimization_track",
@@ -491,11 +474,11 @@
     "zig_cpu": "native",
     "zig_opt_mode": "ReleaseFast"
   },
-  "settings_hash": "b13da400afb3bd97102fc459bcebe101158553ffff6acd83407e12e784163f71",
+  "settings_hash": "5b38cfdba3f7f7f56b8666104d756891c2e949f58d0c35aac97bd8b8c639d040",
   "status": "ok",
   "summary": {
-    "avg_seconds_rust": 0.636285,
-    "avg_seconds_zig": 0.165655,
+    "avg_seconds_rust": 0.706897,
+    "avg_seconds_zig": 0.150651,
     "failure_count": 0,
     "profiles": 4
   },

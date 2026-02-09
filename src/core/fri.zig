@@ -644,6 +644,12 @@ pub const SparseEvaluation = struct {
         source_domain: circle_domain.CircleDomain,
     ) ![]QM31 {
         const out = try allocator.alloc(QM31, self.subset_evals.len);
+        if (self.subset_evals.len == 0) return out;
+        const subset_fold_len = self.subset_evals[0].len >> @intCast(CIRCLE_TO_LINE_FOLD_STEP);
+        const buffer = try allocator.alloc(QM31, subset_fold_len);
+        defer allocator.free(buffer);
+        var workspace = try FoldCircleWorkspace.init(allocator, subset_fold_len);
+        defer workspace.deinit(allocator);
         var i: usize = 0;
         while (i < self.subset_evals.len) : (i += 1) {
             const domain_initial_index = self.subset_domain_initial_indexes[i];
@@ -651,10 +657,16 @@ pub const SparseEvaluation = struct {
             const fold_domain = circle_domain.CircleDomain.new(
                 circle.Coset.new(fold_domain_initial, CIRCLE_TO_LINE_FOLD_STEP - 1),
             );
-            const buffer = try allocator.alloc(QM31, fold_domain.half_coset.size());
-            defer allocator.free(buffer);
+            if (fold_domain.half_coset.size() != buffer.len) return error.ShapeMismatch;
             @memset(buffer, QM31.zero());
-            try foldCircleIntoLine(buffer, self.subset_evals[i], fold_domain, fold_alpha);
+            try foldCircleIntoLineWithWorkspace(
+                allocator,
+                buffer,
+                self.subset_evals[i],
+                fold_domain,
+                fold_alpha,
+                &workspace,
+            );
             out[i] = buffer[0];
         }
         return out;
@@ -781,6 +793,40 @@ pub const FoldLineWorkspace = struct {
     }
 };
 
+/// Scratch workspace for circle-to-line folding.
+///
+/// Invariants:
+/// - `py_values.len == inv_py_values.len`.
+/// - both buffers are resized to at least the destination line length.
+pub const FoldCircleWorkspace = struct {
+    py_values: []M31,
+    inv_py_values: []M31,
+
+    pub fn init(allocator: std.mem.Allocator, capacity: usize) !FoldCircleWorkspace {
+        return .{
+            .py_values = try allocator.alloc(M31, capacity),
+            .inv_py_values = try allocator.alloc(M31, capacity),
+        };
+    }
+
+    pub fn deinit(self: *FoldCircleWorkspace, allocator: std.mem.Allocator) void {
+        allocator.free(self.py_values);
+        allocator.free(self.inv_py_values);
+        self.* = undefined;
+    }
+
+    pub fn ensureCapacity(
+        self: *FoldCircleWorkspace,
+        allocator: std.mem.Allocator,
+        capacity: usize,
+    ) !void {
+        if (self.py_values.len >= capacity and self.inv_py_values.len >= capacity) return;
+
+        self.py_values = try allocator.realloc(self.py_values, capacity);
+        self.inv_py_values = try allocator.realloc(self.inv_py_values, capacity);
+    }
+};
+
 pub fn foldLine(
     allocator: std.mem.Allocator,
     eval: []const QM31,
@@ -831,11 +877,74 @@ pub fn foldLineWithWorkspace(
     };
 }
 
+/// Folds a line evaluation in place and shrinks the backing slice to half length.
+///
+/// Preconditions:
+/// - `eval` is allocator-owned and mutable.
+/// - `eval.len == domain.size()` and `eval.len` is even.
+pub fn foldLineInPlaceWithWorkspace(
+    allocator: std.mem.Allocator,
+    eval: []QM31,
+    domain: line.LineDomain,
+    alpha: QM31,
+    workspace: *FoldLineWorkspace,
+) !FoldLineResult {
+    if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
+
+    const folded_len = eval.len / 2;
+    try workspace.ensureCapacity(allocator, folded_len);
+    const x_values = workspace.x_values[0..folded_len];
+    const inv_x_values = workspace.inv_x_values[0..folded_len];
+
+    var i: usize = 0;
+    const fold_shift: std.math.Log2Int(usize) = @intCast(FOLD_STEP);
+    const domain_log_size = domain.logSize();
+    while (i < folded_len) : (i += 1) {
+        x_values[i] = domain.at(core_utils.bitReverseIndex(i << fold_shift, domain_log_size));
+    }
+    try fields.batchInverseInPlace(M31, x_values, inv_x_values);
+
+    i = 0;
+    while (i < folded_len) : (i += 1) {
+        const inv_x = inv_x_values[i];
+        var f0 = eval[i * 2];
+        var f1 = eval[i * 2 + 1];
+        fft.ibutterfly(QM31, &f0, &f1, inv_x);
+        eval[i] = f0.add(alpha.mul(f1));
+    }
+
+    const resized = try allocator.realloc(eval, folded_len);
+    return .{
+        .domain = domain.double(),
+        .values = resized,
+    };
+}
+
 pub fn foldCircleIntoLine(
     dst: []QM31,
     src: []const QM31,
     src_domain: circle_domain.CircleDomain,
     alpha: QM31,
+) !void {
+    var workspace = try FoldCircleWorkspace.init(std.heap.page_allocator, dst.len);
+    defer workspace.deinit(std.heap.page_allocator);
+    return foldCircleIntoLineWithWorkspace(
+        std.heap.page_allocator,
+        dst,
+        src,
+        src_domain,
+        alpha,
+        &workspace,
+    );
+}
+
+pub fn foldCircleIntoLineWithWorkspace(
+    allocator: std.mem.Allocator,
+    dst: []QM31,
+    src: []const QM31,
+    src_domain: circle_domain.CircleDomain,
+    alpha: QM31,
+    workspace: *FoldCircleWorkspace,
 ) !void {
     if ((src.len >> @intCast(CIRCLE_TO_LINE_FOLD_STEP)) != dst.len) {
         return error.ShapeMismatch;
@@ -844,12 +953,9 @@ pub fn foldCircleIntoLine(
     const alpha_sq = alpha.square();
     const fold_shift: std.math.Log2Int(usize) = @intCast(CIRCLE_TO_LINE_FOLD_STEP);
     const domain_log_size = src_domain.logSize();
-    var scratch_state = std.heap.stackFallback(4 * 1024, std.heap.page_allocator);
-    const scratch = scratch_state.get();
-    const py_values = try scratch.alloc(M31, dst.len);
-    defer scratch.free(py_values);
-    const inv_py_values = try scratch.alloc(M31, dst.len);
-    defer scratch.free(inv_py_values);
+    try workspace.ensureCapacity(allocator, dst.len);
+    const py_values = workspace.py_values[0..dst.len];
+    const inv_py_values = workspace.inv_py_values[0..dst.len];
 
     var i: usize = 0;
     while (i < dst.len) : (i += 1) {
@@ -863,6 +969,58 @@ pub fn foldCircleIntoLine(
         const inv_py = inv_py_values[i];
         var f0_px = src[i * 2];
         var f1_px = src[i * 2 + 1];
+        fft.ibutterfly(QM31, &f0_px, &f1_px, inv_py);
+        const f_prime = alpha.mul(f1_px).add(f0_px);
+        dst[i] = dst[i].mul(alpha_sq).add(f_prime);
+    }
+}
+
+pub fn foldCircleColumnsIntoLineWithWorkspace(
+    allocator: std.mem.Allocator,
+    dst: []QM31,
+    src_columns: [qm31.SECURE_EXTENSION_DEGREE][]const M31,
+    src_domain: circle_domain.CircleDomain,
+    alpha: QM31,
+    workspace: *FoldCircleWorkspace,
+) !void {
+    if ((src_columns[0].len >> @intCast(CIRCLE_TO_LINE_FOLD_STEP)) != dst.len) {
+        return error.ShapeMismatch;
+    }
+    inline for (src_columns[1..]) |column| {
+        if (column.len != src_columns[0].len) return error.ShapeMismatch;
+    }
+
+    const alpha_sq = alpha.square();
+    const fold_shift: std.math.Log2Int(usize) = @intCast(CIRCLE_TO_LINE_FOLD_STEP);
+    const domain_log_size = src_domain.logSize();
+    try workspace.ensureCapacity(allocator, dst.len);
+    const py_values = workspace.py_values[0..dst.len];
+    const inv_py_values = workspace.inv_py_values[0..dst.len];
+
+    var i: usize = 0;
+    while (i < dst.len) : (i += 1) {
+        const p = src_domain.at(core_utils.bitReverseIndex(i << fold_shift, domain_log_size));
+        py_values[i] = p.y;
+    }
+    try fields.batchInverseInPlace(M31, py_values, inv_py_values);
+
+    i = 0;
+    while (i < dst.len) : (i += 1) {
+        const inv_py = inv_py_values[i];
+        const left_idx = i * 2;
+        const right_idx = left_idx + 1;
+        var f0_px = QM31.fromM31Array(.{
+            src_columns[0][left_idx],
+            src_columns[1][left_idx],
+            src_columns[2][left_idx],
+            src_columns[3][left_idx],
+        });
+        var f1_px = QM31.fromM31Array(.{
+            src_columns[0][right_idx],
+            src_columns[1][right_idx],
+            src_columns[2][right_idx],
+            src_columns[3][right_idx],
+        });
         fft.ibutterfly(QM31, &f0_px, &f1_px, inv_py);
         const f_prime = alpha.mul(f1_px).add(f0_px);
         dst[i] = dst[i].mul(alpha_sq).add(f_prime);
@@ -1058,6 +1216,51 @@ test "fri: fold line workspace path matches default implementation" {
     }
 }
 
+test "fri: fold line in-place workspace matches default implementation" {
+    const alloc = std.testing.allocator;
+    const domain = try line.LineDomain.init(circle.Coset.halfOdds(4));
+    const alpha = QM31.fromU32Unchecked(5, 7, 11, 13);
+    const eval = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+        QM31.fromU32Unchecked(17, 18, 19, 20),
+        QM31.fromU32Unchecked(21, 22, 23, 24),
+        QM31.fromU32Unchecked(25, 26, 27, 28),
+        QM31.fromU32Unchecked(29, 30, 31, 1),
+        QM31.fromU32Unchecked(2, 3, 4, 5),
+        QM31.fromU32Unchecked(6, 7, 8, 9),
+        QM31.fromU32Unchecked(10, 11, 12, 13),
+        QM31.fromU32Unchecked(14, 15, 16, 17),
+        QM31.fromU32Unchecked(18, 19, 20, 21),
+        QM31.fromU32Unchecked(22, 23, 24, 25),
+        QM31.fromU32Unchecked(26, 27, 28, 29),
+        QM31.fromU32Unchecked(30, 31, 1, 2),
+    };
+
+    const default_fold = try foldLine(alloc, eval[0..], domain, alpha);
+    defer alloc.free(default_fold.values);
+
+    var workspace = try FoldLineWorkspace.init(alloc, 1);
+    defer workspace.deinit(alloc);
+    const owned_eval = try alloc.dupe(QM31, eval[0..]);
+    const in_place_fold = try foldLineInPlaceWithWorkspace(
+        alloc,
+        owned_eval,
+        domain,
+        alpha,
+        &workspace,
+    );
+    defer alloc.free(in_place_fold.values);
+
+    try std.testing.expectEqual(default_fold.domain.logSize(), in_place_fold.domain.logSize());
+    try std.testing.expectEqual(default_fold.values.len, in_place_fold.values.len);
+    for (default_fold.values, in_place_fold.values) |lhs, rhs| {
+        try std.testing.expect(lhs.eql(rhs));
+    }
+}
+
 test "fri: fold circle into line accumulates correctly" {
     const src_domain = canonic.CanonicCoset.new(2).circleDomain();
     const alpha = QM31.fromU32Unchecked(7, 0, 0, 0);
@@ -1085,6 +1288,48 @@ test "fri: fold circle into line accumulates correctly" {
 
     try std.testing.expect(dst[0].eql(expected[0]));
     try std.testing.expect(dst[1].eql(expected[1]));
+}
+
+test "fri: fold circle columns workspace path matches qm31 slice path" {
+    const alloc = std.testing.allocator;
+    const src_domain = canonic.CanonicCoset.new(2).circleDomain();
+    const alpha = QM31.fromU32Unchecked(7, 0, 0, 0);
+    const src = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+    };
+    var dst_qm31 = [_]QM31{ QM31.zero(), QM31.zero() };
+    var dst_cols = [_]QM31{ QM31.zero(), QM31.zero() };
+
+    try foldCircleIntoLine(dst_qm31[0..], src[0..], src_domain, alpha);
+
+    var c0 = [_]M31{ M31.zero(), M31.zero(), M31.zero(), M31.zero() };
+    var c1 = [_]M31{ M31.zero(), M31.zero(), M31.zero(), M31.zero() };
+    var c2 = [_]M31{ M31.zero(), M31.zero(), M31.zero(), M31.zero() };
+    var c3 = [_]M31{ M31.zero(), M31.zero(), M31.zero(), M31.zero() };
+    for (src, 0..) |value, i| {
+        const coords = value.toM31Array();
+        c0[i] = coords[0];
+        c1[i] = coords[1];
+        c2[i] = coords[2];
+        c3[i] = coords[3];
+    }
+    const columns = [_][]const M31{ c0[0..], c1[0..], c2[0..], c3[0..] };
+    var workspace = try FoldCircleWorkspace.init(alloc, dst_cols.len);
+    defer workspace.deinit(alloc);
+    try foldCircleColumnsIntoLineWithWorkspace(
+        alloc,
+        dst_cols[0..],
+        columns,
+        src_domain,
+        alpha,
+        &workspace,
+    );
+
+    try std.testing.expect(dst_cols[0].eql(dst_qm31[0]));
+    try std.testing.expect(dst_cols[1].eql(dst_qm31[1]));
 }
 
 test "fri verifier: commit and sample query positions" {

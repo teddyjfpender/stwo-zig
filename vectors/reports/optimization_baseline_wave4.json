@@ -3,13 +3,13 @@
     "report_path": "vectors/reports/benchmark_smoke_report.json",
     "settings_hash": "7f1edaa719bd4eb296249806d790351afe01f68cf3683a9dcc5e120fed35284b",
     "summary": {
-      "avg_zig_over_rust_peak_rss_kb": 0.890071,
-      "avg_zig_over_rust_prove": 0.937706,
-      "avg_zig_over_rust_verify": 0.985791,
+      "avg_zig_over_rust_peak_rss_kb": 0.881941,
+      "avg_zig_over_rust_prove": 0.925149,
+      "avg_zig_over_rust_verify": 0.956852,
       "failure_count": 0,
-      "max_zig_over_rust_peak_rss_kb": 0.91129,
-      "max_zig_over_rust_prove": 1.056504,
-      "max_zig_over_rust_verify": 0.999191,
+      "max_zig_over_rust_peak_rss_kb": 0.903226,
+      "max_zig_over_rust_prove": 0.99694,
+      "max_zig_over_rust_verify": 1.006891,
       "workloads": 2
     },
     "thresholds": {
@@ -19,70 +19,75 @@
     "workload_matrix_hash": "02a90f6bfe11089b2433b1643bb499ba42b37f7deb4ecc871739a12b282bac64",
     "workload_ratios": {
       "state_machine_default": {
-        "zig_over_rust_peak_rss_kb": 0.868852,
+        "zig_over_rust_peak_rss_kb": 0.860656,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.056504,
-        "zig_over_rust_verify": 0.999191
+        "zig_over_rust_prove": 0.99694,
+        "zig_over_rust_verify": 1.006891
       },
       "state_machine_medium": {
-        "zig_over_rust_peak_rss_kb": 0.91129,
+        "zig_over_rust_peak_rss_kb": 0.903226,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.818908,
-        "zig_over_rust_verify": 0.97239
+        "zig_over_rust_prove": 0.853357,
+        "zig_over_rust_verify": 0.906814
       }
     }
   },
-  "created_at_unix": 1770641788,
-  "git_head_sha": "46516762a06d56a26de19dc2337c8dc9e6b89200",
+  "created_at_unix": 1770645566,
+  "git_head_sha": "3ad909cea2d8ea68a5add850e9a493f9c13b0c29",
   "kernels": {
     "avg_seconds_by_kernel": {
-      "eval_at_point": 0.503522,
-      "eval_at_point_by_folding": 0.061550667,
-      "fft": 0.000535333
+      "eval_at_point": 0.536533,
+      "eval_at_point_by_folding": 0.065396,
+      "fft": 0.024060333
+    },
+    "effective_seconds_by_kernel": {
+      "eval_at_point": 0.536955,
+      "eval_at_point_by_folding": 0.065178,
+      "fft": 0.02415
     },
     "report_path": "vectors/reports/benchmark_kernels_report.json",
-    "settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
+    "settings_hash": "5799e57b144ccee2fe09d2ec30b2f904468872e64122271812167ab51e82faa2",
     "summary": {
-      "avg_seconds": 0.188536,
+      "avg_seconds": 0.208663111,
       "failure_count": 0,
       "kernels": 3,
-      "max_seconds": 0.503522,
-      "min_seconds": 0.000535333
+      "max_seconds": 0.536533,
+      "min_seconds": 0.024060333
     },
-    "workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3"
+    "workload_matrix_hash": "ccf08828a617c569fa9a54535bb3215fe84910e65e32e1aad03fa4f8987bec03"
   },
   "profile": {
     "report_path": "vectors/reports/profile_smoke_report.json",
     "settings_hash": "cb2378172a74578129bad85d5ded46d3e9fb4304c4fda5eaea561aef1b67c296",
     "summary": {
-      "avg_seconds_rust": 0.640363,
-      "avg_seconds_zig": 0.162178,
+      "avg_seconds_rust": 0.731307,
+      "avg_seconds_zig": 0.143517,
       "failure_count": 0,
       "profiles": 4
     },
     "workload_matrix_hash": "4fd1b1f8545e1d81857318549755050db5c75296dda09aea4d1e30569591ac0d",
     "zig_avg_seconds_by_workload": {
-      "state_machine_deep": 0.223528,
-      "xor_deep": 0.100827
+      "state_machine_deep": 0.183719,
+      "xor_deep": 0.103315
     }
   },
-  "schema_version": 4,
+  "schema_version": 5,
   "target_families": {
     "ratios": {
       "eval_at_point": {
-        "zig_over_rust_peak_rss_kb": 1.500623,
-        "zig_over_rust_prove": 0.894924,
-        "zig_over_rust_verify": 1.402571
+        "zig_over_rust_peak_rss_kb": 1.553191,
+        "zig_over_rust_prove": 0.906704,
+        "zig_over_rust_verify": 1.431642
       },
       "eval_at_point_by_folding": {
-        "zig_over_rust_peak_rss_kb": 0.705185,
-        "zig_over_rust_prove": 1.087408,
-        "zig_over_rust_verify": 1.421585
+        "zig_over_rust_peak_rss_kb": 1.327864,
+        "zig_over_rust_prove": 1.110948,
+        "zig_over_rust_verify": 1.372292
       },
       "fft": {
-        "zig_over_rust_peak_rss_kb": 1.000315,
-        "zig_over_rust_prove": 1.077345,
-        "zig_over_rust_verify": 1.371315
+        "zig_over_rust_peak_rss_kb": 1.227646,
+        "zig_over_rust_prove": 1.072961,
+        "zig_over_rust_verify": 1.261917
       }
     },
     "report_path": "vectors/reports/benchmark_full_report.json"

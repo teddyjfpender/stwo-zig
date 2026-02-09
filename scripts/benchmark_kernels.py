@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import statistics
 import subprocess
 import time
 from pathlib import Path
@@ -35,7 +36,8 @@ WORKLOADS: List[Dict[str, Any]] = [
     {
         "name": "fft",
         "log_size": 10,
-        "iterations": 64,
+        # Keep fft kernel windows long enough to reduce timer noise in opt-gate comparisons.
+        "iterations": 2048,
     },
 ]
 
@@ -147,6 +149,7 @@ def summarize_runs(
         raise RuntimeError(f"non-deterministic checksum observed for kernel '{name}'")
 
     avg_seconds = sum(samples) / len(samples)
+    median_seconds = statistics.median(samples)
     return {
         "name": name,
         "log_size": log_size,
@@ -156,6 +159,7 @@ def summarize_runs(
         "checksum": first_checksum,
         "summary": {
             "avg_seconds": round(avg_seconds, 9),
+            "median_seconds": round(median_seconds, 9),
             "min_seconds": round(min(samples), 9),
             "max_seconds": round(max(samples), 9),
             "samples_seconds": [round(v, 9) for v in samples],

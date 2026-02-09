@@ -207,7 +207,7 @@
   "cases_ok": 8,
   "cases_total": 8,
   "failures": [],
-  "generated_at_unix": 1770642564,
+  "generated_at_unix": 1770646200,
   "prove_modes": [
     "prove",
     "prove_ex"
@@ -226,7 +226,7 @@
       ],
       "name": "build_zig_interop_binary",
       "return_code": 0,
-      "seconds": 6.709332,
+      "seconds": 8.074259,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -261,7 +261,7 @@
       ],
       "name": "state_machine_deep:prove:generate_default",
       "return_code": 0,
-      "seconds": 0.184917,
+      "seconds": 0.181111,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -278,7 +278,7 @@
       ],
       "name": "state_machine_deep:prove:verify_default",
       "return_code": 0,
-      "seconds": 0.002919,
+      "seconds": 0.002826,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -317,7 +317,7 @@
       },
       "name": "state_machine_deep:prove:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.022363,
+      "seconds": 0.018996,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -338,7 +338,7 @@
       },
       "name": "state_machine_deep:prove:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.002474,
+      "seconds": 0.002409,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -377,7 +377,7 @@
       },
       "name": "state_machine_deep:prove:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.019383,
+      "seconds": 0.019843,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -398,7 +398,7 @@
       },
       "name": "state_machine_deep:prove:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.002081,
+      "seconds": 0.002535,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -437,7 +437,7 @@
       },
       "name": "state_machine_deep:prove:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.017774,
+      "seconds": 0.018785,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -458,7 +458,7 @@
       },
       "name": "state_machine_deep:prove:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.001919,
+      "seconds": 0.003017,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -493,7 +493,7 @@
       ],
       "name": "state_machine_deep:prove_ex:generate_default",
       "return_code": 0,
-      "seconds": 0.01696,
+      "seconds": 0.01902,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -510,7 +510,7 @@
       ],
       "name": "state_machine_deep:prove_ex:verify_default",
       "return_code": 0,
-      "seconds": 0.00181,
+      "seconds": 0.002264,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -549,7 +549,7 @@
       },
       "name": "state_machine_deep:prove_ex:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.016903,
+      "seconds": 0.020122,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -570,7 +570,7 @@
       },
       "name": "state_machine_deep:prove_ex:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.001956,
+      "seconds": 0.00264,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -609,7 +609,7 @@
       },
       "name": "state_machine_deep:prove_ex:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.017477,
+      "seconds": 0.018933,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -630,7 +630,7 @@
       },
       "name": "state_machine_deep:prove_ex:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.002017,
+      "seconds": 0.002987,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -669,7 +669,7 @@
       },
       "name": "state_machine_deep:prove_ex:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.017082,
+      "seconds": 0.019333,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -690,7 +690,7 @@
       },
       "name": "state_machine_deep:prove_ex:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.002038,
+      "seconds": 0.002747,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -721,7 +721,7 @@
       ],
       "name": "plonk_deep:prove:generate_default",
       "return_code": 0,
-      "seconds": 0.017797,
+      "seconds": 0.020649,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -738,7 +738,7 @@
       ],
       "name": "plonk_deep:prove:verify_default",
       "return_code": 0,
-      "seconds": 0.001941,
+      "seconds": 0.00253,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -773,7 +773,7 @@
       },
       "name": "plonk_deep:prove:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.018196,
+      "seconds": 0.020433,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -794,7 +794,7 @@
       },
       "name": "plonk_deep:prove:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.002163,
+      "seconds": 0.002696,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -829,7 +829,7 @@
       },
       "name": "plonk_deep:prove:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.017935,
+      "seconds": 0.019585,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -850,7 +850,7 @@
       },
       "name": "plonk_deep:prove:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.002073,
+      "seconds": 0.003374,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -885,7 +885,7 @@
       },
       "name": "plonk_deep:prove:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.017979,
+      "seconds": 0.019974,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -906,7 +906,7 @@
       },
       "name": "plonk_deep:prove:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.002103,
+      "seconds": 0.00373,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -937,7 +937,7 @@
       ],
       "name": "plonk_deep:prove_ex:generate_default",
       "return_code": 0,
-      "seconds": 0.017774,
+      "seconds": 0.020756,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -954,7 +954,7 @@
       ],
       "name": "plonk_deep:prove_ex:verify_default",
       "return_code": 0,
-      "seconds": 0.001987,
+      "seconds": 0.00294,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -989,7 +989,7 @@
       },
       "name": "plonk_deep:prove_ex:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.017899,
+      "seconds": 0.020058,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1010,7 +1010,7 @@
       },
       "name": "plonk_deep:prove_ex:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.002021,
+      "seconds": 0.002668,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1045,7 +1045,7 @@
       },
       "name": "plonk_deep:prove_ex:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.01805,
+      "seconds": 0.020778,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1066,7 +1066,7 @@
       },
       "name": "plonk_deep:prove_ex:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.002015,
+      "seconds": 0.002405,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1101,7 +1101,7 @@
       },
       "name": "plonk_deep:prove_ex:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.017834,
+      "seconds": 0.020459,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1122,7 +1122,7 @@
       },
       "name": "plonk_deep:prove_ex:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.002013,
+      "seconds": 0.002873,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1155,7 +1155,7 @@
       ],
       "name": "blake_deep:prove:generate_default",
       "return_code": 0,
-      "seconds": 0.188248,
+      "seconds": 0.210796,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1172,7 +1172,7 @@
       ],
       "name": "blake_deep:prove:verify_default",
       "return_code": 0,
-      "seconds": 0.003653,
+      "seconds": 0.004976,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1209,7 +1209,7 @@
       },
       "name": "blake_deep:prove:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.192676,
+      "seconds": 0.211508,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1230,7 +1230,7 @@
       },
       "name": "blake_deep:prove:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.003555,
+      "seconds": 0.004744,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1267,7 +1267,7 @@
       },
       "name": "blake_deep:prove:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.18958,
+      "seconds": 0.209599,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1288,7 +1288,7 @@
       },
       "name": "blake_deep:prove:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.003772,
+      "seconds": 0.004356,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1325,7 +1325,7 @@
       },
       "name": "blake_deep:prove:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.196843,
+      "seconds": 0.209898,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1346,7 +1346,7 @@
       },
       "name": "blake_deep:prove:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.00379,
+      "seconds": 0.004147,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1379,7 +1379,7 @@
       ],
       "name": "blake_deep:prove_ex:generate_default",
       "return_code": 0,
-      "seconds": 0.191869,
+      "seconds": 0.211263,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1396,7 +1396,7 @@
       ],
       "name": "blake_deep:prove_ex:verify_default",
       "return_code": 0,
-      "seconds": 0.00373,
+      "seconds": 0.004183,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1433,7 +1433,7 @@
       },
       "name": "blake_deep:prove_ex:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.191893,
+      "seconds": 0.208313,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1454,7 +1454,7 @@
       },
       "name": "blake_deep:prove_ex:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.003866,
+      "seconds": 0.004821,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1491,7 +1491,7 @@
       },
       "name": "blake_deep:prove_ex:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.188722,
+      "seconds": 0.210489,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1512,7 +1512,7 @@
       },
       "name": "blake_deep:prove_ex:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.003744,
+      "seconds": 0.00455,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1549,7 +1549,7 @@
       },
       "name": "blake_deep:prove_ex:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.197636,
+      "seconds": 0.211709,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1570,7 +1570,7 @@
       },
       "name": "blake_deep:prove_ex:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.003772,
+      "seconds": 0.004455,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1603,7 +1603,7 @@
       ],
       "name": "wide_fibonacci_fib5000:prove:generate_default",
       "return_code": 0,
-      "seconds": 2.94094,
+      "seconds": 3.158631,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1620,7 +1620,7 @@
       ],
       "name": "wide_fibonacci_fib5000:prove:verify_default",
       "return_code": 0,
-      "seconds": 0.007308,
+      "seconds": 0.008513,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1657,7 +1657,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove:generate_workers_2",
       "return_code": 0,
-      "seconds": 2.936674,
+      "seconds": 3.126549,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1678,7 +1678,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.007255,
+      "seconds": 0.008518,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1715,7 +1715,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove:generate_workers_4",
       "return_code": 0,
-      "seconds": 2.921562,
+      "seconds": 3.181893,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1736,7 +1736,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.007267,
+      "seconds": 0.008614,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1773,7 +1773,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove:generate_workers_8",
       "return_code": 0,
-      "seconds": 2.922709,
+      "seconds": 3.14508,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1794,7 +1794,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.00709,
+      "seconds": 0.008665,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1827,7 +1827,7 @@
       ],
       "name": "wide_fibonacci_fib5000:prove_ex:generate_default",
       "return_code": 0,
-      "seconds": 2.930872,
+      "seconds": 3.13091,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1844,7 +1844,7 @@
       ],
       "name": "wide_fibonacci_fib5000:prove_ex:verify_default",
       "return_code": 0,
-      "seconds": 0.00788,
+      "seconds": 0.008324,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1881,7 +1881,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove_ex:generate_workers_2",
       "return_code": 0,
-      "seconds": 2.969259,
+      "seconds": 3.141649,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1902,7 +1902,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove_ex:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.007121,
+      "seconds": 0.008678,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1939,7 +1939,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove_ex:generate_workers_4",
       "return_code": 0,
-      "seconds": 2.935787,
+      "seconds": 3.144632,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1960,7 +1960,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove_ex:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.007503,
+      "seconds": 0.008387,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1997,7 +1997,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove_ex:generate_workers_8",
       "return_code": 0,
-      "seconds": 2.934449,
+      "seconds": 3.145611,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -2018,7 +2018,7 @@
       },
       "name": "wide_fibonacci_fib5000:prove_ex:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.007648,
+      "seconds": 0.008459,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""

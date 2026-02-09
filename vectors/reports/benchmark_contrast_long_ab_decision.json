@@ -1,0 +1,167 @@
+{
+  "codec_ab": {
+    "promote_binary_codec": false,
+    "report_binary_codec": "vectors/reports/benchmark_contrast_long_binary_codec_ab.json",
+    "report_json_codec": "vectors/reports/benchmark_contrast_long_json_codec_ab.json",
+    "rows": [
+      {
+        "better_both": false,
+        "delta_prove_pct": 16.350877,
+        "delta_rss_pct": -5.494065,
+        "name": "blake_deep"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 5.221249,
+        "delta_rss_pct": 0.0,
+        "name": "blake_large"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": -5.174561,
+        "delta_rss_pct": 35.000015,
+        "name": "plonk_large"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 2.512613,
+        "delta_rss_pct": 35.519114,
+        "name": "poseidon_deep"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 0.431608,
+        "delta_rss_pct": 0.0,
+        "name": "poseidon_large"
+      },
+      {
+        "better_both": true,
+        "delta_prove_pct": -13.413251,
+        "delta_rss_pct": 0.0,
+        "name": "state_machine_default"
+      },
+      {
+        "better_both": true,
+        "delta_prove_pct": -6.53623,
+        "delta_rss_pct": 0.0,
+        "name": "state_machine_medium"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 0.432864,
+        "delta_rss_pct": 0.0,
+        "name": "wide_fibonacci_fib100"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": -0.091284,
+        "delta_rss_pct": 42.656228,
+        "name": "wide_fibonacci_fib1000"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": -0.871912,
+        "delta_rss_pct": 0.292552,
+        "name": "wide_fibonacci_fib2000"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 2.886556,
+        "delta_rss_pct": 14.090884,
+        "name": "wide_fibonacci_fib500"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 0.534954,
+        "delta_rss_pct": 2.054902,
+        "name": "wide_fibonacci_fib5000"
+      }
+    ],
+    "selected_codec": "json"
+  },
+  "generated_at_unix": 1770645118,
+  "reuse_ab": {
+    "report_no_reuse": "vectors/reports/benchmark_contrast_long_no_reuse_ab.json",
+    "report_reuse": "vectors/reports/benchmark_contrast_long_reuse_ab.json",
+    "rows": [
+      {
+        "better_both": true,
+        "delta_prove_pct": -10.730316,
+        "delta_rss_pct": -22.14454,
+        "name": "blake_deep"
+      },
+      {
+        "better_both": true,
+        "delta_prove_pct": -29.367855,
+        "delta_rss_pct": -9.448817,
+        "name": "blake_large"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 19.905749,
+        "delta_rss_pct": 13.306461,
+        "name": "plonk_large"
+      },
+      {
+        "better_both": true,
+        "delta_prove_pct": -1.162933,
+        "delta_rss_pct": 0.0,
+        "name": "poseidon_deep"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 8.702123,
+        "delta_rss_pct": 13.650818,
+        "name": "poseidon_large"
+      },
+      {
+        "better_both": true,
+        "delta_prove_pct": -36.578535,
+        "delta_rss_pct": 0.0,
+        "name": "state_machine_default"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 40.474906,
+        "delta_rss_pct": 3.225829,
+        "name": "state_machine_medium"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 5.537585,
+        "delta_rss_pct": -6.624828,
+        "name": "wide_fibonacci_fib100"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": 4.398428,
+        "delta_rss_pct": -0.318764,
+        "name": "wide_fibonacci_fib1000"
+      },
+      {
+        "better_both": true,
+        "delta_prove_pct": -4.627558,
+        "delta_rss_pct": -1.030946,
+        "name": "wide_fibonacci_fib2000"
+      },
+      {
+        "better_both": true,
+        "delta_prove_pct": -26.594944,
+        "delta_rss_pct": -7.036815,
+        "name": "wide_fibonacci_fib500"
+      },
+      {
+        "better_both": false,
+        "delta_prove_pct": -1.920921,
+        "delta_rss_pct": 2.209154,
+        "name": "wide_fibonacci_fib5000"
+      }
+    ],
+    "selected_reuse_workloads": [
+      "blake_deep",
+      "poseidon_deep",
+      "wide_fibonacci_fib2000"
+    ]
+  },
+  "schema_version": 1
+}

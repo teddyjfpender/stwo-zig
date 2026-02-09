@@ -319,14 +319,25 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
             );
             errdefer layer_evaluation.deinit(allocator);
 
+            var fold_circle_workspace = try core_fri.FoldCircleWorkspace.init(
+                allocator,
+                layer_evaluation.len(),
+            );
+            defer fold_circle_workspace.deinit(allocator);
             const folding_alpha = channel.drawSecureFelt();
-            const first_layer_values = try first_layer.column.toVec(allocator);
-            defer allocator.free(first_layer_values);
-            try core_fri.foldCircleIntoLine(
+            const first_layer_columns = [_][]const M31{
+                first_layer.column.columns[0],
+                first_layer.column.columns[1],
+                first_layer.column.columns[2],
+                first_layer.column.columns[3],
+            };
+            try core_fri.foldCircleColumnsIntoLineWithWorkspace(
+                allocator,
                 @constCast(layer_evaluation.values),
-                first_layer_values,
+                first_layer_columns,
                 first_layer.domain,
                 folding_alpha,
+                &fold_circle_workspace,
             );
 
             var layers = std.ArrayList(InnerLayerProver).empty;
@@ -361,9 +372,9 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
 
                 MC.mixRoot(channel, merkle_tree.root());
                 const fold_alpha = channel.drawSecureFelt();
-                const folded = try core_fri.foldLineWithWorkspace(
+                const folded = try core_fri.foldLineInPlaceWithWorkspace(
                     allocator,
-                    layer_evaluation.values,
+                    @constCast(layer_evaluation.values),
                     layer_evaluation.domain(),
                     fold_alpha,
                     &fold_workspace,
@@ -376,11 +387,9 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
                 };
                 try layers.append(allocator, layer);
 
-                layer_evaluation.deinit(allocator);
-                layer_evaluation = try prover_line.LineEvaluation.initOwned(
-                    folded.domain,
-                    folded.values,
-                );
+                layer_evaluation.domain_value = folded.domain;
+                layer_evaluation.values = folded.values;
+                layer_evaluation.owns_values = true;
             }
 
             return .{

@@ -1,6 +1,6 @@
 {
   "failures": [],
-  "generated_at_unix": 1770649110,
+  "generated_at_unix": 1770644006,
   "protocol": "matched_workload_matrix_v1",
   "schema_version": 2,
   "settings": {
@@ -9,14 +9,9 @@
     "include_large": true,
     "include_long": true,
     "include_medium": true,
-    "merkle_pool_reuse_workloads": [
-      "blake_deep",
-      "poseidon_deep",
-      "wide_fibonacci_fib2000"
-    ],
     "merkle_workers": 12,
-    "repeats": 5,
-    "report_label": "benchmark_contrast_long",
+    "repeats": 3,
+    "report_label": "contrast_long_no_reuse_ab",
     "rust_toolchain": "nightly-2025-07-14",
     "warmups": 1,
     "workload_tier": "base_plus_medium_plus_large_plus_long",
@@ -24,16 +19,16 @@
     "zig_cpu": "native",
     "zig_opt_mode": "ReleaseFast"
   },
-  "settings_hash": "ea1d4ad25d52843534ae0476fc997f7228904c39d1a388daf65cad1b4b3ad114",
+  "settings_hash": "6b833ccd9eb19d73e0756a4fbda9205c8709c891a3be05b51a5aa4e74f92cab7",
   "status": "ok",
   "summary": {
-    "avg_zig_over_rust_peak_rss_kb": 1.947723,
-    "avg_zig_over_rust_prove": 1.00258,
-    "avg_zig_over_rust_verify": 1.064394,
+    "avg_zig_over_rust_peak_rss_kb": 1.746845,
+    "avg_zig_over_rust_prove": 1.034107,
+    "avg_zig_over_rust_verify": 1.083904,
     "failure_count": 0,
-    "max_zig_over_rust_peak_rss_kb": 3.123069,
-    "max_zig_over_rust_prove": 1.581497,
-    "max_zig_over_rust_verify": 1.282599,
+    "max_zig_over_rust_peak_rss_kb": 2.92515,
+    "max_zig_over_rust_prove": 1.596422,
+    "max_zig_over_rust_verify": 1.362058,
     "workloads": 12
   },
   "thresholds": {
@@ -56,8 +51,8 @@
       "ratios": {
         "zig_over_rust_peak_rss_kb": 0.860656,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.049161,
-        "zig_over_rust_verify": 1.057506,
+        "zig_over_rust_prove": 1.384968,
+        "zig_over_rust_verify": 1.362058,
         "zig_over_rust_verify_peak_rss_kb": 0.867257
       },
       "rust": {
@@ -74,7 +69,7 @@
           "trace_decommit_hashes": 39
         },
         "prove": {
-          "avg_seconds": 0.00417,
+          "avg_seconds": 0.004577,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -98,63 +93,49 @@
             "--sm-initial-1",
             "1"
           ],
-          "max_seconds": 0.004929,
-          "min_seconds": 0.00348,
+          "max_seconds": 0.005231,
+          "min_seconds": 0.004098,
           "name": "rust_state_machine_default_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1952,
-              "seconds": 0.132945
+              "seconds": 0.134181
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1952,
-              "seconds": 0.004929
+              "seconds": 0.005231
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1952,
-              "seconds": 0.004399
+              "seconds": 0.004401
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1952,
-              "seconds": 0.004118
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1952,
-              "seconds": 0.003922
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1952,
-              "seconds": 0.00348
+              "seconds": 0.004098
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1952.0,
           "rss_peak_kb": 1952,
           "rss_samples_kb": [
             1952,
             1952,
-            1952,
-            1952,
             1952
           ],
           "samples_seconds": [
-            0.004929,
-            0.004399,
-            0.004118,
-            0.003922,
-            0.00348
+            0.005231,
+            0.004401,
+            0.004098
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.002991,
+          "avg_seconds": 0.00311,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -162,57 +143,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_state_machine_default.json"
           ],
-          "max_seconds": 0.003176,
-          "min_seconds": 0.002854,
+          "max_seconds": 0.003243,
+          "min_seconds": 0.002903,
           "name": "rust_state_machine_default_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1808,
-              "seconds": 0.003122
+              "seconds": 0.003374
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1808,
-              "seconds": 0.003176
+              "seconds": 0.003243
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1808,
-              "seconds": 0.003128
+              "seconds": 0.003183
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1808,
-              "seconds": 0.002932
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1808,
-              "seconds": 0.002854
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1808,
-              "seconds": 0.002866
+              "seconds": 0.002903
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1808.0,
           "rss_peak_kb": 1808,
           "rss_samples_kb": [
             1808,
             1808,
-            1808,
-            1808,
             1808
           ],
           "samples_seconds": [
-            0.003176,
-            0.003128,
-            0.002932,
-            0.002854,
-            0.002866
+            0.003243,
+            0.003183,
+            0.002903
           ],
           "warmups": 1
         }
@@ -231,7 +198,7 @@
           "trace_decommit_hashes": 39
         },
         "prove": {
-          "avg_seconds": 0.004375,
+          "avg_seconds": 0.006339,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -259,63 +226,49 @@
             "--sm-initial-1",
             "1"
           ],
-          "max_seconds": 0.005482,
-          "min_seconds": 0.003571,
+          "max_seconds": 0.007515,
+          "min_seconds": 0.005516,
           "name": "zig_state_machine_default_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 1760,
-              "seconds": 0.142304
+              "peak_rss_kb": 1680,
+              "seconds": 0.222375
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1680,
-              "seconds": 0.005482
+              "seconds": 0.007515
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1680,
-              "seconds": 0.00481
+              "seconds": 0.005986
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1680,
-              "seconds": 0.004138
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1680,
-              "seconds": 0.003875
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1680,
-              "seconds": 0.003571
+              "seconds": 0.005516
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1680.0,
           "rss_peak_kb": 1680,
           "rss_samples_kb": [
             1680,
             1680,
-            1680,
-            1680,
             1680
           ],
           "samples_seconds": [
-            0.005482,
-            0.00481,
-            0.004138,
-            0.003875,
-            0.003571
+            0.007515,
+            0.005986,
+            0.005516
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.003163,
+          "avg_seconds": 0.004236,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -327,57 +280,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.003349,
-          "min_seconds": 0.003057,
+          "max_seconds": 0.004801,
+          "min_seconds": 0.003912,
           "name": "zig_state_machine_default_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1568,
-              "seconds": 0.003471
+              "seconds": 0.004455
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1568,
-              "seconds": 0.003349
+              "seconds": 0.004801
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1568,
-              "seconds": 0.003217
+              "seconds": 0.003912
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1568,
-              "seconds": 0.003057
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1568,
-              "seconds": 0.003116
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1568,
-              "seconds": 0.003078
+              "seconds": 0.003996
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1568.0,
           "rss_peak_kb": 1568,
           "rss_samples_kb": [
             1568,
             1568,
-            1568,
-            1568,
             1568
           ],
           "samples_seconds": [
-            0.003349,
-            0.003217,
-            0.003057,
-            0.003116,
-            0.003078
+            0.004801,
+            0.003912,
+            0.003996
           ],
           "warmups": 1
         }
@@ -395,10 +334,10 @@
         "5"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 0.903226,
+        "zig_over_rust_peak_rss_kb": 0.875,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.735756,
-        "zig_over_rust_verify": 0.950598,
+        "zig_over_rust_prove": 0.587653,
+        "zig_over_rust_verify": 0.93115,
         "zig_over_rust_verify_peak_rss_kb": 0.868421
       },
       "rust": {
@@ -415,7 +354,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.003633,
+          "avg_seconds": 0.005653,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -439,63 +378,49 @@
             "--sm-initial-1",
             "5"
           ],
-          "max_seconds": 0.003837,
-          "min_seconds": 0.003426,
+          "max_seconds": 0.006238,
+          "min_seconds": 0.005261,
           "name": "rust_state_machine_medium_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1984,
-              "seconds": 0.00405
+              "seconds": 0.004992
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1984,
-              "seconds": 0.003837
+              "seconds": 0.006238
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1984,
-              "seconds": 0.00373
+              "seconds": 0.005261
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 1984,
-              "seconds": 0.003591
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1984,
-              "seconds": 0.003579
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1984,
-              "seconds": 0.003426
+              "peak_rss_kb": 2048,
+              "seconds": 0.00546
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 1984.0,
-          "rss_peak_kb": 1984,
+          "repeats": 3,
+          "rss_avg_kb": 2005.33,
+          "rss_peak_kb": 2048,
           "rss_samples_kb": [
             1984,
             1984,
-            1984,
-            1984,
-            1984
+            2048
           ],
           "samples_seconds": [
-            0.003837,
-            0.00373,
-            0.003591,
-            0.003579,
-            0.003426
+            0.006238,
+            0.005261,
+            0.00546
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00251,
+          "avg_seconds": 0.003297,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -503,57 +428,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_state_machine_medium.json"
           ],
-          "max_seconds": 0.002529,
-          "min_seconds": 0.002485,
+          "max_seconds": 0.003638,
+          "min_seconds": 0.002984,
           "name": "rust_state_machine_medium_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1824,
-              "seconds": 0.002582
+              "seconds": 0.003601
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1824,
-              "seconds": 0.002529
+              "seconds": 0.003638
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1824,
-              "seconds": 0.002485
+              "seconds": 0.003267
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1824,
-              "seconds": 0.00252
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1824,
-              "seconds": 0.002508
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1824,
-              "seconds": 0.002511
+              "seconds": 0.002984
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1824.0,
           "rss_peak_kb": 1824,
           "rss_samples_kb": [
             1824,
             1824,
-            1824,
-            1824,
             1824
           ],
           "samples_seconds": [
-            0.002529,
-            0.002485,
-            0.00252,
-            0.002508,
-            0.002511
+            0.003638,
+            0.003267,
+            0.002984
           ],
           "warmups": 1
         }
@@ -572,7 +483,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.002673,
+          "avg_seconds": 0.003322,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -600,63 +511,49 @@
             "--sm-initial-1",
             "5"
           ],
-          "max_seconds": 0.002717,
-          "min_seconds": 0.002574,
+          "max_seconds": 0.003466,
+          "min_seconds": 0.003239,
           "name": "zig_state_machine_medium_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1792,
-              "seconds": 0.002983
+              "seconds": 0.003311
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1792,
-              "seconds": 0.002654
+              "seconds": 0.003466
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1792,
-              "seconds": 0.002716
+              "seconds": 0.003262
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1792,
-              "seconds": 0.002717
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1792,
-              "seconds": 0.002707
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1792,
-              "seconds": 0.002574
+              "seconds": 0.003239
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1792.0,
           "rss_peak_kb": 1792,
           "rss_samples_kb": [
             1792,
             1792,
-            1792,
-            1792,
             1792
           ],
           "samples_seconds": [
-            0.002654,
-            0.002716,
-            0.002717,
-            0.002707,
-            0.002574
+            0.003466,
+            0.003262,
+            0.003239
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.002386,
+          "avg_seconds": 0.00307,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -668,57 +565,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.002441,
-          "min_seconds": 0.002311,
+          "max_seconds": 0.003206,
+          "min_seconds": 0.002882,
           "name": "zig_state_machine_medium_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1584,
-              "seconds": 0.002354
+              "seconds": 0.003319
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1584,
-              "seconds": 0.002311
+              "seconds": 0.003121
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1584,
-              "seconds": 0.00243
+              "seconds": 0.003206
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1584,
-              "seconds": 0.002335
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1584,
-              "seconds": 0.002441
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1584,
-              "seconds": 0.002412
+              "seconds": 0.002882
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1584.0,
           "rss_peak_kb": 1584,
           "rss_samples_kb": [
             1584,
             1584,
-            1584,
-            1584,
             1584
           ],
           "samples_seconds": [
-            0.002311,
-            0.00243,
-            0.002335,
-            0.002441,
-            0.002412
+            0.003121,
+            0.003206,
+            0.002882
           ],
           "warmups": 1
         }
@@ -732,10 +615,10 @@
         "10"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.568254,
+        "zig_over_rust_peak_rss_kb": 1.379888,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.96747,
-        "zig_over_rust_verify": 0.985594,
+        "zig_over_rust_prove": 0.949366,
+        "zig_over_rust_verify": 0.970448,
         "zig_over_rust_verify_peak_rss_kb": 0.86802
       },
       "rust": {
@@ -752,7 +635,7 @@
           "trace_decommit_hashes": 38
         },
         "prove": {
-          "avg_seconds": 0.011159,
+          "avg_seconds": 0.012225,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -772,63 +655,49 @@
             "--poseidon-log-n-instances",
             "10"
           ],
-          "max_seconds": 0.011321,
-          "min_seconds": 0.010842,
+          "max_seconds": 0.012509,
+          "min_seconds": 0.01199,
           "name": "rust_poseidon_large_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 5040,
-              "seconds": 0.010776
+              "seconds": 0.012463
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 5040,
-              "seconds": 0.011152
+              "peak_rss_kb": 5728,
+              "seconds": 0.012177
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 5040,
-              "seconds": 0.011262
+              "peak_rss_kb": 5600,
+              "seconds": 0.012509
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 5040,
-              "seconds": 0.010842
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 5040,
-              "seconds": 0.011216
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 5040,
-              "seconds": 0.011321
+              "peak_rss_kb": 5712,
+              "seconds": 0.01199
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 5040.0,
-          "rss_peak_kb": 5040,
+          "repeats": 3,
+          "rss_avg_kb": 5680.0,
+          "rss_peak_kb": 5728,
           "rss_samples_kb": [
-            5040,
-            5040,
-            5040,
-            5040,
-            5040
+            5728,
+            5600,
+            5712
           ],
           "samples_seconds": [
-            0.011152,
-            0.011262,
-            0.010842,
-            0.011216,
-            0.011321
+            0.012177,
+            0.012509,
+            0.01199
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.003679,
+          "avg_seconds": 0.003993,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -836,57 +705,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_poseidon_large.json"
           ],
-          "max_seconds": 0.004094,
-          "min_seconds": 0.00345,
+          "max_seconds": 0.004464,
+          "min_seconds": 0.003695,
           "name": "rust_poseidon_large_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 3152,
-              "seconds": 0.003512
+              "seconds": 0.005132
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3152,
-              "seconds": 0.003474
+              "seconds": 0.004464
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3152,
-              "seconds": 0.00345
+              "seconds": 0.003821
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3152,
-              "seconds": 0.003667
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3152,
-              "seconds": 0.004094
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3152,
-              "seconds": 0.003709
+              "seconds": 0.003695
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 3152.0,
           "rss_peak_kb": 3152,
           "rss_samples_kb": [
             3152,
             3152,
-            3152,
-            3152,
             3152
           ],
           "samples_seconds": [
-            0.003474,
-            0.00345,
-            0.003667,
-            0.004094,
-            0.003709
+            0.004464,
+            0.003821,
+            0.003695
           ],
           "warmups": 1
         }
@@ -905,7 +760,7 @@
           "trace_decommit_hashes": 38
         },
         "prove": {
-          "avg_seconds": 0.010796,
+          "avg_seconds": 0.011606,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -929,63 +784,49 @@
             "--poseidon-log-n-instances",
             "10"
           ],
-          "max_seconds": 0.010918,
-          "min_seconds": 0.01059,
+          "max_seconds": 0.011724,
+          "min_seconds": 0.011472,
           "name": "zig_poseidon_large_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 7904,
-              "seconds": 0.011008
+              "seconds": 0.011624
             },
             {
               "kind": "sample",
               "peak_rss_kb": 7904,
-              "seconds": 0.010918
+              "seconds": 0.011724
             },
             {
               "kind": "sample",
               "peak_rss_kb": 7904,
-              "seconds": 0.01091
+              "seconds": 0.011472
             },
             {
               "kind": "sample",
               "peak_rss_kb": 7904,
-              "seconds": 0.010754
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7904,
-              "seconds": 0.010809
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7904,
-              "seconds": 0.01059
+              "seconds": 0.011623
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 7904.0,
           "rss_peak_kb": 7904,
           "rss_samples_kb": [
             7904,
             7904,
-            7904,
-            7904,
             7904
           ],
           "samples_seconds": [
-            0.010918,
-            0.01091,
-            0.010754,
-            0.010809,
-            0.01059
+            0.011724,
+            0.011472,
+            0.011623
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.003626,
+          "avg_seconds": 0.003875,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -997,57 +838,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.003736,
-          "min_seconds": 0.003511,
+          "max_seconds": 0.003986,
+          "min_seconds": 0.003771,
           "name": "zig_poseidon_large_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2736,
-              "seconds": 0.003692
+              "seconds": 0.004118
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2736,
-              "seconds": 0.003678
+              "seconds": 0.003986
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2736,
-              "seconds": 0.003736
+              "seconds": 0.003771
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2736,
-              "seconds": 0.003511
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2736,
-              "seconds": 0.003589
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2736,
-              "seconds": 0.003616
+              "seconds": 0.003869
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2736.0,
           "rss_peak_kb": 2736,
           "rss_samples_kb": [
             2736,
             2736,
-            2736,
-            2736,
             2736
           ],
           "samples_seconds": [
-            0.003678,
-            0.003736,
-            0.003511,
-            0.003589,
-            0.003616
+            0.003986,
+            0.003771,
+            0.003869
           ],
           "warmups": 1
         }
@@ -1063,11 +890,11 @@
         "10"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 2.416481,
+        "zig_over_rust_peak_rss_kb": 1.897391,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.006333,
-        "zig_over_rust_verify": 1.07397,
-        "zig_over_rust_verify_peak_rss_kb": 0.879781
+        "zig_over_rust_prove": 0.972039,
+        "zig_over_rust_verify": 1.116482,
+        "zig_over_rust_verify_peak_rss_kb": 0.961749
       },
       "rust": {
         "artifact": "vectors/.bench_artifacts/rust_blake_large.json",
@@ -1083,7 +910,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.025738,
+          "avg_seconds": 0.029792,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -1105,63 +932,49 @@
             "--blake-n-rounds",
             "10"
           ],
-          "max_seconds": 0.026104,
-          "min_seconds": 0.025486,
+          "max_seconds": 0.03034,
+          "min_seconds": 0.028797,
           "name": "rust_blake_large_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 7184,
-              "seconds": 0.026059
+              "seconds": 0.027326
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 7184,
-              "seconds": 0.025486
+              "peak_rss_kb": 7680,
+              "seconds": 0.028797
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 7184,
-              "seconds": 0.025702
+              "peak_rss_kb": 9200,
+              "seconds": 0.030238
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 7184,
-              "seconds": 0.025555
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7184,
-              "seconds": 0.025845
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7184,
-              "seconds": 0.026104
+              "peak_rss_kb": 8928,
+              "seconds": 0.03034
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 7184.0,
-          "rss_peak_kb": 7184,
+          "repeats": 3,
+          "rss_avg_kb": 8602.67,
+          "rss_peak_kb": 9200,
           "rss_samples_kb": [
-            7184,
-            7184,
-            7184,
-            7184,
-            7184
+            7680,
+            9200,
+            8928
           ],
           "samples_seconds": [
-            0.025486,
-            0.025702,
-            0.025555,
-            0.025845,
-            0.026104
+            0.028797,
+            0.030238,
+            0.03034
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.003204,
+          "avg_seconds": 0.003889,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -1169,57 +982,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_blake_large.json"
           ],
-          "max_seconds": 0.003259,
-          "min_seconds": 0.003159,
+          "max_seconds": 0.004202,
+          "min_seconds": 0.00372,
           "name": "rust_blake_large_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2928,
-              "seconds": 0.003458
+              "seconds": 0.004131
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2928,
-              "seconds": 0.003259
+              "seconds": 0.003746
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2928,
-              "seconds": 0.003231
+              "seconds": 0.004202
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2928,
-              "seconds": 0.003178
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2928,
-              "seconds": 0.003159
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2928,
-              "seconds": 0.003192
+              "seconds": 0.00372
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2928.0,
           "rss_peak_kb": 2928,
           "rss_samples_kb": [
             2928,
             2928,
-            2928,
-            2928,
             2928
           ],
           "samples_seconds": [
-            0.003259,
-            0.003231,
-            0.003178,
-            0.003159,
-            0.003192
+            0.003746,
+            0.004202,
+            0.00372
           ],
           "warmups": 1
         }
@@ -1238,7 +1037,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.025901,
+          "avg_seconds": 0.028959,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -1264,63 +1063,49 @@
             "--blake-n-rounds",
             "10"
           ],
-          "max_seconds": 0.026235,
-          "min_seconds": 0.025696,
+          "max_seconds": 0.029203,
+          "min_seconds": 0.02854,
           "name": "zig_blake_large_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 17360,
-              "seconds": 0.02608
+              "peak_rss_kb": 17392,
+              "seconds": 0.029445
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 17360,
-              "seconds": 0.025741
+              "peak_rss_kb": 17424,
+              "seconds": 0.029133
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 17360,
-              "seconds": 0.025696
+              "peak_rss_kb": 17456,
+              "seconds": 0.02854
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 17360,
-              "seconds": 0.025821
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 17360,
-              "seconds": 0.026235
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 17360,
-              "seconds": 0.026014
+              "peak_rss_kb": 17392,
+              "seconds": 0.029203
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 17360.0,
-          "rss_peak_kb": 17360,
+          "repeats": 3,
+          "rss_avg_kb": 17424.0,
+          "rss_peak_kb": 17456,
           "rss_samples_kb": [
-            17360,
-            17360,
-            17360,
-            17360,
-            17360
+            17424,
+            17456,
+            17392
           ],
           "samples_seconds": [
-            0.025741,
-            0.025696,
-            0.025821,
-            0.026235,
-            0.026014
+            0.029133,
+            0.02854,
+            0.029203
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.003441,
+          "avg_seconds": 0.004342,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -1332,57 +1117,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.003522,
-          "min_seconds": 0.003387,
+          "max_seconds": 0.004492,
+          "min_seconds": 0.004066,
           "name": "zig_blake_large_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2576,
-              "seconds": 0.003548
+              "seconds": 0.004327
+            },
+            {
+              "kind": "sample",
+              "peak_rss_kb": 2816,
+              "seconds": 0.004468
+            },
+            {
+              "kind": "sample",
+              "peak_rss_kb": 2608,
+              "seconds": 0.004492
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2576,
-              "seconds": 0.003522
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2576,
-              "seconds": 0.003455
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2576,
-              "seconds": 0.003387
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2576,
-              "seconds": 0.003408
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2576,
-              "seconds": 0.003433
+              "seconds": 0.004066
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 2576.0,
-          "rss_peak_kb": 2576,
+          "repeats": 3,
+          "rss_avg_kb": 2666.67,
+          "rss_peak_kb": 2816,
           "rss_samples_kb": [
-            2576,
-            2576,
-            2576,
-            2576,
+            2816,
+            2608,
             2576
           ],
           "samples_seconds": [
-            0.003522,
-            0.003455,
-            0.003387,
-            0.003408,
-            0.003433
+            0.004468,
+            0.004492,
+            0.004066
           ],
           "warmups": 1
         }
@@ -1398,10 +1169,10 @@
         "100"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.392265,
+        "zig_over_rust_peak_rss_kb": 1.279188,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.619955,
-        "zig_over_rust_verify": 1.045093,
+        "zig_over_rust_prove": 0.631286,
+        "zig_over_rust_verify": 0.926034,
         "zig_over_rust_verify_peak_rss_kb": 0.873016
       },
       "rust": {
@@ -1418,7 +1189,7 @@
           "trace_decommit_hashes": 50
         },
         "prove": {
-          "avg_seconds": 0.010133,
+          "avg_seconds": 0.012031,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -1440,63 +1211,49 @@
             "--wf-sequence-len",
             "100"
           ],
-          "max_seconds": 0.010195,
-          "min_seconds": 0.01006,
+          "max_seconds": 0.012277,
+          "min_seconds": 0.011692,
           "name": "rust_wide_fibonacci_fib100_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2896,
-              "seconds": 0.010537
+              "seconds": 0.012045
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2896,
-              "seconds": 0.010111
+              "seconds": 0.011692
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2896,
-              "seconds": 0.01006
+              "peak_rss_kb": 3136,
+              "seconds": 0.012277
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 2896,
-              "seconds": 0.010195
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2896,
-              "seconds": 0.010186
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2896,
-              "seconds": 0.010111
+              "peak_rss_kb": 3152,
+              "seconds": 0.012125
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 2896.0,
-          "rss_peak_kb": 2896,
+          "repeats": 3,
+          "rss_avg_kb": 3061.33,
+          "rss_peak_kb": 3152,
           "rss_samples_kb": [
             2896,
-            2896,
-            2896,
-            2896,
-            2896
+            3136,
+            3152
           ],
           "samples_seconds": [
-            0.010111,
-            0.01006,
-            0.010195,
-            0.010186,
-            0.010111
+            0.011692,
+            0.012277,
+            0.012125
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.002639,
+          "avg_seconds": 0.003096,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -1504,57 +1261,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_wide_fibonacci_fib100.json"
           ],
-          "max_seconds": 0.002742,
-          "min_seconds": 0.002552,
+          "max_seconds": 0.00339,
+          "min_seconds": 0.002912,
           "name": "rust_wide_fibonacci_fib100_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2016,
-              "seconds": 0.002675
+              "seconds": 0.003625
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2016,
-              "seconds": 0.002697
+              "seconds": 0.00339
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2016,
-              "seconds": 0.002742
+              "seconds": 0.002986
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2016,
-              "seconds": 0.002615
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2016,
-              "seconds": 0.00259
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2016,
-              "seconds": 0.002552
+              "seconds": 0.002912
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2016.0,
           "rss_peak_kb": 2016,
           "rss_samples_kb": [
             2016,
             2016,
-            2016,
-            2016,
             2016
           ],
           "samples_seconds": [
-            0.002697,
-            0.002742,
-            0.002615,
-            0.00259,
-            0.002552
+            0.00339,
+            0.002986,
+            0.002912
           ],
           "warmups": 1
         }
@@ -1573,7 +1316,7 @@
           "trace_decommit_hashes": 50
         },
         "prove": {
-          "avg_seconds": 0.006282,
+          "avg_seconds": 0.007595,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -1599,63 +1342,49 @@
             "--wf-sequence-len",
             "100"
           ],
-          "max_seconds": 0.006338,
-          "min_seconds": 0.006226,
+          "max_seconds": 0.007783,
+          "min_seconds": 0.00746,
           "name": "zig_wide_fibonacci_fib100_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 4032,
-              "seconds": 0.006328
+              "peak_rss_kb": 4064,
+              "seconds": 0.008186
             },
             {
               "kind": "sample",
               "peak_rss_kb": 4032,
-              "seconds": 0.00628
+              "seconds": 0.007783
             },
             {
               "kind": "sample",
               "peak_rss_kb": 4032,
-              "seconds": 0.006338
+              "seconds": 0.007541
             },
             {
               "kind": "sample",
               "peak_rss_kb": 4032,
-              "seconds": 0.006226
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 4032,
-              "seconds": 0.00626
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 4032,
-              "seconds": 0.006305
+              "seconds": 0.00746
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 4032.0,
           "rss_peak_kb": 4032,
           "rss_samples_kb": [
             4032,
             4032,
-            4032,
-            4032,
             4032
           ],
           "samples_seconds": [
-            0.00628,
-            0.006338,
-            0.006226,
-            0.00626,
-            0.006305
+            0.007783,
+            0.007541,
+            0.00746
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.002758,
+          "avg_seconds": 0.002867,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -1667,57 +1396,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.002859,
-          "min_seconds": 0.002649,
+          "max_seconds": 0.002902,
+          "min_seconds": 0.002807,
           "name": "zig_wide_fibonacci_fib100_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1760,
-              "seconds": 0.002658
+              "seconds": 0.003164
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1760,
-              "seconds": 0.002649
+              "seconds": 0.002902
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1760,
-              "seconds": 0.002684
+              "seconds": 0.002891
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1760,
-              "seconds": 0.002799
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1760,
-              "seconds": 0.002859
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1760,
-              "seconds": 0.002797
+              "seconds": 0.002807
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1760.0,
           "rss_peak_kb": 1760,
           "rss_samples_kb": [
             1760,
             1760,
-            1760,
-            1760,
             1760
           ],
           "samples_seconds": [
-            0.002649,
-            0.002684,
-            0.002799,
-            0.002859,
-            0.002797
+            0.002902,
+            0.002891,
+            0.002807
           ],
           "warmups": 1
         }
@@ -1733,10 +1448,10 @@
         "500"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 2.073022,
+        "zig_over_rust_peak_rss_kb": 1.659643,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.894774,
-        "zig_over_rust_verify": 1.013441,
+        "zig_over_rust_prove": 0.950237,
+        "zig_over_rust_verify": 0.991942,
         "zig_over_rust_verify_peak_rss_kb": 0.887417
       },
       "rust": {
@@ -1753,7 +1468,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.032473,
+          "avg_seconds": 0.035006,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -1775,63 +1490,49 @@
             "--wf-sequence-len",
             "500"
           ],
-          "max_seconds": 0.03371,
-          "min_seconds": 0.03191,
+          "max_seconds": 0.035183,
+          "min_seconds": 0.034897,
           "name": "rust_wide_fibonacci_fib500_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 7264,
-              "seconds": 0.032159
+              "peak_rss_kb": 8096,
+              "seconds": 0.034171
+            },
+            {
+              "kind": "sample",
+              "peak_rss_kb": 9872,
+              "seconds": 0.035183
             },
             {
               "kind": "sample",
               "peak_rss_kb": 7264,
-              "seconds": 0.032045
+              "seconds": 0.034937
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 7264,
-              "seconds": 0.032303
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7888,
-              "seconds": 0.03371
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7264,
-              "seconds": 0.032399
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7264,
-              "seconds": 0.03191
+              "peak_rss_kb": 7696,
+              "seconds": 0.034897
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 7388.8,
-          "rss_peak_kb": 7888,
+          "repeats": 3,
+          "rss_avg_kb": 8277.33,
+          "rss_peak_kb": 9872,
           "rss_samples_kb": [
+            9872,
             7264,
-            7264,
-            7888,
-            7264,
-            7264
+            7696
           ],
           "samples_seconds": [
-            0.032045,
-            0.032303,
-            0.03371,
-            0.032399,
-            0.03191
+            0.035183,
+            0.034937,
+            0.034897
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.002976,
+          "avg_seconds": 0.003475,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -1839,57 +1540,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_wide_fibonacci_fib500.json"
           ],
-          "max_seconds": 0.00309,
-          "min_seconds": 0.002857,
+          "max_seconds": 0.003864,
+          "min_seconds": 0.003199,
           "name": "rust_wide_fibonacci_fib500_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2416,
-              "seconds": 0.003237
+              "seconds": 0.003616
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2416,
-              "seconds": 0.003082
+              "seconds": 0.003363
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2416,
-              "seconds": 0.00309
+              "seconds": 0.003199
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2416,
-              "seconds": 0.002956
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2416,
-              "seconds": 0.002894
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2416,
-              "seconds": 0.002857
+              "seconds": 0.003864
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2416.0,
           "rss_peak_kb": 2416,
           "rss_samples_kb": [
             2416,
             2416,
-            2416,
-            2416,
             2416
           ],
           "samples_seconds": [
-            0.003082,
-            0.00309,
-            0.002956,
-            0.002894,
-            0.002857
+            0.003363,
+            0.003199,
+            0.003864
           ],
           "warmups": 1
         }
@@ -1908,7 +1595,7 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.029056,
+          "avg_seconds": 0.033264,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -1934,63 +1621,49 @@
             "--wf-sequence-len",
             "500"
           ],
-          "max_seconds": 0.029283,
-          "min_seconds": 0.02889,
+          "max_seconds": 0.033427,
+          "min_seconds": 0.033,
           "name": "zig_wide_fibonacci_fib500_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 16352,
-              "seconds": 0.02917
+              "seconds": 0.032254
+            },
+            {
+              "kind": "sample",
+              "peak_rss_kb": 16384,
+              "seconds": 0.033363
             },
             {
               "kind": "sample",
               "peak_rss_kb": 16352,
-              "seconds": 0.029181
+              "seconds": 0.033427
             },
             {
               "kind": "sample",
               "peak_rss_kb": 16352,
-              "seconds": 0.028899
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 16352,
-              "seconds": 0.02889
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 16352,
-              "seconds": 0.029283
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 16352,
-              "seconds": 0.029029
+              "seconds": 0.033
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 16352.0,
-          "rss_peak_kb": 16352,
+          "repeats": 3,
+          "rss_avg_kb": 16362.67,
+          "rss_peak_kb": 16384,
           "rss_samples_kb": [
-            16352,
-            16352,
-            16352,
+            16384,
             16352,
             16352
           ],
           "samples_seconds": [
-            0.029181,
-            0.028899,
-            0.02889,
-            0.029283,
-            0.029029
+            0.033363,
+            0.033427,
+            0.033
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.003016,
+          "avg_seconds": 0.003447,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -2002,57 +1675,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.003071,
-          "min_seconds": 0.002946,
+          "max_seconds": 0.003489,
+          "min_seconds": 0.003402,
           "name": "zig_wide_fibonacci_fib500_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2144,
-              "seconds": 0.003229
+              "seconds": 0.003926
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2144,
-              "seconds": 0.003068
+              "seconds": 0.003489
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2144,
-              "seconds": 0.003071
+              "seconds": 0.003452
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2144,
-              "seconds": 0.003036
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2144,
-              "seconds": 0.002946
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2144,
-              "seconds": 0.002956
+              "seconds": 0.003402
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2144.0,
           "rss_peak_kb": 2144,
           "rss_samples_kb": [
             2144,
             2144,
-            2144,
-            2144,
             2144
           ],
           "samples_seconds": [
-            0.003068,
-            0.003071,
-            0.003036,
-            0.002946,
-            0.002956
+            0.003489,
+            0.003452,
+            0.003402
           ],
           "warmups": 1
         }
@@ -2068,10 +1727,10 @@
         "1000"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 2.573672,
+        "zig_over_rust_peak_rss_kb": 1.87725,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.075476,
-        "zig_over_rust_verify": 1.050595,
+        "zig_over_rust_prove": 1.047988,
+        "zig_over_rust_verify": 0.909586,
         "zig_over_rust_verify_peak_rss_kb": 0.87766
       },
       "rust": {
@@ -2088,7 +1747,7 @@
           "trace_decommit_hashes": 58
         },
         "prove": {
-          "avg_seconds": 0.1008,
+          "avg_seconds": 0.114299,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -2110,63 +1769,49 @@
             "--wf-sequence-len",
             "1000"
           ],
-          "max_seconds": 0.1023,
-          "min_seconds": 0.099723,
+          "max_seconds": 0.115785,
+          "min_seconds": 0.113224,
           "name": "rust_wide_fibonacci_fib1000_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 20480,
-              "seconds": 0.100122
+              "seconds": 0.111482
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 20480,
-              "seconds": 0.099723
+              "peak_rss_kb": 21360,
+              "seconds": 0.113889
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 20480,
-              "seconds": 0.101018
+              "peak_rss_kb": 29328,
+              "seconds": 0.115785
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 20480,
-              "seconds": 0.100339
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 20480,
-              "seconds": 0.1023
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 21392,
-              "seconds": 0.100619
+              "peak_rss_kb": 21424,
+              "seconds": 0.113224
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 20662.4,
-          "rss_peak_kb": 21392,
+          "repeats": 3,
+          "rss_avg_kb": 24037.33,
+          "rss_peak_kb": 29328,
           "rss_samples_kb": [
-            20480,
-            20480,
-            20480,
-            20480,
-            21392
+            21360,
+            29328,
+            21424
           ],
           "samples_seconds": [
-            0.099723,
-            0.101018,
-            0.100339,
-            0.1023,
-            0.100619
+            0.113889,
+            0.115785,
+            0.113224
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00336,
+          "avg_seconds": 0.004225,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -2174,57 +1819,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_wide_fibonacci_fib1000.json"
           ],
-          "max_seconds": 0.003466,
-          "min_seconds": 0.003301,
+          "max_seconds": 0.004422,
+          "min_seconds": 0.004011,
           "name": "rust_wide_fibonacci_fib1000_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 3008,
-              "seconds": 0.00385
+              "seconds": 0.004649
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3008,
-              "seconds": 0.003366
+              "seconds": 0.004422
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3008,
-              "seconds": 0.003301
+              "seconds": 0.00424
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3008,
-              "seconds": 0.003356
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3008,
-              "seconds": 0.003466
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3008,
-              "seconds": 0.003309
+              "seconds": 0.004011
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 3008.0,
           "rss_peak_kb": 3008,
           "rss_samples_kb": [
             3008,
             3008,
-            3008,
-            3008,
             3008
           ],
           "samples_seconds": [
-            0.003366,
-            0.003301,
-            0.003356,
-            0.003466,
-            0.003309
+            0.004422,
+            0.00424,
+            0.004011
           ],
           "warmups": 1
         }
@@ -2243,7 +1874,7 @@
           "trace_decommit_hashes": 58
         },
         "prove": {
-          "avg_seconds": 0.108408,
+          "avg_seconds": 0.119784,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -2269,63 +1900,49 @@
             "--wf-sequence-len",
             "1000"
           ],
-          "max_seconds": 0.109298,
-          "min_seconds": 0.10771,
+          "max_seconds": 0.124621,
+          "min_seconds": 0.11599,
           "name": "zig_wide_fibonacci_fib1000_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 55056,
-              "seconds": 0.108365
+              "seconds": 0.122228
             },
             {
               "kind": "sample",
               "peak_rss_kb": 55056,
-              "seconds": 0.109298
+              "seconds": 0.118742
             },
             {
               "kind": "sample",
               "peak_rss_kb": 55056,
-              "seconds": 0.108312
+              "seconds": 0.124621
             },
             {
               "kind": "sample",
               "peak_rss_kb": 55056,
-              "seconds": 0.108882
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 55056,
-              "seconds": 0.107839
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 55056,
-              "seconds": 0.10771
+              "seconds": 0.11599
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 55056.0,
           "rss_peak_kb": 55056,
           "rss_samples_kb": [
             55056,
             55056,
-            55056,
-            55056,
             55056
           ],
           "samples_seconds": [
-            0.109298,
-            0.108312,
-            0.108882,
-            0.107839,
-            0.10771
+            0.118742,
+            0.124621,
+            0.11599
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.00353,
+          "avg_seconds": 0.003843,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -2337,57 +1954,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.003599,
-          "min_seconds": 0.003484,
+          "max_seconds": 0.00396,
+          "min_seconds": 0.003742,
           "name": "zig_wide_fibonacci_fib1000_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2640,
-              "seconds": 0.004008
+              "seconds": 0.004401
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2640,
-              "seconds": 0.003505
+              "seconds": 0.00396
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2640,
-              "seconds": 0.003508
+              "seconds": 0.003742
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2640,
-              "seconds": 0.003599
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2640,
-              "seconds": 0.003484
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2640,
-              "seconds": 0.003554
+              "seconds": 0.003828
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2640.0,
           "rss_peak_kb": 2640,
           "rss_samples_kb": [
             2640,
             2640,
-            2640,
-            2640,
             2640
           ],
           "samples_seconds": [
-            0.003505,
-            0.003508,
-            0.003599,
-            0.003484,
-            0.003554
+            0.00396,
+            0.003742,
+            0.003828
           ],
           "warmups": 1
         }
@@ -2401,10 +2004,10 @@
         "12"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.688889,
+        "zig_over_rust_peak_rss_kb": 1.352313,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.287383,
-        "zig_over_rust_verify": 1.026026,
+        "zig_over_rust_prove": 0.284772,
+        "zig_over_rust_verify": 1.219555,
         "zig_over_rust_verify_peak_rss_kb": 0.851562
       },
       "rust": {
@@ -2421,7 +2024,7 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.063424,
+          "avg_seconds": 0.068511,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -2441,63 +2044,49 @@
             "--plonk-log-n-rows",
             "12"
           ],
-          "max_seconds": 0.063666,
-          "min_seconds": 0.06318,
+          "max_seconds": 0.068803,
+          "min_seconds": 0.068329,
           "name": "rust_plonk_large_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 6720,
-              "seconds": 0.064916
+              "peak_rss_kb": 7936,
+              "seconds": 0.067562
             },
             {
               "kind": "sample",
               "peak_rss_kb": 6720,
-              "seconds": 0.063513
+              "seconds": 0.068803
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 7200,
-              "seconds": 0.063577
+              "peak_rss_kb": 8992,
+              "seconds": 0.068329
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 6720,
-              "seconds": 0.063182
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 6720,
-              "seconds": 0.06318
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7200,
-              "seconds": 0.063666
+              "peak_rss_kb": 7936,
+              "seconds": 0.068402
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 6912.0,
-          "rss_peak_kb": 7200,
+          "repeats": 3,
+          "rss_avg_kb": 7882.67,
+          "rss_peak_kb": 8992,
           "rss_samples_kb": [
             6720,
-            7200,
-            6720,
-            6720,
-            7200
+            8992,
+            7936
           ],
           "samples_seconds": [
-            0.063513,
-            0.063577,
-            0.063182,
-            0.06318,
-            0.063666
+            0.068803,
+            0.068329,
+            0.068402
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.002728,
+          "avg_seconds": 0.002833,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -2505,57 +2094,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_plonk_large.json"
           ],
-          "max_seconds": 0.002792,
-          "min_seconds": 0.002594,
+          "max_seconds": 0.002882,
+          "min_seconds": 0.002763,
           "name": "rust_plonk_large_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2048,
-              "seconds": 0.002774
+              "seconds": 0.003527
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2048,
-              "seconds": 0.002594
+              "seconds": 0.002882
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2048,
-              "seconds": 0.002787
+              "seconds": 0.002853
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2048,
-              "seconds": 0.002742
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2048,
-              "seconds": 0.002792
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2048,
-              "seconds": 0.002726
+              "seconds": 0.002763
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2048.0,
           "rss_peak_kb": 2048,
           "rss_samples_kb": [
             2048,
             2048,
-            2048,
-            2048,
             2048
           ],
           "samples_seconds": [
-            0.002594,
-            0.002787,
-            0.002742,
-            0.002792,
-            0.002726
+            0.002882,
+            0.002853,
+            0.002763
           ],
           "warmups": 1
         }
@@ -2574,7 +2149,7 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.018227,
+          "avg_seconds": 0.01951,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -2598,63 +2173,49 @@
             "--plonk-log-n-rows",
             "12"
           ],
-          "max_seconds": 0.018412,
-          "min_seconds": 0.018132,
+          "max_seconds": 0.019737,
+          "min_seconds": 0.01922,
           "name": "zig_plonk_large_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 12160,
-              "seconds": 0.018202
+              "seconds": 0.019509
             },
             {
               "kind": "sample",
               "peak_rss_kb": 12160,
-              "seconds": 0.018412
+              "seconds": 0.019737
             },
             {
               "kind": "sample",
               "peak_rss_kb": 12160,
-              "seconds": 0.018132
+              "seconds": 0.01922
             },
             {
               "kind": "sample",
               "peak_rss_kb": 12160,
-              "seconds": 0.018142
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 12160,
-              "seconds": 0.018185
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 12160,
-              "seconds": 0.018262
+              "seconds": 0.019574
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 12160.0,
           "rss_peak_kb": 12160,
           "rss_samples_kb": [
             12160,
             12160,
-            12160,
-            12160,
             12160
           ],
           "samples_seconds": [
-            0.018412,
-            0.018132,
-            0.018142,
-            0.018185,
-            0.018262
+            0.019737,
+            0.01922,
+            0.019574
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.002799,
+          "avg_seconds": 0.003455,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -2666,57 +2227,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.002893,
-          "min_seconds": 0.002737,
+          "max_seconds": 0.003774,
+          "min_seconds": 0.003058,
           "name": "zig_plonk_large_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 1744,
-              "seconds": 0.002882
+              "seconds": 0.00323
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1744,
-              "seconds": 0.002893
+              "seconds": 0.003058
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1744,
-              "seconds": 0.002806
+              "seconds": 0.003774
             },
             {
               "kind": "sample",
               "peak_rss_kb": 1744,
-              "seconds": 0.002737
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1744,
-              "seconds": 0.002753
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 1744,
-              "seconds": 0.002807
+              "seconds": 0.003533
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 1744.0,
           "rss_peak_kb": 1744,
           "rss_samples_kb": [
             1744,
             1744,
-            1744,
-            1744,
             1744
           ],
           "samples_seconds": [
-            0.002893,
-            0.002806,
-            0.002737,
-            0.002753,
-            0.002807
+            0.003058,
+            0.003774,
+            0.003533
           ],
           "warmups": 1
         }
@@ -2732,8 +2279,8 @@
       "ratios": {
         "zig_over_rust_peak_rss_kb": 2.499089,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.100149,
-        "zig_over_rust_verify": 1.076256,
+        "zig_over_rust_prove": 1.09628,
+        "zig_over_rust_verify": 1.047721,
         "zig_over_rust_verify_peak_rss_kb": 0.870647
       },
       "rust": {
@@ -2750,7 +2297,7 @@
           "trace_decommit_hashes": 50
         },
         "prove": {
-          "avg_seconds": 0.032202,
+          "avg_seconds": 0.034514,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -2770,63 +2317,49 @@
             "--poseidon-log-n-instances",
             "12"
           ],
-          "max_seconds": 0.032422,
-          "min_seconds": 0.031893,
+          "max_seconds": 0.034697,
+          "min_seconds": 0.034226,
           "name": "rust_poseidon_deep_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 8784,
-              "seconds": 0.031936
+              "seconds": 0.035761
             },
             {
               "kind": "sample",
               "peak_rss_kb": 8784,
-              "seconds": 0.031893
+              "seconds": 0.034619
             },
             {
               "kind": "sample",
               "peak_rss_kb": 8784,
-              "seconds": 0.032269
+              "seconds": 0.034697
             },
             {
               "kind": "sample",
               "peak_rss_kb": 8784,
-              "seconds": 0.032422
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 8784,
-              "seconds": 0.032144
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 8784,
-              "seconds": 0.03228
+              "seconds": 0.034226
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 8784.0,
           "rss_peak_kb": 8784,
           "rss_samples_kb": [
             8784,
             8784,
-            8784,
-            8784,
             8784
           ],
           "samples_seconds": [
-            0.031893,
-            0.032269,
-            0.032422,
-            0.032144,
-            0.03228
+            0.034619,
+            0.034697,
+            0.034226
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.003462,
+          "avg_seconds": 0.00373,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -2834,57 +2367,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_poseidon_deep.json"
           ],
-          "max_seconds": 0.003515,
-          "min_seconds": 0.00334,
+          "max_seconds": 0.003854,
+          "min_seconds": 0.003631,
           "name": "rust_poseidon_deep_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 3216,
-              "seconds": 0.003571
+              "seconds": 0.004141
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3216,
-              "seconds": 0.003487
+              "seconds": 0.003854
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3216,
-              "seconds": 0.003505
+              "seconds": 0.003704
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3216,
-              "seconds": 0.003515
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3216,
-              "seconds": 0.003463
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3216,
-              "seconds": 0.00334
+              "seconds": 0.003631
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 3216.0,
           "rss_peak_kb": 3216,
           "rss_samples_kb": [
             3216,
             3216,
-            3216,
-            3216,
             3216
           ],
           "samples_seconds": [
-            0.003487,
-            0.003505,
-            0.003515,
-            0.003463,
-            0.00334
+            0.003854,
+            0.003704,
+            0.003631
           ],
           "warmups": 1
         }
@@ -2903,7 +2422,7 @@
           "trace_decommit_hashes": 50
         },
         "prove": {
-          "avg_seconds": 0.035427,
+          "avg_seconds": 0.037837,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -2927,63 +2446,49 @@
             "--poseidon-log-n-instances",
             "12"
           ],
-          "max_seconds": 0.035822,
-          "min_seconds": 0.035189,
+          "max_seconds": 0.038358,
+          "min_seconds": 0.037343,
           "name": "zig_poseidon_deep_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 21952,
-              "seconds": 0.03499
+              "seconds": 0.037419
             },
             {
               "kind": "sample",
               "peak_rss_kb": 21952,
-              "seconds": 0.035372
+              "seconds": 0.038358
             },
             {
               "kind": "sample",
               "peak_rss_kb": 21952,
-              "seconds": 0.035822
+              "seconds": 0.03781
             },
             {
               "kind": "sample",
               "peak_rss_kb": 21952,
-              "seconds": 0.035195
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 21952,
-              "seconds": 0.035558
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 21952,
-              "seconds": 0.035189
+              "seconds": 0.037343
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 21952.0,
           "rss_peak_kb": 21952,
           "rss_samples_kb": [
             21952,
             21952,
-            21952,
-            21952,
             21952
           ],
           "samples_seconds": [
-            0.035372,
-            0.035822,
-            0.035195,
-            0.035558,
-            0.035189
+            0.038358,
+            0.03781,
+            0.037343
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.003726,
+          "avg_seconds": 0.003908,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -2995,57 +2500,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.003795,
-          "min_seconds": 0.003661,
+          "max_seconds": 0.003989,
+          "min_seconds": 0.00385,
           "name": "zig_poseidon_deep_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 2800,
-              "seconds": 0.003987
+              "seconds": 0.004338
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2800,
-              "seconds": 0.003795
+              "seconds": 0.003989
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2800,
-              "seconds": 0.003661
+              "seconds": 0.00385
             },
             {
               "kind": "sample",
               "peak_rss_kb": 2800,
-              "seconds": 0.00378
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2800,
-              "seconds": 0.003696
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 2800,
-              "seconds": 0.003698
+              "seconds": 0.003884
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 2800.0,
           "rss_peak_kb": 2800,
           "rss_samples_kb": [
             2800,
             2800,
-            2800,
-            2800,
             2800
           ],
           "samples_seconds": [
-            0.003795,
-            0.003661,
-            0.00378,
-            0.003696,
-            0.003698
+            0.003989,
+            0.00385,
+            0.003884
           ],
           "warmups": 1
         }
@@ -3061,11 +2552,11 @@
         "16"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 3.123069,
+        "zig_over_rust_peak_rss_kb": 2.92515,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.317293,
-        "zig_over_rust_verify": 1.129919,
-        "zig_over_rust_verify_peak_rss_kb": 0.877193
+        "zig_over_rust_prove": 1.458,
+        "zig_over_rust_verify": 1.274534,
+        "zig_over_rust_verify_peak_rss_kb": 0.885965
       },
       "rust": {
         "artifact": "vectors/.bench_artifacts/rust_blake_deep.json",
@@ -3081,7 +2572,7 @@
           "trace_decommit_hashes": 60
         },
         "prove": {
-          "avg_seconds": 0.142222,
+          "avg_seconds": 0.147692,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -3103,63 +2594,49 @@
             "--blake-n-rounds",
             "16"
           ],
-          "max_seconds": 0.143575,
-          "min_seconds": 0.140281,
+          "max_seconds": 0.14836,
+          "min_seconds": 0.147294,
           "name": "rust_blake_deep_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 30032,
-              "seconds": 0.139782
+              "peak_rss_kb": 30528,
+              "seconds": 0.150229
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 30032,
-              "seconds": 0.140281
+              "peak_rss_kb": 32064,
+              "seconds": 0.14836
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 30032,
-              "seconds": 0.141341
+              "peak_rss_kb": 30224,
+              "seconds": 0.147421
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 29984,
-              "seconds": 0.143575
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 29472,
-              "seconds": 0.143223
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 29984,
-              "seconds": 0.142693
+              "peak_rss_kb": 30480,
+              "seconds": 0.147294
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 29900.8,
-          "rss_peak_kb": 30032,
+          "repeats": 3,
+          "rss_avg_kb": 30922.67,
+          "rss_peak_kb": 32064,
           "rss_samples_kb": [
-            30032,
-            30032,
-            29984,
-            29472,
-            29984
+            32064,
+            30224,
+            30480
           ],
           "samples_seconds": [
-            0.140281,
-            0.141341,
-            0.143575,
-            0.143223,
-            0.142693
+            0.14836,
+            0.147421,
+            0.147294
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00371,
+          "avg_seconds": 0.004025,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -3167,57 +2644,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_blake_deep.json"
           ],
-          "max_seconds": 0.003774,
-          "min_seconds": 0.003654,
+          "max_seconds": 0.004058,
+          "min_seconds": 0.003966,
           "name": "rust_blake_deep_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 3648,
-              "seconds": 0.004315
+              "seconds": 0.004646
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3648,
-              "seconds": 0.003774
+              "seconds": 0.004052
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3648,
-              "seconds": 0.00374
+              "seconds": 0.004058
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3648,
-              "seconds": 0.003654
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3648,
-              "seconds": 0.003678
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3648,
-              "seconds": 0.003704
+              "seconds": 0.003966
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 3648.0,
           "rss_peak_kb": 3648,
           "rss_samples_kb": [
             3648,
             3648,
-            3648,
-            3648,
             3648
           ],
           "samples_seconds": [
-            0.003774,
-            0.00374,
-            0.003654,
-            0.003678,
-            0.003704
+            0.004052,
+            0.004058,
+            0.003966
           ],
           "warmups": 1
         }
@@ -3236,7 +2699,7 @@
           "trace_decommit_hashes": 60
         },
         "prove": {
-          "avg_seconds": 0.187348,
+          "avg_seconds": 0.215335,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -3262,63 +2725,49 @@
             "--blake-n-rounds",
             "16"
           ],
-          "max_seconds": 0.192956,
-          "min_seconds": 0.182259,
+          "max_seconds": 0.221954,
+          "min_seconds": 0.205116,
           "name": "zig_blake_deep_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 93792,
-              "seconds": 0.183286
+              "seconds": 0.208443
             },
             {
               "kind": "sample",
               "peak_rss_kb": 93792,
-              "seconds": 0.192956
+              "seconds": 0.218934
             },
             {
               "kind": "sample",
               "peak_rss_kb": 93792,
-              "seconds": 0.182609
+              "seconds": 0.221954
             },
             {
               "kind": "sample",
               "peak_rss_kb": 93792,
-              "seconds": 0.182259
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 93792,
-              "seconds": 0.189524
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 93792,
-              "seconds": 0.189393
+              "seconds": 0.205116
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 93792.0,
           "rss_peak_kb": 93792,
           "rss_samples_kb": [
             93792,
             93792,
-            93792,
-            93792,
             93792
           ],
           "samples_seconds": [
-            0.192956,
-            0.182609,
-            0.182259,
-            0.189524,
-            0.189393
+            0.218934,
+            0.221954,
+            0.205116
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.004192,
+          "avg_seconds": 0.00513,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -3330,57 +2779,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.004319,
-          "min_seconds": 0.004087,
+          "max_seconds": 0.005191,
+          "min_seconds": 0.005059,
           "name": "zig_blake_deep_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 3200,
-              "seconds": 0.004821
+              "seconds": 0.006052
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3200,
-              "seconds": 0.004319
+              "seconds": 0.005059
+            },
+            {
+              "kind": "sample",
+              "peak_rss_kb": 3232,
+              "seconds": 0.005191
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3200,
-              "seconds": 0.004253
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3200,
-              "seconds": 0.004161
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3200,
-              "seconds": 0.004139
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3200,
-              "seconds": 0.004087
+              "seconds": 0.005139
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 3200.0,
-          "rss_peak_kb": 3200,
+          "repeats": 3,
+          "rss_avg_kb": 3210.67,
+          "rss_peak_kb": 3232,
           "rss_samples_kb": [
             3200,
-            3200,
-            3200,
-            3200,
+            3232,
             3200
           ],
           "samples_seconds": [
-            0.004319,
-            0.004253,
-            0.004161,
-            0.004139,
-            0.004087
+            0.005059,
+            0.005191,
+            0.005139
           ],
           "warmups": 1
         }
@@ -3396,11 +2831,11 @@
         "2000"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 2.39726,
+        "zig_over_rust_peak_rss_kb": 2.510024,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.395713,
-        "zig_over_rust_verify": 1.282599,
-        "zig_over_rust_verify_peak_rss_kb": 1.075099
+        "zig_over_rust_prove": 1.450268,
+        "zig_over_rust_verify": 1.071555,
+        "zig_over_rust_verify_peak_rss_kb": 0.881423
       },
       "rust": {
         "artifact": "vectors/.bench_artifacts/rust_wide_fibonacci_fib2000.json",
@@ -3416,7 +2851,7 @@
           "trace_decommit_hashes": 68
         },
         "prove": {
-          "avg_seconds": 0.384953,
+          "avg_seconds": 0.398345,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -3438,63 +2873,49 @@
             "--wf-sequence-len",
             "2000"
           ],
-          "max_seconds": 0.391843,
-          "min_seconds": 0.378075,
+          "max_seconds": 0.40321,
+          "min_seconds": 0.394901,
           "name": "rust_wide_fibonacci_fib2000_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 73488,
-              "seconds": 0.375709
+              "peak_rss_kb": 73696,
+              "seconds": 0.413334
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 82256,
-              "seconds": 0.380811
+              "peak_rss_kb": 81408,
+              "seconds": 0.40321
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 85264,
-              "seconds": 0.390948
+              "peak_rss_kb": 73648,
+              "seconds": 0.394901
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 80672,
-              "seconds": 0.378075
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 74032,
-              "seconds": 0.383088
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 74288,
-              "seconds": 0.391843
+              "peak_rss_kb": 74176,
+              "seconds": 0.396923
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 79302.4,
-          "rss_peak_kb": 85264,
+          "repeats": 3,
+          "rss_avg_kb": 76410.67,
+          "rss_peak_kb": 81408,
           "rss_samples_kb": [
-            82256,
-            85264,
-            80672,
-            74032,
-            74288
+            81408,
+            73648,
+            74176
           ],
           "samples_seconds": [
-            0.380811,
-            0.390948,
-            0.378075,
-            0.383088,
-            0.391843
+            0.40321,
+            0.394901,
+            0.396923
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00454,
+          "avg_seconds": 0.004528,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -3502,57 +2923,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_wide_fibonacci_fib2000.json"
           ],
-          "max_seconds": 0.004711,
-          "min_seconds": 0.004382,
+          "max_seconds": 0.004557,
+          "min_seconds": 0.00449,
           "name": "rust_wide_fibonacci_fib2000_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 4048,
-              "seconds": 0.005053
+              "seconds": 0.005207
             },
             {
               "kind": "sample",
               "peak_rss_kb": 4048,
-              "seconds": 0.004597
+              "seconds": 0.004557
             },
             {
               "kind": "sample",
               "peak_rss_kb": 4048,
-              "seconds": 0.004382
+              "seconds": 0.004538
             },
             {
               "kind": "sample",
               "peak_rss_kb": 4048,
-              "seconds": 0.004711
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 4048,
-              "seconds": 0.004506
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 4048,
-              "seconds": 0.004505
+              "seconds": 0.00449
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 4048.0,
           "rss_peak_kb": 4048,
           "rss_samples_kb": [
             4048,
             4048,
-            4048,
-            4048,
             4048
           ],
           "samples_seconds": [
-            0.004597,
-            0.004382,
-            0.004711,
-            0.004506,
-            0.004505
+            0.004557,
+            0.004538,
+            0.00449
           ],
           "warmups": 1
         }
@@ -3571,7 +2978,7 @@
           "trace_decommit_hashes": 68
         },
         "prove": {
-          "avg_seconds": 0.537284,
+          "avg_seconds": 0.577707,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -3597,63 +3004,49 @@
             "--wf-sequence-len",
             "2000"
           ],
-          "max_seconds": 0.544044,
-          "min_seconds": 0.529883,
+          "max_seconds": 0.593722,
+          "min_seconds": 0.556927,
           "name": "zig_wide_fibonacci_fib2000_prove",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 204336,
-              "seconds": 0.539775
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 204400,
-              "seconds": 0.539166
+              "seconds": 0.562998
             },
             {
               "kind": "sample",
               "peak_rss_kb": 204336,
-              "seconds": 0.541572
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 204368,
-              "seconds": 0.531753
+              "seconds": 0.582473
             },
             {
               "kind": "sample",
               "peak_rss_kb": 204336,
-              "seconds": 0.529883
+              "seconds": 0.593722
             },
             {
               "kind": "sample",
               "peak_rss_kb": 204336,
-              "seconds": 0.544044
+              "seconds": 0.556927
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 204355.2,
-          "rss_peak_kb": 204400,
+          "repeats": 3,
+          "rss_avg_kb": 204336.0,
+          "rss_peak_kb": 204336,
           "rss_samples_kb": [
-            204400,
             204336,
-            204368,
             204336,
             204336
           ],
           "samples_seconds": [
-            0.539166,
-            0.541572,
-            0.531753,
-            0.529883,
-            0.544044
+            0.582473,
+            0.593722,
+            0.556927
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.005823,
+          "avg_seconds": 0.004852,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -3665,57 +3058,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.006088,
-          "min_seconds": 0.005681,
+          "max_seconds": 0.004977,
+          "min_seconds": 0.004746,
           "name": "zig_wide_fibonacci_fib2000_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 3568,
-              "seconds": 0.005855
+              "seconds": 0.005749
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3568,
-              "seconds": 0.005681
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3808,
-              "seconds": 0.005835
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 3920,
-              "seconds": 0.006088
+              "seconds": 0.004977
             },
             {
               "kind": "sample",
               "peak_rss_kb": 3568,
-              "seconds": 0.005699
+              "seconds": 0.004746
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 4352,
-              "seconds": 0.005814
+              "peak_rss_kb": 3568,
+              "seconds": 0.004835
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 3843.2,
-          "rss_peak_kb": 4352,
+          "repeats": 3,
+          "rss_avg_kb": 3568.0,
+          "rss_peak_kb": 3568,
           "rss_samples_kb": [
             3568,
-            3808,
-            3920,
             3568,
-            4352
+            3568
           ],
           "samples_seconds": [
-            0.005681,
-            0.005835,
-            0.006088,
-            0.005699,
-            0.005814
+            0.004977,
+            0.004746,
+            0.004835
           ],
           "warmups": 1
         }
@@ -3731,11 +3110,11 @@
         "5000"
       ],
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.876799,
+        "zig_over_rust_peak_rss_kb": 1.846544,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.581497,
-        "zig_over_rust_verify": 1.081136,
-        "zig_over_rust_verify_peak_rss_kb": 0.77131
+        "zig_over_rust_prove": 1.596422,
+        "zig_over_rust_verify": 1.185778,
+        "zig_over_rust_verify_peak_rss_kb": 0.817181
       },
       "rust": {
         "artifact": "vectors/.bench_artifacts/rust_wide_fibonacci_fib5000.json",
@@ -3751,7 +3130,7 @@
           "trace_decommit_hashes": 72
         },
         "prove": {
-          "avg_seconds": 1.81146,
+          "avg_seconds": 1.901508,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -3773,63 +3152,49 @@
             "--wf-sequence-len",
             "5000"
           ],
-          "max_seconds": 1.826344,
-          "min_seconds": 1.798402,
+          "max_seconds": 1.905905,
+          "min_seconds": 1.893025,
           "name": "rust_wide_fibonacci_fib5000_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 375344,
-              "seconds": 1.81562
+              "peak_rss_kb": 351792,
+              "seconds": 1.867805
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 353504,
-              "seconds": 1.798402
+              "peak_rss_kb": 359296,
+              "seconds": 1.905595
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 350912,
-              "seconds": 1.807798
+              "peak_rss_kb": 350144,
+              "seconds": 1.893025
             },
             {
               "kind": "sample",
-              "peak_rss_kb": 349744,
-              "seconds": 1.805149
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 352176,
-              "seconds": 1.819604
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 350448,
-              "seconds": 1.826344
+              "peak_rss_kb": 354624,
+              "seconds": 1.905905
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 351356.8,
-          "rss_peak_kb": 353504,
+          "repeats": 3,
+          "rss_avg_kb": 354688.0,
+          "rss_peak_kb": 359296,
           "rss_samples_kb": [
-            353504,
-            350912,
-            349744,
-            352176,
-            350448
+            359296,
+            350144,
+            354624
           ],
           "samples_seconds": [
-            1.798402,
-            1.807798,
-            1.805149,
-            1.819604,
-            1.826344
+            1.905595,
+            1.893025,
+            1.905905
           ],
           "warmups": 1
         },
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.006939,
+          "avg_seconds": 0.006933,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/tools/stwo-interop-rs/target/release/stwo-interop-rs",
             "--mode",
@@ -3837,57 +3202,43 @@
             "--artifact",
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench_artifacts/rust_wide_fibonacci_fib5000.json"
           ],
-          "max_seconds": 0.007155,
-          "min_seconds": 0.006688,
+          "max_seconds": 0.007038,
+          "min_seconds": 0.006815,
           "name": "rust_wide_fibonacci_fib5000_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 7264,
-              "seconds": 0.007446
+              "seconds": 0.007741
             },
             {
               "kind": "sample",
               "peak_rss_kb": 7264,
-              "seconds": 0.007143
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7360,
-              "seconds": 0.007155
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7408,
-              "seconds": 0.006952
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 7696,
-              "seconds": 0.006688
+              "seconds": 0.007038
             },
             {
               "kind": "sample",
               "peak_rss_kb": 7264,
-              "seconds": 0.006756
+              "seconds": 0.006815
+            },
+            {
+              "kind": "sample",
+              "peak_rss_kb": 7264,
+              "seconds": 0.006947
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 7398.4,
-          "rss_peak_kb": 7696,
+          "repeats": 3,
+          "rss_avg_kb": 7264.0,
+          "rss_peak_kb": 7264,
           "rss_samples_kb": [
             7264,
-            7360,
-            7408,
-            7696,
+            7264,
             7264
           ],
           "samples_seconds": [
-            0.007143,
-            0.007155,
-            0.006952,
-            0.006688,
-            0.006756
+            0.007038,
+            0.006815,
+            0.006947
           ],
           "warmups": 1
         }
@@ -3906,7 +3257,7 @@
           "trace_decommit_hashes": 72
         },
         "prove": {
-          "avg_seconds": 2.864818,
+          "avg_seconds": 3.035609,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -3932,63 +3283,49 @@
             "--wf-sequence-len",
             "5000"
           ],
-          "max_seconds": 2.887033,
-          "min_seconds": 2.845211,
+          "max_seconds": 3.109064,
+          "min_seconds": 2.972477,
           "name": "zig_wide_fibonacci_fib5000_prove",
           "raw_runs": [
             {
               "kind": "warmup",
-              "peak_rss_kb": 663456,
-              "seconds": 2.868547
+              "peak_rss_kb": 663424,
+              "seconds": 2.952505
             },
             {
               "kind": "sample",
               "peak_rss_kb": 663456,
-              "seconds": 2.887033
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 663456,
-              "seconds": 2.862831
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 663392,
-              "seconds": 2.868066
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 663456,
-              "seconds": 2.860949
+              "seconds": 3.025286
             },
             {
               "kind": "sample",
               "peak_rss_kb": 663424,
-              "seconds": 2.845211
+              "seconds": 2.972477
+            },
+            {
+              "kind": "sample",
+              "peak_rss_kb": 663424,
+              "seconds": 3.109064
             }
           ],
-          "repeats": 5,
-          "rss_avg_kb": 663436.8,
+          "repeats": 3,
+          "rss_avg_kb": 663434.67,
           "rss_peak_kb": 663456,
           "rss_samples_kb": [
             663456,
-            663456,
-            663392,
-            663456,
+            663424,
             663424
           ],
           "samples_seconds": [
-            2.887033,
-            2.862831,
-            2.868066,
-            2.860949,
-            2.845211
+            3.025286,
+            2.972477,
+            3.109064
           ],
           "warmups": 1
         },
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.007502,
+          "avg_seconds": 0.008221,
           "command": [
             "/Users/theodorepender/Coding/stwo-zig/vectors/.bench.zig_interop",
             "--mode",
@@ -4000,57 +3337,43 @@
             "--bench-proof-codec",
             "json"
           ],
-          "max_seconds": 0.008027,
-          "min_seconds": 0.007204,
+          "max_seconds": 0.008413,
+          "min_seconds": 0.008032,
           "name": "zig_wide_fibonacci_fib5000_verify",
           "raw_runs": [
             {
               "kind": "warmup",
               "peak_rss_kb": 5936,
-              "seconds": 0.008235
+              "seconds": 0.009713
             },
             {
               "kind": "sample",
               "peak_rss_kb": 5936,
-              "seconds": 0.008027
+              "seconds": 0.008413
             },
             {
               "kind": "sample",
               "peak_rss_kb": 5936,
-              "seconds": 0.007204
+              "seconds": 0.008218
             },
             {
               "kind": "sample",
               "peak_rss_kb": 5936,
-              "seconds": 0.00757
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 5936,
-              "seconds": 0.007472
-            },
-            {
-              "kind": "sample",
-              "peak_rss_kb": 5936,
-              "seconds": 0.007236
+              "seconds": 0.008032
             }
           ],
-          "repeats": 5,
+          "repeats": 3,
           "rss_avg_kb": 5936.0,
           "rss_peak_kb": 5936,
           "rss_samples_kb": [
             5936,
             5936,
-            5936,
-            5936,
             5936
           ],
           "samples_seconds": [
-            0.008027,
-            0.007204,
-            0.00757,
-            0.007472,
-            0.007236
+            0.008413,
+            0.008218,
+            0.008032
           ],
           "warmups": 1
         }

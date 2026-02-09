@@ -1,6 +1,6 @@
 {
   "failures": [],
-  "generated_at_unix": 1770642507,
+  "generated_at_unix": 1770646235,
   "kernels": [
     {
       "checksum": [
@@ -14,13 +14,14 @@
       "name": "eval_at_point",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.513415,
-        "max_seconds": 0.523665,
-        "min_seconds": 0.508134,
+        "avg_seconds": 0.551204333,
+        "max_seconds": 0.553791,
+        "median_seconds": 0.550575,
+        "min_seconds": 0.549247,
         "samples_seconds": [
-          0.508134,
-          0.523665,
-          0.508446
+          0.550575,
+          0.553791,
+          0.549247
         ]
       },
       "warmups": 1
@@ -37,36 +38,38 @@
       "name": "eval_at_point_by_folding",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.061959667,
-        "max_seconds": 0.062131,
-        "min_seconds": 0.061698,
+        "avg_seconds": 0.066116,
+        "max_seconds": 0.066547,
+        "median_seconds": 0.066042,
+        "min_seconds": 0.065759,
         "samples_seconds": [
-          0.06205,
-          0.062131,
-          0.061698
+          0.066547,
+          0.065759,
+          0.066042
         ]
       },
       "warmups": 1
     },
     {
       "checksum": [
-        2272,
+        2104320,
         0,
         0,
         0
       ],
-      "iterations": 64,
+      "iterations": 2048,
       "log_size": 10,
       "name": "fft",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.000528,
-        "max_seconds": 0.00053,
-        "min_seconds": 0.000526,
+        "avg_seconds": 0.024593,
+        "max_seconds": 0.025143,
+        "median_seconds": 0.024626,
+        "min_seconds": 0.02401,
         "samples_seconds": [
-          0.000528,
-          0.00053,
-          0.000526
+          0.025143,
+          0.02401,
+          0.024626
         ]
       },
       "warmups": 1
@@ -81,14 +84,14 @@
     "zig_cpu": "native",
     "zig_opt_mode": "ReleaseFast"
   },
-  "settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
+  "settings_hash": "5799e57b144ccee2fe09d2ec30b2f904468872e64122271812167ab51e82faa2",
   "status": "ok",
   "summary": {
-    "avg_seconds": 0.191967556,
+    "avg_seconds": 0.213971111,
     "failure_count": 0,
     "kernels": 3,
-    "max_seconds": 0.513415,
-    "min_seconds": 0.000528
+    "max_seconds": 0.551204333,
+    "min_seconds": 0.024593
   },
-  "workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3"
+  "workload_matrix_hash": "ccf08828a617c569fa9a54535bb3215fe84910e65e32e1aad03fa4f8987bec03"
 }
