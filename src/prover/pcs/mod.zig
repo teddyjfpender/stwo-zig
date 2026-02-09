@@ -25,11 +25,17 @@ const TreeVec = pcs_core.TreeVec;
 const TreeSubspan = pcs_core.TreeSubspan;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
 const PointSample = core_quotients.PointSample;
-const COEFFICIENT_STORAGE_MAX_BYTES: usize = std.math.maxInt(usize);
+const COEFFICIENT_STORAGE_AUTO_MAX_BYTES: usize = 8 * 1024 * 1024;
 
 pub const CommitmentSchemeError = error{
     ShapeMismatch,
     InvalidPreprocessedTree,
+};
+
+const CoefficientRetentionPolicy = enum {
+    auto,
+    always,
+    never,
 };
 
 pub const ColumnEvaluation = quotient_ops.ColumnEvaluation;
@@ -173,7 +179,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
     return struct {
         trees: TreeVec(CommitmentTreeProver(H)),
         config: PcsConfig,
-        store_polynomials_coefficients: bool,
+        coefficient_retention_policy: CoefficientRetentionPolicy,
         twiddle_cache: std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 
         const Self = @This();
@@ -184,7 +190,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     try allocator.alloc(CommitmentTreeProver(H), 0),
                 ),
                 .config = config,
-                .store_polynomials_coefficients = true,
+                .coefficient_retention_policy = .always,
                 .twiddle_cache = std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)).init(allocator),
             };
         }
@@ -197,7 +203,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         }
 
         pub fn setStorePolynomialsCoefficients(self: *Self) void {
-            self.store_polynomials_coefficients = true;
+            self.coefficient_retention_policy = .always;
         }
 
         pub fn commit(
@@ -210,7 +216,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 allocator,
                 columns,
                 self.config.fri_config.log_blowup_factor,
-                self.store_polynomials_coefficients,
+                self.coefficient_retention_policy,
                 &self.twiddle_cache,
             );
             errdefer prepared.deinit(allocator);
@@ -240,7 +246,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 allocator,
                 owned_columns,
                 self.config.fri_config.log_blowup_factor,
-                self.store_polynomials_coefficients,
+                self.coefficient_retention_policy,
                 &self.twiddle_cache,
             );
             errdefer prepared.deinit(allocator);
@@ -262,8 +268,8 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
         /// Semantics:
         /// - evaluates each polynomial on the commitment domain extended by
         ///   `config.fri_config.log_blowup_factor`.
-        /// - optionally stores cloned coefficients when
-        ///   `store_polynomials_coefficients` is enabled.
+        /// - optionally stores cloned coefficients according to the
+        ///   configured retention policy.
         pub fn commitPolys(
             self: *Self,
             allocator: std.mem.Allocator,
@@ -302,7 +308,7 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             }
 
             var stored_coefficients: ?[]prover_circle.CircleCoefficients = null;
-            if (self.store_polynomials_coefficients) {
+            if (shouldRetainPolynomialCoefficients(polys, self.coefficient_retention_policy)) {
                 const coeffs = try allocator.alloc(prover_circle.CircleCoefficients, polys.len);
                 errdefer allocator.free(coeffs);
 
@@ -795,7 +801,7 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
                 self.allocator,
                 base_columns,
                 self.commitment_scheme.config.fri_config.log_blowup_factor,
-                self.commitment_scheme.store_polynomials_coefficients,
+                self.commitment_scheme.coefficient_retention_policy,
                 &self.commitment_scheme.twiddle_cache,
             );
             errdefer prepared.deinit(self.allocator);
@@ -919,7 +925,7 @@ fn prepareColumnsForCommitBorrowed(
     allocator: std.mem.Allocator,
     columns: []const ColumnEvaluation,
     log_blowup_factor: u32,
-    store_coefficients: bool,
+    retention_policy: CoefficientRetentionPolicy,
     twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 ) !PreparedCommitmentColumns {
     const owned = try allocator.alloc(ColumnEvaluation, columns.len);
@@ -943,7 +949,7 @@ fn prepareColumnsForCommitBorrowed(
         allocator,
         owned,
         log_blowup_factor,
-        store_coefficients,
+        retention_policy,
         twiddle_cache,
     );
 }
@@ -952,10 +958,10 @@ fn prepareColumnsForCommitOwned(
     allocator: std.mem.Allocator,
     owned_columns: []ColumnEvaluation,
     log_blowup_factor: u32,
-    store_coefficients: bool,
+    retention_policy: CoefficientRetentionPolicy,
     twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
 ) !PreparedCommitmentColumns {
-    const retain_coefficients = shouldRetainCoefficients(owned_columns, store_coefficients);
+    const retain_coefficients = shouldRetainCoefficients(owned_columns, retention_policy);
     if (log_blowup_factor == 0) {
         return .{
             .columns = owned_columns,
@@ -1045,17 +1051,40 @@ fn prepareColumnsForCommitOwned(
 
 fn shouldRetainCoefficients(
     columns: []const ColumnEvaluation,
-    store_coefficients: bool,
+    retention_policy: CoefficientRetentionPolicy,
 ) bool {
-    if (!store_coefficients) return false;
+    return switch (retention_policy) {
+        .always => true,
+        .never => false,
+        .auto => blk: {
+            var total_bytes: usize = 0;
+            for (columns) |column| {
+                const column_bytes = std.math.mul(usize, column.values.len, @sizeOf(M31)) catch break :blk false;
+                total_bytes = std.math.add(usize, total_bytes, column_bytes) catch break :blk false;
+                if (total_bytes > COEFFICIENT_STORAGE_AUTO_MAX_BYTES) break :blk false;
+            }
+            break :blk true;
+        },
+    };
+}
 
-    var total_bytes: usize = 0;
-    for (columns) |column| {
-        const column_bytes = std.math.mul(usize, column.values.len, @sizeOf(M31)) catch return true;
-        total_bytes = std.math.add(usize, total_bytes, column_bytes) catch return true;
-        if (total_bytes > COEFFICIENT_STORAGE_MAX_BYTES) return false;
-    }
-    return true;
+fn shouldRetainPolynomialCoefficients(
+    polys: []const prover_circle.CircleCoefficients,
+    retention_policy: CoefficientRetentionPolicy,
+) bool {
+    return switch (retention_policy) {
+        .always => true,
+        .never => false,
+        .auto => blk: {
+            var total_bytes: usize = 0;
+            for (polys) |poly| {
+                const poly_bytes = std.math.mul(usize, poly.coefficients().len, @sizeOf(M31)) catch break :blk false;
+                total_bytes = std.math.add(usize, total_bytes, poly_bytes) catch break :blk false;
+                if (total_bytes > COEFFICIENT_STORAGE_AUTO_MAX_BYTES) break :blk false;
+            }
+            break :blk true;
+        },
+    };
 }
 
 fn interpolateCoefficientColumns(

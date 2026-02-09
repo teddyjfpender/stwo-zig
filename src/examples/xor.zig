@@ -111,32 +111,35 @@ pub fn proveEx(
     );
 
     const is_first = try genIsFirstColumn(allocator, statement.log_size);
-    defer allocator.free(is_first);
+    var is_first_moved = false;
+    defer if (!is_first_moved) allocator.free(is_first);
     const is_step = try genIsStepWithOffsetColumn(
         allocator,
         statement.log_size,
         statement.log_step,
         statement.offset,
     );
-    defer allocator.free(is_step);
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = statement.log_size, .values = is_first },
-            .{ .log_size = statement.log_size, .values = is_step },
-        },
-        &channel,
-    );
+    var is_step_moved = false;
+    defer if (!is_step_moved) allocator.free(is_step);
+    const preprocessed_owned = try allocator.alloc(prover_pcs.ColumnEvaluation, 2);
+    errdefer allocator.free(preprocessed_owned);
+    preprocessed_owned[0] = .{ .log_size = statement.log_size, .values = is_first };
+    preprocessed_owned[1] = .{ .log_size = statement.log_size, .values = is_step };
+    is_first_moved = true;
+    is_step_moved = true;
+    try scheme.commitOwned(allocator, preprocessed_owned, &channel);
 
     const main_col = try genMainColumn(allocator, statement.log_size);
-    defer allocator.free(main_col);
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = statement.log_size, .values = main_col },
-        },
-        &channel,
-    );
+    var main_col_moved = false;
+    defer if (!main_col_moved) allocator.free(main_col);
+    const main_owned = try allocator.alloc(prover_pcs.ColumnEvaluation, 1);
+    errdefer allocator.free(main_owned);
+    main_owned[0] = .{
+        .log_size = statement.log_size,
+        .values = main_col,
+    };
+    main_col_moved = true;
+    try scheme.commitOwned(allocator, main_owned, &channel);
 
     mixStatement(&channel, statement);
 

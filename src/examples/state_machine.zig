@@ -306,25 +306,31 @@ pub fn proveEx(
     );
 
     const preprocessed = try genIsFirst(allocator, log_n_rows);
-    defer allocator.free(preprocessed);
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = log_n_rows, .values = preprocessed },
-        },
-        &channel,
-    );
+    var preprocessed_moved = false;
+    defer if (!preprocessed_moved) allocator.free(preprocessed);
+
+    const preprocessed_owned = try allocator.alloc(prover_pcs.ColumnEvaluation, 1);
+    errdefer allocator.free(preprocessed_owned);
+    preprocessed_owned[0] = .{
+        .log_size = log_n_rows,
+        .values = preprocessed,
+    };
+    preprocessed_moved = true;
+    try scheme.commitOwned(allocator, preprocessed_owned, &channel);
 
     var trace = try genTrace(allocator, log_n_rows, initial_state, 0);
-    defer deinitTrace(allocator, &trace);
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = log_n_rows, .values = trace[0] },
-            .{ .log_size = log_n_rows, .values = trace[1] },
-        },
-        &channel,
-    );
+    var trace_moved = false;
+    defer if (!trace_moved) deinitTrace(allocator, &trace);
+    const trace_owned = try allocator.alloc(prover_pcs.ColumnEvaluation, trace.len);
+    errdefer allocator.free(trace_owned);
+    for (trace, 0..) |column, i| {
+        trace_owned[i] = .{
+            .log_size = log_n_rows,
+            .values = column,
+        };
+    }
+    trace_moved = true;
+    try scheme.commitOwned(allocator, trace_owned, &channel);
 
     mixStatement0(&channel, .{
         .n = log_n_rows,

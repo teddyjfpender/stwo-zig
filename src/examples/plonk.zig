@@ -123,29 +123,35 @@ pub fn proveEx(
         pcs_config,
     );
 
-    var trace = try genTrace(allocator, statement);
-    defer deinitTrace(allocator, &trace);
+    const trace = try genTrace(allocator, statement);
+    var preprocessed_moved = false;
+    var main_moved = false;
+    defer {
+        if (!preprocessed_moved) freeColumnSet(allocator, trace.preprocessed);
+        if (!main_moved) freeColumnSet(allocator, trace.main);
+    }
 
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = statement.log_n_rows, .values = trace.preprocessed[0] },
-            .{ .log_size = statement.log_n_rows, .values = trace.preprocessed[1] },
-            .{ .log_size = statement.log_n_rows, .values = trace.preprocessed[2] },
-            .{ .log_size = statement.log_n_rows, .values = trace.preprocessed[3] },
-        },
-        &channel,
-    );
-    try scheme.commit(
-        allocator,
-        &[_]prover_pcs.ColumnEvaluation{
-            .{ .log_size = statement.log_n_rows, .values = trace.main[0] },
-            .{ .log_size = statement.log_n_rows, .values = trace.main[1] },
-            .{ .log_size = statement.log_n_rows, .values = trace.main[2] },
-            .{ .log_size = statement.log_n_rows, .values = trace.main[3] },
-        },
-        &channel,
-    );
+    const preprocessed_owned = try allocator.alloc(prover_pcs.ColumnEvaluation, trace.preprocessed.len);
+    errdefer allocator.free(preprocessed_owned);
+    for (trace.preprocessed, 0..) |col, i| {
+        preprocessed_owned[i] = .{
+            .log_size = statement.log_n_rows,
+            .values = col,
+        };
+    }
+    preprocessed_moved = true;
+    try scheme.commitOwned(allocator, preprocessed_owned, &channel);
+
+    const main_owned = try allocator.alloc(prover_pcs.ColumnEvaluation, trace.main.len);
+    errdefer allocator.free(main_owned);
+    for (trace.main, 0..) |col, i| {
+        main_owned[i] = .{
+            .log_size = statement.log_n_rows,
+            .values = col,
+        };
+    }
+    main_moved = true;
+    try scheme.commitOwned(allocator, main_owned, &channel);
 
     mixStatement(&channel, statement);
 

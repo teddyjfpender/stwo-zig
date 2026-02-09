@@ -137,17 +137,20 @@ pub fn proveEx(
     try scheme.commit(allocator, preprocessed[0..], &channel);
 
     const trace = try genTrace(allocator, statement);
-    defer deinitTrace(allocator, trace);
+    var trace_moved = false;
+    defer if (!trace_moved) deinitTrace(allocator, trace);
 
-    const columns = try allocator.alloc(prover_pcs.ColumnEvaluation, n_columns);
-    defer allocator.free(columns);
+    const owned_columns = try allocator.alloc(prover_pcs.ColumnEvaluation, n_columns);
+    errdefer allocator.free(owned_columns);
     for (trace, 0..) |col, i| {
-        columns[i] = .{
+        owned_columns[i] = .{
             .log_size = statement.log_n_rows,
             .values = col,
         };
     }
-    try scheme.commit(allocator, columns, &channel);
+    allocator.free(trace);
+    trace_moved = true;
+    try scheme.commitOwned(allocator, owned_columns, &channel);
 
     mixStatement(&channel, statement);
 
