@@ -94,9 +94,19 @@ pub const LinePoly = struct {
     }
 
     pub fn evalAtPoint(self: LinePoly, allocator: std.mem.Allocator, x: QM31) !QM31 {
+        if (self.log_size <= circle.M31_CIRCLE_LOG_ORDER) {
+            var doublings_stack: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
+            var cur = x;
+            var i: u32 = 0;
+            while (i < self.log_size) : (i += 1) {
+                doublings_stack[i] = cur;
+                cur = circle.CirclePoint(QM31).doubleX(cur);
+            }
+            return poly_utils.fold(QM31, self.coeffs, doublings_stack[0..self.log_size]);
+        }
+
         const doublings = try allocator.alloc(QM31, self.log_size);
         defer allocator.free(doublings);
-
         var cur = x;
         for (doublings) |*d| {
             d.* = cur;
