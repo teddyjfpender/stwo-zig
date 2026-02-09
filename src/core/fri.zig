@@ -616,12 +616,21 @@ pub const SparseEvaluation = struct {
         source_domain: line.LineDomain,
     ) ![]QM31 {
         const out = try allocator.alloc(QM31, self.subset_evals.len);
+        if (self.subset_evals.len == 0) return out;
+        var workspace = try FoldLineWorkspace.init(allocator, self.subset_evals[0].len / 2);
+        defer workspace.deinit(allocator);
         var i: usize = 0;
         while (i < self.subset_evals.len) : (i += 1) {
             const domain_initial_index = self.subset_domain_initial_indexes[i];
             const fold_domain_initial = source_domain.coset().indexAt(domain_initial_index);
             const fold_domain = try line.LineDomain.init(circle.Coset.new(fold_domain_initial, FOLD_STEP));
-            const folded = try foldLine(allocator, self.subset_evals[i], fold_domain, fold_alpha);
+            const folded = try foldLineWithWorkspace(
+                allocator,
+                self.subset_evals[i],
+                fold_domain,
+                fold_alpha,
+                &workspace,
+            );
             defer allocator.free(folded.values);
             out[i] = folded.values[0];
         }
@@ -743,6 +752,35 @@ pub const FoldLineResult = struct {
     values: []QM31,
 };
 
+pub const FoldLineWorkspace = struct {
+    x_values: []M31,
+    inv_x_values: []M31,
+
+    pub fn init(allocator: std.mem.Allocator, capacity: usize) !FoldLineWorkspace {
+        return .{
+            .x_values = try allocator.alloc(M31, capacity),
+            .inv_x_values = try allocator.alloc(M31, capacity),
+        };
+    }
+
+    pub fn deinit(self: *FoldLineWorkspace, allocator: std.mem.Allocator) void {
+        allocator.free(self.x_values);
+        allocator.free(self.inv_x_values);
+        self.* = undefined;
+    }
+
+    pub fn ensureCapacity(
+        self: *FoldLineWorkspace,
+        allocator: std.mem.Allocator,
+        capacity: usize,
+    ) !void {
+        if (self.x_values.len >= capacity and self.inv_x_values.len >= capacity) return;
+
+        self.x_values = try allocator.realloc(self.x_values, capacity);
+        self.inv_x_values = try allocator.realloc(self.inv_x_values, capacity);
+    }
+};
+
 pub fn foldLine(
     allocator: std.mem.Allocator,
     eval: []const QM31,
@@ -751,11 +789,24 @@ pub fn foldLine(
 ) !FoldLineResult {
     if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
 
+    var workspace = try FoldLineWorkspace.init(allocator, eval.len / 2);
+    defer workspace.deinit(allocator);
+    return foldLineWithWorkspace(allocator, eval, domain, alpha, &workspace);
+}
+
+pub fn foldLineWithWorkspace(
+    allocator: std.mem.Allocator,
+    eval: []const QM31,
+    domain: line.LineDomain,
+    alpha: QM31,
+    workspace: *FoldLineWorkspace,
+) !FoldLineResult {
+    if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
+
     const folded_values = try allocator.alloc(QM31, eval.len / 2);
-    const x_values = try allocator.alloc(M31, folded_values.len);
-    defer allocator.free(x_values);
-    const inv_x_values = try allocator.alloc(M31, folded_values.len);
-    defer allocator.free(inv_x_values);
+    try workspace.ensureCapacity(allocator, folded_values.len);
+    const x_values = workspace.x_values[0..folded_values.len];
+    const inv_x_values = workspace.inv_x_values[0..folded_values.len];
 
     var i: usize = 0;
     const fold_shift: std.math.Log2Int(usize) = @intCast(FOLD_STEP);
@@ -961,6 +1012,50 @@ test "fri: fold line matches pairwise butterfly formula" {
 
     try std.testing.expect(folded.values[0].eql(expected0));
     try std.testing.expect(folded.values[1].eql(expected1));
+}
+
+test "fri: fold line workspace path matches default implementation" {
+    const alloc = std.testing.allocator;
+    const domain = try line.LineDomain.init(circle.Coset.halfOdds(4));
+    const alpha = QM31.fromU32Unchecked(5, 7, 11, 13);
+    const eval = [_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+        QM31.fromU32Unchecked(17, 18, 19, 20),
+        QM31.fromU32Unchecked(21, 22, 23, 24),
+        QM31.fromU32Unchecked(25, 26, 27, 28),
+        QM31.fromU32Unchecked(29, 30, 31, 1),
+        QM31.fromU32Unchecked(2, 3, 4, 5),
+        QM31.fromU32Unchecked(6, 7, 8, 9),
+        QM31.fromU32Unchecked(10, 11, 12, 13),
+        QM31.fromU32Unchecked(14, 15, 16, 17),
+        QM31.fromU32Unchecked(18, 19, 20, 21),
+        QM31.fromU32Unchecked(22, 23, 24, 25),
+        QM31.fromU32Unchecked(26, 27, 28, 29),
+        QM31.fromU32Unchecked(30, 31, 1, 2),
+    };
+
+    const default_fold = try foldLine(alloc, eval[0..], domain, alpha);
+    defer alloc.free(default_fold.values);
+
+    var workspace = try FoldLineWorkspace.init(alloc, 1);
+    defer workspace.deinit(alloc);
+    const workspace_fold = try foldLineWithWorkspace(
+        alloc,
+        eval[0..],
+        domain,
+        alpha,
+        &workspace,
+    );
+    defer alloc.free(workspace_fold.values);
+
+    try std.testing.expectEqual(default_fold.domain.logSize(), workspace_fold.domain.logSize());
+    try std.testing.expectEqual(default_fold.values.len, workspace_fold.values.len);
+    for (default_fold.values, workspace_fold.values) |lhs, rhs| {
+        try std.testing.expect(lhs.eql(rhs));
+    }
 }
 
 test "fri: fold circle into line accumulates correctly" {

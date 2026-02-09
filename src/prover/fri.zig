@@ -334,6 +334,11 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
             errdefer {
                 for (layers.items) |*layer| layer.deinit(allocator);
             }
+            var fold_workspace = try core_fri.FoldLineWorkspace.init(
+                allocator,
+                layer_evaluation.len() / 2,
+            );
+            defer fold_workspace.deinit(allocator);
 
             while (layer_evaluation.len() > config.lastLayerDomainSize()) {
                 var secure_values = try secure_column.SecureColumnByCoords.fromSecureSlice(
@@ -356,11 +361,12 @@ pub fn FriProver(comptime H: type, comptime MC: type) type {
 
                 MC.mixRoot(channel, merkle_tree.root());
                 const fold_alpha = channel.drawSecureFelt();
-                const folded = try core_fri.foldLine(
+                const folded = try core_fri.foldLineWithWorkspace(
                     allocator,
                     layer_evaluation.values,
                     layer_evaluation.domain(),
                     fold_alpha,
+                    &fold_workspace,
                 );
 
                 const layer = InnerLayerProver{
