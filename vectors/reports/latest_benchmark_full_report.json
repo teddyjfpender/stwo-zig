@@ -25,15 +25,15 @@
         "prove_mode": "prove"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.034587,
+        "zig_over_rust_peak_rss_kb": 0.894625,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.179544,
-        "zig_over_rust_verify": 1.709028
+        "zig_over_rust_prove": 0.187485,
+        "zig_over_rust_verify": 1.706159
       },
       "rust": {
         "example": "xor",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 52736,
+        "peak_rss_kb": 52688,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -45,28 +45,28 @@
           "trace_decommit_hashes": 120
         },
         "prove": {
-          "avg_seconds": 0.29023719433333334,
-          "max_seconds": 0.291349375,
-          "min_seconds": 0.288688541,
+          "avg_seconds": 0.3038810553333333,
+          "max_seconds": 0.30603475,
+          "min_seconds": 0.3016395,
           "repeats": 3,
           "samples_seconds": [
-            0.290673667,
-            0.291349375,
-            0.288688541
+            0.303968916,
+            0.30603475,
+            0.3016395
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.0002716943333333333,
-          "max_seconds": 0.000276791,
-          "min_seconds": 0.000262917,
+          "avg_seconds": 0.0002813336666666667,
+          "max_seconds": 0.000293167,
+          "min_seconds": 0.0002715,
           "repeats": 3,
           "samples_seconds": [
-            0.000276791,
-            0.000275375,
-            0.000262917
+            0.000293167,
+            0.000279334,
+            0.0002715
           ],
           "warmups": 1
         }
@@ -74,7 +74,7 @@
       "zig": {
         "example": "xor",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 54560,
+        "peak_rss_kb": 47136,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -86,28 +86,28 @@
           "trace_decommit_hashes": 120
         },
         "prove": {
-          "avg_seconds": 0.052110333333333335,
-          "max_seconds": 0.052672,
-          "min_seconds": 0.051693,
+          "avg_seconds": 0.056972999999999996,
+          "max_seconds": 0.057743,
+          "min_seconds": 0.056363,
           "repeats": 3,
           "samples_seconds": [
-            0.052672,
-            0.051966,
-            0.051693
+            0.056363,
+            0.056813,
+            0.057743
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.00046433333333333336,
-          "max_seconds": 0.000473,
-          "min_seconds": 0.000453,
+          "avg_seconds": 0.00048,
+          "max_seconds": 0.000505,
+          "min_seconds": 0.000448,
           "repeats": 3,
           "samples_seconds": [
-            0.000473,
-            0.000467,
-            0.000453
+            0.000487,
+            0.000448,
+            0.000505
           ],
           "warmups": 1
         }
@@ -135,15 +135,15 @@
         "prove_mode": "prove"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 2.611888,
+        "zig_over_rust_peak_rss_kb": 2.440599,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.898751,
-        "zig_over_rust_verify": 1.422062
+        "zig_over_rust_prove": 0.899661,
+        "zig_over_rust_verify": 1.383715
       },
       "rust": {
         "example": "wide_fibonacci",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 13728,
+        "peak_rss_kb": 17104,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -155,28 +155,28 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.030842416666666667,
-          "max_seconds": 0.0311225,
-          "min_seconds": 0.030645792,
+          "avg_seconds": 0.032253250000000004,
+          "max_seconds": 0.032423167,
+          "min_seconds": 0.032065583,
           "repeats": 3,
           "samples_seconds": [
-            0.030645792,
-            0.030758958,
-            0.0311225
+            0.032271,
+            0.032423167,
+            0.032065583
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.000388403,
-          "max_seconds": 0.000391834,
-          "min_seconds": 0.000386375,
+          "avg_seconds": 0.00040543033333333335,
+          "max_seconds": 0.00041075,
+          "min_seconds": 0.000400833,
           "repeats": 3,
           "samples_seconds": [
-            0.000391834,
-            0.000387,
-            0.000386375
+            0.00041075,
+            0.000404708,
+            0.000400833
           ],
           "warmups": 1
         }
@@ -184,7 +184,7 @@
       "zig": {
         "example": "wide_fibonacci",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 35856,
+        "peak_rss_kb": 41744,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -196,28 +196,28 @@
           "trace_decommit_hashes": 48
         },
         "prove": {
-          "avg_seconds": 0.027719666666666667,
-          "max_seconds": 0.027924,
-          "min_seconds": 0.027535,
+          "avg_seconds": 0.029017,
+          "max_seconds": 0.029488,
+          "min_seconds": 0.028699,
           "repeats": 3,
           "samples_seconds": [
-            0.0277,
-            0.027535,
-            0.027924
+            0.028699,
+            0.029488,
+            0.028864
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.0005523333333333334,
-          "max_seconds": 0.000559,
-          "min_seconds": 0.000548,
+          "avg_seconds": 0.000561,
+          "max_seconds": 0.000562,
+          "min_seconds": 0.00056,
           "repeats": 3,
           "samples_seconds": [
-            0.00055,
-            0.000548,
-            0.000559
+            0.000561,
+            0.000562,
+            0.00056
           ],
           "warmups": 1
         }
@@ -243,15 +243,15 @@
         "prove_mode": "prove"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 0.449699,
+        "zig_over_rust_peak_rss_kb": 0.991031,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.249372,
-        "zig_over_rust_verify": 1.647089
+        "zig_over_rust_prove": 0.256431,
+        "zig_over_rust_verify": 1.669198
       },
       "rust": {
         "example": "plonk",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 18608,
+        "peak_rss_kb": 17840,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -263,28 +263,28 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.06417331899999999,
-          "max_seconds": 0.064783541,
-          "min_seconds": 0.063666375,
+          "avg_seconds": 0.06674300033333334,
+          "max_seconds": 0.067702292,
+          "min_seconds": 0.066206125,
           "repeats": 3,
           "samples_seconds": [
-            0.063666375,
-            0.064070041,
-            0.064783541
+            0.067702292,
+            0.066206125,
+            0.066320584
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00022747200000000002,
-          "max_seconds": 0.000234791,
-          "min_seconds": 0.000221084,
+          "avg_seconds": 0.00023025033333333333,
+          "max_seconds": 0.000242083,
+          "min_seconds": 0.000221834,
           "repeats": 3,
           "samples_seconds": [
-            0.000234791,
-            0.000221084,
-            0.000226541
+            0.000242083,
+            0.000221834,
+            0.000226834
           ],
           "warmups": 1
         }
@@ -292,7 +292,7 @@
       "zig": {
         "example": "plonk",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 8368,
+        "peak_rss_kb": 17680,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -304,28 +304,28 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.016003,
-          "max_seconds": 0.01612,
-          "min_seconds": 0.015878,
+          "avg_seconds": 0.017115000000000002,
+          "max_seconds": 0.017328,
+          "min_seconds": 0.016967,
           "repeats": 3,
           "samples_seconds": [
-            0.015878,
-            0.016011,
-            0.01612
+            0.017328,
+            0.016967,
+            0.01705
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.00037466666666666665,
-          "max_seconds": 0.00038,
-          "min_seconds": 0.00037,
+          "avg_seconds": 0.0003843333333333333,
+          "max_seconds": 0.000397,
+          "min_seconds": 0.000373,
           "repeats": 3,
           "samples_seconds": [
-            0.000374,
-            0.00037,
-            0.00038
+            0.000373,
+            0.000383,
+            0.000397
           ],
           "warmups": 1
         }
@@ -353,15 +353,15 @@
         "prove_mode": "prove"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.080996,
+        "zig_over_rust_peak_rss_kb": 1.56679,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.05256,
-        "zig_over_rust_verify": 1.413753
+        "zig_over_rust_prove": 1.081498,
+        "zig_over_rust_verify": 1.402712
       },
       "rust": {
         "example": "wide_fibonacci",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 50768,
+        "peak_rss_kb": 43360,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -373,28 +373,28 @@
           "trace_decommit_hashes": 58
         },
         "prove": {
-          "avg_seconds": 0.10197902766666667,
-          "max_seconds": 0.10359325,
-          "min_seconds": 0.100977,
+          "avg_seconds": 0.10678093033333334,
+          "max_seconds": 0.10761025,
+          "min_seconds": 0.105546166,
           "repeats": 3,
           "samples_seconds": [
-            0.101366833,
-            0.10359325,
-            0.100977
+            0.10761025,
+            0.107186375,
+            0.105546166
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.0006606530000000001,
-          "max_seconds": 0.000667667,
-          "min_seconds": 0.000654875,
+          "avg_seconds": 0.0006758336666666667,
+          "max_seconds": 0.000683584,
+          "min_seconds": 0.000670625,
           "repeats": 3,
           "samples_seconds": [
-            0.000667667,
-            0.000659417,
-            0.000654875
+            0.000683584,
+            0.000670625,
+            0.000673292
           ],
           "warmups": 1
         }
@@ -402,7 +402,7 @@
       "zig": {
         "example": "wide_fibonacci",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 54880,
+        "peak_rss_kb": 67936,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -414,28 +414,28 @@
           "trace_decommit_hashes": 58
         },
         "prove": {
-          "avg_seconds": 0.107339,
-          "max_seconds": 0.1077,
-          "min_seconds": 0.106858,
+          "avg_seconds": 0.11548333333333334,
+          "max_seconds": 0.117816,
+          "min_seconds": 0.112246,
           "repeats": 3,
           "samples_seconds": [
-            0.106858,
-            0.1077,
-            0.107459
+            0.112246,
+            0.116388,
+            0.117816
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.0009339999999999999,
-          "max_seconds": 0.000946,
-          "min_seconds": 0.000923,
+          "avg_seconds": 0.000948,
+          "max_seconds": 0.000964,
+          "min_seconds": 0.000927,
           "repeats": 3,
           "samples_seconds": [
-            0.000946,
-            0.000933,
-            0.000923
+            0.000964,
+            0.000953,
+            0.000927
           ],
           "warmups": 1
         }
@@ -463,15 +463,15 @@
         "prove_mode": "prove_ex"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.744074,
+        "zig_over_rust_peak_rss_kb": 1.697108,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 1.055669,
-        "zig_over_rust_verify": 1.440113
+        "zig_over_rust_prove": 1.061906,
+        "zig_over_rust_verify": 1.431622
       },
       "rust": {
         "example": "wide_fibonacci",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 36448,
+        "peak_rss_kb": 42048,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -483,28 +483,28 @@
           "trace_decommit_hashes": 58
         },
         "prove": {
-          "avg_seconds": 0.10248663866666667,
-          "max_seconds": 0.103627667,
-          "min_seconds": 0.101487916,
+          "avg_seconds": 0.106709375,
+          "max_seconds": 0.107647625,
+          "min_seconds": 0.105784167,
           "repeats": 3,
           "samples_seconds": [
-            0.103627667,
-            0.101487916,
-            0.102344333
+            0.106696333,
+            0.107647625,
+            0.105784167
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.0006480973333333333,
-          "max_seconds": 0.000658209,
-          "min_seconds": 0.000639667,
+          "avg_seconds": 0.0006684723333333333,
+          "max_seconds": 0.000675167,
+          "min_seconds": 0.000663875,
           "repeats": 3,
           "samples_seconds": [
-            0.000658209,
-            0.000639667,
-            0.000646416
+            0.000675167,
+            0.000666375,
+            0.000663875
           ],
           "warmups": 1
         }
@@ -512,7 +512,7 @@
       "zig": {
         "example": "wide_fibonacci",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 63568,
+        "peak_rss_kb": 71360,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -524,28 +524,28 @@
           "trace_decommit_hashes": 58
         },
         "prove": {
-          "avg_seconds": 0.108192,
-          "max_seconds": 0.108417,
-          "min_seconds": 0.108059,
+          "avg_seconds": 0.11331533333333332,
+          "max_seconds": 0.114239,
+          "min_seconds": 0.111987,
           "repeats": 3,
           "samples_seconds": [
-            0.108059,
-            0.108417,
-            0.1081
+            0.11372,
+            0.114239,
+            0.111987
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.0009333333333333333,
-          "max_seconds": 0.000948,
-          "min_seconds": 0.000922,
+          "avg_seconds": 0.0009570000000000001,
+          "max_seconds": 0.000974,
+          "min_seconds": 0.000945,
           "repeats": 3,
           "samples_seconds": [
-            0.00093,
-            0.000948,
-            0.000922
+            0.000945,
+            0.000952,
+            0.000974
           ],
           "warmups": 1
         }
@@ -575,15 +575,15 @@
         "prove_mode": "prove"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 0.862955,
+        "zig_over_rust_peak_rss_kb": 1.02057,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.16384,
-        "zig_over_rust_verify": 1.690577
+        "zig_over_rust_prove": 0.170199,
+        "zig_over_rust_verify": 1.472244
       },
       "rust": {
         "example": "xor",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 141968,
+        "peak_rss_kb": 139232,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -595,28 +595,28 @@
           "trace_decommit_hashes": 129
         },
         "prove": {
-          "avg_seconds": 0.6154333470000001,
-          "max_seconds": 0.615720416,
-          "min_seconds": 0.615101083,
+          "avg_seconds": 0.6383318193333333,
+          "max_seconds": 0.640550583,
+          "min_seconds": 0.6365485,
           "repeats": 3,
           "samples_seconds": [
-            0.615720416,
-            0.615478542,
-            0.615101083
+            0.637896375,
+            0.6365485,
+            0.640550583
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00031231933333333335,
-          "max_seconds": 0.00032,
-          "min_seconds": 0.0003065,
+          "avg_seconds": 0.00036927766666666664,
+          "max_seconds": 0.000429583,
+          "min_seconds": 0.0003335,
           "repeats": 3,
           "samples_seconds": [
-            0.00032,
-            0.000310458,
-            0.0003065
+            0.000429583,
+            0.00034475,
+            0.0003335
           ],
           "warmups": 1
         }
@@ -624,7 +624,7 @@
       "zig": {
         "example": "xor",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 122512,
+        "peak_rss_kb": 142096,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -636,28 +636,28 @@
           "trace_decommit_hashes": 129
         },
         "prove": {
-          "avg_seconds": 0.10083233333333334,
-          "max_seconds": 0.10119,
-          "min_seconds": 0.100456,
+          "avg_seconds": 0.10864333333333333,
+          "max_seconds": 0.110994,
+          "min_seconds": 0.106849,
           "repeats": 3,
           "samples_seconds": [
-            0.100456,
-            0.100851,
-            0.10119
+            0.106849,
+            0.108087,
+            0.110994
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.0005279999999999999,
-          "max_seconds": 0.000531,
-          "min_seconds": 0.000523,
+          "avg_seconds": 0.0005436666666666667,
+          "max_seconds": 0.000552,
+          "min_seconds": 0.000539,
           "repeats": 3,
           "samples_seconds": [
-            0.000523,
-            0.000531,
-            0.00053
+            0.000539,
+            0.000552,
+            0.00054
           ],
           "warmups": 1
         }
@@ -687,15 +687,15 @@
         "prove_mode": "prove"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 0.354927,
+        "zig_over_rust_peak_rss_kb": 1.128205,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.242946,
-        "zig_over_rust_verify": 1.578741
+        "zig_over_rust_prove": 0.240617,
+        "zig_over_rust_verify": 1.735998
       },
       "rust": {
         "example": "state_machine",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 17536,
+        "peak_rss_kb": 13728,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -707,28 +707,28 @@
           "trace_decommit_hashes": 84
         },
         "prove": {
-          "avg_seconds": 0.063852222,
-          "max_seconds": 0.064204,
-          "min_seconds": 0.063620291,
+          "avg_seconds": 0.06784361133333333,
+          "max_seconds": 0.068361042,
+          "min_seconds": 0.067283792,
           "repeats": 3,
           "samples_seconds": [
-            0.063732375,
-            0.064204,
-            0.063620291
+            0.067283792,
+            0.068361042,
+            0.067886
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00019129166666666665,
-          "max_seconds": 0.000201958,
-          "min_seconds": 0.000185792,
+          "avg_seconds": 0.00017876366666666664,
+          "max_seconds": 0.000184625,
+          "min_seconds": 0.000173708,
           "repeats": 3,
           "samples_seconds": [
-            0.000201958,
-            0.000186125,
-            0.000185792
+            0.000184625,
+            0.000177958,
+            0.000173708
           ],
           "warmups": 1
         }
@@ -736,7 +736,7 @@
       "zig": {
         "example": "state_machine",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 6224,
+        "peak_rss_kb": 15488,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -748,28 +748,28 @@
           "trace_decommit_hashes": 84
         },
         "prove": {
-          "avg_seconds": 0.015512666666666668,
-          "max_seconds": 0.015559,
-          "min_seconds": 0.015436,
+          "avg_seconds": 0.016324333333333333,
+          "max_seconds": 0.016544,
+          "min_seconds": 0.016029,
           "repeats": 3,
           "samples_seconds": [
-            0.015436,
-            0.015559,
-            0.015543
+            0.016029,
+            0.0164,
+            0.016544
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.000302,
-          "max_seconds": 0.00031,
-          "min_seconds": 0.000294,
+          "avg_seconds": 0.0003103333333333333,
+          "max_seconds": 0.000317,
+          "min_seconds": 0.000304,
           "repeats": 3,
           "samples_seconds": [
+            0.000317,
             0.00031,
-            0.000302,
-            0.000294
+            0.000304
           ],
           "warmups": 1
         }
@@ -799,15 +799,15 @@
         "prove_mode": "prove_ex"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 1.010823,
+        "zig_over_rust_peak_rss_kb": 1.033819,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.209022,
-        "zig_over_rust_verify": 1.305635
+        "zig_over_rust_prove": 0.215254,
+        "zig_over_rust_verify": 1.700944
       },
       "rust": {
         "example": "state_machine",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 29568,
+        "peak_rss_kb": 30752,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -819,28 +819,28 @@
           "trace_decommit_hashes": 108
         },
         "prove": {
-          "avg_seconds": 0.137032028,
-          "max_seconds": 0.137783792,
-          "min_seconds": 0.136564084,
+          "avg_seconds": 0.14378525,
+          "max_seconds": 0.14442725,
+          "min_seconds": 0.143352542,
           "repeats": 3,
           "samples_seconds": [
-            0.137783792,
-            0.136748208,
-            0.136564084
+            0.14442725,
+            0.143575958,
+            0.143352542
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.000306875,
-          "max_seconds": 0.000318166,
-          "min_seconds": 0.000296584,
+          "avg_seconds": 0.000251625,
+          "max_seconds": 0.000257792,
+          "min_seconds": 0.000245,
           "repeats": 3,
           "samples_seconds": [
-            0.000318166,
-            0.000305875,
-            0.000296584
+            0.000257792,
+            0.000252083,
+            0.000245
           ],
           "warmups": 1
         }
@@ -848,7 +848,7 @@
       "zig": {
         "example": "state_machine",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 29888,
+        "peak_rss_kb": 31792,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -860,28 +860,28 @@
           "trace_decommit_hashes": 108
         },
         "prove": {
-          "avg_seconds": 0.028642666666666667,
-          "max_seconds": 0.028822,
-          "min_seconds": 0.028524,
+          "avg_seconds": 0.030950333333333333,
+          "max_seconds": 0.031846,
+          "min_seconds": 0.030402,
           "repeats": 3,
           "samples_seconds": [
-            0.028822,
-            0.028582,
-            0.028524
+            0.030402,
+            0.030603,
+            0.031846
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.00040066666666666663,
-          "max_seconds": 0.000408,
-          "min_seconds": 0.000393,
+          "avg_seconds": 0.000428,
+          "max_seconds": 0.000434,
+          "min_seconds": 0.000422,
           "repeats": 3,
           "samples_seconds": [
-            0.000408,
-            0.000401,
-            0.000393
+            0.000422,
+            0.000428,
+            0.000434
           ],
           "warmups": 1
         }
@@ -907,15 +907,15 @@
         "prove_mode": "prove_ex"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 0.369584,
+        "zig_over_rust_peak_rss_kb": 0.956784,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.249836,
-        "zig_over_rust_verify": 1.68872
+        "zig_over_rust_prove": 0.256941,
+        "zig_over_rust_verify": 1.692272
       },
       "rust": {
         "example": "plonk",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 18096,
+        "peak_rss_kb": 15920,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -927,28 +927,28 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.06490130566666667,
-          "max_seconds": 0.065235042,
-          "min_seconds": 0.064665042,
+          "avg_seconds": 0.06672206933333334,
+          "max_seconds": 0.067487875,
+          "min_seconds": 0.066332541,
           "repeats": 3,
           "samples_seconds": [
-            0.064803833,
-            0.065235042,
-            0.064665042
+            0.067487875,
+            0.066332541,
+            0.066345792
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00022443033333333334,
-          "max_seconds": 0.000231041,
-          "min_seconds": 0.000214833,
+          "avg_seconds": 0.00023144433333333332,
+          "max_seconds": 0.000235958,
+          "min_seconds": 0.00022625,
           "repeats": 3,
           "samples_seconds": [
-            0.000227417,
-            0.000231041,
-            0.000214833
+            0.000235958,
+            0.000232125,
+            0.00022625
           ],
           "warmups": 1
         }
@@ -956,7 +956,7 @@
       "zig": {
         "example": "plonk",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 6688,
+        "peak_rss_kb": 15232,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -968,28 +968,28 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.016214666666666665,
-          "max_seconds": 0.016269,
-          "min_seconds": 0.016145,
+          "avg_seconds": 0.017143666666666665,
+          "max_seconds": 0.017242,
+          "min_seconds": 0.017029,
           "repeats": 3,
           "samples_seconds": [
-            0.016145,
-            0.01623,
-            0.016269
+            0.01716,
+            0.017029,
+            0.017242
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.000379,
-          "max_seconds": 0.000382,
-          "min_seconds": 0.000375,
+          "avg_seconds": 0.0003916666666666667,
+          "max_seconds": 0.000397,
+          "min_seconds": 0.000387,
           "repeats": 3,
           "samples_seconds": [
-            0.00038,
-            0.000382,
-            0.000375
+            0.000391,
+            0.000397,
+            0.000387
           ],
           "warmups": 1
         }
@@ -1019,15 +1019,15 @@
         "prove_mode": "prove_ex"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 0.39577,
+        "zig_over_rust_peak_rss_kb": 1.011044,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.242858,
-        "zig_over_rust_verify": 1.65951
+        "zig_over_rust_prove": 0.240889,
+        "zig_over_rust_verify": 1.544472
       },
       "rust": {
         "example": "state_machine",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 15888,
+        "peak_rss_kb": 15936,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -1039,28 +1039,28 @@
           "trace_decommit_hashes": 84
         },
         "prove": {
-          "avg_seconds": 0.06404161133333333,
-          "max_seconds": 0.064194209,
-          "min_seconds": 0.063904458,
+          "avg_seconds": 0.06687022233333333,
+          "max_seconds": 0.067474125,
+          "min_seconds": 0.066027542,
           "repeats": 3,
           "samples_seconds": [
-            0.064026167,
-            0.064194209,
-            0.063904458
+            0.066027542,
+            0.067109,
+            0.067474125
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00019081933333333332,
-          "max_seconds": 0.000199541,
-          "min_seconds": 0.000182375,
+          "avg_seconds": 0.00020050000000000002,
+          "max_seconds": 0.000204875,
+          "min_seconds": 0.000191958,
           "repeats": 3,
           "samples_seconds": [
-            0.000199541,
-            0.000190542,
-            0.000182375
+            0.000204875,
+            0.000191958,
+            0.000204667
           ],
           "warmups": 1
         }
@@ -1068,7 +1068,7 @@
       "zig": {
         "example": "state_machine",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 6288,
+        "peak_rss_kb": 16112,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -1080,28 +1080,28 @@
           "trace_decommit_hashes": 84
         },
         "prove": {
-          "avg_seconds": 0.015553000000000003,
-          "max_seconds": 0.015593,
-          "min_seconds": 0.01552,
+          "avg_seconds": 0.016108333333333332,
+          "max_seconds": 0.016233,
+          "min_seconds": 0.016027,
           "repeats": 3,
           "samples_seconds": [
-            0.015546,
-            0.01552,
-            0.015593
+            0.016027,
+            0.016065,
+            0.016233
           ],
           "warmups": 1
         },
         "prove_mode": "prove_ex",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.00031666666666666665,
-          "max_seconds": 0.000328,
-          "min_seconds": 0.00031,
+          "avg_seconds": 0.00030966666666666664,
+          "max_seconds": 0.000318,
+          "min_seconds": 0.000304,
           "repeats": 3,
           "samples_seconds": [
-            0.000312,
-            0.00031,
-            0.000328
+            0.000318,
+            0.000307,
+            0.000304
           ],
           "warmups": 1
         }
@@ -1127,15 +1127,15 @@
         "prove_mode": "prove"
       },
       "ratios": {
-        "zig_over_rust_peak_rss_kb": 0.571556,
+        "zig_over_rust_peak_rss_kb": 0.689019,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.251507,
-        "zig_over_rust_verify": 1.615036
+        "zig_over_rust_prove": 0.256908,
+        "zig_over_rust_verify": 1.554752
       },
       "rust": {
         "example": "plonk",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 18000,
+        "peak_rss_kb": 19088,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -1147,28 +1147,28 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.06475354166666668,
-          "max_seconds": 0.064973208,
-          "min_seconds": 0.064400417,
+          "avg_seconds": 0.06643244433333333,
+          "max_seconds": 0.066587791,
+          "min_seconds": 0.066322,
           "repeats": 3,
           "samples_seconds": [
-            0.064973208,
-            0.064887,
-            0.064400417
+            0.066587791,
+            0.066322,
+            0.066387542
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "rust",
         "verify": {
-          "avg_seconds": 0.00022909699999999996,
-          "max_seconds": 0.000237,
-          "min_seconds": 0.000222583,
+          "avg_seconds": 0.0002499863333333333,
+          "max_seconds": 0.000273,
+          "min_seconds": 0.000237125,
           "repeats": 3,
           "samples_seconds": [
-            0.000237,
-            0.000222583,
-            0.000227708
+            0.000237125,
+            0.000239834,
+            0.000273
           ],
           "warmups": 1
         }
@@ -1176,7 +1176,7 @@
       "zig": {
         "example": "plonk",
         "include_all_preprocessed_columns": false,
-        "peak_rss_kb": 10288,
+        "peak_rss_kb": 13152,
         "proof_metrics": {
           "commitments_count": 3,
           "decommitments_count": 3,
@@ -1188,28 +1188,28 @@
           "trace_decommit_hashes": 102
         },
         "prove": {
-          "avg_seconds": 0.016286,
-          "max_seconds": 0.016316,
-          "min_seconds": 0.016258,
+          "avg_seconds": 0.017067,
+          "max_seconds": 0.017148,
+          "min_seconds": 0.01694,
           "repeats": 3,
           "samples_seconds": [
-            0.016258,
-            0.016284,
-            0.016316
+            0.017148,
+            0.01694,
+            0.017113
           ],
           "warmups": 1
         },
         "prove_mode": "prove",
         "runtime": "zig",
         "verify": {
-          "avg_seconds": 0.00037000000000000005,
-          "max_seconds": 0.000392,
-          "min_seconds": 0.00035,
+          "avg_seconds": 0.00038866666666666666,
+          "max_seconds": 0.000394,
+          "min_seconds": 0.000381,
           "repeats": 3,
           "samples_seconds": [
-            0.000392,
-            0.00035,
-            0.000368
+            0.000394,
+            0.000391,
+            0.000381
           ],
           "warmups": 1
         }
@@ -1228,14 +1228,14 @@
   },
   "status": "ok",
   "summary": {
-    "avg_zig_over_rust_peak_rss_kb": 0.953351,
-    "avg_zig_over_rust_prove": 0.435991,
-    "avg_zig_over_rust_verify": 1.560933,
+    "avg_zig_over_rust_peak_rss_kb": 1.220872,
+    "avg_zig_over_rust_prove": 0.442526,
+    "avg_zig_over_rust_verify": 1.57219,
     "failure_count": 0,
     "families": 11,
-    "max_zig_over_rust_peak_rss_kb": 2.611888,
-    "max_zig_over_rust_prove": 1.055669,
-    "max_zig_over_rust_verify": 1.709028
+    "max_zig_over_rust_peak_rss_kb": 2.440599,
+    "max_zig_over_rust_prove": 1.081498,
+    "max_zig_over_rust_verify": 1.735998
   },
   "upstream_families": [
     "bit_rev",
