@@ -152,37 +152,39 @@ fn proveExComponents(
     if (composition_log_size <= COMPOSITION_LOG_SPLIT) return ProvingError.InvalidStructure;
     const max_log_degree_bound = composition_log_size - COMPOSITION_LOG_SPLIT;
 
-    var trace = try scheme.trace(allocator);
-    defer trace.polys.deinitDeep(allocator);
-
     const random_coeff = channel.drawSecureFelt();
 
-    var composition_eval = try component_provers.computeCompositionEvaluation(
-        allocator,
-        random_coeff,
-        &trace,
-    );
-    defer composition_eval.deinit(allocator);
+    {
+        var trace = try scheme.trace(allocator);
+        defer trace.polys.deinitDeep(allocator);
 
-    var composition_poly = try prover_circle.secure_poly.interpolateFromEvaluation(
-        allocator,
-        canonic.CanonicCoset.new(composition_log_size).circleDomain(),
-        &composition_eval,
-    );
-    defer composition_poly.deinit(allocator);
+        var composition_eval = try component_provers.computeCompositionEvaluation(
+            allocator,
+            random_coeff,
+            &trace,
+        );
+        defer composition_eval.deinit(allocator);
 
-    var composition_split = try composition_poly.splitAtMid(allocator);
-    defer composition_split.deinit(allocator);
+        var composition_poly = try prover_circle.secure_poly.interpolateFromEvaluation(
+            allocator,
+            canonic.CanonicCoset.new(composition_log_size).circleDomain(),
+            &composition_eval,
+        );
+        defer composition_poly.deinit(allocator);
 
-    try commitCompositionSplit(
-        H,
-        MC,
-        allocator,
-        &scheme,
-        composition_split.left,
-        composition_split.right,
-        channel,
-    );
+        var composition_split = try composition_poly.splitAtMid(allocator);
+        defer composition_split.deinit(allocator);
+
+        try commitCompositionSplit(
+            H,
+            MC,
+            allocator,
+            &scheme,
+            composition_split.left,
+            composition_split.right,
+            channel,
+        );
+    }
 
     const oods_point = circle.randomSecureFieldPoint(channel);
 
