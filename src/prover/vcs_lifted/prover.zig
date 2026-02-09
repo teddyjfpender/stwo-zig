@@ -19,11 +19,13 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const parallel_min_nodes: usize = 1 << 13;
         const parallel_min_nodes_per_worker: usize = 1 << 12;
         const max_parallel_workers: usize = 16;
+        const merkle_worker_stack_size: usize = 1 << 20; // 1 MiB; lowers RSS vs platform default thread stacks.
         const ThreadPool = std.Thread.Pool;
         const WaitGroup = std.Thread.WaitGroup;
         const SharedPoolState = struct {
             mutex: std.Thread.Mutex = .{},
-            pool: ?ThreadPool = null,
+            pool: ThreadPool = undefined,
+            pool_initialized: bool = false,
             failed: bool = false,
         };
         var shared_pool_state: SharedPoolState = .{};
@@ -70,6 +72,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                     .allocator = std.heap.page_allocator,
                     // Previous implementation used one caller worker + N-1 spawned workers.
                     .n_jobs = max_workers - 1,
+                    .stack_size = merkle_worker_stack_size,
                 }) catch return;
                 self.owns_pool = true;
                 self.pool_ptr = &self.owned_pool;
@@ -92,19 +95,18 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 defer shared_pool_state.mutex.unlock();
 
                 if (shared_pool_state.failed) return null;
-                if (shared_pool_state.pool == null) {
-                    var thread_pool: ThreadPool = undefined;
-                    thread_pool.init(.{
+                if (!shared_pool_state.pool_initialized) {
+                    shared_pool_state.pool.init(.{
                         .allocator = std.heap.page_allocator,
                         .n_jobs = max_parallel_workers - 1,
+                        .stack_size = merkle_worker_stack_size,
                     }) catch {
                         shared_pool_state.failed = true;
                         return null;
                     };
-                    shared_pool_state.pool = thread_pool;
+                    shared_pool_state.pool_initialized = true;
                 }
-                if (shared_pool_state.pool) |*thread_pool_ptr| return thread_pool_ptr;
-                return null;
+                return &shared_pool_state.pool;
             }
         };
 

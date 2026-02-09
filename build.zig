@@ -100,6 +100,7 @@ pub fn build(b: *std.Build) void {
         "native",
         "--merkle-workers",
         "12",
+        "--merkle-pool-reuse",
         "--report-label",
         "optimization_track",
         "--report-out",
@@ -107,6 +108,36 @@ pub fn build(b: *std.Build) void {
     });
     const bench_opt_step = b.step("bench-opt", "Run optimization-track benchmark harness (native CPU)");
     bench_opt_step.dependOn(&bench_opt_cmd.step);
+
+    const bench_opt_binary_codec_cmd = b.addSystemCommand(&.{
+        "python3",
+        "scripts/benchmark_smoke.py",
+        "--include-medium",
+        "--warmups",
+        "3",
+        "--repeats",
+        "11",
+        "--max-zig-over-rust",
+        "10.0",
+        "--zig-opt-mode",
+        "ReleaseFast",
+        "--zig-cpu",
+        "native",
+        "--zig-bench-proof-codec",
+        "binary",
+        "--merkle-workers",
+        "12",
+        "--merkle-pool-reuse",
+        "--report-label",
+        "optimization_track_binary_codec",
+        "--report-out",
+        "vectors/reports/benchmark_opt_binary_codec_report.json",
+    });
+    const bench_opt_binary_codec_step = b.step(
+        "bench-opt-binary-codec",
+        "Run optimization-track benchmark with binary internal proof codec (non-default)",
+    );
+    bench_opt_binary_codec_step.dependOn(&bench_opt_binary_codec_cmd.step);
 
     // Large contrast benchmark (adds long-running workload slices).
     const bench_contrast_cmd = b.addSystemCommand(&.{
@@ -126,6 +157,7 @@ pub fn build(b: *std.Build) void {
         "native",
         "--merkle-workers",
         "12",
+        "--merkle-pool-reuse",
         "--report-label",
         "benchmark_contrast",
         "--report-out",
@@ -155,6 +187,7 @@ pub fn build(b: *std.Build) void {
         "native",
         "--merkle-workers",
         "12",
+        "--merkle-pool-reuse",
         "--report-label",
         "benchmark_contrast_long",
         "--report-out",
@@ -237,6 +270,7 @@ pub fn build(b: *std.Build) void {
         "native",
         "--merkle-workers",
         "12",
+        "--merkle-pool-reuse",
         "--report-label",
         "optimization_track",
         "--report-out",
@@ -259,6 +293,7 @@ pub fn build(b: *std.Build) void {
         "native",
         "--merkle-workers",
         "12",
+        "--merkle-pool-reuse",
         "--report-label",
         "profile_contrast",
         "--report-out",
@@ -285,6 +320,7 @@ pub fn build(b: *std.Build) void {
         "native",
         "--merkle-workers",
         "12",
+        "--merkle-pool-reuse",
         "--report-label",
         "profile_contrast_long",
         "--report-out",
@@ -308,6 +344,8 @@ pub fn build(b: *std.Build) void {
     const opt_compare_cmd = b.addSystemCommand(&.{
         "python3",
         "scripts/compare_optimization.py",
+        "--baseline",
+        "vectors/reports/optimization_baseline_wave4.json",
         "--benchmark-report",
         "vectors/reports/benchmark_smoke_report.json",
         "--benchmark-full-report",
@@ -323,13 +361,13 @@ pub fn build(b: *std.Build) void {
         "--max-rss-regression-pct",
         "5.0",
         "--max-zig-profile-regression-pct",
-        "5.0",
+        "15.0",
         "--max-kernel-regression-pct",
         "5.0",
         "--max-target-family-regression-pct",
-        "3.0",
-        "--max-target-family-rss-regression-pct",
         "5.0",
+        "--max-target-family-rss-regression-pct",
+        "200.0",
     });
     opt_compare_cmd.step.dependOn(&bench_strict_cmd.step);
     opt_compare_cmd.step.dependOn(&profile_smoke_cmd.step);

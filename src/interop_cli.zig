@@ -38,6 +38,11 @@ const ProveMode = enum {
     prove_ex,
 };
 
+const BenchProofCodec = enum {
+    json,
+    binary,
+};
+
 const Cli = struct {
     mode: Mode,
     example: ?Example = null,
@@ -71,6 +76,7 @@ const Cli = struct {
 
     bench_warmups: usize = 1,
     bench_repeats: usize = 5,
+    bench_proof_codec: BenchProofCodec = .json,
 };
 
 const BenchTiming = struct {
@@ -149,14 +155,13 @@ fn runBench(allocator: std.mem.Allocator, cli: Cli) !void {
 
     const total_runs = cli.bench_warmups + cli.bench_repeats;
     for (0..total_runs) |run_idx| {
-        var prove_arena = std.heap.ArenaAllocator.init(allocator);
-        defer prove_arena.deinit();
-        const prove_alloc = prove_arena.allocator();
-
         const start_ns = std.time.nanoTimestamp();
-        const output = try proveExample(prove_alloc, config, cli, example);
-        _ = try proof_wire.encodeProofBytes(prove_alloc, output.proof);
+        var output = try proveExample(allocator, config, cli, example);
+        errdefer output.proof.deinit(allocator);
+        const encoded = try encodeProofForBench(allocator, cli.bench_proof_codec, output.proof);
+        defer allocator.free(encoded);
         const end_ns = std.time.nanoTimestamp();
+        output.proof.deinit(allocator);
 
         if (run_idx >= cli.bench_warmups) {
             const sample_idx = run_idx - cli.bench_warmups;
@@ -165,22 +170,19 @@ fn runBench(allocator: std.mem.Allocator, cli: Cli) !void {
         }
     }
 
-    var baseline_arena = std.heap.ArenaAllocator.init(allocator);
-    defer baseline_arena.deinit();
-    const baseline_alloc = baseline_arena.allocator();
-
-    const baseline = try proveExample(baseline_alloc, config, cli, example);
-    const encoded_proof = try proof_wire.encodeProofBytes(baseline_alloc, baseline.proof);
-    const metrics = try collectProofMetricsFromWire(baseline_alloc, encoded_proof);
+    var baseline = try proveExample(allocator, config, cli, example);
+    errdefer baseline.proof.deinit(allocator);
+    const encoded_proof = try encodeProofForBench(allocator, cli.bench_proof_codec, baseline.proof);
+    defer allocator.free(encoded_proof);
+    const encoded_json_proof = try proof_wire.encodeProofBytes(allocator, baseline.proof);
+    defer allocator.free(encoded_json_proof);
+    baseline.proof.deinit(allocator);
+    const metrics = try collectProofMetricsFromWire(allocator, encoded_json_proof);
 
     for (0..total_runs) |run_idx| {
-        var verify_arena = std.heap.ArenaAllocator.init(allocator);
-        defer verify_arena.deinit();
-        const verify_alloc = verify_arena.allocator();
-
         const start_ns = std.time.nanoTimestamp();
-        const decoded_proof = try proof_wire.decodeProofBytes(verify_alloc, encoded_proof);
-        try verifyExample(verify_alloc, config, baseline.statement, decoded_proof);
+        const decoded_proof = try decodeProofForBench(allocator, cli.bench_proof_codec, encoded_proof);
+        try verifyExample(allocator, config, baseline.statement, decoded_proof);
         const end_ns = std.time.nanoTimestamp();
 
         if (run_idx >= cli.bench_warmups) {
@@ -204,6 +206,28 @@ fn runBench(allocator: std.mem.Allocator, cli: Cli) !void {
     defer allocator.free(rendered);
     try std.fs.File.stdout().writeAll(rendered);
     try std.fs.File.stdout().writeAll("\n");
+}
+
+fn encodeProofForBench(
+    allocator: std.mem.Allocator,
+    codec: BenchProofCodec,
+    proof: proof_wire.Proof,
+) ![]u8 {
+    return switch (codec) {
+        .json => proof_wire.encodeProofBytes(allocator, proof),
+        .binary => proof_wire.encodeProofBytesBinary(allocator, proof),
+    };
+}
+
+fn decodeProofForBench(
+    allocator: std.mem.Allocator,
+    codec: BenchProofCodec,
+    encoded: []const u8,
+) !proof_wire.Proof {
+    return switch (codec) {
+        .json => proof_wire.decodeProofBytes(allocator, encoded),
+        .binary => proof_wire.decodeProofBytesBinary(allocator, encoded),
+    };
 }
 
 fn proveExample(
@@ -917,6 +941,7 @@ fn parseArgs(args: []const []const u8) !Cli {
 
     var bench_warmups: usize = 1;
     var bench_repeats: usize = 5;
+    var bench_proof_codec: BenchProofCodec = .json;
 
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
@@ -975,6 +1000,8 @@ fn parseArgs(args: []const []const u8) !Cli {
             bench_warmups = try parseInt(usize, value);
         } else if (std.mem.eql(u8, flag, "--bench-repeats")) {
             bench_repeats = try parseInt(usize, value);
+        } else if (std.mem.eql(u8, flag, "--bench-proof-codec")) {
+            bench_proof_codec = parseBenchProofCodec(value) orelse return error.InvalidBenchProofCodec;
         } else {
             return error.InvalidArgument;
         }
@@ -1005,6 +1032,7 @@ fn parseArgs(args: []const []const u8) !Cli {
         .xor_offset = xor_offset,
         .bench_warmups = bench_warmups,
         .bench_repeats = bench_repeats,
+        .bench_proof_codec = bench_proof_codec,
     };
 }
 
@@ -1036,6 +1064,12 @@ fn parseBlake2Backend(value: []const u8) ?blake2_hash.BackendMode {
     if (std.mem.eql(u8, value, "auto")) return .auto;
     if (std.mem.eql(u8, value, "scalar")) return .scalar;
     if (std.mem.eql(u8, value, "simd")) return .simd;
+    return null;
+}
+
+fn parseBenchProofCodec(value: []const u8) ?BenchProofCodec {
+    if (std.mem.eql(u8, value, "json")) return .json;
+    if (std.mem.eql(u8, value, "binary")) return .binary;
     return null;
 }
 
@@ -1073,7 +1107,7 @@ fn printUsage() void {
             "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n" ++
             "  zig run src/interop_cli.zig -- --mode verify_std_shims --artifact <path>\n" ++
             "  zig run src/interop_cli.zig -- --mode bench --example <blake|plonk|poseidon|state_machine|wide_fibonacci|xor> --artifact <ignored> [options]\n" ++
-            "    [--bench-warmups <n>] [--bench-repeats <n>] [--blake2-backend <auto|scalar|simd>]\n",
+            "    [--bench-warmups <n>] [--bench-repeats <n>] [--bench-proof-codec <json|binary>] [--blake2-backend <auto|scalar|simd>]\n",
         .{},
     );
 }

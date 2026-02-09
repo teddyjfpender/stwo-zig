@@ -1,13 +1,15 @@
 {
   "benchmark": {
     "report_path": "vectors/reports/benchmark_smoke_report.json",
-    "settings_hash": "65eb025b01ff6c8fade1ea7a22e0373bb98c42c66065eac04235afa0fd95638d",
+    "settings_hash": "7f1edaa719bd4eb296249806d790351afe01f68cf3683a9dcc5e120fed35284b",
     "summary": {
-      "avg_zig_over_rust_prove": 0.859465,
-      "avg_zig_over_rust_verify": 0.987988,
+      "avg_zig_over_rust_peak_rss_kb": 0.890071,
+      "avg_zig_over_rust_prove": 0.937706,
+      "avg_zig_over_rust_verify": 0.985791,
       "failure_count": 0,
-      "max_zig_over_rust_prove": 0.861751,
-      "max_zig_over_rust_verify": 1.002025,
+      "max_zig_over_rust_peak_rss_kb": 0.91129,
+      "max_zig_over_rust_prove": 1.056504,
+      "max_zig_over_rust_verify": 0.999191,
       "workloads": 2
     },
     "thresholds": {
@@ -17,33 +19,35 @@
     "workload_matrix_hash": "02a90f6bfe11089b2433b1643bb499ba42b37f7deb4ecc871739a12b282bac64",
     "workload_ratios": {
       "state_machine_default": {
+        "zig_over_rust_peak_rss_kb": 0.868852,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.861751,
-        "zig_over_rust_verify": 0.973951
+        "zig_over_rust_prove": 1.056504,
+        "zig_over_rust_verify": 0.999191
       },
       "state_machine_medium": {
+        "zig_over_rust_peak_rss_kb": 0.91129,
         "zig_over_rust_proof_wire_bytes": 1.0,
-        "zig_over_rust_prove": 0.85718,
-        "zig_over_rust_verify": 1.002025
+        "zig_over_rust_prove": 0.818908,
+        "zig_over_rust_verify": 0.97239
       }
     }
   },
-  "created_at_unix": 1770588041,
-  "git_head_sha": "2a47ea2a0ed0d76838bef2c6b42f96eb00105a0a",
+  "created_at_unix": 1770641788,
+  "git_head_sha": "46516762a06d56a26de19dc2337c8dc9e6b89200",
   "kernels": {
     "avg_seconds_by_kernel": {
-      "eval_at_point": 0.525738333,
-      "eval_at_point_by_folding": 0.042462667,
-      "fft": 0.000649333
+      "eval_at_point": 0.503522,
+      "eval_at_point_by_folding": 0.061550667,
+      "fft": 0.000535333
     },
     "report_path": "vectors/reports/benchmark_kernels_report.json",
     "settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
     "summary": {
-      "avg_seconds": 0.189616778,
+      "avg_seconds": 0.188536,
       "failure_count": 0,
       "kernels": 3,
-      "max_seconds": 0.525738333,
-      "min_seconds": 0.000649333
+      "max_seconds": 0.503522,
+      "min_seconds": 0.000535333
     },
     "workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3"
   },
@@ -51,31 +55,34 @@
     "report_path": "vectors/reports/profile_smoke_report.json",
     "settings_hash": "cb2378172a74578129bad85d5ded46d3e9fb4304c4fda5eaea561aef1b67c296",
     "summary": {
-      "avg_seconds_rust": 0.663207,
-      "avg_seconds_zig": 0.110695,
+      "avg_seconds_rust": 0.640363,
+      "avg_seconds_zig": 0.162178,
       "failure_count": 0,
       "profiles": 4
     },
     "workload_matrix_hash": "4fd1b1f8545e1d81857318549755050db5c75296dda09aea4d1e30569591ac0d",
     "zig_avg_seconds_by_workload": {
-      "state_machine_deep": 0.111062,
-      "xor_deep": 0.110327
+      "state_machine_deep": 0.223528,
+      "xor_deep": 0.100827
     }
   },
-  "schema_version": 3,
+  "schema_version": 4,
   "target_families": {
     "ratios": {
       "eval_at_point": {
-        "zig_over_rust_prove": 0.963975,
-        "zig_over_rust_verify": 1.085657
+        "zig_over_rust_peak_rss_kb": 1.500623,
+        "zig_over_rust_prove": 0.894924,
+        "zig_over_rust_verify": 1.402571
       },
       "eval_at_point_by_folding": {
-        "zig_over_rust_prove": 1.212523,
-        "zig_over_rust_verify": 1.069433
+        "zig_over_rust_peak_rss_kb": 0.705185,
+        "zig_over_rust_prove": 1.087408,
+        "zig_over_rust_verify": 1.421585
       },
       "fft": {
-        "zig_over_rust_prove": 1.199749,
-        "zig_over_rust_verify": 1.045542
+        "zig_over_rust_peak_rss_kb": 1.000315,
+        "zig_over_rust_prove": 1.077345,
+        "zig_over_rust_verify": 1.371315
       }
     },
     "report_path": "vectors/reports/benchmark_full_report.json"

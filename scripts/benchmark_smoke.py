@@ -175,6 +175,7 @@ LONG_WORKLOADS: List[Dict[str, Any]] = [
 
 SUPPORTED_ZIG_OPT_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 SUPPORTED_BLAKE2_BACKENDS = ("auto", "scalar", "simd")
+SUPPORTED_BENCH_PROOF_CODECS = ("json", "binary")
 
 
 def merged_env(extra_env: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
@@ -350,13 +351,19 @@ def benchmark_runtime(
     warmups: int,
     repeats: int,
     zig_blake2_backend: str,
+    zig_bench_proof_codec: str,
     merkle_workers: Optional[int],
     merkle_pool_reuse: bool,
 ) -> Dict[str, Any]:
     prefix = runtime_cmd(runtime)
     artifact_path = ARTIFACT_DIR / f"{runtime}_{workload['name']}.json"
     backend_args = (
-        ["--blake2-backend", zig_blake2_backend]
+        [
+            "--blake2-backend",
+            zig_blake2_backend,
+            "--bench-proof-codec",
+            zig_bench_proof_codec,
+        ]
         if runtime == "zig"
         else []
     )
@@ -441,6 +448,12 @@ def main() -> int:
         help="Blake2 backend selector for Zig runtime benchmark runs.",
     )
     parser.add_argument(
+        "--zig-bench-proof-codec",
+        default="json",
+        choices=SUPPORTED_BENCH_PROOF_CODECS,
+        help="Internal proof codec for Zig bench runs.",
+    )
+    parser.add_argument(
         "--merkle-workers",
         type=int,
         default=None,
@@ -503,6 +516,7 @@ def main() -> int:
             warmups=args.warmups,
             repeats=args.repeats,
             zig_blake2_backend=args.blake2_backend,
+            zig_bench_proof_codec=args.zig_bench_proof_codec,
             merkle_workers=args.merkle_workers,
             merkle_pool_reuse=args.merkle_pool_reuse,
         )
@@ -512,6 +526,7 @@ def main() -> int:
             warmups=args.warmups,
             repeats=args.repeats,
             zig_blake2_backend=args.blake2_backend,
+            zig_bench_proof_codec=args.zig_bench_proof_codec,
             merkle_workers=args.merkle_workers,
             merkle_pool_reuse=args.merkle_pool_reuse,
         )
@@ -601,6 +616,7 @@ def main() -> int:
         "zig_opt_mode": args.zig_opt_mode,
         "zig_cpu": args.zig_cpu,
         "blake2_backend": args.blake2_backend,
+        "zig_bench_proof_codec": args.zig_bench_proof_codec,
         "report_label": args.report_label,
     }
     if args.merkle_workers is not None:

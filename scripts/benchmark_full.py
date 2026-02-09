@@ -23,6 +23,7 @@ RUST_BIN = ROOT / "tools" / "stwo-interop-rs" / "target" / "release" / "stwo-int
 ZIG_BIN = ROOT / "vectors" / ".bench_full.zig_interop"
 
 RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
+SUPPORTED_BENCH_PROOF_CODECS = ("json", "binary")
 FAMILY_RUNNER = ROOT / "src" / "bench" / "full_runner.zig"
 TIME_BIN = Path("/usr/bin/time")
 RSS_RE = re.compile(r"^\s*(\d+)\s+maximum resident set size\s*$", re.MULTILINE)
@@ -374,6 +375,7 @@ def bench_runtime(
     workload: dict[str, Any],
     warmups: int,
     repeats: int,
+    zig_bench_proof_codec: str,
     merkle_workers: int | None,
     merkle_pool_reuse: bool,
 ) -> dict[str, Any]:
@@ -396,6 +398,8 @@ def bench_runtime(
         "--bench-repeats",
         str(repeats),
     ] + [str(arg) for arg in workload["args"]]
+    if runtime == "zig":
+        cmd.extend(["--bench-proof-codec", zig_bench_proof_codec])
 
     runtime_env: dict[str, str] | None = None
     if runtime == "zig":
@@ -428,6 +432,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-zig-over-rust", type=float, default=10.0)
+    parser.add_argument(
+        "--zig-bench-proof-codec",
+        default="json",
+        choices=SUPPORTED_BENCH_PROOF_CODECS,
+        help="Internal proof codec for Zig bench runs.",
+    )
     parser.add_argument(
         "--merkle-workers",
         type=int,
@@ -484,6 +494,7 @@ def main() -> int:
             workload=workload,
             warmups=args.warmups,
             repeats=args.repeats,
+            zig_bench_proof_codec=args.zig_bench_proof_codec,
             merkle_workers=args.merkle_workers,
             merkle_pool_reuse=args.merkle_pool_reuse,
         )
@@ -493,6 +504,7 @@ def main() -> int:
             workload=workload,
             warmups=args.warmups,
             repeats=args.repeats,
+            zig_bench_proof_codec=args.zig_bench_proof_codec,
             merkle_workers=args.merkle_workers,
             merkle_pool_reuse=args.merkle_pool_reuse,
         )
@@ -561,6 +573,7 @@ def main() -> int:
             "repeats": args.repeats,
             "rust_toolchain": args.rust_toolchain,
             "max_zig_over_rust": args.max_zig_over_rust,
+            "zig_bench_proof_codec": args.zig_bench_proof_codec,
             "merkle_workers": args.merkle_workers,
             "merkle_pool_reuse": args.merkle_pool_reuse,
         },

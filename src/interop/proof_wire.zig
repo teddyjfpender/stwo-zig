@@ -58,7 +58,11 @@ pub const ProofWire = struct {
 pub const CodecError = error{
     NonCanonicalM31,
     ValueOutOfRange,
+    InvalidBinaryProof,
+    UnsupportedBinaryVersion,
 };
+
+const BINARY_WIRE_MAGIC = "STWOPRW1";
 
 /// Encodes a Stark proof into wire bytes for cross-language interchange.
 pub fn encodeProofBytes(allocator: std.mem.Allocator, proof: Proof) ![]u8 {
@@ -92,6 +96,36 @@ pub fn decodeProofBytes(allocator: std.mem.Allocator, encoded: []const u8) !Proo
     defer parsed.deinit();
 
     return wireToProof(allocator, parsed.value);
+}
+
+/// Encodes a Stark proof into a compact binary wire format for internal benchmarking.
+///
+/// Format:
+/// - 8-byte magic/version header.
+/// - little-endian scalar fields and u32 length-prefixed vectors.
+pub fn encodeProofBytesBinary(allocator: std.mem.Allocator, proof: Proof) ![]u8 {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+
+    const wire = try proofToWire(arena.allocator(), proof);
+    var out = std.ArrayList(u8).empty;
+    errdefer out.deinit(allocator);
+    const writer = out.writer(allocator);
+
+    try writer.writeAll(BINARY_WIRE_MAGIC);
+    try writeProofWireBinary(writer, wire);
+    return out.toOwnedSlice(allocator);
+}
+
+/// Decodes a compact binary wire payload produced by `encodeProofBytesBinary`.
+pub fn decodeProofBytesBinary(allocator: std.mem.Allocator, encoded: []const u8) !Proof {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+
+    var cursor = BinaryCursor.init(encoded);
+    const wire = try readProofWireBinary(arena.allocator(), &cursor);
+    if (!cursor.done()) return CodecError.InvalidBinaryProof;
+    return wireToProof(allocator, wire);
 }
 
 fn proofToWire(allocator: std.mem.Allocator, proof: Proof) !ProofWire {
@@ -426,6 +460,232 @@ fn qm31ToWire(value: QM31) Qm31Wire {
     };
 }
 
+const BinaryCursor = struct {
+    bytes: []const u8,
+    at: usize = 0,
+
+    fn init(bytes: []const u8) BinaryCursor {
+        return .{ .bytes = bytes, .at = 0 };
+    }
+
+    fn done(self: BinaryCursor) bool {
+        return self.at == self.bytes.len;
+    }
+
+    fn readBytes(self: *BinaryCursor, n: usize) CodecError![]const u8 {
+        const end = std.math.add(usize, self.at, n) catch return CodecError.InvalidBinaryProof;
+        if (end > self.bytes.len) return CodecError.InvalidBinaryProof;
+        const out = self.bytes[self.at..end];
+        self.at = end;
+        return out;
+    }
+
+    fn readU32(self: *BinaryCursor) CodecError!u32 {
+        const raw = try self.readBytes(@sizeOf(u32));
+        return std.mem.readInt(u32, raw[0..@sizeOf(u32)], .little);
+    }
+
+    fn readU64(self: *BinaryCursor) CodecError!u64 {
+        const raw = try self.readBytes(@sizeOf(u64));
+        return std.mem.readInt(u64, raw[0..@sizeOf(u64)], .little);
+    }
+
+    fn readCount(self: *BinaryCursor) CodecError!usize {
+        const n = try self.readU32();
+        return @intCast(n);
+    }
+};
+
+fn writeCount(writer: anytype, n: usize) !void {
+    if (n > std.math.maxInt(u32)) return CodecError.ValueOutOfRange;
+    try writer.writeInt(u32, @intCast(n), .little);
+}
+
+fn writeQm31Wire(writer: anytype, value: Qm31Wire) !void {
+    try writer.writeInt(u32, value[0], .little);
+    try writer.writeInt(u32, value[1], .little);
+    try writer.writeInt(u32, value[2], .little);
+    try writer.writeInt(u32, value[3], .little);
+}
+
+fn readQm31Wire(cursor: *BinaryCursor) CodecError!Qm31Wire {
+    return .{
+        try cursor.readU32(),
+        try cursor.readU32(),
+        try cursor.readU32(),
+        try cursor.readU32(),
+    };
+}
+
+fn writeHashWire(writer: anytype, hash: HashWire) !void {
+    try writer.writeAll(hash[0..]);
+}
+
+fn readHashWire(cursor: *BinaryCursor) CodecError!HashWire {
+    var out: HashWire = undefined;
+    const raw = try cursor.readBytes(out.len);
+    @memcpy(out[0..], raw);
+    return out;
+}
+
+fn writeMerkleDecommitmentWire(writer: anytype, value: MerkleDecommitmentWire) !void {
+    try writeCount(writer, value.hash_witness.len);
+    for (value.hash_witness) |hash| try writeHashWire(writer, hash);
+}
+
+fn readMerkleDecommitmentWire(
+    allocator: std.mem.Allocator,
+    cursor: *BinaryCursor,
+) !MerkleDecommitmentWire {
+    const witness_len = try cursor.readCount();
+    const witness = try allocator.alloc(HashWire, witness_len);
+    for (witness) |*hash| hash.* = try readHashWire(cursor);
+    return .{ .hash_witness = witness };
+}
+
+fn writeFriLayerWire(writer: anytype, layer: FriLayerWire) !void {
+    try writeCount(writer, layer.fri_witness.len);
+    for (layer.fri_witness) |value| try writeQm31Wire(writer, value);
+    try writeMerkleDecommitmentWire(writer, layer.decommitment);
+    try writeHashWire(writer, layer.commitment);
+}
+
+fn readFriLayerWire(
+    allocator: std.mem.Allocator,
+    cursor: *BinaryCursor,
+) !FriLayerWire {
+    const witness_len = try cursor.readCount();
+    const fri_witness = try allocator.alloc(Qm31Wire, witness_len);
+    for (fri_witness) |*value| value.* = try readQm31Wire(cursor);
+
+    const decommitment = try readMerkleDecommitmentWire(allocator, cursor);
+    const commitment = try readHashWire(cursor);
+    return .{
+        .fri_witness = fri_witness,
+        .decommitment = decommitment,
+        .commitment = commitment,
+    };
+}
+
+fn writeProofWireBinary(writer: anytype, wire: ProofWire) !void {
+    try writer.writeInt(u32, wire.config.pow_bits, .little);
+    try writer.writeInt(u32, wire.config.fri_config.log_blowup_factor, .little);
+    try writer.writeInt(u32, wire.config.fri_config.log_last_layer_degree_bound, .little);
+    if (wire.config.fri_config.n_queries > std.math.maxInt(u32)) return CodecError.ValueOutOfRange;
+    try writer.writeInt(u32, @intCast(wire.config.fri_config.n_queries), .little);
+
+    try writeCount(writer, wire.commitments.len);
+    for (wire.commitments) |hash| try writeHashWire(writer, hash);
+
+    try writeCount(writer, wire.sampled_values.len);
+    for (wire.sampled_values) |tree| {
+        try writeCount(writer, tree.len);
+        for (tree) |column| {
+            try writeCount(writer, column.len);
+            for (column) |value| try writeQm31Wire(writer, value);
+        }
+    }
+
+    try writeCount(writer, wire.decommitments.len);
+    for (wire.decommitments) |decommitment| {
+        try writeMerkleDecommitmentWire(writer, decommitment);
+    }
+
+    try writeCount(writer, wire.queried_values.len);
+    for (wire.queried_values) |tree| {
+        try writeCount(writer, tree.len);
+        for (tree) |column| {
+            try writeCount(writer, column.len);
+            for (column) |value| try writer.writeInt(u32, value, .little);
+        }
+    }
+
+    try writer.writeInt(u64, wire.proof_of_work, .little);
+    try writeFriLayerWire(writer, wire.fri_proof.first_layer);
+    try writeCount(writer, wire.fri_proof.inner_layers.len);
+    for (wire.fri_proof.inner_layers) |layer| try writeFriLayerWire(writer, layer);
+    try writeCount(writer, wire.fri_proof.last_layer_poly.len);
+    for (wire.fri_proof.last_layer_poly) |value| try writeQm31Wire(writer, value);
+}
+
+fn readProofWireBinary(
+    allocator: std.mem.Allocator,
+    cursor: *BinaryCursor,
+) !ProofWire {
+    const magic = try cursor.readBytes(BINARY_WIRE_MAGIC.len);
+    if (!std.mem.eql(u8, magic, BINARY_WIRE_MAGIC)) return CodecError.UnsupportedBinaryVersion;
+
+    const pow_bits = try cursor.readU32();
+    const fri_log_blowup_factor = try cursor.readU32();
+    const fri_log_last_layer_degree_bound = try cursor.readU32();
+    const fri_n_queries = try cursor.readU32();
+
+    const commitments_len = try cursor.readCount();
+    const commitments = try allocator.alloc(HashWire, commitments_len);
+    for (commitments) |*hash| hash.* = try readHashWire(cursor);
+
+    const sampled_tree_len = try cursor.readCount();
+    const sampled_values = try allocator.alloc([][]Qm31Wire, sampled_tree_len);
+    for (sampled_values) |*tree| {
+        const cols_len = try cursor.readCount();
+        tree.* = try allocator.alloc([]Qm31Wire, cols_len);
+        for (tree.*) |*column| {
+            const values_len = try cursor.readCount();
+            column.* = try allocator.alloc(Qm31Wire, values_len);
+            for (column.*) |*value| value.* = try readQm31Wire(cursor);
+        }
+    }
+
+    const decommitments_len = try cursor.readCount();
+    const decommitments = try allocator.alloc(MerkleDecommitmentWire, decommitments_len);
+    for (decommitments) |*decommitment| {
+        decommitment.* = try readMerkleDecommitmentWire(allocator, cursor);
+    }
+
+    const queried_tree_len = try cursor.readCount();
+    const queried_values = try allocator.alloc([][]u32, queried_tree_len);
+    for (queried_values) |*tree| {
+        const cols_len = try cursor.readCount();
+        tree.* = try allocator.alloc([]u32, cols_len);
+        for (tree.*) |*column| {
+            const values_len = try cursor.readCount();
+            column.* = try allocator.alloc(u32, values_len);
+            for (column.*) |*value| value.* = try cursor.readU32();
+        }
+    }
+
+    const proof_of_work = try cursor.readU64();
+    const first_layer = try readFriLayerWire(allocator, cursor);
+    const inner_len = try cursor.readCount();
+    const inner_layers = try allocator.alloc(FriLayerWire, inner_len);
+    for (inner_layers) |*layer| layer.* = try readFriLayerWire(allocator, cursor);
+
+    const last_poly_len = try cursor.readCount();
+    const last_layer_poly = try allocator.alloc(Qm31Wire, last_poly_len);
+    for (last_layer_poly) |*value| value.* = try readQm31Wire(cursor);
+
+    return .{
+        .config = .{
+            .pow_bits = pow_bits,
+            .fri_config = .{
+                .log_blowup_factor = fri_log_blowup_factor,
+                .log_last_layer_degree_bound = fri_log_last_layer_degree_bound,
+                .n_queries = fri_n_queries,
+            },
+        },
+        .commitments = commitments,
+        .sampled_values = sampled_values,
+        .decommitments = decommitments,
+        .queried_values = queried_values,
+        .proof_of_work = proof_of_work,
+        .fri_proof = .{
+            .first_layer = first_layer,
+            .inner_layers = inner_layers,
+            .last_layer_poly = last_layer_poly,
+        },
+    };
+}
+
 test "interop proof wire: encode/decode xor proof" {
     const xor = @import("../examples/xor.zig");
     const alloc = std.testing.allocator;
@@ -447,4 +707,58 @@ test "interop proof wire: encode/decode xor proof" {
 
     const decoded = try decodeProofBytes(alloc, encoded);
     try xor.verify(alloc, config, output.statement, decoded);
+}
+
+test "interop proof wire: binary encode/decode xor proof" {
+    const xor = @import("../examples/xor.zig");
+    const alloc = std.testing.allocator;
+
+    const config = pcs.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try fri.FriConfig.init(0, 1, 3),
+    };
+    const statement = xor.Statement{
+        .log_size = 5,
+        .log_step = 2,
+        .offset = 3,
+    };
+
+    var output = try xor.prove(alloc, config, statement);
+    defer output.proof.deinit(alloc);
+    const encoded = try encodeProofBytesBinary(alloc, output.proof);
+    defer alloc.free(encoded);
+
+    const decoded = try decodeProofBytesBinary(alloc, encoded);
+    try xor.verify(alloc, config, output.statement, decoded);
+}
+
+test "interop proof wire: binary codec is proof-equivalent to json codec" {
+    const xor = @import("../examples/xor.zig");
+    const alloc = std.testing.allocator;
+
+    const config = pcs.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try fri.FriConfig.init(0, 1, 3),
+    };
+    const statement = xor.Statement{
+        .log_size = 5,
+        .log_step = 2,
+        .offset = 3,
+    };
+
+    var output = try xor.prove(alloc, config, statement);
+    defer output.proof.deinit(alloc);
+
+    const json_bytes = try encodeProofBytes(alloc, output.proof);
+    defer alloc.free(json_bytes);
+
+    const binary_bytes = try encodeProofBytesBinary(alloc, output.proof);
+    defer alloc.free(binary_bytes);
+
+    var decoded_binary = try decodeProofBytesBinary(alloc, binary_bytes);
+    defer decoded_binary.deinit(alloc);
+    const reencoded_json = try encodeProofBytes(alloc, decoded_binary);
+    defer alloc.free(reencoded_json);
+
+    try std.testing.expectEqualSlices(u8, json_bytes, reencoded_json);
 }

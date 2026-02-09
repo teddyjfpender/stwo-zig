@@ -1,6 +1,6 @@
 {
   "failures": [],
-  "generated_at_unix": 1770637196,
+  "generated_at_unix": 1770642507,
   "kernels": [
     {
       "checksum": [
@@ -14,13 +14,13 @@
       "name": "eval_at_point",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.511624,
-        "max_seconds": 0.512122,
-        "min_seconds": 0.511359,
+        "avg_seconds": 0.513415,
+        "max_seconds": 0.523665,
+        "min_seconds": 0.508134,
         "samples_seconds": [
-          0.512122,
-          0.511359,
-          0.511391
+          0.508134,
+          0.523665,
+          0.508446
         ]
       },
       "warmups": 1
@@ -37,13 +37,13 @@
       "name": "eval_at_point_by_folding",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.062438667,
-        "max_seconds": 0.063054,
-        "min_seconds": 0.061708,
+        "avg_seconds": 0.061959667,
+        "max_seconds": 0.062131,
+        "min_seconds": 0.061698,
         "samples_seconds": [
-          0.063054,
-          0.062554,
-          0.061708
+          0.06205,
+          0.062131,
+          0.061698
         ]
       },
       "warmups": 1
@@ -60,13 +60,13 @@
       "name": "fft",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.000542667,
-        "max_seconds": 0.000564,
-        "min_seconds": 0.00053,
+        "avg_seconds": 0.000528,
+        "max_seconds": 0.00053,
+        "min_seconds": 0.000526,
         "samples_seconds": [
-          0.000534,
-          0.000564,
-          0.00053
+          0.000528,
+          0.00053,
+          0.000526
         ]
       },
       "warmups": 1
@@ -84,11 +84,11 @@
   "settings_hash": "aa401bfd616c944a431c46581dffb50c57ff9851a8177af8c7088a3ffb64a7f0",
   "status": "ok",
   "summary": {
-    "avg_seconds": 0.191535111,
+    "avg_seconds": 0.191967556,
     "failure_count": 0,
     "kernels": 3,
-    "max_seconds": 0.511624,
-    "min_seconds": 0.000542667
+    "max_seconds": 0.513415,
+    "min_seconds": 0.000528
   },
   "workload_matrix_hash": "549bd59106d6497a1a7571b15afbfff4125854c7aaab34ae30bd2627f9c7f0f3"
 }

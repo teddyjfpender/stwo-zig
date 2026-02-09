@@ -152,12 +152,62 @@
           "workers": 8
         }
       ]
+    },
+    {
+      "case": "wide_fibonacci_fib5000",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_default.json",
+      "example": "wide_fibonacci",
+      "mismatches": [],
+      "prove_mode": "prove",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
+    },
+    {
+      "case": "wide_fibonacci_fib5000",
+      "default_artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_default.json",
+      "example": "wide_fibonacci",
+      "mismatches": [],
+      "prove_mode": "prove_ex",
+      "status": "ok",
+      "worker_rows": [
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_2.json",
+          "equal_to_default": true,
+          "workers": 2
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_4.json",
+          "equal_to_default": true,
+          "workers": 4
+        },
+        {
+          "artifact": "vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_8.json",
+          "equal_to_default": true,
+          "workers": 8
+        }
+      ]
     }
   ],
-  "cases_ok": 6,
-  "cases_total": 6,
+  "cases_ok": 8,
+  "cases_total": 8,
   "failures": [],
-  "generated_at_unix": 1770637181,
+  "generated_at_unix": 1770642564,
   "prove_modes": [
     "prove",
     "prove_ex"
@@ -176,7 +226,7 @@
       ],
       "name": "build_zig_interop_binary",
       "return_code": 0,
-      "seconds": 6.52549,
+      "seconds": 6.709332,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -211,7 +261,7 @@
       ],
       "name": "state_machine_deep:prove:generate_default",
       "return_code": 0,
-      "seconds": 0.176771,
+      "seconds": 0.184917,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -228,7 +278,7 @@
       ],
       "name": "state_machine_deep:prove:verify_default",
       "return_code": 0,
-      "seconds": 0.002708,
+      "seconds": 0.002919,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -267,7 +317,7 @@
       },
       "name": "state_machine_deep:prove:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.022049,
+      "seconds": 0.022363,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -288,7 +338,7 @@
       },
       "name": "state_machine_deep:prove:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.00237,
+      "seconds": 0.002474,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -327,7 +377,7 @@
       },
       "name": "state_machine_deep:prove:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.019145,
+      "seconds": 0.019383,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -348,7 +398,7 @@
       },
       "name": "state_machine_deep:prove:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.002034,
+      "seconds": 0.002081,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -387,7 +437,7 @@
       },
       "name": "state_machine_deep:prove:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.017602,
+      "seconds": 0.017774,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -408,7 +458,7 @@
       },
       "name": "state_machine_deep:prove:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.001981,
+      "seconds": 0.001919,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -443,7 +493,7 @@
       ],
       "name": "state_machine_deep:prove_ex:generate_default",
       "return_code": 0,
-      "seconds": 0.016935,
+      "seconds": 0.01696,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -460,7 +510,7 @@
       ],
       "name": "state_machine_deep:prove_ex:verify_default",
       "return_code": 0,
-      "seconds": 0.001894,
+      "seconds": 0.00181,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -499,7 +549,7 @@
       },
       "name": "state_machine_deep:prove_ex:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.01713,
+      "seconds": 0.016903,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -520,7 +570,7 @@
       },
       "name": "state_machine_deep:prove_ex:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.001903,
+      "seconds": 0.001956,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -559,7 +609,7 @@
       },
       "name": "state_machine_deep:prove_ex:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.016782,
+      "seconds": 0.017477,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -580,7 +630,7 @@
       },
       "name": "state_machine_deep:prove_ex:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.001852,
+      "seconds": 0.002017,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -619,7 +669,7 @@
       },
       "name": "state_machine_deep:prove_ex:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.016792,
+      "seconds": 0.017082,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -640,7 +690,7 @@
       },
       "name": "state_machine_deep:prove_ex:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.001987,
+      "seconds": 0.002038,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -671,7 +721,7 @@
       ],
       "name": "plonk_deep:prove:generate_default",
       "return_code": 0,
-      "seconds": 0.017749,
+      "seconds": 0.017797,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -688,7 +738,7 @@
       ],
       "name": "plonk_deep:prove:verify_default",
       "return_code": 0,
-      "seconds": 0.002029,
+      "seconds": 0.001941,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -723,7 +773,7 @@
       },
       "name": "plonk_deep:prove:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.017727,
+      "seconds": 0.018196,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -744,7 +794,7 @@
       },
       "name": "plonk_deep:prove:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.002005,
+      "seconds": 0.002163,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -779,7 +829,7 @@
       },
       "name": "plonk_deep:prove:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.017674,
+      "seconds": 0.017935,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -800,7 +850,7 @@
       },
       "name": "plonk_deep:prove:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.002043,
+      "seconds": 0.002073,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -835,7 +885,7 @@
       },
       "name": "plonk_deep:prove:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.017691,
+      "seconds": 0.017979,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -856,7 +906,7 @@
       },
       "name": "plonk_deep:prove:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.001968,
+      "seconds": 0.002103,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -887,7 +937,7 @@
       ],
       "name": "plonk_deep:prove_ex:generate_default",
       "return_code": 0,
-      "seconds": 0.017771,
+      "seconds": 0.017774,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -904,7 +954,7 @@
       ],
       "name": "plonk_deep:prove_ex:verify_default",
       "return_code": 0,
-      "seconds": 0.00199,
+      "seconds": 0.001987,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -939,7 +989,7 @@
       },
       "name": "plonk_deep:prove_ex:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.01755,
+      "seconds": 0.017899,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -960,7 +1010,7 @@
       },
       "name": "plonk_deep:prove_ex:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.001983,
+      "seconds": 0.002021,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -995,7 +1045,7 @@
       },
       "name": "plonk_deep:prove_ex:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.017758,
+      "seconds": 0.01805,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1016,7 +1066,7 @@
       },
       "name": "plonk_deep:prove_ex:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.00197,
+      "seconds": 0.002015,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1051,7 +1101,7 @@
       },
       "name": "plonk_deep:prove_ex:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.017536,
+      "seconds": 0.017834,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1072,7 +1122,7 @@
       },
       "name": "plonk_deep:prove_ex:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.001933,
+      "seconds": 0.002013,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1105,7 +1155,7 @@
       ],
       "name": "blake_deep:prove:generate_default",
       "return_code": 0,
-      "seconds": 0.188982,
+      "seconds": 0.188248,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1122,7 +1172,7 @@
       ],
       "name": "blake_deep:prove:verify_default",
       "return_code": 0,
-      "seconds": 0.003662,
+      "seconds": 0.003653,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1159,7 +1209,7 @@
       },
       "name": "blake_deep:prove:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.200742,
+      "seconds": 0.192676,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1180,7 +1230,7 @@
       },
       "name": "blake_deep:prove:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.003575,
+      "seconds": 0.003555,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1217,7 +1267,7 @@
       },
       "name": "blake_deep:prove:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.187132,
+      "seconds": 0.18958,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1238,7 +1288,7 @@
       },
       "name": "blake_deep:prove:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.003612,
+      "seconds": 0.003772,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1275,7 +1325,7 @@
       },
       "name": "blake_deep:prove:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.188165,
+      "seconds": 0.196843,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1296,7 +1346,7 @@
       },
       "name": "blake_deep:prove:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.003793,
+      "seconds": 0.00379,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1329,7 +1379,7 @@
       ],
       "name": "blake_deep:prove_ex:generate_default",
       "return_code": 0,
-      "seconds": 0.190572,
+      "seconds": 0.191869,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1346,7 +1396,7 @@
       ],
       "name": "blake_deep:prove_ex:verify_default",
       "return_code": 0,
-      "seconds": 0.003791,
+      "seconds": 0.00373,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1383,7 +1433,7 @@
       },
       "name": "blake_deep:prove_ex:generate_workers_2",
       "return_code": 0,
-      "seconds": 0.188836,
+      "seconds": 0.191893,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1404,7 +1454,7 @@
       },
       "name": "blake_deep:prove_ex:verify_workers_2",
       "return_code": 0,
-      "seconds": 0.003763,
+      "seconds": 0.003866,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1441,7 +1491,7 @@
       },
       "name": "blake_deep:prove_ex:generate_workers_4",
       "return_code": 0,
-      "seconds": 0.188753,
+      "seconds": 0.188722,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1462,7 +1512,7 @@
       },
       "name": "blake_deep:prove_ex:verify_workers_4",
       "return_code": 0,
-      "seconds": 0.00381,
+      "seconds": 0.003744,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1499,7 +1549,7 @@
       },
       "name": "blake_deep:prove_ex:generate_workers_8",
       "return_code": 0,
-      "seconds": 0.187602,
+      "seconds": 0.197636,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""
@@ -1520,7 +1570,455 @@
       },
       "name": "blake_deep:prove_ex:verify_workers_8",
       "return_code": 0,
-      "seconds": 0.00378,
+      "seconds": 0.003772,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_default.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "name": "wide_fibonacci_fib5000:prove:generate_default",
+      "return_code": 0,
+      "seconds": 2.94094,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "wide_fibonacci_fib5000:prove:verify_default",
+      "return_code": 0,
+      "seconds": 0.007308,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_2.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "wide_fibonacci_fib5000:prove:generate_workers_2",
+      "return_code": 0,
+      "seconds": 2.936674,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "wide_fibonacci_fib5000:prove:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.007255,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_4.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "wide_fibonacci_fib5000:prove:generate_workers_4",
+      "return_code": 0,
+      "seconds": 2.921562,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "wide_fibonacci_fib5000:prove:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.007267,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_8.json",
+        "--prove-mode",
+        "prove",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "wide_fibonacci_fib5000:prove:generate_workers_8",
+      "return_code": 0,
+      "seconds": 2.922709,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "wide_fibonacci_fib5000:prove:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.00709,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_default.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "name": "wide_fibonacci_fib5000:prove_ex:generate_default",
+      "return_code": 0,
+      "seconds": 2.930872,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_default.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "name": "wide_fibonacci_fib5000:prove_ex:verify_default",
+      "return_code": 0,
+      "seconds": 0.00788,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_2.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "wide_fibonacci_fib5000:prove_ex:generate_workers_2",
+      "return_code": 0,
+      "seconds": 2.969259,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_2.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "2"
+      },
+      "name": "wide_fibonacci_fib5000:prove_ex:verify_workers_2",
+      "return_code": 0,
+      "seconds": 0.007121,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_4.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "wide_fibonacci_fib5000:prove_ex:generate_workers_4",
+      "return_code": 0,
+      "seconds": 2.935787,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_4.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "4"
+      },
+      "name": "wide_fibonacci_fib5000:prove_ex:verify_workers_4",
+      "return_code": 0,
+      "seconds": 0.007503,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "generate",
+        "--example",
+        "wide_fibonacci",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_8.json",
+        "--prove-mode",
+        "prove_ex",
+        "--blake2-backend",
+        "auto",
+        "--pow-bits",
+        "0",
+        "--fri-log-blowup",
+        "1",
+        "--fri-log-last-layer",
+        "0",
+        "--fri-n-queries",
+        "3",
+        "--wf-log-n-rows",
+        "13",
+        "--wf-sequence-len",
+        "5000"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "wide_fibonacci_fib5000:prove_ex:generate_workers_8",
+      "return_code": 0,
+      "seconds": 2.934449,
+      "status": "ok",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "/Users/theodorepender/Coding/stwo-zig/vectors/.merkle_stress.zig_interop",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/Users/theodorepender/Coding/stwo-zig/vectors/reports/merkle_worker_stress_artifacts/wide_fibonacci_fib5000_prove_ex_workers_8.json",
+        "--blake2-backend",
+        "auto"
+      ],
+      "env": {
+        "STWO_ZIG_MERKLE_POOL_REUSE": "1",
+        "STWO_ZIG_MERKLE_WORKERS": "8"
+      },
+      "name": "wide_fibonacci_fib5000:prove_ex:verify_workers_8",
+      "return_code": 0,
+      "seconds": 0.007648,
       "status": "ok",
       "stderr_tail": "",
       "stdout_tail": ""

@@ -66,6 +66,16 @@ CASES: List[Dict[str, Any]] = [
             "16",
         ],
     },
+    {
+        "name": "wide_fibonacci_fib5000",
+        "example": "wide_fibonacci",
+        "args": [
+            "--wf-log-n-rows",
+            "13",
+            "--wf-sequence-len",
+            "5000",
+        ],
+    },
 ]
 
 
