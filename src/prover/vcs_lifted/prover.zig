@@ -319,9 +319,9 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 prev_layer = expanded;
 
                 const group_columns = sorted_columns[group_start..group_end];
-                for (group_columns) |column| {
-                    var idx: usize = 0;
-                    while (idx < layer_size) : (idx += 1) {
+                var idx: usize = 0;
+                while (idx < layer_size) : (idx += 1) {
+                    for (group_columns) |column| {
                         prev_layer[idx].updateLeaf(column.values[idx .. idx + 1]);
                     }
                 }
