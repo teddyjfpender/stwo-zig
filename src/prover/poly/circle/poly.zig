@@ -180,15 +180,13 @@ pub const CircleCoefficients = struct {
 
         const first_line_len = @as(usize, 1) << @intCast(line_log_size - 1);
         const first_line_twiddles = twiddle_tree.twiddles[twiddle_len - (first_line_len * 2) .. twiddle_len - first_line_len];
-        var pair_idx: usize = 0;
+        var tw_idx: usize = 0;
         var first_h: usize = 0;
         const first_half = values.len / 2;
-        while (first_h < first_half) : ({
-            first_h += 4;
-            pair_idx += 1;
-        }) {
-            const x = first_line_twiddles[pair_idx * 2];
-            const y = first_line_twiddles[pair_idx * 2 + 1];
+        while (first_h < first_half) : (first_h += 4) {
+            const x = first_line_twiddles[tw_idx];
+            const y = first_line_twiddles[tw_idx + 1];
+            tw_idx += 2;
             fftPairForwardM31(values, first_h, y);
             fftPairForwardM31(values, first_h + 1, y.neg());
             fftPairForwardM31(values, first_h + 2, x.neg());
@@ -308,15 +306,13 @@ pub fn interpolateFromEvaluationWithTwiddles(
     const itwiddle_len = twiddle_tree.itwiddles.len;
     const first_line_len = @as(usize, 1) << @intCast(line_log_size - 1);
     const first_line_itwiddles = twiddle_tree.itwiddles[itwiddle_len - (first_line_len * 2) .. itwiddle_len - first_line_len];
-    var pair_idx: usize = 0;
+    var tw_idx: usize = 0;
     var first_h: usize = 0;
     const first_half = coeffs.len / 2;
-    while (first_h < first_half) : ({
-        first_h += 4;
-        pair_idx += 1;
-    }) {
-        const x = first_line_itwiddles[pair_idx * 2];
-        const y = first_line_itwiddles[pair_idx * 2 + 1];
+    while (first_h < first_half) : (first_h += 4) {
+        const x = first_line_itwiddles[tw_idx];
+        const y = first_line_itwiddles[tw_idx + 1];
+        tw_idx += 2;
         fftPairInverseM31(coeffs, first_h, y);
         fftPairInverseM31(coeffs, first_h + 1, y.neg());
         fftPairInverseM31(coeffs, first_h + 2, x.neg());
