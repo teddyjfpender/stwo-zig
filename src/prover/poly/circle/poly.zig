@@ -65,19 +65,8 @@ pub const CircleCoefficients = struct {
     pub fn evalAtPoint(self: CircleCoefficients, point: CirclePointQM31) QM31 {
         if (self.log_size == 0) return QM31.fromBase(self.coeffs[0]);
 
-        const max_log_size = circle.M31_CIRCLE_LOG_ORDER;
-        std.debug.assert(self.log_size <= max_log_size);
         var factors: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
-        factors[0] = point.y;
-        if (self.log_size > 1) {
-            var x = point.x;
-            factors[1] = x;
-            var bit: u32 = 2;
-            while (bit < self.log_size) : (bit += 1) {
-                x = circle.CirclePoint(QM31).doubleX(x);
-                factors[bit] = x;
-            }
-        }
+        fillEvalFactors(point, self.log_size, &factors);
 
         return evalAtPointIterative(
             self.coeffs,
@@ -93,19 +82,10 @@ pub const CircleCoefficients = struct {
         out: []QM31,
     ) void {
         std.debug.assert(points.len == out.len);
+        var factors: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
         for (points, 0..) |point, i| {
             const folded_point = if (fold_count == 0) point else repeatedDoubleOnCircleQM31(point, fold_count);
-            var factors: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
-            factors[0] = folded_point.y;
-            if (self.log_size > 1) {
-                var x = folded_point.x;
-                factors[1] = x;
-                var bit: u32 = 2;
-                while (bit < self.log_size) : (bit += 1) {
-                    x = circle.CirclePoint(QM31).doubleX(x);
-                    factors[bit] = x;
-                }
-            }
+            fillEvalFactors(folded_point, self.log_size, &factors);
             out[i] = evalAtPointIterative(self.coeffs, factors[0..self.log_size], self.log_size);
         }
     }
@@ -458,6 +438,27 @@ inline fn repeatedDoubleOnCircleQM31(point: CirclePointQM31, n: u32) CirclePoint
     return .{ .x = x, .y = y };
 }
 
+inline fn fillEvalFactors(
+    point: CirclePointQM31,
+    log_size: u32,
+    out: *[circle.M31_CIRCLE_LOG_ORDER]QM31,
+) void {
+    const max_log_size = circle.M31_CIRCLE_LOG_ORDER;
+    std.debug.assert(log_size <= max_log_size);
+    if (log_size == 0) return;
+
+    out[0] = point.y;
+    if (log_size > 1) {
+        var x = point.x;
+        out[1] = x;
+        var bit: u32 = 2;
+        while (bit < log_size) : (bit += 1) {
+            x = circle.CirclePoint(QM31).doubleX(x);
+            out[bit] = x;
+        }
+    }
+}
+
 inline fn fftLayerLoopForwardM31(
     values: []M31,
     i: u32,
@@ -612,6 +613,44 @@ test "prover poly circle poly: split-at-mid identity" {
     );
     const rhs = poly.evalAtPoint(point);
     try std.testing.expect(lhs.eql(rhs));
+}
+
+test "prover poly circle poly: eval at points folded batch matches scalar oracle" {
+    const alloc = std.testing.allocator;
+    const log_sizes = [_]u32{ 2, 3, 4, 5, 6, 7 };
+
+    var prng = std.Random.DefaultPrng.init(0x194a_2f73_8cdd_4a61);
+    const random = prng.random();
+
+    for (log_sizes) |log_size| {
+        const n = @as(usize, 1) << @intCast(log_size);
+        const coeffs = try alloc.alloc(M31, n);
+        defer alloc.free(coeffs);
+        for (coeffs) |*coeff| {
+            coeff.* = M31.fromCanonical(random.intRangeLessThan(u32, 0, m31.Modulus));
+        }
+
+        const poly = try CircleCoefficients.initBorrowed(coeffs);
+        const points_len: usize = 32;
+        const points = try alloc.alloc(CirclePointQM31, points_len);
+        defer alloc.free(points);
+        const out = try alloc.alloc(QM31, points_len);
+        defer alloc.free(out);
+        for (points) |*point| {
+            point.* = circle.SECURE_FIELD_CIRCLE_GEN.mul(@as(u64, random.int(u32)) + 41);
+        }
+
+        const max_fold = @min(log_size, @as(u32, 4));
+        var fold_count: u32 = 0;
+        while (fold_count <= max_fold) : (fold_count += 1) {
+            poly.evalAtPointsFolded(points, fold_count, out);
+            for (points, out) |point, batch_value| {
+                const folded_point = if (fold_count == 0) point else repeatedDoubleOnCircleQM31(point, fold_count);
+                const scalar = poly.evalAtPoint(folded_point);
+                try std.testing.expect(batch_value.eql(scalar));
+            }
+        }
+    }
 }
 
 test "prover poly circle poly: evaluate on domain returns base values" {

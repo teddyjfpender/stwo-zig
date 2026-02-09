@@ -966,19 +966,34 @@ fn prepareColumnsForCommitOwned(
         };
     }
 
-    const coeffs = try interpolateCoefficientColumns(allocator, owned_columns, twiddle_cache);
-    errdefer deinitOwnedCoefficientColumns(allocator, coeffs);
-
     const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
 
+    const retained_coeffs = if (retain_coefficients)
+        try allocator.alloc(prover_circle.CircleCoefficients, owned_columns.len)
+    else
+        null;
+
+    var retained_initialized: usize = 0;
+    errdefer if (retained_coeffs) |coeffs| {
+        for (coeffs[0..retained_initialized]) |*coeff| coeff.deinit(allocator);
+        allocator.free(coeffs);
+    };
+
     var initialized: usize = 0;
+    var released_source: usize = 0;
     errdefer {
         for (extended[0..initialized]) |column| allocator.free(column.values);
         allocator.free(extended);
+        for (owned_columns[released_source..]) |column| allocator.free(column.values);
+        allocator.free(owned_columns);
     }
 
-    for (owned_columns, coeffs, 0..) |column, coeff, i| {
+    for (owned_columns, 0..) |column, i| {
         try column.validate();
+        var coeff = try interpolateSingleCoefficientColumn(allocator, column, twiddle_cache);
+        var coeff_consumed = false;
+        errdefer if (!coeff_consumed) coeff.deinit(allocator);
+
         const extended_log_size = std.math.add(
             u32,
             column.log_size,
@@ -1000,11 +1015,22 @@ fn prepareColumnsForCommitOwned(
             .values = extended_eval.values,
         };
         initialized += 1;
+
+        allocator.free(column.values);
+        released_source += 1;
+
+        if (retained_coeffs) |coeffs| {
+            coeffs[i] = coeff;
+            retained_initialized += 1;
+            coeff_consumed = true;
+        } else {
+            coeff.deinit(allocator);
+            coeff_consumed = true;
+        }
     }
 
-    freeOwnedColumnEvaluations(allocator, owned_columns);
+    allocator.free(owned_columns);
     if (!retain_coefficients) {
-        deinitOwnedCoefficientColumns(allocator, coeffs);
         return .{
             .columns = extended,
             .coefficients = null,
@@ -1013,7 +1039,7 @@ fn prepareColumnsForCommitOwned(
 
     return .{
         .columns = extended,
-        .coefficients = coeffs,
+        .coefficients = retained_coeffs,
     };
 }
 
@@ -1047,18 +1073,26 @@ fn interpolateCoefficientColumns(
     }
 
     for (columns, 0..) |column, i| {
-        const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
-        const twiddle_tree = try getCachedTwiddleTree(allocator, twiddle_cache, column.log_size);
-        const evaluation = try prover_circle.CircleEvaluation.init(domain, column.values);
-        out[i] = try prover_circle.poly.interpolateFromEvaluationWithTwiddles(
-            allocator,
-            evaluation,
-            twiddleTreeConst(twiddle_tree),
-        );
+        out[i] = try interpolateSingleCoefficientColumn(allocator, column, twiddle_cache);
         initialized += 1;
     }
 
     return out;
+}
+
+fn interpolateSingleCoefficientColumn(
+    allocator: std.mem.Allocator,
+    column: ColumnEvaluation,
+    twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
+) !prover_circle.CircleCoefficients {
+    const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
+    const twiddle_tree = try getCachedTwiddleTree(allocator, twiddle_cache, column.log_size);
+    const evaluation = try prover_circle.CircleEvaluation.init(domain, column.values);
+    return prover_circle.poly.interpolateFromEvaluationWithTwiddles(
+        allocator,
+        evaluation,
+        twiddleTreeConst(twiddle_tree),
+    );
 }
 
 fn deinitOwnedCoefficientColumns(
