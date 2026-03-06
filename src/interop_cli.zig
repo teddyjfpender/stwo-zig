@@ -12,6 +12,7 @@ const state_machine = stwo.examples.state_machine;
 const wide_fibonacci = stwo.examples.wide_fibonacci;
 const xor = stwo.examples.xor;
 const std_shims_verifier_profile = stwo.std_shims.verifier_profile;
+const stage_profile = stwo.prover.stage_profile;
 const examples_artifact = stwo.interop.examples_artifact;
 const proof_wire = stwo.interop.proof_wire;
 
@@ -47,6 +48,7 @@ const Cli = struct {
     mode: Mode,
     example: ?Example = null,
     artifact_path: []const u8,
+    stage_profile_out: ?[]const u8 = null,
     prove_mode: ProveMode = .prove,
     blake2_backend: blake2_hash.BackendMode = .auto,
     include_all_preprocessed_columns: bool = false,
@@ -133,6 +135,9 @@ pub fn main() !void {
         printUsage();
         return err;
     };
+    if (cli.stage_profile_out != null and cli.mode != .generate) {
+        return error.UnsupportedStageProfileMode;
+    }
     blake2_hash.setBackendMode(cli.blake2_backend);
 
     switch (cli.mode) {
@@ -206,6 +211,21 @@ fn runBench(allocator: std.mem.Allocator, cli: Cli) !void {
     defer allocator.free(rendered);
     try std.fs.File.stdout().writeAll(rendered);
     try std.fs.File.stdout().writeAll("\n");
+}
+
+fn writeStageProfile(
+    allocator: std.mem.Allocator,
+    recorder: *stage_profile.Recorder,
+    path: []const u8,
+) !void {
+    var profile = try recorder.snapshot(allocator);
+    defer profile.deinit(allocator);
+    const rendered = try std.json.Stringify.valueAlloc(allocator, profile, .{});
+    defer allocator.free(rendered);
+    try std.fs.cwd().writeFile(.{
+        .sub_path = path,
+        .data = rendered,
+    });
 }
 
 fn encodeProofForBench(
@@ -519,6 +539,9 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
     const gen_alloc = arena.allocator();
 
     const example = cli.example orelse return error.MissingExample;
+    if (cli.stage_profile_out != null and example != .wide_fibonacci) {
+        return error.UnsupportedStageProfileExample;
+    }
     const config = try pcsConfigFromCli(cli);
     const prove_mode = proveModeToString(cli.prove_mode);
 
@@ -709,43 +732,81 @@ fn runGenerate(allocator: std.mem.Allocator, cli: Cli) !void {
                 .sequence_len = cli.wf_sequence_len,
             };
             var proved_statement: wide_fibonacci.Statement = undefined;
+            var maybe_stage_recorder: ?stage_profile.Recorder = null;
+            defer if (maybe_stage_recorder) |*recorder| recorder.deinit();
+            const stage_recorder = if (cli.stage_profile_out != null) blk: {
+                maybe_stage_recorder = stage_profile.Recorder.init(gen_alloc, "zig", "wide_fibonacci");
+                break :blk &maybe_stage_recorder.?;
+            } else null;
+
             const proof: wide_fibonacci.Proof = switch (cli.prove_mode) {
                 .prove => blk: {
-                    const output = try wide_fibonacci.prove(gen_alloc, config, statement);
+                    const output = if (stage_recorder) |recorder|
+                        try wide_fibonacci.proveProfiled(gen_alloc, config, statement, recorder)
+                    else
+                        try wide_fibonacci.prove(gen_alloc, config, statement);
                     proved_statement = output.statement;
                     break :blk output.proof;
                 },
                 .prove_ex => blk: {
-                    const output = try wide_fibonacci.proveEx(
-                        gen_alloc,
-                        config,
-                        statement,
-                        cli.include_all_preprocessed_columns,
-                    );
+                    const output = if (stage_recorder) |recorder|
+                        try wide_fibonacci.proveExProfiled(
+                            gen_alloc,
+                            config,
+                            statement,
+                            cli.include_all_preprocessed_columns,
+                            recorder,
+                        )
+                    else
+                        try wide_fibonacci.proveEx(
+                            gen_alloc,
+                            config,
+                            statement,
+                            cli.include_all_preprocessed_columns,
+                        );
                     proved_statement = output.statement;
                     break :blk output.proof.proof;
                 },
             };
 
-            const proof_bytes = try proof_wire.encodeProofBytes(gen_alloc, proof);
+            const proof_bytes = blk: {
+                var proof_encode_stage = try stage_profile.StageScope.begin(
+                    stage_recorder,
+                    "proof_wire_encode",
+                    "Proof wire encode",
+                );
+                defer proof_encode_stage.end();
+                break :blk try proof_wire.encodeProofBytes(gen_alloc, proof);
+            };
             const proof_bytes_hex = try examples_artifact.bytesToHexAlloc(gen_alloc, proof_bytes);
 
-            try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
-                .schema_version = examples_artifact.SCHEMA_VERSION,
-                .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
-                .exchange_mode = examples_artifact.EXCHANGE_MODE,
-                .generator = "zig",
-                .example = "wide_fibonacci",
-                .prove_mode = prove_mode,
-                .pcs_config = examples_artifact.pcsConfigToWire(config),
-                .blake_statement = null,
-                .plonk_statement = null,
-                .poseidon_statement = null,
-                .state_machine_statement = null,
-                .wide_fibonacci_statement = examples_artifact.wideFibonacciStatementToWire(proved_statement),
-                .xor_statement = null,
-                .proof_bytes_hex = proof_bytes_hex,
-            });
+            {
+                var artifact_write_stage = try stage_profile.StageScope.begin(
+                    stage_recorder,
+                    "artifact_write",
+                    "Artifact write",
+                );
+                defer artifact_write_stage.end();
+                try examples_artifact.writeArtifact(gen_alloc, cli.artifact_path, .{
+                    .schema_version = examples_artifact.SCHEMA_VERSION,
+                    .upstream_commit = examples_artifact.UPSTREAM_COMMIT,
+                    .exchange_mode = examples_artifact.EXCHANGE_MODE,
+                    .generator = "zig",
+                    .example = "wide_fibonacci",
+                    .prove_mode = prove_mode,
+                    .pcs_config = examples_artifact.pcsConfigToWire(config),
+                    .blake_statement = null,
+                    .plonk_statement = null,
+                    .poseidon_statement = null,
+                    .state_machine_statement = null,
+                    .wide_fibonacci_statement = examples_artifact.wideFibonacciStatementToWire(proved_statement),
+                    .xor_statement = null,
+                    .proof_bytes_hex = proof_bytes_hex,
+                });
+            }
+            if (cli.stage_profile_out) |path| {
+                try writeStageProfile(gen_alloc, &maybe_stage_recorder.?, path);
+            }
         },
         .xor => {
             const statement: xor.Statement = .{
@@ -912,6 +973,7 @@ fn parseArgs(args: []const []const u8) !Cli {
     var mode: ?Mode = null;
     var example: ?Example = null;
     var artifact_path: ?[]const u8 = null;
+    var stage_profile_out: ?[]const u8 = null;
     var prove_mode: ProveMode = .prove;
     var blake2_backend: blake2_hash.BackendMode = .auto;
     var include_all_preprocessed_columns = false;
@@ -958,6 +1020,8 @@ fn parseArgs(args: []const []const u8) !Cli {
             example = parseExample(value) orelse return error.InvalidExample;
         } else if (std.mem.eql(u8, flag, "--artifact")) {
             artifact_path = value;
+        } else if (std.mem.eql(u8, flag, "--stage-profile-out")) {
+            stage_profile_out = value;
         } else if (std.mem.eql(u8, flag, "--prove-mode")) {
             prove_mode = parseProveMode(value) orelse return error.InvalidProveMode;
         } else if (std.mem.eql(u8, flag, "--blake2-backend")) {
@@ -1011,6 +1075,7 @@ fn parseArgs(args: []const []const u8) !Cli {
         .mode = mode orelse return error.MissingMode,
         .example = example,
         .artifact_path = artifact_path orelse return error.MissingArtifactPath,
+        .stage_profile_out = stage_profile_out,
         .prove_mode = prove_mode,
         .blake2_backend = blake2_backend,
         .include_all_preprocessed_columns = include_all_preprocessed_columns,
@@ -1103,6 +1168,7 @@ fn printUsage() void {
     std.debug.print(
         "usage:\n" ++
             "  zig run src/interop_cli.zig -- --mode generate --example <blake|plonk|poseidon|state_machine|wide_fibonacci|xor> --artifact <path> [options]\n" ++
+            "    [--stage-profile-out <path>] (wide_fibonacci only)\n" ++
             "    [--prove-mode <prove|prove_ex>] [--blake2-backend <auto|scalar|simd>] [--include-all-preprocessed-columns <0|1>]\n" ++
             "  zig run src/interop_cli.zig -- --mode verify --artifact <path>\n" ++
             "  zig run src/interop_cli.zig -- --mode verify_std_shims --artifact <path>\n" ++

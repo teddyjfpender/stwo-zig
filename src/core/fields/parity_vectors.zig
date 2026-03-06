@@ -432,7 +432,8 @@ fn pointSampleFrom(v: PointSampleVector) PointSample {
 
 fn sampleWithRandomnessFrom(v: SampleWithRandomnessVector) SampleWithRandomness {
     return .{
-        .sample = pointSampleFrom(v.sample),
+        .point = circleQM31From(v.sample.point),
+        .value = qm31From(v.sample.value),
         .random_coeff = qm31From(v.random_coeff),
     };
 }
@@ -486,6 +487,70 @@ fn decodeSamplesTree(
     }
 
     return quotients_mod.TreeVec([][]PointSample).initOwned(try trees_builder.toOwnedSlice(allocator));
+}
+
+const SplitPointSamples = struct {
+    points: quotients_mod.TreeVec([][]CirclePointQM31),
+    values: quotients_mod.TreeVec([][]QM31),
+
+    fn deinit(self: *SplitPointSamples, allocator: std.mem.Allocator) void {
+        self.points.deinitDeep(allocator);
+        self.values.deinitDeep(allocator);
+        self.* = undefined;
+    }
+};
+
+fn splitPointSamplesTree(
+    allocator: std.mem.Allocator,
+    samples: quotients_mod.TreeVec([][]PointSample),
+) !SplitPointSamples {
+    const point_trees = try allocator.alloc([][]CirclePointQM31, samples.items.len);
+    errdefer allocator.free(point_trees);
+    const value_trees = try allocator.alloc([][]QM31, samples.items.len);
+    errdefer allocator.free(value_trees);
+
+    var initialized_trees: usize = 0;
+    errdefer {
+        for (point_trees[0..initialized_trees]) |tree| {
+            for (tree) |column| allocator.free(column);
+            allocator.free(tree);
+        }
+        for (value_trees[0..initialized_trees]) |tree| {
+            for (tree) |column| allocator.free(column);
+            allocator.free(tree);
+        }
+    }
+
+    for (samples.items, 0..) |tree, tree_idx| {
+        point_trees[tree_idx] = try allocator.alloc([]CirclePointQM31, tree.len);
+        value_trees[tree_idx] = try allocator.alloc([]QM31, tree.len);
+        initialized_trees += 1;
+
+        var initialized_cols: usize = 0;
+        errdefer {
+            for (point_trees[tree_idx][0..initialized_cols]) |column| allocator.free(column);
+            allocator.free(point_trees[tree_idx]);
+            for (value_trees[tree_idx][0..initialized_cols]) |column| allocator.free(column);
+            allocator.free(value_trees[tree_idx]);
+        }
+
+        for (tree, 0..) |column, col_idx| {
+            const points = try allocator.alloc(CirclePointQM31, column.len);
+            const values = try allocator.alloc(QM31, column.len);
+            point_trees[tree_idx][col_idx] = points;
+            value_trees[tree_idx][col_idx] = values;
+            initialized_cols += 1;
+            for (column, 0..) |sample, sample_idx| {
+                points[sample_idx] = sample.point;
+                values[sample_idx] = sample.value;
+            }
+        }
+    }
+
+    return .{
+        .points = quotients_mod.TreeVec([][]CirclePointQM31).initOwned(point_trees),
+        .values = quotients_mod.TreeVec([][]QM31).initOwned(value_trees),
+    };
 }
 
 fn decodeQueriedValuesTree(
@@ -670,13 +735,16 @@ test "field vectors: pcs quotients parity" {
         defer column_log_sizes.deinitDeep(alloc);
         var samples = try decodeSamplesTree(alloc, v.samples);
         defer samples.deinitDeep(alloc);
+        var split_samples = try splitPointSamplesTree(alloc, samples);
+        defer split_samples.deinit(alloc);
         var queried_values = try decodeQueriedValuesTree(alloc, v.queried_values);
         defer queried_values.deinitDeep(alloc);
         const random_coeff = qm31From(v.random_coeff);
 
         var samples_with_randomness = try quotients_mod.buildSamplesWithRandomnessAndPeriodicity(
             alloc,
-            samples,
+            split_samples.points,
+            split_samples.values,
             column_log_sizes,
             v.lifting_log_size,
             random_coeff,
@@ -691,8 +759,8 @@ test "field vectors: pcs quotients parity" {
                 for (expected_col, 0..) |expected_sample, sample_idx| {
                     const actual = samples_with_randomness.items[tree_idx][col_idx][sample_idx];
                     const decoded_expected = sampleWithRandomnessFrom(expected_sample);
-                    try std.testing.expect(actual.sample.point.eql(decoded_expected.sample.point));
-                    try std.testing.expect(actual.sample.value.eql(decoded_expected.sample.value));
+                    try std.testing.expect(actual.point.eql(decoded_expected.point));
+                    try std.testing.expect(actual.value.eql(decoded_expected.value));
                     try std.testing.expect(actual.random_coeff.eql(decoded_expected.random_coeff));
                 }
             }
@@ -793,7 +861,8 @@ test "field vectors: pcs quotients parity" {
         const fri_answers = try quotients_mod.friAnswers(
             alloc,
             column_log_sizes,
-            samples,
+            split_samples.points,
+            split_samples.values,
             random_coeff,
             v.query_positions,
             queried_values,

@@ -4,15 +4,15 @@ const blake2_backend = @import("../crypto/blake2s_backend.zig");
 
 const M31 = m31.M31;
 
-pub const BackendMode = blake2_backend.BackendMode;
-
-const Blake2s256 = blk: {
+const StdBlake2s256 = blk: {
     if (@hasDecl(std.crypto.hash, "Blake2s256")) break :blk std.crypto.hash.Blake2s256;
     if (@hasDecl(std.crypto.hash, "blake2") and @hasDecl(std.crypto.hash.blake2, "Blake2s256")) {
         break :blk std.crypto.hash.blake2.Blake2s256;
     }
     @compileError("Blake2s256 not found in std.crypto.hash");
 };
+
+pub const BackendMode = blake2_backend.BackendMode;
 
 pub fn setBackendMode(mode: BackendMode) void {
     blake2_backend.setBackendMode(mode);
@@ -33,12 +33,12 @@ pub const Blake2sM31Hasher = Blake2sHasherGeneric(true);
 
 pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
     return struct {
-        ctx: Blake2s256,
+        ctx: StdBlake2s256,
 
         const Self = @This();
 
         pub fn init() Self {
-            return .{ .ctx = Blake2s256.init(.{}) };
+            return .{ .ctx = StdBlake2s256.init(.{}) };
         }
 
         pub fn update(self: *Self, data: []const u8) void {
@@ -58,6 +58,18 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
             return hasher.finalize();
         }
 
+        pub fn hashFixedSingleBlock(comptime byte_len: usize, data: *const [byte_len]u8) Blake2sHash {
+            var out = blake2_backend.Blake2sHasher.hashFixedSingleBlock(byte_len, data);
+            if (is_m31_output) out = reduceToM31(out);
+            return out;
+        }
+
+        pub fn hashFixed64(data: *const [64]u8) Blake2sHash {
+            var out = blake2_backend.Blake2sHasher.hashFixed64(data);
+            if (is_m31_output) out = reduceToM31(out);
+            return out;
+        }
+
         /// Fixed-size Merkle-node path (64-byte prefix + 64-byte children)
         /// routed through the shared backend implementation.
         pub fn hashFixed128(data: *const [128]u8) Blake2sHash {
@@ -67,10 +79,10 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
         }
 
         pub fn concatAndHash(v1: Blake2sHash, v2: Blake2sHash) Blake2sHash {
-            var hasher = Self.init();
-            hasher.update(v1[0..]);
-            hasher.update(v2[0..]);
-            return hasher.finalize();
+            var payload: [64]u8 = undefined;
+            @memcpy(payload[0..32], v1[0..]);
+            @memcpy(payload[32..64], v2[0..]);
+            return hashFixed64(&payload);
         }
     };
 }
@@ -162,4 +174,23 @@ test "blake2 hash: scalar and simd backends match" {
     const simd_hash = Blake2sHasher.hashFixed128(&payload);
 
     try std.testing.expect(std.mem.eql(u8, scalar_hash[0..], simd_hash[0..]));
+}
+
+test "blake2 hash: backend wrapper matches std reference on varied lengths" {
+    var prng = std.Random.DefaultPrng.init(0x8bad_f00d_cafe_d00d);
+    const rng = prng.random();
+
+    var len: usize = 0;
+    while (len <= 192) : (len += 3) {
+        var payload: [192]u8 = undefined;
+        if (len > 0) rng.bytes(payload[0..len]);
+
+        var std_hasher = StdBlake2s256.init(.{});
+        std_hasher.update(payload[0..len]);
+        var expected: Blake2sHash = undefined;
+        std_hasher.final(&expected);
+
+        const actual = Blake2sHasher.hash(payload[0..len]);
+        try std.testing.expect(std.mem.eql(u8, expected[0..], actual[0..]));
+    }
 }

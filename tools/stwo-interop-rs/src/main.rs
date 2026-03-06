@@ -74,6 +74,7 @@ struct Cli {
     mode: Mode,
     example: Option<Example>,
     artifact: String,
+    stage_profile_out: Option<String>,
     prove_mode: ProveMode,
     include_all_preprocessed_columns: bool,
 
@@ -249,6 +250,23 @@ struct BenchReport {
     proof_metrics: BenchProofMetrics,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct StageNode {
+    id: String,
+    label: String,
+    seconds: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    children: Option<Vec<StageNode>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct StageProfile {
+    schema_version: u32,
+    runtime: String,
+    example: String,
+    stages: Vec<StageNode>,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum ExampleStatement {
     Blake(BlakeStatement),
@@ -336,6 +354,9 @@ struct BlakeComponent {
 
 fn main() -> Result<()> {
     let cli = parse_cli(env::args().collect())?;
+    if cli.stage_profile_out.is_some() && cli.mode != Mode::Generate {
+        bail!("--stage-profile-out is only supported for generate mode");
+    }
     match cli.mode {
         Mode::Generate => run_generate(&cli),
         Mode::Verify => run_verify(&cli),
@@ -343,10 +364,42 @@ fn main() -> Result<()> {
     }
 }
 
+fn time_stage<T, F>(id: &str, label: &str, f: F) -> Result<(T, StageNode)>
+where
+    F: FnOnce() -> Result<T>,
+{
+    let start = std::time::Instant::now();
+    let value = f()?;
+    Ok((
+        value,
+        StageNode {
+            id: id.to_string(),
+            label: label.to_string(),
+            seconds: start.elapsed().as_secs_f64(),
+            children: None,
+        },
+    ))
+}
+
+fn write_stage_profile(path: &str, stages: Vec<StageNode>) -> Result<()> {
+    let profile = StageProfile {
+        schema_version: 1,
+        runtime: "rust".to_string(),
+        example: "wide_fibonacci".to_string(),
+        stages,
+    };
+    fs::write(path, serde_json::to_string_pretty(&profile)?)
+        .with_context(|| format!("failed writing stage profile {path}"))?;
+    Ok(())
+}
+
 fn run_generate(cli: &Cli) -> Result<()> {
     let example = cli
         .example
         .ok_or_else(|| anyhow!("--example is required for generate mode"))?;
+    if cli.stage_profile_out.is_some() && example != Example::WideFibonacci {
+        bail!("--stage-profile-out is only supported for wide_fibonacci generate runs");
+    }
     let config = pcs_config_from_cli(cli)?;
 
     let artifact = match example {
@@ -470,6 +523,46 @@ fn run_generate(cli: &Cli) -> Result<()> {
                 log_n_rows: cli.wf_log_n_rows,
                 sequence_len: cli.wf_sequence_len,
             };
+            if let Some(stage_profile_out) = &cli.stage_profile_out {
+                let (proved, mut stages) = wide_fibonacci_prove_profiled(
+                    config,
+                    statement,
+                    cli.prove_mode,
+                    cli.include_all_preprocessed_columns,
+                )?;
+                let (proof_bytes, proof_encode_stage) =
+                    time_stage("proof_wire_encode", "Proof wire encode", || {
+                        serde_json::to_vec(&proof_to_wire(&proved.1)?).map_err(Into::into)
+                    })?;
+                stages.push(proof_encode_stage);
+                let artifact = InteropArtifact {
+                    schema_version: SCHEMA_VERSION,
+                    upstream_commit: UPSTREAM_COMMIT.to_string(),
+                    exchange_mode: EXCHANGE_MODE.to_string(),
+                    generator: "rust".to_string(),
+                    example: "wide_fibonacci".to_string(),
+                    prove_mode: Some(prove_mode_to_str(cli.prove_mode).to_string()),
+                    pcs_config: pcs_config_to_wire(config),
+                    blake_statement: None,
+                    plonk_statement: None,
+                    poseidon_statement: None,
+                    state_machine_statement: None,
+                    wide_fibonacci_statement: Some(wide_fibonacci_statement_to_wire(proved.0)),
+                    xor_statement: None,
+                    proof_bytes_hex: hex::encode(proof_bytes),
+                };
+                let (_unit, artifact_write_stage) =
+                    time_stage("artifact_write", "Artifact write", || {
+                        let rendered = serde_json::to_string_pretty(&artifact)?;
+                        fs::write(&cli.artifact, format!("{rendered}\n"))
+                            .with_context(|| format!("failed writing artifact {}", cli.artifact))?;
+                        Ok(())
+                    })?;
+                stages.push(artifact_write_stage);
+                write_stage_profile(stage_profile_out, stages)?;
+                return Ok(());
+            }
+
             let (statement, proof) = wide_fibonacci_prove(
                 config,
                 statement,
@@ -729,6 +822,7 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
     let mut mode: Option<Mode> = None;
     let mut example: Option<Example> = None;
     let mut artifact: Option<String> = None;
+    let mut stage_profile_out: Option<String> = None;
     let mut prove_mode = ProveMode::Prove;
     let mut include_all_preprocessed_columns = false;
 
@@ -791,6 +885,7 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
                 }
             }
             "--artifact" => artifact = Some(value.clone()),
+            "--stage-profile-out" => stage_profile_out = Some(value.clone()),
             "--prove-mode" => {
                 prove_mode = prove_mode_from_str(value)
                     .ok_or_else(|| anyhow!("invalid prove mode {value}"))?
@@ -830,6 +925,7 @@ fn parse_cli(args: Vec<String>) -> Result<Cli> {
         mode: mode.ok_or_else(|| anyhow!("--mode is required"))?,
         example,
         artifact: artifact.ok_or_else(|| anyhow!("--artifact is required"))?,
+        stage_profile_out,
         prove_mode,
         include_all_preprocessed_columns,
         pow_bits,
@@ -1530,6 +1626,95 @@ fn wide_fibonacci_prove(
     };
 
     Ok((statement, proof))
+}
+
+fn wide_fibonacci_prove_profiled(
+    config: PcsConfig,
+    statement: WideFibonacciStatement,
+    prove_mode: ProveMode,
+    include_all_preprocessed_columns: bool,
+) -> Result<(
+    (WideFibonacciStatement, StarkProof<Blake2sMerkleHasher>),
+    Vec<StageNode>,
+)> {
+    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
+        bail!("invalid wide_fibonacci log_n_rows");
+    }
+    if statement.sequence_len < 2 {
+        bail!("invalid wide_fibonacci sequence_len");
+    }
+
+    let mut stages = Vec::with_capacity(6);
+    let init_start = std::time::Instant::now();
+    let mut channel = Blake2sChannel::default();
+    config.mix_into(&mut channel);
+    let twiddles = CpuBackend::precompute_twiddles(
+        CanonicCoset::new(statement.log_n_rows + config.fri_config.log_blowup_factor + 1)
+            .circle_domain()
+            .half_coset,
+    );
+    let mut scheme =
+        CommitmentSchemeProver::<CpuBackend, Blake2sMerkleChannel>::new(config, &twiddles);
+    stages.push(StageNode {
+        id: "channel_and_scheme_init".to_string(),
+        label: "Channel and scheme init".to_string(),
+        seconds: init_start.elapsed().as_secs_f64(),
+        children: None,
+    });
+
+    let (_preprocessed_done, preprocessed_stage) =
+        time_stage("preprocessed_commit", "Preprocessed commit", || {
+            let mut builder = scheme.tree_builder();
+            builder.extend_evals(vec![]);
+            builder.commit(&mut channel);
+            Ok(())
+        })?;
+    stages.push(preprocessed_stage);
+
+    let (trace, trace_stage) = time_stage("trace_generation", "Trace generation", || {
+        gen_wide_fibonacci_trace(statement.log_n_rows, statement.sequence_len)
+    })?;
+    stages.push(trace_stage);
+
+    let (_main_trace_done, main_trace_stage) =
+        time_stage("main_trace_commit", "Main trace commit", || {
+            let mut builder = scheme.tree_builder();
+            builder.extend_evals(
+                trace
+                    .into_iter()
+                    .map(|col| cpu_eval(statement.log_n_rows, col))
+                    .collect(),
+            );
+            builder.commit(&mut channel);
+            Ok(())
+        })?;
+    stages.push(main_trace_stage);
+
+    let (_statement_mix_done, statement_mix_stage) =
+        time_stage("statement_mix", "Statement mix", || {
+            mix_wide_fibonacci_statement(&mut channel, statement);
+            Ok(())
+        })?;
+    stages.push(statement_mix_stage);
+
+    let component = WideFibonacciComponent { statement };
+    let (proof, core_prove_stage) = time_stage("core_prove", "Core prove", || match prove_mode {
+        ProveMode::Prove => {
+            prove::<CpuBackend, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)
+                .map_err(Into::into)
+        }
+        ProveMode::ProveEx => prove_ex::<CpuBackend, Blake2sMerkleChannel>(
+            &[&component],
+            &mut channel,
+            scheme,
+            include_all_preprocessed_columns,
+        )
+        .map(|extended| extended.proof)
+        .map_err(Into::into),
+    })?;
+    stages.push(core_prove_stage);
+
+    Ok(((statement, proof), stages))
 }
 
 fn wide_fibonacci_verify(

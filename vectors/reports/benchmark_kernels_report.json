@@ -1,6 +1,6 @@
 {
   "failures": [],
-  "generated_at_unix": 1770646235,
+  "generated_at_unix": 1772786831,
   "kernels": [
     {
       "checksum": [
@@ -14,14 +14,14 @@
       "name": "eval_at_point",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.551204333,
-        "max_seconds": 0.553791,
-        "median_seconds": 0.550575,
-        "min_seconds": 0.549247,
+        "avg_seconds": 0.495961333,
+        "max_seconds": 0.500312,
+        "median_seconds": 0.494662,
+        "min_seconds": 0.49291,
         "samples_seconds": [
-          0.550575,
-          0.553791,
-          0.549247
+          0.494662,
+          0.49291,
+          0.500312
         ]
       },
       "warmups": 1
@@ -38,14 +38,14 @@
       "name": "eval_at_point_by_folding",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.066116,
-        "max_seconds": 0.066547,
-        "median_seconds": 0.066042,
-        "min_seconds": 0.065759,
+        "avg_seconds": 0.061151,
+        "max_seconds": 0.062286,
+        "median_seconds": 0.061468,
+        "min_seconds": 0.059699,
         "samples_seconds": [
-          0.066547,
-          0.065759,
-          0.066042
+          0.059699,
+          0.062286,
+          0.061468
         ]
       },
       "warmups": 1
@@ -62,14 +62,14 @@
       "name": "fft",
       "repeats": 3,
       "summary": {
-        "avg_seconds": 0.024593,
-        "max_seconds": 0.025143,
-        "median_seconds": 0.024626,
-        "min_seconds": 0.02401,
+        "avg_seconds": 0.022190667,
+        "max_seconds": 0.022891,
+        "median_seconds": 0.021871,
+        "min_seconds": 0.02181,
         "samples_seconds": [
-          0.025143,
-          0.02401,
-          0.024626
+          0.022891,
+          0.02181,
+          0.021871
         ]
       },
       "warmups": 1
@@ -87,11 +87,11 @@
   "settings_hash": "5799e57b144ccee2fe09d2ec30b2f904468872e64122271812167ab51e82faa2",
   "status": "ok",
   "summary": {
-    "avg_seconds": 0.213971111,
+    "avg_seconds": 0.193101,
     "failure_count": 0,
     "kernels": 3,
-    "max_seconds": 0.551204333,
-    "min_seconds": 0.024593
+    "max_seconds": 0.495961333,
+    "min_seconds": 0.022190667
   },
   "workload_matrix_hash": "ccf08828a617c569fa9a54535bb3215fe84910e65e32e1aad03fa4f8987bec03"
 }

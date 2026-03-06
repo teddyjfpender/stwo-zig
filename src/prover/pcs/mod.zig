@@ -1,16 +1,20 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const circle = @import("../../core/circle.zig");
+const channel_blake2s = @import("../../core/channel/blake2s.zig");
 const m31 = @import("../../core/fields/m31.zig");
 const qm31 = @import("../../core/fields/qm31.zig");
 const pcs_core = @import("../../core/pcs/mod.zig");
 const pcs_utils = @import("../../core/pcs/utils.zig");
 const core_quotients = @import("../../core/pcs/quotients.zig");
 const verifier_types = @import("../../core/verifier_types.zig");
+const blake2_hash = @import("../../core/vcs/blake2_hash.zig");
 const vcs_verifier = @import("../../core/vcs_lifted/verifier.zig");
 const canonic = @import("../../core/poly/circle/canonic.zig");
 const component_prover = @import("../air/component_prover.zig");
 const prover_circle = @import("../poly/circle/mod.zig");
 const prover_circle_eval = @import("../poly/circle/evaluation.zig");
+const stage_profile = @import("../stage_profile.zig");
 const twiddles_mod = @import("../poly/twiddles.zig");
 const prover_fri = @import("../fri.zig");
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
@@ -24,8 +28,8 @@ const PcsConfig = pcs_core.PcsConfig;
 const TreeVec = pcs_core.TreeVec;
 const TreeSubspan = pcs_core.TreeSubspan;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
-const PointSample = core_quotients.PointSample;
 const COEFFICIENT_STORAGE_AUTO_MAX_BYTES: usize = 8 * 1024 * 1024;
+const FFT_BATCH_TARGET_BYTES: usize = 256 * 1024;
 
 pub const CommitmentSchemeError = error{
     ShapeMismatch,
@@ -241,6 +245,16 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             owned_columns: []ColumnEvaluation,
             channel: anytype,
         ) !void {
+            return self.commitOwnedWithRecorder(allocator, owned_columns, null, channel);
+        }
+
+        pub fn commitOwnedWithRecorder(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            owned_columns: []ColumnEvaluation,
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+        ) !void {
             errdefer freeOwnedColumnEvaluations(allocator, owned_columns);
             var prepared = try prepareColumnsForCommitOwned(
                 allocator,
@@ -248,9 +262,16 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 self.config.fri_config.log_blowup_factor,
                 self.coefficient_retention_policy,
                 &self.twiddle_cache,
+                recorder,
             );
             errdefer prepared.deinit(allocator);
 
+            var merkle_commit_stage = try stage_profile.StageScope.begin(
+                recorder,
+                "merkle_commit",
+                "Merkle commit",
+            );
+            defer merkle_commit_stage.end();
             var tree = try CommitmentTreeProver(H).initOwnedWithCoefficients(
                 allocator,
                 prepared.columns,
@@ -277,35 +298,13 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             channel: anytype,
         ) !void {
             const blowup = self.config.fri_config.log_blowup_factor;
-
-            const columns = try allocator.alloc(ColumnEvaluation, polys.len);
-            errdefer allocator.free(columns);
-
-            var initialized_columns: usize = 0;
-            errdefer {
-                for (columns[0..initialized_columns]) |column| allocator.free(column.values);
-                allocator.free(columns);
-            }
-
-            for (polys, 0..) |poly, i| {
-                const extended_log_size = std.math.add(u32, poly.logSize(), blowup) catch
-                    return CommitmentSchemeError.ShapeMismatch;
-                const twiddle_tree = try getCachedTwiddleTree(
-                    allocator,
-                    &self.twiddle_cache,
-                    extended_log_size,
-                );
-                const extended_eval = try poly.evaluateWithTwiddles(
-                    allocator,
-                    canonic.CanonicCoset.new(extended_log_size).circleDomain(),
-                    twiddleTreeConst(twiddle_tree),
-                );
-                columns[i] = .{
-                    .log_size = extended_log_size,
-                    .values = extended_eval.values,
-                };
-                initialized_columns += 1;
-            }
+            const columns = try extendCoefficientColumnsByGroup(
+                allocator,
+                polys,
+                blowup,
+                &self.twiddle_cache,
+            );
+            errdefer freeOwnedColumnEvaluations(allocator, columns);
 
             var stored_coefficients: ?[]prover_circle.CircleCoefficients = null;
             if (shouldRetainPolynomialCoefficients(polys, self.coefficient_retention_policy)) {
@@ -505,17 +504,36 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             sampled_points: TreeVec([][]CirclePointQM31),
             channel: anytype,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            return self.proveValuesWithRecorder(allocator, sampled_points, null, channel);
+        }
+
+        pub fn proveValuesWithRecorder(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             const lifting_log_size = try scheme.maxTreeLogSize();
-            const sampled_values = try scheme.evaluateSampledValuesAndRelease(
-                allocator,
-                sampled_points,
-                lifting_log_size,
-            );
-            return scheme.proveValuesFromSamples(
+            const sampled_values = blk: {
+                var sampled_value_eval_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "sampled_value_evaluation",
+                    "Sampled-value evaluation",
+                );
+                defer sampled_value_eval_stage.end();
+                break :blk try scheme.evaluateSampledValuesAndRelease(
+                    allocator,
+                    sampled_points,
+                    lifting_log_size,
+                );
+            };
+            return scheme.proveValuesFromSamplesWithRecorder(
                 allocator,
                 sampled_points,
                 sampled_values,
+                recorder,
                 channel,
             );
         }
@@ -534,6 +552,23 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
             allocator: std.mem.Allocator,
             sampled_points: TreeVec([][]CirclePointQM31),
             sampled_values: TreeVec([][]QM31),
+            channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            return self.proveValuesFromSamplesWithRecorder(
+                allocator,
+                sampled_points,
+                sampled_values,
+                null,
+                channel,
+            );
+        }
+
+        pub fn proveValuesFromSamplesWithRecorder(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            sampled_values: TreeVec([][]QM31),
+            recorder: ?*stage_profile.Recorder,
             channel: anytype,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
@@ -555,60 +590,109 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 if (tree.columns.len != tree_values.len) return CommitmentSchemeError.ShapeMismatch;
             }
 
-            const sampled_values_flat = try flattenSampledValues(allocator, sampled_values_owned);
-            defer allocator.free(sampled_values_flat);
-            channel.mixFelts(sampled_values_flat);
+            {
+                var sampled_value_mix_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "sampled_value_channel_mix",
+                    "Sampled-value channel mix",
+                );
+                defer sampled_value_mix_stage.end();
+                try mixSampledValuesIntoChannel(allocator, channel, sampled_values_owned);
+            }
+
             const random_coeff = channel.drawSecureFelt();
 
             const lifting_log_size = try scheme.maxTreeLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
 
-            var samples = try buildPointSamples(allocator, sampled_points_owned, sampled_values_owned);
-            defer samples.deinitDeep(allocator);
-
-            var borrowed_columns = try borrowedColumnsTree(allocator, scheme.trees);
-            defer borrowed_columns.deinitDeep(allocator);
-
-            const quotients_column = try quotient_ops.computeFriQuotients(
-                allocator,
-                borrowed_columns,
-                samples,
-                random_coeff,
-                lifting_log_size,
-                scheme.config.fri_config.log_blowup_factor,
-            );
-
-            var fri_prover = try prover_fri.FriProver(H, MC).commit(
-                allocator,
-                channel,
-                scheme.config.fri_config,
-                domain,
-                quotients_column,
-            );
-
-            const proof_of_work = grind(channel, scheme.config.pow_bits);
-            channel.mixU64(proof_of_work);
-
-            var fri_decommit = try fri_prover.decommit(allocator, channel);
-            errdefer fri_decommit.deinit(allocator);
-
-            var query_positions_tree = try scheme.buildQueryPositionsTree(
-                allocator,
-                fri_decommit.query_positions,
-                lifting_log_size,
-            );
-            defer query_positions_tree.deinitDeep(allocator);
-
-            const query_positions_const = try allocator.alloc([]const usize, query_positions_tree.items.len);
-            defer allocator.free(query_positions_const);
-            for (query_positions_tree.items, 0..) |positions, i| {
-                query_positions_const[i] = positions;
+            const borrowed_columns_items = try allocator.alloc([]const ColumnEvaluation, scheme.trees.items.len);
+            defer allocator.free(borrowed_columns_items);
+            for (scheme.trees.items, 0..) |tree, i| {
+                borrowed_columns_items[i] = tree.columns;
             }
 
-            var trace_decommit = try scheme.decommitByTreePositions(
-                allocator,
-                TreeVec([]const usize).initOwned(query_positions_const),
-            );
+            const quotients_column = blk: {
+                var fri_quotient_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "fri_quotient_build",
+                    "FRI quotient build",
+                );
+                defer fri_quotient_stage.end();
+                break :blk try quotient_ops.computeFriQuotients(
+                    allocator,
+                    TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
+                    sampled_points_owned,
+                    sampled_values_owned,
+                    random_coeff,
+                    lifting_log_size,
+                    scheme.config.fri_config.log_blowup_factor,
+                );
+            };
+
+            var fri_prover = blk: {
+                var fri_commit_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "fri_commit",
+                    "FRI commit",
+                );
+                defer fri_commit_stage.end();
+                break :blk try prover_fri.FriProver(H, MC).commit(
+                    allocator,
+                    channel,
+                    scheme.config.fri_config,
+                    domain,
+                    quotients_column,
+                );
+            };
+
+            const proof_of_work = blk: {
+                var proof_of_work_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "proof_of_work",
+                    "Proof of work",
+                );
+                defer proof_of_work_stage.end();
+                const nonce = grind(channel, scheme.config.pow_bits);
+                channel.mixU64(nonce);
+                break :blk nonce;
+            };
+
+            var fri_decommit = blk: {
+                var fri_decommit_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "fri_decommit",
+                    "FRI decommit",
+                );
+                defer fri_decommit_stage.end();
+                break :blk try fri_prover.decommit(allocator, channel);
+            };
+            errdefer fri_decommit.deinit(allocator);
+
+            var trace_decommit = blk: {
+                var trace_decommit_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "trace_decommit",
+                    "Trace decommit",
+                );
+                defer trace_decommit_stage.end();
+                var query_positions_tree = try scheme.buildQueryPositionsTree(
+                    allocator,
+                    fri_decommit.query_positions,
+                    lifting_log_size,
+                );
+                defer query_positions_tree.deinitDeep(allocator);
+
+                const query_positions_const = try allocator.alloc([]const usize, query_positions_tree.items.len);
+                defer allocator.free(query_positions_const);
+                for (query_positions_tree.items, 0..) |positions, i| {
+                    query_positions_const[i] = positions;
+                }
+
+                break :blk try scheme.decommitByTreePositions(
+                    allocator,
+                    TreeVec([]const usize).initOwned(query_positions_const),
+                );
+            };
             errdefer trace_decommit.deinit(allocator);
 
             var commitments = try scheme.roots(allocator);
@@ -702,6 +786,11 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     if (coeffs.len != tree.columns.len) return CommitmentSchemeError.ShapeMismatch;
                 }
 
+                var coefficient_plans = std.ArrayList(CoefficientEvalPlan).empty;
+                defer deinitCoefficientEvalPlans(allocator, &coefficient_plans);
+                var coefficient_plan_index = std.AutoHashMap(u64, usize).init(allocator);
+                defer coefficient_plan_index.deinit();
+
                 const tree_values = try allocator.alloc([]QM31, tree.columns.len);
                 out[tree_idx] = tree_values;
                 initialized_trees += 1;
@@ -723,7 +812,15 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                     const fold_count = lifting_log_size - column.log_size;
                     if (tree.coefficients) |coeffs| {
                         const coeff = coeffs[col_idx];
-                        coeff.evalAtPointsFolded(points, fold_count, values);
+                        const plan = try getOrCreateCoefficientEvalPlan(
+                            allocator,
+                            &coefficient_plan_index,
+                            &coefficient_plans,
+                            coeff.logSize(),
+                            fold_count,
+                            points,
+                        );
+                        try plan.column_indices.append(allocator, col_idx);
                     } else {
                         const evaluation = try prover_circle.CircleEvaluation.init(
                             canonic.CanonicCoset.new(column.log_size).circleDomain(),
@@ -747,6 +844,12 @@ pub fn CommitmentSchemeProver(comptime H: type, comptime MC: type) type {
                 }
 
                 if (tree.coefficients) |coeffs| {
+                    try evaluateCoefficientPlans(
+                        allocator,
+                        coeffs,
+                        tree_values,
+                        coefficient_plans.items,
+                    );
                     for (coeffs) |*coeff| coeff.deinit(allocator);
                     allocator.free(coeffs);
                     tree.coefficients = null;
@@ -803,6 +906,7 @@ pub fn TreeBuilder(comptime H: type, comptime MC: type) type {
                 self.commitment_scheme.config.fri_config.log_blowup_factor,
                 self.commitment_scheme.coefficient_retention_policy,
                 &self.commitment_scheme.twiddle_cache,
+                null,
             );
             errdefer prepared.deinit(self.allocator);
 
@@ -837,75 +941,191 @@ fn flattenSampledValues(
     return out;
 }
 
-fn buildPointSamples(
+fn mixSampledValuesIntoChannel(
     allocator: std.mem.Allocator,
-    sampled_points: TreeVec([][]CirclePointQM31),
+    channel: anytype,
     sampled_values: TreeVec([][]QM31),
-) (std.mem.Allocator.Error || CommitmentSchemeError)!TreeVec([][]PointSample) {
-    if (sampled_points.items.len != sampled_values.items.len) return CommitmentSchemeError.ShapeMismatch;
-
-    var trees = std.ArrayList([][]PointSample).empty;
-    defer trees.deinit(allocator);
-    errdefer {
-        for (trees.items) |tree| {
-            for (tree) |column| allocator.free(column);
-            allocator.free(tree);
-        }
+) !void {
+    const Channel = @TypeOf(channel.*);
+    if (@hasField(Channel, "channel")) {
+        try mixSampledValuesIntoChannel(allocator, &channel.channel, sampled_values);
+        return;
     }
 
-    for (sampled_points.items, sampled_values.items) |points_tree, values_tree| {
-        if (points_tree.len != values_tree.len) return CommitmentSchemeError.ShapeMismatch;
-
-        var cols = std.ArrayList([]PointSample).empty;
-        defer cols.deinit(allocator);
-        errdefer {
-            for (cols.items) |column| allocator.free(column);
-        }
-
-        for (points_tree, values_tree) |points_col, values_col| {
-            if (points_col.len != values_col.len) return CommitmentSchemeError.ShapeMismatch;
-            const out_col = try allocator.alloc(PointSample, points_col.len);
-            errdefer allocator.free(out_col);
-            for (points_col, values_col, 0..) |point, value, i| {
-                out_col[i] = .{
-                    .point = point,
-                    .value = value,
-                };
-            }
-            try cols.append(allocator, out_col);
-        }
-        try trees.append(allocator, try cols.toOwnedSlice(allocator));
+    if (Channel == channel_blake2s.Blake2sChannel) {
+        mixSampledValuesIntoBlake2Channel(false, channel, sampled_values);
+        return;
+    }
+    if (Channel == channel_blake2s.Blake2sM31Channel) {
+        mixSampledValuesIntoBlake2Channel(true, channel, sampled_values);
+        return;
     }
 
-    return TreeVec([][]PointSample).initOwned(try trees.toOwnedSlice(allocator));
+    const flat = try flattenSampledValues(allocator, sampled_values);
+    defer allocator.free(flat);
+    channel.mixFelts(flat);
 }
 
-fn borrowedColumnsTree(
-    allocator: std.mem.Allocator,
-    trees: anytype,
-) !TreeVec([]ColumnEvaluation) {
-    const tree_count = trees.items.len;
-    const out = try allocator.alloc([]ColumnEvaluation, tree_count);
-    errdefer allocator.free(out);
+fn mixSampledValuesIntoBlake2Channel(
+    comptime is_m31_output: bool,
+    channel: *channel_blake2s.Blake2sChannelGeneric(is_m31_output),
+    sampled_values: TreeVec([][]QM31),
+) void {
+    var hasher = blake2_hash.Blake2sHasherGeneric(is_m31_output).init();
+    const digest = channel.digestBytes();
+    hasher.update(digest[0..]);
 
-    var initialized: usize = 0;
-    errdefer {
-        for (out[0..initialized]) |tree_cols| allocator.free(tree_cols);
-    }
-
-    for (trees.items, 0..) |tree, i| {
-        const cols = try allocator.alloc(ColumnEvaluation, tree.columns.len);
-        out[i] = cols;
-        initialized += 1;
-        for (tree.columns, 0..) |column, j| {
-            cols[j] = .{
-                .log_size = column.log_size,
-                .values = column.values,
-            };
+    if (builtin.cpu.arch.endian() == .little) {
+        for (sampled_values.items) |tree_values| {
+            for (tree_values) |column_values| {
+                if (column_values.len == 0) continue;
+                hasher.update(std.mem.sliceAsBytes(column_values));
+            }
+        }
+    } else {
+        var scratch: [256 * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31)]u8 = undefined;
+        for (sampled_values.items) |tree_values| {
+            for (tree_values) |column_values| {
+                var at: usize = 0;
+                while (at < column_values.len) {
+                    const chunk_len = @min(@as(usize, 256), column_values.len - at);
+                    packSecureFeltsLe(
+                        scratch[0 .. chunk_len * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31)],
+                        column_values[at .. at + chunk_len],
+                    );
+                    hasher.update(scratch[0 .. chunk_len * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31)]);
+                    at += chunk_len;
+                }
+            }
         }
     }
 
-    return TreeVec([]ColumnEvaluation).initOwned(out);
+    channel.updateDigest(hasher.finalize());
+}
+
+fn packSecureFeltsLe(dst: []u8, values: []const QM31) void {
+    std.debug.assert(dst.len == values.len * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31));
+    var at: usize = 0;
+    for (values) |value| {
+        const coords = value.toM31Array();
+        inline for (coords) |coord| {
+            const encoded = coord.toBytesLe();
+            @memcpy(dst[at .. at + @sizeOf(M31)], encoded[0..]);
+            at += @sizeOf(M31);
+        }
+    }
+}
+
+test "prover pcs: streaming sampled-value mixing matches flattening path" {
+    const alloc = std.testing.allocator;
+    const LoggingChannel = @import("../channel/logging_channel.zig").LoggingChannel;
+
+    const col00 = try alloc.dupe(QM31, &[_]QM31{
+        QM31.fromU32Unchecked(1, 2, 3, 4),
+        QM31.fromU32Unchecked(5, 6, 7, 8),
+    });
+    defer alloc.free(col00);
+    const col01 = try alloc.alloc(QM31, 0);
+    defer alloc.free(col01);
+    const col10 = try alloc.dupe(QM31, &[_]QM31{
+        QM31.fromU32Unchecked(9, 10, 11, 12),
+    });
+    defer alloc.free(col10);
+    const col11 = try alloc.dupe(QM31, &[_]QM31{
+        QM31.fromU32Unchecked(13, 14, 15, 16),
+        QM31.fromU32Unchecked(17, 18, 19, 20),
+        QM31.fromU32Unchecked(21, 22, 23, 24),
+    });
+    defer alloc.free(col11);
+
+    const tree0 = try alloc.dupe([]QM31, &[_][]QM31{ col00, col01 });
+    defer alloc.free(tree0);
+    const tree1 = try alloc.dupe([]QM31, &[_][]QM31{ col10, col11 });
+    defer alloc.free(tree1);
+
+    var sampled_values = TreeVec([][]QM31).initOwned(
+        try alloc.dupe([][]QM31, &[_][][]QM31{ tree0, tree1 }),
+    );
+    defer sampled_values.deinitDeep(alloc);
+
+    const flat = try flattenSampledValues(alloc, sampled_values);
+    defer alloc.free(flat);
+
+    var expected_blake2 = channel_blake2s.Blake2sChannel{};
+    expected_blake2.mixFelts(flat);
+    var actual_blake2 = channel_blake2s.Blake2sChannel{};
+    try mixSampledValuesIntoChannel(alloc, &actual_blake2, sampled_values);
+    try std.testing.expectEqualSlices(u8, expected_blake2.digestBytes()[0..], actual_blake2.digestBytes()[0..]);
+
+    var expected_blake2_m31 = channel_blake2s.Blake2sM31Channel{};
+    expected_blake2_m31.mixFelts(flat);
+    var actual_blake2_m31 = channel_blake2s.Blake2sM31Channel{};
+    try mixSampledValuesIntoChannel(alloc, &actual_blake2_m31, sampled_values);
+    try std.testing.expectEqualSlices(u8, expected_blake2_m31.digestBytes()[0..], actual_blake2_m31.digestBytes()[0..]);
+
+    var expected_logging = LoggingChannel(channel_blake2s.Blake2sChannel).init(.{});
+    expected_logging.mixFelts(flat);
+    var actual_logging = LoggingChannel(channel_blake2s.Blake2sChannel).init(.{});
+    try mixSampledValuesIntoChannel(alloc, &actual_logging, sampled_values);
+    try std.testing.expectEqualSlices(
+        u8,
+        expected_logging.channel.digestBytes()[0..],
+        actual_logging.channel.digestBytes()[0..],
+    );
+}
+
+test "prover pcs: coefficient eval plan cache reuses duplicate point sets" {
+    const alloc = std.testing.allocator;
+
+    const points_a = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(17),
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(23),
+    });
+    defer alloc.free(points_a);
+    const points_b = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(17),
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(23),
+    });
+    defer alloc.free(points_b);
+    const points_c = try alloc.dupe(CirclePointQM31, &[_]CirclePointQM31{
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(29),
+    });
+    defer alloc.free(points_c);
+
+    var plans = std.ArrayList(CoefficientEvalPlan).empty;
+    defer deinitCoefficientEvalPlans(alloc, &plans);
+    var index = std.AutoHashMap(u64, usize).init(alloc);
+    defer index.deinit();
+
+    const plan_a = try getOrCreateCoefficientEvalPlan(
+        alloc,
+        &index,
+        &plans,
+        6,
+        1,
+        points_a,
+    );
+    try plan_a.column_indices.append(alloc, 0);
+
+    _ = try getOrCreateCoefficientEvalPlan(
+        alloc,
+        &index,
+        &plans,
+        6,
+        1,
+        points_b,
+    );
+    try std.testing.expectEqual(@as(usize, 1), plans.items.len);
+
+    _ = try getOrCreateCoefficientEvalPlan(
+        alloc,
+        &index,
+        &plans,
+        6,
+        1,
+        points_c,
+    );
+    try std.testing.expectEqual(@as(usize, 2), plans.items.len);
 }
 
 const PreparedCommitmentColumns = struct {
@@ -951,6 +1171,7 @@ fn prepareColumnsForCommitBorrowed(
         log_blowup_factor,
         retention_policy,
         twiddle_cache,
+        null,
     );
 }
 
@@ -960,83 +1181,61 @@ fn prepareColumnsForCommitOwned(
     log_blowup_factor: u32,
     retention_policy: CoefficientRetentionPolicy,
     twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
+    recorder: ?*stage_profile.Recorder,
 ) !PreparedCommitmentColumns {
     const retain_coefficients = shouldRetainCoefficients(owned_columns, retention_policy);
-    if (log_blowup_factor == 0) {
+    if (log_blowup_factor == 0 and !retain_coefficients) {
         return .{
             .columns = owned_columns,
-            .coefficients = if (retain_coefficients)
-                try interpolateCoefficientColumns(allocator, owned_columns, twiddle_cache)
-            else
-                null,
+            .coefficients = null,
         };
     }
 
-    const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
-
-    const retained_coeffs = if (retain_coefficients)
-        try allocator.alloc(prover_circle.CircleCoefficients, owned_columns.len)
-    else
-        null;
-
-    var retained_initialized: usize = 0;
-    errdefer if (retained_coeffs) |coeffs| {
-        for (coeffs[0..retained_initialized]) |*coeff| coeff.deinit(allocator);
-        allocator.free(coeffs);
-    };
-
-    var initialized: usize = 0;
-    var released_source: usize = 0;
-    errdefer {
-        for (extended[0..initialized]) |column| allocator.free(column.values);
-        allocator.free(extended);
-        for (owned_columns[released_source..]) |column| allocator.free(column.values);
-        allocator.free(owned_columns);
-    }
-
-    for (owned_columns, 0..) |column, i| {
-        try column.validate();
-        var coeff = try interpolateSingleCoefficientColumn(allocator, column, twiddle_cache);
-        var coeff_consumed = false;
-        errdefer if (!coeff_consumed) coeff.deinit(allocator);
-
-        const extended_log_size = std.math.add(
-            u32,
-            column.log_size,
-            log_blowup_factor,
-        ) catch return CommitmentSchemeError.ShapeMismatch;
-
-        const twiddle_tree = try getCachedTwiddleTree(
-            allocator,
-            twiddle_cache,
-            extended_log_size,
-        );
-        const extended_eval = try coeff.evaluateWithTwiddles(
-            allocator,
-            canonic.CanonicCoset.new(extended_log_size).circleDomain(),
-            twiddleTreeConst(twiddle_tree),
-        );
-        extended[i] = .{
-            .log_size = extended_log_size,
-            .values = extended_eval.values,
-        };
-        initialized += 1;
-
-        allocator.free(column.values);
-        released_source += 1;
-
-        if (retained_coeffs) |coeffs| {
-            coeffs[i] = coeff;
-            retained_initialized += 1;
-            coeff_consumed = true;
-        } else {
-            coeff.deinit(allocator);
-            coeff_consumed = true;
+    if (log_blowup_factor == 0) {
+        {
+            var interpolate_stage = try stage_profile.StageScope.begin(
+                recorder,
+                "interpolate_columns",
+                "Interpolate columns",
+            );
+            defer interpolate_stage.end();
+            const coeffs = try interpolateCoefficientColumns(allocator, owned_columns, twiddle_cache);
+            return .{
+                .columns = owned_columns,
+                .coefficients = coeffs,
+            };
         }
     }
 
+    const coeffs = blk: {
+        var interpolate_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "interpolate_columns",
+            "Interpolate columns",
+        );
+        defer interpolate_stage.end();
+        break :blk try interpolateOwnedColumnsForExtension(allocator, owned_columns, twiddle_cache);
+    };
+    errdefer deinitOwnedCoefficientColumns(allocator, coeffs);
     allocator.free(owned_columns);
+
+    const extended = blk: {
+        var eval_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "evaluate_extended_domain",
+            "Evaluate extended domain",
+        );
+        defer eval_stage.end();
+        break :blk try extendCoefficientColumnsByGroup(
+            allocator,
+            coeffs,
+            log_blowup_factor,
+            twiddle_cache,
+        );
+    };
+
     if (!retain_coefficients) {
+        deinitOwnedCoefficientColumns(allocator, coeffs);
         return .{
             .columns = extended,
             .coefficients = null,
@@ -1045,7 +1244,7 @@ fn prepareColumnsForCommitOwned(
 
     return .{
         .columns = extended,
-        .coefficients = retained_coeffs,
+        .coefficients = coeffs,
     };
 }
 
@@ -1095,15 +1294,186 @@ fn interpolateCoefficientColumns(
     const out = try allocator.alloc(prover_circle.CircleCoefficients, columns.len);
     errdefer allocator.free(out);
 
-    var initialized: usize = 0;
+    var initialized_indices = std.ArrayList(usize).empty;
+    defer initialized_indices.deinit(allocator);
     errdefer {
-        for (out[0..initialized]) |*coeff| coeff.deinit(allocator);
+        for (initialized_indices.items) |idx| out[idx].deinit(allocator);
         allocator.free(out);
     }
 
-    for (columns, 0..) |column, i| {
-        out[i] = try interpolateSingleCoefficientColumn(allocator, column, twiddle_cache);
-        initialized += 1;
+    var groups = try buildLogSizeGroupsFromColumns(allocator, columns);
+    defer deinitLogSizeGroups(allocator, &groups);
+
+    for (groups.items) |group| {
+        const twiddle_tree = try getCachedTwiddleTree(allocator, twiddle_cache, group.log_size);
+        const domain = canonic.CanonicCoset.new(group.log_size).circleDomain();
+        const batch_len = preferredFftBatchLen(domain.size());
+        var batch_start: usize = 0;
+        while (batch_start < group.indices.items.len) : (batch_start += batch_len) {
+            const chunk_len = @min(batch_len, group.indices.items.len - batch_start);
+            if (chunk_len == 1) {
+                const idx = group.indices.items[batch_start];
+                out[idx] = try interpolateSingleCoefficientColumn(allocator, columns[idx], twiddle_cache);
+                try initialized_indices.append(allocator, idx);
+                continue;
+            }
+
+            const batch_values = try allocator.alloc([]M31, chunk_len);
+            defer allocator.free(batch_values);
+
+            var initialized_batch: usize = 0;
+            errdefer {
+                for (batch_values[0..initialized_batch]) |values| allocator.free(values);
+            }
+
+            for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, batch_idx| {
+                batch_values[batch_idx] = try allocator.dupe(M31, columns[idx].values);
+                initialized_batch += 1;
+            }
+
+            try prover_circle.poly.interpolateOwnedValuesBatchWithTwiddles(
+                domain,
+                batch_values,
+                twiddleTreeConst(twiddle_tree),
+            );
+            for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, batch_idx| {
+                out[idx] = try prover_circle.CircleCoefficients.initOwned(batch_values[batch_idx]);
+                try initialized_indices.append(allocator, idx);
+            }
+        }
+    }
+    return out;
+}
+
+fn interpolateOwnedColumnsForExtension(
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
+) ![]prover_circle.CircleCoefficients {
+    const out = try allocator.alloc(prover_circle.CircleCoefficients, owned_columns.len);
+    errdefer allocator.free(out);
+
+    var initialized_indices = std.ArrayList(usize).empty;
+    defer initialized_indices.deinit(allocator);
+    errdefer {
+        for (initialized_indices.items) |idx| out[idx].deinit(allocator);
+        allocator.free(out);
+    }
+
+    var groups = try buildLogSizeGroupsFromColumns(allocator, owned_columns);
+    defer deinitLogSizeGroups(allocator, &groups);
+
+    for (groups.items) |group| {
+        const twiddle_tree = try getCachedTwiddleTree(allocator, twiddle_cache, group.log_size);
+        const domain = canonic.CanonicCoset.new(group.log_size).circleDomain();
+        const batch_len = preferredFftBatchLen(domain.size());
+        var batch_start: usize = 0;
+        while (batch_start < group.indices.items.len) : (batch_start += batch_len) {
+            const chunk_len = @min(batch_len, group.indices.items.len - batch_start);
+            if (chunk_len == 1) {
+                const idx = group.indices.items[batch_start];
+                out[idx] = try interpolateOwnedSingleCoefficientColumn(
+                    allocator,
+                    owned_columns[idx],
+                    twiddle_cache,
+                );
+                owned_columns[idx].values = &[_]M31{};
+                try initialized_indices.append(allocator, idx);
+                continue;
+            }
+
+            const batch_values = try allocator.alloc([]M31, chunk_len);
+            defer allocator.free(batch_values);
+
+            for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, batch_idx| {
+                batch_values[batch_idx] = @constCast(owned_columns[idx].values);
+            }
+
+            try prover_circle.poly.interpolateOwnedValuesBatchWithTwiddles(
+                domain,
+                batch_values,
+                twiddleTreeConst(twiddle_tree),
+            );
+            for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, batch_idx| {
+                out[idx] = try prover_circle.CircleCoefficients.initOwned(batch_values[batch_idx]);
+                owned_columns[idx].values = &[_]M31{};
+                try initialized_indices.append(allocator, idx);
+            }
+        }
+    }
+
+    return out;
+}
+
+fn extendCoefficientColumnsByGroup(
+    allocator: std.mem.Allocator,
+    coeffs: []const prover_circle.CircleCoefficients,
+    log_blowup_factor: u32,
+    twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
+) ![]ColumnEvaluation {
+    const out = try allocator.alloc(ColumnEvaluation, coeffs.len);
+    errdefer allocator.free(out);
+    for (out) |*column| {
+        column.* = .{
+            .log_size = 0,
+            .values = &[_]M31{},
+        };
+    }
+    errdefer {
+        for (out) |column| {
+            if (column.values.len != 0) allocator.free(column.values);
+        }
+        allocator.free(out);
+    }
+
+    var groups = try buildLogSizeGroupsFromCoefficients(allocator, coeffs);
+    defer deinitLogSizeGroups(allocator, &groups);
+
+    for (groups.items) |group| {
+        const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
+            return CommitmentSchemeError.ShapeMismatch;
+        const twiddle_tree = try getCachedTwiddleTree(allocator, twiddle_cache, extended_log_size);
+        const domain = canonic.CanonicCoset.new(extended_log_size).circleDomain();
+
+        const batch_len = preferredFftBatchLen(domain.size());
+        var batch_start: usize = 0;
+        while (batch_start < group.indices.items.len) : (batch_start += batch_len) {
+            const chunk_len = @min(batch_len, group.indices.items.len - batch_start);
+            if (chunk_len == 1) {
+                const idx = group.indices.items[batch_start];
+                const evaluation = try coeffs[idx].evaluateWithTwiddles(
+                    allocator,
+                    domain,
+                    twiddleTreeConst(twiddle_tree),
+                );
+                out[idx] = .{
+                    .log_size = extended_log_size,
+                    .values = evaluation.values,
+                };
+                continue;
+            }
+
+            const batch_polys = try allocator.alloc(prover_circle.CircleCoefficients, chunk_len);
+            defer allocator.free(batch_polys);
+            for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, batch_idx| {
+                batch_polys[batch_idx] = coeffs[idx];
+            }
+
+            const batch_values = try prover_circle.poly.evaluateManyWithTwiddles(
+                allocator,
+                batch_polys,
+                domain,
+                twiddleTreeConst(twiddle_tree),
+            );
+            defer allocator.free(batch_values);
+
+            for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, batch_idx| {
+                out[idx] = .{
+                    .log_size = extended_log_size,
+                    .values = batch_values[batch_idx],
+                };
+            }
+        }
     }
 
     return out;
@@ -1124,12 +1494,90 @@ fn interpolateSingleCoefficientColumn(
     );
 }
 
+fn interpolateOwnedSingleCoefficientColumn(
+    allocator: std.mem.Allocator,
+    column: ColumnEvaluation,
+    twiddle_cache: *std.AutoHashMap(u32, twiddles_mod.TwiddleTree([]M31)),
+) !prover_circle.CircleCoefficients {
+    const domain = canonic.CanonicCoset.new(column.log_size).circleDomain();
+    const twiddle_tree = try getCachedTwiddleTree(allocator, twiddle_cache, column.log_size);
+    return prover_circle.poly.interpolateOwnedValuesWithTwiddles(
+        domain,
+        @constCast(column.values),
+        twiddleTreeConst(twiddle_tree),
+    );
+}
+
 fn deinitOwnedCoefficientColumns(
     allocator: std.mem.Allocator,
     columns: []prover_circle.CircleCoefficients,
 ) void {
     for (columns) |*coeff| coeff.deinit(allocator);
     allocator.free(columns);
+}
+
+const LogSizeGroup = struct {
+    log_size: u32,
+    indices: std.ArrayList(usize),
+
+    fn deinit(self: *LogSizeGroup, allocator: std.mem.Allocator) void {
+        self.indices.deinit(allocator);
+        self.* = undefined;
+    }
+};
+
+fn buildLogSizeGroupsFromColumns(
+    allocator: std.mem.Allocator,
+    columns: []const ColumnEvaluation,
+) !std.ArrayList(LogSizeGroup) {
+    var groups = std.ArrayList(LogSizeGroup).empty;
+    errdefer deinitLogSizeGroups(allocator, &groups);
+
+    for (columns, 0..) |column, idx| {
+        try appendLogSizeGroupIndex(allocator, &groups, column.log_size, idx);
+    }
+    return groups;
+}
+
+fn buildLogSizeGroupsFromCoefficients(
+    allocator: std.mem.Allocator,
+    coeffs: []const prover_circle.CircleCoefficients,
+) !std.ArrayList(LogSizeGroup) {
+    var groups = std.ArrayList(LogSizeGroup).empty;
+    errdefer deinitLogSizeGroups(allocator, &groups);
+
+    for (coeffs, 0..) |coeff, idx| {
+        try appendLogSizeGroupIndex(allocator, &groups, coeff.logSize(), idx);
+    }
+    return groups;
+}
+
+fn appendLogSizeGroupIndex(
+    allocator: std.mem.Allocator,
+    groups: *std.ArrayList(LogSizeGroup),
+    log_size: u32,
+    idx: usize,
+) !void {
+    for (groups.items, 0..) |group, group_idx| {
+        if (group.log_size == log_size) {
+            try groups.items[group_idx].indices.append(allocator, idx);
+            return;
+        }
+    }
+
+    try groups.append(allocator, .{
+        .log_size = log_size,
+        .indices = std.ArrayList(usize).empty,
+    });
+    try groups.items[groups.items.len - 1].indices.append(allocator, idx);
+}
+
+fn deinitLogSizeGroups(
+    allocator: std.mem.Allocator,
+    groups: *std.ArrayList(LogSizeGroup),
+) void {
+    for (groups.items) |*group| group.deinit(allocator);
+    groups.deinit(allocator);
 }
 
 fn twiddleTreeConst(tree: twiddles_mod.TwiddleTree([]M31)) twiddles_mod.TwiddleTree([]const M31) {
@@ -1175,6 +1623,215 @@ const BarycentricContextCacheEntry = struct {
     }
 };
 
+const CoefficientEvalPlan = struct {
+    coeff_log_size: u32,
+    fold_count: u32,
+    normalized_points: []CirclePointQM31,
+    flat_factors: []QM31,
+    column_indices: std.ArrayList(usize),
+    next_same_hash: ?usize,
+
+    fn deinit(self: *CoefficientEvalPlan, allocator: std.mem.Allocator) void {
+        allocator.free(self.normalized_points);
+        allocator.free(self.flat_factors);
+        self.column_indices.deinit(allocator);
+        self.* = undefined;
+    }
+};
+
+fn deinitCoefficientEvalPlans(
+    allocator: std.mem.Allocator,
+    plans: *std.ArrayList(CoefficientEvalPlan),
+) void {
+    for (plans.items) |*plan| plan.deinit(allocator);
+    plans.deinit(allocator);
+}
+
+fn getOrCreateCoefficientEvalPlan(
+    allocator: std.mem.Allocator,
+    index: *std.AutoHashMap(u64, usize),
+    plans: *std.ArrayList(CoefficientEvalPlan),
+    coeff_log_size: u32,
+    fold_count: u32,
+    points: []const CirclePointQM31,
+) !*CoefficientEvalPlan {
+    const plan_hash = hashCoefficientEvalPlanKey(
+        coeff_log_size,
+        fold_count,
+        points,
+    );
+    var existing_plan_idx = index.get(plan_hash);
+    while (existing_plan_idx) |plan_idx| {
+        const plan = &plans.items[plan_idx];
+        if (plan.coeff_log_size == coeff_log_size and
+            plan.fold_count == fold_count and
+            coefficientEvalPlanMatchesPoints(plan.*, points))
+        {
+            return plan;
+        }
+        existing_plan_idx = plan.next_same_hash;
+    }
+
+    const normalized = try buildCoefficientEvalPlanData(
+        allocator,
+        coeff_log_size,
+        fold_count,
+        points,
+    );
+    errdefer allocator.free(normalized.normalized_points);
+    errdefer allocator.free(normalized.flat_factors);
+
+    try plans.append(allocator, .{
+        .coeff_log_size = coeff_log_size,
+        .fold_count = fold_count,
+        .normalized_points = normalized.normalized_points,
+        .flat_factors = normalized.flat_factors,
+        .column_indices = std.ArrayList(usize).empty,
+        .next_same_hash = index.get(plan_hash),
+    });
+    errdefer {
+        var plan = plans.items[plans.items.len - 1];
+        plans.items.len -= 1;
+        plan.deinit(allocator);
+    }
+    try index.put(plan_hash, plans.items.len - 1);
+    return &plans.items[plans.items.len - 1];
+}
+
+const CoefficientEvalPlanData = struct {
+    normalized_points: []CirclePointQM31,
+    flat_factors: []QM31,
+};
+
+const COEFFICIENT_PLAN_KEY_POINT_BYTES: usize = 2 * qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31);
+
+fn hashCoefficientEvalPlanKey(
+    coeff_log_size: u32,
+    fold_count: u32,
+    points: []const CirclePointQM31,
+) u64 {
+    var hasher = std.hash.Wyhash.init(0);
+    var header: [3 * @sizeOf(u32)]u8 = undefined;
+    std.mem.writeInt(u32, header[0..4], coeff_log_size, .little);
+    std.mem.writeInt(u32, header[4..8], fold_count, .little);
+    std.mem.writeInt(u32, header[8..12], @intCast(points.len), .little);
+    hasher.update(header[0..]);
+
+    var point_bytes: [COEFFICIENT_PLAN_KEY_POINT_BYTES]u8 = undefined;
+    for (points) |point| {
+        packPointKeyBytes(
+            point_bytes[0..],
+            if (fold_count == 0) point else point.repeatedDouble(fold_count),
+        );
+        hasher.update(point_bytes[0..]);
+    }
+    return hasher.final();
+}
+
+fn buildCoefficientEvalPlanData(
+    allocator: std.mem.Allocator,
+    coeff_log_size: u32,
+    fold_count: u32,
+    points: []const CirclePointQM31,
+) !CoefficientEvalPlanData {
+    const normalized_points = try allocator.alloc(CirclePointQM31, points.len);
+    errdefer allocator.free(normalized_points);
+
+    const flat_factors = try allocator.alloc(QM31, points.len * coeff_log_size);
+    errdefer allocator.free(flat_factors);
+
+    var factor_buffer: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
+    var factor_at: usize = 0;
+    for (points, 0..) |point, point_idx| {
+        const folded_point = if (fold_count == 0) point else point.repeatedDouble(fold_count);
+        normalized_points[point_idx] = folded_point;
+
+        if (coeff_log_size == 0) continue;
+        const factors = prover_circle.poly.fillEvalFactorsForPoint(
+            folded_point,
+            coeff_log_size,
+            &factor_buffer,
+        );
+        @memcpy(flat_factors[factor_at .. factor_at + coeff_log_size], factors);
+        factor_at += coeff_log_size;
+    }
+
+    return .{
+        .normalized_points = normalized_points,
+        .flat_factors = flat_factors,
+    };
+}
+
+fn coefficientEvalPlanMatchesPoints(
+    plan: CoefficientEvalPlan,
+    points: []const CirclePointQM31,
+) bool {
+    if (plan.normalized_points.len != points.len) return false;
+    for (points, plan.normalized_points) |point, normalized_point| {
+        const folded_point = if (plan.fold_count == 0) point else point.repeatedDouble(plan.fold_count);
+        if (!folded_point.eql(normalized_point)) return false;
+    }
+    return true;
+}
+
+fn packPointKeyBytes(dst: []u8, point: CirclePointQM31) void {
+    std.debug.assert(dst.len == COEFFICIENT_PLAN_KEY_POINT_BYTES);
+    var at: usize = 0;
+    inline for (.{ point.x, point.y }) |coord| {
+        const coords = coord.toM31Array();
+        inline for (coords) |mcoord| {
+            const encoded = mcoord.toBytesLe();
+            @memcpy(dst[at .. at + @sizeOf(M31)], encoded[0..]);
+            at += @sizeOf(M31);
+        }
+    }
+}
+
+fn evaluateCoefficientPlans(
+    allocator: std.mem.Allocator,
+    coeffs: []const prover_circle.CircleCoefficients,
+    tree_values: [][]QM31,
+    plans: []const CoefficientEvalPlan,
+) !void {
+    var batch_coeffs: []prover_circle.CircleCoefficients = &[_]prover_circle.CircleCoefficients{};
+    defer if (batch_coeffs.len != 0) allocator.free(batch_coeffs);
+    var batch_out: [][]QM31 = &[_][]QM31{};
+    defer if (batch_out.len != 0) allocator.free(batch_out);
+
+    for (plans) |plan| {
+        if (plan.column_indices.items.len == 0) continue;
+        if (plan.column_indices.items.len == 1) {
+            const column_idx = plan.column_indices.items[0];
+            coeffs[column_idx].evalAtPointsWithFlatFactors(
+                plan.flat_factors,
+                tree_values[column_idx],
+            );
+            continue;
+        }
+
+        const batch_len = plan.column_indices.items.len;
+        if (batch_coeffs.len < batch_len) {
+            if (batch_coeffs.len != 0) allocator.free(batch_coeffs);
+            if (batch_out.len != 0) allocator.free(batch_out);
+            batch_coeffs = try allocator.alloc(prover_circle.CircleCoefficients, batch_len);
+            batch_out = try allocator.alloc([]QM31, batch_len);
+        }
+        const batch_coeffs_view = batch_coeffs[0..batch_len];
+        const batch_out_view = batch_out[0..batch_len];
+
+        for (plan.column_indices.items, 0..) |column_idx, batch_idx| {
+            batch_coeffs_view[batch_idx] = coeffs[column_idx];
+            batch_out_view[batch_idx] = tree_values[column_idx];
+        }
+
+        prover_circle.poly.CircleCoefficients.evalManyAtPointsWithFlatFactors(
+            batch_coeffs_view,
+            plan.flat_factors,
+            batch_out_view,
+        );
+    }
+}
+
 fn getBarycentricCacheEntry(
     allocator: std.mem.Allocator,
     cache: *std.AutoHashMap(u32, BarycentricContextCacheEntry),
@@ -1194,8 +1851,17 @@ fn freeOwnedColumnEvaluations(
     allocator: std.mem.Allocator,
     columns: []const ColumnEvaluation,
 ) void {
-    for (columns) |column| allocator.free(column.values);
+    for (columns) |column| {
+        if (column.values.len != 0) allocator.free(column.values);
+    }
     allocator.free(columns);
+}
+
+fn preferredFftBatchLen(value_len: usize) usize {
+    const value_bytes = std.math.mul(usize, value_len, @sizeOf(M31)) catch return 1;
+    if (value_bytes == 0) return 1;
+    const max_batch = FFT_BATCH_TARGET_BYTES / value_bytes;
+    return std.math.clamp(max_batch, 1, 32);
 }
 
 fn grind(channel: anytype, pow_bits: u32) u64 {

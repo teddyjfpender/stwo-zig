@@ -78,6 +78,16 @@ pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
             }
         }
 
+        /// Updates a leaf hasher from pre-packed canonical little-endian M31 bytes.
+        ///
+        /// Preconditions:
+        /// - `packed_bytes.len` is a multiple of 4.
+        pub fn updateLeafPackedBytes(self: *Self, packed_bytes: []const u8) void {
+            std.debug.assert((packed_bytes.len & 3) == 0);
+            if (packed_bytes.len == 0) return;
+            self.inner.update(packed_bytes);
+        }
+
         pub fn finalize(self: *Self) Hash {
             return self.inner.finalize();
         }
@@ -142,4 +152,45 @@ test "vcs_lifted blake2: updateLeaf matches explicit byte packing" {
     }
     const expected = manual.finalize();
     try std.testing.expect(std.mem.eql(u8, digest[0..], expected[0..]));
+}
+
+test "vcs_lifted blake2: updateLeafPackedBytes matches updateLeaf" {
+    var prng = std.Random.DefaultPrng.init(0x1234_5678_9abc_def0);
+    const rng = prng.random();
+    var values: [96]M31 = undefined;
+    for (values[0..]) |*value| {
+        value.* = M31.fromU64(rng.int(u32));
+    }
+
+    var packed_bytes: [96 * 4]u8 = undefined;
+    if (builtin.cpu.arch.endian() == .little) {
+        @memcpy(packed_bytes[0..], std.mem.sliceAsBytes(values[0..]));
+    } else {
+        for (values[0..], 0..) |value, i| {
+            const encoded = value.toBytesLe();
+            const start = i * 4;
+            @memcpy(packed_bytes[start .. start + 4], encoded[0..]);
+        }
+    }
+
+    var from_values = Blake2sMerkleHasher.defaultWithInitialState();
+    from_values.updateLeaf(values[0..]);
+    const digest_values = from_values.finalize();
+
+    var from_packed = Blake2sMerkleHasher.defaultWithInitialState();
+    from_packed.updateLeafPackedBytes(packed_bytes[0..]);
+    const digest_packed = from_packed.finalize();
+
+    try std.testing.expect(std.mem.eql(u8, digest_values[0..], digest_packed[0..]));
+}
+
+test "vcs_lifted blake2: hashChildrenWithSeed matches fixed parent hash" {
+    const left = [_]u8{7} ** 32;
+    const right = [_]u8{11} ** 32;
+    const seeded = Blake2sMerkleHasher.hashChildrenWithSeed(
+        Blake2sMerkleHasher.nodeSeed(),
+        .{ .left = left, .right = right },
+    );
+    const direct = Blake2sMerkleHasher.hashChildren(.{ .left = left, .right = right });
+    try std.testing.expect(std.mem.eql(u8, seeded[0..], direct[0..]));
 }
