@@ -230,6 +230,7 @@ def summarize_samples(
     warmups: int,
     repeats: int,
     env: Optional[Dict[str, str]] = None,
+    stage_profile_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     if repeats <= 0:
         raise ValueError("--repeats must be positive")
@@ -239,8 +240,11 @@ def summarize_samples(
     raw_runs: List[Dict[str, Any]] = []
     samples: List[float] = []
     rss_samples: List[int] = []
+    stage_profiles: List[Dict[str, Any]] = []
 
     for i in range(warmups + repeats):
+        if stage_profile_path is not None and stage_profile_path.exists():
+            stage_profile_path.unlink()
         run_result = run_timed(cmd, env)
         raw_runs.append(
             {
@@ -253,6 +257,10 @@ def summarize_samples(
             samples.append(run_result["seconds"])
             if run_result["peak_rss_kb"] is not None:
                 rss_samples.append(int(run_result["peak_rss_kb"]))
+            if stage_profile_path is not None:
+                if not stage_profile_path.exists():
+                    raise RuntimeError(f"missing stage profile for sampled run: {stage_profile_path}")
+                stage_profiles.append(json.loads(stage_profile_path.read_text(encoding="utf-8")))
 
     avg_seconds = sum(samples) / len(samples)
     result: Dict[str, Any] = {
@@ -270,7 +278,56 @@ def summarize_samples(
         result["rss_samples_kb"] = rss_samples
         result["rss_avg_kb"] = round(sum(rss_samples) / len(rss_samples), 2)
         result["rss_peak_kb"] = max(rss_samples)
+    if stage_profile_path is not None and stage_profile_path.exists():
+        stage_profile_path.unlink()
+    if stage_profiles:
+        result["stage_flow"] = average_stage_profiles(stage_profiles)
     return result
+
+
+def average_stage_profiles(profiles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if not profiles:
+        raise ValueError("stage profiles are empty")
+    first = profiles[0]
+    runtime = str(first.get("runtime", ""))
+    example = str(first.get("example", ""))
+    return {
+        "schema_version": int(first.get("schema_version", 1)),
+        "runtime": runtime,
+        "example": example,
+        "stages": average_stage_nodes([profile.get("stages", []) for profile in profiles]),
+    }
+
+
+def average_stage_nodes(stage_lists: List[Any]) -> List[Dict[str, Any]]:
+    if not stage_lists:
+        return []
+    baseline = stage_lists[0]
+    averaged: List[Dict[str, Any]] = []
+    for list_idx, stages in enumerate(stage_lists[1:], start=1):
+        if len(stages) != len(baseline):
+            raise RuntimeError(f"stage-flow shape mismatch at sample {list_idx}")
+    for stage_idx, first_stage in enumerate(baseline):
+        child_lists: List[Any] = []
+        seconds_total = 0.0
+        for list_idx, stages in enumerate(stage_lists):
+            stage = stages[stage_idx]
+            if stage.get("id") != first_stage.get("id"):
+                raise RuntimeError(f"stage id mismatch at sample {list_idx} index {stage_idx}")
+            if stage.get("label") != first_stage.get("label"):
+                raise RuntimeError(f"stage label mismatch at sample {list_idx} index {stage_idx}")
+            seconds_total += float(stage.get("seconds", 0.0))
+            child_lists.append(stage.get("children") or [])
+        averaged_stage: Dict[str, Any] = {
+            "id": str(first_stage.get("id", "")),
+            "label": str(first_stage.get("label", "")),
+            "seconds": round(seconds_total / len(stage_lists), 6),
+        }
+        averaged_children = average_stage_nodes(child_lists) if any(child_lists) else []
+        if averaged_children:
+            averaged_stage["children"] = averaged_children
+        averaged.append(averaged_stage)
+    return averaged
 
 
 def proof_metrics(artifact_path: Path) -> Dict[str, Any]:
@@ -362,6 +419,11 @@ def benchmark_runtime(
 ) -> Dict[str, Any]:
     prefix = runtime_cmd(runtime)
     artifact_path = ARTIFACT_DIR / f"{runtime}_{workload['name']}.json"
+    stage_profile_path = (
+        ARTIFACT_DIR / f"{runtime}_{workload['name']}_stage_profile.json"
+        if workload["name"] == "wide_fibonacci_fib5000"
+        else None
+    )
     backend_args = (
         [
             "--blake2-backend",
@@ -393,6 +455,11 @@ def benchmark_runtime(
             "--artifact",
             str(artifact_path),
         ]
+        + (
+            ["--stage-profile-out", str(stage_profile_path)]
+            if stage_profile_path is not None
+            else []
+        )
         + backend_args
         + COMMON_CONFIG_ARGS
         + workload["args"]
@@ -405,6 +472,7 @@ def benchmark_runtime(
         warmups,
         repeats,
         runtime_env,
+        stage_profile_path=stage_profile_path,
     )
     metrics = proof_metrics(artifact_path)
     verify_stats = summarize_samples(
@@ -663,7 +731,7 @@ def main() -> int:
     settings_hash = canonical_hash(settings_hash_payload)
 
     report = {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at_unix": int(time.time()),
         "status": status,
         "protocol": "matched_workload_matrix_v1",

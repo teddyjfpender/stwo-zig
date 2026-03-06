@@ -15,6 +15,7 @@ const prover_air_accumulation = @import("../prover/air/accumulation.zig");
 const prover_component = @import("../prover/air/component_prover.zig");
 const prover_pcs = @import("../prover/pcs/mod.zig");
 const prover_prove = @import("../prover/prove.zig");
+const stage_profile = @import("../prover/stage_profile.zig");
 const secure_column = @import("../prover/secure_column.zig");
 
 const M31 = m31.M31;
@@ -73,26 +74,40 @@ pub fn genTrace(
 
     for (trace) |*col| {
         col.* = try allocator.alloc(M31, n);
-        @memset(col.*, M31.zero());
         initialized += 1;
     }
 
+    const bit_rev_rows = try allocator.alloc(usize, n);
+    defer allocator.free(bit_rev_rows);
     for (0..n) |row| {
-        const bit_rev = core_air_utils.circleBitReversedIndex(statement.log_n_rows, row) catch {
+        bit_rev_rows[row] = core_air_utils.circleBitReversedIndex(statement.log_n_rows, row) catch {
             return Error.InvalidLogSize;
         };
+    }
 
-        var a = M31.one();
-        var b = M31.fromCanonical(@intCast(row));
-        trace[0][bit_rev] = a;
-        trace[1][bit_rev] = b;
+    const prev = try allocator.alloc(M31, n);
+    defer allocator.free(prev);
+    const curr = try allocator.alloc(M31, n);
+    defer allocator.free(curr);
 
-        var col_idx: usize = 2;
-        while (col_idx < n_cols) : (col_idx += 1) {
+    for (0..n) |row| {
+        const bit_rev = bit_rev_rows[row];
+        prev[row] = M31.one();
+        curr[row] = M31.fromCanonical(@intCast(row));
+        trace[0][bit_rev] = prev[row];
+        trace[1][bit_rev] = curr[row];
+    }
+
+    var col_idx: usize = 2;
+    while (col_idx < n_cols) : (col_idx += 1) {
+        const column = trace[col_idx];
+        for (0..n) |row| {
+            const a = prev[row];
+            const b = curr[row];
             const c = a.square().add(b.square());
-            trace[col_idx][bit_rev] = c;
-            a = b;
-            b = c;
+            column[bit_rev_rows[row]] = c;
+            prev[row] = b;
+            curr[row] = c;
         }
     }
 
@@ -109,7 +124,7 @@ pub fn prove(
     pcs_config: pcs_core.PcsConfig,
     statement: Statement,
 ) anyerror!ProveOutput {
-    var prove_ex_output = try proveEx(allocator, pcs_config, statement, false);
+    var prove_ex_output = try proveExImpl(allocator, pcs_config, statement, false, null);
     const proof = prove_ex_output.proof.proof;
     prove_ex_output.proof.aux.deinit(allocator);
     return .{
@@ -124,25 +139,121 @@ pub fn proveEx(
     statement: Statement,
     include_all_preprocessed_columns: bool,
 ) anyerror!ProveExOutput {
+    return proveExImpl(
+        allocator,
+        pcs_config,
+        statement,
+        include_all_preprocessed_columns,
+        null,
+    );
+}
+
+pub fn proveProfiled(
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    statement: Statement,
+    recorder: *stage_profile.Recorder,
+) anyerror!ProveOutput {
+    var prove_ex_output = try proveExImpl(allocator, pcs_config, statement, false, recorder);
+    const proof = prove_ex_output.proof.proof;
+    prove_ex_output.proof.aux.deinit(allocator);
+    return .{
+        .statement = prove_ex_output.statement,
+        .proof = proof,
+    };
+}
+
+pub fn proveExProfiled(
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    statement: Statement,
+    include_all_preprocessed_columns: bool,
+    recorder: *stage_profile.Recorder,
+) anyerror!ProveExOutput {
+    return proveExImpl(
+        allocator,
+        pcs_config,
+        statement,
+        include_all_preprocessed_columns,
+        recorder,
+    );
+}
+
+fn proveExImpl(
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    statement: Statement,
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+) anyerror!ProveExOutput {
     if (statement.log_n_rows == 0 or statement.log_n_rows >= 31) return Error.InvalidLogSize;
     if (statement.sequence_len < 2) return Error.InvalidSequenceLength;
 
-    var channel = Channel{};
-    pcs_config.mixInto(&channel);
+    const Initialized = struct {
+        channel: Channel,
+        scheme: prover_pcs.CommitmentSchemeProver(Hasher, MerkleChannel),
+    };
+    const initialized = blk: {
+        var init_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "channel_and_scheme_init",
+            "Channel and scheme init",
+        );
+        defer init_stage.end();
 
-    var scheme = try prover_pcs.CommitmentSchemeProver(Hasher, MerkleChannel).init(
-        allocator,
-        pcs_config,
-    );
+        var channel = Channel{};
+        pcs_config.mixInto(&channel);
+        break :blk Initialized{
+            .channel = channel,
+            .scheme = try prover_pcs.CommitmentSchemeProver(Hasher, MerkleChannel).init(
+                allocator,
+                pcs_config,
+            ),
+        };
+    };
+    var channel = initialized.channel;
+    var scheme = initialized.scheme;
 
     const preprocessed = [_]prover_pcs.ColumnEvaluation{};
-    try scheme.commit(allocator, preprocessed[0..], &channel);
+    {
+        var preprocessed_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "preprocessed_commit",
+            "Preprocessed commit",
+        );
+        defer preprocessed_stage.end();
+        try scheme.commit(allocator, preprocessed[0..], &channel);
+    }
 
-    const trace = try genTrace(allocator, statement);
-    const owned_columns = try traceIntoOwnedColumns(allocator, statement.log_n_rows, trace);
-    try scheme.commitOwned(allocator, owned_columns, &channel);
+    const owned_columns = blk: {
+        var trace_generation_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "trace_generation",
+            "Trace generation",
+        );
+        defer trace_generation_stage.end();
+        const trace = try genTrace(allocator, statement);
+        break :blk try traceIntoOwnedColumns(allocator, statement.log_n_rows, trace);
+    };
+    {
+        var main_trace_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "main_trace_commit",
+            "Main trace commit",
+        );
+        defer main_trace_stage.end();
+        try scheme.commitOwnedWithRecorder(allocator, owned_columns, recorder, &channel);
+    }
 
-    mixStatement(&channel, statement);
+    {
+        var statement_mix_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "statement_mix",
+            "Statement mix",
+        );
+        defer statement_mix_stage.end();
+        mixStatement(&channel, statement);
+    }
 
     const component = WideFibonacciComponent{
         .statement = statement,
@@ -151,15 +262,24 @@ pub fn proveEx(
         component.asProverComponent(),
     };
 
-    const proof = try prover_prove.proveEx(
-        Hasher,
-        MerkleChannel,
-        allocator,
-        components[0..],
-        &channel,
-        scheme,
-        include_all_preprocessed_columns,
-    );
+    const proof = blk: {
+        var core_prove_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "core_prove",
+            "Core prove",
+        );
+        defer core_prove_stage.end();
+        break :blk try prover_prove.proveExWithRecorder(
+            Hasher,
+            MerkleChannel,
+            allocator,
+            components[0..],
+            &channel,
+            scheme,
+            include_all_preprocessed_columns,
+            recorder,
+        );
+    };
     return .{
         .statement = statement,
         .proof = proof,

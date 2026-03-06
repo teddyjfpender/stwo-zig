@@ -154,13 +154,11 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                 );
             }
 
-            var samples = try buildPointSamples(allocator, sampled_points_owned, proof.sampled_values);
-            defer samples.deinitDeep(allocator);
-
             const fri_answers = try quotients.friAnswers(
                 allocator,
                 column_log_sizes,
-                samples,
+                sampled_points_owned,
+                proof.sampled_values,
                 random_coeff,
                 query_positions,
                 proof.queried_values,
@@ -234,45 +232,6 @@ fn computeLiftingLogSize(
         }
     }
     return max_log_size orelse verifier_types.VerificationError.EmptySampledSet;
-}
-
-fn buildPointSamples(
-    allocator: std.mem.Allocator,
-    sampled_points: TreeVec([][]CirclePointQM31),
-    sampled_values: TreeVec([][]QM31),
-) (std.mem.Allocator.Error || verifier_types.VerificationError)!TreeVec([][]quotients.PointSample) {
-    if (sampled_points.items.len != sampled_values.items.len) return verifier_types.VerificationError.ShapeMismatch;
-
-    var trees_builder = std.ArrayList([][]quotients.PointSample).empty;
-    defer trees_builder.deinit(allocator);
-    errdefer {
-        for (trees_builder.items) |tree| {
-            for (tree) |column| allocator.free(column);
-            allocator.free(tree);
-        }
-    }
-
-    for (sampled_points.items, sampled_values.items) |points_per_tree, values_per_tree| {
-        if (points_per_tree.len != values_per_tree.len) return verifier_types.VerificationError.ShapeMismatch;
-        var cols_builder = std.ArrayList([]quotients.PointSample).empty;
-        defer cols_builder.deinit(allocator);
-        errdefer {
-            for (cols_builder.items) |column| allocator.free(column);
-        }
-
-        for (points_per_tree, values_per_tree) |points_col, values_col| {
-            if (points_col.len != values_col.len) return verifier_types.VerificationError.ShapeMismatch;
-            const out_col = try allocator.alloc(quotients.PointSample, points_col.len);
-            errdefer allocator.free(out_col);
-            for (points_col, values_col, 0..) |point, value, i| {
-                out_col[i] = .{ .point = point, .value = value };
-            }
-            try cols_builder.append(allocator, out_col);
-        }
-        try trees_builder.append(allocator, try cols_builder.toOwnedSlice(allocator));
-    }
-
-    return TreeVec([][]quotients.PointSample).initOwned(try trees_builder.toOwnedSlice(allocator));
 }
 
 test "pcs verifier: commit stores extended log sizes and mixes root" {

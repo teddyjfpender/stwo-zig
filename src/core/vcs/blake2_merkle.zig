@@ -26,15 +26,16 @@ pub fn Blake2sMerkleHasherGeneric(comptime is_m31_output: bool) type {
             children_hashes: ?struct { left: Blake2sHash, right: Blake2sHash },
             column_values: []const M31,
         ) Blake2sHash {
-            var hasher = Hasher.init();
-
             if (children_hashes) |children| {
-                hasher.update(NODE_PREFIX[0..]);
-                hasher.update(children.left[0..]);
-                hasher.update(children.right[0..]);
-            } else {
-                hasher.update(LEAF_PREFIX[0..]);
+                var payload: [128]u8 = undefined;
+                @memcpy(payload[0..64], NODE_PREFIX[0..]);
+                @memcpy(payload[64..96], children.left[0..]);
+                @memcpy(payload[96..128], children.right[0..]);
+                return Hasher.hashFixed128(&payload);
             }
+
+            var hasher = Hasher.init();
+            hasher.update(LEAF_PREFIX[0..]);
 
             var at: usize = 0;
             if (builtin.cpu.arch.endian() == .little) {

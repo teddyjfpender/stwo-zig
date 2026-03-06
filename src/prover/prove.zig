@@ -13,6 +13,7 @@ const component_prover = @import("air/component_prover.zig");
 const prover_air_accumulation = @import("air/accumulation.zig");
 const prover_circle = @import("poly/circle/mod.zig");
 const pcs_prover = @import("pcs/mod.zig");
+const stage_profile = @import("stage_profile.zig");
 const secure_column = @import("secure_column.zig");
 
 const M31 = m31.M31;
@@ -64,7 +65,7 @@ pub fn proveEx(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
     include_all_preprocessed_columns: bool,
 ) !proof_mod.ExtendedStarkProof(H) {
-    return proveExComponents(
+    return proveExWithRecorder(
         H,
         MC,
         allocator,
@@ -72,6 +73,29 @@ pub fn proveEx(
         channel,
         commitment_scheme,
         include_all_preprocessed_columns,
+        null,
+    );
+}
+
+pub fn proveExWithRecorder(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+) !proof_mod.ExtendedStarkProof(H) {
+    return proveExComponentsWithRecorder(
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        recorder,
     );
 }
 
@@ -108,11 +132,32 @@ fn proveExSampledPoints(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
     sampled_points: TreeVec([][]CirclePointQM31),
 ) !proof_mod.ExtendedStarkProof(H) {
+    return proveExSampledPointsWithRecorder(
+        H,
+        MC,
+        allocator,
+        channel,
+        commitment_scheme,
+        sampled_points,
+        null,
+    );
+}
+
+fn proveExSampledPointsWithRecorder(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
+    sampled_points: TreeVec([][]CirclePointQM31),
+    recorder: ?*stage_profile.Recorder,
+) !proof_mod.ExtendedStarkProof(H) {
     if (commitment_scheme.trees.items.len == 0) return ProvingError.MissingPreprocessedTree;
 
-    const commitment_proof = try commitment_scheme.proveValues(
+    const commitment_proof = try commitment_scheme.proveValuesWithRecorder(
         allocator,
         sampled_points,
+        recorder,
         channel,
     );
 
@@ -137,6 +182,28 @@ fn proveExComponents(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
     include_all_preprocessed_columns: bool,
 ) !proof_mod.ExtendedStarkProof(H) {
+    return proveExComponentsWithRecorder(
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        null,
+    );
+}
+
+fn proveExComponentsWithRecorder(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+) !proof_mod.ExtendedStarkProof(H) {
     var scheme = commitment_scheme;
 
     if (scheme.trees.items.len <= PREPROCESSED_TRACE_IDX) {
@@ -152,75 +219,140 @@ fn proveExComponents(
     if (composition_log_size <= COMPOSITION_LOG_SPLIT) return ProvingError.InvalidStructure;
     const max_log_degree_bound = composition_log_size - COMPOSITION_LOG_SPLIT;
 
-    const random_coeff = channel.drawSecureFelt();
+    const random_coeff = blk: {
+        var draw_random_coeff_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "draw_random_coeff",
+            "Draw random coefficient",
+        );
+        defer draw_random_coeff_stage.end();
+        break :blk channel.drawSecureFelt();
+    };
 
     {
-        var trace = try scheme.trace(allocator);
+        var trace = blk: {
+            var composition_trace_stage = try stage_profile.StageScope.begin(
+                recorder,
+                "composition_trace_extract",
+                "Composition trace extract",
+            );
+            defer composition_trace_stage.end();
+            break :blk try scheme.trace(allocator);
+        };
         defer trace.polys.deinitDeep(allocator);
 
-        var composition_eval = try component_provers.computeCompositionEvaluation(
-            allocator,
-            random_coeff,
-            &trace,
-        );
+        var composition_eval = blk: {
+            var composition_eval_stage = try stage_profile.StageScope.begin(
+                recorder,
+                "composition_evaluation",
+                "Composition evaluation",
+            );
+            defer composition_eval_stage.end();
+            break :blk try component_provers.computeCompositionEvaluation(
+                allocator,
+                random_coeff,
+                &trace,
+            );
+        };
         defer composition_eval.deinit(allocator);
 
-        var composition_poly = try prover_circle.secure_poly.interpolateFromEvaluation(
-            allocator,
-            canonic.CanonicCoset.new(composition_log_size).circleDomain(),
-            &composition_eval,
-        );
-        defer composition_poly.deinit(allocator);
-
-        var composition_split = try composition_poly.splitAtMid(allocator);
+        var composition_split = blk: {
+            var composition_interpolate_stage = try stage_profile.StageScope.begin(
+                recorder,
+                "composition_interpolate_and_split",
+                "Composition interpolate and split",
+            );
+            defer composition_interpolate_stage.end();
+            var composition_poly = try prover_circle.secure_poly.interpolateFromEvaluation(
+                allocator,
+                canonic.CanonicCoset.new(composition_log_size).circleDomain(),
+                &composition_eval,
+            );
+            defer composition_poly.deinit(allocator);
+            break :blk try composition_poly.splitAtMid(allocator);
+        };
         defer composition_split.deinit(allocator);
 
-        try commitCompositionSplit(
-            H,
-            MC,
-            allocator,
-            &scheme,
-            composition_split.left,
-            composition_split.right,
-            channel,
-        );
+        {
+            var composition_commit_stage = try stage_profile.StageScope.begin(
+                recorder,
+                "composition_commit",
+                "Composition commit",
+            );
+            defer composition_commit_stage.end();
+            try commitCompositionSplit(
+                H,
+                MC,
+                allocator,
+                &scheme,
+                composition_split.left,
+                composition_split.right,
+                channel,
+            );
+        }
     }
-
-    const oods_point = circle.randomSecureFieldPoint(channel);
 
     var components_view = try component_provers.componentsView(allocator);
     defer components_view.deinit(allocator);
     const core_components = components_view.asCore();
 
-    var sample_points = try core_components.maskPoints(
-        allocator,
-        oods_point,
-        max_log_degree_bound,
-        include_all_preprocessed_columns,
-    );
-    try appendCompositionMaskTree(allocator, &sample_points, oods_point);
+    const OodsSampling = struct {
+        point: CirclePointQM31,
+        sample_points: core_air_components.MaskPoints,
+    };
+    const oods_sampling = blk: {
+        var oods_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "oods_point_and_mask_points",
+            "OODS point and mask points",
+        );
+        defer oods_stage.end();
+        const oods_point = circle.randomSecureFieldPoint(channel);
+        var sample_points = try core_components.maskPoints(
+            allocator,
+            oods_point,
+            max_log_degree_bound,
+            include_all_preprocessed_columns,
+        );
+        try appendCompositionMaskTree(allocator, &sample_points, oods_point);
+        break :blk OodsSampling{
+            .point = oods_point,
+            .sample_points = sample_points,
+        };
+    };
+    const sample_points = oods_sampling.sample_points;
 
-    var ext_proof = try proveExSampledPoints(
+    var ext_proof = try proveExSampledPointsWithRecorder(
         H,
         MC,
         allocator,
         channel,
         scheme,
         sample_points,
+        recorder,
     );
 
-    const composition_oods_eval = ext_proof.proof.extractCompositionOodsEval(
-        oods_point,
-        composition_log_size,
-    ) orelse return ProvingError.InvalidStructure;
+    {
+        var constraint_stage = try stage_profile.StageScope.begin(
+            recorder,
+            "constraint_check_and_assembly",
+            "Constraint check and assembly",
+        );
+        defer constraint_stage.end();
 
-    const expected = try core_components.evalCompositionPolynomialAtPoint(
-        oods_point,
-        &ext_proof.proof.commitment_scheme_proof.sampled_values,
-        random_coeff,
-        max_log_degree_bound,
-    );
-    if (!composition_oods_eval.eql(expected)) return ProvingError.ConstraintsNotSatisfied;
+        const composition_oods_eval = ext_proof.proof.extractCompositionOodsEval(
+            oods_sampling.point,
+            composition_log_size,
+        ) orelse return ProvingError.InvalidStructure;
+
+        const expected = try core_components.evalCompositionPolynomialAtPoint(
+            oods_sampling.point,
+            &ext_proof.proof.commitment_scheme_proof.sampled_values,
+            random_coeff,
+            max_log_degree_bound,
+        );
+        if (!composition_oods_eval.eql(expected)) return ProvingError.ConstraintsNotSatisfied;
+    }
 
     return ext_proof;
 }

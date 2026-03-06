@@ -20,6 +20,7 @@
     .bar.verify { background: #fb8500; }
     .bar.size { background: #2a9d8f; }
     .bar.rss { background: #0e9f6e; }
+    .bar.detail { background: #0969da; }
     .one-marker { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(17, 24, 39, 0.45); z-index: 2; pointer-events: none; }
     .axis-wrap { height: 18px; overflow: visible; background: #f0f3f6; }
     .axis-tick { position: absolute; top: -2px; transform: translateX(-50%); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #57606a; white-space: nowrap; }
@@ -30,11 +31,18 @@
     th, td { text-align: left; border-bottom: 1px solid #d8dee4; padding: 6px 8px; }
     th { background: #f0f3f6; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .flow-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 12px; }
+    .flow-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+    .flow-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .flow-chart { display: grid; grid-template-columns: 220px 1fr 90px; row-gap: 10px; column-gap: 8px; align-items: center; margin-bottom: 16px; }
+    .flow-stack { display: flex; width: 100%; height: 22px; border-radius: 6px; overflow: hidden; background: #eaeef2; border: 1px solid #d8dee4; }
+    .flow-segment { height: 100%; min-width: 1px; }
+    .flow-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 16px; }
   </style>
 </head>
 <body>
   <h1>stwo-zig Benchmark Parity</h1>
-  <p>Generated from committed benchmark data and includes peak-RSS RAM metrics.</p>
+  <p>Generated from committed benchmark data and includes peak-RSS RAM metrics plus a fib5000 proof-flow explainer built from averaged benchmark samples.</p>
 
   <div class="card">
     <h2>Family Benchmarks</h2>
@@ -84,6 +92,36 @@
   </div>
 
   <div class="card">
+    <h2>Fib5000 Proof Flow</h2>
+    <p>Shared top-level prove stages are shown side-by-side for Rust and Zig. Zig also breaks out the two main internal regions we are actively optimizing: <span class="mono">main_trace_commit</span> and <span class="mono">core_prove</span>.</p>
+    <div id="fib5000FlowLegend" class="flow-legend"></div>
+    <div id="fib5000FlowBars" class="flow-chart"></div>
+    <table id="fib5000FlowTable">
+      <thead>
+        <tr>
+          <th>Stage</th>
+          <th>Rust (s)</th>
+          <th>Rust Share</th>
+          <th>Zig (s)</th>
+          <th>Zig Share</th>
+          <th>Zig/Rust</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="flow-detail-grid">
+      <div>
+        <h3>Zig main_trace_commit</h3>
+        <div id="fib5000MainTraceDetail" class="chart"></div>
+      </div>
+      <div>
+        <h3>Zig core_prove</h3>
+        <div id="fib5000CoreProveDetail" class="chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>Example Raw Metrics</h2>
     <table id="exampleTable">
       <thead>
@@ -114,6 +152,7 @@
     const data = window.BENCHMARK_PAGE_DATA;
     const familyRows = data.family_rows || [];
     const exampleRows = data.example_rows || [];
+    const fib5000Flow = data.fib5000_flow || null;
 
     const ratioKeys = [
       'zig_over_rust_prove',
@@ -136,6 +175,17 @@
       });
       const observedMax = values.length > 0 ? Math.max(...values) : 1.0;
       return Math.max(1.0, Math.ceil(observedMax * 10.0) / 10.0);
+    }
+
+    function computeSecondsAxisMax(rows) {
+      const values = rows.map((row) => Number(row.seconds));
+      const observedMax = values.length > 0 ? Math.max(...values) : 1.0;
+      return Math.max(0.001, Math.ceil(observedMax * 1000.0) / 1000.0);
+    }
+
+    function flowColor(index) {
+      const palette = ['#1f6feb', '#2a9d8f', '#fb8500', '#8b5cf6', '#e63946', '#0e9f6e', '#f4a261', '#577590', '#4361ee', '#9c6644', '#3a86ff', '#bc4749', '#6a4c93', '#2d6a4f'];
+      return palette[index % palette.length];
     }
 
     function renderAxisRow(target, axisMax, oneMarkerPct) {
@@ -171,6 +221,33 @@
       target.appendChild(value);
     }
 
+    function renderSecondsAxisRow(target, axisMax) {
+      const label = document.createElement('div');
+      label.className = 'label chart-axis-label';
+      label.textContent = 'seconds';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'bar-wrap axis-wrap';
+
+      const tickLeft = document.createElement('div');
+      tickLeft.className = 'axis-tick left';
+      tickLeft.textContent = '0.000s';
+      wrap.appendChild(tickLeft);
+
+      const tickRight = document.createElement('div');
+      tickRight.className = 'axis-tick right';
+      tickRight.textContent = `${axisMax.toFixed(3)}s`;
+      wrap.appendChild(tickRight);
+
+      const value = document.createElement('div');
+      value.className = 'value';
+      value.textContent = 'sec';
+
+      target.appendChild(label);
+      target.appendChild(wrap);
+      target.appendChild(value);
+    }
+
     function renderBars(rows, targetId, key, barClass, labelKey, axisMax, oneMarkerPct) {
       const target = document.getElementById(targetId);
       renderAxisRow(target, axisMax, oneMarkerPct);
@@ -200,6 +277,98 @@
         target.appendChild(label);
         target.appendChild(wrap);
         target.appendChild(value);
+      });
+    }
+
+    function renderSecondsBars(rows, targetId) {
+      const target = document.getElementById(targetId);
+      const axisMax = computeSecondsAxisMax(rows);
+      renderSecondsAxisRow(target, axisMax);
+      rows.forEach((row) => {
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = row.id;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'bar-wrap';
+
+        const bar = document.createElement('div');
+        bar.className = 'bar detail';
+        bar.style.width = `${Math.min((Number(row.seconds) / axisMax) * 100, 100).toFixed(2)}%`;
+        wrap.appendChild(bar);
+
+        const value = document.createElement('div');
+        value.className = 'value';
+        value.textContent = `${Number(row.seconds).toFixed(6)}s`;
+
+        target.appendChild(label);
+        target.appendChild(wrap);
+        target.appendChild(value);
+      });
+    }
+
+    function renderFlowLegend(flow) {
+      const target = document.getElementById('fib5000FlowLegend');
+      flow.top_level_rows.forEach((row) => {
+        const item = document.createElement('div');
+        item.className = 'flow-legend-item';
+        const swatch = document.createElement('span');
+        swatch.className = 'flow-swatch';
+        swatch.style.background = flowColor(row.color_index);
+        item.appendChild(swatch);
+        const label = document.createElement('span');
+        label.textContent = row.id;
+        item.appendChild(label);
+        target.appendChild(item);
+      });
+    }
+
+    function renderFlowBars(flow) {
+      const target = document.getElementById('fib5000FlowBars');
+      const runtimes = [
+        { key: 'rust', label: `Rust (${Number(flow.rust_total_seconds).toFixed(3)}s)` },
+        { key: 'zig', label: `Zig (${Number(flow.zig_total_seconds).toFixed(3)}s)` },
+      ];
+      runtimes.forEach((runtime) => {
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = runtime.label;
+
+        const stack = document.createElement('div');
+        stack.className = 'flow-stack';
+        flow.top_level_rows.forEach((row) => {
+          const segment = document.createElement('div');
+          segment.className = 'flow-segment';
+          segment.style.background = flowColor(row.color_index);
+          const share = Number(row[`${runtime.key}_share`]);
+          segment.style.width = `${Math.max(share * 100.0, 0.4).toFixed(3)}%`;
+          segment.title = `${row.id}: ${Number(row[`${runtime.key}_seconds`]).toFixed(6)}s (${(share * 100.0).toFixed(2)}%)`;
+          stack.appendChild(segment);
+        });
+
+        const value = document.createElement('div');
+        value.className = 'value';
+        value.textContent = `${Number(flow[`${runtime.key}_total_seconds`]).toFixed(6)}s`;
+
+        target.appendChild(label);
+        target.appendChild(stack);
+        target.appendChild(value);
+      });
+    }
+
+    function renderFlowTable(flow) {
+      const body = document.querySelector('#fib5000FlowTable tbody');
+      flow.top_level_rows.forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="flow-swatch" style="background:${flowColor(row.color_index)}"></span> ${row.id}</td>
+          <td>${Number(row.rust_seconds).toFixed(6)}</td>
+          <td>${(Number(row.rust_share) * 100.0).toFixed(2)}%</td>
+          <td>${Number(row.zig_seconds).toFixed(6)}</td>
+          <td>${(Number(row.zig_share) * 100.0).toFixed(2)}%</td>
+          <td>${Number(row.zig_over_rust).toFixed(6)}</td>
+        `;
+        body.appendChild(tr);
       });
     }
 
@@ -258,7 +427,15 @@
       exampleBody.appendChild(tr);
     });
 
-    document.getElementById('meta').textContent = `families_source=${data.sources.families_report} | examples_source=${data.sources.examples_report} | shared_ratio_axis_max=${sharedAxisMax.toFixed(1)}x`;
+    if (fib5000Flow) {
+      renderFlowLegend(fib5000Flow);
+      renderFlowBars(fib5000Flow);
+      renderFlowTable(fib5000Flow);
+      renderSecondsBars(fib5000Flow.zig_main_trace_commit || [], 'fib5000MainTraceDetail');
+      renderSecondsBars(fib5000Flow.zig_core_prove || [], 'fib5000CoreProveDetail');
+    }
+
+    document.getElementById('meta').textContent = `schema=${data.schema_version} | families_source=${data.sources.families_report} | examples_source=${data.sources.examples_report} | shared_ratio_axis_max=${sharedAxisMax.toFixed(1)}x`;
   </script>
 </body>
 </html>

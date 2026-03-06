@@ -69,10 +69,8 @@ pub const Blake2sHasher = struct {
         }
 
         while (at + 64 < data.len) : (at += 64) {
-            var block: [64]u8 = undefined;
-            @memcpy(block[0..], data[at .. at + 64]);
             self.addCounter(64);
-            self.compressBlock(&block, false);
+            self.compressBlockBytes(data[at .. at + 64], false);
         }
 
         if (at <= data.len) {
@@ -104,10 +102,37 @@ pub const Blake2sHasher = struct {
         return hasher.finalize();
     }
 
+    pub fn hashFixedSingleBlock(comptime byte_len: usize, data: *const [byte_len]u8) Blake2sHash {
+        comptime std.debug.assert(byte_len <= 64);
+
+        var hasher = Self.init();
+        if (byte_len == 64) {
+            hasher.addCounter(64);
+            hasher.compressBlockBytes(data[0..], true);
+            return stateToDigest(hasher.h);
+        }
+
+        var block: [64]u8 = [_]u8{0} ** 64;
+        if (byte_len > 0) {
+            @memcpy(block[0..byte_len], data[0..]);
+        }
+        hasher.addCounter(@intCast(byte_len));
+        hasher.compressBlock(&block, true);
+        return stateToDigest(hasher.h);
+    }
+
+    pub fn hashFixed64(data: *const [64]u8) Blake2sHash {
+        return hashFixedSingleBlock(64, data);
+    }
+
     pub fn hashFixed128(data: *const [128]u8) Blake2sHash {
         var hasher = Self.init();
-        hasher.update(data[0..]);
-        return hasher.finalize();
+        hasher.addCounter(64);
+        hasher.compressBlockBytes(data[0..64], false);
+        hasher.addCounter(64);
+        hasher.compressBlockBytes(data[64..128], true);
+        hasher.finalized = true;
+        return stateToDigest(hasher.h);
     }
 
     fn addCounter(self: *Self, inc: u32) void {
@@ -119,10 +144,21 @@ pub const Blake2sHasher = struct {
     fn compressBlock(self: *Self, block: *const [64]u8, is_last: bool) void {
         var m: [16]u32 = undefined;
         loadBlockWords(block, &m);
+        self.compressWords(&m, is_last);
+    }
+
+    fn compressBlockBytes(self: *Self, block: []const u8, is_last: bool) void {
+        std.debug.assert(block.len == 64);
+        var m: [16]u32 = undefined;
+        loadBlockWordsFromSlice(block, &m);
+        self.compressWords(&m, is_last);
+    }
+
+    fn compressWords(self: *Self, m: *const [16]u32, is_last: bool) void {
         const f0: u32 = if (is_last) 0xFFFF_FFFF else 0;
         switch (effectiveMode()) {
-            .simd => compressSimd(&self.h, &m, self.t0, self.t1, f0),
-            .scalar => compressScalar(&self.h, &m, self.t0, self.t1, f0),
+            .simd => compressSimd(&self.h, m, self.t0, self.t1, f0),
+            .scalar => compressScalar(&self.h, m, self.t0, self.t1, f0),
             .auto => unreachable,
         }
     }
@@ -164,6 +200,18 @@ fn loadBlockWords(block: *const [64]u8, out: *[16]u32) void {
     var i: usize = 0;
     while (i < 16) : (i += 1) {
         out[i] = readU32LeFromFixed(block, i * 4);
+    }
+}
+
+fn loadBlockWordsFromSlice(block: []const u8, out: *[16]u32) void {
+    std.debug.assert(block.len == 64);
+    var i: usize = 0;
+    while (i < 16) : (i += 1) {
+        const start = i * 4;
+        out[i] = (@as(u32, block[start + 0])) |
+            (@as(u32, block[start + 1]) << 8) |
+            (@as(u32, block[start + 2]) << 16) |
+            (@as(u32, block[start + 3]) << 24);
     }
 }
 
@@ -362,6 +410,29 @@ test "blake2s backend: fixed128 equals generic stream hash" {
         const generic = Blake2sHasher.hash(payload[0..]);
         const fixed = Blake2sHasher.hashFixed128(&payload);
         try std.testing.expect(std.mem.eql(u8, generic[0..], fixed[0..]));
+    }
+}
+
+test "blake2s backend: fixed single-block helpers equal generic hash" {
+    var prng = std.Random.DefaultPrng.init(0x243f_6a88_85a3_08d3);
+    const rng = prng.random();
+
+    inline for (.{
+        @as(usize, 0),
+        @as(usize, 1),
+        @as(usize, 37),
+        @as(usize, 40),
+        @as(usize, 52),
+        @as(usize, 64),
+    }) |byte_len| {
+        var i: usize = 0;
+        while (i < 32) : (i += 1) {
+            var payload: [byte_len]u8 = undefined;
+            if (byte_len > 0) rng.bytes(payload[0..]);
+            const generic = Blake2sHasher.hash(payload[0..]);
+            const fixed = Blake2sHasher.hashFixedSingleBlock(byte_len, &payload);
+            try std.testing.expect(std.mem.eql(u8, generic[0..], fixed[0..]));
+        }
     }
 }
 

@@ -20,6 +20,8 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const parallel_min_nodes_per_worker: usize = 1 << 12;
         const max_parallel_workers: usize = 16;
         const merkle_worker_stack_size: usize = 1 << 20; // 1 MiB; lowers RSS vs platform default thread stacks.
+        const leaf_tile_len: usize = 256;
+        const max_leaf_scratch_bytes: usize = 256 * 1024;
         const ThreadPool = std.Thread.Pool;
         const WaitGroup = std.Thread.WaitGroup;
         const SharedPoolState = struct {
@@ -394,10 +396,19 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 prev_layer = expanded;
 
                 const group_columns = sorted_columns[group_start..group_end];
-                var idx: usize = 0;
-                while (idx < layer_size) : (idx += 1) {
-                    for (group_columns) |column| {
-                        prev_layer[idx].updateLeaf(column.values[idx .. idx + 1]);
+                if (comptime @hasDecl(H, "updateLeafPackedBytes")) {
+                    try updateLeafHashersPacked(
+                        allocator,
+                        prev_layer,
+                        group_columns,
+                        layer_size,
+                    );
+                } else {
+                    var idx: usize = 0;
+                    while (idx < layer_size) : (idx += 1) {
+                        for (group_columns) |column| {
+                            prev_layer[idx].updateLeaf(column.values[idx .. idx + 1]);
+                        }
                     }
                 }
 
@@ -409,6 +420,87 @@ pub fn MerkleProverLifted(comptime H: type) type {
             for (prev_layer, 0..) |*hasher, i| out[i] = hasher.finalize();
             allocator.free(prev_layer);
             return out;
+        }
+
+        fn updateLeafHashersPacked(
+            allocator: std.mem.Allocator,
+            leaf_hashers: []H,
+            group_columns: []const ColumnRef,
+            layer_size: usize,
+        ) !void {
+            var scratch = try allocator.alignedAlloc(
+                u8,
+                .of(M31),
+                max_leaf_scratch_bytes,
+            );
+            defer allocator.free(scratch);
+
+            var tile_start: usize = 0;
+            while (tile_start < layer_size) : (tile_start += leaf_tile_len) {
+                const tile_end = @min(layer_size, tile_start + leaf_tile_len);
+                const tile_size = tile_end - tile_start;
+                const max_chunk_columns = @max(
+                    @as(usize, 1),
+                    max_leaf_scratch_bytes / (tile_size * @sizeOf(M31)),
+                );
+
+                var column_start: usize = 0;
+                while (column_start < group_columns.len) {
+                    const column_end = @min(group_columns.len, column_start + max_chunk_columns);
+                    const column_chunk = group_columns[column_start..column_end];
+                    const bytes_per_leaf = column_chunk.len * @sizeOf(M31);
+                    const scratch_len = tile_size * bytes_per_leaf;
+                    packLeafTileBytes(
+                        scratch[0..scratch_len],
+                        column_chunk,
+                        tile_start,
+                        tile_size,
+                    );
+
+                    var local_leaf: usize = 0;
+                    while (local_leaf < tile_size) : (local_leaf += 1) {
+                        const byte_start = local_leaf * bytes_per_leaf;
+                        leaf_hashers[tile_start + local_leaf].updateLeafPackedBytes(
+                            scratch[byte_start .. byte_start + bytes_per_leaf],
+                        );
+                    }
+                    column_start = column_end;
+                }
+            }
+        }
+
+        fn packLeafTileBytes(
+            scratch: []align(@alignOf(M31)) u8,
+            column_chunk: []const ColumnRef,
+            tile_start: usize,
+            tile_size: usize,
+        ) void {
+            const bytes_per_leaf = column_chunk.len * @sizeOf(M31);
+            std.debug.assert(scratch.len == tile_size * bytes_per_leaf);
+
+            if (builtin.cpu.arch.endian() == .little) {
+                const scratch_words = std.mem.bytesAsSlice(M31, scratch);
+                var local_leaf: usize = 0;
+                while (local_leaf < tile_size) : (local_leaf += 1) {
+                    const leaf_words = scratch_words[local_leaf * column_chunk.len ..][0..column_chunk.len];
+                    const leaf_index = tile_start + local_leaf;
+                    for (column_chunk, 0..) |column, column_idx| {
+                        leaf_words[column_idx] = column.values[leaf_index];
+                    }
+                }
+                return;
+            }
+
+            var local_leaf: usize = 0;
+            while (local_leaf < tile_size) : (local_leaf += 1) {
+                const leaf_index = tile_start + local_leaf;
+                const leaf_start = local_leaf * bytes_per_leaf;
+                for (column_chunk, 0..) |column, column_idx| {
+                    const encoded = column.values[leaf_index].toBytesLe();
+                    const byte_start = leaf_start + (column_idx * @sizeOf(M31));
+                    @memcpy(scratch[byte_start .. byte_start + @sizeOf(M31)], encoded[0..]);
+                }
+            }
         }
 
         fn buildNextLayer(
@@ -739,6 +831,121 @@ test "prover vcs_lifted: empty columns root matches mixed-degree prover" {
     defer mixed.deinit(alloc);
 
     try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&lifted.root()), std.mem.asBytes(&mixed.root())));
+}
+
+test "prover vcs_lifted: packed leaf hashing matches legacy per-value path" {
+    const lifted_blake2 = @import("../../core/vcs_lifted/blake2_merkle.zig");
+    const BaseHasher = lifted_blake2.Blake2sMerkleHasher;
+    const PackedProver = MerkleProverLifted(BaseHasher);
+    const LegacyLeafHasher = struct {
+        inner: BaseHasher,
+        pub const Hash = BaseHasher.Hash;
+
+        pub fn defaultWithInitialState() @This() {
+            return .{ .inner = BaseHasher.defaultWithInitialState() };
+        }
+
+        pub fn hashChildren(children: struct { left: Hash, right: Hash }) Hash {
+            return BaseHasher.hashChildren(children);
+        }
+
+        pub fn nodeSeed() @This() {
+            return .{ .inner = BaseHasher.nodeSeed() };
+        }
+
+        pub fn hashChildrenWithSeed(seed: @This(), children: struct { left: Hash, right: Hash }) Hash {
+            return BaseHasher.hashChildrenWithSeed(seed.inner, children);
+        }
+
+        pub fn updateLeaf(self: *@This(), column_values: []const M31) void {
+            self.inner.updateLeaf(column_values);
+        }
+
+        pub fn finalize(self: *@This()) Hash {
+            return self.inner.finalize();
+        }
+    };
+    const LegacyProver = MerkleProverLifted(LegacyLeafHasher);
+    const alloc = std.testing.allocator;
+    const large_column_count: usize = 258;
+    const small_column_count: usize = 2;
+    const total_columns = large_column_count + small_column_count;
+    const large_len: usize = 1 << 9;
+    const small_len: usize = 1 << 8;
+
+    const columns_storage = try alloc.alloc([]M31, total_columns);
+    defer {
+        for (columns_storage) |column| alloc.free(column);
+        alloc.free(columns_storage);
+    }
+
+    const columns = try alloc.alloc([]const M31, total_columns);
+    defer alloc.free(columns);
+
+    for (0..large_column_count) |col_idx| {
+        const values = try alloc.alloc(M31, large_len);
+        columns_storage[col_idx] = values;
+        columns[col_idx] = values;
+        for (values, 0..) |*value, row_idx| {
+            const seed = ((@as(u64, @intCast(col_idx + 1)) * 1009) +
+                (@as(u64, @intCast(row_idx + 3)) * 37) +
+                @as(u64, @intCast((col_idx ^ row_idx) + 11)));
+            value.* = M31.fromU64(seed);
+        }
+    }
+    for (0..small_column_count) |offset| {
+        const col_idx = large_column_count + offset;
+        const values = try alloc.alloc(M31, small_len);
+        columns_storage[col_idx] = values;
+        columns[col_idx] = values;
+        for (values, 0..) |*value, row_idx| {
+            const seed = ((@as(u64, @intCast(col_idx + 5)) * 1223) +
+                (@as(u64, @intCast(row_idx + 7)) * 19) +
+                @as(u64, @intCast((col_idx * 3) + row_idx)));
+            value.* = M31.fromU64(seed);
+        }
+    }
+
+    var packed_prover = try PackedProver.commit(alloc, columns);
+    defer packed_prover.deinit(alloc);
+    var legacy = try LegacyProver.commit(alloc, columns);
+    defer legacy.deinit(alloc);
+
+    const packed_root = packed_prover.root();
+    const legacy_root = legacy.root();
+    try std.testing.expectEqualSlices(u8, packed_root[0..], legacy_root[0..]);
+
+    const query_positions = [_]usize{ 3, 255, 510 };
+    var packed_decommitment = try packed_prover.decommit(alloc, query_positions[0..], columns);
+    defer packed_decommitment.deinit(alloc);
+    var legacy_decommitment = try legacy.decommit(alloc, query_positions[0..], columns);
+    defer legacy_decommitment.deinit(alloc);
+
+    try std.testing.expectEqual(packed_decommitment.queried_values.len, legacy_decommitment.queried_values.len);
+    for (packed_decommitment.queried_values, legacy_decommitment.queried_values) |packed_column, legacy_column| {
+        try std.testing.expectEqual(packed_column.len, legacy_column.len);
+        for (packed_column, legacy_column) |packed_value, legacy_value| {
+            try std.testing.expect(packed_value.eql(legacy_value));
+        }
+    }
+
+    const packed_hash_witness = packed_decommitment.decommitment.decommitment.hash_witness;
+    const legacy_hash_witness = legacy_decommitment.decommitment.decommitment.hash_witness;
+    try std.testing.expectEqual(packed_hash_witness.len, legacy_hash_witness.len);
+    for (packed_hash_witness, legacy_hash_witness) |packed_hash, legacy_hash| {
+        try std.testing.expectEqualSlices(u8, packed_hash[0..], legacy_hash[0..]);
+    }
+
+    const packed_layers = packed_decommitment.decommitment.aux.all_node_values;
+    const legacy_layers = legacy_decommitment.decommitment.aux.all_node_values;
+    try std.testing.expectEqual(packed_layers.len, legacy_layers.len);
+    for (packed_layers, legacy_layers) |packed_layer, legacy_layer| {
+        try std.testing.expectEqual(packed_layer.len, legacy_layer.len);
+        for (packed_layer, legacy_layer) |packed_node, legacy_node| {
+            try std.testing.expectEqual(packed_node.index, legacy_node.index);
+            try std.testing.expectEqualSlices(u8, packed_node.hash[0..], legacy_node.hash[0..]);
+        }
+    }
 }
 
 test "prover vcs_lifted: root is stable across large-layer worker-count overrides" {

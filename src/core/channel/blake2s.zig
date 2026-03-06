@@ -1,10 +1,16 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const blake2_hash = @import("../vcs/blake2_hash.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
+
+comptime {
+    std.debug.assert(@sizeOf(QM31) == qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31));
+    std.debug.assert(@alignOf(QM31) == @alignOf(M31));
+}
 
 pub const Digest32 = [32]u8;
 pub const BLAKE_BYTES_PER_HASH: usize = 32;
@@ -35,11 +41,15 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         pub fn mixFelts(self: *Self, felts: []const QM31) void {
             var hasher = Hasher.init();
             hasher.update(self.digest[0..]);
-            for (felts) |felt| {
-                const arr = felt.toM31Array();
-                for (arr) |v| {
-                    const bytes = v.toBytesLe();
-                    hasher.update(bytes[0..]);
+            if (builtin.cpu.arch.endian() == .little) {
+                if (felts.len > 0) hasher.update(std.mem.sliceAsBytes(felts));
+            } else {
+                for (felts) |felt| {
+                    const arr = felt.toM31Array();
+                    for (arr) |v| {
+                        const bytes = v.toBytesLe();
+                        hasher.update(bytes[0..]);
+                    }
                 }
             }
             self.updateDigest(hasher.finalize());
@@ -48,9 +58,13 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         pub fn mixU32s(self: *Self, data: []const u32) void {
             var hasher = Hasher.init();
             hasher.update(self.digest[0..]);
-            for (data) |word| {
-                const bytes = u32ToBytesLe(word);
-                hasher.update(bytes[0..]);
+            if (builtin.cpu.arch.endian() == .little) {
+                if (data.len > 0) hasher.update(std.mem.sliceAsBytes(data));
+            } else {
+                for (data) |word| {
+                    const bytes = u32ToBytesLe(word);
+                    hasher.update(bytes[0..]);
+                }
             }
             self.updateDigest(hasher.finalize());
         }
@@ -151,6 +165,7 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             hasher.update(data);
             return hasher.finalize();
         }
+
     };
 }
 
