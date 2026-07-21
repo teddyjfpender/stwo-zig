@@ -701,6 +701,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/prover/lookups/mod.zig"
     },
+    "stwo.prover.measurement": {
+      "kind": "const",
+      "rationale": "Zig-specific process resource measurement primitives for benchmark evidence; they do not alter proof semantics.",
+      "rust_path": null,
+      "source": "src/prover/mod.zig"
+    },
     "stwo.prover.mmap_alloc": {
       "kind": "const",
       "rationale": "Zig-specific mapped-allocation policy for bounded prover storage; no direct upstream public export.",
