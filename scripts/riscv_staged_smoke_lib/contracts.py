@@ -10,8 +10,8 @@ from typing import Any
 
 HELP_SHA256 = {
     "root-help": "da4c10b0b6b0da94e05b2cab64892184c09143857cecb50837db9cdd6936dad3",
-    "prove-help": "5a3e2b0247447a70f39bee934a0f99f2716c4d89d2c728c8e5c73ce180e69901",
-    "bench-help": "fc757cc0e2ecb9e8023f7076d715cde4b6fa5c718c5be01be75d1d260b5b570b",
+    "prove-help": "dfe3a1a6227d1002a0be02a381a9dc6903a6e614f2c5803df6f24d68f7a8d98f",
+    "bench-help": "85829dc20d199d4d3a628ef6ac6de18284c899e5a03cbec9719395c5e58a09eb",
     "verify-help": "8a878cd538b6f27edca958362a1b24fb4a30a8070dc347446221e8e17a327ca5",
     "applications-help": "c375525c99ee84a5e51a3db048fc2ac61a44782536b4d0d8e9a55de826b8bf5b",
 }
