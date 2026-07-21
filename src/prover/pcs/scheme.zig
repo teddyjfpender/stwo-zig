@@ -669,10 +669,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             }
 
             const random_coeff = channel.drawSecureFelt();
-
             const lifting_log_size = try scheme.maxTreeLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
-
             var fri_prover = blk: {
                 var fri_quotient_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -715,12 +713,14 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 defer provider.deinit(allocator);
                 provider.setBackendResidencyHandles(residency_handles);
 
+                const fold_tree = try scheme.twiddle_source.get(allocator, lifting_log_size);
                 break :blk try prover_fri.FriProver(B, H, MC).commitLazy(
                     allocator,
                     channel,
                     scheme.config.fri_config,
                     domain,
                     &provider,
+                    fold_tree.itwiddles,
                 );
             };
 

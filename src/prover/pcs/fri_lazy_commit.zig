@@ -2,6 +2,7 @@ const std = @import("std");
 const core_fri = @import("stwo_core").fri;
 const circle_domain = @import("stwo_core").poly.circle.domain;
 const quotient_ops = @import("quotient_ops.zig");
+const M31 = @import("stwo_core").fields.m31.M31;
 
 pub fn commitLazy(
     comptime Prover: type,
@@ -12,6 +13,7 @@ pub fn commitLazy(
     config: core_fri.FriConfig,
     column_domain: circle_domain.CircleDomain,
     provider: *quotient_ops.LazyQuotientProvider,
+    fold_itwiddles: ?[]const M31,
 ) !Prover {
     if (!column_domain.isCanonic()) return error.NotCanonicDomain;
     if (provider.domain_size != column_domain.size()) return error.ShapeMismatch;
@@ -60,7 +62,7 @@ pub fn commitLazy(
         provider,
     );
     errdefer first_layer.deinit(allocator);
-    var inner_commit = try Prover.commitInnerLayers(allocator, channel, config, first_layer);
+    var inner_commit = try Prover.commitInnerLayers(allocator, channel, config, first_layer, fold_itwiddles);
     defer inner_commit.last_layer_evaluation.deinit(allocator);
     errdefer {
         for (inner_commit.inner_layers) |*layer| layer.deinit(allocator);

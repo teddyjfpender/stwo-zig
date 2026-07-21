@@ -131,14 +131,12 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
 
             var first_layer = try commitFirstLayer(allocator, channel, column_domain, column);
             errdefer first_layer.deinit(allocator);
-
-            var inner_commit = try commitInnerLayers(allocator, channel, config, first_layer);
+            var inner_commit = try commitInnerLayers(allocator, channel, config, first_layer, null);
             defer inner_commit.last_layer_evaluation.deinit(allocator);
             errdefer {
                 for (inner_commit.inner_layers) |*layer| layer.deinit(allocator);
                 allocator.free(inner_commit.inner_layers);
             }
-
             var last_layer_poly = try commitLastLayer(
                 allocator,
                 channel,
@@ -167,6 +165,7 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
             config: core_fri.FriConfig,
             column_domain: circle_domain.CircleDomain,
             provider: *quotient_ops.LazyQuotientProvider,
+            fold_itwiddles: ?[]const M31,
         ) !Self {
             return fri_lazy_commit.commitLazy(
                 Self,
@@ -177,6 +176,7 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
                 config,
                 column_domain,
                 provider,
+                fold_itwiddles,
             );
         }
 
@@ -364,6 +364,7 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
             channel: anytype,
             config: core_fri.FriConfig,
             first_layer: FirstLayerProver,
+            fold_itwiddles: ?[]const M31,
         ) !InnerCommitResult {
             if (config.fold_step == 0 or config.fold_step > first_layer.domain.logSize())
                 return core_fri.FriVerificationError.InvalidNumFriLayers;
@@ -473,6 +474,7 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
                 allocator,
                 if (lazy_inverse_workspace) 0 else layer_evaluation.len() / 2,
             );
+            fold_workspace.preset_itwiddles = fold_itwiddles;
             defer fold_workspace.deinit(allocator);
             const last_layer_log_size = std.math.log2_int(usize, config.lastLayerDomainSize());
             if (comptime @hasDecl(B, "commitFriLayers")) {

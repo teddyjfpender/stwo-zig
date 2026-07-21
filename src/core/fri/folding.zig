@@ -240,6 +240,12 @@ pub const FoldLineResult = struct {
 };
 
 pub const FoldLineWorkspace = struct {
+    /// Optional borrowed itwiddle tower for the fold's domain family. When
+    /// set (and sized 2^(line log) for the cascade's first domain), each
+    /// layer's x-inverses are read from the canonical layer slice
+    /// `[len - 2*half .. len - half]` — bit-identical to computing them,
+    /// with the fill and serial batch-inverse chain skipped entirely.
+    preset_itwiddles: ?[]const M31 = null,
     x_values: []M31,
     inv_x_values: []M31,
 
@@ -434,12 +440,19 @@ fn foldLineInPlaceSingleStep(
     if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
 
     const folded_len = eval.len / 2;
-    try workspace.ensureCapacity(allocator, folded_len);
-    const x_values = workspace.x_values[0..folded_len];
-    const inv_x_values = workspace.inv_x_values[0..folded_len];
-
-    fillBitReversedCosetCoordinate(x_values, domain.coset(), .x);
-    try fields.batchInverseInPlace(M31, x_values, inv_x_values);
+    const inv_x_values = blk: {
+        if (workspace.preset_itwiddles) |tower| {
+            if (tower.len >= folded_len * 2) {
+                break :blk tower[tower.len - folded_len * 2 .. tower.len - folded_len];
+            }
+        }
+        try workspace.ensureCapacity(allocator, folded_len);
+        const x_values = workspace.x_values[0..folded_len];
+        const scratch = workspace.inv_x_values[0..folded_len];
+        fillBitReversedCosetCoordinate(x_values, domain.coset(), .x);
+        try fields.batchInverseInPlace(M31, x_values, scratch);
+        break :blk scratch;
+    };
 
     var i: usize = 0;
     while (i < folded_len) : (i += 1) {
