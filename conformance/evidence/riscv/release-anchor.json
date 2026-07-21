@@ -1,0 +1,2518 @@
+{
+ "schema": "riscv-oracle-receipt-v2",
+ "candidate_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+ "created_at_unix": 1784656854,
+ "case_result_digests": {
+  "decode/aggregate": "a71225ac395d174e04119c30eb854ae2d2f5d8842e36207b42d739b5c9b57cf7",
+  "decode/corpus": "a71225ac395d174e04119c30eb854ae2d2f5d8842e36207b42d739b5c9b57cf7",
+  "execution/aggregate": "635465111932780fff23103d8e6eb2b0844a0b9024e5a2eb1d1d3ca459129cec",
+  "execution/alu_test": "5261b15ca612544ec57ad33903e3f7e8e61b73aa499ab08d1a52a6cf452f67ec",
+  "execution/branch_fib": "6fa0cbe675e43730511e4cb83d690d0c62d923344b804920b860205df49dbcba",
+  "execution/bubble_sort": "2b37d76c5907a884778fdcd4aca74df9c3e0bd9f66e88606ee4b35ef900e4daf",
+  "execution/collatz": "a3954920c5e8298d81193a7f4e93e23206bf6a4e387c6fb93e12d666f9185fe3",
+  "execution/declared_region": "3af868e9bbe3de1ce82d2701f9b34d816690af5bdbf3f8430b0087ae8665d41c",
+  "execution/fib_iter": "075bbdc55819a7ad7c2017e9788d268aa559d6d3722bfc03465e6ddab51c7d33",
+  "execution/gcd_euclid": "cd981a6f6a010a941efbb67cfc7cf9f25e893e72a356327cca0a8beb0dc34498",
+  "execution/jal_jalr": "75d9de422fba4d352aa64f5ff28ffe784e189178ba576a1b78bf3203e0cf3247",
+  "execution/mem_ls": "a36417fa9e26e16c012d76d209bff33c1afdf36b51f742a17a8542a0d060cb45",
+  "execution/memcpy_loop": "142285f4de4f02524b2fda3adb433213eb037305e78db64cef80b7a0e2f93e1d",
+  "execution/mul_div": "6192958503a5cb969c2a6b8db80d01ab16884112f8dbd343ef62a1fdfa86af78",
+  "execution/mulhu_only": "689ae38c627ebad0483b7bbe03d6044feccda65d30dd9498796bbeea33d781f8",
+  "execution/multi_shard_addi": "4c2333242a4be88f11d41b357647f450c21f65a36073645945607dfc6f11fcd0",
+  "execution/shift_logic": "b7a63d05dcf5d1199ba43a65650983f22f45c262f9ee1dd841e80b363cbca424",
+  "execution/sieve_primes": "4338901d7097097ecf75a40404e62e076bf3b142bc99c27cf7ea58c0ecf9328f",
+  "execution/xorshift_prng": "9498f5dc6526d2d7781a01e919b292c8504d4c383d786c55a6a8e199fa3bc9e3",
+  "memory_roots/aggregate": "fcb204c144bef219df4d360db1786a6502004163aed099f64bdaad9e8c00afd6",
+  "memory_roots/alu_test": "5119bb979ef4de77574c2e4df56c56c7c0387b4769af62d4c23408dd131f427a",
+  "memory_roots/branch_fib": "f83d6e22640e3b198e06744612484ed4dc7d57f227c16c78cce44dcb1eeb5a80",
+  "memory_roots/bubble_sort": "455cea872f3a69be9aeb8379328ae02f56e20650fba979ee01ea5525e0adf223",
+  "memory_roots/collatz": "e9e0580c196e248e7f541170af84a5d16709d27bd45afac29eddef0b44a0bb15",
+  "memory_roots/declared_region": "dd721a69a5ae389102173181369b4e3e73e982d9a42183275599635beaa0421f",
+  "memory_roots/fib_iter": "a0a787ecaa483a48bad1a0968e5b2df1fc54de237b3f10a26922a7ed1ac311f0",
+  "memory_roots/gcd_euclid": "d41e8ab38c90cf8077df50d2771ba0030b4399c17eb625de5ab240c25a998530",
+  "memory_roots/jal_jalr": "0b8914c27c39cc506e7452a70c7aaebb66c0282c244b9186c60cabc7650c5bac",
+  "memory_roots/mem_ls": "f68c7bfa448f5a748d1bb7abb181451c6d8323aa646bb152a583b5a93426be6e",
+  "memory_roots/memcpy_loop": "5dd5775018917532f2861c8a324db7e12c35a6277420f25048be9035982d48ff",
+  "memory_roots/mul_div": "1133ec78b27859866ee3c1484de3427a93852076315971b22414cb95e9ff755e",
+  "memory_roots/mulhu_only": "892da1bc26ca6ad3748bd705a193f2514c919248ca353ea1b9eb2d6cc28741d4",
+  "memory_roots/multi_shard_addi": "2147ba7aa6256ae96bddee4da2aacf49b8fa676c862f83d54d1a2c94ccae7f22",
+  "memory_roots/shift_logic": "4504cb6053b3a6f21add572602523c32032cede2ca2db9f0afd6c437bbcf2e1a",
+  "memory_roots/sieve_primes": "08f2083a1e2f2558ab2001317417b89e4a311d56694a63168624f9ea6b0b3da5",
+  "memory_roots/xorshift_prng": "fc81d4b697e124f6dd1dbfba551c3442489d00a8ef16af10bcb23c530e18dece",
+  "ordered_accesses/aggregate": "1f034921a6ea09c8859f0cb008fd4aee91cd9eab443a81d633e9c2af6c09aaf2",
+  "ordered_accesses/alu_test": "baf0248fdfcb2bace2efdfb95b51402d54db37446a92bd4882bf6ea16741ae0a",
+  "ordered_accesses/branch_fib": "e39e26d5ff64247df6b5e444724c70512f129e3969352582029a7fb7fb713403",
+  "ordered_accesses/bubble_sort": "d99fdc6a09cb77a1d915707bf674ca22a5be7f0267648a80181241fa8a292860",
+  "ordered_accesses/collatz": "6f8f220509b6cbfda5276b34685cc18471a3ea5073e11ecc07a6a4ff6e2b410c",
+  "ordered_accesses/declared_region": "a641d364842c78eefcb461a7e4bc1fb5243ce17afb80455da7dcf52949605718",
+  "ordered_accesses/fib_iter": "1f4ee0ad6594cb255bdb458dce9fb6ca1bf73206c88bd9e5311562b34afde916",
+  "ordered_accesses/gcd_euclid": "9e4ba1308decfdfc907c1cae22d04e21bc3bbc987c14b90a09981e5b0760e895",
+  "ordered_accesses/jal_jalr": "11e9f9687d7beedaffa790ea11f0473840f0430f306d1764bec373a1b2533fa4",
+  "ordered_accesses/mem_ls": "d73d74f7fb25a11ad54ab8cf85fa0226c063a03a610ba70e73f76ca2702cef40",
+  "ordered_accesses/memcpy_loop": "4e8cf3db439b9187cfc1302baa627df05da4a708a9c08e6761804463e225ffcc",
+  "ordered_accesses/mul_div": "68aaa0370e7c62d4c38f334009badf103bfecbf0056fa6116e61ef8c03f9c98a",
+  "ordered_accesses/mulhu_only": "72972de91d48d58b5fb02e6ac76577fe0b99a05da5a65733bcec3028cc32ca68",
+  "ordered_accesses/multi_shard_addi": "749a2a831b015e9957b7497ee1b03c7c5b259a03cad11323ee791b9012bc3aaa",
+  "ordered_accesses/shift_logic": "ac7b7b05e081cfa65b25fd6e3422aed9e2ba2a0301a988e5e63fd596de6d9948",
+  "ordered_accesses/sieve_primes": "02c649c45c122704947fce4c5b821e73ac1c113a25122c67cdc3c502620fdf87",
+  "ordered_accesses/xorshift_prng": "ed2f59d388ccd6ae61029026c282aef9b348e3fbab41bd131df02e85cd32a175",
+  "per_family_witness_rows/aggregate": "fcb4441f669e93dbb72f577544117cca0232b6cef813a3b7de13fef762394a55",
+  "per_family_witness_rows/alu_test": "e05847c52e5f476092c3e6e2897f2d4dadeb2f99896ceb001d7177facb449e37",
+  "per_family_witness_rows/branch_fib": "d9d651f1abb73d846b620f275aca842f4da12ee52bf867429b7beba91ff53ca8",
+  "per_family_witness_rows/bubble_sort": "d46ab190f91fffaf6dd81a00de9e3e6cef9d0d20fa372ccb30c41f7c72969d97",
+  "per_family_witness_rows/collatz": "fcf0d2c8741fa0d14fcfc922b46cd486e65654101689ee0f8fddf8818124f5bc",
+  "per_family_witness_rows/declared_region": "972f90dedff5f9b52b4586a7ad1b6a63a067addce317a2aeabbad348f8a1218d",
+  "per_family_witness_rows/fib_iter": "e3815668d678cb6f90488bf0a853b569fceedc31134552a3a6531c0ca094bca9",
+  "per_family_witness_rows/gcd_euclid": "d905c0c3a0b748d3b24a241ee4db85bdc0d82c9e8c0febea5520207821ba5c4c",
+  "per_family_witness_rows/jal_jalr": "d75c03f42cd3a8511d306ba151fe73884fa4a7c253922fe6a58ea2110fba9935",
+  "per_family_witness_rows/mem_ls": "0ed5d57f0f16e3e811c499cefddd2001445795c09c84a7c26749daa8d4be7b11",
+  "per_family_witness_rows/memcpy_loop": "982944ef70cc1fd3f264744e1d323460e17053d2fcc7088b9bdafdff4bc8eec1",
+  "per_family_witness_rows/mul_div": "1a410878e06f1cbffe7934bd926db1a2cbf04116c9de15dc69027226eb71793e",
+  "per_family_witness_rows/mulhu_only": "640e3d5bd1b35df2b3ec353761a83422f5691020ec146504ac96cc31090e0d75",
+  "per_family_witness_rows/multi_shard_addi": "61b5d4069e175970cc6f2afeb915951fe676ac065b0c737878553235d02caa6b",
+  "per_family_witness_rows/shift_logic": "10221c1f884839b97a29fe116b6ae47a34fa9902c4b7c2276978c265c607900f",
+  "per_family_witness_rows/sieve_primes": "df79d5b55905ee30b3bf2415e003320c670faf09d724f04db6017d17bdab4a38",
+  "per_family_witness_rows/xorshift_prng": "0c182e065632119193f1e67f4cdbe45763523ace49f669152823a8878b661ea4",
+  "poseidon2_vectors/aggregate": "7aef0724a9903879b0b6ec9d724810bc51ebc5c62fcdcc075abddcd257c85bda",
+  "poseidon2_vectors/corpus": "7aef0724a9903879b0b6ec9d724810bc51ebc5c62fcdcc075abddcd257c85bda",
+  "program_tuples/aggregate": "8a69466425ff676c592bb1f355dcd9bcaa11ed540c2061e3bdc516236178f4e6",
+  "program_tuples/alu_test": "a94d4858dcca7ecc072cc88ceeb77c351bcddaa624ce79d69b0ec4131f52b760",
+  "program_tuples/branch_fib": "5f81bfff80fd051cdbc16b61b4d783877b8ea8a10145b86f767940d15fad7ec6",
+  "program_tuples/bubble_sort": "d654ee311f24cd4df5d6aa8aab6f79990d745b3087c6290f860a8a108b366ea2",
+  "program_tuples/collatz": "dcec6567cce3222320f50199432d8a84026c609ee48187615e0e2c8e1312115e",
+  "program_tuples/declared_region": "fbdd3a6544b9672348554e8a4235ef6582cc727e293c1a2ee6417bec0d2e9647",
+  "program_tuples/fib_iter": "a82af7c7544f8748d5064481bca3d006fc1aec69c4aa209953bfe509e3a12086",
+  "program_tuples/gcd_euclid": "d7025a9841d2a03b910c6dd78c0917186036e04fefa71723ea6edd3b9ba87368",
+  "program_tuples/jal_jalr": "94ed94910fb7842a4ef60c754da27b8a0748c827d921b5b31ef7f60522684aa8",
+  "program_tuples/mem_ls": "1e8505245409b909aed593637dcccf8e72daa9f2f0ed23a2919d4e6274ce7e53",
+  "program_tuples/memcpy_loop": "a8fb5d49f652b8064a61e37d16b19e46b047f60dff9d02c2c5c4cbf0b62bd0a8",
+  "program_tuples/mul_div": "4efca08f9e9f6de3e9df1fd67557ff2ee5d055fe00f5cb8dfb1e5060591bfcf0",
+  "program_tuples/mulhu_only": "5ba63559584aaf560e7f1f283d3c2863de646611b158ba579fb9f1c1dea1112a",
+  "program_tuples/multi_shard_addi": "9a535641493c0459aa411426fcdb6ddc21c62a66797948c47cc5993aa18f0d0b",
+  "program_tuples/shift_logic": "9371ff87c5a8fe6b20040707c09de66e8285451f65ef0a0ec77197994747a924",
+  "program_tuples/sieve_primes": "c70526d0dbd4af3ac9705c0ab9b2cd12f1373c081a644597928e9cf50cd34255",
+  "program_tuples/xorshift_prng": "12ca2550fbc86517f53d379b5049f38ca7a6fc3907b706287b4059104ea962a4",
+  "public_values/aggregate": "fb875b595dbf73fb03e89769f8b470c1b12eaa1eb1bf80cbe34bd7d54b0521db",
+  "public_values/alu_test": "759e7d82ef484efeb0c6005a64d6e9bd3274aef8082a25d87bf8a461ccd62ce1",
+  "public_values/branch_fib": "9bab87ece260f94c34f24b2cbc2686861545d2662f9610bdbd991acc4e53308f",
+  "public_values/bubble_sort": "4956d031dcbcf410e57d15bb1a1aef8c95b51b19929321eae6156f9ed377adc5",
+  "public_values/collatz": "4d3c8eb312959c7c6f09d76996719f0c9c93fd178b7e9fab554135a847c31f3c",
+  "public_values/declared_region": "29f04bbe5612464c53457f55b6985a0a2848338de2aa07fc58c34ff106a9bf0a",
+  "public_values/fib_iter": "0fd97f30ec864dce0f1cfaead6135912c38271dc87e7a88de9f60b4a735ad1a1",
+  "public_values/gcd_euclid": "9efc14f03621d941de7b656ff0bb2909f0865171e61c9ebc753d52065d2e8944",
+  "public_values/jal_jalr": "9629a48408c2be57d616aac2433866e614b9324f542510677c0974bbb9ce0a16",
+  "public_values/mem_ls": "d790718b08ab6d47b2c42b78bd4922b56906f6f4d61f498f6698a8b87638ef24",
+  "public_values/memcpy_loop": "787ec075bf08f4dfd7715d26896b8833c554ae9c8030aa67751e5137872c5b92",
+  "public_values/mul_div": "ac799826a7c8627a038f9452374656da49e20feb4c8c5f67c5dc820ef5fb7e24",
+  "public_values/mulhu_only": "bda9d0d0db77db1f5ecf06d45f77c586205ab92e9952929195816cd55edf3c9b",
+  "public_values/multi_shard_addi": "2d52ac3e3293cbcceed54863221cce115d66864b8f6c49497aaedaa3d248e116",
+  "public_values/shift_logic": "05837d62b4a916fa810786593d6db6b6f5556c86e8308ce76523c7dcaac3e20a",
+  "public_values/sieve_primes": "27cd3c30328778a44fb46539a5eba68372aef701534d95c3039f612d2d9284de",
+  "public_values/xorshift_prng": "df5a807b1e40c35e5614176a40d3948305636b8ef21315cba00d62ef008bba49",
+  "relation_sums/aggregate": "691ad0a0ae06c5ce56cab002bd3db1c769759092cdf185056b4b90a05bf32dff",
+  "relation_sums/alu_test": "117c902cf8dbaa07689e686c4a7699f774ac06c51c83263d30b353ea2382aa6b",
+  "relation_sums/branch_fib": "b8a2a75cdf3e09cbae07cf844860afef3400f9ce515d6ddd0944a32eac182ea5",
+  "relation_sums/bubble_sort": "6270d5cc2add33df6638ca052ce4d46633c964040896e5df23351a772984fd0e",
+  "relation_sums/collatz": "41bf80aaef5a7c9e536edf8d973277f8435709c79724708bc5b3fa93cdfea670",
+  "relation_sums/declared_region": "8b123dae86dac9d75e9aeac8c63d1505b428f0e06e4c020c4e9d3778029a8681",
+  "relation_sums/fib_iter": "12df31b942ab5cc855a15e8c2cf17c7d5f72dc80e5a7d12e7994b326fbc0e1cd",
+  "relation_sums/gcd_euclid": "7c63d109fcb4263a74382962561556403435ea525dd6078555f24056b99cb5fd",
+  "relation_sums/jal_jalr": "6ef44cba33aa06e3728e5440a79535df7aee616239d09aaf84eb7739e1ebdd47",
+  "relation_sums/mem_ls": "70fa79ba80fe3e5482d86cb3d1a08573ebb10652a50a8223a8d57ada98a1ad90",
+  "relation_sums/memcpy_loop": "326e14d8d71ca936cc0aa24efcfb40469bcc6ad02bf362298a36f47dfe8364f1",
+  "relation_sums/mul_div": "a1fe05866b77e7412201d47d7253118cbe8ecd68d432b8b000a2ed38a334c5bc",
+  "relation_sums/mulhu_only": "1041f7054e9c8c61f6ef1cc323b809ca7c78321e8ca4289c27130735367a8c74",
+  "relation_sums/multi_shard_addi": "d3174701be6488ff0119222857dbd1c3bbb969afc518bd9e38483f90a0eb5f08",
+  "relation_sums/public_io_partial_word": "093d65626fc6e4e73672f3aa106072adf09ec275af1d37441e7ef2a90979f59f",
+  "relation_sums/shift_logic": "810648f7f2e2c3821b8ad57c6a6010fa2bee7f84ed98a722668aa0ead7e80f57",
+  "relation_sums/sieve_primes": "7c7f6274b30c71d28eeae6af5bea8f33f53edd4b2f128bab9c34f238594223b4",
+  "relation_sums/xorshift_prng": "2d5a4706ba45d595ee140754a83137c377c4e02e29ed8243091ca9f6604e5e31",
+  "relation_tuples/aggregate": "d8cf9485ce5779458fa610b651206ef68108932a5d08ebc8ad04e50ba1a153d4",
+  "relation_tuples/alu_test": "b8dc2ec8188bbaeaeaf2626799c44307a458905f6cea0f24fa28be77fe8be074",
+  "relation_tuples/branch_fib": "121abf29888da9ad341b41f5df55946bad5135af5027a031058a7623100f57b8",
+  "relation_tuples/bubble_sort": "49f4d6360e9777cfebccb1681601113290679e1cacf02c8c987af9427bf65ba7",
+  "relation_tuples/collatz": "6a4dac1e47a8ee87b7e4c4af5ea31ef6893ae847128c02122c3f4ac11cd3a833",
+  "relation_tuples/declared_region": "1cb7239360251b965a4fda13b4f8f62ba8be598f2c8889b1f8c8e13fd9332a70",
+  "relation_tuples/fib_iter": "7296a9eea7f0553bbad1d1cf41144806b63b2fab11ed3ec0eb9063c596e309bc",
+  "relation_tuples/gcd_euclid": "4318f8079c9224345028b4c4fe8565990cb7f6f27acd9454b91cc469c83c627a",
+  "relation_tuples/jal_jalr": "0f6108be6a9cd190f1b2fb71b8ec463be39d98e1660beea809bcf67af4b132cc",
+  "relation_tuples/mem_ls": "594e4a9863fbb0cbd2e1a1263ebbcc9c05ac71bf26dec8ac2d92aedff2ad4286",
+  "relation_tuples/memcpy_loop": "ab889f9c3d169190e420d80d8a228707f9771ef9d0353f5a1a3a836356638bac",
+  "relation_tuples/mul_div": "fd02fc3ac3c90b5533e1c9f0f3fb63b58c1014f99d9e6bae0cf2034188d6b8e3",
+  "relation_tuples/mulhu_only": "ed94eee0bf8bf2105a652fd215b1e3bd6a4b88d5d550a45443abf426c316234a",
+  "relation_tuples/multi_shard_addi": "7db32ce8bbc1618f65379d678b677f0b655263664d33c83700b8a283949f1967",
+  "relation_tuples/public_io_partial_word": "b669b2656740a7e0ee035da9ed831268d08e6ab2c8bd8413ad471a83e1be3f12",
+  "relation_tuples/shift_logic": "9364c80f2959c6f35dd181530468b4dfacd4e8bcbe1110560378fd6ad40c1cb5",
+  "relation_tuples/sieve_primes": "f02700762c8c87c5d8440f75176db4d3f473c5240d9cf84bf5e141d420b07793",
+  "relation_tuples/xorshift_prng": "d3832f85fb243cf22d1dbaacc7231e375a83f0b244d96bc4c1041009dd58971f",
+  "shared_transcript_prefix/aggregate": "9ab91a878b01c24f78ed6feaf89f45ae3752c0de430e9e6ac78253507b27173f",
+  "shared_transcript_prefix/alu_test": "0c591a08534b7622c158155a0f01a1b22b351962e47175d3aba4428f198cdc11",
+  "shared_transcript_prefix/branch_fib": "a2da81e4c43a2c81ef876be331db823829357211e6a292a8534cae5caecb1e0b",
+  "shared_transcript_prefix/bubble_sort": "b64c7684a7538c025c3f5a0589b7c80791a57e00d2cd927d056db665f9a155ce",
+  "shared_transcript_prefix/collatz": "ccc5c8c662f9565f0026040413dd09a63e89d9a9d664d3f3b583cfaca9475273",
+  "shared_transcript_prefix/declared_region": "27c58d54e3ab005220fdad161a26e379a6e5a452162b53dbddd0306afac846a6",
+  "shared_transcript_prefix/fib_iter": "e6f88508e44d193002ebed32009587e4e198fd454f232f6798e426c2587c7ca0",
+  "shared_transcript_prefix/gcd_euclid": "309d9b041b1b5fa66500ff94e7671b0a4fdeec25d5c603f976794c89603d10ce",
+  "shared_transcript_prefix/jal_jalr": "b4875f3e3714e23e2753f89ce4481dee6ad2fca936cc3662732437385c08781c",
+  "shared_transcript_prefix/mem_ls": "1eb5cf31267b363c26723ba693b8f25f367e6d244c602bafaf4ccfe7576e8140",
+  "shared_transcript_prefix/memcpy_loop": "12669c0f406bdc6a5db7e1f979c5675f927a4f6838d450b4bd0d81d79e1a474c",
+  "shared_transcript_prefix/mul_div": "9c3697bff3e5bc7a571f898c910fbb02b4096447de736595566ddf4c4516cbb1",
+  "shared_transcript_prefix/mulhu_only": "2caa2a00994f56f906406baeea261f3def759258aa2f27af480977cf1e7e5924",
+  "shared_transcript_prefix/multi_shard_addi": "2d19aadc1434902553b514b70b9c771a0fb76b3cf5b79d404ea16cfced66d043",
+  "shared_transcript_prefix/shift_logic": "a47df25a8f9fd349e80f686122cf7147098c0f5b033415e07843c5cf337e6872",
+  "shared_transcript_prefix/sieve_primes": "425e75a93236820f84415517e91fbb6ca554055bc5a0993a3225ec5b7f522a74",
+  "shared_transcript_prefix/xorshift_prng": "f946e61a85215828ffc60452abf0839ab2f1a8b7d127c5a4be8d95b55675ee40"
+ },
+ "boundaries": {
+  "decode": {
+   "status": "pass",
+   "corpus_words": 25033,
+   "corpus_sha256": "067900a32c811fccc565cd2e85e32ea0210614969f548af3948a7c660aa82869",
+   "note": "systematic opcode/funct/register/immediate sweep, deterministic"
+  },
+  "execution": {
+   "status": "pass",
+   "fields": [
+    "total_steps",
+    "final_pc",
+    "final_regs"
+   ],
+   "corpus": [
+    {
+     "name": "alu_test",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "agree": true,
+     "total_steps": 8,
+     "final_pc": 65568
+    },
+    {
+     "name": "branch_fib",
+     "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+     "agree": true,
+     "total_steps": 144,
+     "final_pc": 65668
+    },
+    {
+     "name": "bubble_sort",
+     "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+     "agree": true,
+     "total_steps": 9462,
+     "final_pc": 65644
+    },
+    {
+     "name": "collatz",
+     "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+     "agree": true,
+     "total_steps": 34237,
+     "final_pc": 65620
+    },
+    {
+     "name": "declared_region",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "agree": true,
+     "total_steps": 8,
+     "final_pc": 65568
+    },
+    {
+     "name": "fib_iter",
+     "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+     "agree": true,
+     "total_steps": 102408,
+     "final_pc": 65588
+    },
+    {
+     "name": "gcd_euclid",
+     "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+     "agree": true,
+     "total_steps": 124931,
+     "final_pc": 65584
+    },
+    {
+     "name": "jal_jalr",
+     "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+     "agree": true,
+     "total_steps": 11,
+     "final_pc": 65580
+    },
+    {
+     "name": "mem_ls",
+     "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+     "agree": true,
+     "total_steps": 18,
+     "final_pc": 65608
+    },
+    {
+     "name": "memcpy_loop",
+     "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+     "agree": true,
+     "total_steps": 2126,
+     "final_pc": 65636
+    },
+    {
+     "name": "mul_div",
+     "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+     "agree": true,
+     "total_steps": 21,
+     "final_pc": 65620
+    },
+    {
+     "name": "mulhu_only",
+     "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+     "agree": true,
+     "total_steps": 8,
+     "final_pc": 65568
+    },
+    {
+     "name": "multi_shard_addi",
+     "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+     "agree": true,
+     "total_steps": 131078,
+     "final_pc": 65568
+    },
+    {
+     "name": "shift_logic",
+     "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+     "agree": true,
+     "total_steps": 23,
+     "final_pc": 65628
+    },
+    {
+     "name": "sieve_primes",
+     "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+     "agree": true,
+     "total_steps": 2792,
+     "final_pc": 65640
+    },
+    {
+     "name": "xorshift_prng",
+     "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+     "agree": true,
+     "total_steps": 65544,
+     "final_pc": 65600
+    }
+   ]
+  },
+  "per_family_witness_rows": {
+   "status": "pass",
+   "comparison": "byte-for-byte canonical serialization of production buffers",
+   "corpus": [
+    {
+     "name": "alu_test",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "agree": true,
+     "rust_sha256": "9e4d4d515ed04a77006fae2fed9bfa852017a12da214e010c7aa8535c89a3956",
+     "zig_sha256": "9e4d4d515ed04a77006fae2fed9bfa852017a12da214e010c7aa8535c89a3956",
+     "bytes": 7676,
+     "records": 8
+    },
+    {
+     "name": "branch_fib",
+     "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+     "agree": true,
+     "rust_sha256": "53a35d9cc309a14c7b1f9cbb6bcd11d6fc191a63fbfe14821814293a68f68a79",
+     "zig_sha256": "53a35d9cc309a14c7b1f9cbb6bcd11d6fc191a63fbfe14821814293a68f68a79",
+     "bytes": 19544,
+     "records": 144
+    },
+    {
+     "name": "bubble_sort",
+     "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+     "agree": true,
+     "rust_sha256": "f38d3a802838211e43860379d0be6b76f2cee19a510b545f7735362f46ae25e8",
+     "zig_sha256": "f38d3a802838211e43860379d0be6b76f2cee19a510b545f7735362f46ae25e8",
+     "bytes": 1133461,
+     "records": 9462
+    },
+    {
+     "name": "collatz",
+     "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+     "agree": true,
+     "rust_sha256": "de34066d29d218719bf93ff4d2dc090de06fad02790034bb1e260275c3fbf782",
+     "zig_sha256": "de34066d29d218719bf93ff4d2dc090de06fad02790034bb1e260275c3fbf782",
+     "bytes": 2949855,
+     "records": 34237
+    },
+    {
+     "name": "declared_region",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "agree": true,
+     "rust_sha256": "9e4d4d515ed04a77006fae2fed9bfa852017a12da214e010c7aa8535c89a3956",
+     "zig_sha256": "9e4d4d515ed04a77006fae2fed9bfa852017a12da214e010c7aa8535c89a3956",
+     "bytes": 7676,
+     "records": 8
+    },
+    {
+     "name": "fib_iter",
+     "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+     "agree": true,
+     "rust_sha256": "911f8857200ab45498409a49474fa925594e5a3a9d73c3dc09f73188e00a81be",
+     "zig_sha256": "911f8857200ab45498409a49474fa925594e5a3a9d73c3dc09f73188e00a81be",
+     "bytes": 11701717,
+     "records": 102408
+    },
+    {
+     "name": "gcd_euclid",
+     "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+     "agree": true,
+     "rust_sha256": "0b826830d06f5b4a088d7cb63e33001e00d40c320f249485bf618395aaf9d8d5",
+     "zig_sha256": "0b826830d06f5b4a088d7cb63e33001e00d40c320f249485bf618395aaf9d8d5",
+     "bytes": 12363622,
+     "records": 124931
+    },
+    {
+     "name": "jal_jalr",
+     "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+     "agree": true,
+     "rust_sha256": "c958e10ca6119b86081a97f87513074766762e715ea86514c2edb6c4b68aa0ea",
+     "zig_sha256": "c958e10ca6119b86081a97f87513074766762e715ea86514c2edb6c4b68aa0ea",
+     "bytes": 7786,
+     "records": 11
+    },
+    {
+     "name": "mem_ls",
+     "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+     "agree": true,
+     "rust_sha256": "8b7e6ba3b62f09888025bf5ebeba6bf312c6c21bb376eb860bd8e51df3d8db34",
+     "zig_sha256": "8b7e6ba3b62f09888025bf5ebeba6bf312c6c21bb376eb860bd8e51df3d8db34",
+     "bytes": 8935,
+     "records": 18
+    },
+    {
+     "name": "memcpy_loop",
+     "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+     "agree": true,
+     "rust_sha256": "29b3f633bb59b695e135486a2d16b25f019f26203d45ea7e2db2ecc210a0a175",
+     "zig_sha256": "29b3f633bb59b695e135486a2d16b25f019f26203d45ea7e2db2ecc210a0a175",
+     "bytes": 247652,
+     "records": 2126
+    },
+    {
+     "name": "mul_div",
+     "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+     "agree": true,
+     "rust_sha256": "4c4f10ac184f50b10e0a63560dfe518f03f20b553f65a022376b6bb0a7a456a6",
+     "zig_sha256": "4c4f10ac184f50b10e0a63560dfe518f03f20b553f65a022376b6bb0a7a456a6",
+     "bytes": 9940,
+     "records": 21
+    },
+    {
+     "name": "mulhu_only",
+     "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+     "agree": true,
+     "rust_sha256": "03def9ea1e85154eb2f52f4325a9cba618a99030a6dba30d6e6ceafa4d4f95b8",
+     "zig_sha256": "03def9ea1e85154eb2f52f4325a9cba618a99030a6dba30d6e6ceafa4d4f95b8",
+     "bytes": 7651,
+     "records": 8
+    },
+    {
+     "name": "multi_shard_addi",
+     "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+     "agree": true,
+     "rust_sha256": "e1db7364717b40ad087fec4b8b129917bd64d2588b55892e40aa8e3501dc4c1c",
+     "zig_sha256": "e1db7364717b40ad087fec4b8b129917bd64d2588b55892e40aa8e3501dc4c1c",
+     "bytes": 14190760,
+     "records": 131078
+    },
+    {
+     "name": "shift_logic",
+     "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+     "agree": true,
+     "rust_sha256": "4aeb519594049e1f232ceb28d25ec0c16f8415192fc1ed550a202ca80939d69d",
+     "zig_sha256": "4aeb519594049e1f232ceb28d25ec0c16f8415192fc1ed550a202ca80939d69d",
+     "bytes": 9498,
+     "records": 23
+    },
+    {
+     "name": "sieve_primes",
+     "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+     "agree": true,
+     "rust_sha256": "9358c1ea9e940c9d474abd501af5cf3df02098dac5a2898a2ae173e4a8f8f371",
+     "zig_sha256": "9358c1ea9e940c9d474abd501af5cf3df02098dac5a2898a2ae173e4a8f8f371",
+     "bytes": 298559,
+     "records": 2792
+    },
+    {
+     "name": "xorshift_prng",
+     "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+     "agree": true,
+     "rust_sha256": "a1483dbab4307bcfc7a520e60cf2b4316400e8df719be490b6ca7905c5e90cd7",
+     "zig_sha256": "a1483dbab4307bcfc7a520e60cf2b4316400e8df719be490b6ca7905c5e90cd7",
+     "bytes": 8525290,
+     "records": 65544
+    }
+   ],
+   "layout_digests": [
+    "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79"
+   ]
+  },
+  "program_tuples": {
+   "status": "pass",
+   "method": "root-mediated (Poseidon2 sparse tree over decoded tuple leaves; oracle root compared live in public_values)",
+   "nonempty_regions": 16,
+   "corpus": [
+    {
+     "name": "alu_test",
+     "rows": 8,
+     "rows_sha256": "33379621075dfead2c40907c595d8f660b76dd2508f38a736116110b37872e6a"
+    },
+    {
+     "name": "branch_fib",
+     "rows": 33,
+     "rows_sha256": "dc06703f7efce366852bc7799c30b3af9817b68e67f37e50189dc941f67bcd38"
+    },
+    {
+     "name": "bubble_sort",
+     "rows": 27,
+     "rows_sha256": "a479e4f30e7898a566ab8a82954b50c2cc2c0efbaf176933c774711c30ab55ac"
+    },
+    {
+     "name": "collatz",
+     "rows": 21,
+     "rows_sha256": "a94ed4af3f79177f36d95a5a50f5716195e1514d25bd55c4d0789fc436ad7d4b"
+    },
+    {
+     "name": "declared_region",
+     "rows": 8,
+     "rows_sha256": "33379621075dfead2c40907c595d8f660b76dd2508f38a736116110b37872e6a"
+    },
+    {
+     "name": "fib_iter",
+     "rows": 13,
+     "rows_sha256": "90e5dad3396f8e687e73233eae0163f9e24b4e4d17edec48b44d6c5561284845"
+    },
+    {
+     "name": "gcd_euclid",
+     "rows": 12,
+     "rows_sha256": "82c1a598357f74974adb166e0105e76e9d5e87ddaa361ec9f2350efd5f8e0417"
+    },
+    {
+     "name": "jal_jalr",
+     "rows": 11,
+     "rows_sha256": "72eb429ed81ef234a1ff9a956401da4191788048bda9bd2617e774bba5e4641a"
+    },
+    {
+     "name": "mem_ls",
+     "rows": 18,
+     "rows_sha256": "cf97ba80aab0acab75ac80914b7c07cc208a5503e03e1735c4777eae5b3fd6d4"
+    },
+    {
+     "name": "memcpy_loop",
+     "rows": 25,
+     "rows_sha256": "3067910d0e8031a2a352acd10d4a60b5b860f464d51af953f72daf6268bbb3a8"
+    },
+    {
+     "name": "mul_div",
+     "rows": 21,
+     "rows_sha256": "0bf8bf6c4be97721f87aa244e8619e75848704a774cfe7f2e7f9713eff97d0af"
+    },
+    {
+     "name": "mulhu_only",
+     "rows": 8,
+     "rows_sha256": "b15476109595e4e97c4d72aa01638279abfb4a1a1ce05df824542dcb5b56883c"
+    },
+    {
+     "name": "multi_shard_addi",
+     "rows": 8,
+     "rows_sha256": "9cdc358b9e12cb1f7d696bcf7fb6c1219811bcd7e3d85b12d884437eb1651db1"
+    },
+    {
+     "name": "shift_logic",
+     "rows": 23,
+     "rows_sha256": "5b239fb8e673b9e9ca09344bf8c92ab22c95619a31f21f645f1e3147ca60e955"
+    },
+    {
+     "name": "sieve_primes",
+     "rows": 26,
+     "rows_sha256": "39883b06e0ee1ddcab52e2c9c208f2063638271ac6cda76fe017bc60dbc493a0"
+    },
+    {
+     "name": "xorshift_prng",
+     "rows": 16,
+     "rows_sha256": "75dd6021cf765975cff3609f82f668e34784a39acb818ec8f17a0af390c3c6a4"
+    }
+   ]
+  },
+  "ordered_accesses": {
+   "status": "pass",
+   "comparison": "byte-for-byte canonical serialization of production buffers",
+   "corpus": [
+    {
+     "name": "alu_test",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "agree": true,
+     "rust_sha256": "c99032899a5eed47cfea57ba48cbaff198cb951e324691783d0186a5978bfe4c",
+     "zig_sha256": "c99032899a5eed47cfea57ba48cbaff198cb951e324691783d0186a5978bfe4c",
+     "bytes": 1887,
+     "records": 19
+    },
+    {
+     "name": "branch_fib",
+     "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+     "agree": true,
+     "rust_sha256": "808b180561c0a00790b4320051b29a61e4fac6fca6fd41d66f010e6a671fdf5c",
+     "zig_sha256": "808b180561c0a00790b4320051b29a61e4fac6fca6fd41d66f010e6a671fdf5c",
+     "bytes": 31735,
+     "records": 313
+    },
+    {
+     "name": "bubble_sort",
+     "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+     "agree": true,
+     "rust_sha256": "c469b9099ab3f7a5aa7502e70af67fc725cca6346a6fb18eb1274e1823d8905b",
+     "zig_sha256": "c469b9099ab3f7a5aa7502e70af67fc725cca6346a6fb18eb1274e1823d8905b",
+     "bytes": 2511463,
+     "records": 23532
+    },
+    {
+     "name": "collatz",
+     "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+     "agree": true,
+     "rust_sha256": "ad4c504d00ed2e3cec99d68a4c3bbde0cd5e8ea77641c6a485045108f1f2277d",
+     "zig_sha256": "ad4c504d00ed2e3cec99d68a4c3bbde0cd5e8ea77641c6a485045108f1f2277d",
+     "bytes": 6465657,
+     "records": 62261
+    },
+    {
+     "name": "declared_region",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "agree": true,
+     "rust_sha256": "c99032899a5eed47cfea57ba48cbaff198cb951e324691783d0186a5978bfe4c",
+     "zig_sha256": "c99032899a5eed47cfea57ba48cbaff198cb951e324691783d0186a5978bfe4c",
+     "bytes": 1887,
+     "records": 19
+    },
+    {
+     "name": "fib_iter",
+     "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+     "agree": true,
+     "rust_sha256": "30287280fa59fe6b388f571c067392bbeb49521d4386d6049d151dc94fb615f3",
+     "zig_sha256": "30287280fa59fe6b388f571c067392bbeb49521d4386d6049d151dc94fb615f3",
+     "bytes": 26507768,
+     "records": 225296
+    },
+    {
+     "name": "gcd_euclid",
+     "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+     "agree": true,
+     "rust_sha256": "6af797e3dc69d425414695594498a380c3b4fe7fdaa1bc79c3c73979856dfed7",
+     "zig_sha256": "6af797e3dc69d425414695594498a380c3b4fe7fdaa1bc79c3c73979856dfed7",
+     "bytes": 26981391,
+     "records": 249862
+    },
+    {
+     "name": "jal_jalr",
+     "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+     "agree": true,
+     "rust_sha256": "0715f298152f0787a26dc69f920e397b16c53ee1f3b742868b52c755aa4cbe29",
+     "zig_sha256": "0715f298152f0787a26dc69f920e397b16c53ee1f3b742868b52c755aa4cbe29",
+     "bytes": 2052,
+     "records": 21
+    },
+    {
+     "name": "mem_ls",
+     "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+     "agree": true,
+     "rust_sha256": "eaefe67f8dda205f3c9aae2db9ea9de17b91cd40cce0b4cc33366fc55c2f9d69",
+     "zig_sha256": "eaefe67f8dda205f3c9aae2db9ea9de17b91cd40cce0b4cc33366fc55c2f9d69",
+     "bytes": 4623,
+     "records": 44
+    },
+    {
+     "name": "memcpy_loop",
+     "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+     "agree": true,
+     "rust_sha256": "401788bf66fbc2f1b669f30a6ef332942d5268b74785a43376081bad97ed664f",
+     "zig_sha256": "401788bf66fbc2f1b669f30a6ef332942d5268b74785a43376081bad97ed664f",
+     "bytes": 537431,
+     "records": 4827
+    },
+    {
+     "name": "mul_div",
+     "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+     "agree": true,
+     "rust_sha256": "450fa6a767b2c649efd3f413232bee1952a0c5ad85d0d166e38ddb5eb861923b",
+     "zig_sha256": "450fa6a767b2c649efd3f413232bee1952a0c5ad85d0d166e38ddb5eb861923b",
+     "bytes": 5350,
+     "records": 54
+    },
+    {
+     "name": "mulhu_only",
+     "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+     "agree": true,
+     "rust_sha256": "030e175460ae2bfca390e253e7c746c637361f664fc7e281c4e81ee7ff2768f9",
+     "zig_sha256": "030e175460ae2bfca390e253e7c746c637361f664fc7e281c4e81ee7ff2768f9",
+     "bytes": 1640,
+     "records": 16
+    },
+    {
+     "name": "multi_shard_addi",
+     "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+     "agree": true,
+     "rust_sha256": "246ff0caefedf40a3c489ad761b4d8ebbc19385fa7059ec3f955e67b7b648e5f",
+     "zig_sha256": "246ff0caefedf40a3c489ad761b4d8ebbc19385fa7059ec3f955e67b7b648e5f",
+     "bytes": 29178022,
+     "records": 262156
+    },
+    {
+     "name": "shift_logic",
+     "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+     "agree": true,
+     "rust_sha256": "a7cd8d1ad756ce24383139dd1393db835d8c5c6b6708a704a8d0947c43ad79cc",
+     "zig_sha256": "a7cd8d1ad756ce24383139dd1393db835d8c5c6b6708a704a8d0947c43ad79cc",
+     "bytes": 5720,
+     "records": 54
+    },
+    {
+     "name": "sieve_primes",
+     "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+     "agree": true,
+     "rust_sha256": "43f3ee0cdb9e34fcc6d0b7a57fb432062d7339ac8b4617cee8bfa46e422ba74c",
+     "zig_sha256": "43f3ee0cdb9e34fcc6d0b7a57fb432062d7339ac8b4617cee8bfa46e422ba74c",
+     "bytes": 721118,
+     "records": 6800
+    },
+    {
+     "name": "xorshift_prng",
+     "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+     "agree": true,
+     "rust_sha256": "d1cace334fb82511122e932dff9234e23a157f8f512bb0efc05acdd9478f455c",
+     "zig_sha256": "d1cace334fb82511122e932dff9234e23a157f8f512bb0efc05acdd9478f455c",
+     "bytes": 18259381,
+     "records": 155663
+    }
+   ]
+  },
+  "public_values": {
+   "status": "pass",
+   "comparison": "supported=Rust PublicData::new versus production proof artifact; fail-closed=Rust PublicData::new versus tree-builder diagnostic plus typed precommit production rejection",
+   "diagnostic_schema": "riscv-public-values-diagnostic-v1",
+   "fields": [
+    "initial_pc",
+    "final_pc",
+    "clock",
+    "initial_regs",
+    "final_regs",
+    "reg_last_clock",
+    "program_root",
+    "initial_rw_root",
+    "final_rw_root",
+    "io_entries"
+   ],
+   "corpus": [
+    {
+     "name": "alu_test",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "branch_fib",
+     "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "bubble_sort",
+     "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "collatz",
+     "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "declared_region",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "fib_iter",
+     "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "gcd_euclid",
+     "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "jal_jalr",
+     "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "mem_ls",
+     "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "memcpy_loop",
+     "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "mul_div",
+     "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "fail_closed_known_limitation",
+      "known_limitation": "stark-v-signed-mulh"
+     },
+     "mode": "tree_builder_diagnostic_and_production_rejection",
+     "agree": true,
+     "mismatches": [],
+     "production_rejection": {
+      "error": "UnsupportedProofFamily",
+      "stage": "statement_validation_before_first_commitment",
+      "returncode": 1,
+      "stdout_empty": true,
+      "stderr_exact": true,
+      "proof_artifact_published": false,
+      "report_published": false,
+      "temporary_residue": []
+     }
+    },
+    {
+     "name": "mulhu_only",
+     "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "diagnostic_balanced_family_fail_closed",
+      "known_limitation": "stark-v-signed-mulh"
+     },
+     "mode": "tree_builder_diagnostic_and_production_rejection",
+     "agree": true,
+     "mismatches": [],
+     "production_rejection": {
+      "error": "UnsupportedProofFamily",
+      "stage": "statement_validation_before_first_commitment",
+      "returncode": 1,
+      "stdout_empty": true,
+      "stderr_exact": true,
+      "proof_artifact_published": false,
+      "report_published": false,
+      "temporary_residue": []
+     }
+    },
+    {
+     "name": "multi_shard_addi",
+     "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "shift_logic",
+     "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "sieve_primes",
+     "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    },
+    {
+     "name": "xorshift_prng",
+     "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+     "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "mode": "production_proof_artifact",
+     "agree": true,
+     "mismatches": []
+    }
+   ]
+  },
+  "memory_roots": {
+   "status": "pass",
+   "method": "root-mediated (RW sparse trees compared live in public_values; content-bearing distinct roots required)",
+   "content_bearing_vectors": 16,
+   "corpus": [
+    {
+     "name": "alu_test",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "branch_fib",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "bubble_sort",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 554177844,
+     "content_bearing": true
+    },
+    {
+     "name": "collatz",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "declared_region",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "fib_iter",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "gcd_euclid",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "jal_jalr",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "mem_ls",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1509524212,
+     "content_bearing": true
+    },
+    {
+     "name": "memcpy_loop",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1329129850,
+     "content_bearing": true
+    },
+    {
+     "name": "mul_div",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "mulhu_only",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "multi_shard_addi",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "shift_logic",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    },
+    {
+     "name": "sieve_primes",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1332220378,
+     "content_bearing": true
+    },
+    {
+     "name": "xorshift_prng",
+     "initial_rw_root": 1780222652,
+     "final_rw_root": 1742369483,
+     "content_bearing": true
+    }
+   ]
+  },
+  "poseidon2_vectors": {
+   "status": "pass",
+   "states": 516,
+   "corpus_sha256": "cdc4702ed67e6438826e5dcb527f6f7f5b4786cd589ff977745e8f0deb1d9729"
+  },
+  "relation_tuples": {
+   "status": "pass",
+   "comparison": "canonical production nonzero streams, or the exact normalized pinned signed-MULH pre-counter limitation core",
+   "padding_policy": "full and zero streams are validated locally but excluded from cross-port equality because Zig may shard a pinned Rust component",
+   "corpus": [
+    {
+     "name": "alu_test",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "8ef59ce6fccaddb49511aa6b11de03c889ef3308c9d99bba1224c42522e7a5a4",
+     "zig_sha256": "e7d8ae774dcfbd50be11347b293c2716e994af910888f76329d1dafb4fe157a0",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "e72b64d3ec743937a417adca58e81a7399252a9b3305cd6bd385ea8060ab58b4",
+      "diagnostic_main_commitment": "ca218d9f7364dce849603d1c5b92195493e792d5195747185af47ec880b57b6f",
+      "diagnostic_interaction_commitment": "6c350d44446eb98a6f9d5826ac059c75353844c0b7ef20794859b3582b83abbb"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "branch_fib",
+     "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "c7e32f594cd63afa8897420de8906155744522e4378107135a576d7d26eaf258",
+     "zig_sha256": "e2344ffbdf38b5ff1cbd0de896287e12e4095d7287f71bf4bf6fd00ff21919c2",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "6e9abda5129fd4e938858f869ad7c333650baddb642f2164d63b883d028ca5de",
+      "diagnostic_main_commitment": "81a03446f9f3f50c96f4cb37a08a190d9e02cb61dd2f69b7033af0359a56da76",
+      "diagnostic_interaction_commitment": "f2c6808e4542be365c9e76573efb4c2e5ee9f4e3be0a84d469e0ddd25942593f"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "bubble_sort",
+     "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "96295bb3a5a30482f724f0328d4472cc1df83d7fd4fdaf6c4f912e556571ff7a",
+     "zig_sha256": "0fac05f6cd1d9ab5351a446f6d5b4f6aaa753fc07c4276fa4ad9c803ba6cf19d",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "23aae94ede5ec683fdfbbfe60be7adb8d22b3836b8c5e1a4b469d33bddd16ba8",
+      "diagnostic_main_commitment": "e2ac3f7f1905dd7229bd0cf733bc1e0850c74579ee471861fbb80c1f5058c90a",
+      "diagnostic_interaction_commitment": "0491c00ed7d9ba746f4d1326b0c971f24b5faf926d22697a02ab37f91e5a0462"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "collatz",
+     "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "01aa6dfabd7ae5bb0bd0c74f764241da054c18f48bf18069c3921314c5097342",
+     "zig_sha256": "53716eb9e041002856ca513d1efb873b597f563a1b6501cd4e4f251aceb0bb8f",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "0054e58e284a32ab3640c9989101712134c934c98da290a672a93eea2243e999",
+      "diagnostic_main_commitment": "17963c570973e9446b9d1c2adc3d10b5db8f337bdaf40a01cd0275f35d8c4880",
+      "diagnostic_interaction_commitment": "0964bf5d6da6d45ef73e2558e88867b2c85e73d31db9ed65adb238bb9f8f02c2"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "declared_region",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "8ef59ce6fccaddb49511aa6b11de03c889ef3308c9d99bba1224c42522e7a5a4",
+     "zig_sha256": "e7d8ae774dcfbd50be11347b293c2716e994af910888f76329d1dafb4fe157a0",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "e72b64d3ec743937a417adca58e81a7399252a9b3305cd6bd385ea8060ab58b4",
+      "diagnostic_main_commitment": "ca218d9f7364dce849603d1c5b92195493e792d5195747185af47ec880b57b6f",
+      "diagnostic_interaction_commitment": "6c350d44446eb98a6f9d5826ac059c75353844c0b7ef20794859b3582b83abbb"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "fib_iter",
+     "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "1d8c615e523451b8d0a13ab8cece915fa9f34338b53b4d96793ac4024ecb0bc2",
+     "zig_sha256": "824fdcf7d7d40f29d88f97fcdcfd0ef33258248bef805e7a14edde48a41ab966",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "ea02d6d82ef834b8f124609eb38ecc2ae7705bfa2bb3817d37a07beb57624329",
+      "diagnostic_main_commitment": "ec4c361bbc58fc4463f461fe358f2bc2198a040108e280d81ff5195609ac4785",
+      "diagnostic_interaction_commitment": "3db4429717f7b080767eb0e056c47957fca1a03119ed85c9bedf8bb065350117"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "gcd_euclid",
+     "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "4402dc547176cc6ff68aeef683c9ffa6db15d47db66a76f4aacab6dcc29aef1e",
+     "zig_sha256": "f83fb5defba45907c0345bdc2e05e263125f20244e48ea498b63f0c19af96e5e",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "32ede228cd92ebd8f5944a0821564d4bd059a36eff369f22b82b64eadcbcb708",
+      "diagnostic_main_commitment": "77b8fe9a3dfede9f0da59410d5638f7f5aad0fb35615a6899965754ea425c74c",
+      "diagnostic_interaction_commitment": "4a308cd5c64bf09e2856b2a013fb4e83f66b5371c6fbc6789a43fcef5eabf384"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "jal_jalr",
+     "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "c4c95ee9e57135995f8f8790209bc471e0f08abc6702759748cad3af85bb0799",
+     "zig_sha256": "780696bcd321943d0ed8fa9ed7ea0f1b08862891454c01b5e626ac2275118eaf",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "1d7b4ba04fb6600bee4df7afecfc1cd4f460d7c14f99d7a690b9d43d8f176c7d",
+      "diagnostic_main_commitment": "e247cc33340d5fa3ff0939e88f0a87937407e8c3c5179c96e6cf2358b8f5e75e",
+      "diagnostic_interaction_commitment": "737a8bb22011fcc6a83defbd80a07930ae2a8dfa7eda615bc9e7bd77fbe33419"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "mem_ls",
+     "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "11a65de9bebe66a335895b9517ffb6d95ab698ff3c713ccde94632be0a4e9aa3",
+     "zig_sha256": "eb8e40e7fd81d2a070e805a5b49bf4c71928b65557df78289e6974c93a213cab",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "c079eb52d462990c93f3d0335aa220fc0f6dd3e2e859efa09429c3a170a1b50a",
+      "diagnostic_main_commitment": "d196ed5b1a003b49b28dc6752dfb5e71e7d2f5fad242081a1c33ee2363094cf9",
+      "diagnostic_interaction_commitment": "154f738696d599356fbb801ae48a34df2921547e4a229ab6d8e0839b0e4921e5"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "memcpy_loop",
+     "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "6334e2d106da36b6c45f2993b52d199fb9efa2c460756a6e337480b473f3cf77",
+     "zig_sha256": "5bf8a2f3b89419993c35dffaad4241535a2f5c06e7243b4be6ea7e061372e4b7",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "e02ebfc514b48969ca59dd305167d24a985d64e14817177e2bb2126684f33b1e",
+      "diagnostic_main_commitment": "0b7f746477a92f528c3263b99a56dd49cade9d7a334d35395801917994ee4f64",
+      "diagnostic_interaction_commitment": "7c20c4973e1b9beaee0d487d3db3ba94d1fed154c816bceffd930461358a3a9d"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "mul_div",
+     "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+     "proof_admission": {
+      "status": "fail_closed_known_limitation",
+      "known_limitation": "stark-v-signed-mulh"
+     },
+     "proof_admitted": false,
+     "evidence_mode": "pinned_known_limitation",
+     "agree": true,
+     "comparison_outcome": "exact_pinned_limitation_fail_closed",
+     "rust_sha256": "324bd17d19926612608842f0d737bbb3a27356adb8a03f0f3ee2f3353a40d918",
+     "zig_sha256": "da7a430a8e4bfe6f66dd29a20b9e4f36b9ccdb5af73722ac022196447008f55f",
+     "limitation_evidence": {
+      "normalized_core": {
+       "schema": "riscv-mulh-limitation-v1",
+       "limitation_id": "stark-v-signed-mulh",
+       "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+       "family": "mulh",
+       "family_rows": 3,
+       "signed_rows": 2,
+       "unsigned_rows": 1,
+       "raw_nonzero_entries": 60,
+       "raw_stream_sha256": "9707404ab0682ac5742f66e39e816898549fa612dbb099c7997b62438885c0ee",
+       "range811_requests": 24,
+       "range811_stream_sha256": "82b01832ed9168bf9df6cdfc2a5fd7e25adce8e26b7460ae612264422974472e",
+       "invalid_request_count": 8,
+       "invalid_requests_sha256": "9044b98b3af28ac81faeb37d2d364d96e56f6bc5a13019e38b2cc8fcce513eef",
+       "invalid_requests": [
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 12,
+         "tuple": [
+          255,
+          1073741827
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 13,
+         "tuple": [
+          235,
+          12582914
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 14,
+         "tuple": [
+          255,
+          49154
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 16,
+         "tuple": [
+          255,
+          1610612738
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 12,
+         "tuple": [
+          255,
+          1073741827
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 13,
+         "tuple": [
+          235,
+          12582914
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 14,
+         "tuple": [
+          255,
+          49154
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 16,
+         "tuple": [
+          255,
+          1610612738
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        }
+       ],
+       "outcome": "preprocessed_registration_rejected",
+       "source": {
+        "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+        "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+       }
+      },
+      "normalized_core_sha256": "48e63ff31354f50dc2b7ca3f6673a60c39f02545f37d30f316fa2b78ff121f7a",
+      "production_rejection": {
+       "exit_code": 1,
+       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+       "stderr_sha256": "75853e50a0213483e19047a3337e4fde07f7fb8d9a1af3c8e831cf201e110015",
+       "diagnostic": "stark-v adapter: error=UnsupportedProofFamily stage=statement_validation_before_first_commitment limitation=stark-v-signed-mulh",
+       "proof_artifact_absent": true,
+       "report_artifact_absent": true,
+       "temporary_residue_absent": true
+      }
+     },
+     "observation": "raw_relation_requests"
+    },
+    {
+     "name": "mulhu_only",
+     "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+     "proof_admission": {
+      "status": "diagnostic_balanced_family_fail_closed",
+      "known_limitation": "stark-v-signed-mulh"
+     },
+     "proof_admitted": false,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "2bb76619a59421e1ce616e305c2c2e2b9040e562686dbd38ea62a3359d091deb",
+     "zig_sha256": "cd2a6bd73060e5091bc047a17c8987b6af1c4ff146a69aa0d9a04405a39ade39",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "7ca8763c0f87ceec33c3706de3dcfe06546a0aac377c812ad177fc897c181492",
+      "diagnostic_main_commitment": "3b96e6b52ca15bbaae8e46fe58e7618127be5bee1c55ae65e8eea54479ac50d5",
+      "diagnostic_interaction_commitment": "1b680ac45d3e3e887face21aac4ad55f04e65885d5c3e14b3681e38c2b44ba43"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 20
+    },
+    {
+     "name": "multi_shard_addi",
+     "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "f82255b9c12fa8379f73e338e07e14d60d60b150ad81a4e3037515486da1fa48",
+     "zig_sha256": "6b4cd19eef2e258c66675c7d058306e0a707a7ea588b3c9c60516bac85fd74a4",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "4ffe3b7c447adbadfd619948c206ab15ad162133cf07190baf56872a0d6a58db",
+      "diagnostic_main_commitment": "b25c147ed2b1368dc1ad847798d15c601976434f5bd3d7f2b7ba8b9afc555e10",
+      "diagnostic_interaction_commitment": "c8a7f3fe9f3b4a2245e126a693f28036c164ff6b6a87fc0eb3e8c9f8dc77c150"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "shift_logic",
+     "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "65c023c9e9b13d9c96588a5eb31edb2ecee8663ec77ebdcaa63113a4a98d0c89",
+     "zig_sha256": "4a56111ec0a5f90441eac9fb8c5b73b71b71c038591769e74522de13ef5b3435",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "84ac44a06d3818f0a0daffc53683ae3ecb652c976b9d620d05418f0b16c5c858",
+      "diagnostic_main_commitment": "7815aa7829077825d245e0c52df57b5f7cfdf01c6be7388dd235e7ad0a90aac7",
+      "diagnostic_interaction_commitment": "402f2781bbaecf74c87d295c8892d24f3d3015ca2b01bca4e3c67c7f90a976e5"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "sieve_primes",
+     "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "3d611abf8185cda46cfb5fe979f784e62c5097755777805c6b941e32787fdb7c",
+     "zig_sha256": "112712d15ab844314463dea84483a7f0148f799342ef85095faa50e3f2621445",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "0e234c3c045a7b919dd925096e2478451a40230ac4d94aacb7bb901e37beeab2",
+      "diagnostic_main_commitment": "57864e5872a7e8dff53da0195774471f0efededf12eff6ea9d620ddbffe50760",
+      "diagnostic_interaction_commitment": "86e1abe8179b5c4db1259c1e55e4b5aa7937aa816d8d4c575b324264721b6cf6"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    },
+    {
+     "name": "xorshift_prng",
+     "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "a123c57df41dcda10eaf42038d5e5c9cfe8184e7ca9b097a2930eba366d95a10",
+     "zig_sha256": "9f817a4917daee2938915f48e0ebc1353cdb82e8fc45789a8042f4c86c4813a2",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "60fe46b31a69fc73f325bca1c69651e694eb3c76e7fc212a710dc047a63d86ca",
+      "diagnostic_main_commitment": "f7b609e694c921a1378d595c22e626dc683426ed4178f246d352fd1ee704e50d",
+      "diagnostic_interaction_commitment": "dcde0372113a1017582f9c2e1d6278d21d4a6681d7acc106240af05835d420f3"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 0
+    }
+   ],
+   "nonempty_public_input": {
+    "name": "public_io_partial_word",
+    "generator": "scripts/riscv_release_oracle_lib/public_input_fixture.py",
+    "elf_sha256": "a55facfb5444038a6544a499cfbf2c4845e73e032a5ebda882effc431e8115ee",
+    "input_sha256": "47e4ee7f211f73265dd17658f6e21c1318bd6c81f37598e20a2756299542efcf",
+    "input_len": 9,
+    "proof_admitted": true,
+    "evidence_mode": "nonempty_public_input",
+    "public_data": {
+     "agree": true,
+     "fields": [
+      "initial_pc",
+      "final_pc",
+      "clock",
+      "initial_regs",
+      "final_regs",
+      "reg_last_clock",
+      "program_root",
+      "initial_rw_root",
+      "final_rw_root",
+      "io_entries"
+     ],
+     "mismatches": [],
+     "normalized_sha256": "9c9fa19b85b7a5b844cb045fb173fd02596b9a2afc35489952cd6d6af2362ad9"
+    },
+    "observation": "canonical_nonzero_tuple_streams",
+    "component_count": 27,
+    "relation_count": 12,
+    "rust_sha256": "fdbb9825e01a7eb7fcfb878315a62c51a5ac8e8e0b2586b320c7ea1dad7bc3a0",
+    "zig_sha256": "7716128ee80b3345d11f46d71f803d90415dca8511955a7509310fbd659d95bc",
+    "zig_binding": {
+     "binding": "zig_diagnostic",
+     "challenge_mode": "pinned_default_blake2s_v1",
+     "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+     "implementation_dirty": false,
+     "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+     "elf_sha256": "a55facfb5444038a6544a499cfbf2c4845e73e032a5ebda882effc431e8115ee",
+     "input_sha256": "47e4ee7f211f73265dd17658f6e21c1318bd6c81f37598e20a2756299542efcf",
+     "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+     "diagnostic_preprocessed_commitment": "1d90da075a657a770ad56d9a6a9c6d284e4c3a9601740ba7e7ed327e10c242e3",
+     "diagnostic_main_commitment": "bcf0c998d58e83e8bc1715ceaea91f3b6d2869daae9519dacae5218c7f6baca9",
+     "diagnostic_interaction_commitment": "6fc2a3a057d6e169fdab62b92e6b80accb29917478f82502fb5851aeb9e09dc0"
+    },
+    "agree": true,
+    "first_divergence": null,
+    "mulh_nonzero_entries": 0
+   }
+  },
+  "relation_sums": {
+   "status": "pass",
+   "comparison": "exact balanced relation sums for admitted diagnostics; signed-MULH instead requires normalized pre-counter parity and exact production rejection",
+   "corpus": [
+    {
+     "name": "alu_test",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "63f9216a3968d6a21e3ba5ddcb232be0186b25624c992546bc35d880d194056b",
+     "zig_sha256": "c9bf4f43e744c470b401008bad5c55af1d87f65392405ae6c51182bf7aaa62bc",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "e72b64d3ec743937a417adca58e81a7399252a9b3305cd6bd385ea8060ab58b4",
+      "diagnostic_main_commitment": "ca218d9f7364dce849603d1c5b92195493e792d5195747185af47ec880b57b6f",
+      "diagnostic_interaction_commitment": "6c350d44446eb98a6f9d5826ac059c75353844c0b7ef20794859b3582b83abbb"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "branch_fib",
+     "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "4c8b30a7d1a3d99afddd88db18b83cd538121ee30361af892fbfa9362878c2eb",
+     "zig_sha256": "3934d2b51949720802fdcaecf287c84cf21b2a93baf8d72701a24113df1d42d4",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "4dbf634977e3a30e71a16a681f1ac84def562bd0847fa4885f5f9214d003e0f1",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "6e9abda5129fd4e938858f869ad7c333650baddb642f2164d63b883d028ca5de",
+      "diagnostic_main_commitment": "81a03446f9f3f50c96f4cb37a08a190d9e02cb61dd2f69b7033af0359a56da76",
+      "diagnostic_interaction_commitment": "f2c6808e4542be365c9e76573efb4c2e5ee9f4e3be0a84d469e0ddd25942593f"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "bubble_sort",
+     "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "b6628c9146084fdec0088e89d4d9002f8e2c9a88f23e9c19bb747218bfb2a9ee",
+     "zig_sha256": "f0968f71e31f31926154cecf2488cd6ec143eb8f2abc66d465e14caa00d9f544",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "1c1049a49be4b904a68a34b1afc5452f44a4a225edb167dbd8974de67cca8ea8",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "23aae94ede5ec683fdfbbfe60be7adb8d22b3836b8c5e1a4b469d33bddd16ba8",
+      "diagnostic_main_commitment": "e2ac3f7f1905dd7229bd0cf733bc1e0850c74579ee471861fbb80c1f5058c90a",
+      "diagnostic_interaction_commitment": "0491c00ed7d9ba746f4d1326b0c971f24b5faf926d22697a02ab37f91e5a0462"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "collatz",
+     "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "9d0e57b8c2aa63030d31517c790dbd3115e661c69cb66f975a36f08ea8a89e66",
+     "zig_sha256": "d05c8b4be065b1b6d661df8e052071388a51962810b0c4955e48174a7b5d24dc",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "533ba03ba57377b83905f6816d6a84c509ea3c123df202bd7f0fa974212214da",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "0054e58e284a32ab3640c9989101712134c934c98da290a672a93eea2243e999",
+      "diagnostic_main_commitment": "17963c570973e9446b9d1c2adc3d10b5db8f337bdaf40a01cd0275f35d8c4880",
+      "diagnostic_interaction_commitment": "0964bf5d6da6d45ef73e2558e88867b2c85e73d31db9ed65adb238bb9f8f02c2"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "declared_region",
+     "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "63f9216a3968d6a21e3ba5ddcb232be0186b25624c992546bc35d880d194056b",
+     "zig_sha256": "c9bf4f43e744c470b401008bad5c55af1d87f65392405ae6c51182bf7aaa62bc",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "d2b41fe78881aeee2883a134db22e4054701f42a6773acf7b7f218f3a47a793f",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "e72b64d3ec743937a417adca58e81a7399252a9b3305cd6bd385ea8060ab58b4",
+      "diagnostic_main_commitment": "ca218d9f7364dce849603d1c5b92195493e792d5195747185af47ec880b57b6f",
+      "diagnostic_interaction_commitment": "6c350d44446eb98a6f9d5826ac059c75353844c0b7ef20794859b3582b83abbb"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "fib_iter",
+     "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "d74c22350e6e31dc3799928b276928707a2a0d2c66272e9c2dbf9504e1426404",
+     "zig_sha256": "90ca387475481ff2eda4370b6a3c77c331d302465825e26c4a976a13c3f2cca6",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "cf0f6a37202b356e073e67426a4fa0ab5afb1c0db1da31c106622e2e4e79c558",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "ea02d6d82ef834b8f124609eb38ecc2ae7705bfa2bb3817d37a07beb57624329",
+      "diagnostic_main_commitment": "ec4c361bbc58fc4463f461fe358f2bc2198a040108e280d81ff5195609ac4785",
+      "diagnostic_interaction_commitment": "3db4429717f7b080767eb0e056c47957fca1a03119ed85c9bedf8bb065350117"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "gcd_euclid",
+     "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "9839a951091b28e0e991f71a0a0cc542440931c86e0a104040a523d88ddaeea6",
+     "zig_sha256": "ecd28bda65780038217adab2cbea9deff61483d170b52fddd25cb3f3e159baf5",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "72642542eecc7c26e920c346b21610f06e9d6b28e4e6b0133ce0aadd57c6e183",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "32ede228cd92ebd8f5944a0821564d4bd059a36eff369f22b82b64eadcbcb708",
+      "diagnostic_main_commitment": "77b8fe9a3dfede9f0da59410d5638f7f5aad0fb35615a6899965754ea425c74c",
+      "diagnostic_interaction_commitment": "4a308cd5c64bf09e2856b2a013fb4e83f66b5371c6fbc6789a43fcef5eabf384"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "jal_jalr",
+     "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "0520c205f095e4061c552994b2297c2d086a122f2929969a5abaf3623e8e9b73",
+     "zig_sha256": "772f3118b3d91a26f461d9ea6bc1ce03e283a3958ec052c72ac99321261608df",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "75ffceb907ed06b1cfdfffab44bea5e765b50c37b653cf23cb992da1fc33555e",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "1d7b4ba04fb6600bee4df7afecfc1cd4f460d7c14f99d7a690b9d43d8f176c7d",
+      "diagnostic_main_commitment": "e247cc33340d5fa3ff0939e88f0a87937407e8c3c5179c96e6cf2358b8f5e75e",
+      "diagnostic_interaction_commitment": "737a8bb22011fcc6a83defbd80a07930ae2a8dfa7eda615bc9e7bd77fbe33419"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "mem_ls",
+     "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "836b37eea75ae7e1c93febce153e09156282bcb3b629629790b65f3f62928602",
+     "zig_sha256": "7b56d40b4277c5ca2ef2083ce967a5d62fbc4dd00321c81cc9a5d93e7c9d8e24",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "3f2ce9e1fd1136053b274ce6fca02e118c3bc4348cb968a73407466ce923e2be",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "c079eb52d462990c93f3d0335aa220fc0f6dd3e2e859efa09429c3a170a1b50a",
+      "diagnostic_main_commitment": "d196ed5b1a003b49b28dc6752dfb5e71e7d2f5fad242081a1c33ee2363094cf9",
+      "diagnostic_interaction_commitment": "154f738696d599356fbb801ae48a34df2921547e4a229ab6d8e0839b0e4921e5"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "memcpy_loop",
+     "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "03087d7a34cd43e5a5859d50492a91ba0860d38fc2afee2aa5df20f7d851f953",
+     "zig_sha256": "577c990c92373a9df0547c82855dca1535f5f4aa01698ac68d1674a06ecd45bc",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "708bf392e6b457313b40f40981c705a51dbf6c47a71f26fd68f472902daee38a",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "e02ebfc514b48969ca59dd305167d24a985d64e14817177e2bb2126684f33b1e",
+      "diagnostic_main_commitment": "0b7f746477a92f528c3263b99a56dd49cade9d7a334d35395801917994ee4f64",
+      "diagnostic_interaction_commitment": "7c20c4973e1b9beaee0d487d3db3ba94d1fed154c816bceffd930461358a3a9d"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "mul_div",
+     "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+     "proof_admission": {
+      "status": "fail_closed_known_limitation",
+      "known_limitation": "stark-v-signed-mulh"
+     },
+     "proof_admitted": false,
+     "evidence_mode": "pinned_known_limitation",
+     "agree": true,
+     "comparison_outcome": "exact_pinned_limitation_fail_closed",
+     "rust_sha256": "324bd17d19926612608842f0d737bbb3a27356adb8a03f0f3ee2f3353a40d918",
+     "zig_sha256": "da7a430a8e4bfe6f66dd29a20b9e4f36b9ccdb5af73722ac022196447008f55f",
+     "limitation_evidence": {
+      "normalized_core": {
+       "schema": "riscv-mulh-limitation-v1",
+       "limitation_id": "stark-v-signed-mulh",
+       "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+       "family": "mulh",
+       "family_rows": 3,
+       "signed_rows": 2,
+       "unsigned_rows": 1,
+       "raw_nonzero_entries": 60,
+       "raw_stream_sha256": "9707404ab0682ac5742f66e39e816898549fa612dbb099c7997b62438885c0ee",
+       "range811_requests": 24,
+       "range811_stream_sha256": "82b01832ed9168bf9df6cdfc2a5fd7e25adce8e26b7460ae612264422974472e",
+       "invalid_request_count": 8,
+       "invalid_requests_sha256": "9044b98b3af28ac81faeb37d2d364d96e56f6bc5a13019e38b2cc8fcce513eef",
+       "invalid_requests": [
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 12,
+         "tuple": [
+          255,
+          1073741827
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 13,
+         "tuple": [
+          235,
+          12582914
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 14,
+         "tuple": [
+          255,
+          49154
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 0,
+         "opcode_id": 38,
+         "request_index": 16,
+         "tuple": [
+          255,
+          1610612738
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 12,
+         "tuple": [
+          255,
+          1073741827
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 13,
+         "tuple": [
+          235,
+          12582914
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 14,
+         "tuple": [
+          255,
+          49154
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        },
+        {
+         "row": 2,
+         "opcode_id": 39,
+         "request_index": 16,
+         "tuple": [
+          255,
+          1610612738
+         ],
+         "classification": "range_check_8_11_value_out_of_range"
+        }
+       ],
+       "outcome": "preprocessed_registration_rejected",
+       "source": {
+        "elf_sha256": "58bde51588e8dadd36dfe851b524519079bbc7e1dfbd5531446162f3568428be",
+        "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+       }
+      },
+      "normalized_core_sha256": "48e63ff31354f50dc2b7ca3f6673a60c39f02545f37d30f316fa2b78ff121f7a",
+      "production_rejection": {
+       "exit_code": 1,
+       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+       "stderr_sha256": "75853e50a0213483e19047a3337e4fde07f7fb8d9a1af3c8e831cf201e110015",
+       "diagnostic": "stark-v adapter: error=UnsupportedProofFamily stage=statement_validation_before_first_commitment limitation=stark-v-signed-mulh",
+       "proof_artifact_absent": true,
+       "report_artifact_absent": true,
+       "temporary_residue_absent": true
+      }
+     },
+     "observation": "preprocessed_registration"
+    },
+    {
+     "name": "mulhu_only",
+     "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+     "proof_admission": {
+      "status": "diagnostic_balanced_family_fail_closed",
+      "known_limitation": "stark-v-signed-mulh"
+     },
+     "proof_admitted": false,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "240c3506e06a56c464039f090633b921227d2740310d83e91eae1e49add8920c",
+     "zig_sha256": "8dc4a491e16d81e9566989c13e358355c0ad9603380326f8adc8a15df4e323a9",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "306f5d6957f78d2bcd084c41888476da30045e7b1d262f27bdd31f569f7d2e2d",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "7ca8763c0f87ceec33c3706de3dcfe06546a0aac377c812ad177fc897c181492",
+      "diagnostic_main_commitment": "3b96e6b52ca15bbaae8e46fe58e7618127be5bee1c55ae65e8eea54479ac50d5",
+      "diagnostic_interaction_commitment": "1b680ac45d3e3e887face21aac4ad55f04e65885d5c3e14b3681e38c2b44ba43"
+     },
+     "agree": true,
+     "first_divergence": null,
+     "mulh_nonzero_entries": 20
+    },
+    {
+     "name": "multi_shard_addi",
+     "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "7455487b620af3ffc06166dd4a634f4a5bc2b703e7506de723e8be78d9852ba8",
+     "zig_sha256": "0ff5fc987dc003e6ba9b81f5e238466aab3475b6e23ab96a7efbefe0671ac27a",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "4ffe3b7c447adbadfd619948c206ab15ad162133cf07190baf56872a0d6a58db",
+      "diagnostic_main_commitment": "b25c147ed2b1368dc1ad847798d15c601976434f5bd3d7f2b7ba8b9afc555e10",
+      "diagnostic_interaction_commitment": "c8a7f3fe9f3b4a2245e126a693f28036c164ff6b6a87fc0eb3e8c9f8dc77c150"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "shift_logic",
+     "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "e1ea3a66da3c4a4b199dda2ea4027dd6207b7f767882ae09fa80b5908426d45d",
+     "zig_sha256": "fb756e0141f99a74271f04c0a15e42985e5dc1c803352040c7afbd52a2a3446f",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "8cd5492e6434949ca541efba2c817f0fb65b9cd7cab874edff5e3c8417d1c9c1",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "84ac44a06d3818f0a0daffc53683ae3ecb652c976b9d620d05418f0b16c5c858",
+      "diagnostic_main_commitment": "7815aa7829077825d245e0c52df57b5f7cfdf01c6be7388dd235e7ad0a90aac7",
+      "diagnostic_interaction_commitment": "402f2781bbaecf74c87d295c8892d24f3d3015ca2b01bca4e3c67c7f90a976e5"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "sieve_primes",
+     "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "7e09308bf32667a598648bb66ce7278db6028f60201dbc7a8a7f82547a4e84a4",
+     "zig_sha256": "406e0414435de22e23a0718fd7262049a18ce717223c28bf9ca1cab4277713c0",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "e17f246064c7edb8ca7cb313f1e5fef369d0fa9ff64d4fa5cc05628f576791a5",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "0e234c3c045a7b919dd925096e2478451a40230ac4d94aacb7bb901e37beeab2",
+      "diagnostic_main_commitment": "57864e5872a7e8dff53da0195774471f0efededf12eff6ea9d620ddbffe50760",
+      "diagnostic_interaction_commitment": "86e1abe8179b5c4db1259c1e55e4b5aa7937aa816d8d4c575b324264721b6cf6"
+     },
+     "agree": true,
+     "first_divergence": null
+    },
+    {
+     "name": "xorshift_prng",
+     "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+     "proof_admission": {
+      "status": "supported"
+     },
+     "proof_admitted": true,
+     "evidence_mode": "balanced_full",
+     "rust_sha256": "9f6eb27e12b0a9419cd7616f19beeb6f76b0dfcbc97ec9b51e2d416fcfc61b73",
+     "zig_sha256": "9ceeb19afb9dc774fddaf9c471d42d4b6622087a045ba1ff90ea336bc2d7f94a",
+     "zig_binding": {
+      "binding": "zig_diagnostic",
+      "challenge_mode": "pinned_default_blake2s_v1",
+      "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+      "implementation_dirty": false,
+      "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+      "elf_sha256": "a237303b7882124cdf5b013117aa1a3abede047995add871c3525c4ca3fa376e",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+      "diagnostic_preprocessed_commitment": "60fe46b31a69fc73f325bca1c69651e694eb3c76e7fc212a710dc047a63d86ca",
+      "diagnostic_main_commitment": "f7b609e694c921a1378d595c22e626dc683426ed4178f246d352fd1ee704e50d",
+      "diagnostic_interaction_commitment": "dcde0372113a1017582f9c2e1d6278d21d4a6681d7acc106240af05835d420f3"
+     },
+     "agree": true,
+     "first_divergence": null
+    }
+   ],
+   "nonempty_public_input": {
+    "name": "public_io_partial_word",
+    "generator": "scripts/riscv_release_oracle_lib/public_input_fixture.py",
+    "elf_sha256": "a55facfb5444038a6544a499cfbf2c4845e73e032a5ebda882effc431e8115ee",
+    "input_sha256": "47e4ee7f211f73265dd17658f6e21c1318bd6c81f37598e20a2756299542efcf",
+    "input_len": 9,
+    "proof_admitted": true,
+    "evidence_mode": "nonempty_public_input",
+    "public_data": {
+     "agree": true,
+     "fields": [
+      "initial_pc",
+      "final_pc",
+      "clock",
+      "initial_regs",
+      "final_regs",
+      "reg_last_clock",
+      "program_root",
+      "initial_rw_root",
+      "final_rw_root",
+      "io_entries"
+     ],
+     "mismatches": [],
+     "normalized_sha256": "9c9fa19b85b7a5b844cb045fb173fd02596b9a2afc35489952cd6d6af2362ad9"
+    },
+    "observation": "all_component_prefixes_and_relation_domains",
+    "component_count": 27,
+    "relation_count": 12,
+    "public_relation_count": 3,
+    "public_memory_sum_nonzero": true,
+    "balanced_sum": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "rust_sha256": "a1349fe33e2865251eead27207a1a8d5b978ce94dc51c9d03e96fb2a38a20460",
+    "zig_sha256": "39089ce05400b87423d4de6a0bffacce364aed689de1afb9deccbb72da3845ca",
+    "zig_binding": {
+     "binding": "zig_diagnostic",
+     "challenge_mode": "pinned_default_blake2s_v1",
+     "implementation_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+     "implementation_dirty": false,
+     "oracle_commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+     "elf_sha256": "a55facfb5444038a6544a499cfbf2c4845e73e032a5ebda882effc431e8115ee",
+     "input_sha256": "47e4ee7f211f73265dd17658f6e21c1318bd6c81f37598e20a2756299542efcf",
+     "witness_layout_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+     "diagnostic_preprocessed_commitment": "1d90da075a657a770ad56d9a6a9c6d284e4c3a9601740ba7e7ed327e10c242e3",
+     "diagnostic_main_commitment": "bcf0c998d58e83e8bc1715ceaea91f3b6d2869daae9519dacae5218c7f6baca9",
+     "diagnostic_interaction_commitment": "6fc2a3a057d6e169fdab62b92e6b80accb29917478f82502fb5851aeb9e09dc0"
+    },
+    "agree": true,
+    "first_divergence": null
+   }
+  },
+  "shared_transcript_prefix": {
+   "status": "pass",
+   "channel": "blake2s on both sides (pinned prove_rv32im defaults to Blake2sMerkleChannel -> Blake2sChannel; Zig prover uses the ported stwo Blake2sChannel with upstream digest vectors)",
+   "prefix": "default channel state + PublicData mix_u32s sequence \u2014 the full pre-commitment transcript; digest recorded after each step",
+   "corpus": [
+    {
+     "name": "alu_test",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "110095887a71b1ead70c4ff4ecc0e5e6a68893d2af1a08fd918ff621b7b93b5e"
+    },
+    {
+     "name": "branch_fib",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "19a3c73b6561e9f9d0ad613d3e5f1837c45a763fb437a16e529dfa3433026787"
+    },
+    {
+     "name": "bubble_sort",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "c8ca76d317331acc677f7c4cdd9c4363a0a307d50726759cfc7adb461f13b6de"
+    },
+    {
+     "name": "collatz",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "7d0076e0939d13537446736922234f3fafb5f3bc0afaa8436217d48bb5240754"
+    },
+    {
+     "name": "declared_region",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "110095887a71b1ead70c4ff4ecc0e5e6a68893d2af1a08fd918ff621b7b93b5e"
+    },
+    {
+     "name": "fib_iter",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "9abcb03418681e353e2d71e4afbd30a035829e318697598a8afdd91b5c079cdc"
+    },
+    {
+     "name": "gcd_euclid",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "480a18839c7b71a240466e2bd46c85b78ef65af71a35ae628aec4af1d0f301b5"
+    },
+    {
+     "name": "jal_jalr",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "b43973cd4f55e28244dc54a4f7af5776fcebe7715b441ff29caa79c6afebda24"
+    },
+    {
+     "name": "mem_ls",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "96697703578269ff0d1ad3c601cb3d6e6aecbf15bff970164bb941634e99a23a"
+    },
+    {
+     "name": "memcpy_loop",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "94fe8ff8d41802b58071dcc1971c703cb860577588cd1816fa6edb20500d4c8f"
+    },
+    {
+     "name": "mul_div",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "90a186eb427ca81f1917ff0cbfe938242e90bccd7bb9bdbf922bb5c6f4d43dd7"
+    },
+    {
+     "name": "mulhu_only",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "0e03f142d1a9a1d44e9a32dcd4760f6a8ba5a3c69caa73f69f76a7269d42f7fc"
+    },
+    {
+     "name": "multi_shard_addi",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "78c266d1c42af4dd825d9694811fa81a309b26f96de37d7d93a6968d1d42ece9"
+    },
+    {
+     "name": "shift_logic",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "7abd5300db7e08410572216b6082273515f7b4ef84d7df7d3f398d7123f3d474"
+    },
+    {
+     "name": "sieve_primes",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "d476ff06af003c5493beaac6d69abe22f4d7ef5a1ed8c19454fa2b2f90957238"
+    },
+    {
+     "name": "xorshift_prng",
+     "agree": true,
+     "mix_steps": 9,
+     "prefix_digest": "276fcd258aff9e63b9f50694ac63cfafb81a57b14963332d07f42c1e5d3012aa"
+    }
+   ]
+  }
+ },
+ "oracle": {
+  "repository": "https://github.com/ClementWalter/stark-v",
+  "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+  "clean": true,
+  "tree_digest_sha256": "4e7442329a0e822ff5f8ba1b9ecbd96991ec9618a184b29c7225263084ac3e0f",
+  "submodule_status": [
+   "52a5d60d2b9b1b07c7176b2aaa8b1dd2c507ee00 external/stwo (52a5d60)"
+  ],
+  "lockfile_sha256": "afac221d02718a346e95e295e1674aca6e60da3ed33d7a68e56ea390eedab508",
+  "toolchain": "rustc 1.95.0-nightly (de6d33c03 2026-01-28)",
+  "build_command": "cargo build --locked --release -p prover --bin cp11_dump",
+  "build_mode": "release",
+  "adapter_overlay": {
+   "path": "crates/prover/src/bin/cp11_dump.rs",
+   "sha256": "05f694f90266872d406921965aa9dce73a3af1b868d77e7b8d9f7738c16b526f",
+   "files": [
+    {
+     "operation": "promote_locked_dev_dependency",
+     "path": "crates/prover/Cargo.toml",
+     "dependency": "sha2 = { version = \"0.10\", default-features = false }",
+     "before_sha256": "ba55b55722c8d027b15e98f4fb50b055be80ec7f4c60514e5e689842885853a9",
+     "after_sha256": "76d56e5db71807403ab0a91afa8c9427c63ffe6d99171c2b24052078ae650841",
+     "sha256": "76d56e5db71807403ab0a91afa8c9427c63ffe6d99171c2b24052078ae650841",
+     "patch_sha256": "97212e26299071900f66022280b6165ddde624288d22d51b88a4784d3afbbde1"
+    },
+    {
+     "path": "crates/prover/src/bin/cp11_dump.rs",
+     "sha256": "33c79065c408684dd8218d8b3af322afee8b150719414ab7235bce02d3f155fe"
+    },
+    {
+     "path": "crates/prover/src/bin/cp11_dump/relation_sums.rs",
+     "sha256": "21eba520852aea32a9791b025cc12829379e8d59e059350ebbddf6dda276a74b"
+    },
+    {
+     "path": "crates/prover/src/bin/cp11_dump/relation_tuples.rs",
+     "sha256": "502ec37ae601dfff2e7ee5a3ff10fdbe19a14154e17f9dffc305edabe89c1c73"
+    },
+    {
+     "path": "crates/prover/src/bin/cp11_dump/relation_limitation.rs",
+     "sha256": "d2cdd43bbe9487d64e25f4dd5e045a8b2cb7f38d3bfb1b4e424c0926555090b8"
+    }
+   ],
+   "note": "aggregate identity of thin serializers over the oracle's own production APIs and a recorded, temporary manifest transform; applied after tree digest, removed after build"
+  },
+  "executable_sha256": "49330233c93b7da2698aaeff8da65aa6bac4c126c80cfea9d245e0bd46bc6fd7",
+  "host_arch": "x86_64",
+  "host_os": "Linux 6.17.0-1020-azure",
+  "build_cache": {
+   "schema": "riscv-stark-v-oracle-build-cache-v1",
+   "status": "hit",
+   "key_sha256": "a74fdf0cb87a0a58ccd81108b28f3f6d723a88910e8061e14dbbd29ac8abe1b2",
+   "manifest_sha256": "cf430eb37fb79356825c7dff84f7de7240e6dcb44ca71c46ca9a2f28a798467f",
+   "verification": [
+    "identity_exact",
+    "manifest_strict",
+    "regular_executable",
+    "size_exact",
+    "executable_sha256_exact"
+   ]
+  }
+ },
+ "implementation": {
+  "repository": "https://github.com/teddyjfpender/stwo-zig",
+  "commit": "4c4049bdf878de450f172403a3ddac37eef0dca2",
+  "clean": true,
+  "executables": {
+   "riscv-trace-dump": "d3a17cdfb080730078492a5e994c364760ec956c5b8a5eb6bc3882b22c153727",
+   "stwo-zig": "8ce447474d599d2c3af765eeb64ffc53756858f51ad143f11b8e5d396df3539e"
+  }
+ },
+ "corpus_digest_sha256": "d7e003e3565c5a85bd3eb62c3da678ccef05b422c34e6657c6a2a67eef9204b6",
+ "witness_layout_digest_sha256": "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79",
+ "expected_case_result_keys": [
+  "decode/aggregate",
+  "decode/corpus",
+  "execution/aggregate",
+  "execution/alu_test",
+  "execution/branch_fib",
+  "execution/bubble_sort",
+  "execution/collatz",
+  "execution/declared_region",
+  "execution/fib_iter",
+  "execution/gcd_euclid",
+  "execution/jal_jalr",
+  "execution/mem_ls",
+  "execution/memcpy_loop",
+  "execution/mul_div",
+  "execution/mulhu_only",
+  "execution/multi_shard_addi",
+  "execution/shift_logic",
+  "execution/sieve_primes",
+  "execution/xorshift_prng",
+  "memory_roots/aggregate",
+  "memory_roots/alu_test",
+  "memory_roots/branch_fib",
+  "memory_roots/bubble_sort",
+  "memory_roots/collatz",
+  "memory_roots/declared_region",
+  "memory_roots/fib_iter",
+  "memory_roots/gcd_euclid",
+  "memory_roots/jal_jalr",
+  "memory_roots/mem_ls",
+  "memory_roots/memcpy_loop",
+  "memory_roots/mul_div",
+  "memory_roots/mulhu_only",
+  "memory_roots/multi_shard_addi",
+  "memory_roots/shift_logic",
+  "memory_roots/sieve_primes",
+  "memory_roots/xorshift_prng",
+  "ordered_accesses/aggregate",
+  "ordered_accesses/alu_test",
+  "ordered_accesses/branch_fib",
+  "ordered_accesses/bubble_sort",
+  "ordered_accesses/collatz",
+  "ordered_accesses/declared_region",
+  "ordered_accesses/fib_iter",
+  "ordered_accesses/gcd_euclid",
+  "ordered_accesses/jal_jalr",
+  "ordered_accesses/mem_ls",
+  "ordered_accesses/memcpy_loop",
+  "ordered_accesses/mul_div",
+  "ordered_accesses/mulhu_only",
+  "ordered_accesses/multi_shard_addi",
+  "ordered_accesses/shift_logic",
+  "ordered_accesses/sieve_primes",
+  "ordered_accesses/xorshift_prng",
+  "per_family_witness_rows/aggregate",
+  "per_family_witness_rows/alu_test",
+  "per_family_witness_rows/branch_fib",
+  "per_family_witness_rows/bubble_sort",
+  "per_family_witness_rows/collatz",
+  "per_family_witness_rows/declared_region",
+  "per_family_witness_rows/fib_iter",
+  "per_family_witness_rows/gcd_euclid",
+  "per_family_witness_rows/jal_jalr",
+  "per_family_witness_rows/mem_ls",
+  "per_family_witness_rows/memcpy_loop",
+  "per_family_witness_rows/mul_div",
+  "per_family_witness_rows/mulhu_only",
+  "per_family_witness_rows/multi_shard_addi",
+  "per_family_witness_rows/shift_logic",
+  "per_family_witness_rows/sieve_primes",
+  "per_family_witness_rows/xorshift_prng",
+  "poseidon2_vectors/aggregate",
+  "poseidon2_vectors/corpus",
+  "program_tuples/aggregate",
+  "program_tuples/alu_test",
+  "program_tuples/branch_fib",
+  "program_tuples/bubble_sort",
+  "program_tuples/collatz",
+  "program_tuples/declared_region",
+  "program_tuples/fib_iter",
+  "program_tuples/gcd_euclid",
+  "program_tuples/jal_jalr",
+  "program_tuples/mem_ls",
+  "program_tuples/memcpy_loop",
+  "program_tuples/mul_div",
+  "program_tuples/mulhu_only",
+  "program_tuples/multi_shard_addi",
+  "program_tuples/shift_logic",
+  "program_tuples/sieve_primes",
+  "program_tuples/xorshift_prng",
+  "public_values/aggregate",
+  "public_values/alu_test",
+  "public_values/branch_fib",
+  "public_values/bubble_sort",
+  "public_values/collatz",
+  "public_values/declared_region",
+  "public_values/fib_iter",
+  "public_values/gcd_euclid",
+  "public_values/jal_jalr",
+  "public_values/mem_ls",
+  "public_values/memcpy_loop",
+  "public_values/mul_div",
+  "public_values/mulhu_only",
+  "public_values/multi_shard_addi",
+  "public_values/shift_logic",
+  "public_values/sieve_primes",
+  "public_values/xorshift_prng",
+  "relation_sums/aggregate",
+  "relation_sums/alu_test",
+  "relation_sums/branch_fib",
+  "relation_sums/bubble_sort",
+  "relation_sums/collatz",
+  "relation_sums/declared_region",
+  "relation_sums/fib_iter",
+  "relation_sums/gcd_euclid",
+  "relation_sums/jal_jalr",
+  "relation_sums/mem_ls",
+  "relation_sums/memcpy_loop",
+  "relation_sums/mul_div",
+  "relation_sums/mulhu_only",
+  "relation_sums/multi_shard_addi",
+  "relation_sums/public_io_partial_word",
+  "relation_sums/shift_logic",
+  "relation_sums/sieve_primes",
+  "relation_sums/xorshift_prng",
+  "relation_tuples/aggregate",
+  "relation_tuples/alu_test",
+  "relation_tuples/branch_fib",
+  "relation_tuples/bubble_sort",
+  "relation_tuples/collatz",
+  "relation_tuples/declared_region",
+  "relation_tuples/fib_iter",
+  "relation_tuples/gcd_euclid",
+  "relation_tuples/jal_jalr",
+  "relation_tuples/mem_ls",
+  "relation_tuples/memcpy_loop",
+  "relation_tuples/mul_div",
+  "relation_tuples/mulhu_only",
+  "relation_tuples/multi_shard_addi",
+  "relation_tuples/public_io_partial_word",
+  "relation_tuples/shift_logic",
+  "relation_tuples/sieve_primes",
+  "relation_tuples/xorshift_prng",
+  "shared_transcript_prefix/aggregate",
+  "shared_transcript_prefix/alu_test",
+  "shared_transcript_prefix/branch_fib",
+  "shared_transcript_prefix/bubble_sort",
+  "shared_transcript_prefix/collatz",
+  "shared_transcript_prefix/declared_region",
+  "shared_transcript_prefix/fib_iter",
+  "shared_transcript_prefix/gcd_euclid",
+  "shared_transcript_prefix/jal_jalr",
+  "shared_transcript_prefix/mem_ls",
+  "shared_transcript_prefix/memcpy_loop",
+  "shared_transcript_prefix/mul_div",
+  "shared_transcript_prefix/mulhu_only",
+  "shared_transcript_prefix/multi_shard_addi",
+  "shared_transcript_prefix/shift_logic",
+  "shared_transcript_prefix/sieve_primes",
+  "shared_transcript_prefix/xorshift_prng"
+ ],
+ "verdict": "PASS"
+}

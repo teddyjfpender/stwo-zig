@@ -289,7 +289,12 @@
           "required_features": [
             "parallel"
           ],
-          "final_validator": true
+          "final_validator": true,
+          "release_anchor": {
+            "receipt": "conformance/evidence/riscv/release-anchor.json",
+            "sha256": "92a901106ff3f3236cf03e2d29469e9a6901ec50ce82a5dc2d473d85155a768a",
+            "candidate_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2"
+          }
         },
         "gates_policy": {
           "warmups": 1,
