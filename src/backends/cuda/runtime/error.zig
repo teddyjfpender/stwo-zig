@@ -10,6 +10,7 @@ pub const Error = error{
     DeviceBufferLive,
     DeviceUnavailable,
     EmptyAllocation,
+    HostReadOutsideProofAssembly,
     InvalidDeviceArchitecture,
     InvalidDeviceOrdinal,
     InvalidState,
@@ -18,6 +19,9 @@ pub const Error = error{
     NullExecutionContext,
     NullExecutionStream,
     SizeOverflow,
+    StageAlreadyActive,
+    StageNotActive,
+    StageOrderViolation,
     StrictAotViolation,
 };
 

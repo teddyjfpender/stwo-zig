@@ -68,7 +68,7 @@ pub fn SessionFor(comptime Api: type) type {
 
         pub fn markProofComplete(self: *Self) runtime_error.Error!void {
             if (self.state != .open) return error.InvalidState;
-            if (self.context.counters.kernel_launches == 0)
+            if (!self.context.stagesComplete())
                 return error.KernelPathUnused;
             self.state = .proved;
         }
@@ -206,7 +206,11 @@ test "strict session returns a resident verdict and never exposes fallback" {
     const Session = SessionFor(Fake);
     var session = try Session.open(&.{90});
     try std.testing.expect(Fake.require_aot);
-    try session.context.recordKernels(5);
+    for (telemetry.all_stages) |stage| {
+        try session.context.beginStage(stage);
+        if (stage.requiresKernel()) try session.context.recordKernels(1);
+        try session.context.endStage(stage);
+    }
     try session.markProofComplete();
     const verdict = try session.finish();
     try std.testing.expect(verdict.isResident());
