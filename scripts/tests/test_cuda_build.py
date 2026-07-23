@@ -17,6 +17,7 @@ from cuda_build_lib.builder import (  # noqa: E402
     aot_compile_command,
     build_plan,
     load_native_closure,
+    load_product_selection,
     load_source_closure,
     normalize_sms,
     write_aot_carriers,
@@ -72,11 +73,61 @@ class CudaBuildTests(unittest.TestCase):
             load_native_closure(NATIVE)["closure_sha256"],
             plan["native_runtime_closure_sha256"],
         )
+        authority = load_source_closure(SOURCE, MANIFEST)
+        product = load_product_selection(self.config(Path(temporary)), authority)
+        self.assertEqual(
+            product.aot_closure_sha256,
+            plan["native_aot_closure_sha256"],
+        )
         self.assertEqual("plan-only", plan["tools"]["nvcc"]["sha256"])
         self.assertIn("-dc", plan["fixed_flags"]["ordinary"])
         self.assertIn("-cubin", plan["fixed_flags"]["aot"])
         self.assertIn("-dlink", plan["fixed_flags"]["device_link"])
         self.assertNotIn("nvrtc", plan["fixed_flags"]["host"])
+
+    def test_native_aot_source_bytes_change_the_build_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            native_aot = root / "aot"
+            native_aot.mkdir()
+            source = native_aot / "constraint_test_0000000000000005.cu"
+            source.write_text("extern \"C\" __global__ void test() {}\n", encoding="utf-8")
+            manifest = [{
+                "kind": "constraint",
+                "label": "test",
+                "kernel_name": "test",
+                "cache_key": "0000000000000005",
+                "semantic_hash": "0000000000000006",
+                "file": source.name,
+            }]
+            (native_aot / "aot_manifest.json").write_text(
+                json.dumps(manifest),
+                encoding="utf-8",
+            )
+            original = self.config(root / "output")
+            config = BuildConfig(
+                source_root=original.source_root,
+                source_manifest=original.source_manifest,
+                product_manifest=original.product_manifest,
+                native_root=original.native_root,
+                native_aot_root=native_aot,
+                output_dir=original.output_dir,
+                toolchain=original.toolchain,
+            )
+            before = build_plan(config, probe_tools=False)
+            source.write_text(
+                "extern \"C\" __global__ void test() { asm(\"nop;\"); }\n",
+                encoding="utf-8",
+            )
+            after = build_plan(config, probe_tools=False)
+        self.assertNotEqual(
+            before["native_aot_closure_sha256"],
+            after["native_aot_closure_sha256"],
+        )
+        self.assertNotEqual(
+            before["build_identity_sha256"],
+            after["build_identity_sha256"],
+        )
 
     def test_native_runtime_has_no_jit_or_cpu_fallback_surface(self) -> None:
         closure = load_native_closure(NATIVE)

@@ -70,6 +70,7 @@ class ProductSelection:
     ordinary_sources: tuple[Path, ...]
     aot_sources: tuple[Path, ...]
     aot_manifest: tuple[dict[str, object], ...]
+    aot_closure_sha256: str
 
 
 def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
@@ -160,11 +161,23 @@ def load_product_selection(
         raise BuildError(f"cannot read Native AOT manifest: {error}") from error
     validate_aot_manifest(aot_root, aot_manifest, allow_empty=True)
     aot_sources = tuple(aot_root / str(entry["file"]) for entry in aot_manifest)
+    aot_closure = hashlib.sha256()
+    manifest_payload = canonical_json_bytes(aot_manifest)
+    aot_closure.update(len(manifest_payload).to_bytes(8, "little"))
+    aot_closure.update(manifest_payload)
+    for source in aot_sources:
+        relative = source.relative_to(aot_root).as_posix().encode("utf-8")
+        source_payload = source.read_bytes()
+        aot_closure.update(len(relative).to_bytes(8, "little"))
+        aot_closure.update(relative)
+        aot_closure.update(len(source_payload).to_bytes(8, "little"))
+        aot_closure.update(source_payload)
     return ProductSelection(
         manifest_sha256=hashlib.sha256(payload).hexdigest(),
         ordinary_sources=ordinary_sources,
         aot_sources=aot_sources,
         aot_manifest=tuple(aot_manifest),
+        aot_closure_sha256=aot_closure.hexdigest(),
     )
 
 
@@ -331,6 +344,7 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "source_closure_sha256": closure.closure_sha256,
         "product_manifest_sha256": product.manifest_sha256,
         "native_runtime_closure_sha256": native["closure_sha256"],
+        "native_aot_closure_sha256": product.aot_closure_sha256,
         "tools": tools,
         "target_sms": list(toolchain.sms),
         "fixed_flags": fixed,
@@ -751,8 +765,11 @@ def json_bytes(value: object) -> bytes:
 
 
 def digest_json(value: object) -> str:
-    encoded = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+def canonical_json_bytes(value: object) -> bytes:
+    return json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
 
 
 def sha256_file(path: Path) -> str:
