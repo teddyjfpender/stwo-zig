@@ -2,8 +2,6 @@
 
 const types = @import("types.zig");
 
-pub const AotStats = types.AotStats;
-
 pub extern "c" fn stwo_static_cuda_module_build_identity(out: *[32]u8) c_int;
 pub extern "c" fn stwo_zig_cuda_aot_entry_count() usize;
 pub extern "c" fn stwo_cuda_device_snapshot(
@@ -74,7 +72,3 @@ pub extern "c" fn stwo_exec_context_memcpy_d2h_async(
     src: *const anyopaque,
     bytes: usize,
 ) c_int;
-
-pub extern "c" fn stwo_cuda_jit_set_require_aot(required: bool) void;
-pub extern "c" fn stwo_cuda_jit_get_aot_stats(out: *AotStats) void;
-pub extern "c" fn stwo_cuda_jit_reset_aot_stats() void;

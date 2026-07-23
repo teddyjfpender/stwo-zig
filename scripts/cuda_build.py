@@ -34,6 +34,11 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         default=ROOT / "src/backends/cuda/source_manifest.json",
     )
+    result.add_argument(
+        "--native-root",
+        type=Path,
+        default=ROOT / "src/backends/cuda/native",
+    )
     result.add_argument("--out-dir", type=Path, required=True)
     result.add_argument("--nvcc", required=True)
     result.add_argument("--host-cxx", required=True)
@@ -62,6 +67,7 @@ def main() -> int:
         config = BuildConfig(
             source_root=args.source_root,
             source_manifest=args.source_manifest,
+            native_root=args.native_root,
             output_dir=args.out_dir,
             toolchain=Toolchain(
                 nvcc=resolve_tool(args.nvcc),

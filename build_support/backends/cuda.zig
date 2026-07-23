@@ -4,6 +4,7 @@ const std = @import("std");
 
 pub const source_root = "src/backends/cuda/vendor/upstream";
 pub const source_manifest = "src/backends/cuda/source_manifest.json";
+pub const native_root = "src/backends/cuda/native";
 pub const archive_name = "stwo_cuda_kernels";
 
 pub const Toolchain = struct {
@@ -62,7 +63,6 @@ pub fn linkRuntime(
     artifact.addLibraryPath(.{ .cwd_relative = toolchain.library_dir });
     artifact.linkSystemLibrary(archive_name);
     artifact.linkSystemLibrary("cudart");
-    artifact.linkSystemLibrary("nvrtc");
     artifact.linkSystemLibrary("cuda");
     artifact.linkSystemLibrary("stdc++");
     artifact.linkLibC();
@@ -78,6 +78,8 @@ fn buildCommand(
     command.addDirectoryArg(b.path(source_root));
     command.addArg("--source-manifest");
     command.addFileArg(b.path(source_manifest));
+    command.addArg("--native-root");
+    command.addDirectoryArg(b.path(native_root));
     command.addArgs(&.{ "--nvcc", toolchain.nvcc });
     command.addArgs(&.{ "--host-cxx", toolchain.host_cxx });
     command.addArgs(&.{ "--ar", toolchain.archiver });

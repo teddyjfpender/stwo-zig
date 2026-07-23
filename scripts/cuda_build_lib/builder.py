@@ -55,6 +55,7 @@ class SourceClosure:
 class BuildConfig:
     source_root: Path
     source_manifest: Path
+    native_root: Path
     output_dir: Path
     toolchain: Toolchain
 
@@ -72,6 +73,48 @@ def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
     if not result:
         raise BuildError("at least one explicit CUDA architecture is required")
     return tuple(sorted(result))
+
+
+def load_native_closure(native_root: Path) -> dict[str, object]:
+    native_root = native_root.resolve()
+    if not native_root.is_dir():
+        raise BuildError(f"Zig-owned CUDA runtime source is absent: {native_root}")
+    files = sorted(path for path in native_root.rglob("*") if path.is_file())
+    if not files or any(path.is_symlink() for path in native_root.rglob("*")):
+        raise BuildError("Zig-owned CUDA runtime must be a non-empty regular-file closure")
+    if any(path.suffix not in {".cpp", ".h"} for path in files):
+        raise BuildError("Zig-owned CUDA runtime contains an unsupported source type")
+
+    digest = hashlib.sha256()
+    entries: list[dict[str, object]] = []
+    for path in files:
+        relative = path.relative_to(native_root).as_posix()
+        payload = path.read_bytes()
+        encoded = relative.encode("utf-8")
+        digest.update(len(encoded).to_bytes(8, "little"))
+        digest.update(encoded)
+        digest.update(len(payload).to_bytes(8, "little"))
+        digest.update(payload)
+        entries.append(
+            {
+                "path": relative,
+                "bytes": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            }
+        )
+    sources = [
+        native_root / str(entry["path"])
+        for entry in entries
+        if str(entry["path"]).endswith(".cpp")
+    ]
+    if not sources:
+        raise BuildError("Zig-owned CUDA runtime contains no C++ implementation")
+    return {
+        "root": native_root,
+        "closure_sha256": digest.hexdigest(),
+        "files": entries,
+        "sources": sources,
+    }
 
 
 def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure:
@@ -202,6 +245,7 @@ def validate_aot_manifest(
 
 def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
     closure = load_source_closure(config.source_root, config.source_manifest)
+    native = load_native_closure(config.native_root)
     toolchain = config.toolchain
     if probe_tools:
         for label, directory in (
@@ -226,11 +270,12 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         ],
         "aot": ["-cubin", "-O3", "--std=c++17", "--expt-relaxed-constexpr"],
         "device_link": ["-dlink", "-Xcompiler", "-fPIC"],
-        "host": ["-std=c++17", "-O2", "-fPIC", "-c"],
+        "host": ["-std=c++17", "-O3", "-fPIC", "-c"],
     }
     identity_input = {
         "schema": SCHEMA,
         "source_closure_sha256": closure.closure_sha256,
+        "native_runtime_closure_sha256": native["closure_sha256"],
         "tools": tools,
         "target_sms": list(toolchain.sms),
         "fixed_flags": fixed,
@@ -242,6 +287,8 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "ordinary_source_count": len(closure.ordinary_sources),
         "aot_source_count": len(closure.generated_sources),
         "aot_cubin_count": len(closure.generated_sources) * len(toolchain.sms),
+        "native_runtime_source_count": len(native["sources"]),
+        "native_runtime_files": native["files"],
         "include_dirs": [str(path) for path in closure.include_dirs],
         "cuda_home": str(toolchain.cuda_home),
         "cuda_library_dir": str(toolchain.cuda_library_dir),
@@ -309,6 +356,7 @@ def execute(config: BuildConfig) -> dict[str, object]:
     identity_object = compile_host(
         config.toolchain.host_cxx, identity_source, generated
     )
+    native_objects = compile_native_runtime(config, plan, generated)
 
     staged_archive = work / f"{ARCHIVE_NAME}.staged"
     run(
@@ -320,6 +368,7 @@ def execute(config: BuildConfig) -> dict[str, object]:
             str(dlink),
             *(str(path) for path in aot_objects),
             str(identity_object),
+            *(str(path) for path in native_objects),
         ]
     )
     if not staged_archive.is_file() or staged_archive.stat().st_size == 0:
@@ -336,7 +385,7 @@ def execute(config: BuildConfig) -> dict[str, object]:
         "aot_pack": AOT_PACK_NAME,
         "aot_pack_sha256": sha256_file(output / AOT_PACK_NAME),
         "aot_entries": len(aot_entries),
-        "linked_libraries": ["cuda", "cudart", "nvrtc", "stdc++"],
+        "linked_libraries": ["cuda", "cudart", "stdc++"],
     }
     atomic_write(output / PLAN_NAME, json_bytes(plan))
     atomic_write(receipt_path, json_bytes(receipt))
@@ -614,7 +663,7 @@ def compile_host(compiler: Path, source: Path, output: Path) -> Path:
     command = [
         str(compiler),
         "-std=c++17",
-        "-O2",
+        "-O3",
         "-fPIC",
         "-c",
         str(source),
@@ -629,6 +678,47 @@ def compile_host(compiler: Path, source: Path, output: Path) -> Path:
         run(command)
         atomic_write(stamp, json_bytes({"identity": identity}))
     return destination
+
+
+def compile_native_runtime(
+    config: BuildConfig,
+    plan: dict[str, object],
+    output: Path,
+) -> list[Path]:
+    native = load_native_closure(config.native_root)
+    include_flags = [
+        "-I",
+        str(config.native_root.resolve()),
+        "-I",
+        str((config.toolchain.cuda_home / "include").resolve()),
+    ]
+    results: list[Path] = []
+    for source in native["sources"]:
+        destination = output / f"native_{source.stem}.o"
+        command = [
+            str(config.toolchain.host_cxx),
+            "-std=c++17",
+            "-O3",
+            "-fPIC",
+            *include_flags,
+            "-c",
+            str(source),
+            "-o",
+            str(destination),
+        ]
+        identity = digest_json(
+            {
+                "build": plan["build_identity_sha256"],
+                "command": command[1:],
+                "source_sha256": sha256_file(source),
+            }
+        )
+        stamp = destination.with_suffix(".json")
+        if not stamped_artifact_current(destination, stamp, identity):
+            run(command)
+            atomic_write(stamp, json_bytes({"identity": identity}))
+        results.append(destination)
+    return results
 
 
 def run_parallel(jobs: Sequence[tuple[list[str], Path]], workers: int) -> None:

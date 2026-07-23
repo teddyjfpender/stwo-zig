@@ -16,6 +16,7 @@ from cuda_build_lib.builder import (  # noqa: E402
     Toolchain,
     aot_compile_command,
     build_plan,
+    load_native_closure,
     load_source_closure,
     normalize_sms,
     write_aot_carriers,
@@ -24,6 +25,7 @@ from cuda_build_lib.builder import (  # noqa: E402
 
 SOURCE = ROOT / "src/backends/cuda/vendor/upstream"
 MANIFEST = ROOT / "src/backends/cuda/source_manifest.json"
+NATIVE = ROOT / "src/backends/cuda/native"
 
 
 class CudaBuildTests(unittest.TestCase):
@@ -31,6 +33,7 @@ class CudaBuildTests(unittest.TestCase):
         return BuildConfig(
             source_root=SOURCE,
             source_manifest=MANIFEST,
+            native_root=NATIVE,
             output_dir=output,
             toolchain=Toolchain(
                 nvcc=Path("/opt/cuda/bin/nvcc"),
@@ -58,10 +61,29 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(59, plan["ordinary_source_count"])
         self.assertEqual(340, plan["aot_source_count"])
         self.assertEqual(680, plan["aot_cubin_count"])
+        self.assertEqual(1, plan["native_runtime_source_count"])
+        self.assertEqual(
+            load_native_closure(NATIVE)["closure_sha256"],
+            plan["native_runtime_closure_sha256"],
+        )
         self.assertEqual("plan-only", plan["tools"]["nvcc"]["sha256"])
         self.assertIn("-dc", plan["fixed_flags"]["ordinary"])
         self.assertIn("-cubin", plan["fixed_flags"]["aot"])
         self.assertIn("-dlink", plan["fixed_flags"]["device_link"])
+        self.assertNotIn("nvrtc", plan["fixed_flags"]["host"])
+
+    def test_native_runtime_has_no_jit_or_cpu_fallback_surface(self) -> None:
+        closure = load_native_closure(NATIVE)
+        sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in closure["sources"]
+        )
+        self.assertIn("stwo_native_aot_function_launch", sources)
+        self.assertNotIn("#include <nvrtc", sources.lower())
+        self.assertNotIn("nvrtccompile", sources.lower())
+        self.assertNotIn("fallback(", sources.lower())
+        self.assertNotIn("getenv(", sources)
+        self.assertNotIn("system(", sources)
 
     def test_architecture_parser_is_canonical_and_fail_closed(self) -> None:
         self.assertEqual((86, 89, 90), normalize_sms(["sm_90,86", "89"]))

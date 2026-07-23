@@ -2,18 +2,19 @@
 
 const std = @import("std");
 const native_api = @import("../abi/runtime.zig");
+const native_aot = @import("../abi/aot.zig");
 const types = @import("../abi/types.zig");
 const context_module = @import("context.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
-pub const NativeSession = SessionFor(native_api);
+pub const NativeSession = SessionFor(native_api, native_aot);
 
 pub const Verdict = struct {
     device: types.DeviceSnapshot,
     build_identity: [32]u8,
     aot_entries: usize,
-    aot: types.AotStats,
+    aot: types.NativeAotStats,
     counters: telemetry.Counters,
     pool_used_bytes: usize,
     pool_reserved_bytes: usize,
@@ -23,7 +24,7 @@ pub const Verdict = struct {
     }
 };
 
-pub fn SessionFor(comptime Api: type) type {
+pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
     const Context = context_module.ContextFor(Api);
     return struct {
         const Self = @This();
@@ -32,6 +33,7 @@ pub fn SessionFor(comptime Api: type) type {
         device: types.DeviceSnapshot,
         build_identity: [32]u8,
         aot_entries: usize,
+        aot_loader: ?*anyopaque,
         state: enum { open, proved, closed } = .open,
 
         pub fn open(accepted_sms: []const u32) runtime_error.Error!Self {
@@ -56,13 +58,19 @@ pub fn SessionFor(comptime Api: type) type {
             const aot_entries = Api.stwo_zig_cuda_aot_entry_count();
             if (aot_entries == 0) return error.AotPackAbsent;
 
-            Api.stwo_cuda_jit_set_require_aot(true);
-            Api.stwo_cuda_jit_reset_aot_stats();
+            var context = try Context.open();
+            errdefer context.close() catch {};
+            var aot_loader: ?*anyopaque = null;
+            try runtime_error.check(AotApi.stwo_native_aot_loader_create(
+                context.handle.?,
+                &aot_loader,
+            ));
             return .{
-                .context = try Context.open(),
+                .context = context,
                 .device = device,
                 .build_identity = build_identity,
                 .aot_entries = aot_entries,
+                .aot_loader = aot_loader orelse return error.AotPackAbsent,
             };
         }
 
@@ -79,8 +87,9 @@ pub fn SessionFor(comptime Api: type) type {
             try self.context.sync();
             if (self.context.live_buffers != 0) return error.DeviceBufferLive;
             const pool = try self.context.poolCurrent();
-            var aot = types.AotStats{};
-            Api.stwo_cuda_jit_get_aot_stats(&aot);
+            const loader = self.aot_loader orelse return error.InvalidState;
+            var aot = types.NativeAotStats{};
+            try runtime_error.check(AotApi.stwo_native_aot_loader_stats(loader, &aot));
             if (!aot.isStrict()) return error.StrictAotViolation;
             const verdict = Verdict{
                 .device = self.device,
@@ -92,6 +101,8 @@ pub fn SessionFor(comptime Api: type) type {
                 .pool_reserved_bytes = pool.reserved,
             };
             if (!verdict.isResident()) return error.StrictAotViolation;
+            try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
+            self.aot_loader = null;
             try self.context.close();
             self.state = .closed;
             return verdict;
@@ -100,6 +111,10 @@ pub fn SessionFor(comptime Api: type) type {
         pub fn abort(self: *Self) runtime_error.Error!void {
             if (self.state == .closed) return error.InvalidState;
             if (self.context.live_buffers != 0) return error.DeviceBufferLive;
+            if (self.aot_loader) |loader| {
+                try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
+                self.aot_loader = null;
+            }
             try self.context.close();
             self.state = .closed;
         }
@@ -138,7 +153,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
     const Fake = struct {
         var handle_word: u8 = 0;
         var stream_word: u8 = 0;
-        var require_aot = false;
+        var loader_word: u8 = 0;
 
         pub fn stwo_cuda_device_snapshot(
             count: *u32,
@@ -159,12 +174,22 @@ test "strict session returns a resident verdict and never exposes fallback" {
         pub fn stwo_zig_cuda_aot_entry_count() usize {
             return 340;
         }
-        pub fn stwo_cuda_jit_set_require_aot(required: bool) void {
-            require_aot = required;
+        pub fn stwo_native_aot_loader_create(
+            _: *anyopaque,
+            out: *?*anyopaque,
+        ) c_int {
+            out.* = &loader_word;
+            return 0;
         }
-        pub fn stwo_cuda_jit_reset_aot_stats() void {}
-        pub fn stwo_cuda_jit_get_aot_stats(out: *types.AotStats) void {
-            out.* = .{ .aot_loads = 1 };
+        pub fn stwo_native_aot_loader_destroy(_: *anyopaque) c_int {
+            return 0;
+        }
+        pub fn stwo_native_aot_loader_stats(
+            _: *anyopaque,
+            out: *types.NativeAotStats,
+        ) c_int {
+            out.* = .{ .aot_loads = 1, .launches = 7 };
+            return 0;
         }
         pub fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
@@ -202,10 +227,8 @@ test "strict session returns a resident verdict and never exposes fallback" {
         }
     };
 
-    Fake.require_aot = false;
-    const Session = SessionFor(Fake);
+    const Session = SessionFor(Fake, Fake);
     var session = try Session.open(&.{90});
-    try std.testing.expect(Fake.require_aot);
     for (telemetry.all_stages) |stage| {
         try session.context.beginStage(stage);
         if (stage.requiresKernel()) try session.context.recordKernels(1);
