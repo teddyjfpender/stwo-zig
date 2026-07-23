@@ -25,7 +25,9 @@ from cuda_build_lib.builder import (  # noqa: E402
 
 SOURCE = ROOT / "src/backends/cuda/vendor/upstream"
 MANIFEST = ROOT / "src/backends/cuda/source_manifest.json"
+PRODUCT = ROOT / "src/backends/cuda/product_manifest.json"
 NATIVE = ROOT / "src/backends/cuda/native"
+NATIVE_AOT = ROOT / "src/backends/cuda/aot/native"
 
 
 class CudaBuildTests(unittest.TestCase):
@@ -33,7 +35,9 @@ class CudaBuildTests(unittest.TestCase):
         return BuildConfig(
             source_root=SOURCE,
             source_manifest=MANIFEST,
+            product_manifest=PRODUCT,
             native_root=NATIVE,
+            native_aot_root=NATIVE_AOT,
             output_dir=output,
             toolchain=Toolchain(
                 nvcc=Path("/opt/cuda/bin/nvcc"),
@@ -58,9 +62,11 @@ class CudaBuildTests(unittest.TestCase):
             plan = build_plan(self.config(Path(temporary)), probe_tools=False)
         self.assertEqual("stwo-zig-cuda-native-build-v1", plan["schema"])
         self.assertEqual([86, 90], plan["target_sms"])
-        self.assertEqual(59, plan["ordinary_source_count"])
-        self.assertEqual(340, plan["aot_source_count"])
-        self.assertEqual(680, plan["aot_cubin_count"])
+        self.assertEqual(59, plan["authority_ordinary_source_count"])
+        self.assertEqual(340, plan["authority_aot_source_count"])
+        self.assertEqual(37, plan["ordinary_source_count"])
+        self.assertEqual(0, plan["aot_source_count"])
+        self.assertEqual(0, plan["aot_cubin_count"])
         self.assertEqual(1, plan["native_runtime_source_count"])
         self.assertEqual(
             load_native_closure(NATIVE)["closure_sha256"],
@@ -111,6 +117,17 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("stwo_aot_lookup", lookup_source)
         self.assertIn("entry.sm != sm", lookup_source)
         self.assertNotIn("nvrtc", lookup_source.lower())
+
+    def test_empty_native_aot_pack_is_standard_and_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            pack = root / "pack.bin"
+            pack.write_bytes(b"")
+            _, lookup = write_aot_carriers([], pack, root)
+            source = lookup.read_text(encoding="utf-8")
+        self.assertIn("constexpr std::size_t kEntryCount = 0;", source)
+        self.assertIn("if (low == kEntryCount) return false;", source)
+        self.assertNotIn("kEntries[] = {\n};", source)
 
     def test_sm90_poseidon_chain_preserves_upstream_ptxas_policy(self) -> None:
         toolchain = self.config(Path("/tmp/output")).toolchain

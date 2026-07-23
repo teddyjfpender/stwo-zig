@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from .aot_pack import AotPackError, write_aot_carriers, write_aot_pack
+
 
 SCHEMA = "stwo-zig-cuda-native-build-v1"
 ARCHIVE_NAME = "libstwo_cuda_kernels.a"
@@ -55,9 +57,19 @@ class SourceClosure:
 class BuildConfig:
     source_root: Path
     source_manifest: Path
+    product_manifest: Path
     native_root: Path
+    native_aot_root: Path
     output_dir: Path
     toolchain: Toolchain
+
+
+@dataclass(frozen=True)
+class ProductSelection:
+    manifest_sha256: str
+    ordinary_sources: tuple[Path, ...]
+    aot_sources: tuple[Path, ...]
+    aot_manifest: tuple[dict[str, object], ...]
 
 
 def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
@@ -115,6 +127,45 @@ def load_native_closure(native_root: Path) -> dict[str, object]:
         "files": entries,
         "sources": sources,
     }
+
+
+def load_product_selection(
+    config: BuildConfig,
+    authority: SourceClosure,
+) -> ProductSelection:
+    try:
+        payload = config.product_manifest.read_bytes()
+        product = json.loads(payload)
+    except (OSError, json.JSONDecodeError) as error:
+        raise BuildError(f"cannot read CUDA product manifest: {error}") from error
+    if product.get("schema") != "stwo-zig-cuda-product-closure-v1":
+        raise BuildError("unsupported CUDA product-closure manifest")
+    if product.get("source_authority_sha256") != authority.closure_sha256:
+        raise BuildError("CUDA product selection is stale against its source authority")
+    ordinary = product.get("ordinary")
+    if not isinstance(ordinary, dict):
+        raise BuildError("CUDA product ordinary source selection is absent")
+    selected = ordinary.get("resident_candidates")
+    if not isinstance(selected, list) or selected != sorted(selected) or not selected:
+        raise BuildError("CUDA resident source selection must be a sorted non-empty array")
+    ordinary_sources = tuple(authority.root / str(path) for path in selected)
+    if any(not path.is_file() for path in ordinary_sources):
+        raise BuildError("CUDA resident source selection names an absent authority file")
+
+    aot_root = config.native_aot_root.resolve()
+    aot_manifest_path = aot_root / "aot_manifest.json"
+    try:
+        aot_manifest = json.loads(aot_manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise BuildError(f"cannot read Native AOT manifest: {error}") from error
+    validate_aot_manifest(aot_root, aot_manifest, allow_empty=True)
+    aot_sources = tuple(aot_root / str(entry["file"]) for entry in aot_manifest)
+    return ProductSelection(
+        manifest_sha256=hashlib.sha256(payload).hexdigest(),
+        ordinary_sources=ordinary_sources,
+        aot_sources=aot_sources,
+        aot_manifest=tuple(aot_manifest),
+    )
 
 
 def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure:
@@ -194,10 +245,12 @@ def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure
 
 
 def validate_aot_manifest(
-    generated_dir: Path, manifest: object
+    generated_dir: Path,
+    manifest: object,
+    allow_empty: bool = False,
 ) -> None:
-    if not isinstance(manifest, list) or not manifest:
-        raise BuildError("copied AOT manifest must be a non-empty array")
+    if not isinstance(manifest, list) or (not manifest and not allow_empty):
+        raise BuildError("AOT manifest must be an array with the required entries")
     seen_files: set[str] = set()
     seen_keys: set[int] = set()
     previous: tuple[str, str, int] | None = None
@@ -245,6 +298,7 @@ def validate_aot_manifest(
 
 def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
     closure = load_source_closure(config.source_root, config.source_manifest)
+    product = load_product_selection(config, closure)
     native = load_native_closure(config.native_root)
     toolchain = config.toolchain
     if probe_tools:
@@ -275,6 +329,7 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
     identity_input = {
         "schema": SCHEMA,
         "source_closure_sha256": closure.closure_sha256,
+        "product_manifest_sha256": product.manifest_sha256,
         "native_runtime_closure_sha256": native["closure_sha256"],
         "tools": tools,
         "target_sms": list(toolchain.sms),
@@ -284,9 +339,11 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
     return {
         **identity_input,
         "build_identity_sha256": build_identity,
-        "ordinary_source_count": len(closure.ordinary_sources),
-        "aot_source_count": len(closure.generated_sources),
-        "aot_cubin_count": len(closure.generated_sources) * len(toolchain.sms),
+        "authority_ordinary_source_count": len(closure.ordinary_sources),
+        "authority_aot_source_count": len(closure.generated_sources),
+        "ordinary_source_count": len(product.ordinary_sources),
+        "aot_source_count": len(product.aot_sources),
+        "aot_cubin_count": len(product.aot_sources) * len(toolchain.sms),
         "native_runtime_source_count": len(native["sources"]),
         "native_runtime_files": native["files"],
         "include_dirs": [str(path) for path in closure.include_dirs],
@@ -322,6 +379,7 @@ def tool_record(path: Path, version_args: Sequence[str], probe: bool) -> dict[st
 def execute(config: BuildConfig) -> dict[str, object]:
     plan = build_plan(config, probe_tools=True)
     closure = load_source_closure(config.source_root, config.source_manifest)
+    product = load_product_selection(config, closure)
     output = config.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
     archive = output / ARCHIVE_NAME
@@ -340,11 +398,20 @@ def execute(config: BuildConfig) -> dict[str, object]:
     for directory in (objects, cubins, generated):
         directory.mkdir(parents=True, exist_ok=True)
 
-    ordinary_objects = compile_ordinary(config, closure, plan, objects)
+    ordinary_objects = compile_ordinary(
+        config,
+        closure,
+        product.ordinary_sources,
+        plan,
+        objects,
+    )
     dlink = device_link(config, plan, ordinary_objects, work)
-    aot_entries = compile_aot(config, closure, plan, cubins)
+    aot_entries = compile_aot(config, product, plan, cubins)
     aot_pack = generated / AOT_PACK_NAME
-    write_aot_pack(aot_entries, aot_pack)
+    try:
+        write_aot_pack(aot_entries, aot_pack)
+    except AotPackError as error:
+        raise BuildError(str(error)) from error
     aot_sources = write_aot_carriers(aot_entries, aot_pack, generated)
     aot_objects = [
         compile_host(config.toolchain.host_cxx, source, generated)
@@ -399,6 +466,7 @@ def execute(config: BuildConfig) -> dict[str, object]:
 def compile_ordinary(
     config: BuildConfig,
     closure: SourceClosure,
+    sources: Sequence[Path],
     plan: dict[str, object],
     output: Path,
 ) -> list[Path]:
@@ -434,7 +502,7 @@ def compile_ordinary(
     )
     jobs: list[tuple[list[str], Path]] = []
     results: list[Path] = []
-    for source in closure.ordinary_sources:
+    for source in sources:
         key = hashlib.sha256(
             f"{context}:{sha256_file(source)}".encode("ascii")
         ).hexdigest()[:24]
@@ -480,14 +548,14 @@ def device_link(
 
 def compile_aot(
     config: BuildConfig,
-    closure: SourceClosure,
+    product: ProductSelection,
     plan: dict[str, object],
     output: Path,
 ) -> list[dict[str, object]]:
-    source_by_name = {path.name: path for path in closure.generated_sources}
+    source_by_name = {path.name: path for path in product.aot_sources}
     jobs: list[tuple[list[str], Path]] = []
     entries: list[dict[str, object]] = []
-    for metadata in closure.aot_manifest:
+    for metadata in product.aot_manifest:
         source = source_by_name[str(metadata["file"])]
         for sm in config.toolchain.sms:
             key = hashlib.sha256(
@@ -533,108 +601,6 @@ def aot_compile_command(
         command.append("-Xptxas=-O0")
     command.extend((str(source), "-o", str(destination)))
     return command
-
-
-def write_aot_pack(entries: Sequence[dict[str, object]], destination: Path) -> None:
-    staging = destination.with_suffix(".staged")
-    with staging.open("wb") as pack:
-        offset = 0
-        for entry in entries:
-            payload = Path(entry["cubin"]).read_bytes()
-            if not payload:
-                raise BuildError(f"empty generated cubin: {entry['cubin']}")
-            entry["offset"] = offset
-            entry["bytes"] = len(payload)
-            entry["sha256"] = hashlib.sha256(payload).hexdigest()
-            pack.write(payload)
-            offset += len(payload)
-    publish(staging, destination)
-
-
-def write_aot_carriers(
-    entries: Sequence[dict[str, object]], pack: Path, output: Path
-) -> tuple[Path, Path]:
-    assembly = output / "cuda_aot_pack.S"
-    lookup = output / "cuda_aot_lookup.cc"
-    pack_path = str(pack.resolve()).replace("\\", "\\\\").replace('"', '\\"')
-    assembly_text = f""".section .rodata
-.balign 16
-.global stwo_cuda_aot_pack_start
-.global stwo_cuda_aot_pack_end
-.type stwo_cuda_aot_pack_start, @object
-stwo_cuda_aot_pack_start:
-.incbin "{pack_path}"
-stwo_cuda_aot_pack_end:
-.size stwo_cuda_aot_pack_start, stwo_cuda_aot_pack_end-stwo_cuda_aot_pack_start
-.section .note.GNU-stack,"",@progbits
-"""
-    rows = "\n".join(
-        "    {0x%016xULL, %dU, %dULL, %dULL},"
-        % (
-            int(entry["cache_key"]),
-            int(entry["sm"]),
-            int(entry["offset"]),
-            int(entry["bytes"]),
-        )
-        for entry in entries
-    )
-    lookup_text = f"""#include <cstddef>
-#include <cstdint>
-
-extern "C" const unsigned char stwo_cuda_aot_pack_start[];
-extern "C" const unsigned char stwo_cuda_aot_pack_end[];
-
-namespace {{
-struct Entry {{
-    std::uint64_t cache_key;
-    std::uint32_t sm;
-    std::uint64_t offset;
-    std::uint64_t size;
-}};
-
-constexpr Entry kEntries[] = {{
-{rows}
-}};
-}}  // namespace
-
-extern "C" bool stwo_aot_lookup(
-    std::uint64_t cache_key,
-    std::uint32_t sm_major,
-    std::uint32_t sm_minor,
-    const unsigned char **out_data,
-    std::size_t *out_len) {{
-    if (out_data == nullptr || out_len == nullptr || sm_minor > 9) return false;
-    const std::uint32_t sm = sm_major * 10U + sm_minor;
-    std::size_t low = 0;
-    std::size_t high = sizeof(kEntries) / sizeof(kEntries[0]);
-    while (low < high) {{
-        const std::size_t mid = low + (high - low) / 2;
-        const Entry &entry = kEntries[mid];
-        if (entry.cache_key < cache_key ||
-            (entry.cache_key == cache_key && entry.sm < sm)) {{
-            low = mid + 1;
-        }} else {{
-            high = mid;
-        }}
-    }}
-    if (low == sizeof(kEntries) / sizeof(kEntries[0])) return false;
-    const Entry &entry = kEntries[low];
-    if (entry.cache_key != cache_key || entry.sm != sm || entry.size == 0) return false;
-    const std::size_t pack_size =
-        static_cast<std::size_t>(stwo_cuda_aot_pack_end - stwo_cuda_aot_pack_start);
-    if (entry.offset > pack_size || entry.size > pack_size - entry.offset) return false;
-    *out_data = stwo_cuda_aot_pack_start + entry.offset;
-    *out_len = static_cast<std::size_t>(entry.size);
-    return true;
-}}
-
-extern "C" std::size_t stwo_zig_cuda_aot_entry_count() {{
-    return sizeof(kEntries) / sizeof(kEntries[0]);
-}}
-"""
-    atomic_write(assembly, assembly_text.encode("utf-8"))
-    atomic_write(lookup, lookup_text.encode("utf-8"))
-    return assembly, lookup
 
 
 def write_build_identity_carrier(identity: str, output: Path) -> Path:

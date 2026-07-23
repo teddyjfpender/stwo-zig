@@ -1,0 +1,91 @@
+{
+  "schema": "stwo-zig-cuda-product-closure-v1",
+  "product": "stwo-native-cuda",
+  "source_authority_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
+  "ordinary": {
+    "resident_candidates": [
+      "accumulate.cu",
+      "barycentric.cu",
+      "batch_gather_column_rows.cu",
+      "batch_inverse.cu",
+      "bit_reverse.cu",
+      "blake2s.cu",
+      "blake2s_quad.cu",
+      "composition.cu",
+      "cuda_exec_context.cu",
+      "decommit.cu",
+      "device_transcript.cu",
+      "eval_at_point.cu",
+      "fields.cu",
+      "fixed_table_materializer.cu",
+      "fold_circle_into_line.cu",
+      "fold_line.cu",
+      "fri_final.cu",
+      "fri_fold_fused.cu",
+      "fri_utils.cu",
+      "ifft.cu",
+      "logup_finalize.cu",
+      "logup_pairs.cu",
+      "ntt_leaf_fused.cu",
+      "oods.cu",
+      "oods_collapsed.cu",
+      "poly_utils.cu",
+      "progressive_commit_in_place.cu",
+      "quotient_numerator_group_direct_tiled.cu",
+      "quotient_numerator_native_run_sum.cu",
+      "quotient_numerator_single_write.cu",
+      "quotients.cu",
+      "relation_fused.cu",
+      "relation_graph.cu",
+      "relation_scan.cu",
+      "resident_pow.cu",
+      "rfft.cu",
+      "twiddles.cu"
+    ],
+    "quarantined_migration": [
+      "cuda_mem_pool.cu",
+      "grind_blake2s.cu",
+      "prefix_sum.cu",
+      "runtime_jit.cu",
+      "utils.cu",
+      "witness/gen_preprocessed_columns_on_gpu.cu"
+    ],
+    "deferred_cairo": [
+      "blake_witness.cu",
+      "ec_op_witness.cu",
+      "memory_witness.cu",
+      "pedersen_table_init.cu",
+      "pedersen_witness.cu",
+      "poseidon252_starknet.cu",
+      "relation_blake_g_inputs.cu",
+      "stwo_wit_deduce_oracle.cu",
+      "witness_casm_input.cu",
+      "witness_edge_gather.cu",
+      "witness_feed_counts.cu"
+    ],
+    "deferred_features": [
+      "cuda_ipc_exchange.cu",
+      "cuda_vmm_allocation.cu",
+      "gkr.cu",
+      "mle.cu"
+    ],
+    "diagnostic_only": [
+      "blake2s_progressive_scalar_oracle.cpp",
+      "timer.cu"
+    ]
+  },
+  "generated_aot": {
+    "copied_entry_count": 340,
+    "copied_disposition": "cairo_reference_only",
+    "product_policy": "native_generated_identity_only"
+  },
+  "forbidden_product_tokens": [
+    "cuda_default_pool_",
+    "cudaDeviceSynchronize(",
+    "cudaStreamSynchronize(0)",
+    "getenv(",
+    "nvrtc",
+    "STWO_CUDA_DISABLE_JIT",
+    "CPU fallback"
+  ]
+}

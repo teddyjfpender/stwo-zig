@@ -4,7 +4,9 @@ const std = @import("std");
 
 pub const source_root = "src/backends/cuda/vendor/upstream";
 pub const source_manifest = "src/backends/cuda/source_manifest.json";
+pub const product_manifest = "src/backends/cuda/product_manifest.json";
 pub const native_root = "src/backends/cuda/native";
+pub const native_aot_root = "src/backends/cuda/aot/native";
 pub const archive_name = "stwo_cuda_kernels";
 
 pub const Toolchain = struct {
@@ -49,7 +51,16 @@ pub fn addPlan(b: *std.Build, toolchain: Toolchain) *std.Build.Step.Run {
 }
 
 pub fn addSourceClosureGate(b: *std.Build) *std.Build.Step.Run {
-    return b.addSystemCommand(&.{ "python3", "scripts/cuda_source_closure.py" });
+    const command = b.addSystemCommand(&.{
+        "python3",
+        "scripts/cuda_source_closure.py",
+    });
+    const product = b.addSystemCommand(&.{
+        "python3",
+        "scripts/cuda_product_closure.py",
+    });
+    product.step.dependOn(&command.step);
+    return product;
 }
 
 pub fn linkRuntime(
@@ -78,8 +89,12 @@ fn buildCommand(
     command.addDirectoryArg(b.path(source_root));
     command.addArg("--source-manifest");
     command.addFileArg(b.path(source_manifest));
+    command.addArg("--product-manifest");
+    command.addFileArg(b.path(product_manifest));
     command.addArg("--native-root");
     command.addDirectoryArg(b.path(native_root));
+    command.addArg("--native-aot-root");
+    command.addDirectoryArg(b.path(native_aot_root));
     command.addArgs(&.{ "--nvcc", toolchain.nvcc });
     command.addArgs(&.{ "--host-cxx", toolchain.host_cxx });
     command.addArgs(&.{ "--ar", toolchain.archiver });

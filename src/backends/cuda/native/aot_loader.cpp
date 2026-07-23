@@ -1,8 +1,9 @@
 // Strict AOT-only CUDA module loading for the Zig-owned resident proof runtime.
 //
-// This is deliberately smaller than the copied runtime_jit.cu authority:
-// it has no NVRTC, filesystem cache, environment policy, Cairo publication,
-// compatibility stream, or CPU fallback. A missing module is a proof error.
+// This is deliberately smaller than the copied dynamic-loader authority:
+// it has no runtime compiler, filesystem cache, environment policy, Cairo
+// publication, compatibility stream, or alternate host path. A missing module
+// is a proof error.
 
 #include "aot_loader.h"
 
