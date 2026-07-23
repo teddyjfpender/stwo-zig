@@ -163,6 +163,17 @@ pub fn ContextFor(comptime Api: type) type {
             self.counters.d2d(self.active_stage, bytes);
         }
 
+        pub fn devicePointer(
+            self: *Self,
+            buffer: Buffer,
+            minimum_words: usize,
+        ) runtime_error.Error![*]u32 {
+            _ = try self.requireOwner(buffer);
+            if (minimum_words == 0 or buffer.words < minimum_words)
+                return error.SizeOverflow;
+            return buffer.pointer;
+        }
+
         /// The sole host-read API. It is named for the final proof boundary so
         /// intermediate proving code cannot acquire a generic device download.
         pub fn readProofWords(

@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "abi_schema": "ordinary_constraint_v1",
+    "cache_key": "b0108a05e4de93ca",
+    "file": "constraint_wide_fibonacci_b0108a05e4de93ca.cu",
+    "kernel_name": "stwo_jit_fused_4a5dad552ce2c7ae",
+    "kind": "constraint",
+    "label": "wide_fibonacci",
+    "program_identity": "abf3cf6416b8e25a739383bc1fcbc62872b9ed47fa6740b0af4cf921c942318e",
+    "semantic_hash": "4a5dad552ce2c7ae"
+  }
+]

@@ -102,6 +102,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             try runtime_error.check(AotApi.stwo_native_aot_function_bind(
                 loader,
                 kernel.cache_key,
+                @intFromEnum(kernel.abi_schema),
                 kernel.name.ptr,
                 &kernel.grid,
                 &kernel.block,
@@ -242,6 +243,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
         pub fn stwo_native_aot_function_bind(
             _: *anyopaque,
             cache_key: u64,
+            abi_schema: u32,
             _: [*:0]const u8,
             grid: *const [3]u32,
             block: *const [3]u32,
@@ -253,6 +255,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
             out.* = &loader_word;
             receipt.* = .{
                 .abi_version = kernel_module.receipt_abi_version,
+                .abi_schema = abi_schema,
                 .device_ordinal = 0,
                 .sm_major = 9,
                 .sm_minor = 0,
@@ -326,6 +329,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
             const arguments = [_]?*anyopaque{@ptrCast(&argument)};
             try session.launchKernel(.{
                 .stage = stage,
+                .abi_schema = .ordinary_constraint_v1,
                 .cache_key = 0x1234,
                 .name = "resident_kernel",
                 .grid = .{ 1, 1, 1 },

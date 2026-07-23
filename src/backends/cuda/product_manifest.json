@@ -77,6 +77,7 @@
   "generated_aot": {
     "copied_entry_count": 340,
     "copied_disposition": "cairo_reference_only",
+    "native_entry_count": 1,
     "product_policy": "native_generated_identity_only"
   },
   "forbidden_product_tokens": [

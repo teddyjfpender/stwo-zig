@@ -18,6 +18,7 @@ pub extern "c" fn stwo_native_aot_loader_stats(
 pub extern "c" fn stwo_native_aot_function_bind(
     loader: *anyopaque,
     cache_key: u64,
+    abi_schema: u32,
     kernel_name: [*:0]const u8,
     grid: *const [3]u32,
     block: *const [3]u32,

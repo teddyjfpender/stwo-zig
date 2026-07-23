@@ -14,6 +14,7 @@ SOURCE = CUDA_ROOT / "vendor/upstream"
 SOURCE_MANIFEST = CUDA_ROOT / "source_manifest.json"
 PRODUCT_MANIFEST = CUDA_ROOT / "product_manifest.json"
 NATIVE = CUDA_ROOT / "native"
+NATIVE_AOT = CUDA_ROOT / "aot/native"
 ORDINARY_ROLES = (
     "resident_candidates",
     "quarantined_migration",
@@ -83,6 +84,14 @@ def validate() -> dict[str, object]:
         raise ProductClosureError("copied AOT disposition count is stale")
     if generated.get("copied_disposition") != "cairo_reference_only":
         raise ProductClosureError("copied Cairo AOT sources cannot enter the Native product")
+    native_aot = read_json(NATIVE_AOT / "aot_manifest.json")
+    if not isinstance(native_aot, list) or len(native_aot) != generated.get(
+        "native_entry_count"
+    ):
+        raise ProductClosureError("Native AOT disposition count is stale")
+    native_labels = {str(entry.get("label", "")) for entry in native_aot}
+    if not native_labels or any("cairo" in label for label in native_labels):
+        raise ProductClosureError("Native AOT manifest contains a foreign frontend")
 
     native_files = sorted(path for path in NATIVE.rglob("*") if path.is_file())
     native_payload = "\n".join(
@@ -109,6 +118,7 @@ def validate() -> dict[str, object]:
         "quarantined_or_deferred": len(classified)
         - len(ordinary["resident_candidates"]),
         "copied_aot_reference_entries": len(copied_aot),
+        "native_aot_entries": len(native_aot),
         "native_runtime_sha256": digest.hexdigest(),
     }
 
@@ -120,7 +130,8 @@ def main() -> int:
         f"{result['classified_ordinary_sources']} ordinary sources classified, "
         f"{result['resident_candidates']} resident candidates, "
         f"{result['quarantined_or_deferred']} quarantined/deferred, "
-        f"{result['copied_aot_reference_entries']} copied AOT entries excluded"
+        f"{result['copied_aot_reference_entries']} copied AOT entries excluded, "
+        f"{result['native_aot_entries']} Native AOT entry admitted"
     )
     return 0
 

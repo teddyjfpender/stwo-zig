@@ -32,13 +32,14 @@ pub const NativeAotStats = extern struct {
 
 pub const NativeAotFunctionReceipt = extern struct {
     abi_version: u32 = 0,
+    abi_schema: u32 = 0,
     device_ordinal: u32 = 0,
     sm_major: u32 = 0,
     sm_minor: u32 = 0,
-    argument_count: u32 = 0,
     grid: [3]u32 = .{ 0, 0, 0 },
     block: [3]u32 = .{ 0, 0, 0 },
     dynamic_shared_bytes: u32 = 0,
+    argument_count: u32 = 0,
     registers_per_thread: u32 = 0,
     max_threads_per_block: u32 = 0,
     binary_version: u32 = 0,
@@ -56,6 +57,8 @@ comptime {
     std.debug.assert(@alignOf(NativeAotStats) == 8);
     std.debug.assert(@sizeOf(NativeAotFunctionReceipt) == 104);
     std.debug.assert(@alignOf(NativeAotFunctionReceipt) == 8);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "abi_schema") == 4);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "grid") == 20);
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "cache_key") == 64);
 }
 

@@ -21,6 +21,8 @@ extern "C" bool stwo_aot_lookup(
     uint64_t cache_key,
     uint32_t sm_major,
     uint32_t sm_minor,
+    uint32_t abi_schema,
+    const char *kernel_name,
     const unsigned char **out_data,
     size_t *out_len);
 extern "C" int stwo_exec_context_stream(void *handle, void **out_stream);
@@ -32,17 +34,21 @@ constexpr uint32_t kReceiptAbiVersion = 1;
 
 struct ModuleKey {
     uint64_t cache_key;
+    uint32_t abi_schema;
     std::string kernel_name;
 
     bool operator==(const ModuleKey &other) const {
-        return cache_key == other.cache_key && kernel_name == other.kernel_name;
+        return cache_key == other.cache_key && abi_schema == other.abi_schema &&
+            kernel_name == other.kernel_name;
     }
 };
 
 struct ModuleKeyHash {
     size_t operator()(const ModuleKey &key) const {
         const size_t left = std::hash<uint64_t>{}(key.cache_key);
-        const size_t right = std::hash<std::string>{}(key.kernel_name);
+        const size_t schema = std::hash<uint32_t>{}(key.abi_schema);
+        const size_t right =
+            std::hash<std::string>{}(key.kernel_name) ^ (schema << 1);
         return left ^ (right + 0x9e3779b97f4a7c15ULL + (left << 6) + (left >> 2));
     }
 };
@@ -68,7 +74,6 @@ struct Loader {
 struct BoundFunction {
     Loader *loader = nullptr;
     Module *module = nullptr;
-    uint64_t cache_key = 0;
     uint32_t grid[3] = {};
     uint32_t block[3] = {};
     uint32_t dynamic_shared_bytes = 0;
@@ -220,6 +225,7 @@ extern "C" int stwo_native_aot_loader_destroy(void *raw_loader) {
 extern "C" int stwo_native_aot_function_bind(
     void *raw_loader,
     uint64_t cache_key,
+    uint32_t abi_schema,
     const char *kernel_name,
     const uint32_t grid[3],
     const uint32_t block[3],
@@ -235,12 +241,13 @@ extern "C" int stwo_native_aot_function_bind(
     std::memset(out_receipt, 0, sizeof(*out_receipt));
     const int owner = require_owner(loader);
     if (owner != CUDA_SUCCESS) return owner;
-    if (cache_key == 0 || kernel_name == nullptr || kernel_name[0] == '\0' ||
+    if (cache_key == 0 || abi_schema == 0 ||
+        kernel_name == nullptr || kernel_name[0] == '\0' ||
         argument_count == 0) {
         return CUDA_ERROR_INVALID_VALUE;
     }
 
-    ModuleKey key{cache_key, kernel_name};
+    ModuleKey key{cache_key, abi_schema, kernel_name};
     auto found = loader->modules.find(key);
     if (found == loader->modules.end()) {
         const unsigned char *image = nullptr;
@@ -249,6 +256,8 @@ extern "C" int stwo_native_aot_function_bind(
                 cache_key,
                 loader->sm_major,
                 loader->sm_minor,
+                abi_schema,
+                kernel_name,
                 &image,
                 &image_bytes) ||
             image == nullptr || image_bytes == 0) {
@@ -274,13 +283,13 @@ extern "C" int stwo_native_aot_function_bind(
     if (!function) return CUDA_ERROR_OUT_OF_MEMORY;
     function->loader = loader;
     function->module = &found->second;
-    function->cache_key = cache_key;
     std::memcpy(function->grid, grid, sizeof(function->grid));
     std::memcpy(function->block, block, sizeof(function->block));
     function->dynamic_shared_bytes = dynamic_shared_bytes;
     function->argument_count = argument_count;
 
     out_receipt->abi_version = kReceiptAbiVersion;
+    out_receipt->abi_schema = abi_schema;
     out_receipt->device_ordinal = loader->device;
     out_receipt->sm_major = loader->sm_major;
     out_receipt->sm_minor = loader->sm_minor;

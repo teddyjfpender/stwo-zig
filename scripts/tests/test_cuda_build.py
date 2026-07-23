@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -66,8 +68,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
         self.assertEqual(37, plan["ordinary_source_count"])
-        self.assertEqual(0, plan["aot_source_count"])
-        self.assertEqual(0, plan["aot_cubin_count"])
+        self.assertEqual(1, plan["aot_source_count"])
+        self.assertEqual(2, plan["aot_cubin_count"])
         self.assertEqual(1, plan["native_runtime_source_count"])
         self.assertEqual(
             load_native_closure(NATIVE)["closure_sha256"],
@@ -95,9 +97,11 @@ class CudaBuildTests(unittest.TestCase):
             manifest = [{
                 "kind": "constraint",
                 "label": "test",
+                "abi_schema": "ordinary_constraint_v1",
                 "kernel_name": "test",
                 "cache_key": "0000000000000005",
                 "semantic_hash": "0000000000000006",
+                "program_identity": "07" * 32,
                 "file": source.name,
             }]
             (native_aot / "aot_manifest.json").write_text(
@@ -155,6 +159,8 @@ class CudaBuildTests(unittest.TestCase):
                 "sm": 90,
                 "offset": 0,
                 "bytes": 4,
+                "abi_schema": 1,
+                "kernel_name": "test_kernel",
             }
         ]
         with tempfile.TemporaryDirectory() as temporary:
@@ -167,6 +173,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn('.incbin "', assembly_source)
         self.assertIn("stwo_aot_lookup", lookup_source)
         self.assertIn("entry.sm != sm", lookup_source)
+        self.assertIn("entry.abi_schema != abi_schema", lookup_source)
+        self.assertIn("std::strcmp(entry.kernel_name, kernel_name)", lookup_source)
         self.assertNotIn("nvrtc", lookup_source.lower())
 
     def test_empty_native_aot_pack_is_standard_and_fail_closed(self) -> None:
@@ -198,6 +206,70 @@ class CudaBuildTests(unittest.TestCase):
             "-Xptxas=-O0",
             aot_compile_command(toolchain, ordinary, Path("out.cubin"), 90),
         )
+
+    def test_native_wide_fibonacci_aot_matches_scalar_recurrence(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
+        source = NATIVE_AOT / "constraint_wide_fibonacci_b0108a05e4de93ca.cu"
+        manifest = json.loads(
+            (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(1, len(manifest))
+        self.assertEqual("ordinary_constraint_v1", manifest[0]["abi_schema"])
+        self.assertEqual(source.name, manifest[0]["file"])
+        harness = f"""
+#include <cassert>
+#define __device__
+#define __global__
+#define __forceinline__ inline
+#define __launch_bounds__(...)
+struct Dim3 {{ unsigned x, y, z; }};
+static Dim3 blockIdx{{0, 0, 0}}, blockDim{{128, 1, 1}}, threadIdx{{0, 0, 0}};
+#include {json.dumps(str(source))}
+
+int main() {{
+    unsigned c0[2] = {{3, 3}};
+    unsigned c1[2] = {{4, 4}};
+    unsigned c2[2] = {{26, 26}};
+    unsigned c3[2] = {{694, 694}};
+    unsigned c4[2] = {{482315, 482315}};
+    const unsigned *columns[] = {{c0, c1, c2, c3, c4}};
+    unsigned offsets[3] = {{0, 0, 5}};
+    unsigned base_params[1] = {{5}};
+    unsigned ext_params[1] = {{0}};
+    unsigned powers[12] = {{
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12
+    }};
+    unsigned denom[2] = {{2, 3}};
+    unsigned out0[2] = {{0, 0}}, out1[2] = {{0, 0}};
+    unsigned out2[2] = {{0, 0}}, out3[2] = {{0, 0}};
+    for (unsigned row = 0; row < 2; ++row) {{
+        threadIdx.x = row;
+        stwo_jit_fused_4a5dad552ce2c7ae(
+            columns, offsets, base_params, ext_params, powers, denom,
+            out0, out1, out2, out3, 2, 0, 0);
+    }}
+    assert(out0[0] == 76 && out0[1] == 114);
+    assert(out1[0] == 88 && out1[1] == 132);
+    assert(out2[0] == 100 && out2[1] == 150);
+    assert(out3[0] == 112 && out3[1] == 168);
+}}
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness_path = root / "wide_fibonacci_aot_test.cpp"
+            executable = root / "wide_fibonacci_aot_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
 
     def test_source_manifest_rejects_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

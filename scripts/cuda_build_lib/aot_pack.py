@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -11,6 +12,13 @@ from typing import Sequence
 
 class AotPackError(RuntimeError):
     pass
+
+
+ABI_SCHEMAS = {
+    "ordinary_constraint_v1": 1,
+    "recorded_witness_v1": 2,
+    "composition_wave_v2": 3,
+}
 
 
 def write_aot_pack(entries: Sequence[dict[str, object]], destination: Path) -> None:
@@ -49,19 +57,22 @@ stwo_cuda_aot_pack_end:
 .section .note.GNU-stack,"",@progbits
 """
     rows = "\n".join(
-        "    {0x%016xULL, %dU, %dULL, %dULL},"
+        "    {0x%016xULL, %dU, %dULL, %dULL, %dU, %s},"
         % (
             int(entry["cache_key"]),
             int(entry["sm"]),
             int(entry["offset"]),
             int(entry["bytes"]),
+            int(entry["abi_schema"]),
+            json.dumps(str(entry["kernel_name"])),
         )
         for entry in entries
     )
     if not rows:
-        rows = "    {0ULL, 0U, 0ULL, 0ULL},"
+        rows = '    {0ULL, 0U, 0ULL, 0ULL, 0U, ""},'
     lookup_text = f"""#include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 extern "C" const unsigned char stwo_cuda_aot_pack_start[];
 extern "C" const unsigned char stwo_cuda_aot_pack_end[];
@@ -72,6 +83,8 @@ struct Entry {{
     std::uint32_t sm;
     std::uint64_t offset;
     std::uint64_t size;
+    std::uint32_t abi_schema;
+    const char *kernel_name;
 }};
 
 constexpr Entry kEntries[] = {{
@@ -84,9 +97,12 @@ extern "C" bool stwo_aot_lookup(
     std::uint64_t cache_key,
     std::uint32_t sm_major,
     std::uint32_t sm_minor,
+    std::uint32_t abi_schema,
+    const char *kernel_name,
     const unsigned char **out_data,
     std::size_t *out_len) {{
-    if (out_data == nullptr || out_len == nullptr || sm_minor > 9) return false;
+    if (out_data == nullptr || out_len == nullptr || abi_schema == 0 ||
+        kernel_name == nullptr || kernel_name[0] == '\\0' || sm_minor > 9) return false;
     const std::uint32_t sm = sm_major * 10U + sm_minor;
     std::size_t low = 0;
     std::size_t high = kEntryCount;
@@ -102,7 +118,9 @@ extern "C" bool stwo_aot_lookup(
     }}
     if (low == kEntryCount) return false;
     const Entry &entry = kEntries[low];
-    if (entry.cache_key != cache_key || entry.sm != sm || entry.size == 0) return false;
+    if (entry.cache_key != cache_key || entry.sm != sm || entry.size == 0 ||
+        entry.abi_schema != abi_schema ||
+        std::strcmp(entry.kernel_name, kernel_name) != 0) return false;
     const std::size_t pack_size =
         static_cast<std::size_t>(stwo_cuda_aot_pack_end - stwo_cuda_aot_pack_start);
     if (entry.offset > pack_size || entry.size > pack_size - entry.offset) return false;

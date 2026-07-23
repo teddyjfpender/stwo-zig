@@ -2,10 +2,12 @@
 
 pub const aot = @import("aot.zig");
 pub const runtime = @import("runtime.zig");
+pub const schema = @import("schema.zig");
 pub const types = @import("types.zig");
 
 test {
     _ = aot;
     _ = runtime;
+    _ = schema;
     _ = types;
 }

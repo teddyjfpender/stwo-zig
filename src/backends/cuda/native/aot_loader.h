@@ -18,13 +18,14 @@ typedef struct {
 
 typedef struct {
     uint32_t abi_version;
+    uint32_t abi_schema;
     uint32_t device_ordinal;
     uint32_t sm_major;
     uint32_t sm_minor;
-    uint32_t argument_count;
     uint32_t grid[3];
     uint32_t block[3];
     uint32_t dynamic_shared_bytes;
+    uint32_t argument_count;
     uint32_t registers_per_thread;
     uint32_t max_threads_per_block;
     uint32_t binary_version;
@@ -38,6 +39,12 @@ typedef struct {
 #ifdef __cplusplus
 static_assert(sizeof(StwoNativeAotStats) == 40, "AOT stats ABI size");
 static_assert(sizeof(StwoNativeAotFunctionReceipt) == 104, "AOT receipt ABI size");
+static_assert(offsetof(StwoNativeAotFunctionReceipt, abi_schema) == 4,
+              "AOT receipt schema offset");
+static_assert(offsetof(StwoNativeAotFunctionReceipt, grid) == 20,
+              "AOT receipt grid offset");
+static_assert(offsetof(StwoNativeAotFunctionReceipt, cache_key) == 64,
+              "AOT receipt cache-key offset");
 #endif
 
 int stwo_native_aot_loader_create(void *exec_context, void **out_loader);
@@ -46,6 +53,7 @@ int stwo_native_aot_loader_destroy(void *loader);
 int stwo_native_aot_function_bind(
     void *loader,
     uint64_t cache_key,
+    uint32_t abi_schema,
     const char *kernel_name,
     const uint32_t grid[3],
     const uint32_t block[3],

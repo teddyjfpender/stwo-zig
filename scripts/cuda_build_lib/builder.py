@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
-from .aot_pack import AotPackError, write_aot_carriers, write_aot_pack
+from .aot_pack import ABI_SCHEMAS, AotPackError, write_aot_carriers, write_aot_pack
 
 
 SCHEMA = "stwo-zig-cuda-native-build-v1"
@@ -25,6 +25,10 @@ PLAN_NAME = "cuda_build_plan.json"
 AOT_PACK_NAME = "cuda_aot_pack.bin"
 GENERATED = "generated"
 SM_RE = re.compile(r"^(?:sm_)?([1-9][0-9])$")
+IDENTITY_64_RE = re.compile(r"^[0-9a-f]{16}$")
+IDENTITY_256_RE = re.compile(r"^[0-9a-f]{64}$")
+KERNEL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+LABEL_RE = re.compile(r"^[a-z0-9_]+$")
 
 
 class BuildError(RuntimeError):
@@ -270,9 +274,11 @@ def validate_aot_manifest(
     required = {
         "kind",
         "label",
+        "abi_schema",
         "kernel_name",
         "cache_key",
         "semantic_hash",
+        "program_identity",
         "file",
     }
     for index, raw in enumerate(manifest):
@@ -280,14 +286,31 @@ def validate_aot_manifest(
             raise BuildError(f"AOT manifest entry {index} is incomplete")
         kind = str(raw["kind"])
         label = str(raw["label"])
+        abi_schema = str(raw["abi_schema"])
+        kernel_name = str(raw["kernel_name"])
+        cache_key_hex = str(raw["cache_key"])
+        semantic_hash = str(raw["semantic_hash"])
+        program_identity = str(raw["program_identity"])
         file_name = str(raw["file"])
         if kind not in {"constraint", "witness"}:
             raise BuildError(f"AOT manifest entry {index} has invalid kind")
+        if abi_schema not in ABI_SCHEMAS:
+            raise BuildError(f"AOT manifest entry {index} has invalid ABI schema")
+        if (
+            LABEL_RE.fullmatch(label) is None
+            or KERNEL_RE.fullmatch(kernel_name) is None
+            or IDENTITY_64_RE.fullmatch(cache_key_hex) is None
+            or IDENTITY_64_RE.fullmatch(semantic_hash) is None
+            or IDENTITY_256_RE.fullmatch(program_identity) is None
+        ):
+            raise BuildError(f"AOT manifest entry {index} has invalid identity syntax")
         try:
-            cache_key = int(str(raw["cache_key"]), 16)
-            int(str(raw["semantic_hash"]), 16)
+            cache_key = int(cache_key_hex, 16)
+            semantic_key = int(semantic_hash, 16)
         except ValueError as error:
             raise BuildError(f"AOT manifest entry {index} has invalid hex identity") from error
+        if cache_key == 0 or semantic_key == 0:
+            raise BuildError(f"AOT manifest entry {index} has a zero identity")
         expected_name = f"{kind}_{label}_{cache_key:016x}.cu"
         if (
             file_name != expected_name
@@ -587,6 +610,7 @@ def compile_aot(
                     "cache_key": int(str(metadata["cache_key"]), 16),
                     "sm": sm,
                     "kernel_name": str(metadata["kernel_name"]),
+                    "abi_schema": ABI_SCHEMAS[str(metadata["abi_schema"])],
                     "source": source.name,
                     "cubin": destination,
                 }
