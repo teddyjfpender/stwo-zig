@@ -107,7 +107,7 @@ correctness and residency gates.
 ## Delivery Checkpoints
 
 - [x] Pin and import the exact upstream CUDA/C++ source authority.
-- [ ] Land the deterministic CUDA source/build identity and source gate.
+- [x] Land the deterministic CUDA source/build identity and source gate.
 - [ ] Replace the legacy Zig FFI with the exact imported ABI.
 - [ ] Build the static CUDA archive and copied generated AOT pack directly.
 - [ ] Implement the Zig execution context, pool, arena, and telemetry owners.

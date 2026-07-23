@@ -6,6 +6,7 @@ const architecture_receipts = @import("gates/architecture_receipts.zig");
 const baseline = @import("gates/baseline.zig");
 const configure_plan = @import("gates/configure_plan.zig");
 const construction_observer = @import("graph/construction_observer.zig");
+const cuda_tools = @import("backends/cuda_tools.zig");
 const native_gates = @import("gates/native.zig");
 const release_evidence = @import("gates/release_evidence.zig");
 const riscv_gates = @import("gates/riscv.zig");
@@ -88,6 +89,7 @@ pub fn build(b: *std.Build) void {
             });
             construction_observer.recordConstructor(b, "products/compatibility_tools.addProducts");
         },
+        .cuda_tools => cuda_tools.addProducts(b),
         .metal_tools => addMetalTools(b, target, optimize),
         .deferred => {
             products.addDeferredProducts(b, target);
