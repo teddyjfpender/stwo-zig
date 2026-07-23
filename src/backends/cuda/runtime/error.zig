@@ -1,7 +1,9 @@
 //! Fail-closed resident CUDA runtime errors.
 
 pub const Error = error{
+    AotReceiptMismatch,
     AotPackAbsent,
+    ArgumentCountMismatch,
     BuildIdentityAbsent,
     ContextClosed,
     ContextMismatch,
@@ -13,6 +15,7 @@ pub const Error = error{
     HostReadOutsideProofAssembly,
     InvalidDeviceArchitecture,
     InvalidDeviceOrdinal,
+    InvalidKernelDescriptor,
     InvalidState,
     KernelPathUnused,
     NullDevicePointer,

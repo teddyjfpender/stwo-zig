@@ -5,6 +5,7 @@ const native_api = @import("../abi/runtime.zig");
 const native_aot = @import("../abi/aot.zig");
 const types = @import("../abi/types.zig");
 const context_module = @import("context.zig");
+const kernel_module = @import("kernel.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
@@ -79,6 +80,53 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             if (!self.context.stagesComplete())
                 return error.KernelPathUnused;
             self.state = .proved;
+        }
+
+        /// Binds, validates, launches, and releases one AOT function without
+        /// exposing the loader or a raw CUDA function handle to proving code.
+        pub fn launchKernel(
+            self: *Self,
+            kernel: kernel_module.Kernel,
+            arguments: []const ?*anyopaque,
+        ) runtime_error.Error!void {
+            if (self.state != .open) return error.InvalidState;
+            if (self.context.active_stage != kernel.stage)
+                return error.StageOrderViolation;
+            try kernel.validate();
+            if (arguments.len != kernel.argument_count)
+                return error.ArgumentCountMismatch;
+            const loader = self.aot_loader orelse return error.InvalidState;
+
+            var raw_function: ?*anyopaque = null;
+            var receipt = types.NativeAotFunctionReceipt{};
+            try runtime_error.check(AotApi.stwo_native_aot_function_bind(
+                loader,
+                kernel.cache_key,
+                kernel.name.ptr,
+                &kernel.grid,
+                &kernel.block,
+                kernel.dynamic_shared_bytes,
+                kernel.argument_count,
+                &raw_function,
+                &receipt,
+            ));
+            const function = raw_function orelse return error.StrictAotViolation;
+            errdefer runtime_error.check(
+                AotApi.stwo_native_aot_function_destroy(function),
+            ) catch {};
+
+            try kernel.validateReceipt(
+                receipt,
+                self.device,
+                self.context.stream,
+            );
+            try runtime_error.check(AotApi.stwo_native_aot_function_launch(
+                function,
+                arguments.ptr,
+                @intCast(arguments.len),
+            ));
+            try self.context.recordKernels(1);
+            try runtime_error.check(AotApi.stwo_native_aot_function_destroy(function));
         }
 
         pub fn finish(self: *Self) runtime_error.Error!Verdict {
@@ -191,6 +239,48 @@ test "strict session returns a resident verdict and never exposes fallback" {
             out.* = .{ .aot_loads = 1, .launches = 7 };
             return 0;
         }
+        pub fn stwo_native_aot_function_bind(
+            _: *anyopaque,
+            cache_key: u64,
+            _: [*:0]const u8,
+            grid: *const [3]u32,
+            block: *const [3]u32,
+            dynamic_shared_bytes: u32,
+            argument_count: u32,
+            out: *?*anyopaque,
+            receipt: *types.NativeAotFunctionReceipt,
+        ) c_int {
+            out.* = &loader_word;
+            receipt.* = .{
+                .abi_version = kernel_module.receipt_abi_version,
+                .device_ordinal = 0,
+                .sm_major = 9,
+                .sm_minor = 0,
+                .argument_count = argument_count,
+                .grid = grid.*,
+                .block = block.*,
+                .dynamic_shared_bytes = dynamic_shared_bytes,
+                .registers_per_thread = 32,
+                .max_threads_per_block = 1024,
+                .binary_version = 90,
+                .cache_key = cache_key,
+                .context_token = 1,
+                .module_token = 2,
+                .function_token = 3,
+                .stream_token = @intFromPtr(&stream_word),
+            };
+            return 0;
+        }
+        pub fn stwo_native_aot_function_launch(
+            _: *anyopaque,
+            _: [*]const ?*anyopaque,
+            _: u32,
+        ) c_int {
+            return 0;
+        }
+        pub fn stwo_native_aot_function_destroy(_: *anyopaque) c_int {
+            return 0;
+        }
         pub fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
             return 0;
@@ -231,7 +321,18 @@ test "strict session returns a resident verdict and never exposes fallback" {
     var session = try Session.open(&.{90});
     for (telemetry.all_stages) |stage| {
         try session.context.beginStage(stage);
-        if (stage.requiresKernel()) try session.context.recordKernels(1);
+        if (stage.requiresKernel()) {
+            var argument: u32 = 7;
+            const arguments = [_]?*anyopaque{@ptrCast(&argument)};
+            try session.launchKernel(.{
+                .stage = stage,
+                .cache_key = 0x1234,
+                .name = "resident_kernel",
+                .grid = .{ 1, 1, 1 },
+                .block = .{ 32, 1, 1 },
+                .argument_count = 1,
+            }, &arguments);
+        }
         try session.context.endStage(stage);
     }
     try session.markProofComplete();
