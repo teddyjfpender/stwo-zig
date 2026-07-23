@@ -302,19 +302,30 @@ const FftEvalWorkItem = struct {
     values: [][]M31,
     domain: prover_circle.CircleDomain,
     twiddle_tree: twiddles_mod.TwiddleTree([]const M31),
-    /// Upper halves are unwritten and mathematically zero (2x extension);
-    /// the worker uses the degenerate-first-layer path.
-    extension: bool = false,
+    /// Number of unwritten, degenerate largest-block layers in the power-of-two
+    /// extension. Supported fast paths are 1 (2x) and 2 (4x).
+    extension_layers: u32 = 0,
 };
 
 fn fftEvalWorker(item: *const FftEvalWorkItem) void {
-    if (item.extension) {
-        prover_circle.poly.evaluateExtensionBuffersWithTwiddles(
-            item.values,
-            item.domain,
-            item.twiddle_tree,
-        ) catch {};
-        return;
+    switch (item.extension_layers) {
+        1 => {
+            prover_circle.poly.evaluateExtensionBuffersWithTwiddles(
+                item.values,
+                item.domain,
+                item.twiddle_tree,
+            ) catch {};
+            return;
+        },
+        2 => {
+            prover_circle.poly.evaluateFourfoldExtensionBuffersWithTwiddles(
+                item.values,
+                item.domain,
+                item.twiddle_tree,
+            ) catch {};
+            return;
+        },
+        else => {},
     }
     prover_circle.poly.evaluateBuffersWithTwiddles(
         item.values,
@@ -401,13 +412,23 @@ pub fn extendCoefficientColumnsByGroupForBackend(
             const batch_values = try allocator.alloc([]M31, chunk_len);
             errdefer allocator.free(batch_values);
 
-            var batch_extension = chunk_len > 0;
+            var batch_extension_layers: u32 = 0;
             for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, bi| {
                 const values = try allocator.alloc(M31, domain_size);
                 const coeff_slice = coeffs[idx].coefficients();
                 @memcpy(values[0..coeff_slice.len], coeff_slice);
-                if (coeff_slice.len * 2 != values.len) {
-                    batch_extension = false;
+                const extension_layers: u32 = if (coeff_slice.len * 4 == values.len)
+                    2
+                else if (coeff_slice.len * 2 == values.len)
+                    1
+                else
+                    0;
+                if (bi == 0) {
+                    batch_extension_layers = extension_layers;
+                } else if (batch_extension_layers != extension_layers) {
+                    batch_extension_layers = 0;
+                }
+                if (extension_layers == 0) {
                     if (coeff_slice.len < values.len) @memset(values[coeff_slice.len..], M31.zero());
                 }
                 batch_values[bi] = values;
@@ -416,10 +437,10 @@ pub fn extendCoefficientColumnsByGroupForBackend(
                     .values = values,
                 };
             }
-            if (!batch_extension) {
+            if (batch_extension_layers == 0) {
                 for (batch_values, group.indices.items[batch_start .. batch_start + chunk_len]) |values, idx| {
                     const coeff_slice = coeffs[idx].coefficients();
-                    if (coeff_slice.len * 2 == values.len) @memset(values[coeff_slice.len..], M31.zero());
+                    if (coeff_slice.len < values.len) @memset(values[coeff_slice.len..], M31.zero());
                 }
             }
 
@@ -430,7 +451,7 @@ pub fn extendCoefficientColumnsByGroupForBackend(
                 .values = batch_values,
                 .domain = domain,
                 .twiddle_tree = twiddle_tree,
-                .extension = batch_extension,
+                .extension_layers = batch_extension_layers,
             });
         }
     }
@@ -473,9 +494,10 @@ pub fn extendCoefficientColumnsByGroupForBackend(
 
 fn materializeBackendExtensionZeros(work_items: []const FftEvalWorkItem) void {
     for (work_items) |item| {
-        if (!item.extension) continue;
+        if (item.extension_layers == 0) continue;
         for (item.values) |values| {
-            @memset(values[values.len / 2 ..], M31.zero());
+            const initialized_len = values.len >> @intCast(item.extension_layers);
+            @memset(values[initialized_len..], M31.zero());
         }
     }
 }
@@ -619,19 +641,89 @@ test "circle transforms: CPU FFT batch exposes one task per worker" {
 
 test "circle transforms: backend extension buffers materialize implicit zeros" {
     const allocator = std.testing.allocator;
-    const values = try allocator.alloc(M31, 16);
-    defer allocator.free(values);
-    @memset(values, M31.fromCanonical(0x5a5a));
+    const twofold_values = try allocator.alloc(M31, 16);
+    defer allocator.free(twofold_values);
+    const fourfold_values = try allocator.alloc(M31, 16);
+    defer allocator.free(fourfold_values);
+    @memset(twofold_values, M31.fromCanonical(0x5a5a));
+    @memset(fourfold_values, M31.fromCanonical(0x5a5a));
 
-    var slices = [_][]M31{values};
-    const items = [_]FftEvalWorkItem{.{
-        .values = slices[0..],
-        .domain = canonic.CanonicCoset.new(4).circleDomain(),
-        .twiddle_tree = undefined,
-        .extension = true,
-    }};
+    var twofold_slices = [_][]M31{twofold_values};
+    var fourfold_slices = [_][]M31{fourfold_values};
+    const items = [_]FftEvalWorkItem{
+        .{
+            .values = twofold_slices[0..],
+            .domain = canonic.CanonicCoset.new(4).circleDomain(),
+            .twiddle_tree = undefined,
+            .extension_layers = 1,
+        },
+        .{
+            .values = fourfold_slices[0..],
+            .domain = canonic.CanonicCoset.new(4).circleDomain(),
+            .twiddle_tree = undefined,
+            .extension_layers = 2,
+        },
+    };
     materializeBackendExtensionZeros(items[0..]);
 
-    for (values[0..8]) |value| try std.testing.expectEqual(M31.fromCanonical(0x5a5a), value);
-    for (values[8..]) |value| try std.testing.expectEqual(M31.zero(), value);
+    for (twofold_values[0..8]) |value| try std.testing.expectEqual(M31.fromCanonical(0x5a5a), value);
+    for (twofold_values[8..]) |value| try std.testing.expectEqual(M31.zero(), value);
+    for (fourfold_values[0..4]) |value| try std.testing.expectEqual(M31.fromCanonical(0x5a5a), value);
+    for (fourfold_values[4..]) |value| try std.testing.expectEqual(M31.zero(), value);
+}
+
+test "circle transforms: batched fourfold extension matches explicit zero padding" {
+    const allocator = std.testing.allocator;
+    var domain_log_size: u32 = 5;
+    while (domain_log_size <= 12) : (domain_log_size += 1) {
+        const domain = canonic.CanonicCoset.new(domain_log_size).circleDomain();
+        const domain_size = domain.size();
+        const coefficient_len = domain_size / 4;
+        const sentinel = M31.fromCanonical(0x5a5a);
+
+        const explicit_a = try allocator.alloc(M31, domain_size);
+        defer allocator.free(explicit_a);
+        const explicit_b = try allocator.alloc(M31, domain_size);
+        defer allocator.free(explicit_b);
+        const candidate_a = try allocator.alloc(M31, domain_size);
+        defer allocator.free(candidate_a);
+        const candidate_b = try allocator.alloc(M31, domain_size);
+        defer allocator.free(candidate_b);
+
+        for (0..coefficient_len) |index| {
+            const value_a = M31.fromCanonical(@intCast((index * 29 + 17) % m31.Modulus));
+            const value_b = M31.fromCanonical(@intCast((index * 43 + 11) % m31.Modulus));
+            explicit_a[index] = value_a;
+            candidate_a[index] = value_a;
+            explicit_b[index] = value_b;
+            candidate_b[index] = value_b;
+        }
+        @memset(explicit_a[coefficient_len..], M31.zero());
+        @memset(explicit_b[coefficient_len..], M31.zero());
+        @memset(candidate_a[coefficient_len..], sentinel);
+        @memset(candidate_b[coefficient_len..], sentinel);
+
+        var twiddle_tree = try twiddles_mod.precomputeM31(allocator, domain.half_coset);
+        defer twiddles_mod.deinitM31(allocator, &twiddle_tree);
+        const twiddles: twiddles_mod.TwiddleTree([]const M31) = .{
+            .root_coset = twiddle_tree.root_coset,
+            .twiddles = twiddle_tree.twiddles,
+            .itwiddles = twiddle_tree.itwiddles,
+        };
+        var explicit_batch = [_][]M31{ explicit_a, explicit_b };
+        var candidate_batch = [_][]M31{ candidate_a, candidate_b };
+        try prover_circle.poly.evaluateBuffersWithTwiddles(
+            explicit_batch[0..],
+            domain,
+            twiddles,
+        );
+        try prover_circle.poly.evaluateFourfoldExtensionBuffersWithTwiddles(
+            candidate_batch[0..],
+            domain,
+            twiddles,
+        );
+
+        try std.testing.expectEqualSlices(M31, explicit_a, candidate_a);
+        try std.testing.expectEqualSlices(M31, explicit_b, candidate_b);
+    }
 }

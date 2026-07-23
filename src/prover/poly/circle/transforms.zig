@@ -146,6 +146,35 @@ pub fn evaluateExtensionBufferWithTwiddles(
     evaluateBufferTailLayers(values, domain, twiddle_tree, 1);
 }
 
+/// Evaluates a coefficient buffer whose upper three quarters are known to be
+/// zero — the 4x-blowup extension case.
+///
+/// The first largest-block layer pairs the lower half with zero and the second
+/// pairs each populated quarter with zero. Both layers therefore only
+/// duplicate their non-zero inputs, independent of their twiddles. Materialize
+/// the resulting four equal quarters once and skip both degenerate layers.
+pub fn evaluateFourfoldExtensionBufferWithTwiddles(
+    values: []M31,
+    domain: CircleDomain,
+    twiddle_tree: M31TwiddleTree,
+) void {
+    if (domain.logSize() <= 3) {
+        const quarter = values.len / 4;
+        @memset(values[quarter..], M31.zero());
+        evaluateBufferWithTwiddles(values, domain, twiddle_tree);
+        return;
+    }
+    materializeFourEqualQuarters(values);
+    evaluateBufferTailLayers(values, domain, twiddle_tree, 2);
+}
+
+fn materializeFourEqualQuarters(values: []M31) void {
+    std.debug.assert(values.len % 4 == 0);
+    const quarter = values.len / 4;
+    @memcpy(values[quarter .. 2 * quarter], values[0..quarter]);
+    @memcpy(values[2 * quarter ..], values[0 .. 2 * quarter]);
+}
+
 pub fn evaluateBufferWithTwiddles(
     values: []M31,
     domain: CircleDomain,
@@ -553,6 +582,25 @@ pub fn evaluateExtensionBuffersWithTwiddles(
         return evaluateBuffersWithTwiddles(values_batch, domain, twiddle_tree);
     }
     try evaluateBuffersTailLayers(values_batch, domain, twiddle_tree, 1, true);
+}
+
+/// Batched 4x-blowup counterpart to
+/// `evaluateFourfoldExtensionBufferWithTwiddles`.
+pub fn evaluateFourfoldExtensionBuffersWithTwiddles(
+    values_batch: []const []M31,
+    domain: CircleDomain,
+    twiddle_tree: M31TwiddleTree,
+) PolyError!void {
+    if (!domain.half_coset.isDoublingOf(twiddle_tree.root_coset)) return PolyError.InvalidLogSize;
+    if (domain.logSize() <= 3) {
+        for (values_batch) |values| {
+            const quarter = values.len / 4;
+            @memset(values[quarter..], M31.zero());
+        }
+        return evaluateBuffersWithTwiddles(values_batch, domain, twiddle_tree);
+    }
+    for (values_batch) |values| materializeFourEqualQuarters(values);
+    try evaluateBuffersTailLayers(values_batch, domain, twiddle_tree, 2, false);
 }
 
 fn evaluateBuffersTailLayers(

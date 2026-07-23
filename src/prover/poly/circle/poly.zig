@@ -275,7 +275,13 @@ pub const CircleCoefficients = struct {
         const values = try allocator.alloc(M31, domain.size());
         errdefer allocator.free(values);
         @memcpy(values[0..self.coeffs.len], self.coeffs);
-        if (self.coeffs.len * 2 == values.len) {
+        if (self.coeffs.len * 4 == values.len) {
+            transforms.evaluateFourfoldExtensionBufferWithTwiddles(
+                values,
+                domain,
+                twiddle_tree,
+            );
+        } else if (self.coeffs.len * 2 == values.len) {
             transforms.evaluateExtensionBufferWithTwiddles(values, domain, twiddle_tree);
         } else {
             if (self.coeffs.len < values.len) @memset(values[self.coeffs.len..], M31.zero());
@@ -455,6 +461,9 @@ pub const interpolateBuffersWithTwiddles = transforms.interpolateBuffersWithTwid
 pub const evaluateBuffersWithTwiddles = transforms.evaluateBuffersWithTwiddles;
 
 pub const evaluateExtensionBuffersWithTwiddles = transforms.evaluateExtensionBuffersWithTwiddles;
+
+pub const evaluateFourfoldExtensionBuffersWithTwiddles =
+    transforms.evaluateFourfoldExtensionBuffersWithTwiddles;
 
 fn checkedPow2(log_size: u32) PolyError!usize {
     if (log_size >= @bitSizeOf(usize)) return PolyError.InvalidLogSize;
@@ -716,6 +725,40 @@ test "prover poly circle poly: evaluate with twiddles matches evaluate" {
     defer alloc.free(@constCast(eval_with_twiddles.values));
 
     try std.testing.expectEqualSlices(M31, eval_direct.values, eval_with_twiddles.values);
+}
+
+test "prover poly circle poly: fourfold extension skips two degenerate layers exactly" {
+    const alloc = std.testing.allocator;
+    const coeff_log_size: u32 = 6;
+    const domain_log_size: u32 = coeff_log_size + 2;
+    const coeff_len = @as(usize, 1) << @intCast(coeff_log_size);
+    const domain_len = @as(usize, 1) << @intCast(domain_log_size);
+    const sentinel = M31.fromCanonical(0x5a5a);
+
+    const baseline = try alloc.alloc(M31, domain_len);
+    defer alloc.free(baseline);
+    const candidate = try alloc.alloc(M31, domain_len);
+    defer alloc.free(candidate);
+    for (0..coeff_len) |index| {
+        const value = M31.fromCanonical(@intCast((index * 31 + 17) % m31.Modulus));
+        baseline[index] = value;
+        candidate[index] = value;
+    }
+    @memset(baseline[coeff_len..], M31.zero());
+    @memset(candidate[coeff_len..], sentinel);
+
+    const domain = canonic.CanonicCoset.new(domain_log_size).circleDomain();
+    var twiddle_tree = try twiddles_mod.precomputeM31(alloc, domain.half_coset);
+    defer twiddles_mod.deinitM31(alloc, &twiddle_tree);
+    const twiddles: M31TwiddleTree = .{
+        .root_coset = twiddle_tree.root_coset,
+        .twiddles = twiddle_tree.twiddles,
+        .itwiddles = twiddle_tree.itwiddles,
+    };
+
+    transforms.evaluateBufferWithTwiddles(baseline, domain, twiddles);
+    transforms.evaluateFourfoldExtensionBufferWithTwiddles(candidate, domain, twiddles);
+    try std.testing.expectEqualSlices(M31, baseline, candidate);
 }
 
 test "prover poly circle poly: interpolate with twiddles matches interpolate" {
