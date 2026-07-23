@@ -9,15 +9,19 @@ The files under `vendor/upstream/` are an exact, unmodified import of:
 - Source path: `crates/backend-cuda-kernels/cuda`
 - License: Apache-2.0
 
-The files under `vendor/host_authority/` preserve the exact Rust host
-orchestration that owns those kernels upstream:
+The files under `vendor/host_authority/` preserve a self-contained, exact
+projection of the upstream Cargo workspace:
 
-- `crates/backend-cuda/`, including its resident proof-stage tests
-- `crates/backend-cuda-kernels/{Cargo.toml,build.rs,src/}`
+- root Cargo lock, workspace manifest, toolchain, formatting, and license files;
+- all workspace crates, including `backend-cuda` and its resident proof-stage
+  tests; and
+- the full `backend-cuda-kernels` crate, including its generated AOT sources.
 
-The shipped Zig CUDA product does not compile or link that Rust authority. It
-exists so every Zig/C++ ABI and proof-stage port can name and compare against
-the exact implementation being translated.
+The final Zig-owned CUDA proof engine does not compile or link this Rust
+authority. The isolated `tools/stwo-cuda-adapter-rs` bring-up product does: it
+is the same-source migration oracle used to qualify copied kernels, discover
+missing AOT coverage, and compare canonical proofs while the Zig host
+orchestration is ported.
 
 These imports deliberately include the generated AOT CUDA sources. Do not
 reformat, partially regenerate, or hand-edit either directory. Update them as

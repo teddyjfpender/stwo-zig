@@ -105,12 +105,48 @@ pub fn addProducts(
         "Test proof-owned CUDA context, residency, and strict-AOT contracts",
     ).dependOn(&b.addRunArtifact(runtime_tests).step);
 
+    const adapter_tests = b.addSystemCommand(&.{
+        "cargo",
+        "+nightly-2025-07-14",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "tools/stwo-cuda-adapter-rs/Cargo.toml",
+    });
+    adapter_tests.step.dependOn(&source.step);
+    b.step(
+        "test-cuda-adapter",
+        "Compile and test the isolated copied-backend Native proof adapter",
+    ).dependOn(&adapter_tests.step);
+
     if (options.complete()) {
         const archive = cuda.addArchive(b, options.toolchain());
         b.step(
             "cuda-native-archive",
             "Build the exact static CUDA runtime and copied AOT pack",
         ).dependOn(&archive.build.step);
+
+        const adapter = b.addSystemCommand(&.{
+            "cargo",
+            "+nightly-2025-07-14",
+            "build",
+            "--release",
+            "--locked",
+            "--manifest-path",
+            "tools/stwo-cuda-adapter-rs/Cargo.toml",
+        });
+        adapter.setEnvironmentVariable("STWO_CUDA_NVCC", options.nvcc.?);
+        adapter.setEnvironmentVariable("STWO_CUDA_HOST_COMPILER", options.host_cxx.?);
+        adapter.setEnvironmentVariable("STWO_CUDA_ARCH", options.architectures.?);
+        adapter.setEnvironmentVariable(
+            "STWO_CUDA_BUILD_JOBS",
+            b.fmt("{d}", .{options.jobs}),
+        );
+        adapter.step.dependOn(&source.step);
+        b.step(
+            "cuda-native-adapter",
+            "Build the copied-backend Native CUDA proof adapter",
+        ).dependOn(&adapter.step);
     } else {
         const unavailable = b.addFail(
             "cuda-native-archive requires explicit compiler, toolkit, library, " ++
@@ -121,6 +157,15 @@ pub fn addProducts(
             "cuda-native-archive",
             "Build the exact static CUDA runtime and copied AOT pack",
         ).dependOn(&unavailable.step);
+
+        const adapter_unavailable = b.addFail(
+            "cuda-native-adapter requires -Dcuda-nvcc, -Dcuda-host-cxx, " ++
+                "-Dcuda-ar, -Dcuda-home, -Dcuda-library-dir, and -Dcuda-arch",
+        );
+        b.step(
+            "cuda-native-adapter",
+            "Build the copied-backend Native CUDA proof adapter",
+        ).dependOn(&adapter_unavailable.step);
     }
     construction_observer.recordConstructor(b, "backends/cuda_tools.addProducts");
 }

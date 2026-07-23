@@ -1,0 +1,40 @@
+[package]
+name = "stwo-examples"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Example implementations using the STWO prover"
+
+[features]
+parallel = ["dep:rayon", "stwo/parallel"]
+tracing = ["stwo/tracing"]
+slow-tests = []
+
+[lib]
+bench = false
+
+[dependencies]
+rayon = { workspace = true, optional = true }
+num-traits.workspace = true
+itertools.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+serde.workspace = true
+stwo = { path = "../stwo", version = "2.2.0", features = ["prover"] }
+stwo-constraint-framework = { path = "../constraint-framework", version = "2.2.0", features = [
+    "prover",
+    "parallel",
+] }
+rand.workspace = true
+educe.workspace = true
+
+[dev-dependencies]
+criterion = { default-features = false, features = [
+    "html_reports",
+], version = "0.5.1" }
+ndarray = "0.16.1"
+test-log = { version = "0.2.15", features = ["trace"] }
+
+[[bench]]
+harness = false
+name = "poseidon"
