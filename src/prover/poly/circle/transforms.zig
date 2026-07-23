@@ -589,22 +589,20 @@ fn evaluateBuffersTailLayers(
         if (layer_idx >= 5 and
             fft_kernels.canFuseThreeLayersPacked(layer_idx - 2))
         {
-            for (values_batch) |values| {
-                if (expand_on_first_radix) {
-                    fft_kernels.fftThreeLayersForwardPackedM31FromDuplicatedHalf(
-                        values,
-                        domain.logSize(),
-                        layer_idx,
-                        twiddle_tree.twiddles,
-                    );
-                } else {
-                    fft_kernels.fftThreeLayersForwardPackedM31(
-                        values,
-                        domain.logSize(),
-                        layer_idx,
-                        twiddle_tree.twiddles,
-                    );
-                }
+            if (expand_on_first_radix) {
+                fft_kernels.fftThreeLayersForwardPackedM31BatchFromDuplicatedHalf(
+                    values_batch,
+                    domain.logSize(),
+                    layer_idx,
+                    twiddle_tree.twiddles,
+                );
+            } else {
+                fft_kernels.fftThreeLayersForwardPackedM31Batch(
+                    values_batch,
+                    domain.logSize(),
+                    layer_idx,
+                    twiddle_tree.twiddles,
+                );
             }
             expand_on_first_radix = false;
             layer_idx -= 3;

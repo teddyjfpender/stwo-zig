@@ -130,7 +130,9 @@ pub inline fn fftLayerLoopForwardM31(
 
 pub const canFuseThreeLayersPacked = radix8.canFuseThreeLayersPacked;
 pub const fftThreeLayersForwardPackedM31 = radix8.forward;
+pub const fftThreeLayersForwardPackedM31Batch = radix8.forwardBatch;
 pub const fftThreeLayersForwardPackedM31FromDuplicatedHalf = radix8.forwardFromDuplicatedHalf;
+pub const fftThreeLayersForwardPackedM31BatchFromDuplicatedHalf = radix8.forwardBatchFromDuplicatedHalf;
 pub const fftThreeLayersInversePackedM31 = radix8.inverse;
 pub const fftThreeLayersInversePackedM31Normalized = radix8.inverseNormalized;
 
