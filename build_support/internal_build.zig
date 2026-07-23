@@ -89,7 +89,7 @@ pub fn build(b: *std.Build) void {
             });
             construction_observer.recordConstructor(b, "products/compatibility_tools.addProducts");
         },
-        .cuda_tools => cuda_tools.addProducts(b),
+        .cuda_tools => cuda_tools.addProducts(b, target, optimize),
         .metal_tools => addMetalTools(b, target, optimize),
         .deferred => {
             products.addDeferredProducts(b, target);

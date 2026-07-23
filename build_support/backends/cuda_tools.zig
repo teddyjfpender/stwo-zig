@@ -63,7 +63,11 @@ pub const Options = struct {
     }
 };
 
-pub fn addProducts(b: *std.Build) void {
+pub fn addProducts(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) void {
     const options = Options.read(b);
     const source = cuda.addSourceClosureGate(b);
     b.step(
@@ -88,6 +92,18 @@ pub fn addProducts(b: *std.Build) void {
         "test-cuda-build-plan",
         "Test CUDA source, AOT, toolchain, and build-plan contracts without a GPU",
     ).dependOn(&tests.step);
+
+    const runtime_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/backends/cuda/mod.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.step(
+        "test-cuda-runtime-contract",
+        "Test proof-owned CUDA context, residency, and strict-AOT contracts",
+    ).dependOn(&b.addRunArtifact(runtime_tests).step);
 
     if (options.complete()) {
         const archive = cuda.addArchive(b, options.toolchain());

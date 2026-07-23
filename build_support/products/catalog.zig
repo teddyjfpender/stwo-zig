@@ -70,6 +70,7 @@ pub const steps = [_]Step{
     .{ .name = "cuda-source-closure", .description = "Verify the exact pinned CUDA/C++ source authority", .scope = .cuda_tools },
     .{ .name = "cuda-build-plan", .description = "Validate and print the isolated native CUDA archive build plan", .scope = .cuda_tools },
     .{ .name = "test-cuda-build-plan", .description = "Test CUDA source, AOT, toolchain, and build-plan contracts without a GPU", .scope = .cuda_tools },
+    .{ .name = "test-cuda-runtime-contract", .description = "Test proof-owned CUDA context, residency, and strict-AOT contracts", .scope = .cuda_tools },
     .{ .name = "cuda-native-archive", .description = "Build the exact static CUDA runtime and copied AOT pack", .scope = .cuda_tools },
     .{ .name = "cairo-input", .description = "Build adapted Cairo input inspector", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest", .description = "Dump the canonical Stark-V opcode and proof-family policy as JSON", .scope = .compatibility_tools },
