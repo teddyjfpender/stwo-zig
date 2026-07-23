@@ -14,6 +14,7 @@ from cuda_build_lib.builder import (  # noqa: E402
     BuildConfig,
     BuildError,
     Toolchain,
+    aot_compile_command,
     build_plan,
     load_source_closure,
     normalize_sms,
@@ -88,6 +89,25 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("stwo_aot_lookup", lookup_source)
         self.assertIn("entry.sm != sm", lookup_source)
         self.assertNotIn("nvrtc", lookup_source.lower())
+
+    def test_sm90_poseidon_chain_preserves_upstream_ptxas_policy(self) -> None:
+        toolchain = self.config(Path("/tmp/output")).toolchain
+        poseidon = Path(
+            "witness_poseidon_3_partial_rounds_chain_0123456789abcdef.cu"
+        )
+        ordinary = Path("composition_0123456789abcdef.cu")
+        self.assertIn(
+            "-Xptxas=-O0",
+            aot_compile_command(toolchain, poseidon, Path("out.cubin"), 90),
+        )
+        self.assertNotIn(
+            "-Xptxas=-O0",
+            aot_compile_command(toolchain, poseidon, Path("out.cubin"), 86),
+        )
+        self.assertNotIn(
+            "-Xptxas=-O0",
+            aot_compile_command(toolchain, ordinary, Path("out.cubin"), 90),
+        )
 
     def test_source_manifest_rejects_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

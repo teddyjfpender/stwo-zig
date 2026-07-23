@@ -83,6 +83,8 @@ def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure
         raise BuildError(f"cannot read CUDA source manifest: {error}") from error
     if expected.get("schema") != "stwo-zig-cuda-source-closure-v1":
         raise BuildError("unsupported CUDA source-closure manifest")
+    if expected.get("authority") != "kernels":
+        raise BuildError("CUDA builder requires the pinned kernel authority")
 
     files = sorted(path for path in source_root.rglob("*") if path.is_file())
     if not files:
@@ -111,6 +113,7 @@ def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure
         )
     actual = {
         "schema": expected["schema"],
+        "authority": expected["authority"],
         "upstream": expected["upstream"],
         "file_count": len(entries),
         "byte_count": byte_count,
@@ -445,18 +448,7 @@ def compile_aot(
                 ).encode("ascii")
             ).hexdigest()[:24]
             destination = output / f"{source.stem}-sm_{sm}-{key}.cubin"
-            command = [
-                str(config.toolchain.nvcc),
-                "-cubin",
-                "-O3",
-                "--std=c++17",
-                "--expt-relaxed-constexpr",
-                f"-ccbin={config.toolchain.host_cxx}",
-                f"-arch=sm_{sm}",
-                str(source),
-                "-o",
-                str(destination),
-            ]
+            command = aot_compile_command(config.toolchain, source, destination, sm)
             if not destination.is_file():
                 jobs.append((command, destination))
             entries.append(
@@ -471,6 +463,27 @@ def compile_aot(
     run_parallel(jobs, config.toolchain.jobs)
     entries.sort(key=lambda entry: (entry["cache_key"], entry["sm"]))
     return entries
+
+
+def aot_compile_command(
+    toolchain: Toolchain, source: Path, destination: Path, sm: int
+) -> list[str]:
+    command = [
+        str(toolchain.nvcc),
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        f"-ccbin={toolchain.host_cxx}",
+        f"-arch=sm_{sm}",
+    ]
+    if (
+        sm == 90
+        and source.stem.startswith("witness_poseidon_3_partial_rounds_chain_")
+    ):
+        command.append("-Xptxas=-O0")
+    command.extend((str(source), "-o", str(destination)))
+    return command
 
 
 def write_aot_pack(entries: Sequence[dict[str, object]], destination: Path) -> None:

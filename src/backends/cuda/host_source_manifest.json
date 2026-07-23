@@ -1,0 +1,1419 @@
+{
+  "authority": "host",
+  "byte_count": 8487259,
+  "closure_sha256": "9bb5d0b1f7bf37da6028884cdfd58ae86fa3e2e75d250be529c55c452cd3023c",
+  "file_count": 279,
+  "files": [
+    {
+      "bytes": 963,
+      "path": "crates/backend-cuda/Cargo.toml",
+      "sha256": "058700d32b5d40fb61afa9727c42860bc63461547f890f738dca88bf9afa30a3"
+    },
+    {
+      "bytes": 15733,
+      "path": "crates/backend-cuda/README.md",
+      "sha256": "aa51c3f6ace1a53b9ef2fb429945acfc039eee25b42cad4dd18320d80adaba0e"
+    },
+    {
+      "bytes": 722,
+      "path": "crates/backend-cuda/build.rs",
+      "sha256": "5d60f697f03cb4e145e966df7c716b876f6d098fdf98d2f48bf1bf07f4284551"
+    },
+    {
+      "bytes": 36948,
+      "path": "crates/backend-cuda/src/backend/accumulation.rs",
+      "sha256": "9157d0628677d8b0ffbd5fa6ffdc04341f65c595f796ac89fffa645f1cea5bbe"
+    },
+    {
+      "bytes": 8931,
+      "path": "crates/backend-cuda/src/backend/aot/function_publication.rs",
+      "sha256": "eacc80cdaa65a4d49d24fbbcfbac400298d81fc069f49a2872f9231207474e4b"
+    },
+    {
+      "bytes": 8268,
+      "path": "crates/backend-cuda/src/backend/aot/installed_function/tests.rs",
+      "sha256": "dbebe9f6ee4ca70263107276901d4bb6f00bbfe33dd10cdad257ec30cf07ff83"
+    },
+    {
+      "bytes": 25775,
+      "path": "crates/backend-cuda/src/backend/aot/installed_function.rs",
+      "sha256": "ca087b0028fe2c0bf481ad26837f2a132eada04228f474eb3278404d87775fbf"
+    },
+    {
+      "bytes": 36991,
+      "path": "crates/backend-cuda/src/backend/aot.rs",
+      "sha256": "23656a792b14ab0f8a65320be7c1591ca7677747162d1e37ced88585270549a9"
+    },
+    {
+      "bytes": 14124,
+      "path": "crates/backend-cuda/src/backend/backend.rs",
+      "sha256": "c29178e43e686a33f1e4d2e6056eb4c33b2e4bc1f6ba0936829dab349f0213f9"
+    },
+    {
+      "bytes": 58230,
+      "path": "crates/backend-cuda/src/backend/blake2s.rs",
+      "sha256": "03ac5d1952f09559ad936ebac89ab5157ce9563baab153f9574890049054ec97"
+    },
+    {
+      "bytes": 4748,
+      "path": "crates/backend-cuda/src/backend/blake_witness/projected_relation.rs",
+      "sha256": "0f2633227cecf46290d0ca93fc868dbf0cf020008e66f6e9d48ce517ed9c0d5b"
+    },
+    {
+      "bytes": 19020,
+      "path": "crates/backend-cuda/src/backend/blake_witness/projected_relation_native_tests.rs",
+      "sha256": "4c5524d635dd73f00c97e190e5553301e079933ee5f6779cc388034f2d616f2d"
+    },
+    {
+      "bytes": 18881,
+      "path": "crates/backend-cuda/src/backend/blake_witness/projected_relation_tests.rs",
+      "sha256": "ccac3d826149886ab5995ffad6677efd24ce4f76e9289230a8c8f9cc834fff2b"
+    },
+    {
+      "bytes": 20075,
+      "path": "crates/backend-cuda/src/backend/blake_witness.rs",
+      "sha256": "a8c428117375ae25fb53d651b68bc472c6e774bd600c403ec014a724ca3b5781"
+    },
+    {
+      "bytes": 8677,
+      "path": "crates/backend-cuda/src/backend/column.rs",
+      "sha256": "188a8001076487576046c57ea4a1d12ea0590bd9691f50e8d4a0ff6f33a27f24"
+    },
+    {
+      "bytes": 86348,
+      "path": "crates/backend-cuda/src/backend/commit_graph.rs",
+      "sha256": "0afe934dd7362dd8bc1e279662f481d81290430ac6c4afed822561fb56b3bb46"
+    },
+    {
+      "bytes": 7939,
+      "path": "crates/backend-cuda/src/backend/constraint_eval.rs",
+      "sha256": "5dca3c1101361597db6e69e1fba33c4972f8040233f691d054b9010b73855292"
+    },
+    {
+      "bytes": 23222,
+      "path": "crates/backend-cuda/src/backend/decommit_gather.rs",
+      "sha256": "c8056ef6bedacecf81cc2599aea5114f7212286a5f5f8dff4d00afb03794e1c8"
+    },
+    {
+      "bytes": 75454,
+      "path": "crates/backend-cuda/src/backend/device_transcript.rs",
+      "sha256": "9c5297dcf56502934f203a99919f82a340b9efe605a9f286f8a8bd50bc821455"
+    },
+    {
+      "bytes": 52794,
+      "path": "crates/backend-cuda/src/backend/exec_context.rs",
+      "sha256": "7b8887b84891edaeced0abb690b425dd9fd7a2e52de05b7859d3922bac902512"
+    },
+    {
+      "bytes": 57603,
+      "path": "crates/backend-cuda/src/backend/exec_tables.rs",
+      "sha256": "4994564ff77fcb2e53e5d6d1e78fb4f73fb624a1bff77b1ea266988b1c55e6f7"
+    },
+    {
+      "bytes": 2615,
+      "path": "crates/backend-cuda/src/backend/field.rs",
+      "sha256": "14babea836492edf59cacf2cfe04aee4216bfc80466762dcaf3988758206c951"
+    },
+    {
+      "bytes": 40864,
+      "path": "crates/backend-cuda/src/backend/fri.rs",
+      "sha256": "38b49efa0a4608123d913d30390defbc2e0ddb5d0fa6ce487a0be283227f4fe4"
+    },
+    {
+      "bytes": 8718,
+      "path": "crates/backend-cuda/src/backend/fused_commit.rs",
+      "sha256": "32f6660c949c4ca9151965305ef780823c9937f3d4976192654ec635b8f415c7"
+    },
+    {
+      "bytes": 23992,
+      "path": "crates/backend-cuda/src/backend/ipc_exchange.rs",
+      "sha256": "1034c4c31cc0128b03652de709897aa7c3f4b9b9ef52bb973c51a63e47c7ab16"
+    },
+    {
+      "bytes": 8794,
+      "path": "crates/backend-cuda/src/backend/ipc_exchange_tests.rs",
+      "sha256": "6478646078b3bbcfe6e9f2c34b02f006ccaadcf251a2e165dd9c0f378e25600f"
+    },
+    {
+      "bytes": 10206,
+      "path": "crates/backend-cuda/src/backend/ipc_exchange_wire.rs",
+      "sha256": "a09275779c83966f69b42aa6bbbd87744016ec5f944a4af886905c49d131acf7"
+    },
+    {
+      "bytes": 26056,
+      "path": "crates/backend-cuda/src/backend/jit/cuda_codegen.rs",
+      "sha256": "411d8091ef2085465caf443d526f41f916c91b19795193bcd7d39fd3c71f5124"
+    },
+    {
+      "bytes": 20236,
+      "path": "crates/backend-cuda/src/backend/jit/cuda_codegen_tests.rs",
+      "sha256": "54b42410aa25a764ebbfdc2b0b81e3ce1fa5d073ae541770cc21e9ee6dd78663"
+    },
+    {
+      "bytes": 16125,
+      "path": "crates/backend-cuda/src/backend/jit/mod.rs",
+      "sha256": "4cea75f9f151580a875158428d8a4b428346204a7125227a905ea3d09bc71994"
+    },
+    {
+      "bytes": 68687,
+      "path": "crates/backend-cuda/src/backend/jit/program.rs",
+      "sha256": "d478d53209d4e3eecdb83191ecaa7d9602f561567a900016b521020a978c8e05"
+    },
+    {
+      "bytes": 44878,
+      "path": "crates/backend-cuda/src/backend/jit/recording.rs",
+      "sha256": "a29dbf12255a76c7f9f54d09154c5a130208dd76e4e702d831add2b397dc18bf"
+    },
+    {
+      "bytes": 35886,
+      "path": "crates/backend-cuda/src/backend/jit_witness/codegen.rs",
+      "sha256": "8439f1f921c8d18a39b75adee52cd039dc7a4673fb8255735eaed1469fc8a691"
+    },
+    {
+      "bytes": 19172,
+      "path": "crates/backend-cuda/src/backend/jit_witness/codegen_phase_plan.rs",
+      "sha256": "ae60aa7c886c56acc615050b5f208fee8b608d9ae4691c20c2139830441b407d"
+    },
+    {
+      "bytes": 29191,
+      "path": "crates/backend-cuda/src/backend/jit_witness/codegen_phases.rs",
+      "sha256": "476562e87c25fe3d5bfc8e08eee5e113f6b717d541f16c2518a043eb62aa1c95"
+    },
+    {
+      "bytes": 21593,
+      "path": "crates/backend-cuda/src/backend/jit_witness/codegen_schedule.rs",
+      "sha256": "72966827e84d610350ad483489e1ce3fe5544f1126e863e3fa4ca868d5532727"
+    },
+    {
+      "bytes": 9716,
+      "path": "crates/backend-cuda/src/backend/jit_witness/interp.rs",
+      "sha256": "f043cf9b5faf0d419e26f47ca120af546d03599ea344f3f7f8537e94b8b37d9e"
+    },
+    {
+      "bytes": 19811,
+      "path": "crates/backend-cuda/src/backend/jit_witness/isa.rs",
+      "sha256": "155ae80c1c4ff28a99ac3c03e7ca52b00ee2433b456c7ec9ea1cafa31a5ea504"
+    },
+    {
+      "bytes": 12873,
+      "path": "crates/backend-cuda/src/backend/jit_witness/mod.rs",
+      "sha256": "0099a65293894b528990b0918fbfbaada41222c07cfce79ce58cda9a6872545b"
+    },
+    {
+      "bytes": 16239,
+      "path": "crates/backend-cuda/src/backend/jit_witness/programs.rs",
+      "sha256": "ace0a779872468097358f772c73ace5c4e27bcbd4755a9fc31f8460e83c56515"
+    },
+    {
+      "bytes": 9920,
+      "path": "crates/backend-cuda/src/backend/jit_witness/recording.rs",
+      "sha256": "6ea5056cbfad6dce8f322bedb7e281610879da6507b4bbc1bdbfd6dd231c65f2"
+    },
+    {
+      "bytes": 6018,
+      "path": "crates/backend-cuda/src/backend/logup.rs",
+      "sha256": "5baeb5f7a6c78d3427da7dc7abf4c0f7edae7c6645b65dd90f45e52c5dc37af5"
+    },
+    {
+      "bytes": 13449,
+      "path": "crates/backend-cuda/src/backend/logup_pairs.rs",
+      "sha256": "27afbb75797e56539fbb5a5a1f504c1b64bf7055213ff5925c08fbb2b437b5f2"
+    },
+    {
+      "bytes": 25482,
+      "path": "crates/backend-cuda/src/backend/lookups/gkr.rs",
+      "sha256": "eb6161e2a79de9bf9d912fb18587e57a409d0c8d5558c6b4af402c36463526fc"
+    },
+    {
+      "bytes": 3544,
+      "path": "crates/backend-cuda/src/backend/lookups/mle.rs",
+      "sha256": "55f5bc32f560a84f19232a58b4268e110dfccf6344855f4b804a5accadabe7a3"
+    },
+    {
+      "bytes": 18,
+      "path": "crates/backend-cuda/src/backend/lookups/mod.rs",
+      "sha256": "3ce8445b1befd991d1ea9de4e04acc1b24d72e3130a97e425514c2a2839e0357"
+    },
+    {
+      "bytes": 13228,
+      "path": "crates/backend-cuda/src/backend/memory_witness.rs",
+      "sha256": "34dd852d545c198e41ee7bcc5fbccd5dbaa166cfe749a749ad9641d911598a5e"
+    },
+    {
+      "bytes": 1735,
+      "path": "crates/backend-cuda/src/backend/mod.rs",
+      "sha256": "456128438381370f11552bd3649ba2d4338f9b8ea6d9512e18923910d3d72b31"
+    },
+    {
+      "bytes": 11900,
+      "path": "crates/backend-cuda/src/backend/pcs_driver.rs",
+      "sha256": "8e8f3d36d2132f620489d33ea82c7ee2c7140d8c8cfb478bb49b45c7657a5715"
+    },
+    {
+      "bytes": 18692,
+      "path": "crates/backend-cuda/src/backend/pedersen_module_publication.rs",
+      "sha256": "7eed89653c29a408761f8b16c997112ed9b65847cebd1c0703eb35af6188afff"
+    },
+    {
+      "bytes": 28494,
+      "path": "crates/backend-cuda/src/backend/pedersen_table.rs",
+      "sha256": "5666f004c2b64f9581501c09810c7c1f2cb3c535b5deb4c0d3092544d8a3323c"
+    },
+    {
+      "bytes": 2830,
+      "path": "crates/backend-cuda/src/backend/pedersen_table_digest.rs",
+      "sha256": "168e0ec3857516038995d91c573617b8858d05312c9e2c82a49aa4585d51a4bb"
+    },
+    {
+      "bytes": 8975,
+      "path": "crates/backend-cuda/src/backend/pedersen_table_tests.rs",
+      "sha256": "ebf0d2fbe4175e1be44d7a77c17e27457842efeaecff4d2f02d89a8029d6b0bd"
+    },
+    {
+      "bytes": 4787,
+      "path": "crates/backend-cuda/src/backend/pedersen_witness.rs",
+      "sha256": "308b0dc405e08be681bab6f0f8f83befa38305cf577a78b7b5caeeb6ef95f28f"
+    },
+    {
+      "bytes": 3098,
+      "path": "crates/backend-cuda/src/backend/pointer_vec.rs",
+      "sha256": "f30785b16717afe035106153d07db7c98bd06c83bd298555dd010fd0a4f40655"
+    },
+    {
+      "bytes": 66561,
+      "path": "crates/backend-cuda/src/backend/poly.rs",
+      "sha256": "01680e579506c9eb40a12ecdf9743b6e95210dcc76175169a202163dc2acd48c"
+    },
+    {
+      "bytes": 13417,
+      "path": "crates/backend-cuda/src/backend/prepared_casm_input/authority/tests.rs",
+      "sha256": "1f32ab726b7eaccffcedd42cf66ae96edf80ebdba1933ba930353add64dbd6ac"
+    },
+    {
+      "bytes": 22183,
+      "path": "crates/backend-cuda/src/backend/prepared_casm_input/authority.rs",
+      "sha256": "65dbe628725d738e6c8abc1889d84189b20fcee42e8285d404e9387b261e2162"
+    },
+    {
+      "bytes": 24016,
+      "path": "crates/backend-cuda/src/backend/prepared_casm_input/ingress_receipt.rs",
+      "sha256": "6292565c02089034db9ac32b43f98c989897cfb1a5f829d7d22e693e5f5c503e"
+    },
+    {
+      "bytes": 16951,
+      "path": "crates/backend-cuda/src/backend/prepared_casm_input.rs",
+      "sha256": "c5cba4612b12630d9a57d0d0bb2ca82586dd685a5e01f54cb9ee413fe71d6da1"
+    },
+    {
+      "bytes": 7705,
+      "path": "crates/backend-cuda/src/backend/prepared_commit/in_place.rs",
+      "sha256": "42b658559cb21eac31c01514c72d1a5a3832aee10294845ce852545a5b652b33"
+    },
+    {
+      "bytes": 64694,
+      "path": "crates/backend-cuda/src/backend/prepared_commit.rs",
+      "sha256": "62e26703c5486cd3f41150ae7b5bd7cefd8c3118bd3324c6b14987ba0f0a907c"
+    },
+    {
+      "bytes": 107445,
+      "path": "crates/backend-cuda/src/backend/prepared_decommit.rs",
+      "sha256": "c7aca69f0b82597e8173054fa00541ecae3b0f68454ec38a487943398fcd3c6e"
+    },
+    {
+      "bytes": 20051,
+      "path": "crates/backend-cuda/src/backend/prepared_ec_op/authority.rs",
+      "sha256": "094bc920587b2c2b423abfe24ab52626d7081daf4dc872c796682850871a6fe8"
+    },
+    {
+      "bytes": 7483,
+      "path": "crates/backend-cuda/src/backend/prepared_ec_op/segment_start_receipt.rs",
+      "sha256": "ecab213f49a977c50215903a1531de28cb51460d85d2bb783c0ae1d4d1762d84"
+    },
+    {
+      "bytes": 41421,
+      "path": "crates/backend-cuda/src/backend/prepared_ec_op.rs",
+      "sha256": "88cce3737c1f3be7a5520f795b579de25845c6679e22e1bc4fbb9ec6180423c3"
+    },
+    {
+      "bytes": 11356,
+      "path": "crates/backend-cuda/src/backend/prepared_execution_tables/authority/identity.rs",
+      "sha256": "edc72b36a5f5b908e97b522799de411312b86849763911b2397d0c587b19eb96"
+    },
+    {
+      "bytes": 16214,
+      "path": "crates/backend-cuda/src/backend/prepared_execution_tables/authority/tests.rs",
+      "sha256": "c8cb57a64a68425e63d1d2c213d112922119bbdf8bb370c9e8b12893c5e92e9a"
+    },
+    {
+      "bytes": 16375,
+      "path": "crates/backend-cuda/src/backend/prepared_execution_tables/authority.rs",
+      "sha256": "eadd5bb4b00000abd8c302adc7062f3aadad1a9ac1fab4aacabbe59f65407b77"
+    },
+    {
+      "bytes": 19628,
+      "path": "crates/backend-cuda/src/backend/prepared_execution_tables/ingest_receipt.rs",
+      "sha256": "970605fb9cb8e352ae07ed678269f47ccfb9ee26f897268439004059d5a2ed9b"
+    },
+    {
+      "bytes": 2101,
+      "path": "crates/backend-cuda/src/backend/prepared_execution_tables/tests.rs",
+      "sha256": "4d5b28eaef77ff6e4b4fb13060a7afd55c4e6d3b3f3dc15a28a0bdb8789e7c5e"
+    },
+    {
+      "bytes": 25676,
+      "path": "crates/backend-cuda/src/backend/prepared_execution_tables.rs",
+      "sha256": "1b936475dab0e1fa2a313be17747e80def4a156ce2f43de42e384e21ca8c8d78"
+    },
+    {
+      "bytes": 23932,
+      "path": "crates/backend-cuda/src/backend/prepared_fixed_table/authority.rs",
+      "sha256": "a1f580083f01e9f1403e6aa8f6f73ec0ac67da1918cecaf071aeb6ad07823e94"
+    },
+    {
+      "bytes": 53375,
+      "path": "crates/backend-cuda/src/backend/prepared_fixed_table.rs",
+      "sha256": "b1b3c2640d6d2d2925c9b9e5c57cb8170980856ccc032681964d5fd31da222a5"
+    },
+    {
+      "bytes": 57532,
+      "path": "crates/backend-cuda/src/backend/prepared_fri.rs",
+      "sha256": "51bc940f12875ce201eb7129cd4bfaa11ca82a9bafc1110b58e0a4b41c521d7b"
+    },
+    {
+      "bytes": 14952,
+      "path": "crates/backend-cuda/src/backend/prepared_fri_final.rs",
+      "sha256": "ea399c486b87f4fdd98cc41340793cb3b7783af03b6479713f0b874f6ca0c0e0"
+    },
+    {
+      "bytes": 9477,
+      "path": "crates/backend-cuda/src/backend/prepared_interaction_commit_authority.rs",
+      "sha256": "cff84fbdf521d0eea55613c9462f1bc7f6792f6feccf69840304152e35c6423a"
+    },
+    {
+      "bytes": 5358,
+      "path": "crates/backend-cuda/src/backend/prepared_interaction_commit_authority_tests.rs",
+      "sha256": "293baad6ea6f8c8b91f509a437366480cf4cb191b9fcec33c500d2ec4f1b5b05"
+    },
+    {
+      "bytes": 17587,
+      "path": "crates/backend-cuda/src/backend/prepared_interpolation/authority.rs",
+      "sha256": "d4fcb8bf7e3d034d4596c615dd0335196e14cda1ea49235778309ce278f857dc"
+    },
+    {
+      "bytes": 27617,
+      "path": "crates/backend-cuda/src/backend/prepared_interpolation.rs",
+      "sha256": "de189c579466bb92e5f788795d79a2730852907a1a96437008a9acfb9e0e0078"
+    },
+    {
+      "bytes": 10499,
+      "path": "crates/backend-cuda/src/backend/prepared_memory_trace/authority/abi.rs",
+      "sha256": "8e7781f25f28c258b1898221108c24bd2f25291b87d046fe0d0f7cd7fde07335"
+    },
+    {
+      "bytes": 5254,
+      "path": "crates/backend-cuda/src/backend/prepared_memory_trace/authority/identity.rs",
+      "sha256": "84967ae03d78e41c3f193d4f09ac7eedf043366b14ba3062919c774ef85b6d39"
+    },
+    {
+      "bytes": 7328,
+      "path": "crates/backend-cuda/src/backend/prepared_memory_trace/authority/tests.rs",
+      "sha256": "1fabece590a99181c71ed4ebfa296298edc1dd470b5507d12bf9aabff834c2c4"
+    },
+    {
+      "bytes": 21423,
+      "path": "crates/backend-cuda/src/backend/prepared_memory_trace/authority.rs",
+      "sha256": "82f0d6fc7e91626a046fb3007ee418ac03d3395243b964e82f8e9a0447ace990"
+    },
+    {
+      "bytes": 23019,
+      "path": "crates/backend-cuda/src/backend/prepared_memory_trace/loaded_binding.rs",
+      "sha256": "32dcdd08a0a0bbe9450e3aee88455643d5858ae9882590c7d90a6211e794cff8"
+    },
+    {
+      "bytes": 1881,
+      "path": "crates/backend-cuda/src/backend/prepared_memory_trace/tests.rs",
+      "sha256": "06476522285228a51cadfcc0a0880f1f92e6ff21b56c6b36fbe11df3ee020895"
+    },
+    {
+      "bytes": 22350,
+      "path": "crates/backend-cuda/src/backend/prepared_memory_trace.rs",
+      "sha256": "e801011bfbf3f9f7e81ed93158c641f218cc0d0a4c732d1a94993c9dcb339ec0"
+    },
+    {
+      "bytes": 26022,
+      "path": "crates/backend-cuda/src/backend/prepared_oods/authority/compiler.rs",
+      "sha256": "b7f9403e2ea90bc2be119de8e893d610e77d1a653526e60c7b64d8c4dd7501ec"
+    },
+    {
+      "bytes": 14154,
+      "path": "crates/backend-cuda/src/backend/prepared_oods/authority/identity.rs",
+      "sha256": "10c777cc156bf45ea076b70edcfd0abefd6117911cd5e654b375bc964840e5eb"
+    },
+    {
+      "bytes": 5348,
+      "path": "crates/backend-cuda/src/backend/prepared_oods/authority/tests.rs",
+      "sha256": "12ccc6a4532e3bf03f18d68debb4266750806d3174c0df30f16881ef69d27e22"
+    },
+    {
+      "bytes": 18070,
+      "path": "crates/backend-cuda/src/backend/prepared_oods/authority.rs",
+      "sha256": "b8ad6ce704d78ce976a0e97b644eed1cb318197699816aae594a69e7d884d1f8"
+    },
+    {
+      "bytes": 7252,
+      "path": "crates/backend-cuda/src/backend/prepared_oods/evaluation_launch.rs",
+      "sha256": "7fb0babe2db4e08a97a0e38ee1800f1c4ad6c5b1270ca737110482ebdce1af40"
+    },
+    {
+      "bytes": 24395,
+      "path": "crates/backend-cuda/src/backend/prepared_oods/pass_collapse.rs",
+      "sha256": "949234c37d9eccce36e986312a2bf95fa0ccfced0a8d1fe975fa6e0dd21be4d3"
+    },
+    {
+      "bytes": 6869,
+      "path": "crates/backend-cuda/src/backend/prepared_oods/pass_collapse_tests.rs",
+      "sha256": "cb0cb9782da02f980615892f53195a1e29090e03d327b77b0312de7901cc51b9"
+    },
+    {
+      "bytes": 50263,
+      "path": "crates/backend-cuda/src/backend/prepared_oods.rs",
+      "sha256": "a30856694a0032177ccc6f9b734ab6c64ce358df95c9bad942e21c9d0fb7c5ad"
+    },
+    {
+      "bytes": 36583,
+      "path": "crates/backend-cuda/src/backend/prepared_pow.rs",
+      "sha256": "c05f57e2950221203f0e30b27cedd34fa17dc1ec99e582c61a28c304ea773e8a"
+    },
+    {
+      "bytes": 17169,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/abi.rs",
+      "sha256": "bb926c98936cd724f83729a82044f639c8e4febc61b8a509f91dcc9e9beea7cd"
+    },
+    {
+      "bytes": 24967,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/compiler.rs",
+      "sha256": "ff777eee4d931046bde65b5aaa5926f563a4205aa1f2a1b270073e20814e9594"
+    },
+    {
+      "bytes": 19477,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/effect/validation.rs",
+      "sha256": "fa03aa79d20a4e2276c7a7287f4b6eee158201ad428100f7d4d7d8a95e9aab27"
+    },
+    {
+      "bytes": 20342,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/effect.rs",
+      "sha256": "8e336eab8d6b0c8699c6fbef59b381627e07c5586735ec5f94b49134c6acd346"
+    },
+    {
+      "bytes": 14456,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/encoding.rs",
+      "sha256": "5fb8a0002730eb58fa8ef6047d531d905b391e116b2daa9d86c31882c74bda9b"
+    },
+    {
+      "bytes": 8200,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/execution/arguments.rs",
+      "sha256": "f310e3c8700055b179dc5ea5d3ef7f64cdcd860a0a791f9de98a311fb5a46058"
+    },
+    {
+      "bytes": 18864,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/execution.rs",
+      "sha256": "fdb2b55c6ff5f388045c235d41ef5b4f529b6a663445514c9a9d2be39085d9dd"
+    },
+    {
+      "bytes": 13819,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/invocation.rs",
+      "sha256": "bcca5118c98cee3a4f2308d3d04db02ac3c53bcaca15990e88f12fdf8d3ae583"
+    },
+    {
+      "bytes": 21308,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority/manifest_tests.rs",
+      "sha256": "261a7b6c4e474443ca7553a4c979cecedc57c83782034d042072d9af0335c87f"
+    },
+    {
+      "bytes": 16714,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority.rs",
+      "sha256": "57a3836ef8fc862c51d400965dddb246ec5ef1df4cb0df1b253dfcc8864f7ca8"
+    },
+    {
+      "bytes": 23245,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/base_commit_authority_tests.rs",
+      "sha256": "db88fbabfd37ce31d3795f1b3e14a933953006ab87191eed2deac25e3fe7a47b"
+    },
+    {
+      "bytes": 23341,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/composition_split.rs",
+      "sha256": "8f4a6c78759ed58f758eaa402c5a3a81cf2de0844196e9c59b9c6ec28fa59b6e"
+    },
+    {
+      "bytes": 9475,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/composition_split_tests.rs",
+      "sha256": "c7bab0c1a8b7253b19b88ca2872243c99f65eb8c6170e9958fff4569d28350b0"
+    },
+    {
+      "bytes": 19516,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_compact_domain_binding.rs",
+      "sha256": "fc51b2d3dd7d109c589ce9de17a637b995277322924c035f0a1cd338dfbb2d92"
+    },
+    {
+      "bytes": 14445,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_compact_domain_binding_tests.rs",
+      "sha256": "426086094ca0a74f333a404cd1f50979d9fd7f4157319ed87301793c1c72623f"
+    },
+    {
+      "bytes": 11527,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_compact_terminal_fused/accounting.rs",
+      "sha256": "f9d5da44f72f7e752a906b3340c82636c1445f8d5c5c0ce08256ed2668cf8228"
+    },
+    {
+      "bytes": 15712,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_compact_terminal_fused/expand_absorb_binding.rs",
+      "sha256": "9d34f5229b9d2f0903be812ddc831788f1dbf160ac85db7cba3bba847cc9aea5"
+    },
+    {
+      "bytes": 5061,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_compact_terminal_fused/expand_absorb_binding_tests.rs",
+      "sha256": "ff804dc51c21edef5ba07b8b52e80525b81339daf6d3b917d3a652435595e8a9"
+    },
+    {
+      "bytes": 30616,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_compact_terminal_fused.rs",
+      "sha256": "b70518dcc530f5af67026dafd25821e2c95cdbcbb41b7a1be528cfcd0b22c03a"
+    },
+    {
+      "bytes": 13756,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_compact_terminal_fused_tests.rs",
+      "sha256": "e55862239c4f2bf9a3e6b6e3f531f1b8665d711747c6d5861ddaa7d4f277330b"
+    },
+    {
+      "bytes": 7999,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_retained_b2n/launch.rs",
+      "sha256": "b68176fafc71192da924cb8a804b60c2cfca8a51c7d49b3f48e2094e92b1cb7e"
+    },
+    {
+      "bytes": 26135,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_retained_b2n.rs",
+      "sha256": "b7f4ac7cb306e6cfc8a1f95ee4f0264d89f88d2c22b538934b86a508819cdb01"
+    },
+    {
+      "bytes": 18163,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_retained_b2n_tests.rs",
+      "sha256": "c0a6b952e0026a1cf8f339162ab497f3787842d58851ff15df84a373eb45ecb0"
+    },
+    {
+      "bytes": 17650,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_terminal_expand_absorb.rs",
+      "sha256": "8a5f61f5db779f0909f4db040924fb1addaf743caabcb9ef8606b23cd52163ec"
+    },
+    {
+      "bytes": 7145,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_terminal_expand_absorb_binding.rs",
+      "sha256": "2980efc2bca411a3a83d69f034c0edeefc80445270607bc01f914ef66e34df44"
+    },
+    {
+      "bytes": 6934,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/direct_terminal_expand_absorb_tests.rs",
+      "sha256": "24b04f2e8ad9c5bbf92f007864e032e113259f85e16cb4e5e769c1a095ecc13e"
+    },
+    {
+      "bytes": 17734,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_compact.rs",
+      "sha256": "5506e8bcd0ab9196e55d100866c7a412792dac8ca05334d89047d4d5c9fbdad5"
+    },
+    {
+      "bytes": 27551,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_compact_binding.rs",
+      "sha256": "cc5b5d957787c3bf3574de657964438de370267d62fefe788fd3ef9d4c6d7056"
+    },
+    {
+      "bytes": 14299,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_compact_binding_tests.rs",
+      "sha256": "e555447ceb145002159f328bdb5d2f1a5bb31be7016872a7d45ad233236c65e6"
+    },
+    {
+      "bytes": 11232,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_compact_tests.rs",
+      "sha256": "b22463bdc585ec34f288cd445c020450f01a0e41615be57a853970c91139d488"
+    },
+    {
+      "bytes": 23674,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_cooperative.rs",
+      "sha256": "8fc9e00ee2b4b02e16b1dbaf19899aabb5dc98bdcb9ca5efeff6e853882967e5"
+    },
+    {
+      "bytes": 15153,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_cooperative_binding.rs",
+      "sha256": "7bfc10f62c719dc0ff4dcbb8d2e85ba440410cbde8b0241212bb1d34650235ce"
+    },
+    {
+      "bytes": 6098,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_cooperative_binding_tests.rs",
+      "sha256": "fad8b3d0442c67203f9ab5fec034e554ca0a64a8da2b02b335bdc2ae00f5f2e9"
+    },
+    {
+      "bytes": 14496,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_cooperative_tests.rs",
+      "sha256": "7e809c57584b40bd64ea5e13ffeba1ba4df1984fc9a27705f8bd8acd5c6dc291"
+    },
+    {
+      "bytes": 12637,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_expand_absorb/accounting.rs",
+      "sha256": "9f44046932881b1f44bf97e3fca0a2ec6fe1d7434db166c5c5366a7a2d9994cf"
+    },
+    {
+      "bytes": 25469,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_expand_absorb.rs",
+      "sha256": "6603b48410967f33ce78887604f6c3c5ca5968453efd5efe35402c4835d8b3ba"
+    },
+    {
+      "bytes": 25497,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_expand_absorb_binding.rs",
+      "sha256": "4a2be5c4e33d8ca9b7415eb4d0abc381042666fc19b326d63c25860589268b5e"
+    },
+    {
+      "bytes": 16130,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_expand_absorb_binding_tests.rs",
+      "sha256": "91bd937541deee3837390219feaa97806643551777e756134c829853f94cb08c"
+    },
+    {
+      "bytes": 18274,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/domain_expand_absorb_tests.rs",
+      "sha256": "2da01c901faa7d860d785cdbc85d75efb5cd0a0e8f9573a85cd0d375fc3722ea"
+    },
+    {
+      "bytes": 14310,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/in_place.rs",
+      "sha256": "e29f6b59c4f35c8f0642972bff0c0c07ec86185ae8a517dcab0c75276499e0fd"
+    },
+    {
+      "bytes": 12472,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/precomputed_compact_domain_binding.rs",
+      "sha256": "50904cbd52d70f307256bfc157cb65719b91a7c59df1dbdc74ace16896d09662"
+    },
+    {
+      "bytes": 12233,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/precomputed_compact_state.rs",
+      "sha256": "a7a205edbfdc14c1725ad78b0beb35af74bc1f890e41c017df1be0276ec74fb3"
+    },
+    {
+      "bytes": 24927,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/program.rs",
+      "sha256": "9207500219c5f01c4c11d17276b5d7d91c6d02bc7533653dfb1d1eebaaac8543"
+    },
+    {
+      "bytes": 20735,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/program_binding.rs",
+      "sha256": "2b6310498d0d3bc9e0aaa5c77dc43d3bf609840b0a0ed373d93166f8d7fe48b8"
+    },
+    {
+      "bytes": 4800,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/program_binding_tests.rs",
+      "sha256": "f2ac7c1019fcc230613270674630360975cb16d0b500b41d78c2e0f9f990800c"
+    },
+    {
+      "bytes": 3574,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/program_oracle.rs",
+      "sha256": "9197d76fa571f21edb4e9ed6c7cc027cd1172d5ff188da479483d8bb96c26eea"
+    },
+    {
+      "bytes": 7921,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/program_tests.rs",
+      "sha256": "1ec799973c79776aea70a021184be4da67160375148ca18830f797837a149b7d"
+    },
+    {
+      "bytes": 21944,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/shape_wide.rs",
+      "sha256": "044ebc134080c6627f828459d148ff4e3f4a36cd691ec00f68100f3d572b1241"
+    },
+    {
+      "bytes": 10914,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit/shape_wide_tests.rs",
+      "sha256": "c054de65f9f3cf22ca27075d3968e55520e3578009fb7680579ba28ed909e887"
+    },
+    {
+      "bytes": 78855,
+      "path": "crates/backend-cuda/src/backend/prepared_progressive_commit.rs",
+      "sha256": "69d6c71876b3c92e4ee8f14d150fb891856372055e718419be3125dd3f107c45"
+    },
+    {
+      "bytes": 50927,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient.rs",
+      "sha256": "220f34cac8de174b81f9189cb994634be6873f4bd79bf42e39fa6af47f496e63"
+    },
+    {
+      "bytes": 3844,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator/bindings.rs",
+      "sha256": "339e4e32ac2c5f7585bf9eb2525e8c7b76e26bc26cd7b4d3f7af463d4dfc6aec"
+    },
+    {
+      "bytes": 17975,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator/launch.rs",
+      "sha256": "ec7d23bd58a7aab3bed094cab5a187e83204047c933fd03c399ea28eafe6711b"
+    },
+    {
+      "bytes": 16695,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator/plan.rs",
+      "sha256": "6f91fde6106aacb782b7f47ba48147a8a8fe39df21d32cd0f65b35f027f2a372"
+    },
+    {
+      "bytes": 8890,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator/prepacked.rs",
+      "sha256": "1102b2edf96ee88ab1cbd4270d7e3e3a77df78d1327dc68700ff70458ba48be0"
+    },
+    {
+      "bytes": 27200,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator/run_sum.rs",
+      "sha256": "eff85d7188a98feee7dfb8eca322e39fe99297e56e894852f49e0c938a684a73"
+    },
+    {
+      "bytes": 44261,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator/single_write.rs",
+      "sha256": "bd8f7979ccb0af60fabb7e61deb6ddbbd979b1a2e881bf8e2b96ec848e8cf73c"
+    },
+    {
+      "bytes": 27723,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator.rs",
+      "sha256": "66574cfc262908083fd040ee633d12e0af0317643642f32ae97f5a6c03ba827d"
+    },
+    {
+      "bytes": 7744,
+      "path": "crates/backend-cuda/src/backend/prepared_quotient_numerator_tests.rs",
+      "sha256": "accedce3d7d86acf0850a049bf1d3e9f755020e54c44917db10ff85b820824ab"
+    },
+    {
+      "bytes": 8410,
+      "path": "crates/backend-cuda/src/backend/prepared_witness/blake_g_direct_authority/tests.rs",
+      "sha256": "8f8429a7684d5263e8e507ab47d9cfcba522cb36ada40fe8213623eeba9cb576"
+    },
+    {
+      "bytes": 18355,
+      "path": "crates/backend-cuda/src/backend/prepared_witness/blake_g_direct_authority.rs",
+      "sha256": "fe66fbcff81930175d2c0382ce5c997db4df765b2910f38cf3e09f8eb6423ab5"
+    },
+    {
+      "bytes": 10542,
+      "path": "crates/backend-cuda/src/backend/prepared_witness/installed_aot/tests.rs",
+      "sha256": "9d7a7b675d989dfe0bf25b26091c80bd1c0e5c5c671155570866b7207ce5bf31"
+    },
+    {
+      "bytes": 16124,
+      "path": "crates/backend-cuda/src/backend/prepared_witness/installed_aot.rs",
+      "sha256": "fb231dbaaa0f0cb6697bea1b6d2316fd21554a352fad3683432f090e38ebf24f"
+    },
+    {
+      "bytes": 14517,
+      "path": "crates/backend-cuda/src/backend/prepared_witness/phase_program.rs",
+      "sha256": "3755868d1ec64fdebe68c33a56fb2f5305538c32058f5eb405c4ad45ff7fb056"
+    },
+    {
+      "bytes": 72266,
+      "path": "crates/backend-cuda/src/backend/prepared_witness.rs",
+      "sha256": "6c0172596ad8824fe09035ab950319c4053114a0af9d6e677dcf2b6f1cc20d50"
+    },
+    {
+      "bytes": 6034,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/authority/geometry.rs",
+      "sha256": "1d0f8de6d530ae8c68d2a2a508e8b061b344ad348afc892a351a01d371fe0dee"
+    },
+    {
+      "bytes": 7005,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/authority/identity.rs",
+      "sha256": "c6128e5f950d3bb78f8235f6cd872eac66bc8af8d18435437d763e4e8fe3a042"
+    },
+    {
+      "bytes": 25818,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/authority.rs",
+      "sha256": "17d15b129c423e0202c1a39bedca5c1477322fe77e8065b0dd427e6a213207b8"
+    },
+    {
+      "bytes": 11301,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/authority_tests.rs",
+      "sha256": "10fd62c21d515d32fd5425606017a4d39a0ad2f9e9758bc7a89b4fcaed7886d2"
+    },
+    {
+      "bytes": 3911,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/blake_g_lut_content/tests.rs",
+      "sha256": "3e8de4919280072eec907050daad4ac49eb1f22d35f32b6c62ae6142b9b8a6a8"
+    },
+    {
+      "bytes": 4547,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/blake_g_lut_content.rs",
+      "sha256": "05aee348c865fece64f1419ec0be4763f9e43984cc1bdd6caf15a0c85b3e4ff7"
+    },
+    {
+      "bytes": 18018,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/clear_authority.rs",
+      "sha256": "9c5bb707862a5b532fdf615b865a5681efd0bd479ab3128228c4d9a289656ada"
+    },
+    {
+      "bytes": 7304,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/clear_authority_tests.rs",
+      "sha256": "a9ae73461be4549e7de9d069b9f80764b0c22e81551b2f829f2d0da9bd79da4c"
+    },
+    {
+      "bytes": 7979,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed/source_upload.rs",
+      "sha256": "5725b5f80c4af40fc56aabada143e6e4aba36f47657aaa69abdd6ed4a3af39e5"
+    },
+    {
+      "bytes": 62416,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_feed.rs",
+      "sha256": "cb5537c7c8c9de76043bc1e95c495b3307367ea53ff87b2910dc188e3dbb9823"
+    },
+    {
+      "bytes": 3722,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/authority/linked.rs",
+      "sha256": "bc4515138aaccd20e0bed7d9ecd35bee590d6d9e74dbce7152e88d45a60fa862"
+    },
+    {
+      "bytes": 20535,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/authority/tests.rs",
+      "sha256": "407ccbd447c13291cea0d4b981e86486d5018214ce8d54d9225c796733716ffd"
+    },
+    {
+      "bytes": 24144,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/authority.rs",
+      "sha256": "70f7050300b805b9dd314b0bd6001a37256b348a3c2a71e3cbcd38309e740d41"
+    },
+    {
+      "bytes": 4712,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/compact_authority/abi.rs",
+      "sha256": "5ee0060d4ea526b0abb6ac215f322b6c8daa6dbc16b7602829d2b0b95320cff9"
+    },
+    {
+      "bytes": 22370,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/compact_authority/identity.rs",
+      "sha256": "4bdbd0a135e56b5f8c405898e02281757cdf759416aad8cab209bd7f36af7095"
+    },
+    {
+      "bytes": 22284,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/compact_authority/tests.rs",
+      "sha256": "9696714e477cc810431530034411aab51bf794be122b64a3e058963ffb2b25c2"
+    },
+    {
+      "bytes": 20058,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/compact_authority.rs",
+      "sha256": "582c4a7f62bd691c2c50b8210bd311a831d6fb2e4a8824a3459831df0119392e"
+    },
+    {
+      "bytes": 12976,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/seed_authority/tests.rs",
+      "sha256": "7408db0d9814365da828bf3c8660a907692ec3f322457a157192c6abb219c1db"
+    },
+    {
+      "bytes": 22231,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/seed_authority.rs",
+      "sha256": "99d502b26f75722cf42eaa7c6da08e680ac9349ceb5d79a09ed531048abd26cc"
+    },
+    {
+      "bytes": 5417,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input/static_build.rs",
+      "sha256": "5339a8d6363f55b296a58e176c35310f5f60c7b3e69299f0973088b44898a73e"
+    },
+    {
+      "bytes": 59137,
+      "path": "crates/backend-cuda/src/backend/prepared_witness_input.rs",
+      "sha256": "485dc4480a294c166a16dcabb431888b78a8ef533bec1bf8c0aa98bed3ab8162"
+    },
+    {
+      "bytes": 59007,
+      "path": "crates/backend-cuda/src/backend/progressive_commit.rs",
+      "sha256": "9f4ffda15a8de0470e672a202581f2d2099e0d2b1f6fa36def410764323ddeb2"
+    },
+    {
+      "bytes": 13569,
+      "path": "crates/backend-cuda/src/backend/progressive_commit_in_place.rs",
+      "sha256": "5307be0066639e3ed0b3e01ea52166ad9c875d0ebbf3508befbe30bb0f462a64"
+    },
+    {
+      "bytes": 13198,
+      "path": "crates/backend-cuda/src/backend/progressive_ntt_leaf_fusion.rs",
+      "sha256": "67f94709bf4d0a6090b5474e40569b11db0c419fa2e815f2293d203b9d671a98"
+    },
+    {
+      "bytes": 52047,
+      "path": "crates/backend-cuda/src/backend/proof_assembly.rs",
+      "sha256": "6ab1ba8f59b9cfecd77affda0541c8e2a3e7df96f19bbe9aa509cffbec3364dd"
+    },
+    {
+      "bytes": 25976,
+      "path": "crates/backend-cuda/src/backend/quotient.rs",
+      "sha256": "8be39ec0afe9c9a8b04192d4f844bbc497e1c09dc6144fb58e4acb885f1cec1f"
+    },
+    {
+      "bytes": 20942,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_prepacked_terms.rs",
+      "sha256": "7f3d4e64f12ccf5209d77a379b5f9db7f65a17ab794d55fb858175ac4f200d4f"
+    },
+    {
+      "bytes": 12689,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_prepacked_terms_tests.rs",
+      "sha256": "3d1f80ba576cab6c0edcbb92e003bf5eb8b5666ece38043d37ad46222b9677b8"
+    },
+    {
+      "bytes": 17979,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_run_sum.rs",
+      "sha256": "3449552c6e7ebfb226b0dbc5165629bfe967f650b3834a9b0c683e3d2cbc4a0c"
+    },
+    {
+      "bytes": 6724,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_run_sum_tests.rs",
+      "sha256": "84fc040fc5a5676f0a83cd35819003ca947c5e864a87bf525507608f541e5925"
+    },
+    {
+      "bytes": 22069,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_single_write.rs",
+      "sha256": "302897e157aa5d7f9f4dc75b690df6c4867ffd27e369ae220f629ad70e444457"
+    },
+    {
+      "bytes": 15828,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_single_write_tests.rs",
+      "sha256": "4de913aefb7ffa90282104ddae12474d65f746a66498b1513c9342151e6927fb"
+    },
+    {
+      "bytes": 36627,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_staged_single_write.rs",
+      "sha256": "213f33410789afc6465a5d218ea109968b6553d05546a8348e5bed99c1660ffd"
+    },
+    {
+      "bytes": 9712,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_staged_single_write_admission_tests.rs",
+      "sha256": "fe20587cbcd40cf3f0d3c29e68675a492c9338127d45c4a433a965b540ed22cc"
+    },
+    {
+      "bytes": 24493,
+      "path": "crates/backend-cuda/src/backend/quotient_numerator_staged_single_write_tests.rs",
+      "sha256": "22c835e5174d5ba13f0cb9ea113d28f6ebd55f9479d460e9c8539f199eb1dcb4"
+    },
+    {
+      "bytes": 40928,
+      "path": "crates/backend-cuda/src/backend/quotient_producer_b2n.rs",
+      "sha256": "8eb42d70ae8f5a38d6e67fecd6d78143c4eac74d82974b8f215f74a4f996a09a"
+    },
+    {
+      "bytes": 3591,
+      "path": "crates/backend-cuda/src/backend/relation_graph/authority/challenge/tests.rs",
+      "sha256": "cdc8cfb0f5bbd63865c2b1c98207ff0106c19fb878a560fa89dcc2adc148f306"
+    },
+    {
+      "bytes": 16804,
+      "path": "crates/backend-cuda/src/backend/relation_graph/authority/challenge.rs",
+      "sha256": "53760900e258aa5b07acc0a32d35417ab1a8719671a4f2aa4695a98f11507e37"
+    },
+    {
+      "bytes": 21529,
+      "path": "crates/backend-cuda/src/backend/relation_graph/authority/compiler.rs",
+      "sha256": "0aa9b1d4fda2e67142c4fbebbacbaa51bc09b3987270c3da8555fee5bd89e5dd"
+    },
+    {
+      "bytes": 8661,
+      "path": "crates/backend-cuda/src/backend/relation_graph/authority/effects.rs",
+      "sha256": "191cbd69f53eb9d4520e8a3b4bb1b70a7805716e3716a84bacd35c4261d68c33"
+    },
+    {
+      "bytes": 18023,
+      "path": "crates/backend-cuda/src/backend/relation_graph/authority/identity.rs",
+      "sha256": "7a6ad54b9959a9bb9d41f53c46bcc091acc5c586881889fe831931122effee30"
+    },
+    {
+      "bytes": 20767,
+      "path": "crates/backend-cuda/src/backend/relation_graph/authority/tests.rs",
+      "sha256": "a92090f261b8a70725f0f0859782c1bfd5c096563861215fbda7cf9f7c1901d2"
+    },
+    {
+      "bytes": 20655,
+      "path": "crates/backend-cuda/src/backend/relation_graph/authority.rs",
+      "sha256": "06e1fd62b82a6ea0024bbb7f3d201e38b057725af241a2ac6b8c0a9735eab272"
+    },
+    {
+      "bytes": 112151,
+      "path": "crates/backend-cuda/src/backend/relation_graph.rs",
+      "sha256": "6c484d068b53a7163e946978a905779c568eb34ec991d95e80146f09043c775c"
+    },
+    {
+      "bytes": 11119,
+      "path": "crates/backend-cuda/src/backend/relation_graph_wide_tests.rs",
+      "sha256": "9be8c03a204e2eed44236b24223cebdcfc1fb5be4b5a1b29a3e1a972e227c3c2"
+    },
+    {
+      "bytes": 1913,
+      "path": "crates/backend-cuda/src/backend/secure_column.rs",
+      "sha256": "3a8cf4e00145bc6c61e6dc7e20bab3e1481a99b7dc731d8cace6fdbb642b5023"
+    },
+    {
+      "bytes": 5082,
+      "path": "crates/backend-cuda/src/backend/vmm_allocation/native_tests.rs",
+      "sha256": "f4ba6bd2254d71179e9175ab87e62b7533e61c863d077a456d34d614e750005d"
+    },
+    {
+      "bytes": 28162,
+      "path": "crates/backend-cuda/src/backend/vmm_allocation/tiled.rs",
+      "sha256": "0bd1814e3fbdcebfd830ae7f8333f23244ec5130337750e5c3a8add4414113d3"
+    },
+    {
+      "bytes": 25044,
+      "path": "crates/backend-cuda/src/backend/vmm_allocation.rs",
+      "sha256": "24a01a8e5f9f151c55dd15dbcb878b3b27fc5f9195ff00bd1181836085e290e4"
+    },
+    {
+      "bytes": 16888,
+      "path": "crates/backend-cuda/src/columns/base_field_vec.rs",
+      "sha256": "af2816e86d7eafe40da28129fc3d87620c9a4847f11c9ed49c3c520caa4728a9"
+    },
+    {
+      "bytes": 23222,
+      "path": "crates/backend-cuda/src/columns/bindings.rs",
+      "sha256": "c87b991b508362be072eb7fe5635e3d55373b3c30d023d7c03546c5aa2df1420"
+    },
+    {
+      "bytes": 4923,
+      "path": "crates/backend-cuda/src/columns/blake_2s_hash_vec.rs",
+      "sha256": "79dca8b5dea29538a3b79d9dcb85fd6b5b31cde65234fa1edffd302bdd571998"
+    },
+    {
+      "bytes": 297,
+      "path": "crates/backend-cuda/src/columns/mod.rs",
+      "sha256": "41d90eff8428c80b67c55d1820b625c678aee544c58c65f6930224f81ff47e65"
+    },
+    {
+      "bytes": 3975,
+      "path": "crates/backend-cuda/src/columns/secure_field_vec.rs",
+      "sha256": "78c5e466b7dd7251315f5e7e9759cf955d5a5a4cdf1495abc4d40b36b5f2fe25"
+    },
+    {
+      "bytes": 33106,
+      "path": "crates/backend-cuda/src/lib.rs",
+      "sha256": "757347e4fd1ade36dd36754dcb7e4e98d0248f971d6f06d5f90de48556d6e8ef"
+    },
+    {
+      "bytes": 2025,
+      "path": "crates/backend-cuda/tests/bench_prove.rs",
+      "sha256": "4a540f5f11fe606693190817421b8bf7bc95cacd72fbef8947a10298a7303ef2"
+    },
+    {
+      "bytes": 6316,
+      "path": "crates/backend-cuda/tests/blake2s_quad_oracle.rs",
+      "sha256": "edbc522888690da857eeb1d1d5867fb438c5f2b0b06737bcf112a06a2e6d3520"
+    },
+    {
+      "bytes": 27014,
+      "path": "crates/backend-cuda/tests/composition_split_commit_native.rs",
+      "sha256": "b8aed477b9ee562e9c84f9fad330dc2a3478692936016511ff6063c6ae6926a7"
+    },
+    {
+      "bytes": 17670,
+      "path": "crates/backend-cuda/tests/composition_split_native.rs",
+      "sha256": "d183ceecbde41287c5a9ab5853b6fdf15dc1929abe08e3e6951a9285e35ea5ed"
+    },
+    {
+      "bytes": 949,
+      "path": "crates/backend-cuda/tests/conformance.rs",
+      "sha256": "7519a66bbb958c2edebd0146bb5df8fdb43b7139cfdb2b324c811597d9cdd6b5"
+    },
+    {
+      "bytes": 8006,
+      "path": "crates/backend-cuda/tests/cuda_required.rs",
+      "sha256": "ecf5407343a8dd1d6b80f293910dbbdf53f4c0d0052a77e4573c5d8482f3e85e"
+    },
+    {
+      "bytes": 9805,
+      "path": "crates/backend-cuda/tests/device_transcript_native.rs",
+      "sha256": "20b6c0f04bc64ccdafa33ef0c1f5b7b0e7406d6e4704691485fa78fbf034da64"
+    },
+    {
+      "bytes": 2734995,
+      "path": "crates/backend-cuda/tests/fixtures/sn3_quotient_numerator_topology.v1.json",
+      "sha256": "16d108563468f4207f7e45df539a69936dd0a54f92e5548b35421087d81d30e1"
+    },
+    {
+      "bytes": 31016,
+      "path": "crates/backend-cuda/tests/fused_expand_absorb_native.rs",
+      "sha256": "548bc0243843dd687f6ade901ee1db6bbeb7ee9527ec0287854e97208e71f154"
+    },
+    {
+      "bytes": 2720,
+      "path": "crates/backend-cuda/tests/logup_finalize.rs",
+      "sha256": "8abec44504084064d80facd71244b7f69def62cb98e6236efffb32e96e72ab62"
+    },
+    {
+      "bytes": 3668,
+      "path": "crates/backend-cuda/tests/prepared_casm_input_native.rs",
+      "sha256": "1b01121de75fd9a6f521f80849868c3ae9a933a119a7b6e1fb8e8350f112edd7"
+    },
+    {
+      "bytes": 23494,
+      "path": "crates/backend-cuda/tests/prepared_commit_native.rs",
+      "sha256": "ba09ccace92a849b29950c524b2bfaccae893c4578b0398e3174d4694295662d"
+    },
+    {
+      "bytes": 8710,
+      "path": "crates/backend-cuda/tests/prepared_composition_ext_params_native.rs",
+      "sha256": "660ea0aa008301bd385ae2e3d77ffb705e9b3b024c31bda0610964270142f6ba"
+    },
+    {
+      "bytes": 16577,
+      "path": "crates/backend-cuda/tests/prepared_decommit_native.rs",
+      "sha256": "8de5d9776e6de562f6a1c3efcc980cbdd6a997063d2a26a5ecc3ee60ee2194fc"
+    },
+    {
+      "bytes": 20889,
+      "path": "crates/backend-cuda/tests/prepared_execution_tables_native.rs",
+      "sha256": "62e434449e8dae23fe7bdcd46253423fba7234f5793033502a7ab93f30dfb486"
+    },
+    {
+      "bytes": 9717,
+      "path": "crates/backend-cuda/tests/prepared_fixed_table_native.rs",
+      "sha256": "a832cd6d6c7edb12975e9979d42853b24dc5731fe247664680299ce5bc7cdfc5"
+    },
+    {
+      "bytes": 15383,
+      "path": "crates/backend-cuda/tests/prepared_fri_final_pow_native.rs",
+      "sha256": "79244fc5db86d7a55ec73f2405468c1c4d62e1e1bb6ac9a90eec35dfed561a6a"
+    },
+    {
+      "bytes": 15323,
+      "path": "crates/backend-cuda/tests/prepared_fri_native.rs",
+      "sha256": "e79aed3d9bd2ff197d4528087eed71aaea9fe8e050afc3f6676cca490717bf5e"
+    },
+    {
+      "bytes": 18469,
+      "path": "crates/backend-cuda/tests/prepared_interpolation_native.rs",
+      "sha256": "053f84782092989d635d8aa0878f1a950910b184cc64628ad16f3f96d36385af"
+    },
+    {
+      "bytes": 5646,
+      "path": "crates/backend-cuda/tests/prepared_merkle_from_leaves_native.rs",
+      "sha256": "a06243ba49220f2e5ae16db35a6aeb83eceab9b450a71f0fd9e5cad12d309e9b"
+    },
+    {
+      "bytes": 13976,
+      "path": "crates/backend-cuda/tests/prepared_oods_native.rs",
+      "sha256": "3e8e5072df2077a388e25598725061825900f1228bff36cdd5e774fafe582d28"
+    },
+    {
+      "bytes": 21663,
+      "path": "crates/backend-cuda/tests/prepared_progressive_commit_native.rs",
+      "sha256": "b2f2b09531f1828d13e632d87fd9b396a622e49bf1f5234c9f039212e9cfcd94"
+    },
+    {
+      "bytes": 18946,
+      "path": "crates/backend-cuda/tests/prepared_quotient_native.rs",
+      "sha256": "2ce7a8c44997bf5986b475ccc56338f9e57a4cfa0a0de44347f7725970d827e6"
+    },
+    {
+      "bytes": 22204,
+      "path": "crates/backend-cuda/tests/prepared_quotient_numerator_hybrid_native.rs",
+      "sha256": "dcaefa6ed96fa7c425c790372dd0ca4903f7b4bcc183132bf19600d18d1cd228"
+    },
+    {
+      "bytes": 25218,
+      "path": "crates/backend-cuda/tests/prepared_quotient_numerator_native.rs",
+      "sha256": "0dce629ed0a79255a3748d6d36ee4ad0d1c407e83327f2e35a1f29991fb7a812"
+    },
+    {
+      "bytes": 50734,
+      "path": "crates/backend-cuda/tests/prepared_quotient_numerator_sn3_bench_native.rs",
+      "sha256": "b3f841eb9a22dde78e156ff3bf9ebb50701dc979b5c527d2aeb77d68ca1783f0"
+    },
+    {
+      "bytes": 5556,
+      "path": "crates/backend-cuda/tests/prepared_quotient_numerator_sn3_retained_run_sum_native.rs",
+      "sha256": "5716afd36ac41b4561f0074a82cae2611c1e86465ae18597dc4718e79bec0fc2"
+    },
+    {
+      "bytes": 37968,
+      "path": "crates/backend-cuda/tests/prepared_relation_native.rs",
+      "sha256": "32aecaeee516cee7d2fe31cad61a10a942321c0efa97892c83c17850b0bcaf14"
+    },
+    {
+      "bytes": 16825,
+      "path": "crates/backend-cuda/tests/prepared_witness_feed_native.rs",
+      "sha256": "834dc4b315b0e8f985263b3d4934d26b5cdbf52582b7a4c2662f8b606451ed78"
+    },
+    {
+      "bytes": 13840,
+      "path": "crates/backend-cuda/tests/prepared_witness_input_native.rs",
+      "sha256": "94787254a5c96efc87fbd3c3082d46142074570afe258f2a065ad23a7aba798e"
+    },
+    {
+      "bytes": 13043,
+      "path": "crates/backend-cuda/tests/prepared_witness_native.rs",
+      "sha256": "3bec9c8b7817b08c605db23941a56f0ca9bdbf188f596c6642e75be75ff9e20e"
+    },
+    {
+      "bytes": 2686,
+      "path": "crates/backend-cuda/tests/progressive_commit_default_off.rs",
+      "sha256": "574a117b6c7e4f7002f75ce95566eadc3b36e7c6bbf68cc8439c39f0869b1c9a"
+    },
+    {
+      "bytes": 12774,
+      "path": "crates/backend-cuda/tests/quotient_numerator_group_direct_edge_native.rs",
+      "sha256": "298bc0264375c74f1057d329b25a2db2074e2b3e36a28f146e49acd5919dc124"
+    },
+    {
+      "bytes": 12421,
+      "path": "crates/backend-cuda/tests/quotient_numerator_group_direct_tiled_native.rs",
+      "sha256": "73545dc42e6d0f3b522fb2c0798d2f839acd82c5a6fb8804dd68af75b2c87cb8"
+    },
+    {
+      "bytes": 13455,
+      "path": "crates/backend-cuda/tests/quotient_numerator_native_run_sum_native.rs",
+      "sha256": "10336b59020c8cb3efb7829fe657a3a026133bb604ce4af16ece9d1b8109bc85"
+    },
+    {
+      "bytes": 1635,
+      "path": "crates/backend-cuda/tests/quotient_numerator_oracle.rs",
+      "sha256": "bb9977c10f6377faf95770d0aee2b936ef8ec67a0fcd1c933ba2e3129b110781"
+    },
+    {
+      "bytes": 5517,
+      "path": "crates/backend-cuda/tests/quotient_numerator_run_sum_sn3.rs",
+      "sha256": "1cd4de1d29f9be3d905b0775d726bf30e1998a10f55fd475d1a9017244240beb"
+    },
+    {
+      "bytes": 7219,
+      "path": "crates/backend-cuda/tests/replacement_stage4_native.rs",
+      "sha256": "8f323087662782f13b08ac7f22284a7ec81828598dcd196b7550d6e916004ffd"
+    },
+    {
+      "bytes": 10576,
+      "path": "crates/backend-cuda/tests/resident_custom_witness_native.rs",
+      "sha256": "bf6d2617feee45ce0513e958babcdac945555869953c2c4c2271d71595772bc7"
+    },
+    {
+      "bytes": 6675,
+      "path": "crates/backend-cuda/tests/support/composition_split_commit_layout.rs",
+      "sha256": "e972d5002ebc9842a108a07097ee38355398f28b30ab372ef92794dd538e0961"
+    },
+    {
+      "bytes": 1897,
+      "path": "crates/backend-cuda/tests/support/quotient_numerator_oracle.rs",
+      "sha256": "8c28ea93b682d5c63216c4e16d61d3a66ddad1f4f7cc23918e5e4eee27347e05"
+    },
+    {
+      "bytes": 20500,
+      "path": "crates/backend-cuda/tests/support/relation_native_ab.rs",
+      "sha256": "0f2eb62f9d42c44d38a0e043beaf19bc3be2809072d141a8039cf20962aadc88"
+    },
+    {
+      "bytes": 13360,
+      "path": "crates/backend-cuda/tests/support/replacement_stage4_bench.rs",
+      "sha256": "e2926170446e5180b0afa30d0e04957d62264926cb501ccda4a23ed0003f6bf2"
+    },
+    {
+      "bytes": 22492,
+      "path": "crates/backend-cuda/tests/support/replacement_stage4_common.rs",
+      "sha256": "7b89633e9b7f9de3c57427b34461292fb597db59cce42ca68d59398cabb5a438"
+    },
+    {
+      "bytes": 22422,
+      "path": "crates/backend-cuda/tests/support/replacement_stage4_mode_a.rs",
+      "sha256": "b928bb6f77ab2867b319da9a16d4ce12aead96116493093709ec28398fd3b965"
+    },
+    {
+      "bytes": 27218,
+      "path": "crates/backend-cuda/tests/support/replacement_stage4_quotient.rs",
+      "sha256": "bfba3c45d273c86f1e16b3c548dad7a531e8b1fb3eaf600f2e8ab99e26f3fdb3"
+    },
+    {
+      "bytes": 24290,
+      "path": "crates/backend-cuda/tests/support/replacement_stage4_quotient_prepacked.rs",
+      "sha256": "564a02a88037e2330dc06ec4f6617acfb3406682876b0ba3846b4adce5a05de3"
+    },
+    {
+      "bytes": 3092,
+      "path": "crates/backend-cuda/tests/support/replacement_stage4_quotient_resources.rs",
+      "sha256": "5ddfc1837d28c1330d39dd2b4dd87370022c3ee320d84fa0b3c29138837e6171"
+    },
+    {
+      "bytes": 29913,
+      "path": "crates/backend-cuda/tests/support/sn3_quotient_numerator_bench.rs",
+      "sha256": "0c276de17a935b6e1454120325f48b14c97739d87d6b9bdf75e66fa5e10d6fea"
+    },
+    {
+      "bytes": 24322,
+      "path": "crates/backend-cuda/tests/support/sn3_quotient_retained_fixture.rs",
+      "sha256": "040e442cbe7e037d39843c6ab8d8aef3cbfbf29388e9e3640e2fec8eab980c10"
+    },
+    {
+      "bytes": 24458,
+      "path": "crates/backend-cuda/tests/support/sn3_quotient_retained_result.rs",
+      "sha256": "69c3722f5d2cc10cc3fbc760e20ce41ed2676194b3bfd6fe7b3eb35efd8d523e"
+    },
+    {
+      "bytes": 25344,
+      "path": "crates/backend-cuda/tests/support/sn3_quotient_retained_run_sum_ab.rs",
+      "sha256": "1d168495e7aae59b9eba5129b47bbe29fd00915df55b90de07ecafecf9afb6e3"
+    },
+    {
+      "bytes": 30061,
+      "path": "crates/backend-cuda/tests/support/sn3_quotient_run_sum_ab.rs",
+      "sha256": "0d93da2c0d58e6ff459f50a9be029669b79362c9b65c1aa07bf5104f519310ef"
+    },
+    {
+      "bytes": 18926,
+      "path": "crates/backend-cuda/tests/support/sn3_quotient_topology_fixture.rs",
+      "sha256": "a0af4f6cbdd78e43208fad0aee578defb2ec2eeea988b697a6ec8a27df7f4d57"
+    },
+    {
+      "bytes": 867,
+      "path": "crates/backend-cuda-kernels/Cargo.toml",
+      "sha256": "75360ae671fa659c96ee8456fb01b4e2162daa0b53fae69662c913953222f00c"
+    },
+    {
+      "bytes": 50486,
+      "path": "crates/backend-cuda-kernels/build.rs",
+      "sha256": "dcd362a07f3a551adacddd91ee9789b10b4a03d8f3de4d5e130ce52d3ebd0b80"
+    },
+    {
+      "bytes": 28093,
+      "path": "crates/backend-cuda-kernels/src/aot_identity.rs",
+      "sha256": "8af70a3934576a1bb087deb7200fbafb0c469db447077ddf9b8f56f2f7d73c2b"
+    },
+    {
+      "bytes": 28003,
+      "path": "crates/backend-cuda-kernels/src/aot_pack.rs",
+      "sha256": "1546b6750145ab383742b568cd253aab25a344ad371388e05ef488aaa84a1e1d"
+    },
+    {
+      "bytes": 24518,
+      "path": "crates/backend-cuda-kernels/src/aot_source_manifest.rs",
+      "sha256": "761fd33cae67fe987f46e1a54800b3397502299d98c8a25a8ac64504e4cb173e"
+    },
+    {
+      "bytes": 37600,
+      "path": "crates/backend-cuda-kernels/src/lib.rs",
+      "sha256": "ec05b2432c36416a6c2f21fe347a743814231d1afa779d774ef08168182275c3"
+    },
+    {
+      "bytes": 12154,
+      "path": "crates/backend-cuda-kernels/src/m31_fast32_contract.rs",
+      "sha256": "c377d98b0c4366885e1851fb5d8634db25fe2f1add15a5fea4b9c71b3eed614c"
+    },
+    {
+      "bytes": 139410,
+      "path": "crates/backend-cuda-kernels/src/raw.rs",
+      "sha256": "e96fbe5b513e9c01e6d7ee78488670d598b4d627ced0828edc8f40178bf78c65"
+    },
+    {
+      "bytes": 111368,
+      "path": "crates/backend-cuda-kernels/src/stubs.rs",
+      "sha256": "4635e2a41d4192adb087676c37392e87d91e1f96ef4dc61e6581dc491d97df2b"
+    }
+  ],
+  "schema": "stwo-zig-cuda-source-closure-v1",
+  "upstream": {
+    "branch": "perf-optimizations",
+    "commit": "1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035",
+    "paths": [
+      "crates/backend-cuda",
+      "crates/backend-cuda-kernels/Cargo.toml",
+      "crates/backend-cuda-kernels/build.rs",
+      "crates/backend-cuda-kernels/src"
+    ],
+    "repository": "https://github.com/teddyjfpender/stwo",
+    "trees": {
+      "crates/backend-cuda": "475d8e3ec4b94b3f6901ead8c7376eefa7840893",
+      "crates/backend-cuda-kernels": "a54a12de9fa3c7fd406154b501cb5e1d8a988eed"
+    }
+  }
+}
