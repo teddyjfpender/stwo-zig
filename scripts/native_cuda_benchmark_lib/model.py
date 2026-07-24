@@ -72,16 +72,27 @@ COVERAGE_MATRIX = (
     Workload("wide_wf_log18x73", "wide", Shape(18, 73), True),
     Workload("wide_wf_log18x128", "wide", Shape(18, 128), True),
     Workload(
-        "hash_blake_log10x10",
-        "hash_heavy",
+        "seeded_blake_log10x10",
+        "seeded_wide",
         BlakeShape(10, 10),
         True,
     ),
     Workload(
-        "hash_blake_log12x10",
-        "hash_heavy",
+        "seeded_blake_log12x10",
+        "seeded_wide",
         BlakeShape(12, 10),
         True,
+    ),
+    Workload(
+        "hash_native",
+        "hash_heavy",
+        None,
+        False,
+        (
+            "The simplified Blake example is seeded-xorshift plus one "
+            "constant-QM31 constraint; real Blake/Poseidon constraint "
+            "packs are pending"
+        ),
     ),
     Workload(
         "lookup_native",
@@ -129,7 +140,7 @@ PROFILES = {
         (
             "latency_wf_log14x32",
             "lookup_xor_log14_step2",
-            "hash_blake_log10x10",
+            "seeded_blake_log10x10",
             "wide_wf_log18x37",
         ),
         warmups=1,

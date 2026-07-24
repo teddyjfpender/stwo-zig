@@ -83,7 +83,7 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             self.assertFalse(document["headline_eligible"])
             self.assertFalse(document["portfolio"]["available"])
             self.assertFalse(document["coverage"]["activation_ready"])
-            self.assertNotIn(
+            self.assertIn(
                 "hash_heavy",
                 document["coverage"]["missing_classes"],
             )
