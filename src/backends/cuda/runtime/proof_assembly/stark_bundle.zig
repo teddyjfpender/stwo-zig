@@ -117,8 +117,13 @@ pub const Bundle = struct {
             else => return error.InvalidNestedDecommitment,
         };
         errdefer nested.deinit(allocator);
-        if (nested.used_words != nested_words.len or
-            nested.trees.len != protocol.decommit_tree_count or
+        // The resident arena has a geometry-sealed maximum extent while query
+        // collisions make the canonical nested opening shorter. Only a zero
+        // tail may occupy that fixed transport capacity.
+        for (nested_words[nested.used_words..]) |word| {
+            if (word != 0) return error.InvalidNestedDecommitment;
+        }
+        if (nested.trees.len != protocol.decommit_tree_count or
             nested.raw_query_count != protocol.n_queries)
         {
             return error.InvalidNestedDecommitment;
@@ -380,6 +385,34 @@ test "SWPC v1 decodes wide Fibonacci capacities without arena state" {
             bundle.decommitment.trees.len,
         );
     }
+}
+
+test "SWPC v1 accepts only zero tail capacity after nested openings" {
+    const allocator = std.testing.allocator;
+    const original = try Fixture.make(allocator, 5, 8);
+    defer allocator.free(original);
+    const padding_words: usize = 7;
+    const padded = try allocator.alloc(u32, original.len + padding_words);
+    @memcpy(padded[0..original.len], original);
+    @memset(padded[original.len..], 0);
+    padded[2] = @intCast(padded.len);
+    const decommit_record = fixed_header_words +
+        indexOf(.decommitment) * section_record_words;
+    padded[decommit_record + 2] += padding_words;
+
+    var bundle = try Bundle.decodeOwned(allocator, padded);
+    bundle.deinit(allocator);
+
+    const poisoned = try allocator.alloc(u32, original.len + padding_words);
+    @memcpy(poisoned[0..original.len], original);
+    @memset(poisoned[original.len..], 0);
+    poisoned[2] = @intCast(poisoned.len);
+    poisoned[decommit_record + 2] += padding_words;
+    poisoned[poisoned.len - 1] = 1;
+    try std.testing.expectError(
+        error.InvalidNestedDecommitment,
+        Bundle.decodeOwned(allocator, poisoned),
+    );
 }
 
 test "SWPC v1 rejects gaps counts truncation and poisoned degree verdict" {
