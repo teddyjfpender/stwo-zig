@@ -9,6 +9,8 @@ const decommit = @import("decommit.zig");
 const fri = @import("fri.zig").Native;
 const oods = @import("oods.zig").Native;
 const quotient = @import("quotient.zig");
+const quotient_abi = @import("../../abi/stages/quotient.zig");
+const trace = @import("trace.zig").Native;
 const transcript = @import("transcript.zig");
 const transform = @import("transform.zig").Native;
 
@@ -85,12 +87,39 @@ fn circles(len: usize) column.DeviceSlice(field.CirclePointBaseField) {
     return view(field.CirclePointBaseField, len);
 }
 
+fn secureCircles(len: usize) column.DeviceSlice(field.SecureCirclePoint) {
+    return view(field.SecureCirclePoint, len);
+}
+
+fn preparedTerms(len: usize) quotient.PreparedTermDescriptors {
+    return view(quotient_abi.PreparedTermDescriptor, len);
+}
+
+fn batchTerms(len: usize) quotient.BatchTermDescriptors {
+    return view(quotient_abi.BatchTermDescriptor, len);
+}
+
 fn hashes(len: usize) column.DeviceSlice(field.Blake2sHash) {
     return view(field.Blake2sHash, len);
 }
 
 fn states(len: usize) column.DeviceSlice(field.ProgressiveBlake2sState) {
     return view(field.ProgressiveBlake2sState, len);
+}
+
+test "Native trace construction is exact, resident, and stage bound" {
+    var session = FakeSession.init(.trace_generation);
+    try trace.wideFibonacci(&session, words(8 * 37), 8, 37, 3);
+    try std.testing.expectEqual(@as(usize, 1), session.launches);
+    try std.testing.expectError(
+        error.SizeOverflow,
+        trace.wideFibonacci(&session, words(8 * 37 - 1), 8, 37, 3),
+    );
+    session.context.active_stage = .trace_commit;
+    try std.testing.expectError(
+        error.StageOrderViolation,
+        trace.wideFibonacci(&session, words(8 * 37), 8, 37, 3),
+    );
 }
 
 test "transform, commitment, and transcript wrappers bind the session stream" {
@@ -158,7 +187,7 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
     try commitment.layer(&session, .trace_commit, hashes(256), hashes(16), true);
 
     session.context.active_stage = .fri_commit;
-    try commitment.friLeaves(&session, pointers(4), 256, 1, hashes(128));
+    try commitment.friLeaves(&session, pointers(4), 256, 0, hashes(256));
     const boundary = transcript.Boundary{
         .expected_step = 1,
         .expected_chain = 2,
@@ -197,8 +226,8 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         boundary,
         4,
         16,
-        words(4),
-        words(4),
+        secure(4),
+        secure(4),
     );
     session.context.active_stage = .pow;
     try transcript.Native.absorbPow(
@@ -230,19 +259,19 @@ test "OODS and quotient wrappers type-check every copied resident ABI" {
         words(4),
         words(4),
         8,
-        words(4),
-        words(4),
-        secure(4),
+        secureCircles(4),
+        secureCircles(4),
+        secure(32),
     );
     try oods.evaluateFirst(&session, pointers(4), 16, secure(4), secure(64));
-    try oods.reduce(&session, secure(64), 16, 0, 4, secure(4), secure(32), 8);
+    try oods.reduce(&session, secure(64), 16, 16, 0, 4, secure(4), secure(32), 8);
     try oods.storeResults(&session, secure(32), 8, words(4), secure(4));
     try oods.barycentricWeights(
         &session,
         1,
         2,
         8,
-        words(2),
+        secureCircles(1),
         .{ .a = 1, .b = 2, .c = 3, .d = 4 },
         .{ .x = 1, .y = 2 },
         secure(16),
@@ -268,30 +297,30 @@ test "OODS and quotient wrappers type-check every copied resident ABI" {
     };
     try quotient.Native.prepareTerms(
         &session,
-        words(4),
-        words(8),
+        preparedTerms(4),
+        secureCircles(4),
         secure(4),
         secure(1),
-        words(4),
-        secure(4),
+        secureCircles(4),
+        secure(12),
     );
     try quotient.Native.finalizeGroups(
         &session,
         words(5),
         words(4),
-        words(4),
-        secure(4),
-        words(8),
+        secureCircles(4),
+        secure(12),
+        secureCircles(4),
         secure(4),
     );
     try quotient.Native.zeroOutputs(&session, words(4), 256, tables);
     try quotient.Native.accumulate(
         &session,
         words(5),
-        words(4),
+        batchTerms(4),
         256,
         pointers(4),
-        secure(4),
+        secure(12),
         words(4),
         tables,
     );
@@ -300,7 +329,7 @@ test "OODS and quotient wrappers type-check every copied resident ABI" {
         1,
         2,
         8,
-        words(8),
+        secureCircles(2),
         secure(4),
         words(4),
         tables,
@@ -350,14 +379,14 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
     );
     try fri.lastLayer(
         &session,
-        words(256),
-        4,
+        words(1024),
+        256,
         8,
         words(256),
         4,
-        words(256),
+        words(1024),
         words(1),
-        words(256),
+        words(64),
     );
     session.context.active_stage = .pow;
     try fri.grindPow(
@@ -422,9 +451,9 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
     const fri_queries = decommit.FriQueries{
         .tree = words(16),
         .tree_count = words(1),
-        .expanded = words(16),
+        .expanded = words(32),
         .expanded_count = words(1),
-        .walk = words(16),
+        .walk = words(32),
         .walk_count = words(1),
     };
     try decommit.Native.prepareFriQueries(

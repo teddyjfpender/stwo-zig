@@ -111,7 +111,12 @@ pub fn OpsFor(comptime Api: type) type {
         ) runtime_error.Error!void {
             const stage = telemetry.Stage.fri_commit;
             try common.requireStage(session, stage);
-            try common.requireNonZero(&.{ evaluation_size, log_rows_per_leaf });
+            try common.requireNonZero(&.{evaluation_size});
+            if (!@import("std").math.isPowerOfTwo(evaluation_size) or
+                (log_rows_per_leaf != 0 and log_rows_per_leaf != 2))
+                return error.InvalidKernelDescriptor;
+            const leaf_count = evaluation_size >> @intCast(log_rows_per_leaf);
+            if (output.len != leaf_count) return error.SizeOverflow;
             const status = Api.stwo_blake2s_fri_leaf_on(
                 evaluation_size,
                 try common.mutableWordTable(session, coordinate_columns, 4),

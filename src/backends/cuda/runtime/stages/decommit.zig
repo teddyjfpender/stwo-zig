@@ -185,6 +185,18 @@ pub fn OpsFor(comptime Api: type) type {
         ) runtime_error.Error!void {
             try common.requireStage(session, stage);
             const max_queries = try common.count(unique_queries.len);
+            if (max_queries == 0 or fold_step >= 32)
+                return error.InvalidKernelDescriptor;
+            const expansion = @as(usize, 1) << @intCast(fold_step);
+            const expanded_capacity = @import("std").math.mul(
+                usize,
+                max_queries,
+                expansion,
+            ) catch return error.SizeOverflow;
+            if (output.tree.len < max_queries or
+                output.expanded.len < expanded_capacity or
+                output.walk.len < expanded_capacity)
+                return error.SizeOverflow;
             const status = Api.stwo_decommit_prepare_fri_queries_on(
                 try common.words(session, unique_queries, max_queries),
                 try common.words(session, unique_count, 1),
@@ -194,9 +206,9 @@ pub fn OpsFor(comptime Api: type) type {
                 log_rows_per_leaf,
                 try common.words(session, output.tree, max_queries),
                 try common.words(session, output.tree_count, 1),
-                try common.words(session, output.expanded, max_queries),
+                try common.words(session, output.expanded, expanded_capacity),
                 try common.words(session, output.expanded_count, 1),
-                try common.words(session, output.walk, max_queries),
+                try common.words(session, output.walk, expanded_capacity),
                 try common.words(session, output.walk_count, 1),
                 session.context.stream,
             );

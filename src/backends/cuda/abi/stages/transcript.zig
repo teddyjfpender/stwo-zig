@@ -1,5 +1,7 @@
 //! Ordinary-Blake2s Fiat-Shamir operations over resident device state.
 
+const field = @import("../field.zig");
+
 pub extern "c" fn stwo_blake2s_transcript_init_on(
     state: [*]u32,
     seed: [*]const u32,
@@ -51,8 +53,8 @@ pub extern "c" fn stwo_blake2s_transcript_draw_secure_on(
     next_chain: u64,
     felt_count: u32,
     max_rejection_rounds: u32,
-    output: [*]u32,
-    output_snapshot: [*]u32,
+    output: [*]field.SecureField,
+    output_snapshot: [*]field.SecureField,
     boundary_snapshot: [*]u32,
     stream: *anyopaque,
 ) c_int;

@@ -70,7 +70,9 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(37, plan["ordinary_source_count"])
         self.assertEqual(1, plan["aot_source_count"])
         self.assertEqual(2, plan["aot_cubin_count"])
-        self.assertEqual(1, plan["native_runtime_source_count"])
+        self.assertEqual(2, plan["native_runtime_source_count"])
+        self.assertEqual(1, plan["native_host_source_count"])
+        self.assertEqual(1, plan["native_cuda_source_count"])
         self.assertEqual(
             load_native_closure(NATIVE)["closure_sha256"],
             plan["native_runtime_closure_sha256"],
@@ -83,6 +85,7 @@ class CudaBuildTests(unittest.TestCase):
         )
         self.assertEqual("plan-only", plan["tools"]["nvcc"]["sha256"])
         self.assertIn("-dc", plan["fixed_flags"]["ordinary"])
+        self.assertIn("-dc", plan["fixed_flags"]["native_cuda"])
         self.assertIn("-cubin", plan["fixed_flags"]["aot"])
         self.assertIn("-dlink", plan["fixed_flags"]["device_link"])
         self.assertNotIn("nvrtc", plan["fixed_flags"]["host"])
@@ -262,6 +265,60 @@ int main() {{
             root = Path(temporary)
             harness_path = root / "wide_fibonacci_aot_test.cpp"
             executable = root / "wide_fibonacci_aot_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
+
+    def test_native_wide_fibonacci_trace_matches_canonical_layout(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
+        source = NATIVE / "kernels/wide_fibonacci_trace.cu"
+        harness = f"""
+#include <cassert>
+#define STWO_CUDA_HOST_TEST
+#define __device__
+#define __global__
+#define __forceinline__ inline
+#define __launch_bounds__(...)
+struct Dim3 {{ unsigned x, y, z; }};
+static Dim3 blockIdx{{0, 0, 0}}, blockDim{{8, 1, 1}}, threadIdx{{0, 0, 0}};
+#include {json.dumps(str(source))}
+
+int main() {{
+    constexpr unsigned rows = 8;
+    constexpr unsigned columns = 5;
+    unsigned trace[rows * columns] = {{}};
+    for (unsigned row = 0; row < rows; ++row) {{
+        threadIdx.x = row;
+        stwo_native_wide_fibonacci_trace_kernel(trace, rows, columns, 3);
+    }}
+    const unsigned logical_rows[rows] = {{0, 7, 4, 3, 2, 5, 6, 1}};
+    for (unsigned row = 0; row < rows; ++row) {{
+        unsigned previous = 1;
+        unsigned current = logical_rows[row];
+        assert(trace[row] == previous);
+        assert(trace[rows + row] == current);
+        for (unsigned column = 2; column < columns; ++column) {{
+            const unsigned next = stwo_trace_m31_add(
+                stwo_trace_m31_mul(previous, previous),
+                stwo_trace_m31_mul(current, current));
+            assert(trace[column * rows + row] == next);
+            previous = current;
+            current = next;
+        }}
+    }}
+}}
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness_path = root / "wide_fibonacci_trace_test.cpp"
+            executable = root / "wide_fibonacci_trace_test"
             harness_path.write_text(harness, encoding="utf-8")
             subprocess.run(
                 [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],

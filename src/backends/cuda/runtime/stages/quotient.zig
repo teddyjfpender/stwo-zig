@@ -1,6 +1,7 @@
 //! Checked resident quotient construction dispatch.
 
 const abi = @import("../../abi/stages/quotient.zig");
+const column = @import("../column.zig");
 const common = @import("common.zig");
 const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
@@ -22,32 +23,46 @@ pub const CoordinateColumns = struct {
     c3: common.Words,
 };
 
+pub const PreparedTermDescriptors = column.DeviceSlice(abi.PreparedTermDescriptor);
+pub const BatchTermDescriptors = column.DeviceSlice(abi.BatchTermDescriptor);
+
 pub fn OpsFor(comptime Api: type) type {
     return struct {
         pub fn prepareTerms(
             session: anytype,
-            term_descriptors: common.Words,
-            sample_points: common.Words,
+            term_descriptors: PreparedTermDescriptors,
+            sample_points: common.SecureCirclePoints,
             sample_values: common.SecureFields,
             random_coefficient: common.SecureFields,
-            term_points: common.Words,
+            term_points: common.SecureCirclePoints,
             line_coefficients: common.SecureFields,
         ) runtime_error.Error!void {
             try common.requireStage(session, stage);
             const term_count = try common.count(term_descriptors.len);
+            const line_count = @import("std").math.mul(
+                usize,
+                term_count,
+                3,
+            ) catch return error.SizeOverflow;
             if (term_count == 0 or sample_values.len == 0 or
-                term_points.len < term_count or line_coefficients.len < term_count)
+                sample_points.len != sample_values.len or
+                term_points.len != term_count or
+                line_coefficients.len != line_count)
             {
                 return error.SizeOverflow;
             }
             const status = Api.stwo_prepare_quotient_numerator_terms_on(
-                try common.words(session, term_descriptors, term_count),
+                try session.context.deviceSlicePointer(
+                    abi.PreparedTermDescriptor,
+                    term_descriptors,
+                    term_count,
+                ),
                 term_count,
-                try common.words(session, sample_points, 1),
+                try common.secureCircles(session, sample_points, 1),
                 try common.secure(session, sample_values, 1),
                 @ptrCast(try common.secure(session, random_coefficient, 1)),
-                try common.words(session, term_points, term_count),
-                try common.secure(session, line_coefficients, term_count),
+                try common.secureCircles(session, term_points, term_count),
+                try common.secure(session, line_coefficients, line_count),
                 session.context.stream,
             );
             try common.record(session, stage, status);
@@ -57,22 +72,31 @@ pub fn OpsFor(comptime Api: type) type {
             session: anytype,
             group_offsets: common.Words,
             group_term_indices: common.Words,
-            term_points: common.Words,
+            term_points: common.SecureCirclePoints,
             line_coefficients: common.SecureFields,
-            sample_points: common.Words,
+            sample_points: common.SecureCirclePoints,
             first_linear_terms: common.SecureFields,
         ) runtime_error.Error!void {
             try common.requireStage(session, stage);
             const group_count = try common.count(first_linear_terms.len);
-            if (group_count == 0 or group_offsets.len < group_count + 1)
+            const term_count = term_points.len;
+            const line_count = @import("std").math.mul(
+                usize,
+                term_count,
+                3,
+            ) catch return error.SizeOverflow;
+            if (group_count == 0 or group_offsets.len < group_count + 1 or
+                group_term_indices.len == 0 or term_count == 0 or
+                line_coefficients.len != line_count or
+                sample_points.len < group_count)
                 return error.SizeOverflow;
             const status = Api.stwo_finalize_quotient_numerator_groups_on(
                 try common.words(session, group_offsets, group_count + 1),
                 try common.words(session, group_term_indices, 1),
                 group_count,
-                try common.words(session, term_points, 1),
-                try common.secure(session, line_coefficients, 1),
-                try common.words(session, sample_points, 1),
+                try common.secureCircles(session, term_points, term_count),
+                try common.secure(session, line_coefficients, line_count),
+                try common.secureCircles(session, sample_points, group_count),
                 try common.secure(session, first_linear_terms, group_count),
                 session.context.stream,
             );
@@ -104,7 +128,7 @@ pub fn OpsFor(comptime Api: type) type {
         pub fn accumulate(
             session: anytype,
             group_offsets: common.Words,
-            term_descriptors: common.Words,
+            term_descriptors: BatchTermDescriptors,
             max_output_size: u32,
             source_evaluations: common.PointerTable,
             line_coefficients: common.SecureFields,
@@ -114,10 +138,16 @@ pub fn OpsFor(comptime Api: type) type {
             try common.requireStage(session, stage);
             const group_count = try common.count(group_log_sizes.len);
             try common.requireNonZero(&.{ group_count, max_output_size });
-            if (group_offsets.len < group_count + 1) return error.SizeOverflow;
+            if (group_offsets.len < group_count + 1 or
+                term_descriptors.len == 0 or line_coefficients.len % 3 != 0)
+                return error.SizeOverflow;
             const status = Api.stwo_accumulate_quotient_numerator_single_write_on(
                 try common.words(session, group_offsets, group_count + 1),
-                try common.words(session, term_descriptors, 1),
+                try session.context.deviceSlicePointer(
+                    abi.BatchTermDescriptor,
+                    term_descriptors,
+                    1,
+                ),
                 group_count,
                 max_output_size,
                 try common.constWordTable(session, source_evaluations, 1),
@@ -137,7 +167,7 @@ pub fn OpsFor(comptime Api: type) type {
             half_coset_initial_index: u32,
             half_coset_step_size: u32,
             domain_log_size: u32,
-            sample_points: common.Words,
+            sample_points: common.SecureCirclePoints,
             first_linear_terms: common.SecureFields,
             partial_log_sizes: common.Words,
             partials: CoordinateTables,
@@ -153,7 +183,7 @@ pub fn OpsFor(comptime Api: type) type {
                 half_coset_step_size,
                 domain_size,
                 domain_log_size,
-                try common.words(session, sample_points, sample_size),
+                try common.secureCircles(session, sample_points, sample_size),
                 sample_size,
                 try common.secure(session, first_linear_terms, 1),
                 try common.words(session, partial_log_sizes, partial_count),

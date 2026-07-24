@@ -115,12 +115,12 @@ pub fn OpsFor(comptime Api: type) type {
             boundary: Boundary,
             felt_count: u32,
             max_rejection_rounds: u32,
-            output: common.Words,
-            output_snapshot: common.Words,
+            output: common.SecureFields,
+            output_snapshot: common.SecureFields,
         ) runtime_error.Error!void {
             try requireTranscriptStage(session, stage);
             try common.requireNonZero(&.{ felt_count, max_rejection_rounds });
-            if (output.len < felt_count or output_snapshot.len < felt_count)
+            if (output.len != felt_count or output_snapshot.len != felt_count)
                 return error.SizeOverflow;
             const status = Api.stwo_blake2s_transcript_draw_secure_on(
                 try common.words(session, state, 16),
@@ -129,8 +129,8 @@ pub fn OpsFor(comptime Api: type) type {
                 boundary.next_chain,
                 felt_count,
                 max_rejection_rounds,
-                try common.words(session, output, felt_count),
-                try common.words(session, output_snapshot, felt_count),
+                try common.secure(session, output, felt_count),
+                try common.secure(session, output_snapshot, felt_count),
                 try common.words(session, boundary.snapshot, 16),
                 session.context.stream,
             );
@@ -172,7 +172,7 @@ fn requireTranscriptStage(
     stage: telemetry.Stage,
 ) runtime_error.Error!void {
     switch (stage) {
-        .ingress, .proof_assembly => return error.StageOrderViolation,
+        .ingress, .trace_generation, .proof_assembly => return error.StageOrderViolation,
         else => try common.requireStage(session, stage),
     }
 }

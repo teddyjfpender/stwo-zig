@@ -6,6 +6,7 @@ pub const decommit = @import("decommit.zig");
 pub const fri = @import("fri.zig");
 pub const oods = @import("oods.zig");
 pub const quotient = @import("quotient.zig");
+pub const trace = @import("trace.zig");
 pub const transcript = @import("transcript.zig");
 pub const transform = @import("transform.zig");
 
@@ -16,6 +17,7 @@ test {
     _ = fri;
     _ = oods;
     _ = quotient;
+    _ = trace;
     _ = transcript;
     _ = transform;
     _ = @import("contract_test.zig");

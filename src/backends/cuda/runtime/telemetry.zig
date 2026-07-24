@@ -5,6 +5,7 @@ const std = @import("std");
 /// Canonical order of a native Stwo proof on the resident CUDA product.
 pub const Stage = enum(u8) {
     ingress,
+    trace_generation,
     trace_commit,
     constraint_evaluation,
     oods,
@@ -29,6 +30,7 @@ pub const Stage = enum(u8) {
 pub const stage_count = @typeInfo(Stage).@"enum".fields.len;
 pub const all_stages: [stage_count]Stage = .{
     .ingress,
+    .trace_generation,
     .trace_commit,
     .constraint_evaluation,
     .oods,

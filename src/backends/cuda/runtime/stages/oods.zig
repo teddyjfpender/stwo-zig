@@ -18,16 +18,22 @@ pub fn OpsFor(comptime Api: type) type {
             fold_counts: common.Words,
             output_indices: common.Words,
             coefficient_log_size: u32,
-            sample_points: common.Words,
-            evaluation_points: common.Words,
+            sample_points: common.SecureCirclePoints,
+            evaluation_points: common.SecureCirclePoints,
             folding_factors: common.SecureFields,
         ) runtime_error.Error!void {
             try common.requireStage(session, stage);
             const sample_count = try common.count(output_indices.len);
+            const factor_count = @import("std").math.mul(
+                usize,
+                sample_count,
+                coefficient_log_size,
+            ) catch return error.SizeOverflow;
             if (sample_count == 0 or
+                coefficient_log_size == 0 or
                 offset_points.len < sample_count or
                 fold_counts.len < sample_count or
-                folding_factors.len < sample_count or
+                folding_factors.len < factor_count or
                 sample_points.len < sample_count or
                 evaluation_points.len < sample_count)
             {
@@ -40,9 +46,9 @@ pub fn OpsFor(comptime Api: type) type {
                 try common.words(session, output_indices, sample_count),
                 sample_count,
                 coefficient_log_size,
-                try common.words(session, sample_points, sample_count),
-                try common.words(session, evaluation_points, sample_count),
-                try common.secure(session, folding_factors, sample_count),
+                try common.secureCircles(session, sample_points, sample_count),
+                try common.secureCircles(session, evaluation_points, sample_count),
+                try common.secure(session, folding_factors, factor_count),
                 session.context.stream,
             );
             try common.record(session, stage, status);
@@ -56,15 +62,28 @@ pub fn OpsFor(comptime Api: type) type {
             scratch: common.SecureFields,
         ) runtime_error.Error!void {
             try common.requireStage(session, stage);
-            const sample_count = try common.count(folding_factors.len);
-            try common.requireNonZero(&.{ coefficient_size, sample_count });
-            const scratch_elements = @import("std").math.mul(
+            if (coefficient_size < 2 or !@import("std").math.isPowerOfTwo(coefficient_size))
+                return error.InvalidKernelDescriptor;
+            const coefficient_log_size = @import("std").math.log2_int(
+                u32,
+                coefficient_size,
+            );
+            if (folding_factors.len % coefficient_log_size != 0)
+                return error.SizeOverflow;
+            const sample_count_usize = folding_factors.len / coefficient_log_size;
+            const sample_count = try common.count(sample_count_usize);
+            const blocks_per_sample = @import("std").math.divCeil(
                 usize,
                 coefficient_size,
-                sample_count,
+                512,
+            ) catch return error.SizeOverflow;
+            const scratch_elements = @import("std").math.mul(
+                usize,
+                blocks_per_sample,
+                sample_count_usize,
             ) catch return error.SizeOverflow;
             const status = Api.stwo_oods_eval_first_on(
-                try common.constWordTable(session, coefficients, 1),
+                try common.constWordTable(session, coefficients, sample_count),
                 coefficient_size,
                 sample_count,
                 try common.secure(session, folding_factors, sample_count),
@@ -77,6 +96,7 @@ pub fn OpsFor(comptime Api: type) type {
         pub fn reduce(
             session: anytype,
             input: common.SecureFields,
+            input_size: u32,
             input_stride: u32,
             factor_index: u32,
             coefficient_log_size: u32,
@@ -85,17 +105,36 @@ pub fn OpsFor(comptime Api: type) type {
             output_stride: u32,
         ) runtime_error.Error!void {
             try common.requireStage(session, stage);
-            const sample_count = try common.count(folding_factors.len);
-            try common.requireNonZero(&.{ input_stride, sample_count, output_stride });
+            if (coefficient_log_size == 0 or
+                folding_factors.len % coefficient_log_size != 0)
+                return error.SizeOverflow;
+            const sample_count_usize = folding_factors.len / coefficient_log_size;
+            const sample_count = try common.count(sample_count_usize);
+            try common.requireNonZero(
+                &.{ input_size, input_stride, sample_count, output_stride },
+            );
+            const input_elements = @import("std").math.mul(
+                usize,
+                sample_count_usize,
+                input_stride,
+            ) catch return error.SizeOverflow;
+            const output_elements = @import("std").math.mul(
+                usize,
+                sample_count_usize,
+                output_stride,
+            ) catch return error.SizeOverflow;
+            if (input_size > input_stride or factor_index >= coefficient_log_size or
+                input.len < input_elements or output.len < output_elements)
+                return error.SizeOverflow;
             const status = Api.stwo_oods_eval_reduce_on(
-                try common.secure(session, input, 1),
-                try common.count(input.len),
+                try common.secure(session, input, input_elements),
+                input_size,
                 input_stride,
                 factor_index,
                 coefficient_log_size,
                 sample_count,
                 try common.secure(session, folding_factors, sample_count),
-                try common.secure(session, output, 1),
+                try common.secure(session, output, output_elements),
                 output_stride,
                 session.context.stream,
             );
@@ -112,8 +151,15 @@ pub fn OpsFor(comptime Api: type) type {
             try common.requireStage(session, stage);
             const sample_count = try common.count(output_indices.len);
             try common.requireNonZero(&.{ reduced_stride, sample_count });
+            const reduced_elements = @import("std").math.mul(
+                usize,
+                sample_count,
+                reduced_stride,
+            ) catch return error.SizeOverflow;
+            if (reduced.len < reduced_elements or sampled_values.len < sample_count)
+                return error.SizeOverflow;
             const status = Api.stwo_oods_store_results_on(
-                try common.secure(session, reduced, 1),
+                try common.secure(session, reduced, reduced_elements),
                 reduced_stride,
                 try common.words(session, output_indices, sample_count),
                 sample_count,
@@ -128,7 +174,7 @@ pub fn OpsFor(comptime Api: type) type {
             half_coset_initial_index: u32,
             half_coset_step_size: u32,
             log_size: u32,
-            evaluation_point: common.Words,
+            evaluation_point: common.SecureCirclePoints,
             si0: field.SecureField,
             vanishing_rotation: field.CirclePointBaseField,
             numerator_inverses: common.SecureFields,
@@ -144,7 +190,7 @@ pub fn OpsFor(comptime Api: type) type {
                 half_coset_step_size,
                 size,
                 log_size,
-                try common.words(session, evaluation_point, 2),
+                try common.secureCircles(session, evaluation_point, 1),
                 si0,
                 vanishing_rotation,
                 try common.secure(session, numerator_inverses, size),

@@ -95,17 +95,43 @@ pub fn OpsFor(comptime Api: type) type {
         ) runtime_error.Error!void {
             const stage = telemetry.Stage.fri_commit;
             try common.requireStage(session, stage);
-            try common.requireNonZero(&.{evaluation_stride});
+            if (log_size == 0 or log_size > 30 or
+                log_degree_bound > log_size)
+                return error.InvalidKernelDescriptor;
+            const size = @as(usize, 1) << @intCast(log_size);
+            const degree_bound = @as(usize, 1) << @intCast(log_degree_bound);
+            if (evaluation_stride < size or inverse_twiddles.len < size)
+                return error.SizeOverflow;
+            const evaluation_words = @import("std").math.mul(
+                usize,
+                evaluation_stride,
+                4,
+            ) catch return error.SizeOverflow;
+            const coefficient_words = @import("std").math.mul(
+                usize,
+                size,
+                4,
+            ) catch return error.SizeOverflow;
+            const transcript_words = @import("std").math.mul(
+                usize,
+                degree_bound,
+                4,
+            ) catch return error.SizeOverflow;
+            if (evaluation.len < evaluation_words or
+                coefficients.len != coefficient_words or
+                degree_error.len != 1 or
+                transcript_coefficients.len != transcript_words)
+                return error.SizeOverflow;
             const status = Api.stwo_fri_last_layer_on(
-                try common.words(session, evaluation, 1),
+                try common.words(session, evaluation, evaluation_words),
                 evaluation_stride,
                 log_size,
                 try common.words(session, inverse_twiddles, 1),
                 try common.count(inverse_twiddles.len),
                 log_degree_bound,
-                try common.words(session, coefficients, 1),
+                try common.words(session, coefficients, coefficient_words),
                 try common.words(session, degree_error, 1),
-                try common.words(session, transcript_coefficients, 1),
+                try common.words(session, transcript_coefficients, transcript_words),
                 session.context.stream,
             );
             try common.record(session, stage, status);

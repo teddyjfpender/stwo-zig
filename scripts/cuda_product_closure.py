@@ -82,7 +82,7 @@ def validate_abi(
     if not isinstance(selected_names, list):
         raise ProductClosureError("CUDA resident source selection is absent")
     selected = [SOURCE / str(name) for name in selected_names]
-    native = sorted(NATIVE.rglob("*.cpp"))
+    native = sorted(NATIVE.rglob("*.cpp")) + sorted(NATIVE.rglob("*.cu"))
     defined = symbols(selected + native, C_EXTERN_RE)
 
     generated = policy.get("generated_symbols")

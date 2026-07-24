@@ -397,6 +397,9 @@ test "context owns buffers and accounts only explicit transfers" {
         context.deviceSlicePointer(u32, foreign_slice, 1),
     );
     try context.endStage(.ingress);
+    try context.beginStage(.trace_generation);
+    try context.recordKernels(1);
+    try context.endStage(.trace_generation);
     try context.beginStage(.trace_commit);
     try context.recordKernels(3);
     try context.endStage(.trace_commit);

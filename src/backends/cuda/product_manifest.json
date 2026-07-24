@@ -92,7 +92,8 @@
       "stwo_native_aot_function_launch",
       "stwo_native_aot_loader_create",
       "stwo_native_aot_loader_destroy",
-      "stwo_native_aot_loader_stats"
+      "stwo_native_aot_loader_stats",
+      "stwo_native_wide_fibonacci_trace_on"
     ],
     "forbidden_symbol_fragments": [
       "_default_pool_",

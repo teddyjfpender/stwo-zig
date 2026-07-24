@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 from .aot_pack import ABI_SCHEMAS, AotPackError, write_aot_carriers, write_aot_pack
+from .errors import BuildError
+from .native_closure import load_native_closure
 
 
 SCHEMA = "stwo-zig-cuda-native-build-v1"
@@ -29,10 +31,6 @@ IDENTITY_64_RE = re.compile(r"^[0-9a-f]{16}$")
 IDENTITY_256_RE = re.compile(r"^[0-9a-f]{64}$")
 KERNEL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 LABEL_RE = re.compile(r"^[a-z0-9_]+$")
-
-
-class BuildError(RuntimeError):
-    """A fail-closed CUDA build rejection."""
 
 
 @dataclass(frozen=True)
@@ -90,48 +88,6 @@ def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
     if not result:
         raise BuildError("at least one explicit CUDA architecture is required")
     return tuple(sorted(result))
-
-
-def load_native_closure(native_root: Path) -> dict[str, object]:
-    native_root = native_root.resolve()
-    if not native_root.is_dir():
-        raise BuildError(f"Zig-owned CUDA runtime source is absent: {native_root}")
-    files = sorted(path for path in native_root.rglob("*") if path.is_file())
-    if not files or any(path.is_symlink() for path in native_root.rglob("*")):
-        raise BuildError("Zig-owned CUDA runtime must be a non-empty regular-file closure")
-    if any(path.suffix not in {".cpp", ".h"} for path in files):
-        raise BuildError("Zig-owned CUDA runtime contains an unsupported source type")
-
-    digest = hashlib.sha256()
-    entries: list[dict[str, object]] = []
-    for path in files:
-        relative = path.relative_to(native_root).as_posix()
-        payload = path.read_bytes()
-        encoded = relative.encode("utf-8")
-        digest.update(len(encoded).to_bytes(8, "little"))
-        digest.update(encoded)
-        digest.update(len(payload).to_bytes(8, "little"))
-        digest.update(payload)
-        entries.append(
-            {
-                "path": relative,
-                "bytes": len(payload),
-                "sha256": hashlib.sha256(payload).hexdigest(),
-            }
-        )
-    sources = [
-        native_root / str(entry["path"])
-        for entry in entries
-        if str(entry["path"]).endswith(".cpp")
-    ]
-    if not sources:
-        raise BuildError("Zig-owned CUDA runtime contains no C++ implementation")
-    return {
-        "root": native_root,
-        "closure_sha256": digest.hexdigest(),
-        "files": entries,
-        "sources": sources,
-    }
 
 
 def load_product_selection(
@@ -358,6 +314,14 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
             "-Xcompiler",
             "-fPIC",
         ],
+        "native_cuda": [
+            "-dc",
+            "-O3",
+            "--std=c++17",
+            "--expt-relaxed-constexpr",
+            "-Xcompiler",
+            "-fPIC",
+        ],
         "aot": ["-cubin", "-O3", "--std=c++17", "--expt-relaxed-constexpr"],
         "device_link": ["-dlink", "-Xcompiler", "-fPIC"],
         "host": ["-std=c++17", "-O3", "-fPIC", "-c"],
@@ -382,6 +346,8 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "aot_source_count": len(product.aot_sources),
         "aot_cubin_count": len(product.aot_sources) * len(toolchain.sms),
         "native_runtime_source_count": len(native["sources"]),
+        "native_host_source_count": len(native["host_sources"]),
+        "native_cuda_source_count": len(native["cuda_sources"]),
         "native_runtime_files": native["files"],
         "include_dirs": [str(path) for path in closure.include_dirs],
         "cuda_home": str(toolchain.cuda_home),
@@ -442,7 +408,18 @@ def execute(config: BuildConfig) -> dict[str, object]:
         plan,
         objects,
     )
-    dlink = device_link(config, plan, ordinary_objects, work)
+    native_cuda_objects = compile_native_cuda(
+        config,
+        closure,
+        plan,
+        objects,
+    )
+    dlink = device_link(
+        config,
+        plan,
+        [*ordinary_objects, *native_cuda_objects],
+        work,
+    )
     aot_entries = compile_aot(config, product, plan, cubins)
     aot_pack = generated / AOT_PACK_NAME
     try:
@@ -469,6 +446,7 @@ def execute(config: BuildConfig) -> dict[str, object]:
             "crs",
             str(staged_archive),
             *(str(path) for path in ordinary_objects),
+            *(str(path) for path in native_cuda_objects),
             str(dlink),
             *(str(path) for path in aot_objects),
             str(identity_object),
@@ -494,7 +472,8 @@ def execute(config: BuildConfig) -> dict[str, object]:
     atomic_write(output / PLAN_NAME, json_bytes(plan))
     atomic_write(receipt_path, json_bytes(receipt))
     print(
-        f"built {archive}: {len(ordinary_objects)} CUDA objects, "
+        f"built {archive}: {len(ordinary_objects)} authority CUDA objects, "
+        f"{len(native_cuda_objects)} Native CUDA objects, "
         f"{len(aot_entries)} AOT cubins"
     )
     return receipt
@@ -544,6 +523,62 @@ def compile_ordinary(
             f"{context}:{sha256_file(source)}".encode("ascii")
         ).hexdigest()[:24]
         destination = output / f"{source.stem}-{key}.o"
+        results.append(destination)
+        if not destination.is_file():
+            jobs.append(([*prefix, str(source), "-o", str(destination)], destination))
+    run_parallel(jobs, toolchain.jobs)
+    return results
+
+
+def compile_native_cuda(
+    config: BuildConfig,
+    closure: SourceClosure,
+    plan: dict[str, object],
+    output: Path,
+) -> list[Path]:
+    native = load_native_closure(config.native_root)
+    sources = native["cuda_sources"]
+    toolchain = config.toolchain
+    include_dirs = {
+        config.native_root.resolve(),
+        *closure.include_dirs,
+    }
+    include_flags = [
+        flag
+        for directory in sorted(include_dirs)
+        for flag in ("-I", str(directory))
+    ]
+    gencode = [
+        flag
+        for sm in toolchain.sms
+        for flag in ("-gencode", f"arch=compute_{sm},code=sm_{sm}")
+    ]
+    prefix = [
+        str(toolchain.nvcc),
+        "-dc",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-Xcompiler",
+        "-fPIC",
+        f"-ccbin={toolchain.host_cxx}",
+        *include_flags,
+        *gencode,
+    ]
+    context = digest_json(
+        {
+            "build": plan["build_identity_sha256"],
+            "mode": "native_cuda",
+            "argv": prefix[1:],
+        }
+    )
+    jobs: list[tuple[list[str], Path]] = []
+    results: list[Path] = []
+    for source in sources:
+        key = hashlib.sha256(
+            f"{context}:{sha256_file(source)}".encode("ascii")
+        ).hexdigest()[:24]
+        destination = output / f"native_{source.stem}-{key}.o"
         results.append(destination)
         if not destination.is_file():
             jobs.append(([*prefix, str(source), "-o", str(destination)], destination))
@@ -697,7 +732,7 @@ def compile_native_runtime(
         str((config.toolchain.cuda_home / "include").resolve()),
     ]
     results: list[Path] = []
-    for source in native["sources"]:
+    for source in native["host_sources"]:
         destination = output / f"native_{source.stem}.o"
         command = [
             str(config.toolchain.host_cxx),

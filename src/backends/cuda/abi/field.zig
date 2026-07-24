@@ -14,6 +14,11 @@ pub const CirclePointBaseField = extern struct {
     y: u32,
 };
 
+pub const SecureCirclePoint = extern struct {
+    x: SecureField,
+    y: SecureField,
+};
+
 pub const Blake2sHash = extern struct {
     bytes: [32]u8 align(32),
 };
@@ -27,6 +32,8 @@ comptime {
     std.debug.assert(@sizeOf(SecureField) == 16);
     std.debug.assert(@alignOf(SecureField) == 4);
     std.debug.assert(@sizeOf(CirclePointBaseField) == 8);
+    std.debug.assert(@sizeOf(SecureCirclePoint) == 32);
+    std.debug.assert(@alignOf(SecureCirclePoint) == 4);
     std.debug.assert(@sizeOf(Blake2sHash) == 32);
     std.debug.assert(@alignOf(Blake2sHash) == 32);
     std.debug.assert(@sizeOf(ProgressiveBlake2sState) == 96);

@@ -10,6 +10,7 @@ pub const Words = column.DeviceSlice(u32);
 pub const PointerTable = column.DeviceSlice(usize);
 pub const SecureFields = column.DeviceSlice(field.SecureField);
 pub const CirclePoints = column.DeviceSlice(field.CirclePointBaseField);
+pub const SecureCirclePoints = column.DeviceSlice(field.SecureCirclePoint);
 pub const Hashes = column.DeviceSlice(field.Blake2sHash);
 pub const ProgressiveStates = column.DeviceSlice(field.ProgressiveBlake2sState);
 pub const Nonce = column.DeviceSlice(u64);
@@ -37,6 +38,18 @@ pub fn circles(
 ) runtime_error.Error![*]field.CirclePointBaseField {
     return session.context.deviceSlicePointer(
         field.CirclePointBaseField,
+        slice,
+        minimum,
+    );
+}
+
+pub fn secureCircles(
+    session: anytype,
+    slice: SecureCirclePoints,
+    minimum: usize,
+) runtime_error.Error![*]field.SecureCirclePoint {
+    return session.context.deviceSlicePointer(
+        field.SecureCirclePoint,
         slice,
         minimum,
     );
