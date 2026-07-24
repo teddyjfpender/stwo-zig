@@ -13,10 +13,70 @@ const NativeOps = struct {
     const Transcript = stages.transcript.Native;
 };
 
+fn DefaultStatementFor(comptime geometry_mod: type) type {
+    return struct {
+        pub fn mix(
+            comptime Ops: type,
+            session: anytype,
+            prepared: anytype,
+            views: anytype,
+        ) !void {
+            if (@hasDecl(geometry_mod, "statement_first_segment_words")) {
+                const first_count =
+                    geometry_mod.statement_first_segment_words;
+                if (first_count == 0 or
+                    first_count >= views.statement_words.len)
+                {
+                    return error.InvalidKernelDescriptor;
+                }
+                try transcript.mixWordsPair(
+                    Ops.Transcript,
+                    session,
+                    .trace_commit,
+                    prepared.transcript,
+                    views.transcript,
+                    3,
+                    .mix_statement,
+                    try views.statement_words.sub(0, first_count),
+                    try views.statement_words.sub(
+                        first_count,
+                        views.statement_words.len - first_count,
+                    ),
+                    false,
+                );
+            } else {
+                try transcript.mixWords(
+                    Ops.Transcript,
+                    session,
+                    .trace_commit,
+                    prepared.transcript,
+                    views.transcript,
+                    3,
+                    .mix_statement,
+                    views.statement_words,
+                    false,
+                );
+            }
+        }
+    };
+}
+
 pub fn ExecutorFor(
     comptime geometry_mod: type,
     comptime plan_mod: type,
     comptime device_trace: type,
+) type {
+    return ExecutorForWithStatement(
+        plan_mod,
+        device_trace,
+        DefaultStatementFor(geometry_mod),
+    );
+}
+
+pub fn ExecutorForWithStatement(
+    comptime plan_mod: type,
+    comptime device_trace: type,
+    comptime Statement: type,
 ) type {
     return struct {
         pub fn generate(
@@ -90,42 +150,7 @@ pub fn ExecutorFor(
                 2,
                 .mix_main_root,
             );
-            if (@hasDecl(geometry_mod, "statement_first_segment_words")) {
-                const first_count =
-                    geometry_mod.statement_first_segment_words;
-                if (first_count == 0 or
-                    first_count >= views.statement_words.len)
-                {
-                    return error.InvalidKernelDescriptor;
-                }
-                try transcript.mixWordsPair(
-                    Ops.Transcript,
-                    session,
-                    .trace_commit,
-                    prepared.transcript,
-                    views.transcript,
-                    3,
-                    .mix_statement,
-                    try views.statement_words.sub(0, first_count),
-                    try views.statement_words.sub(
-                        first_count,
-                        views.statement_words.len - first_count,
-                    ),
-                    false,
-                );
-            } else {
-                try transcript.mixWords(
-                    Ops.Transcript,
-                    session,
-                    .trace_commit,
-                    prepared.transcript,
-                    views.transcript,
-                    3,
-                    .mix_statement,
-                    views.statement_words,
-                    false,
-                );
-            }
+            try Statement.mix(Ops, session, prepared, views);
         }
 
         fn commitRole(

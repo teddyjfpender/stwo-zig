@@ -68,10 +68,24 @@ pub fn BindingFor(
             const committed_rows = geometry.commitment_rows;
             const hash_count = try sub(try mul(committed_rows, 2), 1);
             const layer_count = @as(usize, geometry.commitment_log_rows) + 1;
+            const resident_column_count = if (@hasDecl(
+                geometry_mod,
+                "resident_evaluation_columns",
+            ))
+                geometry_mod.resident_evaluation_columns
+            else
+                geometry_mod.sampled_mask_points;
+            const sampled_source_offset = if (@hasDecl(
+                geometry_mod,
+                "sampled_source_column_offset",
+            ))
+                geometry_mod.sampled_source_column_offset
+            else
+                0;
             const source_words = try exactWords(
                 provider,
                 slots.source_evaluations,
-                try mul(geometry_mod.sampled_mask_points, committed_rows),
+                try mul(resident_column_count, committed_rows),
             );
             const preprocessed_evaluations = common.WordMatrix{
                 .storage = try source_words.sub(
@@ -183,7 +197,13 @@ pub fn BindingFor(
             });
             const fri = try bindFri(provider, prepared);
             const source_evaluations = common.WordMatrix{
-                .storage = source_words,
+                .storage = try source_words.sub(
+                    try mul(sampled_source_offset, committed_rows),
+                    try mul(
+                        geometry_mod.sampled_mask_points,
+                        committed_rows,
+                    ),
+                ),
                 .column_stride_words = committed_rows,
             };
             const twiddles_forward = try exactWords(

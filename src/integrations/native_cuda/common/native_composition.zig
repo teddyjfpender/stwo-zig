@@ -14,10 +14,32 @@ const NativeOps = struct {
     const Transcript = stages.transcript.Native;
 };
 
+const NoPrelude = struct {
+    pub fn run(
+        _: anytype,
+        _: anytype,
+        _: anytype,
+    ) !void {}
+};
+
 pub fn ExecutorFor(
     comptime plan_mod: type,
     comptime constraint: type,
     comptime slots: type,
+) type {
+    return ExecutorForWithPrelude(
+        plan_mod,
+        constraint,
+        slots,
+        NoPrelude,
+    );
+}
+
+pub fn ExecutorForWithPrelude(
+    comptime plan_mod: type,
+    comptime constraint: type,
+    comptime slots: type,
+    comptime Prelude: type,
 ) type {
     return struct {
         pub fn run(
@@ -44,6 +66,7 @@ pub fn ExecutorFor(
                 "../../../backends/cuda/abi/field.zig",
             ).SecureField);
 
+            try Prelude.run(session, prepared, views);
             try transcript.drawSecure(
                 Ops.Transcript,
                 session,

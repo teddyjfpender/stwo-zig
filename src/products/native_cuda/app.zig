@@ -8,6 +8,7 @@ const poseidon_route = @import("poseidon_route.zig");
 const blake_route = @import("blake_route.zig");
 const wide_route = @import("wide_route.zig");
 const xor_route = @import("xor_route.zig");
+const state_machine_route = @import("state_machine_route.zig");
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
@@ -46,6 +47,11 @@ pub fn main() !void {
                 allocator,
                 request,
             ),
+            .state_machine => try proof_route.prove(
+                state_machine_route,
+                allocator,
+                request,
+            ),
         },
     }
 }
@@ -56,4 +62,5 @@ test {
     _ = plonk_route;
     _ = blake_route;
     _ = poseidon_route;
+    _ = state_machine_route;
 }

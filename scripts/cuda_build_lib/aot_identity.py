@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from .errors import BuildError
@@ -13,11 +14,17 @@ NATIVE_AUTHENTICATED_SCHEMAS = {
     "native_constraint_slab_v1",
     "native_constant_qm31_v1",
     "native_circle_affine_state_trace_v1",
+    "native_state_machine_statement_v1",
+    "native_state_machine_constraint_v1",
     "native_indexed_recurrence_trace_v1",
     "native_m31_permutation_trace_v1",
     "native_seeded_xorshift_trace_v1",
 }
 NATIVE_IDENTITY_SCHEME = "sha256-source-and-contract-v1"
+NATIVE_CLOSURE_IDENTITY_SCHEME = (
+    "sha256-source-closure-and-contract-v2"
+)
+LOCAL_INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"]+)"', re.MULTILINE)
 
 
 def validate_native_aot_identity(
@@ -33,7 +40,11 @@ def validate_native_aot_identity(
         raise BuildError(
             f"AOT manifest entry {index} has a non-canonical Native identity"
         )
-    if entry["identity_scheme"] != NATIVE_IDENTITY_SCHEME:
+    scheme = entry["identity_scheme"]
+    if scheme not in {
+        NATIVE_IDENTITY_SCHEME,
+        NATIVE_CLOSURE_IDENTITY_SCHEME,
+    }:
         raise BuildError(
             f"AOT manifest entry {index} has an unknown Native identity scheme"
         )
@@ -46,9 +57,12 @@ def validate_native_aot_identity(
     expected_semantic = hashlib.sha256(
         semantic_contract.encode("utf-8")
     ).hexdigest()[:16]
-    source_identity = hashlib.sha256(
-        (generated_dir / str(entry["file"])).read_bytes()
-    ).hexdigest()
+    source = generated_dir / str(entry["file"])
+    source_identity = (
+        hashlib.sha256(source.read_bytes()).hexdigest()
+        if scheme == NATIVE_IDENTITY_SCHEME
+        else source_closure_identity(generated_dir, source)
+    )
     cache_payload = {
         "abi_schema": entry["abi_schema"],
         "kernel_name": entry["kernel_name"],
@@ -69,3 +83,36 @@ def validate_native_aot_identity(
         raise BuildError(
             f"AOT manifest entry {index} has stale Native identities"
         )
+
+
+def source_closure_identity(generated_dir: Path, source: Path) -> str:
+    root = generated_dir.parents[1].resolve()
+    entry = source.resolve()
+    pending = [entry]
+    discovered: set[Path] = set()
+    while pending:
+        current = pending.pop()
+        if current in discovered:
+            continue
+        if not current.is_file() or not current.is_relative_to(root):
+            raise BuildError("Native AOT include escapes the CUDA source root")
+        discovered.add(current)
+        text = current.read_text(encoding="utf-8", errors="strict")
+        for relative in LOCAL_INCLUDE_RE.findall(text):
+            included = (current.parent / relative).resolve()
+            if included.is_file():
+                pending.append(included)
+
+    digest = hashlib.sha256()
+    for path in sorted(discovered):
+        relative = (
+            b"<entry>"
+            if path == entry
+            else path.relative_to(root).as_posix().encode("utf-8")
+        )
+        payload = path.read_bytes()
+        digest.update(len(relative).to_bytes(8, "little"))
+        digest.update(relative)
+        digest.update(len(payload).to_bytes(8, "little"))
+        digest.update(payload)
+    return digest.hexdigest()

@@ -18,7 +18,10 @@ pub fn prepare(
     destinations: circle_affine.Destinations,
     request: cpu_state_machine.Request,
 ) !circle_affine.PreparedLaunch {
-    _ = try geometry_mod.admit(request);
+    _ = try geometry_mod.admit(
+        request,
+        @import("stwo_core").pcs.PcsConfig.default(),
+    );
     return circle_affine.prepare(
         session,
         destinations,

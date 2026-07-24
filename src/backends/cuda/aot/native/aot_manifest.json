@@ -12,6 +12,30 @@
     "semantic_hash": "578d333ea30082f5"
   },
   {
+    "abi_schema": "native_state_machine_constraint_v1",
+    "cache_key": "be136f524ac0d95c",
+    "file": "constraint_state_machine_be136f524ac0d95c.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_constraint_state_machine_slab_v1_199a83f08c52455b",
+    "kind": "constraint",
+    "label": "state_machine",
+    "program_identity": "745dadfa866da3b5d3d7e2d52830bbc48765427a4a0c2e4fab974088580f538b",
+    "semantic_contract": "stwo-zig/native/state-machine/constraint/v1;field=qm31;rows=2^(log_n_rows+1);statement=14_resident_words;composition=x_axis_claimed_sum+y_axis_claimed_sum;output=coordinate_slab[coordinate*stride+row];launches=1",
+    "semantic_hash": "9c16d18fc33c541d"
+  },
+  {
+    "abi_schema": "native_state_machine_statement_v1",
+    "cache_key": "2aff3bfd07da4568",
+    "file": "constraint_state_machine_statement_2aff3bfd07da4568.cu",
+    "identity_scheme": "sha256-source-closure-and-contract-v2",
+    "kernel_name": "stwo_native_statement_state_machine_v1_6324a81f31d00d9e",
+    "kind": "constraint",
+    "label": "state_machine_statement",
+    "program_identity": "7e7f0bf52e90cf640a84027c79f704ae1f5a660ec0735080b078f464a1a8ce4c",
+    "semantic_contract": "stwo-zig/native/state-machine/statement/v1;transcript=resident-blake2s;statement0=log_n_rows,log_n_rows_minus_one;draws=z_then_alpha_as_two_independent_secure_felts;public_input=initial_x,initial_y,final_x,final_y;claims=telescoping_inverse_endpoints;mix=statement0,draws,public_input,claims;output=resident_statement_14_words;launches=1",
+    "semantic_hash": "f8c07cd18bc98ffa"
+  },
+  {
     "abi_schema": "native_constraint_slab_v1",
     "cache_key": "7a6ba68d80b91b07",
     "file": "constraint_wide_fibonacci_7a6ba68d80b91b07.cu",

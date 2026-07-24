@@ -222,7 +222,7 @@ fn decodeTraceOpenings(
     var opening_index: usize = 0;
     for (trace_trees, 0..) |trace_tree, role_index| {
         if (!trace_tree.decommitted) continue;
-        if (!trace_tree.sampled or trace_tree.column_count == 0)
+        if (trace_tree.column_count == 0)
             return error.InvalidTraceOpening;
         const tree = bundle.trees[opening_index];
         const values_count = std.math.mul(

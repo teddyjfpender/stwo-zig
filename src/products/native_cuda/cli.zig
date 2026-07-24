@@ -7,6 +7,8 @@ pub const xor_protocol_name = "raw-stwo-xor-v1";
 pub const plonk_protocol_name = "raw-stwo-plonk-v1";
 pub const blake_protocol_name = "raw-stwo-blake-v1";
 pub const poseidon_protocol_name = "raw-stwo-poseidon-v1";
+pub const state_machine_protocol_name =
+    "raw-stwo-state-machine-v1";
 pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
@@ -18,6 +20,7 @@ pub const Air = enum {
     plonk,
     blake,
     poseidon,
+    state_machine,
 
     pub fn protocolName(self: Air) []const u8 {
         return switch (self) {
@@ -26,6 +29,7 @@ pub const Air = enum {
             .plonk => plonk_protocol_name,
             .blake => blake_protocol_name,
             .poseidon => poseidon_protocol_name,
+            .state_machine => state_machine_protocol_name,
         };
     }
 };
@@ -44,6 +48,8 @@ pub const Prove = struct {
     log_size: ?u32,
     log_step: ?u32,
     offset: ?u64,
+    initial_x: ?u32 = null,
+    initial_y: ?u32 = null,
     output: []const u8,
     report_out: ?[]const u8,
     repeat: u32,
@@ -66,6 +72,8 @@ const Flag = enum {
     log_size,
     log_step,
     offset,
+    initial_x,
+    initial_y,
     output,
     report_out,
     repeat,
@@ -86,6 +94,8 @@ const Scratch = struct {
     log_size: ?u32 = null,
     log_step: ?u32 = null,
     offset: ?u64 = null,
+    initial_x: ?u32 = null,
+    initial_y: ?u32 = null,
     output: ?[]const u8 = null,
     report_out: ?[]const u8 = null,
     repeat: ?u32 = null,
@@ -141,6 +151,11 @@ fn finish(scratch: Scratch) !Prove {
     const repeat = scratch.repeat orelse 1;
     if (repeat == 0 or repeat > max_repetitions)
         return error.InvalidRepeatCount;
+    if (air != .state_machine and
+        (scratch.initial_x != null or scratch.initial_y != null))
+    {
+        return error.UnexpectedShapeArgument;
+    }
     switch (air) {
         .wide_fibonacci => {
             if (scratch.log_size != null or
@@ -204,6 +219,28 @@ fn finish(scratch: Scratch) !Prove {
             _ = scratch.log_n_instances orelse
                 return error.MissingLogInstances;
         },
+        .state_machine => {
+            if (scratch.sequence_len != null or
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse
+                return error.MissingLogRows;
+            const initial_x = scratch.initial_x orelse
+                return error.MissingInitialX;
+            const initial_y = scratch.initial_y orelse
+                return error.MissingInitialY;
+            if (initial_x >= 2_147_483_647 or
+                initial_y >= 2_147_483_647)
+            {
+                return error.InvalidInitialState;
+            }
+        },
     }
     return .{
         .air = air,
@@ -214,6 +251,8 @@ fn finish(scratch: Scratch) !Prove {
         .log_size = scratch.log_size,
         .log_step = scratch.log_step,
         .offset = scratch.offset,
+        .initial_x = scratch.initial_x,
+        .initial_y = scratch.initial_y,
         .output = output,
         .report_out = report_out,
         .repeat = repeat,
@@ -257,6 +296,12 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
         .offset => scratch.offset =
             std.fmt.parseInt(u64, value, 10) catch
                 return error.InvalidOffset,
+        .initial_x => scratch.initial_x =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidInitialState,
+        .initial_y => scratch.initial_y =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidInitialState,
         .output => scratch.output = value,
         .report_out => scratch.report_out = value,
         .repeat => scratch.repeat =
@@ -289,14 +334,15 @@ pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
         \\Usage: stwo-zig-native-cuda prove [options]
         \\
-        \\  --air wide_fibonacci | xor | plonk | blake | poseidon
+        \\  --air wide_fibonacci | xor | plonk | blake | poseidon | state_machine
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1 | raw-stwo-blake-v1 | raw-stwo-poseidon-v1
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1 | raw-stwo-blake-v1 | raw-stwo-poseidon-v1 | raw-stwo-state-machine-v1
         \\  wide_fibonacci: --log-n-rows N --sequence-len N
         \\  xor:            --log-size N --log-step N --offset N
         \\  plonk:          --log-n-rows N
         \\  blake:          --log-n-rows N --n-rounds N
         \\  poseidon:       --log-n-instances N
+        \\  state_machine:  --log-n-rows N --initial-x N --initial-y N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
@@ -472,6 +518,30 @@ test "parser admits only the exact Plonk shape and protocol" {
     try std.testing.expectEqual(Air.plonk, request.air);
     try std.testing.expectEqual(@as(u32, 16), request.log_n_rows.?);
     try std.testing.expect(request.sequence_len == null);
+}
+
+test "parser admits the exact State Machine shape and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "state_machine",
+        "--backend",
+        backend_name,
+        "--protocol",
+        state_machine_protocol_name,
+        "--log-n-rows",
+        "16",
+        "--initial-x",
+        "9",
+        "--initial-y",
+        "3",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.state_machine, request.air);
+    try std.testing.expectEqual(@as(u32, 16), request.log_n_rows.?);
+    try std.testing.expectEqual(@as(u32, 9), request.initial_x.?);
+    try std.testing.expectEqual(@as(u32, 3), request.initial_y.?);
 }
 
 test "parser admits explicit direct execution and rejects ambiguous modes" {

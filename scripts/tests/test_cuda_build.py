@@ -27,6 +27,7 @@ from cuda_build_lib.builder import (  # noqa: E402
     validate_aot_manifest,
     write_aot_carriers,
 )
+from cuda_build_lib.aot_identity import source_closure_identity  # noqa: E402
 from cuda_device_smoke import compile_command  # noqa: E402
 
 
@@ -129,8 +130,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
         self.assertEqual(0, plan["ordinary_source_count"])
-        self.assertEqual(6, plan["aot_source_count"])
-        self.assertEqual(12, plan["aot_cubin_count"])
+        self.assertEqual(8, plan["aot_source_count"])
+        self.assertEqual(16, plan["aot_cubin_count"])
         self.assertEqual(expected_sources, actual_sources)
         self.assertEqual(len(native["sources"]), plan["native_runtime_source_count"])
         self.assertEqual(len(native["host_sources"]), plan["native_host_source_count"])
@@ -203,6 +204,31 @@ class CudaBuildTests(unittest.TestCase):
             before["build_identity_sha256"],
             after["build_identity_sha256"],
         )
+
+    def test_native_aot_closure_identity_binds_headers_not_entry_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            cuda_root = Path(temporary) / "cuda"
+            native_aot = cuda_root / "aot" / "native"
+            native_headers = cuda_root / "native" / "transcript"
+            native_aot.mkdir(parents=True)
+            native_headers.mkdir(parents=True)
+            header = native_headers / "state.cuh"
+            header.write_text("#define STATE_WORDS 14\n", encoding="utf-8")
+            source_a = native_aot / "statement_aaaaaaaaaaaaaaaa.cu"
+            source_b = native_aot / "statement_bbbbbbbbbbbbbbbb.cu"
+            source_bytes = '#include "../../native/transcript/state.cuh"\n'
+            source_a.write_text(source_bytes, encoding="utf-8")
+            source_b.write_text(source_bytes, encoding="utf-8")
+
+            before = source_closure_identity(native_aot, source_a)
+            self.assertEqual(
+                before,
+                source_closure_identity(native_aot, source_b),
+            )
+            header.write_text("#define STATE_WORDS 15\n", encoding="utf-8")
+            after = source_closure_identity(native_aot, source_a)
+
+        self.assertNotEqual(before, after)
 
     def test_native_runtime_has_no_jit_or_cpu_fallback_surface(self) -> None:
         closure = load_native_closure(NATIVE)
@@ -358,7 +384,7 @@ class CudaBuildTests(unittest.TestCase):
         manifest = json.loads(
             (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(6, len(manifest))
+        self.assertEqual(8, len(manifest))
         entry = next(item for item in manifest if item["label"] == "wide_fibonacci")
         self.assertEqual("native_constraint_slab_v1", entry["abi_schema"])
         self.assertEqual(
