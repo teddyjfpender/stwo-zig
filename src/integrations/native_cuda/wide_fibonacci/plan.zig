@@ -6,6 +6,7 @@
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const canonical_ingress = @import("canonical_ingress.zig");
 const layout_mod = @import("layout.zig");
 const proof_bundle = @import("proof_bundle.zig");
 const request = @import("request.zig");
@@ -15,11 +16,14 @@ const topology = @import("topology.zig");
 const transcript_schedule = @import("transcript_schedule.zig");
 
 pub const BindingId = enum {
-    canonical_twiddle_pack,
     composition_split,
-    circle_coset_constants,
     canonical_proof_sections,
 };
+
+/// Reusable host authority for values uploaded during ingress. It is separate
+/// from `PreparedPlan` so structural planning never rebuilds canonical
+/// twiddles and a future proof session can retain one pack across requests.
+pub const CanonicalIngress = canonical_ingress.Pack;
 
 pub const DynamicBinding = struct {
     id: BindingId,
@@ -31,19 +35,9 @@ pub const DynamicBinding = struct {
 /// protocol data derived by core Stwo or final proof assembly work.
 pub const remaining_dynamic_bindings = [_]DynamicBinding{
     .{
-        .id = .canonical_twiddle_pack,
-        .stage = .ingress,
-        .requirement = "bind canonical forward/inverse twiddles and per-fold offsets; FRI consumes the inverse twiddle buffer",
-    },
-    .{
         .id = .composition_split,
         .stage = .constraint_evaluation,
         .requirement = "bind the exact four-coordinate to eight-base-column split and coefficient transform",
-    },
-    .{
-        .id = .circle_coset_constants,
-        .stage = .oods,
-        .requirement = "bind OODS offsets, half-coset initial index and step, SI0, and vanishing rotation from core Stwo",
     },
     .{
         .id = .canonical_proof_sections,
@@ -275,7 +269,7 @@ test "topology slots contain no device pointer table allocations" {
         error.ArenaSlotMissing,
         prepared.arena_plan.placement(0x0900),
     );
-    try std.testing.expectEqual(@as(usize, 4), remaining_dynamic_bindings.len);
+    try std.testing.expectEqual(@as(usize, 2), remaining_dynamic_bindings.len);
     for (remaining_dynamic_bindings, 0..) |binding, index| {
         for (remaining_dynamic_bindings[0..index]) |previous| {
             try std.testing.expect(binding.id != previous.id);
