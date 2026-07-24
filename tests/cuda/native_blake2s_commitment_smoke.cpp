@@ -25,9 +25,10 @@ extern "C" int stwo_blake2s_progressive_init_on(
     std::uint32_t size, void *states, void *stream);
 extern "C" int stwo_blake2s_progressive_absorb_on(
     std::uint32_t size,
-    std::uint32_t column_count,
     std::uint32_t absorbed_before,
-    std::uint32_t **columns,
+    const std::uint32_t *columns,
+    std::size_t column_stride_words,
+    std::size_t column_capacity_words,
     void *states,
     void *stream);
 extern "C" int stwo_blake2s_progressive_finalize_on(
@@ -42,7 +43,9 @@ extern "C" int stwo_blake2s_interior4_on(
     const Hash *previous, std::uint32_t output_size, Hash *result, void *stream);
 extern "C" int stwo_blake2s_fri_leaf_on(
     std::uint32_t evaluation_size,
-    std::uint32_t **coordinates,
+    const std::uint32_t *coordinates,
+    std::size_t coordinate_stride_words,
+    std::size_t coordinate_capacity_words,
     std::uint32_t log_rows_per_leaf,
     Hash *result,
     void *stream);
@@ -110,34 +113,91 @@ bool expect_hash(
 
 bool test_progressive(DeviceArena &arena) {
     constexpr std::uint32_t kRows = 8;
-    constexpr std::uint32_t kMaxColumns = 33;
-    const std::uint32_t widths[] = {1, 15, 16, 17, 31, 32, 33};
+    constexpr std::uint32_t kMaxColumns = 37;
+    constexpr std::size_t kStride = kRows + 5;
+    const std::uint32_t widths[] = {1, 15, 16, 17, 31, 32, 33, 37};
 
-    std::vector<std::vector<std::uint32_t>> host_columns(
-        kMaxColumns, std::vector<std::uint32_t>(kRows));
-    std::vector<std::uint32_t *> device_columns(kMaxColumns);
+    std::vector<std::uint32_t> host_columns(
+        kMaxColumns * kStride, 0xa5a5a5a5u);
     for (std::uint32_t column = 0; column < kMaxColumns; ++column) {
         for (std::uint32_t row = 0; row < kRows; ++row) {
-            host_columns[column][row] = 1009u * column + 17u * row + 3u;
-        }
-        device_columns[column] = arena.allocate(kRows);
-        if (device_columns[column] == nullptr ||
-            !arena.upload(
-                device_columns[column],
-                host_columns[column].data(),
-                kRows * sizeof(std::uint32_t))) {
-            return false;
+            host_columns[column * kStride + row] =
+                1009u * column + 17u * row + 3u;
         }
     }
-    auto *device_table = arena.allocate(
-        (device_columns.size() * sizeof(void *) + 3) / 4);
+    auto *device_columns = arena.allocate(host_columns.size());
     auto *states = arena.allocate(kRows * 24);
     auto *output = reinterpret_cast<Hash *>(arena.allocate(kRows * 8));
-    if (device_table == nullptr || states == nullptr || output == nullptr ||
+    if (device_columns == nullptr || states == nullptr || output == nullptr ||
         !arena.upload(
-            device_table,
-            device_columns.data(),
-            device_columns.size() * sizeof(void *))) {
+            device_columns,
+            host_columns.data(),
+            host_columns.size() * sizeof(std::uint32_t))) {
+        return false;
+    }
+
+    if (stwo_blake2s_progressive_absorb_on(
+            kRows,
+            0,
+            device_columns,
+            kStride,
+            2 * kStride - 1,
+            states,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "progressive accepted undersized source slab\n");
+        return false;
+    }
+    if (stwo_blake2s_progressive_absorb_on(
+            kRows,
+            0,
+            device_columns,
+            kRows - 1,
+            4 * (kRows - 1),
+            states,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "progressive accepted a short column stride\n");
+        return false;
+    }
+    if (stwo_blake2s_progressive_absorb_on(
+            kRows,
+            0,
+            states,
+            kRows,
+            kRows,
+            states,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "progressive accepted aliased state and source\n");
+        return false;
+    }
+    if (stwo_blake2s_progressive_absorb_on(
+            kRows,
+            UINT32_MAX,
+            device_columns,
+            kStride,
+            2 * kStride,
+            states,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "progressive accepted an absorbed-count overflow\n");
+        return false;
+    }
+    if (stwo_blake2s_progressive_absorb_on(
+            kRows,
+            0,
+            device_columns,
+            kStride,
+            kStride,
+            states,
+            nullptr) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "progressive accepted a null proof stream\n");
+        return false;
+    }
+    if (stwo_blake2s_progressive_finalize_on(
+            kRows,
+            1,
+            states,
+            reinterpret_cast<Hash *>(states),
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "progressive finalize accepted aliased buffers\n");
         return false;
     }
 
@@ -152,9 +212,10 @@ bool test_progressive(DeviceArena &arena) {
         if (!check(
                 stwo_blake2s_progressive_absorb_on(
                     kRows,
-                    first,
                     0,
-                    reinterpret_cast<std::uint32_t **>(device_table),
+                    device_columns,
+                    kStride,
+                    first * kStride,
                     states,
                     arena.stream),
                 "progressive first absorb")) {
@@ -164,9 +225,10 @@ bool test_progressive(DeviceArena &arena) {
             !check(
                 stwo_blake2s_progressive_absorb_on(
                     kRows,
-                    width - first,
                     first,
-                    reinterpret_cast<std::uint32_t **>(device_table) + first,
+                    device_columns + first * kStride,
+                    kStride,
+                    (width - first) * kStride,
                     states,
                     arena.stream),
                 "progressive second absorb")) {
@@ -186,7 +248,7 @@ bool test_progressive(DeviceArena &arena) {
         for (std::uint32_t row = 0; row < kRows; ++row) {
             std::vector<std::uint32_t> words;
             for (std::uint32_t column = 0; column < width; ++column) {
-                words.push_back(host_columns[column][row]);
+                words.push_back(host_columns[column * kStride + row]);
             }
             if (!expect_hash(
                     actual[row],
@@ -202,26 +264,55 @@ bool test_progressive(DeviceArena &arena) {
 
 bool test_merkle_and_fri(DeviceArena &arena) {
     constexpr std::uint32_t kEvaluationSize = 16;
-    std::vector<std::vector<std::uint32_t>> coordinates(
-        4, std::vector<std::uint32_t>(kEvaluationSize));
-    std::vector<std::uint32_t *> device_coordinates(4);
+    constexpr std::size_t kCoordinateStride = kEvaluationSize + 7;
+    std::vector<std::uint32_t> coordinates(
+        4 * kCoordinateStride, 0x5a5a5a5au);
     for (std::uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
         for (std::uint32_t row = 0; row < kEvaluationSize; ++row) {
-            coordinates[coordinate][row] = 257u * coordinate + 11u * row + 5u;
-        }
-        device_coordinates[coordinate] = arena.allocate(kEvaluationSize);
-        if (device_coordinates[coordinate] == nullptr ||
-            !arena.upload(
-                device_coordinates[coordinate],
-                coordinates[coordinate].data(),
-                kEvaluationSize * sizeof(std::uint32_t))) {
-            return false;
+            coordinates[coordinate * kCoordinateStride + row] =
+                257u * coordinate + 11u * row + 5u;
         }
     }
-    auto *table = arena.allocate((4 * sizeof(void *) + 3) / 4);
+    auto *device_coordinates = arena.allocate(coordinates.size());
     auto *leaves = reinterpret_cast<Hash *>(arena.allocate(kEvaluationSize * 8));
-    if (table == nullptr || leaves == nullptr ||
-        !arena.upload(table, device_coordinates.data(), 4 * sizeof(void *))) {
+    if (device_coordinates == nullptr || leaves == nullptr ||
+        !arena.upload(
+            device_coordinates,
+            coordinates.data(),
+            coordinates.size() * sizeof(std::uint32_t))) {
+        return false;
+    }
+    if (stwo_blake2s_fri_leaf_on(
+            kEvaluationSize,
+            device_coordinates,
+            kCoordinateStride,
+            3 * kCoordinateStride,
+            0,
+            leaves,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "FRI leaf accepted undersized coordinate slab\n");
+        return false;
+    }
+    if (stwo_blake2s_fri_leaf_on(
+            kEvaluationSize,
+            device_coordinates,
+            kEvaluationSize - 1,
+            4 * (kEvaluationSize - 1),
+            0,
+            leaves,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "FRI leaf accepted a short coordinate stride\n");
+        return false;
+    }
+    if (stwo_blake2s_fri_leaf_on(
+            kEvaluationSize,
+            device_coordinates,
+            kCoordinateStride,
+            coordinates.size(),
+            0,
+            reinterpret_cast<Hash *>(device_coordinates),
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "FRI leaf accepted aliased coordinates/output\n");
         return false;
     }
     for (std::uint32_t log_rows : {0u, 2u}) {
@@ -229,7 +320,9 @@ bool test_merkle_and_fri(DeviceArena &arena) {
         if (!check(
                 stwo_blake2s_fri_leaf_on(
                     kEvaluationSize,
-                    reinterpret_cast<std::uint32_t **>(table),
+                    device_coordinates,
+                    kCoordinateStride,
+                    coordinates.size(),
                     log_rows,
                     leaves,
                     arena.stream),
@@ -247,7 +340,10 @@ bool test_merkle_and_fri(DeviceArena &arena) {
             for (std::uint32_t offset = 0; offset < rows; ++offset) {
                 for (std::uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
                     words.push_back(
-                        coordinates[coordinate][rows * leaf + offset]);
+                        coordinates[
+                            coordinate * kCoordinateStride +
+                            rows * leaf +
+                            offset]);
                 }
             }
             if (!expect_hash(

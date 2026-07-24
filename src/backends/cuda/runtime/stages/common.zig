@@ -7,7 +7,6 @@ const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
 
 pub const Words = column.DeviceSlice(u32);
-pub const PointerTable = column.DeviceSlice(usize);
 pub const SecureFields = column.DeviceSlice(field.SecureField);
 pub const CirclePoints = column.DeviceSlice(field.CirclePointBaseField);
 pub const SecureCirclePoints = column.DeviceSlice(field.SecureCirclePoint);
@@ -113,30 +112,6 @@ pub fn nonce(
     slice: Nonce,
 ) runtime_error.Error!*u64 {
     return @ptrCast(try session.context.deviceSlicePointer(u64, slice, 1));
-}
-
-pub fn constWordTable(
-    session: anytype,
-    table: PointerTable,
-    minimum: usize,
-) runtime_error.Error!*const [*]const u32 {
-    return @ptrCast(try session.context.deviceSlicePointer(usize, table, minimum));
-}
-
-pub fn mutableWordTable(
-    session: anytype,
-    table: PointerTable,
-    minimum: usize,
-) runtime_error.Error!*const [*]u32 {
-    return @ptrCast(try session.context.deviceSlicePointer(usize, table, minimum));
-}
-
-pub fn hashTable(
-    session: anytype,
-    table: PointerTable,
-    minimum: usize,
-) runtime_error.Error!*const [*]const field.Blake2sHash {
-    return @ptrCast(try session.context.deviceSlicePointer(usize, table, minimum));
 }
 
 pub fn count(value: usize) runtime_error.Error!u32 {

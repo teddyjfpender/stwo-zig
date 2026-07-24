@@ -1,7 +1,8 @@
-// Resident Blake2s Merkle stages copied from the pinned Rust CUDA authority.
-// These kernels operate only on caller-owned device buffers and streams.
+// Blake2s semantics derive from the pinned Rust CUDA authority. These kernels
+// operate only on checked caller-owned device ranges and proof streams.
 
 #include "blake2s_core.cuh"
+#include "resident_layout.cuh"
 
 #include <cuda_runtime_api.h>
 
@@ -20,7 +21,8 @@ __global__ void child_layer_kernel(
 
 __global__ void fri_leaf_kernel(
     uint32_t evaluation_size,
-    uint32_t **coordinates,
+    const uint32_t *coordinates,
+    size_t coordinate_stride_words,
     uint32_t log_rows_per_leaf,
     Hash *result) {
     const uint32_t leaf = blockIdx.x * blockDim.x + threadIdx.x;
@@ -33,7 +35,11 @@ __global__ void fri_leaf_kernel(
     if (log_rows_per_leaf == 0) {
 #pragma unroll
         for (int coordinate = 0; coordinate < 4; ++coordinate) {
-            message[coordinate] = coordinates[coordinate][leaf];
+            message[coordinate] =
+                coordinates[
+                    static_cast<size_t>(coordinate) *
+                        coordinate_stride_words +
+                    leaf];
         }
         compress(hash, message, 16, 0xffffffffu);
     } else {
@@ -42,7 +48,11 @@ __global__ void fri_leaf_kernel(
 #pragma unroll
             for (int coordinate = 0; coordinate < 4; ++coordinate) {
                 message[coordinate + 4 * offset] =
-                    coordinates[coordinate][4 * leaf + offset];
+                    coordinates[
+                        static_cast<size_t>(coordinate) *
+                            coordinate_stride_words +
+                        4 * leaf +
+                        offset];
             }
         }
         compress(hash, message, 64, 0xffffffffu);
@@ -126,18 +136,35 @@ extern "C" int stwo_blake2s_layer_on(
 
 extern "C" int stwo_blake2s_fri_leaf_on(
     uint32_t evaluation_size,
-    uint32_t **coordinates,
+    const uint32_t *coordinates,
+    size_t coordinate_stride_words,
+    size_t coordinate_capacity_words,
     uint32_t log_rows_per_leaf,
     stwo::cuda::blake2s::Hash *result,
     void *stream) {
+    using namespace stwo::cuda::blake2s;
+    DeviceRange coordinate_range{};
+    DeviceRange result_range{};
     if (!stwo::cuda::blake2s::is_power_of_two(evaluation_size) ||
-        coordinates == nullptr ||
         (log_rows_per_leaf != 0 && log_rows_per_leaf != 2) ||
         evaluation_size < (1u << log_rows_per_leaf) ||
         result == nullptr || stream == nullptr) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
     const uint32_t leaf_count = evaluation_size >> log_rows_per_leaf;
+    uint32_t coordinate_count = 0;
+    if (!exact_word_slab_range(
+            coordinates,
+            coordinate_capacity_words,
+            coordinate_stride_words,
+            evaluation_size,
+            &coordinate_count,
+            &coordinate_range) ||
+        coordinate_count != 4 ||
+        !element_range(result, leaf_count, &result_range) ||
+        ranges_overlap(coordinate_range, result_range)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
     stwo::cuda::blake2s::fri_leaf_kernel<<<
         stwo::cuda::blake2s::blocks_for(leaf_count),
         stwo::cuda::blake2s::kBlockSize,
@@ -145,6 +172,7 @@ extern "C" int stwo_blake2s_fri_leaf_on(
         reinterpret_cast<cudaStream_t>(stream)>>>(
             evaluation_size,
             coordinates,
+            coordinate_stride_words,
             log_rows_per_leaf,
             result);
     return static_cast<int>(cudaPeekAtLastError());

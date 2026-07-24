@@ -104,10 +104,6 @@ fn words(len: usize) column.DeviceSlice(u32) {
     return view(u32, len);
 }
 
-fn pointers(len: usize) column.DeviceSlice(usize) {
-    return view(usize, len);
-}
-
 fn wordMatrix(
     address: usize,
     column_count: usize,
@@ -201,7 +197,7 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         .trace_commit,
         16,
         0,
-        pointers(4),
+        wordMatrix(0x60000, 4, 16),
         states(16),
     );
     try commitment.progressiveFinalize(
@@ -209,13 +205,31 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         .trace_commit,
         4,
         states(16),
-        hashes(16),
+        viewAt(field.Blake2sHash, 0x68000, 16),
     );
-    try commitment.layer(&session, .trace_commit, hashes(32), hashes(16), false);
-    try commitment.layer(&session, .trace_commit, hashes(256), hashes(16), true);
+    try commitment.layer(
+        &session,
+        .trace_commit,
+        viewAt(field.Blake2sHash, 0x90000, 32),
+        viewAt(field.Blake2sHash, 0x91000, 16),
+        false,
+    );
+    try commitment.layer(
+        &session,
+        .trace_commit,
+        viewAt(field.Blake2sHash, 0xa0000, 256),
+        viewAt(field.Blake2sHash, 0xa2000, 16),
+        true,
+    );
 
     session.context.active_stage = .fri_commit;
-    try commitment.friLeaves(&session, pointers(4), 256, 0, hashes(256));
+    try commitment.friLeaves(
+        &session,
+        wordMatrix(0x70000, 4, 256),
+        256,
+        0,
+        viewAt(field.Blake2sHash, 0x80000, 256),
+    );
     const boundary = transcript.Boundary{
         .expected_step = 1,
         .expected_chain = 2,

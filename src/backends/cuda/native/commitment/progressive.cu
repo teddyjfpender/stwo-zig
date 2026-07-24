@@ -1,8 +1,9 @@
-// Extracted from the pinned Rust CUDA authority's progressive Blake2s path.
-// The product form is allocation-free and requires the proof-owned stream.
+// Blake2s semantics derive from the pinned Rust CUDA authority. The product ABI
+// replaces its pointer tables with a checked resident slab on the proof stream.
 
 #include "blake2s_core.cuh"
 #include "progressive_scalar.cuh"
+#include "resident_layout.cuh"
 
 #include <cuda_runtime_api.h>
 
@@ -87,7 +88,8 @@ __global__ void progressive_absorb_kernel(
     uint32_t size,
     uint32_t column_count,
     uint32_t absorbed_before,
-    uint32_t **columns,
+    const uint32_t *columns,
+    size_t column_stride_words,
     ProgressiveState *states) {
     const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= size) return;
@@ -103,7 +105,8 @@ __global__ void progressive_absorb_kernel(
             STWO_COMPRESS_PROGRESSIVE(compressed_bytes, 0);
             pending = 0;
         }
-        const uint32_t word = columns[column][row];
+        const uint32_t word =
+            columns[static_cast<size_t>(column) * column_stride_words + row];
         switch (pending++) {
             case 0: p0 = word; break;
             case 1: p1 = word; break;
@@ -176,7 +179,9 @@ extern "C" int stwo_blake2s_progressive_init_on(
     uint32_t size,
     stwo::cuda::blake2s::ProgressiveState *states,
     void *stream) {
-    if (size == 0 || states == nullptr || stream == nullptr) {
+    stwo::cuda::blake2s::DeviceRange state_range{};
+    if (stream == nullptr ||
+        !stwo::cuda::blake2s::element_range(states, size, &state_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
     stwo::cuda::blake2s::progressive_init_kernel<<<
@@ -189,25 +194,39 @@ extern "C" int stwo_blake2s_progressive_init_on(
 
 extern "C" int stwo_blake2s_progressive_absorb_on(
     uint32_t size,
-    uint32_t column_count,
     uint32_t absorbed_before,
-    uint32_t **columns,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
     stwo::cuda::blake2s::ProgressiveState *states,
     void *stream) {
-    if (size == 0 || column_count == 0 || columns == nullptr ||
-        states == nullptr || stream == nullptr ||
-        absorbed_before > UINT32_MAX - column_count) {
+    using namespace stwo::cuda::blake2s;
+    DeviceRange column_range{};
+    DeviceRange state_range{};
+    uint32_t column_count = 0;
+    if (stream == nullptr ||
+        !exact_word_slab_range(
+            columns,
+            column_capacity_words,
+            column_stride_words,
+            size,
+            &column_count,
+            &column_range) ||
+        !element_range(states, size, &state_range) ||
+        absorbed_before > UINT32_MAX - column_count ||
+        ranges_overlap(column_range, state_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    stwo::cuda::blake2s::progressive_absorb_kernel<<<
-        stwo::cuda::blake2s::blocks_for(size),
-        stwo::cuda::blake2s::kBlockSize,
+    progressive_absorb_kernel<<<
+        blocks_for(size),
+        kBlockSize,
         0,
         reinterpret_cast<cudaStream_t>(stream)>>>(
             size,
             column_count,
             absorbed_before,
             columns,
+            column_stride_words,
             states);
     return static_cast<int>(cudaPeekAtLastError());
 }
@@ -218,13 +237,18 @@ extern "C" int stwo_blake2s_progressive_finalize_on(
     const stwo::cuda::blake2s::ProgressiveState *states,
     stwo::cuda::blake2s::Hash *result,
     void *stream) {
-    if (size == 0 || states == nullptr || result == nullptr ||
-        stream == nullptr) {
+    using namespace stwo::cuda::blake2s;
+    DeviceRange state_range{};
+    DeviceRange result_range{};
+    if (stream == nullptr ||
+        !element_range(states, size, &state_range) ||
+        !element_range(result, size, &result_range) ||
+        ranges_overlap(state_range, result_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    stwo::cuda::blake2s::progressive_finalize_kernel<<<
-        stwo::cuda::blake2s::blocks_for(size),
-        stwo::cuda::blake2s::kBlockSize,
+    progressive_finalize_kernel<<<
+        blocks_for(size),
+        kBlockSize,
         0,
         reinterpret_cast<cudaStream_t>(stream)>>>(
             size,
