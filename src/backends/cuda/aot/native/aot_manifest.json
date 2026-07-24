@@ -24,6 +24,18 @@
     "semantic_hash": "6f60dbf6e15716eb"
   },
   {
+    "abi_schema": "native_m31_permutation_trace_v1",
+    "cache_key": "1e2a6a8f48d78fa3",
+    "file": "witness_m31_permutation_trace_1e2a6a8f48d78fa3.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799",
+    "kind": "witness",
+    "label": "m31_permutation_trace",
+    "program_identity": "682f7ebf78af303433d7796b0a4d8fb9ae8930779bdc466c418683a27721426d",
+    "semantic_contract": "stwo-zig/native/m31-permutation-trace/v1;field=m31;state_width=16;geometry=row_count=2^log_n_rows,column_count=replication_count*(16*(1+2*half_full_rounds)+partial_rounds);initial=from_u64(row*initial_row_stride+state+rep*initial_rep_stride);external=add(base+round*round_stride+state),m4x4,interblock_sum,pow5,store16;partial=state0+base+round*stride,internal_diag_pow2_plus_sum,pow5_state0,store1;layout=column_major_slab[column*stride+row];launches=1",
+    "semantic_hash": "81b27c7c25216799"
+  },
+  {
     "abi_schema": "native_seeded_xorshift_trace_v1",
     "cache_key": "1888a1a02b4e35b5",
     "file": "witness_seeded_xorshift_trace_1888a1a02b4e35b5.cu",

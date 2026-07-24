@@ -21,6 +21,7 @@ ABI_SCHEMAS = {
     "native_constraint_slab_v1": 4,
     "native_constant_qm31_v1": 5,
     "native_seeded_xorshift_trace_v1": 6,
+    "native_m31_permutation_trace_v1": 7,
 }
 
 
