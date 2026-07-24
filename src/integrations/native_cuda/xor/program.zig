@@ -1,12 +1,23 @@
 //! Generic proof-program emission for a materialized Native XOR trace.
 
 const std = @import("std");
+const arena = @import("../../../backends/cuda/runtime/arena.zig");
+const cuda_plan = @import(
+    "../../../backends/cuda/runtime/execution_plan.zig",
+);
 const geometry_mod = @import("geometry.zig");
 const identities = @import("identities.zig");
+const layout_mod = @import("layout.zig");
+const topology = @import("topology.zig");
 const trace_mod = @import("trace.zig");
 const ir = @import("stwo_backend_contracts").proof_program;
 
 const node_count = 8;
+
+pub const kernel_pack_identity: ir.Digest = ir.identityDigest(
+    "stwo-zig/native-cuda/xor/aot-pack/v1",
+);
+pub const scheduler_version = cuda_plan.schedule_version;
 
 pub fn emit(
     allocator: std.mem.Allocator,
@@ -22,6 +33,77 @@ pub fn emitGeometry(
     allocator: std.mem.Allocator,
     geometry: geometry_mod.Geometry,
 ) !ir.ProofProgram {
+    const buffer = [_]ir.Buffer{.{
+        .id = 0,
+        .words = geometry.trace_elements,
+        .alignment_words = 1,
+        .live_from = .ingress,
+        .live_through = .decommit,
+        .storage = .request_local,
+        .immutable = true,
+    }};
+    return emitWithBuffers(allocator, geometry, &buffer);
+}
+
+pub fn emitPlan(
+    allocator: std.mem.Allocator,
+    geometry: geometry_mod.Geometry,
+    logical: layout_mod.Layout,
+    quotient: topology.Quotient,
+    fri: topology.Fri,
+    requirements: []const arena.Requirement,
+) !ir.ProofProgram {
+    if (!std.meta.eql(logical.geometry, geometry) or
+        quotient.prepared_terms.len !=
+            geometry_mod.sampled_mask_points or
+        fri.layers.len != geometry.fri_tree_count)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    const buffers = try allocator.alloc(ir.Buffer, requirements.len);
+    defer allocator.free(buffers);
+    for (requirements, 0..) |requirement, index| {
+        buffers[index] = .{
+            .id = requirement.id,
+            .words = requirement.words,
+            .alignment_words = @intCast(requirement.alignment_words),
+            .live_from = stage(requirement.live_from),
+            .live_through = stage(requirement.live_through),
+            .storage = .request_local,
+            .immutable = requirement.live_from == .ingress and
+                requirement.live_through != .proof_assembly,
+        };
+    }
+    return emitWithBuffers(allocator, geometry, buffers);
+}
+
+pub fn targetFor(session: anytype) !cuda_plan.CompileOptions {
+    const major = std.math.mul(u32, session.device.sm_major, 10) catch
+        return error.InvalidDeviceArchitecture;
+    const sm = std.math.add(
+        u32,
+        major,
+        session.device.sm_minor,
+    ) catch return error.InvalidDeviceArchitecture;
+    return .{
+        .sm = sm,
+        .runtime_build_identity = session.build_identity,
+        .toolchain_identity = session.build_identity,
+        .kernel_pack_identity = kernel_pack_identity,
+        .lane_streams = if (session.context.lane_count > 1)
+            @intCast(session.context.lane_count - 1)
+        else
+            0,
+        .enable_graphs = true,
+        .version = scheduler_version,
+    };
+}
+
+fn emitWithBuffers(
+    allocator: std.mem.Allocator,
+    geometry: geometry_mod.Geometry,
+    buffers: []const ir.Buffer,
+) !ir.ProofProgram {
     var columns = traceColumns();
     for (&columns) |*column| column.log_rows = geometry.statement.log_size;
     const constraints = [_]ir.ConstraintProgram{.{
@@ -36,15 +118,6 @@ pub fn emitGeometry(
     defer allocator.free(barriers);
     const fri_layers = try friLayers(allocator, geometry);
     defer allocator.free(fri_layers);
-    const buffers = [_]ir.Buffer{.{
-        .id = 0,
-        .words = geometry.trace_elements,
-        .alignment_words = 1,
-        .live_from = .ingress,
-        .live_through = .decommit,
-        .storage = .request_local,
-        .immutable = true,
-    }};
     const nodes = try executionNodes(geometry);
     const dependencies = [_]u32{ 0, 1, 2, 3, 4, 5, 6 };
 
@@ -67,10 +140,16 @@ pub fn emitGeometry(
             .composition_degree_log = 2,
         },
         .fri_layers = fri_layers,
-        .buffers = &buffers,
+        .buffers = buffers,
         .nodes = &nodes,
         .dependency_ids = &dependencies,
     });
+}
+
+fn stage(value: @import(
+    "../../../backends/cuda/runtime/telemetry.zig",
+).Stage) ir.Stage {
+    return @enumFromInt(@intFromEnum(value));
 }
 
 fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
