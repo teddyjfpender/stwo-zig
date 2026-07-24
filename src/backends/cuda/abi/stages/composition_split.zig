@@ -12,4 +12,5 @@ pub extern "c" fn stwo_ntt_b2n_composition_split_compact_on(
     inverse_twiddle_words: u32,
     evaluation_domain_size: u32,
     stream: *anyopaque,
+    launches_out: *u32,
 ) c_int;

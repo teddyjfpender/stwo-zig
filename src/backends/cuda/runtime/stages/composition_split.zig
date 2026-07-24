@@ -51,6 +51,7 @@ pub fn OpsFor(comptime Api: type) type {
             if (layout.overlap(inputs.range, twiddles.range))
                 return error.OverlappingDeviceRange;
 
+            var launches: u32 = 0;
             const status =
                 Api.stwo_ntt_b2n_composition_split_compact_on(
                     inputs.pointer,
@@ -64,8 +65,9 @@ pub fn OpsFor(comptime Api: type) type {
                     try common.count(inverse_twiddles.len),
                     try common.count(shape.domain),
                     session.context.stream,
+                    &launches,
                 );
-            try common.recordMany(session, stage, status, log_n);
+            try common.recordMany(session, stage, status, launches);
         }
     };
 }
@@ -125,6 +127,7 @@ test "composition split maps four log4 evaluations to eight log3 coefficients" {
             twiddle_words: u32,
             domain: u32,
             proof_stream: *anyopaque,
+            launches_out: *u32,
         ) c_int {
             const values = @as(usize, 1) << @intCast(log_n);
             if (input_capacity != coordinate_count * values or
@@ -137,6 +140,7 @@ test "composition split maps four log4 evaluations to eight log3 coefficients" {
             }
             launches += 1;
             stream = @intFromPtr(proof_stream);
+            launches_out.* = 2;
             return 0;
         }
     };
@@ -158,7 +162,7 @@ test "composition split maps four log4 evaluations to eight log3 coefficients" {
         @intFromPtr(session.context.stream),
         TestApi.stream,
     );
-    try std.testing.expectEqual(@as(u64, 4), session.launches);
+    try std.testing.expectEqual(@as(u64, 2), session.launches);
 
     var short_input = inputs;
     short_input.storage.len -= 1;

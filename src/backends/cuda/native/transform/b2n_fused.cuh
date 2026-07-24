@@ -227,14 +227,19 @@ __global__ void b2n_init_block(
     }
 }
 
-template <uint32_t LogValues, bool Duplicate>
+template <uint32_t LogValues, bool Duplicate, bool Compact>
 __global__ void b2n_continue(
     ColumnSlab<M31> columns,
+    ColumnSlab<M31> compact_outputs,
+    uint32_t compact_column_offset,
     uint32_t log_n,
     uint32_t min_stage,
     uint32_t max_stage,
     const M31 *twiddles,
     M31 scale) {
+    static_assert(
+        !(Duplicate && Compact),
+        "a B2N continuation cannot duplicate and compact its output");
     constexpr uint32_t stage_count = 2u * LogValues;
     const uint32_t column_index = blockIdx.z;
     const uint32_t block_start =
@@ -333,9 +338,17 @@ __global__ void b2n_continue(
     for (uint32_t i = 0; i < 1u << LogValues; ++i) {
         const uint32_t output_index =
             block_start + i * next_stride + next_offset;
-        column[output_index] = values[i];
-        if constexpr (Duplicate) {
-            column[output_index + (1u << log_n)] = values[i];
+        if constexpr (Compact) {
+            const uint32_t half_values = 1u << (log_n - 1u);
+            const uint32_t side = output_index >= half_values ? 1u : 0u;
+            compact_outputs
+                .column(column_index + side * compact_column_offset)
+                [output_index - side * half_values] = values[i];
+        } else {
+            column[output_index] = values[i];
+            if constexpr (Duplicate) {
+                column[output_index + (1u << log_n)] = values[i];
+            }
         }
     }
 }
@@ -415,27 +428,88 @@ inline cudaError_t launch_b2n_continue(
     };
     const M31 scale = m31_inverse_power_of_two(log_n);
     if (stages == 6) {
-        b2n_continue<3, Duplicate><<<
+        b2n_continue<3, Duplicate, false><<<
             grid,
             dim3(32, 8),
             0,
             stream>>>(
                 columns,
+                ColumnSlab<M31>{nullptr, 0},
+                0,
                 log_n,
                 start_stage,
                 end_stage,
                 twiddles,
                 scale);
     } else if (stages == 8) {
-        b2n_continue<4, Duplicate><<<
+        b2n_continue<4, Duplicate, false><<<
             grid,
             dim3(32, 16),
             0,
             stream>>>(
                 columns,
+                ColumnSlab<M31>{nullptr, 0},
+                0,
                 log_n,
                 start_stage,
                 end_stage,
+                twiddles,
+                scale);
+    } else {
+        return cudaErrorInvalidConfiguration;
+    }
+    return cudaPeekAtLastError();
+}
+
+inline cudaError_t launch_b2n_continue_compact(
+    ColumnSlab<M31> columns,
+    ColumnSlab<M31> compact_outputs,
+    uint32_t log_n,
+    uint32_t column_count,
+    uint32_t start_stage,
+    uint32_t stages,
+    const M31 *twiddles,
+    cudaStream_t stream) {
+    if (columns.base == nullptr || compact_outputs.base == nullptr ||
+        compact_outputs.stride_words != (1u << (log_n - 1u)) ||
+        column_count == 0 || start_stage == 0 ||
+        start_stage + stages - 1u != log_n) {
+        return cudaErrorInvalidConfiguration;
+    }
+    const uint32_t min_stride = 1u << (start_stage - 1u);
+    if (min_stride < 32u) return cudaErrorInvalidConfiguration;
+    const dim3 grid{
+        min_stride / 32u,
+        1u,
+        column_count,
+    };
+    const M31 scale = m31_inverse_power_of_two(log_n);
+    if (stages == 6) {
+        b2n_continue<3, false, true><<<
+            grid,
+            dim3(32, 8),
+            0,
+            stream>>>(
+                columns,
+                compact_outputs,
+                column_count,
+                log_n,
+                start_stage,
+                log_n,
+                twiddles,
+                scale);
+    } else if (stages == 8) {
+        b2n_continue<4, false, true><<<
+            grid,
+            dim3(32, 16),
+            0,
+            stream>>>(
+                columns,
+                compact_outputs,
+                column_count,
+                log_n,
+                start_stage,
+                log_n,
                 twiddles,
                 scale);
     } else {

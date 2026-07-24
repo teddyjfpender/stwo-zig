@@ -1,6 +1,7 @@
 // Resident four-coordinate B2N and canonical compact composition split.
 
 #include "../common/circle_twiddle.cuh"
+#include "b2n_fused.cuh"
 #include "transform_internal.cuh"
 
 namespace {
@@ -81,10 +82,68 @@ cudaError_t launch_composition_split(
     const uint32_t *twiddles,
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
-    cudaStream_t stream) {
+    cudaStream_t stream,
+    uint32_t *launches_out) {
     using namespace stwo::cuda::transform;
     const auto *inverse_twiddles = reinterpret_cast<const M31 *>(
         twiddles + twiddle_words - evaluation_domain_size);
+    if (log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN) {
+        // Initial tiles own disjoint input ranges, so their register-first
+        // loads make the exact in-place slab alias safe. The final interval
+        // writes the cross-column compact permutation to a disjoint slab.
+        const TransformSchedule &schedule =
+            kB2nSchedules[log_n - kFirstFusedLogN];
+        const ColumnSlab<M31> coordinates{
+            reinterpret_cast<M31 *>(coordinate_values),
+            static_cast<size_t>(1) << log_n,
+        };
+        const ColumnSlab<const M31> initial_coordinates{
+            reinterpret_cast<const M31 *>(coordinate_values),
+            coordinates.stride_words,
+        };
+        const ColumnSlab<M31> compact_coefficients{
+            reinterpret_cast<M31 *>(coefficients),
+            static_cast<size_t>(1) << (log_n - 1u),
+        };
+        cudaError_t status = launch_b2n_init(
+            initial_coordinates,
+            coordinates,
+            log_n,
+            kCoordinateCount,
+            schedule.intervals[0],
+            inverse_twiddles,
+            stream);
+        if (status != cudaSuccess) return status;
+        ++*launches_out;
+
+        uint32_t start_stage = 1u + schedule.intervals[0];
+        for (uint32_t i = 1; i < schedule.interval_count; ++i) {
+            const uint32_t stages = schedule.intervals[i];
+            status = i + 1u == schedule.interval_count
+                ? launch_b2n_continue_compact(
+                      coordinates,
+                      compact_coefficients,
+                      log_n,
+                      kCoordinateCount,
+                      start_stage,
+                      stages,
+                      inverse_twiddles,
+                      stream)
+                : launch_b2n_continue<false>(
+                      coordinates,
+                      log_n,
+                      kCoordinateCount,
+                      start_stage,
+                      stages,
+                      inverse_twiddles,
+                      stream);
+            if (status != cudaSuccess) return status;
+            ++*launches_out;
+            start_stage += stages;
+        }
+        return cudaSuccess;
+    }
+
     const uint32_t pair_count = 1u << (log_n - 1u);
     const uint32_t blocks =
         (pair_count + kThreadsPerBlock - 1u) / kThreadsPerBlock;
@@ -98,6 +157,7 @@ cudaError_t launch_composition_split(
         inverse_twiddles);
     cudaError_t status = cudaPeekAtLastError();
     if (status != cudaSuccess) return status;
+    ++*launches_out;
 
     uint32_t layer_size = pair_count;
     uint32_t layer_offset = 0u;
@@ -109,6 +169,7 @@ cudaError_t launch_composition_split(
             inverse_twiddles + layer_offset);
         status = cudaPeekAtLastError();
         if (status != cudaSuccess) return status;
+        ++*launches_out;
         layer_size >>= 1u;
         layer_offset += layer_size;
     }
@@ -119,7 +180,9 @@ cudaError_t launch_composition_split(
         log_n,
         inverse_twiddles + layer_offset,
         rescale_factor);
-    return cudaPeekAtLastError();
+    status = cudaPeekAtLastError();
+    if (status == cudaSuccess) ++*launches_out;
+    return status;
 }
 
 }  // namespace
@@ -135,14 +198,16 @@ extern "C" int stwo_ntt_b2n_composition_split_compact_on(
     const uint32_t *inverse_twiddles,
     uint32_t inverse_twiddle_words,
     uint32_t evaluation_domain_size,
-    void *stream_raw) {
+    void *stream_raw,
+    uint32_t *launches_out) {
     using namespace stwo::cuda::transform;
+    if (launches_out != nullptr) *launches_out = 0;
     if (!valid_shape(
             log_n,
             kCoordinateCount,
             inverse_twiddle_words,
             evaluation_domain_size) ||
-        stream_raw == nullptr) {
+        stream_raw == nullptr || launches_out == nullptr) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
 
@@ -184,5 +249,6 @@ extern "C" int stwo_ntt_b2n_composition_split_compact_on(
         inverse_twiddles,
         inverse_twiddle_words,
         evaluation_domain_size,
-        reinterpret_cast<cudaStream_t>(stream_raw)));
+        reinterpret_cast<cudaStream_t>(stream_raw),
+        launches_out));
 }

@@ -224,9 +224,15 @@ class CudaBuildTests(unittest.TestCase):
             encoding="utf-8"
         )
         n2b = (NATIVE / "transform" / "n2b.cu").read_text(encoding="utf-8")
+        composition = (
+            NATIVE / "transform" / "composition_split.cu"
+        ).read_text(encoding="utf-8")
         abi = (ROOT / "src/backends/cuda/abi/stages/transform.zig").read_text(
             encoding="utf-8"
         )
+        composition_abi = (
+            ROOT / "src/backends/cuda/abi/stages/composition_split.zig"
+        ).read_text(encoding="utf-8")
         self.assertIn("kFirstFusedLogN = 13", schedules)
         self.assertIn("kLastFusedLogN = 23", schedules)
         self.assertIn("schedules_are_exact()", schedules)
@@ -234,8 +240,15 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("n2b_stage<<<", n2b)
         self.assertIn("kFirstFusedLogN", b2n)
         self.assertIn("kFirstFusedLogN", n2b)
-        self.assertNotIn("wide_fibonacci", (schedules + b2n + n2b).lower())
+        self.assertIn("kB2nSchedules", composition)
+        self.assertIn("launch_b2n_continue_compact", composition)
+        self.assertIn("b2n_composition_stage", composition)
+        self.assertNotIn(
+            "wide_fibonacci",
+            (schedules + b2n + n2b + composition).lower(),
+        )
         self.assertEqual(4, abi.count("launches_out: *u32"))
+        self.assertEqual(1, composition_abi.count("launches_out: *u32"))
 
     def test_device_header_definitions_have_internal_or_inline_linkage(self) -> None:
         violations: list[str] = []
