@@ -446,3 +446,18 @@ test "Native XOR row rejects a false XOR tuple" {
     );
     try std.testing.expect(!constraints[4].isZero());
 }
+
+test "Native XOR storage order previous row matches the circle-domain mask" {
+    const log_size: u32 = 5;
+    const n = @as(usize, 1) << @intCast(log_size);
+    for (0..n) |row| {
+        const storage = input.storageIndex(row, log_size);
+        const previous_storage = utils.previousBitReversedCircleDomainIndex(
+            storage,
+            log_size,
+            log_size,
+        );
+        const expected = input.storageIndex((row + n - 1) % n, log_size);
+        try std.testing.expectEqual(expected, previous_storage);
+    }
+}

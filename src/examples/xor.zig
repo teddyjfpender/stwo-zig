@@ -38,6 +38,7 @@ pub const CpuProverEngine = prover_engine.ProverEngine(
     Channel,
 );
 pub const protocol_name = "raw-stwo-xor-lookup-v2";
+const PROOF_COMMITMENTS: usize = 4;
 
 pub fn ProverEngineForBackend(comptime Backend: type) type {
     return prover_engine.ProverEngine(Backend, Hasher, MerkleChannel, Channel);
@@ -365,7 +366,7 @@ pub fn verify(
         invalid.deinit(allocator);
         return err;
     };
-    if (proof_in.commitment_scheme_proof.commitments.items.len < 3) {
+    if (proof_in.commitment_scheme_proof.commitments.items.len != PROOF_COMMITMENTS) {
         var proof = proof_in;
         proof.deinit(allocator);
         return Error.InvalidProofShape;
@@ -558,7 +559,7 @@ test "examples xor: prove/verify wrapper roundtrip" {
 
     const output = try prove(std.testing.allocator, config, statement);
     try std.testing.expectEqual(
-        @as(usize, 4),
+        PROOF_COMMITMENTS,
         output.proof.commitment_scheme_proof.commitments.items.len,
     );
     try verify(std.testing.allocator, config, output.statement, output.proof);

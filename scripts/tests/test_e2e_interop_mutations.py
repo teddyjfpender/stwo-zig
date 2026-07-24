@@ -17,6 +17,7 @@ from scripts.e2e_interop_lib.mutations import (
     coverage_manifest,
     mutate_artifact,
     plonk_logup_oracle_coverage_manifest,
+    mutations_for_example,
 )
 
 
@@ -33,7 +34,7 @@ def proof_wire() -> dict[str, Any]:
             },
             "lifting_log_size": None,
         },
-        "commitments": [digest],
+        "commitments": [digest, digest, digest, digest],
         "sampled_values": [[[[1, 2, 3, 4]]]],
         "decommitments": [{"hash_witness": [digest]}],
         "queried_values": [[[1]]],
@@ -83,7 +84,15 @@ def artifact(example: str) -> dict[str, Any]:
             "wide_fibonacci_statement",
             {"log_n_rows": 8, "sequence_len": 16},
         ),
-        "xor": ("xor_statement", {"log_size": 8, "log_step": 2, "offset": 1}),
+        "xor": (
+            "xor_statement",
+            {
+                "log_size": 8,
+                "log_step": 2,
+                "offset": 1,
+                "claimed_sum": [0, 0, 0, 0],
+            },
+        ),
     }
     statement_name, statement = values[example]
     statements[statement_name] = statement
@@ -146,7 +155,8 @@ class InteropMutationTests(unittest.TestCase):
                 original = artifact(example)
                 source.write_text(json.dumps(original), encoding="utf-8")
                 digests: set[str] = set()
-                for spec in ACTIVE_MUTATIONS:
+                applicable = mutations_for_example(example)
+                for spec in applicable:
                     with self.subTest(example=example, mutation=spec.mutation_id):
                         destination = root / f"{example}-{spec.mutation_id}.json"
                         mutate_artifact(source, destination, spec, example=example)
@@ -156,7 +166,7 @@ class InteropMutationTests(unittest.TestCase):
                         )
                         self.assertEqual(len(differences), 1, differences)
                         digests.add(destination.read_bytes().hex())
-                self.assertEqual(len(digests), len(ACTIVE_MUTATIONS))
+                self.assertEqual(len(digests), len(applicable))
                 self.assertEqual(json.loads(source.read_text(encoding="utf-8")), original)
 
     def test_plonk_logup_oracle_mutations_are_independent(self) -> None:
@@ -184,12 +194,17 @@ class InteropMutationTests(unittest.TestCase):
         self.assertIn("outer_fold_step", ids)
         self.assertIn("outer_lifting_log_size", ids)
         self.assertIn("transcript_bound_sampled_value", ids)
+        self.assertIn("xor_commitment_count_missing", ids)
+        self.assertIn("xor_commitment_count_extra", ids)
 
     def test_coverage_names_all_required_and_not_applicable_surfaces(self) -> None:
         coverage = coverage_manifest(list(SUPPORTED_EXAMPLES))
         self.assertEqual(
             coverage["required_cases"],
-            len(SUPPORTED_EXAMPLES) * 2 * len(ACTIVE_MUTATIONS),
+            sum(
+                len(mutations_for_example(example)) * 2
+                for example in SUPPORTED_EXAMPLES
+            ),
         )
         self.assertEqual(
             {entry["mutation_id"] for entry in coverage["applicable"]},

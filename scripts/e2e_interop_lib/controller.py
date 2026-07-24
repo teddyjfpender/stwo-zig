@@ -42,6 +42,7 @@ try:
         coverage_manifest,
         mutate_artifact,
         plonk_logup_oracle_coverage_manifest,
+        mutations_for_example,
         register_artifact,
     )
     from interop_cli_lib.command import build_command, installed_binary
@@ -54,6 +55,7 @@ except ModuleNotFoundError:
         coverage_manifest,
         mutate_artifact,
         plonk_logup_oracle_coverage_manifest,
+        mutations_for_example,
         register_artifact,
     )
     from scripts.interop_cli_lib.command import build_command, installed_binary
@@ -309,10 +311,11 @@ def run_negative_matrix(
     artifact_dir: Path,
     all_steps: list[dict[str, Any]],
     artifact_records: list[dict[str, Any]],
-    mutations: tuple[Any, ...] = ACTIVE_MUTATIONS,
+    mutations: tuple[Any, ...] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for spec in mutations:
+    applicable = mutations if mutations is not None else mutations_for_example(example)
+    for spec in applicable:
         mutated = artifact_dir / f"{example}_{direction}_{spec.mutation_id}_tampered.json"
         mutate_artifact(source_artifact, mutated, spec, example=example)
         record = register_artifact(

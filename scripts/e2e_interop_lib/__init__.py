@@ -15,6 +15,7 @@ from .mutations import (
     coverage_manifest,
     mutate_artifact,
     plonk_logup_oracle_coverage_manifest,
+    mutations_for_example,
 )
 
 __all__ = [
@@ -29,5 +30,6 @@ __all__ = [
     "file_sha256",
     "mutate_artifact",
     "plonk_logup_oracle_coverage_manifest",
+    "mutations_for_example",
     "register_artifact",
 ]

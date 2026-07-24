@@ -17,6 +17,8 @@ use stwo::core::verifier::verify;
 use stwo::prover::backend::{Backend, BackendForChannel};
 use stwo::prover::{prove, prove_ex, CommitmentSchemeProver};
 
+const PROOF_COMMITMENTS: usize = 4;
+
 pub(crate) fn xor_prove<B>(
     config: PcsConfig,
     mut statement: XorStatement,
@@ -100,8 +102,8 @@ pub(crate) fn xor_verify(
     proof: StarkProof<Blake2sMerkleHasher>,
 ) -> Result<()> {
     validate_statement(statement)?;
-    if proof.0.commitments.len() < 3 {
-        bail!("invalid proof shape: expected at least 3 commitments");
+    if proof.0.commitments.len() != PROOF_COMMITMENTS {
+        bail!("invalid proof shape: expected exactly {PROOF_COMMITMENTS} commitments");
     }
 
     let mut channel = Blake2sChannel::default();
@@ -127,7 +129,7 @@ pub(crate) fn xor_verify(
 }
 
 fn validate_statement(statement: XorStatement) -> Result<()> {
-    if statement.log_size < 2 {
+    if statement.log_size < 2 || statement.log_size >= 31 {
         bail!("invalid xor log_size");
     }
     if statement.log_step > statement.log_size {

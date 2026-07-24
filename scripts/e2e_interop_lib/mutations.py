@@ -35,6 +35,7 @@ class MutationSpec:
     field_path: str
     required_rejection_class: str
     apply: Callable[[dict[str, Any], str], None]
+    examples: tuple[str, ...] = SUPPORTED_EXAMPLES
 
 
 def _object(value: Any, label: str) -> dict[str, Any]:
@@ -272,6 +273,31 @@ def _proof_config(wire: dict[str, Any]) -> None:
     fri["n_queries"] = int(fri.get("n_queries", 0)) + 1
 
 
+def _xor_statement_integer(field: str) -> Callable[[dict[str, Any], str], None]:
+    def apply(artifact: dict[str, Any], _example: str) -> None:
+        statement = _object(artifact.get("xor_statement"), "xor_statement")
+        statement[field] = int(statement.get(field, 0)) + 1
+
+    return apply
+
+
+def _xor_claimed_sum(artifact: dict[str, Any], _example: str) -> None:
+    statement = _object(artifact.get("xor_statement"), "xor_statement")
+    _mutate_qm31(statement.get("claimed_sum"), "xor_statement.claimed_sum")
+
+
+def _commitment_count_missing(wire: dict[str, Any]) -> None:
+    commitments = _list(wire.get("commitments"), "commitments")
+    if len(commitments) < 2:
+        raise MutationError("commitments must contain at least two entries")
+    commitments.pop()
+
+
+def _commitment_count_extra(wire: dict[str, Any]) -> None:
+    commitments = _list(wire.get("commitments"), "commitments")
+    commitments.append(copy.deepcopy(commitments[-1]))
+
+
 ACTIVE_MUTATIONS = (
     MutationSpec("statement", "statement", "<example>_statement", REJECTION_CLASS_VERIFIER, _statement),
     MutationSpec("proof_metadata_prove_mode", "proof_metadata", "prove_mode", REJECTION_CLASS_METADATA, _proof_metadata),
@@ -290,6 +316,11 @@ ACTIVE_MUTATIONS = (
     MutationSpec("outer_fold_step", "protocol_config", "pcs_config.fri_config.fold_step", REJECTION_CLASS_VERIFIER, _outer_fold_step),
     MutationSpec("outer_lifting_log_size", "protocol_config", "pcs_config.lifting_log_size", REJECTION_CLASS_VERIFIER, _outer_lifting_log_size),
     MutationSpec("proof_pcs_config", "protocol_config", "proof.config.fri_config.n_queries", REJECTION_CLASS_VERIFIER, _wire_mutation(_proof_config)),
+    MutationSpec("xor_statement_log_size", "statement", "xor_statement.log_size", REJECTION_CLASS_VERIFIER, _xor_statement_integer("log_size"), ("xor",)),
+    MutationSpec("xor_statement_log_step", "statement", "xor_statement.log_step", REJECTION_CLASS_VERIFIER, _xor_statement_integer("log_step"), ("xor",)),
+    MutationSpec("xor_statement_claimed_sum", "statement", "xor_statement.claimed_sum", REJECTION_CLASS_VERIFIER, _xor_claimed_sum, ("xor",)),
+    MutationSpec("xor_commitment_count_missing", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_missing), ("xor",)),
+    MutationSpec("xor_commitment_count_extra", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_extra), ("xor",)),
 )
 
 PLONK_LOGUP_ORACLE_MUTATIONS = (
@@ -324,6 +355,12 @@ PLONK_LOGUP_ORACLE_MUTATIONS = (
 )
 
 
+def mutations_for_example(example: str) -> tuple[MutationSpec, ...]:
+    if example not in SUPPORTED_EXAMPLES:
+        raise MutationError(f"unsupported Native example {example}")
+    return tuple(spec for spec in ACTIVE_MUTATIONS if example in spec.examples)
+
+
 NOT_APPLICABLE_COVERAGE = (
     {
         "mutation_id": "serialized_transcript_challenge",
@@ -356,24 +393,32 @@ def coverage_manifest(examples: tuple[str, ...] | list[str]) -> dict[str, Any]:
     unknown = sorted(set(selected) - set(SUPPORTED_EXAMPLES))
     if unknown:
         raise MutationError(f"unsupported examples in coverage manifest: {unknown}")
-    applicable = [
-        {
-            "mutation_id": spec.mutation_id,
-            "category": spec.category,
-            "field_path": spec.field_path,
-            "status": "required",
-            "required_rejection_class": spec.required_rejection_class,
-            "examples": selected,
-            "directions": ["rust_to_zig", "zig_to_rust"],
-        }
-        for spec in ACTIVE_MUTATIONS
-    ]
+    applicable = []
+    required_cases = 0
+    for spec in ACTIVE_MUTATIONS:
+        applicable_examples = [
+            example for example in selected if example in spec.examples
+        ]
+        if not applicable_examples:
+            continue
+        applicable.append(
+            {
+                "mutation_id": spec.mutation_id,
+                "category": spec.category,
+                "field_path": spec.field_path,
+                "status": "required",
+                "required_rejection_class": spec.required_rejection_class,
+                "examples": applicable_examples,
+                "directions": ["rust_to_zig", "zig_to_rust"],
+            }
+        )
+        required_cases += len(applicable_examples) * 2
     not_applicable = [dict(item, examples=selected) for item in NOT_APPLICABLE_COVERAGE]
     return {
         "proof_schema": NATIVE_PROOF_SCHEMA,
         "applicable": applicable,
         "not_applicable": not_applicable,
-        "required_cases": len(selected) * 2 * len(applicable),
+        "required_cases": required_cases,
     }
 
 

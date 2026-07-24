@@ -46,7 +46,8 @@ pub const Error = prover_transaction.Error || error{
 };
 
 pub fn validate(statement: Statement) Error!void {
-    if (statement.log_size < 2) return error.InvalidLogSize;
+    if (statement.log_size < 2 or statement.log_size >= 31)
+        return error.InvalidLogSize;
     if (statement.log_step > statement.log_size) return error.InvalidStep;
     if (!statement.claimed_sum.eql(QM31.zero())) return error.InvalidClaimedSum;
 }
@@ -230,4 +231,17 @@ pub fn storageIndex(coset_index: usize, log_size: u32) usize {
 fn checkedPow2(log_size: u32) Error!usize {
     if (log_size >= @bitSizeOf(usize)) return error.InvalidLogSize;
     return @as(usize, 1) << @intCast(log_size);
+}
+
+test "Native XOR statement rejects logs outside the M31 circle domain" {
+    try std.testing.expectError(error.InvalidLogSize, validate(.{
+        .log_size = 1,
+        .log_step = 0,
+        .offset = 0,
+    }));
+    try std.testing.expectError(error.InvalidLogSize, validate(.{
+        .log_size = 31,
+        .log_step = 0,
+        .offset = 0,
+    }));
 }
