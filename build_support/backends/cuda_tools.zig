@@ -3,6 +3,7 @@
 const std = @import("std");
 const cuda = @import("cuda.zig");
 const construction_observer = @import("../graph/construction_observer.zig");
+const graph = @import("../graph/modules.zig");
 
 pub const Options = struct {
     nvcc: ?[]const u8,
@@ -136,6 +137,31 @@ pub fn addProducts(
         "test-cuda-runtime-contract",
         "Test proof-owned CUDA context, residency, and strict-AOT contracts",
     ).dependOn(&b.addRunArtifact(runtime_tests).step);
+
+    const protocol = graph.createPrivateProtocolModules(
+        b,
+        target,
+        optimize,
+    );
+    const stwo = b.createModule(.{
+        .root_source_file = b.path("src/stwo.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(stwo);
+    const plonk_logup_root = b.createModule(.{
+        .root_source_file = b.path("tests/native_cuda_plonk_logup.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    plonk_logup_root.addImport("stwo_under_test", stwo);
+    const plonk_logup_tests = b.addTest(.{
+        .root_module = plonk_logup_root,
+    });
+    b.step(
+        "test-cuda-plonk-logup-contract",
+        "Test activation-disabled exact Plonk/LogUp CUDA contracts",
+    ).dependOn(&b.addRunArtifact(plonk_logup_tests).step);
 
     const adapter_tests = b.addSystemCommand(&.{
         "cargo",

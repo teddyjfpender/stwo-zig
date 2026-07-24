@@ -62,6 +62,7 @@ pub const descriptor = policy.Descriptor{
         "cuda-source-closure",
         "test-cuda-build-plan",
         "test-cuda-runtime-contract",
+        "test-cuda-plonk-logup-contract",
         "test-cuda-adapter",
         "run-native-cuda-smoke",
     },

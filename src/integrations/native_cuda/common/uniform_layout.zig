@@ -6,6 +6,7 @@ pub const TraceRole = enum(u32) {
     preprocessed = 0,
     main = 1,
     composition = 2,
+    interaction = 3,
 };
 
 pub const TraceTree = struct {
@@ -36,29 +37,43 @@ pub const Quotient = struct {
     output_rows: usize,
 };
 
-pub const Description = struct {
-    trace_trees: [3]TraceTree,
-    fri_tree_count: usize,
-    first_fri_tree_index: usize,
-    first_fri_evaluation_log: u32,
-    last_fri_evaluation_log: u32,
-    fri_fold_step: u32,
-    fri_log_rows_per_leaf: u32,
-    quotient: Quotient,
-};
+pub fn DescriptionFor(comptime trace_tree_count: usize) type {
+    return struct {
+        trace_trees: [trace_tree_count]TraceTree,
+        fri_tree_count: usize,
+        first_fri_tree_index: usize,
+        first_fri_evaluation_log: u32,
+        last_fri_evaluation_log: u32,
+        fri_fold_step: u32,
+        fri_log_rows_per_leaf: u32,
+        quotient: Quotient,
+    };
+}
+
+pub const Description = DescriptionFor(3);
 
 /// `Descriptor.describe(geometry)` is the only workload-owned policy. It
 /// provides counts and protocol geometry, never an AIR or benchmark identity.
 pub fn LayoutFor(comptime Geometry: type, comptime Descriptor: type) type {
+    return LayoutForTreeCount(Geometry, Descriptor, 3);
+}
+
+pub fn LayoutForTreeCount(
+    comptime Geometry: type,
+    comptime Descriptor: type,
+    comptime trace_tree_count: usize,
+) type {
     comptime {
         if (!@hasDecl(Descriptor, "describe"))
             @compileError("uniform layout descriptor requires describe");
+        if (trace_tree_count < 3 or trace_tree_count > 4)
+            @compileError("uniform layout supports three or four trace trees");
     }
     return struct {
         const Self = @This();
 
         geometry: Geometry,
-        trace_trees: [3]TraceTree,
+        trace_trees: [trace_tree_count]TraceTree,
         fri_trees: []FriTree,
         quotient: Quotient,
 
@@ -149,12 +164,17 @@ pub fn LayoutFor(comptime Geometry: type, comptime Descriptor: type) type {
     };
 }
 
-fn validateDescription(description: Description) !void {
+fn validateDescription(description: anytype) !void {
     if (description.trace_trees[0].role != .preprocessed or
         description.trace_trees[1].role != .main or
-        description.trace_trees[2].role != .composition or
+        (description.trace_trees.len == 4 and
+            description.trace_trees[2].role != .interaction) or
+        description.trace_trees[description.trace_trees.len - 1].role !=
+            .composition or
         description.trace_trees[1].column_count == 0 or
-        description.trace_trees[2].column_count == 0 or
+        description.trace_trees[
+            description.trace_trees.len - 1
+        ].column_count == 0 or
         description.fri_tree_count == 0 or
         description.fri_fold_step == 0 or
         description.quotient.sample_count == 0 or
@@ -196,8 +216,8 @@ fn validateDescription(description: Description) !void {
         decommitted_trees += @intFromBool(tree.decommitted);
     }
     if (decommitted_trees == 0 or
-        description.quotient.sample_count != sampled_columns or
-        description.quotient.term_count != sampled_columns or
+        description.quotient.sample_count !=
+            description.quotient.term_count or
         description.quotient.source_column_count != sampled_columns)
     {
         return error.UnsupportedProtocol;
