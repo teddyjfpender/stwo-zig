@@ -396,7 +396,7 @@ fn expectIsolated(source: []const u8, names: []const []const u8) !void {
 
 test "metal shader manifest exactly covers source and runtime exports" {
     const runtime_source = @embedFile("../runtime.m");
-    try std.testing.expectEqual(@as(usize, 91), exports.len);
+    try std.testing.expectEqual(@as(usize, 94), exports.len);
 
     var declaration_count: usize = 0;
     var remaining: []const u8 = amalgamated_source[0 .. amalgamated_source.len - 1];
