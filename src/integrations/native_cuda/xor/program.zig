@@ -288,8 +288,8 @@ fn transcriptBarriers(
 
 fn transcriptNode(operation: u32, fri_tree_count: u32) u32 {
     if (operation == 0) return 0;
-    if (operation <= 4) return 1;
-    if (operation <= 6) return 2;
+    if (operation <= 3) return 1;
+    if (operation <= 5) return 2;
     if (operation <= 8) return 3;
     const after_fri = 9 + 2 * fri_tree_count;
     if (operation < after_fri) return 5;
@@ -516,6 +516,10 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
     try std.testing.expectEqual(@as(usize, 7), program.fri_layers.len);
     try std.testing.expectEqual(@as(u32, 8), program.fri_layers[0].evaluation_log_rows);
     try std.testing.expectEqual(@as(u32, 2), program.fri_layers[6].evaluation_log_rows);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[4].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[5].node);
+    try std.testing.expectEqual(@as(u32, 3), program.transcript[6].node);
+    try std.testing.expectEqual(@as(u32, 3), program.transcript[8].node);
     var expected: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected,

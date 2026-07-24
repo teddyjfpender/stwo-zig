@@ -340,10 +340,12 @@ fn transcriptNode(operation: transcript.Operation) u32 {
         .mix_preprocessed_root,
         .mix_main_root,
         .mix_statement,
-        .draw_composition_alpha,
         => 1,
-        .mix_composition_root, .draw_oods_point => 2,
-        .mix_sampled_values, .draw_quotient_alpha => 3,
+        .draw_composition_alpha, .mix_composition_root => 2,
+        .draw_oods_point,
+        .mix_sampled_values,
+        .draw_quotient_alpha,
+        => 3,
         .mix_fri_root, .draw_fri_alpha, .mix_last_layer => 5,
         .absorb_pow => 6,
         .draw_queries => 7,
@@ -493,6 +495,10 @@ test "wide Fibonacci emits one validated backend-neutral program" {
         @as(usize, 3),
         program.commitments.len,
     );
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[4].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[5].node);
+    try std.testing.expectEqual(@as(u32, 3), program.transcript[6].node);
+    try std.testing.expectEqual(@as(u32, 3), program.transcript[8].node);
     try std.testing.expect(program.native_air_contract == null);
 }
 
