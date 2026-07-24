@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from .model import COVERAGE_MATRIX, Settings
+from .activation import ActivationError, load_state
+from .model import BenchmarkError, COVERAGE_MATRIX, Settings
 
 
 def coverage() -> dict[str, Any]:
@@ -36,12 +38,23 @@ def coverage() -> dict[str, Any]:
         for class_name, entry in classes.items()
         if not entry["enabled_workloads"]
     ]
+    try:
+        activation, _ = load_state(Path(__file__).resolve().parents[2])
+    except ActivationError as error:
+        raise BenchmarkError(
+            f"CUDA activation authority is invalid: {error}"
+        ) from error
+    structural_ready = not missing
     return {
         "classes": classes,
         "required_class_count": len(classes),
         "covered_class_count": len(classes) - len(missing),
         "missing_classes": missing,
-        "activation_ready": not missing,
+        "structural_coverage_ready": structural_ready,
+        "native_air_activation": activation,
+        "activation_ready": (
+            structural_ready and activation["activation_ready"]
+        ),
     }
 
 

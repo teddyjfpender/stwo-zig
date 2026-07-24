@@ -545,7 +545,7 @@
       "cuda": {
         "enabled": false,
         "promotion_eligible": false,
-        "disabled_reason": "core_cuda is staged only: six Native AIR emitters, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
+        "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
         "board": "core_cuda",
         "build_step": "zig build stwo-native-cuda -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/stwo-zig-native-cuda",
@@ -555,6 +555,37 @@
           "repository": "https://github.com/starkware-libs/stwo",
           "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
           "final_validator": true
+        },
+        "activation_contract": {
+          "schema": "stwo_zig_native_cuda_activation_state_v1",
+          "state_path": "conformance/cuda-native-activation-state-v1.json",
+          "state_sha256": "657c2e37ca97743833ba8e474d0a32463078b4b619fd6ef3dc319a5674d37010",
+          "required_families": [
+            "wide_fibonacci",
+            "blake",
+            "poseidon",
+            "plonk_logup",
+            "state_machine",
+            "xor_lookup"
+          ],
+          "required_family_gates": [
+            "exact_trace_semantics",
+            "exact_constraint_semantics",
+            "exact_cpu_cuda_proof_bytes",
+            "pinned_rust_verification",
+            "zero_fallback",
+            "complete_stage_telemetry"
+          ],
+          "required_global_gates": [
+            "complete_structural_coverage",
+            "sustained_headline_calibrated",
+            "locked_cuda_judge_host",
+            "locked_host_aa_calibration",
+            "candidate_dry_run",
+            "predecessor_abba_rehearsal",
+            "mutation_and_anti_forgery",
+            "full_repository_gates"
+          ]
         },
         "workloads": {
           "cuda_wf_log14x32": {

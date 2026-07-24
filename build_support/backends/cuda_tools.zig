@@ -103,6 +103,7 @@ pub fn addProducts(
         "scripts.tests.test_cuda_build_cache",
         "scripts.tests.test_cuda_aot_authentication",
         "scripts.tests.test_cuda_proof_parity_gate",
+        "scripts.tests.test_cuda_activation",
     });
     tests.step.dependOn(&source.step);
     b.step(

@@ -1,6 +1,6 @@
 # Task 05: Native AIR Coverage
 
-Status: in progress; Poseidon is release-gated as the hash-heavy family
+Status: blocked; only wide Fibonacci is release-ready
 
 ## Objective
 
@@ -25,16 +25,30 @@ through `ProofProgram` and the same runtime/compiler.
   the generic program rather than hidden driver calls.
 - Structural controller enables hash-heavy, lookup-heavy, and irregular rows.
 
-## Current Activation
+## Current Audit
+
+The executable authority is
+`conformance/cuda-native-activation-state-v1.json`, validated by
+`python3 scripts/cuda_activation.py`. Structural benchmark admission does not
+mean that an AIR family is complete.
+
+Source paths in that authority document the audited implementation state; path
+existence alone is not release evidence. A proof, Rust-oracle, fallback, or
+telemetry gate may transition to true only with a reviewed immutable receipt
+and a gate that parses and cross-checks the relevant receipt fields.
 
 - Poseidon uses the real 1,264-column M31 permutation trace and constant-QM31
-  AIR, not the seeded Blake trace recipe.
+  composition, not the Poseidon AIR constraints.
+- Blake uses a seeded-xorshift structural trace and constant-QM31 composition.
+- Plonk has the four preprocessed and four main columns, but zero interaction
+  columns and no LogUp composition.
+- State machine has its affine trace and proof route, but its constraint kernel
+  is still the claimed-sum ABI placeholder.
+- XOR has its real three-column trace, but zero interaction columns and no
+  lookup relation in composition.
 - The Native CUDA CLI, structural benchmark, and staged autoresearch group
-  admit Poseidon at `log_n_instances` 10 and 13.
-- The device release lane requires exact Native CPU/CUDA bytes, independent
-  Zig and pinned Rust verification, authenticated SM89 AOT witness/constraint
-  activation, graph/direct proof equality, zero fallback, and one terminal
-  D2H.
+  may admit these rows for profiling. They remain provisional until the
+  per-family activation authority is green.
 - The aggregate CUDA autoresearch group remains disabled and
   non-promotion-eligible until all six families satisfy this task.
 

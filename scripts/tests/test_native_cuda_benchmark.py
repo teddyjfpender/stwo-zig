@@ -200,6 +200,15 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             self.assertFalse(document["headline_eligible"])
             self.assertFalse(document["portfolio"]["available"])
             self.assertFalse(document["coverage"]["activation_ready"])
+            self.assertFalse(
+                document["coverage"]["structural_coverage_ready"]
+            )
+            self.assertEqual(
+                1,
+                document["coverage"]["native_air_activation"][
+                    "release_ready_family_count"
+                ],
+            )
             self.assertNotIn(
                 "hash_heavy",
                 document["coverage"]["missing_classes"],

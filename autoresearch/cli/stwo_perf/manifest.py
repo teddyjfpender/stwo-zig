@@ -385,6 +385,15 @@ def load(root: Path | None = None) -> Manifest:
     except json.JSONDecodeError as exc:
         raise ManifestError(f"invalid MANIFEST.json: {exc}") from exc
     _validate(raw)
+    try:
+        from scripts.native_cuda_benchmark_lib.activation import (
+            ActivationError,
+            validate_manifest_activation,
+        )
+
+        validate_manifest_activation(repo, raw)
+    except ActivationError as exc:
+        raise ManifestError(str(exc)) from exc
     return Manifest(root=repo, raw=raw)
 
 

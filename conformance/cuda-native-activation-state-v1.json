@@ -1,0 +1,275 @@
+{
+  "schema": "stwo_zig_native_cuda_activation_state_v1",
+  "board": "core_cuda",
+  "activation_ready": false,
+  "families": {
+    "wide_fibonacci": {
+      "release_ready": true,
+      "gates": {
+        "exact_trace_semantics": true,
+        "exact_constraint_semantics": true,
+        "exact_cpu_cuda_proof_bytes": true,
+        "pinned_rust_verification": true,
+        "zero_fallback": true,
+        "complete_stage_telemetry": true
+      },
+      "evidence": {
+        "exact_trace_semantics": [
+          "src/integrations/native_cuda/wide_fibonacci/program.zig"
+        ],
+        "exact_constraint_semantics": [
+          "src/integrations/native_cuda/wide_fibonacci/executor/composition.zig"
+        ],
+        "exact_cpu_cuda_proof_bytes": [
+          "conformance/evidence/cuda/native-bringup-sm89/product-parity-receipt.json"
+        ],
+        "pinned_rust_verification": [
+          "conformance/evidence/cuda/native-bringup-sm89/product-parity-receipt.json",
+          "conformance/evidence/cuda/system-architecture-sm89/receipt.json"
+        ],
+        "zero_fallback": [
+          "conformance/evidence/cuda/native-bringup-sm89/product-parity-receipt.json"
+        ],
+        "complete_stage_telemetry": [
+          "conformance/evidence/cuda/system-architecture-sm89/structural-screen.json"
+        ]
+      },
+      "blockers": {
+        "exact_trace_semantics": null,
+        "exact_constraint_semantics": null,
+        "exact_cpu_cuda_proof_bytes": null,
+        "pinned_rust_verification": null,
+        "zero_fallback": null,
+        "complete_stage_telemetry": null
+      }
+    },
+    "blake": {
+      "release_ready": false,
+      "gates": {
+        "exact_trace_semantics": false,
+        "exact_constraint_semantics": false,
+        "exact_cpu_cuda_proof_bytes": false,
+        "pinned_rust_verification": false,
+        "zero_fallback": false,
+        "complete_stage_telemetry": false
+      },
+      "evidence": {
+        "exact_trace_semantics": [
+          "src/integrations/native_cuda/blake/trace.zig"
+        ],
+        "exact_constraint_semantics": [
+          "src/integrations/native_cuda/blake/constraint.zig"
+        ],
+        "exact_cpu_cuda_proof_bytes": [
+          "src/integrations/native_cuda/blake/parity_targets.zig"
+        ],
+        "pinned_rust_verification": [],
+        "zero_fallback": [],
+        "complete_stage_telemetry": []
+      },
+      "blockers": {
+        "exact_trace_semantics": "CUDA generates a seeded-xorshift structural slab rather than the Native Blake compression trace.",
+        "exact_constraint_semantics": "CUDA commits a statement-derived constant-QM31 composition rather than the Blake AIR constraints.",
+        "exact_cpu_cuda_proof_bytes": "Only CPU parity targets are retained; no exact CUDA artifact receipt exists for the real Blake semantics.",
+        "pinned_rust_verification": "No retained pinned-Rust receipt exists for a real-semantics CUDA Blake proof.",
+        "zero_fallback": "No retained real-semantics hardware run proves zero fallback.",
+        "complete_stage_telemetry": "No retained real-semantics hardware run contains complete stage telemetry."
+      }
+    },
+    "poseidon": {
+      "release_ready": false,
+      "gates": {
+        "exact_trace_semantics": true,
+        "exact_constraint_semantics": false,
+        "exact_cpu_cuda_proof_bytes": false,
+        "pinned_rust_verification": false,
+        "zero_fallback": false,
+        "complete_stage_telemetry": false
+      },
+      "evidence": {
+        "exact_trace_semantics": [
+          "src/integrations/native_cuda/poseidon/trace.zig"
+        ],
+        "exact_constraint_semantics": [
+          "src/integrations/native_cuda/poseidon/constraint.zig"
+        ],
+        "exact_cpu_cuda_proof_bytes": [
+          "conformance/evidence/cuda/system-architecture-sm89/poseidon/README.md"
+        ],
+        "pinned_rust_verification": [
+          "conformance/evidence/cuda/system-architecture-sm89/poseidon/README.md"
+        ],
+        "zero_fallback": [
+          "conformance/evidence/cuda/system-architecture-sm89/poseidon/direct-summary.json"
+        ],
+        "complete_stage_telemetry": [
+          "conformance/evidence/cuda/system-architecture-sm89/poseidon/direct-summary.json"
+        ]
+      },
+      "blockers": {
+        "exact_trace_semantics": null,
+        "exact_constraint_semantics": "The real 1,264-column permutation trace is followed by a statement-derived constant-QM31 composition, not the Poseidon AIR.",
+        "exact_cpu_cuda_proof_bytes": "The retained CPU/CUDA byte match covers the provisional constant-composition route, not an exact Poseidon AIR proof.",
+        "pinned_rust_verification": "Pinned Rust accepted the provisional route; it is not release evidence for the missing exact Poseidon constraint semantics.",
+        "zero_fallback": "Zero fallback was observed for the provisional route only and must be re-established after exact Poseidon constraints land.",
+        "complete_stage_telemetry": "Stage telemetry covers the provisional route only and must be re-established after exact Poseidon constraints land."
+      }
+    },
+    "plonk_logup": {
+      "release_ready": false,
+      "gates": {
+        "exact_trace_semantics": true,
+        "exact_constraint_semantics": false,
+        "exact_cpu_cuda_proof_bytes": false,
+        "pinned_rust_verification": false,
+        "zero_fallback": false,
+        "complete_stage_telemetry": false
+      },
+      "evidence": {
+        "exact_trace_semantics": [
+          "src/integrations/native_cuda/plonk/trace.zig"
+        ],
+        "exact_constraint_semantics": [
+          "src/integrations/native_cuda/plonk/constraint.zig",
+          "src/integrations/native_cuda/plonk/geometry.zig"
+        ],
+        "exact_cpu_cuda_proof_bytes": [
+          "src/integrations/native_cuda/plonk/parity_targets.zig"
+        ],
+        "pinned_rust_verification": [],
+        "zero_fallback": [],
+        "complete_stage_telemetry": []
+      },
+      "blockers": {
+        "exact_trace_semantics": null,
+        "exact_constraint_semantics": "The CUDA route declares zero interaction columns and uses constant-QM31 composition; Native Plonk with LogUp requires its interaction commitment and claimed sum.",
+        "exact_cpu_cuda_proof_bytes": "Only CPU proof identities are frozen; no CUDA Plonk/LogUp artifact is retained.",
+        "pinned_rust_verification": "No retained pinned-Rust receipt exists for a CUDA Plonk/LogUp proof.",
+        "zero_fallback": "No retained hardware Plonk/LogUp run proves zero fallback.",
+        "complete_stage_telemetry": "No retained hardware Plonk/LogUp run contains complete stage telemetry."
+      }
+    },
+    "state_machine": {
+      "release_ready": false,
+      "gates": {
+        "exact_trace_semantics": true,
+        "exact_constraint_semantics": false,
+        "exact_cpu_cuda_proof_bytes": false,
+        "pinned_rust_verification": false,
+        "zero_fallback": false,
+        "complete_stage_telemetry": false
+      },
+      "evidence": {
+        "exact_trace_semantics": [
+          "src/integrations/native_cuda/state_machine/trace.zig"
+        ],
+        "exact_constraint_semantics": [
+          "src/integrations/native_cuda/state_machine/constraint.zig"
+        ],
+        "exact_cpu_cuda_proof_bytes": [
+          "conformance/evidence/cuda/system-architecture-sm89/state-machine/README.md"
+        ],
+        "pinned_rust_verification": [
+          "conformance/evidence/cuda/system-architecture-sm89/state-machine/direct-rust-parity-receipt.json"
+        ],
+        "zero_fallback": [
+          "conformance/evidence/cuda/system-architecture-sm89/state-machine/direct.report.json"
+        ],
+        "complete_stage_telemetry": [
+          "conformance/evidence/cuda/system-architecture-sm89/state-machine/direct.report.json"
+        ]
+      },
+      "blockers": {
+        "exact_trace_semantics": null,
+        "exact_constraint_semantics": "The CUDA constraint kernel is an ABI-placeholder claimed-sum composition, not the complete state-machine interaction AIR.",
+        "exact_cpu_cuda_proof_bytes": "The retained CPU/CUDA byte match covers the provisional placeholder-composition route, not the complete interaction AIR.",
+        "pinned_rust_verification": "Pinned Rust accepted the provisional route; it is not release evidence for the missing exact state-machine interaction semantics.",
+        "zero_fallback": "Zero fallback was observed for the provisional route only and must be re-established after exact interaction constraints land.",
+        "complete_stage_telemetry": "Stage telemetry covers the provisional route only and must be re-established after exact interaction constraints land."
+      }
+    },
+    "xor_lookup": {
+      "release_ready": false,
+      "gates": {
+        "exact_trace_semantics": true,
+        "exact_constraint_semantics": false,
+        "exact_cpu_cuda_proof_bytes": false,
+        "pinned_rust_verification": false,
+        "zero_fallback": false,
+        "complete_stage_telemetry": false
+      },
+      "evidence": {
+        "exact_trace_semantics": [
+          "src/integrations/native_cuda/xor/trace.zig",
+          "src/integrations/native_cuda/xor/device_trace.zig"
+        ],
+        "exact_constraint_semantics": [
+          "src/integrations/native_cuda/xor/constraint.zig",
+          "src/integrations/native_cuda/xor/geometry.zig"
+        ],
+        "exact_cpu_cuda_proof_bytes": [
+          "src/integrations/native_cuda/xor/parity_targets.zig"
+        ],
+        "pinned_rust_verification": [],
+        "zero_fallback": [],
+        "complete_stage_telemetry": []
+      },
+      "blockers": {
+        "exact_trace_semantics": null,
+        "exact_constraint_semantics": "The CUDA route declares zero interaction columns and uses constant-QM31 composition rather than the XOR lookup relation.",
+        "exact_cpu_cuda_proof_bytes": "Only CPU proof identities are frozen; no CUDA XOR lookup artifact is retained.",
+        "pinned_rust_verification": "No retained pinned-Rust receipt exists for a CUDA XOR lookup proof.",
+        "zero_fallback": "No retained hardware XOR lookup run proves zero fallback.",
+        "complete_stage_telemetry": "No retained hardware XOR lookup run contains complete stage telemetry."
+      }
+    }
+  },
+  "global": {
+    "gates": {
+      "complete_structural_coverage": false,
+      "sustained_headline_calibrated": false,
+      "locked_cuda_judge_host": false,
+      "locked_host_aa_calibration": false,
+      "candidate_dry_run": true,
+      "predecessor_abba_rehearsal": true,
+      "mutation_and_anti_forgery": false,
+      "full_repository_gates": false
+    },
+    "evidence": {
+      "complete_structural_coverage": [
+        "scripts/native_cuda_benchmark_lib/model.py"
+      ],
+      "sustained_headline_calibrated": [
+        "scripts/native_cuda_benchmark_lib/model.py"
+      ],
+      "locked_cuda_judge_host": [
+        "conformance/evidence/cuda/system-architecture-sm89/receipt.json"
+      ],
+      "locked_host_aa_calibration": [
+        "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"
+      ],
+      "candidate_dry_run": [
+        "conformance/evidence/cuda/system-architecture-sm89/receipt.json"
+      ],
+      "predecessor_abba_rehearsal": [
+        "autoresearch/submissions/2026-07-24-cuda-system-architecture/verdict.json"
+      ],
+      "mutation_and_anti_forgery": [
+        "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"
+      ],
+      "full_repository_gates": [
+        "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"
+      ]
+    },
+    "blockers": {
+      "complete_structural_coverage": "Lookup-heavy and VM structural classes remain unavailable, and provisional rows do not count as completed AIR families.",
+      "sustained_headline_calibrated": "The mixed persistent queue is diagnostic-only pending locked-host A/A and complete per-artifact oracle receipts.",
+      "locked_cuda_judge_host": "SM89 evidence records a device but no reviewed immutable CUDA judge-host authority has been frozen.",
+      "locked_host_aa_calibration": "No retained same-binary CUDA A/A calibration package and dispersion budget exists.",
+      "candidate_dry_run": null,
+      "predecessor_abba_rehearsal": null,
+      "mutation_and_anti_forgery": "The six exact family routes do not yet have complete statement mutation and anti-forgery release evidence.",
+      "full_repository_gates": "A final clean full-repository release-gate receipt has not been retained for the completed six-family system."
+    }
+  }
+}

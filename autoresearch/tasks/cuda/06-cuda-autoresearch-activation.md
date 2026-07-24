@@ -21,6 +21,8 @@ incorrect, hybrid, narrow, or cross-machine result.
 
 ## Activation Gates
 
+- `python3 scripts/cuda_activation.py` passes against the manifest-pinned
+  activation state, and reports `ready=true` with six of six families.
 - All six Native AIR families pass Task 05.
 - Exact CPU/CUDA bytes and pinned Rust verification.
 - Zero fallback, exact AOT, complete stage telemetry.
