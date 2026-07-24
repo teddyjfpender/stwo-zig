@@ -416,7 +416,7 @@ fn bindFri(
     provider: anytype,
     prepared: *const plan_mod.PreparedPlan,
 ) !types.Fri {
-    var layers: [request.max_log_n_rows]types.FriLayer = undefined;
+    var layers: [types.max_fri_layers]types.FriLayer = undefined;
     for (prepared.fri.layers, 0..) |layer, index| {
         layers[index] = .{
             .coordinates = try matrix(
@@ -629,7 +629,7 @@ fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {
     const trace_layer_count = @as(usize, geometry.queryLogSize()) + 1;
     const groups = prepared.quotient.group_log_sizes.len;
     if (prepared.fri.layers.len == 0 or
-        prepared.fri.layers.len > request.max_log_n_rows or
+        prepared.fri.layers.len > types.max_fri_layers or
         prepared.fri.layers.len != geometry.fri_tree_count or
         prepared.decommit.fri_trees.len != geometry.fri_tree_count or
         prepared.decommit.query_count != geometry.protocol.n_queries or

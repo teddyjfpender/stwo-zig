@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const arena = @import("../../../../backends/cuda/runtime/arena.zig");
+const common_executor = @import("../../common/scheduled_executor.zig");
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const program_mod = @import("../program.zig");
@@ -14,6 +15,11 @@ const oods_stage = @import("oods.zig");
 const pow_decommit = @import("pow_decommit.zig");
 const quotient_stage = @import("quotient.zig");
 const trace_commit = @import("trace_commit.zig");
+
+const pipeline = @This();
+pub const Request = request.Request;
+pub const Geometry = request.Geometry;
+pub const admit = request.admit;
 
 pub const PreparedPlan = struct {
     structural: plan_mod.PreparedPlan,
@@ -251,30 +257,35 @@ pub fn executeNode(
         "../../../../backends/cuda/runtime/execution_plan.zig",
     ).ScheduledNode,
 ) !void {
-    const proof_ir = @import("stwo_backend_contracts").proof_program;
-    switch (scheduled.kind) {
-        .trace_generation => try traceGeneration(
-            transaction,
-            prepared,
-            geometry,
-        ),
-        .commitment => try traceCommit(transaction, prepared, geometry),
-        .constraint_evaluation => try constraintEvaluation(
-            transaction,
-            prepared,
-            geometry,
-        ),
-        .oods => try oods(transaction, prepared, geometry),
-        .quotient => try quotient(transaction, prepared, geometry),
-        .fri_commit => try friCommit(transaction, prepared, geometry),
-        .pow => try pow(transaction, prepared, geometry),
-        .decommit => try decommit(transaction, prepared, geometry),
-    }
-    const expected_stage: proof_ir.Stage =
-        prepared.structural.proof_program.nodes[scheduled.node_id].stage;
-    if (@intFromEnum(expected_stage) != @intFromEnum(scheduled.stage))
-        return error.InvalidKernelDescriptor;
+    return Scheduled.executeNode(
+        transaction,
+        prepared,
+        geometry,
+        scheduled,
+    );
 }
+
+const Adapter = struct {
+    pub const PreparedPlan = pipeline.PreparedPlan;
+    pub const Geometry = request.Geometry;
+
+    pub fn program(
+        prepared: *const PreparedPlan,
+    ) *const @import("stwo_backend_contracts").proof_program.ProofProgram {
+        return &prepared.structural.proof_program;
+    }
+
+    pub const traceGeneration = pipeline.traceGeneration;
+    pub const traceCommit = pipeline.traceCommit;
+    pub const constraintEvaluation = pipeline.constraintEvaluation;
+    pub const oods = pipeline.oods;
+    pub const quotient = pipeline.quotient;
+    pub const friCommit = pipeline.friCommit;
+    pub const pow = pipeline.pow;
+    pub const decommit = pipeline.decommit;
+};
+
+const Scheduled = common_executor.ExecutorFor(Adapter);
 
 fn bind(
     transaction: anytype,
