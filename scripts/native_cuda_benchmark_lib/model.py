@@ -84,6 +84,7 @@ COVERAGE_MATRIX = (
     Workload("wide_wf_log18x37", "wide", Shape(18, 37), True),
     Workload("wide_wf_log18x73", "wide", Shape(18, 73), True),
     Workload("wide_wf_log18x128", "wide", Shape(18, 128), True),
+    Workload("large_wf_log20x100", "large", Shape(20, 100), True),
     Workload(
         "seeded_blake_log10x10",
         "seeded_wide",

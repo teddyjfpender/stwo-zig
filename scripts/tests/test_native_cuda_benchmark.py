@@ -15,6 +15,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.native_cuda_benchmark_lib import (  # noqa: E402
     BenchmarkError,
+    COVERAGE_MATRIX,
     Settings,
     Workload,
     run_benchmark,
@@ -31,6 +32,16 @@ from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
 
 
 class NativeCudaBenchmarkTests(unittest.TestCase):
+    def test_coverage_matrix_includes_large_transform_regime(self) -> None:
+        workload = next(
+            item
+            for item in COVERAGE_MATRIX
+            if item.workload_id == "large_wf_log20x100"
+        )
+        self.assertTrue(workload.enabled)
+        self.assertEqual("large", workload.structural_class)
+        self.assertEqual(Shape(20, 100), workload.shape)
+
     def make_product(self, root: Path, name: str) -> Path:
         product = root / name
         product.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
