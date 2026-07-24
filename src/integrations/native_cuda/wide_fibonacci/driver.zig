@@ -183,6 +183,7 @@ test "driver owns exact stage order and one final proof read" {
     const FakeExecutor = struct {
         const stages = protocol.execution_stages;
         var calls: usize = 0;
+        var prepare_calls: usize = 0;
 
         pub const PreparedPlan = struct {
             items: [1]arena.Requirement = .{.{
@@ -215,6 +216,7 @@ test "driver owns exact stage order and one final proof read" {
             _: request_mod.Geometry,
         ) !PreparedPlan {
             calls = 0;
+            prepare_calls += 1;
             var prepared = PreparedPlan{ .plan = undefined };
             prepared.plan = try arena.Plan.init(allocator, &prepared.items);
             return prepared;
@@ -260,10 +262,11 @@ test "driver owns exact stage order and one final proof read" {
     };
 
     const Driver = DriverFor(FakeTransaction, FakeExecutor);
-    const output = try (Driver{
+    const driver = Driver{
         .allocator = std.testing.allocator,
         .accepted_sms = &.{89},
-    }).run(.{
+    };
+    const request = request_mod.Request{
         .statement = .{ .log_n_rows = 14, .sequence_len = 100 },
         .protocol = .{
             .pow_bits = 10,
@@ -273,7 +276,18 @@ test "driver owns exact stage order and one final proof read" {
             .fold_step = 1,
             .lifting_log_size = null,
         },
-    });
+    };
+    FakeExecutor.prepare_calls = 0;
+    const output = try driver.run(request);
     try std.testing.expectEqual(@as(u32, 0xcada), output.marker);
     try std.testing.expectEqual(protocol.execution_stages.len, FakeExecutor.calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeExecutor.prepare_calls);
+
+    var unsupported = request;
+    unsupported.protocol.pow_bits = 11;
+    try std.testing.expectError(
+        error.UnsupportedProtocol,
+        driver.run(unsupported),
+    );
+    try std.testing.expectEqual(@as(usize, 1), FakeExecutor.prepare_calls);
 }

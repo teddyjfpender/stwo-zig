@@ -6,9 +6,15 @@ pub const min_log_n_rows: u32 = 3;
 pub const min_sequence_len: u32 = 3;
 pub const max_log_n_rows: u32 = 22;
 pub const max_sequence_len: u32 = 128;
-pub const max_queries: usize = 256;
 pub const composition_coordinate_count: usize = 4;
 pub const composition_column_count: usize = 2 * composition_coordinate_count;
+
+pub const parity_pow_bits: u32 = 10;
+pub const parity_log_blowup_factor: u32 = 1;
+pub const parity_log_last_layer_degree_bound: u32 = 0;
+pub const parity_n_queries: usize = 3;
+pub const parity_fold_step: u32 = 1;
+pub const parity_lifting_log_size: ?u32 = null;
 
 pub const Error = error{
     GeometryOverflow,
@@ -78,13 +84,14 @@ pub fn admit(request: Request) Error!Geometry {
     {
         return error.UnsupportedSequenceLength;
     }
-    if (protocol.n_queries == 0 or protocol.n_queries > max_queries)
+    if (protocol.n_queries != parity_n_queries)
         return error.UnsupportedQueryCount;
-    if (protocol.log_blowup_factor != 1 or
-        protocol.log_last_layer_degree_bound != 0 or
-        protocol.fold_step != 1 or
-        protocol.lifting_log_size != null or
-        protocol.pow_bits > 32)
+    if (protocol.pow_bits != parity_pow_bits or
+        protocol.log_blowup_factor != parity_log_blowup_factor or
+        protocol.log_last_layer_degree_bound !=
+            parity_log_last_layer_degree_bound or
+        protocol.fold_step != parity_fold_step or
+        protocol.lifting_log_size != parity_lifting_log_size)
     {
         return error.UnsupportedProtocol;
     }
@@ -185,10 +192,32 @@ test "admission rejects shapes without a pinned parity contract" {
         },
     };
     var request = baseline;
-    request.protocol.fold_step = 3;
+    request.protocol.pow_bits = parity_pow_bits - 1;
     try std.testing.expectError(error.UnsupportedProtocol, admit(request));
     request = baseline;
-    request.protocol.n_queries = max_queries + 1;
+    request.protocol.pow_bits = parity_pow_bits + 1;
+    try std.testing.expectError(error.UnsupportedProtocol, admit(request));
+    request = baseline;
+    request.protocol.log_blowup_factor = parity_log_blowup_factor - 1;
+    try std.testing.expectError(error.UnsupportedProtocol, admit(request));
+    request = baseline;
+    request.protocol.log_blowup_factor = parity_log_blowup_factor + 1;
+    try std.testing.expectError(error.UnsupportedProtocol, admit(request));
+    request = baseline;
+    request.protocol.log_last_layer_degree_bound =
+        parity_log_last_layer_degree_bound + 1;
+    try std.testing.expectError(error.UnsupportedProtocol, admit(request));
+    request = baseline;
+    request.protocol.fold_step = parity_fold_step + 1;
+    try std.testing.expectError(error.UnsupportedProtocol, admit(request));
+    request = baseline;
+    request.protocol.lifting_log_size = 1;
+    try std.testing.expectError(error.UnsupportedProtocol, admit(request));
+    request = baseline;
+    request.protocol.n_queries = parity_n_queries - 1;
+    try std.testing.expectError(error.UnsupportedQueryCount, admit(request));
+    request = baseline;
+    request.protocol.n_queries = parity_n_queries + 1;
     try std.testing.expectError(error.UnsupportedQueryCount, admit(request));
     request = baseline;
     request.statement.sequence_len = min_sequence_len - 1;
