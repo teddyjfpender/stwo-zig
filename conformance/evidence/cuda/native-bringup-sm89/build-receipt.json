@@ -2,13 +2,13 @@
   "aot_cubin_count": 1,
   "aot_entries": 1,
   "aot_pack": "cuda_aot_pack.bin",
-  "aot_pack_sha256": "66b3a5a7d8d90527357c0cff8d35d1c5c610fadc571e9ddeeecc1e1a85ae0fe7",
+  "aot_pack_sha256": "d237404c85619dbd9b0bb549dd930aa5d5130299d2e6154df4195713049ea994",
   "aot_source_count": 1,
   "archive": "libstwo_cuda_kernels.a",
-  "archive_sha256": "f42c2835cd2d78226beea780aa14f99b9c2ed9331e632067beee0b46484e893e",
+  "archive_sha256": "16e3440260ec548aec0293cb9ea04a985105bc766ba1e50e6ee446c80b48bbb1",
   "authority_aot_source_count": 340,
   "authority_ordinary_source_count": 59,
-  "build_identity_sha256": "eeefb0ad6f79ad3b4a9a4a081daab7c1fd83612a94ff3198b5908b6eabb91da6",
+  "build_identity_sha256": "171148a9df15ad09f56d9e510e05842e6b395b6d5684df32fd31b5278951fd56",
   "cuda_home": "/usr/local/cuda-12.8",
   "cuda_library_dir": "/usr/local/cuda-12.8/targets/x86_64-linux/lib",
   "fixed_flags": {
@@ -57,10 +57,10 @@
     "cudart",
     "stdc++"
   ],
-  "native_aot_closure_sha256": "bc77a2206fd09940ae1def17ba3df6a39d1c74a747c5bc07620453135b48a075",
-  "native_cuda_source_count": 20,
+  "native_aot_closure_sha256": "4a5d5d1c2216b55b2655929adb6d0cf131e2cfc11821a11533f58c15fafe3e68",
+  "native_cuda_source_count": 21,
   "native_host_source_count": 1,
-  "native_runtime_closure_sha256": "e65c677c69edc677b99e24b726c276692a1d574b313be763f9928b6465e85c8a",
+  "native_runtime_closure_sha256": "e0f1c85e2aaec4f1d89d1d3b306b8bc6deb495e0226f838a9086c5db7adfef64",
   "native_runtime_files": [
     {
       "bytes": 13057,
@@ -78,19 +78,24 @@
       "sha256": "7d93c3a15bc2f4bb794295d66f44e72690b1bf72c34da866e490b580664a5550"
     },
     {
-      "bytes": 6015,
+      "bytes": 7032,
       "path": "commitment/merkle.cu",
-      "sha256": "28763d8bf9c2246a70ca2d284ae17cd793cc2f0bc27c7dceeed311b22b7c7148"
+      "sha256": "6dc05266736976e007fb2e9c8f0978ffb3205c6e0f8fa446ef72c90e052c0f5d"
     },
     {
-      "bytes": 7991,
+      "bytes": 8724,
       "path": "commitment/progressive.cu",
-      "sha256": "d388e41113d14d0f9adc6bb6dc15eaa104f5abcbaf099127cb8469a20915018d"
+      "sha256": "31766f584c33cb8d83259d39deadbf8d212994ac9a8fe7954f859fc79c39c8db"
     },
     {
       "bytes": 4060,
       "path": "commitment/progressive_scalar.cuh",
       "sha256": "0e48110a25e372f7bec0c1ecd5c90647b4a5ed28beb7630ecdc3f380ef5a2011"
+    },
+    {
+      "bytes": 2202,
+      "path": "commitment/resident_layout.cuh",
+      "sha256": "2d6b4f93097abdc97f046cd7d9a1c3fa91647478ec07add9fe3459c515681bdc"
     },
     {
       "bytes": 596,
@@ -101,6 +106,16 @@
       "bytes": 1099,
       "path": "common/m31.cuh",
       "sha256": "e9762058eea4f25c5fb017e9dec1ba6e84dfa86795e2ca0230c8e11c067a3c30"
+    },
+    {
+      "bytes": 1814,
+      "path": "constraints/field.cuh",
+      "sha256": "819262cfef8eae4cdc34a007d9183fc4b2aa2e41dd8351b0da87584520fa7aec"
+    },
+    {
+      "bytes": 1598,
+      "path": "constraints/powers.cu",
+      "sha256": "1e1ef24d4c33a9d7a26674fc5828aec73859d574021434f02385c17f6558102c"
     },
     {
       "bytes": 8150,
@@ -153,9 +168,9 @@
       "sha256": "908fb61a058d6c2e315ad493159ffcb4b526ffb04d2db83b25994b86b22f6051"
     },
     {
-      "bytes": 3509,
+      "bytes": 4046,
       "path": "kernels/wide_fibonacci_trace.cu",
-      "sha256": "af8e608098c9cc1a067e698bf45faca0a75887b7385c347c517bccbd4db56bec"
+      "sha256": "8fa8e12714b6ed1e0b364be010cef322d05250cf3581789847395aa1c21003e3"
     },
     {
       "bytes": 11126,
@@ -263,9 +278,9 @@
       "sha256": "f3bbe553a6b37fb4e7bda8153e9300e766ce05813dec361da6264f30ad1fd0e5"
     }
   ],
-  "native_runtime_source_count": 21,
+  "native_runtime_source_count": 22,
   "ordinary_source_count": 0,
-  "product_manifest_sha256": "3fcfd9eee2e298c452819c05a1db77526169f12ca63aad4abf432471b721aab5",
+  "product_manifest_sha256": "eb215b744a24246749982d500aad9d25d9bc47524427aaf6b0ec9c33beffc894",
   "schema": "stwo-zig-cuda-native-build-v1",
   "source_closure_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "target_sms": [
