@@ -369,9 +369,13 @@ fn renderReport(
         structural.proof_program.program_digest,
         .lower,
     );
+    const semantic_digest = std.fmt.bytesToHex(
+        structural.proof_program.semantic_digest,
+        .lower,
+    );
     const plan_cache_key = std.fmt.bytesToHex(plan.cache_key, .lower);
     return std.json.Stringify.valueAlloc(allocator, .{
-        .schema_version = @as(u32, 5),
+        .schema_version = @as(u32, 6),
         .product = "stwo-native-cuda",
         .backend = cli.backend_name,
         .application = cli.air_name,
@@ -416,6 +420,7 @@ fn renderReport(
         },
         .plan = .{
             .program_sha256 = &program_digest,
+            .semantic_sha256 = &semantic_digest,
             .cache_key_sha256 = &plan_cache_key,
             .schedule_version = plan.target.version,
             .compiled_once = true,

@@ -52,6 +52,16 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def require_digest(value: Any, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(byte not in "0123456789abcdef" for byte in value)
+    ):
+        raise GateError(f"{label} must be a lowercase SHA-256 digest")
+    return value
+
+
 def require_executable(path: Path, label: str) -> Path:
     resolved = path.expanduser().resolve(strict=True)
     if not resolved.is_file() or not os.access(resolved, os.X_OK):
@@ -118,7 +128,7 @@ def validate_cuda_report(
 ) -> dict[str, Any]:
     report = load_object(path)
     required = {
-        "schema_version": 5,
+        "schema_version": 6,
         "product": "stwo-native-cuda",
         "backend": "cuda",
         "application": "wide_fibonacci",
@@ -128,6 +138,21 @@ def validate_cuda_report(
     for key, value in required.items():
         if report.get(key) != value:
             raise GateError(f"{path}: invalid {key}")
+    plan = report.get("plan")
+    if not isinstance(plan, dict):
+        raise GateError(f"{path}: CUDA proof plan is missing")
+    program_sha256 = require_digest(
+        plan.get("program_sha256"),
+        f"{path}: CUDA full ProofProgram identity",
+    )
+    semantic_sha256 = require_digest(
+        plan.get("semantic_sha256"),
+        f"{path}: CUDA semantic ProofProgram identity",
+    )
+    cache_key_sha256 = require_digest(
+        plan.get("cache_key_sha256"),
+        f"{path}: CUDA plan-cache identity",
+    )
     statement = report.get("statement")
     if not isinstance(statement, dict) or any(
         statement.get(key) != value
@@ -266,6 +291,9 @@ def validate_cuda_report(
         "strict_aot": True,
         "cpu_fallbacks": 0,
         "execution_mode": execution_mode,
+        "program_sha256": program_sha256,
+        "semantic_sha256": semantic_sha256,
+        "cache_key_sha256": cache_key_sha256,
     }
 
 

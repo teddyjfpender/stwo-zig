@@ -32,6 +32,7 @@ from scripts.process_resources_lib import (
     parse_process_resources,
 )
 
+from .identity import validate_proof_identity
 from .model import (
     COVERAGE_MATRIX,
     MINIMUM_PORTFOLIO_RATIO,
@@ -209,7 +210,7 @@ def _invoke(
             proof_path,
             artifact,
             expected_repetitions=repetitions,
-            allow_historical_v4=arm == "baseline",
+            allow_historical_baseline=arm == "baseline",
         )
     except DiagnosticError as error:
         raise BenchmarkError(str(error)) from error
@@ -229,7 +230,11 @@ def _invoke(
         "external_wall_ns": external_wall_ns,
         "resources": resources,
         "proof": artifact,
+        "report_schema_version": validated["schema_version"],
         "execution_mode": validated["execution_mode"],
+        "semantic_sha256": validated["semantic_sha256"],
+        "statement": validated["statement"],
+        "protocol": validated["protocol"],
         "product_identity": validated["product_identity"],
         "plan": validated["plan"],
         "timing_ns": validated["timing_ns"],
@@ -441,56 +446,6 @@ def _comparison(
     }
 
 
-def _proof_and_platform_gate(
-    cold: dict[str, list[dict[str, Any]]],
-    sessions: list[dict[str, Any]],
-) -> dict[str, Any]:
-    all_samples = [
-        sample
-        for values in cold.values()
-        for sample in values
-    ] + [session["raw"] for session in sessions]
-    proofs = {
-        (
-            sample["proof"]["canonical_sha256"],
-            sample["proof"]["canonical_bytes"],
-        )
-        for sample in all_samples
-    }
-    if len(proofs) != 1:
-        raise BenchmarkError("CUDA proof identity changed across arms or sessions")
-    program_digests = {
-        sample["plan"]["program_sha256"] for sample in all_samples
-    }
-    if len(program_digests) != 1:
-        raise BenchmarkError("CUDA ProofProgram identity changed across arms")
-    devices = {
-        json.dumps(sample["device"], sort_keys=True)
-        for sample in all_samples
-    }
-    if len(devices) != 1:
-        raise BenchmarkError("CUDA device identity changed during measurement")
-    identities_by_arm: dict[str, set[str]] = {}
-    for sample in all_samples:
-        identities_by_arm.setdefault(sample["arm"], set()).add(
-            json.dumps(sample["product_identity"], sort_keys=True)
-        )
-    if any(len(identities) != 1 for identities in identities_by_arm.values()):
-        raise BenchmarkError("CUDA product identity changed within one arm")
-    proof = next(iter(proofs))
-    return {
-        "canonical_sha256": proof[0],
-        "canonical_bytes": proof[1],
-        "program_sha256": next(iter(program_digests)),
-        "all_arms_byte_identical": True,
-        "device": json.loads(next(iter(devices))),
-        "product_identities": {
-            arm: json.loads(next(iter(identities)))
-            for arm, identities in identities_by_arm.items()
-        },
-    }
-
-
 def _measure_workload(
     settings: Settings,
     workload: Workload,
@@ -557,7 +512,7 @@ def _measure_workload(
             )
             session_ordinal += 1
             _cooldown(settings)
-    gate = _proof_and_platform_gate(cold, sessions)
+    gate = validate_proof_identity(cold, sessions)
     result = {
         "workload_id": workload.workload_id,
         "structural_class": workload.structural_class,

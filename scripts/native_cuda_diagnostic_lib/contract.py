@@ -67,6 +67,7 @@ PRODUCT_IDENTITY_KEYS = {
 }
 PLAN_KEYS = {
     "program_sha256",
+    "semantic_sha256",
     "cache_key_sha256",
     "schedule_version",
     "compiled_once",
@@ -77,6 +78,7 @@ PLAN_KEYS = {
     "predicted_minimum_launches",
     "transcript_barriers",
 }
+PLAN_KEYS_V4_V5 = PLAN_KEYS - {"semantic_sha256"}
 STATEMENT_KEYS = {
     "log_n_rows",
     "sequence_len",
@@ -353,11 +355,13 @@ def validate_report(
     *,
     expected_repetitions: int = 1,
     expected_execution_mode: str = "graphs",
-    allow_historical_v4: bool = False,
+    allow_historical_baseline: bool = False,
 ) -> dict[str, Any]:
     schema_version = report.get("schema_version")
-    historical_v4 = schema_version == 4 and allow_historical_v4
-    if schema_version != 5 and not historical_v4:
+    historical_v4 = schema_version == 4 and allow_historical_baseline
+    historical_v5 = schema_version == 5 and allow_historical_baseline
+    historical = historical_v4 or historical_v5
+    if schema_version != 6 and not historical:
         raise DiagnosticError("CUDA report has invalid schema_version")
     _exact_keys(
         report,
@@ -366,7 +370,7 @@ def validate_report(
     )
     execution_mode = "direct" if historical_v4 else expected_execution_mode
     expected_scalars = {
-        "schema_version": 4 if historical_v4 else 5,
+        "schema_version": schema_version,
         "product": PRODUCT,
         "backend": BACKEND,
         "application": APPLICATION,
@@ -453,8 +457,18 @@ def validate_report(
         raise DiagnosticError("CUDA report statement does not match request")
 
     plan = _object(report["plan"], "CUDA report plan")
-    _exact_keys(plan, PLAN_KEYS, "CUDA report plan")
+    _exact_keys(
+        plan,
+        PLAN_KEYS_V4_V5 if historical else PLAN_KEYS,
+        "CUDA report plan",
+    )
     _digest(plan["program_sha256"], "CUDA proof-program digest")
+    semantic_sha256 = None
+    if not historical:
+        semantic_sha256 = _digest(
+            plan["semantic_sha256"],
+            "CUDA semantic-program digest",
+        )
     _digest(plan["cache_key_sha256"], "CUDA plan cache key")
     if plan["compiled_once"] is not True:
         raise DiagnosticError("CUDA shape plan was not compiled exactly once")
@@ -789,7 +803,11 @@ def validate_report(
         raise DiagnosticError("CUDA device capacity telemetry is invalid")
 
     return {
+        "schema_version": schema_version,
         "execution_mode": execution_mode,
+        "semantic_sha256": semantic_sha256,
+        "statement": statement,
+        "protocol": report["protocol"],
         "product_identity": identity,
         "proof": proof,
         "plan": plan,

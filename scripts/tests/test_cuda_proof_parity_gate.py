@@ -80,13 +80,22 @@ if name == "cuda":
     graph_launches = 2 if requested_execution_mode == "graphs" else 0
     report.write_text(json.dumps({
         "schema_version": (
-            2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 5
+            2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 6
         ),
         "product": "stwo-native-cuda",
         "backend": "cuda",
         "application": "wide_fibonacci",
         "protocol": "raw-stwo-wide-v1",
         "execution_mode": reported_execution_mode,
+        "plan": {
+            "program_sha256": "a" * 64,
+            "semantic_sha256": (
+                "not-a-digest"
+                if os.environ.get("BAD_CUDA_SEMANTIC") == "1"
+                else "b" * 64
+            ),
+            "cache_key_sha256": "c" * 64,
+        },
         "statement": {
             "log_n_rows": int(value("--log-n-rows")),
             "sequence_len": int(value("--sequence-len")),
@@ -235,6 +244,11 @@ class CudaProofParityGateTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OLD_CUDA_REPORT_SCHEMA": "1"}):
             with self.assertRaisesRegex(gate.GateError, "schema_version"):
                 gate.gate(self.arguments("obsolete-report-schema"))
+
+    def test_rejects_spoofed_cuda_semantic_digest(self):
+        with mock.patch.dict(os.environ, {"BAD_CUDA_SEMANTIC": "1"}):
+            with self.assertRaisesRegex(gate.GateError, "semantic ProofProgram"):
+                gate.gate(self.arguments("spoofed-semantic"))
 
     def test_rejects_unpinned_rust_verifier(self):
         args = self.arguments("bad-pin")

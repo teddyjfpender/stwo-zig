@@ -102,11 +102,23 @@ resident_ns = (rows * args.sequence_len + 1_000_000) * binary_scale
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
 historical_v4 = "schema-v4" in Path(__file__).name
+historical_v5 = "schema-v5" in Path(__file__).name
 graph_launches = 2 if args.execution_mode == "graphs" else 0
 graph_hits = graph_launches if args.repeat > 1 else 0
 graph_misses = 0 if args.repeat > 1 else graph_launches
+program_sha256 = (
+    "d" * 64 if "program-drift" in Path(__file__).name else "c" * 64
+)
+if (
+    os.environ.get("FAKE_FULL_PROGRAM_DRIFT") == "1"
+    and Path(args.output).parent.parent.name == "steady"
+):
+    program_sha256 = "d" * 64
+semantic_sha256 = (
+    "f" * 64 if "semantic-drift" in Path(__file__).name else "e" * 64
+)
 report = {
-    "schema_version": 5,
+    "schema_version": 6,
     "product": "stwo-native-cuda",
     "backend": "cuda",
     "application": "wide_fibonacci",
@@ -152,7 +164,8 @@ report = {
         "trace_cells": rows * args.sequence_len,
     },
     "plan": {
-        "program_sha256": "c" * 64,
+        "program_sha256": program_sha256,
+        "semantic_sha256": semantic_sha256,
         "cache_key_sha256": "d" * 64,
         "schedule_version": 1,
         "compiled_once": True,
@@ -260,6 +273,7 @@ report = {
 if historical_v4:
     report["schema_version"] = 4
     report.pop("execution_mode")
+    report["plan"].pop("semantic_sha256")
     repetition = report["process_repetition"]
     repetition.pop("request_allocations_released")
     repetition.pop("bounded_persistent_pool_usage")
@@ -278,11 +292,18 @@ if historical_v4:
     residency["pool_used_bytes"] = 0
     report["aot"]["cache_hits"] = args.repeat - 1
     report["aot"]["launches"] = args.repeat
+elif historical_v5:
+    report["schema_version"] = 5
+    report["plan"].pop("semantic_sha256")
 elif mode == "missing-execution-mode":
     report.pop("execution_mode")
 elif mode == "inconsistent-graph-telemetry":
     report["residency"]["graph_cache_hits"] = 0
     report["residency"]["graph_cache_misses"] = 0
+elif mode == "missing-semantic-digest":
+    report["plan"].pop("semantic_sha256")
+elif mode == "invalid-semantic-digest":
+    report["plan"]["semantic_sha256"] = "not-a-digest"
 encoded = json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n"
 Path(args.report_out).write_text(encoded)
 print(encoded, end="")
@@ -398,7 +419,7 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
                 sample["process_repetition"]["graph_cache_misses_total"],
             )
 
-    def test_schema_v5_requires_explicit_execution_mode(self) -> None:
+    def test_schema_v6_requires_explicit_execution_mode(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             settings = self.settings(
@@ -412,7 +433,7 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
             ), self.assertRaisesRegex(DiagnosticError, "execution_mode"):
                 run_diagnostic(settings)
 
-    def test_schema_v5_requires_consistent_graph_telemetry(self) -> None:
+    def test_schema_v6_requires_consistent_graph_telemetry(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             settings = self.settings(
@@ -425,6 +446,25 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
                 {"FAKE_CUDA_MODE": "inconsistent-graph-telemetry"},
             ), self.assertRaisesRegex(DiagnosticError, "cache provenance"):
                 run_diagnostic(settings)
+
+    def test_schema_v6_requires_valid_semantic_digest(self) -> None:
+        for fault in ("missing-semantic-digest", "invalid-semantic-digest"):
+            with self.subTest(fault=fault):
+                with tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    settings = self.settings(
+                        root,
+                        self.make_product(root),
+                        samples=1,
+                    )
+                    with mock.patch.dict(
+                        os.environ,
+                        {"FAKE_CUDA_MODE": fault},
+                    ), self.assertRaisesRegex(
+                        DiagnosticError,
+                        "semantic_sha256|semantic-program",
+                    ):
+                        run_diagnostic(settings)
 
     def test_fallback_telemetry_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

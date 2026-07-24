@@ -148,6 +148,28 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
                 baseline["raw"]["residency"]["graph_launches"],
             )
 
+    def test_historical_schema_v5_is_admitted_only_for_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                baseline=self.make_product(root, "schema-v5-baseline"),
+            )
+            document, _ = run_benchmark(settings)
+
+            gate = document["workloads"][0]["proof_gate"]
+            self.assertTrue(gate["historical_baseline"])
+            self.assertEqual(
+                "canonical_proof_statement_protocol_device",
+                gate["semantic_comparison"],
+            )
+            self.assertEqual(
+                {"baseline": 5, "candidate": 6},
+                gate["report_schema_versions_by_arm"],
+            )
+            self.assertNotIn("baseline", gate["semantic_sha256_by_arm"])
+
     def test_historical_schema_v4_is_rejected_as_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -184,6 +206,51 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
                 os.environ,
                 {"FAKE_V4_GRAPH_CACHE_FIELD": "1"},
             ), self.assertRaisesRegex(BenchmarkError, "wrong fields"):
+                run_benchmark(settings)
+
+    def test_full_program_identity_may_differ_across_current_arms(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                baseline=self.make_product(root, "program-drift-baseline"),
+            )
+            document, _ = run_benchmark(settings)
+
+            gate = document["workloads"][0]["proof_gate"]
+            self.assertIsNone(gate["program_sha256"])
+            self.assertEqual(
+                "schema_v6_semantic_digest",
+                gate["semantic_comparison"],
+            )
+            self.assertEqual(
+                gate["semantic_sha256_by_arm"]["candidate"],
+                gate["semantic_sha256_by_arm"]["baseline"],
+            )
+
+    def test_semantic_identity_must_match_across_current_arms(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                baseline=self.make_product(root, "semantic-drift-baseline"),
+            )
+            with self.assertRaisesRegex(BenchmarkError, "semantic ProofProgram"):
+                run_benchmark(settings)
+
+    def test_full_program_identity_must_be_stable_within_each_arm(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_FULL_PROGRAM_DRIFT": "1"},
+            ), self.assertRaisesRegex(BenchmarkError, "full ProofProgram"):
                 run_benchmark(settings)
 
     def test_fallback_telemetry_is_rejected(self) -> None:

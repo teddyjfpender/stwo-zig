@@ -549,7 +549,7 @@
         "board": "core_cuda",
         "build_step": "zig build stwo-native-cuda -Doptimize=ReleaseFast",
         "binary": "zig-out/bin/stwo-zig-native-cuda",
-        "report_schema": "native_cuda_product_v4",
+        "report_schema": "native_cuda_product_v6",
         "correctness_oracle": {
           "authority": "pinned-rust-stwo",
           "repository": "https://github.com/starkware-libs/stwo",

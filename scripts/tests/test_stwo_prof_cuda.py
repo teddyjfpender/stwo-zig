@@ -48,6 +48,23 @@ class CudaToolsTests(unittest.TestCase):
                     7,
                 )
             path.write_text(json.dumps({
+                "schema_version": 6,
+                "backend": "cuda",
+                "plan": {"semantic_sha256": "a" * 64},
+                "device_stage_timing_ns": {"total": 7},
+            }))
+            self.assertEqual(
+                cudatools.load_stage_report(path)["plan"]["semantic_sha256"],
+                "a" * 64,
+            )
+            path.write_text(json.dumps({
+                "schema_version": 6,
+                "backend": "cuda",
+                "device_stage_timing_ns": {"total": 7},
+            }))
+            with self.assertRaisesRegex(cudatools.ProfError, "semantic identity"):
+                cudatools.load_stage_report(path)
+            path.write_text(json.dumps({
                 "schema_version": 1,
                 "backend": "cuda",
                 "device_stage_timing_ns": {"total": 7},

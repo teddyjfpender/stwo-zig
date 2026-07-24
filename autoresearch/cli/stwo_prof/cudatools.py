@@ -149,8 +149,18 @@ def load_stage_report(path: Path) -> dict:
         report = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ProfError(f"cannot read CUDA proof report {path}: {error}") from error
-    if report.get("schema_version") not in (2, 3, 4, 5) or report.get("backend") != "cuda":
+    schema_version = report.get("schema_version")
+    if schema_version not in (2, 3, 4, 5, 6) or report.get("backend") != "cuda":
         raise ProfError("input is not a CUDA proof report with stage timing")
+    if schema_version == 6:
+        plan = report.get("plan")
+        semantic = plan.get("semantic_sha256") if isinstance(plan, dict) else None
+        if (
+            not isinstance(semantic, str)
+            or len(semantic) != 64
+            or any(byte not in "0123456789abcdef" for byte in semantic)
+        ):
+            raise ProfError("schema-v6 CUDA report has invalid semantic identity")
     timing = report.get("device_stage_timing_ns")
     if not isinstance(timing, dict) or not isinstance(timing.get("total"), int):
         raise ProfError("CUDA proof report has no device stage timing")
