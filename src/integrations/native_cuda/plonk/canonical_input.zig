@@ -5,7 +5,7 @@ const pcs = @import("stwo_core").pcs;
 const cpu_plonk = @import("../../../examples/plonk.zig");
 
 pub const protocol_word_count: usize = 4;
-pub const statement_word_count: usize = 4;
+pub const statement_word_count: usize = geometry_mod.statement_word_count;
 
 pub fn protocolWords(value: pcs.PcsConfig) [protocol_word_count]u32 {
     return .{
@@ -19,7 +19,7 @@ pub fn protocolWords(value: pcs.PcsConfig) [protocol_word_count]u32 {
 pub fn statementWords(
     value: cpu_plonk.Statement,
 ) [statement_word_count]u32 {
-    return .{ value.log_n_rows, 0, 0, 0 };
+    return .{value.log_n_rows};
 }
 
 pub fn coefficientLogSizes(
@@ -34,7 +34,7 @@ test "Plonk request words preserve the public row log" {
     const words = statementWords(.{ .log_n_rows = 16 });
     try std.testing.expectEqualSlices(
         u32,
-        &.{ 16, 0, 0, 0 },
+        &.{16},
         &words,
     );
     const protocol = protocolWords(pcs.PcsConfig.default());

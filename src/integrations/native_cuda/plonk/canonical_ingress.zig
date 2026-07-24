@@ -289,7 +289,7 @@ test "canonical Plonk ingress is exact and reusable" {
     );
     try std.testing.expectEqualSlices(
         u32,
-        &.{ 8, 0, 0, 0 },
+        &.{8},
         &pack.statement_words,
     );
 }

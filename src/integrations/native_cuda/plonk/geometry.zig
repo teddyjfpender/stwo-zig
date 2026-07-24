@@ -8,6 +8,7 @@ pub const preprocessed_columns: u32 = 4;
 pub const main_columns: u32 = 4;
 pub const interaction_columns: u32 = 0;
 pub const composition_columns: u32 = 8;
+pub const statement_word_count: usize = 1;
 pub const sampled_mask_points: u32 =
     preprocessed_columns + main_columns + composition_columns;
 pub const max_log_size: u32 = 29;

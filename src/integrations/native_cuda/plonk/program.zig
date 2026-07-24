@@ -172,7 +172,7 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
         .statement = .{
             .transcript_recipe_identity = identities.transcript_recipe,
             .public_input_abi_identity = identities.public_input_abi,
-            .public_input_words = 4,
+            .public_input_words = geometry_mod.statement_word_count,
         },
         .sampling = .{
             .recipe_identity = identities.sampling_recipe,
@@ -181,9 +181,9 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
         },
         .constraint_parameters = .{
             .identity = identities.constraint_parameter_abi,
-            .statement_words = 4,
+            .statement_words = geometry_mod.statement_word_count,
             .challenge_words = 4,
-            .parameter_words = 8,
+            .parameter_words = geometry_mod.statement_word_count + 4,
         },
     };
 }

@@ -34,7 +34,14 @@ pub fn build(
     try add(&output, allocator, slots.transcript_output_snapshot, @max(geometry.protocol.fri_config.n_queries, 8), .constraint_evaluation, .decommit);
     try add(&output, allocator, slots.transcript_boundary_snapshot, 16, .ingress, .decommit);
     try add(&output, allocator, slots.protocol_words, 4, .ingress, .trace_commit);
-    try add(&output, allocator, slots.statement_words, 4, .ingress, .constraint_evaluation);
+    try add(
+        &output,
+        allocator,
+        slots.statement_words,
+        geometry_mod.statement_word_count,
+        .ingress,
+        .constraint_evaluation,
+    );
 
     try add(&output, allocator, slots.preprocessed_coefficients, try mul(geometry_mod.preprocessed_columns, committed_rows), .trace_generation, .oods);
     try add(&output, allocator, slots.main_coefficients, try mul(geometry_mod.main_columns, committed_rows), .trace_generation, .oods);

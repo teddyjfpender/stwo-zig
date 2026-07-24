@@ -144,7 +144,7 @@ pub fn BindingFor(
             const statement_words = try exactWords(
                 provider,
                 slots.statement_words,
-                4,
+                geometry_mod.statement_word_count,
             );
             const challenge_words = try exactWords(
                 provider,

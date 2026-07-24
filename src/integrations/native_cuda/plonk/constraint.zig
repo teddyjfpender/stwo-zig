@@ -27,7 +27,8 @@ pub fn prepare(
     buffers: Buffers,
     geometry: geometry_mod.Geometry,
 ) !constant_qm31.PreparedLaunch {
-    if (buffers.statement_parameters.len != 4 or
+    if (buffers.statement_parameters.len !=
+        geometry_mod.statement_word_count or
         buffers.challenge_parameters.len != 4)
     {
         return error.InvalidKernelDescriptor;
