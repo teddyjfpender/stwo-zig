@@ -538,6 +538,11 @@ fn bindDecommit(
         topology.count_words,
     );
     if (counts.len != 5) return error.InvalidKernelDescriptor;
+    const main_column_log_sizes = try exactWords(
+        provider,
+        slots.main_column_log_sizes,
+        prepared.logical.geometry.main_columns,
+    );
     return .{
         .raw_queries = try exactWords(
             provider,
@@ -602,11 +607,8 @@ fn bindDecommit(
             slots.decommit_sparse_level_counts,
             1,
         ),
-        .main_column_log_sizes = try exactWords(
-            provider,
-            slots.main_column_log_sizes,
-            prepared.logical.geometry.main_columns,
-        ),
+        .preprocessed_column_log_sizes = try main_column_log_sizes.sub(0, 0),
+        .main_column_log_sizes = main_column_log_sizes,
         .composition_column_log_sizes = try exactWords(
             provider,
             slots.composition_column_log_sizes,
