@@ -555,7 +555,9 @@ def compute_summary(
         rejection_class = str(step.get("rejection_class", REJECTION_CLASS_OTHER))
         tamper_rejection_counts[rejection_class] = tamper_rejection_counts.get(rejection_class, 0) + 1
 
-    tamper_cases_total = len(examples) * 2 * len(ACTIVE_MUTATIONS)
+    tamper_cases_total = sum(
+        len(mutations_for_example(example)) * 2 for example in examples
+    )
     if include_plonk_logup_oracle:
         tamper_cases_total += len(PLONK_LOGUP_ORACLE_MUTATIONS)
     tamper_cases_executed = len(tamper_steps)

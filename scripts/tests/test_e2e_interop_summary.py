@@ -45,7 +45,10 @@ class ComputeSummaryTests(unittest.TestCase):
         self.assertEqual(summary["cases_executed"], 4)
         self.assertEqual(summary["cases_passed"], 4)
         self.assertEqual(summary["cases_failed"], 0)
-        self.assertEqual(summary["tamper_cases_total"], 4 * len(self.mod.ACTIVE_MUTATIONS))
+        self.assertEqual(
+            summary["tamper_cases_total"],
+            sum(len(self.mod.mutations_for_example(example)) * 2 for example in examples),
+        )
         self.assertEqual(summary["tamper_cases_executed"], 2)
         self.assertEqual(summary["tamper_cases_passed"], 2)
         self.assertEqual(summary["tamper_cases_failed"], 0)
@@ -81,7 +84,10 @@ class ComputeSummaryTests(unittest.TestCase):
         self.assertEqual(summary["cases_executed"], 2)
         self.assertEqual(summary["cases_passed"], 1)
         self.assertEqual(summary["cases_failed"], 1)
-        self.assertEqual(summary["tamper_cases_total"], 4 * len(self.mod.ACTIVE_MUTATIONS))
+        self.assertEqual(
+            summary["tamper_cases_total"],
+            sum(len(self.mod.mutations_for_example(example)) * 2 for example in examples),
+        )
         self.assertEqual(summary["tamper_cases_executed"], 2)
         self.assertEqual(summary["tamper_cases_passed"], 1)
         self.assertEqual(summary["tamper_cases_failed"], 1)
