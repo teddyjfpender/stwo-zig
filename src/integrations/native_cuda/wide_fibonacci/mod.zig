@@ -20,6 +20,7 @@ pub const NativeDriver = driver.DriverFor(
     driver.NativeTransaction,
     executor.pipeline,
 );
+pub const NativeRuntime = driver.NativeRuntime;
 
 test {
     _ = canonical_ingress;
