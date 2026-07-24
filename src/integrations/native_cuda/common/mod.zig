@@ -2,6 +2,7 @@
 
 pub const commit_tree = @import("commit_tree.zig");
 pub const driver = @import("driver.zig");
+pub const fri_executor = @import("fri_executor.zig");
 pub const pipeline = @import("pipeline.zig");
 pub const prepared_plan = @import("prepared_plan.zig");
 pub const proof_assembly = @import("proof_assembly.zig");
@@ -18,6 +19,7 @@ pub const uniform_topology = @import("uniform_topology.zig");
 test {
     _ = commit_tree;
     _ = driver;
+    _ = fri_executor;
     _ = pipeline;
     _ = prepared_plan;
     _ = proof_assembly;

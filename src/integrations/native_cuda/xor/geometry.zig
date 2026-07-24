@@ -48,6 +48,14 @@ pub const Geometry = struct {
         return self.commitment_log_rows;
     }
 
+    pub fn powBits(self: Geometry) u32 {
+        return self.protocol.pow_bits;
+    }
+
+    pub fn lastLayerDegreeBound(self: Geometry) u32 {
+        return self.protocol.fri_config.log_last_layer_degree_bound;
+    }
+
     pub fn traceRowCount(self: Geometry) Error!usize {
         return std.math.cast(usize, self.trace_rows) orelse
             error.GeometryOverflow;
