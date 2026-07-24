@@ -49,6 +49,7 @@ pub fn run(
         &pack.statement_words,
     );
     try uploadColumnLogs(transaction, pack);
+    try uploadDecommitColumnLogs(transaction, prepared);
     try uploadTraceLayers(transaction, prepared);
     try transaction.upload(
         field.CirclePointBaseField,
@@ -71,6 +72,29 @@ pub fn run(
         u32,
         slots.decommit_sparse_level_offsets,
         &.{0},
+    );
+}
+
+fn uploadDecommitColumnLogs(
+    transaction: anytype,
+    prepared: *const plan_mod.PreparedPlan,
+) !void {
+    const logs = prepared.decommit.column_log_sizes;
+    if (logs.len != 11) return error.InvalidKernelDescriptor;
+    try transaction.upload(
+        u32,
+        slots.decommit_preprocessed_log_sizes,
+        logs[0..2],
+    );
+    try transaction.upload(
+        u32,
+        slots.decommit_main_log_sizes,
+        logs[2..3],
+    );
+    try transaction.upload(
+        u32,
+        slots.decommit_composition_log_sizes,
+        logs[3..11],
     );
 }
 

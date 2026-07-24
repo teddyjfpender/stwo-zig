@@ -218,8 +218,20 @@ pub const Decommit = struct {
     counts: Counts,
     sparse_level_offsets: common.Words,
     sparse_level_counts: common.Words,
+    preprocessed_column_log_sizes: common.Words,
     main_column_log_sizes: common.Words,
     composition_column_log_sizes: common.Words,
+
+    pub fn columnLogSizes(
+        self: Decommit,
+        role: trace_layout.TraceRole,
+    ) common.Words {
+        return switch (role) {
+            .preprocessed => self.preprocessed_column_log_sizes,
+            .main => self.main_column_log_sizes,
+            .composition => self.composition_column_log_sizes,
+        };
+    }
 
     pub fn traceQueries(self: Decommit) decommit_stage.TraceQueries {
         return .{
