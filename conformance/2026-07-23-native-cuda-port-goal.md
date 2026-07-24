@@ -119,55 +119,76 @@ correctness and residency gates.
       strict AOT loader, stage admission, and residency telemetry owners.
 - [x] Replace every staged legacy ABI implementation with a small product-owned
       Native unit and pass its real-device differential.
-- [ ] Implement the resident Native proof transaction from ingress through the
+- [x] Implement the resident Native proof transaction from ingress through the
       single final proof read.
-- [ ] Enable the isolated `stwo-native-cuda` product and CLI.
+- [x] Enable the isolated `stwo-native-cuda` product and CLI.
 - [x] Pass local non-CUDA isolation, source-conformance, closure, and fail-closed
       contract gates.
-- [ ] Pass real-device ABI, operation, proof, oracle, residency, and stability
-      gates.
+- [x] Pass real-device ABI, operation, proof, oracle, and residency gates.
+- [x] Pass the repeated-process proof/topology/pool-stability gate.
+- [ ] Publish a persistent-session warm-request benchmark. Repeated one-shot
+      transactions in one process are not a substitute.
 - [ ] Publish the first judged CUDA benchmark evidence.
 
 ## Current Evidence
 
-As of 2026-07-23, the product archive contains no imported CUDA translation
-units. Pinned Rust/CUDA files are immutable algorithm and oracle authority only;
-the executable closure is product-owned under `src/backends/cuda/native/`.
+As of 2026-07-24, the Native CUDA MVP is a complete resident prover. Pinned
+Rust/CUDA files remain immutable algorithm and oracle authority; the executable
+archive contains zero imported authority objects and is owned under
+`src/backends/cuda/native/`.
 
-Real-device evidence currently covers:
+The clean SM 89 build contains 22 product-owned Native CUDA objects, one
+product-owned host object, one Native AOT cubin, and 68 active ABI symbols with
+zero staged symbols. All 12 real-device differentials pass on an RTX 4090.
+They cover the execution context, platform identity, trace generation,
+transforms, domain-prefixed Blake2s commitments, composition split, OODS,
+quotient, FRI, PoW, transcript, and canonical decommitment assembly.
 
-- one proof-owned nonblocking stream and isolated async memory pool;
-- generation-bound live-allocation validation for every device capability;
-- resident wide-Fibonacci trace construction at a non-target width of 37;
-- strict Native AOT constraint loading and launch with an exact expected
-  accumulator;
-- progressive Blake2s commitments across widths 1, 15, 16, 17, 31, 32, and
-  33;
-- ordinary Merkle layers, four-level fused reduction, and both supported FRI
-  leaf layouts;
-- complete-range alias rejection for Merkle reductions;
-- an eight-operation resident Blake2s Fiat-Shamir transcript including secure,
-  raw, query, boundary-state, seeded-state, and nonzero PoW vectors;
-- retained B2N, in-place N2B, full LDE, and pre-circle LDE over padded
-  contiguous slabs at logs 3, 8, 9, 10, and 13, including width 37;
-- OODS point derivation, staged coefficient evaluation, reduction, scatter,
-  barycentric weights, and multi-column evaluation with prepared unique index
-  maps and explicit capacity bounds;
-- every element of the 1024-value OODS batch-inverse tree, after its copied
-  final-pair indexing defect was found and corrected by the hardware gate.
+The end-to-end `log_n_rows=5`, `sequence_len=8` proof establishes:
 
-The exact clean rebuild contains zero imported authority objects, 21
-product-owned Native CUDA objects, one product-owned host object, and one
-Native AOT cubin. Eleven independent real-device differentials pass on SM 89.
-The active product manifest binds 66 ABI symbols and has no staged symbols.
+- one strict-AOT CUDA transaction from ingress through proof assembly;
+- one terminal D2H proof read and no intermediate D2H reads;
+- zero CPU fallback attempts and zero completed CPU fallbacks;
+- exact canonical equality with the Zig Native CPU proof;
+- successful independent Zig verification;
+- successful verification by pinned Rust Stwo
+  `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`;
+- three same-process CUDA transactions with byte-identical proofs, identical
+  launch topology, and zero final pool usage;
+- 8,390 canonical proof bytes with SHA-256
+  `452fb396032380b7c031fc95f0b7c00d0a3c6e05622321f84f06cb3a801e3b2c`.
 
-The progressive Blake2s hot path has zero per-thread stack and zero compiler
-spills on SM 89. It uses 56 registers for absorb and 48 for finalize. This
-resource result is evidence for the copied scalar-state design; it is not a
-proof-performance claim.
+The hardware gate found and corrected three copied-contract defects before
+activation: coefficient log sizes were consumed as coefficient counts, CUDA
+commitments omitted Stwo's leaf/node domain prefixes, and decommitment read
+leaf-to-root descriptors as root-to-leaf. The product build now also tracks
+every `.cu`, `.cuh`, host, AOT, and builder-script input explicitly; isolated
+cache tests prove source/header changes invalidate the archive while unchanged
+builds reuse it.
 
-The backend is not yet a prover. The resident stage implementations and
-single-read proof-bundle ABI are present, but the full executor still requires
-the composition split, canonical transcript schedule and proof decoder before
-it can establish canonical proof parity, Rust-oracle acceptance,
-repeated-session stability, product activation, and judged benchmarks.
+Initial ReleaseFast performance is diagnostic cold-process evidence, not a
+judged promotion. On one RTX 4090 with a 16-core AMD EPYC 7282 host, seven
+independent width-100 processes produced these median resident times:
+
+| log rows | trace rows | CUDA resident | trace-row MHz | committed Mcells/s |
+| ---: | ---: | ---: | ---: | ---: |
+| 14 | 16,384 | 209.941 ms | 0.078 | 7.80 |
+| 16 | 65,536 | 212.251 ms | 0.309 | 30.88 |
+| 18 | 262,144 | 236.212 ms | 1.110 | 110.98 |
+| 20 | 1,048,576 | 336.886 ms | 3.113 | 311.26 |
+| 22 | 4,194,304 | 790.369 ms | 5.307 | 530.68 |
+
+The same-host Zig SIMD screen reached a median 8.110 seconds of prove time at
+log 22, so the large width-100 diagnostic is about 10.3x faster on CUDA.
+Small cells remain dominated by roughly 210 ms of per-process setup. The
+largest admitted saturation point, log 22 by 128 columns, completed in
+905.045 ms and processed 536,870,912 committed cells at 593.20 million
+cells/second.
+
+These measurements do not establish CUDA-over-Metal superiority: the current
+M5 Metal diagnostic is faster at the inherited width-100 log-22 shape, and the
+hosts differ. The remaining performance boundary is explicit: the CUDA CLI is
+still one proof transaction per process, reports zero graph launches, and
+launches hundreds of kernels for large proofs. Persistent context/session
+reuse, graph capture, and a same-host judged CPU/CUDA matrix are follow-up
+requirements, not facts inferred from the cold screen.
