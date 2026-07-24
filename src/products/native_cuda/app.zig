@@ -258,8 +258,12 @@ fn requireResident(verdict: anytype) !void {
         return error.NonResidentCudaProof;
     if (!counters.deviceTimingComplete())
         return error.IncompleteCudaDeviceTiming;
-    if (verdict.pool_used_bytes != 0)
+    if (counters.persistent_bytes == 0 or
+        verdict.pool_used_bytes < counters.persistent_bytes or
+        verdict.pool_reserved_bytes < verdict.pool_used_bytes)
+    {
         return error.CudaPoolNotReleased;
+    }
     if (!counters.stagesCompleteExactlyOnce())
         return error.IncompleteCudaProofStages;
     if (counters.cpu_fallback_attempts != 0 or
@@ -271,6 +275,12 @@ fn requireResident(verdict: anytype) !void {
         counters.d2h_proof_bytes == 0)
     {
         return error.MissingTerminalProofRead;
+    }
+    if (counters.graph_launches == 0 or
+        counters.graph_cache_hits + counters.graph_cache_misses !=
+            counters.graph_launches)
+    {
+        return error.IncompleteCudaGraphEvidence;
     }
 
     for (counters.stages, 0..) |stage, index| {
@@ -337,7 +347,7 @@ fn renderReport(
     );
     const plan_cache_key = std.fmt.bytesToHex(plan.cache_key, .lower);
     return std.json.Stringify.valueAlloc(allocator, .{
-        .schema_version = @as(u32, 4),
+        .schema_version = @as(u32, 5),
         .product = "stwo-native-cuda",
         .backend = cli.backend_name,
         .application = cli.air_name,
@@ -387,7 +397,11 @@ fn renderReport(
             .reuse_count = request.repeat,
             .node_count = plan.schedule.len,
             .request_bytes = plan.prediction.request_bytes,
-            .persistent_bytes = plan.prediction.persistent_bytes,
+            .persistent_bytes = std.math.add(
+                u64,
+                plan.prediction.persistent_bytes,
+                plan.prediction.request_bytes,
+            ) catch return error.SizeOverflow,
             .predicted_minimum_launches = plan.prediction.minimum_launches,
             .transcript_barriers = plan.prediction.transcript_barriers,
         },
@@ -414,7 +428,10 @@ fn renderReport(
             .persistent_session = true,
             .all_canonical_bytes_identical = true,
             .stable_launch_topology = true,
-            .zero_final_pool_usage = true,
+            .request_allocations_released = true,
+            .bounded_persistent_pool_usage = true,
+            .graph_cache_hits_total = verdict.graph_cache_hits_total,
+            .graph_cache_misses_total = verdict.graph_cache_misses_total,
             .resident_prove_ns = resident_prove_ns,
             .terminal_decode_ns = decode_ns,
             .independent_verification_ns = verification_ns,
@@ -434,10 +451,13 @@ fn renderReport(
             .cpu_fallbacks_completed = counters.cpu_fallbacks_completed,
             .kernel_launches = counters.kernel_launches,
             .graph_launches = counters.graph_launches,
+            .graph_cache_hits = counters.graph_cache_hits,
+            .graph_cache_misses = counters.graph_cache_misses,
             .sync_calls = counters.sync_calls,
             .device_timing_intervals = counters.device_timing_intervals,
             .device_elapsed_ns = counters.device_elapsed_ns,
             .peak_live_bytes = counters.peak_live_bytes,
+            .persistent_bytes = counters.persistent_bytes,
             .pool_used_bytes = verdict.pool_used_bytes,
             .pool_reserved_bytes = verdict.pool_reserved_bytes,
         },

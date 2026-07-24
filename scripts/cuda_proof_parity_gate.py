@@ -117,7 +117,7 @@ def validate_cuda_report(
 ) -> dict[str, Any]:
     report = load_object(path)
     required = {
-        "schema_version": 4,
+        "schema_version": 5,
         "product": "stwo-native-cuda",
         "backend": "cuda",
         "application": "wide_fibonacci",
@@ -161,6 +161,25 @@ def validate_cuda_report(
         raise GateError(f"{path}: CUDA residency contract failed")
     if residency.get("device_timing_intervals") != 10:
         raise GateError(f"{path}: CUDA device timing coverage is incomplete")
+    graph_launches = residency.get("graph_launches")
+    graph_hits = residency.get("graph_cache_hits")
+    graph_misses = residency.get("graph_cache_misses")
+    persistent_bytes = residency.get("persistent_bytes")
+    pool_used_bytes = residency.get("pool_used_bytes")
+    if (
+        not isinstance(graph_launches, int)
+        or graph_launches <= 0
+        or not isinstance(graph_hits, int)
+        or graph_hits < 0
+        or not isinstance(graph_misses, int)
+        or graph_misses < 0
+        or graph_hits + graph_misses != graph_launches
+        or not isinstance(persistent_bytes, int)
+        or persistent_bytes <= 0
+        or not isinstance(pool_used_bytes, int)
+        or pool_used_bytes < persistent_bytes
+    ):
+        raise GateError(f"{path}: CUDA graph residency evidence is invalid")
     stage_timing = report.get("device_stage_timing_ns")
     if not isinstance(stage_timing, dict):
         raise GateError(f"{path}: CUDA device stage timing is missing")
@@ -199,10 +218,17 @@ def validate_cuda_report(
             "persistent_session": True,
             "all_canonical_bytes_identical": True,
             "stable_launch_topology": True,
-            "zero_final_pool_usage": True,
+            "request_allocations_released": True,
+            "bounded_persistent_pool_usage": True,
         }.items()
     ):
         raise GateError(f"{path}: process-repetition evidence is invalid")
+    if (
+        repetition.get("graph_cache_misses_total") != graph_launches
+        or repetition.get("graph_cache_hits_total")
+        != graph_launches * (repeat - 1)
+    ):
+        raise GateError(f"{path}: CUDA graph-cache lifecycle is invalid")
     for key in ("resident_prove_ns", "terminal_decode_ns"):
         samples = repetition.get(key)
         if (

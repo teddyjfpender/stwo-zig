@@ -29,7 +29,19 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
         ) !PreparedProof {
             const geometry = try request_mod.admit(request);
             const target = try Executor.planTarget(runtime.planningSession());
-            return Executor.prepare(self.allocator, geometry, target);
+            var prepared = try Executor.prepare(
+                self.allocator,
+                geometry,
+                target,
+            );
+            errdefer prepared.deinit(self.allocator);
+            const arena_plan = try prepared.instantiateArenaPlan(self.allocator);
+            try runtime.prepareExecution(
+                self.allocator,
+                prepared.cacheKey(),
+                arena_plan,
+            );
+            return prepared;
         }
 
         pub fn runRetained(
@@ -48,23 +60,58 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             request: request_mod.Request,
             prepared: *PreparedProof,
         ) !Transaction.StarkBundleOutput {
+            return self.runPrepared(
+                runtime,
+                request,
+                prepared,
+                .graphs,
+            );
+        }
+
+        /// Forced direct execution is the byte-parity oracle for every cached
+        /// graph schedule and remains available to non-performance gates.
+        pub fn runPreparedRetainedDirect(
+            self: Self,
+            runtime: anytype,
+            request: request_mod.Request,
+            prepared: *PreparedProof,
+        ) !Transaction.StarkBundleOutput {
+            return self.runPrepared(
+                runtime,
+                request,
+                prepared,
+                .direct,
+            );
+        }
+
+        const ExecutionMode = enum { graphs, direct };
+
+        fn runPrepared(
+            self: Self,
+            runtime: anytype,
+            request: request_mod.Request,
+            prepared: *PreparedProof,
+            mode: ExecutionMode,
+        ) !Transaction.StarkBundleOutput {
             const geometry = try request_mod.admit(request);
             try Executor.validatePrepared(prepared, geometry);
-            var arena_plan = try prepared.instantiateArenaPlan(self.allocator);
-            var arena_plan_live = true;
-            errdefer if (arena_plan_live) arena_plan.deinit(self.allocator);
             const session = try runtime.beginProof();
             var session_live = true;
             errdefer if (session_live) session.abortRetained() catch {};
 
             session_live = false;
-            var transaction = try Transaction.openPreparedRetained(
+            var transaction = try Transaction.openPreparedCachedRetained(
                 self.allocator,
                 session,
-                arena_plan,
+                prepared.cacheKey(),
             );
-            arena_plan_live = false;
-            return execute(self, &transaction, prepared, geometry);
+            return execute(
+                self,
+                &transaction,
+                prepared,
+                geometry,
+                mode,
+            );
         }
 
         fn execute(
@@ -72,6 +119,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             transaction: *Transaction,
             prepared: *Executor.PreparedPlan,
             geometry: request_mod.Geometry,
+            mode: ExecutionMode,
         ) !Transaction.StarkBundleOutput {
             var transaction_live = true;
             errdefer if (transaction_live) transaction.abort() catch {};
@@ -81,12 +129,45 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
 
             for (prepared.schedule()) |scheduled| {
                 try transaction.beginStage(scheduled.stage);
-                try Executor.executeNode(
-                    transaction,
-                    prepared,
-                    geometry,
-                    scheduled,
-                );
+                const use_graph = mode == .graphs and
+                    prepared.graphsEnabled() and
+                    scheduled.graph_candidate;
+                if (!use_graph) {
+                    try Executor.executeNode(
+                        transaction,
+                        prepared,
+                        geometry,
+                        scheduled,
+                    );
+                } else if (try transaction.proofSession().hasStageGraph(
+                    prepared.cacheKey(),
+                    scheduled.stage,
+                )) {
+                    try transaction.proofSession().launchStageGraph(
+                        prepared.cacheKey(),
+                        scheduled.stage,
+                    );
+                } else {
+                    try transaction.proofSession().beginStageGraphCapture(
+                        prepared.cacheKey(),
+                        scheduled.stage,
+                    );
+                    Executor.executeNode(
+                        transaction,
+                        prepared,
+                        geometry,
+                        scheduled,
+                    ) catch |execute_error| {
+                        transaction.proofSession().abortStageGraphCapture() catch |abort_error|
+                            return abort_error;
+                        return execute_error;
+                    };
+                    try transaction.proofSession()
+                        .finishStageGraphCaptureAndLaunch(
+                        prepared.cacheKey(),
+                        scheduled.stage,
+                    );
+                }
                 try transaction.endStage(scheduled.stage);
             }
 
@@ -119,6 +200,8 @@ fn assertExecutor(comptime Executor: type) void {
         "instantiateArenaPlan",
         "proofSlot",
         "schedule",
+        "cacheKey",
+        "graphsEnabled",
     }) |name| {
         if (!@hasDecl(Prepared, name))
             @compileError("Native CUDA prepared plan is missing " ++ name);
@@ -127,6 +210,33 @@ fn assertExecutor(comptime Executor: type) void {
 
 test "driver owns exact stage order and one final proof read" {
     const FakeTransaction = struct {
+        const GraphSession = struct {
+            pub fn hasStageGraph(
+                _: *@This(),
+                _: [32]u8,
+                _: protocol.Stage,
+            ) !bool {
+                return false;
+            }
+            pub fn launchStageGraph(
+                _: *@This(),
+                _: [32]u8,
+                _: protocol.Stage,
+            ) !void {}
+            pub fn beginStageGraphCapture(
+                _: *@This(),
+                _: [32]u8,
+                _: protocol.Stage,
+            ) !void {}
+            pub fn finishStageGraphCaptureAndLaunch(
+                _: *@This(),
+                _: [32]u8,
+                _: protocol.Stage,
+            ) !void {}
+            pub fn abortStageGraphCapture(_: *@This()) !void {}
+        };
+        var graph_session: GraphSession = .{};
+
         pub const StarkBundleOutput = struct {
             marker: u32,
         };
@@ -153,6 +263,18 @@ test "driver owns exact stage order and one final proof read" {
             if (plan.placements.len != 1)
                 return error.InvalidPlan;
             return .{};
+        }
+
+        pub fn openPreparedCachedRetained(
+            _: std.mem.Allocator,
+            _: anytype,
+            _: [32]u8,
+        ) !@This() {
+            return .{};
+        }
+
+        pub fn proofSession(_: *@This()) *GraphSession {
+            return &graph_session;
         }
 
         pub fn finishIngress(self: *@This()) !void {
@@ -231,6 +353,12 @@ test "driver owns exact stage order and one final proof read" {
                 allocator: std.mem.Allocator,
             ) !arena.Plan {
                 return self.plan.clone(allocator);
+            }
+            pub fn cacheKey(_: *const @This()) [32]u8 {
+                return [_]u8{7} ** 32;
+            }
+            pub fn graphsEnabled(_: *const @This()) bool {
+                return false;
             }
         };
 
@@ -320,6 +448,16 @@ test "driver owns exact stage order and one final proof read" {
         session: FakeSession = .{},
         begins: usize = 0,
 
+        pub fn prepareExecution(
+            _: *@This(),
+            allocator: std.mem.Allocator,
+            _: [32]u8,
+            owned_plan: arena.Plan,
+        ) !void {
+            var plan = owned_plan;
+            plan.deinit(allocator);
+        }
+
         pub fn beginProof(self: *@This()) !*FakeSession {
             self.begins += 1;
             return &self.session;
@@ -352,11 +490,22 @@ test "driver owns exact stage order and one final proof read" {
     try std.testing.expectEqual(protocol.execution_stages.len, FakeExecutor.calls);
     try std.testing.expectEqual(@as(usize, 1), FakeExecutor.prepare_calls);
 
+    var direct_prepared = try driver.prepare(&runtime, request);
+    defer direct_prepared.deinit(std.testing.allocator);
+    const direct = try driver.runPreparedRetainedDirect(
+        &runtime,
+        request,
+        &direct_prepared,
+    );
+    try std.testing.expectEqual(@as(u32, 0xcada), direct.marker);
+    try std.testing.expectEqual(protocol.execution_stages.len, FakeExecutor.calls);
+    try std.testing.expectEqual(@as(usize, 2), FakeExecutor.prepare_calls);
+
     var unsupported = request;
     unsupported.protocol.pow_bits = 11;
     try std.testing.expectError(
         error.UnsupportedProtocol,
         driver.runRetained(&runtime, unsupported),
     );
-    try std.testing.expectEqual(@as(usize, 1), FakeExecutor.prepare_calls);
+    try std.testing.expectEqual(@as(usize, 2), FakeExecutor.prepare_calls);
 }

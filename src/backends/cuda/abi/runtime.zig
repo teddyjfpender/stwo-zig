@@ -56,6 +56,18 @@ pub extern "c" fn stwo_exec_context_nvtx_push(
     label: [*:0]const u8,
 ) c_int;
 pub extern "c" fn stwo_exec_context_nvtx_pop(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_graph_capture_begin(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_graph_capture_end(
+    handle: *anyopaque,
+    out_exec: *?*anyopaque,
+    out_kernel_nodes: *u64,
+) c_int;
+pub extern "c" fn stwo_graph_capture_abort(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_graph_launch(
+    exec_handle: *anyopaque,
+    context_handle: *anyopaque,
+) c_int;
+pub extern "c" fn stwo_graph_destroy(exec_handle: *anyopaque) c_int;
 
 pub extern "c" fn stwo_exec_context_alloc_u32(
     handle: *anyopaque,

@@ -160,7 +160,7 @@ pub fn targetFor(session: anytype) !cuda_plan.CompileOptions {
             @intCast(session.context.lane_count - 1)
         else
             0,
-        .enable_graphs = false,
+        .enable_graphs = true,
         .version = scheduler_version,
     };
 }

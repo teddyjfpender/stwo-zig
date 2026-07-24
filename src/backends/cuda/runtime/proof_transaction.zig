@@ -53,6 +53,8 @@ pub fn TransactionFor(comptime Session: type) type {
         session_owner: SessionOwner,
         arena: Arena,
         arena_live: bool = true,
+        owns_arena: bool = true,
+        owns_plan: bool = true,
         state: enum { ingress, proving, finished, aborted } = .ingress,
 
         pub fn open(
@@ -121,6 +123,27 @@ pub fn TransactionFor(comptime Session: type) type {
                 .plan = plan,
                 .session_owner = .{ .retained = session },
                 .arena = arena,
+            };
+        }
+
+        /// Borrows the session's full-plan-keyed, fixed-address arena. The
+        /// transaction owns proof state only; graph and arena lifetimes remain
+        /// process-owned by the retained session.
+        pub fn openPreparedCachedRetained(
+            allocator: std.mem.Allocator,
+            session: *Session,
+            cache_key: [32]u8,
+        ) runtime_error.Error!Self {
+            errdefer session.abortRetained() catch {};
+            const persistent_arena = try session.preparedArena(cache_key);
+            try session.beginStage(.ingress);
+            return .{
+                .allocator = allocator,
+                .plan = persistent_arena.plan,
+                .session_owner = .{ .retained = session },
+                .arena = persistent_arena.*,
+                .owns_arena = false,
+                .owns_plan = false,
             };
         }
 
@@ -297,7 +320,8 @@ pub fn TransactionFor(comptime Session: type) type {
             const source = try self.slot(proof_slot);
             if (source.len != destination.len) return error.SizeOverflow;
             try self.sessionContext().readProofSlice(u32, destination, source);
-            try self.arena.deinit(self.sessionContext());
+            if (self.owns_arena)
+                try self.arena.deinit(self.sessionContext());
             self.arena_live = false;
             try self.proofSession().endStage(.proof_assembly);
             try self.proofSession().markProofComplete();
@@ -305,7 +329,7 @@ pub fn TransactionFor(comptime Session: type) type {
                 try self.proofSession().finishRetained()
             else
                 try self.proofSession().finish();
-            self.plan.deinit(self.allocator);
+            if (self.owns_plan) self.plan.deinit(self.allocator);
             self.state = .finished;
             return verdict;
         }
@@ -372,7 +396,7 @@ pub fn TransactionFor(comptime Session: type) type {
             else
                 self.proofSession().abort();
             self.arena_live = false;
-            self.plan.deinit(self.allocator);
+            if (self.owns_plan) self.plan.deinit(self.allocator);
             self.state = .aborted;
             return abort_result;
         }

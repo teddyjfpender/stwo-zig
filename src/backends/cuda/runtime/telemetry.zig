@@ -56,6 +56,8 @@ pub const StageCounters = struct {
     lane_joins: u64 = 0,
     kernel_launches: u64 = 0,
     graph_launches: u64 = 0,
+    graph_cache_hits: u64 = 0,
+    graph_cache_misses: u64 = 0,
     device_elapsed_ns: u64 = 0,
     completions: u64 = 0,
 };
@@ -75,6 +77,9 @@ pub const Counters = struct {
     lane_joins: u64 = 0,
     kernel_launches: u64 = 0,
     graph_launches: u64 = 0,
+    graph_cache_hits: u64 = 0,
+    graph_cache_misses: u64 = 0,
+    persistent_bytes: u64 = 0,
     device_timing_intervals: u64 = 0,
     device_elapsed_ns: u64 = 0,
     cpu_fallback_attempts: u64 = 0,
@@ -157,6 +162,30 @@ pub const Counters = struct {
         self.stages[stage.index()].graph_launches += count;
     }
 
+    pub fn graphCache(self: *Counters, stage: Stage, hit: bool) void {
+        if (hit) {
+            self.graph_cache_hits += 1;
+            self.stages[stage.index()].graph_cache_hits += 1;
+        } else {
+            self.graph_cache_misses += 1;
+            self.stages[stage.index()].graph_cache_misses += 1;
+        }
+    }
+
+    pub fn replay(self: *Counters, stage: Stage, replayed: StageCounters) void {
+        self.d2d_bytes += replayed.d2d_bytes;
+        self.memset_bytes += replayed.memset_bytes;
+        self.memset_operations += replayed.memset_operations;
+        self.fill_words += replayed.fill_words;
+        self.kernel_launches += replayed.kernel_launches;
+        const counters = &self.stages[stage.index()];
+        counters.d2d_bytes += replayed.d2d_bytes;
+        counters.memset_bytes += replayed.memset_bytes;
+        counters.memset_operations += replayed.memset_operations;
+        counters.fill_words += replayed.fill_words;
+        counters.kernel_launches += replayed.kernel_launches;
+    }
+
     pub fn complete(self: *Counters, stage: Stage) void {
         self.stages[stage.index()].completions += 1;
     }
@@ -189,9 +218,17 @@ pub const Counters = struct {
         var right = other;
         left.device_elapsed_ns = 0;
         right.device_elapsed_ns = 0;
+        left.graph_cache_hits = 0;
+        right.graph_cache_hits = 0;
+        left.graph_cache_misses = 0;
+        right.graph_cache_misses = 0;
         for (0..stage_count) |index| {
             left.stages[index].device_elapsed_ns = 0;
             right.stages[index].device_elapsed_ns = 0;
+            left.stages[index].graph_cache_hits = 0;
+            right.stages[index].graph_cache_hits = 0;
+            left.stages[index].graph_cache_misses = 0;
+            right.stages[index].graph_cache_misses = 0;
         }
         return std.meta.eql(left, right);
     }
@@ -284,4 +321,21 @@ test "topology stability ignores elapsed time but not work" {
     try std.testing.expect(left.hasSameTopology(right));
     right.kernel_launches = 1;
     try std.testing.expect(!left.hasSameTopology(right));
+}
+
+test "graph replay preserves logical work while cache provenance changes" {
+    var captured = Counters{};
+    captured.kernels(.quotient, 3);
+    captured.d2d(.quotient, 64);
+    captured.graphs(.quotient, 1);
+    captured.graphCache(.quotient, false);
+
+    var replayed = Counters{};
+    replayed.replay(.quotient, captured.stages[Stage.quotient.index()]);
+    replayed.graphs(.quotient, 1);
+    replayed.graphCache(.quotient, true);
+
+    try std.testing.expect(captured.hasSameTopology(replayed));
+    try std.testing.expectEqual(@as(u64, 1), captured.graph_cache_misses);
+    try std.testing.expectEqual(@as(u64, 1), replayed.graph_cache_hits);
 }

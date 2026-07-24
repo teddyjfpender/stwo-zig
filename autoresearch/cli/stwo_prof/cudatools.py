@@ -149,7 +149,7 @@ def load_stage_report(path: Path) -> dict:
         report = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ProfError(f"cannot read CUDA proof report {path}: {error}") from error
-    if report.get("schema_version") not in (2, 3, 4) or report.get("backend") != "cuda":
+    if report.get("schema_version") not in (2, 3, 4, 5) or report.get("backend") != "cuda":
         raise ProfError("input is not a CUDA proof report with stage timing")
     timing = report.get("device_stage_timing_ns")
     if not isinstance(timing, dict) or not isinstance(timing.get("total"), int):

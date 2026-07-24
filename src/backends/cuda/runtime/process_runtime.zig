@@ -31,6 +31,20 @@ pub fn RuntimeFor(comptime Session: type) type {
             return &self.session;
         }
 
+        pub fn prepareExecution(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            cache_key: [32]u8,
+            owned_plan: @import("arena.zig").Plan,
+        ) runtime_error.Error!void {
+            if (self.state != .ready) return error.InvalidState;
+            try self.session.prepareExecution(
+                allocator,
+                cache_key,
+                owned_plan,
+            );
+        }
+
         pub fn completedProofs(self: Self) u64 {
             return self.session.completed_proofs;
         }

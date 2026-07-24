@@ -74,6 +74,14 @@ pub const PreparedPlan = struct {
     ).ScheduledNode {
         return self.structural.schedule();
     }
+
+    pub fn cacheKey(self: *const PreparedPlan) [32]u8 {
+        return self.structural.cuda_plan.cache_key;
+    }
+
+    pub fn graphsEnabled(self: *const PreparedPlan) bool {
+        return self.structural.cuda_plan.target.enable_graphs;
+    }
 };
 
 pub fn prepare(

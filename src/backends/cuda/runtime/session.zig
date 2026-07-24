@@ -1,98 +1,27 @@
 //! Strict-AOT, proof-owned CUDA session admission and final residency verdict.
-
 const std = @import("std");
 const native_api = @import("../abi/runtime.zig");
 const native_aot = @import("../abi/aot.zig");
 const types = @import("../abi/types.zig");
+const arena_module = @import("arena.zig");
 const context_module = @import("context.zig");
+const device_admission = @import("device_admission.zig");
+const execution_cache_module = @import("execution_cache.zig");
+const function_cache_module = @import("function_cache.zig");
 const kernel_module = @import("kernel.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
-
+const verdict_module = @import("verdict.zig");
 pub const NativeSession = SessionFor(native_api, native_aot);
-const function_cache_allocator = std.heap.page_allocator;
-
-const FunctionKey = struct {
-    cache_key: u64,
-    abi_schema: u32,
-    name: []const u8,
-    grid: [3]u32,
-    block: [3]u32,
-    dynamic_shared_bytes: u32,
-    argument_count: u32,
-
-    fn fromKernel(kernel: kernel_module.Kernel) FunctionKey {
-        return .{
-            .cache_key = kernel.cache_key,
-            .abi_schema = @intFromEnum(kernel.abi_schema),
-            .name = kernel.name,
-            .grid = kernel.grid,
-            .block = kernel.block,
-            .dynamic_shared_bytes = kernel.dynamic_shared_bytes,
-            .argument_count = kernel.argument_count,
-        };
-    }
-};
-
-const FunctionKeyContext = struct {
-    pub fn hash(_: FunctionKeyContext, key: FunctionKey) u64 {
-        var hasher = std.hash.Wyhash.init(0);
-        hasher.update(std.mem.asBytes(&key.cache_key));
-        hasher.update(std.mem.asBytes(&key.abi_schema));
-        hasher.update(key.name);
-        hasher.update(std.mem.asBytes(&key.grid));
-        hasher.update(std.mem.asBytes(&key.block));
-        hasher.update(std.mem.asBytes(&key.dynamic_shared_bytes));
-        hasher.update(std.mem.asBytes(&key.argument_count));
-        return hasher.final();
-    }
-
-    pub fn eql(_: FunctionKeyContext, left: FunctionKey, right: FunctionKey) bool {
-        return left.cache_key == right.cache_key and
-            left.abi_schema == right.abi_schema and
-            std.mem.eql(u8, left.name, right.name) and
-            std.mem.eql(u32, &left.grid, &right.grid) and
-            std.mem.eql(u32, &left.block, &right.block) and
-            left.dynamic_shared_bytes == right.dynamic_shared_bytes and
-            left.argument_count == right.argument_count;
-    }
-};
-
-const CachedFunction = struct {
-    handle: *anyopaque,
-    receipt: types.NativeAotFunctionReceipt,
-};
-
-const FunctionCache = std.HashMapUnmanaged(
-    FunctionKey,
-    CachedFunction,
-    FunctionKeyContext,
-    std.hash_map.default_max_load_percentage,
-);
-
-pub const Verdict = struct {
-    device: types.DeviceSnapshot,
-    platform: types.PlatformSnapshot,
-    build_identity: [32]u8,
-    aot_entries: usize,
-    aot: types.NativeAotStats,
-    lane_count: u32,
-    counters: telemetry.Counters,
-    pool_used_bytes: usize,
-    pool_reserved_bytes: usize,
-    runtime_proof_index: u64,
-
-    pub fn isResident(self: Verdict) bool {
-        return self.aot.isStrict() and
-            self.lane_count != 0 and
-            self.runtime_proof_index != 0 and
-            self.counters.lane_joins == self.lane_count and
-            self.counters.isResident();
-    }
-};
+const FunctionKey = function_cache_module.Key;
+const FunctionCache = function_cache_module.Map;
+const function_cache_allocator = function_cache_module.allocator;
+pub const Verdict = verdict_module.Verdict;
 
 pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
     const Context = context_module.ContextFor(Api);
+    const Arena = arena_module.ArenaFor(Context);
+    const ExecutionCache = execution_cache_module.CacheFor(Api, Context);
     return struct {
         const Self = @This();
         pub const FinishVerdict = Verdict;
@@ -106,6 +35,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         function_cache: FunctionCache = .empty,
         owner_thread_id: std.Thread.Id,
         function_cache_hits: u64 = 0,
+        execution_cache: ExecutionCache = .{},
         completed_proofs: u64 = 0,
         state: enum { idle, open, proved, closed } = .idle,
 
@@ -119,8 +49,10 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             ));
             if (device.count == 0) return error.DeviceUnavailable;
             if (device.current >= device.count) return error.InvalidDeviceOrdinal;
-            const sm = deviceSm(device) catch return error.InvalidDeviceArchitecture;
-            if (!contains(accepted_sms, sm)) return error.DeviceArchitectureMismatch;
+            const sm = device_admission.sm(device) catch
+                return error.InvalidDeviceArchitecture;
+            if (!device_admission.contains(accepted_sms, sm))
+                return error.DeviceArchitectureMismatch;
             var platform = types.PlatformSnapshot{};
             try runtime_error.check(Api.stwo_cuda_platform_snapshot(&platform));
             if (!platform.isSane() or platform.device_ordinal != device.current)
@@ -154,9 +86,93 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         }
 
         pub fn beginProof(self: *Self) runtime_error.Error!void {
+            try self.requireOwner();
             if (self.state != .idle) return error.InvalidState;
             try self.context.beginProof();
             self.state = .open;
+        }
+        /// Installs one full-plan-keyed, fixed-address execution arena.
+        /// Re-preparing the same key is a no-op; a shape change evicts every
+        /// graph before replacing its arena.
+        pub fn prepareExecution(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            cache_key: [32]u8,
+            owned_plan: arena_module.Plan,
+        ) runtime_error.Error!void {
+            try self.requireOwner();
+            if (self.state != .idle) return error.InvalidState;
+            try self.execution_cache.prepare(
+                &self.context,
+                allocator,
+                cache_key,
+                owned_plan,
+            );
+        }
+        pub fn preparedArena(
+            self: *Self,
+            cache_key: [32]u8,
+        ) runtime_error.Error!*Arena {
+            try self.requireOwner();
+            return self.execution_cache.arena(cache_key);
+        }
+
+        pub fn hasStageGraph(
+            self: *Self,
+            cache_key: [32]u8,
+            stage: telemetry.Stage,
+        ) runtime_error.Error!bool {
+            try self.requireOwner();
+            if (self.state != .open) return error.InvalidState;
+            return self.execution_cache.hasGraph(cache_key, stage);
+        }
+
+        pub fn beginStageGraphCapture(
+            self: *Self,
+            cache_key: [32]u8,
+            stage: telemetry.Stage,
+        ) runtime_error.Error!void {
+            try self.requireOwner();
+            if (self.state != .open) return error.InvalidState;
+            try self.execution_cache.beginCapture(
+                &self.context,
+                cache_key,
+                stage,
+            );
+        }
+
+        pub fn finishStageGraphCaptureAndLaunch(
+            self: *Self,
+            cache_key: [32]u8,
+            stage: telemetry.Stage,
+        ) runtime_error.Error!void {
+            try self.requireOwner();
+            if (self.state != .open) return error.InvalidState;
+            try self.execution_cache.finishCaptureAndLaunch(
+                &self.context,
+                cache_key,
+                stage,
+            );
+        }
+
+        pub fn launchStageGraph(
+            self: *Self,
+            cache_key: [32]u8,
+            stage: telemetry.Stage,
+        ) runtime_error.Error!void {
+            try self.requireOwner();
+            if (self.state != .open) return error.InvalidState;
+            try self.execution_cache.launch(
+                &self.context,
+                cache_key,
+                stage,
+            );
+        }
+
+        pub fn abortStageGraphCapture(self: *Self) runtime_error.Error!void {
+            try self.requireOwner();
+            if (self.state != .open) return error.InvalidState;
+            try self.execution_cache.abortCapture(&self.context);
         }
 
         pub fn markProofComplete(self: *Self) runtime_error.Error!void {
@@ -312,7 +328,8 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         fn collectVerdict(self: *Self) runtime_error.Error!Verdict {
             if (self.state != .proved) return error.InvalidState;
             try self.context.joinLanes();
-            if (self.context.live_buffers != 0) return error.DeviceBufferLive;
+            if (self.context.live_buffers != self.context.persistent_buffers)
+                return error.DeviceBufferLive;
             const pool = try self.context.poolCurrent();
             const loader = self.aot_loader orelse return error.InvalidState;
             var aot = types.NativeAotStats{};
@@ -338,6 +355,8 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
                 .counters = self.context.counters,
                 .pool_used_bytes = pool.used,
                 .pool_reserved_bytes = pool.reserved,
+                .graph_cache_hits_total = self.execution_cache.hits,
+                .graph_cache_misses_total = self.execution_cache.misses,
                 .runtime_proof_index = proof_index,
             };
             if (!verdict.isResident()) return error.StrictAotViolation;
@@ -353,6 +372,8 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
 
         pub fn finish(self: *Self) runtime_error.Error!Verdict {
             const verdict = try self.collectVerdict();
+            self.state = .idle;
+            try self.releasePreparedExecution();
             try self.releaseCachedFunctions();
             const loader = self.aot_loader orelse return error.InvalidState;
             try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
@@ -375,6 +396,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         pub fn close(self: *Self) runtime_error.Error!void {
             try self.requireOwner();
             if (self.state != .idle) return error.InvalidState;
+            try self.releasePreparedExecution();
             try self.releaseCachedFunctions();
             const loader = self.aot_loader orelse return error.InvalidState;
             try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
@@ -387,8 +409,17 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             try self.requireOwner();
             if (self.state == .closed) return error.InvalidState;
             var first_error: ?runtime_error.Error = null;
+            if (self.state != .idle) {
+                self.context.abortProof() catch |err| {
+                    first_error = err;
+                };
+                self.state = .idle;
+            }
+            self.releasePreparedExecution() catch |err| {
+                if (first_error == null) first_error = err;
+            };
             self.releaseCachedFunctions() catch |err| {
-                first_error = err;
+                if (first_error == null) first_error = err;
             };
             if (self.aot_loader) |loader| {
                 runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader)) catch |err| {
@@ -406,6 +437,12 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         fn requireOwner(self: *const Self) runtime_error.Error!void {
             if (self.owner_thread_id != std.Thread.getCurrentId())
                 return error.ThreadOwnershipViolation;
+        }
+
+        fn releasePreparedExecution(self: *Self) runtime_error.Error!void {
+            try self.requireOwner();
+            if (self.state != .idle) return error.InvalidState;
+            try self.execution_cache.deinit(&self.context);
         }
 
         fn releaseCachedFunctions(self: *Self) runtime_error.Error!void {
@@ -427,34 +464,6 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             self.function_cache = .empty;
         }
     };
-}
-
-fn deviceSm(device: types.DeviceSnapshot) !u32 {
-    if (device.sm_minor > 9) return error.InvalidDeviceArchitecture;
-    const major = std.math.mul(u32, device.sm_major, 10) catch
-        return error.InvalidDeviceArchitecture;
-    return std.math.add(u32, major, device.sm_minor) catch
-        return error.InvalidDeviceArchitecture;
-}
-
-fn contains(values: []const u32, expected: u32) bool {
-    for (values) |value| if (value == expected) return true;
-    return false;
-}
-
-test "device architecture is encoded exactly" {
-    try std.testing.expectEqual(@as(u32, 90), try deviceSm(.{
-        .count = 1,
-        .current = 0,
-        .sm_major = 9,
-        .sm_minor = 0,
-    }));
-    try std.testing.expectError(error.InvalidDeviceArchitecture, deviceSm(.{
-        .count = 1,
-        .current = 0,
-        .sm_major = 9,
-        .sm_minor = 10,
-    }));
 }
 
 test "strict session returns a resident verdict and never exposes fallback" {
@@ -612,6 +621,12 @@ test "strict session returns a resident verdict and never exposes fallback" {
         }
         pub fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
             out.* = 1;
+            return 0;
+        }
+        pub fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
+            return 0;
+        }
+        pub fn stwo_graph_destroy(_: *anyopaque) c_int {
             return 0;
         }
         pub fn stwo_exec_context_join_all_lanes(_: *anyopaque) c_int {

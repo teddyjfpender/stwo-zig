@@ -123,6 +123,17 @@ pub fn ArenaFor(comptime Context: type) type {
             };
         }
 
+        pub fn initPersistent(
+            context: *Context,
+            plan: *const Plan,
+        ) runtime_error.Error!Self {
+            if (plan.total_words == 0) return error.EmptyArenaPlan;
+            return .{
+                .backing = try context.allocatePersistent(plan.total_words),
+                .plan = plan.*,
+            };
+        }
+
         pub fn slice(
             self: *const Self,
             id: SlotId,
@@ -158,6 +169,14 @@ pub fn ArenaFor(comptime Context: type) type {
             context: *Context,
         ) runtime_error.Error!void {
             try context.free(&self.backing);
+            self.plan = undefined;
+        }
+
+        pub fn deinitPersistent(
+            self: *Self,
+            context: *Context,
+        ) runtime_error.Error!void {
+            try context.freePersistent(&self.backing);
             self.plan = undefined;
         }
     };

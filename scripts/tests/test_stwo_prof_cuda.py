@@ -37,7 +37,7 @@ class CudaToolsTests(unittest.TestCase):
     def test_stage_report_accepts_current_and_historical_cuda_schemas(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "report.json"
-            for schema_version in (2, 3, 4):
+            for schema_version in (2, 3, 4, 5):
                 path.write_text(json.dumps({
                     "schema_version": schema_version,
                     "backend": "cuda",

@@ -73,7 +73,7 @@ if name == "cuda":
     repeats = int(value("--repeat"))
     report.write_text(json.dumps({
         "schema_version": (
-            2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 4
+            2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 5
         ),
         "product": "stwo-native-cuda",
         "backend": "cuda",
@@ -101,6 +101,11 @@ if name == "cuda":
             "cpu_fallbacks_completed": 0,
             "device_timing_intervals": 10,
             "device_elapsed_ns": 10,
+            "graph_launches": 2,
+            "graph_cache_hits": 2 if repeats > 1 else 0,
+            "graph_cache_misses": 0 if repeats > 1 else 2,
+            "persistent_bytes": 4096,
+            "pool_used_bytes": 4096,
         },
         "device_stage_timing_ns": {
             "ingress": 1,
@@ -120,7 +125,10 @@ if name == "cuda":
             "persistent_session": True,
             "all_canonical_bytes_identical": True,
             "stable_launch_topology": True,
-            "zero_final_pool_usage": True,
+            "request_allocations_released": True,
+            "bounded_persistent_pool_usage": True,
+            "graph_cache_hits_total": 2 * (repeats - 1),
+            "graph_cache_misses_total": 2,
             "resident_prove_ns": [10] * repeats,
             "terminal_decode_ns": [2] * repeats,
             "device_elapsed_ns": [10] * repeats,

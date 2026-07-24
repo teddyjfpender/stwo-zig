@@ -399,6 +399,116 @@ extern "C" int stwo_exec_context_nvtx_pop(void *handle) {
     return 0;
 }
 
+extern "C" int stwo_graph_capture_begin(void *handle) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    return static_cast<int>(cudaStreamBeginCapture(
+        context->stream,
+        cudaStreamCaptureModeThreadLocal));
+}
+
+extern "C" int stwo_graph_capture_end(
+    void *handle,
+    void **out_exec,
+    uint64_t *out_kernel_nodes) {
+    if (out_exec == nullptr || out_kernel_nodes == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    *out_exec = nullptr;
+    *out_kernel_nodes = 0;
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+
+    cudaGraph_t graph = nullptr;
+    status = cudaStreamEndCapture(context->stream, &graph);
+    if (status != cudaSuccess) {
+        if (graph != nullptr) cudaGraphDestroy(graph);
+        return static_cast<int>(status);
+    }
+    if (graph == nullptr) {
+        return static_cast<int>(cudaErrorInvalidResourceHandle);
+    }
+
+    size_t node_count = 0;
+    status = cudaGraphGetNodes(graph, nullptr, &node_count);
+    if (status != cudaSuccess) {
+        cudaGraphDestroy(graph);
+        return static_cast<int>(status);
+    }
+    cudaGraphNode_t *nodes = node_count == 0
+        ? nullptr
+        : new (std::nothrow) cudaGraphNode_t[node_count];
+    if (node_count != 0 && nodes == nullptr) {
+        cudaGraphDestroy(graph);
+        return static_cast<int>(cudaErrorMemoryAllocation);
+    }
+    if (node_count != 0) {
+        status = cudaGraphGetNodes(graph, nodes, &node_count);
+    }
+    uint64_t kernel_nodes = 0;
+    for (size_t index = 0; status == cudaSuccess && index < node_count; ++index) {
+        cudaGraphNodeType type{};
+        status = cudaGraphNodeGetType(nodes[index], &type);
+        kernel_nodes += type == cudaGraphNodeTypeKernel;
+    }
+    delete[] nodes;
+    if (status != cudaSuccess || kernel_nodes == 0) {
+        cudaGraphDestroy(graph);
+        return static_cast<int>(
+            status == cudaSuccess ? cudaErrorInvalidResourceHandle : status);
+    }
+
+    cudaGraphExec_t exec = nullptr;
+    status = cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0);
+    const cudaError_t destroy_status = cudaGraphDestroy(graph);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (destroy_status != cudaSuccess) {
+        cudaGraphExecDestroy(exec);
+        return static_cast<int>(destroy_status);
+    }
+    if (exec == nullptr) {
+        return static_cast<int>(cudaErrorInvalidResourceHandle);
+    }
+    *out_exec = reinterpret_cast<void *>(exec);
+    *out_kernel_nodes = kernel_nodes;
+    return 0;
+}
+
+extern "C" int stwo_graph_capture_abort(void *handle) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    cudaGraph_t graph = nullptr;
+    status = cudaStreamEndCapture(context->stream, &graph);
+    if (graph != nullptr) {
+        const cudaError_t destroy_status = cudaGraphDestroy(graph);
+        if (status == cudaSuccess) status = destroy_status;
+    }
+    return static_cast<int>(status);
+}
+
+extern "C" int stwo_graph_launch(
+    void *exec_handle,
+    void *context_handle) {
+    if (exec_handle == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(context_handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    return static_cast<int>(cudaGraphLaunch(
+        reinterpret_cast<cudaGraphExec_t>(exec_handle),
+        context->stream));
+}
+
+extern "C" int stwo_graph_destroy(void *exec_handle) {
+    if (exec_handle == nullptr) return 0;
+    return static_cast<int>(cudaGraphExecDestroy(
+        reinterpret_cast<cudaGraphExec_t>(exec_handle)));
+}
+
 extern "C" int stwo_exec_context_alloc_u32(
     void *handle,
     size_t count,
