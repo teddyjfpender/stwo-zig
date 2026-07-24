@@ -7,6 +7,7 @@ pub const prepared_plan = @import("prepared_plan.zig");
 pub const proof_assembly = @import("proof_assembly.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
 pub const proof_decode = @import("proof_decode.zig");
+pub const quotient_executor = @import("quotient_executor.zig");
 pub const resident_views = @import("resident_views.zig");
 pub const scheduled_executor = @import("scheduled_executor.zig");
 pub const transcript_executor = @import("transcript_executor.zig");
@@ -22,6 +23,7 @@ test {
     _ = proof_assembly;
     _ = proof_bundle;
     _ = proof_decode;
+    _ = quotient_executor;
     _ = resident_views;
     _ = scheduled_executor;
     _ = transcript_executor;

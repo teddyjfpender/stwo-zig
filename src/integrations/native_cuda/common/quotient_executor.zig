@@ -1,54 +1,51 @@
-//! Resident quotient construction into FRI layer zero.
-//!
-//! The quotient's coordinate result aliases the first FRI layer by contract.
-//! Terms and partial numerators remain device-resident throughout this stage.
+//! AIR-neutral resident quotient construction into FRI layer zero.
 
 const std = @import("std");
-const field = @import("../../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import("../../../../backends/cuda/abi/stages/quotient.zig");
-const column = @import("../../../../backends/cuda/runtime/column.zig");
-const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
-const quotient_stage = @import("../../../../backends/cuda/runtime/stages/quotient.zig");
-const canonical_ingress = @import("../canonical_ingress.zig");
-const plan_mod = @import("../plan.zig");
-const request = @import("../request.zig");
-const types = @import("../resident_bindings/types.zig");
-const shared_executor = @import("../../common/quotient_executor.zig");
+const field = @import("../../../backends/cuda/abi/field.zig");
+const quotient_abi = @import(
+    "../../../backends/cuda/abi/stages/quotient.zig",
+);
+const column = @import("../../../backends/cuda/runtime/column.zig");
+const common = @import("../../../backends/cuda/runtime/stages/common.zig");
+const quotient_stage = @import(
+    "../../../backends/cuda/runtime/stages/quotient.zig",
+);
+const resident_views = @import("resident_views.zig");
 
 const NativeQuotient = quotient_stage.Native;
 
-const Dispatch = struct {
-    circle: canonical_ingress.CircleConstants,
-    sample_points: common.SecureCirclePoints,
-    sampled_values: common.SecureFields,
-    quotient: types.Quotient,
-};
-
 /// Enqueues quotient preparation, accumulation, and combination without a
 /// host transfer, allocation, fallback, or synchronization.
-pub fn execute(
+pub fn run(
     transaction: anytype,
-    prepared: *const plan_mod.PreparedPlan,
-    ingress: *const canonical_ingress.Pack,
-    views: *const types.Views,
+    prepared: anytype,
+    ingress: anytype,
+    views: anytype,
 ) !void {
-    return shared_executor.run(transaction, prepared, ingress, views);
+    try validate(prepared, ingress, views);
+    try executeWithOps(
+        NativeQuotient,
+        transaction.proofSession(),
+        ingress.circle,
+        views.oods.sample_points,
+        views.oods.sampled_values,
+        views.quotient,
+    );
 }
 
-/// Naming alias for stage executors that expose `run`.
-pub const run = execute;
-
-fn executeWithOps(
+pub fn executeWithOps(
     comptime Ops: type,
     session: anytype,
-    dispatch: Dispatch,
+    circle: anytype,
+    sample_points: common.SecureCirclePoints,
+    sampled_values: common.SecureFields,
+    quotient: resident_views.Quotient,
 ) !void {
-    const quotient = dispatch.quotient;
     try Ops.prepareTerms(
         session,
         quotient.prepared_groups,
-        dispatch.sample_points,
-        dispatch.sampled_values,
+        sample_points,
+        sampled_values,
         quotient.challenge,
         quotient.term_points,
         quotient.line_coefficients,
@@ -75,8 +72,8 @@ fn executeWithOps(
     );
     try Ops.combine(
         session,
-        dispatch.circle.half_coset_initial_index,
-        dispatch.circle.half_coset_step_size,
+        circle.half_coset_initial_index,
+        circle.half_coset_step_size,
         quotient.combine_topology,
         quotient.group_points,
         quotient.first_linear_terms,
@@ -86,60 +83,65 @@ fn executeWithOps(
 }
 
 fn validate(
-    prepared: *const plan_mod.PreparedPlan,
-    ingress: *const canonical_ingress.Pack,
-    views: *const types.Views,
+    prepared: anytype,
+    ingress: anytype,
+    views: anytype,
 ) !void {
-    const geometry = prepared.logical.geometry;
+    const logical = prepared.logical;
     const topology = prepared.quotient;
     const quotient = views.quotient;
-    const sample_count = try add(
-        geometry.main_columns,
-        request.composition_column_count,
-    );
-    const output_rows = geometry.commitment_rows;
+    const sample_count = logical.quotient.sample_count;
+    const source_count = logical.quotient.source_column_count;
+    const output_rows = logical.quotient.output_rows;
+    const group_count = logical.quotient.structural_group_count;
     const sample_count_u32 = try u32Count(sample_count);
+    const source_count_u32 = try u32Count(source_count);
     const output_rows_u32 = try u32Count(output_rows);
-    if (sample_count != geometry.sampled_value_count or
-        ingress.circle.domain_log_size != geometry.queryLogSize() or
+    if (sample_count != logical.quotient.term_count or
+        sample_count != source_count or
+        group_count == 0 or
+        ingress.circle.domain_log_size !=
+            logical.geometry.queryLogSize() or
         ingress.circle.half_coset_step_size == 0 or
-        topology.source_count != sample_count_u32 or
-        topology.source_stride_words != output_rows or
+        topology.source_count != source_count_u32 or
+        topology.source_stride_words !=
+            logical.quotient.source_stride_words or
         topology.output_rows != output_rows_u32 or
         topology.prepared_terms.len != sample_count or
         topology.batch_terms.len != sample_count or
-        topology.group_offsets.len != 2 or
+        topology.group_offsets.len != group_count + 1 or
         topology.group_term_indices.len != sample_count or
-        topology.group_log_sizes.len != 1 or
-        topology.partial_log_sizes.len != 1 or
+        topology.group_log_sizes.len != group_count or
+        topology.partial_log_sizes.len != group_count or
         views.oods.sample_points.len != sample_count or
         views.oods.sampled_values.len != sample_count or
         quotient.challenge.len != 1 or
         quotient.term_points.len != sample_count or
         quotient.line_coefficients.len != try mul(sample_count, 3) or
-        quotient.group_points.len != 1 or
-        quotient.first_linear_terms.len != 1)
+        quotient.group_points.len != group_count or
+        quotient.first_linear_terms.len != group_count)
     {
         return error.InvalidKernelDescriptor;
     }
 
     if (quotient.prepared_groups.descriptors.len != sample_count or
         quotient.prepared_groups.sample_count != sample_count_u32 or
-        quotient.prepared_groups.offsets.len != 2 or
+        quotient.prepared_groups.offsets.len != group_count + 1 or
         quotient.prepared_groups.term_indices.len != sample_count or
-        quotient.prepared_groups.group_count != 1 or
+        quotient.prepared_groups.group_count != group_count or
         quotient.numerator_topology.terms.len != sample_count or
-        quotient.numerator_topology.offsets.len != 2 or
-        quotient.numerator_topology.group_log_sizes.len != 1 or
-        quotient.numerator_topology.group_count != 1 or
+        quotient.numerator_topology.offsets.len != group_count + 1 or
+        quotient.numerator_topology.group_log_sizes.len != group_count or
+        quotient.numerator_topology.group_count != group_count or
         quotient.numerator_topology.max_output_size != output_rows_u32 or
-        quotient.numerator_topology.source_count != sample_count_u32 or
-        quotient.numerator_topology.source_stride_words != output_rows or
+        quotient.numerator_topology.source_count != source_count_u32 or
+        quotient.numerator_topology.source_stride_words !=
+            logical.quotient.source_stride_words or
         quotient.numerator_topology.line_term_count != sample_count_u32 or
-        quotient.combine_topology.partial_log_sizes.len != 1 or
-        quotient.combine_topology.sample_count != 1 or
+        quotient.combine_topology.partial_log_sizes.len != group_count or
+        quotient.combine_topology.sample_count != group_count or
         quotient.combine_topology.domain_log_size !=
-            geometry.queryLogSize() or
+            logical.geometry.queryLogSize() or
         quotient.combine_topology.partial_stride_words != output_rows)
     {
         return error.InvalidKernelDescriptor;
@@ -147,8 +149,8 @@ fn validate(
 
     try validateMatrix(
         quotient.source_evaluations,
-        sample_count,
-        output_rows,
+        source_count,
+        logical.quotient.source_stride_words,
     );
     inline for (.{
         quotient.partial_coordinates.c0,
@@ -156,7 +158,7 @@ fn validate(
         quotient.partial_coordinates.c2,
         quotient.partial_coordinates.c3,
     }) |partial| {
-        try validateMatrix(partial, 1, output_rows);
+        try validateMatrix(partial, group_count, output_rows);
     }
     inline for (.{
         quotient.result_coordinates.c0,
@@ -170,7 +172,7 @@ fn validate(
     try validateFriAlias(views, output_rows);
 }
 
-fn validateFriAlias(views: *const types.Views, rows: usize) !void {
+fn validateFriAlias(views: anytype, rows: usize) !void {
     if (views.fri.layer_count == 0) return error.InvalidKernelDescriptor;
     const first = views.fri.layers[0].coordinates;
     try validateMatrix(first, 4, rows);
@@ -187,7 +189,8 @@ fn validateFriAlias(views: *const types.Views, rows: usize) !void {
         views.quotient.result_coordinates.c3,
     };
     for (actual, expected) |result, layer| {
-        if (!sameSlice(result, layer)) return error.InvalidKernelDescriptor;
+        if (!sameSlice(result, layer))
+            return error.InvalidKernelDescriptor;
     }
 }
 
@@ -210,21 +213,16 @@ fn validateMatrix(
     }
 }
 
-fn add(left: usize, right: usize) !usize {
-    return std.math.add(usize, left, right) catch error.SizeOverflow;
-}
-
 fn u32Count(value: usize) !u32 {
     return std.math.cast(u32, value) orelse error.SizeOverflow;
 }
 
 fn mul(left: anytype, right: anytype) !usize {
-    const left_usize = std.math.cast(usize, left) orelse
+    const lhs = std.math.cast(usize, left) orelse
         return error.SizeOverflow;
-    const right_usize = std.math.cast(usize, right) orelse
+    const rhs = std.math.cast(usize, right) orelse
         return error.SizeOverflow;
-    return std.math.mul(usize, left_usize, right_usize) catch
-        error.SizeOverflow;
+    return std.math.mul(usize, lhs, rhs) catch error.SizeOverflow;
 }
 
 fn deviceSlice(
@@ -240,15 +238,9 @@ fn deviceSlice(
     };
 }
 
-test "quotient contract preserves the five resident launch boundaries" {
+test "generic quotient preserves five resident launch boundaries" {
     const FakeOps = struct {
-        const Call = enum {
-            prepare,
-            finalize,
-            zero,
-            accumulate,
-            combine,
-        };
+        const Call = enum { prepare, finalize, zero, accumulate, combine };
         var calls: [5]Call = undefined;
         var count: usize = 0;
 
@@ -278,11 +270,7 @@ test "quotient contract preserves the five resident launch boundaries" {
         ) !void {
             record(.finalize);
         }
-        pub fn zeroOutputs(
-            _: anytype,
-            _: anytype,
-            _: anytype,
-        ) !void {
+        pub fn zeroOutputs(_: anytype, _: anytype, _: anytype) !void {
             record(.zero);
         }
         pub fn accumulate(
@@ -340,7 +328,7 @@ test "quotient contract preserves the five resident launch boundaries" {
         .c2 = words.matrix(0x6000, 1),
         .c3 = words.matrix(0x7000, 1),
     };
-    const quotient = types.Quotient{
+    const quotient = resident_views.Quotient{
         .challenge = deviceSlice(field.SecureField, 0x8000, 1),
         .prepared_terms = terms,
         .group_offsets = group_offsets,
@@ -387,19 +375,17 @@ test "quotient contract preserves the five resident launch boundaries" {
 
     FakeOps.count = 0;
     var fake_session: u8 = 0;
-    try executeWithOps(FakeOps, &fake_session, .{
-        .circle = .{
-            .domain_log_size = 4,
-            .half_coset_initial_index = 1,
-            .half_coset_step_size = 2,
-            .barycentric_si0 = .{ .a = 0, .b = 0, .c = 0, .d = 0 },
-            .vanishing_rotation = .{ .x = 1, .y = 0 },
-            .composition_denominator_inverses = .{ 1, 1 },
+    try executeWithOps(
+        FakeOps,
+        &fake_session,
+        .{
+            .half_coset_initial_index = @as(u32, 1),
+            .half_coset_step_size = @as(u32, 2),
         },
-        .sample_points = deviceSlice(field.SecureCirclePoint, 0x12000, 2),
-        .sampled_values = deviceSlice(field.SecureField, 0x13000, 2),
-        .quotient = quotient,
-    });
+        deviceSlice(field.SecureCirclePoint, 0x12000, 2),
+        deviceSlice(field.SecureField, 0x13000, 2),
+        quotient,
+    );
     try std.testing.expectEqualSlices(
         FakeOps.Call,
         &.{ .prepare, .finalize, .zero, .accumulate, .combine },
