@@ -36,6 +36,15 @@ component exercised by the PIE corpus. Cairo must emit the same backend-neutral
 `ProofProgram` used by Native and RISC-V; it may not own a second CUDA runtime,
 scheduler, PCS implementation, transcript, arena manager, or proof format.
 
+The PIE is already the authenticated output of a Cairo execution. The prover
+does not rerun the Cairo program merely to recreate that execution. "Full
+Cairo frontend" here means the complete proving adapter: decode and validate
+the PIE's memory and execution resources, derive every active claim and public
+input, construct every source-derived base and interaction witness, evaluate
+the complete pinned stwo-cairo AIR, and bind the resulting statement into the
+proof transcript. Reusing proof-derived semantic packs, imported commitment
+roots, or pre-existing proofs is never production-admissible.
+
 The porting loop stays component-local:
 
 1. run the pinned Rust component oracle;
