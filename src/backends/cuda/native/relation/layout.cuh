@@ -53,6 +53,9 @@ __device__ __forceinline__ M31 relation_tuple_word(
     if (kind == 7u) {
         return sources[argument + word - 1u][row];
     }
+    if (kind == 8u) {
+        return sources[argument + word][row];
+    }
     if (kind == 1u) {
         if (word == 1u) return row + 1u + argument * rows;
         return sources[argument * 2u][row];

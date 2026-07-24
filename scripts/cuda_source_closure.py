@@ -22,6 +22,11 @@ AUTHORITIES = (
             "tree": "044f995e98ba6f2fdb5a1634a99c14927d7a93c0",
             "path": "crates/backend-cuda-kernels/cuda",
         },
+        "expected_closure": {
+            "file_count": 458,
+            "byte_count": 33508731,
+            "closure_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
+        },
     },
     {
         "name": "host",
@@ -40,6 +45,11 @@ AUTHORITIES = (
                 "rustfmt.toml",
                 "crates/*",
             ],
+        },
+        "expected_closure": {
+            "file_count": 1003,
+            "byte_count": 44877364,
+            "closure_sha256": "8592124d6ad17610e23171fa7160030f8f76e21f4deff35e76699de8ad515341",
         },
     },
 )
@@ -84,6 +94,27 @@ def build_manifest(authority: dict[str, object]) -> dict[str, object]:
     }
 
 
+def validate_expected_closure(
+    authority: dict[str, object],
+    actual: dict[str, object],
+) -> None:
+    expected = authority.get("expected_closure")
+    if not isinstance(expected, dict):
+        raise SystemExit(
+            f"CUDA {authority['name']} authority lacks an immutable closure pin"
+        )
+    observed = {
+        key: actual.get(key)
+        for key in ("file_count", "byte_count", "closure_sha256")
+    }
+    if observed != expected:
+        raise SystemExit(
+            f"imported CUDA {authority['name']} authority differs from the "
+            "closure pinned to its declared upstream commit/tree; update the "
+            "authority pin only as part of a reviewed whole-import change"
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -94,6 +125,7 @@ def main() -> int:
     args = parser.parse_args()
     for authority in AUTHORITIES:
         actual = build_manifest(authority)
+        validate_expected_closure(authority, actual)
         manifest = authority["manifest"]
         assert isinstance(manifest, Path)
         encoded = json.dumps(actual, indent=2, sort_keys=True) + "\n"

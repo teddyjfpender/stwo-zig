@@ -1,7 +1,7 @@
 {
   "authority": "kernels",
-  "byte_count": 33508817,
-  "closure_sha256": "ad96ce9fee72468433deeceb7ccd09976b0ec0c9489efb0b3f739daa61cd5e08",
+  "byte_count": 33508731,
+  "closure_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "file_count": 458,
   "files": [
     {
@@ -2185,9 +2185,9 @@
       "sha256": "84cd061059f032fc4af59184320fdbae589e38d8fc0ea994734efb2fb08505f1"
     },
     {
-      "bytes": 9138,
+      "bytes": 9052,
       "path": "relation_fused.cuh",
-      "sha256": "5408d0101472167af45069b3d31d990faa039dc635ad6f2ac329167e6f3373f7"
+      "sha256": "9539c4808b834e6a42be17f4640bf0c2ef17002e35b2e84cc60bcc8d94be6397"
     },
     {
       "bytes": 26312,

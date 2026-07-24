@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-cuda-product-closure-v1",
   "product": "stwo-native-cuda",
-  "source_authority_sha256": "ad96ce9fee72468433deeceb7ccd09976b0ec0c9489efb0b3f739daa61cd5e08",
+  "source_authority_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "ordinary": {
     "product_sources": [],
     "resident_candidates": [
@@ -96,7 +96,7 @@
         },
         {
           "path": "relation_fused.cuh",
-          "sha256": "5408d0101472167af45069b3d31d990faa039dc635ad6f2ac329167e6f3373f7"
+          "sha256": "9539c4808b834e6a42be17f4640bf0c2ef17002e35b2e84cc60bcc8d94be6397"
         },
         {
           "path": "relation_graph.cu",
@@ -127,7 +127,7 @@
         },
         {
           "path": "relation/layout.cuh",
-          "sha256": "ddcf90e99f7c009cfeec97bc3c40c64d9612a952438caf900c96e6447103d3a7"
+          "sha256": "b98b8981ce18f57318f18fa839ea1d3c2215d103e7fd885cb96ff18a6a98fcc3"
         }
       ]
     }

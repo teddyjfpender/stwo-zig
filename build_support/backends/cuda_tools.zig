@@ -102,6 +102,7 @@ pub fn addProducts(
         "unittest",
         "scripts.tests.test_cuda_build",
         "scripts.tests.test_cuda_build_cache",
+        "scripts.tests.test_cuda_source_closure",
         "scripts.tests.test_cuda_product_closure",
         "scripts.tests.test_cuda_aot_authentication",
         "scripts.tests.test_cuda_proof_parity_gate",
