@@ -8,6 +8,7 @@ pub const canonical_input = @import("canonical_input.zig");
 pub const canonical_ingress = @import("canonical_ingress.zig");
 pub const constraint = @import("constraint.zig");
 pub const device_trace = @import("device_trace.zig");
+pub const executor = @import("executor/mod.zig");
 pub const geometry = @import("geometry.zig");
 pub const identities = @import("identities.zig");
 pub const layout = @import("layout.zig");
@@ -29,6 +30,7 @@ test {
     _ = canonical_ingress;
     _ = constraint;
     _ = device_trace;
+    _ = executor;
     _ = geometry;
     _ = identities;
     _ = layout;

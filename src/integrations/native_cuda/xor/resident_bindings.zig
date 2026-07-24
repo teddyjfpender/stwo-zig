@@ -6,6 +6,7 @@ const column = @import("../../../backends/cuda/runtime/column.zig");
 const common = @import("../../../backends/cuda/runtime/stages/common.zig");
 const constraint = @import("constraint.zig");
 const geometry_mod = @import("geometry.zig");
+const plan_mod = @import("plan.zig");
 const slots = @import("slots.zig");
 const views = @import("../common/resident_views.zig");
 
@@ -17,13 +18,25 @@ pub const Bound = struct {
     twiddles_inverse: common.Words,
     protocol_words: common.Words,
     statement_words: common.Words,
+    transcript: Transcript,
     constraint_buffers: constraint.Buffers,
+    proof: views.Proof,
+};
+
+pub const Transcript = struct {
+    state: common.Words,
+    input_snapshot: common.Words,
+    output_snapshot: common.Words,
+    boundary_snapshot: common.Words,
+    protocol_words: common.Words,
+    statement_words: common.Words,
 };
 
 pub fn bind(
     provider: anytype,
-    geometry: geometry_mod.Geometry,
+    prepared: *const plan_mod.PreparedPlan,
 ) !Bound {
+    const geometry = prepared.logical.geometry;
     const rows = try geometry.traceRowCount();
     const committed_rows = geometry.commitment_rows;
     const hash_count = try sub(try mul(committed_rows, 2), 1);
@@ -111,6 +124,31 @@ pub fn bind(
         slots.composition_challenge,
         4,
     );
+    const protocol_words = try exactWords(
+        provider,
+        slots.protocol_words,
+        4,
+    );
+    const transcript = Transcript{
+        .state = try exactWords(provider, slots.transcript_state, 16),
+        .input_snapshot = try exactWords(
+            provider,
+            slots.transcript_input_snapshot,
+            @max(try mul(geometry_mod.sampled_mask_points, 4), 16),
+        ),
+        .output_snapshot = try exactWords(
+            provider,
+            slots.transcript_output_snapshot,
+            @max(geometry.protocol.fri_config.n_queries, 8),
+        ),
+        .boundary_snapshot = try exactWords(
+            provider,
+            slots.transcript_boundary_snapshot,
+            16,
+        ),
+        .protocol_words = protocol_words,
+        .statement_words = statement_words,
+    };
     return .{
         .trees = try views.TraceTrees.init(&.{
             preprocessed,
@@ -127,12 +165,9 @@ pub fn bind(
             slots.twiddles_inverse,
             rows,
         ),
-        .protocol_words = try exactWords(
-            provider,
-            slots.protocol_words,
-            4,
-        ),
+        .protocol_words = protocol_words,
         .statement_words = statement_words,
+        .transcript = transcript,
         .constraint_buffers = .{
             .statement_parameters = statement_words,
             .challenge_parameters = challenge_words,
@@ -145,7 +180,65 @@ pub fn bind(
                 .column_stride_words = committed_rows,
             },
         },
+        .proof = try bindProof(provider, prepared),
     };
+}
+
+fn bindProof(
+    provider: anytype,
+    prepared: *const plan_mod.PreparedPlan,
+) !views.Proof {
+    const bundle = try exactWords(
+        provider,
+        slots.proof_bundle,
+        prepared.proof.total_words,
+    );
+    return .{
+        .bundle = bundle,
+        .degree_verdict = try bundle.sub(15, 1),
+        .trace_commitments = try section(
+            bundle,
+            prepared,
+            .trace_commitments,
+        ),
+        .sampled_values = try section(
+            bundle,
+            prepared,
+            .sampled_values,
+        ),
+        .fri_commitments = try section(
+            bundle,
+            prepared,
+            .fri_commitments,
+        ),
+        .fri_last_layer = try section(
+            bundle,
+            prepared,
+            .fri_last_layer,
+        ),
+        .pow_nonce = try section(
+            bundle,
+            prepared,
+            .proof_of_work,
+        ),
+        .decommitment = try section(
+            bundle,
+            prepared,
+            .decommitment,
+        ),
+    };
+}
+
+fn section(
+    bundle: Words,
+    prepared: *const plan_mod.PreparedPlan,
+    kind: @import("proof_bundle.zig").SectionKind,
+) !Words {
+    const descriptor = prepared.proof.section(kind);
+    return bundle.sub(
+        descriptor.offset_words,
+        descriptor.words,
+    );
 }
 
 fn tree(
@@ -239,8 +332,13 @@ test "XOR binding exposes three independent role-indexed trees" {
         .{ .log_size = 8, .log_step = 3, .offset = 5 },
         pcs.PcsConfig.default(),
     );
-    const provider = TestProvider{ .geometry = geometry };
-    const bound = try bind(&provider, geometry);
+    var prepared = try plan_mod.PreparedPlan.init(
+        std.testing.allocator,
+        geometry,
+    );
+    defer prepared.deinit(std.testing.allocator);
+    const provider = TestProvider{ .prepared = &prepared };
+    const bound = try bind(&provider, &prepared);
     try std.testing.expectEqual(@as(usize, 3), bound.trees.active().len);
     const preprocessed = try bound.trees.require(.preprocessed);
     const main = try bound.trees.require(.main);
@@ -264,16 +362,22 @@ test "XOR binding exposes three independent role-indexed trees" {
 }
 
 const TestProvider = struct {
-    geometry: geometry_mod.Geometry,
+    prepared: *const plan_mod.PreparedPlan,
 
     pub fn slot(self: *const TestProvider, id: slots.SlotId) !Words {
-        const rows = try self.geometry.traceRowCount();
-        const committed = self.geometry.commitment_rows;
+        const geometry = self.prepared.logical.geometry;
+        const rows = try geometry.traceRowCount();
+        const committed = geometry.commitment_rows;
         const hashes = try sub(try mul(committed, 2), 1);
-        const layers = @as(usize, self.geometry.commitment_log_rows) + 1;
+        const layers = @as(usize, geometry.commitment_log_rows) + 1;
         const words = switch (id) {
             slots.twiddles_forward, slots.twiddles_inverse => rows,
             slots.protocol_words, slots.statement_words, slots.composition_challenge => 4,
+            slots.transcript_state,
+            slots.transcript_input_snapshot,
+            slots.transcript_boundary_snapshot,
+            => 16,
+            slots.transcript_output_snapshot => 8,
             slots.preprocessed_coefficients => 2 * committed,
             slots.main_coefficients => committed,
             slots.composition_coefficients => 8 * rows,
@@ -290,6 +394,7 @@ const TestProvider = struct {
             slots.composition_merkle_layers,
             => 4 * layers,
             slots.composition_coordinates => 4 * committed,
+            slots.proof_bundle => self.prepared.proof.total_words,
             else => return error.ArenaSlotMissing,
         };
         return .{
