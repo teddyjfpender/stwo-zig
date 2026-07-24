@@ -223,6 +223,7 @@ def _run_sample(
             / 1_000_000.0,
         },
         "residency": validated["residency"],
+        "device_stage_timing_ns": validated["device_stage_timing_ns"],
         "aot": validated["aot"],
         "device": validated["device"],
         "raw_report_sha256": hashlib.sha256(report_file).hexdigest(),
@@ -296,6 +297,23 @@ def _shape_result(shape: Shape, samples: list[dict[str, Any]]) -> dict[str, Any]
             float(sample["residency"]["sync_calls"]) for sample in samples
         ],
     }
+    for stage in (
+        "ingress",
+        "trace_generation",
+        "trace_commit",
+        "constraint_evaluation",
+        "oods",
+        "quotient",
+        "fri_commit",
+        "pow",
+        "decommit",
+        "proof_assembly",
+        "total",
+    ):
+        metric_paths[f"device_stage_{stage}_ms"] = [
+            sample["device_stage_timing_ns"][stage] / 1_000_000.0
+            for sample in samples
+        ]
     return {
         "shape_id": shape.slug,
         "statement": shape.statement(),

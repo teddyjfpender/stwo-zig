@@ -96,7 +96,7 @@ resident_ns = rows * args.sequence_len + 1_000_000
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
 report = {
-    "schema_version": 1,
+    "schema_version": 2,
     "product": "stwo-native-cuda",
     "backend": "cuda",
     "application": "wide_fibonacci",
@@ -142,9 +142,24 @@ report = {
         "kernel_launches": 30,
         "graph_launches": 2,
         "sync_calls": 4,
+        "device_timing_intervals": 10,
+        "device_elapsed_ns": 10000,
         "peak_live_bytes": 4096,
         "pool_used_bytes": 0,
         "pool_reserved_bytes": 8192,
+    },
+    "device_stage_timing_ns": {
+        "ingress": 1000,
+        "trace_generation": 1000,
+        "trace_commit": 1000,
+        "constraint_evaluation": 1000,
+        "oods": 1000,
+        "quotient": 1000,
+        "fri_commit": 1000,
+        "pow": 1000,
+        "decommit": 1000,
+        "proof_assembly": 1000,
+        "total": 10000,
     },
     "aot": {
         "entries": 1,

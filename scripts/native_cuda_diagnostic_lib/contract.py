@@ -32,6 +32,7 @@ REPORT_KEYS = {
     "timing_ns",
     "process_repetition",
     "residency",
+    "device_stage_timing_ns",
     "aot",
     "device",
 }
@@ -76,9 +77,24 @@ RESIDENCY_KEYS = {
     "kernel_launches",
     "graph_launches",
     "sync_calls",
+    "device_timing_intervals",
+    "device_elapsed_ns",
     "peak_live_bytes",
     "pool_used_bytes",
     "pool_reserved_bytes",
+}
+DEVICE_STAGE_TIMING_KEYS = {
+    "ingress",
+    "trace_generation",
+    "trace_commit",
+    "constraint_evaluation",
+    "oods",
+    "quotient",
+    "fri_commit",
+    "pow",
+    "decommit",
+    "proof_assembly",
+    "total",
 }
 AOT_KEYS = {
     "entries",
@@ -249,7 +265,7 @@ def validate_report(
 ) -> dict[str, Any]:
     _exact_keys(report, REPORT_KEYS, "CUDA report")
     expected_scalars = {
-        "schema_version": 1,
+        "schema_version": 2,
         "product": PRODUCT,
         "backend": BACKEND,
         "application": APPLICATION,
@@ -333,6 +349,16 @@ def validate_report(
         if _integer(residency[key], f"CUDA residency {key}") != 0:
             raise DiagnosticError(f"CUDA residency observed {key}")
     if _integer(
+        residency["device_timing_intervals"],
+        "CUDA device timing interval count",
+    ) != len(DEVICE_STAGE_TIMING_KEYS) - 1:
+        raise DiagnosticError("CUDA device timing does not cover every proof stage")
+    device_elapsed_ns = _integer(
+        residency["device_elapsed_ns"],
+        "CUDA total device elapsed time",
+        minimum=1,
+    )
+    if _integer(
         residency["terminal_d2h_operations"],
         "CUDA terminal D2H operations",
     ) != 1:
@@ -354,6 +380,25 @@ def validate_report(
         raise DiagnosticError("CUDA pool reserved bytes are below used bytes")
     if residency["peak_live_bytes"] > residency["pool_reserved_bytes"]:
         raise DiagnosticError("CUDA peak live bytes exceed the reserved pool")
+
+    stage_timing = _object(
+        report["device_stage_timing_ns"],
+        "CUDA device stage timing",
+    )
+    _exact_keys(
+        stage_timing,
+        DEVICE_STAGE_TIMING_KEYS,
+        "CUDA device stage timing",
+    )
+    stage_total = sum(
+        _integer(stage_timing[key], f"CUDA device stage timing {key}")
+        for key in DEVICE_STAGE_TIMING_KEYS
+        if key != "total"
+    )
+    if stage_timing["total"] != stage_total or stage_total != device_elapsed_ns:
+        raise DiagnosticError("CUDA device stage timings do not sum to the total")
+    if device_elapsed_ns > resident_ns:
+        raise DiagnosticError("CUDA device time exceeds resident proof wall time")
 
     aot = _object(report["aot"], "CUDA AOT telemetry")
     _exact_keys(aot, AOT_KEYS, "CUDA AOT telemetry")
@@ -393,6 +438,7 @@ def validate_report(
         "timing_ns": timing,
         "process_repetition": repetition,
         "residency": residency,
+        "device_stage_timing_ns": stage_timing,
         "aot": aot,
         "device": device,
         "resident_trace_row_mhz": shape.trace_rows * 1000.0 / resident_ns,

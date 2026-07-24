@@ -40,6 +40,22 @@ pub extern "c" fn stwo_exec_context_lane_count(
     out_count: *u32,
 ) c_int;
 pub extern "c" fn stwo_exec_context_join_all_lanes(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_exec_context_timing_begin(
+    handle: *anyopaque,
+    out_interval_capacity: *u32,
+) c_int;
+pub extern "c" fn stwo_exec_context_timing_mark(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_exec_context_timing_elapsed(
+    handle: *anyopaque,
+    out_elapsed_ms: [*]f32,
+    capacity: u32,
+    out_count: *u32,
+) c_int;
+pub extern "c" fn stwo_exec_context_nvtx_push(
+    handle: *anyopaque,
+    label: [*:0]const u8,
+) c_int;
+pub extern "c" fn stwo_exec_context_nvtx_pop(handle: *anyopaque) c_int;
 
 pub extern "c" fn stwo_exec_context_alloc_u32(
     handle: *anyopaque,

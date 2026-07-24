@@ -56,6 +56,7 @@ pub const StageCounters = struct {
     lane_joins: u64 = 0,
     kernel_launches: u64 = 0,
     graph_launches: u64 = 0,
+    device_elapsed_ns: u64 = 0,
     completions: u64 = 0,
 };
 
@@ -74,6 +75,8 @@ pub const Counters = struct {
     lane_joins: u64 = 0,
     kernel_launches: u64 = 0,
     graph_launches: u64 = 0,
+    device_timing_intervals: u64 = 0,
+    device_elapsed_ns: u64 = 0,
     cpu_fallback_attempts: u64 = 0,
     cpu_fallbacks_completed: u64 = 0,
     live_bytes: u64 = 0,
@@ -158,6 +161,29 @@ pub const Counters = struct {
         self.stages[stage.index()].completions += 1;
     }
 
+    pub fn recordDeviceTimings(
+        self: *Counters,
+        elapsed_ms: []const f32,
+    ) error{InvalidDeviceTiming}!void {
+        if (elapsed_ms.len != stage_count or self.device_timing_intervals != 0)
+            return error.InvalidDeviceTiming;
+        for (elapsed_ms, 0..) |milliseconds, index| {
+            if (!std.math.isFinite(milliseconds) or milliseconds < 0)
+                return error.InvalidDeviceTiming;
+            const nanoseconds_float = @as(f64, milliseconds) * std.time.ns_per_ms;
+            if (nanoseconds_float > @as(f64, @floatFromInt(std.math.maxInt(u64))))
+                return error.InvalidDeviceTiming;
+            const nanoseconds: u64 = @intFromFloat(@round(nanoseconds_float));
+            self.stages[index].device_elapsed_ns = nanoseconds;
+            self.device_elapsed_ns += nanoseconds;
+        }
+        self.device_timing_intervals = stage_count;
+    }
+
+    pub fn deviceTimingComplete(self: Counters) bool {
+        return self.device_timing_intervals == stage_count;
+    }
+
     pub fn stagesCompleteExactlyOnce(self: Counters) bool {
         for (all_stages) |stage| {
             const counters = self.stages[stage.index()];
@@ -217,4 +243,19 @@ test "terminal proof reads count operations and bytes per stage" {
     const stage = counters.stages[Stage.proof_assembly.index()];
     try std.testing.expectEqual(@as(u64, 2), stage.d2h_proof_operations);
     try std.testing.expectEqual(@as(u64, 96), stage.d2h_proof_bytes);
+}
+
+test "device timings cover every stage exactly once" {
+    var counters = Counters{};
+    const elapsed = [_]f32{1.25} ** stage_count;
+    try counters.recordDeviceTimings(&elapsed);
+    try std.testing.expect(counters.deviceTimingComplete());
+    try std.testing.expectEqual(
+        @as(u64, 1_250_000 * stage_count),
+        counters.device_elapsed_ns,
+    );
+    try std.testing.expectError(
+        error.InvalidDeviceTiming,
+        counters.recordDeviceTimings(&elapsed),
+    );
 }

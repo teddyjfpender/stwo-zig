@@ -203,6 +203,8 @@ fn requireResident(verdict: anytype) !void {
     const counters = verdict.counters;
     if (!verdict.isResident() or !verdict.aot.isStrict())
         return error.NonResidentCudaProof;
+    if (!counters.deviceTimingComplete())
+        return error.IncompleteCudaDeviceTiming;
     if (verdict.pool_used_bytes != 0)
         return error.CudaPoolNotReleased;
     if (!counters.stagesCompleteExactlyOnce())
@@ -267,7 +269,7 @@ fn renderReport(
 ) ![]u8 {
     const counters = verdict.counters;
     return std.json.Stringify.valueAlloc(allocator, .{
-        .schema_version = @as(u32, 1),
+        .schema_version = @as(u32, 2),
         .product = "stwo-native-cuda",
         .backend = cli.backend_name,
         .application = cli.air_name,
@@ -313,9 +315,44 @@ fn renderReport(
             .kernel_launches = counters.kernel_launches,
             .graph_launches = counters.graph_launches,
             .sync_calls = counters.sync_calls,
+            .device_timing_intervals = counters.device_timing_intervals,
+            .device_elapsed_ns = counters.device_elapsed_ns,
             .peak_live_bytes = counters.peak_live_bytes,
             .pool_used_bytes = verdict.pool_used_bytes,
             .pool_reserved_bytes = verdict.pool_reserved_bytes,
+        },
+        .device_stage_timing_ns = .{
+            .ingress = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.ingress)
+            ].device_elapsed_ns,
+            .trace_generation = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.trace_generation)
+            ].device_elapsed_ns,
+            .trace_commit = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.trace_commit)
+            ].device_elapsed_ns,
+            .constraint_evaluation = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.constraint_evaluation)
+            ].device_elapsed_ns,
+            .oods = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.oods)
+            ].device_elapsed_ns,
+            .quotient = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.quotient)
+            ].device_elapsed_ns,
+            .fri_commit = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.fri_commit)
+            ].device_elapsed_ns,
+            .pow = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.pow)
+            ].device_elapsed_ns,
+            .decommit = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.decommit)
+            ].device_elapsed_ns,
+            .proof_assembly = counters.stages[
+                @intFromEnum(stwo.backends.cuda.runtime.telemetry.Stage.proof_assembly)
+            ].device_elapsed_ns,
+            .total = counters.device_elapsed_ns,
         },
         .aot = .{
             .entries = verdict.aot_entries,

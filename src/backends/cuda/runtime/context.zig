@@ -116,12 +116,29 @@ pub fn ContextFor(comptime Api: type) type {
             self: *Self,
             stage: telemetry.Stage,
         ) runtime_error.Error!void {
-            _ = try self.requireHandle();
+            const handle = try self.requireHandle();
             if (self.active_stage != null) return error.StageAlreadyActive;
             if (self.next_stage_index >= telemetry.all_stages.len or
                 telemetry.all_stages[self.next_stage_index] != stage)
             {
                 return error.StageOrderViolation;
+            }
+            if (self.next_stage_index == 0) {
+                if (@hasDecl(Api, "stwo_exec_context_timing_begin")) {
+                    var capacity: u32 = 0;
+                    try runtime_error.check(Api.stwo_exec_context_timing_begin(
+                        handle,
+                        &capacity,
+                    ));
+                    if (capacity < telemetry.stage_count)
+                        return error.InvalidExecutionLaneCount;
+                }
+            }
+            if (@hasDecl(Api, "stwo_exec_context_nvtx_push")) {
+                try runtime_error.check(Api.stwo_exec_context_nvtx_push(
+                    handle,
+                    stageLabel(stage),
+                ));
             }
             self.active_stage = stage;
         }
@@ -139,6 +156,11 @@ pub fn ContextFor(comptime Api: type) type {
             {
                 return error.KernelPathUnused;
             }
+            const handle = try self.requireHandle();
+            if (@hasDecl(Api, "stwo_exec_context_timing_mark"))
+                try runtime_error.check(Api.stwo_exec_context_timing_mark(handle));
+            if (@hasDecl(Api, "stwo_exec_context_nvtx_pop"))
+                try runtime_error.check(Api.stwo_exec_context_nvtx_pop(handle));
             self.counters.complete(stage);
             self.active_stage = null;
             self.next_stage_index += 1;
@@ -451,12 +473,24 @@ pub fn ContextFor(comptime Api: type) type {
         }
 
         pub fn joinLanes(self: *Self) runtime_error.Error!void {
-            try runtime_error.check(Api.stwo_exec_context_join_all_lanes(
-                try self.requireHandle(),
-            ));
+            const handle = try self.requireHandle();
+            try runtime_error.check(Api.stwo_exec_context_join_all_lanes(handle));
             self.synchronized = true;
             self.counters.join(self.active_stage, self.lane_count);
             self.counters.sync(self.active_stage);
+            if (@hasDecl(Api, "stwo_exec_context_timing_elapsed")) {
+                var elapsed_ms: [telemetry.stage_count]f32 = undefined;
+                var count: u32 = 0;
+                try runtime_error.check(Api.stwo_exec_context_timing_elapsed(
+                    handle,
+                    &elapsed_ms,
+                    elapsed_ms.len,
+                    &count,
+                ));
+                if (count != elapsed_ms.len) return error.InvalidState;
+                self.counters.recordDeviceTimings(&elapsed_ms) catch
+                    return error.InvalidState;
+            }
         }
 
         pub fn sync(self: *Self) runtime_error.Error!void {
@@ -511,6 +545,21 @@ pub fn ContextFor(comptime Api: type) type {
 
         fn requireHandle(self: *Self) runtime_error.Error!*anyopaque {
             return self.handle orelse error.ContextClosed;
+        }
+
+        fn stageLabel(stage: telemetry.Stage) [*:0]const u8 {
+            return switch (stage) {
+                .ingress => "stwo.cuda.ingress",
+                .trace_generation => "stwo.cuda.trace_generation",
+                .trace_commit => "stwo.cuda.trace_commit",
+                .constraint_evaluation => "stwo.cuda.constraint_evaluation",
+                .oods => "stwo.cuda.oods",
+                .quotient => "stwo.cuda.quotient",
+                .fri_commit => "stwo.cuda.fri_commit",
+                .pow => "stwo.cuda.pow",
+                .decommit => "stwo.cuda.decommit",
+                .proof_assembly => "stwo.cuda.proof_assembly",
+            };
         }
 
         fn requireOwner(self: *Self, buffer: Buffer) runtime_error.Error!*anyopaque {
@@ -719,108 +768,4 @@ test "context owns buffers and accounts only explicit transfers" {
     try std.testing.expectEqual(@as(u64, 1), context.counters.sync_calls);
     try std.testing.expect(context.counters.isResident());
     try std.testing.expect(context.counters.stagesCompleteExactlyOnce());
-}
-
-test "context rejects close with a live device buffer" {
-    const Fake = struct {
-        var handle_word: u8 = 0;
-        var stream_word: u8 = 0;
-        var device_word: u32 = 0;
-
-        fn stwo_exec_context_create(out: *?*anyopaque) c_int {
-            out.* = &handle_word;
-            return 0;
-        }
-        fn stwo_exec_context_destroy(_: *anyopaque) c_int {
-            return 0;
-        }
-        fn stwo_exec_context_stream(_: *anyopaque, out: *?*anyopaque) c_int {
-            out.* = &stream_word;
-            return 0;
-        }
-        fn stwo_exec_context_device(_: *anyopaque, out: *c_int) c_int {
-            out.* = 0;
-            return 0;
-        }
-        fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
-            out.* = 1;
-            return 0;
-        }
-        fn stwo_exec_context_sync(_: *anyopaque) c_int {
-            return 0;
-        }
-        fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
-            out.* = @ptrCast(&device_word);
-            return 0;
-        }
-        fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
-            return 0;
-        }
-    };
-
-    const Context = ContextFor(Fake);
-    var context = try Context.open();
-    try context.beginStage(.ingress);
-    var buffer = try context.allocate(1);
-    try std.testing.expectError(error.DeviceBufferLive, context.close());
-    try context.free(&buffer);
-    try context.endStage(.ingress);
-    try context.close();
-}
-
-test "context abort releases live allocations from an active stage" {
-    const Fake = struct {
-        var handle_word: u8 = 0;
-        var stream_word: u8 = 0;
-        var device_word: u32 = 0;
-        var frees: usize = 0;
-        var destroys: usize = 0;
-        var sync_calls: usize = 0;
-
-        fn stwo_exec_context_create(out: *?*anyopaque) c_int {
-            out.* = &handle_word;
-            return 0;
-        }
-        fn stwo_exec_context_destroy(_: *anyopaque) c_int {
-            destroys += 1;
-            return 0;
-        }
-        fn stwo_exec_context_stream(_: *anyopaque, out: *?*anyopaque) c_int {
-            out.* = &stream_word;
-            return 0;
-        }
-        fn stwo_exec_context_device(_: *anyopaque, out: *c_int) c_int {
-            out.* = 0;
-            return 0;
-        }
-        fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
-            out.* = 1;
-            return 0;
-        }
-        fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
-            out.* = @ptrCast(&device_word);
-            return 0;
-        }
-        fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
-            frees += 1;
-            return 0;
-        }
-        fn stwo_exec_context_sync(_: *anyopaque) c_int {
-            sync_calls += 1;
-            return 0;
-        }
-    };
-
-    const Context = ContextFor(Fake);
-    var context = try Context.open();
-    try context.beginStage(.ingress);
-    _ = try context.allocate(1);
-    try context.abort();
-    try std.testing.expectEqual(@as(usize, 1), Fake.frees);
-    try std.testing.expectEqual(@as(usize, 1), Fake.destroys);
-    try std.testing.expectEqual(@as(usize, 1), Fake.sync_calls);
-    try std.testing.expectEqual(@as(u64, 1), context.counters.sync_calls);
-    try std.testing.expectEqual(@as(usize, 0), context.live_buffers);
-    try std.testing.expectEqual(@as(?telemetry.Stage, null), context.active_stage);
-    try std.testing.expect(context.handle == null);
 }

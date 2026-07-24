@@ -11,12 +11,21 @@
 #include <cstring>
 #include <new>
 
+extern "C" int nvtxRangePushA(const char *) __attribute__((weak));
+extern "C" int nvtxRangePop() __attribute__((weak));
+
 namespace {
+
+constexpr uint32_t kProofStageCount = 10;
+constexpr uint32_t kTimingMarkerCount = kProofStageCount + 1;
 
 struct StwoNativeCudaContext {
     int device;
     cudaStream_t stream;
     cudaMemPool_t pool;
+    cudaEvent_t timing_events[kTimingMarkerCount];
+    uint32_t timing_marker_count;
+    uint32_t nvtx_depth;
 };
 
 struct alignas(8) StwoCudaPlatformSnapshot {
@@ -134,6 +143,9 @@ extern "C" int stwo_exec_context_create(void **out_handle) {
         -1,
         nullptr,
         nullptr,
+        {},
+        0,
+        0,
     };
     if (context == nullptr) {
         return static_cast<int>(cudaErrorMemoryAllocation);
@@ -174,9 +186,18 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
+    cudaError_t event_status = cudaSuccess;
+    if (context->nvtx_depth != 0 && nvtxRangePop != nullptr) nvtxRangePop();
+    for (uint32_t marker = 0; marker < kTimingMarkerCount; ++marker) {
+        if (context->timing_events[marker] == nullptr) continue;
+        const cudaError_t status =
+            cudaEventDestroy(context->timing_events[marker]);
+        if (event_status == cudaSuccess) event_status = status;
+    }
     const cudaError_t stream_status = cudaStreamDestroy(context->stream);
     const cudaError_t pool_status = cudaMemPoolDestroy(context->pool);
     delete context;
+    if (event_status != cudaSuccess) return static_cast<int>(event_status);
     if (stream_status != cudaSuccess) return static_cast<int>(stream_status);
     return static_cast<int>(pool_status);
 }
@@ -274,6 +295,110 @@ extern "C" int stwo_exec_context_join_all_lanes(void *handle) {
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
     return static_cast<int>(cudaStreamSynchronize(context->stream));
+}
+
+// CUDA events are recorded at stage boundaries and resolved only after the
+// proof's existing terminal stream fence. Profiling therefore adds no stage
+// synchronization and the events are reusable by a process-owned context.
+extern "C" int stwo_exec_context_timing_begin(
+    void *handle,
+    uint32_t *out_interval_capacity) {
+    if (out_interval_capacity == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    *out_interval_capacity = 0;
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->timing_events[0] == nullptr) {
+        for (uint32_t marker = 0; marker < kTimingMarkerCount; ++marker) {
+            status = cudaEventCreate(&context->timing_events[marker]);
+            if (status == cudaSuccess) continue;
+            for (uint32_t cleanup = 0; cleanup <= marker; ++cleanup) {
+                if (context->timing_events[cleanup] != nullptr) {
+                    cudaEventDestroy(context->timing_events[cleanup]);
+                    context->timing_events[cleanup] = nullptr;
+                }
+            }
+            context->timing_marker_count = 0;
+            return static_cast<int>(status);
+        }
+    }
+    context->timing_marker_count = 0;
+    status = cudaEventRecord(context->timing_events[0], context->stream);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    context->timing_marker_count = 1;
+    *out_interval_capacity = kProofStageCount;
+    return 0;
+}
+
+extern "C" int stwo_exec_context_timing_mark(void *handle) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->timing_marker_count == 0 ||
+        context->timing_marker_count >= kTimingMarkerCount) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    status = cudaEventRecord(
+        context->timing_events[context->timing_marker_count],
+        context->stream);
+    if (status == cudaSuccess) ++context->timing_marker_count;
+    return static_cast<int>(status);
+}
+
+extern "C" int stwo_exec_context_timing_elapsed(
+    void *handle,
+    float *out_elapsed_ms,
+    uint32_t capacity,
+    uint32_t *out_count) {
+    if (out_elapsed_ms == nullptr || out_count == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    *out_count = 0;
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->timing_marker_count != kTimingMarkerCount ||
+        capacity < kProofStageCount) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    for (uint32_t interval = 0; interval < kProofStageCount; ++interval) {
+        status = cudaEventElapsedTime(
+            &out_elapsed_ms[interval],
+            context->timing_events[interval],
+            context->timing_events[interval + 1]);
+        if (status != cudaSuccess) return static_cast<int>(status);
+    }
+    *out_count = kProofStageCount;
+    return 0;
+}
+
+extern "C" int stwo_exec_context_nvtx_push(
+    void *handle,
+    const char *label) {
+    if (label == nullptr) return static_cast<int>(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->nvtx_depth != 0) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    if (nvtxRangePushA != nullptr) nvtxRangePushA(label);
+    context->nvtx_depth = 1;
+    return 0;
+}
+
+extern "C" int stwo_exec_context_nvtx_pop(void *handle) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->nvtx_depth != 1) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    if (nvtxRangePop != nullptr) nvtxRangePop();
+    context->nvtx_depth = 0;
+    return 0;
 }
 
 extern "C" int stwo_exec_context_alloc_u32(

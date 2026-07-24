@@ -72,7 +72,7 @@ if name == "cuda":
     report = Path(value("--report-out"))
     repeats = int(value("--repeat"))
     report.write_text(json.dumps({
-        "schema_version": 1,
+        "schema_version": 2,
         "product": "stwo-native-cuda",
         "backend": "cuda",
         "application": "wide_fibonacci",
@@ -97,6 +97,21 @@ if name == "cuda":
             "terminal_d2h_bytes": 4,
             "cpu_fallback_attempts": 0,
             "cpu_fallbacks_completed": 0,
+            "device_timing_intervals": 10,
+            "device_elapsed_ns": 10,
+        },
+        "device_stage_timing_ns": {
+            "ingress": 1,
+            "trace_generation": 1,
+            "trace_commit": 1,
+            "constraint_evaluation": 1,
+            "oods": 1,
+            "quotient": 1,
+            "fri_commit": 1,
+            "pow": 1,
+            "decommit": 1,
+            "proof_assembly": 1,
+            "total": 10,
         },
         "process_repetition": {
             "count": repeats,

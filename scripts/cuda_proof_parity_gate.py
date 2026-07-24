@@ -117,7 +117,7 @@ def validate_cuda_report(
 ) -> dict[str, Any]:
     report = load_object(path)
     required = {
-        "schema_version": 1,
+        "schema_version": 2,
         "product": "stwo-native-cuda",
         "backend": "cuda",
         "application": "wide_fibonacci",
@@ -159,6 +159,34 @@ def validate_cuda_report(
         }.items()
     ):
         raise GateError(f"{path}: CUDA residency contract failed")
+    if residency.get("device_timing_intervals") != 10:
+        raise GateError(f"{path}: CUDA device timing coverage is incomplete")
+    stage_timing = report.get("device_stage_timing_ns")
+    if not isinstance(stage_timing, dict):
+        raise GateError(f"{path}: CUDA device stage timing is missing")
+    stage_names = {
+        "ingress",
+        "trace_generation",
+        "trace_commit",
+        "constraint_evaluation",
+        "oods",
+        "quotient",
+        "fri_commit",
+        "pow",
+        "decommit",
+        "proof_assembly",
+    }
+    if set(stage_timing) != stage_names | {"total"}:
+        raise GateError(f"{path}: CUDA device stage timing fields are invalid")
+    if any(
+        not isinstance(stage_timing[name], int) or stage_timing[name] < 0
+        for name in stage_names
+    ):
+        raise GateError(f"{path}: CUDA device stage timing values are invalid")
+    if stage_timing["total"] != sum(stage_timing[name] for name in stage_names):
+        raise GateError(f"{path}: CUDA device stage timing total is invalid")
+    if residency.get("device_elapsed_ns") != stage_timing["total"]:
+        raise GateError(f"{path}: CUDA device timing evidence disagrees")
     if not isinstance(residency.get("terminal_d2h_bytes"), int) or (
         residency["terminal_d2h_bytes"] <= 0
     ):

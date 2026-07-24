@@ -9,7 +9,7 @@ from pathlib import Path
 
 from stwo_perf import ansi
 
-from . import __version__, metaltools, scaffold, zigtools
+from . import __version__, cudatools, metaltools, scaffold, zigtools
 
 
 def _fail(message: str) -> int:
@@ -208,11 +208,70 @@ def cmd_metal_trace(args) -> int:
     return 0
 
 
+def cmd_cuda_caps(_args) -> int:
+    devices = cudatools.caps()
+    rows = [
+        [
+            device["index"],
+            device["name"],
+            device["compute_cap"],
+            device["memory.total"],
+            device["driver_version"],
+        ]
+        for device in devices
+    ]
+    print(ansi.table(
+        ["device", "name", "SM", "memory MiB", "driver"],
+        rows,
+        aligns="rllrr",
+    ))
+    return 0
+
+
+def cmd_cuda_systems(args) -> int:
+    artifact = cudatools.systems_trace(
+        args.command,
+        Path(args.output),
+        timeout=args.timeout,
+    )
+    print(f"{ansi.OK} Nsight Systems trace: {artifact}")
+    return 0
+
+
+def cmd_cuda_compute(args) -> int:
+    artifact = cudatools.compute_profile(
+        args.command,
+        Path(args.output),
+        kernel=args.kernel,
+        set_name=args.set,
+        timeout=args.timeout,
+    )
+    print(f"{ansi.OK} Nsight Compute report: {artifact}")
+    return 0
+
+
+def cmd_cuda_report(args) -> int:
+    report = cudatools.load_stage_report(Path(args.report))
+    timing = report["device_stage_timing_ns"]
+    total = timing["total"]
+    rows = []
+    for stage, nanoseconds in timing.items():
+        if stage == "total":
+            continue
+        share = 0.0 if total == 0 else nanoseconds * 100.0 / total
+        rows.append([stage, f"{nanoseconds / 1e6:.4f}", f"{share:.2f}%"])
+    rows.sort(key=lambda row: -float(row[1]))
+    print(ansi.rule("CUDA device stage attribution"))
+    print(ansi.table(["stage", "device ms", "share"], rows, aligns="lrr"))
+    print(ansi.style(f"  total device timeline {total / 1e6:.4f} ms", "dim"))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="stwo-prof",
         description="Isolation and profiling tools for autoresearch "
-                    "(skills: autoresearch/skills/{zig,metal}-profiling).",
+                    "(skills: autoresearch/skills/{zig,metal,cuda}-profiling).",
     )
     parser.add_argument("--version", action="version", version=f"stwo-prof {__version__}")
     sub = parser.add_subparsers(dest="lane", required=True)
@@ -270,6 +329,22 @@ def build_parser() -> argparse.ArgumentParser:
     p = ms.add_parser("trace", help="Metal System Trace around a command")
     p.add_argument("--output", default="stwo-prof.trace")
     p.add_argument("command", nargs=argparse.REMAINDER)
+
+    cuda = sub.add_parser("cuda", help="CUDA profiling lane")
+    cs = cuda.add_subparsers(dest="cmd", required=True)
+    cs.add_parser("caps", help="pinned CUDA device and driver capabilities")
+    p = cs.add_parser("systems", help="capture CUDA/NVTX lifecycle and concurrency")
+    p.add_argument("--output", default="stwo-cuda-systems.nsys-rep")
+    p.add_argument("--timeout", type=int, default=3600)
+    p.add_argument("command", nargs=argparse.REMAINDER)
+    p = cs.add_parser("compute", help="capture kernel-level hardware counters")
+    p.add_argument("--output", default="stwo-cuda-compute.ncu-rep")
+    p.add_argument("--kernel", help="demangled kernel-name regular expression")
+    p.add_argument("--set", choices=("basic", "detailed", "full"), default="basic")
+    p.add_argument("--timeout", type=int, default=7200)
+    p.add_argument("command", nargs=argparse.REMAINDER)
+    p = cs.add_parser("report", help="rank device stages from a proof report")
+    p.add_argument("report")
     return parser
 
 
@@ -283,6 +358,10 @@ HANDLERS = {
     ("metal", "run"): cmd_metal_run,
     ("metal", "caps"): cmd_metal_caps,
     ("metal", "trace"): cmd_metal_trace,
+    ("cuda", "caps"): cmd_cuda_caps,
+    ("cuda", "systems"): cmd_cuda_systems,
+    ("cuda", "compute"): cmd_cuda_compute,
+    ("cuda", "report"): cmd_cuda_report,
 }
 
 

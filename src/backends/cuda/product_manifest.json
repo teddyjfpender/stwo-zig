@@ -126,6 +126,8 @@
       "stwo_exec_context_memcpy_h2d_async",
       "stwo_exec_context_memory_info",
       "stwo_exec_context_memset_async",
+      "stwo_exec_context_nvtx_pop",
+      "stwo_exec_context_nvtx_push",
       "stwo_exec_context_pool_current",
       "stwo_exec_context_stream",
       "stwo_exec_context_sync",
