@@ -1,6 +1,7 @@
 //! Native CUDA wide-Fibonacci proof integration.
 
 pub const driver = @import("driver.zig");
+pub const commit_tree = @import("commit_tree.zig");
 pub const layout = @import("layout.zig");
 pub const plan = @import("plan.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
@@ -14,6 +15,7 @@ pub const transcript_schedule = @import("transcript_schedule.zig");
 
 test {
     _ = driver;
+    _ = commit_tree;
     _ = layout;
     _ = plan;
     _ = proof_bundle;
