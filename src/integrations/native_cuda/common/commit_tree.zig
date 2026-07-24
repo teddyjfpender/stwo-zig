@@ -103,21 +103,6 @@ pub fn BuilderFor(comptime Ops: type) type {
             );
         }
 
-        /// Reduces leaves produced by the immediately preceding FRI fold.
-        /// Callers must preserve same-stream producer-before-reduce ordering.
-        pub fn friPrehashed(
-            session: anytype,
-            evaluation_size: u32,
-            log_rows_per_leaf: u32,
-            hashes: common.Hashes,
-            layers: []const field.MerkleLayerDescriptor,
-        ) Error!common.Hashes {
-            if (log_rows_per_leaf != 0)
-                return error.InvalidMerkleLayout;
-            try validateLayout(evaluation_size, hashes.len, layers);
-            return reduce(session, .fri_commit, hashes, layers);
-        }
-
         fn reduce(
             session: anytype,
             stage: telemetry.Stage,
@@ -158,15 +143,6 @@ pub fn BuilderFor(comptime Ops: type) type {
             return layerSlice(hashes, layers[layers.len - 1]);
         }
     };
-}
-
-pub fn leafHashes(
-    expected_leaf_count: u32,
-    hashes: common.Hashes,
-    layers: []const field.MerkleLayerDescriptor,
-) Error!common.Hashes {
-    try validateLayout(expected_leaf_count, hashes.len, layers);
-    return layerSlice(hashes, layers[0]);
 }
 
 fn validateMatrix(
@@ -411,22 +387,6 @@ test "resident builder uses one sealed layout for base and FRI trees" {
     try std.testing.expectEqual(@as(usize, 1), FakeOps.fri_leaf_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeOps.layer_calls);
     try std.testing.expectEqual(@as(usize, 1), FakeOps.tail_calls);
-
-    FakeOps.reset();
-    const fused_root = try Builder.friPrehashed(
-        &session,
-        8,
-        0,
-        hashes,
-        &layers,
-    );
-    try std.testing.expectEqual(@as(usize, 1), fused_root.len);
-    try std.testing.expectEqual(@as(usize, 0), FakeOps.fri_leaf_calls);
-    try std.testing.expectEqual(@as(usize, 1), FakeOps.tail_calls);
-    try std.testing.expectError(
-        error.InvalidMerkleLayout,
-        Builder.friPrehashed(&session, 8, 1, hashes, &layers),
-    );
 }
 
 test "commitment layout rejects gaps and non-power-of-two leaves" {
@@ -435,20 +395,7 @@ test "commitment layout rejects gaps and non-power-of-two leaves" {
         .{ .offset_hashes = 4, .hash_count = 2 },
         .{ .offset_hashes = 6, .hash_count = 1 },
     };
-    const hashes = common.Hashes{
-        .address = 0x3000,
-        .len = 7,
-        .owner = 1,
-    };
     try validateLayout(4, 7, &layers);
-    try std.testing.expectEqual(
-        @as(usize, 4),
-        (try leafHashes(4, hashes, &layers)).len,
-    );
-    try std.testing.expectError(
-        error.InvalidMerkleLayout,
-        leafHashes(8, hashes, &layers),
-    );
     layers[1].offset_hashes += 1;
     try std.testing.expectError(
         error.InvalidMerkleLayout,

@@ -4,7 +4,6 @@
 
 #include "field.cuh"
 #include "safety.cuh"
-#include "../commitment/blake2s_core.cuh"
 
 #include <cuda_runtime_api.h>
 
@@ -12,8 +11,6 @@
 #include <stdint.h>
 
 namespace stwo::cuda::fri {
-
-using Blake2sHash = stwo::cuda::blake2s::Hash;
 
 constexpr uint32_t kThreads = 256;
 constexpr uint32_t kMaximumLogSize = 30;
@@ -38,25 +35,6 @@ __device__ __forceinline__ QM31 fold_pair(
     return add(even, mul(alpha, odd));
 }
 
-__device__ __forceinline__ void hash_leaf(
-    QM31 value,
-    Blake2sHash *result) {
-    uint32_t hash[8];
-    uint32_t message[16] = {
-        value.first.real,
-        value.first.imag,
-        value.second.real,
-        value.second.imag,
-    };
-    stwo::cuda::blake2s::initialize_leaf(hash);
-    stwo::cuda::blake2s::compress(hash, message, 80, 0xffffffffu);
-#pragma unroll
-    for (uint32_t index = 0; index < 8; ++index) {
-        result->words[index] = hash[index];
-    }
-}
-
-template <bool EmitLeaf>
 __global__ void fold_circle_kernel(
     const M31 *domain,
     uint32_t twiddle_offset,
@@ -66,8 +44,7 @@ __global__ void fold_circle_kernel(
     const QM31 *alpha_pointer,
     uint32_t alpha_squarings,
     uint32_t *folded,
-    uint32_t folded_stride,
-    Blake2sHash *leaves) {
+    uint32_t folded_stride) {
     const uint32_t output_index = blockIdx.x * blockDim.x + threadIdx.x;
     if (output_index >= size / 2) return;
 
@@ -78,13 +55,13 @@ __global__ void fold_circle_kernel(
         circle_twiddle(domain + twiddle_offset, output_index),
         alpha);
     const QM31 previous = load(folded, folded_stride, output_index);
-    const QM31 result =
-        add(mul(mul(alpha, alpha), previous), folded_pair);
-    store(folded, folded_stride, output_index, result);
-    if constexpr (EmitLeaf) hash_leaf(result, leaves + output_index);
+    store(
+        folded,
+        folded_stride,
+        output_index,
+        add(mul(mul(alpha, alpha), previous), folded_pair));
 }
 
-template <bool EmitLeaf>
 __global__ void fold_line_kernel(
     const M31 *domain,
     uint32_t twiddle_offset,
@@ -94,19 +71,20 @@ __global__ void fold_line_kernel(
     const QM31 *alpha_pointer,
     uint32_t alpha_squarings,
     uint32_t *folded,
-    uint32_t folded_stride,
-    Blake2sHash *leaves) {
+    uint32_t folded_stride) {
     const uint32_t output_index = blockIdx.x * blockDim.x + threadIdx.x;
     if (output_index >= size / 2) return;
 
     const QM31 alpha = squared_alpha(alpha_pointer, alpha_squarings);
-    const QM31 result = fold_pair(
-        load(evaluations, evaluation_stride, 2 * output_index),
-        load(evaluations, evaluation_stride, 2 * output_index + 1),
-        domain[twiddle_offset + output_index],
-        alpha);
-    store(folded, folded_stride, output_index, result);
-    if constexpr (EmitLeaf) hash_leaf(result, leaves + output_index);
+    store(
+        folded,
+        folded_stride,
+        output_index,
+        fold_pair(
+            load(evaluations, evaluation_stride, 2 * output_index),
+            load(evaluations, evaluation_stride, 2 * output_index + 1),
+            domain[twiddle_offset + output_index],
+            alpha));
 }
 
 __global__ void fold_three_kernel(
@@ -195,146 +173,6 @@ inline bool valid_fold(
             evaluations, evaluation_bytes, folded, folded_bytes);
 }
 
-inline bool valid_leaf_output(
-    const uint32_t *domain,
-    size_t domain_words,
-    const uint32_t *evaluations,
-    size_t evaluation_words,
-    const QM31 *alpha,
-    const uint32_t *folded,
-    size_t folded_words,
-    Blake2sHash *leaves,
-    size_t leaf_count,
-    uint32_t output_count) {
-    size_t domain_bytes = 0, evaluation_bytes = 0;
-    size_t folded_bytes = 0, leaf_bytes = 0;
-    return leaves != nullptr && leaf_count == output_count &&
-        reinterpret_cast<uintptr_t>(leaves) % alignof(Blake2sHash) == 0 &&
-        checked_bytes(domain_words, sizeof(uint32_t), &domain_bytes) &&
-        checked_bytes(evaluation_words, sizeof(uint32_t), &evaluation_bytes) &&
-        checked_bytes(folded_words, sizeof(uint32_t), &folded_bytes) &&
-        checked_bytes(leaf_count, sizeof(Blake2sHash), &leaf_bytes) &&
-        !stwo::cuda::fri::ranges_overlap(
-            domain, domain_bytes, leaves, leaf_bytes) &&
-        !stwo::cuda::fri::ranges_overlap(
-            alpha, sizeof(QM31), leaves, leaf_bytes) &&
-        !stwo::cuda::fri::ranges_overlap(
-            evaluations, evaluation_bytes, leaves, leaf_bytes) &&
-        !stwo::cuda::fri::ranges_overlap(
-            folded, folded_bytes, leaves, leaf_bytes);
-}
-
-template <bool EmitLeaf>
-int launch_circle(
-    const uint32_t *domain,
-    size_t domain_words,
-    uint32_t twiddle_offset,
-    uint32_t size,
-    const uint32_t *evaluations,
-    size_t evaluation_words,
-    uint32_t evaluation_stride,
-    const QM31 *alpha,
-    uint32_t alpha_squarings,
-    uint32_t *folded,
-    size_t folded_words,
-    uint32_t folded_stride,
-    Blake2sHash *leaves,
-    size_t leaf_count,
-    void *stream) {
-    const uint32_t output_count = size / 2;
-    const uint32_t required_twiddles = 2 * ((output_count + 3) / 4);
-    if (!valid_fold(
-            domain, domain_words, twiddle_offset, required_twiddles, size,
-            evaluations, evaluation_words, evaluation_stride, alpha,
-            alpha_squarings, folded, folded_words, folded_stride, stream) ||
-        (EmitLeaf &&
-         !valid_leaf_output(
-             domain,
-             domain_words,
-             evaluations,
-             evaluation_words,
-             alpha,
-             folded,
-             folded_words,
-             leaves,
-             leaf_count,
-             output_count))) {
-        return static_cast<int>(cudaErrorInvalidValue);
-    }
-    const uint32_t blocks = (output_count + kThreads - 1) / kThreads;
-    fold_circle_kernel<EmitLeaf><<<
-        blocks,
-        kThreads,
-        0,
-        reinterpret_cast<cudaStream_t>(stream)>>>(
-            domain,
-            twiddle_offset,
-            size,
-            evaluations,
-            evaluation_stride,
-            alpha,
-            alpha_squarings,
-            folded,
-            folded_stride,
-            leaves);
-    return static_cast<int>(cudaPeekAtLastError());
-}
-
-template <bool EmitLeaf>
-int launch_line(
-    const uint32_t *domain,
-    size_t domain_words,
-    uint32_t twiddle_offset,
-    uint32_t size,
-    const uint32_t *evaluations,
-    size_t evaluation_words,
-    uint32_t evaluation_stride,
-    const QM31 *alpha,
-    uint32_t alpha_squarings,
-    uint32_t *folded,
-    size_t folded_words,
-    uint32_t folded_stride,
-    Blake2sHash *leaves,
-    size_t leaf_count,
-    void *stream) {
-    const uint32_t output_count = size / 2;
-    if (!valid_fold(
-            domain, domain_words, twiddle_offset, output_count, size,
-            evaluations, evaluation_words, evaluation_stride, alpha,
-            alpha_squarings, folded, folded_words, folded_stride, stream) ||
-        (EmitLeaf &&
-         !valid_leaf_output(
-             domain,
-             domain_words,
-             evaluations,
-             evaluation_words,
-             alpha,
-             folded,
-             folded_words,
-             leaves,
-             leaf_count,
-             output_count))) {
-        return static_cast<int>(cudaErrorInvalidValue);
-    }
-    const uint32_t blocks = (output_count + kThreads - 1) / kThreads;
-    fold_line_kernel<EmitLeaf><<<
-        blocks,
-        kThreads,
-        0,
-        reinterpret_cast<cudaStream_t>(stream)>>>(
-            domain,
-            twiddle_offset,
-            size,
-            evaluations,
-            evaluation_stride,
-            alpha,
-            alpha_squarings,
-            folded,
-            folded_stride,
-            leaves);
-    return static_cast<int>(cudaPeekAtLastError());
-}
-
 }  // namespace stwo::cuda::fri
 
 extern "C" int stwo_fold_circle_into_line_on(
@@ -351,32 +189,25 @@ extern "C" int stwo_fold_circle_into_line_on(
     size_t folded_words,
     uint32_t folded_stride,
     void *stream) {
-    return stwo::cuda::fri::launch_circle<false>(
-        domain, domain_words, twiddle_offset, size, evaluations,
-        evaluation_words, evaluation_stride, alpha, alpha_squarings, folded,
-        folded_words, folded_stride, nullptr, 0, stream);
-}
-
-extern "C" int stwo_fold_circle_into_line_and_hash_on(
-    const uint32_t *domain,
-    size_t domain_words,
-    uint32_t twiddle_offset,
-    uint32_t size,
-    const uint32_t *evaluations,
-    size_t evaluation_words,
-    uint32_t evaluation_stride,
-    const stwo::cuda::fri::QM31 *alpha,
-    uint32_t alpha_squarings,
-    uint32_t *folded,
-    size_t folded_words,
-    uint32_t folded_stride,
-    stwo::cuda::fri::Blake2sHash *leaves,
-    size_t leaf_count,
-    void *stream) {
-    return stwo::cuda::fri::launch_circle<true>(
-        domain, domain_words, twiddle_offset, size, evaluations,
-        evaluation_words, evaluation_stride, alpha, alpha_squarings, folded,
-        folded_words, folded_stride, leaves, leaf_count, stream);
+    const uint32_t output_count = size / 2;
+    const uint32_t required_twiddles = 2 * ((output_count + 3) / 4);
+    if (!stwo::cuda::fri::valid_fold(
+            domain, domain_words, twiddle_offset, required_twiddles, size,
+            evaluations, evaluation_words, evaluation_stride, alpha,
+            alpha_squarings, folded, folded_words, folded_stride, stream)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const uint32_t blocks =
+        (output_count + stwo::cuda::fri::kThreads - 1) /
+        stwo::cuda::fri::kThreads;
+    stwo::cuda::fri::fold_circle_kernel<<<
+        blocks,
+        stwo::cuda::fri::kThreads,
+        0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(
+            domain, twiddle_offset, size, evaluations, evaluation_stride,
+            alpha, alpha_squarings, folded, folded_stride);
+    return static_cast<int>(cudaPeekAtLastError());
 }
 
 extern "C" int stwo_fold_line_on(
@@ -393,32 +224,24 @@ extern "C" int stwo_fold_line_on(
     size_t folded_words,
     uint32_t folded_stride,
     void *stream) {
-    return stwo::cuda::fri::launch_line<false>(
-        domain, domain_words, twiddle_offset, size, evaluations,
-        evaluation_words, evaluation_stride, alpha, alpha_squarings, folded,
-        folded_words, folded_stride, nullptr, 0, stream);
-}
-
-extern "C" int stwo_fold_line_and_hash_on(
-    const uint32_t *domain,
-    size_t domain_words,
-    uint32_t twiddle_offset,
-    uint32_t size,
-    const uint32_t *evaluations,
-    size_t evaluation_words,
-    uint32_t evaluation_stride,
-    const stwo::cuda::fri::QM31 *alpha,
-    uint32_t alpha_squarings,
-    uint32_t *folded,
-    size_t folded_words,
-    uint32_t folded_stride,
-    stwo::cuda::fri::Blake2sHash *leaves,
-    size_t leaf_count,
-    void *stream) {
-    return stwo::cuda::fri::launch_line<true>(
-        domain, domain_words, twiddle_offset, size, evaluations,
-        evaluation_words, evaluation_stride, alpha, alpha_squarings, folded,
-        folded_words, folded_stride, leaves, leaf_count, stream);
+    const uint32_t required_twiddles = size / 2;
+    if (!stwo::cuda::fri::valid_fold(
+            domain, domain_words, twiddle_offset, required_twiddles, size,
+            evaluations, evaluation_words, evaluation_stride, alpha,
+            alpha_squarings, folded, folded_words, folded_stride, stream)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const uint32_t blocks =
+        (required_twiddles + stwo::cuda::fri::kThreads - 1) /
+        stwo::cuda::fri::kThreads;
+    stwo::cuda::fri::fold_line_kernel<<<
+        blocks,
+        stwo::cuda::fri::kThreads,
+        0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(
+            domain, twiddle_offset, size, evaluations, evaluation_stride,
+            alpha, alpha_squarings, folded, folded_stride);
+    return static_cast<int>(cudaPeekAtLastError());
 }
 
 extern "C" int stwo_fri_fold_fused3_on(
