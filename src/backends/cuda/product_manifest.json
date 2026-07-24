@@ -80,6 +80,31 @@
     "native_entry_count": 1,
     "product_policy": "native_generated_identity_only"
   },
+  "abi": {
+    "rust_authority": "crates/backend-cuda-kernels/src/raw.rs",
+    "generated_symbols": [
+      "stwo_static_cuda_module_build_identity",
+      "stwo_zig_cuda_aot_entry_count"
+    ],
+    "zig_owned_symbols": [
+      "stwo_native_aot_function_bind",
+      "stwo_native_aot_function_destroy",
+      "stwo_native_aot_function_launch",
+      "stwo_native_aot_loader_create",
+      "stwo_native_aot_loader_destroy",
+      "stwo_native_aot_loader_stats"
+    ],
+    "forbidden_symbol_fragments": [
+      "_default_pool_",
+      "_jit_",
+      "_legacy_",
+      "_stream_sync",
+      "copy_from_device",
+      "copy_to_device",
+      "cuda_malloc",
+      "pool_allocate"
+    ]
+  },
   "forbidden_product_tokens": [
     "cuda_default_pool_",
     "cudaDeviceSynchronize(",

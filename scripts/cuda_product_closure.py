@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 
@@ -15,6 +16,8 @@ SOURCE_MANIFEST = CUDA_ROOT / "source_manifest.json"
 PRODUCT_MANIFEST = CUDA_ROOT / "product_manifest.json"
 NATIVE = CUDA_ROOT / "native"
 NATIVE_AOT = CUDA_ROOT / "aot/native"
+ABI = CUDA_ROOT / "abi"
+HOST_AUTHORITY = CUDA_ROOT / "vendor/host_authority"
 ORDINARY_ROLES = (
     "resident_candidates",
     "quarantined_migration",
@@ -26,6 +29,97 @@ ORDINARY_ROLES = (
 
 class ProductClosureError(RuntimeError):
     pass
+
+
+ZIG_EXTERN_RE = re.compile(r'pub\s+extern\s+"c"\s+fn\s+(stwo_[A-Za-z0-9_]+)\s*\(')
+C_EXTERN_RE = re.compile(
+    r'extern\s+"C"(?:(?!extern\s+"C").){0,320}?'
+    r"\b(stwo_[A-Za-z0-9_]+)\s*\(",
+    re.DOTALL,
+)
+RUST_EXTERN_RE = re.compile(r"\bpub\s+fn\s+(stwo_[A-Za-z0-9_]+)\s*\(")
+
+
+def symbols(paths: list[Path], pattern: re.Pattern[str]) -> set[str]:
+    found: set[str] = set()
+    for path in paths:
+        found.update(pattern.findall(path.read_text(encoding="utf-8", errors="strict")))
+    return found
+
+
+def validate_abi(
+    product: dict[str, object],
+    ordinary: dict[str, object],
+) -> dict[str, int]:
+    policy = product.get("abi")
+    if not isinstance(policy, dict):
+        raise ProductClosureError("CUDA ABI policy is absent")
+    raw_relative = policy.get("rust_authority")
+    if not isinstance(raw_relative, str):
+        raise ProductClosureError("CUDA ABI Rust authority is absent")
+    raw_path = HOST_AUTHORITY / raw_relative
+    if not raw_path.is_file():
+        raise ProductClosureError(f"CUDA ABI Rust authority is absent: {raw_path}")
+
+    abi_files = sorted(ABI.rglob("*.zig"))
+    active = symbols(abi_files, ZIG_EXTERN_RE)
+    if not active:
+        raise ProductClosureError("resident CUDA ABI is empty")
+
+    forbidden = policy.get("forbidden_symbol_fragments")
+    if not isinstance(forbidden, list) or not forbidden:
+        raise ProductClosureError("forbidden CUDA ABI symbol policy is absent")
+    bad = sorted(
+        symbol
+        for symbol in active
+        if any(str(fragment) in symbol for fragment in forbidden)
+    )
+    if bad:
+        raise ProductClosureError(f"resident CUDA ABI exposes legacy policy: {bad}")
+
+    selected_names = ordinary.get("resident_candidates")
+    if not isinstance(selected_names, list):
+        raise ProductClosureError("CUDA resident source selection is absent")
+    selected = [SOURCE / str(name) for name in selected_names]
+    native = sorted(NATIVE.rglob("*.cpp"))
+    defined = symbols(selected + native, C_EXTERN_RE)
+
+    generated = policy.get("generated_symbols")
+    zig_owned = policy.get("zig_owned_symbols")
+    if (
+        not isinstance(generated, list)
+        or generated != sorted(generated)
+        or not isinstance(zig_owned, list)
+        or zig_owned != sorted(zig_owned)
+    ):
+        raise ProductClosureError("generated and Zig-owned ABI symbols must be sorted arrays")
+    generated_symbols = {str(name) for name in generated}
+    zig_owned_symbols = {str(name) for name in zig_owned}
+    defined.update(generated_symbols)
+
+    missing_definitions = sorted(active - defined)
+    if missing_definitions:
+        raise ProductClosureError(
+            f"resident CUDA ABI has no selected implementation: {missing_definitions}"
+        )
+
+    rust_symbols = symbols([raw_path], RUST_EXTERN_RE)
+    missing_authority = sorted(active - rust_symbols - zig_owned_symbols - generated_symbols)
+    if missing_authority:
+        raise ProductClosureError(
+            f"resident CUDA ABI is absent from pinned Rust declarations: {missing_authority}"
+        )
+    unexpected_owned = sorted(zig_owned_symbols - defined)
+    if unexpected_owned:
+        raise ProductClosureError(
+            f"Zig-owned CUDA ABI has no native definition: {unexpected_owned}"
+        )
+    return {
+        "active_symbols": len(active),
+        "rust_authority_symbols": len(active & rust_symbols),
+        "zig_owned_symbols": len(active & zig_owned_symbols),
+        "generated_symbols": len(active & generated_symbols),
+    }
 
 
 def read_json(path: Path) -> object:
@@ -104,6 +198,8 @@ def validate() -> dict[str, object]:
     if hits:
         raise ProductClosureError(f"Zig-owned CUDA runtime contains forbidden policy: {hits}")
 
+    abi = validate_abi(product, ordinary)
+
     digest = hashlib.sha256()
     for path in native_files:
         relative = path.relative_to(NATIVE).as_posix().encode("utf-8")
@@ -120,6 +216,7 @@ def validate() -> dict[str, object]:
         "copied_aot_reference_entries": len(copied_aot),
         "native_aot_entries": len(native_aot),
         "native_runtime_sha256": digest.hexdigest(),
+        **abi,
     }
 
 
@@ -131,7 +228,8 @@ def main() -> int:
         f"{result['resident_candidates']} resident candidates, "
         f"{result['quarantined_or_deferred']} quarantined/deferred, "
         f"{result['copied_aot_reference_entries']} copied AOT entries excluded, "
-        f"{result['native_aot_entries']} Native AOT entry admitted"
+        f"{result['native_aot_entries']} Native AOT entry admitted, "
+        f"{result['active_symbols']} resident ABI symbols verified"
     )
     return 0
 
