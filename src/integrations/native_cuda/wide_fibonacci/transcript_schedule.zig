@@ -54,7 +54,7 @@ pub const Schedule = struct {
     }
 
     pub fn initialChain(self: Schedule) u64 {
-        return self.seed_chain;
+        return chainAt(self.seed_chain, 0);
     }
 
     pub fn operation(self: Schedule, step: u32) request.Error!Operation {
