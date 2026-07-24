@@ -318,7 +318,7 @@ test "Cairo production admission uses configured source authority and exact proo
     }};
     var plan = try proof_plan.CairoProofPlan.init(allocator, &components);
     defer plan.deinit();
-    try subject.requireProductionSemantics(&source_pack, &plan);
+    try subject.authenticateSourceComponentPlan(&source_pack, &plan);
 }
 
 fn decodeDigest(value: []const u8) [32]u8 {

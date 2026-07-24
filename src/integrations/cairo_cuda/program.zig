@@ -45,10 +45,10 @@ pub const Error = error{
     InvalidStatementEncoding,
 };
 
-/// Authenticates a proof-independent source registry against the complete
-/// runtime component plan. Full production emission remains unavailable until
-/// source-derived composition semantics cover the same registry.
-pub fn requireProductionSemantics(
+/// Authenticates a proof-independent source registry against the runtime
+/// component plan. This is necessary but not sufficient for production: AIR
+/// composition and fixed/preprocessed authority remain incomplete.
+pub fn authenticateSourceComponentPlan(
     pack: *const source_semantic_pack.Loaded,
     proof: *const proof_plan.CairoProofPlan,
 ) !void {
