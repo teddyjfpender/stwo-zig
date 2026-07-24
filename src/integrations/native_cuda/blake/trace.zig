@@ -20,7 +20,7 @@ pub fn prepare(
     destination: common.WordMatrix,
     statement: @import("../../../examples/blake.zig").Statement,
 ) !seeded_xorshift.PreparedLaunch {
-    const geometry = try geometry_mod.admit(statement);
+    _ = try geometry_mod.admit(statement);
     return seeded_xorshift.prepare(
         session,
         destination,
