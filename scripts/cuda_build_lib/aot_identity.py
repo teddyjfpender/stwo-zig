@@ -9,9 +9,10 @@ from pathlib import Path
 from .errors import BuildError
 
 
-NATIVE_CONSTRAINT_SCHEMAS = {
+NATIVE_AUTHENTICATED_SCHEMAS = {
     "native_constraint_slab_v1",
     "native_constant_qm31_v1",
+    "native_seeded_xorshift_trace_v1",
 }
 NATIVE_IDENTITY_SCHEME = "sha256-source-and-contract-v1"
 
@@ -22,7 +23,7 @@ def validate_native_aot_identity(
     base_fields: set[str],
     index: int,
 ) -> None:
-    if entry["abi_schema"] not in NATIVE_CONSTRAINT_SCHEMAS:
+    if entry["abi_schema"] not in NATIVE_AUTHENTICATED_SCHEMAS:
         return
     required = base_fields | {"identity_scheme", "semantic_contract"}
     if set(entry) != required:

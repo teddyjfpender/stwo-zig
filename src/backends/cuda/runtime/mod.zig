@@ -18,6 +18,7 @@ pub const runtime_error = @import("error.zig");
 pub const session = @import("session.zig");
 pub const stages = @import("stages/mod.zig");
 pub const telemetry = @import("telemetry.zig");
+pub const traces = @import("traces/mod.zig");
 pub const verdict = @import("verdict.zig");
 
 pub const NativeContext = context.NativeContext;
@@ -44,6 +45,7 @@ test {
     _ = session;
     _ = stages;
     _ = telemetry;
+    _ = traces;
     _ = verdict;
     _ = @import("context_additional_test.zig");
     _ = @import("graph_execution_test.zig");

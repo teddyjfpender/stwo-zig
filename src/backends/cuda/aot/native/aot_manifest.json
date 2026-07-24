@@ -22,5 +22,17 @@
     "program_identity": "ef9f12d696c42b8f37120d2f876f1459872f171a6212d5b2b4f181c031267467",
     "semantic_contract": "stwo-zig/native/wide-fibonacci/constraint/v1;field=m31;rows=2^(log_n_rows+1);constraint[col]=trace[col]-trace[col-2]^2-trace[col-1]^2;coeff=qm31[random_coefficient_base+sequence_len-1-col];denom=denom[row>>log_n_rows];accumulate=coordinates+denom*sum(coeff*constraint)",
     "semantic_hash": "6f60dbf6e15716eb"
+  },
+  {
+    "abi_schema": "native_seeded_xorshift_trace_v1",
+    "cache_key": "1888a1a02b4e35b5",
+    "file": "witness_seeded_xorshift_trace_1888a1a02b4e35b5.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_trace_seeded_xorshift_slab_v1_21cc1d6d9728809e",
+    "kind": "witness",
+    "label": "seeded_xorshift_trace",
+    "program_identity": "b25a80d447eac9f1d9c86b3e567781489067d99b1c0a8cb20b8466c9576c928c",
+    "semantic_contract": "stwo-zig/native/seeded-xorshift-columns/v1;geometry=row_count=2^log_n_rows,column_count=group_count*columns_per_group;seed=row+seed_offset;x1=seed^(seed<<left_shift);x2=x1^(x1>>right_shift);next=x2^(x2<<final_left_shift);value=m31(next^(group*group_mix)^((item+1)*item_mix));layout=column_major_slab[column*stride+row];launches=1",
+    "semantic_hash": "21cc1d6d9728809e"
   }
 ]

@@ -20,6 +20,7 @@ ABI_SCHEMAS = {
     "composition_wave_v2": 3,
     "native_constraint_slab_v1": 4,
     "native_constant_qm31_v1": 5,
+    "native_seeded_xorshift_trace_v1": 6,
 }
 
 
