@@ -52,11 +52,16 @@ pub const descriptor = policy.Descriptor{
     .build_step = "stwo-native-cuda",
     .test_step = "run-native-cuda-smoke",
     .executable = "stwo-zig-native-cuda",
-    .installed_artifacts = &.{"stwo-zig-native-cuda"},
+    .installed_artifacts = &.{
+        "stwo-zig-native-cuda",
+        "lib/libstwo_cuda_kernels.a",
+    },
     .release_gates = &.{
         "cuda-source-closure",
         "test-cuda-build-plan",
         "test-cuda-runtime-contract",
+        "test-cuda-adapter",
+        "run-native-cuda-smoke",
     },
     .dependencies = .{
         .module_roots = source_closure.entry_roots,
@@ -108,6 +113,11 @@ pub fn addProduct(context: Context) void {
     );
     const archive = cuda.addArchive(context.b, options.toolchain());
     cuda.linkRuntime(installed.executable, options.toolchain(), archive);
+    const install_archive = context.b.addInstallFile(
+        archive.directory.path(context.b, "libstwo_cuda_kernels.a"),
+        "lib/libstwo_cuda_kernels.a",
+    );
+    installed.build_step.dependOn(&install_archive.step);
 
     const run = context.b.addRunArtifact(installed.executable);
     run.addArgs(&.{
@@ -127,10 +137,10 @@ pub fn addProduct(context: Context) void {
     _ = run.addOutputFileArg("native-cuda-smoke-proof.json");
     run.addArg("--report-out");
     _ = run.addOutputFileArg("native-cuda-smoke-report.json");
-    run.addArg("--self-check");
+    run.addArgs(&.{ "--repeat", "3" });
     context.b.step(
         descriptor.test_step.?,
-        "Run the Native CUDA resident proof self-check",
+        "Run the repeated Native CUDA resident proof smoke",
     ).dependOn(&run.step);
 }
 
@@ -167,4 +177,8 @@ test "Native CUDA is staged only for explicit Linux construction" {
     try std.testing.expect(descriptor.isAvailableOn(.linux));
     try std.testing.expect(!descriptor.isAvailableOn(.macos));
     try std.testing.expectEqual(policy.State.staged, descriptor.state);
+    try std.testing.expectEqualStrings(
+        descriptor.test_step.?,
+        descriptor.release_gates[descriptor.release_gates.len - 1],
+    );
 }

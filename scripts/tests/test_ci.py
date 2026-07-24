@@ -200,12 +200,13 @@ class CiTests(unittest.TestCase):
         self.assertIn("focused-plan:", workflow)
         self.assertIn("focused-linux:", workflow)
         self.assertIn("focused-macos:", workflow)
+        self.assertIn("focused-cuda:", workflow)
         self.assertIn("focused-verdict:", workflow)
         self.assertIn("python3 scripts/ci_scope_plan.py", workflow)
         self.assertIn("python3 scripts/ci_scope_run.py", workflow)
         self.assertIn("github.event.before", workflow)
         focused = workflow.split("  focused-plan:", 1)[1].split("  release-gate:", 1)[0]
-        self.assertEqual(4, focused.count("github.ref == 'refs/heads/main'"))
+        self.assertEqual(5, focused.count("github.ref == 'refs/heads/main'"))
         self.assertIn("inputs.gate == 'riscv-candidate' && 'candidate' || 'promoted'", workflow)
         self.assertIn("id: riscv-release-state", workflow)
         self.assertEqual(2, workflow.count("src/products/riscv_cpu/capabilities.zig"))
@@ -273,6 +274,36 @@ class CiTests(unittest.TestCase):
             fast.index("name: Verify reusable exhaustive anchor"),
         )
         self.assertIn("if-no-files-found: error", workflow)
+
+    def test_hosted_ci_requires_fail_closed_cuda_device_and_oracle_evidence(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        cuda = workflow.split("  focused-cuda:", 1)[1].split(
+            "  focused-verdict:", 1
+        )[0]
+        self.assertIn("runs-on: [self-hosted, linux, x64, cuda]", cuda)
+        self.assertIn(
+            "needs.focused-plan.outputs.cuda_required == 'true'",
+            cuda,
+        )
+        self.assertIn("Require the CUDA-labelled runner contract", cuda)
+        self.assertIn("test -n \"$STWO_CUDA_NVCC\"", cuda)
+        self.assertIn("nvidia-smi --query-gpu=", cuda)
+        self.assertIn("--lane native_cuda_device", cuda)
+        self.assertIn("if-no-files-found: error", cuda)
+        self.assertIn(
+            "repository Rust source + Cargo.lock + nightly-2025-07-14",
+            workflow,
+        )
+
+        focused = workflow.split("  focused-plan:", 1)[1].split(
+            "  release-gate:", 1
+        )[0]
+        self.assertIn(
+            "needs: [focused-plan, focused-linux, focused-macos, focused-cuda]",
+            focused,
+        )
+        self.assertIn('test "$CUDA_RESULT" = success', focused)
+        self.assertIn('test "$CUDA_RESULT" = skipped', focused)
 
     def test_fast_riscv_gate_cannot_cancel_or_confuse_anchor_and_candidate(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

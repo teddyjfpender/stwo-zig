@@ -49,6 +49,7 @@ jobs:
       linux_count: ${{ steps.scope.outputs.linux_count }}
       macos_matrix: ${{ steps.scope.outputs.macos_matrix }}
       macos_count: ${{ steps.scope.outputs.macos_count }}
+      cuda_required: ${{ steps.scope.outputs.cuda_required }}
     steps:
       - name: Checkout complete comparison history
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
@@ -98,6 +99,10 @@ jobs:
             echo "::notice title=native_metal deferred::Metal device-execution lane selected but excluded from hosted macOS runners (GPU-less VMs). Covered by local pre-push on a real Mac / judge host."
             echo "- native_metal: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if grep -q '"native_cuda_device"' "$RUNNER_TEMP/focused-ci-plan.json"; then
+            echo "- native_cuda_device: required on the explicitly CUDA-labelled self-hosted runner" >> "$GITHUB_STEP_SUMMARY"
+            echo "- CUDA oracle authority: repository Rust source + Cargo.lock + nightly-2025-07-14; its built binary digest is bound into the receipt" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Retain focused gate plan
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
@@ -136,7 +141,7 @@ jobs:
           version: 0.15.2
 
       - name: Install pinned Rust oracle toolchain
-        if: matrix.lane == 'native_oracle'
+        if: matrix.lane == 'native_oracle' || matrix.lane == 'native_cuda_static'
         run: rustup toolchain install nightly-2025-07-14 --profile minimal
 
       - name: Restore product-scoped compiler cache
@@ -226,9 +231,76 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  focused-cuda:
+    name: Focused CUDA / native_cuda_device
+    needs: focused-plan
+    if: >-
+      (github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
+      needs.focused-plan.outputs.cuda_required == 'true'
+    runs-on: [self-hosted, linux, x64, cuda]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout complete policy history
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29  # v2
+        with:
+          version: 0.15.2
+
+      - name: Install pinned Rust oracle toolchain
+        run: rustup toolchain install nightly-2025-07-14 --profile minimal
+
+      - name: Require the CUDA-labelled runner contract
+        run: |
+          test "$RUNNER_OS" = Linux
+          test -n "$STWO_CUDA_NVCC"
+          test -n "$STWO_CUDA_HOST_CXX"
+          test -n "$STWO_CUDA_HOST_RUNTIME"
+          test -n "$STWO_CUDA_HOST_UNWIND_RUNTIME"
+          test -n "$STWO_CUDA_AR"
+          test -n "$STWO_CUDA_HOME"
+          test -n "$STWO_CUDA_LIBRARY_DIR"
+          test -n "$STWO_CUDA_ARCH"
+          nvidia-smi --query-gpu=name,uuid,compute_cap,driver_version --format=csv,noheader
+
+      - name: Restore product-scoped compiler cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: ${{ runner.tool_cache }}/stwo-zig/focused/native_cuda_device
+          key: focused-v1-${{ runner.os }}-native_cuda_device-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-${{ github.sha }}
+          restore-keys: |
+            focused-v1-${{ runner.os }}-native_cuda_device-${{ hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json') }}-
+
+      - name: Run fail-closed Native CUDA product and oracle lane
+        run: |
+          mkdir -p "$RUNNER_TEMP/focused-ci"
+          python3 scripts/ci_scope_run.py \
+            --lane native_cuda_device \
+            --cache-mode warm \
+            --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/native_cuda_device" \
+            --output "$RUNNER_TEMP/focused-ci/native_cuda_device.json"
+
+      - name: Retain CUDA lane timing receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: focused-ci-cuda-native_cuda_device-${{ github.sha }}
+          path: ${{ runner.temp }}/focused-ci/
+          if-no-files-found: error
+          retention-days: 30
+
   focused-verdict:
     name: Focused gates
-    needs: [focused-plan, focused-linux, focused-macos]
+    needs: [focused-plan, focused-linux, focused-macos, focused-cuda]
     if: >-
       always() && (github.event_name == 'pull_request' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main'))
@@ -239,6 +311,8 @@ jobs:
       LINUX_RESULT: ${{ needs.focused-linux.result }}
       MACOS_RESULT: ${{ needs.focused-macos.result }}
       MACOS_COUNT: ${{ needs.focused-plan.outputs.macos_count }}
+      CUDA_RESULT: ${{ needs.focused-cuda.result }}
+      CUDA_REQUIRED: ${{ needs.focused-plan.outputs.cuda_required }}
     steps:
       - name: Require every selected lane to pass
         run: |
@@ -248,6 +322,11 @@ jobs:
             test "$MACOS_RESULT" = skipped
           else
             test "$MACOS_RESULT" = success
+          fi
+          if test "$CUDA_REQUIRED" = true; then
+            test "$CUDA_RESULT" = success
+          else
+            test "$CUDA_RESULT" = skipped
           fi
 
   release-gate:

@@ -255,6 +255,10 @@ def emit_github_output(path: Path, plan: dict[str, Any], policy: dict[str, Any])
             ]
             stream.write(f"{host}_matrix={json.dumps({'lane': lanes}, separators=(',', ':'))}\n")
             stream.write(f"{host}_count={len(lanes)}\n")
+        stream.write(
+            "cuda_required="
+            f"{'true' if 'native_cuda_device' in plan['lanes'] else 'false'}\n"
+        )
 
 
 def main(argv: list[str] | None = None) -> int:

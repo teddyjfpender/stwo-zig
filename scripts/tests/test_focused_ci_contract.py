@@ -66,6 +66,16 @@ def catalog_fixture() -> dict[str, object]:
                 "src/prover",
                 "src/backends/metal",
             ),
+            product(
+                "native_cuda",
+                "src/core",
+                "src/backend",
+                "src/prover",
+                "src/backends/cuda",
+                "src/integrations/native_cuda",
+                "src/products/native_cuda",
+                state="staged",
+            ),
         ],
     }
 
@@ -112,6 +122,8 @@ class PlannerContractTests(unittest.TestCase):
                 "native_oracle",
                 "riscv_cpu",
                 "aggregate_cpu",
+                "native_cuda_static",
+                "native_cuda_device",
                 "native_metal",
                 "aggregate_metal",
             }.issubset(selected)
@@ -134,6 +146,29 @@ class PlannerContractTests(unittest.TestCase):
             {"static", "native_cpu"},
             self.lanes_for("src/products/native_cpu/cli.zig"),
         )
+
+    def test_cuda_change_requires_static_and_explicit_device_lanes(self) -> None:
+        selected = self.lanes_for(
+            "src/backends/cuda/native/commitment/progressive.cu"
+        )
+        self.assertEqual(
+            {"static", "native_cuda_static", "native_cuda_device"},
+            selected,
+        )
+        device = self.policy["lanes"]["native_cuda_device"]
+        self.assertFalse(device["hosted"])
+        self.assertEqual("hosted", device["local"])
+        command = "\n".join(device["commands"][0])
+        self.assertIn("STWO_CUDA_NVCC", command)
+        self.assertIn("zig build stwo-native-cuda", command)
+        self.assertIn("scripts/cuda_device_smoke.py", command)
+        self.assertIn("cuda_device_smoke_receipt.json", command)
+        self.assertIn('len(receipt["tests"]) == 12', command)
+        self.assertIn("zig build stwo-native-cpu", command)
+        self.assertIn("scripts/cuda_proof_parity_gate.py", command)
+        self.assertIn("--rust-verifier-sha256", command)
+        self.assertIn("--repeat 3", command)
+        self.assertIn("nvidia-smi", command)
 
     def test_metal_shader_selects_aot_but_runtime_does_not(self) -> None:
         shader = self.lanes_for(
@@ -226,9 +261,22 @@ class PlannerContractTests(unittest.TestCase):
                 "linux_count=2",
                 'macos_matrix={"lane":[]}',
                 "macos_count=0",
+                "cuda_required=false",
             ],
             lines,
         )
+
+    def test_cuda_device_lane_is_not_emitted_to_generic_linux(self) -> None:
+        plan = {"lanes": ["native_cuda_static", "native_cuda_device"]}
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw) / "github-output"
+            ci_scope_plan.emit_github_output(output, plan, self.policy)
+            lines = output.read_text(encoding="utf-8").splitlines()
+        self.assertIn(
+            'linux_matrix={"lane":["native_cuda_static"]}',
+            lines,
+        )
+        self.assertIn("cuda_required=true", lines)
 
     def test_hosted_capable_macos_lane_still_emitted(self) -> None:
         plan = {"lanes": ["native_metal", "aggregate_metal"]}
@@ -255,8 +303,9 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(
             sorted(lanes),
             [
-                "aggregate_cpu", "aggregate_metal", "native_cpu", "native_metal",
-                "native_oracle", "package", "prover", "riscv_cpu", "static",
+                "aggregate_cpu", "aggregate_metal", "native_cpu",
+                "native_cuda_device", "native_cuda_static", "native_metal", "native_oracle",
+                "package", "prover", "riscv_cpu", "static",
             ],
         )
 
