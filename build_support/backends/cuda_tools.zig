@@ -100,6 +100,7 @@ pub fn addProducts(
         "-m",
         "unittest",
         "scripts.tests.test_cuda_build",
+        "scripts.tests.test_cuda_build_cache",
     });
     tests.step.dependOn(&source.step);
     b.step(

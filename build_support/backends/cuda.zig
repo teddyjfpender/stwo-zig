@@ -8,6 +8,8 @@ pub const product_manifest = "src/backends/cuda/product_manifest.json";
 pub const native_root = "src/backends/cuda/native";
 pub const native_aot_root = "src/backends/cuda/aot/native";
 pub const archive_name = "stwo_cuda_kernels";
+const build_script = "scripts/cuda_build.py";
+const build_script_root = "scripts/cuda_build_lib";
 
 pub const Toolchain = struct {
     nvcc: []const u8 = "",
@@ -98,17 +100,22 @@ fn buildCommand(
     toolchain: Toolchain,
     plan_only: bool,
 ) *std.Build.Step.Run {
-    const command = b.addSystemCommand(&.{ "python3", "scripts/cuda_build.py" });
+    const command = b.addSystemCommand(&.{"python3"});
+    command.addFileArg(b.path(build_script));
+    addDirectoryInputs(b, command, build_script_root);
     command.addArg("--source-root");
     command.addDirectoryArg(b.path(source_root));
+    addDirectoryInputs(b, command, source_root);
     command.addArg("--source-manifest");
     command.addFileArg(b.path(source_manifest));
     command.addArg("--product-manifest");
     command.addFileArg(b.path(product_manifest));
     command.addArg("--native-root");
     command.addDirectoryArg(b.path(native_root));
+    addDirectoryInputs(b, command, native_root);
     command.addArg("--native-aot-root");
     command.addDirectoryArg(b.path(native_aot_root));
+    addDirectoryInputs(b, command, native_aot_root);
     command.addArgs(&.{ "--nvcc", toolchain.nvcc });
     command.addArgs(&.{ "--host-cxx", toolchain.host_cxx });
     command.addArgs(&.{ "--ar", toolchain.archiver });
@@ -119,6 +126,46 @@ fn buildCommand(
     if (plan_only) command.addArg("--plan-only");
     command.addArg("--out-dir");
     return command;
+}
+
+fn addDirectoryInputs(
+    b: *std.Build,
+    command: *std.Build.Step.Run,
+    relative_root: []const u8,
+) void {
+    var directory = b.build_root.handle.openDir(
+        relative_root,
+        .{ .iterate = true },
+    ) catch |err| std.debug.panic(
+        "cannot open CUDA build input directory {s}: {s}",
+        .{ relative_root, @errorName(err) },
+    );
+    defer directory.close();
+
+    var walker = directory.walk(b.allocator) catch @panic("OOM");
+    defer walker.deinit();
+    var files: std.ArrayList([]const u8) = .empty;
+    defer files.deinit(b.allocator);
+
+    while (walker.next() catch |err| std.debug.panic(
+        "cannot enumerate CUDA build input directory {s}: {s}",
+        .{ relative_root, @errorName(err) },
+    )) |entry| {
+        if (entry.kind != .file) continue;
+        files.append(b.allocator, b.dupe(entry.path)) catch @panic("OOM");
+    }
+    std.mem.sort([]const u8, files.items, {}, struct {
+        fn lessThan(_: void, left: []const u8, right: []const u8) bool {
+            return std.mem.lessThan(u8, left, right);
+        }
+    }.lessThan);
+
+    for (files.items) |relative_path| {
+        command.addFileInput(b.path(b.pathJoin(&.{
+            relative_root,
+            relative_path,
+        })));
+    }
 }
 
 fn require(toolchain: Toolchain) void {
