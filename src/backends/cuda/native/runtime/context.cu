@@ -3,6 +3,7 @@
 // allocation fallback.
 
 #include <cuda_runtime_api.h>
+#include <nvtx3/nvToolsExt.h>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -10,9 +11,6 @@
 #include <limits>
 #include <cstring>
 #include <new>
-
-extern "C" int nvtxRangePushA(const char *) __attribute__((weak));
-extern "C" int nvtxRangePop() __attribute__((weak));
 
 namespace {
 
@@ -187,7 +185,7 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
     cudaError_t event_status = cudaSuccess;
-    if (context->nvtx_depth != 0 && nvtxRangePop != nullptr) nvtxRangePop();
+    if (context->nvtx_depth != 0) nvtxRangePop();
     for (uint32_t marker = 0; marker < kTimingMarkerCount; ++marker) {
         if (context->timing_events[marker] == nullptr) continue;
         const cudaError_t status =
@@ -384,7 +382,7 @@ extern "C" int stwo_exec_context_nvtx_push(
     if (context->nvtx_depth != 0) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    if (nvtxRangePushA != nullptr) nvtxRangePushA(label);
+    nvtxRangePushA(label);
     context->nvtx_depth = 1;
     return 0;
 }
@@ -396,7 +394,7 @@ extern "C" int stwo_exec_context_nvtx_pop(void *handle) {
     if (context->nvtx_depth != 1) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    if (nvtxRangePop != nullptr) nvtxRangePop();
+    nvtxRangePop();
     context->nvtx_depth = 0;
     return 0;
 }
