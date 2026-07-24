@@ -23,6 +23,7 @@ ABI_SCHEMAS = {
     "native_seeded_xorshift_trace_v1": 6,
     "native_m31_permutation_trace_v1": 7,
     "native_indexed_recurrence_trace_v1": 8,
+    "native_circle_affine_state_trace_v1": 9,
 }
 
 

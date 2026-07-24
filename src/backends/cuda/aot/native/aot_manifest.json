@@ -24,6 +24,18 @@
     "semantic_hash": "6f60dbf6e15716eb"
   },
   {
+    "abi_schema": "native_circle_affine_state_trace_v1",
+    "cache_key": "17c0a4c208b9f08a",
+    "file": "witness_circle_affine_state_trace_17c0a4c208b9f08a.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_trace_circle_affine_state_slabs_v1_09db5e660658cf5e",
+    "kind": "witness",
+    "label": "circle_affine_state_trace",
+    "program_identity": "7f374b3b382b1b482b76c7b70895da24cd9df6b22932c7d157f1e10f4afde742",
+    "semantic_contract": "stwo-zig/native/circle-affine-state-trace/v1;field=m31;geometry=row_count=2^log_n_rows,preprocessed_columns=1,main_columns=2;storage_row=circle_bit_reverse(coset_to_circle(logical_row));inverse=circle_to_coset(bit_reverse(storage_row));preprocessed=first_value iff storage_row=0 else default_value;main[state]=initial[state]+(state==increment_coordinate?logical_row*increment_value:0);layout=two_column_major_slabs[column*stride+row];launches=1",
+    "semantic_hash": "09db5e660658cf5e"
+  },
+  {
     "abi_schema": "native_indexed_recurrence_trace_v1",
     "cache_key": "6af438997e7d2cef",
     "file": "witness_indexed_recurrence_trace_6af438997e7d2cef.cu",
