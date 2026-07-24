@@ -15,6 +15,7 @@ test {
     } else {
         _ = @import("tests/cairo/prove_trace_test.zig");
         _ = @import("tests/cairo/prover_test.zig");
+        _ = @import("tests/cairo/source_semantic_pack_test.zig");
         _ = @import("tests/cairo/claim_generator_test.zig");
         _ = @import("tests/cairo/metal_process_backend_test.zig");
         _ = @import("tests/cairo/statement_bootstrap_test.zig");

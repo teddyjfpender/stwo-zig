@@ -14,6 +14,7 @@ const staged = @import("../../frontends/cairo/staged_arena_planner.zig");
 const statement = @import("../../frontends/cairo/statement_bootstrap.zig");
 const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
 const semantic_pack = @import("../../frontends/cairo/witness/semantic_pack.zig");
+const source_semantic_pack = @import("../../frontends/cairo/witness/source_semantic_pack.zig");
 const identities = @import("identity.zig");
 
 const ir = backend.proof_program;
@@ -42,13 +43,16 @@ pub const Error = error{
     InvalidPreprocessedGeometry,
     InvalidProofPlan,
     InvalidStatementEncoding,
-    ProofDerivedSemanticsNotProductionAdmissible,
 };
 
-/// Proof-derived semantic packs must fail any production admission check.
-pub fn requireProductionSemantics(pack: *const semantic_pack.Loaded) Error!void {
-    if (pack.provenance == .proof_derived)
-        return Error.ProofDerivedSemanticsNotProductionAdmissible;
+/// Authenticates a proof-independent source registry against the complete
+/// runtime component plan. Full production emission remains unavailable until
+/// source-derived composition semantics cover the same registry.
+pub fn requireProductionSemantics(
+    pack: *const source_semantic_pack.Loaded,
+    proof: *const proof_plan.CairoProofPlan,
+) !void {
+    try pack.admitProofPlan(proof);
 }
 
 /// Emits a generic program for parity and backend-development work only.

@@ -5,9 +5,13 @@ const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
 const staged = @import("../../frontends/cairo/staged_arena_planner.zig");
 const statement = @import("../../frontends/cairo/statement_bootstrap.zig");
 const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const semantic_pack = @import("../../frontends/cairo/witness/semantic_pack.zig");
+const source_semantic_pack = @import("../../frontends/cairo/witness/source_semantic_pack.zig");
 const subject = @import("program.zig");
 const identities = @import("identity.zig");
+
+test {
+    std.testing.refAllDecls(source_semantic_pack);
+}
 
 const Fixture = struct {
     allocator: std.mem.Allocator,
@@ -237,7 +241,7 @@ test "Cairo identities and complete program digest reject semantic mutations" {
     bundle.components[0].parts[0].program.header.semantic_hash = original_hash;
 }
 
-test "Cairo emitter fails closed on provenance and geometry drift" {
+test "Cairo emitter fails closed on geometry drift and remains development only" {
     const allocator = std.testing.allocator;
     var bundle = try composition.Bundle.readFile(allocator, "vectors/cairo/sn_pie_2_composition.bin");
     defer bundle.deinit();
@@ -266,12 +270,61 @@ test "Cairo emitter fails closed on provenance and geometry drift" {
     );
     fixture.statement_bytes[last] ^= 1;
 
-    var loaded: semantic_pack.Loaded = undefined;
-    loaded.provenance = .proof_derived;
-    try std.testing.expectError(
-        subject.Error.ProofDerivedSemanticsNotProductionAdmissible,
-        subject.requireProductionSemantics(&loaded),
+    try std.testing.expect(!subject.production_ready);
+}
+
+test "Cairo production admission uses configured source authority and exact proof plan" {
+    const allocator = std.testing.allocator;
+    const manifest_path = try std.fs.cwd().realpathAlloc(
+        allocator,
+        "vectors/cairo/source_semantics/v3/manifest.json",
     );
+    defer allocator.free(manifest_path);
+    const registry_path = try std.fs.cwd().realpathAlloc(
+        allocator,
+        "vectors/cairo/source_semantics/v3/registry.json",
+    );
+    defer allocator.free(registry_path);
+    const component_path = try std.fs.cwd().realpathAlloc(
+        allocator,
+        "vectors/cairo/source_semantics/v3/components/add_opcode_small.rs",
+    );
+    defer allocator.free(component_path);
+    const component_files = [_]source_semantic_pack.ComponentFile{.{
+        .name = "add_opcode_small",
+        .path = component_path,
+    }};
+    var source_pack = try source_semantic_pack.load(allocator, .{
+        .manifest = .{
+            .path = manifest_path,
+            .sha256 = decodeDigest("a2502558ac2ebeffaa957059635da2025d555df4d34406d671fa15fd15f9cac5"),
+        },
+        .registry = registry_path,
+        .components = &component_files,
+    });
+    defer source_pack.deinit();
+
+    const parts = [_]proof_plan.TracePart{.{
+        .id = .main,
+        .rows = .{ .real_rows = 16, .padded_rows = 16 },
+    }};
+    const components = [_]proof_plan.Component{.{
+        .name = "add_opcode_small",
+        .canonical_ordinal = 0,
+        .writer = .recorded_aot,
+        .trace_parts = &parts,
+        .producer_edges = &.{},
+        .capacity_feeds = &.{},
+    }};
+    var plan = try proof_plan.CairoProofPlan.init(allocator, &components);
+    defer plan.deinit();
+    try subject.requireProductionSemantics(&source_pack, &plan);
+}
+
+fn decodeDigest(value: []const u8) [32]u8 {
+    var digest: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(&digest, value) catch unreachable;
+    return digest;
 }
 
 fn testStatement(
