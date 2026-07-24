@@ -50,6 +50,9 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "commitment/merkle.cu",
         "commitment/progressive.cu",
     },
+    "constraint": {
+        "constraints/powers.cu",
+    },
     "transform": {
         "transform/b2n_retained.cu",
         "transform/lde.cu",
@@ -400,6 +403,57 @@ int main() {{
             changed[0]["semantic_contract"] += ";changed"
             with self.assertRaisesRegex(BuildError, "stale Native identities"):
                 validate_aot_manifest(root, changed)
+
+    def test_constraint_power_expansion_matches_zig_vector(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
+        source = NATIVE / "constraints/powers.cu"
+        harness = f"""
+#include <cassert>
+#define STWO_CUDA_HOST_TEST
+#define __host__
+#define __device__
+#define __forceinline__ inline
+#define __global__
+#include {json.dumps(str(source))}
+
+int main() {{
+    using namespace stwo::cuda::constraints;
+    const QM31 alpha{{{{2, 3}}, {{5, 7}}}};
+    QM31 actual[9] = {{}};
+    expand_powers(alpha, actual, 9);
+    const QM31 expected[9] = {{
+        {{{{1, 0}}, {{0, 0}}}},
+        {{{{2, 3}}, {{5, 7}}}},
+        {{{{2147483524u, 128}}, {{2147483625u, 58}}}},
+        {{{{2147481849u, 2147483290u}}, {{2147481918u, 2147483476u}}}},
+        {{{{2147479184u, 2147444175u}}, {{2147474211u, 2147463747u}}}},
+        {{{{459282u, 2147152330u}}, {{294817u, 2147186938u}}}},
+        {{{{8434437u, 5426608u}}, {{6095390u, 1849422u}}}},
+        {{{{2131219849u, 157517203u}}, {{10828443u, 108159113u}}}},
+        {{{{1767350271u, 796460768u}}, {{660723783u, 922542984u}}}},
+    }};
+    for (unsigned index = 0; index < 9; ++index) {{
+        assert(actual[index].first.real == expected[index].first.real);
+        assert(actual[index].first.imag == expected[index].first.imag);
+        assert(actual[index].second.real == expected[index].second.real);
+        assert(actual[index].second.imag == expected[index].second.imag);
+    }}
+}}
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness_path = root / "constraint_power_test.cpp"
+            executable = root / "constraint_power_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
 
     def test_native_wide_fibonacci_trace_matches_canonical_layout(self) -> None:
         compiler = shutil.which("c++")

@@ -103,6 +103,7 @@
       "stwo_blake2s_transcript_init_on",
       "stwo_blake2s_transcript_mix_words_on",
       "stwo_combine_quotients_from_numerators_on",
+      "stwo_constraint_expand_powers_on",
       "stwo_cuda_device_snapshot",
       "stwo_cuda_platform_snapshot",
       "stwo_decommit_assemble_fri_on",
