@@ -87,6 +87,11 @@ No skipped hardware test is release evidence. A non-CUDA host may validate
 source, ABI, build-plan, product-isolation, and fail-closed behavior, but cannot
 promote the backend.
 
+On a CUDA host, `python3 scripts/cuda_device_smoke.py` compiles and runs the
+product-owned differential suite against the exact archive produced by
+`python3 scripts/cuda_build.py`. Both commands emit immutable receipts; a
+receipt copied from another source closure is invalid.
+
 ## Performance Evidence
 
 The first benchmark matrix must include Native wide Fibonacci at logs 14, 16,
@@ -112,7 +117,7 @@ correctness and residency gates.
 - [x] Build the static CUDA archive and Native generated AOT pack directly.
 - [x] Implement the Zig execution context, isolated pool, lifetime-aware arena,
       strict AOT loader, stage admission, and residency telemetry owners.
-- [ ] Replace every staged legacy ABI implementation with a small product-owned
+- [x] Replace every staged legacy ABI implementation with a small product-owned
       Native unit and pass its real-device differential.
 - [ ] Implement the resident Native proof transaction from ingress through the
       single final proof read.
@@ -151,17 +156,18 @@ Real-device evidence currently covers:
 - every element of the 1024-value OODS batch-inverse tree, after its copied
   final-pair indexing defect was found and corrected by the hardware gate.
 
-The exact clean rebuild contains zero imported authority objects, ten
-product-owned Native CUDA objects, and one Native AOT cubin. Seven independent
-real-device differentials pass on SM 89. The active product manifest now binds
-48 ABI symbols; quotient, FRI/PoW, and decommitment account for the 17 symbols
-that remain staged.
+The exact clean rebuild contains zero imported authority objects, 21
+product-owned Native CUDA objects, one product-owned host object, and one
+Native AOT cubin. Eleven independent real-device differentials pass on SM 89.
+The active product manifest binds 66 ABI symbols and has no staged symbols.
 
 The progressive Blake2s hot path has zero per-thread stack and zero compiler
 spills on SM 89. It uses 56 registers for absorb and 48 for finalize. This
 resource result is evidence for the copied scalar-state design; it is not a
 proof-performance claim.
 
-The backend is not yet a prover. Quotient, FRI/PoW, decommitment, proof
-assembly, canonical proof parity, Rust-oracle acceptance, repeated-session
-stability, product activation, and judged benchmarks remain mandatory.
+The backend is not yet a prover. The resident stage implementations and
+single-read proof-bundle ABI are present, but the full executor still requires
+the composition split, canonical transcript schedule and proof decoder before
+it can establish canonical proof parity, Rust-oracle acceptance,
+repeated-session stability, product activation, and judged benchmarks.
