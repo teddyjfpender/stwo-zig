@@ -10,6 +10,49 @@ pub const Native = OpsFor(abi);
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        pub fn xor(
+            session: anytype,
+            preprocessed: common.WordMatrix,
+            main_trace: common.WordMatrix,
+            row_count: u32,
+            log_n_rows: u32,
+            log_step: u32,
+            offset: u64,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.trace_generation;
+            try common.requireStage(session, stage);
+            if (log_n_rows == 0 or log_n_rows >= 31 or
+                row_count != @as(u32, 1) << @intCast(log_n_rows) or
+                log_step > log_n_rows)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            try exactMatrix(preprocessed, row_count, 2);
+            try exactMatrix(main_trace, row_count, 1);
+            const status = Api.stwo_native_xor_trace_on(
+                try common.words(
+                    session,
+                    preprocessed.storage,
+                    preprocessed.storage.len,
+                ),
+                preprocessed.column_stride_words,
+                preprocessed.storage.len,
+                try common.words(
+                    session,
+                    main_trace.storage,
+                    main_trace.storage.len,
+                ),
+                main_trace.column_stride_words,
+                main_trace.storage.len,
+                row_count,
+                log_n_rows,
+                log_step,
+                offset,
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn wideFibonacci(
             session: anytype,
             trace: common.WordMatrix,
@@ -48,4 +91,23 @@ pub fn OpsFor(comptime Api: type) type {
             try common.record(session, stage, status);
         }
     };
+}
+
+fn exactMatrix(
+    matrix: common.WordMatrix,
+    row_count: u32,
+    expected_columns: usize,
+) runtime_error.Error!void {
+    if (matrix.column_stride_words < row_count or
+        matrix.column_stride_words == 0 or matrix.storage.len == 0)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    const exact_capacity = std.math.mul(
+        usize,
+        matrix.column_stride_words,
+        expected_columns,
+    ) catch return error.SizeOverflow;
+    if (matrix.storage.len != exact_capacity)
+        return error.InvalidKernelDescriptor;
 }

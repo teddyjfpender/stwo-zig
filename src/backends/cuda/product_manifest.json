@@ -151,6 +151,7 @@
       "stwo_native_aot_loader_destroy",
       "stwo_native_aot_loader_stats",
       "stwo_native_wide_fibonacci_trace_on",
+      "stwo_native_xor_trace_on",
       "stwo_ntt_b2n_columns_to_retained_on",
       "stwo_ntt_b2n_composition_split_compact_on",
       "stwo_ntt_n2b_columns_on",

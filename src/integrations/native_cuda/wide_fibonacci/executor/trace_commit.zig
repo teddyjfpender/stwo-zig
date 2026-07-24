@@ -190,7 +190,7 @@ fn requirePrefixOperation(
             else => return error.InvalidKernelDescriptor,
         },
         1 => switch (operation) {
-            .mix_empty_preprocessed_root => {},
+            .mix_preprocessed_root => {},
             else => return error.InvalidKernelDescriptor,
         },
         2 => switch (operation) {

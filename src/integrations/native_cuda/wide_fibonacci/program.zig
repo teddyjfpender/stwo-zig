@@ -173,7 +173,7 @@ fn emitTranscript(
     const schedule = try transcript.Schedule.init(geometry);
     const barriers = try allocator.alloc(
         ir.TranscriptBarrier,
-        schedule.operation_count,
+        schedule.operationCount(),
     );
     errdefer allocator.free(barriers);
     var previous_node: u32 = 0;
@@ -337,7 +337,7 @@ fn executionNodes(
 fn transcriptNode(operation: transcript.Operation) u32 {
     return switch (operation) {
         .mix_pcs_config => 0,
-        .mix_empty_preprocessed_root,
+        .mix_preprocessed_root,
         .mix_main_root,
         .mix_statement,
         .draw_composition_alpha,
@@ -353,7 +353,7 @@ fn transcriptNode(operation: transcript.Operation) u32 {
 fn transcriptKind(operation: transcript.Operation) ir.TranscriptKind {
     return switch (operation) {
         .mix_pcs_config,
-        .mix_empty_preprocessed_root,
+        .mix_preprocessed_root,
         .mix_main_root,
         .mix_statement,
         .mix_composition_root,

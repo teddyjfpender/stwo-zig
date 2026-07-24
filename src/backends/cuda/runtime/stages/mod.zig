@@ -30,4 +30,5 @@ test {
     _ = transform;
     _ = @import("commitment_test.zig");
     _ = @import("contract_test.zig");
+    _ = @import("trace_test.zig");
 }

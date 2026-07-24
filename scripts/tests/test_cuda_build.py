@@ -45,6 +45,7 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
     },
     "trace": {
         "kernels/wide_fibonacci_trace.cu",
+        "kernels/xor_trace.cu",
     },
     "commitment": {
         "commitment/merkle.cu",
@@ -705,6 +706,89 @@ int main() {{
             root = Path(temporary)
             harness_path = root / "wide_fibonacci_trace_test.cpp"
             executable = root / "wide_fibonacci_trace_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
+
+    def test_native_xor_trace_matches_canonical_layout(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
+        source = NATIVE / "kernels/xor_trace.cu"
+        harness = f"""
+#include <cassert>
+#include <cstdint>
+#define STWO_CUDA_HOST_TEST
+#define __device__
+#define __global__
+#define __forceinline__ inline
+#define __launch_bounds__(...)
+struct Dim3 {{ unsigned x, y, z; }};
+static Dim3 blockIdx{{0, 0, 0}}, blockDim{{1, 1, 1}}, threadIdx{{0, 0, 0}};
+#include {json.dumps(str(source))}
+
+unsigned logical_row(unsigned storage, unsigned rows, unsigned log_rows) {{
+    const unsigned circle = stwo_xor_trace_reverse_bits(storage) >>
+        (32u - log_rows);
+    return circle < rows / 2u
+        ? circle * 2u
+        : (rows - 1u - circle) * 2u + 1u;
+}}
+
+void check_case(unsigned log_rows, unsigned log_step, std::uint64_t offset) {{
+    const unsigned rows = 1u << log_rows;
+    const unsigned preprocessed_stride = rows + 3u;
+    const unsigned main_stride = rows + 5u;
+    unsigned preprocessed[2u * ((1u << 10u) + 3u)];
+    unsigned main_trace[(1u << 10u) + 5u];
+    for (unsigned &word : preprocessed) word = 0xa5a5a5a5u;
+    for (unsigned &word : main_trace) word = 0xa5a5a5a5u;
+    blockDim.x = 1;
+    for (unsigned row = 0; row < rows; ++row) {{
+        blockIdx.x = row;
+        threadIdx.x = 0;
+        stwo_native_xor_trace_kernel(
+            preprocessed,
+            preprocessed_stride,
+            main_trace,
+            main_stride,
+            rows,
+            log_rows,
+            log_step,
+            offset);
+    }}
+    const unsigned step = 1u << log_step;
+    for (unsigned row = 0; row < rows; ++row) {{
+        const unsigned logical = logical_row(row, rows, log_rows);
+        assert(preprocessed[row] == (row == 0u ? 1u : 0u));
+        assert(preprocessed[preprocessed_stride + row] ==
+            (logical % step == offset % step ? 1u : 0u));
+        assert(main_trace[row] == ((logical & 1u) == 0u ? 1u : 0u));
+    }}
+    for (unsigned row = rows; row < preprocessed_stride; ++row) {{
+        assert(preprocessed[row] == 0xa5a5a5a5u);
+        assert(preprocessed[preprocessed_stride + row] == 0xa5a5a5a5u);
+    }}
+    for (unsigned row = rows; row < main_stride; ++row) {{
+        assert(main_trace[row] == 0xa5a5a5a5u);
+    }}
+}}
+
+int main() {{
+    check_case(5, 0, 0);
+    check_case(7, 3, 5);
+    check_case(10, 10, 0x1'0000'03ffull);
+}}
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness_path = root / "xor_trace_test.cpp"
+            executable = root / "xor_trace_test"
             harness_path.write_text(harness, encoding="utf-8")
             subprocess.run(
                 [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
