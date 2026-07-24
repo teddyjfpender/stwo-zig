@@ -13,6 +13,7 @@ pub const backends = struct {
 pub const examples = struct {
     pub const blake = @import("examples/blake.zig");
     pub const plonk = @import("examples/plonk.zig");
+    pub const plonk_logup = @import("examples/plonk_logup.zig");
     pub const poseidon = @import("examples/poseidon.zig");
     pub const state_machine = @import("examples/state_machine.zig");
     pub const wide_fibonacci = @import("examples/wide_fibonacci.zig");
