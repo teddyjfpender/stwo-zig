@@ -168,19 +168,60 @@ const topology = relation.Topology{
     .total_row_blocks = 1,
 };
 
-fn buffers() relation.Buffers {
+fn buffers() relation.DeviceBuffers {
     return .{
-        .drawn_z_alpha = slice(field.SecureField, 0x1000, 2),
-        .alpha_powers = slice(field.SecureField, 0x1100, 2),
-        .z = slice(field.SecureField, 0x1200, 1),
-        .source_tables = slice(u32, 0x1300, 2),
-        .descriptors = slice(u32, 0x1400, 2),
-        .output_tables = slice(u32, 0x1500, 2),
-        .denominator_slabs = slice(u32, 0x1600, 2),
-        .geometry = slice(relation.Geometry, 0x1700, 1),
-        .claimed_sums = slice(u32, 0x1800, 2),
-        .reduction_partials = slice(u32, 0x1900, 4),
-        .scan_block_sums = slice(u32, 0x1a00, 4),
+        .drawn_z_alpha = slice(field.SecureField, 0x10_0000, 2),
+        .alpha_powers = slice(field.SecureField, 0x10_0100, 2),
+        .z = slice(field.SecureField, 0x10_0200, 1),
+        .source_tables = slice(u32, 0x10_0300, 2),
+        .descriptors = slice(u32, 0x10_0400, 2),
+        .output_tables = slice(u32, 0x10_0500, 2),
+        .denominator_slabs = slice(u32, 0x10_0600, 2),
+        .geometry = slice(relation.Geometry, 0x10_0700, 1),
+        .claimed_sums = slice(u32, 0x10_0800, 2),
+        .reduction_partials = slice(u32, 0x10_0900, 4),
+        .scan_block_sums = slice(u32, 0x10_0a00, 4),
+    };
+}
+
+const direct = relation.UseDescriptor.init(
+    .projected_columns_no_id,
+    0,
+    2,
+    0,
+    .one,
+    0,
+    false,
+);
+const descriptors = [_]relation.ColumnDescriptor{
+    relation.ColumnDescriptor.pair(direct, direct),
+    relation.ColumnDescriptor.single(direct),
+};
+const source_columns = [_]@import("../column.zig").DeviceSlice(u32){
+    slice(u32, 0x20_0000, 16),
+    slice(u32, 0x20_1000, 16),
+};
+const output_coordinates = [_]@import("../column.zig").DeviceSlice(u32){
+    slice(u32, 0x30_0000, 16),
+    slice(u32, 0x30_1000, 16),
+    slice(u32, 0x30_2000, 16),
+    slice(u32, 0x30_3000, 16),
+    slice(u32, 0x30_4000, 16),
+    slice(u32, 0x30_5000, 16),
+    slice(u32, 0x30_6000, 16),
+    slice(u32, 0x30_7000, 16),
+};
+
+fn instance() relation.InstanceBinding {
+    return .{
+        .source_pointer_table = slice(u32, 0x40_0000, 4),
+        .source_columns = &source_columns,
+        .descriptor_storage = slice(u32, 0x40_1000, 32),
+        .descriptors = &descriptors,
+        .output_pointer_table = slice(u32, 0x40_2000, 16),
+        .output_coordinates = &output_coordinates,
+        .denominator_slab = slice(field.SecureField, 0x40_3000, 32),
+        .claimed_sum = slice(field.SecureField, 0x40_5000, 1),
     };
 }
 
@@ -188,8 +229,15 @@ test "resident relation graph binds one stream and records exact launches" {
     TestApi.calls = 0;
     var session = TestSession{};
     TestApi.expected_stream = session.context.stream;
+    const instances = [_]relation.InstanceBinding{instance()};
+    const prepared = try relation.prepare(std.testing.allocator, .{
+        .topology = topology,
+        .buffers = buffers(),
+        .instances = &instances,
+    });
+    defer relation.deinit(std.testing.allocator, prepared);
 
-    try relation.OpsFor(TestApi).execute(&session, topology, buffers());
+    try relation.OpsFor(TestApi).execute(&session, prepared);
 
     try std.testing.expectEqual(@as(u32, 4), TestApi.calls);
     try std.testing.expectEqual(@as(u64, relation.launch_count), session.launches);
@@ -199,47 +247,73 @@ test "resident relation graph rejects alias and stage drift before launch" {
     TestApi.calls = 0;
     var session = TestSession{};
     TestApi.expected_stream = session.context.stream;
-    var aliased = buffers();
-    aliased.output_tables.address = aliased.source_tables.address;
+    var aliased = instance();
+    var aliased_outputs = output_coordinates;
+    aliased_outputs[0] = source_columns[0];
+    aliased.output_coordinates = &aliased_outputs;
+    const aliased_instances = [_]relation.InstanceBinding{aliased};
     try std.testing.expectError(
         error.OverlappingDeviceRange,
-        relation.OpsFor(TestApi).execute(&session, topology, aliased),
+        relation.prepare(std.testing.allocator, .{
+            .topology = topology,
+            .buffers = buffers(),
+            .instances = &aliased_instances,
+        }),
     );
     try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
 
+    const instances = [_]relation.InstanceBinding{instance()};
+    const prepared = try relation.prepare(std.testing.allocator, .{
+        .topology = topology,
+        .buffers = buffers(),
+        .instances = &instances,
+    });
+    defer relation.deinit(std.testing.allocator, prepared);
     session.context.active_stage = .trace_generation;
     try std.testing.expectError(
         error.StageOrderViolation,
-        relation.OpsFor(TestApi).execute(&session, topology, buffers()),
+        relation.OpsFor(TestApi).execute(&session, prepared),
     );
     try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
 }
 
-test "resident relation graph rejects a misaligned pointer table" {
-    TestApi.calls = 0;
-    var session = TestSession{};
-    TestApi.expected_stream = session.context.stream;
-    var misaligned = buffers();
-    misaligned.source_tables.address += @sizeOf(u32);
+test "prepared plan rejects unaligned pointer tables and stale pointees" {
+    var unaligned_buffers = buffers();
+    unaligned_buffers.source_tables.address += @sizeOf(u32);
+    const instances = [_]relation.InstanceBinding{instance()};
     try std.testing.expectError(
         error.InvalidDeviceAddress,
-        relation.OpsFor(TestApi).execute(&session, topology, misaligned),
+        relation.prepare(std.testing.allocator, .{
+            .topology = topology,
+            .buffers = unaligned_buffers,
+            .instances = &instances,
+        }),
     );
-    try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
+
+    var stale = instance();
+    var stale_sources = source_columns;
+    stale_sources[0].generation += 1;
+    stale.source_columns = &stale_sources;
+    const stale_instances = [_]relation.InstanceBinding{stale};
+    try std.testing.expectError(
+        error.InvalidDeviceAddress,
+        relation.prepare(std.testing.allocator, .{
+            .topology = topology,
+            .buffers = buffers(),
+            .instances = &stale_instances,
+        }),
+    );
 }
 
-test "resident relation graph rejects CUDA extent overflow before launch" {
-    TestApi.calls = 0;
-    var session = TestSession{};
-    TestApi.expected_stream = session.context.stream;
+test "relation topology rejects CUDA signed extent overflow" {
     const rows: u32 = 1 << 30;
-    const columns: u32 = 3;
+    const columns: u32 = 2;
     const row_blocks = rows / 256;
     const too_large_geometry = [_]relation.Geometry{.{
         .pair_first = 0,
         .pair_blocks = row_blocks * columns,
         .inverse_first = 0,
-        .inverse_blocks = (rows * columns) / 1024,
+        .inverse_blocks = (rows / 1024) * columns,
         .row_first = 0,
         .row_blocks = row_blocks,
         .rows = rows,
@@ -258,7 +332,65 @@ test "resident relation graph rejects CUDA extent overflow before launch" {
     };
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
-        relation.OpsFor(TestApi).execute(&session, too_large, buffers()),
+        too_large.validate(),
     );
-    try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
+}
+
+test "relation topology rejects cumulative offsets and row inverse drift" {
+    var changed = geometry;
+    changed[0].pair_first = 1;
+    var changed_topology = topology;
+    changed_topology.geometry = &changed;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        changed_topology.validate(),
+    );
+
+    changed = geometry;
+    changed[0].inverse_rows = 1;
+    changed_topology.geometry = &changed;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        changed_topology.validate(),
+    );
+}
+
+test "relation topology matches ragged inverse transitions" {
+    const row_counts = [_]u32{ 1, 2, 512, 1024, 2048 };
+    for (row_counts) |rows| {
+        const row_blocks = blockCount(rows, 256);
+        const pair_blocks = row_blocks * 2;
+        const inverse_blocks = blockCount(rows * 2, 1024);
+        const row_geometry = [_]relation.Geometry{.{
+            .pair_first = 0,
+            .pair_blocks = pair_blocks,
+            .inverse_first = 0,
+            .inverse_blocks = inverse_blocks,
+            .row_first = 0,
+            .row_blocks = row_blocks,
+            .rows = rows,
+            .columns = 2,
+            .real_rows = rows,
+            .source_offset_rows = 0,
+            .inverse_rows = inverseRowCount(rows),
+        }};
+        const row_topology = relation.Topology{
+            .geometry = &row_geometry,
+            .max_alpha_powers = 2,
+            .total_pair_blocks = pair_blocks,
+            .total_inverse_blocks = inverse_blocks,
+            .total_chain_blocks = row_blocks,
+            .total_row_blocks = row_blocks,
+        };
+        try row_topology.validate();
+    }
+}
+
+fn blockCount(values: u32, block_size: u32) u32 {
+    return values / block_size + @intFromBool(values % block_size != 0);
+}
+
+fn inverseRowCount(rows: u32) u32 {
+    const log_rows = std.math.log2_int(u32, rows);
+    return if (log_rows == 0) 1 else @as(u32, 1) << @intCast(31 - log_rows);
 }

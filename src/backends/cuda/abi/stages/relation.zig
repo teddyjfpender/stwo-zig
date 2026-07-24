@@ -1,5 +1,6 @@
 //! Allocation-free relation-graph execution on the proof-owned stream.
 
+const std = @import("std");
 const field = @import("../field.zig");
 
 pub const descriptor_words: u32 = 16;
@@ -17,6 +18,9 @@ pub const TupleKind = enum(u32) {
     memory_small_value = 5,
     bitwise_xor12 = 6,
     projected_columns = 7,
+    /// A tuple made directly from consecutive source columns. Unlike
+    /// `projected_columns`, the first tuple word is not a relation id.
+    projected_columns_no_id = 8,
 };
 
 pub const MultiplicityKind = enum(u32) {
@@ -27,6 +31,7 @@ pub const MultiplicityKind = enum(u32) {
     memory_big = 4,
     memory_small = 5,
     bitwise_xor12 = 6,
+    source_column = 7,
 };
 
 pub const UseDescriptor = extern struct {
@@ -57,6 +62,100 @@ pub const UseDescriptor = extern struct {
             .negative = @intFromBool(negative),
         };
     }
+
+    pub fn validate(
+        self: UseDescriptor,
+        bounds: SourceBounds,
+    ) error{InvalidKernelDescriptor}!void {
+        if (self.tuple_words == 0 or
+            self.tuple_words > bounds.max_alpha_powers or
+            self.negative > 1)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        const tuple_kind = std.meta.intToEnum(
+            TupleKind,
+            self.tuple_kind,
+        ) catch return error.InvalidKernelDescriptor;
+        const multiplicity_kind = std.meta.intToEnum(
+            MultiplicityKind,
+            self.multiplicity_kind,
+        ) catch return error.InvalidKernelDescriptor;
+        if (tuple_kind == .projected_columns_no_id and
+            self.relation_id != 0)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        switch (tuple_kind) {
+            .lookup_words => try requireLookupColumns(
+                bounds,
+                self.tuple_argument,
+                self.tuple_words,
+            ),
+            .projected_columns => try requireSources(
+                bounds,
+                self.tuple_argument,
+                self.tuple_words - 1,
+            ),
+            .projected_columns_no_id => try requireSources(
+                bounds,
+                self.tuple_argument,
+                self.tuple_words,
+            ),
+            .memory_address_chunk => {
+                if (self.tuple_words > 2)
+                    try requireSources(
+                        bounds,
+                        try checkedMul(self.tuple_argument, 2),
+                        1,
+                    );
+            },
+            .memory_big_limbs, .memory_small_limbs => try requireSources(
+                bounds,
+                self.tuple_argument,
+                self.tuple_words - 1,
+            ),
+            .memory_big_value, .memory_small_value => {
+                if (self.tuple_words > 2)
+                    try requireSources(bounds, 0, self.tuple_words - 2);
+            },
+            .bitwise_xor12 => {
+                if (self.tuple_words > 4)
+                    return error.InvalidKernelDescriptor;
+            },
+        }
+        switch (multiplicity_kind) {
+            .one, .enabler => {},
+            .lookup_word => try requireLookupColumns(
+                bounds,
+                self.multiplicity_argument,
+                1,
+            ),
+            .memory_address_chunk => try requireSources(
+                bounds,
+                try checkedAdd(
+                    try checkedMul(self.multiplicity_argument, 2),
+                    1,
+                ),
+                1,
+            ),
+            .memory_big,
+            .memory_small,
+            .bitwise_xor12,
+            .source_column,
+            => try requireSources(
+                bounds,
+                self.multiplicity_argument,
+                1,
+            ),
+        }
+    }
+};
+
+pub const SourceBounds = struct {
+    source_pointer_count: u32,
+    lookup_word_columns: u32 = 0,
+    max_alpha_powers: u32,
 };
 
 pub const ColumnDescriptor = extern struct {
@@ -79,6 +178,23 @@ pub const ColumnDescriptor = extern struct {
             .first = first,
             .second = second,
         };
+    }
+
+    pub fn validate(
+        self: ColumnDescriptor,
+        bounds: SourceBounds,
+    ) error{InvalidKernelDescriptor}!void {
+        if (self.reserved != 0 or (self.arity != 1 and self.arity != 2))
+            return error.InvalidKernelDescriptor;
+        try self.first.validate(bounds);
+        if (self.arity == 2) {
+            try self.second.validate(bounds);
+        } else if (!std.meta.eql(
+            self.second,
+            std.mem.zeroes(UseDescriptor),
+        )) {
+            return error.InvalidKernelDescriptor;
+        }
     }
 };
 
@@ -142,7 +258,39 @@ pub extern "c" fn stwo_relation_tail_global_on(
     stream: *anyopaque,
 ) c_int;
 
-const std = @import("std");
+fn requireSources(
+    bounds: SourceBounds,
+    first: u32,
+    count: u32,
+) error{InvalidKernelDescriptor}!void {
+    const end = checkedAdd(first, count) catch
+        return error.InvalidKernelDescriptor;
+    if (end > bounds.source_pointer_count)
+        return error.InvalidKernelDescriptor;
+}
+
+fn requireLookupColumns(
+    bounds: SourceBounds,
+    first: u32,
+    count: u32,
+) error{InvalidKernelDescriptor}!void {
+    if (bounds.source_pointer_count == 0)
+        return error.InvalidKernelDescriptor;
+    const end = checkedAdd(first, count) catch
+        return error.InvalidKernelDescriptor;
+    if (end > bounds.lookup_word_columns)
+        return error.InvalidKernelDescriptor;
+}
+
+fn checkedAdd(left: u32, right: u32) error{InvalidKernelDescriptor}!u32 {
+    return std.math.add(u32, left, right) catch
+        error.InvalidKernelDescriptor;
+}
+
+fn checkedMul(left: u32, right: u32) error{InvalidKernelDescriptor}!u32 {
+    return std.math.mul(u32, left, right) catch
+        error.InvalidKernelDescriptor;
+}
 
 test "relation descriptors preserve the CUDA word ABI" {
     try std.testing.expectEqual(
@@ -166,14 +314,67 @@ test "relation descriptors preserve the CUDA word ABI" {
             @offsetOf(UseDescriptor, entry.name),
         );
     }
-    try std.testing.expectEqual(@as(usize, 0), @offsetOf(ColumnDescriptor, "arity"));
-    try std.testing.expectEqual(@as(usize, 4), @offsetOf(ColumnDescriptor, "first"));
-    try std.testing.expectEqual(@as(usize, 32), @offsetOf(ColumnDescriptor, "second"));
-    try std.testing.expectEqual(@as(usize, 60), @offsetOf(ColumnDescriptor, "reserved"));
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        @offsetOf(ColumnDescriptor, "arity"),
+    );
+    try std.testing.expectEqual(
+        @as(usize, 4),
+        @offsetOf(ColumnDescriptor, "first"),
+    );
+    try std.testing.expectEqual(
+        @as(usize, 32),
+        @offsetOf(ColumnDescriptor, "second"),
+    );
+    try std.testing.expectEqual(
+        @as(usize, 60),
+        @offsetOf(ColumnDescriptor, "reserved"),
+    );
     inline for (std.meta.fields(Geometry), 0..) |entry, index| {
         try std.testing.expectEqual(
             index * @sizeOf(u32),
             @offsetOf(Geometry, entry.name),
         );
     }
+}
+
+test "direct projected tuples and source multiplicities pin ABI tags" {
+    try std.testing.expectEqual(
+        @as(u32, 8),
+        @intFromEnum(TupleKind.projected_columns_no_id),
+    );
+    try std.testing.expectEqual(
+        @as(u32, 7),
+        @intFromEnum(MultiplicityKind.source_column),
+    );
+}
+
+test "descriptor validation separates projected tuple and source bounds" {
+    const direct = UseDescriptor.init(
+        .projected_columns_no_id,
+        2,
+        2,
+        0,
+        .source_column,
+        6,
+        true,
+    );
+    try direct.validate(.{
+        .source_pointer_count = 8,
+        .max_alpha_powers = 2,
+    });
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        direct.validate(.{
+            .source_pointer_count = 3,
+            .max_alpha_powers = 2,
+        }),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        direct.validate(.{
+            .source_pointer_count = 8,
+            .max_alpha_powers = 1,
+        }),
+    );
 }

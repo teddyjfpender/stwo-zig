@@ -99,6 +99,7 @@ pub const Topology = struct {
         {
             return error.InvalidKernelDescriptor;
         }
+        _ = try self.scratchWords();
     }
 
     pub fn instanceCount(self: Topology) runtime_error.Error!u32 {
@@ -110,8 +111,8 @@ pub const Topology = struct {
     }
 };
 
-/// Device-resident pointer tables and scratch owned by one compiled plan.
-pub const Buffers = struct {
+/// Top-level device tables and scratch populated during proof ingress.
+pub const DeviceBuffers = struct {
     drawn_z_alpha: common.SecureFields,
     alpha_powers: common.SecureFields,
     z: common.SecureFields,
@@ -125,19 +126,111 @@ pub const Buffers = struct {
     scan_block_sums: common.Words,
 };
 
+/// One instance's complete nested device graph. The plan compiler uploads all
+/// pointer tables and descriptor/geometry mirrors from these exact values.
+pub const InstanceBinding = struct {
+    source_pointer_table: common.Words,
+    source_columns: []const common.Words,
+    lookup_word_columns: u32 = 0,
+    descriptor_storage: common.Words,
+    descriptors: []const ColumnDescriptor,
+    output_pointer_table: common.Words,
+    output_coordinates: []const common.Words,
+    denominator_slab: common.SecureFields,
+    claimed_sum: common.SecureFields,
+};
+
+pub const PrepareOptions = struct {
+    topology: Topology,
+    buffers: DeviceBuffers,
+    instances: []const InstanceBinding,
+};
+
+/// Opaque after ingress: callers cannot substitute raw pointer tables at the
+/// execution boundary.
+pub const PreparedPlan = opaque {};
+
+const OwnedInstance = struct {
+    source_pointer_table: common.Words,
+    source_columns: []common.Words,
+    lookup_word_columns: u32,
+    descriptor_storage: common.Words,
+    descriptors: []ColumnDescriptor,
+    output_pointer_table: common.Words,
+    output_coordinates: []common.Words,
+    denominator_slab: common.SecureFields,
+    claimed_sum: common.SecureFields,
+};
+
+const PlanState = struct {
+    topology: Topology,
+    geometry: []Geometry,
+    buffers: DeviceBuffers,
+    instances: []OwnedInstance,
+};
+
+pub const PrepareError = std.mem.Allocator.Error || runtime_error.Error;
+
+pub fn prepare(
+    allocator: std.mem.Allocator,
+    options: PrepareOptions,
+) PrepareError!*PreparedPlan {
+    try validatePreparedInput(allocator, options);
+    const state = try allocator.create(PlanState);
+    errdefer allocator.destroy(state);
+    const geometry = try allocator.dupe(Geometry, options.topology.geometry);
+    errdefer allocator.free(geometry);
+    const instances = try allocator.alloc(
+        OwnedInstance,
+        options.instances.len,
+    );
+    var initialized: usize = 0;
+    errdefer {
+        for (instances[0..initialized]) |*instance|
+            deinitInstance(allocator, instance);
+        allocator.free(instances);
+    }
+    for (options.instances, instances) |source, *destination| {
+        destination.* = try copyInstance(allocator, source);
+        initialized += 1;
+    }
+    state.* = .{
+        .topology = .{
+            .geometry = geometry,
+            .max_alpha_powers = options.topology.max_alpha_powers,
+            .total_pair_blocks = options.topology.total_pair_blocks,
+            .total_inverse_blocks = options.topology.total_inverse_blocks,
+            .total_chain_blocks = options.topology.total_chain_blocks,
+            .total_row_blocks = options.topology.total_row_blocks,
+        },
+        .geometry = geometry,
+        .buffers = options.buffers,
+        .instances = instances,
+    };
+    return @ptrCast(state);
+}
+
+pub fn deinit(allocator: std.mem.Allocator, prepared: *PreparedPlan) void {
+    const state = planState(prepared);
+    for (state.instances) |*instance| deinitInstance(allocator, instance);
+    allocator.free(state.instances);
+    allocator.free(state.geometry);
+    allocator.destroy(state);
+}
+
 pub fn OpsFor(comptime Api: type) type {
     return struct {
         pub fn execute(
             session: anytype,
-            topology: Topology,
-            buffers: Buffers,
+            prepared: *const PreparedPlan,
         ) runtime_error.Error!void {
             try common.requireStage(session, stage);
-            try topology.validate();
+            const state = planStateConst(prepared);
+            const topology = state.topology;
+            const buffers = state.buffers;
             const instance_count = try topology.instanceCount();
             const scratch_words = try topology.scratchWords();
-            try validateBufferLengths(topology, buffers, scratch_words);
-            try validatePointerTableAlignment(buffers);
+            try validateResidentPlan(session, state);
 
             const drawn = try layout.resident(
                 session,
@@ -209,14 +302,14 @@ pub fn OpsFor(comptime Api: type) type {
                 drawn.range,
                 sources.range,
                 descriptors.range,
+                outputs.range,
+                denominators.range,
                 geometry.range,
+                sums.range,
             };
             const mutable_ranges = [_]layout.DeviceRange{
                 alphas.range,
                 z.range,
-                outputs.range,
-                denominators.range,
-                sums.range,
                 partials.range,
                 scan.range,
             };
@@ -275,10 +368,346 @@ pub fn OpsFor(comptime Api: type) type {
     };
 }
 
+fn validatePreparedInput(
+    allocator: std.mem.Allocator,
+    options: PrepareOptions,
+) PrepareError!void {
+    try options.topology.validate();
+    try validateBufferLengths(options.topology, options.buffers);
+    try validatePointerTableAlignment(options.buffers);
+    if (options.instances.len != options.topology.geometry.len)
+        return error.InvalidKernelDescriptor;
+
+    const identity = DeviceIdentity.from(options.buffers.drawn_z_alpha);
+    var reads: std.ArrayList(layout.DeviceRange) = .empty;
+    defer reads.deinit(allocator);
+    var writes: std.ArrayList(layout.DeviceRange) = .empty;
+    defer writes.deinit(allocator);
+    try retainTopLevelRanges(
+        allocator,
+        &reads,
+        &writes,
+        identity,
+        options.topology,
+        options.buffers,
+    );
+    for (
+        options.instances,
+        options.topology.geometry,
+    ) |instance, geometry| {
+        try retainInstanceRanges(
+            allocator,
+            &reads,
+            &writes,
+            identity,
+            geometry,
+            options.topology.max_alpha_powers,
+            instance,
+        );
+    }
+    try layout.requireDisjoint(writes.items, reads.items);
+    try layout.requireDisjoint(writes.items, &.{});
+}
+
+fn retainTopLevelRanges(
+    allocator: std.mem.Allocator,
+    reads: *std.ArrayList(layout.DeviceRange),
+    writes: *std.ArrayList(layout.DeviceRange),
+    identity: DeviceIdentity,
+    topology: Topology,
+    buffers: DeviceBuffers,
+) PrepareError!void {
+    const instances = try topology.instanceCount();
+    const table_words = pointerTableWords(instances);
+    const scratch_words = try topology.scratchWords();
+    inline for (.{
+        .{ field.SecureField, buffers.drawn_z_alpha, 2, @alignOf(field.SecureField) },
+        .{ u32, buffers.source_tables, table_words, @alignOf(usize) },
+        .{ u32, buffers.descriptors, table_words, @alignOf(usize) },
+        .{ u32, buffers.output_tables, table_words, @alignOf(usize) },
+        .{ u32, buffers.denominator_slabs, table_words, @alignOf(usize) },
+        .{ Geometry, buffers.geometry, instances, @alignOf(Geometry) },
+        .{ u32, buffers.claimed_sums, table_words, @alignOf(usize) },
+    }) |entry| {
+        try reads.append(
+            allocator,
+            try checkedRange(
+                entry[0],
+                entry[1],
+                entry[2],
+                entry[3],
+                identity,
+            ),
+        );
+    }
+    inline for (.{
+        .{
+            field.SecureField,
+            buffers.alpha_powers,
+            topology.max_alpha_powers,
+            @alignOf(field.SecureField),
+        },
+        .{ field.SecureField, buffers.z, 1, @alignOf(field.SecureField) },
+        .{ u32, buffers.reduction_partials, scratch_words, @alignOf(u32) },
+        .{ u32, buffers.scan_block_sums, scratch_words, @alignOf(u32) },
+    }) |entry| {
+        try writes.append(
+            allocator,
+            try checkedRange(
+                entry[0],
+                entry[1],
+                entry[2],
+                entry[3],
+                identity,
+            ),
+        );
+    }
+}
+
+fn retainInstanceRanges(
+    allocator: std.mem.Allocator,
+    reads: *std.ArrayList(layout.DeviceRange),
+    writes: *std.ArrayList(layout.DeviceRange),
+    identity: DeviceIdentity,
+    geometry: Geometry,
+    alpha_powers: u32,
+    instance: InstanceBinding,
+) PrepareError!void {
+    const source_count = std.math.cast(
+        u32,
+        instance.source_columns.len,
+    ) orelse return error.SizeOverflow;
+    const output_count = try checkedMul(geometry.columns, 4);
+    const descriptor_words = try checkedMul(
+        geometry.columns,
+        abi.descriptor_words,
+    );
+    const denominator_values = try checkedMul(
+        geometry.rows,
+        geometry.columns,
+    );
+    if (instance.descriptors.len != geometry.columns or
+        instance.output_coordinates.len != output_count or
+        instance.source_pointer_table.len !=
+            pointerTableWords(source_count) or
+        instance.output_pointer_table.len !=
+            pointerTableWords(output_count) or
+        instance.descriptor_storage.len != descriptor_words or
+        instance.denominator_slab.len != denominator_values or
+        instance.claimed_sum.len != 1)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    const bounds = abi.SourceBounds{
+        .source_pointer_count = source_count,
+        .lookup_word_columns = instance.lookup_word_columns,
+        .max_alpha_powers = alpha_powers,
+    };
+    for (instance.descriptors) |descriptor| try descriptor.validate(bounds);
+
+    inline for (.{
+        instance.source_pointer_table,
+        instance.output_pointer_table,
+    }) |table| {
+        try reads.append(
+            allocator,
+            try checkedRange(
+                u32,
+                table,
+                table.len,
+                @alignOf(usize),
+                identity,
+            ),
+        );
+    }
+    try reads.append(
+        allocator,
+        try checkedRange(
+            u32,
+            instance.descriptor_storage,
+            descriptor_words,
+            @alignOf(ColumnDescriptor),
+            identity,
+        ),
+    );
+    for (instance.source_columns) |source| {
+        try reads.append(
+            allocator,
+            try checkedRange(
+                u32,
+                source,
+                geometry.rows,
+                @alignOf(u32),
+                identity,
+            ),
+        );
+    }
+    for (instance.output_coordinates) |output| {
+        try writes.append(
+            allocator,
+            try checkedRange(
+                u32,
+                output,
+                geometry.rows,
+                @alignOf(u32),
+                identity,
+            ),
+        );
+    }
+    try writes.append(
+        allocator,
+        try checkedRange(
+            field.SecureField,
+            instance.denominator_slab,
+            denominator_values,
+            @alignOf(field.SecureField),
+            identity,
+        ),
+    );
+    try writes.append(
+        allocator,
+        try checkedRange(
+            field.SecureField,
+            instance.claimed_sum,
+            1,
+            @alignOf(field.SecureField),
+            identity,
+        ),
+    );
+}
+
+fn validateResidentPlan(
+    session: anytype,
+    state: *const PlanState,
+) runtime_error.Error!void {
+    try state.topology.validate();
+    try validateBufferLengths(state.topology, state.buffers);
+    for (
+        state.instances,
+        state.topology.geometry,
+    ) |instance, geometry| {
+        _ = try session.context.deviceSlicePointer(
+            u32,
+            instance.source_pointer_table,
+            instance.source_pointer_table.len,
+        );
+        _ = try session.context.deviceSlicePointer(
+            u32,
+            instance.descriptor_storage,
+            instance.descriptor_storage.len,
+        );
+        _ = try session.context.deviceSlicePointer(
+            u32,
+            instance.output_pointer_table,
+            instance.output_pointer_table.len,
+        );
+        for (instance.source_columns) |source| {
+            _ = try session.context.deviceSlicePointer(
+                u32,
+                source,
+                geometry.rows,
+            );
+        }
+        for (instance.output_coordinates) |output| {
+            _ = try session.context.deviceSlicePointer(
+                u32,
+                output,
+                geometry.rows,
+            );
+        }
+        _ = try session.context.deviceSlicePointer(
+            field.SecureField,
+            instance.denominator_slab,
+            try checkedMul(geometry.rows, geometry.columns),
+        );
+        _ = try session.context.deviceSlicePointer(
+            field.SecureField,
+            instance.claimed_sum,
+            1,
+        );
+    }
+}
+
+const DeviceIdentity = struct {
+    owner: usize,
+    generation: u64,
+
+    fn from(slice: anytype) DeviceIdentity {
+        return .{
+            .owner = slice.owner,
+            .generation = slice.generation,
+        };
+    }
+};
+
+fn checkedRange(
+    comptime F: type,
+    slice: column.DeviceSlice(F),
+    minimum: usize,
+    alignment: usize,
+    identity: DeviceIdentity,
+) runtime_error.Error!layout.DeviceRange {
+    if (slice.address == 0 or slice.address % alignment != 0 or
+        slice.len < minimum or slice.owner != identity.owner or
+        slice.generation != identity.generation)
+    {
+        return error.InvalidDeviceAddress;
+    }
+    return layout.elementRange(slice.address, minimum, @sizeOf(F));
+}
+
+fn copyInstance(
+    allocator: std.mem.Allocator,
+    source: InstanceBinding,
+) std.mem.Allocator.Error!OwnedInstance {
+    const source_columns = try allocator.dupe(
+        common.Words,
+        source.source_columns,
+    );
+    errdefer allocator.free(source_columns);
+    const descriptors = try allocator.dupe(
+        ColumnDescriptor,
+        source.descriptors,
+    );
+    errdefer allocator.free(descriptors);
+    const output_coordinates = try allocator.dupe(
+        common.Words,
+        source.output_coordinates,
+    );
+    return .{
+        .source_pointer_table = source.source_pointer_table,
+        .source_columns = source_columns,
+        .lookup_word_columns = source.lookup_word_columns,
+        .descriptor_storage = source.descriptor_storage,
+        .descriptors = descriptors,
+        .output_pointer_table = source.output_pointer_table,
+        .output_coordinates = output_coordinates,
+        .denominator_slab = source.denominator_slab,
+        .claimed_sum = source.claimed_sum,
+    };
+}
+
+fn deinitInstance(
+    allocator: std.mem.Allocator,
+    instance: *OwnedInstance,
+) void {
+    allocator.free(instance.source_columns);
+    allocator.free(instance.descriptors);
+    allocator.free(instance.output_coordinates);
+    instance.* = undefined;
+}
+
+fn planState(prepared: *PreparedPlan) *PlanState {
+    return @ptrCast(@alignCast(prepared));
+}
+
+fn planStateConst(prepared: *const PreparedPlan) *const PlanState {
+    return @ptrCast(@alignCast(prepared));
+}
+
 fn validateBufferLengths(
     topology: Topology,
-    buffers: Buffers,
-    scratch_words: u32,
+    buffers: DeviceBuffers,
 ) runtime_error.Error!void {
     const instances = try topology.instanceCount();
     const table_words = pointerTableWords(instances);
@@ -291,15 +720,15 @@ fn validateBufferLengths(
         buffers.denominator_slabs.len != table_words or
         buffers.geometry.len != instances or
         buffers.claimed_sums.len != table_words or
-        buffers.reduction_partials.len < scratch_words or
-        buffers.scan_block_sums.len < scratch_words)
+        buffers.reduction_partials.len < try topology.scratchWords() or
+        buffers.scan_block_sums.len < try topology.scratchWords())
     {
         return error.InvalidKernelDescriptor;
     }
 }
 
 fn validatePointerTableAlignment(
-    buffers: Buffers,
+    buffers: DeviceBuffers,
 ) runtime_error.Error!void {
     const pointer_tables = [_]usize{
         buffers.source_tables.address,
@@ -334,147 +763,4 @@ fn inverseRows(rows: u32) u32 {
     std.debug.assert(rows != 0 and std.math.isPowerOfTwo(rows));
     const log_rows = std.math.log2_int(u32, rows);
     return if (log_rows == 0) 1 else @as(u32, 1) << @intCast(31 - log_rows);
-}
-
-test "relation topology admits one exact Plonk-shaped graph" {
-    const geometry = [_]Geometry{.{
-        .pair_first = 0,
-        .pair_blocks = 512,
-        .inverse_first = 0,
-        .inverse_blocks = 128,
-        .row_first = 0,
-        .row_blocks = 256,
-        .rows = 1 << 16,
-        .columns = 2,
-        .real_rows = 1 << 16,
-        .source_offset_rows = 0,
-        .inverse_rows = 1 << 15,
-    }};
-    const topology = Topology{
-        .geometry = &geometry,
-        .max_alpha_powers = 2,
-        .total_pair_blocks = 512,
-        .total_inverse_blocks = 128,
-        .total_chain_blocks = 256,
-        .total_row_blocks = 256,
-    };
-    try topology.validate();
-}
-
-test "relation topology rejects cumulative offset drift" {
-    const geometry = [_]Geometry{.{
-        .pair_first = 1,
-        .pair_blocks = 2,
-        .inverse_first = 0,
-        .inverse_blocks = 1,
-        .row_first = 0,
-        .row_blocks = 1,
-        .rows = 16,
-        .columns = 2,
-        .real_rows = 16,
-        .source_offset_rows = 0,
-        .inverse_rows = 1,
-    }};
-    const topology = Topology{
-        .geometry = &geometry,
-        .max_alpha_powers = 2,
-        .total_pair_blocks = 2,
-        .total_inverse_blocks = 1,
-        .total_chain_blocks = 1,
-        .total_row_blocks = 1,
-    };
-    try std.testing.expectError(
-        error.InvalidKernelDescriptor,
-        topology.validate(),
-    );
-}
-
-test "relation topology rejects an inexact M31 row inverse" {
-    const geometry = [_]Geometry{.{
-        .pair_first = 0,
-        .pair_blocks = 2,
-        .inverse_first = 0,
-        .inverse_blocks = 1,
-        .row_first = 0,
-        .row_blocks = 1,
-        .rows = 16,
-        .columns = 2,
-        .real_rows = 16,
-        .source_offset_rows = 0,
-        .inverse_rows = 1,
-    }};
-    const topology = Topology{
-        .geometry = &geometry,
-        .max_alpha_powers = 2,
-        .total_pair_blocks = 2,
-        .total_inverse_blocks = 1,
-        .total_chain_blocks = 1,
-        .total_row_blocks = 1,
-    };
-    try std.testing.expectError(
-        error.InvalidKernelDescriptor,
-        topology.validate(),
-    );
-}
-
-test "relation topology matches ragged inverse transitions" {
-    const row_counts = [_]u32{ 1, 2, 512, 1024, 2048 };
-    for (row_counts) |rows| {
-        const row_blocks = blocks(rows, abi.launch_block);
-        const pair_blocks = row_blocks * 2;
-        const inverse_blocks = blocks(rows * 2, abi.inverse_block_values);
-        const geometry = [_]Geometry{.{
-            .pair_first = 0,
-            .pair_blocks = pair_blocks,
-            .inverse_first = 0,
-            .inverse_blocks = inverse_blocks,
-            .row_first = 0,
-            .row_blocks = row_blocks,
-            .rows = rows,
-            .columns = 2,
-            .real_rows = rows,
-            .source_offset_rows = 0,
-            .inverse_rows = inverseRows(rows),
-        }};
-        const topology = Topology{
-            .geometry = &geometry,
-            .max_alpha_powers = 2,
-            .total_pair_blocks = pair_blocks,
-            .total_inverse_blocks = inverse_blocks,
-            .total_chain_blocks = row_blocks,
-            .total_row_blocks = row_blocks,
-        };
-        try topology.validate();
-    }
-}
-
-test "relation topology rejects a fraction chain beyond CUDA signed limits" {
-    const rows: u32 = 1 << 30;
-    const columns: u32 = 3;
-    const row_blocks = blocks(rows, abi.launch_block);
-    const geometry = [_]Geometry{.{
-        .pair_first = 0,
-        .pair_blocks = row_blocks * columns,
-        .inverse_first = 0,
-        .inverse_blocks = blocks(rows * columns, abi.inverse_block_values),
-        .row_first = 0,
-        .row_blocks = row_blocks,
-        .rows = rows,
-        .columns = columns,
-        .real_rows = rows,
-        .source_offset_rows = 0,
-        .inverse_rows = inverseRows(rows),
-    }};
-    const topology = Topology{
-        .geometry = &geometry,
-        .max_alpha_powers = 2,
-        .total_pair_blocks = geometry[0].pair_blocks,
-        .total_inverse_blocks = geometry[0].inverse_blocks,
-        .total_chain_blocks = row_blocks,
-        .total_row_blocks = row_blocks,
-    };
-    try std.testing.expectError(
-        error.InvalidKernelDescriptor,
-        topology.validate(),
-    );
 }
