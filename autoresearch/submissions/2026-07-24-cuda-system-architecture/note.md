@@ -127,11 +127,26 @@ This evidence changes the optimization priority:
 > restructure the coefficient/evaluation representation transforms that
 > dominate the resident proof.
 
-The active hypotheses are therefore a stack-free log-21 N2B schedule, fused
-quotient production/combination without intermediate coordinate traffic, and
-completion of the state-machine route as the next independent CUDA customer.
-Each remains subject to the same exact-proof, strict-AOT, zero-fallback,
-single-terminal-D2H, and broad-portfolio gates.
+The first two hypotheses have now been decided:
+
+- the stack-free log-21 N2B schedule is accepted after reducing the focused
+  `log20 x 100` verified request by 1.1109x and trace commitment by 1.1917x;
+- fused quotient production/combination is rejected because its exact,
+  resident implementation improved the 12-workload portfolio by only 0.54%.
+
+The state-machine route is parked as a compile-clean checkpoint for the next
+session. It is not claimed as product coverage until GPU compilation, exact
+CPU/Rust proof parity, residency telemetry, and benchmark integration pass.
+All subsequent candidates remain subject to the same exact-proof, strict-AOT,
+zero-fallback, single-terminal-D2H, and broad-portfolio gates.
+
+The corrected 13-workload screen includes `large_wf_log20x100`. It measures
+that class at ratio `0.898953` (1.1124x), while the remaining 12 rows are
+neutral within ordinary screen variance. The equal-class portfolio ratio is
+`0.989110` (1.0110x), and the worst row is `1.012187`, below the 1.05
+regression ceiling. All 13 rows retain exact proof bytes, strict AOT, zero
+fallback, and one terminal D2H. This is diagnostic two-round evidence, not a
+headline promotion.
 
 ## Coverage Blockers
 

@@ -191,17 +191,91 @@ Four-lane coordination and reduced independent-hash parallelism outweighed
 the lower register count. The source was removed. Evidence:
 `/workspace/db9c0ac2-quad-leaf-full-screen.json`.
 
-## Active Hypotheses
+## Rejected Candidate: Quotient Accumulation And Combination
 
-The session continues with three isolated candidates:
+Commit `f57b8315` fused quotient accumulation and coordinate combination. It
+passed graph/direct exact proof parity across Fibonacci, XOR, Plonk, and Blake,
+with strict AOT, zero CPU fallback, and one terminal D2H.
 
-1. Replace the profiled log-21 N2B `{6,8,7}` schedule with stack-free
-   `{6,6,9}` and a specialized nine-stage terminal.
-2. Fuse quotient accumulation and combination so four intermediate coordinate
-   arrays are not written and reread from global memory.
-3. Complete state-machine CUDA as another frontend customer of the common
-   resident pipeline.
+The 12-workload screen measured:
 
-No candidate is a promotion until the 12-workload matrix, exact proof parity,
-strict-AOT residency, fallback, transfer, resource, and source-conformance
-gates all pass.
+- portfolio ratio `0.994658`, or 1.0054x;
+- best narrow/deep improvement 2.08%;
+- extreme improvement 1.26%;
+- worst regression below 0.40%.
+
+The implementation was rejected. Eliminating the intermediate coordinate
+traffic is directionally correct, but a 0.54% system result does not justify
+the added fused-kernel surface. Raw evidence:
+`/tmp/98c08ea7-quotient-screen.json`.
+
+## Accepted Candidate: Stack-Free Log-21 N2B
+
+Commit `5c3b7c5b`, integrated as `b65a3e02`, changes the log-21 N2B schedule
+from `{6,8,7}` to `{6,6,9}` and adds a specialized nine-stage terminal.
+
+Focused `log20 x 100` evidence:
+
+| boundary | predecessor | candidate | speedup |
+| --- | ---: | ---: | ---: |
+| graph verified request | 20.526 ms | 18.476 ms | 1.1109x |
+| graph device time | 19.411 ms | 17.302 ms | 1.1219x |
+| trace commitment | 11.460 ms | 9.616 ms | 1.1917x |
+| direct verified request | 20.792 ms | 18.769 ms | 1.1078x |
+
+The previous continuation compiled at 62 registers, a 64-byte stack frame,
+and 32 KiB shared memory. The selected continuation uses 38 registers, no
+stack, and 8 KiB shared memory; the nine-stage terminal uses 36 registers, no
+stack, and 2 KiB shared memory.
+
+Proofs are exact in graph/direct modes, strict AOT is active, CPU fallback is
+zero, and there is one terminal D2H. The preceding 12-row screen, which did
+not contain the affected `log20 x 100` regime, remained neutral at portfolio
+ratio `1.003625`; every regression was below 1.05. That coverage omission is
+now corrected by workload `large_wf_log20x100`.
+
+Evidence:
+
+- `/tmp/5c3b7c5b-n2b-full-screen.json`;
+- SHA-256
+  `fcdfc195f48ceff40fc0495e65ecacb43b890ea1b90095f46776b2cc73ccf8dd`;
+- `/tmp/5c3b7c5b-n2b-evidence.tgz`.
+
+## Parked Follow-Up: State-Machine Route
+
+The state-machine CUDA route is compile-clean at commit `7b53973a` on branch
+`feature/cuda-state-machine-route`. Local source closure, runtime contracts,
+build-plan tests, formatting, and recursive semantic compilation pass.
+
+This is not an accepted product route. It still requires SM89 compilation,
+canonical CPU and pinned-Rust proof parity, strict-AOT/zero-fallback/one-D2H
+telemetry, and benchmark/release integration.
+
+## Session Boundary
+
+No further speculative kernel is opened in this session. The final actions
+are a corrected 13-workload screen containing the newly covered large
+transform regime, evidence recording, release gates, and a clean branch.
+
+The corrected two-round screen completed with:
+
+- `large_wf_log20x100` ratio `0.898953`, or 1.1124x;
+- equal-class portfolio ratio `0.989110`, or 1.0110x;
+- worst row ratio `1.012187`;
+- all 13 rows below the 1.05 regression ceiling;
+- exact proof bytes, strict AOT, zero CPU fallback, and one terminal D2H on
+  every measured session.
+
+This screen deliberately isolates the N2B change against the immediate
+pre-N2B product. The aggregate result is therefore not cumulative against the
+session's original CUDA architecture baseline.
+
+Evidence:
+
+- `/tmp/b65a3e02-n2b-13row-screen.json`;
+- SHA-256
+  `ce974c4e12bb29c4c18d5f7929646ecd44ca8edc6be77560a21d14e43e61d025`.
+
+The screen profile has no bootstrap confidence interval and is not headline
+eligible. Its purpose is the final broad regression decision; the focused
+exact-proof N2B evidence above establishes the affected regime.
