@@ -19,7 +19,11 @@ from scripts.native_cuda_benchmark_lib import (  # noqa: E402
     Workload,
     run_benchmark,
 )
-from scripts.native_cuda_diagnostic_lib.model import Shape, XorShape  # noqa: E402
+from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
+    BlakeShape,
+    Shape,
+    XorShape,
+)
 from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
     FAKE_PRODUCT,
 )
@@ -79,7 +83,10 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             self.assertFalse(document["headline_eligible"])
             self.assertFalse(document["portfolio"]["available"])
             self.assertFalse(document["coverage"]["activation_ready"])
-            self.assertIn("hash_heavy", document["coverage"]["missing_classes"])
+            self.assertNotIn(
+                "hash_heavy",
+                document["coverage"]["missing_classes"],
+            )
             self.assertEqual(settings.output_path.read_bytes(), encoded)
 
             workload = document["workloads"][0]
@@ -148,6 +155,25 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(BenchmarkError, "XOR offset"):
                 settings.validate()
+
+    def test_blake_shape_binds_rounds_cli_and_committed_cells(self) -> None:
+        shape = BlakeShape(12, 10)
+        shape.validate()
+        self.assertEqual(
+            ["--log-n-rows", "12", "--n-rounds", "10"],
+            shape.cli_shape_args(),
+        )
+        self.assertEqual(
+            4096 * 10 * 96,
+            shape.trace_cells,
+        )
+        self.assertEqual(
+            {
+                "log_n_rows": 12,
+                "n_rounds": 10,
+            },
+            shape.artifact_statement(),
+        )
 
     def test_paired_rounds_produce_class_equal_portfolio(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

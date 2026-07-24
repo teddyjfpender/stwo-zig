@@ -1,12 +1,12 @@
-//! XOR policy for the shared Native CUDA proof lifecycle.
+//! Blake policy for the shared Native CUDA proof lifecycle.
 
 const std = @import("std");
 const stwo = @import("stwo_native_cuda");
 const cli = @import("cli.zig");
 
-pub const cuda = stwo.integrations.native_cuda.xor;
-pub const application = "xor";
-pub const protocol_name = cli.xor_protocol_name;
+pub const cuda = stwo.integrations.native_cuda.blake;
+pub const application = "blake";
+pub const protocol_name = cli.blake_protocol_name;
 
 pub fn protocol() stwo.core.pcs.PcsConfig {
     return stwo.core.pcs.PcsConfig.default();
@@ -18,9 +18,8 @@ pub fn admit(
 ) !cuda.geometry.Geometry {
     return cuda.geometry.admit(
         .{
-            .log_size = request.log_size.?,
-            .log_step = request.log_step.?,
-            .offset = request.offset.?,
+            .log_n_rows = request.log_n_rows.?,
+            .n_rounds = request.n_rounds.?,
         },
         sealed,
     );
@@ -41,7 +40,7 @@ pub fn verify(
     geometry: cuda.geometry.Geometry,
     proof: anytype,
 ) !void {
-    try stwo.examples.xor.verify(
+    try stwo.examples.blake.verify(
         allocator,
         pcs_config,
         geometry.statement,
@@ -61,15 +60,14 @@ pub fn writeArtifact(
         path,
         pcs_config,
         "prove",
-        .{ .xor = geometry.statement },
+        .{ .blake = geometry.statement },
         canonical,
     );
 }
 
 pub const ReportStatement = struct {
-    log_size: u32,
-    log_step: u32,
-    offset: u64,
+    log_n_rows: u32,
+    n_rounds: u32,
     trace_rows: u64,
     trace_cells: u64,
 };
@@ -78,29 +76,33 @@ pub fn reportStatement(
     geometry: cuda.geometry.Geometry,
 ) ReportStatement {
     return .{
-        .log_size = geometry.statement.log_size,
-        .log_step = geometry.statement.log_step,
-        .offset = geometry.statement.offset,
+        .log_n_rows = geometry.statement.log_n_rows,
+        .n_rounds = geometry.statement.n_rounds,
         .trace_rows = geometry.trace_rows,
-        .trace_cells = geometry.trace_elements,
+        .trace_cells = geometry.main_cells,
     };
 }
 
-test "XOR route seals the production protocol" {
+test "Blake route seals statement and production protocol" {
     const geometry = try admit(.{
-        .air = .xor,
-        .log_n_rows = null,
+        .air = .blake,
+        .log_n_rows = 10,
         .sequence_len = null,
-        .n_rounds = null,
-        .log_size = 8,
-        .log_step = 2,
-        .offset = 3,
+        .n_rounds = 10,
+        .log_size = null,
+        .log_step = null,
+        .offset = null,
         .output = "proof.json",
         .report_out = null,
         .repeat = 1,
         .execution_mode = .graphs,
     }, protocol());
-    try std.testing.expectEqual(@as(u32, 10), geometry.protocol.pow_bits);
-    try std.testing.expectEqual(@as(u32, 1), geometry.protocol.fri_config.fold_step);
-    try std.testing.expectEqual(@as(usize, 3), geometry.protocol.fri_config.n_queries);
+    try std.testing.expectEqual(
+        @as(u32, 960),
+        geometry.main_columns,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 3),
+        geometry.protocol.fri_config.n_queries,
+    );
 }

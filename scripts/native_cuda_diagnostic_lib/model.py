@@ -14,6 +14,8 @@ APPLICATION = "wide_fibonacci"
 PROTOCOL = "raw-stwo-wide-v1"
 XOR_APPLICATION = "xor"
 XOR_PROTOCOL = "raw-stwo-xor-v1"
+BLAKE_APPLICATION = "blake"
+BLAKE_PROTOCOL = "raw-stwo-blake-v1"
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 
@@ -153,6 +155,67 @@ class XorShape:
             )
         if not 0 <= self.offset < (1 << self.log_step):
             raise DiagnosticError(f"unsupported XOR offset: {self.offset}")
+
+
+@dataclass(frozen=True, order=True)
+class BlakeShape:
+    log_n_rows: int
+    n_rounds: int
+
+    @property
+    def trace_rows(self) -> int:
+        return 1 << self.log_n_rows
+
+    @property
+    def trace_cells(self) -> int:
+        return self.trace_rows * self.n_rounds * 96
+
+    @property
+    def slug(self) -> str:
+        return f"log{self.log_n_rows}-rounds{self.n_rounds}"
+
+    @property
+    def application(self) -> str:
+        return BLAKE_APPLICATION
+
+    @property
+    def protocol(self) -> str:
+        return BLAKE_PROTOCOL
+
+    @property
+    def artifact_statement_key(self) -> str:
+        return "blake_statement"
+
+    def artifact_statement(self) -> dict[str, int]:
+        return {
+            "log_n_rows": self.log_n_rows,
+            "n_rounds": self.n_rounds,
+        }
+
+    def statement(self) -> dict[str, int]:
+        return {
+            **self.artifact_statement(),
+            "trace_rows": self.trace_rows,
+            "trace_cells": self.trace_cells,
+        }
+
+    def cli_shape_args(self) -> list[str]:
+        return [
+            "--log-n-rows",
+            str(self.log_n_rows),
+            "--n-rounds",
+            str(self.n_rounds),
+        ]
+
+    def validate(self) -> None:
+        if not 1 <= self.log_n_rows <= 29:
+            raise DiagnosticError(
+                f"unsupported Blake log size: {self.log_n_rows}"
+            )
+        if not 1 <= self.n_rounds <= (2**32 - 1) // 96:
+            raise DiagnosticError(
+                f"unsupported Blake round count: {self.n_rounds}"
+            )
 
 
 DEFAULT_SHAPES = (

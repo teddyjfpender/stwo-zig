@@ -4,6 +4,7 @@ const std = @import("std");
 
 pub const wide_protocol_name = "raw-stwo-wide-v1";
 pub const xor_protocol_name = "raw-stwo-xor-v1";
+pub const blake_protocol_name = "raw-stwo-blake-v1";
 pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
@@ -12,11 +13,13 @@ pub const max_repetitions: u32 = 16;
 pub const Air = enum {
     wide_fibonacci,
     xor,
+    blake,
 
     pub fn protocolName(self: Air) []const u8 {
         return switch (self) {
             .wide_fibonacci => wide_protocol_name,
             .xor => xor_protocol_name,
+            .blake => blake_protocol_name,
         };
     }
 };
@@ -30,6 +33,7 @@ pub const Prove = struct {
     air: Air,
     log_n_rows: ?u32,
     sequence_len: ?u32,
+    n_rounds: ?u32,
     log_size: ?u32,
     log_step: ?u32,
     offset: ?u64,
@@ -50,6 +54,7 @@ const Flag = enum {
     protocol,
     log_n_rows,
     sequence_len,
+    n_rounds,
     log_size,
     log_step,
     offset,
@@ -68,6 +73,7 @@ const Scratch = struct {
     protocol: ?[]const u8 = null,
     log_n_rows: ?u32 = null,
     sequence_len: ?u32 = null,
+    n_rounds: ?u32 = null,
     log_size: ?u32 = null,
     log_step: ?u32 = null,
     offset: ?u64 = null,
@@ -130,7 +136,8 @@ fn finish(scratch: Scratch) !Prove {
         .wide_fibonacci => {
             if (scratch.log_size != null or
                 scratch.log_step != null or
-                scratch.offset != null)
+                scratch.offset != null or
+                scratch.n_rounds != null)
             {
                 return error.UnexpectedShapeArgument;
             }
@@ -139,17 +146,33 @@ fn finish(scratch: Scratch) !Prove {
                 return error.MissingSequenceLength;
         },
         .xor => {
-            if (scratch.log_n_rows != null or scratch.sequence_len != null)
+            if (scratch.log_n_rows != null or
+                scratch.sequence_len != null or
+                scratch.n_rounds != null)
                 return error.UnexpectedShapeArgument;
             _ = scratch.log_size orelse return error.MissingLogSize;
             _ = scratch.log_step orelse return error.MissingLogStep;
             _ = scratch.offset orelse return error.MissingOffset;
+        },
+        .blake => {
+            if (scratch.sequence_len != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse
+                return error.MissingLogRows;
+            _ = scratch.n_rounds orelse
+                return error.MissingRoundCount;
         },
     }
     return .{
         .air = air,
         .log_n_rows = scratch.log_n_rows,
         .sequence_len = scratch.sequence_len,
+        .n_rounds = scratch.n_rounds,
         .log_size = scratch.log_size,
         .log_step = scratch.log_step,
         .offset = scratch.offset,
@@ -181,6 +204,9 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
         .sequence_len => scratch.sequence_len =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidSequenceLength,
+        .n_rounds => scratch.n_rounds =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidRoundCount,
         .log_size => scratch.log_size =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidLogSize,
@@ -222,11 +248,12 @@ pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
         \\Usage: stwo-zig-native-cuda prove [options]
         \\
-        \\  --air wide_fibonacci | xor
+        \\  --air wide_fibonacci | xor | blake
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-blake-v1
         \\  wide_fibonacci: --log-n-rows N --sequence-len N
         \\  xor:            --log-size N --log-step N --offset N
+        \\  blake:          --log-n-rows N --n-rounds N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
@@ -257,6 +284,7 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
     try std.testing.expectEqual(Air.wide_fibonacci, request.air);
     try std.testing.expectEqual(@as(u32, 14), request.log_n_rows.?);
     try std.testing.expectEqual(@as(u32, 100), request.sequence_len.?);
+    try std.testing.expect(request.n_rounds == null);
     try std.testing.expectEqual(@as(u32, 1), request.repeat);
     try std.testing.expectEqual(ExecutionMode.graphs, request.execution_mode);
 
@@ -290,6 +318,31 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "--output",
         "proof.json",
     }));
+}
+
+test "parser admits the exact Blake shape and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "blake",
+        "--backend",
+        backend_name,
+        "--protocol",
+        blake_protocol_name,
+        "--log-n-rows",
+        "10",
+        "--n-rounds",
+        "10",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.blake, request.air);
+    try std.testing.expectEqual(
+        @as(u32, 10),
+        request.log_n_rows.?,
+    );
+    try std.testing.expectEqual(@as(u32, 10), request.n_rounds.?);
+    try std.testing.expect(request.sequence_len == null);
 }
 
 test "parser admits only the exact XOR shape and protocol" {

@@ -101,6 +101,7 @@ test "wide route seals the production protocol" {
         .air = .wide_fibonacci,
         .log_n_rows = 5,
         .sequence_len = 8,
+        .n_rounds = null,
         .log_size = null,
         .log_step = null,
         .offset = null,
