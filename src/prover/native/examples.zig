@@ -9,6 +9,7 @@ const artifacts = stwo.interop.examples_artifact;
 const stage_profile = stwo.prover.stage_profile;
 const blake = stwo.examples.blake;
 const plonk = stwo.examples.plonk;
+const plonk_logup = stwo.examples.plonk_logup;
 const poseidon = stwo.examples.poseidon;
 const state_machine = stwo.examples.state_machine;
 const wide_fibonacci = stwo.examples.wide_fibonacci;
@@ -29,6 +30,7 @@ pub fn name(workload: config.Workload) []const u8 {
         .wide_fibonacci => "wide_fibonacci",
         .xor => "xor",
         .plonk => "plonk",
+        .plonk_logup => "plonk_logup",
         .state_machine => "state_machine",
         .blake => "blake",
         .poseidon => "poseidon",
@@ -40,6 +42,7 @@ pub fn parameters(workload: config.Workload) report.WorkloadParameters {
         .wide_fibonacci => |value| .{ .wide_fibonacci = value },
         .xor => |value| .{ .xor = value },
         .plonk => |value| .{ .plonk = value },
+        .plonk_logup => |value| .{ .plonk_logup = value },
         .state_machine => |value| .{ .state_machine = value },
         .blake => |value| .{ .blake = value },
         .poseidon => |value| .{ .poseidon = value },
@@ -78,6 +81,18 @@ pub fn geometry(workload: config.Workload) !Geometry {
                 .committed_columns = 8,
                 .committed_trace_cells = try std.math.mul(u64, rows, 8),
                 .native_unit = "plonk_rows",
+                .native_units = rows,
+            };
+        },
+        .plonk_logup => |value| blk: {
+            const rows = @as(u64, 1) << @intCast(value.log_n_rows);
+            break :blk .{
+                .trace_log_rows = value.log_n_rows,
+                .trace_rows = rows,
+                .committed_trees = 3,
+                .committed_columns = 16,
+                .committed_trace_cells = try std.math.mul(u64, rows, 16),
+                .native_unit = "plonk_logup_rows",
                 .native_units = rows,
             };
         },
@@ -142,6 +157,11 @@ pub fn descriptorDigest(
         .plonk => |value| std.fmt.bufPrint(
             &buffer,
             "native-proof-workload-v3|example=plonk|log_n_rows={d}",
+            .{value.log_n_rows},
+        ) catch unreachable,
+        .plonk_logup => |value| std.fmt.bufPrint(
+            &buffer,
+            "native-proof-workload-v3|example=plonk_logup|protocol=raw-stwo-plonk-logup-v1|log_n_rows={d}",
             .{value.log_n_rows},
         ) catch unreachable,
         .state_machine => |value| std.fmt.bufPrint(
@@ -387,6 +407,76 @@ pub const PlonkSpec = struct {
             pcs_config,
             "prove",
             .{ .plonk = statement },
+            proof_bytes,
+        );
+    }
+};
+
+pub const PlonkLogupSpec = struct {
+    pub const Request = plonk_logup.Request;
+    pub const PreparedInput = plonk_logup.PreparedInput;
+    pub const Statement = plonk_logup.Statement;
+    pub const Proof = plonk_logup.Proof;
+    pub const ProveOutput = plonk_logup.ProveOutput;
+    pub const example_name = "plonk_logup";
+
+    pub fn request(value: config.PlonkLogupParameters) Request {
+        return .{ .log_n_rows = value.log_n_rows };
+    }
+
+    pub fn prepareInput(allocator: std.mem.Allocator, value: Request) !PreparedInput {
+        return plonk_logup.prepareInput(allocator, value);
+    }
+
+    pub fn requiredCircleLog(value: Request, pcs_config: stwo.core.pcs.PcsConfig) !u32 {
+        return plonk_logup.requiredTwiddleCircleLog(value, pcs_config);
+    }
+
+    pub fn provePrepared(
+        comptime Engine: type,
+        session: *const Engine.Session,
+        allocator: std.mem.Allocator,
+        pcs_config: stwo.core.pcs.PcsConfig,
+        prepared: PreparedInput,
+        recorder: ?*stage_profile.Recorder,
+    ) !ProveOutput {
+        return plonk_logup.provePreparedWithSessionAndEngine(
+            Engine,
+            session,
+            allocator,
+            pcs_config,
+            prepared,
+            recorder,
+        );
+    }
+
+    pub fn validateOutputStatement(value: Request, statement: Statement) !void {
+        if (value.log_n_rows != statement.log_n_rows)
+            return error.ProverStatementMismatch;
+    }
+
+    pub fn verify(
+        allocator: std.mem.Allocator,
+        pcs_config: stwo.core.pcs.PcsConfig,
+        statement: Statement,
+        proof: Proof,
+    ) !void {
+        return plonk_logup.verify(allocator, pcs_config, statement, proof);
+    }
+
+    pub fn writeArtifact(
+        allocator: std.mem.Allocator,
+        path: []const u8,
+        pcs_config: stwo.core.pcs.PcsConfig,
+        statement: Statement,
+        proof_bytes: []const u8,
+    ) !void {
+        return artifacts.writeNativeProofArtifact(
+            allocator,
+            path,
+            pcs_config,
+            "prove",
+            .{ .plonk_logup = statement },
             proof_bytes,
         );
     }

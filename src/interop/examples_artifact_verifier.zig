@@ -5,13 +5,22 @@ const artifacts = @import("examples_artifact.zig");
 const proof_wire = @import("proof_wire.zig");
 const blake = @import("../examples/blake.zig");
 const plonk = @import("../examples/plonk.zig");
+const plonk_logup = @import("../examples/plonk_logup.zig");
 const poseidon = @import("../examples/poseidon.zig");
 const state_machine = @import("../examples/state_machine.zig");
 const wide_fibonacci = @import("../examples/wide_fibonacci.zig");
 const xor = @import("../examples/xor.zig");
 
 pub const Generator = enum { rust, zig };
-pub const Example = enum { blake, plonk, poseidon, state_machine, wide_fibonacci, xor };
+pub const Example = enum {
+    blake,
+    plonk,
+    plonk_logup,
+    poseidon,
+    state_machine,
+    wide_fibonacci,
+    xor,
+};
 pub const SecurityPolicy = enum { secure, functional, smoke };
 
 pub const Verification = struct {
@@ -101,6 +110,17 @@ pub fn verifyArtifact(
             };
             try plonk.verify(allocator, pcs_config, statement, proof);
         },
+        .plonk_logup => {
+            const wire = artifact.plonk_logup_statement orelse {
+                proof.deinit(allocator);
+                return error.MissingPlonkLogupStatement;
+            };
+            const statement = artifacts.plonkLogupStatementFromWire(wire) catch |err| {
+                proof.deinit(allocator);
+                return err;
+            };
+            try plonk_logup.verify(allocator, pcs_config, statement, proof);
+        },
         .poseidon => {
             const wire = artifact.poseidon_statement orelse {
                 proof.deinit(allocator);
@@ -174,6 +194,7 @@ fn validateStatementShape(artifact: artifacts.InteropArtifact, example: Example)
     const present = [_]bool{
         artifact.blake_statement != null,
         artifact.plonk_statement != null,
+        artifact.plonk_logup_statement != null,
         artifact.poseidon_statement != null,
         artifact.state_machine_statement != null,
         artifact.wide_fibonacci_statement != null,
@@ -185,10 +206,11 @@ fn validateStatementShape(artifact: artifacts.InteropArtifact, example: Example)
     const expected_present = switch (example) {
         .blake => present[0],
         .plonk => present[1],
-        .poseidon => present[2],
-        .state_machine => present[3],
-        .wide_fibonacci => present[4],
-        .xor => present[5],
+        .plonk_logup => present[2],
+        .poseidon => present[3],
+        .state_machine => present[4],
+        .wide_fibonacci => present[5],
+        .xor => present[6],
     };
     if (!expected_present) return error.InvalidStatementShape;
 }

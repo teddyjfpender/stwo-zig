@@ -315,6 +315,8 @@ pub fn provePreparedEx(
 
     var prepared_interaction: if (has_interaction) Spec.PreparedInteraction else void =
         if (has_interaction) undefined else {};
+    defer if (comptime has_interaction)
+        Spec.deinitPreparedInteraction(&prepared_interaction, allocator);
     if (comptime has_interaction) {
         {
             var stage = try stage_profile.StageScope.begin(
@@ -329,8 +331,6 @@ pub fn provePreparedEx(
                 &prepared,
             );
         }
-        defer Spec.deinitPreparedInteraction(&prepared_interaction, allocator);
-
         {
             var stage = try stage_profile.StageScope.begin(
                 options.recorder,

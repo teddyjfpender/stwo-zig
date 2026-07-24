@@ -6,6 +6,7 @@ const pcs = @import("stwo_core").pcs;
 const blake = @import("../examples/blake.zig");
 const poseidon = @import("../examples/poseidon.zig");
 const plonk = @import("../examples/plonk.zig");
+const plonk_logup = @import("../examples/plonk_logup.zig");
 const state_machine = @import("../examples/state_machine.zig");
 const wide_fibonacci = @import("../examples/wide_fibonacci.zig");
 const xor = @import("../examples/xor.zig");
@@ -51,6 +52,11 @@ pub const PlonkStatementWire = struct {
     log_n_rows: u32,
 };
 
+pub const PlonkLogupStatementWire = struct {
+    log_n_rows: u32,
+    claimed_sum: Qm31Wire,
+};
+
 pub const PoseidonStatementWire = struct {
     log_n_instances: u32,
 };
@@ -70,6 +76,7 @@ pub const InteropArtifact = struct {
     pcs_config: PcsConfigWire,
     blake_statement: ?BlakeStatementWire = null,
     plonk_statement: ?PlonkStatementWire = null,
+    plonk_logup_statement: ?PlonkLogupStatementWire = null,
     poseidon_statement: ?PoseidonStatementWire = null,
     state_machine_statement: ?StateMachineStatementWire = null,
     wide_fibonacci_statement: ?WideFibonacciStatementWire = null,
@@ -80,6 +87,7 @@ pub const InteropArtifact = struct {
 pub const NativeStatement = union(enum) {
     blake: blake.Statement,
     plonk: plonk.Statement,
+    plonk_logup: plonk_logup.Statement,
     poseidon: poseidon.Statement,
     state_machine: state_machine.PreparedStatement,
     wide_fibonacci: wide_fibonacci.Statement,
@@ -137,6 +145,10 @@ pub fn writeNativeProofArtifact(
         .plonk => |value| {
             artifact.example = "plonk";
             artifact.plonk_statement = plonkStatementToWire(value);
+        },
+        .plonk_logup => |value| {
+            artifact.example = "plonk_logup";
+            artifact.plonk_logup_statement = plonkLogupStatementToWire(value);
         },
         .poseidon => |value| {
             artifact.example = "poseidon";
@@ -324,6 +336,24 @@ pub fn plonkStatementFromWire(wire: PlonkStatementWire) ArtifactError!plonk.Stat
     };
 }
 
+pub fn plonkLogupStatementToWire(
+    statement: plonk_logup.Statement,
+) PlonkLogupStatementWire {
+    return .{
+        .log_n_rows = statement.log_n_rows,
+        .claimed_sum = qm31ToWire(statement.claimed_sum),
+    };
+}
+
+pub fn plonkLogupStatementFromWire(
+    wire: PlonkLogupStatementWire,
+) ArtifactError!plonk_logup.Statement {
+    return .{
+        .log_n_rows = wire.log_n_rows,
+        .claimed_sum = try qm31FromWire(wire.claimed_sum),
+    };
+}
+
 pub fn poseidonStatementToWire(statement: poseidon.Statement) PoseidonStatementWire {
     return .{
         .log_n_instances = statement.log_n_instances,
@@ -355,7 +385,7 @@ fn m31FromU32(value: u32) ArtifactError!M31 {
     return M31.fromCanonical(value);
 }
 
-fn qm31FromWire(value: Qm31Wire) ArtifactError!QM31 {
+pub fn qm31FromWire(value: Qm31Wire) ArtifactError!QM31 {
     return QM31.fromM31Array(.{
         try m31FromU32(value[0]),
         try m31FromU32(value[1]),

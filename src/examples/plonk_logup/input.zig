@@ -41,10 +41,12 @@ pub const Trace = struct {
 pub const PreparedInput = struct {
     request: Request,
     trace: prover_transaction.PreparedTrace,
+    circuit_storage: Trace,
     circuit: CircuitView,
 
     pub fn deinit(self: *PreparedInput, allocator: std.mem.Allocator) void {
         self.trace.deinit(allocator);
+        deinitTrace(allocator, &self.circuit_storage);
         self.* = undefined;
     }
 };
@@ -105,35 +107,45 @@ pub fn prepare(
     request: Request,
 ) (std.mem.Allocator.Error || Error)!PreparedInput {
     const generated = try genTrace(allocator, request);
+    var generated_moved = false;
+    defer if (!generated_moved) {
+        var owned = generated;
+        deinitTrace(allocator, &owned);
+    };
     const circuit = generated.view();
-    var preprocessed_moved = false;
-    var main_moved = false;
-    defer {
-        if (!preprocessed_moved) freeColumnSet(allocator, generated.preprocessed);
-        if (!main_moved) freeColumnSet(allocator, generated.main);
-    }
 
+    const preprocessed_values = try cloneColumnSet(allocator, generated.preprocessed);
+    var preprocessed_values_moved = false;
+    defer if (!preprocessed_values_moved)
+        freeColumnSet(allocator, preprocessed_values);
     const preprocessed = try columnsFromSet(
         allocator,
         request.log_n_rows,
-        generated.preprocessed,
+        preprocessed_values,
     );
     var preprocessed_owner = prover_transaction.OwnedColumns.init(preprocessed);
     errdefer preprocessed_owner.deinit(allocator);
-    preprocessed_moved = true;
+    preprocessed_values_moved = true;
 
-    const main = try columnsFromSet(allocator, request.log_n_rows, generated.main);
+    const main_values = try cloneColumnSet(allocator, generated.main);
+    var main_values_moved = false;
+    defer if (!main_values_moved)
+        freeColumnSet(allocator, main_values);
+    const main = try columnsFromSet(allocator, request.log_n_rows, main_values);
     var main_owner = prover_transaction.OwnedColumns.init(main);
     errdefer main_owner.deinit(allocator);
-    main_moved = true;
+    main_values_moved = true;
 
+    const prepared_trace = try prover_transaction.PreparedTrace.initOwned(
+        allocator,
+        preprocessed_owner.take(),
+        main_owner.take(),
+    );
+    generated_moved = true;
     return .{
         .request = request,
-        .trace = try prover_transaction.PreparedTrace.initOwned(
-            allocator,
-            preprocessed_owner.take(),
-            main_owner.take(),
-        ),
+        .trace = prepared_trace,
+        .circuit_storage = generated,
         .circuit = circuit,
     };
 }
@@ -156,6 +168,17 @@ fn allocColumnSet(allocator: std.mem.Allocator, n: usize) ![4][]M31 {
     errdefer for (columns[0..initialized]) |column| allocator.free(column);
     for (&columns) |*column| {
         column.* = try allocator.alloc(M31, n);
+        initialized += 1;
+    }
+    return columns;
+}
+
+fn cloneColumnSet(allocator: std.mem.Allocator, source: [4][]M31) ![4][]M31 {
+    var columns: [4][]M31 = undefined;
+    var initialized: usize = 0;
+    errdefer for (columns[0..initialized]) |column| allocator.free(column);
+    for (source, &columns) |source_column, *column| {
+        column.* = try allocator.dupe(M31, source_column);
         initialized += 1;
     }
     return columns;

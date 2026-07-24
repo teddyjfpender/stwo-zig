@@ -93,6 +93,47 @@ pub fn proveWithEngine(
     return .{ .statement = output.statement, .proof = proof };
 }
 
+pub fn provePreparedWithSessionAndEngine(
+    comptime Engine: type,
+    session: *const Engine.Session,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    prepared: PreparedInput,
+    recorder: ?*stage_profile.Recorder,
+) anyerror!ProveOutput {
+    var output = try prover_transaction.provePreparedEx(
+        Engine,
+        ProvingSpec,
+        true,
+        session,
+        allocator,
+        pcs_config,
+        prepared,
+        .{ .recorder = recorder },
+    );
+    const proof = output.proof.proof;
+    output.proof.aux.deinit(allocator);
+    return .{ .statement = output.statement, .proof = proof };
+}
+
+pub fn requiredTwiddleCircleLog(
+    request: Request,
+    pcs_config: pcs_core.PcsConfig,
+) !u32 {
+    try input.validate(request);
+    const composition_log = std.math.add(u32, request.log_n_rows, 1) catch
+        return error.InvalidLogSize;
+    const commitment_log = std.math.add(
+        u32,
+        request.log_n_rows,
+        pcs_config.fri_config.log_blowup_factor,
+    ) catch return error.InvalidLogSize;
+    return @max(
+        @max(composition_log, commitment_log),
+        pcs_config.lifting_log_size orelse 0,
+    );
+}
+
 pub fn verify(
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
@@ -147,7 +188,7 @@ pub fn verify(
     const component = component_mod.Component{
         .log_n_rows = statement.log_n_rows,
         .lookup_elements = lookup_elements,
-        .claimed_sum = statement.claimed_sum,
+        .claimed_sum = statement.claimed_sum.toM31Array(),
     };
     const components = [_]core_air_components.Component{component.asVerifierComponent()};
     proof_moved = true;
@@ -220,7 +261,7 @@ const ProvingSpec = struct {
         out.* = .{
             .statement_value = .{
                 .log_n_rows = request.log_n_rows,
-                .claimed_sum = prepared_interaction.claimed_sum,
+                .claimed_sum = prepared_interaction.claimedSum(),
             },
             .component = .{
                 .log_n_rows = request.log_n_rows,

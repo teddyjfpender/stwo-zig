@@ -96,7 +96,15 @@ pub const EvidenceClass = enum {
     correctness_only,
 };
 
-pub const Example = enum { wide_fibonacci, xor, plonk, state_machine, blake, poseidon };
+pub const Example = enum {
+    wide_fibonacci,
+    xor,
+    plonk,
+    plonk_logup,
+    state_machine,
+    blake,
+    poseidon,
+};
 
 pub const WideFibonacciParameters = struct {
     log_n_rows: u32 = 12,
@@ -110,6 +118,10 @@ pub const XorParameters = struct {
 };
 
 pub const PlonkParameters = struct {
+    log_n_rows: u32 = 10,
+};
+
+pub const PlonkLogupParameters = struct {
     log_n_rows: u32 = 10,
 };
 
@@ -132,6 +144,7 @@ pub const Workload = union(Example) {
     wide_fibonacci: WideFibonacciParameters,
     xor: XorParameters,
     plonk: PlonkParameters,
+    plonk_logup: PlonkLogupParameters,
     state_machine: StateMachineParameters,
     blake: BlakeParameters,
     poseidon: PoseidonParameters,
@@ -164,6 +177,7 @@ pub const Args = struct {
     wide_fibonacci: WideFibonacciParameters = .{},
     xor: XorParameters = .{},
     plonk: PlonkParameters = .{},
+    plonk_logup: PlonkLogupParameters = .{},
     state_machine: StateMachineParameters = .{},
     blake: BlakeParameters = .{},
     poseidon: PoseidonParameters = .{},
@@ -183,6 +197,7 @@ pub const Args = struct {
             .wide_fibonacci => .{ .wide_fibonacci = self.wide_fibonacci },
             .xor => .{ .xor = self.xor },
             .plonk => .{ .plonk = self.plonk },
+            .plonk_logup => .{ .plonk_logup = self.plonk_logup },
             .state_machine => .{ .state_machine = self.state_machine },
             .blake => .{ .blake = self.blake },
             .poseidon => .{ .poseidon = self.poseidon },
@@ -289,6 +304,7 @@ pub fn parseArgs(backend: Backend, argv: []const []const u8) !ParseResult {
     if (log_n_rows_override) |log_n_rows| switch (result.example) {
         .wide_fibonacci => result.wide_fibonacci.log_n_rows = log_n_rows,
         .plonk => result.plonk.log_n_rows = log_n_rows,
+        .plonk_logup => result.plonk_logup.log_n_rows = log_n_rows,
         .state_machine => result.state_machine.log_n_rows = log_n_rows,
         .blake => result.blake.log_n_rows = log_n_rows,
         .xor, .poseidon => return error.IrrelevantWorkloadParameter,
@@ -300,6 +316,9 @@ pub fn parseArgs(backend: Backend, argv: []const []const u8) !ParseResult {
         (saw_wide_parameter or saw_state_machine_parameter or saw_blake_parameter or saw_poseidon_parameter))
         return error.IrrelevantWorkloadParameter;
     if (result.example == .plonk and
+        (saw_wide_parameter or saw_xor_parameter or saw_state_machine_parameter or saw_blake_parameter or saw_poseidon_parameter))
+        return error.IrrelevantWorkloadParameter;
+    if (result.example == .plonk_logup and
         (saw_wide_parameter or saw_xor_parameter or saw_state_machine_parameter or saw_blake_parameter or saw_poseidon_parameter))
         return error.IrrelevantWorkloadParameter;
     if (result.example == .state_machine and
@@ -374,6 +393,11 @@ pub fn admitWorkload(
             break :blk admission;
         },
         .plonk => |parameters| resource_admission.admit(profile, parameters.log_n_rows, 8),
+        .plonk_logup => |parameters| resource_admission.admit(
+            profile,
+            parameters.log_n_rows,
+            16,
+        ),
         .state_machine => |parameters| blk: {
             if (parameters.initial_x >= M31_MODULUS or parameters.initial_y >= M31_MODULUS)
                 return error.InvalidInitialState;
@@ -399,8 +423,8 @@ pub fn writeUsage(writer: anytype, backend: Backend) !void {
     try writer.writeAll(
         \\Usage: native-proof-bench-{cpu|metal} [options]
         \\
-        \\  --example NAME       wide_fibonacci, xor, plonk, state_machine, blake, or poseidon
-        \\  --log-n-rows N       Wide Fibonacci, Plonk, State Machine, or Blake log2 rows
+        \\  --example NAME       wide_fibonacci, xor, plonk, plonk_logup, state_machine, blake, or poseidon
+        \\  --log-n-rows N       Wide Fibonacci, Plonk variants, State Machine, or Blake log2 rows
         \\  --log-rows N         Legacy Wide Fibonacci log2 rows alias
         \\  --sequence-len N     Wide Fibonacci trace column count
         \\  --log-size N         XOR log2 rows

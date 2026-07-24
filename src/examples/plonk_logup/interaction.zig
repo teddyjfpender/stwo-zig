@@ -9,24 +9,42 @@ const prover_transaction = @import("../common/prover_transaction.zig");
 const input = @import("input.zig");
 
 pub const LookupElements = struct {
-    z: QM31,
-    alpha: QM31,
+    z: [4]M31,
+    alpha: [4]M31,
 
     pub fn draw(allocator: std.mem.Allocator, channel: anytype) !LookupElements {
-        const values = try channel.drawSecureFelts(allocator, 2);
-        defer allocator.free(values);
-        return .{ .z = values[0], .alpha = values[1] };
+        const draws = try channel.drawSecureFelts(allocator, 2);
+        defer allocator.free(draws);
+        return .{
+            .z = stableCoordinates(&draws[0]),
+            .alpha = stableCoordinates(&draws[1]),
+        };
     }
 
-    pub fn combine(self: LookupElements, a: M31, b: M31) QM31 {
-        return QM31.fromBase(a).add(self.alpha.mulM31(b)).sub(self.z);
+    pub fn combineBase(self: *const LookupElements, a: M31, b: M31) QM31 {
+        return QM31.fromBase(a)
+            .add(QM31.fromM31Array(self.alpha).mulM31(b))
+            .sub(QM31.fromM31Array(self.z));
+    }
+
+    pub fn combineSecure(self: *const LookupElements, a: QM31, b: QM31) QM31 {
+        return a.add(QM31.fromM31Array(self.alpha).mul(b))
+            .sub(QM31.fromM31Array(self.z));
     }
 };
+
+noinline fn stableCoordinates(value: *const QM31) [4]M31 {
+    return .{ value.c0.a, value.c0.b, value.c1.a, value.c1.b };
+}
 
 pub const PreparedInteraction = struct {
     columns: prover_transaction.OwnedColumns,
     lookup_elements: LookupElements,
-    claimed_sum: QM31,
+    claimed_sum: [4]M31,
+
+    pub fn claimedSum(self: *const PreparedInteraction) QM31 {
+        return QM31.fromM31Array(self.claimed_sum);
+    }
 
     pub fn deinit(self: *PreparedInteraction, allocator: std.mem.Allocator) void {
         self.columns.deinit(allocator);
@@ -58,9 +76,9 @@ pub fn generate(
 
     var claimed_sum = QM31.zero();
     for (0..n) |row| {
-        const q0 = lookup.combine(circuit.a_wire[row], circuit.a_val[row]);
-        const q1 = lookup.combine(circuit.b_wire[row], circuit.b_val[row]);
-        const q2 = lookup.combine(circuit.c_wire[row], circuit.c_val[row]);
+        const q0 = lookup.combineBase(circuit.a_wire[row], circuit.a_val[row]);
+        const q1 = lookup.combineBase(circuit.b_wire[row], circuit.b_val[row]);
+        const q2 = lookup.combineBase(circuit.c_wire[row], circuit.c_val[row]);
         const first_value = try q0.add(q1).div(q0.mul(q1));
         const second_value = try QM31.fromBase(circuit.mult[row]).neg().div(q2);
         first[row] = first_value;
@@ -97,7 +115,7 @@ pub fn generate(
     return .{
         .columns = prover_transaction.OwnedColumns.init(columns),
         .lookup_elements = lookup,
-        .claimed_sum = claimed_sum,
+        .claimed_sum = claimed_sum.toM31Array(),
     };
 }
 
@@ -126,8 +144,71 @@ fn coordinateColumn(
     coordinate: usize,
 ) ![]M31 {
     const column = try allocator.alloc(M31, values.len);
-    for (values, column) |value, *out| out.* = value.toM31Array()[coordinate];
+    for (values, column) |*value, *out| out.* = stableCoordinate(value, coordinate);
     return column;
+}
+
+noinline fn stableCoordinate(value: *const QM31, coordinate: usize) M31 {
+    return switch (coordinate) {
+        0 => value.c0.a,
+        1 => value.c0.b,
+        2 => value.c1.a,
+        3 => value.c1.b,
+        else => unreachable,
+    };
+}
+
+fn validateCumulative(
+    allocator: std.mem.Allocator,
+    first_storage: []const QM31,
+    cumulative_storage: []const QM31,
+    claimed_sum: QM31,
+    circuit: input.CircuitView,
+    lookup: *const LookupElements,
+) !void {
+    const n = first_storage.len;
+    for (0..n) |row| {
+        const q0 = lookup.combineBase(circuit.a_wire[row], circuit.a_val[row]);
+        const q1 = lookup.combineBase(circuit.b_wire[row], circuit.b_val[row]);
+        const first_constraint = first_storage[row].mul(q0).mul(q1).sub(q0.add(q1));
+        if (!first_constraint.isZero()) return error.InvalidFirstInteractionTrace;
+    }
+    const first_circle = try allocator.dupe(QM31, first_storage);
+    defer allocator.free(first_circle);
+    const cumulative_circle = try allocator.dupe(QM31, cumulative_storage);
+    defer allocator.free(cumulative_circle);
+    utils.bitReverse(QM31, first_circle);
+    utils.bitReverse(QM31, cumulative_circle);
+    const first_coset = try utils.circleDomainOrderToCosetOrder(QM31, allocator, first_circle);
+    defer allocator.free(first_coset);
+    const cumulative_coset = try utils.circleDomainOrderToCosetOrder(
+        QM31,
+        allocator,
+        cumulative_circle,
+    );
+    defer allocator.free(cumulative_coset);
+
+    const shift = try claimed_sum.divM31(M31.fromU64(n));
+    for (0..n) |coset_row| {
+        const circle_row = utils.cosetIndexToCircleDomainIndex(
+            coset_row,
+            @intCast(std.math.log2_int(usize, n)),
+        );
+        const storage_row = utils.bitReverseIndex(
+            circle_row,
+            @intCast(std.math.log2_int(usize, n)),
+        );
+        const q2 = lookup.combineBase(circuit.c_wire[storage_row], circuit.c_val[storage_row]);
+        const q0 = lookup.combineBase(circuit.a_wire[storage_row], circuit.a_val[storage_row]);
+        const q1 = lookup.combineBase(circuit.b_wire[storage_row], circuit.b_val[storage_row]);
+        const first_constraint = first_coset[coset_row].mul(q0).mul(q1).sub(q0.add(q1));
+        if (!first_constraint.isZero()) return error.InvalidFirstInteractionTrace;
+        const previous = cumulative_coset[(coset_row + n - 1) % n];
+        const constraint = cumulative_coset[coset_row].sub(previous)
+            .sub(first_coset[coset_row]).add(shift).mul(q2)
+            .addM31(circuit.mult[storage_row]);
+        if (!constraint.isZero()) return error.InvalidInteractionTrace;
+    }
 }
 
 test "exact Plonk interaction has two secure columns and shifted last sum" {
@@ -139,5 +220,33 @@ test "exact Plonk interaction has two secure columns and shifted last sum" {
     var generated = try generate(allocator, &channel, &prepared);
     defer generated.deinit(allocator);
 
-    try std.testing.expectEqual(@as(usize, 8), generated.columns.columns.?.len);
+    const columns = generated.columns.columns.?;
+    try std.testing.expectEqual(@as(usize, 8), columns.len);
+    const n = @as(usize, 1) << @intCast(prepared.request.log_n_rows);
+    const first = try allocator.alloc(QM31, n);
+    defer allocator.free(first);
+    const combined = try allocator.alloc(QM31, n);
+    defer allocator.free(combined);
+    for (0..n) |row| {
+        first[row] = QM31.fromM31(
+            columns[0].values[row],
+            columns[1].values[row],
+            columns[2].values[row],
+            columns[3].values[row],
+        );
+        combined[row] = QM31.fromM31(
+            columns[4].values[row],
+            columns[5].values[row],
+            columns[6].values[row],
+            columns[7].values[row],
+        );
+    }
+    try validateCumulative(
+        allocator,
+        first,
+        combined,
+        generated.claimedSum(),
+        prepared.circuit,
+        &generated.lookup_elements,
+    );
 }

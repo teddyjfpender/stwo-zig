@@ -21,7 +21,7 @@ const CirclePointQM31 = circle.CirclePointQM31;
 pub const Component = struct {
     log_n_rows: u32,
     lookup_elements: interaction.LookupElements,
-    claimed_sum: QM31,
+    claimed_sum: [4]M31,
 
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
@@ -116,18 +116,17 @@ pub const Component = struct {
         accumulator: *core_air_accumulation.PointEvaluationAccumulator,
         max_log_degree_bound: u32,
     ) !void {
-        if (mask.items.len != 3) return error.InvalidProofShape;
+        if (mask.items.len < 3) return error.InvalidProofShape;
         const preprocessed = mask.items[0];
         const main = mask.items[1];
         const interaction_values = mask.items[2];
         try validatePointMask(preprocessed, main, interaction_values);
 
-        const fold = max_log_degree_bound - self.log_n_rows;
-        const folded_point = point.repeatedDouble(fold);
+        const sample_fold = max_log_degree_bound - self.log_n_rows;
         const denominator_inv = try core_constraints.cosetVanishing(
             QM31,
             canonic.CanonicCoset.new(self.log_n_rows).coset(),
-            folded_point,
+            point.repeatedDouble(sample_fold),
         ).inv();
 
         const algebraic = algebraicConstraint(
@@ -146,7 +145,7 @@ pub const Component = struct {
         const current = try sampledSecure(interaction_values, 4, 1);
         const n = M31.fromU64(@as(u64, 1) << @intCast(self.log_n_rows));
         const shifted_diff = current.sub(previous).sub(first_sum)
-            .add(try self.claimed_sum.divM31(n));
+            .add(try self.claimedSum().divM31(n));
         const final_logup = shifted_diff.mul(q2).add(main[0][0]);
 
         accumulator.accumulate(algebraic.mul(denominator_inv));
@@ -159,7 +158,7 @@ pub const Component = struct {
         trace: *const prover_component.Trace,
         accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
     ) !void {
-        if (trace.polys.items.len != 3) return error.InvalidProofShape;
+        if (trace.polys.items.len < 3) return error.InvalidProofShape;
         if (trace.polys.items[0].len != 4 or
             trace.polys.items[1].len != 4 or
             trace.polys.items[2].len != 8)
@@ -179,7 +178,7 @@ pub const Component = struct {
         }
 
         var index: usize = 0;
-        for (trace.polys.items) |tree| {
+        for (trace.polys.items[0..3]) |tree| {
             for (tree) |poly| {
                 evaluations[index] = try evaluationOnDomain(
                     allocator,
@@ -222,7 +221,7 @@ pub const Component = struct {
         defer allocator.free(accumulators);
         var column_accumulator = &accumulators[0];
 
-        const shift = try self.claimed_sum.divM31(
+        const shift = try self.claimedSum().divM31(
             M31.fromU64(@as(u64, 1) << @intCast(self.log_n_rows)),
         );
         const denominator_shift: std.math.Log2Int(usize) = @intCast(self.log_n_rows);
@@ -265,6 +264,10 @@ pub const Component = struct {
                 combined.mulM31(denominator_inv[row >> denominator_shift]),
             );
         }
+    }
+
+    fn claimedSum(self: *const @This()) QM31 {
+        return QM31.fromM31Array(self.claimed_sum);
     }
 };
 
@@ -361,8 +364,11 @@ fn previousRowPoint(log_size: u32, point: CirclePointQM31) CirclePointQM31 {
 test "exact Plonk component exposes the pinned three-tree geometry" {
     const component = Component{
         .log_n_rows = 4,
-        .lookup_elements = .{ .z = QM31.one(), .alpha = QM31.one() },
-        .claimed_sum = QM31.zero(),
+        .lookup_elements = .{
+            .z = QM31.one().toM31Array(),
+            .alpha = QM31.one().toM31Array(),
+        },
+        .claimed_sum = QM31.zero().toM31Array(),
     };
     try std.testing.expectEqual(@as(usize, 3), component.nConstraints());
     var bounds = try component.traceLogDegreeBounds(std.testing.allocator);
