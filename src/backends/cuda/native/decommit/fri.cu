@@ -226,17 +226,33 @@ void assemble_fri_kernel(
         meta[kMetaQueryCount] = query_count;
         meta[kMetaValuesOffset] = 0;
         meta[kMetaValuesCount] = 0;
-        meta[kMetaFriWitnessOffset] = witness_offset;
+        meta[kMetaFriWitnessOffset] =
+            witness_count == 0 ? 0 : witness_offset;
         meta[kMetaFriWitnessCount] = witness_count;
-        meta[kMetaHashWitnessOffset] = hash_offset;
+        meta[kMetaHashWitnessOffset] =
+            hash_count == 0 ? 0 : hash_offset;
         meta[kMetaHashWitnessCount] = hash_count;
-        meta[kMetaAuxOffset] = aux_offset;
+        meta[kMetaAuxOffset] = aux_count == 0 ? 0 : aux_offset;
         meta[kMetaAuxCount] = aux_count;
         meta[kMetaAllValuesOffset] = all_values_offset;
         meta[kMetaAllValuesCount] = expanded_count;
         meta[kMetaLeafLogSize] = leaf_log_size;
         meta[kMetaUsedWords] =
             assembly[kHeaderUsedWords] - tree_start;
+    }
+    __syncthreads();
+
+    // The outer proof transport has a geometry-fixed capacity while query
+    // collisions shorten this nested bundle. Merkle walking uses that tail as
+    // temporary staging, so the final tree must restore canonical zero
+    // padding before the sole terminal device-to-host read.
+    if (tree_index + 1u == assembly[kHeaderTreeCount]) {
+        const uint32_t used_words = assembly[kHeaderUsedWords];
+        for (uint32_t index = used_words + lane;
+             index < assembly_capacity_words;
+             index += kBlockSize) {
+            assembly[index] = 0;
+        }
     }
 }
 

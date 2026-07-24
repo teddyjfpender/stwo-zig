@@ -309,7 +309,7 @@ bool run(DeviceArena &arena) {
         }
     }
     const std::vector<RetainedLayer> layers = {
-        {0, 1, 0}, {1, 2, 0}, {3, 4, 0}, {7, 8, 0},
+        {0, 8, 0}, {8, 4, 0}, {12, 2, 0}, {14, 1, 0},
     };
     std::vector<Hash> child_hashes = {
         retained[7], retained[8], retained[13], retained[14],

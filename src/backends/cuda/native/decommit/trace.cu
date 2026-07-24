@@ -225,9 +225,10 @@ void assemble_trace_kernel(
         meta[kMetaValuesCount] = column_count * mapped_count;
         meta[kMetaFriWitnessOffset] = 0;
         meta[kMetaFriWitnessCount] = 0;
-        meta[kMetaHashWitnessOffset] = hash_offset;
+        meta[kMetaHashWitnessOffset] =
+            hash_count == 0 ? 0 : hash_offset;
         meta[kMetaHashWitnessCount] = hash_count;
-        meta[kMetaAuxOffset] = aux_offset;
+        meta[kMetaAuxOffset] = aux_count == 0 ? 0 : aux_offset;
         meta[kMetaAuxCount] = aux_count;
         meta[kMetaAllValuesOffset] = 0;
         meta[kMetaAllValuesCount] = 0;

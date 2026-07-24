@@ -202,7 +202,11 @@ struct RetainedNodeSource {
 
     __device__ const Hash *get(uint32_t level, uint32_t index) const {
         if (level >= layer_count) return nullptr;
-        const RetainedLayer descriptor = layers[level];
+        // Commitment slabs and their descriptors are canonical leaf-to-root.
+        // Merkle authentication levels are root-to-leaf, so translate once at
+        // this boundary instead of maintaining a second descriptor ordering.
+        const RetainedLayer descriptor =
+            layers[layer_count - 1u - level];
         if (descriptor.reserved != 0 || index >= descriptor.hash_count ||
             descriptor.offset_hashes > slab_hash_count ||
             descriptor.hash_count > slab_hash_count - descriptor.offset_hashes) {

@@ -7,6 +7,9 @@
 namespace stwo::cuda::blake2s {
 
 constexpr uint32_t kBlockSize = 256;
+constexpr uint64_t kDomainPrefixBytes = 64;
+constexpr uint32_t kLeafTag = 0x6661656cu;
+constexpr uint32_t kNodeTag = 0x65646f6eu;
 
 struct alignas(32) Hash {
     uint32_t words[8];
@@ -97,18 +100,35 @@ __device__ __forceinline__ void initialize(uint32_t hash[8]) {
     hash[0] ^= 0x01010020u;
 }
 
+__device__ __forceinline__ void initialize_domain(
+    uint32_t hash[8],
+    uint32_t tag) {
+    uint32_t prefix[16] = {};
+    prefix[0] = tag;
+    initialize(hash);
+    compress(hash, prefix, kDomainPrefixBytes, 0);
+}
+
+__device__ __forceinline__ void initialize_leaf(uint32_t hash[8]) {
+    initialize_domain(hash, kLeafTag);
+}
+
+__device__ __forceinline__ void initialize_node(uint32_t hash[8]) {
+    initialize_domain(hash, kNodeTag);
+}
+
 __device__ __forceinline__ Hash hash_children(
     const Hash &left,
     const Hash &right) {
     uint32_t hash[8];
     uint32_t message[16];
-    initialize(hash);
+    initialize_node(hash);
 #pragma unroll
     for (int index = 0; index < 8; ++index) {
         message[index] = left.words[index];
         message[index + 8] = right.words[index];
     }
-    compress(hash, message, 64, 0xffffffffu);
+    compress(hash, message, 128, 0xffffffffu);
     Hash result;
 #pragma unroll
     for (int index = 0; index < 8; ++index) result.words[index] = hash[index];

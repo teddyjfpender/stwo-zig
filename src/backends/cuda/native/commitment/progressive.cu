@@ -80,7 +80,7 @@ __global__ void progressive_init_kernel(
     const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= size) return;
     ProgressiveState state{};
-    initialize(state.hash);
+    initialize_leaf(state.hash);
     states[row] = state;
 }
 
@@ -97,7 +97,7 @@ __global__ void progressive_absorb_kernel(
     ProgressiveState &state = states[row];
     STWO_LOAD_PROGRESSIVE(state);
     uint32_t pending = pending_words(absorbed_before);
-    uint64_t compressed_bytes =
+    uint64_t compressed_bytes = kDomainPrefixBytes +
         static_cast<uint64_t>(absorbed_before - pending) * sizeof(uint32_t);
     for (uint32_t column = 0; column < column_count; ++column) {
         if (pending == 16) {
@@ -157,7 +157,8 @@ __global__ void progressive_finalize_kernel(
     if (pending < 15) p14 = 0;
     if (pending < 16) p15 = 0;
     STWO_COMPRESS_PROGRESSIVE(
-        static_cast<uint64_t>(absorbed_columns) * sizeof(uint32_t),
+        kDomainPrefixBytes +
+            static_cast<uint64_t>(absorbed_columns) * sizeof(uint32_t),
         0xffffffffu);
     result[row].words[0] = h0;
     result[row].words[1] = h1;

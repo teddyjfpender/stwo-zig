@@ -27,7 +27,7 @@ pub extern "c" fn stwo_ntt_n2b_columns_on(
 pub extern "c" fn stwo_lde_n2b_columns_on(
     coefficient_values: [*]const u32,
     coefficient_column_stride_words: usize,
-    coefficient_sizes: [*]const u32,
+    coefficient_log_sizes: [*]const u32,
     device_values: [*]u32,
     evaluation_column_stride_words: usize,
     log_n: u32,
@@ -41,7 +41,7 @@ pub extern "c" fn stwo_lde_n2b_columns_on(
 pub extern "c" fn stwo_lde_n2b_columns_before_circle_on(
     coefficient_values: [*]const u32,
     coefficient_column_stride_words: usize,
-    coefficient_sizes: [*]const u32,
+    coefficient_log_sizes: [*]const u32,
     device_values: [*]u32,
     evaluation_column_stride_words: usize,
     log_n: u32,

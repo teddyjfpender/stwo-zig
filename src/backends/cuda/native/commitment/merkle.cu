@@ -31,7 +31,7 @@ __global__ void fri_leaf_kernel(
 
     uint32_t hash[8];
     uint32_t message[16] = {};
-    initialize(hash);
+    initialize_leaf(hash);
     if (log_rows_per_leaf == 0) {
 #pragma unroll
         for (int coordinate = 0; coordinate < 4; ++coordinate) {
@@ -41,7 +41,7 @@ __global__ void fri_leaf_kernel(
                         coordinate_stride_words +
                     leaf];
         }
-        compress(hash, message, 16, 0xffffffffu);
+        compress(hash, message, 80, 0xffffffffu);
     } else {
 #pragma unroll
         for (int offset = 0; offset < 4; ++offset) {
@@ -55,7 +55,7 @@ __global__ void fri_leaf_kernel(
                         offset];
             }
         }
-        compress(hash, message, 64, 0xffffffffu);
+        compress(hash, message, 128, 0xffffffffu);
     }
 #pragma unroll
     for (int index = 0; index < 8; ++index) {

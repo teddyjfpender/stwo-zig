@@ -108,7 +108,43 @@ bool expect_hash(
     std::uint32_t index) {
     if (blake2s_reference::equal(actual, expected)) return true;
     std::fprintf(stderr, "%s hash mismatch at %u\n", stage, index);
+    for (std::uint32_t word : actual.words) {
+        std::fprintf(stderr, "%08x", word);
+    }
+    std::fprintf(stderr, " actual words\n");
+    for (std::uint32_t word : expected.words) {
+        std::fprintf(stderr, "%08x", word);
+    }
+    std::fprintf(stderr, " expected words\n");
     return false;
+}
+
+bool test_pinned_zig_oracles() {
+    const Hash empty_expected{{
+        0x153e132au, 0x19723802u, 0x77ead121u, 0x9c978228u,
+        0xf2850f81u, 0xb9999084u, 0x865a41d3u, 0xad5fd819u,
+    }};
+    if (!expect_hash(
+            blake2s_reference::hash_leaf_words({}),
+            empty_expected,
+            "pinned Zig empty leaf",
+            0)) {
+        return false;
+    }
+
+    Hash left{};
+    Hash right{};
+    for (std::uint32_t &word : left.words) word = 0x01010101u;
+    for (std::uint32_t &word : right.words) word = 0x02020202u;
+    const Hash parent_expected{{
+        0x4762c324u, 0xb1c76cc6u, 0x9ce7ae45u, 0xe3d5f9cfu,
+        0xe1a896e5u, 0x39d1863eu, 0x6414f642u, 0x3ca54f36u,
+    }};
+    return expect_hash(
+        blake2s_reference::hash_children(left, right),
+        parent_expected,
+        "pinned Zig parent",
+        0);
 }
 
 bool test_progressive(DeviceArena &arena) {
@@ -252,7 +288,7 @@ bool test_progressive(DeviceArena &arena) {
             }
             if (!expect_hash(
                     actual[row],
-                    blake2s_reference::hash_words(words),
+                    blake2s_reference::hash_leaf_words(words),
                     "progressive",
                     row)) {
                 return false;
@@ -348,7 +384,7 @@ bool test_merkle_and_fri(DeviceArena &arena) {
             }
             if (!expect_hash(
                     actual[leaf],
-                    blake2s_reference::hash_words(words),
+                    blake2s_reference::hash_leaf_words(words),
                     "FRI",
                     leaf)) {
                 return false;
@@ -358,7 +394,8 @@ bool test_merkle_and_fri(DeviceArena &arena) {
 
     std::vector<Hash> children(32);
     for (std::uint32_t index = 0; index < children.size(); ++index) {
-        children[index] = blake2s_reference::hash_words({index, index * 3 + 1});
+        children[index] =
+            blake2s_reference::hash_leaf_words({index, index * 3 + 1});
     }
     auto *device_children =
         reinterpret_cast<Hash *>(arena.allocate(children.size() * 8));
@@ -438,7 +475,8 @@ int main() {
             "get proof stream")) {
         return 1;
     }
-    if (!test_progressive(arena) || !test_merkle_and_fri(arena) ||
+    if (!test_pinned_zig_oracles() || !test_progressive(arena) ||
+        !test_merkle_and_fri(arena) ||
         !arena.close()) {
         return 1;
     }

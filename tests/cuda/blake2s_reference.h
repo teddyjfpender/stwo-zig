@@ -72,6 +72,45 @@ inline void compress(
     }
 }
 
+inline Hash hash_prefixed_words(
+    std::uint32_t tag,
+    const std::vector<std::uint32_t> &words) {
+    std::uint32_t hash[8];
+    for (int index = 0; index < 8; ++index) hash[index] = kIv[index];
+    hash[0] ^= 0x01010020u;
+    std::uint32_t prefix[16] = {};
+    prefix[0] = tag;
+    if (words.empty()) {
+        compress(hash, prefix, 64, 0xffffffffu);
+        Hash result{};
+        for (int index = 0; index < 8; ++index) {
+            result.words[index] = hash[index];
+        }
+        return result;
+    }
+    compress(hash, prefix, 64, 0);
+
+    const std::size_t full_blocks =
+        words.empty() ? 0 : (words.size() - 1) / 16;
+    for (std::size_t block = 0; block < full_blocks; ++block) {
+        compress(hash, words.data() + block * 16, 64 + (block + 1) * 64, 0);
+    }
+    std::uint32_t final_block[16] = {};
+    const std::size_t offset = full_blocks * 16;
+    for (std::size_t index = offset; index < words.size(); ++index) {
+        final_block[index - offset] = words[index];
+    }
+    compress(
+        hash,
+        final_block,
+        64 + words.size() * sizeof(std::uint32_t),
+        0xffffffffu);
+
+    Hash result{};
+    for (int index = 0; index < 8; ++index) result.words[index] = hash[index];
+    return result;
+}
+
 inline Hash hash_words(const std::vector<std::uint32_t> &words) {
     std::uint32_t hash[8];
     for (int index = 0; index < 8; ++index) hash[index] = kIv[index];
@@ -87,18 +126,26 @@ inline Hash hash_words(const std::vector<std::uint32_t> &words) {
     for (std::size_t index = offset; index < words.size(); ++index) {
         final_block[index - offset] = words[index];
     }
-    compress(hash, final_block, words.size() * sizeof(std::uint32_t), 0xffffffffu);
+    compress(
+        hash,
+        final_block,
+        words.size() * sizeof(std::uint32_t),
+        0xffffffffu);
 
     Hash result{};
     for (int index = 0; index < 8; ++index) result.words[index] = hash[index];
     return result;
 }
 
+inline Hash hash_leaf_words(const std::vector<std::uint32_t> &words) {
+    return hash_prefixed_words(0x6661656cu, words);
+}
+
 inline Hash hash_children(const Hash &left, const Hash &right) {
     std::vector<std::uint32_t> words;
     words.insert(words.end(), left.words, left.words + 8);
     words.insert(words.end(), right.words, right.words + 8);
-    return hash_words(words);
+    return hash_prefixed_words(0x65646f6eu, words);
 }
 
 inline bool equal(const Hash &left, const Hash &right) {

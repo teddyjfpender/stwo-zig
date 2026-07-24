@@ -116,7 +116,7 @@ pub fn OpsFor(comptime Api: type) type {
             session: anytype,
             stage: telemetry.Stage,
             coefficients: WordMatrix,
-            coefficient_sizes: common.Words,
+            coefficient_log_sizes: common.Words,
             evaluations: WordMatrix,
             log_n: u32,
             twiddles: common.Words,
@@ -141,7 +141,7 @@ pub fn OpsFor(comptime Api: type) type {
             const sizes = try layout.resident(
                 session,
                 u32,
-                coefficient_sizes,
+                coefficient_log_sizes,
                 count,
             );
             const twiddle_values = try layout.resident(

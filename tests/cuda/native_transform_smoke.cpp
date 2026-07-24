@@ -55,7 +55,7 @@ extern "C" int stwo_ntt_n2b_columns_on(
 extern "C" int stwo_lde_n2b_columns_on(
     const std::uint32_t *coefficients,
     std::size_t coefficient_column_stride_words,
-    const std::uint32_t *coefficient_sizes,
+    const std::uint32_t *coefficient_log_sizes,
     std::uint32_t *evaluations,
     std::size_t evaluation_column_stride_words,
     std::uint32_t log_n,
@@ -67,7 +67,7 @@ extern "C" int stwo_lde_n2b_columns_on(
 extern "C" int stwo_lde_n2b_columns_before_circle_on(
     const std::uint32_t *coefficients,
     std::size_t coefficient_column_stride_words,
-    const std::uint32_t *coefficient_sizes,
+    const std::uint32_t *coefficient_log_sizes,
     std::uint32_t *evaluations,
     std::size_t evaluation_column_stride_words,
     std::uint32_t log_n,
@@ -549,16 +549,16 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
     std::vector<std::vector<std::uint32_t>> coefficients(
         width,
         std::vector<std::uint32_t>(domain_size));
-    std::vector<std::uint32_t> coefficient_sizes(width);
+    std::vector<std::uint32_t> coefficient_log_sizes(width);
     const std::size_t coefficient_stride = domain_size + 3u;
     const std::size_t evaluation_stride = size + 7u;
     std::vector<std::uint32_t> coefficient_host(
         static_cast<std::size_t>(width) * coefficient_stride);
     for (std::uint32_t column = 0; column < width; ++column) {
-        coefficient_sizes[column] =
+        coefficient_log_sizes[column] =
             column + 1u == width
-            ? domain_size + 7u
-            : (column * 13u + log_n) % (domain_size + 1u);
+            ? log_n - 1u
+            : (column * 13u + log_n) % log_n;
         for (std::uint32_t row = 0; row < domain_size; ++row) {
             coefficients[column][row] =
                 static_cast<std::uint32_t>(
@@ -586,7 +586,7 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
             coefficient_host.size() * sizeof(std::uint32_t)) ||
         !session.upload(
             device_sizes,
-            coefficient_sizes.data(),
+            coefficient_log_sizes.data(),
             width * sizeof(std::uint32_t)) ||
         !check_status(
             stwo_lde_n2b_columns_on(
@@ -656,7 +656,7 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
     }
     for (std::uint32_t column = 0; column < width; ++column) {
         const std::uint32_t count =
-            std::min(coefficient_sizes[column], domain_size);
+            1u << coefficient_log_sizes[column];
         std::vector<std::uint32_t> staged(size, 0);
         std::copy_n(
             coefficients[column].begin(),

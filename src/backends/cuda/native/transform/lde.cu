@@ -1,15 +1,15 @@
 #include "transform_internal.cuh"
 
-// Resident zero-extension followed by the exact N2B path. Descriptor sizes
-// are clamped before reads; the boundary rejects coefficient/evaluation and
-// metadata/evaluation slab overlap before launching.
+// Resident zero-extension followed by the exact N2B path. The product ABI
+// deliberately accepts coefficient log sizes: the same sealed metadata is
+// consumed by OODS, so a value of 5 means 2^5 coefficients, never 5 words.
 
 namespace {
 
 __global__ void stage_lde_columns(
     const uint32_t *coefficients,
     size_t coefficient_column_stride_words,
-    const uint32_t *coefficient_sizes,
+    const uint32_t *coefficient_log_sizes,
     uint32_t *evaluations,
     size_t evaluation_column_stride_words,
     uint32_t evaluation_domain_size) {
@@ -17,9 +17,13 @@ __global__ void stage_lde_columns(
     const uint32_t column = blockIdx.y;
     const uint32_t output_size = 2u * evaluation_domain_size;
     if (index >= output_size) return;
+    const uint32_t coefficient_log_size = coefficient_log_sizes[column];
+    const uint32_t requested_count = coefficient_log_size < 31u
+        ? 1u << coefficient_log_size
+        : 0u;
     const uint32_t coefficient_count =
-        coefficient_sizes[column] < evaluation_domain_size
-        ? coefficient_sizes[column]
+        requested_count < evaluation_domain_size
+        ? requested_count
         : evaluation_domain_size;
     const uint32_t *coefficient_column =
         coefficients + static_cast<size_t>(column) *
@@ -35,7 +39,7 @@ __global__ void stage_lde_columns(
 int lde_columns_on(
     const uint32_t *coefficients,
     size_t coefficient_column_stride_words,
-    const uint32_t *coefficient_sizes,
+    const uint32_t *coefficient_log_sizes,
     uint32_t *evaluations,
     size_t evaluation_column_stride_words,
     uint32_t log_n,
@@ -67,7 +71,7 @@ int lde_columns_on(
             polynomial_count,
             evaluation_domain_size,
             &coefficient_range) ||
-        !word_range(coefficient_sizes, polynomial_count, &size_range) ||
+        !word_range(coefficient_log_sizes, polynomial_count, &size_range) ||
         !column_range(
             evaluations,
             evaluation_column_stride_words,
@@ -99,7 +103,7 @@ int lde_columns_on(
                     static_cast<size_t>(base) *
                         coefficient_column_stride_words,
                 coefficient_column_stride_words,
-                coefficient_sizes + base,
+                coefficient_log_sizes + base,
                 evaluations +
                     static_cast<size_t>(base) *
                         evaluation_column_stride_words,
@@ -125,7 +129,7 @@ int lde_columns_on(
 extern "C" int stwo_lde_n2b_columns_on(
     const uint32_t *coefficients,
     size_t coefficient_column_stride_words,
-    const uint32_t *coefficient_sizes,
+    const uint32_t *coefficient_log_sizes,
     uint32_t *evaluations,
     size_t evaluation_column_stride_words,
     uint32_t log_n,
@@ -137,7 +141,7 @@ extern "C" int stwo_lde_n2b_columns_on(
     return lde_columns_on(
         coefficients,
         coefficient_column_stride_words,
-        coefficient_sizes,
+        coefficient_log_sizes,
         evaluations,
         evaluation_column_stride_words,
         log_n,
@@ -152,7 +156,7 @@ extern "C" int stwo_lde_n2b_columns_on(
 extern "C" int stwo_lde_n2b_columns_before_circle_on(
     const uint32_t *coefficients,
     size_t coefficient_column_stride_words,
-    const uint32_t *coefficient_sizes,
+    const uint32_t *coefficient_log_sizes,
     uint32_t *evaluations,
     size_t evaluation_column_stride_words,
     uint32_t log_n,
@@ -164,7 +168,7 @@ extern "C" int stwo_lde_n2b_columns_before_circle_on(
     return lde_columns_on(
         coefficients,
         coefficient_column_stride_words,
-        coefficient_sizes,
+        coefficient_log_sizes,
         evaluations,
         evaluation_column_stride_words,
         log_n,
