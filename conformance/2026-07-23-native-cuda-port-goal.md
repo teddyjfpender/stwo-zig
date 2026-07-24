@@ -108,12 +108,45 @@ correctness and residency gates.
 
 - [x] Pin and import the exact upstream CUDA/C++ source authority.
 - [x] Land the deterministic CUDA source/build identity and source gate.
-- [ ] Replace the legacy Zig FFI with the exact imported ABI.
-- [ ] Build the static CUDA archive and copied generated AOT pack directly.
-- [ ] Implement the Zig execution context, pool, arena, and telemetry owners.
-- [ ] Implement the resident Native proof session and stage admission.
+- [x] Define the typed, shape-checked Zig ABI for every resident proof stage.
+- [x] Build the static CUDA archive and Native generated AOT pack directly.
+- [x] Implement the Zig execution context, isolated pool, lifetime-aware arena,
+      strict AOT loader, stage admission, and residency telemetry owners.
+- [ ] Replace every staged legacy ABI implementation with a small product-owned
+      Native unit and pass its real-device differential.
+- [ ] Implement the resident Native proof transaction from ingress through the
+      single final proof read.
 - [ ] Enable the isolated `stwo-native-cuda` product and CLI.
-- [ ] Pass local non-CUDA isolation and fail-closed gates.
+- [x] Pass local non-CUDA isolation, source-conformance, closure, and fail-closed
+      contract gates.
 - [ ] Pass real-device ABI, operation, proof, oracle, residency, and stability
       gates.
 - [ ] Publish the first judged CUDA benchmark evidence.
+
+## Current Evidence
+
+As of 2026-07-23, the product archive contains no imported CUDA translation
+units. Pinned Rust/CUDA files are immutable algorithm and oracle authority only;
+the executable closure is product-owned under `src/backends/cuda/native/`.
+
+Real-device evidence currently covers:
+
+- one proof-owned nonblocking stream and isolated async memory pool;
+- resident wide-Fibonacci trace construction at a non-target width of 37;
+- strict Native AOT constraint loading and launch with an exact expected
+  accumulator;
+- progressive Blake2s commitments across widths 1, 15, 16, 17, 31, 32, and
+  33;
+- ordinary Merkle layers, four-level fused reduction, and both supported FRI
+  leaf layouts;
+- complete-range alias rejection for Merkle reductions.
+
+The progressive Blake2s hot path has zero per-thread stack and zero compiler
+spills on SM 89. It uses 56 registers for absorb and 48 for finalize. This
+resource result is evidence for the copied scalar-state design; it is not a
+proof-performance claim.
+
+The backend is not yet a prover. Transform, transcript, OODS, quotient,
+FRI/PoW, decommitment, proof assembly, canonical proof parity, Rust-oracle
+acceptance, repeated-session stability, product activation, and judged
+benchmarks remain mandatory.
