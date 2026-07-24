@@ -7,6 +7,7 @@ pub const native_composition = @import("native_composition.zig");
 pub const native_ingress = @import("native_ingress.zig");
 pub const native_trace_commit = @import("native_trace_commit.zig");
 pub const oods_executor = @import("oods_executor.zig");
+pub const oods_batches = @import("oods_batches.zig");
 pub const pipeline = @import("pipeline.zig");
 pub const pow_decommit_executor = @import("pow_decommit_executor.zig");
 pub const prepared_plan = @import("prepared_plan.zig");
@@ -30,6 +31,7 @@ test {
     _ = native_ingress;
     _ = native_trace_commit;
     _ = oods_executor;
+    _ = oods_batches;
     _ = pipeline;
     _ = pow_decommit_executor;
     _ = prepared_plan;

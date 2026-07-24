@@ -10,7 +10,7 @@ const quotient_stage = @import("../../../backends/cuda/runtime/stages/quotient.z
 const trace_layout = @import("uniform_layout.zig");
 
 pub const max_fri_layers: usize = 32;
-pub const max_trace_trees: usize = 3;
+pub const max_trace_trees: usize = 4;
 
 pub const TraceTree = struct {
     role: trace_layout.TraceRole,

@@ -8,6 +8,7 @@ const common = @import("../../../backends/cuda/runtime/stages/common.zig");
 const oods_stage = @import(
     "../../../backends/cuda/runtime/stages/oods.zig",
 );
+const oods_batches = @import("oods_batches.zig");
 const transcript_stage = @import(
     "../../../backends/cuda/runtime/stages/transcript.zig",
 );
@@ -23,13 +24,9 @@ const draw_oods_step: u32 = 6;
 const mix_samples_step: u32 = 7;
 const draw_quotient_step: u32 = 8;
 
-pub const Batch = struct {
-    coefficients: common.WordMatrix,
-    coefficient_rows: u32,
-    coefficient_log_size: u32,
-    first_sample: usize,
-    sample_count: usize,
-};
+pub const Batch = oods_batches.Batch;
+pub const ExplicitBatch = oods_batches.Descriptor;
+pub const buildExplicitBatches = oods_batches.buildExplicit;
 
 pub fn run(
     transaction: anytype,
@@ -37,7 +34,7 @@ pub fn run(
     ingress: anytype,
     views: anytype,
 ) !void {
-    var storage: [resident_views.max_trace_trees]Batch = undefined;
+    var storage: [oods_batches.max_batches]Batch = undefined;
     const batches = try buildBatches(prepared, ingress, views, &storage);
     try executeWithOps(
         NativeTranscript,

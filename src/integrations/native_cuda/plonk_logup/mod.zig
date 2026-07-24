@@ -2,6 +2,7 @@
 
 pub const geometry = @import("geometry.zig");
 pub const layout = @import("layout.zig");
+pub const oods = @import("oods.zig");
 pub const relation = @import("relation.zig");
 pub const topology = @import("topology.zig");
 
@@ -12,6 +13,7 @@ pub const release_enabled = false;
 test {
     _ = geometry;
     _ = layout;
+    _ = oods;
     _ = relation;
     _ = topology;
 }

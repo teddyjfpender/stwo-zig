@@ -97,8 +97,7 @@ fn validate(
     const sample_count_u32 = try u32Count(sample_count);
     const source_count_u32 = try u32Count(source_count);
     const output_rows_u32 = try u32Count(output_rows);
-    if (sample_count != logical.quotient.term_count or
-        sample_count != source_count or
+    if (sample_count != logical.quotient.term_count or source_count == 0 or
         group_count == 0 or
         ingress.circle.domain_log_size !=
             logical.geometry.queryLogSize() or

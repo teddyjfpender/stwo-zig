@@ -6,6 +6,7 @@ const quotient_abi = @import(
 );
 const geometry_mod = @import("geometry.zig");
 const layout = @import("layout.zig");
+const oods_batches = @import("../common/oods_batches.zig");
 const shared = @import("../common/uniform_topology.zig");
 
 const Set = shared.TopologyFor(layout.Layout);
@@ -16,12 +17,7 @@ pub const TraceOpening = Set.TraceOpening;
 pub const FriOpening = Set.FriOpening;
 pub const Decommit = Set.Decommit;
 
-pub const SampleBatch = struct {
-    role: layout.TraceRole,
-    first_column: u32,
-    column_count: u32,
-    first_execution_sample: u32,
-};
+pub const SampleBatch = oods_batches.Descriptor;
 
 pub const sample_batches = [_]SampleBatch{
     .{ .role = .preprocessed, .first_column = 0, .column_count = 4, .first_execution_sample = 0 },
