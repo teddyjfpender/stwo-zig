@@ -5,6 +5,8 @@ pub const context = @import("context.zig");
 pub const column = @import("column.zig");
 pub const constraints = @import("constraints/mod.zig");
 pub const kernel = @import("kernel.zig");
+pub const proof_transaction = @import("proof_transaction.zig");
+pub const proof_assembly = @import("proof_assembly/mod.zig");
 pub const runtime_error = @import("error.zig");
 pub const session = @import("session.zig");
 pub const stages = @import("stages/mod.zig");
@@ -20,6 +22,8 @@ test {
     _ = column;
     _ = constraints;
     _ = kernel;
+    _ = proof_transaction;
+    _ = proof_assembly;
     _ = runtime_error;
     _ = session;
     _ = stages;

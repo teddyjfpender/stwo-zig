@@ -71,6 +71,36 @@ pub fn ContextFor(comptime Api: type) type {
             self.handle = null;
         }
 
+        /// Best-effort failure cleanup for a partially executed proof.
+        ///
+        /// Unlike `close`, this deliberately accepts an active stage and live
+        /// allocations. Every allocation registered by this context is queued
+        /// for release before destroying the stream and its isolated pool.
+        pub fn abort(self: *Self) runtime_error.Error!void {
+            const handle = self.handle orelse return error.ContextClosed;
+            var first_error: ?runtime_error.Error = null;
+            while (self.live_buffers != 0) {
+                self.live_buffers -= 1;
+                const allocation = self.allocations[self.live_buffers];
+                if (allocation.address != 0) {
+                    runtime_error.check(Api.stwo_exec_context_free_u32(
+                        handle,
+                        @ptrFromInt(allocation.address),
+                    )) catch |err| {
+                        if (first_error == null) first_error = err;
+                    };
+                    self.counters.free(self.active_stage, allocation.bytes);
+                }
+                self.allocations[self.live_buffers] = .{};
+            }
+            self.active_stage = null;
+            runtime_error.check(Api.stwo_exec_context_destroy(handle)) catch |err| {
+                if (first_error == null) first_error = err;
+            };
+            self.handle = null;
+            if (first_error) |err| return err;
+        }
+
         pub fn beginStage(
             self: *Self,
             stage: telemetry.Stage,
@@ -280,25 +310,27 @@ pub fn ContextFor(comptime Api: type) type {
             if (self.active_stage != expected) return error.StageOrderViolation;
         }
 
-        /// The sole host-read API. It is named for the final proof boundary so
-        /// intermediate proving code cannot acquire a generic device download.
-        pub fn readProofWords(
+        /// The sole host-read API. It reads one exact arena subrange at the
+        /// final proof boundary, so intermediate code cannot acquire a generic
+        /// device download.
+        pub fn readProofSlice(
             self: *Self,
-            destination: []u32,
-            source: Buffer,
+            comptime F: type,
+            destination: []F,
+            source: anytype,
         ) runtime_error.Error!void {
             const stage = self.active_stage orelse
                 return error.HostReadOutsideProofAssembly;
             if (stage != .proof_assembly)
                 return error.HostReadOutsideProofAssembly;
-            if (destination.len > source.words) return error.SizeOverflow;
-            const handle = try self.requireOwner(source);
-            const bytes = std.math.mul(usize, destination.len, @sizeOf(u32)) catch
+            if (destination.len != source.len) return error.SizeOverflow;
+            const pointer = try self.deviceSlicePointer(F, source, destination.len);
+            const bytes = std.math.mul(usize, destination.len, @sizeOf(F)) catch
                 return error.SizeOverflow;
             try runtime_error.check(Api.stwo_exec_context_memcpy_d2h_async(
-                handle,
+                try self.requireHandle(),
                 destination.ptr,
-                source.pointer,
+                pointer,
                 bytes,
             ));
             self.counters.proofRead(stage, bytes);
@@ -523,7 +555,9 @@ test "context owns buffers and accounts only explicit transfers" {
     }
     try context.beginStage(.proof_assembly);
     var proof_words: [4]u32 = undefined;
-    try context.readProofWords(&proof_words, buffer);
+    var proof_slice = owned_slice;
+    proof_slice.len = proof_words.len;
+    try context.readProofSlice(u32, &proof_words, proof_slice);
     try context.free(&buffer);
     try std.testing.expectError(
         error.InvalidDeviceAddress,
@@ -580,6 +614,56 @@ test "context rejects close with a live device buffer" {
     try context.free(&buffer);
     try context.endStage(.ingress);
     try context.close();
+}
+
+test "context abort releases live allocations from an active stage" {
+    const Fake = struct {
+        var handle_word: u8 = 0;
+        var stream_word: u8 = 0;
+        var device_word: u32 = 0;
+        var frees: usize = 0;
+        var destroys: usize = 0;
+
+        fn stwo_exec_context_create(out: *?*anyopaque) c_int {
+            out.* = &handle_word;
+            return 0;
+        }
+        fn stwo_exec_context_destroy(_: *anyopaque) c_int {
+            destroys += 1;
+            return 0;
+        }
+        fn stwo_exec_context_stream(_: *anyopaque, out: *?*anyopaque) c_int {
+            out.* = &stream_word;
+            return 0;
+        }
+        fn stwo_exec_context_device(_: *anyopaque, out: *c_int) c_int {
+            out.* = 0;
+            return 0;
+        }
+        fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
+            out.* = 1;
+            return 0;
+        }
+        fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
+            out.* = @ptrCast(&device_word);
+            return 0;
+        }
+        fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
+            frees += 1;
+            return 0;
+        }
+    };
+
+    const Context = ContextFor(Fake);
+    var context = try Context.open();
+    try context.beginStage(.ingress);
+    _ = try context.allocate(1);
+    try context.abort();
+    try std.testing.expectEqual(@as(usize, 1), Fake.frees);
+    try std.testing.expectEqual(@as(usize, 1), Fake.destroys);
+    try std.testing.expectEqual(@as(usize, 0), context.live_buffers);
+    try std.testing.expectEqual(@as(?telemetry.Stage, null), context.active_stage);
+    try std.testing.expect(context.handle == null);
 }
 
 test "context rejects late allocation and host writes" {

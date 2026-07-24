@@ -30,6 +30,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
     const Context = context_module.ContextFor(Api);
     return struct {
         const Self = @This();
+        pub const FinishVerdict = Verdict;
 
         context: Context,
         device: types.DeviceSnapshot,
@@ -203,13 +204,18 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
 
         pub fn abort(self: *Self) runtime_error.Error!void {
             if (self.state == .closed) return error.InvalidState;
-            if (self.context.live_buffers != 0) return error.DeviceBufferLive;
+            var first_error: ?runtime_error.Error = null;
             if (self.aot_loader) |loader| {
-                try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
+                runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader)) catch |err| {
+                    first_error = err;
+                };
                 self.aot_loader = null;
             }
-            try self.context.close();
+            self.context.abort() catch |err| {
+                if (first_error == null) first_error = err;
+            };
             self.state = .closed;
+            if (first_error) |err| return err;
         }
     };
 }

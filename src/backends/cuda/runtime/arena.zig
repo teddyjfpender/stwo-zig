@@ -97,7 +97,7 @@ pub fn ArenaFor(comptime Context: type) type {
         const Self = @This();
 
         backing: Context.Buffer,
-        plan: *const Plan,
+        plan: Plan,
 
         pub fn init(
             context: *Context,
@@ -106,7 +106,10 @@ pub fn ArenaFor(comptime Context: type) type {
             if (plan.total_words == 0) return error.EmptyArenaPlan;
             return .{
                 .backing = try context.allocate(plan.total_words),
-                .plan = plan,
+                // Copy the slice descriptor, not the address of the caller's
+                // Plan value. A proof transaction is returned by value, so a
+                // retained pointer would become stale when that value moves.
+                .plan = plan.*,
             };
         }
 
