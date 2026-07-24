@@ -791,6 +791,7 @@ int main() {
         {15, 1},
         {16, 3},
         {18, 3},
+        {20, 1},
         {21, 1},
         {22, 1},
         {23, 1},
@@ -800,7 +801,8 @@ int main() {
     }
     std::printf(
         "native CUDA transform smoke passed: %zu shapes, "
-        "including width 37 and fused log 13/15/16/18/21/22/23 schedules\n",
+        "including width 37 and fused log "
+        "13/15/16/18/20/21/22/23 schedules\n",
         sizeof(cases) / sizeof(cases[0]));
     return 0;
 }

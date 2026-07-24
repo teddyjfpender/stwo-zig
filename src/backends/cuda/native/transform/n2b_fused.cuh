@@ -506,6 +506,12 @@ inline cudaError_t launch_n2b_final(
                 grid, block, 0, stream>>>(
                     columns, log_n, start_stage, twiddles);
         }
+    } else if (stages == 9) {
+        n2b_final_block<1, IncludeCircle><<<
+            dim3(1u << (log_n - 9u), 1, column_count),
+            dim3(32, 2),
+            0,
+            stream>>>(columns, log_n, start_stage, twiddles);
     } else if (stages == 10) {
         n2b_final_block<2, IncludeCircle><<<
             dim3(1u << (log_n - 10u), 1, column_count),

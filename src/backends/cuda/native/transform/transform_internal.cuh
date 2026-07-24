@@ -53,7 +53,7 @@ constexpr TransformSchedule kN2bSchedules[] = {
     {2, {8, 10, 0}},
     {2, {8, 11, 0}},
     {3, {6, 6, 8}},
-    {3, {6, 8, 7}},
+    {3, {6, 6, 9}},
     {3, {6, 6, 10}},
     {3, {6, 6, 11}},
 };
@@ -99,7 +99,7 @@ constexpr bool selected_schedule_resource_contracts_hold() {
             return false;
         }
     }
-    constexpr uint32_t n2b_indices[] = {9u, 10u};
+    constexpr uint32_t n2b_indices[] = {7u, 8u, 9u, 10u};
     for (uint32_t index : n2b_indices) {
         const TransformSchedule &schedule = kN2bSchedules[index];
         for (uint32_t i = 0; i + 1u < schedule.interval_count; ++i) {
