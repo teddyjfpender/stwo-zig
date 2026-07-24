@@ -93,7 +93,7 @@ pub fn build(
         slots.coefficient_log_sizes,
         source_count,
         .ingress,
-        .trace_commit,
+        .constraint_evaluation,
     );
     try add(
         &output,
@@ -173,7 +173,7 @@ pub fn build(
     try add(&output, allocator, slots.oods_reduce_b, oods_scratch, .oods, .oods);
     try add(&output, allocator, slots.sampled_values, try secureWords(sample_count), .oods, .proof_assembly);
 
-    try add(&output, allocator, slots.quotient_challenge, 4, .quotient, .quotient);
+    try add(&output, allocator, slots.quotient_challenge, 4, .oods, .quotient);
     try add(&output, allocator, slots.quotient_prepared_terms, try mul(quotient.prepared_terms.len, 5), .ingress, .quotient);
     try add(&output, allocator, slots.quotient_group_offsets, quotient.group_offsets.len, .ingress, .quotient);
     try add(&output, allocator, slots.quotient_group_term_indices, quotient.group_term_indices.len, .ingress, .quotient);

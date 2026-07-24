@@ -204,6 +204,24 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             telemetry.Stage.ingress,
             boundary_snapshot.requirement.live_from,
         );
+        const quotient_challenge = try prepared.arena_plan.placement(
+            slots.quotient_challenge,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.oods,
+            quotient_challenge.requirement.live_from,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.quotient,
+            quotient_challenge.requirement.live_through,
+        );
+        const coefficient_log_sizes = try prepared.arena_plan.placement(
+            slots.coefficient_log_sizes,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.constraint_evaluation,
+            coefficient_log_sizes.requirement.live_through,
+        );
         const coefficient_slab = try prepared.arena_plan.placement(
             slots.coefficient_slab,
         );
