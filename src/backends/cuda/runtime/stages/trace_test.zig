@@ -147,4 +147,16 @@ test "XOR trace binding rejects geometry and slab drift" {
             0,
         ),
     );
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        trace.OpsFor(TestApi).xor(
+            &session,
+            preprocessed,
+            matrix(0x1010, 24, 1),
+            8,
+            3,
+            2,
+            0,
+        ),
+    );
 }

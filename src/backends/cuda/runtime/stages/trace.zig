@@ -3,6 +3,7 @@
 const std = @import("std");
 const abi = @import("../../abi/stages/trace.zig");
 const common = @import("common.zig");
+const layout = @import("resident_layout.zig");
 const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
 
@@ -29,19 +30,30 @@ pub fn OpsFor(comptime Api: type) type {
             }
             try exactMatrix(preprocessed, row_count, 2);
             try exactMatrix(main_trace, row_count, 1);
+            const preprocessed_view = try layout.wordMatrix(
+                session,
+                preprocessed,
+                row_count,
+            );
+            const main_view = try layout.wordMatrix(
+                session,
+                main_trace,
+                row_count,
+            );
+            if (preprocessed_view.column_count != 2 or
+                main_view.column_count != 1)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            try layout.requireDisjoint(
+                &.{ preprocessed_view.range, main_view.range },
+                &.{},
+            );
             const status = Api.stwo_native_xor_trace_on(
-                try common.words(
-                    session,
-                    preprocessed.storage,
-                    preprocessed.storage.len,
-                ),
+                preprocessed_view.pointer,
                 preprocessed.column_stride_words,
                 preprocessed.storage.len,
-                try common.words(
-                    session,
-                    main_trace.storage,
-                    main_trace.storage.len,
-                ),
+                main_view.pointer,
                 main_trace.column_stride_words,
                 main_trace.storage.len,
                 row_count,
