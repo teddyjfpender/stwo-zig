@@ -5,6 +5,7 @@
 //! independent of CPU trace allocation.
 
 pub const canonical_input = @import("canonical_input.zig");
+pub const canonical_ingress = @import("canonical_ingress.zig");
 pub const constraint = @import("constraint.zig");
 pub const device_trace = @import("device_trace.zig");
 pub const geometry = @import("geometry.zig");
@@ -23,6 +24,7 @@ pub const transcript_schedule = @import("transcript_schedule.zig");
 
 test {
     _ = canonical_input;
+    _ = canonical_ingress;
     _ = constraint;
     _ = device_trace;
     _ = geometry;
