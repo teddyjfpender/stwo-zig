@@ -55,9 +55,19 @@ pub fn TransactionFor(comptime Session: type) type {
             accepted_sms: []const u32,
             requirements: []const arena_module.Requirement,
         ) (std.mem.Allocator.Error || runtime_error.Error)!Self {
-            var plan = try arena_module.Plan.init(allocator, requirements);
-            errdefer plan.deinit(allocator);
+            const plan = try arena_module.Plan.init(allocator, requirements);
+            return openPrepared(allocator, accepted_sms, plan);
+        }
 
+        /// Takes ownership of a validated placement plan so product adapters do
+        /// not repeat lifetime placement work when opening the transaction.
+        pub fn openPrepared(
+            allocator: std.mem.Allocator,
+            accepted_sms: []const u32,
+            owned_plan: arena_module.Plan,
+        ) runtime_error.Error!Self {
+            var plan = owned_plan;
+            errdefer plan.deinit(allocator);
             var session = try Session.open(accepted_sms);
             errdefer session.abort() catch {};
             try session.beginStage(.ingress);

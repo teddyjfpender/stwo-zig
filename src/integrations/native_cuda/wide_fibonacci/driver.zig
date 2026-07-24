@@ -28,10 +28,10 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             var prepared = try Executor.prepare(self.allocator, geometry);
             defer prepared.deinit(self.allocator);
 
-            var transaction = try Transaction.open(
+            var transaction = try Transaction.openPrepared(
                 self.allocator,
                 self.accepted_sms,
-                prepared.requirements(),
+                prepared.takeArenaPlan(),
             );
             var transaction_live = true;
             errdefer if (transaction_live) transaction.abort() catch {};
@@ -112,7 +112,7 @@ fn assertExecutor(comptime Executor: type) void {
             @compileError("Native CUDA executor is missing " ++ name);
     }
     const Prepared = Executor.PreparedPlan;
-    inline for (&.{ "deinit", "requirements", "proofSlot" }) |name| {
+    inline for (&.{ "deinit", "requirements", "proofSlot", "takeArenaPlan" }) |name| {
         if (!@hasDecl(Prepared, name))
             @compileError("Native CUDA prepared plan is missing " ++ name);
     }
@@ -128,12 +128,14 @@ test "driver owns exact stage order and one final proof read" {
         final_reads: usize = 0,
         aborted: bool = false,
 
-        pub fn open(
-            _: std.mem.Allocator,
+        pub fn openPrepared(
+            allocator: std.mem.Allocator,
             accepted_sms: []const u32,
-            requirements: []const arena.Requirement,
+            owned_plan: arena.Plan,
         ) !@This() {
-            if (accepted_sms.len == 0 or requirements.len != 1)
+            var plan = owned_plan;
+            defer plan.deinit(allocator);
+            if (accepted_sms.len == 0 or plan.placements.len != 1)
                 return error.InvalidPlan;
             return .{};
         }
@@ -189,22 +191,33 @@ test "driver owns exact stage order and one final proof read" {
                 .live_from = .proof_assembly,
                 .live_through = .proof_assembly,
             }},
+            plan: arena.Plan,
+            plan_live: bool = true,
 
-            pub fn deinit(_: *@This(), _: std.mem.Allocator) void {}
+            pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+                if (self.plan_live) self.plan.deinit(allocator);
+            }
             pub fn requirements(self: *const @This()) []const arena.Requirement {
                 return &self.items;
             }
             pub fn proofSlot(_: *const @This()) arena.SlotId {
                 return 99;
             }
+            pub fn takeArenaPlan(self: *@This()) arena.Plan {
+                std.debug.assert(self.plan_live);
+                self.plan_live = false;
+                return self.plan;
+            }
         };
 
         pub fn prepare(
-            _: std.mem.Allocator,
+            allocator: std.mem.Allocator,
             _: request_mod.Geometry,
         ) !PreparedPlan {
             calls = 0;
-            return .{};
+            var prepared = PreparedPlan{ .plan = undefined };
+            prepared.plan = try arena.Plan.init(allocator, &prepared.items);
+            return prepared;
         }
 
         pub fn ingress(

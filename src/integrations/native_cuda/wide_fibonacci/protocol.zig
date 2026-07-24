@@ -8,7 +8,6 @@ pub const Stage = telemetry.Stage;
 pub const BindingKind = enum {
     protocol_derivation,
     resident_layout,
-    kernel_abi,
     proof_encoding,
     oracle_gate,
 };
@@ -16,8 +15,6 @@ pub const BindingKind = enum {
 pub const State = enum {
     /// The primitive exists; the wide-Fibonacci driver must seal its inputs.
     driver_binding_required,
-    /// The current primitive violates the product residency/layout contract.
-    abi_replacement_required,
     /// This is a host-side postcondition after the sole final proof read.
     final_gate_required,
 };
@@ -56,13 +53,6 @@ pub const remaining = [_]Binding{
         .requirement = "mix the canonical empty-tree root without a fake decommit tree",
     },
     .{
-        .id = "main_commit_contiguous_absorb",
-        .stage = .trace_commit,
-        .kind = .kernel_abi,
-        .state = .abi_replacement_required,
-        .requirement = "replace the device pointer table with a slab plus stride contract",
-    },
-    .{
         .id = "main_retained_tree",
         .stage = .trace_commit,
         .kind = .resident_layout,
@@ -82,13 +72,6 @@ pub const remaining = [_]Binding{
         .kind = .protocol_derivation,
         .state = .driver_binding_required,
         .requirement = "draw the random coefficient into resident secure-field storage",
-    },
-    .{
-        .id = "wide_fibonacci_constraint_slab",
-        .stage = .constraint_evaluation,
-        .kind = .kernel_abi,
-        .state = .abi_replacement_required,
-        .requirement = "bind the AOT constraint kernel to one trace slab and stride",
     },
     .{
         .id = "composition_split_commit",
@@ -239,7 +222,7 @@ pub fn assertLedger() void {
 
 test "binding ledger is unique and follows transcript order" {
     assertLedger();
-    try std.testing.expectEqual(@as(usize, 24), remaining.len);
+    try std.testing.expectEqual(@as(usize, 22), remaining.len);
     try std.testing.expectEqual(
         Stage.trace_generation,
         execution_stages[0],
