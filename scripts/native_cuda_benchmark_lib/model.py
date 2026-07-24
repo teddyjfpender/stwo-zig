@@ -31,13 +31,35 @@ class BenchmarkError(RuntimeError):
     """A benchmark input or measured product violated the contract."""
 
 
+@dataclass(frozen=True, order=True)
+class SustainedShape:
+    cycles: int = 4
+
+    def validate(self) -> None:
+        if not 2 <= self.cycles <= 4:
+            raise DiagnosticError("sustained CUDA cycles must be in [2, 4]")
+
+    def statement(self) -> dict[str, object]:
+        return {
+            "workload_id": "mixed_native_wide_poseidon_state_machine_v1",
+            "cycle_order": [
+                "wide_fibonacci",
+                "poseidon",
+                "state_machine",
+            ],
+            "steady_cycles": self.cycles - 1,
+            "requests_per_cycle": 3,
+        }
+
+
 @dataclass(frozen=True)
 class Workload:
     workload_id: str
     structural_class: str
-    shape: ProductShape | None
+    shape: ProductShape | SustainedShape | None
     enabled: bool
     unavailable_reason: str | None = None
+    headline_scored: bool = True
 
     def validate(self) -> None:
         if not self.workload_id or not self.structural_class:
@@ -54,6 +76,15 @@ class Workload:
         elif self.shape is not None or not self.unavailable_reason:
             raise BenchmarkError(
                 f"disabled CUDA workload lacks one reason: {self.workload_id}"
+            )
+        if (
+            self.enabled
+            and self.structural_class == "sustained"
+            and self.headline_scored
+        ):
+            raise BenchmarkError(
+                "sustained CUDA workload cannot enter headline scoring "
+                "before locked-host calibration"
             )
 
 
@@ -136,13 +167,10 @@ COVERAGE_MATRIX = (
     Workload(
         "mixed_shape_queue",
         "sustained",
+        SustainedShape(),
+        True,
         None,
         False,
-        (
-            "The deterministic Native CUDA mixed-service CLI and immutable "
-            "hardware/Rust-oracle receipt are retained, but the structural "
-            "controller does not yet execute and validate its service schema"
-        ),
     ),
 )
 
@@ -165,6 +193,7 @@ PROFILES = {
             "poseidon_log10_instances",
             "irregular_state_machine_log16",
             "wide_wf_log18x37",
+            "mixed_shape_queue",
         ),
         warmups=1,
         samples=2,

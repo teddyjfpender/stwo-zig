@@ -18,10 +18,12 @@ from scripts.native_cuda_benchmark_lib import (  # noqa: E402
     BenchmarkError,
     COVERAGE_MATRIX,
     Settings,
+    SustainedShape,
     Workload,
     run_benchmark,
 )
 from scripts.native_cuda_benchmark_lib import runner as benchmark_runner  # noqa: E402
+from scripts.native_cuda_benchmark_lib import sustained  # noqa: E402
 from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
     BlakeShape,
     PlonkShape,
@@ -36,6 +38,53 @@ from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
 
 
 class NativeCudaBenchmarkTests(unittest.TestCase):
+    def test_mixed_service_is_executable_but_not_headline_scored(self) -> None:
+        workload = next(
+            item
+            for item in COVERAGE_MATRIX
+            if item.workload_id == "mixed_shape_queue"
+        )
+        self.assertTrue(workload.enabled)
+        self.assertFalse(workload.headline_scored)
+        self.assertEqual(SustainedShape(4), workload.shape)
+        workload.validate()
+
+    def test_sustained_command_names_distinct_product_path(self) -> None:
+        command = sustained.command(
+            Path("/product"),
+            Path("/artifacts"),
+            Path("/report.json"),
+            4,
+        )
+        self.assertEqual("/product", command[0])
+        self.assertEqual("sustain", command[1])
+        self.assertNotIn("prove", command)
+        self.assertEqual("4", command[command.index("--cycles") + 1])
+        self.assertEqual(
+            sustained.queue_digest(4),
+            sustained.queue_digest(4),
+        )
+        self.assertNotEqual(
+            sustained.queue_digest(3),
+            sustained.queue_digest(4),
+        )
+
+    def test_sustained_result_is_excluded_from_portfolio(self) -> None:
+        result = benchmark_runner._portfolio(
+            [
+                {
+                    "headline_scored": False,
+                    "structural_class": "sustained",
+                    "comparison": {
+                        "candidate_over_baseline": 0.01,
+                        "round_ratios": [0.01],
+                    },
+                }
+            ],
+            1_000,
+        )
+        self.assertFalse(result["available"])
+
     def test_coverage_matrix_includes_large_transform_regime(self) -> None:
         workload = next(
             item
@@ -213,6 +262,13 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
                     settings, coverage, portfolio, [workload]
                 )
             )
+            workload["headline_scored"] = False
+            self.assertFalse(
+                benchmark_runner._headline_eligible(
+                    settings, coverage, portfolio, [workload]
+                )
+            )
+            workload["headline_scored"] = True
             workload["cold_comparison"]["passes_regression_ceiling"] = False
             self.assertFalse(
                 benchmark_runner._headline_eligible(

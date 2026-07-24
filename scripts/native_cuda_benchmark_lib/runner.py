@@ -34,14 +34,18 @@ from scripts.process_resources_lib import (
 from .identity import validate_proof_identity
 from .oracle import rust_oracle_receipt
 from .model import (
-    COVERAGE_MATRIX,
     MINIMUM_PORTFOLIO_RATIO,
     PRIMARY_PORTFOLIO_RATIO,
     REGRESSION_CEILING,
     SCHEMA,
     BenchmarkError,
     Settings,
+    SustainedShape,
     Workload,
+)
+from .verdict import (
+    coverage as _coverage,
+    headline_eligible as _headline_eligible,
 )
 
 
@@ -497,6 +501,18 @@ def _measure_workload(
     workload: Workload,
     binaries: dict[str, Path],
 ) -> dict[str, Any]:
+    if isinstance(workload.shape, SustainedShape):
+        from .sustained_controller import measure_sustained
+
+        return measure_sustained(
+            settings,
+            workload,
+            binaries,
+            cold_comparison=_cold_comparison,
+            comparison=_comparison,
+            cooldown=_cooldown,
+            seed=_seed,
+        )
     cold: dict[str, list[dict[str, Any]]] = {
         arm: [] for arm in binaries
     }
@@ -567,6 +583,7 @@ def _measure_workload(
     result = {
         "workload_id": workload.workload_id,
         "structural_class": workload.structural_class,
+        "headline_scored": workload.headline_scored,
         "statement": workload.shape.statement() if workload.shape else None,
         "proof_gate": gate,
         "cold": {
@@ -602,7 +619,10 @@ def _measure_workload(
 
 def _portfolio(workloads: list[dict[str, Any]], resamples: int) -> dict[str, Any]:
     comparisons = [
-        workload for workload in workloads if workload["comparison"] is not None
+        workload
+        for workload in workloads
+        if workload.get("headline_scored", True)
+        and workload["comparison"] is not None
     ]
     if not comparisons:
         return {
@@ -683,60 +703,6 @@ def _portfolio(workloads: list[dict[str, Any]], resamples: int) -> dict[str, Any
     }
 
 
-def _coverage() -> dict[str, Any]:
-    classes: dict[str, dict[str, Any]] = {}
-    for workload in COVERAGE_MATRIX:
-        entry = classes.setdefault(
-            workload.structural_class,
-            {"enabled_workloads": [], "blockers": []},
-        )
-        if workload.enabled:
-            entry["enabled_workloads"].append(workload.workload_id)
-        else:
-            entry["blockers"].append(
-                {
-                    "workload_id": workload.workload_id,
-                    "reason": workload.unavailable_reason,
-                }
-            )
-    missing = [
-        class_name
-        for class_name, entry in classes.items()
-        if not entry["enabled_workloads"]
-    ]
-    return {
-        "classes": classes,
-        "required_class_count": len(classes),
-        "covered_class_count": len(classes) - len(missing),
-        "missing_classes": missing,
-        "activation_ready": not missing,
-    }
-
-
-def _headline_eligible(
-    settings: Settings,
-    coverage: dict[str, Any],
-    portfolio: dict[str, Any],
-    workloads: list[dict[str, Any]],
-) -> bool:
-    return (
-        settings.profile_name == "judge"
-        and portfolio["available"]
-        and portfolio["passes_1_3x_target"]
-        and coverage["activation_ready"]
-        and all(workload["rust_oracle"]["accepted"] for workload in workloads)
-        and all(
-            workload["comparison"]["passes_regression_ceiling"]
-            for workload in workloads
-        )
-        and all(
-            workload["cold_comparison"] is not None
-            and workload["cold_comparison"]["passes_regression_ceiling"]
-            for workload in workloads
-        )
-    )
-
-
 def run_benchmark(settings: Settings) -> tuple[dict[str, Any], bytes]:
     settings.validate()
     candidate = _require_binary(settings.candidate_bin, "candidate")
@@ -800,6 +766,10 @@ def run_benchmark(settings: Settings) -> tuple[dict[str, Any], bytes]:
             "minimum_portfolio_speedup": 1.3,
             "cold_process_is_separate_gate": True,
             "profiler_replay_is_verdict": False,
+            "sustained_service_headline_scoring": (
+                "excluded pending locked-host A/A calibration and complete "
+                "pinned Rust-oracle receipt packaging"
+            ),
         },
         "provenance": {
             "repository_commit": _git(settings.repo_root, "rev-parse", "HEAD"),

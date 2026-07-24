@@ -5,6 +5,7 @@ from .model import (
     PROFILES,
     BenchmarkError,
     Settings,
+    SustainedShape,
     Workload,
 )
 from .runner import run_benchmark
@@ -14,6 +15,7 @@ __all__ = [
     "COVERAGE_MATRIX",
     "PROFILES",
     "Settings",
+    "SustainedShape",
     "Workload",
     "run_benchmark",
 ]
