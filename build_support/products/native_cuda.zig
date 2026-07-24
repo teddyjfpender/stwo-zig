@@ -10,7 +10,7 @@ const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
-    "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1";
+    "native-examples-v1+cuda-resident-proof-v1+explicit-toolchain-v1";
 const toolchain_requirement =
     "the Native CUDA product requires -Dcuda-nvcc, -Dcuda-host-cxx, " ++
     "-Dcuda-host-runtime, -Dcuda-host-unwind-runtime, -Dcuda-ar, " ++

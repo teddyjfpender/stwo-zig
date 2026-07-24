@@ -2,10 +2,24 @@
 
 const std = @import("std");
 
-pub const protocol_name = "raw-stwo-wide-v1";
+pub const wide_protocol_name = "raw-stwo-wide-v1";
+pub const xor_protocol_name = "raw-stwo-xor-v1";
+pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
 pub const max_repetitions: u32 = 16;
+
+pub const Air = enum {
+    wide_fibonacci,
+    xor,
+
+    pub fn protocolName(self: Air) []const u8 {
+        return switch (self) {
+            .wide_fibonacci => wide_protocol_name,
+            .xor => xor_protocol_name,
+        };
+    }
+};
 
 pub const ExecutionMode = enum {
     graphs,
@@ -13,8 +27,12 @@ pub const ExecutionMode = enum {
 };
 
 pub const Prove = struct {
-    log_n_rows: u32,
-    sequence_len: u32,
+    air: Air,
+    log_n_rows: ?u32,
+    sequence_len: ?u32,
+    log_size: ?u32,
+    log_step: ?u32,
+    offset: ?u64,
     output: []const u8,
     report_out: ?[]const u8,
     repeat: u32,
@@ -32,6 +50,9 @@ const Flag = enum {
     protocol,
     log_n_rows,
     sequence_len,
+    log_size,
+    log_step,
+    offset,
     output,
     report_out,
     repeat,
@@ -47,6 +68,9 @@ const Scratch = struct {
     protocol: ?[]const u8 = null,
     log_n_rows: ?u32 = null,
     sequence_len: ?u32 = null,
+    log_size: ?u32 = null,
+    log_step: ?u32 = null,
+    offset: ?u64 = null,
     output: ?[]const u8 = null,
     report_out: ?[]const u8 = null,
     repeat: ?u32 = null,
@@ -79,11 +103,10 @@ pub fn parse(argv: []const []const u8) !Parsed {
 }
 
 fn finish(scratch: Scratch) !Prove {
-    if (!std.mem.eql(
-        u8,
+    const air = std.meta.stringToEnum(
+        Air,
         scratch.air orelse return error.MissingAir,
-        air_name,
-    )) return error.UnsupportedAir;
+    ) orelse return error.UnsupportedAir;
     if (!std.mem.eql(
         u8,
         scratch.backend orelse return error.MissingBackend,
@@ -92,7 +115,7 @@ fn finish(scratch: Scratch) !Prove {
     if (!std.mem.eql(
         u8,
         scratch.protocol orelse return error.MissingProtocol,
-        protocol_name,
+        air.protocolName(),
     )) return error.UnsupportedProtocol;
 
     const output = try requiredPath(scratch.output, error.MissingOutput);
@@ -103,10 +126,33 @@ fn finish(scratch: Scratch) !Prove {
     const repeat = scratch.repeat orelse 1;
     if (repeat == 0 or repeat > max_repetitions)
         return error.InvalidRepeatCount;
+    switch (air) {
+        .wide_fibonacci => {
+            if (scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse return error.MissingLogRows;
+            _ = scratch.sequence_len orelse
+                return error.MissingSequenceLength;
+        },
+        .xor => {
+            if (scratch.log_n_rows != null or scratch.sequence_len != null)
+                return error.UnexpectedShapeArgument;
+            _ = scratch.log_size orelse return error.MissingLogSize;
+            _ = scratch.log_step orelse return error.MissingLogStep;
+            _ = scratch.offset orelse return error.MissingOffset;
+        },
+    }
     return .{
-        .log_n_rows = scratch.log_n_rows orelse return error.MissingLogRows,
-        .sequence_len = scratch.sequence_len orelse
-            return error.MissingSequenceLength,
+        .air = air,
+        .log_n_rows = scratch.log_n_rows,
+        .sequence_len = scratch.sequence_len,
+        .log_size = scratch.log_size,
+        .log_step = scratch.log_step,
+        .offset = scratch.offset,
         .output = output,
         .report_out = report_out,
         .repeat = repeat,
@@ -135,6 +181,15 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
         .sequence_len => scratch.sequence_len =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidSequenceLength,
+        .log_size => scratch.log_size =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidLogSize,
+        .log_step => scratch.log_step =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidLogStep,
+        .offset => scratch.offset =
+            std.fmt.parseInt(u64, value, 10) catch
+                return error.InvalidOffset,
         .output => scratch.output = value,
         .report_out => scratch.report_out = value,
         .repeat => scratch.repeat =
@@ -167,11 +222,11 @@ pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
         \\Usage: stwo-zig-native-cuda prove [options]
         \\
-        \\  --air wide_fibonacci
+        \\  --air wide_fibonacci | xor
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1
-        \\  --log-n-rows N
-        \\  --sequence-len N
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1
+        \\  wide_fibonacci: --log-n-rows N --sequence-len N
+        \\  xor:            --log-size N --log-step N --offset N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
@@ -199,8 +254,9 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "--output",
         "proof.json",
     })).prove;
-    try std.testing.expectEqual(@as(u32, 14), request.log_n_rows);
-    try std.testing.expectEqual(@as(u32, 100), request.sequence_len);
+    try std.testing.expectEqual(Air.wide_fibonacci, request.air);
+    try std.testing.expectEqual(@as(u32, 14), request.log_n_rows.?);
+    try std.testing.expectEqual(@as(u32, 100), request.sequence_len.?);
     try std.testing.expectEqual(@as(u32, 1), request.repeat);
     try std.testing.expectEqual(ExecutionMode.graphs, request.execution_mode);
 
@@ -231,6 +287,51 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "14",
         "--sequence-len",
         "100",
+        "--output",
+        "proof.json",
+    }));
+}
+
+test "parser admits only the exact XOR shape and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "xor",
+        "--backend",
+        backend_name,
+        "--protocol",
+        xor_protocol_name,
+        "--log-size",
+        "16",
+        "--log-step",
+        "2",
+        "--offset",
+        "3",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.xor, request.air);
+    try std.testing.expectEqual(@as(u32, 16), request.log_size.?);
+    try std.testing.expectEqual(@as(u32, 2), request.log_step.?);
+    try std.testing.expectEqual(@as(u64, 3), request.offset.?);
+    try std.testing.expect(request.log_n_rows == null);
+
+    try std.testing.expectError(error.UnexpectedShapeArgument, parse(&.{
+        "prove",
+        "--air",
+        "xor",
+        "--backend",
+        backend_name,
+        "--protocol",
+        xor_protocol_name,
+        "--log-size",
+        "16",
+        "--log-step",
+        "2",
+        "--offset",
+        "3",
+        "--sequence-len",
+        "8",
         "--output",
         "proof.json",
     }));
