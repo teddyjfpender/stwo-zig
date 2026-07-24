@@ -2,6 +2,7 @@
 
 pub const canonical_ingress = @import("canonical_ingress.zig");
 pub const driver = @import("driver.zig");
+pub const executor = @import("executor/mod.zig");
 pub const commit_tree = @import("commit_tree.zig");
 pub const layout = @import("layout.zig");
 pub const plan = @import("plan.zig");
@@ -15,9 +16,15 @@ pub const slots = @import("slots.zig");
 pub const topology = @import("topology.zig");
 pub const transcript_schedule = @import("transcript_schedule.zig");
 
+pub const NativeDriver = driver.DriverFor(
+    driver.NativeTransaction,
+    executor.pipeline,
+);
+
 test {
     _ = canonical_ingress;
     _ = driver;
+    _ = executor;
     _ = commit_tree;
     _ = layout;
     _ = plan;
