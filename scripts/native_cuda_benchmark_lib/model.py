@@ -10,7 +10,9 @@ from scripts.native_cuda_diagnostic_lib.model import (
     DiagnosticError,
     PlonkShape,
     PoseidonShape,
+    ProductShape,
     Shape,
+    StateMachineShape,
     XorShape,
 )
 
@@ -33,7 +35,7 @@ class BenchmarkError(RuntimeError):
 class Workload:
     workload_id: str
     structural_class: str
-    shape: Shape | XorShape | PlonkShape | BlakeShape | PoseidonShape | None
+    shape: ProductShape | None
     enabled: bool
     unavailable_reason: str | None = None
 
@@ -118,11 +120,10 @@ COVERAGE_MATRIX = (
         "Native lookup/LogUp AIRs do not yet emit CUDA packs",
     ),
     Workload(
-        "irregular_native",
+        "irregular_state_machine_log16",
         "irregular",
-        None,
-        False,
-        "Native state-machine multi-component CUDA coverage is not release-gated",
+        StateMachineShape(16, 9, 3),
+        True,
     ),
     Workload(
         "vm_portfolio",
@@ -158,6 +159,7 @@ PROFILES = {
             "lookup_xor_log14_step2",
             "seeded_blake_log10x10",
             "poseidon_log10_instances",
+            "irregular_state_machine_log16",
             "wide_wf_log18x37",
         ),
         warmups=1,

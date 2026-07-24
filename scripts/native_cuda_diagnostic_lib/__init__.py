@@ -7,6 +7,7 @@ from .model import (
     PlonkShape,
     PoseidonShape,
     Shape,
+    StateMachineShape,
 )
 from .runner import run_diagnostic
 
@@ -17,5 +18,6 @@ __all__ = [
     "PlonkShape",
     "PoseidonShape",
     "Shape",
+    "StateMachineShape",
     "run_diagnostic",
 ]

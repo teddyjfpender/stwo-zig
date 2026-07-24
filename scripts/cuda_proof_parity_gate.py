@@ -39,9 +39,11 @@ class Challenge:
     air: str
     protocol: str
     artifact_statement_key: str
-    artifact_statement: dict[str, int]
+    artifact_statement: dict[str, Any]
+    challenge_statement: dict[str, int]
     report_statement: dict[str, int]
     cli_shape_args: tuple[str, ...]
+    aot_loads: int
 
 
 def challenge_from_args(args: argparse.Namespace) -> Challenge:
@@ -52,6 +54,8 @@ def challenge_from_args(args: argparse.Namespace) -> Challenge:
             or args.sequence_len is None
             or args.sequence_len < 2
             or args.log_n_instances is not None
+            or args.initial_x is not None
+            or args.initial_y is not None
         ):
             raise GateError("invalid wide_fibonacci challenge shape")
         artifact_statement = {
@@ -63,6 +67,7 @@ def challenge_from_args(args: argparse.Namespace) -> Challenge:
             protocol="raw-stwo-wide-v1",
             artifact_statement_key="wide_fibonacci_statement",
             artifact_statement=artifact_statement,
+            challenge_statement=artifact_statement,
             report_statement=artifact_statement,
             cli_shape_args=(
                 "--log-n-rows",
@@ -70,6 +75,7 @@ def challenge_from_args(args: argparse.Namespace) -> Challenge:
                 "--sequence-len",
                 str(args.sequence_len),
             ),
+            aot_loads=2,
         )
     if args.air == "poseidon":
         if (
@@ -77,6 +83,8 @@ def challenge_from_args(args: argparse.Namespace) -> Challenge:
             or not 3 <= args.log_n_instances <= 33
             or args.log_n_rows is not None
             or args.sequence_len is not None
+            or args.initial_x is not None
+            or args.initial_y is not None
         ):
             raise GateError("invalid poseidon challenge shape")
         artifact_statement = {"log_n_instances": args.log_n_instances}
@@ -86,6 +94,7 @@ def challenge_from_args(args: argparse.Namespace) -> Challenge:
             protocol="raw-stwo-poseidon-v1",
             artifact_statement_key="poseidon_statement",
             artifact_statement=artifact_statement,
+            challenge_statement=artifact_statement,
             report_statement={
                 **artifact_statement,
                 "trace_rows": trace_rows,
@@ -95,6 +104,63 @@ def challenge_from_args(args: argparse.Namespace) -> Challenge:
                 "--log-n-instances",
                 str(args.log_n_instances),
             ),
+            aot_loads=2,
+        )
+    if args.air == "state_machine":
+        modulus = (1 << 31) - 1
+        if (
+            args.log_n_rows is None
+            or not 1 <= args.log_n_rows <= 29
+            or args.initial_x is None
+            or not 0 <= args.initial_x < modulus
+            or args.initial_y is None
+            or not 0 <= args.initial_y < modulus
+            or args.sequence_len is not None
+            or args.log_n_instances is not None
+        ):
+            raise GateError("invalid state_machine challenge shape")
+        rows = 1 << args.log_n_rows
+        if (
+            args.initial_x + rows >= modulus
+            or args.initial_y + rows // 2 >= modulus
+        ):
+            raise GateError("invalid state_machine challenge shape")
+        artifact_statement = {
+            "public_input": [
+                [args.initial_x, args.initial_y],
+                [args.initial_x + rows, args.initial_y + rows // 2],
+            ],
+            "stmt0": {
+                "m": args.log_n_rows - 1,
+                "n": args.log_n_rows,
+            },
+        }
+        return Challenge(
+            air=args.air,
+            protocol="raw-stwo-state-machine-v1",
+            artifact_statement_key="state_machine_statement",
+            artifact_statement=artifact_statement,
+            challenge_statement={
+                "log_n_rows": args.log_n_rows,
+                "initial_x": args.initial_x,
+                "initial_y": args.initial_y,
+            },
+            report_statement={
+                "log_n_rows": args.log_n_rows,
+                "initial_x": args.initial_x,
+                "initial_y": args.initial_y,
+                "trace_rows": rows,
+                "trace_cells": rows * 3,
+            },
+            cli_shape_args=(
+                "--log-n-rows",
+                str(args.log_n_rows),
+                "--initial-x",
+                str(args.initial_x),
+                "--initial-y",
+                str(args.initial_y),
+            ),
+            aot_loads=3,
         )
     raise GateError(f"unsupported CUDA parity AIR: {args.air}")
 
@@ -153,11 +219,17 @@ def validate_artifact(path: Path, challenge: Challenge) -> dict[str, Any]:
         "exchange_mode": EXCHANGE_MODE,
         "example": challenge.air,
         "pcs_config": EXPECTED_CONFIG,
-        challenge.artifact_statement_key: challenge.artifact_statement,
     }
     for key, value in expected.items():
         if artifact.get(key) != value:
             raise GateError(f"{path}: invalid {key}")
+    statement = artifact.get(challenge.artifact_statement_key)
+    if challenge.air == "state_machine":
+        validate_state_machine_statement(path, statement, challenge)
+    elif statement != challenge.artifact_statement:
+        raise GateError(
+            f"{path}: invalid {challenge.artifact_statement_key}"
+        )
     proof_hex = artifact.get("proof_bytes_hex")
     if not isinstance(proof_hex, str) or len(proof_hex) % 2:
         raise GateError(f"{path}: proof_bytes_hex must be even-length hex")
@@ -175,7 +247,42 @@ def validate_artifact(path: Path, challenge: Challenge) -> dict[str, Any]:
         "proof_bytes": len(proof),
         "proof_sha256": sha256_bytes(proof),
         "_proof": proof,
+        "_statement": statement,
     }
+
+
+def validate_state_machine_statement(
+    path: Path,
+    value: Any,
+    challenge: Challenge,
+) -> None:
+    if not isinstance(value, dict) or set(value) != {
+        "public_input",
+        "stmt0",
+        "stmt1",
+    }:
+        raise GateError(f"{path}: invalid state-machine statement fields")
+    if value["public_input"] != challenge.artifact_statement["public_input"]:
+        raise GateError(f"{path}: invalid state-machine public input")
+    if value["stmt0"] != challenge.artifact_statement["stmt0"]:
+        raise GateError(f"{path}: invalid state-machine row geometry")
+    claims = value["stmt1"]
+    expected_claims = {"x_axis_claimed_sum", "y_axis_claimed_sum"}
+    if not isinstance(claims, dict) or set(claims) != expected_claims:
+        raise GateError(f"{path}: invalid state-machine interaction claims")
+    for axis in sorted(expected_claims):
+        coordinates = claims[axis]
+        if (
+            not isinstance(coordinates, list)
+            or len(coordinates) != 4
+            or any(
+                isinstance(coordinate, bool)
+                or not isinstance(coordinate, int)
+                or not 0 <= coordinate < (1 << 31) - 1
+                for coordinate in coordinates
+            )
+        ):
+            raise GateError(f"{path}: invalid state-machine {axis}")
 
 
 def validate_cuda_report(
@@ -301,7 +408,7 @@ def validate_cuda_report(
     if not isinstance(aot, dict) or any(
         aot.get(key) != value
         for key, value in {
-            "loads": 2,
+            "loads": challenge.aot_loads,
             "misses": 0,
             "launch_failures": 0,
         }.items()
@@ -309,9 +416,9 @@ def validate_cuda_report(
         raise GateError(f"{path}: authenticated AOT witness/constraint gate failed")
     if (
         not isinstance(aot.get("entries"), int)
-        or aot["entries"] < 2
+        or aot["entries"] < challenge.aot_loads
         or not isinstance(aot.get("launches"), int)
-        or aot["launches"] < 2
+        or aot["launches"] < challenge.aot_loads
     ):
         raise GateError(f"{path}: authenticated AOT kernel evidence is incomplete")
     aot_build_sha256 = require_digest(
@@ -489,6 +596,8 @@ def gate(args: argparse.Namespace) -> Path:
     cpu_proof = validate_artifact(cpu_artifact, challenge)
     if cuda_proof["_proof"] != cpu_proof["_proof"]:
         raise GateError("CUDA and CPU canonical proof bytes differ")
+    if cuda_proof["_statement"] != cpu_proof["_statement"]:
+        raise GateError("CUDA and CPU proof statements differ")
     cuda_residency = validate_cuda_report(
         cuda_report,
         challenge=challenge,
@@ -529,12 +638,14 @@ def gate(args: argparse.Namespace) -> Path:
 
     del cuda_proof["_proof"]
     del cpu_proof["_proof"]
+    del cuda_proof["_statement"]
+    del cpu_proof["_statement"]
     receipt = {
         "schema": SCHEMA,
         "verdict": "pass",
         "challenge": {
             "air": challenge.air,
-            **challenge.artifact_statement,
+            **challenge.challenge_statement,
             "protocol": EXPECTED_CONFIG,
             "process_repetitions": args.repeat,
             "cuda_execution_mode": args.execution_mode,
@@ -569,12 +680,14 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--rust-verifier-sha256", required=True)
     result.add_argument(
         "--air",
-        choices=("wide_fibonacci", "poseidon"),
+        choices=("wide_fibonacci", "poseidon", "state_machine"),
         default="wide_fibonacci",
     )
     result.add_argument("--log-n-rows", type=int)
     result.add_argument("--sequence-len", type=int)
     result.add_argument("--log-n-instances", type=int)
+    result.add_argument("--initial-x", type=int)
+    result.add_argument("--initial-y", type=int)
     result.add_argument("--repeat", type=int, default=3)
     result.add_argument(
         "--execution-mode",

@@ -23,10 +23,11 @@ from scripts.native_cuda_benchmark_lib import (  # noqa: E402
 )
 from scripts.native_cuda_benchmark_lib import runner as benchmark_runner  # noqa: E402
 from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
-    PlonkShape,
     BlakeShape,
-    Shape,
+    PlonkShape,
     PoseidonShape,
+    Shape,
+    StateMachineShape,
     XorShape,
 )
 from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
@@ -248,6 +249,48 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
         self.assertTrue(workload.enabled)
         self.assertEqual("hash_heavy", workload.structural_class)
         self.assertEqual(PoseidonShape(13), workload.shape)
+
+    def test_state_machine_is_a_real_irregular_structural_row(self) -> None:
+        workload = next(
+            item
+            for item in COVERAGE_MATRIX
+            if item.workload_id == "irregular_state_machine_log16"
+        )
+        self.assertTrue(workload.enabled)
+        self.assertEqual("irregular", workload.structural_class)
+        self.assertEqual(StateMachineShape(16, 9, 3), workload.shape)
+
+    def test_state_machine_shape_binds_public_input_and_protocol(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shape = StateMachineShape(14, 9, 3)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                workload=Workload(
+                    "fake_state_machine",
+                    "irregular",
+                    shape,
+                    True,
+                ),
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_CUDA_AOT_LOADS": "3"},
+            ):
+                document, _ = run_benchmark(settings)
+
+            workload = document["workloads"][0]
+            self.assertEqual(shape.statement(), workload["statement"])
+            session = workload["sessions"][0]
+            command = session["raw"]["command"]
+            self.assertIn("raw-stwo-state-machine-v1", command)
+            self.assertIn("--initial-x", command)
+            self.assertIn("--initial-y", command)
+            self.assertEqual(
+                "state_machine",
+                session["raw"]["proof"]["example"],
+            )
 
     def test_xor_workload_uses_its_own_protocol_shape_and_throughput(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

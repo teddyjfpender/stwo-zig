@@ -37,6 +37,24 @@ def artifact(proof):
         }
         if air == "wide_fibonacci" else None
     )
+    if air == "state_machine":
+        log_n_rows = int(value("--log-n-rows"))
+        initial_x = int(value("--initial-x"))
+        initial_y = int(value("--initial-y"))
+        rows = 1 << log_n_rows
+        state_machine = {
+            "public_input": [
+                [initial_x, initial_y],
+                [initial_x + rows, initial_y + rows // 2],
+            ],
+            "stmt0": {"m": log_n_rows - 1, "n": log_n_rows},
+            "stmt1": {
+                "x_axis_claimed_sum": [1, 2, 3, 4],
+                "y_axis_claimed_sum": [5, 6, 7, 8],
+            },
+        }
+    else:
+        state_machine = None
     return {
         "schema_version": 1,
         "upstream_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
@@ -57,7 +75,7 @@ def artifact(proof):
         "blake_statement": None,
         "plonk_statement": None,
         "poseidon_statement": poseidon,
-        "state_machine_statement": None,
+        "state_machine_statement": state_machine,
         "wide_fibonacci_statement": wide,
         "xor_statement": None,
         "proof_bytes_hex": proof,
@@ -89,11 +107,10 @@ if name == "cuda":
     graph_launches = 2 if requested_execution_mode == "graphs" else 0
     air = value("--air")
     poseidon = air == "poseidon"
-    protocol = (
-        "raw-stwo-poseidon-v1"
-        if poseidon else "raw-stwo-wide-v1"
-    )
-    statement = (
+    state_machine = air == "state_machine"
+    if poseidon:
+        protocol = "raw-stwo-poseidon-v1"
+        statement = (
         {
             "log_n_instances": int(value("--log-n-instances")),
             "trace_rows": 1 << (int(value("--log-n-instances")) - 3),
@@ -101,11 +118,23 @@ if name == "cuda":
                 1 << (int(value("--log-n-instances")) - 3)
             ) * 1264,
         }
-        if poseidon else {
+        )
+    elif state_machine:
+        log_n_rows = int(value("--log-n-rows"))
+        protocol = "raw-stwo-state-machine-v1"
+        statement = {
+            "log_n_rows": log_n_rows,
+            "initial_x": int(value("--initial-x")),
+            "initial_y": int(value("--initial-y")),
+            "trace_rows": 1 << log_n_rows,
+            "trace_cells": (1 << log_n_rows) * 3,
+        }
+    else:
+        protocol = "raw-stwo-wide-v1"
+        statement = {
             "log_n_rows": int(value("--log-n-rows")),
             "sequence_len": int(value("--sequence-len")),
         }
-    )
     report.write_text(json.dumps({
         "schema_version": (
             2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 6
@@ -165,11 +194,13 @@ if name == "cuda":
         "aot": {
             "entries": 6,
             "loads": (
-                1 if os.environ.get("BAD_AOT_LOADS") == "1" else 2
+                1
+                if os.environ.get("BAD_AOT_LOADS") == "1"
+                else (3 if state_machine else 2)
             ),
             "cache_hits": 0,
             "misses": 0,
-            "launches": 2,
+            "launches": 3 if state_machine else 2,
             "launch_failures": 0,
             "build_identity_sha256": "d" * 64,
         },
@@ -218,6 +249,8 @@ class CudaProofParityGateTests(unittest.TestCase):
             log_n_rows=5,
             sequence_len=8,
             log_n_instances=None,
+            initial_x=None,
+            initial_y=None,
             repeat=3,
             execution_mode="graphs",
             out_dir=self.root / name,
@@ -263,6 +296,23 @@ class CudaProofParityGateTests(unittest.TestCase):
             "d" * 64,
             receipt["cuda_residency"]["aot_build_sha256"],
         )
+
+    def test_state_machine_binds_public_input_and_three_aot_libraries(self):
+        args = self.arguments("state-machine")
+        args.air = "state_machine"
+        args.sequence_len = None
+        args.initial_x = 9
+        args.initial_y = 3
+        receipt = json.loads(gate.gate(args).read_text())
+
+        self.assertEqual("state_machine", receipt["challenge"]["air"])
+        self.assertEqual(9, receipt["challenge"]["initial_x"])
+        self.assertEqual(3, receipt["challenge"]["initial_y"])
+        self.assertTrue(receipt["proofs"]["canonical_byte_parity"])
+        self.assertEqual(4, len(receipt["verifications"]))
+        cuda_command = receipt["commands"][0]["argv"]
+        self.assertIn("--initial-x", cuda_command)
+        self.assertNotIn("--sequence-len", cuda_command)
 
     def test_rejects_incomplete_aot_kernel_activation(self):
         with mock.patch.dict(os.environ, {"BAD_AOT_LOADS": "1"}):

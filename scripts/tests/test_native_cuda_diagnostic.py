@@ -19,6 +19,7 @@ from scripts.native_cuda_diagnostic_lib import (  # noqa: E402
     DiagnosticError,
     Settings,
     Shape,
+    StateMachineShape,
     run_diagnostic,
 )
 
@@ -43,6 +44,8 @@ parser.add_argument("--log-n-instances", type=int)
 parser.add_argument("--log-size", type=int)
 parser.add_argument("--log-step", type=int)
 parser.add_argument("--offset", type=int)
+parser.add_argument("--initial-x", type=int)
+parser.add_argument("--initial-y", type=int)
 parser.add_argument("--output", required=True)
 parser.add_argument("--report-out", required=True)
 parser.add_argument("--repeat", required=True, type=int)
@@ -125,6 +128,37 @@ elif args.air == "poseidon":
         "trace_rows": rows,
         "trace_cells": trace_cells,
     }
+elif args.air == "state_machine":
+    if (
+        args.log_n_rows is None
+        or args.initial_x is None
+        or args.initial_y is None
+    ):
+        parser.error("state-machine shape is incomplete")
+    rows = 1 << args.log_n_rows
+    trace_cells = rows * 3
+    artifact_statement_key = "state_machine_statement"
+    artifact_statement = {
+        "public_input": [
+            [args.initial_x, args.initial_y],
+            [args.initial_x + rows, args.initial_y + rows // 2],
+        ],
+        "stmt0": {
+            "m": args.log_n_rows - 1,
+            "n": args.log_n_rows,
+        },
+        "stmt1": {
+            "x_axis_claimed_sum": [1, 2, 3, 4],
+            "y_axis_claimed_sum": [5, 6, 7, 8],
+        },
+    }
+    report_statement = {
+        "log_n_rows": args.log_n_rows,
+        "initial_x": args.initial_x,
+        "initial_y": args.initial_y,
+        "trace_rows": rows,
+        "trace_cells": trace_cells,
+    }
 else:
     parser.error("unsupported AIR")
 
@@ -172,7 +206,11 @@ artifact = {
         if artifact_statement_key == "poseidon_statement"
         else None
     ),
-    "state_machine_statement": None,
+    "state_machine_statement": (
+        artifact_statement
+        if artifact_statement_key == "state_machine_statement"
+        else None
+    ),
     "wide_fibonacci_statement": (
         artifact_statement
         if artifact_statement_key == "wide_fibonacci_statement"
@@ -530,6 +568,38 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
             self.assertEqual(2, aot["loads"])
             self.assertEqual(2, aot["launches"])
             self.assertEqual(0, aot["cache_hits"])
+
+    def test_state_machine_preserves_dynamic_claims_and_public_input(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = Settings(
+                **{
+                    **self.settings(
+                        root,
+                        self.make_product(root),
+                        samples=1,
+                    ).__dict__,
+                    "shapes": (StateMachineShape(14, 9, 3),),
+                }
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_CUDA_AOT_LOADS": "3"},
+            ):
+                document, _ = run_diagnostic(settings)
+
+            workload = document["workloads"][0]
+            self.assertEqual(
+                StateMachineShape(14, 9, 3).statement(),
+                workload["statement"],
+            )
+            proof_statement = workload["samples"][0]["proof"]["statement"]
+            self.assertEqual(
+                [[9, 3], [9 + (1 << 14), 3 + (1 << 13)]],
+                proof_statement["public_input"],
+            )
+            self.assertIn("stmt1", proof_statement)
+            self.assertEqual(3, workload["samples"][0]["aot"]["loads"])
 
     def test_invalid_multi_function_aot_lifecycle_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

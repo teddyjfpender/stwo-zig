@@ -33,11 +33,10 @@ from .model import (
     EVIDENCE_CLASS,
     MAX_REPORT_BYTES,
     MAX_STDERR_BYTES,
-    PROTOCOL,
     SCHEMA,
     DiagnosticError,
+    ProductShape,
     Settings,
-    Shape,
 )
 
 
@@ -109,7 +108,7 @@ def _decode_stdout(stdout: bytes) -> dict[str, Any]:
 
 def _command(
     binary: Path,
-    shape: Shape,
+    shape: ProductShape,
     proof: Path,
     report: Path,
     execution_mode: str,
@@ -118,15 +117,12 @@ def _command(
         str(binary),
         "prove",
         "--air",
-        "wide_fibonacci",
+        shape.application,
         "--backend",
         "cuda",
         "--protocol",
-        PROTOCOL,
-        "--log-n-rows",
-        str(shape.log_n_rows),
-        "--sequence-len",
-        str(shape.sequence_len),
+        shape.protocol,
+        *shape.cli_shape_args(),
         "--output",
         str(proof),
         "--report-out",
@@ -141,7 +137,7 @@ def _command(
 def _run_sample(
     settings: Settings,
     binary: Path,
-    shape: Shape,
+    shape: ProductShape,
     sample_index: int,
 ) -> dict[str, Any]:
     sample_dir = settings.artifact_root / shape.slug / f"sample-{sample_index:03d}"
@@ -254,7 +250,10 @@ def _run_sample(
     }
 
 
-def _shape_result(shape: Shape, samples: list[dict[str, Any]]) -> dict[str, Any]:
+def _shape_result(
+    shape: ProductShape,
+    samples: list[dict[str, Any]],
+) -> dict[str, Any]:
     proof_identities = {
         (sample["proof"]["canonical_sha256"], sample["proof"]["canonical_bytes"])
         for sample in samples
@@ -436,12 +435,16 @@ def run_diagnostic(settings: Settings) -> tuple[dict[str, Any], bytes]:
             "samples_per_shape": settings.cold_samples,
             "cooldown_seconds": settings.cooldown_seconds,
             "timeout_seconds": settings.timeout_seconds,
-            "protocol": PROTOCOL,
+            "protocol": (
+                settings.shapes[0].protocol
+                if len({shape.protocol for shape in settings.shapes}) == 1
+                else sorted({shape.protocol for shape in settings.shapes})
+            ),
             "execution_mode": settings.execution_mode,
             "throughput_denominators": {
                 "trace_row_mhz": "trace_rows / elapsed_seconds / 1e6",
                 "committed_mcells_per_second": (
-                    "trace_rows * sequence_len / elapsed_seconds / 1e6"
+                    "trace_cells / elapsed_seconds / 1e6"
                 ),
                 "resident_elapsed": "product timing_ns.resident_prove",
                 "cold_external_elapsed": (

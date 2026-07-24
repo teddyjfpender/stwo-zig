@@ -20,6 +20,8 @@ BLAKE_APPLICATION = "blake"
 BLAKE_PROTOCOL = "raw-stwo-blake-v1"
 POSEIDON_APPLICATION = "poseidon"
 POSEIDON_PROTOCOL = "raw-stwo-poseidon-v1"
+STATE_MACHINE_APPLICATION = "state_machine"
+STATE_MACHINE_PROTOCOL = "raw-stwo-state-machine-v1"
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 
@@ -319,6 +321,97 @@ class PoseidonShape:
             )
 
 
+@dataclass(frozen=True, order=True)
+class StateMachineShape:
+    log_n_rows: int
+    initial_x: int
+    initial_y: int
+
+    @property
+    def trace_rows(self) -> int:
+        return 1 << self.log_n_rows
+
+    @property
+    def trace_cells(self) -> int:
+        return self.trace_rows * 3
+
+    @property
+    def slug(self) -> str:
+        return (
+            f"state-machine-log{self.log_n_rows}-"
+            f"x{self.initial_x}-y{self.initial_y}"
+        )
+
+    @property
+    def application(self) -> str:
+        return STATE_MACHINE_APPLICATION
+
+    @property
+    def protocol(self) -> str:
+        return STATE_MACHINE_PROTOCOL
+
+    @property
+    def artifact_statement_key(self) -> str:
+        return "state_machine_statement"
+
+    def artifact_statement(self) -> dict[str, object]:
+        rows = self.trace_rows
+        return {
+            "public_input": [
+                [self.initial_x, self.initial_y],
+                [self.initial_x + rows, self.initial_y + rows // 2],
+            ],
+            "stmt0": {
+                "m": self.log_n_rows - 1,
+                "n": self.log_n_rows,
+            },
+        }
+
+    def statement(self) -> dict[str, int]:
+        return {
+            "log_n_rows": self.log_n_rows,
+            "initial_x": self.initial_x,
+            "initial_y": self.initial_y,
+            "trace_rows": self.trace_rows,
+            "trace_cells": self.trace_cells,
+        }
+
+    def cli_shape_args(self) -> list[str]:
+        return [
+            "--log-n-rows",
+            str(self.log_n_rows),
+            "--initial-x",
+            str(self.initial_x),
+            "--initial-y",
+            str(self.initial_y),
+        ]
+
+    def validate(self) -> None:
+        if not 1 <= self.log_n_rows <= 29:
+            raise DiagnosticError(
+                f"unsupported state-machine log size: {self.log_n_rows}"
+            )
+        modulus = (1 << 31) - 1
+        if not 0 <= self.initial_x < modulus:
+            raise DiagnosticError("state-machine initial x is not canonical M31")
+        if not 0 <= self.initial_y < modulus:
+            raise DiagnosticError("state-machine initial y is not canonical M31")
+        if self.initial_x + self.trace_rows >= modulus:
+            raise DiagnosticError("state-machine final x is not canonical M31")
+        if self.initial_y + self.trace_rows // 2 >= modulus:
+            raise DiagnosticError("state-machine final y is not canonical M31")
+
+
+ProductShape = (
+    Shape
+    | XorShape
+    | PlonkShape
+    | BlakeShape
+    | PoseidonShape
+    | StateMachineShape
+)
+
+
 DEFAULT_SHAPES = (
     Shape(14, 100),
     Shape(16, 100),
@@ -340,7 +433,7 @@ class Settings:
     cooldown_seconds: float
     timeout_seconds: float
     device_ordinal: str
-    shapes: tuple[Shape, ...] = DEFAULT_SHAPES
+    shapes: tuple[ProductShape, ...] = DEFAULT_SHAPES
     execution_mode: str = "graphs"
 
     @property

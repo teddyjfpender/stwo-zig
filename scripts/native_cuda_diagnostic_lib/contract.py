@@ -9,20 +9,17 @@ from pathlib import Path
 from typing import Any
 
 from .model import (
-    APPLICATION,
     BACKEND,
     EXCHANGE_MODE,
     MAX_PROOF_ARTIFACT_BYTES,
     PRODUCT,
-    PROTOCOL,
     UPSTREAM_COMMIT,
-    BlakeShape,
     DiagnosticError,
+    ProductShape,
     Shape,
-    PlonkShape,
-    PoseidonShape,
-    XorShape,
+    StateMachineShape,
 )
+from .state_machine import validate_artifact_statement
 
 
 REPORT_KEYS = {
@@ -288,7 +285,7 @@ def _read_json(path: Path, maximum: int, context: str) -> tuple[dict[str, Any], 
 
 def validate_artifact(
     path: Path,
-    shape: Shape | XorShape | PlonkShape | BlakeShape | PoseidonShape,
+    shape: ProductShape,
 ) -> dict[str, Any]:
     document, raw = _read_json(
         path,
@@ -310,7 +307,10 @@ def validate_artifact(
     if document["pcs_config"] != EXPECTED_PCS:
         raise DiagnosticError("CUDA proof artifact has invalid PCS parameters")
     statement_key = shape.artifact_statement_key
-    if document[statement_key] != shape.artifact_statement():
+    artifact_statement = document[statement_key]
+    if isinstance(shape, StateMachineShape):
+        validate_artifact_statement(artifact_statement, shape)
+    elif artifact_statement != shape.artifact_statement():
         raise DiagnosticError("CUDA proof artifact statement does not match request")
     for key in ARTIFACT_KEYS:
         if (
@@ -337,7 +337,7 @@ def validate_artifact(
         raise DiagnosticError("CUDA canonical proof wire root must be an object")
     return {
         "example": shape.application,
-        "statement": shape.artifact_statement(),
+        "statement": artifact_statement,
         "artifact_bytes": len(raw),
         "artifact_sha256": hashlib.sha256(raw).hexdigest(),
         "canonical_bytes": len(proof_bytes),
@@ -347,7 +347,7 @@ def validate_artifact(
 
 def validate_report(
     report: dict[str, Any],
-    shape: Shape | XorShape | PlonkShape | BlakeShape | PoseidonShape,
+    shape: ProductShape,
     proof_path: Path,
     artifact: dict[str, Any],
     *,
