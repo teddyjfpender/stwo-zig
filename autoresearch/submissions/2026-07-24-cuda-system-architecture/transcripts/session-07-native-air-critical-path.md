@@ -38,10 +38,12 @@ tamper cases. Its local content-addressed receipt was
 - Pinned Rust implements an independent component over Stwo rather than
   invoking the Zig verifier.
 - Zig-to-Rust and Rust-to-Zig proof exchange passes.
-- The integration run passed 3/3 cases, including the exact Plonk/LogUp oracle,
-  and rejected 38/38 tamper cases.
-- The integration receipt was
-  `81c1fd2e3b3aa233be26c0481adc93163baf16de5b0eeac7e95e4846d16da831`.
+- The hardened integration run passed 3/3 cases, including the exact
+  Plonk/LogUp oracle, and rejected 48/48 example-specific tamper cases.
+- Both verifiers require exactly four XOR proof commitments. Missing and extra
+  commitment mutations are now mandatory verifier-semantic rejections.
+- The hardened integration receipt was
+  `0f37094ae1f64d94177ea62d38fc2cf98f06e20767d5542a59fd10e242301247`.
 
 CUDA remains blocked for XOR because the resident product still exposes the
 former two-preprocessed/one-main, zero-interaction route. CPU correctness is
@@ -97,6 +99,23 @@ The correction is structural:
   plan;
 - remove the public raw-pointer-table execution boundary.
 
+The source-closure correction is now integrated. The Native product selects
+zero copied ordinary CUDA translation units. `cuda_mem_pool.cu`,
+`prefix_sum.cu`, and `utils.cu` are quarantined, and every Native CUDA source
+is scanned for forbidden allocation, copy, synchronization, default-stream,
+environment, and legacy ABI surfaces. The resident relation graph is compiled
+from two allocation-free Native translation units whose output hashes and
+pinned authority inputs are recorded in the product manifest.
+
+The Zig constraint framework also now lowers symbolic AIR expressions into an
+owned, canonical, topologically ordered instruction program. The program
+inlines named intermediates, retains explicit column/parameter bindings,
+validates every operand and root, has deterministic semantic identity, and is
+differential-tested against the symbolic evaluator including exhaustive
+allocation-failure cleanup. This is the backend-neutral input needed to
+compile future Poseidon, Blake, state-machine, RISC-V, and Cairo constraints
+without adding workload names to the CUDA runtime.
+
 CUDA Plonk/LogUp cannot be declared resident or exact before this plan is the
 only route.
 
@@ -133,15 +152,13 @@ proof semantics.
 
 ## Next Gates
 
-1. Complete the resident-only CUDA relation object split and forbidden-source
-   closure gate.
-2. Complete the opaque prepared relation plan.
-3. Produce exact resident CUDA Plonk/LogUp bytes and obtain pinned Rust
+1. Complete and integrate the opaque prepared relation plan.
+2. Produce exact resident CUDA Plonk/LogUp bytes and obtain pinned Rust
    acceptance with zero fallback and complete stage telemetry.
-4. Wire the same relation plan into exact XOR/lookup CUDA.
-5. Replace the provisional state-machine component with the upstream
+3. Wire the same relation plan into exact XOR/lookup CUDA.
+4. Replace the provisional state-machine component with the upstream
    two-component LogUp AIR on CPU and pinned Rust, then CUDA.
-6. Port the exact Poseidon relation/AIR and the multi-component Blake AIR.
-7. Only after six-family correctness, run locked-host A/A, ABBA, portfolio,
+5. Port the exact Poseidon relation/AIR and the multi-component Blake AIR.
+6. Only after six-family correctness, run locked-host A/A, ABBA, portfolio,
    memory, and sustained-service evidence.
-8. Start profiler-directed 2-5x optimization only from that exact baseline.
+7. Start profiler-directed 2-5x optimization only from that exact baseline.
