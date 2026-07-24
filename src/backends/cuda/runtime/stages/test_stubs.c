@@ -108,6 +108,33 @@ static int lde_stub(
 LDE_STUB(stwo_lde_n2b_columns_on, 1)
 LDE_STUB(stwo_lde_n2b_columns_before_circle_on, 0)
 
+int stwo_ntt_b2n_composition_split_compact_on(
+    uint32_t *coordinate_values,
+    size_t coordinate_capacity_words,
+    size_t coordinate_stride_words,
+    uint32_t *coefficients,
+    size_t coefficient_capacity_words,
+    size_t coefficient_stride_words,
+    uint32_t log_n,
+    const uint32_t *inverse_twiddles,
+    uint32_t inverse_twiddle_words,
+    uint32_t evaluation_domain_size,
+    void *stream,
+    uint32_t *launches_out) {
+    (void)coordinate_values;
+    (void)coordinate_capacity_words;
+    (void)coordinate_stride_words;
+    (void)coefficients;
+    (void)coefficient_capacity_words;
+    (void)coefficient_stride_words;
+    (void)inverse_twiddles;
+    (void)inverse_twiddle_words;
+    (void)evaluation_domain_size;
+    (void)stream;
+    *launches_out = b2n_intervals(log_n);
+    return 0;
+}
+
 STUB(stwo_accumulate_quotient_numerator_single_write_on)
 STUB(stwo_blake2s_fri_leaf_on)
 STUB(stwo_blake2s_interior4_on)
