@@ -24,6 +24,7 @@ from cuda_build_lib.builder import (  # noqa: E402
     normalize_sms,
     write_aot_carriers,
 )
+from cuda_device_smoke import compile_command  # noqa: E402
 
 
 SOURCE = ROOT / "src/backends/cuda/vendor/upstream"
@@ -155,6 +156,22 @@ class CudaBuildTests(unittest.TestCase):
         for invalid in ([], [""], ["native"], ["compute_90"], ["sm_9"]):
             with self.assertRaises(BuildError):
                 normalize_sms(invalid)
+
+    def test_device_smoke_link_is_explicit_and_archive_bound(self) -> None:
+        command = compile_command(
+            Path("/usr/bin/c++"),
+            Path("/repo/tests/cuda/native_test_smoke.cpp"),
+            Path("/out/native_test_smoke"),
+            Path("/out/libstwo_cuda_kernels.a"),
+            Path("/usr/local/cuda"),
+        )
+        self.assertEqual("/usr/bin/c++", command[0])
+        self.assertIn("/out/libstwo_cuda_kernels.a", command)
+        self.assertIn("-L/usr/local/cuda/lib64", command)
+        self.assertIn("-Wl,-rpath,/usr/local/cuda/lib64", command)
+        self.assertIn("-lcudart", command)
+        self.assertIn("-lcuda", command)
+        self.assertEqual("/out/native_test_smoke", command[-1])
 
     def test_aot_carrier_is_binary_search_and_exact_arch_only(self) -> None:
         entries = [
