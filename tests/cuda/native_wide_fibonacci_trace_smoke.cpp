@@ -7,9 +7,9 @@
 
 extern "C" int stwo_native_wide_fibonacci_trace_on(
     std::uint32_t *trace,
-    std::size_t trace_words,
+    std::size_t column_stride_words,
+    std::size_t trace_capacity_words,
     std::uint32_t row_count,
-    std::uint32_t sequence_len,
     std::uint32_t log_n_rows,
     void *stream);
 extern "C" int stwo_exec_context_create(void **out_handle);
@@ -86,8 +86,10 @@ int main() {
     constexpr std::uint32_t log_n_rows = 10;
     constexpr std::uint32_t row_count = 1u << log_n_rows;
     constexpr std::uint32_t sequence_len = 37;
+    constexpr std::size_t column_stride_words =
+        static_cast<std::size_t>(row_count) * 2u;
     constexpr std::size_t trace_words =
-        static_cast<std::size_t>(row_count) * sequence_len;
+        column_stride_words * sequence_len;
 
     void *context = nullptr;
     void *stream = nullptr;
@@ -105,11 +107,20 @@ int main() {
         return 1;
     }
 
+    if (!check(
+            cudaMemsetAsync(
+                device_trace,
+                0xa5,
+                trace_words * sizeof(std::uint32_t),
+                static_cast<cudaStream_t>(stream)),
+            "poison retained trace upper halves")) {
+        return 1;
+    }
     const int launch_status = stwo_native_wide_fibonacci_trace_on(
         device_trace,
+        column_stride_words,
         trace_words,
         row_count,
-        sequence_len,
         log_n_rows,
         stream);
     if (launch_status != 0) {
@@ -138,7 +149,10 @@ int main() {
                 column == 0 ? previous : column == 1 ? current
                 : add(mul(previous, previous), mul(current, current));
             const std::uint32_t actual =
-                trace[static_cast<std::size_t>(column) * row_count + row];
+                trace[
+                    static_cast<std::size_t>(column) *
+                        column_stride_words +
+                    row];
             if (actual != expected) {
                 std::fprintf(
                     stderr,
@@ -154,6 +168,48 @@ int main() {
                 current = expected;
             }
         }
+    }
+    for (std::uint32_t column = 0; column < sequence_len; ++column) {
+        for (std::uint32_t row = row_count; row < column_stride_words; ++row) {
+            const std::uint32_t actual =
+                trace[
+                    static_cast<std::size_t>(column) *
+                        column_stride_words +
+                    row];
+            if (actual != 0xa5a5a5a5u) {
+                std::fprintf(
+                    stderr,
+                    "upper-half write column=%u row=%u actual=%u\n",
+                    column,
+                    row,
+                    actual);
+                return 1;
+            }
+        }
+    }
+    if (stwo_native_wide_fibonacci_trace_on(
+            device_trace,
+            column_stride_words,
+            trace_words - 1u,
+            row_count,
+            log_n_rows,
+            stream) == 0 ||
+        stwo_native_wide_fibonacci_trace_on(
+            device_trace,
+            row_count - 1u,
+            (row_count - 1u) * sequence_len,
+            row_count,
+            log_n_rows,
+            stream) == 0 ||
+        stwo_native_wide_fibonacci_trace_on(
+            device_trace,
+            column_stride_words,
+            trace_words,
+            row_count,
+            log_n_rows,
+            nullptr) == 0) {
+        std::fprintf(stderr, "trace ABI admitted an invalid resident layout\n");
+        return 1;
     }
 
     if (!check_status(

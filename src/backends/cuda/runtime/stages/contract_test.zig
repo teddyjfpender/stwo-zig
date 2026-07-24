@@ -141,17 +141,42 @@ fn states(len: usize) column.DeviceSlice(field.ProgressiveBlake2sState) {
 
 test "Native trace construction is exact, resident, and stage bound" {
     var session = FakeSession.init(.trace_generation);
-    try trace.wideFibonacci(&session, words(8 * 37), 8, 37, 3);
+    try trace.wideFibonacci(&session, wordMatrix(0x1000, 37, 16), 8, 3);
     try std.testing.expectEqual(@as(usize, 1), session.launches);
     try std.testing.expectError(
-        error.SizeOverflow,
-        trace.wideFibonacci(&session, words(8 * 37 - 1), 8, 37, 3),
+        error.InvalidKernelDescriptor,
+        trace.wideFibonacci(
+            &session,
+            .{
+                .storage = words(16 * 37 - 1),
+                .column_stride_words = 16,
+            },
+            8,
+            3,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        trace.wideFibonacci(&session, wordMatrix(0x1000, 37, 7), 8, 3),
     );
     session.context.active_stage = .trace_commit;
     try std.testing.expectError(
         error.StageOrderViolation,
-        trace.wideFibonacci(&session, words(8 * 37), 8, 37, 3),
+        trace.wideFibonacci(&session, wordMatrix(0x1000, 37, 16), 8, 3),
     );
+}
+
+test "retained trace layout admits exact in-place B2N expansion" {
+    var session = FakeSession.init(.trace_commit);
+    try transform.inverseToRetained(
+        &session,
+        .trace_commit,
+        wordMatrix(0x22000, 4, 512),
+        wordMatrix(0x22000, 4, 512),
+        8,
+        words(256),
+    );
+    try std.testing.expectEqual(@as(usize, 8), session.launches);
 }
 
 test "transform, commitment, and transcript wrappers bind the session stream" {

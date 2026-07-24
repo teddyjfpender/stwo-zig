@@ -1,5 +1,7 @@
-// Native wide-Fibonacci constraint evaluation using the copied upstream
-// ordinary_constraint_v1 ABI. Field formulas match the pinned CUDA emitter.
+// Native wide-Fibonacci constraint evaluation over one column-major trace slab.
+//
+// The ABI is intentionally product-owned: no device pointer table, allocation,
+// transfer, synchronization, or fallback is hidden behind this kernel.
 
 typedef unsigned long long u64;
 
@@ -64,8 +66,8 @@ __device__ __forceinline__ StwoCudaQm31 stwo_qm31_mul_base(
 
 __device__ __forceinline__ StwoCudaQm31 stwo_load_qm31(
     const unsigned *values,
-    unsigned index) {
-    const unsigned base = index * 4u;
+    u64 index) {
+    const u64 base = index * 4ull;
     return StwoCudaQm31{
         values[base],
         values[base + 1u],
@@ -74,34 +76,57 @@ __device__ __forceinline__ StwoCudaQm31 stwo_load_qm31(
 }
 
 extern "C" __global__ void __launch_bounds__(128)
-stwo_jit_fused_4a5dad552ce2c7ae(
-    const unsigned *const *trace_cols,
-    const unsigned *interaction_offsets,
-    const unsigned *base_params,
-    const unsigned *ext_params,
+stwo_native_constraint_wide_fibonacci_slab_v1_6f60dbf6e15716eb(
+    const unsigned *trace_slab,
+    u64 trace_slab_words,
+    u64 trace_column_stride_words,
+    unsigned sequence_len,
     const unsigned *random_coeff_powers,
+    u64 random_coeff_words,
     const unsigned *denom_inv,
-    unsigned *coord_0,
-    unsigned *coord_1,
-    unsigned *coord_2,
-    unsigned *coord_3,
+    u64 denominator_words,
+    unsigned *coordinate_slab,
+    u64 coordinate_slab_words,
+    u64 coordinate_stride_words,
     unsigned row_count,
     unsigned log_n_rows,
     unsigned rc_base) {
     const unsigned row_index = blockIdx.x * blockDim.x + threadIdx.x;
     if (row_index >= row_count) return;
 
-    // The statement-owned column count is a launch parameter so one immutable
-    // AOT module covers every admitted Native wide-Fibonacci width.
-    const unsigned sequence_len = base_params[0];
-    if (sequence_len < 3u) return;
-    const unsigned main_offset = interaction_offsets[1];
-    unsigned a = trace_cols[main_offset][row_index];
-    unsigned b = trace_cols[main_offset + 1u][row_index];
+    if (sequence_len < 3u || sequence_len > 512u || log_n_rows >= 31u) return;
+    const u64 expected_rows = 1ull << (log_n_rows + 1u);
+    if (trace_column_stride_words >
+        (~0ull - expected_rows) / (sequence_len - 1u)) {
+        return;
+    }
+    const u64 required_trace_words =
+        (u64)(sequence_len - 1u) * trace_column_stride_words + expected_rows;
+    const u64 required_random_words =
+        4ull * ((u64)rc_base + sequence_len - 2u);
+    if (coordinate_stride_words >
+        (~0ull - expected_rows) / 3ull) {
+        return;
+    }
+    const u64 required_coordinate_words =
+        3ull * coordinate_stride_words + expected_rows;
+    if ((u64)row_count != expected_rows ||
+        trace_column_stride_words < expected_rows ||
+        required_trace_words > trace_slab_words ||
+        required_random_words > random_coeff_words ||
+        denominator_words < 2ull ||
+        coordinate_stride_words < expected_rows ||
+        required_coordinate_words > coordinate_slab_words) {
+        return;
+    }
+
+    unsigned a = trace_slab[row_index];
+    unsigned b = trace_slab[trace_column_stride_words + row_index];
     StwoCudaQm31 acc = StwoCudaQm31{0u, 0u, 0u, 0u};
 
     for (unsigned column = 2u; column < sequence_len; ++column) {
-        const unsigned c = trace_cols[main_offset + column][row_index];
+        const unsigned c =
+            trace_slab[(u64)column * trace_column_stride_words + row_index];
         const unsigned expected = stwo_m31_add(
             stwo_m31_mul(a, a),
             stwo_m31_mul(b, b));
@@ -111,19 +136,21 @@ stwo_jit_fused_4a5dad552ce2c7ae(
             stwo_qm31_mul_base(
                 stwo_load_qm31(
                     random_coeff_powers,
-                    rc_base + column - 2u),
+                    (u64)rc_base + sequence_len - 1u - column),
                 constraint));
         a = b;
         b = c;
     }
 
-    // ext_params remains present to preserve ordinary_constraint_v1 exactly.
-    (void)ext_params;
     const unsigned denominator_index = row_index >> log_n_rows;
     const StwoCudaQm31 result =
         stwo_qm31_mul_base(acc, denom_inv[denominator_index]);
-    coord_0[row_index] = stwo_m31_add(coord_0[row_index], result.a);
-    coord_1[row_index] = stwo_m31_add(coord_1[row_index], result.b);
-    coord_2[row_index] = stwo_m31_add(coord_2[row_index], result.c);
-    coord_3[row_index] = stwo_m31_add(coord_3[row_index], result.d);
+    coordinate_slab[row_index] =
+        stwo_m31_add(coordinate_slab[row_index], result.a);
+    coordinate_slab[coordinate_stride_words + row_index] = stwo_m31_add(
+        coordinate_slab[coordinate_stride_words + row_index], result.b);
+    coordinate_slab[2ull * coordinate_stride_words + row_index] = stwo_m31_add(
+        coordinate_slab[2ull * coordinate_stride_words + row_index], result.c);
+    coordinate_slab[3ull * coordinate_stride_words + row_index] = stwo_m31_add(
+        coordinate_slab[3ull * coordinate_stride_words + row_index], result.d);
 }

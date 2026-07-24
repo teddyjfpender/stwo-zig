@@ -55,6 +55,7 @@ __device__ __forceinline__ uint32_t stwo_trace_logical_row(
 extern "C" __global__ void __launch_bounds__(256)
 stwo_native_wide_fibonacci_trace_kernel(
     uint32_t *trace,
+    size_t column_stride_words,
     uint32_t row_count,
     uint32_t sequence_len,
     uint32_t log_n_rows) {
@@ -67,13 +68,13 @@ stwo_native_wide_fibonacci_trace_kernel(
         row_count,
         log_n_rows);
     trace[storage_index] = previous;
-    trace[row_count + storage_index] = current;
+    trace[column_stride_words + storage_index] = current;
 
     for (uint32_t column = 2u; column < sequence_len; ++column) {
         const uint32_t next = stwo_trace_m31_add(
             stwo_trace_m31_mul(previous, previous),
             stwo_trace_m31_mul(current, current));
-        trace[(size_t)column * row_count + storage_index] = next;
+        trace[(size_t)column * column_stride_words + storage_index] = next;
         previous = current;
         current = next;
     }
@@ -82,18 +83,27 @@ stwo_native_wide_fibonacci_trace_kernel(
 #if !defined(STWO_CUDA_HOST_TEST)
 extern "C" int stwo_native_wide_fibonacci_trace_on(
     uint32_t *trace,
-    size_t trace_words,
+    size_t column_stride_words,
+    size_t trace_capacity_words,
     uint32_t row_count,
-    uint32_t sequence_len,
     uint32_t log_n_rows,
     void *stream) {
     if (trace == nullptr || stream == nullptr || log_n_rows == 0u ||
-        log_n_rows >= 31u || sequence_len < 2u ||
-        sequence_len > STWO_WIDE_FIBONACCI_MAX_COLUMNS ||
-        row_count != (1u << log_n_rows) ||
-        trace_words != (size_t)row_count * sequence_len) {
+        log_n_rows >= 31u || row_count != (1u << log_n_rows) ||
+        column_stride_words < (size_t)row_count ||
+        column_stride_words == 0u || trace_capacity_words == 0u ||
+        trace_capacity_words % column_stride_words != 0u) {
         return 1;
     }
+    const size_t sequence_len_size =
+        trace_capacity_words / column_stride_words;
+    if (sequence_len_size < 2u ||
+        sequence_len_size > STWO_WIDE_FIBONACCI_MAX_COLUMNS ||
+        column_stride_words > SIZE_MAX / sequence_len_size ||
+        column_stride_words * sequence_len_size != trace_capacity_words) {
+        return 1;
+    }
+    const uint32_t sequence_len = (uint32_t)sequence_len_size;
 
     constexpr uint32_t kThreads = 256u;
     const uint32_t blocks = (row_count + kThreads - 1u) / kThreads;
@@ -103,6 +113,7 @@ extern "C" int stwo_native_wide_fibonacci_trace_on(
         0,
         (cudaStream_t)stream>>>(
         trace,
+        column_stride_words,
         row_count,
         sequence_len,
         log_n_rows);

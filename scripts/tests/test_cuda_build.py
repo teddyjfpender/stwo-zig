@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -23,6 +24,7 @@ from cuda_build_lib.builder import (  # noqa: E402
     load_product_selection,
     load_source_closure,
     normalize_sms,
+    validate_aot_manifest,
     write_aot_carriers,
 )
 from cuda_device_smoke import compile_command  # noqa: E402
@@ -311,13 +313,24 @@ class CudaBuildTests(unittest.TestCase):
         compiler = shutil.which("c++")
         if compiler is None:
             self.skipTest("C++ compiler unavailable")
-        source = NATIVE_AOT / "constraint_wide_fibonacci_b0108a05e4de93ca.cu"
         manifest = json.loads(
             (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
         )
         self.assertEqual(1, len(manifest))
-        self.assertEqual("ordinary_constraint_v1", manifest[0]["abi_schema"])
+        self.assertEqual("native_constraint_slab_v1", manifest[0]["abi_schema"])
+        self.assertEqual(
+            "sha256-source-and-contract-v1",
+            manifest[0]["identity_scheme"],
+        )
+        source = NATIVE_AOT / manifest[0]["file"]
         self.assertEqual(source.name, manifest[0]["file"])
+        self.assertEqual(
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+            manifest[0]["program_identity"],
+        )
+        self.assertNotIn("const unsigned *const *", source.read_text(encoding="utf-8"))
+        validate_aot_manifest(NATIVE_AOT, manifest)
+        kernel_name = manifest[0]["kernel_name"]
         harness = f"""
 #include <cassert>
 #define __device__
@@ -329,33 +342,30 @@ static Dim3 blockIdx{{0, 0, 0}}, blockDim{{128, 1, 1}}, threadIdx{{0, 0, 0}};
 #include {json.dumps(str(source))}
 
 int main() {{
-    unsigned c0[2] = {{3, 3}};
-    unsigned c1[2] = {{4, 4}};
-    unsigned c2[2] = {{26, 26}};
-    unsigned c3[2] = {{694, 694}};
-    unsigned c4[2] = {{482315, 482315}};
-    const unsigned *columns[] = {{c0, c1, c2, c3, c4}};
-    unsigned offsets[3] = {{0, 0, 5}};
-    unsigned base_params[1] = {{5}};
-    unsigned ext_params[1] = {{0}};
+    unsigned trace_slab[18] = {{
+        3, 3, 0, 0,
+        4, 4, 0, 0,
+        26, 26, 0, 0,
+        694, 694, 0, 0,
+        482315, 482315
+    }};
     unsigned powers[12] = {{
         1, 2, 3, 4,
         5, 6, 7, 8,
         9, 10, 11, 12
     }};
     unsigned denom[2] = {{2, 3}};
-    unsigned out0[2] = {{0, 0}}, out1[2] = {{0, 0}};
-    unsigned out2[2] = {{0, 0}}, out3[2] = {{0, 0}};
+    unsigned coordinates[14] = {{}};
     for (unsigned row = 0; row < 2; ++row) {{
         threadIdx.x = row;
-        stwo_jit_fused_4a5dad552ce2c7ae(
-            columns, offsets, base_params, ext_params, powers, denom,
-            out0, out1, out2, out3, 2, 0, 0);
+        {kernel_name}(
+            trace_slab, 18, 4, 5, powers, 12, denom, 2,
+            coordinates, 14, 4, 2, 0, 0);
     }}
-    assert(out0[0] == 76 && out0[1] == 114);
-    assert(out1[0] == 88 && out1[1] == 132);
-    assert(out2[0] == 100 && out2[1] == 150);
-    assert(out3[0] == 112 && out3[1] == 168);
+    assert(coordinates[0] == 44 && coordinates[1] == 66);
+    assert(coordinates[4] == 56 && coordinates[5] == 84);
+    assert(coordinates[8] == 68 && coordinates[9] == 102);
+    assert(coordinates[12] == 80 && coordinates[13] == 120);
 }}
 """
         with tempfile.TemporaryDirectory() as temporary:
@@ -370,6 +380,26 @@ int main() {{
                 text=True,
             )
             subprocess.run([str(executable)], check=True)
+
+    def test_native_aot_identity_rejects_source_or_contract_drift(self) -> None:
+        manifest = json.loads(
+            (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = NATIVE_AOT / manifest[0]["file"]
+            shutil.copy2(source, root / source.name)
+            validate_aot_manifest(root, manifest)
+
+            (root / source.name).write_bytes(source.read_bytes() + b"\\n")
+            with self.assertRaisesRegex(BuildError, "stale Native identities"):
+                validate_aot_manifest(root, manifest)
+
+            shutil.copy2(source, root / source.name)
+            changed = json.loads(json.dumps(manifest))
+            changed[0]["semantic_contract"] += ";changed"
+            with self.assertRaisesRegex(BuildError, "stale Native identities"):
+                validate_aot_manifest(root, changed)
 
     def test_native_wide_fibonacci_trace_matches_canonical_layout(self) -> None:
         compiler = shutil.which("c++")
@@ -390,24 +420,32 @@ static Dim3 blockIdx{{0, 0, 0}}, blockDim{{8, 1, 1}}, threadIdx{{0, 0, 0}};
 int main() {{
     constexpr unsigned rows = 8;
     constexpr unsigned columns = 5;
-    unsigned trace[rows * columns] = {{}};
+    constexpr unsigned stride = 2 * rows;
+    unsigned trace[stride * columns];
+    for (unsigned &word : trace) word = 0xa5a5a5a5u;
     for (unsigned row = 0; row < rows; ++row) {{
         threadIdx.x = row;
-        stwo_native_wide_fibonacci_trace_kernel(trace, rows, columns, 3);
+        stwo_native_wide_fibonacci_trace_kernel(
+            trace, stride, rows, columns, 3);
     }}
     const unsigned logical_rows[rows] = {{0, 7, 4, 3, 2, 5, 6, 1}};
     for (unsigned row = 0; row < rows; ++row) {{
         unsigned previous = 1;
         unsigned current = logical_rows[row];
         assert(trace[row] == previous);
-        assert(trace[rows + row] == current);
+        assert(trace[stride + row] == current);
         for (unsigned column = 2; column < columns; ++column) {{
             const unsigned next = stwo_trace_m31_add(
                 stwo_trace_m31_mul(previous, previous),
                 stwo_trace_m31_mul(current, current));
-            assert(trace[column * rows + row] == next);
+            assert(trace[column * stride + row] == next);
             previous = current;
             current = next;
+        }}
+    }}
+    for (unsigned column = 0; column < columns; ++column) {{
+        for (unsigned row = rows; row < stride; ++row) {{
+            assert(trace[column * stride + row] == 0xa5a5a5a5u);
         }}
     }}
 }}

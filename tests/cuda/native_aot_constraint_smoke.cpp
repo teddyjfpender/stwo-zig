@@ -35,10 +35,11 @@ extern "C" int stwo_exec_context_memcpy_d2h_async(
 
 namespace {
 
-constexpr std::uint64_t kCacheKey = 0xb0108a05e4de93caull;
-constexpr std::uint32_t kConstraintSchema = 1;
-constexpr std::uint32_t kArgumentCount = 13;
-constexpr const char *kKernelName = "stwo_jit_fused_4a5dad552ce2c7ae";
+constexpr std::uint64_t kCacheKey = 0x7a6ba68d80b91b07ull;
+constexpr std::uint32_t kConstraintSchema = 4;
+constexpr std::uint32_t kArgumentCount = 14;
+constexpr const char *kKernelName =
+    "stwo_native_constraint_wide_fibonacci_slab_v1_6f60dbf6e15716eb";
 
 bool check_status(int status, const char *operation) {
     if (status == 0) return true;
@@ -92,6 +93,14 @@ int main() {
     constexpr std::uint32_t sequence_len = 5;
     constexpr std::uint32_t trace_log_size = 0;
     constexpr std::uint32_t random_coefficient_base = 0;
+    constexpr std::uint64_t trace_stride_words = 4;
+    constexpr std::uint64_t trace_slab_words =
+        (sequence_len - 1) * trace_stride_words + row_count;
+    constexpr std::uint64_t random_coefficient_words = 12;
+    constexpr std::uint64_t denominator_words = 2;
+    constexpr std::uint64_t coordinate_stride_words = 4;
+    constexpr std::uint64_t coordinate_slab_words =
+        3 * coordinate_stride_words + row_count;
     const std::uint32_t host_columns[sequence_len][row_count] = {
         {3, 3},
         {4, 4},
@@ -99,58 +108,31 @@ int main() {
         {694, 694},
         {482315, 482315},
     };
-    std::uint32_t *columns[sequence_len] = {};
-    for (std::uint32_t index = 0; index < sequence_len; ++index) {
-        columns[index] = allocate(context, row_count);
-        if (columns[index] == nullptr ||
-            !upload(
-                context,
-                columns[index],
-                host_columns[index],
-                sizeof(host_columns[index]))) {
-            return 1;
+    std::uint32_t host_trace_slab[trace_slab_words] = {};
+    for (std::uint32_t column = 0; column < sequence_len; ++column) {
+        for (std::uint32_t row = 0; row < row_count; ++row) {
+            host_trace_slab[column * trace_stride_words + row] =
+                host_columns[column][row];
         }
     }
 
-    const std::size_t pointer_table_words =
-        (sizeof(columns) + sizeof(std::uint32_t) - 1) / sizeof(std::uint32_t);
-    std::uint32_t *trace_table = allocate(context, pointer_table_words);
-    std::uint32_t *offsets = allocate(context, 3);
-    std::uint32_t *base_parameters = allocate(context, 1);
-    std::uint32_t *extension_parameters = allocate(context, 1);
-    std::uint32_t *powers = allocate(context, 12);
-    std::uint32_t *denominators = allocate(context, 2);
-    std::uint32_t *coordinates[4] = {
-        allocate(context, row_count),
-        allocate(context, row_count),
-        allocate(context, row_count),
-        allocate(context, row_count),
-    };
-    if (trace_table == nullptr || offsets == nullptr ||
-        base_parameters == nullptr || extension_parameters == nullptr ||
-        powers == nullptr || denominators == nullptr ||
-        coordinates[0] == nullptr || coordinates[1] == nullptr ||
-        coordinates[2] == nullptr || coordinates[3] == nullptr) {
+    std::uint32_t *trace_slab = allocate(context, trace_slab_words);
+    std::uint32_t *powers = allocate(context, random_coefficient_words);
+    std::uint32_t *denominators = allocate(context, denominator_words);
+    std::uint32_t *coordinate_slab =
+        allocate(context, coordinate_slab_words);
+    if (trace_slab == nullptr || powers == nullptr || denominators == nullptr ||
+        coordinate_slab == nullptr) {
         return 1;
     }
 
-    const std::uint32_t host_offsets[3] = {0, 0, sequence_len};
-    const std::uint32_t host_base[1] = {sequence_len};
-    const std::uint32_t host_extension[1] = {0};
     const std::uint32_t host_powers[12] = {
         1, 2, 3, 4,
         5, 6, 7, 8,
         9, 10, 11, 12,
     };
     const std::uint32_t host_denominators[2] = {2, 3};
-    if (!upload(context, trace_table, columns, sizeof(columns)) ||
-        !upload(context, offsets, host_offsets, sizeof(host_offsets)) ||
-        !upload(context, base_parameters, host_base, sizeof(host_base)) ||
-        !upload(
-            context,
-            extension_parameters,
-            host_extension,
-            sizeof(host_extension)) ||
+    if (!upload(context, trace_slab, host_trace_slab, sizeof(host_trace_slab)) ||
         !upload(context, powers, host_powers, sizeof(host_powers)) ||
         !upload(
             context,
@@ -159,16 +141,14 @@ int main() {
             sizeof(host_denominators))) {
         return 1;
     }
-    for (std::uint32_t *coordinate : coordinates) {
-        if (!check_status(
-                stwo_exec_context_fill_u32_async(
-                    context,
-                    coordinate,
-                    0,
-                    row_count),
-                "zero constraint coordinate")) {
-            return 1;
-        }
+    if (!check_status(
+            stwo_exec_context_fill_u32_async(
+                context,
+                coordinate_slab,
+                0,
+                coordinate_slab_words),
+            "zero constraint coordinates")) {
+        return 1;
     }
 
     const std::uint32_t grid[3] = {1, 1, 1};
@@ -199,16 +179,17 @@ int main() {
     }
 
     void *arguments[kArgumentCount] = {
-        &trace_table,
-        &offsets,
-        &base_parameters,
-        &extension_parameters,
+        &trace_slab,
+        const_cast<std::uint64_t *>(&trace_slab_words),
+        const_cast<std::uint64_t *>(&trace_stride_words),
+        const_cast<std::uint32_t *>(&sequence_len),
         &powers,
+        const_cast<std::uint64_t *>(&random_coefficient_words),
         &denominators,
-        &coordinates[0],
-        &coordinates[1],
-        &coordinates[2],
-        &coordinates[3],
+        const_cast<std::uint64_t *>(&denominator_words),
+        &coordinate_slab,
+        const_cast<std::uint64_t *>(&coordinate_slab_words),
+        const_cast<std::uint64_t *>(&coordinate_stride_words),
         const_cast<std::uint32_t *>(&row_count),
         const_cast<std::uint32_t *>(&trace_log_size),
         const_cast<std::uint32_t *>(&random_coefficient_base),
@@ -224,10 +205,10 @@ int main() {
     }
 
     const std::uint32_t expected[4][row_count] = {
-        {76, 114},
-        {88, 132},
-        {100, 150},
-        {112, 168},
+        {44, 66},
+        {56, 84},
+        {68, 102},
+        {80, 120},
     };
     std::uint32_t actual[4][row_count] = {};
     for (std::uint32_t index = 0; index < 4; ++index) {
@@ -235,7 +216,7 @@ int main() {
                 stwo_exec_context_memcpy_d2h_async(
                     context,
                     actual[index],
-                    coordinates[index],
+                    coordinate_slab + index * coordinate_stride_words,
                     sizeof(actual[index])),
                 "read constraint coordinate")) {
             return 1;
@@ -275,14 +256,9 @@ int main() {
         !check_status(stwo_native_aot_loader_destroy(loader), "destroy AOT loader")) {
         return 1;
     }
-    std::vector<std::uint32_t *> allocations(
-        columns,
-        columns + sequence_len);
-    allocations.insert(
-        allocations.end(),
-        {trace_table, offsets, base_parameters, extension_parameters,
-         powers, denominators, coordinates[0], coordinates[1],
-         coordinates[2], coordinates[3]});
+    const std::vector<std::uint32_t *> allocations = {
+        trace_slab, powers, denominators, coordinate_slab,
+    };
     for (std::uint32_t *allocation : allocations) {
         if (!check_status(
                 stwo_exec_context_free_u32(context, allocation),

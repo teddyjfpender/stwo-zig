@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from .aot_identity import validate_native_aot_identity
 from .aot_pack import ABI_SCHEMAS, AotPackError, write_aot_carriers, write_aot_pack
 from .errors import BuildError
 from .native_closure import load_native_closure
@@ -303,6 +304,7 @@ def validate_aot_manifest(
             raise BuildError("AOT manifest order is not canonical")
         if not (generated_dir / file_name).is_file():
             raise BuildError(f"copied AOT source is absent: {file_name}")
+        validate_native_aot_identity(generated_dir, raw, required, index)
         previous = order
         seen_files.add(file_name)
         seen_keys.add(cache_key)
