@@ -103,6 +103,37 @@ def _statement(artifact: dict[str, Any], example: str) -> None:
     statement[field] = int(statement.get(field, 0)) + 1
 
 
+def _plonk_logup_claimed_sum(artifact: dict[str, Any], example: str) -> None:
+    if example != "plonk_logup":
+        raise MutationError("claimed-sum mutation requires plonk_logup")
+    statement = _object(
+        artifact.get("plonk_logup_statement"), "plonk_logup_statement"
+    )
+    _mutate_qm31(statement.get("claimed_sum"), "plonk_logup_statement.claimed_sum")
+
+
+def _plonk_logup_log_size(artifact: dict[str, Any], example: str) -> None:
+    if example != "plonk_logup":
+        raise MutationError("log-size mutation requires plonk_logup")
+    statement = _object(
+        artifact.get("plonk_logup_statement"), "plonk_logup_statement"
+    )
+    statement["log_n_rows"] = int(statement.get("log_n_rows", 0)) + 1
+
+
+def _plonk_logup_statement_exclusivity(
+    artifact: dict[str, Any], example: str
+) -> None:
+    if example != "plonk_logup":
+        raise MutationError("statement-exclusivity mutation requires plonk_logup")
+    if artifact.get("plonk_statement") is not None:
+        raise MutationError("plonk_statement is already present")
+    statement = _object(
+        artifact.get("plonk_logup_statement"), "plonk_logup_statement"
+    )
+    artifact["plonk_statement"] = {"log_n_rows": int(statement["log_n_rows"])}
+
+
 def _proof_metadata(artifact: dict[str, Any], _example: str) -> None:
     if not isinstance(artifact.get("prove_mode"), str):
         raise MutationError("prove_mode must be represented for proof metadata coverage")
@@ -261,6 +292,37 @@ ACTIVE_MUTATIONS = (
     MutationSpec("proof_pcs_config", "protocol_config", "proof.config.fri_config.n_queries", REJECTION_CLASS_VERIFIER, _wire_mutation(_proof_config)),
 )
 
+PLONK_LOGUP_ORACLE_MUTATIONS = (
+    MutationSpec(
+        "plonk_logup_claimed_sum",
+        "statement",
+        "plonk_logup_statement.claimed_sum",
+        REJECTION_CLASS_VERIFIER,
+        _plonk_logup_claimed_sum,
+    ),
+    MutationSpec(
+        "plonk_logup_log_size",
+        "statement",
+        "plonk_logup_statement.log_n_rows",
+        REJECTION_CLASS_VERIFIER,
+        _plonk_logup_log_size,
+    ),
+    MutationSpec(
+        "plonk_logup_statement_exclusivity",
+        "statement_shape",
+        "plonk_statement",
+        REJECTION_CLASS_VERIFIER,
+        _plonk_logup_statement_exclusivity,
+    ),
+    MutationSpec(
+        "plonk_logup_proof_commitment",
+        "proof_bytes",
+        "proof.commitments[0][0]",
+        REJECTION_CLASS_VERIFIER,
+        _wire_mutation(_commitment),
+    ),
+)
+
 
 NOT_APPLICABLE_COVERAGE = (
     {
@@ -312,4 +374,24 @@ def coverage_manifest(examples: tuple[str, ...] | list[str]) -> dict[str, Any]:
         "applicable": applicable,
         "not_applicable": not_applicable,
         "required_cases": len(selected) * 2 * len(applicable),
+    }
+
+
+def plonk_logup_oracle_coverage_manifest() -> dict[str, Any]:
+    return {
+        "proof_schema": NATIVE_PROOF_SCHEMA,
+        "applicable": [
+            {
+                "mutation_id": spec.mutation_id,
+                "category": spec.category,
+                "field_path": spec.field_path,
+                "status": "required",
+                "required_rejection_class": spec.required_rejection_class,
+                "examples": ["plonk_logup"],
+                "directions": ["zig_to_rust"],
+            }
+            for spec in PLONK_LOGUP_ORACLE_MUTATIONS
+        ],
+        "not_applicable": [],
+        "required_cases": len(PLONK_LOGUP_ORACLE_MUTATIONS),
     }

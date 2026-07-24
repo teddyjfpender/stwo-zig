@@ -7,6 +7,7 @@ use crate::model::{
     PoseidonStatement, ProofWire, WideFibonacciStatement, XorStatement, EXCHANGE_MODE,
     SCHEMA_VERSION,
 };
+use crate::plonk_logup::verify_exact as plonk_logup_verify;
 use crate::profile::{time_stage, write_stage_profile};
 use crate::proving::{
     blake_prove, blake_verify, plonk_prove, plonk_verify, poseidon_prove, poseidon_verify,
@@ -45,6 +46,31 @@ fn pcs_configs_match(expected: PcsConfig, actual: PcsConfig) -> bool {
         && expected.fri_config.n_queries == actual.fri_config.n_queries
 }
 
+fn validate_statement_shape(artifact: &InteropArtifact) -> Result<()> {
+    let present = [
+        ("blake", artifact.blake_statement.is_some()),
+        ("plonk", artifact.plonk_statement.is_some()),
+        ("plonk_logup", artifact.plonk_logup_statement.is_some()),
+        ("poseidon", artifact.poseidon_statement.is_some()),
+        ("state_machine", artifact.state_machine_statement.is_some()),
+        (
+            "wide_fibonacci",
+            artifact.wide_fibonacci_statement.is_some(),
+        ),
+        ("xor", artifact.xor_statement.is_some()),
+    ];
+    if present.iter().filter(|(_, is_present)| *is_present).count() != 1 {
+        bail!("invalid statement shape: expected exactly one statement");
+    }
+    if !present
+        .iter()
+        .any(|(example, is_present)| *is_present && *example == artifact.example)
+    {
+        bail!("invalid statement shape: statement does not match example");
+    }
+    Ok(())
+}
+
 pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
     let example = cli
         .example
@@ -80,6 +106,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 pcs_config: pcs_config_to_wire(config),
                 blake_statement: Some(blake_statement_to_wire(statement)),
                 plonk_statement: None,
+                plonk_logup_statement: None,
                 poseidon_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: None,
@@ -111,6 +138,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 pcs_config: pcs_config_to_wire(config),
                 blake_statement: None,
                 plonk_statement: Some(plonk_statement_to_wire(statement)),
+                plonk_logup_statement: None,
                 poseidon_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: None,
@@ -142,6 +170,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 pcs_config: pcs_config_to_wire(config),
                 blake_statement: None,
                 plonk_statement: None,
+                plonk_logup_statement: None,
                 poseidon_statement: Some(poseidon_statement_to_wire(statement)),
                 state_machine_statement: None,
                 wide_fibonacci_statement: None,
@@ -175,6 +204,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 pcs_config: pcs_config_to_wire(config),
                 blake_statement: None,
                 plonk_statement: None,
+                plonk_logup_statement: None,
                 poseidon_statement: None,
                 state_machine_statement: Some(state_machine_statement_to_wire(statement)),
                 wide_fibonacci_statement: None,
@@ -212,6 +242,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                     pcs_config: pcs_config_to_wire(config),
                     blake_statement: None,
                     plonk_statement: None,
+                    plonk_logup_statement: None,
                     poseidon_statement: None,
                     state_machine_statement: None,
                     wide_fibonacci_statement: Some(wide_fibonacci_statement_to_wire(proved.0)),
@@ -250,6 +281,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 pcs_config: pcs_config_to_wire(config),
                 blake_statement: None,
                 plonk_statement: None,
+                plonk_logup_statement: None,
                 poseidon_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: Some(wide_fibonacci_statement_to_wire(statement)),
@@ -283,6 +315,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 pcs_config: pcs_config_to_wire(config),
                 blake_statement: None,
                 plonk_statement: None,
+                plonk_logup_statement: None,
                 poseidon_statement: None,
                 state_machine_statement: None,
                 wide_fibonacci_statement: None,
@@ -320,6 +353,7 @@ pub(crate) fn run_verify(cli: &Cli) -> Result<()> {
             bail!("unsupported prove mode {}", mode);
         }
     }
+    validate_statement_shape(&artifact)?;
 
     let config = pcs_config_from_wire(&artifact.pcs_config)?;
     let proof_bytes = hex::decode(&artifact.proof_bytes_hex)?;
@@ -345,6 +379,18 @@ pub(crate) fn run_verify(cli: &Cli) -> Result<()> {
                 .ok_or_else(|| anyhow!("missing plonk_statement"))?;
             let statement = plonk_statement_from_wire(statement_wire)?;
             plonk_verify(config, statement, proof)?;
+        }
+        "plonk_logup" => {
+            let statement = artifact
+                .plonk_logup_statement
+                .as_ref()
+                .ok_or_else(|| anyhow!("missing plonk_logup_statement"))?;
+            plonk_logup_verify(
+                config,
+                statement.log_n_rows,
+                crate::wire::qm31_from_wire(statement.claimed_sum)?,
+                proof,
+            )?;
         }
         "poseidon" => {
             let statement_wire = artifact

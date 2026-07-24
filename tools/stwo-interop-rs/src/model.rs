@@ -187,6 +187,12 @@ pub(crate) struct PlonkStatementWire {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct PlonkLogupStatementWire {
+    pub(crate) log_n_rows: u32,
+    pub(crate) claimed_sum: Qm31Wire,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct PoseidonStatementWire {
     pub(crate) log_n_instances: u32,
 }
@@ -214,6 +220,8 @@ pub(crate) struct InteropArtifact {
     pub(crate) pcs_config: PcsConfigWire,
     pub(crate) blake_statement: Option<BlakeStatementWire>,
     pub(crate) plonk_statement: Option<PlonkStatementWire>,
+    #[serde(default)]
+    pub(crate) plonk_logup_statement: Option<PlonkLogupStatementWire>,
     pub(crate) poseidon_statement: Option<PoseidonStatementWire>,
     pub(crate) state_machine_statement: Option<StateMachineStatementWire>,
     pub(crate) wide_fibonacci_statement: Option<WideFibonacciStatementWire>,

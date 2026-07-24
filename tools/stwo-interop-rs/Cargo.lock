@@ -797,6 +797,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "stwo-constraint-framework"
+version = "2.0.0"
+source = "git+https://github.com/starkware-libs/stwo?rev=a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2#a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
+dependencies = [
+ "hashbrown 0.16.1",
+ "itertools 0.12.1",
+ "num-traits",
+ "rand",
+ "rayon",
+ "stwo",
+ "stwo-std-shims",
+ "tracing",
+]
+
+[[package]]
+name = "stwo-examples"
+version = "2.0.0"
+source = "git+https://github.com/starkware-libs/stwo?rev=a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2#a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
+dependencies = [
+ "educe",
+ "itertools 0.12.1",
+ "num-traits",
+ "rand",
+ "rayon",
+ "serde",
+ "stwo",
+ "stwo-constraint-framework",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "stwo-interop-rs"
 version = "0.1.0"
 dependencies = [
@@ -806,6 +838,8 @@ dependencies = [
  "serde",
  "serde_json",
  "stwo",
+ "stwo-constraint-framework",
+ "stwo-examples",
 ]
 
 [[package]]

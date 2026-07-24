@@ -12,9 +12,11 @@ from typing import Any
 from scripts.e2e_interop_lib.mutations import (
     ACTIVE_MUTATIONS,
     M31_MODULUS,
+    PLONK_LOGUP_ORACLE_MUTATIONS,
     SUPPORTED_EXAMPLES,
     coverage_manifest,
     mutate_artifact,
+    plonk_logup_oracle_coverage_manifest,
 )
 
 
@@ -52,6 +54,7 @@ def artifact(example: str) -> dict[str, Any]:
     statements = {
         "blake_statement": None,
         "plonk_statement": None,
+        "plonk_logup_statement": None,
         "poseidon_statement": None,
         "state_machine_statement": None,
         "wide_fibonacci_statement": None,
@@ -60,6 +63,10 @@ def artifact(example: str) -> dict[str, Any]:
     values = {
         "blake": ("blake_statement", {"log_n_rows": 8, "n_rounds": 1}),
         "plonk": ("plonk_statement", {"log_n_rows": 8}),
+        "plonk_logup": (
+            "plonk_logup_statement",
+            {"log_n_rows": 8, "claimed_sum": [1, 2, 3, 4]},
+        ),
         "poseidon": ("poseidon_statement", {"log_n_instances": 8}),
         "state_machine": (
             "state_machine_statement",
@@ -152,6 +159,22 @@ class InteropMutationTests(unittest.TestCase):
                 self.assertEqual(len(digests), len(ACTIVE_MUTATIONS))
                 self.assertEqual(json.loads(source.read_text(encoding="utf-8")), original)
 
+    def test_plonk_logup_oracle_mutations_are_independent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "plonk_logup.json"
+            original = artifact("plonk_logup")
+            source.write_text(json.dumps(original), encoding="utf-8")
+            for spec in PLONK_LOGUP_ORACLE_MUTATIONS:
+                with self.subTest(mutation=spec.mutation_id):
+                    destination = root / f"{spec.mutation_id}.json"
+                    mutate_artifact(source, destination, spec, example="plonk_logup")
+                    mutated = json.loads(destination.read_text(encoding="utf-8"))
+                    differences = differing_leaves(
+                        semantic_artifact(original), semantic_artifact(mutated)
+                    )
+                    self.assertEqual(len(differences), 1, differences)
+
     def test_mutations_remain_canonical_field_values(self) -> None:
         self.assertGreater(M31_MODULUS, 0)
         ids = [spec.mutation_id for spec in ACTIVE_MUTATIONS]
@@ -176,6 +199,15 @@ class InteropMutationTests(unittest.TestCase):
         self.assertEqual(len(not_applicable), 1)
         self.assertEqual(not_applicable[0]["mutation_id"], "serialized_transcript_challenge")
         self.assertIn("no Fiat-Shamir transcript state", not_applicable[0]["reason"])
+
+        exact = plonk_logup_oracle_coverage_manifest()
+        self.assertEqual(
+            exact["required_cases"], len(PLONK_LOGUP_ORACLE_MUTATIONS)
+        )
+        self.assertEqual(
+            {entry["mutation_id"] for entry in exact["applicable"]},
+            {spec.mutation_id for spec in PLONK_LOGUP_ORACLE_MUTATIONS},
+        )
 
 
 if __name__ == "__main__":

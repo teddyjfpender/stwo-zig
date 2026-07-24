@@ -2,6 +2,7 @@ mod cli;
 mod commands;
 mod components;
 mod model;
+mod plonk_logup;
 mod profile;
 mod proving;
 mod statements;
