@@ -24,6 +24,18 @@
     "semantic_hash": "6f60dbf6e15716eb"
   },
   {
+    "abi_schema": "native_indexed_recurrence_trace_v1",
+    "cache_key": "6af438997e7d2cef",
+    "file": "witness_indexed_recurrence_trace_6af438997e7d2cef.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_trace_indexed_recurrence_slabs_v1_ad484862f20d700c",
+    "kind": "witness",
+    "label": "indexed_recurrence_trace",
+    "program_identity": "476ceee95e6cc201404b671b99af24e4875a7a3fcd2138039eb293b65c65687e",
+    "semantic_contract": "stwo-zig/native/indexed-order2-recurrence-trace/v1;field=m31;geometry=row_count=2^log_n_rows,preprocessed_columns=4,main_columns=4;preprocessed=[index_base+row*index_step,index+step,index+2step,constant];main=[selector,recurrence[row],recurrence[row+1],recurrence[row+2]];recurrence[0]=seed0,recurrence[1]=seed1,recurrence[n+2]=recurrence[n+1]+recurrence[n];evaluation=fast_doubling;selector=default,last,penultimate;layout=two_column_major_slabs[column*stride+row];launches=1",
+    "semantic_hash": "ad484862f20d700c"
+  },
+  {
     "abi_schema": "native_m31_permutation_trace_v1",
     "cache_key": "1e2a6a8f48d78fa3",
     "file": "witness_m31_permutation_trace_1e2a6a8f48d78fa3.cu",
