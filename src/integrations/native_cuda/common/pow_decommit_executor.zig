@@ -147,13 +147,17 @@ fn openTrace(
     );
 
     const source = try views.trace.trees.require(opening.role);
+    const column_log_sizes =
+        views.decommit.columnLogSizes(opening.role);
+    if (column_log_sizes.len != opening.column_count)
+        return error.InvalidKernelDescriptor;
     try Decommit.packTraceGroup(
         session,
         opening.tree_index,
         opening.column_count,
         0,
         source.evaluations,
-        source.column_log_sizes,
+        column_log_sizes,
         prepared.decommit.query_log_size,
         queries.mapped,
         queries.mapped_count,
