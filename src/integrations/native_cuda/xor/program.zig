@@ -12,7 +12,16 @@ pub fn emit(
     allocator: std.mem.Allocator,
     materialized: *const trace_mod.Materialized,
 ) !ir.ProofProgram {
-    const geometry = materialized.geometry;
+    return emitGeometry(allocator, materialized.geometry);
+}
+
+/// Production emission depends only on admitted public geometry. CPU trace
+/// materialization remains an oracle/test boundary and is never an ingress
+/// prerequisite for the CUDA path.
+pub fn emitGeometry(
+    allocator: std.mem.Allocator,
+    geometry: geometry_mod.Geometry,
+) !ir.ProofProgram {
     var columns = traceColumns();
     for (&columns) |*column| column.log_rows = geometry.statement.log_size;
     const constraints = [_]ir.ConstraintProgram{.{
@@ -496,4 +505,17 @@ test "XOR public statement changes semantic identity without geometry drift" {
         &first.semantic_digest,
         &second.semantic_digest,
     ));
+}
+
+test "XOR production program emission does not materialize a CPU trace" {
+    const allocator = std.testing.allocator;
+    const geometry = try geometry_mod.admit(
+        .{ .log_size = 16, .log_step = 3, .offset = 5 },
+        @import("stwo_core").pcs.PcsConfig.default(),
+    );
+    var emitted = try emitGeometry(allocator, geometry);
+    defer emitted.deinit(allocator);
+    try emitted.validate();
+    try std.testing.expectEqual(@as(usize, 3), emitted.commitments.len);
+    try std.testing.expectEqual(@as(u32, 11), emitted.quotient.term_count);
 }

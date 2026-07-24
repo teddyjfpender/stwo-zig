@@ -18,6 +18,11 @@ pub const Error = error{
     UnsupportedProtocol,
 };
 
+pub const Request = struct {
+    statement: cpu_xor.Statement,
+    protocol: pcs.PcsConfig,
+};
+
 pub const Geometry = struct {
     statement: cpu_xor.Statement,
     protocol: pcs.PcsConfig,
@@ -26,9 +31,23 @@ pub const Geometry = struct {
     commitment_log_rows: u32,
     composition_log_rows: u32,
     fri_tree_count: u32,
+    commitment_rows: usize,
+    committed_tree_count: usize,
+    decommitted_trace_tree_count: usize,
+    decommit_tree_count: usize,
+    last_layer_domain_rows: usize,
 
     pub fn traceColumnCount(_: Geometry) u32 {
         return preprocessed_columns + main_columns + interaction_columns;
+    }
+
+    pub fn queryLogSize(self: Geometry) u32 {
+        return self.commitment_log_rows;
+    }
+
+    pub fn traceRowCount(self: Geometry) Error!usize {
+        return std.math.cast(usize, self.trace_rows) orelse
+            error.GeometryOverflow;
     }
 };
 
@@ -57,6 +76,20 @@ pub fn admit(
         statement.log_size,
         1,
     ) catch return error.GeometryOverflow;
+    const commitment_rows_u64 =
+        @as(u64, 1) << @intCast(commitment_log_rows);
+    const commitment_rows = std.math.cast(
+        usize,
+        commitment_rows_u64,
+    ) orelse return error.GeometryOverflow;
+    const committed_tree_count: usize = 3;
+    const decommitted_trace_tree_count: usize = 3;
+    const fri_tree_count: u32 = statement.log_size;
+    const decommit_tree_count = std.math.add(
+        usize,
+        decommitted_trace_tree_count,
+        fri_tree_count,
+    ) catch return error.GeometryOverflow;
 
     return .{
         .statement = statement,
@@ -65,8 +98,17 @@ pub fn admit(
         .trace_elements = trace_elements,
         .commitment_log_rows = commitment_log_rows,
         .composition_log_rows = composition_log_rows,
-        .fri_tree_count = statement.log_size,
+        .fri_tree_count = fri_tree_count,
+        .commitment_rows = commitment_rows,
+        .committed_tree_count = committed_tree_count,
+        .decommitted_trace_tree_count = decommitted_trace_tree_count,
+        .decommit_tree_count = decommit_tree_count,
+        .last_layer_domain_rows = 2,
     };
+}
+
+pub fn admitRequest(request: Request) Error!Geometry {
+    return admit(request.statement, request.protocol);
 }
 
 fn supportedProtocol(value: pcs.PcsConfig) bool {
@@ -89,6 +131,14 @@ test "XOR geometry preserves exact CPU tree shape" {
     try std.testing.expectEqual(@as(u32, 3), shape.traceColumnCount());
     try std.testing.expectEqual(@as(u32, 17), shape.commitment_log_rows);
     try std.testing.expectEqual(@as(u32, 16), shape.fri_tree_count);
+    try std.testing.expectEqual(@as(usize, 1 << 17), shape.commitment_rows);
+    try std.testing.expectEqual(@as(usize, 3), shape.committed_tree_count);
+    try std.testing.expectEqual(
+        @as(usize, 3),
+        shape.decommitted_trace_tree_count,
+    );
+    try std.testing.expectEqual(@as(usize, 19), shape.decommit_tree_count);
+    try std.testing.expectEqual(@as(usize, 2), shape.last_layer_domain_rows);
 }
 
 test "XOR geometry rejects statements and protocols outside parity" {
