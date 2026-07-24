@@ -72,6 +72,19 @@ inline void compress(
     }
 }
 
+inline Hash domain_state(std::uint32_t tag) {
+    std::uint32_t hash[8];
+    for (int index = 0; index < 8; ++index) hash[index] = kIv[index];
+    hash[0] ^= 0x01010020u;
+    std::uint32_t prefix[16] = {};
+    prefix[0] = tag;
+    compress(hash, prefix, 64, 0);
+
+    Hash result{};
+    for (int index = 0; index < 8; ++index) result.words[index] = hash[index];
+    return result;
+}
+
 inline Hash hash_prefixed_words(
     std::uint32_t tag,
     const std::vector<std::uint32_t> &words) {

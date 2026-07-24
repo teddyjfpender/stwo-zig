@@ -1,4 +1,5 @@
 #include "blake2s_reference.h"
+#include "../../src/backends/cuda/native/commitment/blake2s_domain_states.h"
 
 #include <cuda_runtime_api.h>
 
@@ -134,6 +135,35 @@ bool expect_hash(
 }
 
 bool test_pinned_zig_oracles() {
+    const auto expect_domain_state = [](
+        std::uint32_t tag,
+        const stwo::cuda::blake2s::DomainState &precomputed,
+        const char *name) {
+        const Hash reference = blake2s_reference::domain_state(tag);
+        for (std::uint32_t index = 0; index < 8; ++index) {
+            if (reference.words[index] == precomputed.words[index]) continue;
+            std::fprintf(
+                stderr,
+                "%s domain state mismatch at %u: %08x != %08x\n",
+                name,
+                index,
+                precomputed.words[index],
+                reference.words[index]);
+            return false;
+        }
+        return true;
+    };
+    if (!expect_domain_state(
+            0x6661656cu,
+            stwo::cuda::blake2s::kLeafInitialState,
+            "leaf") ||
+        !expect_domain_state(
+            0x65646f6eu,
+            stwo::cuda::blake2s::kNodeInitialState,
+            "node")) {
+        return false;
+    }
+
     const Hash empty_expected{{
         0x153e132au, 0x19723802u, 0x77ead121u, 0x9c978228u,
         0xf2850f81u, 0xb9999084u, 0x865a41d3u, 0xad5fd819u,
