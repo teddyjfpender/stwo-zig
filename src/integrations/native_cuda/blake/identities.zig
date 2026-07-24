@@ -34,6 +34,9 @@ pub const mask_layout = digest(
 pub const constraint_expression = digest(
     "stwo/native/blake/constraint:constant-qm31(log_rows,rounds,96*rounds,1):v1",
 );
+pub const constraint_parameter_abi = digest(
+    "stwo/native/blake/constraint-parameters:u32-log-rows,u32-rounds,u32-width,u32-one,qm31-alpha:v1",
+);
 
 pub fn statement(value: cpu_blake.Statement) ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
