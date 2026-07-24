@@ -10,12 +10,21 @@ pub const NativeContext = ContextFor(native_api);
 pub fn ContextFor(comptime Api: type) type {
     return struct {
         const Self = @This();
+        const max_allocations = 256;
+        const Allocation = struct {
+            address: usize = 0,
+            bytes: usize = 0,
+            generation: u64 = 0,
+        };
 
         handle: ?*anyopaque,
         stream: *anyopaque,
         device: u32,
         lane_count: u32,
         live_buffers: usize = 0,
+        allocations: [max_allocations]Allocation =
+            [_]Allocation{.{}} ** max_allocations,
+        next_allocation_generation: u64 = 1,
         active_stage: ?telemetry.Stage = null,
         next_stage_index: usize = 0,
         counters: telemetry.Counters = .{},
@@ -24,6 +33,7 @@ pub fn ContextFor(comptime Api: type) type {
             pointer: [*]u32,
             words: usize,
             owner: usize,
+            generation: u64,
 
             pub fn bytes(self: Buffer) runtime_error.Error!usize {
                 return std.math.mul(usize, self.words, @sizeOf(u32)) catch
@@ -109,22 +119,45 @@ pub fn ContextFor(comptime Api: type) type {
             var raw: ?[*]u32 = null;
             try runtime_error.check(Api.stwo_exec_context_alloc_u32(handle, words, &raw));
             const pointer = raw orelse return error.NullDevicePointer;
+            if (self.live_buffers == max_allocations) {
+                _ = Api.stwo_exec_context_free_u32(handle, pointer);
+                return error.AllocationRegistryFull;
+            }
+            const generation = self.next_allocation_generation;
+            self.next_allocation_generation = std.math.add(
+                u64,
+                generation,
+                1,
+            ) catch {
+                _ = Api.stwo_exec_context_free_u32(handle, pointer);
+                return error.AllocationRegistryFull;
+            };
+            self.allocations[self.live_buffers] = .{
+                .address = @intFromPtr(pointer),
+                .bytes = bytes,
+                .generation = generation,
+            };
             self.live_buffers += 1;
             self.counters.allocation(self.active_stage, bytes);
             return .{
                 .pointer = pointer,
                 .words = words,
                 .owner = @intFromPtr(handle),
+                .generation = generation,
             };
         }
 
         pub fn free(self: *Self, buffer: *Buffer) runtime_error.Error!void {
             const handle = try self.requireOwner(buffer.*);
+            const allocation_index = try self.exactAllocation(buffer.*);
             try runtime_error.check(Api.stwo_exec_context_free_u32(handle, buffer.pointer));
             self.counters.free(self.active_stage, try buffer.bytes());
             self.live_buffers -= 1;
+            self.allocations[allocation_index] = self.allocations[self.live_buffers];
+            self.allocations[self.live_buffers] = .{};
             buffer.words = 0;
             buffer.owner = 0;
+            buffer.generation = 0;
         }
 
         pub fn upload(
@@ -185,14 +218,33 @@ pub fn ContextFor(comptime Api: type) type {
             minimum_elements: usize,
         ) runtime_error.Error![*]F {
             const handle = try self.requireHandle();
-            if (minimum_elements == 0 or
-                slice.len < minimum_elements or
-                slice.owner != @intFromPtr(handle) or
-                slice.address == 0 or
-                slice.address % @alignOf(F) != 0)
+            if (minimum_elements == 0 or slice.len < minimum_elements or
+                slice.owner != @intFromPtr(handle) or slice.generation == 0 or
+                slice.address == 0 or slice.address % @alignOf(F) != 0)
             {
                 return error.InvalidDeviceAddress;
             }
+            const bytes = std.math.mul(
+                usize,
+                minimum_elements,
+                @sizeOf(F),
+            ) catch return error.SizeOverflow;
+            const end = std.math.add(usize, slice.address, bytes) catch
+                return error.SizeOverflow;
+            var resident = false;
+            for (self.allocations[0..self.live_buffers]) |allocation| {
+                if (allocation.generation != slice.generation) continue;
+                const allocation_end = std.math.add(
+                    usize,
+                    allocation.address,
+                    allocation.bytes,
+                ) catch return error.SizeOverflow;
+                if (slice.address >= allocation.address and end <= allocation_end) {
+                    resident = true;
+                    break;
+                }
+            }
+            if (!resident) return error.InvalidDeviceAddress;
             return @ptrFromInt(slice.address);
         }
 
@@ -287,9 +339,27 @@ pub fn ContextFor(comptime Api: type) type {
 
         fn requireOwner(self: *Self, buffer: Buffer) runtime_error.Error!*anyopaque {
             const handle = try self.requireHandle();
-            if (buffer.words == 0 or buffer.owner != @intFromPtr(handle))
+            if (buffer.words == 0 or buffer.owner != @intFromPtr(handle) or
+                buffer.generation == 0)
                 return error.ContextMismatch;
             return handle;
+        }
+
+        fn exactAllocation(
+            self: *Self,
+            buffer: Buffer,
+        ) runtime_error.Error!usize {
+            const bytes = try buffer.bytes();
+            const address = @intFromPtr(buffer.pointer);
+            for (self.allocations[0..self.live_buffers], 0..) |allocation, index| {
+                if (allocation.address == address and
+                    allocation.bytes == bytes and
+                    allocation.generation == buffer.generation)
+                {
+                    return index;
+                }
+            }
+            return error.ContextMismatch;
         }
     };
 }
@@ -385,10 +455,17 @@ test "context owns buffers and accounts only explicit transfers" {
         .address = @intFromPtr(buffer.pointer),
         .len = buffer.words,
         .owner = buffer.owner,
+        .generation = buffer.generation,
     };
     try std.testing.expectEqual(
         @intFromPtr(buffer.pointer),
         @intFromPtr(try context.deviceSlicePointer(u32, owned_slice, 16)),
+    );
+    var oversized_slice = owned_slice;
+    oversized_slice.len = 17;
+    try std.testing.expectError(
+        error.InvalidDeviceAddress,
+        context.deviceSlicePointer(u32, oversized_slice, 17),
     );
     var foreign_slice = owned_slice;
     foreign_slice.owner += 1;
@@ -423,6 +500,10 @@ test "context owns buffers and accounts only explicit transfers" {
     var proof_words: [4]u32 = undefined;
     try context.readProofWords(&proof_words, buffer);
     try context.free(&buffer);
+    try std.testing.expectError(
+        error.InvalidDeviceAddress,
+        context.deviceSlicePointer(u32, owned_slice, 1),
+    );
     try context.endStage(.proof_assembly);
     try context.close();
     try std.testing.expectEqual(@as(u64, 64), context.counters.peak_live_bytes);

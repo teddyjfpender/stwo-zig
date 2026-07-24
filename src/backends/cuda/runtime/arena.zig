@@ -128,6 +128,7 @@ pub fn ArenaFor(comptime Context: type) type {
                 ) catch return error.SizeOverflow,
                 .len = placed.requirement.words,
                 .owner = self.backing.owner,
+                .generation = self.backing.generation,
             };
         }
 
@@ -300,6 +301,7 @@ test "arena materializes every slot from one context allocation" {
             pointer: [*]u32,
             words: usize,
             owner: usize,
+            generation: u64,
         };
 
         storage: [64]u32 = [_]u32{0} ** 64,
@@ -313,6 +315,7 @@ test "arena materializes every slot from one context allocation" {
                 .pointer = &self.storage,
                 .words = words,
                 .owner = @intFromPtr(self),
+                .generation = 1,
             };
         }
 

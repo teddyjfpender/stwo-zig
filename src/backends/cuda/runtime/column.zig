@@ -13,6 +13,7 @@ pub fn DeviceSlice(comptime F: type) type {
         address: usize,
         len: usize,
         owner: usize,
+        generation: u64 = 0,
 
         pub fn sub(self: Self, first: usize, count: usize) runtime_error.Error!Self {
             if (first > self.len or count > self.len - first) return error.SizeOverflow;
@@ -23,6 +24,7 @@ pub fn DeviceSlice(comptime F: type) type {
                     return error.SizeOverflow,
                 .len = count,
                 .owner = self.owner,
+                .generation = self.generation,
             };
         }
 
@@ -36,6 +38,7 @@ pub fn DeviceSlice(comptime F: type) type {
                 .address = self.address,
                 .len = bytes / @sizeOf(G),
                 .owner = self.owner,
+                .generation = self.generation,
             };
         }
 
@@ -102,6 +105,7 @@ pub fn DeviceColumnFor(comptime Context: type, comptime F: type) type {
                 .address = @intFromPtr(self.buffer.pointer),
                 .len = self.len,
                 .owner = self.buffer.owner,
+                .generation = self.buffer.generation,
             };
         }
 
