@@ -23,7 +23,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
         pub fn run(
             self: Self,
             request: request_mod.Request,
-        ) !Transaction.BundleOutput {
+        ) !Transaction.StarkBundleOutput {
             const geometry = try request_mod.admit(request);
             var prepared = try Executor.prepare(self.allocator, geometry);
             defer prepared.deinit(self.allocator);
@@ -51,7 +51,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
                 try transaction.endStage(stage);
             }
 
-            const output = try transaction.assembleBundleAndFinish(
+            const output = try transaction.assembleStarkBundleAndFinish(
                 self.allocator,
                 prepared.proofSlot(),
             );
@@ -120,7 +120,7 @@ fn assertExecutor(comptime Executor: type) void {
 
 test "driver owns exact stage order and one final proof read" {
     const FakeTransaction = struct {
-        pub const BundleOutput = struct {
+        pub const StarkBundleOutput = struct {
             marker: u32,
         };
 
@@ -161,11 +161,11 @@ test "driver owns exact stage order and one final proof read" {
             self.next_stage += 1;
         }
 
-        pub fn assembleBundleAndFinish(
+        pub fn assembleStarkBundleAndFinish(
             self: *@This(),
             _: std.mem.Allocator,
             proof_slot: arena.SlotId,
-        ) !BundleOutput {
+        ) !StarkBundleOutput {
             if (self.next_stage != protocol.execution_stages.len or
                 proof_slot != 99 or self.final_reads != 0)
             {
