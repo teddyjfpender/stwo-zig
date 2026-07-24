@@ -1,0 +1,2 @@
+src/backends/cuda/vendor/upstream/** whitespace=-trailing-space,-blank-at-eof
+src/backends/cuda/vendor/host_authority/** whitespace=-trailing-space,-blank-at-eof

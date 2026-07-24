@@ -131,7 +131,8 @@ pub fn decodeProofBytesBinary(allocator: std.mem.Allocator, encoded: []const u8)
     return wireToProof(allocator, wire);
 }
 
-fn proofToWire(allocator: std.mem.Allocator, proof: Proof) !ProofWire {
+/// Materializes the canonical interchange shape from an owned STARK proof.
+pub fn proofToWire(allocator: std.mem.Allocator, proof: Proof) !ProofWire {
     const pcs_proof = proof.commitment_scheme_proof;
 
     const commitments = try allocator.alloc(HashWire, pcs_proof.commitments.items.len);
@@ -162,7 +163,8 @@ fn proofToWire(allocator: std.mem.Allocator, proof: Proof) !ProofWire {
     };
 }
 
-fn wireToProof(allocator: std.mem.Allocator, wire: ProofWire) !Proof {
+/// Converts a validated wire shape into an independently owned STARK proof.
+pub fn wireToProof(allocator: std.mem.Allocator, wire: ProofWire) !Proof {
     if (wire.config.fri_config.n_queries > std.math.maxInt(usize)) return CodecError.ValueOutOfRange;
 
     var fri_config = try fri.FriConfig.init(

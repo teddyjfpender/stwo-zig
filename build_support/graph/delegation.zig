@@ -7,6 +7,15 @@ pub const Options = struct {
     aggregate_metal: bool,
     riscv_release_phase: []const u8,
     riscv_evidence_dir: []const u8,
+    cuda_nvcc: ?[]const u8,
+    cuda_host_cxx: ?[]const u8,
+    cuda_host_runtime: ?[]const u8,
+    cuda_host_unwind_runtime: ?[]const u8,
+    cuda_archiver: ?[]const u8,
+    cuda_home: ?[]const u8,
+    cuda_library_dir: ?[]const u8,
+    cuda_architectures: ?[]const u8,
+    cuda_build_jobs: ?u16,
     identity: ?build_identity.Identity,
 
     pub fn read(b: *std.Build) Options {
@@ -34,6 +43,15 @@ pub const Options = struct {
             .aggregate_metal = b.option(bool, "aggregate-metal", "Explicitly link Metal into aggregate test roots") orelse false,
             .riscv_release_phase = b.option([]const u8, "riscv-release-phase", "CP-13 phase: candidate or promoted") orelse "candidate",
             .riscv_evidence_dir = b.option([]const u8, "riscv-evidence-dir", "Fresh CP-13 evidence directory") orelse "zig-out/release-evidence/riscv",
+            .cuda_nvcc = b.option([]const u8, "cuda-nvcc", "Explicit nvcc executable"),
+            .cuda_host_cxx = b.option([]const u8, "cuda-host-cxx", "Explicit nvcc host C++ compiler"),
+            .cuda_host_runtime = b.option([]const u8, "cuda-host-runtime", "Absolute GNU C++ runtime shared-library path"),
+            .cuda_host_unwind_runtime = b.option([]const u8, "cuda-host-unwind-runtime", "Absolute GNU C++ unwind runtime shared-library path"),
+            .cuda_archiver = b.option([]const u8, "cuda-ar", "Explicit static archiver"),
+            .cuda_home = b.option([]const u8, "cuda-home", "Explicit CUDA toolkit root"),
+            .cuda_library_dir = b.option([]const u8, "cuda-library-dir", "Explicit CUDA library directory"),
+            .cuda_architectures = b.option([]const u8, "cuda-arch", "Comma-separated numeric CUDA SM targets"),
+            .cuda_build_jobs = b.option(u16, "cuda-build-jobs", "Maximum parallel nvcc processes"),
             .identity = resolveIdentity(b, .{
                 .commit = implementation_commit,
                 .dirty = implementation_dirty,
@@ -103,10 +121,37 @@ fn commandFor(
         command.addArg(b.fmt("-Driscv-release-phase={s}", .{options.riscv_release_phase}));
         command.addArg(b.fmt("-Driscv-evidence-dir={s}", .{options.riscv_evidence_dir}));
     }
+    if (std.mem.eql(u8, scope, "cuda_tools") or std.mem.eql(u8, scope, "native_cuda"))
+        addCudaArguments(b, command, options);
     if (b.user_input_options.get("target") != null or b.user_input_options.get("cpu") != null)
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));
     if (options.identity) |identity| addIdentityArguments(b, command, identity);
     return command;
+}
+
+fn addCudaArguments(
+    b: *std.Build,
+    command: *std.Build.Step.Run,
+    options: Options,
+) void {
+    const StringOption = struct { name: []const u8, value: ?[]const u8 };
+    for ([_]StringOption{
+        .{ .name = "cuda-nvcc", .value = options.cuda_nvcc },
+        .{ .name = "cuda-host-cxx", .value = options.cuda_host_cxx },
+        .{ .name = "cuda-host-runtime", .value = options.cuda_host_runtime },
+        .{ .name = "cuda-host-unwind-runtime", .value = options.cuda_host_unwind_runtime },
+        .{ .name = "cuda-ar", .value = options.cuda_archiver },
+        .{ .name = "cuda-home", .value = options.cuda_home },
+        .{ .name = "cuda-library-dir", .value = options.cuda_library_dir },
+        .{ .name = "cuda-arch", .value = options.cuda_architectures },
+    }) |option| if (option.value) |value| command.addArg(b.fmt(
+        "-D{s}={s}",
+        .{ option.name, value },
+    ));
+    if (options.cuda_build_jobs) |jobs| command.addArg(b.fmt(
+        "-Dcuda-build-jobs={d}",
+        .{jobs},
+    ));
 }
 
 fn resolveIdentity(b: *std.Build, options: IdentityOptions) ?build_identity.Identity {

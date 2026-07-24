@@ -26,12 +26,18 @@ test "Cairo products remain disabled and RISC-V accelerators unavailable" {
     }
 }
 
-test "CUDA products cannot inherit toolchain defaults" {
+test "only Native CUDA is constructible and it cannot inherit toolchain defaults" {
     for (matrix.descriptors) |descriptor| {
-        if (descriptor.product.backend == .cuda)
+        if (descriptor.product.backend != .cuda) continue;
+        if (descriptor.product.frontend == .native) {
+            try std.testing.expect(descriptor.isConstructible());
+            try std.testing.expect(descriptor.isAvailableOn(.linux));
+            try std.testing.expect(!descriptor.isAvailableOn(.macos));
+        } else {
             try std.testing.expect(!descriptor.isConstructible());
+        }
     }
-    try std.testing.expectError(error.MissingCudaLibraryDirectory, (cuda.Toolchain{}).validate());
+    try std.testing.expectError(error.MissingCudaCompiler, (cuda.Toolchain{}).validate());
 }
 
 test "Native Metal alone is parity-gated and macOS compatible" {

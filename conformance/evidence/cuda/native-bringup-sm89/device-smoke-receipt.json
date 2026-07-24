@@ -1,0 +1,96 @@
+{
+  "archive_sha256": "482594c2aa6494337811edbd304143fdf69cbf5d318c61341f3695b879e601e7",
+  "compiler": "/usr/bin/x86_64-linux-gnu-g++-13",
+  "compiler_sha256": "52f1ddb33fe78b9441e0f42e9cd22c571f1101938e046c8a26582494e041cc73",
+  "compiler_version": "x86_64-linux-gnu-g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "cuda_home": "/usr/local/cuda-12.8",
+  "cuda_visible_devices": null,
+  "gpu": "NVIDIA GeForce RTX 4090, GPU-3dabce32-b71d-9cdf-6392-026267492cb6, 8.9, 580.126.09",
+  "schema": "stwo-zig-cuda-device-smoke-v1",
+  "tests": [
+    {
+      "executable_sha256": "0ac8101908c4f0ae7865f73cd1ff3c0ad82d6351d01cf0a4a3673a8ce02c8311",
+      "name": "native_aot_constraint_smoke",
+      "source_sha256": "50197e910ea66937db78a2cabadc861842d5b4f61d981309ab1c91f2a16d3ed8",
+      "stderr": "",
+      "stdout": "native CUDA AOT constraint smoke passed"
+    },
+    {
+      "executable_sha256": "2d4e3f241b154aeb58a1915faedc18f8d447438f6a355dfb8c4e1e66961b3c4c",
+      "name": "native_blake2s_commitment_smoke",
+      "source_sha256": "a73505d6f7b00d45c551b5e4c4f518cc05b705fe9c24fe0f4f67f62edda5653b",
+      "stderr": "",
+      "stdout": "native CUDA Blake2s commitment smoke passed"
+    },
+    {
+      "executable_sha256": "e6552da0e66946807ec259ca3f6aa7b069dde65f5765ce26ec282c26f903c0e0",
+      "name": "native_composition_split_smoke",
+      "source_sha256": "1993edfd96c1b4c9b9409e20630dd6404c170bc241f0c6eea7b414e8eaecb231",
+      "stderr": "",
+      "stdout": "native CUDA composition-split smoke passed"
+    },
+    {
+      "executable_sha256": "2c65dda190fff45d6fccb7ec7000cec54c0632181dfb49ace6f9882abb0c0197",
+      "name": "native_constraint_power_smoke",
+      "source_sha256": "b5737be9cd01c970c08af6eaf26854c5ab5db7558f539afee6b6bda7eb054727",
+      "stderr": "",
+      "stdout": "native CUDA constraint-power smoke passed"
+    },
+    {
+      "executable_sha256": "761b4d9afeae7046ed755de0300751c9791607a61e29d66077eae5ee1145ca11",
+      "name": "native_decommit_smoke",
+      "source_sha256": "87ba4da3cb39a4223cce9d80b4ac6205ababa27d4d66cfa515f35813efa3e8ba",
+      "stderr": "",
+      "stdout": "Native CUDA decommit differential passed"
+    },
+    {
+      "executable_sha256": "f3bf5f8cb194690b641c1de88479918544a60d7ffeadca38183a00849f519363",
+      "name": "native_fri_pow_smoke",
+      "source_sha256": "ef6929da340365aeb28cbd0a8d715a1232fb1520cf4ec62208a36480798492ce",
+      "stderr": "",
+      "stdout": "native CUDA FRI/PoW smoke passed: contiguous folds, final IFFT, bounded deterministic grind"
+    },
+    {
+      "executable_sha256": "d59c195dcffdf9ae0118ec4a845450020b4f033717a7a92ce32b9ecbd4671f81",
+      "name": "native_oods_smoke",
+      "source_sha256": "9f32f313d17a434823b8ca2ee9ee6c82a3d1f4fe3ba4a4e94659b8d3d4aa082b",
+      "stderr": "",
+      "stdout": "native CUDA OODS smoke passed"
+    },
+    {
+      "executable_sha256": "5bf95cc0426e606713d158b4fe66bfc2fd8732d228286f0fe8b5b97c628e5ae4",
+      "name": "native_platform_snapshot_smoke",
+      "source_sha256": "996983808567d8c0fd63a704c82ebddc299319036145d63c2a611c30371d96ad",
+      "stderr": "",
+      "stdout": "native CUDA platform snapshot passed: device=0 driver=13000 runtime=12080 toolkit=12080 memory=25250627584 SMs=128"
+    },
+    {
+      "executable_sha256": "e2a40eb8dc70e665bb0dbfa51cd0cf4e79b828c55c2a089682054f373fa1db48",
+      "name": "native_quotient_smoke",
+      "source_sha256": "6fc4107e714a5be7a1ca908fb7b050fac0d23d3d6d8e1cf1ecc2e7712997b5bd",
+      "stderr": "",
+      "stdout": "Native CUDA quotient smoke passed: five resident stages match independent CPU references and reject invalid ranges"
+    },
+    {
+      "executable_sha256": "2d96d925da6b5ced6c736d99c020d112457ee291d15e71b87ccd6e93a1b13a67",
+      "name": "native_transcript_smoke",
+      "source_sha256": "83f3051c56ed64077f747a23975c37c812d1126d7cd293fef99a4d3a88cf9b30",
+      "stderr": "",
+      "stdout": "native CUDA transcript smoke passed: 8 operations, PoW nonce 477"
+    },
+    {
+      "executable_sha256": "da68ceb5cabb37a4d110043b727289f0315c328f4c5f12397f9847cadf00a6d3",
+      "name": "native_transform_smoke",
+      "source_sha256": "86ea2d16ef738ad51b94d3cb2b3a6e35e0fb507fd7406e6a01839f59a66d54d0",
+      "stderr": "",
+      "stdout": "native CUDA transform smoke passed: 5 shapes, including width 37 and log 8/9/10 boundaries"
+    },
+    {
+      "executable_sha256": "2a2b0ed08ab461a140383140ec7e829d2dbac906df77de91bfcaae4618dc3079",
+      "name": "native_wide_fibonacci_trace_smoke",
+      "source_sha256": "10a8728e38db252462c4619c7f4c6f5fe8d18de7dfdb43cab1823cc3e71c31c4",
+      "stderr": "",
+      "stdout": "native CUDA wide-Fibonacci trace smoke passed: 1024 rows x 37 columns"
+    }
+  ]
+}

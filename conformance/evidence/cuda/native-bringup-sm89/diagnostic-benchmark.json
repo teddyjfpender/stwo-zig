@@ -1,0 +1,3460 @@
+{
+  "evidence_class": "diagnostic_cold_process_only",
+  "generated_at_utc": "2026-07-24T08:28:37.354127+00:00",
+  "headline_eligible": false,
+  "measurement_contract": {
+    "cold_process_per_sample": true,
+    "cooldown_seconds": 1.0,
+    "execution": "sequential_fixed_order",
+    "limitations": [
+      "diagnostic evidence only; never headline or promotion evidence",
+      "every sample is a fresh process; no warm-request timing is claimed",
+      "no CPU or Metal speedup is inferred by this CUDA-only runner"
+    ],
+    "protocol": "raw-stwo-wide-v1",
+    "samples_per_shape": 3,
+    "throughput_denominators": {
+      "cold_external_elapsed": "controller wall around the resource-measured product process",
+      "committed_mcells_per_second": "trace_rows * sequence_len / elapsed_seconds / 1e6",
+      "resident_elapsed": "product timing_ns.resident_prove",
+      "trace_row_mhz": "trace_rows / elapsed_seconds / 1e6"
+    },
+    "timeout_seconds": 3600.0,
+    "warm_request_measured": false,
+    "warmups": 0
+  },
+  "provenance": {
+    "aot_build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+    "cuda_visible_devices": "0",
+    "device": {
+      "driver_version": 13000,
+      "global_memory_bytes": 25250627584,
+      "multiprocessors": 128,
+      "ordinal": 0,
+      "runtime_version": 12080,
+      "sm_major": 8,
+      "sm_minor": 9,
+      "toolkit_version": 12080,
+      "uuid": "3dabce32b71d9cdf6392026267492cb6"
+    },
+    "git_commit": "61bdc51bc41cc28ce720f62233ac9c446b4f1647",
+    "git_dirty": false,
+    "host": {
+      "logical_cpu_count": 32,
+      "machine": "x86_64",
+      "release": "6.5.0-44-generic",
+      "system": "Linux"
+    },
+    "product_binary": "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+    "product_binary_sha256": "e7a8655323c4be570552a511585b826c28b0f5274ec940bd1e5fbdb781a7f750",
+    "repo_root": "/workspace/stwo-zig-cuda-clean"
+  },
+  "schema": "native_cuda_cold_diagnostic_v1",
+  "summary": {
+    "all_proofs_zig_verified": true,
+    "all_samples_complete_once": true,
+    "all_samples_resident": true,
+    "all_samples_single_terminal_d2h": true,
+    "all_samples_strict_aot": true,
+    "all_samples_zero_fallback": true,
+    "all_shape_proofs_stable": true,
+    "aot_build_identity_stable": true,
+    "cold_processes": 24,
+    "device_identity_stable": true,
+    "workload_shapes": 8
+  },
+  "workloads": [
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 0.19370440803268085,
+          "max": 5.2972652166715815,
+          "median": 5.103560808638901,
+          "min": 4.791815069794539
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.0019370440803268066,
+          "max": 0.05297265216671582,
+          "median": 0.05103560808638901,
+          "min": 0.04791815069794538
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 2300.0,
+          "median": 2300.0,
+          "min": 2300.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 35893284.0,
+          "median": 35893284.0,
+          "min": 35893284.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 67108864.0,
+          "median": 67108864.0,
+          "min": 67108864.0
+        },
+        "external_wall_ms": {
+          "mad": 11.739089999999976,
+          "max": 341.916367,
+          "median": 321.030759,
+          "min": 309.291669
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 140412.0,
+          "median": 140412.0,
+          "min": 140412.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 344.0,
+          "median": 344.0,
+          "min": 344.0
+        },
+        "peak_rss_kib": {
+          "mad": 16.0,
+          "max": 119496.0,
+          "median": 119480.0,
+          "min": 119088.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 0.3857985757655227,
+          "max": 8.202990079003195,
+          "median": 7.817191503237672,
+          "min": 7.185006029107659
+        },
+        "resident_prove_ms": {
+          "mad": 9.857292000000001,
+          "max": 228.030428,
+          "median": 209.589339,
+          "min": 199.732047
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.0038579857576552384,
+          "max": 0.08202990079003196,
+          "median": 0.07817191503237672,
+          "min": 0.07185006029107659
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 98072.0,
+          "median": 98072.0,
+          "min": 98072.0
+        },
+        "total_before_publication_ms": {
+          "mad": 9.909502000000003,
+          "max": 237.898419,
+          "median": 219.324281,
+          "min": 209.414779
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 48180,
+        "canonical_sha256": "ee3cb0957a56876a3d4c0ce6332115137ddb9b9766ac902beafd002fbe0b74ed"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "14",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log14-width100/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log14-width100/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 341916367,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              228030428
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              649587
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 119088
+          },
+          "proof": {
+            "artifact_bytes": 96913,
+            "artifact_sha256": "805ae757eb4204a64d7fab2539f83280d306e87bc2bb21e4e5b63f4cbd92e724",
+            "canonical_bytes": 48180,
+            "canonical_sha256": "ee3cb0957a56876a3d4c0ce6332115137ddb9b9766ac902beafd002fbe0b74ed"
+          },
+          "raw_report_sha256": "19037aac7e890035a2c1f900360382561d7160d7a5a78f7a4b0f56ae16497a76",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2300,
+            "graph_launches": 0,
+            "h2d_bytes": 140412,
+            "kernel_launches": 344,
+            "peak_live_bytes": 35893284,
+            "pool_reserved_bytes": 67108864,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 98072,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "b5d8ec572fdbfad05777327a94c72fd892d15f6813944285f08c0ffc8d320284",
+          "stdout_sha256": "de245c44dc97a0af56bdd19522370159e8a000bb0550ef9651b39231b6342404",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 4.791815069794539,
+            "cold_external_trace_row_mhz": 0.04791815069794538,
+            "resident_committed_mcells_per_second": 7.185006029107659,
+            "resident_trace_row_mhz": 0.07185006029107659
+          },
+          "timing_ns": {
+            "resident_prove": 228030428,
+            "terminal_decode": 649587,
+            "total_before_publication": 237898419
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "14",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log14-width100/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log14-width100/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 321030759,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              209589339
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              665146
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 119480
+          },
+          "proof": {
+            "artifact_bytes": 96913,
+            "artifact_sha256": "805ae757eb4204a64d7fab2539f83280d306e87bc2bb21e4e5b63f4cbd92e724",
+            "canonical_bytes": 48180,
+            "canonical_sha256": "ee3cb0957a56876a3d4c0ce6332115137ddb9b9766ac902beafd002fbe0b74ed"
+          },
+          "raw_report_sha256": "17823852ed7689df7ec42d8ccef1d0771d73ff0a5843312244acee0d1175f5c6",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2300,
+            "graph_launches": 0,
+            "h2d_bytes": 140412,
+            "kernel_launches": 344,
+            "peak_live_bytes": 35893284,
+            "pool_reserved_bytes": 67108864,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 98072,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "07b59bbebd579b9fe271a5f31df0569e28db1766cfbc789b6c88e8d4a7231bbb",
+          "stdout_sha256": "eb95b436a217ad7121ca81ef1e814d3b3de5a36fa51ae073aa28608fe2df4f64",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 5.103560808638901,
+            "cold_external_trace_row_mhz": 0.05103560808638901,
+            "resident_committed_mcells_per_second": 7.817191503237672,
+            "resident_trace_row_mhz": 0.07817191503237672
+          },
+          "timing_ns": {
+            "resident_prove": 209589339,
+            "terminal_decode": 665146,
+            "total_before_publication": 219324281
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "14",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log14-width100/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log14-width100/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 309291669,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              199732047
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              668826
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 119496
+          },
+          "proof": {
+            "artifact_bytes": 96913,
+            "artifact_sha256": "805ae757eb4204a64d7fab2539f83280d306e87bc2bb21e4e5b63f4cbd92e724",
+            "canonical_bytes": 48180,
+            "canonical_sha256": "ee3cb0957a56876a3d4c0ce6332115137ddb9b9766ac902beafd002fbe0b74ed"
+          },
+          "raw_report_sha256": "592df333021cee3740a8dd9db7ccdd58cfc290e19d2cef9ed8decb8778860fe3",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2300,
+            "graph_launches": 0,
+            "h2d_bytes": 140412,
+            "kernel_launches": 344,
+            "peak_live_bytes": 35893284,
+            "pool_reserved_bytes": 67108864,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 98072,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "0c330c6e7ea90af1618f66bc9dd4bdf5ac491886e69cf2be27245e79fc5c8ffa",
+          "stdout_sha256": "5fbcee92749bd2a2fb7828e7dd50e0d7f118f6d216afc77e38c6e6c5b5a40826",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 5.2972652166715815,
+            "cold_external_trace_row_mhz": 0.05297265216671582,
+            "resident_committed_mcells_per_second": 8.202990079003195,
+            "resident_trace_row_mhz": 0.08202990079003196
+          },
+          "timing_ns": {
+            "resident_prove": 199732047,
+            "terminal_decode": 668826,
+            "total_before_publication": 209414779
+          }
+        }
+      ],
+      "shape_id": "log14-width100",
+      "statement": {
+        "log_n_rows": 14,
+        "sequence_len": 100,
+        "trace_cells": 1638400,
+        "trace_rows": 16384
+      }
+    },
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 0.12708409064466863,
+          "max": 20.537753575023526,
+          "median": 20.410669484378857,
+          "min": 19.805790467756164
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.0012708409064466908,
+          "max": 0.20537753575023526,
+          "median": 0.20410669484378857,
+          "min": 0.19805790467756162
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 2364.0,
+          "median": 2364.0,
+          "min": 2364.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 143266044.0,
+          "median": 143266044.0,
+          "min": 143266044.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 167772160.0,
+          "median": 167772160.0,
+          "min": 167772160.0
+        },
+        "external_wall_ms": {
+          "mad": 1.9868309999999951,
+          "max": 330.89313,
+          "median": 321.086969,
+          "min": 319.100138
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 534252.0,
+          "median": 534252.0,
+          "min": 534252.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 401.0,
+          "median": 401.0,
+          "min": 401.0
+        },
+        "peak_rss_kib": {
+          "mad": 108.0,
+          "max": 119608.0,
+          "median": 119324.0,
+          "min": 119216.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 0.41129344172683346,
+          "max": 31.42887187014923,
+          "median": 30.95254399651497,
+          "min": 30.541250554788135
+        },
+        "resident_prove_ms": {
+          "mad": 2.851337000000001,
+          "max": 214.581914,
+          "median": 211.730577,
+          "min": 208.521643
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.0041129344172683435,
+          "max": 0.3142887187014923,
+          "median": 0.3095254399651497,
+          "min": 0.30541250554788135
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 122240.0,
+          "median": 122240.0,
+          "min": 122240.0
+        },
+        "total_before_publication_ms": {
+          "mad": 2.9188369999999964,
+          "max": 224.809064,
+          "median": 221.890227,
+          "min": 218.664983
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 61470,
+        "canonical_sha256": "70d26c4a0c7928195f8ea6311a8b109acfa42a0559313b80700aee8c924a8601"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "16",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log16-width100/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log16-width100/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 330893130,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              214581914
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              785556
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 119216
+          },
+          "proof": {
+            "artifact_bytes": 123493,
+            "artifact_sha256": "1f44b6b702da0bd4eeb2fc50463c73c9c68fb25cd5e2c563672a4c3d420c765a",
+            "canonical_bytes": 61470,
+            "canonical_sha256": "70d26c4a0c7928195f8ea6311a8b109acfa42a0559313b80700aee8c924a8601"
+          },
+          "raw_report_sha256": "7d4ba3ab8ff6688d597b8fb24b0f0783b8ad21a1515df8d93d75bbfe92d651d4",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2364,
+            "graph_launches": 0,
+            "h2d_bytes": 534252,
+            "kernel_launches": 401,
+            "peak_live_bytes": 143266044,
+            "pool_reserved_bytes": 167772160,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 122240,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "036a2aee9672b8eeb4c624d255952c99b128fe04c1e89d9c5cf210f211d0774d",
+          "stdout_sha256": "b04d7b89beb4affd5d0adcb540b19fcb8d7007f398c909a4a80ab78aabcc363d",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 19.805790467756164,
+            "cold_external_trace_row_mhz": 0.19805790467756162,
+            "resident_committed_mcells_per_second": 30.541250554788135,
+            "resident_trace_row_mhz": 0.30541250554788135
+          },
+          "timing_ns": {
+            "resident_prove": 214581914,
+            "terminal_decode": 785556,
+            "total_before_publication": 224809064
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "16",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log16-width100/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log16-width100/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 319100138,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              208521643
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              769776
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 119608
+          },
+          "proof": {
+            "artifact_bytes": 123493,
+            "artifact_sha256": "1f44b6b702da0bd4eeb2fc50463c73c9c68fb25cd5e2c563672a4c3d420c765a",
+            "canonical_bytes": 61470,
+            "canonical_sha256": "70d26c4a0c7928195f8ea6311a8b109acfa42a0559313b80700aee8c924a8601"
+          },
+          "raw_report_sha256": "71ec059f098e5c16ae344874984ad36240d4ad11735c38f21991cb6156815a45",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2364,
+            "graph_launches": 0,
+            "h2d_bytes": 534252,
+            "kernel_launches": 401,
+            "peak_live_bytes": 143266044,
+            "pool_reserved_bytes": 167772160,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 122240,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "0af29fecca56824efce821c8351118009252d7e4cfe997070321e9a72a5c9d3c",
+          "stdout_sha256": "f66a263ccd28892165b0b16f81f2b69cdbf14cabc93bf83a962afcd708048867",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 20.537753575023526,
+            "cold_external_trace_row_mhz": 0.20537753575023526,
+            "resident_committed_mcells_per_second": 31.42887187014923,
+            "resident_trace_row_mhz": 0.3142887187014923
+          },
+          "timing_ns": {
+            "resident_prove": 208521643,
+            "terminal_decode": 769776,
+            "total_before_publication": 218664983
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "16",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log16-width100/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log16-width100/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 321086969,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              211730577
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              795376
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 119324
+          },
+          "proof": {
+            "artifact_bytes": 123493,
+            "artifact_sha256": "1f44b6b702da0bd4eeb2fc50463c73c9c68fb25cd5e2c563672a4c3d420c765a",
+            "canonical_bytes": 61470,
+            "canonical_sha256": "70d26c4a0c7928195f8ea6311a8b109acfa42a0559313b80700aee8c924a8601"
+          },
+          "raw_report_sha256": "7b2957cd7950e1fddf575e8b2030c26fa3c81a51a749b6c52d51c1740a7a16bc",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2364,
+            "graph_launches": 0,
+            "h2d_bytes": 534252,
+            "kernel_launches": 401,
+            "peak_live_bytes": 143266044,
+            "pool_reserved_bytes": 167772160,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 122240,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "55476eddbb51bde7a6eb944b6be1c68c49b021f783c578698670e1f6ce117f62",
+          "stdout_sha256": "29602ced1c273b0d1cb80dcdd4562b802ab124987e71f9df0ec114aa05d6d34d",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 20.410669484378857,
+            "cold_external_trace_row_mhz": 0.20410669484378857,
+            "resident_committed_mcells_per_second": 30.95254399651497,
+            "resident_trace_row_mhz": 0.3095254399651497
+          },
+          "timing_ns": {
+            "resident_prove": 211730577,
+            "terminal_decode": 795376,
+            "total_before_publication": 221890227
+          }
+        }
+      ],
+      "shape_id": "log16-width100",
+      "statement": {
+        "log_n_rows": 16,
+        "sequence_len": 100,
+        "trace_cells": 6553600,
+        "trace_rows": 65536
+      }
+    },
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 0.5433524453099494,
+          "max": 76.33632044206576,
+          "median": 75.7929679967558,
+          "min": 74.49043144742868
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.005433524453099636,
+          "max": 0.7633632044206576,
+          "median": 0.757929679967558,
+          "min": 0.7449043144742867
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 2428.0,
+          "median": 2428.0,
+          "min": 2428.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 572685460.0,
+          "median": 572685460.0,
+          "min": 572685460.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 603979776.0,
+          "median": 603979776.0,
+          "min": 603979776.0
+        },
+        "external_wall_ms": {
+          "mad": 2.4618489999999724,
+          "max": 351.91634,
+          "median": 345.868498,
+          "min": 343.406649
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 2107804.0,
+          "median": 2107804.0,
+          "min": 2107804.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 462.0,
+          "median": 462.0,
+          "min": 462.0
+        },
+        "peak_rss_kib": {
+          "mad": 0.0,
+          "max": 120668.0,
+          "median": 120368.0,
+          "min": 120368.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 2.1261150713510517,
+          "max": 113.47433587890036,
+          "median": 110.97642408437497,
+          "min": 108.85030901302392
+        },
+        "resident_prove_ms": {
+          "mad": 4.613879999999995,
+          "max": 240.829817,
+          "median": 236.215937,
+          "min": 231.016113
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.021261150713510535,
+          "max": 1.1347433587890037,
+          "median": 1.1097642408437496,
+          "min": 1.088503090130239
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 149096.0,
+          "median": 149096.0,
+          "min": 149096.0
+        },
+        "total_before_publication_ms": {
+          "mad": 4.6276790000000005,
+          "max": 251.130685,
+          "median": 246.503006,
+          "min": 241.413032
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 74328,
+        "canonical_sha256": "f845568c14599a08c16a14bf255b2e1938df3df27cfdbf961d06f663909ced8f"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "18",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log18-width100/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log18-width100/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 351916340,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              240829817
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              877776
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 120368
+          },
+          "proof": {
+            "artifact_bytes": 149209,
+            "artifact_sha256": "49f9555c8a3d6d1f47045a7a22caf961745d503174d840b8e21a414aaf74cfb4",
+            "canonical_bytes": 74328,
+            "canonical_sha256": "f845568c14599a08c16a14bf255b2e1938df3df27cfdbf961d06f663909ced8f"
+          },
+          "raw_report_sha256": "5ae608e731365eb1b8da2a11177152d1e16bc558c72d12a5e018d27b068fb3d4",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2428,
+            "graph_launches": 0,
+            "h2d_bytes": 2107804,
+            "kernel_launches": 462,
+            "peak_live_bytes": 572685460,
+            "pool_reserved_bytes": 603979776,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 149096,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "59dc3799d73ee43d60ea023f1f49c244c703eeb62a7e47fef278113d33266e4f",
+          "stdout_sha256": "ae4c123869a15246efbf869d72c5e2538b25df97f31c7ee60380950c969f2d68",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 74.49043144742868,
+            "cold_external_trace_row_mhz": 0.7449043144742867,
+            "resident_committed_mcells_per_second": 108.85030901302392,
+            "resident_trace_row_mhz": 1.088503090130239
+          },
+          "timing_ns": {
+            "resident_prove": 240829817,
+            "terminal_decode": 877776,
+            "total_before_publication": 251130685
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "18",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log18-width100/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log18-width100/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 343406649,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              231016113
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              864655
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 120668
+          },
+          "proof": {
+            "artifact_bytes": 149209,
+            "artifact_sha256": "49f9555c8a3d6d1f47045a7a22caf961745d503174d840b8e21a414aaf74cfb4",
+            "canonical_bytes": 74328,
+            "canonical_sha256": "f845568c14599a08c16a14bf255b2e1938df3df27cfdbf961d06f663909ced8f"
+          },
+          "raw_report_sha256": "1f0f4454fafdc37dcba4aa78bf26a482a65b92d63594df5d9e6d0e5d8b9a90bc",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2428,
+            "graph_launches": 0,
+            "h2d_bytes": 2107804,
+            "kernel_launches": 462,
+            "peak_live_bytes": 572685460,
+            "pool_reserved_bytes": 603979776,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 149096,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "881391249db212fc198cd1fb5bf2f7f01db516606da0660021eb2c99a3fe5883",
+          "stdout_sha256": "dd375c47527393f8cf2134aa322108a338692cbc3134328d1d4e910e485b1f38",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 76.33632044206576,
+            "cold_external_trace_row_mhz": 0.7633632044206576,
+            "resident_committed_mcells_per_second": 113.47433587890036,
+            "resident_trace_row_mhz": 1.1347433587890037
+          },
+          "timing_ns": {
+            "resident_prove": 231016113,
+            "terminal_decode": 864655,
+            "total_before_publication": 241413032
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "18",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log18-width100/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log18-width100/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 345868498,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              236215937
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              880606
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 120368
+          },
+          "proof": {
+            "artifact_bytes": 149209,
+            "artifact_sha256": "49f9555c8a3d6d1f47045a7a22caf961745d503174d840b8e21a414aaf74cfb4",
+            "canonical_bytes": 74328,
+            "canonical_sha256": "f845568c14599a08c16a14bf255b2e1938df3df27cfdbf961d06f663909ced8f"
+          },
+          "raw_report_sha256": "7a4de35eabe4c3027c36c61c7719fe9e591abdb8ff25e3ce5df00f9cf2c24765",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2428,
+            "graph_launches": 0,
+            "h2d_bytes": 2107804,
+            "kernel_launches": 462,
+            "peak_live_bytes": 572685460,
+            "pool_reserved_bytes": 603979776,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 149096,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "1dd191ac66373970e887e098a907d8249c226f2059525c697cb7618a6742ae98",
+          "stdout_sha256": "c61c9322f678c3ae79d043d421b67146b28283d3b7797fd13a64f01aa6e1a090",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 75.7929679967558,
+            "cold_external_trace_row_mhz": 0.757929679967558,
+            "resident_committed_mcells_per_second": 110.97642408437497,
+            "resident_trace_row_mhz": 1.1097642408437496
+          },
+          "timing_ns": {
+            "resident_prove": 236215937,
+            "terminal_decode": 880606,
+            "total_before_publication": 246503006
+          }
+        }
+      ],
+      "shape_id": "log18-width100",
+      "statement": {
+        "log_n_rows": 18,
+        "sequence_len": 100,
+        "trace_cells": 26214400,
+        "trace_rows": 262144
+      }
+    },
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 3.3677617303520435,
+          "max": 238.8979947829462,
+          "median": 235.53023305259416,
+          "min": 227.95006747093828
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.03367761730352026,
+          "max": 2.388979947829462,
+          "median": 2.3553023305259417,
+          "min": 2.2795006747093827
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 2492.0,
+          "median": 2492.0,
+          "min": 2492.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 2290283244.0,
+          "median": 2290283244.0,
+          "min": 2290283244.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 2315255808.0,
+          "median": 2315255808.0,
+          "min": 2315255808.0
+        },
+        "external_wall_ms": {
+          "mad": 6.275987999999984,
+          "max": 460.002496,
+          "median": 445.198048,
+          "min": 438.92206
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 8400012.0,
+          "median": 8400012.0,
+          "min": 8400012.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 529.0,
+          "median": 529.0,
+          "min": 529.0
+        },
+        "peak_rss_kib": {
+          "mad": 116.0,
+          "max": 126832.0,
+          "median": 126716.0,
+          "min": 126404.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 3.7242109363763802,
+          "max": 315.84015346508045,
+          "median": 312.11594252870407,
+          "min": 300.0924366532465
+        },
+        "resident_prove_ms": {
+          "mad": 3.9614199999999755,
+          "max": 349.41767,
+          "median": 335.957206,
+          "min": 331.995786
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.037242109363763376,
+          "max": 3.158401534650804,
+          "median": 3.1211594252870407,
+          "min": 3.000924366532465
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 178640.0,
+          "median": 178640.0,
+          "min": 178640.0
+        },
+        "total_before_publication_ms": {
+          "mad": 3.9574200000000133,
+          "max": 359.966008,
+          "median": 346.463654,
+          "min": 342.506234
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 86383,
+        "canonical_sha256": "e6609d0564a47192212bec7973e2660c2eea88bef90c573c3df09569cc3c7e86"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "20",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width100/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width100/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 460002496,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              349417670
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              911686
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 126404
+          },
+          "proof": {
+            "artifact_bytes": 173319,
+            "artifact_sha256": "8a66bd21ec4076cde6d887ec1a10f034b34a8597e28643f57aae14dbd9cbf00e",
+            "canonical_bytes": 86383,
+            "canonical_sha256": "e6609d0564a47192212bec7973e2660c2eea88bef90c573c3df09569cc3c7e86"
+          },
+          "raw_report_sha256": "b42fbd746663449687f0e4fcb5383432e8db4d245124e862378d16d5fa7c5882",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2492,
+            "graph_launches": 0,
+            "h2d_bytes": 8400012,
+            "kernel_launches": 529,
+            "peak_live_bytes": 2290283244,
+            "pool_reserved_bytes": 2315255808,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 178640,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "0ab2d6d51b0b55ee2dc6bf1822a2587ff37dd3ff100e37fa663d70d2205a0047",
+          "stdout_sha256": "481ce31bf502400369bfc8a7069e10d0d689db3ddff273e0e9ea87c0ac9448a8",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 227.95006747093828,
+            "cold_external_trace_row_mhz": 2.2795006747093827,
+            "resident_committed_mcells_per_second": 300.0924366532465,
+            "resident_trace_row_mhz": 3.000924366532465
+          },
+          "timing_ns": {
+            "resident_prove": 349417670,
+            "terminal_decode": 911686,
+            "total_before_publication": 359966008
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "20",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width100/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width100/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 445198048,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              335957206
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              881746
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 126832
+          },
+          "proof": {
+            "artifact_bytes": 173319,
+            "artifact_sha256": "8a66bd21ec4076cde6d887ec1a10f034b34a8597e28643f57aae14dbd9cbf00e",
+            "canonical_bytes": 86383,
+            "canonical_sha256": "e6609d0564a47192212bec7973e2660c2eea88bef90c573c3df09569cc3c7e86"
+          },
+          "raw_report_sha256": "ff6335bb46c3a0e3df61ef65d53978d05f99ff06cb3b4ee22fbabff96eb206da",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2492,
+            "graph_launches": 0,
+            "h2d_bytes": 8400012,
+            "kernel_launches": 529,
+            "peak_live_bytes": 2290283244,
+            "pool_reserved_bytes": 2315255808,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 178640,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "9ee429c02ccd830cef8abb8c79e394bdfd57de61511078038e036531492ade0a",
+          "stdout_sha256": "00fdc9b88ebbebea4b60866be2c5e7bd699b8211b1a1aaf20eadbd3e3fb972d4",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 235.53023305259416,
+            "cold_external_trace_row_mhz": 2.3553023305259417,
+            "resident_committed_mcells_per_second": 312.11594252870407,
+            "resident_trace_row_mhz": 3.1211594252870407
+          },
+          "timing_ns": {
+            "resident_prove": 335957206,
+            "terminal_decode": 881746,
+            "total_before_publication": 346463654
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "20",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width100/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width100/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 438922060,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              331995786
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              900805
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 126716
+          },
+          "proof": {
+            "artifact_bytes": 173319,
+            "artifact_sha256": "8a66bd21ec4076cde6d887ec1a10f034b34a8597e28643f57aae14dbd9cbf00e",
+            "canonical_bytes": 86383,
+            "canonical_sha256": "e6609d0564a47192212bec7973e2660c2eea88bef90c573c3df09569cc3c7e86"
+          },
+          "raw_report_sha256": "54da5e5b6fd4e53e78bd3892425ce08ee7bae881ed93c7f50ddd1d2d90b5441c",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2492,
+            "graph_launches": 0,
+            "h2d_bytes": 8400012,
+            "kernel_launches": 529,
+            "peak_live_bytes": 2290283244,
+            "pool_reserved_bytes": 2315255808,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 178640,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "28b65cc7ad59b75c4ee79a836073da54a1b414da7256e65def790f92baab9520",
+          "stdout_sha256": "7622c112cf6a93bff284e44a1386c94e475023fb12fd249a8e22bbd51068233c",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 238.8979947829462,
+            "cold_external_trace_row_mhz": 2.388979947829462,
+            "resident_committed_mcells_per_second": 315.84015346508045,
+            "resident_trace_row_mhz": 3.158401534650804
+          },
+          "timing_ns": {
+            "resident_prove": 331995786,
+            "terminal_decode": 900805,
+            "total_before_publication": 342506234
+          }
+        }
+      ],
+      "shape_id": "log20-width100",
+      "statement": {
+        "log_n_rows": 20,
+        "sequence_len": 100,
+        "trace_cells": 104857600,
+        "trace_rows": 1048576
+      }
+    },
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 1.5022498886864355,
+          "max": 470.4502433911153,
+          "median": 468.4785581188441,
+          "min": 466.97630823015766
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.015022498886864355,
+          "max": 4.704502433911153,
+          "median": 4.684785581188441,
+          "min": 4.669763082301577
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 2556.0,
+          "median": 2556.0,
+          "min": 2556.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 9160586244.0,
+          "median": 9160586244.0,
+          "min": 9160586244.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 9193914368.0,
+          "median": 9193914368.0,
+          "min": 9193914368.0
+        },
+        "external_wall_ms": {
+          "mad": 2.8801659999999174,
+          "max": 898.183468,
+          "median": 895.303302,
+          "min": 891.551032
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 33566652.0,
+          "median": 33566652.0,
+          "min": 33566652.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 598.0,
+          "median": 598.0,
+          "min": 598.0
+        },
+        "peak_rss_kib": {
+          "mad": 4.0,
+          "max": 152184.0,
+          "median": 152180.0,
+          "min": 152176.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 2.07366329088984,
+          "max": 536.2140232253334,
+          "median": 533.5172549730883,
+          "min": 531.4435916821984
+        },
+        "resident_prove_ms": {
+          "mad": 3.0675559999999678,
+          "max": 789.228446,
+          "median": 786.16089,
+          "min": 782.20707
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.020736632908898933,
+          "max": 5.362140232253334,
+          "median": 5.335172549730883,
+          "min": 5.314435916821984
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 210872.0,
+          "median": 210872.0,
+          "min": 210872.0
+        },
+        "total_before_publication_ms": {
+          "mad": 3.112164999999891,
+          "max": 800.248941,
+          "median": 797.136776,
+          "min": 793.164916
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 106436,
+        "canonical_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "22",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width100/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width100/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 898183468,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              789228446
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1096664
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 152184
+          },
+          "proof": {
+            "artifact_bytes": 213425,
+            "artifact_sha256": "9dbcd823026d0e838d0f31d3599a58b5d4c237e5889db7588ec1f7c31b56efa4",
+            "canonical_bytes": 106436,
+            "canonical_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205"
+          },
+          "raw_report_sha256": "3552c9b78914c6f298d10f270897f317bf7334c554426a0ff837fde42823ad43",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2556,
+            "graph_launches": 0,
+            "h2d_bytes": 33566652,
+            "kernel_launches": 598,
+            "peak_live_bytes": 9160586244,
+            "pool_reserved_bytes": 9193914368,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 210872,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "f9734d84fbbacf69852601ac28b6918fe1f0450d00682fdf190ed7c891ea1a78",
+          "stdout_sha256": "e85807b01fa304bfaeb86b9a347dc0190e591deabe6cf39b84792348b9e8acae",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 466.97630823015766,
+            "cold_external_trace_row_mhz": 4.669763082301577,
+            "resident_committed_mcells_per_second": 531.4435916821984,
+            "resident_trace_row_mhz": 5.314435916821984
+          },
+          "timing_ns": {
+            "resident_prove": 789228446,
+            "terminal_decode": 1096664,
+            "total_before_publication": 800248941
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "22",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width100/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width100/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 891551032,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              782207070
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1080134
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 152176
+          },
+          "proof": {
+            "artifact_bytes": 213425,
+            "artifact_sha256": "9dbcd823026d0e838d0f31d3599a58b5d4c237e5889db7588ec1f7c31b56efa4",
+            "canonical_bytes": 106436,
+            "canonical_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205"
+          },
+          "raw_report_sha256": "23b896c0cf81bd715dc5ea321b923b892dcf6ef5dc4821257818c7f3b63cfe73",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2556,
+            "graph_launches": 0,
+            "h2d_bytes": 33566652,
+            "kernel_launches": 598,
+            "peak_live_bytes": 9160586244,
+            "pool_reserved_bytes": 9193914368,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 210872,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "f3bf44eef2790db9e959547f92a32ab408eb2fb12590df29c335a72d0b5425e4",
+          "stdout_sha256": "7b3635e2d94d8baf7793eabef42139254bc4067ad58b3d9602ce483f5ce7dc7a",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 470.4502433911153,
+            "cold_external_trace_row_mhz": 4.704502433911153,
+            "resident_committed_mcells_per_second": 536.2140232253334,
+            "resident_trace_row_mhz": 5.362140232253334
+          },
+          "timing_ns": {
+            "resident_prove": 782207070,
+            "terminal_decode": 1080134,
+            "total_before_publication": 793164916
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "22",
+            "--sequence-len",
+            "100",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width100/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width100/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 895303302,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              786160890
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1077555
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 152180
+          },
+          "proof": {
+            "artifact_bytes": 213425,
+            "artifact_sha256": "9dbcd823026d0e838d0f31d3599a58b5d4c237e5889db7588ec1f7c31b56efa4",
+            "canonical_bytes": 106436,
+            "canonical_sha256": "2c0ca9f7a73ea80f4cc32f2e27785f9ccf6b11dc460a133ebc8f5cc441e76205"
+          },
+          "raw_report_sha256": "2c82155c3a9b6c3c7635e59499e703b02ebfcc0b7ec276381c559c4ebcde0398",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2556,
+            "graph_launches": 0,
+            "h2d_bytes": 33566652,
+            "kernel_launches": 598,
+            "peak_live_bytes": 9160586244,
+            "pool_reserved_bytes": 9193914368,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 210872,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "3302798bf45caef7ea7d62691c7601de42c9d9bb5eca7c45dffe93818f437ead",
+          "stdout_sha256": "931537dd163694a52b403e44130335f38591b69ef91f64a9c7e80b7ffdabaa9f",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 468.4785581188441,
+            "cold_external_trace_row_mhz": 4.684785581188441,
+            "resident_committed_mcells_per_second": 533.5172549730883,
+            "resident_trace_row_mhz": 5.335172549730883
+          },
+          "timing_ns": {
+            "resident_prove": 786160890,
+            "terminal_decode": 1077555,
+            "total_before_publication": 797136776
+          }
+        }
+      ],
+      "shape_id": "log22-width100",
+      "statement": {
+        "log_n_rows": 22,
+        "sequence_len": 100,
+        "trace_cells": 419430400,
+        "trace_rows": 4194304
+      }
+    },
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 0.26852787239653253,
+          "max": 287.10037443917287,
+          "median": 285.47001897574006,
+          "min": 285.2014911033435
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.0020978740030979104,
+          "max": 2.242971675306038,
+          "median": 2.2302345232479692,
+          "min": 2.2281366492448713
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 2940.0,
+          "median": 2940.0,
+          "min": 2940.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 2760048652.0,
+          "median": 2760048652.0,
+          "min": 2760048652.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 2785017856.0,
+          "median": 2785017856.0,
+          "min": 2785017856.0
+        },
+        "external_wall_ms": {
+          "mad": 0.4426769999999465,
+          "max": 470.606684,
+          "median": 470.164007,
+          "min": 467.494089
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 8401692.0,
+          "median": 8401692.0,
+          "min": 8401692.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 529.0,
+          "median": 529.0,
+          "min": 529.0
+        },
+        "peak_rss_kib": {
+          "mad": 16.0,
+          "max": 127084.0,
+          "median": 127068.0,
+          "min": 126456.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 0.2330120971452061,
+          "max": 373.08976135941555,
+          "median": 372.85674926227034,
+          "min": 370.8796577959098
+        },
+        "resident_prove_ms": {
+          "mad": 0.22481899999996813,
+          "max": 361.890239,
+          "median": 359.971298,
+          "min": 359.746479
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.0018204070089469226,
+          "max": 2.914763760620434,
+          "median": 2.912943353611487,
+          "min": 2.8974973265305453
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 179424.0,
+          "median": 179424.0,
+          "min": 179424.0
+        },
+        "total_before_publication_ms": {
+          "mad": 0.4027379999999994,
+          "max": 372.481666,
+          "median": 370.634786,
+          "min": 370.232048
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 90677,
+        "canonical_sha256": "4a5dc537a23fcea288c33498bf0ea453474e02d7fd71e8d74a407c225621852c"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "20",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width128/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width128/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 467494089,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              359746479
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1032045
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 126456
+          },
+          "proof": {
+            "artifact_bytes": 181907,
+            "artifact_sha256": "5714fbbbd6fa3fd91d1dad5d283aef87c8bb2126468cfa951e8eb92a28174adb",
+            "canonical_bytes": 90677,
+            "canonical_sha256": "4a5dc537a23fcea288c33498bf0ea453474e02d7fd71e8d74a407c225621852c"
+          },
+          "raw_report_sha256": "aedd1f6180f21e99547a55d823b33879ab63e8db58ee6df9988d047420367dba",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2940,
+            "graph_launches": 0,
+            "h2d_bytes": 8401692,
+            "kernel_launches": 529,
+            "peak_live_bytes": 2760048652,
+            "pool_reserved_bytes": 2785017856,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 179424,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "2530fb93a5a51f10622ebde28799fa10c077ced711ab713a0fe4363ee01a9951",
+          "stdout_sha256": "cd45bc34a52c619a469fa0de804ba0ac39febd27f296c7640da03683e738559f",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 287.10037443917287,
+            "cold_external_trace_row_mhz": 2.242971675306038,
+            "resident_committed_mcells_per_second": 373.08976135941555,
+            "resident_trace_row_mhz": 2.914763760620434
+          },
+          "timing_ns": {
+            "resident_prove": 359746479,
+            "terminal_decode": 1032045,
+            "total_before_publication": 370232048
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "20",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width128/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width128/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 470606684,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              361890239
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1029465
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 127084
+          },
+          "proof": {
+            "artifact_bytes": 181907,
+            "artifact_sha256": "5714fbbbd6fa3fd91d1dad5d283aef87c8bb2126468cfa951e8eb92a28174adb",
+            "canonical_bytes": 90677,
+            "canonical_sha256": "4a5dc537a23fcea288c33498bf0ea453474e02d7fd71e8d74a407c225621852c"
+          },
+          "raw_report_sha256": "ff174ef0b9540db848bdf81dac6b30ba01b2071733c3a8995ecb1ebbc7b416e0",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2940,
+            "graph_launches": 0,
+            "h2d_bytes": 8401692,
+            "kernel_launches": 529,
+            "peak_live_bytes": 2760048652,
+            "pool_reserved_bytes": 2785017856,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 179424,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "a715c4b64cb6497147539a542b4b699c864e67099efadfad9cae28a63e606b82",
+          "stdout_sha256": "3cbd194d3d89ff886d41cdb39b8193654be2425b46cbfa312905d86792158fa0",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 285.2014911033435,
+            "cold_external_trace_row_mhz": 2.2281366492448713,
+            "resident_committed_mcells_per_second": 370.8796577959098,
+            "resident_trace_row_mhz": 2.8974973265305453
+          },
+          "timing_ns": {
+            "resident_prove": 361890239,
+            "terminal_decode": 1029465,
+            "total_before_publication": 372481666
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "20",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width128/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log20-width128/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 470164007,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              359971298
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1045965
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 127068
+          },
+          "proof": {
+            "artifact_bytes": 181907,
+            "artifact_sha256": "5714fbbbd6fa3fd91d1dad5d283aef87c8bb2126468cfa951e8eb92a28174adb",
+            "canonical_bytes": 90677,
+            "canonical_sha256": "4a5dc537a23fcea288c33498bf0ea453474e02d7fd71e8d74a407c225621852c"
+          },
+          "raw_report_sha256": "6528dffdad949834b95f51882748fd4041acd7f2c194f5b3efe2eaba2589c73e",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2940,
+            "graph_launches": 0,
+            "h2d_bytes": 8401692,
+            "kernel_launches": 529,
+            "peak_live_bytes": 2760048652,
+            "pool_reserved_bytes": 2785017856,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 179424,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "d1ca5674d7031fcabb07299fbbd1740d5a5c9df15baddae2bd09a7ecec4217e1",
+          "stdout_sha256": "ac2990f068dc943ddd4ff159e3ef746dbb3647d56bdb0c1a8adbd2a697dc433a",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 285.47001897574006,
+            "cold_external_trace_row_mhz": 2.2302345232479692,
+            "resident_committed_mcells_per_second": 372.85674926227034,
+            "resident_trace_row_mhz": 2.912943353611487
+          },
+          "timing_ns": {
+            "resident_prove": 359971298,
+            "terminal_decode": 1045965,
+            "total_before_publication": 370634786
+          }
+        }
+      ],
+      "shape_id": "log20-width128",
+      "statement": {
+        "log_n_rows": 20,
+        "sequence_len": 128,
+        "trace_cells": 134217728,
+        "trace_rows": 1048576
+      }
+    },
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 0.3628354163619747,
+          "max": 415.0311174940499,
+          "median": 414.3437727674231,
+          "min": 413.98093735106113
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.0028346516903279273,
+          "max": 3.242430605422265,
+          "median": 3.237060724745493,
+          "min": 3.234226073055165
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 2972.0,
+          "median": 2972.0,
+          "min": 2972.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 5519916864.0,
+          "median": 5519916864.0,
+          "min": 5519916864.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 5536481280.0,
+          "median": 5536481280.0,
+          "min": 5536481280.0
+        },
+        "external_wall_ms": {
+          "mad": 0.5678169999999909,
+          "max": 648.424678,
+          "median": 647.856861,
+          "min": 646.783927
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 16790700.0,
+          "median": 16790700.0,
+          "min": 16790700.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 563.0,
+          "median": 563.0,
+          "min": 563.0
+        },
+        "peak_rss_kib": {
+          "mad": 72.0,
+          "max": 135428.0,
+          "median": 135348.0,
+          "min": 135276.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 0.3933710538464652,
+          "max": 498.85381081897054,
+          "median": 498.4604397651241,
+          "min": 497.50614153130977
+        },
+        "resident_prove_ms": {
+          "mad": 0.424656999999911,
+          "max": 539.562095,
+          "median": 538.529108,
+          "min": 538.104451
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.0030732113581755094,
+          "max": 3.8972953970232074,
+          "median": 3.894222185665032,
+          "min": 3.8867667307133575
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 195204.0,
+          "median": 195204.0,
+          "min": 195204.0
+        },
+        "total_before_publication_ms": {
+          "mad": 0.008600000000001273,
+          "max": 549.736733,
+          "median": 549.394826,
+          "min": 549.386226
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 100652,
+        "canonical_sha256": "f53e5ec36d2e95bde5ed53d7270da7ab9c1abb62bd2670f78d9eb6c3c0fbcdd2"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "21",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log21-width128/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log21-width128/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 646783927,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              538104451
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1122715
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 135276
+          },
+          "proof": {
+            "artifact_bytes": 201857,
+            "artifact_sha256": "0e62bd2b24071b936cf85ecdc26145da98eeb7a0e35fbf75b9a407be128ab94a",
+            "canonical_bytes": 100652,
+            "canonical_sha256": "f53e5ec36d2e95bde5ed53d7270da7ab9c1abb62bd2670f78d9eb6c3c0fbcdd2"
+          },
+          "raw_report_sha256": "987371ee5f42674c0d5ae6aa752332d4c597a3a1b3ba6ebcabf3514c6293c351",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2972,
+            "graph_launches": 0,
+            "h2d_bytes": 16790700,
+            "kernel_launches": 563,
+            "peak_live_bytes": 5519916864,
+            "pool_reserved_bytes": 5536481280,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 195204,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "4947607ff29f093e190e5f852d253ad491ec94cae702d27e45ae94ed89c905e2",
+          "stdout_sha256": "6987d9db3228e5a7e0ff5b9bfeb259c17949a78de3ce7473dead389485aa219e",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 415.0311174940499,
+            "cold_external_trace_row_mhz": 3.242430605422265,
+            "resident_committed_mcells_per_second": 498.85381081897054,
+            "resident_trace_row_mhz": 3.8972953970232074
+          },
+          "timing_ns": {
+            "resident_prove": 538104451,
+            "terminal_decode": 1122715,
+            "total_before_publication": 549386226
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "21",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log21-width128/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log21-width128/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 647856861,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              539562095
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1113874
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 135348
+          },
+          "proof": {
+            "artifact_bytes": 201857,
+            "artifact_sha256": "0e62bd2b24071b936cf85ecdc26145da98eeb7a0e35fbf75b9a407be128ab94a",
+            "canonical_bytes": 100652,
+            "canonical_sha256": "f53e5ec36d2e95bde5ed53d7270da7ab9c1abb62bd2670f78d9eb6c3c0fbcdd2"
+          },
+          "raw_report_sha256": "6706fe7846f7e13b6e8ce12e12b88ef8c382172f58b04b23b1dc8e8cbb034aa8",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2972,
+            "graph_launches": 0,
+            "h2d_bytes": 16790700,
+            "kernel_launches": 563,
+            "peak_live_bytes": 5519916864,
+            "pool_reserved_bytes": 5536481280,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 195204,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "10824181ad5bd668070cb48abd470c923346f465cf3c4757ce42f3a5fb0b51d8",
+          "stdout_sha256": "c4a6ef855e381f98b32732908f6a98fa54549220effd8e64adf6d0e1aeab05bb",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 414.3437727674231,
+            "cold_external_trace_row_mhz": 3.237060724745493,
+            "resident_committed_mcells_per_second": 497.50614153130977,
+            "resident_trace_row_mhz": 3.8867667307133575
+          },
+          "timing_ns": {
+            "resident_prove": 539562095,
+            "terminal_decode": 1113874,
+            "total_before_publication": 549394826
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "21",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log21-width128/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log21-width128/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 648424678,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              538529108
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1127395
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 135428
+          },
+          "proof": {
+            "artifact_bytes": 201857,
+            "artifact_sha256": "0e62bd2b24071b936cf85ecdc26145da98eeb7a0e35fbf75b9a407be128ab94a",
+            "canonical_bytes": 100652,
+            "canonical_sha256": "f53e5ec36d2e95bde5ed53d7270da7ab9c1abb62bd2670f78d9eb6c3c0fbcdd2"
+          },
+          "raw_report_sha256": "b8c09ec3d19edb881e6aae19d7eb4c657c6b4e86eb3c25b8a6dbb1b306b02ce5",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 2972,
+            "graph_launches": 0,
+            "h2d_bytes": 16790700,
+            "kernel_launches": 563,
+            "peak_live_bytes": 5519916864,
+            "pool_reserved_bytes": 5536481280,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 195204,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "f87476af18dc40827c6b860614aebe4528ff381a386d9196a4794eb8c9023393",
+          "stdout_sha256": "8abedc634277d08ced5f8f36e8d1f73034e3feb67c896dc17183b6bd8b1aa603",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 413.98093735106113,
+            "cold_external_trace_row_mhz": 3.234226073055165,
+            "resident_committed_mcells_per_second": 498.4604397651241,
+            "resident_trace_row_mhz": 3.894222185665032
+          },
+          "timing_ns": {
+            "resident_prove": 538529108,
+            "terminal_decode": 1127395,
+            "total_before_publication": 549736733
+          }
+        }
+      ],
+      "shape_id": "log21-width128",
+      "statement": {
+        "log_n_rows": 21,
+        "sequence_len": 128,
+        "trace_cells": 268435456,
+        "trace_rows": 2097152
+      }
+    },
+    {
+      "cold_samples": 3,
+      "metrics": {
+        "cold_external_committed_mcells_per_second": {
+          "mad": 0.16246028819864478,
+          "max": 528.6741200554407,
+          "median": 528.511659767242,
+          "min": 522.2102112445707
+        },
+        "cold_external_trace_row_mhz": {
+          "mad": 0.0012692210015519123,
+          "max": 4.13026656293313,
+          "median": 4.128997341931578,
+          "min": 4.079767275348209
+        },
+        "d2d_bytes": {
+          "mad": 0.0,
+          "max": 3004.0,
+          "median": 3004.0,
+          "min": 3004.0
+        },
+        "device_peak_live_bytes": {
+          "mad": 0.0,
+          "max": 11039637796.0,
+          "median": 11039637796.0,
+          "min": 11039637796.0
+        },
+        "device_pool_reserved_bytes": {
+          "mad": 0.0,
+          "max": 11072962560.0,
+          "median": 11072962560.0,
+          "min": 11072962560.0
+        },
+        "external_wall_ms": {
+          "mad": 0.31215800000006766,
+          "max": 1028.074328,
+          "median": 1015.81659,
+          "min": 1015.504432
+        },
+        "graph_launches": {
+          "mad": 0.0,
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "h2d_bytes": {
+          "mad": 0.0,
+          "max": 33568332.0,
+          "median": 33568332.0,
+          "min": 33568332.0
+        },
+        "kernel_launches": {
+          "mad": 0.0,
+          "max": 598.0,
+          "median": 598.0,
+          "min": 598.0
+        },
+        "peak_rss_kib": {
+          "mad": 160.0,
+          "max": 152336.0,
+          "median": 152176.0,
+          "min": 151868.0
+        },
+        "resident_committed_mcells_per_second": {
+          "mad": 1.5076150706588578,
+          "max": 593.5785129980543,
+          "median": 592.0708979273954,
+          "min": 586.2729423548947
+        },
+        "resident_prove_ms": {
+          "mad": 2.3030770000000302,
+          "max": 915.735442,
+          "median": 906.767946,
+          "min": 904.464869
+        },
+        "resident_trace_row_mhz": {
+          "mad": 0.011778242739522327,
+          "max": 4.637332132797299,
+          "median": 4.625553890057777,
+          "min": 4.580257362147615
+        },
+        "sync_calls": {
+          "mad": 0.0,
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0
+        },
+        "terminal_d2h_bytes": {
+          "mad": 0.0,
+          "max": 211656.0,
+          "median": 211656.0,
+          "min": 211656.0
+        },
+        "total_before_publication_ms": {
+          "mad": 2.370108000000073,
+          "max": 927.302056,
+          "median": 918.137501,
+          "min": 915.767393
+        }
+      },
+      "proof_identity": {
+        "all_samples_identical": true,
+        "canonical_bytes": 103620,
+        "canonical_sha256": "c3a17119783eff778d242f63a127a6af75a98f598cc9a56f4e6c1693689f23df"
+      },
+      "samples": [
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "22",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width128/sample-000/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width128/sample-000/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 1015816590,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              904464869
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1020865
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 152176
+          },
+          "proof": {
+            "artifact_bytes": 207793,
+            "artifact_sha256": "fc17d0c5bf29e32d40810706958fe6822697f7de8680c25d96af23622781f2ad",
+            "canonical_bytes": 103620,
+            "canonical_sha256": "c3a17119783eff778d242f63a127a6af75a98f598cc9a56f4e6c1693689f23df"
+          },
+          "raw_report_sha256": "141842085ca8c11c8fcd034fce5b76fa9fb7bd48f4b6285ff01643a41b6ec7dd",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 3004,
+            "graph_launches": 0,
+            "h2d_bytes": 33568332,
+            "kernel_launches": 598,
+            "peak_live_bytes": 11039637796,
+            "pool_reserved_bytes": 11072962560,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 211656,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 0,
+          "stderr_sha256": "6d88aeae00576256a3f36a2a46d2dfdde93a580b3767f342a0dd31c6b6caeb18",
+          "stdout_sha256": "5daab439dfbd339b062d5826375c7616c03efcfe465be1051ef0a404b951a239",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 528.511659767242,
+            "cold_external_trace_row_mhz": 4.128997341931578,
+            "resident_committed_mcells_per_second": 593.5785129980543,
+            "resident_trace_row_mhz": 4.637332132797299
+          },
+          "timing_ns": {
+            "resident_prove": 904464869,
+            "terminal_decode": 1020865,
+            "total_before_publication": 915767393
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "22",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width128/sample-001/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width128/sample-001/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 1028074328,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              915735442
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1044515
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 151868
+          },
+          "proof": {
+            "artifact_bytes": 207793,
+            "artifact_sha256": "fc17d0c5bf29e32d40810706958fe6822697f7de8680c25d96af23622781f2ad",
+            "canonical_bytes": 103620,
+            "canonical_sha256": "c3a17119783eff778d242f63a127a6af75a98f598cc9a56f4e6c1693689f23df"
+          },
+          "raw_report_sha256": "c60e397dfed228585e5080b31dbecd4565c66bee470323d460f436576beafb3a",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 3004,
+            "graph_launches": 0,
+            "h2d_bytes": 33568332,
+            "kernel_launches": 598,
+            "peak_live_bytes": 11039637796,
+            "pool_reserved_bytes": 11072962560,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 211656,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 1,
+          "stderr_sha256": "072b88c56633ca504e60cf2cd5668d75d8a2d9f36b50340813dc23be9b1960b0",
+          "stdout_sha256": "1b2528f1367c3df9b10cde096d962e69cf01c6665b4ea20b978fd680c5c266cc",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 522.2102112445707,
+            "cold_external_trace_row_mhz": 4.079767275348209,
+            "resident_committed_mcells_per_second": 586.2729423548947,
+            "resident_trace_row_mhz": 4.580257362147615
+          },
+          "timing_ns": {
+            "resident_prove": 915735442,
+            "terminal_decode": 1044515,
+            "total_before_publication": 927302056
+          }
+        },
+        {
+          "aot": {
+            "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
+            "cache_hits": 0,
+            "entries": 1,
+            "launch_failures": 0,
+            "launches": 1,
+            "loads": 1,
+            "misses": 0
+          },
+          "command": [
+            "/workspace/stwo-zig-cuda-clean/zig-out/bin/stwo-zig-native-cuda",
+            "prove",
+            "--air",
+            "wide_fibonacci",
+            "--backend",
+            "cuda",
+            "--protocol",
+            "raw-stwo-wide-v1",
+            "--log-n-rows",
+            "22",
+            "--sequence-len",
+            "128",
+            "--output",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width128/sample-002/proof-artifact.json",
+            "--report-out",
+            "/workspace/cuda-clean-evidence/native-cuda-diagnostic.artifacts/log22-width128/sample-002/product-report.json",
+            "--repeat",
+            "1"
+          ],
+          "device": {
+            "driver_version": 13000,
+            "global_memory_bytes": 25250627584,
+            "multiprocessors": 128,
+            "ordinal": 0,
+            "runtime_version": 12080,
+            "sm_major": 8,
+            "sm_minor": 9,
+            "toolkit_version": 12080,
+            "uuid": "3dabce32b71d9cdf6392026267492cb6"
+          },
+          "external_wall_ns": 1015504432,
+          "process_repetition": {
+            "all_canonical_bytes_identical": true,
+            "count": 1,
+            "persistent_session": false,
+            "resident_prove_ns": [
+              906767946
+            ],
+            "stable_launch_topology": true,
+            "terminal_decode_ns": [
+              1031885
+            ],
+            "zero_final_pool_usage": true
+          },
+          "process_resources": {
+            "cycles_elapsed": null,
+            "instructions_retired": null,
+            "measurement": "gnu_usr_bin_time_v_v1",
+            "measurement_locale": "C",
+            "normalized_unit": "KiB",
+            "peak_memory_footprint_bytes": null,
+            "peak_rss_kib": 152336
+          },
+          "proof": {
+            "artifact_bytes": 207793,
+            "artifact_sha256": "fc17d0c5bf29e32d40810706958fe6822697f7de8680c25d96af23622781f2ad",
+            "canonical_bytes": 103620,
+            "canonical_sha256": "c3a17119783eff778d242f63a127a6af75a98f598cc9a56f4e6c1693689f23df"
+          },
+          "raw_report_sha256": "aabcb98f95e0eb4226ad80432e3b3676ee79e5820ce2831afcbe713bcb4bf6c9",
+          "residency": {
+            "all_stages_complete_once": true,
+            "cpu_fallback_attempts": 0,
+            "cpu_fallbacks_completed": 0,
+            "d2d_bytes": 3004,
+            "graph_launches": 0,
+            "h2d_bytes": 33568332,
+            "kernel_launches": 598,
+            "peak_live_bytes": 11039637796,
+            "pool_reserved_bytes": 11072962560,
+            "pool_used_bytes": 0,
+            "resident": true,
+            "strict_aot": true,
+            "sync_calls": 1,
+            "terminal_d2h_bytes": 211656,
+            "terminal_d2h_operations": 1
+          },
+          "sample_index": 2,
+          "stderr_sha256": "c7c222973b483fef6c06d620428773183d785073d8af8940de1e9d60f7259687",
+          "stdout_sha256": "33e2425953e29e0c555b6962fac430e3641c76e10e3a250d5a7246830685cc90",
+          "throughput": {
+            "cold_external_committed_mcells_per_second": 528.6741200554407,
+            "cold_external_trace_row_mhz": 4.13026656293313,
+            "resident_committed_mcells_per_second": 592.0708979273954,
+            "resident_trace_row_mhz": 4.625553890057777
+          },
+          "timing_ns": {
+            "resident_prove": 906767946,
+            "terminal_decode": 1031885,
+            "total_before_publication": 918137501
+          }
+        }
+      ],
+      "shape_id": "log22-width128",
+      "statement": {
+        "log_n_rows": 22,
+        "sequence_len": 128,
+        "trace_cells": 536870912,
+        "trace_rows": 4194304
+      }
+    }
+  ]
+}
