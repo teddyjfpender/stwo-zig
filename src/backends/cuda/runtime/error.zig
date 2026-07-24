@@ -3,6 +3,7 @@
 pub const Error = error{
     ArenaSlotMissing,
     AotReceiptMismatch,
+    AllocationOutsideIngress,
     AotPackAbsent,
     ArgumentCountMismatch,
     BuildIdentityAbsent,
@@ -16,6 +17,7 @@ pub const Error = error{
     EmptyArenaPlan,
     EmptyAllocation,
     HostReadOutsideProofAssembly,
+    HostWriteOutsideIngress,
     InvalidDeviceArchitecture,
     InvalidDeviceOrdinal,
     InvalidArenaRequirement,

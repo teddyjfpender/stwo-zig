@@ -82,6 +82,33 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             self.state = .proved;
         }
 
+        pub fn beginStage(
+            self: *Self,
+            stage: telemetry.Stage,
+        ) runtime_error.Error!void {
+            if (self.state != .open) return error.InvalidState;
+            try self.context.beginStage(stage);
+        }
+
+        pub fn endStage(
+            self: *Self,
+            stage: telemetry.Stage,
+        ) runtime_error.Error!void {
+            if (self.state != .open) return error.InvalidState;
+            try self.context.endStage(stage);
+        }
+
+        pub fn recordOrdinaryKernel(
+            self: *Self,
+            stage: telemetry.Stage,
+            status: c_int,
+        ) runtime_error.Error!void {
+            if (self.state != .open) return error.InvalidState;
+            if (self.context.active_stage != stage) return error.StageOrderViolation;
+            try runtime_error.check(status);
+            try self.context.recordKernels(1);
+        }
+
         /// Binds, validates, launches, and releases one AOT function without
         /// exposing the loader or a raw CUDA function handle to proving code.
         pub fn launchKernel(
