@@ -18,6 +18,11 @@ pub const WordMatrix = struct {
     storage: Words,
     column_stride_words: usize,
 };
+pub const ConstraintBuffers = struct {
+    statement_parameters: Words,
+    challenge_parameters: Words,
+    composition_coordinates: WordMatrix,
+};
 
 pub fn words(
     session: anytype,

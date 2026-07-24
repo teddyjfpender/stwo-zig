@@ -24,11 +24,7 @@ pub const Geometry = struct {
     main_column_count: u32,
 };
 
-pub const Buffers = struct {
-    statement_parameters: common.Words,
-    challenge_parameters: common.Words,
-    composition_coordinates: common.WordMatrix,
-};
+pub const Buffers = common.ConstraintBuffers;
 
 pub const PreparedLaunch = struct {
     kernel: kernel_module.Kernel,
