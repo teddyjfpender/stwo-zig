@@ -8,6 +8,7 @@ pub const canonical_input = @import("canonical_input.zig");
 pub const canonical_ingress = @import("canonical_ingress.zig");
 pub const constraint = @import("constraint.zig");
 pub const device_trace = @import("device_trace.zig");
+pub const driver = @import("driver.zig");
 pub const executor = @import("executor/mod.zig");
 pub const geometry = @import("geometry.zig");
 pub const identities = @import("identities.zig");
@@ -25,11 +26,18 @@ pub const terminal_bundle = @import("terminal_bundle.zig");
 pub const trace = @import("trace.zig");
 pub const transcript_schedule = @import("transcript_schedule.zig");
 
+pub const NativeDriver = driver.DriverFor(
+    driver.NativeTransaction,
+    executor.pipeline,
+);
+pub const NativeRuntime = driver.NativeRuntime;
+
 test {
     _ = canonical_input;
     _ = canonical_ingress;
     _ = constraint;
     _ = device_trace;
+    _ = driver;
     _ = executor;
     _ = geometry;
     _ = identities;
