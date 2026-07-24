@@ -6,7 +6,7 @@ const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
-pub const schedule_version: u32 = 1;
+pub const schedule_version: u32 = 2;
 pub const graph_schema_version: u32 = 1;
 
 pub const CompileOptions = struct {
@@ -41,7 +41,11 @@ pub const CompileOptions = struct {
     }
 };
 
-pub const max_lane_streams: u8 = 8;
+// Production currently owns only the coordination stream. Keep lane admission
+// closed until the executor has real stream handles, dependency events, and
+// hardware evidence for overlap. A planned lane index that is ignored at
+// execution time is a false performance claim.
+pub const max_lane_streams: u8 = 0;
 
 pub const ScheduledNode = struct {
     node_id: u32,
@@ -229,11 +233,9 @@ pub fn cacheKey(
 }
 
 fn streamFor(node: proof_ir.Node, lane_streams: u8) u8 {
-    if (lane_streams == 0) return 0;
-    return switch (node.parallelism) {
-        .coordination, .fri_round => 0,
-        .component, .merkle_subtree, .quotient_chunk => 1 + @as(u8, @intCast(node.id % lane_streams)),
-    };
+    _ = node;
+    std.debug.assert(lane_streams == 0);
+    return 0;
 }
 
 fn hasBarrierAt(
@@ -280,7 +282,7 @@ fn hashInt(
     hash.update(&encoded);
 }
 
-test "CUDA planning binds target identity and derives independent lanes" {
+test "CUDA planning binds target identity and rejects unimplemented lanes" {
     const allocator = std.testing.allocator;
     var program = try testProgram(allocator);
     defer program.deinit(allocator);
@@ -294,17 +296,24 @@ test "CUDA planning binds target identity and derives independent lanes" {
         .runtime_build_identity = identity,
         .host_toolchain_identity = proof_ir.identityDigest("zig-0.15.2"),
         .kernel_pack_identity = proof_ir.identityDigest("pack"),
-        .lane_streams = 2,
+        .lane_streams = 0,
         .enable_graphs = true,
     };
     var plan = try CudaPlan.compile(allocator, program, options);
     defer plan.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 2), plan.schedule.len);
-    try std.testing.expectEqual(@as(u8, 1), plan.schedule[0].stream_index);
-    try std.testing.expectEqual(@as(u8, 2), plan.schedule[1].stream_index);
+    try std.testing.expectEqual(@as(u8, 0), plan.schedule[0].stream_index);
+    try std.testing.expectEqual(@as(u8, 0), plan.schedule[1].stream_index);
     try std.testing.expectEqual(@as(u64, 256), plan.prediction.request_bytes);
     try std.testing.expectEqual(@as(u64, 2), plan.prediction.minimum_launches);
     try std.testing.expectEqual(@as(u32, 1), plan.prediction.transcript_barriers);
+
+    var unsupported_lanes = options;
+    unsupported_lanes.lane_streams = 1;
+    try std.testing.expectError(
+        error.InvalidCompileTarget,
+        CudaPlan.compile(allocator, program, unsupported_lanes),
+    );
 
     var changed = options;
     changed.sm = 90;
