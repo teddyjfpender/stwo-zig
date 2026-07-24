@@ -26,6 +26,7 @@ from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
     PlonkShape,
     BlakeShape,
     Shape,
+    PoseidonShape,
     XorShape,
 )
 from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
@@ -103,7 +104,7 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             self.assertFalse(document["headline_eligible"])
             self.assertFalse(document["portfolio"]["available"])
             self.assertFalse(document["coverage"]["activation_ready"])
-            self.assertIn(
+            self.assertNotIn(
                 "hash_heavy",
                 document["coverage"]["missing_classes"],
             )
@@ -237,6 +238,16 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             self.assertEqual(2, aot["loads"])
             self.assertEqual(2, aot["launches"])
             self.assertEqual(0, aot["cache_hits"])
+
+    def test_poseidon_is_a_real_hash_heavy_structural_row(self) -> None:
+        workload = next(
+            item
+            for item in COVERAGE_MATRIX
+            if item.workload_id == "poseidon_log13_instances"
+        )
+        self.assertTrue(workload.enabled)
+        self.assertEqual("hash_heavy", workload.structural_class)
+        self.assertEqual(PoseidonShape(13), workload.shape)
 
     def test_xor_workload_uses_its_own_protocol_shape_and_throughput(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

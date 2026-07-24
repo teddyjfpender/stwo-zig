@@ -1,6 +1,5 @@
 //! AIR-owned binding from Native Poseidon semantics to a generic CUDA recipe.
 
-const geometry_mod = @import("geometry.zig");
 const cpu_poseidon = @import("../../../examples/poseidon/input.zig");
 const common = @import("../../../backends/cuda/runtime/stages/common.zig");
 const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
@@ -21,12 +20,12 @@ pub fn prepare(
     destination: common.WordMatrix,
     statement: cpu_poseidon.Statement,
 ) !m31_permutation.PreparedLaunch {
-    const geometry = try geometry_mod.admit(statement);
+    const log_n_rows = try cpu_poseidon.logNRows(statement);
     return m31_permutation.prepare(
         session,
         destination,
         .{
-            .log_n_rows = geometry.log_n_rows,
+            .log_n_rows = log_n_rows,
             .replication_count = cpu_poseidon.N_INSTANCES_PER_ROW,
             .half_full_rounds = cpu_poseidon.N_HALF_FULL_ROUNDS,
             .partial_rounds = cpu_poseidon.N_PARTIAL_ROUNDS,

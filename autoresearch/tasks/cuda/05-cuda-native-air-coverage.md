@@ -1,6 +1,6 @@
 # Task 05: Native AIR Coverage
 
-Status: pending beyond wide Fibonacci
+Status: in progress; Poseidon is release-gated as the hash-heavy family
 
 ## Objective
 
@@ -24,6 +24,19 @@ through `ProofProgram` and the same runtime/compiler.
 - Hash work, lookup work, and nonuniform component geometry are represented in
   the generic program rather than hidden driver calls.
 - Structural controller enables hash-heavy, lookup-heavy, and irregular rows.
+
+## Current Activation
+
+- Poseidon uses the real 1,264-column M31 permutation trace and constant-QM31
+  AIR, not the seeded Blake trace recipe.
+- The Native CUDA CLI, structural benchmark, and staged autoresearch group
+  admit Poseidon at `log_n_instances` 10 and 13.
+- The device release lane requires exact Native CPU/CUDA bytes, independent
+  Zig and pinned Rust verification, authenticated SM89 AOT witness/constraint
+  activation, graph/direct proof equality, zero fallback, and one terminal
+  D2H.
+- The aggregate CUDA autoresearch group remains disabled and
+  non-promotion-eligible until all six families satisfy this task.
 
 ## Gates
 

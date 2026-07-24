@@ -39,6 +39,7 @@ parser.add_argument("--protocol", required=True)
 parser.add_argument("--log-n-rows", type=int)
 parser.add_argument("--sequence-len", type=int)
 parser.add_argument("--n-rounds", type=int)
+parser.add_argument("--log-n-instances", type=int)
 parser.add_argument("--log-size", type=int)
 parser.add_argument("--log-step", type=int)
 parser.add_argument("--offset", type=int)
@@ -110,6 +111,20 @@ elif args.air == "blake":
         "trace_rows": rows,
         "trace_cells": trace_cells,
     }
+elif args.air == "poseidon":
+    if args.log_n_instances is None or args.log_n_instances < 3:
+        parser.error("poseidon shape is incomplete")
+    rows = 1 << (args.log_n_instances - 3)
+    trace_cells = rows * 1264
+    artifact_statement_key = "poseidon_statement"
+    artifact_statement = {
+        "log_n_instances": args.log_n_instances,
+    }
+    report_statement = {
+        **artifact_statement,
+        "trace_rows": rows,
+        "trace_cells": trace_cells,
+    }
 else:
     parser.error("unsupported AIR")
 
@@ -152,7 +167,11 @@ artifact = {
     "plonk_statement": (
         artifact_statement if artifact_statement_key == "plonk_statement" else None
     ),
-    "poseidon_statement": None,
+    "poseidon_statement": (
+        artifact_statement
+        if artifact_statement_key == "poseidon_statement"
+        else None
+    ),
     "state_machine_statement": None,
     "wide_fibonacci_statement": (
         artifact_statement

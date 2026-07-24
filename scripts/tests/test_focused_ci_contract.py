@@ -168,6 +168,11 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("scripts/cuda_proof_parity_gate.py", command)
         self.assertIn("--rust-verifier-sha256", command)
         self.assertIn("--repeat 3", command)
+        self.assertIn("--air poseidon", command)
+        self.assertIn("--execution-mode graphs", command)
+        self.assertIn("--execution-mode direct", command)
+        self.assertIn("native-cuda-poseidon-graphs/receipt.json", command)
+        self.assertIn("native-cuda-poseidon-direct/receipt.json", command)
         self.assertIn("nvidia-smi", command)
 
     def test_metal_shader_selects_aot_but_runtime_does_not(self) -> None:

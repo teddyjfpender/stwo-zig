@@ -9,6 +9,7 @@ from scripts.native_cuda_diagnostic_lib.model import (
     BlakeShape,
     DiagnosticError,
     PlonkShape,
+    PoseidonShape,
     Shape,
     XorShape,
 )
@@ -32,7 +33,7 @@ class BenchmarkError(RuntimeError):
 class Workload:
     workload_id: str
     structural_class: str
-    shape: Shape | XorShape | PlonkShape | BlakeShape | None
+    shape: Shape | XorShape | PlonkShape | BlakeShape | PoseidonShape | None
     enabled: bool
     unavailable_reason: str | None = None
 
@@ -98,15 +99,16 @@ COVERAGE_MATRIX = (
         True,
     ),
     Workload(
-        "hash_native",
+        "poseidon_log10_instances",
         "hash_heavy",
-        None,
-        False,
-        (
-            "The simplified Blake example is seeded-xorshift plus one "
-            "constant-QM31 constraint; real Blake/Poseidon constraint "
-            "packs are pending"
-        ),
+        PoseidonShape(10),
+        True,
+    ),
+    Workload(
+        "poseidon_log13_instances",
+        "hash_heavy",
+        PoseidonShape(13),
+        True,
     ),
     Workload(
         "lookup_native",
@@ -155,6 +157,7 @@ PROFILES = {
             "latency_wf_log14x32",
             "lookup_xor_log14_step2",
             "seeded_blake_log10x10",
+            "poseidon_log10_instances",
             "wide_wf_log18x37",
         ),
         warmups=1,

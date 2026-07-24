@@ -140,7 +140,7 @@ class ManifestTest(unittest.TestCase):
         self.assertTrue(group.correctness_oracle["final_validator"])
         self.assertEqual(self.m.workloads(board="core_cuda"), [])
         staged = self.m.workloads(board="core_cuda", include_disabled=True)
-        self.assertEqual(len(staged), 8)
+        self.assertEqual(len(staged), 10)
         self.assertIn(
             "cuda_wf_log22x100",
             {workload.workload_id for workload in staged},

@@ -25,12 +25,24 @@ def value(flag):
     return args[args.index(flag) + 1]
 
 def artifact(proof):
+    air = value("--air") if "--air" in args else value("--example")
+    poseidon = (
+        {"log_n_instances": int(value("--log-n-instances"))}
+        if air == "poseidon" else None
+    )
+    wide = (
+        {
+            "log_n_rows": int(value("--log-n-rows")),
+            "sequence_len": int(value("--sequence-len")),
+        }
+        if air == "wide_fibonacci" else None
+    )
     return {
         "schema_version": 1,
         "upstream_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
         "exchange_mode": "proof_exchange_json_wire_v1",
         "generator": "zig",
-        "example": "wide_fibonacci",
+        "example": air,
         "prove_mode": "prove",
         "pcs_config": {
             "pow_bits": 10,
@@ -44,12 +56,9 @@ def artifact(proof):
         },
         "blake_statement": None,
         "plonk_statement": None,
-        "poseidon_statement": None,
+        "poseidon_statement": poseidon,
         "state_machine_statement": None,
-        "wide_fibonacci_statement": {
-            "log_n_rows": int(value("--log-n-rows")),
-            "sequence_len": int(value("--sequence-len")),
-        },
+        "wide_fibonacci_statement": wide,
         "xor_statement": None,
         "proof_bytes_hex": proof,
     }
@@ -78,14 +87,33 @@ if name == "cuda":
         else requested_execution_mode
     )
     graph_launches = 2 if requested_execution_mode == "graphs" else 0
+    air = value("--air")
+    poseidon = air == "poseidon"
+    protocol = (
+        "raw-stwo-poseidon-v1"
+        if poseidon else "raw-stwo-wide-v1"
+    )
+    statement = (
+        {
+            "log_n_instances": int(value("--log-n-instances")),
+            "trace_rows": 1 << (int(value("--log-n-instances")) - 3),
+            "trace_cells": (
+                1 << (int(value("--log-n-instances")) - 3)
+            ) * 1264,
+        }
+        if poseidon else {
+            "log_n_rows": int(value("--log-n-rows")),
+            "sequence_len": int(value("--sequence-len")),
+        }
+    )
     report.write_text(json.dumps({
         "schema_version": (
             2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 6
         ),
         "product": "stwo-native-cuda",
         "backend": "cuda",
-        "application": "wide_fibonacci",
-        "protocol": "raw-stwo-wide-v1",
+        "application": air,
+        "protocol": protocol,
         "execution_mode": reported_execution_mode,
         "plan": {
             "program_sha256": "a" * 64,
@@ -96,10 +124,7 @@ if name == "cuda":
             ),
             "cache_key_sha256": "c" * 64,
         },
-        "statement": {
-            "log_n_rows": int(value("--log-n-rows")),
-            "sequence_len": int(value("--sequence-len")),
-        },
+        "statement": statement,
         "proof": {
             "canonical_bytes": 4,
             "canonical_sha256": __import__("hashlib").sha256(
@@ -136,6 +161,17 @@ if name == "cuda":
             "decommit": 1,
             "proof_assembly": 1,
             "total": 10,
+        },
+        "aot": {
+            "entries": 6,
+            "loads": (
+                1 if os.environ.get("BAD_AOT_LOADS") == "1" else 2
+            ),
+            "cache_hits": 0,
+            "misses": 0,
+            "launches": 2,
+            "launch_failures": 0,
+            "build_identity_sha256": "d" * 64,
         },
         "process_repetition": {
             "count": repeats,
@@ -178,8 +214,10 @@ class CudaProofParityGateTests(unittest.TestCase):
             cpu_artifact=cpu_artifact,
             rust_verifier=self.root / "rust",
             rust_verifier_sha256=self.rust_sha,
+            air="wide_fibonacci",
             log_n_rows=5,
             sequence_len=8,
+            log_n_instances=None,
             repeat=3,
             execution_mode="graphs",
             out_dir=self.root / name,
@@ -210,6 +248,26 @@ class CudaProofParityGateTests(unittest.TestCase):
                 for index in range(len(receipt["commands"][0]["argv"]) - 1)
             ],
         )
+
+    def test_poseidon_requires_real_hash_statement_and_aot_kernels(self):
+        args = self.arguments("poseidon")
+        args.air = "poseidon"
+        args.log_n_rows = None
+        args.sequence_len = None
+        args.log_n_instances = 10
+        receipt = json.loads(gate.gate(args).read_text())
+
+        self.assertEqual("poseidon", receipt["challenge"]["air"])
+        self.assertEqual(10, receipt["challenge"]["log_n_instances"])
+        self.assertEqual(
+            "d" * 64,
+            receipt["cuda_residency"]["aot_build_sha256"],
+        )
+
+    def test_rejects_incomplete_aot_kernel_activation(self):
+        with mock.patch.dict(os.environ, {"BAD_AOT_LOADS": "1"}):
+            with self.assertRaisesRegex(gate.GateError, "AOT witness"):
+                gate.gate(self.arguments("bad-aot"))
 
     def test_rejects_reported_execution_mode_mismatch(self):
         with mock.patch.dict(os.environ, {"MISREPORT_EXECUTION_MODE": "1"}):

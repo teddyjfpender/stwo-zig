@@ -596,6 +596,16 @@
             "class": "extreme",
             "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 22 --sequence-len 100 --resource-profile extreme --repeat {samples}",
             "native_unit": "committed cells"
+          },
+          "cuda_poseidon_log10": {
+            "class": "small",
+            "args": "prove --air poseidon --backend cuda --protocol raw-stwo-poseidon-v1 --log-n-instances 10 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_poseidon_log13": {
+            "class": "wide",
+            "args": "prove --air poseidon --backend cuda --protocol raw-stwo-poseidon-v1 --log-n-instances 13 --repeat {samples}",
+            "native_unit": "committed cells"
           }
         }
       },

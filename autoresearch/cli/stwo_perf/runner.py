@@ -37,6 +37,7 @@ from scripts.native_cuda_diagnostic_lib.model import (
     BlakeShape,
     DiagnosticError as CudaDiagnosticError,
     PlonkShape,
+    PoseidonShape,
     Shape as CudaShape,
     XorShape,
 )
@@ -533,7 +534,7 @@ def _argument_value(tokens: list[str], flag: str) -> str:
 
 def _cuda_shape_from_args(
     args: str,
-) -> CudaShape | XorShape | PlonkShape | BlakeShape:
+) -> CudaShape | XorShape | PlonkShape | BlakeShape | PoseidonShape:
     tokens = shlex.split(args)
     if _argument_value(tokens, "--backend") != "cuda":
         raise ValueError("CUDA workload backend must equal cuda")
@@ -558,6 +559,10 @@ def _cuda_shape_from_args(
             shape = BlakeShape(
                 int(_argument_value(tokens, "--log-n-rows")),
                 int(_argument_value(tokens, "--n-rounds")),
+            )
+        elif application == "poseidon":
+            shape = PoseidonShape(
+                int(_argument_value(tokens, "--log-n-instances")),
             )
         else:
             raise ValueError(f"unsupported CUDA AIR {application!r}")

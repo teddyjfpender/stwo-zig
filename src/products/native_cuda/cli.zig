@@ -6,6 +6,7 @@ pub const wide_protocol_name = "raw-stwo-wide-v1";
 pub const xor_protocol_name = "raw-stwo-xor-v1";
 pub const plonk_protocol_name = "raw-stwo-plonk-v1";
 pub const blake_protocol_name = "raw-stwo-blake-v1";
+pub const poseidon_protocol_name = "raw-stwo-poseidon-v1";
 pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
@@ -16,6 +17,7 @@ pub const Air = enum {
     xor,
     plonk,
     blake,
+    poseidon,
 
     pub fn protocolName(self: Air) []const u8 {
         return switch (self) {
@@ -23,6 +25,7 @@ pub const Air = enum {
             .xor => xor_protocol_name,
             .plonk => plonk_protocol_name,
             .blake => blake_protocol_name,
+            .poseidon => poseidon_protocol_name,
         };
     }
 };
@@ -37,6 +40,7 @@ pub const Prove = struct {
     log_n_rows: ?u32,
     sequence_len: ?u32,
     n_rounds: ?u32,
+    log_n_instances: ?u32 = null,
     log_size: ?u32,
     log_step: ?u32,
     offset: ?u64,
@@ -58,6 +62,7 @@ const Flag = enum {
     log_n_rows,
     sequence_len,
     n_rounds,
+    log_n_instances,
     log_size,
     log_step,
     offset,
@@ -77,6 +82,7 @@ const Scratch = struct {
     log_n_rows: ?u32 = null,
     sequence_len: ?u32 = null,
     n_rounds: ?u32 = null,
+    log_n_instances: ?u32 = null,
     log_size: ?u32 = null,
     log_step: ?u32 = null,
     offset: ?u64 = null,
@@ -140,7 +146,8 @@ fn finish(scratch: Scratch) !Prove {
             if (scratch.log_size != null or
                 scratch.log_step != null or
                 scratch.offset != null or
-                scratch.n_rounds != null)
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null)
             {
                 return error.UnexpectedShapeArgument;
             }
@@ -151,7 +158,8 @@ fn finish(scratch: Scratch) !Prove {
         .xor => {
             if (scratch.log_n_rows != null or
                 scratch.sequence_len != null or
-                scratch.n_rounds != null)
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null)
                 return error.UnexpectedShapeArgument;
             _ = scratch.log_size orelse return error.MissingLogSize;
             _ = scratch.log_step orelse return error.MissingLogStep;
@@ -162,7 +170,8 @@ fn finish(scratch: Scratch) !Prove {
                 scratch.log_size != null or
                 scratch.log_step != null or
                 scratch.offset != null or
-                scratch.n_rounds != null)
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null)
             {
                 return error.UnexpectedShapeArgument;
             }
@@ -172,7 +181,8 @@ fn finish(scratch: Scratch) !Prove {
             if (scratch.sequence_len != null or
                 scratch.log_size != null or
                 scratch.log_step != null or
-                scratch.offset != null)
+                scratch.offset != null or
+                scratch.log_n_instances != null)
             {
                 return error.UnexpectedShapeArgument;
             }
@@ -181,12 +191,26 @@ fn finish(scratch: Scratch) !Prove {
             _ = scratch.n_rounds orelse
                 return error.MissingRoundCount;
         },
+        .poseidon => {
+            if (scratch.log_n_rows != null or
+                scratch.sequence_len != null or
+                scratch.n_rounds != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_instances orelse
+                return error.MissingLogInstances;
+        },
     }
     return .{
         .air = air,
         .log_n_rows = scratch.log_n_rows,
         .sequence_len = scratch.sequence_len,
         .n_rounds = scratch.n_rounds,
+        .log_n_instances = scratch.log_n_instances,
         .log_size = scratch.log_size,
         .log_step = scratch.log_step,
         .offset = scratch.offset,
@@ -221,6 +245,9 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
         .n_rounds => scratch.n_rounds =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidRoundCount,
+        .log_n_instances => scratch.log_n_instances =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidLogInstances,
         .log_size => scratch.log_size =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidLogSize,
@@ -262,13 +289,14 @@ pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
         \\Usage: stwo-zig-native-cuda prove [options]
         \\
-        \\  --air wide_fibonacci | xor | plonk | blake
+        \\  --air wide_fibonacci | xor | plonk | blake | poseidon
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1 | raw-stwo-blake-v1
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1 | raw-stwo-blake-v1 | raw-stwo-poseidon-v1
         \\  wide_fibonacci: --log-n-rows N --sequence-len N
         \\  xor:            --log-size N --log-step N --offset N
         \\  plonk:          --log-n-rows N
         \\  blake:          --log-n-rows N --n-rounds N
+        \\  poseidon:       --log-n-instances N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
@@ -358,6 +386,28 @@ test "parser admits the exact Blake shape and protocol" {
     );
     try std.testing.expectEqual(@as(u32, 10), request.n_rounds.?);
     try std.testing.expect(request.sequence_len == null);
+}
+
+test "parser admits the exact Poseidon statement and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "poseidon",
+        "--backend",
+        backend_name,
+        "--protocol",
+        poseidon_protocol_name,
+        "--log-n-instances",
+        "13",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.poseidon, request.air);
+    try std.testing.expectEqual(
+        @as(u32, 13),
+        request.log_n_instances.?,
+    );
+    try std.testing.expect(request.log_n_rows == null);
 }
 
 test "parser admits only the exact XOR shape and protocol" {

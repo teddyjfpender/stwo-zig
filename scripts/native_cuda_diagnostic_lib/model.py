@@ -18,6 +18,8 @@ PLONK_APPLICATION = "plonk"
 PLONK_PROTOCOL = "raw-stwo-plonk-v1"
 BLAKE_APPLICATION = "blake"
 BLAKE_PROTOCOL = "raw-stwo-blake-v1"
+POSEIDON_APPLICATION = "poseidon"
+POSEIDON_PROTOCOL = "raw-stwo-poseidon-v1"
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 
@@ -265,6 +267,55 @@ class BlakeShape:
         if not 1 <= self.n_rounds <= (2**32 - 1) // 96:
             raise DiagnosticError(
                 f"unsupported Blake round count: {self.n_rounds}"
+            )
+
+
+@dataclass(frozen=True, order=True)
+class PoseidonShape:
+    log_n_instances: int
+
+    @property
+    def trace_rows(self) -> int:
+        return 1 << (self.log_n_instances - 3)
+
+    @property
+    def trace_cells(self) -> int:
+        return self.trace_rows * 1264
+
+    @property
+    def slug(self) -> str:
+        return f"instances-log{self.log_n_instances}"
+
+    @property
+    def application(self) -> str:
+        return POSEIDON_APPLICATION
+
+    @property
+    def protocol(self) -> str:
+        return POSEIDON_PROTOCOL
+
+    @property
+    def artifact_statement_key(self) -> str:
+        return "poseidon_statement"
+
+    def artifact_statement(self) -> dict[str, int]:
+        return {"log_n_instances": self.log_n_instances}
+
+    def statement(self) -> dict[str, int]:
+        return {
+            **self.artifact_statement(),
+            "trace_rows": self.trace_rows,
+            "trace_cells": self.trace_cells,
+        }
+
+    def cli_shape_args(self) -> list[str]:
+        return ["--log-n-instances", str(self.log_n_instances)]
+
+    def validate(self) -> None:
+        if not 3 <= self.log_n_instances <= 33:
+            raise DiagnosticError(
+                "unsupported Poseidon instance log: "
+                f"{self.log_n_instances}"
             )
 
 

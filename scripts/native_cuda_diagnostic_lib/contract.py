@@ -20,6 +20,7 @@ from .model import (
     DiagnosticError,
     Shape,
     PlonkShape,
+    PoseidonShape,
     XorShape,
 )
 
@@ -287,7 +288,7 @@ def _read_json(path: Path, maximum: int, context: str) -> tuple[dict[str, Any], 
 
 def validate_artifact(
     path: Path,
-    shape: Shape | XorShape | PlonkShape | BlakeShape,
+    shape: Shape | XorShape | PlonkShape | BlakeShape | PoseidonShape,
 ) -> dict[str, Any]:
     document, raw = _read_json(
         path,
@@ -346,7 +347,7 @@ def validate_artifact(
 
 def validate_report(
     report: dict[str, Any],
-    shape: Shape | XorShape | PlonkShape | BlakeShape,
+    shape: Shape | XorShape | PlonkShape | BlakeShape | PoseidonShape,
     proof_path: Path,
     artifact: dict[str, Any],
     *,
