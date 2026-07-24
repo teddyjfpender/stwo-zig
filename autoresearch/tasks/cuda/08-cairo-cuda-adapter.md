@@ -1,6 +1,6 @@
 # Task 08: Cairo CUDA Adapter
 
-Status: deferred until Native and RISC-V generic CUDA paths are proven
+Status: next frontend after Native CUDA architecture closure
 
 ## Objective
 
@@ -34,3 +34,10 @@ the same CUDA runtime/compiler without creating a Cairo-specific GPU prover.
 - CPU/CUDA and Rust-oracle parity matrix.
 - Stage and memory scaling report.
 - Separate Cairo CUDA board proposal only after locked-host A/A calibration.
+
+## Follow-On Performance Target
+
+Task `09-cairo-sn-pie-subsecond.md` makes the four canonical SN PIEs the next
+system workload after this semantic adapter is correct. It requires full
+input-to-verified-proof timing below one second, without fixture-specific
+shortcuts or a separate Cairo CUDA runtime.

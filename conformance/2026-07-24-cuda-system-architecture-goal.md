@@ -301,11 +301,16 @@ The detailed tasks are in `autoresearch/tasks/cuda/`:
 6. Native AIR coverage;
 7. autoresearch activation;
 8. RISC-V adapter;
-9. Cairo adapter.
+9. Cairo adapter;
+10. sub-second SN PIE proving.
 
 Tasks 1-3 have an implemented first slice. They remain subject to broader AIR
 and adversarial validation. Task 4 begins with the measured commitment/Merkle
 hot path; it must not add concurrency speculatively.
+
+The 2026-07-24 priority update moves tasks 9 and 10 directly after Native
+architecture closure. RISC-V CUDA remains required for generic backend release,
+but it does not block the next Cairo/SN PIE performance phase.
 
 ## Completion Checklist
 
@@ -324,6 +329,7 @@ hot path; it must not add concurrency speculatively.
 - [ ] Reviewed `core_cuda` activation.
 - [ ] RISC-V generic CUDA adapter.
 - [ ] Cairo generic CUDA adapter.
+- [ ] Four canonical SN PIEs below one second at the verified-request boundary.
 - [ ] Sustained mixed-shape service evidence.
 
 ## Primary References

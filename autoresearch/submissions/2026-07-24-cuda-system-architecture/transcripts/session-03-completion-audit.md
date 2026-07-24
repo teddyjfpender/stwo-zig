@@ -7,7 +7,7 @@ kernel-optimization loop reached a clean stopping point. The authority is:
 
 - `conformance/2026-07-24-cuda-system-architecture-goal.md`;
 - `autoresearch/tasks/cuda/00-cuda-measurement-contract.md` through
-  `08-cairo-cuda-adapter.md`;
+  `09-cairo-sn-pie-subsecond.md`;
 - the user-supplied architecture specification captured by that goal.
 
 Performance experimentation is not reopened. Work in this session must remove
