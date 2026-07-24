@@ -139,9 +139,9 @@ COVERAGE_MATRIX = (
         None,
         False,
         (
-            "The deterministic Native CUDA mixed-service CLI is staged, but "
-            "immutable hardware exact-proof and pinned Rust-oracle receipt "
-            "packages are not yet retained"
+            "The deterministic Native CUDA mixed-service CLI and immutable "
+            "hardware/Rust-oracle receipt are retained, but the structural "
+            "controller does not yet execute and validate its service schema"
         ),
     ),
 )

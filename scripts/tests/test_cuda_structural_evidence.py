@@ -113,6 +113,68 @@ class CudaStructuralEvidenceTests(unittest.TestCase):
         self.assertTrue(receipt["oracle"]["all_accepted"])
         self.assertEqual(receipt["oracle"]["artifacts_accepted"], 6)
 
+    def test_mixed_service_receipt_binds_report_artifacts_and_oracle(self) -> None:
+        root = EVIDENCE / "mixed-service"
+        report_bytes = (root / "report.json").read_bytes()
+        report = json.loads(report_bytes)
+        receipt = json.loads((root / "receipt.json").read_bytes())
+
+        self.assertEqual(
+            receipt["report"]["sha256"],
+            hashlib.sha256(report_bytes).hexdigest(),
+        )
+        self.assertEqual(
+            receipt["product"]["commit"],
+            report["product_identity"]["implementation_commit"],
+        )
+        self.assertEqual(
+            receipt["product"]["identity_sha256"],
+            report["product_identity"]["identity_sha256"],
+        )
+        self.assertFalse(receipt["product"]["dirty"])
+        self.assertEqual(receipt["verdict"], "pass_diagnostic_unjudged")
+        self.assertFalse(receipt["promotion"]["headline_eligible"])
+        self.assertFalse(receipt["promotion"]["activation_eligible"])
+
+        by_ordinal = {
+            row["ordinal"]: row
+            for row in report["requests"]
+        }
+        self.assertEqual(len(receipt["artifacts"]), 6)
+        for artifact in receipt["artifacts"]:
+            row = by_ordinal[artifact["ordinal"]]
+            path = root / artifact["path"]
+            self.assertEqual(
+                artifact["artifact_sha256"],
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+            )
+            self.assertEqual(
+                artifact["artifact_sha256"],
+                row["proof"]["artifact_sha256"],
+            )
+            self.assertEqual(
+                artifact["canonical_sha256"],
+                row["proof"]["canonical_sha256"],
+            )
+            self.assertEqual(
+                artifact["canonical_bytes"],
+                row["proof"]["canonical_bytes"],
+            )
+            self.assertEqual(artifact["rust_exit_code"], 0)
+            self.assertTrue(row["proof"]["zig_verified"])
+            self.assertTrue(row["proof"]["exact_for_repeated_family_input"])
+            self.assertTrue(row["residency"]["resident"])
+            self.assertTrue(row["residency"]["strict_aot"])
+            self.assertEqual(row["residency"]["cpu_fallbacks_completed"], 0)
+            self.assertEqual(row["residency"]["terminal_d2h_operations"], 1)
+
+        service = receipt["service"]
+        self.assertEqual(service["requests_completed"], 6)
+        self.assertEqual(service["publications"], 6)
+        self.assertEqual(service["shape_misses"], 0)
+        self.assertTrue(service["all_rust_verified"])
+        self.assertTrue(receipt["oracle"]["all_accepted"])
+
 
 if __name__ == "__main__":
     unittest.main()
