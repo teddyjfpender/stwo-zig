@@ -4,6 +4,7 @@ from .model import (
     DEFAULT_SHAPES,
     DiagnosticError,
     Settings,
+    PlonkShape,
     Shape,
 )
 from .runner import run_diagnostic
@@ -12,6 +13,7 @@ __all__ = [
     "DEFAULT_SHAPES",
     "DiagnosticError",
     "Settings",
+    "PlonkShape",
     "Shape",
     "run_diagnostic",
 ]

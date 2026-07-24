@@ -4,6 +4,7 @@ const std = @import("std");
 
 pub const wide_protocol_name = "raw-stwo-wide-v1";
 pub const xor_protocol_name = "raw-stwo-xor-v1";
+pub const plonk_protocol_name = "raw-stwo-plonk-v1";
 pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
@@ -12,11 +13,13 @@ pub const max_repetitions: u32 = 16;
 pub const Air = enum {
     wide_fibonacci,
     xor,
+    plonk,
 
     pub fn protocolName(self: Air) []const u8 {
         return switch (self) {
             .wide_fibonacci => wide_protocol_name,
             .xor => xor_protocol_name,
+            .plonk => plonk_protocol_name,
         };
     }
 };
@@ -145,6 +148,16 @@ fn finish(scratch: Scratch) !Prove {
             _ = scratch.log_step orelse return error.MissingLogStep;
             _ = scratch.offset orelse return error.MissingOffset;
         },
+        .plonk => {
+            if (scratch.sequence_len != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse return error.MissingLogRows;
+        },
     }
     return .{
         .air = air,
@@ -222,11 +235,12 @@ pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
         \\Usage: stwo-zig-native-cuda prove [options]
         \\
-        \\  --air wide_fibonacci | xor
+        \\  --air wide_fibonacci | xor | plonk
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1
         \\  wide_fibonacci: --log-n-rows N --sequence-len N
         \\  xor:            --log-size N --log-step N --offset N
+        \\  plonk:          --log-n-rows N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
@@ -335,6 +349,25 @@ test "parser admits only the exact XOR shape and protocol" {
         "--output",
         "proof.json",
     }));
+}
+
+test "parser admits only the exact Plonk shape and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "plonk",
+        "--backend",
+        backend_name,
+        "--protocol",
+        plonk_protocol_name,
+        "--log-n-rows",
+        "16",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.plonk, request.air);
+    try std.testing.expectEqual(@as(u32, 16), request.log_n_rows.?);
+    try std.testing.expect(request.sequence_len == null);
 }
 
 test "parser admits explicit direct execution and rejects ambiguous modes" {

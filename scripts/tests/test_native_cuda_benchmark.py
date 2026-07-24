@@ -19,7 +19,11 @@ from scripts.native_cuda_benchmark_lib import (  # noqa: E402
     Workload,
     run_benchmark,
 )
-from scripts.native_cuda_diagnostic_lib.model import Shape, XorShape  # noqa: E402
+from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
+    PlonkShape,
+    Shape,
+    XorShape,
+)
 from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
     FAKE_PRODUCT,
 )
@@ -148,6 +152,33 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(BenchmarkError, "XOR offset"):
                 settings.validate()
+
+    def test_plonk_workload_uses_structured_arithmetic_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shape = PlonkShape(14)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                workload=Workload(
+                    "fake_plonk",
+                    "structured_arithmetic",
+                    shape,
+                    True,
+                ),
+            )
+            document, _ = run_benchmark(settings)
+
+            workload = document["workloads"][0]
+            self.assertEqual(shape.statement(), workload["statement"])
+            command = workload["sessions"][0]["raw"]["command"]
+            self.assertIn("raw-stwo-plonk-v1", command)
+            self.assertIn("--log-n-rows", command)
+            self.assertNotIn("--sequence-len", command)
+            self.assertEqual(
+                "plonk",
+                workload["sessions"][0]["raw"]["proof"]["example"],
+            )
 
     def test_paired_rounds_produce_class_equal_portfolio(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from scripts.native_cuda_diagnostic_lib.model import (
     DiagnosticError,
+    PlonkShape,
     Shape,
     XorShape,
 )
@@ -30,7 +31,7 @@ class BenchmarkError(RuntimeError):
 class Workload:
     workload_id: str
     structural_class: str
-    shape: Shape | XorShape | None
+    shape: Shape | XorShape | PlonkShape | None
     enabled: bool
     unavailable_reason: str | None = None
 
@@ -66,6 +67,18 @@ COVERAGE_MATRIX = (
         XorShape(16, 2, 3),
         True,
     ),
+    Workload(
+        "structured_plonk_log14",
+        "structured_arithmetic",
+        PlonkShape(14),
+        True,
+    ),
+    Workload(
+        "structured_plonk_log16",
+        "structured_arithmetic",
+        PlonkShape(16),
+        True,
+    ),
     Workload("narrow_deep_wf_log22x3", "narrow_deep", Shape(22, 3), True),
     Workload("wide_wf_log18x37", "wide", Shape(18, 37), True),
     Workload("wide_wf_log18x73", "wide", Shape(18, 73), True),
@@ -82,7 +95,7 @@ COVERAGE_MATRIX = (
         "lookup_heavy",
         None,
         False,
-        "Native Plonk and lookup/LogUp AIRs do not yet emit CUDA packs",
+        "Native lookup/LogUp AIRs do not yet emit CUDA packs",
     ),
     Workload(
         "irregular_native",

@@ -14,6 +14,8 @@ APPLICATION = "wide_fibonacci"
 PROTOCOL = "raw-stwo-wide-v1"
 XOR_APPLICATION = "xor"
 XOR_PROTOCOL = "raw-stwo-xor-v1"
+PLONK_APPLICATION = "plonk"
+PLONK_PROTOCOL = "raw-stwo-plonk-v1"
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 
@@ -153,6 +155,54 @@ class XorShape:
             )
         if not 0 <= self.offset < (1 << self.log_step):
             raise DiagnosticError(f"unsupported XOR offset: {self.offset}")
+
+
+@dataclass(frozen=True, order=True)
+class PlonkShape:
+    log_n_rows: int
+
+    @property
+    def trace_rows(self) -> int:
+        return 1 << self.log_n_rows
+
+    @property
+    def trace_cells(self) -> int:
+        return self.trace_rows * 8
+
+    @property
+    def slug(self) -> str:
+        return f"plonk-log{self.log_n_rows}"
+
+    @property
+    def application(self) -> str:
+        return PLONK_APPLICATION
+
+    @property
+    def protocol(self) -> str:
+        return PLONK_PROTOCOL
+
+    @property
+    def artifact_statement_key(self) -> str:
+        return "plonk_statement"
+
+    def artifact_statement(self) -> dict[str, int]:
+        return {"log_n_rows": self.log_n_rows}
+
+    def statement(self) -> dict[str, int]:
+        return {
+            **self.artifact_statement(),
+            "trace_rows": self.trace_rows,
+            "trace_cells": self.trace_cells,
+        }
+
+    def cli_shape_args(self) -> list[str]:
+        return ["--log-n-rows", str(self.log_n_rows)]
+
+    def validate(self) -> None:
+        if not 1 <= self.log_n_rows <= 22:
+            raise DiagnosticError(
+                f"unsupported Plonk log size: {self.log_n_rows}"
+            )
 
 
 DEFAULT_SHAPES = (

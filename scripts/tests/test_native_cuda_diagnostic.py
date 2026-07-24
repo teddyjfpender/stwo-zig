@@ -82,6 +82,18 @@ elif args.air == "xor":
         "trace_rows": rows,
         "trace_cells": trace_cells,
     }
+elif args.air == "plonk":
+    if args.log_n_rows is None:
+        parser.error("plonk shape is incomplete")
+    rows = 1 << args.log_n_rows
+    trace_cells = rows * 8
+    artifact_statement_key = "plonk_statement"
+    artifact_statement = {"log_n_rows": args.log_n_rows}
+    report_statement = {
+        **artifact_statement,
+        "trace_rows": rows,
+        "trace_cells": trace_cells,
+    }
 else:
     parser.error("unsupported AIR")
 
@@ -119,7 +131,9 @@ artifact = {
         "lifting_log_size": None,
     },
     "blake_statement": None,
-    "plonk_statement": None,
+    "plonk_statement": (
+        artifact_statement if artifact_statement_key == "plonk_statement" else None
+    ),
     "poseidon_statement": None,
     "state_machine_statement": None,
     "wide_fibonacci_statement": (

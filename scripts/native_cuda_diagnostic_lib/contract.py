@@ -18,6 +18,7 @@ from .model import (
     UPSTREAM_COMMIT,
     DiagnosticError,
     Shape,
+    PlonkShape,
     XorShape,
 )
 
@@ -285,7 +286,7 @@ def _read_json(path: Path, maximum: int, context: str) -> tuple[dict[str, Any], 
 
 def validate_artifact(
     path: Path,
-    shape: Shape | XorShape,
+    shape: Shape | XorShape | PlonkShape,
 ) -> dict[str, Any]:
     document, raw = _read_json(
         path,
@@ -344,7 +345,7 @@ def validate_artifact(
 
 def validate_report(
     report: dict[str, Any],
-    shape: Shape | XorShape,
+    shape: Shape | XorShape | PlonkShape,
     proof_path: Path,
     artifact: dict[str, Any],
     *,
