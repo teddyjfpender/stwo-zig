@@ -136,7 +136,9 @@ def compute_profile(
     ]
     if kernel is not None:
         arguments.extend(["--kernel-name", f"regex:{kernel}"])
-    arguments.extend(["--", *_command(command)])
+    # Nsight Compute uses the first positional token as the application.
+    # Unlike Nsight Systems, it does not accept `--` as an option terminator.
+    arguments.extend(_command(command))
     _run(arguments, timeout=timeout)
     artifact = target.with_suffix(".ncu-rep")
     if not artifact.is_file():

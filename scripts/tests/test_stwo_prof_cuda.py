@@ -101,6 +101,8 @@ class CudaToolsTests(unittest.TestCase):
             self.assertEqual(arguments[arguments.index("--launch-skip") + 1], "3")
             self.assertEqual(arguments[arguments.index("--launch-count") + 1], "1")
             self.assertIn("regex:n2b_stage", arguments)
+            self.assertNotIn("--", arguments)
+            self.assertEqual(arguments[-1], "prove")
 
     def test_compute_profile_rejects_unbounded_launch_count(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
