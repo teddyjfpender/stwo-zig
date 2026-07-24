@@ -46,22 +46,35 @@ pub const Topology = struct {
         {
             return error.InvalidKernelDescriptor;
         }
+        const signed_limit: u32 = @intCast(std.math.maxInt(i32));
+        const quarter_limit = std.math.maxInt(u32) / 4;
+        if (self.geometry.len > quarter_limit or
+            self.total_pair_blocks > signed_limit or
+            self.total_inverse_blocks > signed_limit or
+            self.total_chain_blocks > signed_limit or
+            self.total_row_blocks > quarter_limit)
+        {
+            return error.InvalidKernelDescriptor;
+        }
         var pair_first: u32 = 0;
         var inverse_first: u32 = 0;
         var row_first: u32 = 0;
         for (self.geometry) |geometry| {
+            const values = try checkedMul(geometry.rows, geometry.columns);
             const row_blocks = blocks(geometry.rows, abi.launch_block);
             const pair_blocks = try checkedMul(
                 row_blocks,
                 geometry.columns,
             );
             const inverse_blocks = blocks(
-                try checkedMul(geometry.rows, geometry.columns),
+                values,
                 abi.inverse_block_values,
             );
             if (geometry.rows == 0 or
+                geometry.rows >= 0x7fff_ffff or
                 !std.math.isPowerOfTwo(geometry.rows) or
                 geometry.columns == 0 or geometry.real_rows > geometry.rows or
+                values > signed_limit or
                 geometry.pair_first != pair_first or
                 geometry.inverse_first != inverse_first or
                 geometry.row_first != row_first or
@@ -91,6 +104,10 @@ pub const Topology = struct {
     pub fn instanceCount(self: Topology) runtime_error.Error!u32 {
         return common.count(self.geometry.len);
     }
+
+    pub fn scratchWords(self: Topology) runtime_error.Error!u32 {
+        return checkedMul(self.total_row_blocks, 4);
+    }
 };
 
 /// Device-resident pointer tables and scratch owned by one compiled plan.
@@ -118,7 +135,9 @@ pub fn OpsFor(comptime Api: type) type {
             try common.requireStage(session, stage);
             try topology.validate();
             const instance_count = try topology.instanceCount();
-            try validateBufferLengths(topology, buffers);
+            const scratch_words = try topology.scratchWords();
+            try validateBufferLengths(topology, buffers, scratch_words);
+            try validatePointerTableAlignment(buffers);
 
             const drawn = try layout.resident(
                 session,
@@ -178,13 +197,13 @@ pub fn OpsFor(comptime Api: type) type {
                 session,
                 u32,
                 buffers.reduction_partials,
-                topology.total_row_blocks * 4,
+                scratch_words,
             );
             const scan = try layout.resident(
                 session,
                 u32,
                 buffers.scan_block_sums,
-                topology.total_row_blocks * 4,
+                scratch_words,
             );
             const immutable_ranges = [_]layout.DeviceRange{
                 drawn.range,
@@ -248,7 +267,7 @@ pub fn OpsFor(comptime Api: type) type {
                 partials.pointer,
                 topology.total_row_blocks,
                 scan.pointer,
-                topology.total_row_blocks * 4,
+                scratch_words,
                 session.context.stream,
             );
             try common.recordMany(session, stage, status, 5);
@@ -259,6 +278,7 @@ pub fn OpsFor(comptime Api: type) type {
 fn validateBufferLengths(
     topology: Topology,
     buffers: Buffers,
+    scratch_words: u32,
 ) runtime_error.Error!void {
     const instances = try topology.instanceCount();
     const table_words = pointerTableWords(instances);
@@ -271,10 +291,26 @@ fn validateBufferLengths(
         buffers.denominator_slabs.len != table_words or
         buffers.geometry.len != instances or
         buffers.claimed_sums.len != table_words or
-        buffers.reduction_partials.len < topology.total_row_blocks * 4 or
-        buffers.scan_block_sums.len < topology.total_row_blocks * 4)
+        buffers.reduction_partials.len < scratch_words or
+        buffers.scan_block_sums.len < scratch_words)
     {
         return error.InvalidKernelDescriptor;
+    }
+}
+
+fn validatePointerTableAlignment(
+    buffers: Buffers,
+) runtime_error.Error!void {
+    const pointer_tables = [_]usize{
+        buffers.source_tables.address,
+        buffers.descriptors.address,
+        buffers.output_tables.address,
+        buffers.denominator_slabs.address,
+        buffers.claimed_sums.address,
+    };
+    for (pointer_tables) |address| {
+        if (address % @alignOf(usize) != 0)
+            return error.InvalidDeviceAddress;
     }
 }
 
@@ -374,6 +410,68 @@ test "relation topology rejects an inexact M31 row inverse" {
         .total_inverse_blocks = 1,
         .total_chain_blocks = 1,
         .total_row_blocks = 1,
+    };
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        topology.validate(),
+    );
+}
+
+test "relation topology matches ragged inverse transitions" {
+    const row_counts = [_]u32{ 1, 2, 512, 1024, 2048 };
+    for (row_counts) |rows| {
+        const row_blocks = blocks(rows, abi.launch_block);
+        const pair_blocks = row_blocks * 2;
+        const inverse_blocks = blocks(rows * 2, abi.inverse_block_values);
+        const geometry = [_]Geometry{.{
+            .pair_first = 0,
+            .pair_blocks = pair_blocks,
+            .inverse_first = 0,
+            .inverse_blocks = inverse_blocks,
+            .row_first = 0,
+            .row_blocks = row_blocks,
+            .rows = rows,
+            .columns = 2,
+            .real_rows = rows,
+            .source_offset_rows = 0,
+            .inverse_rows = inverseRows(rows),
+        }};
+        const topology = Topology{
+            .geometry = &geometry,
+            .max_alpha_powers = 2,
+            .total_pair_blocks = pair_blocks,
+            .total_inverse_blocks = inverse_blocks,
+            .total_chain_blocks = row_blocks,
+            .total_row_blocks = row_blocks,
+        };
+        try topology.validate();
+    }
+}
+
+test "relation topology rejects a fraction chain beyond CUDA signed limits" {
+    const rows: u32 = 1 << 30;
+    const columns: u32 = 3;
+    const row_blocks = blocks(rows, abi.launch_block);
+    const geometry = [_]Geometry{.{
+        .pair_first = 0,
+        .pair_blocks = row_blocks * columns,
+        .inverse_first = 0,
+        .inverse_blocks = blocks(rows * columns, abi.inverse_block_values),
+        .row_first = 0,
+        .row_blocks = row_blocks,
+        .rows = rows,
+        .columns = columns,
+        .real_rows = rows,
+        .source_offset_rows = 0,
+        .inverse_rows = inverseRows(rows),
+    }};
+    const topology = Topology{
+        .geometry = &geometry,
+        .max_alpha_powers = 2,
+        .total_pair_blocks = geometry[0].pair_blocks,
+        .total_inverse_blocks = geometry[0].inverse_blocks,
+        .total_chain_blocks = row_blocks,
+        .total_row_blocks = row_blocks,
     };
     try std.testing.expectError(
         error.InvalidKernelDescriptor,

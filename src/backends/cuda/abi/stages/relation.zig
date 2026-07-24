@@ -157,4 +157,23 @@ test "relation descriptors preserve the CUDA word ABI" {
         @as(usize, use_words * @sizeOf(u32)),
         @sizeOf(UseDescriptor),
     );
+    try std.testing.expectEqual(@as(usize, 4), @alignOf(ColumnDescriptor));
+    try std.testing.expectEqual(@as(usize, 4), @alignOf(Geometry));
+    try std.testing.expectEqual(@as(usize, 4), @alignOf(UseDescriptor));
+    inline for (std.meta.fields(UseDescriptor), 0..) |entry, index| {
+        try std.testing.expectEqual(
+            index * @sizeOf(u32),
+            @offsetOf(UseDescriptor, entry.name),
+        );
+    }
+    try std.testing.expectEqual(@as(usize, 0), @offsetOf(ColumnDescriptor, "arity"));
+    try std.testing.expectEqual(@as(usize, 4), @offsetOf(ColumnDescriptor, "first"));
+    try std.testing.expectEqual(@as(usize, 32), @offsetOf(ColumnDescriptor, "second"));
+    try std.testing.expectEqual(@as(usize, 60), @offsetOf(ColumnDescriptor, "reserved"));
+    inline for (std.meta.fields(Geometry), 0..) |entry, index| {
+        try std.testing.expectEqual(
+            index * @sizeOf(u32),
+            @offsetOf(Geometry, entry.name),
+        );
+    }
 }

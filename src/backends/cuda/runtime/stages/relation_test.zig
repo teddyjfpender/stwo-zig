@@ -214,3 +214,51 @@ test "resident relation graph rejects alias and stage drift before launch" {
     );
     try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
 }
+
+test "resident relation graph rejects a misaligned pointer table" {
+    TestApi.calls = 0;
+    var session = TestSession{};
+    TestApi.expected_stream = session.context.stream;
+    var misaligned = buffers();
+    misaligned.source_tables.address += @sizeOf(u32);
+    try std.testing.expectError(
+        error.InvalidDeviceAddress,
+        relation.OpsFor(TestApi).execute(&session, topology, misaligned),
+    );
+    try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
+}
+
+test "resident relation graph rejects CUDA extent overflow before launch" {
+    TestApi.calls = 0;
+    var session = TestSession{};
+    TestApi.expected_stream = session.context.stream;
+    const rows: u32 = 1 << 30;
+    const columns: u32 = 3;
+    const row_blocks = rows / 256;
+    const too_large_geometry = [_]relation.Geometry{.{
+        .pair_first = 0,
+        .pair_blocks = row_blocks * columns,
+        .inverse_first = 0,
+        .inverse_blocks = (rows * columns) / 1024,
+        .row_first = 0,
+        .row_blocks = row_blocks,
+        .rows = rows,
+        .columns = columns,
+        .real_rows = rows,
+        .source_offset_rows = 0,
+        .inverse_rows = 2,
+    }};
+    const too_large = relation.Topology{
+        .geometry = &too_large_geometry,
+        .max_alpha_powers = 2,
+        .total_pair_blocks = too_large_geometry[0].pair_blocks,
+        .total_inverse_blocks = too_large_geometry[0].inverse_blocks,
+        .total_chain_blocks = row_blocks,
+        .total_row_blocks = row_blocks,
+    };
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        relation.OpsFor(TestApi).execute(&session, too_large, buffers()),
+    );
+    try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
+}
