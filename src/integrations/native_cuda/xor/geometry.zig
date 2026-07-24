@@ -10,6 +10,9 @@ pub const interaction_columns: u32 = 0;
 pub const composition_columns: u32 = 8;
 pub const sampled_mask_points: u32 =
     preprocessed_columns + main_columns + composition_columns;
+// The quotient/commitment domain is one bit larger and the current resident
+// CUDA proof kernels represent row counts as u32.
+pub const max_log_size: u32 = 29;
 
 pub const Error = error{
     GeometryOverflow,
@@ -55,7 +58,7 @@ pub fn admit(
     statement: cpu_xor.Statement,
     protocol: pcs.PcsConfig,
 ) Error!Geometry {
-    if (statement.log_size == 0 or statement.log_size >= 63)
+    if (statement.log_size == 0 or statement.log_size > max_log_size)
         return error.InvalidLogSize;
     if (statement.log_step > statement.log_size) return error.InvalidStep;
     if (!supportedProtocol(protocol)) return error.UnsupportedProtocol;
@@ -146,6 +149,13 @@ test "XOR geometry rejects statements and protocols outside parity" {
     try std.testing.expectError(
         error.InvalidLogSize,
         admit(.{ .log_size = 0, .log_step = 0, .offset = 0 }, protocol),
+    );
+    try std.testing.expectError(
+        error.InvalidLogSize,
+        admit(
+            .{ .log_size = max_log_size + 1, .log_step = 0, .offset = 0 },
+            protocol,
+        ),
     );
     try std.testing.expectError(
         error.InvalidStep,
