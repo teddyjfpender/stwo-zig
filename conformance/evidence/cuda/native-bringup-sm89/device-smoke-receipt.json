@@ -1,0 +1,82 @@
+{
+  "archive_sha256": "f42c2835cd2d78226beea780aa14f99b9c2ed9331e632067beee0b46484e893e",
+  "compiler": "/usr/bin/x86_64-linux-gnu-g++-13",
+  "compiler_sha256": "52f1ddb33fe78b9441e0f42e9cd22c571f1101938e046c8a26582494e041cc73",
+  "compiler_version": "x86_64-linux-gnu-g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "cuda_home": "/usr/local/cuda-12.8",
+  "cuda_visible_devices": null,
+  "gpu": "NVIDIA GeForce RTX 4090, GPU-3d13fd0d-5ca8-6977-a99b-b29cd5c7bf41, 8.9, 580.126.20",
+  "schema": "stwo-zig-cuda-device-smoke-v1",
+  "tests": [
+    {
+      "executable_sha256": "aadf2d273fa1b7785604902600c3b2425968b3334b26eaf669fc7d303945a098",
+      "name": "native_aot_constraint_smoke",
+      "source_sha256": "e3154fe110d2f11961d2c1d2113229ceca119b1d161a7c9016b0d989e36bd209",
+      "stderr": "",
+      "stdout": "native CUDA AOT constraint smoke passed"
+    },
+    {
+      "executable_sha256": "16ff07546afccef9ef54c1e393d9ae3e8810790844e2f288701aa98eae32ae36",
+      "name": "native_blake2s_commitment_smoke",
+      "source_sha256": "8cd3c8b8e13495a55015790555d8e4eb7b6d5e8f0a5e5f090c6f187aad8f5cef",
+      "stderr": "",
+      "stdout": "native CUDA Blake2s commitment smoke passed"
+    },
+    {
+      "executable_sha256": "037b126a4efc96c43a2d3001c001dc70d6135f8e4262e71f9cb5aff7723da81e",
+      "name": "native_decommit_smoke",
+      "source_sha256": "1ce92b38d41b207d405417f32711e5a7993df8ce9a5d45050aa59c47517c5bd6",
+      "stderr": "",
+      "stdout": "Native CUDA decommit differential passed"
+    },
+    {
+      "executable_sha256": "611d80a5ba4717c3e6e35d8e19103d2376435d7968135ea8ab1ca15c3b341e64",
+      "name": "native_fri_pow_smoke",
+      "source_sha256": "ef6929da340365aeb28cbd0a8d715a1232fb1520cf4ec62208a36480798492ce",
+      "stderr": "",
+      "stdout": "native CUDA FRI/PoW smoke passed: contiguous folds, final IFFT, bounded deterministic grind"
+    },
+    {
+      "executable_sha256": "c3d0da74ede92977dff4ad4bdafe6b5c706ba1c7842671ef2c52266992b766bb",
+      "name": "native_oods_smoke",
+      "source_sha256": "9f32f313d17a434823b8ca2ee9ee6c82a3d1f4fe3ba4a4e94659b8d3d4aa082b",
+      "stderr": "",
+      "stdout": "native CUDA OODS smoke passed"
+    },
+    {
+      "executable_sha256": "8d668b3bdb8aefa2dd66e6f366c730374ded4eb08da5426c6ddab8b338980da5",
+      "name": "native_platform_snapshot_smoke",
+      "source_sha256": "996983808567d8c0fd63a704c82ebddc299319036145d63c2a611c30371d96ad",
+      "stderr": "",
+      "stdout": "native CUDA platform snapshot passed: device=0 driver=13000 runtime=12080 toolkit=12080 memory=25250627584 SMs=128"
+    },
+    {
+      "executable_sha256": "ee9f7682ec3755201db70d9f08355127e5f5e914a46d7a7fce8f985e71da0ead",
+      "name": "native_quotient_smoke",
+      "source_sha256": "6fc4107e714a5be7a1ca908fb7b050fac0d23d3d6d8e1cf1ecc2e7712997b5bd",
+      "stderr": "",
+      "stdout": "Native CUDA quotient smoke passed: five resident stages match independent CPU references and reject invalid ranges"
+    },
+    {
+      "executable_sha256": "32f6522531fa1eb88de48dee5c6dd358499402290c03e93cb044945e88363436",
+      "name": "native_transcript_smoke",
+      "source_sha256": "83f3051c56ed64077f747a23975c37c812d1126d7cd293fef99a4d3a88cf9b30",
+      "stderr": "",
+      "stdout": "native CUDA transcript smoke passed: 8 operations, PoW nonce 477"
+    },
+    {
+      "executable_sha256": "8f67a0820202f6cb2d36a477a39fb6d5153e35a69ecf71d39d5e40d8cefb49dd",
+      "name": "native_transform_smoke",
+      "source_sha256": "677c20fad6865aefe0648d5d965744a2cadcaa9a09bfc6a88d70dfcfd369b6a6",
+      "stderr": "",
+      "stdout": "native CUDA transform smoke passed: 5 shapes, including width 37 and log 8/9/10 boundaries"
+    },
+    {
+      "executable_sha256": "e510f83a9601fdf41429e0f336a25a2ebf0180b96365286cb6a3654ba7c5f456",
+      "name": "native_wide_fibonacci_trace_smoke",
+      "source_sha256": "bda7a3331b5b2797d4dab146c0066b6210098278f619c28421e4fb3ff7bbf220",
+      "stderr": "",
+      "stdout": "native CUDA wide-Fibonacci trace smoke passed: 1024 rows x 37 columns"
+    }
+  ]
+}

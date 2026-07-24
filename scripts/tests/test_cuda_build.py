@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -33,6 +34,52 @@ PRODUCT = ROOT / "src/backends/cuda/product_manifest.json"
 NATIVE = ROOT / "src/backends/cuda/native"
 NATIVE_AOT = ROOT / "src/backends/cuda/aot/native"
 
+EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
+    "host": {
+        "aot_loader.cpp",
+    },
+    "runtime": {
+        "runtime/context.cu",
+    },
+    "trace": {
+        "kernels/wide_fibonacci_trace.cu",
+    },
+    "commitment": {
+        "commitment/merkle.cu",
+        "commitment/progressive.cu",
+    },
+    "transform": {
+        "transform/b2n_retained.cu",
+        "transform/lde.cu",
+        "transform/n2b.cu",
+    },
+    "oods": {
+        "oods/barycentric.cu",
+        "oods/evaluate.cu",
+    },
+    "transcript": {
+        "transcript/transcript.cu",
+    },
+    "quotient": {
+        "quotient/combine.cu",
+        "quotient/numerator.cu",
+        "quotient/prepare.cu",
+    },
+    "fri": {
+        "fri/final.cu",
+        "fri/fold.cu",
+    },
+    "pow": {
+        "pow/search.cu",
+    },
+    "decommit": {
+        "decommit/fri.cu",
+        "decommit/query_planning.cu",
+        "decommit/sparse_parents.cu",
+        "decommit/trace.cu",
+    },
+}
+
 
 class CudaBuildTests(unittest.TestCase):
     def config(self, output: Path) -> BuildConfig:
@@ -64,6 +111,12 @@ class CudaBuildTests(unittest.TestCase):
     def test_plan_is_explicit_and_does_not_probe_tools(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = build_plan(self.config(Path(temporary)), probe_tools=False)
+        native = load_native_closure(NATIVE)
+        actual_sources = {
+            path.relative_to(NATIVE.resolve()).as_posix()
+            for path in native["sources"]
+        }
+        expected_sources = set().union(*EXPECTED_NATIVE_IMPLEMENTATION_SOURCES.values())
         self.assertEqual("stwo-zig-cuda-native-build-v1", plan["schema"])
         self.assertEqual([86, 90], plan["target_sms"])
         self.assertEqual(59, plan["authority_ordinary_source_count"])
@@ -71,11 +124,17 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(0, plan["ordinary_source_count"])
         self.assertEqual(1, plan["aot_source_count"])
         self.assertEqual(2, plan["aot_cubin_count"])
-        self.assertEqual(11, plan["native_runtime_source_count"])
-        self.assertEqual(1, plan["native_host_source_count"])
-        self.assertEqual(10, plan["native_cuda_source_count"])
+        self.assertEqual(expected_sources, actual_sources)
+        self.assertEqual(len(native["sources"]), plan["native_runtime_source_count"])
+        self.assertEqual(len(native["host_sources"]), plan["native_host_source_count"])
+        self.assertEqual(len(native["cuda_sources"]), plan["native_cuda_source_count"])
+        self.assertEqual(1, len(native["host_sources"]))
         self.assertEqual(
-            load_native_closure(NATIVE)["closure_sha256"],
+            len(expected_sources) - 1,
+            len(native["cuda_sources"]),
+        )
+        self.assertEqual(
+            native["closure_sha256"],
             plan["native_runtime_closure_sha256"],
         )
         authority = load_source_closure(SOURCE, MANIFEST)
@@ -150,6 +209,26 @@ class CudaBuildTests(unittest.TestCase):
         self.assertNotIn("fallback(", sources.lower())
         self.assertNotIn("getenv(", sources)
         self.assertNotIn("system(", sources)
+
+    def test_device_header_definitions_have_internal_or_inline_linkage(self) -> None:
+        violations: list[str] = []
+        definition = re.compile(r"^__device__\s+")
+        for path in sorted(NATIVE.rglob("*.cuh")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for index, line in enumerate(lines):
+                if not definition.match(line):
+                    continue
+                previous = lines[index - 1].strip() if index else ""
+                if (
+                    "static" not in line
+                    and "inline" not in line
+                    and "__forceinline__" not in line
+                    and not previous.startswith("template ")
+                ):
+                    violations.append(
+                        f"{path.relative_to(NATIVE)}:{index + 1}"
+                    )
+        self.assertEqual([], violations)
 
     def test_architecture_parser_is_canonical_and_fail_closed(self) -> None:
         self.assertEqual((86, 89, 90), normalize_sms(["sm_90,86", "89"]))

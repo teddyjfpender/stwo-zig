@@ -88,9 +88,11 @@
       "stwo_zig_cuda_aot_entry_count"
     ],
     "zig_owned_symbols": [
+      "stwo_accumulate_quotient_numerator_single_write_on",
       "stwo_blake2s_fri_leaf_on",
       "stwo_blake2s_interior4_on",
       "stwo_blake2s_layer_on",
+      "stwo_blake2s_pow_persistent_on",
       "stwo_blake2s_progressive_absorb_on",
       "stwo_blake2s_progressive_finalize_on",
       "stwo_blake2s_progressive_init_on",
@@ -100,8 +102,16 @@
       "stwo_blake2s_transcript_draw_u32s_on",
       "stwo_blake2s_transcript_init_on",
       "stwo_blake2s_transcript_mix_words_on",
+      "stwo_combine_quotients_from_numerators_on",
       "stwo_cuda_device_snapshot",
       "stwo_cuda_platform_snapshot",
+      "stwo_decommit_assemble_fri_on",
+      "stwo_decommit_assemble_trace_on",
+      "stwo_decommit_normalize_queries_on",
+      "stwo_decommit_pack_trace_group_on",
+      "stwo_decommit_prepare_fri_queries_on",
+      "stwo_decommit_prepare_trace_queries_on",
+      "stwo_decommit_sparse_parent_on",
       "stwo_exec_context_alloc_u32",
       "stwo_exec_context_create",
       "stwo_exec_context_destroy",
@@ -117,6 +127,11 @@
       "stwo_exec_context_pool_current",
       "stwo_exec_context_stream",
       "stwo_exec_context_sync",
+      "stwo_finalize_quotient_numerator_groups_on",
+      "stwo_fold_circle_into_line_on",
+      "stwo_fold_line_on",
+      "stwo_fri_fold_fused3_on",
+      "stwo_fri_last_layer_on",
       "stwo_lde_n2b_columns_before_circle_on",
       "stwo_lde_n2b_columns_on",
       "stwo_native_aot_function_bind",
@@ -133,13 +148,11 @@
       "stwo_oods_derive_points_on",
       "stwo_oods_eval_first_on",
       "stwo_oods_eval_reduce_on",
-      "stwo_oods_store_results_on"
+      "stwo_oods_store_results_on",
+      "stwo_prepare_quotient_numerator_terms_on",
+      "stwo_zero_quotient_numerator_outputs_on"
     ],
-    "staged_stage_modules": [
-      "decommit",
-      "fri",
-      "quotient"
-    ],
+    "staged_stage_modules": [],
     "forbidden_symbol_fragments": [
       "_default_pool_",
       "_jit_",

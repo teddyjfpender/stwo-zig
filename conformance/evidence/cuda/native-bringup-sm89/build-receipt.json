@@ -1,0 +1,291 @@
+{
+  "aot_cubin_count": 1,
+  "aot_entries": 1,
+  "aot_pack": "cuda_aot_pack.bin",
+  "aot_pack_sha256": "66b3a5a7d8d90527357c0cff8d35d1c5c610fadc571e9ddeeecc1e1a85ae0fe7",
+  "aot_source_count": 1,
+  "archive": "libstwo_cuda_kernels.a",
+  "archive_sha256": "f42c2835cd2d78226beea780aa14f99b9c2ed9331e632067beee0b46484e893e",
+  "authority_aot_source_count": 340,
+  "authority_ordinary_source_count": 59,
+  "build_identity_sha256": "eeefb0ad6f79ad3b4a9a4a081daab7c1fd83612a94ff3198b5908b6eabb91da6",
+  "cuda_home": "/usr/local/cuda-12.8",
+  "cuda_library_dir": "/usr/local/cuda-12.8/targets/x86_64-linux/lib",
+  "fixed_flags": {
+    "aot": [
+      "-cubin",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr"
+    ],
+    "device_link": [
+      "-dlink",
+      "-Xcompiler",
+      "-fPIC"
+    ],
+    "host": [
+      "-std=c++17",
+      "-O3",
+      "-fPIC",
+      "-c"
+    ],
+    "native_cuda": [
+      "-c",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr",
+      "-Xcompiler",
+      "-fPIC"
+    ],
+    "ordinary": [
+      "-dc",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr",
+      "-Xcompiler",
+      "-fPIC"
+    ]
+  },
+  "include_dirs": [
+    "/workspace/stwo-zig/src/backends/cuda/vendor/upstream",
+    "/workspace/stwo-zig/src/backends/cuda/vendor/upstream/generated",
+    "/workspace/stwo-zig/src/backends/cuda/vendor/upstream/witness"
+  ],
+  "jobs": 16,
+  "linked_libraries": [
+    "cuda",
+    "cudart",
+    "stdc++"
+  ],
+  "native_aot_closure_sha256": "bc77a2206fd09940ae1def17ba3df6a39d1c74a747c5bc07620453135b48a075",
+  "native_cuda_source_count": 20,
+  "native_host_source_count": 1,
+  "native_runtime_closure_sha256": "e65c677c69edc677b99e24b726c276692a1d574b313be763f9928b6465e85c8a",
+  "native_runtime_files": [
+    {
+      "bytes": 13057,
+      "path": "aot_loader.cpp",
+      "sha256": "a57a4c8c1c0f5049c8d0e739ad8b335147d4ebcb1b2952a11ba9500e10adec0a"
+    },
+    {
+      "bytes": 2117,
+      "path": "aot_loader.h",
+      "sha256": "b3d6edb159d4bf1520cd3983ee227728aff86333cefa070378d28c5c35af6bb9"
+    },
+    {
+      "bytes": 4938,
+      "path": "commitment/blake2s_core.cuh",
+      "sha256": "7d93c3a15bc2f4bb794295d66f44e72690b1bf72c34da866e490b580664a5550"
+    },
+    {
+      "bytes": 6015,
+      "path": "commitment/merkle.cu",
+      "sha256": "28763d8bf9c2246a70ca2d284ae17cd793cc2f0bc27c7dceeed311b22b7c7148"
+    },
+    {
+      "bytes": 7991,
+      "path": "commitment/progressive.cu",
+      "sha256": "d388e41113d14d0f9adc6bb6dc15eaa104f5abcbaf099127cb8469a20915018d"
+    },
+    {
+      "bytes": 4060,
+      "path": "commitment/progressive_scalar.cuh",
+      "sha256": "0e48110a25e372f7bec0c1ecd5c90647b4a5ed28beb7630ecdc3f380ef5a2011"
+    },
+    {
+      "bytes": 596,
+      "path": "common/circle_twiddle.cuh",
+      "sha256": "70c5c2f306eeb3838a49f531febf96bed95126637781a595bbf5d39786012c91"
+    },
+    {
+      "bytes": 1099,
+      "path": "common/m31.cuh",
+      "sha256": "e9762058eea4f25c5fb017e9dec1ba6e84dfa86795e2ca0230c8e11c067a3c30"
+    },
+    {
+      "bytes": 8150,
+      "path": "decommit/contract.cuh",
+      "sha256": "6214a2f1d4daf38bf6ee9155c133e6762289cce009116a45533fd7c5ca6e21db"
+    },
+    {
+      "bytes": 11756,
+      "path": "decommit/fri.cu",
+      "sha256": "15fb526e5aa0ec5421b3cf558985981a8c2c512d0d1ee3698830cbb63a6e78c4"
+    },
+    {
+      "bytes": 7882,
+      "path": "decommit/merkle_walk.cuh",
+      "sha256": "ddb5b72bdb90532752ff7e615fa9433605f6604d0d73b10d357589e0b4b2a399"
+    },
+    {
+      "bytes": 12773,
+      "path": "decommit/query_planning.cu",
+      "sha256": "0155fa2656957b79c504b4d1eb8537d3919227971a66a05c7b01986fb8670887"
+    },
+    {
+      "bytes": 3551,
+      "path": "decommit/sparse_parents.cu",
+      "sha256": "8db2ffa8a4ea251b97614694985664cf273ffdf30c511e08c877174b81381aea"
+    },
+    {
+      "bytes": 14592,
+      "path": "decommit/trace.cu",
+      "sha256": "741b05dd24417aefec006980500cd88aa487e42e401ab5ee5d6a1458dadfe2c8"
+    },
+    {
+      "bytes": 3172,
+      "path": "fri/field.cuh",
+      "sha256": "70cd85f72a272acd6c483bedb436dd5d0e7efc12f41c90f2f35c98e2e48cce3f"
+    },
+    {
+      "bytes": 10486,
+      "path": "fri/final.cu",
+      "sha256": "2014ac81c8f39c2508e400f7414452865844dcf32756d0c510e3fa5c14bc927e"
+    },
+    {
+      "bytes": 10496,
+      "path": "fri/fold.cu",
+      "sha256": "56ea5799a3bade3dfe36527fab7ee21f83b03e3d774de57759f166fd17e40032"
+    },
+    {
+      "bytes": 1376,
+      "path": "fri/safety.cuh",
+      "sha256": "908fb61a058d6c2e315ad493159ffcb4b526ffb04d2db83b25994b86b22f6051"
+    },
+    {
+      "bytes": 3509,
+      "path": "kernels/wide_fibonacci_trace.cu",
+      "sha256": "af8e608098c9cc1a067e698bf45faca0a75887b7385c347c517bccbd4db56bec"
+    },
+    {
+      "bytes": 11126,
+      "path": "oods/barycentric.cu",
+      "sha256": "d651589a56a36f60c7199494371fbf24911be675aefb838fdacd1a653a0c9e6a"
+    },
+    {
+      "bytes": 3417,
+      "path": "oods/batch_inverse.cuh",
+      "sha256": "aef648d133e6a8736e8170442088ae78f10d88ccac1145312291d91fe9addfc1"
+    },
+    {
+      "bytes": 17142,
+      "path": "oods/evaluate.cu",
+      "sha256": "e9d89e4c9c767c2f18b503d369a8815b87e1ee34e052e305a2c6508e4ad10e9b"
+    },
+    {
+      "bytes": 6267,
+      "path": "oods/field.cuh",
+      "sha256": "8634cb0aa351e3fa7ef7a6d975f082e98ce5c2931bd1239d129947e9b8e86563"
+    },
+    {
+      "bytes": 1890,
+      "path": "oods/safety.cuh",
+      "sha256": "70aea1083b9d1ac01fdbf65c60a5beb639d3424801ca8a843db65eef286fc145"
+    },
+    {
+      "bytes": 4168,
+      "path": "pow/candidate.cuh",
+      "sha256": "0de6d7cd6d729745d5c4d8ade4fafe0fec8d31d980752ced70defc33b6a1fd12"
+    },
+    {
+      "bytes": 1132,
+      "path": "pow/safety.cuh",
+      "sha256": "a6ed01cf960407dd2e195ce2af94df3f9028711856d53eba389cd9883f6ca205"
+    },
+    {
+      "bytes": 5392,
+      "path": "pow/search.cu",
+      "sha256": "ea4a6cad3a0401a3403fbc8ae8aff1231e1e75e1fbcf857cc517c749fd12a759"
+    },
+    {
+      "bytes": 8678,
+      "path": "quotient/combine.cu",
+      "sha256": "c99b8de31ef20097115aeb6c6fa7e313f3b0c9a191cd48c3c69a56e00c7c258e"
+    },
+    {
+      "bytes": 2927,
+      "path": "quotient/field.cuh",
+      "sha256": "dd18ef893c30af3da0e130bcb4ffc2de15f252f10f43658ca0cb664e845c18e6"
+    },
+    {
+      "bytes": 9783,
+      "path": "quotient/numerator.cu",
+      "sha256": "30996f07eb02bb5ecf3a3231dd9f447a29f1eca6e6f38fbff7fa23590d0ae9e2"
+    },
+    {
+      "bytes": 7827,
+      "path": "quotient/prepare.cu",
+      "sha256": "416554309ab8bcda0cf8655e56e04aedbf38d284cc242b9cdb660dc780054eb3"
+    },
+    {
+      "bytes": 1374,
+      "path": "quotient/safety.cuh",
+      "sha256": "0b72bcc02dcf71a145cfc71801004af34f23735ae39b376d67a608e21ba49501"
+    },
+    {
+      "bytes": 1250,
+      "path": "quotient/types.cuh",
+      "sha256": "35c7c2be9ff70a02df82f3de6b89e0295d51042853de7965d317afd5e75289bb"
+    },
+    {
+      "bytes": 13565,
+      "path": "runtime/context.cu",
+      "sha256": "45fd14b44983adf5c1ee29535b461833c040a7458bee2d488c701f45ea8bcf7f"
+    },
+    {
+      "bytes": 3664,
+      "path": "transcript/blake2s_words.cuh",
+      "sha256": "f07b30ce24db3426ac539a64a43c8d14eb48b4f774778c8b5cc5d1bb739d7921"
+    },
+    {
+      "bytes": 13649,
+      "path": "transcript/transcript.cu",
+      "sha256": "89355db4aee974c549371ae24c7e4557393f977c2d0385bc1e7858f0353bbde6"
+    },
+    {
+      "bytes": 7491,
+      "path": "transform/b2n_retained.cu",
+      "sha256": "11c32f83471bbbff691e278a274c1e2aadaea5961ba63e3eab47b6e43ae649d0"
+    },
+    {
+      "bytes": 5865,
+      "path": "transform/lde.cu",
+      "sha256": "8e71755fe345e4b86d91a01eb662665b7690543e18656da6e7a9891563534f9d"
+    },
+    {
+      "bytes": 4748,
+      "path": "transform/n2b.cu",
+      "sha256": "50f436cebf2aa138f656b0ba7ee0e539505a291b4929eedeaee27f3dbf8ec1dd"
+    },
+    {
+      "bytes": 2338,
+      "path": "transform/transform_internal.cuh",
+      "sha256": "f3bbe553a6b37fb4e7bda8153e9300e766ce05813dec361da6264f30ad1fd0e5"
+    }
+  ],
+  "native_runtime_source_count": 21,
+  "ordinary_source_count": 0,
+  "product_manifest_sha256": "3fcfd9eee2e298c452819c05a1db77526169f12ca63aad4abf432471b721aab5",
+  "schema": "stwo-zig-cuda-native-build-v1",
+  "source_closure_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
+  "target_sms": [
+    89
+  ],
+  "tools": {
+    "archiver": {
+      "path": "/usr/bin/x86_64-linux-gnu-ar",
+      "sha256": "ab3ec9fd1f53ec6b0ebc927ac253750c0a9f6738c3b7c6826dd4b455d6c3d57c",
+      "version": "GNU ar (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty."
+    },
+    "host_cxx": {
+      "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+      "sha256": "52f1ddb33fe78b9441e0f42e9cd22c571f1101938e046c8a26582494e041cc73",
+      "version": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "nvcc": {
+      "path": "/usr/local/cuda-12.8/bin/nvcc",
+      "sha256": "59e4e55f9a38b78c590df1e28a69dad91052958f18a03868ca4a547c043fbba7",
+      "version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0"
+    }
+  }
+}

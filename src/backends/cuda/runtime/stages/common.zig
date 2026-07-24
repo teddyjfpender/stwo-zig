@@ -12,6 +12,7 @@ pub const SecureFields = column.DeviceSlice(field.SecureField);
 pub const CirclePoints = column.DeviceSlice(field.CirclePointBaseField);
 pub const SecureCirclePoints = column.DeviceSlice(field.SecureCirclePoint);
 pub const Hashes = column.DeviceSlice(field.Blake2sHash);
+pub const MerkleLayers = column.DeviceSlice(field.MerkleLayerDescriptor);
 pub const ProgressiveStates = column.DeviceSlice(field.ProgressiveBlake2sState);
 pub const Nonce = column.DeviceSlice(u64);
 pub const WordMatrix = struct {
@@ -25,6 +26,14 @@ pub fn words(
     minimum: usize,
 ) runtime_error.Error![*]u32 {
     return session.context.deviceSlicePointer(u32, slice, minimum);
+}
+
+pub fn optionalWords(
+    session: anytype,
+    slice: Words,
+) runtime_error.Error!?[*]u32 {
+    if (slice.len == 0) return null;
+    return try words(session, slice, slice.len);
 }
 
 pub fn secure(
@@ -65,6 +74,26 @@ pub fn hashes(
     minimum: usize,
 ) runtime_error.Error![*]field.Blake2sHash {
     return session.context.deviceSlicePointer(field.Blake2sHash, slice, minimum);
+}
+
+pub fn optionalHashes(
+    session: anytype,
+    slice: Hashes,
+) runtime_error.Error!?[*]field.Blake2sHash {
+    if (slice.len == 0) return null;
+    return try hashes(session, slice, slice.len);
+}
+
+pub fn merkleLayers(
+    session: anytype,
+    slice: MerkleLayers,
+    minimum: usize,
+) runtime_error.Error![*]field.MerkleLayerDescriptor {
+    return session.context.deviceSlicePointer(
+        field.MerkleLayerDescriptor,
+        slice,
+        minimum,
+    );
 }
 
 pub fn states(

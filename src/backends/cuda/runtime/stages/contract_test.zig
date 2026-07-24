@@ -135,14 +135,6 @@ fn secureCircles(len: usize) column.DeviceSlice(field.SecureCirclePoint) {
     return view(field.SecureCirclePoint, len);
 }
 
-fn preparedTerms(len: usize) quotient.PreparedTermDescriptors {
-    return view(quotient_abi.PreparedTermDescriptor, len);
-}
-
-fn batchTerms(len: usize) quotient.BatchTermDescriptors {
-    return view(quotient_abi.BatchTermDescriptor, len);
-}
-
 fn hashes(len: usize) column.DeviceSlice(field.Blake2sHash) {
     return view(field.Blake2sHash, len);
 }
@@ -440,56 +432,144 @@ test "OODS and quotient wrappers type-check every copied resident ABI" {
     );
     try std.testing.expectEqual(@as(usize, 10), session.launches);
 
-    session.context.active_stage = .quotient;
-    const tables = quotient.CoordinateTables{
-        .c0 = pointers(4),
-        .c1 = pointers(4),
-        .c2 = pointers(4),
-        .c3 = pointers(4),
+    session.context.active_stage = .ingress;
+    const host_prepared_terms = [_]quotient_abi.PreparedTermDescriptor{
+        .{
+            .sample_index = 0,
+            .exponent = 0,
+            .periodic = 0,
+            .period_x = 0,
+            .period_y = 0,
+        },
+        .{
+            .sample_index = 1,
+            .exponent = 1,
+            .periodic = 0,
+            .period_x = 0,
+            .period_y = 0,
+        },
+        .{
+            .sample_index = 2,
+            .exponent = 2,
+            .periodic = 0,
+            .period_x = 0,
+            .period_y = 0,
+        },
+        .{
+            .sample_index = 3,
+            .exponent = 3,
+            .periodic = 0,
+            .period_x = 0,
+            .period_y = 0,
+        },
     };
+    const group_offsets = [_]u32{ 0, 1, 2, 3, 4 };
+    const term_indices = [_]u32{ 0, 1, 2, 3 };
+    const prepared = try quotient.prepareGroups(
+        std.testing.allocator,
+        &session,
+        &host_prepared_terms,
+        &group_offsets,
+        &term_indices,
+        viewAt(quotient_abi.PreparedTermDescriptor, 0x90000, 4),
+        viewAt(u32, 0x91000, 5),
+        viewAt(u32, 0x92000, 4),
+        4,
+    );
+    var invalid_prepared_terms = host_prepared_terms;
+    invalid_prepared_terms[2].exponent = 9;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        quotient.prepareGroups(
+            std.testing.allocator,
+            &session,
+            &invalid_prepared_terms,
+            &group_offsets,
+            &term_indices,
+            viewAt(quotient_abi.PreparedTermDescriptor, 0x90000, 4),
+            viewAt(u32, 0x91000, 5),
+            viewAt(u32, 0x92000, 4),
+            4,
+        ),
+    );
+    const host_batch_terms = [_]quotient_abi.BatchTermDescriptor{
+        .{ .source_index = 0, .term_index = 0, .source_log_size = 8 },
+        .{ .source_index = 1, .term_index = 1, .source_log_size = 8 },
+        .{ .source_index = 2, .term_index = 2, .source_log_size = 8 },
+        .{ .source_index = 3, .term_index = 3, .source_log_size = 8 },
+    };
+    const group_logs = [_]u32{ 8, 8, 8, 8 };
+    const numerator_topology = try quotient.prepareNumeratorTopology(
+        &session,
+        &group_offsets,
+        &host_batch_terms,
+        &group_logs,
+        viewAt(u32, 0x93000, 5),
+        viewAt(quotient_abi.BatchTermDescriptor, 0x94000, 4),
+        viewAt(u32, 0x95000, 4),
+        256,
+        4,
+        256,
+        4,
+    );
+    const partial_logs = [_]u32{ 8, 8 };
+    const combine_topology = try quotient.prepareCombineTopology(
+        &session,
+        &partial_logs,
+        viewAt(u32, 0x96000, 2),
+        8,
+        256,
+    );
+    const outputs = quotient.CoordinateSlabs{
+        .c0 = wordMatrix(0xa0000, 4, 256),
+        .c1 = wordMatrix(0xb0000, 4, 256),
+        .c2 = wordMatrix(0xc0000, 4, 256),
+        .c3 = wordMatrix(0xd0000, 4, 256),
+    };
+    session.context.active_stage = .quotient;
     try quotient.Native.prepareTerms(
         &session,
-        preparedTerms(4),
-        secureCircles(4),
-        secure(4),
-        secure(1),
-        secureCircles(4),
-        secure(12),
+        prepared,
+        viewAt(field.SecureCirclePoint, 0xe0000, 4),
+        viewAt(field.SecureField, 0xe1000, 4),
+        viewAt(field.SecureField, 0xe2000, 1),
+        viewAt(field.SecureCirclePoint, 0xe3000, 4),
+        viewAt(field.SecureField, 0xe4000, 12),
     );
     try quotient.Native.finalizeGroups(
         &session,
-        words(5),
-        words(4),
-        secureCircles(4),
-        secure(12),
-        secureCircles(4),
-        secure(4),
+        prepared,
+        viewAt(field.SecureCirclePoint, 0xe3000, 4),
+        viewAt(field.SecureField, 0xe4000, 12),
+        viewAt(field.SecureCirclePoint, 0xe5000, 4),
+        viewAt(field.SecureField, 0xe6000, 4),
     );
-    try quotient.Native.zeroOutputs(&session, words(4), 256, tables);
+    try quotient.Native.zeroOutputs(&session, numerator_topology, outputs);
     try quotient.Native.accumulate(
         &session,
-        words(5),
-        batchTerms(4),
-        256,
-        pointers(4),
-        secure(12),
-        words(4),
-        tables,
+        numerator_topology,
+        wordMatrix(0xf0000, 4, 256),
+        viewAt(field.SecureField, 0xe4000, 12),
+        outputs,
     );
     try quotient.Native.combine(
         &session,
         1,
         2,
-        8,
-        secureCircles(2),
-        secure(4),
-        words(4),
-        tables,
+        combine_topology,
+        viewAt(field.SecureCirclePoint, 0x110000, 2),
+        viewAt(field.SecureField, 0x111000, 2),
         .{
-            .c0 = words(256),
-            .c1 = words(256),
-            .c2 = words(256),
-            .c3 = words(256),
+            .c0 = wordMatrix(0x120000, 2, 256),
+            .c1 = wordMatrix(0x130000, 2, 256),
+            .c2 = wordMatrix(0x140000, 2, 256),
+            .c3 = wordMatrix(0x150000, 2, 256),
+        },
+        .{
+            .c0 = viewAt(u32, 0x160000, 256),
+            .c1 = viewAt(u32, 0x170000, 256),
+            .c2 = viewAt(u32, 0x180000, 256),
+            .c3 = viewAt(u32, 0x190000, 256),
         },
     );
     try std.testing.expectEqual(@as(usize, 15), session.launches);
@@ -503,10 +583,16 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
         words(256),
         0,
         256,
-        pointers(4),
+        .{
+            .storage = words(1024),
+            .column_stride_words = 256,
+        },
         secure(1),
         0,
-        pointers(4),
+        .{
+            .storage = words(512),
+            .column_stride_words = 128,
+        },
     );
     try fri.fold(
         &session,
@@ -514,10 +600,16 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
         words(256),
         0,
         256,
-        pointers(4),
+        .{
+            .storage = words(1024),
+            .column_stride_words = 256,
+        },
         secure(1),
         0,
-        pointers(4),
+        .{
+            .storage = words(512),
+            .column_stride_words = 128,
+        },
     );
     try fri.foldThree(
         &session,
@@ -525,9 +617,15 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
         .{ 0, 1, 2 },
         256,
         true,
-        pointers(4),
+        .{
+            .storage = words(1024),
+            .column_stride_words = 256,
+        },
         secure(1),
-        pointers(4),
+        .{
+            .storage = words(128),
+            .column_stride_words = 32,
+        },
     );
     try fri.lastLayer(
         &session,
@@ -545,6 +643,7 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
         &session,
         words(16),
         10,
+        1 << 16,
         words(8),
         view(u64, 1),
         words(1),
@@ -584,7 +683,10 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
         0,
         4,
         0,
-        pointers(4),
+        .{
+            .storage = words(1024),
+            .column_stride_words = 256,
+        },
         words(4),
         8,
         words(16),
@@ -630,7 +732,10 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
             .walk_queries = words(16),
             .walk_scratch = words(16),
             .walk_count = words(1),
-            .retained_layers = pointers(8),
+            .retained = .{
+                .hashes = hashes(8),
+                .layers = view(field.MerkleLayerDescriptor, 2),
+            },
             .sparse_indices = words(16),
             .sparse_hashes = hashes(16),
             .sparse_level_offsets = words(4),
@@ -643,12 +748,35 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
         .tree_query_count = words(1),
         .expanded_positions = words(16),
         .expanded_count = words(1),
-        .coordinate_columns = pointers(4),
+        .coordinates = .{
+            .storage = words(64),
+            .column_stride_words = 16,
+        },
         .walk_queries = words(16),
         .walk_scratch = words(16),
         .walk_count = words(1),
-        .retained_layers = pointers(8),
+        .retained = .{
+            .hashes = hashes(8),
+            .layers = view(field.MerkleLayerDescriptor, 2),
+        },
         .assembly = words(256),
     });
-    try std.testing.expectEqual(@as(usize, 12), session.launches);
+    try std.testing.expectEqual(@as(usize, 26), session.launches);
+}
+
+test "decommit query planning rejects work outside the protocol bound" {
+    var session = FakeSession.init(.decommit);
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        decommit.Native.normalizeQueries(
+            &session,
+            words(decommit.max_protocol_queries + 1),
+            8,
+            1,
+            words(decommit.max_protocol_queries + 1),
+            words(1),
+            words(1024),
+        ),
+    );
+    try std.testing.expectEqual(@as(usize, 0), session.launches);
 }

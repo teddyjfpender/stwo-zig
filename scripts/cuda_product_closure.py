@@ -78,8 +78,8 @@ def validate_abi(
         raise ProductClosureError("staged CUDA ABI names an absent stage module")
     staged = symbols(staged_paths, ZIG_EXTERN_RE)
     active = declared - staged
-    if not active or not staged:
-        raise ProductClosureError("CUDA ABI must separate active and staged symbols")
+    if not active:
+        raise ProductClosureError("CUDA ABI must expose at least one active symbol")
 
     forbidden = policy.get("forbidden_symbol_fragments")
     if not isinstance(forbidden, list) or not forbidden:
@@ -110,11 +110,13 @@ def validate_abi(
     zig_owned = policy.get("zig_owned_symbols")
     if (
         not isinstance(generated, list)
-        or generated != sorted(generated)
+        or generated != sorted(set(generated))
         or not isinstance(zig_owned, list)
-        or zig_owned != sorted(zig_owned)
+        or zig_owned != sorted(set(zig_owned))
     ):
-        raise ProductClosureError("generated and Zig-owned ABI symbols must be sorted arrays")
+        raise ProductClosureError(
+            "generated and Zig-owned ABI symbols must be sorted unique arrays"
+        )
     generated_symbols = {str(name) for name in generated}
     zig_owned_symbols = {str(name) for name in zig_owned}
     product_defined.update(generated_symbols)

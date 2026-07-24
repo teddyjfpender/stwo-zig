@@ -24,6 +24,7 @@ pub const Error = error{
     InvalidDeviceOrdinal,
     InvalidArenaRequirement,
     InvalidDeviceAddress,
+    InvalidDecommitmentAssembly,
     InvalidKernelDescriptor,
     InvalidFoldCount,
     InvalidOutputIndex,
