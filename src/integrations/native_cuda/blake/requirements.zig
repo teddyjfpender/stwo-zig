@@ -61,7 +61,7 @@ pub fn build(
         slots.transcript_static_inputs,
         canonical_ingress.transcript_static_words,
         .ingress,
-        .trace_commit,
+        .constraint_evaluation,
     );
 
     const main_retained_words = try mul(
