@@ -155,12 +155,14 @@ pub fn PipelineFor(
             }
         }
 
+        const ExecutionPreparedPlan = PreparedPlan;
+
         const Adapter = struct {
-            pub const PreparedPlan = Self.PreparedPlan;
+            pub const PreparedPlan = ExecutionPreparedPlan;
             pub const Geometry = GeometryType;
 
             pub fn program(
-                prepared: *const PreparedPlan,
+                prepared: *const ExecutionPreparedPlan,
             ) *const @import(
                 "stwo_backend_contracts",
             ).proof_program.ProofProgram {
@@ -169,8 +171,8 @@ pub fn PipelineFor(
 
             pub fn traceGeneration(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.traceGeneration(
                     transaction,
@@ -181,8 +183,8 @@ pub fn PipelineFor(
 
             pub fn traceCommit(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.traceCommit(
                     transaction,
@@ -193,8 +195,8 @@ pub fn PipelineFor(
 
             pub fn constraintEvaluation(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.constraintEvaluation(
                     transaction,
@@ -205,8 +207,8 @@ pub fn PipelineFor(
 
             pub fn oods(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.oods(
                     transaction,
@@ -217,8 +219,8 @@ pub fn PipelineFor(
 
             pub fn quotient(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.quotient(
                     transaction,
@@ -229,8 +231,8 @@ pub fn PipelineFor(
 
             pub fn friCommit(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.friCommit(
                     transaction,
@@ -241,8 +243,8 @@ pub fn PipelineFor(
 
             pub fn pow(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.pow(
                     transaction,
@@ -253,8 +255,8 @@ pub fn PipelineFor(
 
             pub fn decommit(
                 transaction: anytype,
-                prepared: *PreparedPlan,
-                _: Geometry,
+                prepared: *ExecutionPreparedPlan,
+                _: GeometryType,
             ) !void {
                 try Hooks.decommit(
                     transaction,

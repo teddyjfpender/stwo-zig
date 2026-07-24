@@ -64,7 +64,7 @@ pub fn PreparedPlanFor(
             );
             errdefer proof.deinit(allocator);
             try proof.validate(decommit.assembly_words);
-            const requirements = try Policy.buildRequirements(
+            const arena_requirements = try Policy.buildRequirements(
                 allocator,
                 geometry,
                 quotient,
@@ -72,14 +72,14 @@ pub fn PreparedPlanFor(
                 decommit,
                 proof,
             );
-            errdefer allocator.free(requirements);
+            errdefer allocator.free(arena_requirements);
             var program = try Policy.emitProgram(
                 allocator,
                 geometry,
                 logical,
                 quotient,
                 fri,
-                requirements,
+                arena_requirements,
             );
             errdefer program.deinit(allocator);
             var cuda_plan = try execution_plan.CudaPlan.compile(
@@ -97,7 +97,7 @@ pub fn PreparedPlanFor(
                 .decommit = decommit,
                 .proof = proof,
                 .transcript = try Transcript.init(geometry),
-                .requirement_storage = requirements,
+                .requirement_storage = arena_requirements,
                 .proof_program = program,
                 .cuda_plan = cuda_plan,
             };
