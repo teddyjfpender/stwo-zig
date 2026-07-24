@@ -5,10 +5,10 @@
   "aot_pack_sha256": "d237404c85619dbd9b0bb549dd930aa5d5130299d2e6154df4195713049ea994",
   "aot_source_count": 1,
   "archive": "libstwo_cuda_kernels.a",
-  "archive_sha256": "16e3440260ec548aec0293cb9ea04a985105bc766ba1e50e6ee446c80b48bbb1",
+  "archive_sha256": "482594c2aa6494337811edbd304143fdf69cbf5d318c61341f3695b879e601e7",
   "authority_aot_source_count": 340,
   "authority_ordinary_source_count": 59,
-  "build_identity_sha256": "171148a9df15ad09f56d9e510e05842e6b395b6d5684df32fd31b5278951fd56",
+  "build_identity_sha256": "a7c9ad8e282a0a885bd079883af47493988808bde5acdf8363347b3e85a04831",
   "cuda_home": "/usr/local/cuda-12.8",
   "cuda_library_dir": "/usr/local/cuda-12.8/targets/x86_64-linux/lib",
   "fixed_flags": {
@@ -47,20 +47,20 @@
     ]
   },
   "include_dirs": [
-    "/workspace/stwo-zig/src/backends/cuda/vendor/upstream",
-    "/workspace/stwo-zig/src/backends/cuda/vendor/upstream/generated",
-    "/workspace/stwo-zig/src/backends/cuda/vendor/upstream/witness"
+    "/workspace/stwo-zig-cuda-clean/src/backends/cuda/vendor/upstream",
+    "/workspace/stwo-zig-cuda-clean/src/backends/cuda/vendor/upstream/generated",
+    "/workspace/stwo-zig-cuda-clean/src/backends/cuda/vendor/upstream/witness"
   ],
-  "jobs": 16,
+  "jobs": 8,
   "linked_libraries": [
     "cuda",
     "cudart",
     "stdc++"
   ],
   "native_aot_closure_sha256": "4a5d5d1c2216b55b2655929adb6d0cf131e2cfc11821a11533f58c15fafe3e68",
-  "native_cuda_source_count": 21,
+  "native_cuda_source_count": 22,
   "native_host_source_count": 1,
-  "native_runtime_closure_sha256": "e0f1c85e2aaec4f1d89d1d3b306b8bc6deb495e0226f838a9086c5db7adfef64",
+  "native_runtime_closure_sha256": "3bb65d66a43fc03bb7677c2acfac974184718043770ddbf22dcf0828896f418f",
   "native_runtime_files": [
     {
       "bytes": 13057,
@@ -73,19 +73,19 @@
       "sha256": "b3d6edb159d4bf1520cd3983ee227728aff86333cefa070378d28c5c35af6bb9"
     },
     {
-      "bytes": 4938,
+      "bytes": 5514,
       "path": "commitment/blake2s_core.cuh",
-      "sha256": "7d93c3a15bc2f4bb794295d66f44e72690b1bf72c34da866e490b580664a5550"
+      "sha256": "3f8081fe9342b4ab331d60688e7717f14bc8f8736ca48c381d37914ad8ef1fd2"
     },
     {
-      "bytes": 7032,
+      "bytes": 7038,
       "path": "commitment/merkle.cu",
-      "sha256": "6dc05266736976e007fb2e9c8f0978ffb3205c6e0f8fa446ef72c90e052c0f5d"
+      "sha256": "5da2d29ca52bb2fb21fa6acb4d0e4e68cd708612286a7edcbf7be4d718d7c76c"
     },
     {
-      "bytes": 8724,
+      "bytes": 8783,
       "path": "commitment/progressive.cu",
-      "sha256": "31766f584c33cb8d83259d39deadbf8d212994ac9a8fe7954f859fc79c39c8db"
+      "sha256": "e89a3ebde3a1cb30669e1d8c89d41c95b1acac2f09ba9c21f22b9a15b9c28aee"
     },
     {
       "bytes": 4060,
@@ -118,14 +118,14 @@
       "sha256": "1e1ef24d4c33a9d7a26674fc5828aec73859d574021434f02385c17f6558102c"
     },
     {
-      "bytes": 8150,
+      "bytes": 8416,
       "path": "decommit/contract.cuh",
-      "sha256": "6214a2f1d4daf38bf6ee9155c133e6762289cce009116a45533fd7c5ca6e21db"
+      "sha256": "dbb0a918536af005af90cefbdedfd3b7bbbcaca7f56167c5894bce57c338ea3c"
     },
     {
-      "bytes": 11756,
+      "bytes": 12458,
       "path": "decommit/fri.cu",
-      "sha256": "15fb526e5aa0ec5421b3cf558985981a8c2c512d0d1ee3698830cbb63a6e78c4"
+      "sha256": "83bd034531dd5f415c07ba489b32b62a58936f5ed13f27d21b3c5cdd8a5b8598"
     },
     {
       "bytes": 7882,
@@ -143,9 +143,9 @@
       "sha256": "8db2ffa8a4ea251b97614694985664cf273ffdf30c511e08c877174b81381aea"
     },
     {
-      "bytes": 14592,
+      "bytes": 14647,
       "path": "decommit/trace.cu",
-      "sha256": "741b05dd24417aefec006980500cd88aa487e42e401ab5ee5d6a1458dadfe2c8"
+      "sha256": "c39eb0b5d45bfa443fa8cd54f74c1988e5bfd7c964b318325e66e9251e105a16"
     },
     {
       "bytes": 3172,
@@ -243,9 +243,9 @@
       "sha256": "35c7c2be9ff70a02df82f3de6b89e0295d51042853de7965d317afd5e75289bb"
     },
     {
-      "bytes": 13565,
+      "bytes": 14215,
       "path": "runtime/context.cu",
-      "sha256": "45fd14b44983adf5c1ee29535b461833c040a7458bee2d488c701f45ea8bcf7f"
+      "sha256": "e3a9a2774170be9aec687a1a3b9dd836e9bb34c0e63354f1d281bda55ce8b3f7"
     },
     {
       "bytes": 3664,
@@ -263,9 +263,14 @@
       "sha256": "11c32f83471bbbff691e278a274c1e2aadaea5961ba63e3eab47b6e43ae649d0"
     },
     {
-      "bytes": 5865,
+      "bytes": 6482,
+      "path": "transform/composition_split.cu",
+      "sha256": "83318728fb42d3fa4f9f099ba3cf89edb0857c52e4feb5238614ed709010a25a"
+    },
+    {
+      "bytes": 6084,
       "path": "transform/lde.cu",
-      "sha256": "8e71755fe345e4b86d91a01eb662665b7690543e18656da6e7a9891563534f9d"
+      "sha256": "7d549e91a6a2dce05e51f7b15ac4ff2cb407522951d8068a184acf7d6d5749ad"
     },
     {
       "bytes": 4748,
@@ -278,9 +283,9 @@
       "sha256": "f3bbe553a6b37fb4e7bda8153e9300e766ce05813dec361da6264f30ad1fd0e5"
     }
   ],
-  "native_runtime_source_count": 22,
+  "native_runtime_source_count": 23,
   "ordinary_source_count": 0,
-  "product_manifest_sha256": "eb215b744a24246749982d500aad9d25d9bc47524427aaf6b0ec9c33beffc894",
+  "product_manifest_sha256": "cff1151cc0fa8780f8b0b1babab06cfe06ea7a5733d60ec4619cc649ed017b19",
   "schema": "stwo-zig-cuda-native-build-v1",
   "source_closure_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "target_sms": [
@@ -289,13 +294,13 @@
   "tools": {
     "archiver": {
       "path": "/usr/bin/x86_64-linux-gnu-ar",
-      "sha256": "ab3ec9fd1f53ec6b0ebc927ac253750c0a9f6738c3b7c6826dd4b455d6c3d57c",
+      "sha256": "534681ac11c18868cfc4fdf98770aa0ba8973eedc90c231e94e6ba96e1a04f27",
       "version": "GNU ar (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty."
     },
     "host_cxx": {
       "path": "/usr/bin/x86_64-linux-gnu-g++-13",
       "sha256": "52f1ddb33fe78b9441e0f42e9cd22c571f1101938e046c8a26582494e041cc73",
-      "version": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      "version": "g++-13 (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
     },
     "nvcc": {
       "path": "/usr/local/cuda-12.8/bin/nvcc",

@@ -167,23 +167,42 @@ cache tests prove source/header changes invalidate the archive while unchanged
 builds reuse it.
 
 Initial ReleaseFast performance is diagnostic cold-process evidence, not a
-judged promotion. On one RTX 4090 with a 16-core AMD EPYC 7282 host, seven
-independent width-100 processes produced these median resident times:
+judged promotion. The committed receipt binds 24 fresh processes to clean
+commit `61bdc51bc41cc28ce720f62233ac9c446b4f1647`, one RTX 4090, SM 89,
+CUDA 12.8, driver 580.126.09, and the exact product binary and AOT identities.
+Every cell has three byte-stable samples:
 
-| log rows | trace rows | CUDA resident | trace-row MHz | committed Mcells/s |
-| ---: | ---: | ---: | ---: | ---: |
-| 14 | 16,384 | 209.941 ms | 0.078 | 7.80 |
-| 16 | 65,536 | 212.251 ms | 0.309 | 30.88 |
-| 18 | 262,144 | 236.212 ms | 1.110 | 110.98 |
-| 20 | 1,048,576 | 336.886 ms | 3.113 | 311.26 |
-| 22 | 4,194,304 | 790.369 ms | 5.307 | 530.68 |
+| shape | CUDA resident | cold process | trace-row MHz | committed Mcells/s | device peak |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| log14 x 100 | 209.589 ms | 321.031 ms | 0.078 | 7.82 | 0.033 GiB |
+| log16 x 100 | 211.731 ms | 321.087 ms | 0.310 | 30.95 | 0.133 GiB |
+| log18 x 100 | 236.216 ms | 345.868 ms | 1.110 | 110.98 | 0.533 GiB |
+| log20 x 100 | 335.957 ms | 445.198 ms | 3.121 | 312.12 | 2.133 GiB |
+| log22 x 100 | 786.161 ms | 895.303 ms | 5.335 | 533.52 | 8.531 GiB |
+| log20 x 128 | 359.971 ms | 470.164 ms | 2.913 | 372.86 | 2.570 GiB |
+| log21 x 128 | 538.529 ms | 647.857 ms | 3.894 | 498.46 | 5.141 GiB |
+| log22 x 128 | 906.768 ms | 1,015.817 ms | 4.626 | 592.07 | 10.281 GiB |
 
-The same-host Zig SIMD screen reached a median 8.110 seconds of prove time at
-log 22, so the large width-100 diagnostic is about 10.3x faster on CUDA.
-Small cells remain dominated by roughly 210 ms of per-process setup. The
-largest admitted saturation point, log 22 by 128 columns, completed in
-905.045 ms and processed 536,870,912 committed cells at 593.20 million
-cells/second.
+The same-host CPU comparison uses the clean ReleaseFast Native CPU product,
+32 logical CPUs, thread parallelism enabled, SIMD pack width 8, and the SIMD
+Blake2s implementation. Three proofs per shape are canonical-byte identical:
+
+| shape | SIMD prove | SIMD request | CUDA resident | CUDA cold process | prove/resident | request/cold |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| log22 x 100 | 8,049.369 ms | 8,473.920 ms | 786.161 ms | 895.303 ms | 10.24x | 9.47x |
+| log21 x 128 | 9,793.471 ms | 10,008.838 ms | 538.529 ms | 647.857 ms | 18.19x | 15.45x |
+
+These ratios are diagnostic boundary comparisons, not an ABBA verdict. Small
+cells remain dominated by roughly 210 ms of resident initialization plus
+process overhead. The larger width-128 cells expose the useful throughput
+regime and prevent the benchmark set from rewarding startup-only changes.
+
+The immutable evidence is stored under
+`conformance/evidence/cuda/native-bringup-sm89/`: the exact build receipt,
+12-test device receipt, CPU/CUDA/Rust parity receipt, full 24-process CUDA
+matrix, and both same-host SIMD reports. The CUDA report records one terminal
+D2H operation, one synchronization, strict AOT, all stages complete once, and
+zero CPU fallback attempts for every sample.
 
 These measurements do not establish CUDA-over-Metal superiority: the current
 M5 Metal diagnostic is faster at the inherited width-100 log-22 shape, and the
