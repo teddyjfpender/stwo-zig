@@ -23,6 +23,21 @@ pub extern "c" fn stwo_blake2s_transcript_mix_words_on(
     stream: *anyopaque,
 ) c_int;
 
+pub extern "c" fn stwo_blake2s_transcript_mix_words_pair_on(
+    state: [*]u32,
+    expected_step: u32,
+    expected_chain: u64,
+    next_chain: u64,
+    first: [*]const u32,
+    first_word_count: u32,
+    second: [*]const u32,
+    second_word_count: u32,
+    validate_m31: u32,
+    input_snapshot: [*]u32,
+    boundary_snapshot: [*]u32,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_blake2s_transcript_absorb_pow_on(
     state: [*]u32,
     expected_step: u32,

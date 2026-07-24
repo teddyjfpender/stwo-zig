@@ -86,7 +86,7 @@ fn commitWith(
         2,
         .mix_main_root,
     );
-    try transcript.mixWords(
+    try transcript.mixWordsPair(
         Ops.Transcript,
         session,
         .trace_commit,
@@ -94,7 +94,8 @@ fn commitWith(
         views.transcript,
         3,
         .mix_statement,
-        views.statement_words,
+        try views.statement_words.sub(0, 2),
+        try views.statement_words.sub(2, 2),
         false,
     );
 }

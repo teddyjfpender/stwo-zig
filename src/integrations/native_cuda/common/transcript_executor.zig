@@ -55,6 +55,36 @@ pub fn mixWords(
     );
 }
 
+pub fn mixWordsPair(
+    comptime Transcript: type,
+    session: anytype,
+    stage: telemetry.Stage,
+    schedule: anytype,
+    transcript: anytype,
+    step: u32,
+    expected: schedule_mod.Operation,
+    first: common.Words,
+    second: common.Words,
+    validate_m31: bool,
+) !void {
+    try expectOperation(schedule, step, expected);
+    const input_words = std.math.add(
+        usize,
+        first.len,
+        second.len,
+    ) catch return error.SizeOverflow;
+    try Transcript.mixWordsPair(
+        session,
+        stage,
+        transcript.state,
+        try boundary(schedule, step, transcript.boundary_snapshot),
+        first,
+        second,
+        validate_m31,
+        try transcript.input_snapshot.sub(0, input_words),
+    );
+}
+
 pub fn drawSecure(
     comptime Transcript: type,
     session: anytype,
