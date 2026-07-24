@@ -181,6 +181,7 @@ const FakeTransactionContext = struct {
     active_stage: ?telemetry.Stage = null,
     backing_words: usize = 0,
     zero_calls: usize = 0,
+    counters: telemetry.Counters = .{},
 
     pub fn allocate(
         self: *@This(),
@@ -238,6 +239,9 @@ const FakeTransactionContext = struct {
             return error.HostWriteOutsideIngress;
         const pointer = try self.deviceSlicePointer(F, destination, source.len);
         @memcpy(pointer[0..source.len], source);
+        const bytes = std.math.mul(usize, source.len, @sizeOf(F)) catch
+            return error.SizeOverflow;
+        self.counters.h2d(.ingress, bytes);
     }
 
     pub fn zeroDeviceSlice(
@@ -253,6 +257,12 @@ const FakeTransactionContext = struct {
             destination.len,
         );
         @memset(pointer[0..destination.len], 0);
+        const bytes = std.math.mul(
+            usize,
+            destination.len,
+            @sizeOf(F),
+        ) catch return error.SizeOverflow;
+        self.counters.memset(self.active_stage.?, bytes);
         self.zero_calls += 1;
     }
 };
@@ -308,6 +318,79 @@ const FakeTransactionSession = struct {
         self.context.active_stage = null;
     }
 };
+
+test "transaction zeroes a proof bundle then uploads only its static header" {
+    const Transaction = proof_transaction.TransactionFor(
+        FakeTransactionSession,
+    );
+    const requirements = [_]arena.Requirement{
+        .{
+            .id = 1,
+            .words = 16,
+            .live_from = .ingress,
+            .live_through = .proof_assembly,
+        },
+        .{
+            .id = 2,
+            .words = 4,
+            .live_from = .trace_commit,
+            .live_through = .trace_commit,
+        },
+    };
+    var transaction = try Transaction.open(
+        std.testing.allocator,
+        &.{89},
+        &requirements,
+    );
+    try transaction.zeroResidentSlice(u32, .ingress, 1, 0, 16);
+    const header = [_]u32{ 0x5354_574f, 1, 16, 4 };
+    try transaction.uploadResidentSlice(u32, 1, 0, &header);
+    try std.testing.expectEqualSlices(
+        u32,
+        &header,
+        FakeTransactionContext.storage[0..header.len],
+    );
+    try std.testing.expectEqualSlices(
+        u32,
+        &([_]u32{0} ** 12),
+        FakeTransactionContext.storage[header.len..16],
+    );
+    const ingress = transaction.session.context.counters
+        .stages[telemetry.Stage.ingress.index()];
+    try std.testing.expectEqual(@as(u64, 64), ingress.memset_bytes);
+    try std.testing.expectEqual(@as(u64, 1), ingress.memset_operations);
+    try std.testing.expectEqual(@as(u64, 16), ingress.h2d_bytes);
+    try std.testing.expectEqual(
+        @as(u64, 16),
+        transaction.session.context.counters.h2d_bytes,
+    );
+    try std.testing.expectError(
+        error.StageOrderViolation,
+        transaction.uploadResidentSlice(u32, 2, 0, &([_]u32{1} ** 4)),
+    );
+    try std.testing.expectError(
+        error.StageOrderViolation,
+        transaction.zeroResidentSlice(u32, .ingress, 2, 0, 4),
+    );
+    try std.testing.expectError(
+        error.SizeOverflow,
+        transaction.uploadResidentSlice(u32, 1, 15, &([_]u32{1} ** 2)),
+    );
+    try transaction.finishIngress();
+    try std.testing.expectError(
+        error.InvalidState,
+        transaction.uploadResidentSlice(u32, 1, 0, &header),
+    );
+    try std.testing.expectError(
+        error.InvalidState,
+        transaction.upload(u32, 1, &([_]u32{0} ** 16)),
+    );
+    try std.testing.expectError(
+        error.InvalidState,
+        transaction.zeroResidentSlice(u32, .ingress, 1, 0, 16),
+    );
+    try transaction.abort();
+}
 
 test "transaction zero enforces stage, slot lifetime, and exact subrange" {
     const Transaction = proof_transaction.TransactionFor(

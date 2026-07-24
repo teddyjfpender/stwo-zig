@@ -116,6 +116,27 @@ pub fn TransactionFor(comptime Session: type) type {
             if (self.state != .ingress) return error.InvalidState;
             const destination = try self.slotAs(F, id);
             if (destination.len != values.len) return error.SizeOverflow;
+            try self.uploadResidentSlice(F, id, 0, values);
+        }
+
+        /// Uploads one exact host range into an ingress-live arena slot.
+        pub fn uploadResidentSlice(
+            self: *Self,
+            comptime F: type,
+            destination_id: arena_module.SlotId,
+            first: usize,
+            values: []const F,
+        ) runtime_error.Error!void {
+            if (self.state != .ingress) return error.InvalidState;
+            const active = self.session.context.active_stage orelse
+                return error.StageNotActive;
+            if (active != .ingress) return error.StageOrderViolation;
+            try self.requireSlotLiveAt(destination_id, .ingress);
+            if (values.len == 0) return error.SizeOverflow;
+            const destination = try (try self.slotAs(
+                F,
+                destination_id,
+            )).sub(first, values.len);
             try self.session.context.uploadSlice(F, destination, values);
         }
 
@@ -151,21 +172,17 @@ pub fn TransactionFor(comptime Session: type) type {
             first: usize,
             count: usize,
         ) runtime_error.Error!void {
-            if (self.state != .proving or
-                stage == .ingress or
-                stage == .proof_assembly)
-            {
-                return error.InvalidState;
+            switch (stage) {
+                .ingress => if (self.state != .ingress)
+                    return error.InvalidState,
+                .proof_assembly => return error.InvalidState,
+                else => if (self.state != .proving)
+                    return error.InvalidState,
             }
             const active = self.session.context.active_stage orelse
                 return error.StageNotActive;
             if (active != stage) return error.StageOrderViolation;
-            const placement = try self.plan.placement(destination_id);
-            if (stage.index() < placement.requirement.live_from.index() or
-                stage.index() > placement.requirement.live_through.index())
-            {
-                return error.StageOrderViolation;
-            }
+            try self.requireSlotLiveAt(destination_id, stage);
             const destination = try (try self.slotAs(
                 F,
                 destination_id,
@@ -288,6 +305,19 @@ pub fn TransactionFor(comptime Session: type) type {
             self.plan.deinit(self.allocator);
             self.state = .aborted;
             return abort_result;
+        }
+
+        fn requireSlotLiveAt(
+            self: *const Self,
+            id: arena_module.SlotId,
+            stage: telemetry.Stage,
+        ) runtime_error.Error!void {
+            const placement = try self.plan.placement(id);
+            if (stage.index() < placement.requirement.live_from.index() or
+                stage.index() > placement.requirement.live_through.index())
+            {
+                return error.StageOrderViolation;
+            }
         }
     };
 }
