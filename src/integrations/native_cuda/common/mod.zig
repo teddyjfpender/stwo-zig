@@ -2,9 +2,14 @@
 
 pub const commit_tree = @import("commit_tree.zig");
 pub const driver = @import("driver.zig");
+pub const pipeline = @import("pipeline.zig");
+pub const prepared_plan = @import("prepared_plan.zig");
+pub const proof_assembly = @import("proof_assembly.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
+pub const proof_decode = @import("proof_decode.zig");
 pub const resident_views = @import("resident_views.zig");
 pub const scheduled_executor = @import("scheduled_executor.zig");
+pub const transcript_executor = @import("transcript_executor.zig");
 pub const transcript_schedule = @import("transcript_schedule.zig");
 pub const uniform_layout = @import("uniform_layout.zig");
 pub const uniform_topology = @import("uniform_topology.zig");
@@ -12,9 +17,14 @@ pub const uniform_topology = @import("uniform_topology.zig");
 test {
     _ = commit_tree;
     _ = driver;
+    _ = pipeline;
+    _ = prepared_plan;
+    _ = proof_assembly;
     _ = proof_bundle;
+    _ = proof_decode;
     _ = resident_views;
     _ = scheduled_executor;
+    _ = transcript_executor;
     _ = transcript_schedule;
     _ = uniform_layout;
     _ = uniform_topology;

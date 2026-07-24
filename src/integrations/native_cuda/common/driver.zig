@@ -149,7 +149,8 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
                 try transaction.endStage(scheduled.stage);
             }
 
-            const output = try transaction.assembleStarkBundleAndFinish(
+            const output = try transaction.assembleStarkBundleAndFinishWith(
+                Executor.BundleDescriptor,
                 self.allocator,
                 prepared.proofSlot(),
             );
@@ -163,6 +164,7 @@ fn assertExecutor(comptime Executor: type) void {
     inline for (&.{
         "Request",
         "Geometry",
+        "BundleDescriptor",
         "PreparedPlan",
         "admit",
         "prepare",
@@ -254,8 +256,9 @@ test "generic driver admits before execution and aborts failed transactions" {
                 return error.InvalidOrder;
             self.ended = true;
         }
-        pub fn assembleStarkBundleAndFinish(
+        pub fn assembleStarkBundleAndFinishWith(
             self: *@This(),
+            comptime _: type,
             _: std.mem.Allocator,
             proof_slot: arena.SlotId,
         ) !StarkBundleOutput {
@@ -270,6 +273,7 @@ test "generic driver admits before execution and aborts failed transactions" {
     const Executor = struct {
         pub const Request = TestRequest;
         pub const Geometry = TestGeometry;
+        pub const BundleDescriptor = struct {};
         var execute_fail = false;
         var execute_calls: usize = 0;
 

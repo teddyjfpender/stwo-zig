@@ -66,6 +66,40 @@ pub const Protocol = struct {
     decommit_tree_count: u32,
 };
 
+/// Historical/default Native wide-Fibonacci SWPC policy.
+pub const WideDescriptor = struct {
+    pub fn validateProtocol(protocol: Protocol) Error!void {
+        const expected_decommit = std.math.add(
+            u32,
+            protocol.log_n_rows,
+            2,
+        ) catch return error.SizeOverflow;
+        if (protocol.log_n_rows < 3 or
+            protocol.sequence_len < 2 or
+            protocol.sequence_len > max_statement_width or
+            protocol.pow_bits != 10 or
+            protocol.log_blowup_factor != 1 or
+            protocol.log_last_layer_degree_bound != 0 or
+            protocol.n_queries != 3 or
+            protocol.fold_step != 1 or
+            protocol.lifting_log_size != null or
+            protocol.commitment_root_count != 3 or
+            protocol.fri_root_count != protocol.log_n_rows or
+            protocol.decommit_tree_count != expected_decommit)
+        {
+            return error.InvalidProtocolCounts;
+        }
+    }
+
+    pub fn sampledValueCount(protocol: Protocol) Error!usize {
+        return std.math.add(
+            usize,
+            @as(usize, protocol.sequence_len),
+            8,
+        ) catch return error.SizeOverflow;
+    }
+};
+
 pub const Bundle = struct {
     storage: []u32,
     sections: [section_count]Section,
@@ -76,7 +110,16 @@ pub const Bundle = struct {
         allocator: std.mem.Allocator,
         storage: []u32,
     ) (std.mem.Allocator.Error || Error)!Bundle {
-        return decode(allocator, storage, true);
+        return decodeOwnedWith(WideDescriptor, allocator, storage);
+    }
+
+    pub fn decodeOwnedWith(
+        comptime Descriptor: type,
+        allocator: std.mem.Allocator,
+        storage: []u32,
+    ) (std.mem.Allocator.Error || Error)!Bundle {
+        assertDescriptor(Descriptor);
+        return decode(Descriptor, allocator, storage, true);
     }
 
     /// Caller retains failure cleanup until this decoder accepts ownership.
@@ -84,10 +127,24 @@ pub const Bundle = struct {
         allocator: std.mem.Allocator,
         storage: []u32,
     ) (std.mem.Allocator.Error || Error)!Bundle {
-        return decode(allocator, storage, false);
+        return decodeOwnedCallerGuardedWith(
+            WideDescriptor,
+            allocator,
+            storage,
+        );
+    }
+
+    pub fn decodeOwnedCallerGuardedWith(
+        comptime Descriptor: type,
+        allocator: std.mem.Allocator,
+        storage: []u32,
+    ) (std.mem.Allocator.Error || Error)!Bundle {
+        assertDescriptor(Descriptor);
+        return decode(Descriptor, allocator, storage, false);
     }
 
     fn decode(
+        comptime Descriptor: type,
         allocator: std.mem.Allocator,
         storage: []u32,
         free_storage_on_error: bool,
@@ -101,7 +158,10 @@ pub const Bundle = struct {
         }
         if (storage[15] != 0) return error.PoisonedDegreeVerdict;
 
-        const protocol = try decodeProtocol(storage[0..fixed_header_words]);
+        const protocol = try decodeProtocol(
+            Descriptor,
+            storage[0..fixed_header_words],
+        );
         var sections: [section_count]Section = undefined;
         var cursor = header_words;
         inline for (std.meta.fields(SectionKind), 0..) |field, index| {
@@ -122,7 +182,7 @@ pub const Bundle = struct {
         }
         if (cursor != storage.len) return error.InvalidUsedWords;
 
-        try validateCounts(protocol, sections);
+        try validateCounts(Descriptor, protocol, sections);
         const nested_section = sections[indexOf(.decommitment)];
         const nested_words = storage[nested_section.offset_words .. nested_section.offset_words + nested_section.words];
         var nested = decommit_bundle.Bundle.decodeBorrowed(
@@ -185,13 +245,15 @@ pub const Bundle = struct {
     }
 };
 
-fn decodeProtocol(header: []const u32) Error!Protocol {
+fn decodeProtocol(
+    comptime Descriptor: type,
+    header: []const u32,
+) Error!Protocol {
     const lifting = if (header[11] == std.math.maxInt(u32))
         null
     else
         header[11];
-    if (header[4] < 3 or header[4] >= 31 or
-        header[5] < 2 or header[5] > max_statement_width or
+    if (header[4] == 0 or header[4] >= 31 or
         header[6] > 32 or header[7] > 30 - header[4] or
         header[8] > max_last_layer_log or header[8] > header[4] or
         header[9] == 0 or header[9] > decommit_bundle.max_protocol_queries or
@@ -203,7 +265,7 @@ fn decodeProtocol(header: []const u32) Error!Protocol {
     {
         return error.InvalidProtocolCounts;
     }
-    return .{
+    const protocol = Protocol{
         .log_n_rows = header[4],
         .sequence_len = header[5],
         .pow_bits = header[6],
@@ -216,9 +278,12 @@ fn decodeProtocol(header: []const u32) Error!Protocol {
         .fri_root_count = header[13],
         .decommit_tree_count = header[14],
     };
+    try Descriptor.validateProtocol(protocol);
+    return protocol;
 }
 
 fn validateCounts(
+    comptime Descriptor: type,
     protocol: Protocol,
     sections: [section_count]Section,
 ) Error!void {
@@ -228,12 +293,12 @@ fn validateCounts(
         hash_words,
         max_commitment_roots,
     );
-    const samples = sections[indexOf(.sampled_values)].words;
-    if (samples % secure_words != 0 or samples / secure_words == 0 or
-        samples / secure_words > max_sampled_values)
-    {
-        return error.InvalidProtocolCounts;
-    }
+    try expectWords(
+        sections[indexOf(.sampled_values)].words,
+        try Descriptor.sampledValueCount(protocol),
+        secure_words,
+        max_sampled_values,
+    );
     try expectWords(
         sections[indexOf(.fri_commitments)].words,
         protocol.fri_root_count,
@@ -253,6 +318,13 @@ fn validateCounts(
     );
     if (sections[indexOf(.proof_of_work)].words != nonce_words)
         return error.InvalidProtocolCounts;
+}
+
+fn assertDescriptor(comptime Descriptor: type) void {
+    inline for (&.{ "validateProtocol", "sampledValueCount" }) |name| {
+        if (!@hasDecl(Descriptor, name))
+            @compileError("STARK bundle descriptor is missing " ++ name);
+    }
 }
 
 fn expectWords(
@@ -401,6 +473,47 @@ test "SWPC v1 decodes wide Fibonacci capacities without arena state" {
             bundle.decommitment.trees.len,
         );
     }
+}
+
+test "SWPC v1 delegates statement-specific counts to its descriptor" {
+    const FixedSampleDescriptor = struct {
+        pub fn validateProtocol(protocol: Protocol) Error!void {
+            if (protocol.log_n_rows != 5 or
+                protocol.sequence_len != 0 or
+                protocol.pow_bits != 10 or
+                protocol.log_blowup_factor != 1 or
+                protocol.log_last_layer_degree_bound != 0 or
+                protocol.n_queries != 3 or
+                protocol.fold_step != 1 or
+                protocol.lifting_log_size != null or
+                protocol.commitment_root_count != 3 or
+                protocol.fri_root_count != 5 or
+                protocol.decommit_tree_count != 7)
+            {
+                return error.InvalidProtocolCounts;
+            }
+        }
+
+        pub fn sampledValueCount(_: Protocol) Error!usize {
+            return 16;
+        }
+    };
+
+    const allocator = std.testing.allocator;
+    const storage = try Fixture.make(allocator, 5, 8);
+    storage[5] = 0;
+    var bundle = try Bundle.decodeOwnedWith(
+        FixedSampleDescriptor,
+        allocator,
+        storage,
+    );
+    defer bundle.deinit(allocator);
+
+    try std.testing.expectEqual(@as(u32, 0), bundle.protocol.sequence_len);
+    try std.testing.expectEqual(
+        @as(usize, 16),
+        bundle.sampledValues().len / secure_words,
+    );
 }
 
 test "SWPC v1 accepts only zero tail capacity after nested openings" {

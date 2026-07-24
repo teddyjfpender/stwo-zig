@@ -367,6 +367,19 @@ pub fn TransactionFor(comptime Session: type) type {
             allocator: std.mem.Allocator,
             proof_slot: arena_module.SlotId,
         ) !StarkBundleOutput {
+            return self.assembleStarkBundleAndFinishWith(
+                stark_bundle.WideDescriptor,
+                allocator,
+                proof_slot,
+            );
+        }
+
+        pub fn assembleStarkBundleAndFinishWith(
+            self: *Self,
+            comptime Descriptor: type,
+            allocator: std.mem.Allocator,
+            proof_slot: arena_module.SlotId,
+        ) !StarkBundleOutput {
             const source = try self.slot(proof_slot);
             const storage = try allocator.alloc(u32, source.len);
             const verdict = self.assembleAndFinish(
@@ -378,7 +391,9 @@ pub fn TransactionFor(comptime Session: type) type {
             };
             errdefer allocator.free(storage);
             return .{
-                .bundle = try stark_bundle.Bundle.decodeOwnedCallerGuarded(
+                .bundle = try stark_bundle.Bundle
+                    .decodeOwnedCallerGuardedWith(
+                    Descriptor,
                     allocator,
                     storage,
                 ),

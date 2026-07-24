@@ -1,8 +1,10 @@
-//! One-shot orchestration for a complete resident Native CUDA proof.
+//! Wide-Fibonacci hooks for the shared resident CUDA pipeline.
 
 const std = @import("std");
-const arena = @import("../../../../backends/cuda/runtime/arena.zig");
-const common_executor = @import("../../common/scheduled_executor.zig");
+const stark_bundle = @import(
+    "../../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig",
+);
+const common_pipeline = @import("../../common/pipeline.zig");
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const program_mod = @import("../program.zig");
@@ -16,291 +18,146 @@ const pow_decommit = @import("pow_decommit.zig");
 const quotient_stage = @import("quotient.zig");
 const trace_commit = @import("trace_commit.zig");
 
-const pipeline = @This();
-pub const Request = request.Request;
-pub const Geometry = request.Geometry;
-pub const admit = request.admit;
+const Hooks = struct {
+    pub const BundleDescriptor = stark_bundle.WideDescriptor;
+    pub const admit = request.admit;
+    pub const planTarget = program_mod.targetFor;
 
-pub const PreparedPlan = struct {
-    structural: plan_mod.PreparedPlan,
-    canonical: canonical_ingress.Pack,
-
-    pub fn init(
+    pub fn initCanonical(
         allocator: std.mem.Allocator,
         geometry: request.Geometry,
-        target: @import(
-            "../../../../backends/cuda/runtime/execution_plan.zig",
-        ).CompileOptions,
-    ) !PreparedPlan {
-        var structural = try plan_mod.PreparedPlan.initForTarget(
-            allocator,
-            geometry,
-            target,
-        );
-        errdefer structural.deinit(allocator);
-        return .{
-            .structural = structural,
-            .canonical = try canonical_ingress.Pack.init(
-                allocator,
-                geometry,
-            ),
-        };
+    ) !canonical_ingress.Pack {
+        return canonical_ingress.Pack.init(allocator, geometry);
     }
 
-    pub fn deinit(
-        self: *PreparedPlan,
+    pub fn deinitCanonical(
+        canonical: *canonical_ingress.Pack,
         allocator: std.mem.Allocator,
     ) void {
-        self.canonical.deinit(allocator);
-        self.structural.deinit(allocator);
-        self.* = undefined;
+        canonical.deinit(allocator);
     }
 
-    pub fn requirements(
-        self: *const PreparedPlan,
-    ) []const arena.Requirement {
-        return self.structural.requirements();
+    pub fn ingress(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        canonical: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try ingress_stage.run(
+            transaction,
+            structural,
+            canonical,
+            &views,
+        );
     }
 
-    pub fn proofSlot(self: *const PreparedPlan) arena.SlotId {
-        return self.structural.proofSlot();
+    pub fn traceGeneration(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        _: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try trace_commit.generate(transaction, structural, &views);
     }
 
-    pub fn instantiateArenaPlan(
-        self: *const PreparedPlan,
-        allocator: std.mem.Allocator,
-    ) std.mem.Allocator.Error!arena.Plan {
-        return self.structural.instantiateArenaPlan(allocator);
+    pub fn traceCommit(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        _: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try trace_commit.commit(transaction, structural, &views);
     }
 
-    pub fn schedule(
-        self: *const PreparedPlan,
-    ) []const @import(
-        "../../../../backends/cuda/runtime/execution_plan.zig",
-    ).ScheduledNode {
-        return self.structural.schedule();
+    pub fn constraintEvaluation(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        _: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try composition.run(transaction, structural, &views);
     }
 
-    pub fn cacheKey(self: *const PreparedPlan) [32]u8 {
-        return self.structural.cuda_plan.cache_key;
+    pub fn oods(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        canonical: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try oods_stage.run(
+            transaction,
+            structural,
+            canonical,
+            &views,
+        );
     }
 
-    pub fn graphsEnabled(self: *const PreparedPlan) bool {
-        return self.structural.cuda_plan.target.enable_graphs;
+    pub fn quotient(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        canonical: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try quotient_stage.run(
+            transaction,
+            structural,
+            canonical,
+            &views,
+        );
+    }
+
+    pub fn friCommit(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        canonical: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try fri.run(transaction, structural, canonical, &views);
+    }
+
+    pub fn pow(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        _: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try pow_decommit.executePow(transaction, structural, &views);
+    }
+
+    pub fn decommit(
+        transaction: anytype,
+        structural: *plan_mod.PreparedPlan,
+        _: *canonical_ingress.Pack,
+    ) !void {
+        const views = try bind(transaction, structural);
+        try pow_decommit.executeDecommit(transaction, structural, &views);
+    }
+
+    fn bind(
+        transaction: anytype,
+        structural: *const plan_mod.PreparedPlan,
+    ) !bindings.Views {
+        return bindings.bind(transaction, structural);
     }
 };
 
-pub fn prepare(
-    allocator: std.mem.Allocator,
-    geometry: request.Geometry,
-    target: @import(
-        "../../../../backends/cuda/runtime/execution_plan.zig",
-    ).CompileOptions,
-) !PreparedPlan {
-    return PreparedPlan.init(allocator, geometry, target);
-}
+const Pipeline = common_pipeline.PipelineFor(
+    request.Request,
+    request.Geometry,
+    plan_mod.PreparedPlan,
+    canonical_ingress.Pack,
+    Hooks,
+);
 
-pub fn planTarget(session: anytype) !@import(
-    "../../../../backends/cuda/runtime/execution_plan.zig",
-).CompileOptions {
-    return program_mod.targetFor(session);
-}
-
-pub fn validatePrepared(
-    prepared: *const PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-}
-
-pub fn ingressStage(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try ingress_stage.run(
-        transaction,
-        &prepared.structural,
-        &prepared.canonical,
-        &views,
-    );
-}
-
-pub const ingress = ingressStage;
-
-pub fn traceGeneration(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try trace_commit.generate(
-        transaction,
-        &prepared.structural,
-        &views,
-    );
-}
-
-pub fn traceCommit(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try trace_commit.commit(
-        transaction,
-        &prepared.structural,
-        &views,
-    );
-}
-
-pub fn constraintEvaluation(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try composition.run(
-        transaction,
-        &prepared.structural,
-        &views,
-    );
-}
-
-pub fn oodsStage(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try oods_stage.run(
-        transaction,
-        &prepared.structural,
-        &prepared.canonical,
-        &views,
-    );
-}
-
-pub const oods = oodsStage;
-
-pub fn quotientStage(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try quotient_stage.run(
-        transaction,
-        &prepared.structural,
-        &prepared.canonical,
-        &views,
-    );
-}
-
-pub const quotient = quotientStage;
-
-pub fn friCommit(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try fri.run(
-        transaction,
-        &prepared.structural,
-        &prepared.canonical,
-        &views,
-    );
-}
-
-pub fn pow(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try pow_decommit.executePow(
-        transaction,
-        &prepared.structural,
-        &views,
-    );
-}
-
-pub fn decommit(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    try requireGeometry(prepared, geometry);
-    const views = try bind(transaction, prepared);
-    try pow_decommit.executeDecommit(
-        transaction,
-        &prepared.structural,
-        &views,
-    );
-}
-
-pub fn executeNode(
-    transaction: anytype,
-    prepared: *PreparedPlan,
-    geometry: request.Geometry,
-    scheduled: @import(
-        "../../../../backends/cuda/runtime/execution_plan.zig",
-    ).ScheduledNode,
-) !void {
-    return Scheduled.executeNode(
-        transaction,
-        prepared,
-        geometry,
-        scheduled,
-    );
-}
-
-const Adapter = struct {
-    pub const PreparedPlan = pipeline.PreparedPlan;
-    pub const Geometry = request.Geometry;
-
-    pub fn program(
-        prepared: *const pipeline.PreparedPlan,
-    ) *const @import("stwo_backend_contracts").proof_program.ProofProgram {
-        return &prepared.structural.proof_program;
-    }
-
-    pub const traceGeneration = pipeline.traceGeneration;
-    pub const traceCommit = pipeline.traceCommit;
-    pub const constraintEvaluation = pipeline.constraintEvaluation;
-    pub const oods = pipeline.oods;
-    pub const quotient = pipeline.quotient;
-    pub const friCommit = pipeline.friCommit;
-    pub const pow = pipeline.pow;
-    pub const decommit = pipeline.decommit;
-};
-
-const Scheduled = common_executor.ExecutorFor(Adapter);
-
-fn bind(
-    transaction: anytype,
-    prepared: *const PreparedPlan,
-) !bindings.Views {
-    return bindings.bind(transaction, &prepared.structural);
-}
-
-fn requireGeometry(
-    prepared: *const PreparedPlan,
-    geometry: request.Geometry,
-) !void {
-    if (!std.meta.eql(prepared.structural.logical.geometry, geometry))
-        return error.InvalidKernelDescriptor;
-}
+pub const Request = Pipeline.Request;
+pub const Geometry = Pipeline.Geometry;
+pub const PreparedPlan = Pipeline.PreparedPlan;
+pub const admit = Pipeline.admit;
+pub const prepare = Pipeline.prepare;
+pub const planTarget = Pipeline.planTarget;
+pub const validatePrepared = Pipeline.validatePrepared;
+pub const ingress = Pipeline.ingress;
+pub const executeNode = Pipeline.executeNode;
 
 test "prepared executor owns canonical inputs and transfers its plan once" {
     const allocator = std.testing.allocator;
