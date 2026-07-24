@@ -188,6 +188,7 @@ if (
 semantic_sha256 = (
     "f" * 64 if "semantic-drift" in Path(__file__).name else "e" * 64
 )
+aot_loads = int(os.environ.get("FAKE_CUDA_AOT_LOADS", "1"))
 report = {
     "schema_version": 6,
     "product": "stwo-native-cuda",
@@ -312,14 +313,18 @@ report = {
         "total": 10000,
     },
     "aot": {
-        "entries": 1,
-        "loads": 1,
+        "entries": max(6, aot_loads),
+        "loads": aot_loads,
         "cache_hits": (
-            0 if args.execution_mode == "graphs" else args.repeat - 1
+            0
+            if args.execution_mode == "graphs"
+            else aot_loads * (args.repeat - 1)
         ),
         "misses": 0,
         "launches": (
-            1 if args.execution_mode == "graphs" else args.repeat
+            aot_loads
+            if args.execution_mode == "graphs"
+            else aot_loads * args.repeat
         ),
         "launch_failures": 0,
         "build_identity_sha256": "a" * 64,
@@ -370,6 +375,8 @@ elif mode == "missing-semantic-digest":
     report["plan"].pop("semantic_sha256")
 elif mode == "invalid-semantic-digest":
     report["plan"]["semantic_sha256"] = "not-a-digest"
+elif mode == "invalid-aot-lifecycle":
+    report["aot"]["launches"] += 1
 encoded = json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n"
 Path(args.report_out).write_text(encoded)
 print(encoded, end="")
@@ -484,6 +491,43 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
                 0,
                 sample["process_repetition"]["graph_cache_misses_total"],
             )
+
+    def test_multiple_aot_functions_obey_direct_repetition_arithmetic(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root),
+                samples=1,
+                execution_mode="direct",
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_CUDA_AOT_LOADS": "2"},
+            ):
+                document, _ = run_diagnostic(settings)
+
+            aot = document["workloads"][0]["samples"][0]["aot"]
+            self.assertEqual(2, aot["loads"])
+            self.assertEqual(2, aot["launches"])
+            self.assertEqual(0, aot["cache_hits"])
+
+    def test_invalid_multi_function_aot_lifecycle_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root),
+                samples=1,
+            )
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "FAKE_CUDA_AOT_LOADS": "2",
+                    "FAKE_CUDA_MODE": "invalid-aot-lifecycle",
+                },
+            ), self.assertRaisesRegex(DiagnosticError, "AOT lifecycle"):
+                run_diagnostic(settings)
 
     def test_schema_v6_requires_explicit_execution_mode(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

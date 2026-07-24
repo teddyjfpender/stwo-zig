@@ -106,6 +106,26 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
                 4,
             )
 
+    def test_graph_capture_allows_multiple_distinct_aot_functions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_CUDA_AOT_LOADS": "2"},
+            ):
+                document, _ = run_benchmark(settings)
+
+            aot = document["workloads"][0]["sessions"][0]["metrics"][
+                "mechanism"
+            ]["aot"]
+            self.assertEqual(2, aot["loads"])
+            self.assertEqual(2, aot["launches"])
+            self.assertEqual(0, aot["cache_hits"])
+
     def test_xor_workload_uses_its_own_protocol_shape_and_throughput(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

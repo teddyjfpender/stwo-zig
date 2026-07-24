@@ -772,19 +772,26 @@ def validate_report(
 
     aot = _object(report["aot"], "CUDA AOT telemetry")
     _exact_keys(aot, AOT_KEYS, "CUDA AOT telemetry")
-    for key in ("entries", "loads", "launches"):
-        _integer(aot[key], f"CUDA AOT {key}", minimum=1)
+    aot_entries = _integer(aot["entries"], "CUDA AOT entries", minimum=1)
+    aot_loads = _integer(aot["loads"], "CUDA AOT loads", minimum=1)
+    _integer(aot["launches"], "CUDA AOT launches", minimum=1)
     for key in ("cache_hits", "misses", "launch_failures"):
         _integer(aot[key], f"CUDA AOT {key}")
+    if aot_loads > aot_entries:
+        raise DiagnosticError("CUDA AOT loads exceed packaged entries")
     if aot["misses"] != 0 or aot["launch_failures"] != 0:
         raise DiagnosticError("CUDA strict-AOT sample reported misses or failures")
     expected_aot_launches = (
-        1 if execution_mode == "graphs" else expected_repetitions
+        aot_loads
+        if execution_mode == "graphs"
+        else aot_loads * expected_repetitions
     )
     expected_aot_hits = (
-        0 if execution_mode == "graphs" else expected_repetitions - 1
+        0
+        if execution_mode == "graphs"
+        else aot_loads * (expected_repetitions - 1)
     )
-    if aot["launches"] != expected_aot_launches or aot["loads"] != 1:
+    if aot["launches"] != expected_aot_launches:
         raise DiagnosticError("CUDA AOT lifecycle disagrees with repetitions")
     if aot["cache_hits"] != expected_aot_hits:
         raise DiagnosticError("CUDA AOT cache-hit count disagrees with reuse")
