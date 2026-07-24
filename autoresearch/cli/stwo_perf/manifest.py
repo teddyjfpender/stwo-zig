@@ -11,6 +11,7 @@ RUNGS = ("s1", "s2", "s3", "s4", "s5")
 ACCEPTANCE_FLOOR = "s3"
 REPORT_SCHEMA_VERSIONS = {
     "native_proof_v7": 7,
+    "native_cuda_product_v3": 3,
     "pr6_supremacy_v1": 1,
     "riscv_proof_v2": 2,
 }

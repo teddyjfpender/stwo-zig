@@ -20,9 +20,9 @@ implementation. Python 3.11+ stdlib only; no packages to install.
 autoresearch/
   MANIFEST.json        editable paths + rung map, locked paths, workload
                        registry, gate policy — the machine-readable contract
-  skills/              agent skills: complexity-first algorithm selection,
-                       Metal performance design, Zig profiling, and
-                       Metal profiling
+  skills/              algorithm selection plus Zig, Metal, and CUDA
+                       profiling, performance design, and kernel engineering
+  tasks/cuda/          ordered CUDA architecture and activation work
   README.md            this file
   schema/              local/remote submission, qualification, queue, verdict,
                        scoring, and ledger schemas
@@ -133,13 +133,16 @@ stwo-prof zig asm mykernel          # codegen: NEON share, branches, memory ops
 stwo-prof zig compare base cand     # ABBA A/B with bootstrap CI
 stwo-prof metal run mydemo --entry k --grid 1048576   # real GPU ms + reflection
 stwo-prof metal trace -- <command>  # Metal System Trace capture
+stwo-prof cuda report report.json   # rank product CUDA-event stages
+stwo-prof cuda systems -- <command> # Nsight Systems lifecycle/concurrency
+stwo-prof cuda compute -- <command> # dominant-kernel counters only
 ```
 
 Methodology and reading guides live in `skills/match-algorithmic-problems`,
-`skills/metal-performance-design`, `skills/zig-profiling`, and
-`skills/metal-profiling`. Use the design skill to turn trace/counter evidence
-into feature-gated resource, scheduling, binding, shader, or render-pass changes;
-kernel-scope results remain diagnostics and never enter the promotions ledger.
+the Zig/Metal skills, and the CUDA profiling, performance-design, and
+kernel-engineering skills. Use a design skill to turn trace/counter evidence
+into feature-gated architecture changes; kernel-scope results remain
+diagnostics and never enter the promotions ledger.
 
 The CLI output is fully formatted for terminals (colors honor `NO_COLOR` and
 disappear when piped).

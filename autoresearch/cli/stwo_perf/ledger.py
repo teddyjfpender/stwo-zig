@@ -42,7 +42,7 @@ OUTCOMES = ("promoted", "neutral", "rejected")
 
 # Scoring boards (schema/scoring.md). Kernel results never enter the ledger.
 BOARDS = (
-    "core_cpu", "core_hybrid", "core_metal",
+    "core_cpu", "core_hybrid", "core_metal", "core_cuda",
     "heavy_native", "heavy_cairo", "stream", "riscv",
 )
 

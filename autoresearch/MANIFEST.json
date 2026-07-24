@@ -105,6 +105,18 @@
       "min_rung": "s3"
     },
     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+    },
+    {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+    },
+    {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+    },
+    {
       "glob": "src/backends/metal/**",
       "min_rung": "s3"
     },
@@ -527,6 +539,63 @@
             "class": "huge",
             "args": "--example wide_fibonacci --log-n-rows 20 --sequence-len 100 --resource-profile large --warmups {warmups} --samples {samples} --protocol functional",
             "native_unit": "trace rows"
+          }
+        }
+      },
+      "cuda": {
+        "enabled": false,
+        "promotion_eligible": false,
+        "disabled_reason": "core_cuda is staged only: six Native AIR emitters, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
+        "board": "core_cuda",
+        "build_step": "zig build stwo-native-cuda -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/stwo-zig-native-cuda",
+        "report_schema": "native_cuda_product_v3",
+        "correctness_oracle": {
+          "authority": "pinned-rust-stwo",
+          "repository": "https://github.com/starkware-libs/stwo",
+          "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+          "final_validator": true
+        },
+        "workloads": {
+          "cuda_wf_log14x32": {
+            "class": "small",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 14 --sequence-len 32 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log22x3": {
+            "class": "deep",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 22 --sequence-len 3 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x37": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 37 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x73": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 73 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x128": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 128 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x100": {
+            "class": "xlarge",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 100 --resource-profile large --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log20x100": {
+            "class": "huge",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 20 --sequence-len 100 --resource-profile large --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log22x100": {
+            "class": "extreme",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 22 --sequence-len 100 --resource-profile extreme --repeat {samples}",
+            "native_unit": "committed cells"
           }
         }
       },

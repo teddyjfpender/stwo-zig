@@ -68,12 +68,20 @@ def cmd_setup(_args) -> int:
 
 def _resolve_board(args, m) -> str:
     """Explicit --board wins; otherwise route by the diff — a change that
-    touches src/backends/metal/ can only show its effect on the Metal board,
-    so scoring it on core_cpu records an honest but useless neutral."""
+    touches one backend can only show its effect on that backend's board."""
     if args.board:
         return args.board
     from . import runner
-    if any(p.startswith("src/backends/metal/") for p in runner.changed_paths(m.root)):
+    paths = runner.changed_paths(m.root)
+    if any(
+        p.startswith(("src/backends/cuda/", "src/integrations/native_cuda/"))
+        for p in paths
+    ):
+        print(ansi.style(
+            "  board auto-selected: core_cuda (diff touches Native CUDA; "
+            "the staged board fails closed until activation)", "dim"))
+        return "core_cuda"
+    if any(p.startswith("src/backends/metal/") for p in paths):
         print(ansi.style(
             "  board auto-selected: core_metal (diff touches src/backends/metal/; "
             "pass --board to override)", "dim"))
@@ -605,11 +613,11 @@ def build_parser() -> argparse.ArgumentParser:
              "submissions still face the judged guard matrix)",
     )
     p.add_argument("--board", default=None,
-                   choices=["core_cpu", "core_hybrid", "core_metal",
+                   choices=["core_cpu", "core_hybrid", "core_metal", "core_cuda",
                             "heavy_native", "heavy_cairo", "stream", "riscv"],
                    help="scoring board (schema/scoring.md); kernels are never "
-                        "boards. Default: auto — core_metal when the diff "
-                        "touches src/backends/metal/, else core_cpu")
+                        "boards. Default: auto — CUDA or Metal when the diff "
+                        "touches that backend, else core_cpu")
     p.add_argument("--predecessor", help="worktree of the paired A arm (required)")
     p.add_argument("--aa", action="store_true",
                    help="A/A dispersion measurement (both arms = this tree)")
