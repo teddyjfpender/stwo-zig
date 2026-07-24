@@ -4,6 +4,7 @@ pub const commit_tree = @import("commit_tree.zig");
 pub const driver = @import("driver.zig");
 pub const fri_executor = @import("fri_executor.zig");
 pub const pipeline = @import("pipeline.zig");
+pub const pow_decommit_executor = @import("pow_decommit_executor.zig");
 pub const prepared_plan = @import("prepared_plan.zig");
 pub const proof_assembly = @import("proof_assembly.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
@@ -21,6 +22,7 @@ test {
     _ = driver;
     _ = fri_executor;
     _ = pipeline;
+    _ = pow_decommit_executor;
     _ = prepared_plan;
     _ = proof_assembly;
     _ = proof_bundle;
