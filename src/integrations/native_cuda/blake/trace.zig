@@ -20,7 +20,7 @@ pub fn prepare(
     destination: common.WordMatrix,
     statement: @import("../../../examples/blake.zig").Statement,
 ) !seeded_xorshift.PreparedLaunch {
-    _ = try geometry_mod.admit(statement);
+    _ = try geometry_mod.mainColumnCount(statement);
     return seeded_xorshift.prepare(
         session,
         destination,
