@@ -19,6 +19,7 @@ ABI_SCHEMAS = {
     "recorded_witness_v1": 2,
     "composition_wave_v2": 3,
     "native_constraint_slab_v1": 4,
+    "native_constant_qm31_v1": 5,
 }
 
 

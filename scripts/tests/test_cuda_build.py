@@ -128,8 +128,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
         self.assertEqual(0, plan["ordinary_source_count"])
-        self.assertEqual(1, plan["aot_source_count"])
-        self.assertEqual(2, plan["aot_cubin_count"])
+        self.assertEqual(2, plan["aot_source_count"])
+        self.assertEqual(4, plan["aot_cubin_count"])
         self.assertEqual(expected_sources, actual_sources)
         self.assertEqual(len(native["sources"]), plan["native_runtime_source_count"])
         self.assertEqual(len(native["host_sources"]), plan["native_host_source_count"])
@@ -354,21 +354,22 @@ class CudaBuildTests(unittest.TestCase):
         manifest = json.loads(
             (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(1, len(manifest))
-        self.assertEqual("native_constraint_slab_v1", manifest[0]["abi_schema"])
+        self.assertEqual(2, len(manifest))
+        entry = next(item for item in manifest if item["label"] == "wide_fibonacci")
+        self.assertEqual("native_constraint_slab_v1", entry["abi_schema"])
         self.assertEqual(
             "sha256-source-and-contract-v1",
-            manifest[0]["identity_scheme"],
+            entry["identity_scheme"],
         )
-        source = NATIVE_AOT / manifest[0]["file"]
-        self.assertEqual(source.name, manifest[0]["file"])
+        source = NATIVE_AOT / entry["file"]
+        self.assertEqual(source.name, entry["file"])
         self.assertEqual(
             hashlib.sha256(source.read_bytes()).hexdigest(),
-            manifest[0]["program_identity"],
+            entry["program_identity"],
         )
         self.assertNotIn("const unsigned *const *", source.read_text(encoding="utf-8"))
         validate_aot_manifest(NATIVE_AOT, manifest)
-        kernel_name = manifest[0]["kernel_name"]
+        kernel_name = entry["kernel_name"]
         harness = f"""
 #include <cassert>
 #define __device__
@@ -419,22 +420,99 @@ int main() {{
             )
             subprocess.run([str(executable)], check=True)
 
+    def test_native_constant_qm31_aot_matches_structural_domain(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
+        manifest = json.loads(
+            (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
+        )
+        entry = next(item for item in manifest if item["label"] == "constant_qm31")
+        self.assertEqual("native_constant_qm31_v1", entry["abi_schema"])
+        source = NATIVE_AOT / entry["file"]
+        self.assertEqual(
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+            entry["program_identity"],
+        )
+        kernel_name = entry["kernel_name"]
+        harness = f"""
+#include <cassert>
+#include <cstddef>
+#define __device__
+#define __global__
+#define __forceinline__ inline
+#define __launch_bounds__(...)
+struct Dim3 {{ unsigned x, y, z; }};
+static Dim3 blockIdx{{0, 0, 0}}, blockDim{{128, 1, 1}}, threadIdx{{0, 0, 0}};
+#include {json.dumps(str(source))}
+
+int main() {{
+    constexpr unsigned rows = 8;
+    constexpr unsigned long long stride = 11;
+    unsigned statement[3] = {{2, 3, 5}};
+    unsigned coordinates[3 * stride + rows];
+    for (unsigned &word : coordinates) word = 0xa5a5a5a5u;
+    const StwoCudaQm31 expected{{7, 11, 13, 17}};
+    for (unsigned row = 0; row < rows; ++row) {{
+        threadIdx.x = row;
+        {kernel_name}(
+            0, 1, 3, 2, 0, 37, statement, 3, nullptr, 0, expected,
+            coordinates, 3 * stride + rows, stride, rows);
+    }}
+    const unsigned values[4] = {{
+        expected.a, expected.b, expected.c, expected.d
+    }};
+    for (unsigned coordinate = 0; coordinate < 4; ++coordinate) {{
+        for (unsigned row = 0; row < rows; ++row) {{
+            assert(coordinates[coordinate * stride + row] == values[coordinate]);
+        }}
+    }}
+
+    unsigned challenges[2] = {{19, 23}};
+    const StwoCudaQm31 second{{29, 31, 37, 41}};
+    for (unsigned row = 0; row < rows; ++row) {{
+        threadIdx.x = row;
+        {kernel_name}(
+            2, 4, 3, 3, 5, 32, nullptr, 0, challenges, 2, second,
+            coordinates, 3 * stride + rows, stride, rows);
+    }}
+    assert(coordinates[0] == second.a);
+    assert(coordinates[stride] == second.b);
+    assert(coordinates[2 * stride] == second.c);
+    assert(coordinates[3 * stride] == second.d);
+}}
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness_path = root / "constant_qm31_aot_test.cpp"
+            executable = root / "constant_qm31_aot_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
+
     def test_native_aot_identity_rejects_source_or_contract_drift(self) -> None:
         manifest = json.loads(
             (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
         )
+        entry = next(item for item in manifest if item["label"] == "constant_qm31")
+        isolated = [entry]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            source = NATIVE_AOT / manifest[0]["file"]
+            source = NATIVE_AOT / entry["file"]
             shutil.copy2(source, root / source.name)
-            validate_aot_manifest(root, manifest)
+            validate_aot_manifest(root, isolated)
 
             (root / source.name).write_bytes(source.read_bytes() + b"\\n")
             with self.assertRaisesRegex(BuildError, "stale Native identities"):
-                validate_aot_manifest(root, manifest)
+                validate_aot_manifest(root, isolated)
 
             shutil.copy2(source, root / source.name)
-            changed = json.loads(json.dumps(manifest))
+            changed = json.loads(json.dumps(isolated))
             changed[0]["semantic_contract"] += ";changed"
             with self.assertRaisesRegex(BuildError, "stale Native identities"):
                 validate_aot_manifest(root, changed)

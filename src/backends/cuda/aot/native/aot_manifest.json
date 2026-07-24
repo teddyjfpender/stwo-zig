@@ -1,5 +1,17 @@
 [
   {
+    "abi_schema": "native_constant_qm31_v1",
+    "cache_key": "d363e2a1d1c6b31d",
+    "file": "constraint_constant_qm31_d363e2a1d1c6b31d.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_constraint_constant_qm31_slab_v1_578d333ea30082f5",
+    "kind": "constraint",
+    "label": "constant_qm31",
+    "program_identity": "4827d1c480fb662cf213928efad46c05fad69b994b405646b94a3424e0a9a7ed",
+    "semantic_contract": "stwo-zig/native/constant-qm31-composition/v1;geometry=component_index,component_count,evaluation_log_size,trace_log_size,preprocessed_columns,main_columns;parameters=resident_statement_words,resident_challenge_words;value=canonical_qm31;rows=2^evaluation_log_size;output=coordinate_slab[coordinate*stride+row]=value[coordinate];launches=1",
+    "semantic_hash": "578d333ea30082f5"
+  },
+  {
     "abi_schema": "native_constraint_slab_v1",
     "cache_key": "7a6ba68d80b91b07",
     "file": "constraint_wide_fibonacci_7a6ba68d80b91b07.cu",
