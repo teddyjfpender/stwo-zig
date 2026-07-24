@@ -67,6 +67,10 @@ test "prepared arena binds every proof phase to exact runtime shapes" {
         views.oods.sampled_values.len,
     );
     try std.testing.expectEqual(
+        @as(usize, 14),
+        views.transcript.static_inputs.len,
+    );
+    try std.testing.expectEqual(
         geometry.sampled_value_count,
         views.quotient.prepared_terms.len,
     );

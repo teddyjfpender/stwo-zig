@@ -16,6 +16,14 @@ const QM31 = core.fields.qm31.QM31;
 const CanonicCoset = core.poly.circle.CanonicCoset;
 const prover_twiddles = prover.poly.twiddles;
 
+pub const transcript_config_words: usize = 4;
+pub const transcript_empty_root_words: usize = 8;
+pub const transcript_statement_words: usize = 2;
+pub const transcript_static_words: usize =
+    transcript_config_words +
+    transcript_empty_root_words +
+    transcript_statement_words;
+
 pub const TwiddleView = struct {
     circle_log_size: u32,
     offset_words: u32,
@@ -40,6 +48,7 @@ pub const Pack = struct {
     oods_fold_counts: []u32,
     oods_output_indices: []u32,
     circle: CircleConstants,
+    transcript_static: [transcript_static_words]u32,
 
     const Self = @This();
 
@@ -132,6 +141,7 @@ pub const Pack = struct {
             .oods_fold_counts = folds,
             .oods_output_indices = output_indices,
             .circle = try deriveCircleConstants(geometry),
+            .transcript_static = deriveTranscriptStatic(geometry),
         };
     }
 
@@ -166,6 +176,21 @@ pub const Pack = struct {
 
     pub fn inverseTwiddleWords(self: *const Self) []const u32 {
         return m31Words(self.twiddle_tree.itwiddles);
+    }
+
+    pub fn transcriptConfig(self: *const Self) []const u32 {
+        return self.transcript_static[0..transcript_config_words];
+    }
+
+    pub fn transcriptEmptyRoot(self: *const Self) []const u32 {
+        const first = transcript_config_words;
+        return self.transcript_static[first .. first + transcript_empty_root_words];
+    }
+
+    pub fn transcriptStatement(self: *const Self) []const u32 {
+        const first =
+            transcript_config_words + transcript_empty_root_words;
+        return self.transcript_static[first .. first + transcript_statement_words];
     }
 };
 
@@ -246,6 +271,40 @@ fn deriveCircleConstants(
         .vanishing_rotation = rawBasePoint(vanishing_rotation),
         .composition_denominator_inverses = denominator_inverses,
     };
+}
+
+fn deriveTranscriptStatic(
+    geometry: request.Geometry,
+) [transcript_static_words]u32 {
+    var output: [transcript_static_words]u32 = undefined;
+    output[0..transcript_config_words].* = .{
+        geometry.protocol.pow_bits,
+        geometry.protocol.log_blowup_factor,
+        @intCast(geometry.protocol.n_queries),
+        geometry.protocol.log_last_layer_degree_bound,
+    };
+
+    const Hasher =
+        core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
+    var empty_hasher = Hasher.defaultWithInitialState();
+    const empty_root = empty_hasher.finalize();
+    const root_first = transcript_config_words;
+    for (0..transcript_empty_root_words) |index| {
+        const byte_first = index * @sizeOf(u32);
+        output[root_first + index] = std.mem.readInt(
+            u32,
+            empty_root[byte_first..][0..@sizeOf(u32)],
+            .little,
+        );
+    }
+
+    const statement_first =
+        transcript_config_words + transcript_empty_root_words;
+    output[statement_first..].* = .{
+        geometry.statement.log_n_rows,
+        geometry.statement.sequence_len,
+    };
+    return output;
 }
 
 fn rawSecure(value: QM31) field.SecureField {
@@ -398,6 +457,46 @@ test "canonical ingress OODS descriptors retain proof order" {
             try std.testing.expectEqual(@as(u32, @intCast(index)), pack.oods_output_indices[index]);
         }
     }
+}
+
+test "canonical ingress seals the exact raw Stwo transcript prefix" {
+    const allocator = std.testing.allocator;
+    const geometry = try testGeometry(5);
+    var pack = try Pack.init(allocator, geometry);
+    defer pack.deinit(allocator);
+
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{
+            geometry.protocol.pow_bits,
+            geometry.protocol.log_blowup_factor,
+            @intCast(geometry.protocol.n_queries),
+            geometry.protocol.log_last_layer_degree_bound,
+        },
+        pack.transcriptConfig(),
+    );
+    var root_bytes: [32]u8 = undefined;
+    for (pack.transcriptEmptyRoot(), 0..) |word, index| {
+        std.mem.writeInt(
+            u32,
+            root_bytes[index * @sizeOf(u32) ..][0..@sizeOf(u32)],
+            word,
+            .little,
+        );
+    }
+    const root_hex = std.fmt.bytesToHex(root_bytes, .lower);
+    try std.testing.expectEqualStrings(
+        "2a133e150238721921d1ea772882979c810f85f2849099b9d3415a8619d85fad",
+        &root_hex,
+    );
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{
+            geometry.statement.log_n_rows,
+            geometry.statement.sequence_len,
+        },
+        pack.transcriptStatement(),
+    );
 }
 
 test "canonical ingress circle constants satisfy core field identities" {

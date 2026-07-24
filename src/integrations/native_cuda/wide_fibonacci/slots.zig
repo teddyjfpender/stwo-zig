@@ -12,6 +12,7 @@ pub const transcript_state: SlotId = 0x0110;
 pub const transcript_input_snapshot: SlotId = 0x0112;
 pub const transcript_output_snapshot: SlotId = 0x0113;
 pub const transcript_boundary_snapshot: SlotId = 0x0114;
+pub const transcript_static_inputs: SlotId = 0x0115;
 
 pub const coefficient_slab: SlotId = 0x0201;
 pub const committed_evaluation_slab: SlotId = 0x0202;

@@ -7,6 +7,7 @@ const column = @import("../../../../backends/cuda/runtime/column.zig");
 const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
 const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
 const quotient_stage = @import("../../../../backends/cuda/runtime/stages/quotient.zig");
+const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_bundle = @import("../proof_bundle.zig");
 const request = @import("../request.zig");
@@ -187,6 +188,11 @@ fn bindTranscript(
             provider,
             slots.transcript_boundary_snapshot,
             16,
+        ),
+        .static_inputs = try exactWords(
+            provider,
+            slots.transcript_static_inputs,
+            canonical_ingress.transcript_static_words,
         ),
     };
 }

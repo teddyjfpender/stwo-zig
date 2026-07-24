@@ -32,6 +32,7 @@ pub const Transcript = struct {
     input_snapshot: common.Words,
     output_snapshot: common.Words,
     boundary_snapshot: common.Words,
+    static_inputs: common.Words,
 };
 
 pub const Constraint = struct {

@@ -3,6 +3,7 @@
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const canonical_ingress = @import("canonical_ingress.zig");
 const proof_bundle = @import("proof_bundle.zig");
 const request = @import("request.zig");
 const slots = @import("slots.zig");
@@ -52,6 +53,14 @@ pub fn build(
         16,
         .ingress,
         .decommit,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.transcript_static_inputs,
+        canonical_ingress.transcript_static_words,
+        .ingress,
+        .trace_commit,
     );
 
     const main_retained_words = try mul(
