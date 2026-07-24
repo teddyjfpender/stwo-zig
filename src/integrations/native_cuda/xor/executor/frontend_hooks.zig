@@ -7,6 +7,10 @@ const geometry_mod = @import("../geometry.zig");
 const ingress_stage = @import("ingress.zig");
 const plan_mod = @import("../plan.zig");
 const program = @import("../program.zig");
+const fri_executor = @import("../../common/fri_executor.zig");
+const quotient_executor = @import(
+    "../../common/quotient_executor.zig",
+);
 const bindings = @import("../resident_bindings.zig");
 const terminal = @import("../terminal_bundle.zig");
 const trace = @import("trace_commit.zig");
@@ -70,6 +74,34 @@ pub const Hooks = struct {
         const views = try bindings.bind(transaction, prepared);
         try composition.run(transaction, prepared, &views);
     }
+
+    pub fn quotient(
+        transaction: anytype,
+        prepared: *plan_mod.PreparedPlan,
+        pack: *canonical.Pack,
+    ) !void {
+        const views = try bindings.bind(transaction, prepared);
+        try quotient_executor.run(
+            transaction,
+            prepared,
+            pack,
+            &views,
+        );
+    }
+
+    pub fn friCommit(
+        transaction: anytype,
+        prepared: *plan_mod.PreparedPlan,
+        pack: *canonical.Pack,
+    ) !void {
+        const views = try bindings.bind(transaction, prepared);
+        try fri_executor.run(
+            transaction,
+            prepared,
+            pack,
+            &views,
+        );
+    }
 };
 
 test "XOR frontend hooks expose only AIR-owned policy" {
@@ -83,10 +115,12 @@ test "XOR frontend hooks expose only AIR-owned policy" {
         "traceGeneration",
         "traceCommit",
         "constraintEvaluation",
+        "quotient",
+        "friCommit",
     }) |name| {
         try std.testing.expect(@hasDecl(Hooks, name));
     }
-    inline for (&.{ "oods", "quotient", "friCommit", "pow", "decommit" }) |name| {
+    inline for (&.{ "oods", "pow", "decommit" }) |name| {
         try std.testing.expect(!@hasDecl(Hooks, name));
     }
 }
