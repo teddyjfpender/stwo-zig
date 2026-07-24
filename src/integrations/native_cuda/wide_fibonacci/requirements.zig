@@ -95,22 +95,6 @@ pub fn build(
         .ingress,
         .constraint_evaluation,
     );
-    try add(
-        &output,
-        allocator,
-        slots.main_commit_states,
-        try progressiveWords(commitment_rows),
-        .trace_commit,
-        .trace_commit,
-    );
-    try add(
-        &output,
-        allocator,
-        slots.composition_commit_states,
-        try progressiveWords(commitment_rows),
-        .constraint_evaluation,
-        .constraint_evaluation,
-    );
     const trace_hashes = try fullTreeHashes(commitment_rows);
     try addAligned(
         &output,
@@ -288,10 +272,6 @@ fn secureWords(count: usize) request.Error!usize {
 
 fn secureCircleWords(count: usize) request.Error!usize {
     return mul(count, 8);
-}
-
-fn progressiveWords(count: usize) request.Error!usize {
-    return mul(count, 24);
 }
 
 fn hashWords(count: usize) request.Error!usize {

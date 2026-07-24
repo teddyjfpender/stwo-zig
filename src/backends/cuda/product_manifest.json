@@ -89,6 +89,7 @@
     ],
     "zig_owned_symbols": [
       "stwo_accumulate_quotient_numerator_single_write_on",
+      "stwo_blake2s_contiguous_leaf_on",
       "stwo_blake2s_fri_leaf_on",
       "stwo_blake2s_interior4_on",
       "stwo_blake2s_layer_on",

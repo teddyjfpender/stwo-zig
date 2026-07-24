@@ -12,6 +12,37 @@ pub const Native = OpsFor(abi);
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        pub fn contiguousLeaves(
+            session: anytype,
+            stage: telemetry.Stage,
+            size: u32,
+            columns: common.WordMatrix,
+            output: common.Hashes,
+        ) runtime_error.Error!void {
+            try requireCommitStage(stage);
+            try common.requireStage(session, stage);
+            try common.requireNonZero(&.{size});
+            const source = try layout.wordMatrix(session, columns, size);
+            if (output.len != size) return error.SizeOverflow;
+            const hashes = try layout.resident(
+                session,
+                field.Blake2sHash,
+                output,
+                output.len,
+            );
+            if (layout.overlap(source.range, hashes.range))
+                return error.OverlappingDeviceRange;
+            const status = Api.stwo_blake2s_contiguous_leaf_on(
+                size,
+                source.pointer,
+                source.stride_words,
+                columns.storage.len,
+                hashes.pointer,
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn progressiveInit(
             session: anytype,
             stage: telemetry.Stage,

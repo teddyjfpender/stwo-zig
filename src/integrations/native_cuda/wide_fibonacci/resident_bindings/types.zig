@@ -19,8 +19,6 @@ pub const Trace = struct {
     composition_evaluations: common.WordMatrix,
     all_evaluations: common.WordMatrix,
     coefficient_log_sizes: common.Words,
-    main_commit_states: common.ProgressiveStates,
-    composition_commit_states: common.ProgressiveStates,
     main_merkle_hashes: common.Hashes,
     composition_merkle_hashes: common.Hashes,
     main_merkle_layers: common.MerkleLayers,

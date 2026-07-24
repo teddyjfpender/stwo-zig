@@ -250,7 +250,13 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             error.ArenaSlotMissing,
             prepared.cuda_plan.arena_plan.placement(0x0200),
         );
-        for ([_]arena.SlotId{ 0x0102, 0x0111, 0x0504 }) |retired_slot| {
+        for ([_]arena.SlotId{
+            0x0102,
+            0x0111,
+            0x0210,
+            0x0211,
+            0x0504,
+        }) |retired_slot| {
             try std.testing.expectError(
                 error.ArenaSlotMissing,
                 prepared.cuda_plan.arena_plan.placement(retired_slot),
@@ -265,7 +271,7 @@ test "prepared plans seal small standard and extreme admitted geometry" {
     }
 }
 
-test "concurrent lifetimes never overlap and stage-local commitment scratch aliases" {
+test "concurrent arena lifetimes never overlap" {
     const allocator = std.testing.allocator;
     const geometry = try request.admit(testRequest(14));
     var prepared = try PreparedPlan.initForTarget(
@@ -285,14 +291,6 @@ test "concurrent lifetimes never overlap and stage-local commitment scratch alia
             );
         }
     }
-    const main = try prepared.cuda_plan.arena_plan.placement(
-        slots.main_commit_states,
-    );
-    const composition = try prepared.cuda_plan.arena_plan.placement(
-        slots.composition_commit_states,
-    );
-    try std.testing.expectEqual(main.requirement.words, composition.requirement.words);
-    try std.testing.expectEqual(main.offset_words, composition.offset_words);
 }
 
 test "topology slots contain no device pointer table allocations" {

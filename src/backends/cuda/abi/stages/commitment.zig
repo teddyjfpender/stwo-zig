@@ -2,6 +2,15 @@
 
 const field = @import("../field.zig");
 
+pub extern "c" fn stwo_blake2s_contiguous_leaf_on(
+    size: u32,
+    columns: [*]const u32,
+    column_stride_words: usize,
+    column_capacity_words: usize,
+    result: [*]field.Blake2sHash,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_blake2s_progressive_init_on(
     size: u32,
     states: [*]field.ProgressiveBlake2sState,

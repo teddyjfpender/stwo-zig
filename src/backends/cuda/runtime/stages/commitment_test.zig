@@ -87,6 +87,26 @@ test "commitment slabs reject invalid shapes, overflow, and aliases" {
     var session = FakeSession.init(.trace_commit);
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
+        commitment.contiguousLeaves(
+            &session,
+            .trace_commit,
+            16,
+            wordMatrix(0x10000, 4, 15),
+            viewAt(field.Blake2sHash, 0x20000, 16),
+        ),
+    );
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        commitment.contiguousLeaves(
+            &session,
+            .trace_commit,
+            16,
+            wordMatrix(0x10000, 4, 16),
+            viewAt(field.Blake2sHash, 0x10000, 16),
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
         commitment.progressiveAbsorb(
             &session,
             .trace_commit,

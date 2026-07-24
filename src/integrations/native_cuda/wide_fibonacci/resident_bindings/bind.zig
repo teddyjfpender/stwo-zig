@@ -129,18 +129,6 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
             slots.coefficient_log_sizes,
             source_count,
         ),
-        .main_commit_states = try exactAs(
-            provider,
-            field.ProgressiveBlake2sState,
-            slots.main_commit_states,
-            committed_rows,
-        ),
-        .composition_commit_states = try exactAs(
-            provider,
-            field.ProgressiveBlake2sState,
-            slots.composition_commit_states,
-            committed_rows,
-        ),
         .main_merkle_hashes = try exactAs(
             provider,
             field.Blake2sHash,

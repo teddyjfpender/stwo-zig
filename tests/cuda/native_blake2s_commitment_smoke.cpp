@@ -37,6 +37,13 @@ extern "C" int stwo_blake2s_progressive_finalize_on(
     const void *states,
     Hash *result,
     void *stream);
+extern "C" int stwo_blake2s_contiguous_leaf_on(
+    std::uint32_t size,
+    const std::uint32_t *columns,
+    std::size_t column_stride_words,
+    std::size_t column_capacity_words,
+    Hash *result,
+    void *stream);
 extern "C" int stwo_blake2s_layer_on(
     const Hash *previous, std::uint32_t output_size, Hash *result, void *stream);
 extern "C" int stwo_blake2s_interior4_on(
@@ -149,9 +156,12 @@ bool test_pinned_zig_oracles() {
 
 bool test_progressive(DeviceArena &arena) {
     constexpr std::uint32_t kRows = 8;
-    constexpr std::uint32_t kMaxColumns = 37;
+    constexpr std::uint32_t kMaxColumns = 257;
+    constexpr std::uint32_t kTreeHashes = 2 * kRows - 1;
     constexpr std::size_t kStride = kRows + 5;
-    const std::uint32_t widths[] = {1, 15, 16, 17, 31, 32, 33, 37};
+    const std::uint32_t widths[] = {
+        1, 15, 16, 17, 31, 32, 33, 37, 64, 73, 100, 128, 257,
+    };
 
     std::vector<std::uint32_t> host_columns(
         kMaxColumns * kStride, 0xa5a5a5a5u);
@@ -163,8 +173,12 @@ bool test_progressive(DeviceArena &arena) {
     }
     auto *device_columns = arena.allocate(host_columns.size());
     auto *states = arena.allocate(kRows * 24);
-    auto *output = reinterpret_cast<Hash *>(arena.allocate(kRows * 8));
-    if (device_columns == nullptr || states == nullptr || output == nullptr ||
+    auto *progressive_tree =
+        reinterpret_cast<Hash *>(arena.allocate(kTreeHashes * 8));
+    auto *direct_tree =
+        reinterpret_cast<Hash *>(arena.allocate(kTreeHashes * 8));
+    if (device_columns == nullptr || states == nullptr ||
+        progressive_tree == nullptr || direct_tree == nullptr ||
         !arena.upload(
             device_columns,
             host_columns.data(),
@@ -236,6 +250,46 @@ bool test_progressive(DeviceArena &arena) {
         std::fprintf(stderr, "progressive finalize accepted aliased buffers\n");
         return false;
     }
+    if (stwo_blake2s_contiguous_leaf_on(
+            kRows,
+            device_columns,
+            kStride,
+            2 * kStride - 1,
+            direct_tree,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "direct leaf accepted undersized source slab\n");
+        return false;
+    }
+    if (stwo_blake2s_contiguous_leaf_on(
+            kRows,
+            device_columns,
+            kRows - 1,
+            4 * (kRows - 1),
+            direct_tree,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "direct leaf accepted a short column stride\n");
+        return false;
+    }
+    if (stwo_blake2s_contiguous_leaf_on(
+            kRows,
+            reinterpret_cast<std::uint32_t *>(direct_tree),
+            kRows,
+            kRows,
+            direct_tree,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "direct leaf accepted aliased source and output\n");
+        return false;
+    }
+    if (stwo_blake2s_contiguous_leaf_on(
+            kRows,
+            device_columns,
+            kStride,
+            kStride,
+            direct_tree,
+            nullptr) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "direct leaf accepted a null proof stream\n");
+        return false;
+    }
 
     for (std::uint32_t width : widths) {
         if (!check(
@@ -272,14 +326,69 @@ bool test_progressive(DeviceArena &arena) {
         }
         if (!check(
                 stwo_blake2s_progressive_finalize_on(
-                    kRows, width, states, output, arena.stream),
+                    kRows, width, states, progressive_tree, arena.stream),
                 "progressive finalize")) {
             return false;
         }
-        std::vector<Hash> actual(kRows);
-        if (!arena.read(actual.data(), output, actual.size() * sizeof(Hash)) ||
-            !check(stwo_exec_context_sync(arena.context), "wait progressive")) {
+        if (!check(
+                stwo_blake2s_contiguous_leaf_on(
+                    kRows,
+                    device_columns,
+                    kStride,
+                    width * kStride,
+                    direct_tree,
+                    arena.stream),
+                "direct leaf")) {
             return false;
+        }
+
+        std::uint32_t input_offset = 0;
+        std::uint32_t input_size = kRows;
+        std::uint32_t output_offset = kRows;
+        while (input_size > 1) {
+            const std::uint32_t output_size = input_size / 2;
+            if (!check(
+                    stwo_blake2s_layer_on(
+                        progressive_tree + input_offset,
+                        output_size,
+                        progressive_tree + output_offset,
+                        arena.stream),
+                    "progressive tree layer") ||
+                !check(
+                    stwo_blake2s_layer_on(
+                        direct_tree + input_offset,
+                        output_size,
+                        direct_tree + output_offset,
+                        arena.stream),
+                    "direct tree layer")) {
+                return false;
+            }
+            input_offset = output_offset;
+            input_size = output_size;
+            output_offset += output_size;
+        }
+
+        std::vector<Hash> progressive(kTreeHashes);
+        std::vector<Hash> direct(kTreeHashes);
+        if (!arena.read(
+                progressive.data(),
+                progressive_tree,
+                progressive.size() * sizeof(Hash)) ||
+            !arena.read(
+                direct.data(),
+                direct_tree,
+                direct.size() * sizeof(Hash)) ||
+            !check(stwo_exec_context_sync(arena.context), "wait leaf trees")) {
+            return false;
+        }
+        for (std::uint32_t index = 0; index < kTreeHashes; ++index) {
+            if (!expect_hash(
+                    direct[index],
+                    progressive[index],
+                    "direct-progressive tree",
+                    index)) {
+                return false;
+            }
         }
         for (std::uint32_t row = 0; row < kRows; ++row) {
             std::vector<std::uint32_t> words;
@@ -287,9 +396,9 @@ bool test_progressive(DeviceArena &arena) {
                 words.push_back(host_columns[column * kStride + row]);
             }
             if (!expect_hash(
-                    actual[row],
+                    direct[row],
                     blake2s_reference::hash_leaf_words(words),
-                    "progressive",
+                    "direct leaf",
                     row)) {
                 return false;
             }
