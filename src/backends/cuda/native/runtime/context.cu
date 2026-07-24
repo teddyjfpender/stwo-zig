@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include <limits>
+#include <cstring>
 #include <new>
 
 namespace {
@@ -17,6 +18,24 @@ struct StwoNativeCudaContext {
     cudaStream_t stream;
     cudaMemPool_t pool;
 };
+
+struct alignas(8) StwoCudaPlatformSnapshot {
+    uint8_t uuid[16];
+    uint32_t driver_version;
+    uint32_t runtime_version;
+    uint32_t toolkit_version;
+    uint32_t device_ordinal;
+    uint64_t total_global_memory;
+    uint32_t multiprocessor_count;
+    uint32_t warp_size;
+    uint32_t max_threads_per_block;
+    uint32_t reserved;
+};
+
+static_assert(sizeof(StwoCudaPlatformSnapshot) == 56,
+              "CUDA platform snapshot ABI must be 56 bytes");
+static_assert(offsetof(StwoCudaPlatformSnapshot, total_global_memory) == 32,
+              "invalid CUDA platform snapshot memory offset");
 
 cudaError_t require_context(
     void *handle,
@@ -67,6 +86,43 @@ extern "C" int stwo_cuda_device_snapshot(
     *out_current = static_cast<uint32_t>(current);
     *out_sm_major = static_cast<uint32_t>(properties.major);
     *out_sm_minor = static_cast<uint32_t>(properties.minor);
+    return 0;
+}
+
+extern "C" int stwo_cuda_platform_snapshot(
+    StwoCudaPlatformSnapshot *out) {
+    if (out == nullptr) return static_cast<int>(cudaErrorInvalidValue);
+    *out = {};
+
+    int device = -1;
+    int driver_version = 0;
+    int runtime_version = 0;
+    cudaDeviceProp properties{};
+    cudaError_t status = cudaGetDevice(&device);
+    if (status == cudaSuccess) {
+        status = cudaGetDeviceProperties(&properties, device);
+    }
+    if (status == cudaSuccess) status = cudaDriverGetVersion(&driver_version);
+    if (status == cudaSuccess) status = cudaRuntimeGetVersion(&runtime_version);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (device < 0 || driver_version <= 0 || runtime_version <= 0 ||
+        properties.totalGlobalMem == 0 ||
+        properties.multiProcessorCount <= 0 || properties.warpSize <= 0 ||
+        properties.maxThreadsPerBlock <= 0) {
+        return static_cast<int>(cudaErrorInvalidDevice);
+    }
+
+    std::memcpy(out->uuid, properties.uuid.bytes, sizeof(out->uuid));
+    out->driver_version = static_cast<uint32_t>(driver_version);
+    out->runtime_version = static_cast<uint32_t>(runtime_version);
+    out->toolkit_version = CUDART_VERSION;
+    out->device_ordinal = static_cast<uint32_t>(device);
+    out->total_global_memory = properties.totalGlobalMem;
+    out->multiprocessor_count =
+        static_cast<uint32_t>(properties.multiProcessorCount);
+    out->warp_size = static_cast<uint32_t>(properties.warpSize);
+    out->max_threads_per_block =
+        static_cast<uint32_t>(properties.maxThreadsPerBlock);
     return 0;
 }
 

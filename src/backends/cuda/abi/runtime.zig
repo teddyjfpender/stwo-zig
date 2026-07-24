@@ -10,6 +10,9 @@ pub extern "c" fn stwo_cuda_device_snapshot(
     out_sm_major: *u32,
     out_sm_minor: *u32,
 ) c_int;
+pub extern "c" fn stwo_cuda_platform_snapshot(
+    out: *types.PlatformSnapshot,
+) c_int;
 
 pub extern "c" fn stwo_exec_context_create(out_handle: *?*anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_destroy(handle: *anyopaque) c_int;

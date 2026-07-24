@@ -95,6 +95,7 @@
       "stwo_blake2s_progressive_finalize_on",
       "stwo_blake2s_progressive_init_on",
       "stwo_cuda_device_snapshot",
+      "stwo_cuda_platform_snapshot",
       "stwo_exec_context_alloc_u32",
       "stwo_exec_context_create",
       "stwo_exec_context_destroy",

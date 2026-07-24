@@ -13,6 +13,7 @@ pub const NativeSession = SessionFor(native_api, native_aot);
 
 pub const Verdict = struct {
     device: types.DeviceSnapshot,
+    platform: types.PlatformSnapshot,
     build_identity: [32]u8,
     aot_entries: usize,
     aot: types.NativeAotStats,
@@ -32,6 +33,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
 
         context: Context,
         device: types.DeviceSnapshot,
+        platform: types.PlatformSnapshot,
         build_identity: [32]u8,
         aot_entries: usize,
         aot_loader: ?*anyopaque,
@@ -49,6 +51,10 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             if (device.current >= device.count) return error.InvalidDeviceOrdinal;
             const sm = deviceSm(device) catch return error.InvalidDeviceArchitecture;
             if (!contains(accepted_sms, sm)) return error.DeviceArchitectureMismatch;
+            var platform = types.PlatformSnapshot{};
+            try runtime_error.check(Api.stwo_cuda_platform_snapshot(&platform));
+            if (!platform.isSane() or platform.device_ordinal != device.current)
+                return error.InvalidDeviceOrdinal;
 
             var build_identity = [_]u8{0} ** 32;
             try runtime_error.check(Api.stwo_static_cuda_module_build_identity(
@@ -69,6 +75,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             return .{
                 .context = context,
                 .device = device,
+                .platform = platform,
                 .build_identity = build_identity,
                 .aot_entries = aot_entries,
                 .aot_loader = aot_loader orelse return error.AotPackAbsent,
@@ -169,6 +176,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             if (!aot.isStrict()) return error.StrictAotViolation;
             const verdict = Verdict{
                 .device = self.device,
+                .platform = self.platform,
                 .build_identity = self.build_identity,
                 .aot_entries = self.aot_entries,
                 .aot = aot,
@@ -241,6 +249,21 @@ test "strict session returns a resident verdict and never exposes fallback" {
             current.* = 0;
             major.* = 9;
             minor.* = 0;
+            return 0;
+        }
+        pub fn stwo_cuda_platform_snapshot(
+            out: *types.PlatformSnapshot,
+        ) c_int {
+            out.* = .{
+                .uuid = [_]u8{3} ** 16,
+                .driver_version = 12080,
+                .runtime_version = 12080,
+                .toolkit_version = 12080,
+                .total_global_memory = 24 * 1024 * 1024 * 1024,
+                .multiprocessor_count = 128,
+                .warp_size = 32,
+                .max_threads_per_block = 1024,
+            };
             return 0;
         }
         pub fn stwo_static_cuda_module_build_identity(out: *[32]u8) c_int {
