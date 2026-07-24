@@ -105,7 +105,7 @@ report = {
     "product_identity": {
         "schema_version": 2,
         "name": "stwo-native-cuda",
-        "frontend": "native",
+        "frontend": "native-examples",
         "backend": "cuda",
         "role": "cli",
         "protocol_features": (

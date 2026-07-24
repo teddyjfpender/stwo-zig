@@ -334,7 +334,7 @@ def validate_report(
     expected_identity = {
         "schema_version": 2,
         "name": PRODUCT,
-        "frontend": "native",
+        "frontend": "native-examples",
         "backend": BACKEND,
         "role": "cli",
         "protocol_features": (
