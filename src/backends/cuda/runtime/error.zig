@@ -1,6 +1,7 @@
 //! Fail-closed resident CUDA runtime errors.
 
 pub const Error = error{
+    ArenaSlotMissing,
     AotReceiptMismatch,
     AotPackAbsent,
     ArgumentCountMismatch,
@@ -11,10 +12,13 @@ pub const Error = error{
     DeviceArchitectureMismatch,
     DeviceBufferLive,
     DeviceUnavailable,
+    DuplicateArenaSlot,
+    EmptyArenaPlan,
     EmptyAllocation,
     HostReadOutsideProofAssembly,
     InvalidDeviceArchitecture,
     InvalidDeviceOrdinal,
+    InvalidArenaRequirement,
     InvalidKernelDescriptor,
     InvalidState,
     KernelPathUnused,

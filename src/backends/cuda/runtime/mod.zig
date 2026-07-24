@@ -1,5 +1,6 @@
 //! Proof-owned CUDA runtime surface.
 
+pub const arena = @import("arena.zig");
 pub const context = @import("context.zig");
 pub const column = @import("column.zig");
 pub const constraints = @import("constraints/mod.zig");
@@ -13,6 +14,7 @@ pub const NativeBaseFieldColumn = column.NativeBaseFieldColumn;
 pub const NativeSession = session.NativeSession;
 
 test {
+    _ = arena;
     _ = context;
     _ = column;
     _ = constraints;
