@@ -1,6 +1,7 @@
 # Task 01: CUDA Persistent Runtime
 
-Status: process runtime and retained shape plan implemented; cache breadth pending
+Status: process runtime, retained plan cache, and bounded FIFO service
+implemented; locked-host mixed-family evidence pending
 
 ## Objective
 
@@ -18,6 +19,10 @@ shape plans outside the proving request.
 - Repeated same-shape requests reuse modules and compiled plans.
 - Mixed-shape requests use keyed hits/misses without stale resource aliasing.
 - Failure and teardown release all live bytes exactly once.
+- A backend-neutral process service enforces one active proof, bounded queued
+  inputs, FIFO publication, and explicit busy/capacity/poison outcomes.
+- Fatal or uncertain request failure aborts the runtime and requires an
+  explicit new-runtime generation before service reset.
 
 ## Gates
 

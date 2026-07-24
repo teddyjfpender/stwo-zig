@@ -93,6 +93,29 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             try self.context.beginProof();
             self.state = .open;
         }
+
+        /// Process-service observations. These expose lifecycle and cache
+        /// facts without granting access to CUDA handles or mutating LRU age.
+        pub fn isReady(self: *const Self) bool {
+            return self.owner_thread_id == std.Thread.getCurrentId() and
+                self.state == .idle and
+                self.active_execution_key == null and
+                self.context.active_stage == null and
+                self.context.synchronized;
+        }
+
+        pub fn executionLaneCount(self: *const Self) u32 {
+            return self.context.lane_count;
+        }
+
+        pub fn hasPreparedExecution(
+            self: *const Self,
+            cache_key: [32]u8,
+        ) bool {
+            return self.state == .idle and
+                self.execution_cache.contains(cache_key);
+        }
+
         /// Installs one full-plan-keyed, fixed-address execution arena in the
         /// bounded process cache. Re-preparing the same key is a cache hit.
         pub fn prepareExecution(

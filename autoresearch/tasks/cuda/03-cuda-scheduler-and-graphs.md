@@ -1,6 +1,7 @@
 # Task 03: CUDA Scheduler And Graphs
 
-Status: pending
+Status: stage graphs implemented; persistent service remains single-lane until
+overlap evidence justifies additional physical streams
 
 ## Objective
 

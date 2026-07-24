@@ -209,7 +209,13 @@ test "strict session returns a resident verdict and never exposes fallback" {
     Fake.loader_destroy_saw_live_function = false;
 
     var session = try Session.open(&.{90});
+    try std.testing.expect(session.isReady());
+    try std.testing.expectEqual(@as(u32, 1), session.executionLaneCount());
+    try std.testing.expect(
+        !session.hasPreparedExecution([_]u8{0xa5} ** 32),
+    );
     try session.beginProof();
+    try std.testing.expect(!session.isReady());
     var off_owner_error: ?runtime_error.Error = null;
     const off_owner = try std.Thread.spawn(.{}, struct {
         fn run(target: *Session, result: *?runtime_error.Error) void {
@@ -328,6 +334,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
     try session.markProofComplete();
     const expected_first_cache_hits = session.function_cache_hits + 2;
     const verdict = try session.finishRetained();
+    try std.testing.expect(session.isReady());
     try std.testing.expect(verdict.isResident());
     try std.testing.expectEqual(@as(u64, 0), verdict.counters.cpu_fallback_attempts);
     try std.testing.expectEqual(@as(u64, 0), verdict.counters.cpu_fallbacks_completed);

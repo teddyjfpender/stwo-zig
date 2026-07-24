@@ -105,7 +105,8 @@ bandwidth, occupancy, register, or spill result is claimed.
 2. Replace surrogate class labels with real hash-heavy, lookup-heavy, and
    irregular structural rows.
 3. Retain per-family CPU/CUDA/Rust parity receipts.
-4. Add a persistent mixed-shape request service and bounded session admission.
+4. Run the backend-neutral persistent mixed-shape request service on the
+   locked CUDA host and retain queue, cache-hit, memory, and oracle evidence.
 5. Consume measured `CudaPlan` dependencies with real event/stream scheduling,
    or retain one stream with explicit saturation evidence.
 6. Freeze locked-host CUDA A/A calibration and the predecessor anchor.

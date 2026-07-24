@@ -55,6 +55,22 @@ pub fn ProcessOwnedRuntimeFor(comptime Session: type) type {
             return self.inner.completedProofs();
         }
 
+        pub fn isReady(self: *const Self) bool {
+            return self.owns_registry and self.inner.isReady();
+        }
+
+        pub fn executionLaneCount(self: *const Self) u32 {
+            return self.inner.executionLaneCount();
+        }
+
+        pub fn hasPreparedExecution(
+            self: *const Self,
+            cache_key: [32]u8,
+        ) bool {
+            return self.owns_registry and
+                self.inner.hasPreparedExecution(cache_key);
+        }
+
         pub fn close(self: *Self) runtime_error.Error!void {
             if (!self.owns_registry) return error.InvalidState;
             try self.inner.close();
@@ -130,6 +146,22 @@ pub fn RuntimeFor(comptime Session: type) type {
             return self.session.completed_proofs;
         }
 
+        pub fn isReady(self: *const Self) bool {
+            return self.state == .ready and self.session.isReady();
+        }
+
+        pub fn executionLaneCount(self: *const Self) u32 {
+            return self.session.executionLaneCount();
+        }
+
+        pub fn hasPreparedExecution(
+            self: *const Self,
+            cache_key: [32]u8,
+        ) bool {
+            return self.state == .ready and
+                self.session.hasPreparedExecution(cache_key);
+        }
+
         pub fn close(self: *Self) runtime_error.Error!void {
             if (self.state != .ready) return error.InvalidState;
             try self.session.close();
@@ -160,6 +192,21 @@ test "process runtime admits sequential proof sessions" {
             self.active = true;
         }
 
+        pub fn isReady(self: *const @This()) bool {
+            return !self.active and !self.closed;
+        }
+
+        pub fn executionLaneCount(_: *const @This()) u32 {
+            return 1;
+        }
+
+        pub fn hasPreparedExecution(
+            _: *const @This(),
+            cache_key: [32]u8,
+        ) bool {
+            return cache_key[0] == 7;
+        }
+
         pub fn finishRetained(self: *@This()) runtime_error.Error!void {
             if (!self.active or self.closed) return error.InvalidState;
             self.active = false;
@@ -179,6 +226,11 @@ test "process runtime admits sequential proof sessions" {
     const Runtime = RuntimeFor(FakeSession);
     var runtime = try Runtime.open(&.{89});
     try std.testing.expect(!runtime.planningSession().active);
+    try std.testing.expect(runtime.isReady());
+    try std.testing.expectEqual(@as(u32, 1), runtime.executionLaneCount());
+    try std.testing.expect(
+        runtime.hasPreparedExecution([_]u8{7} ** 32),
+    );
     (try runtime.beginProof()).finishRetained() catch unreachable;
     (try runtime.beginProof()).finishRetained() catch unreachable;
     try std.testing.expectEqual(@as(u64, 2), runtime.completedProofs());
@@ -200,6 +252,21 @@ test "process-owned runtime admits exactly one live owner" {
             self.active = true;
         }
 
+        pub fn isReady(self: *const @This()) bool {
+            return !self.active and !self.closed;
+        }
+
+        pub fn executionLaneCount(_: *const @This()) u32 {
+            return 1;
+        }
+
+        pub fn hasPreparedExecution(
+            _: *const @This(),
+            cache_key: [32]u8,
+        ) bool {
+            return cache_key[0] == 9;
+        }
+
         pub fn close(self: *@This()) runtime_error.Error!void {
             if (self.active or self.closed) return error.InvalidState;
             self.closed = true;
@@ -212,6 +279,11 @@ test "process-owned runtime admits exactly one live owner" {
 
     const Runtime = ProcessOwnedRuntimeFor(FakeSession);
     var first = try Runtime.open(&.{89});
+    try std.testing.expect(first.isReady());
+    try std.testing.expectEqual(@as(u32, 1), first.executionLaneCount());
+    try std.testing.expect(
+        first.hasPreparedExecution([_]u8{9} ** 32),
+    );
     try std.testing.expectError(error.InvalidState, Runtime.open(&.{89}));
     try first.close();
 
