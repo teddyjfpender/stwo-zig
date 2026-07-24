@@ -151,6 +151,7 @@ const Pipeline = common_pipeline.PipelineFor(
 
 pub const Request = Pipeline.Request;
 pub const Geometry = Pipeline.Geometry;
+pub const BundleDescriptor = Pipeline.BundleDescriptor;
 pub const PreparedPlan = Pipeline.PreparedPlan;
 pub const admit = Pipeline.admit;
 pub const prepare = Pipeline.prepare;

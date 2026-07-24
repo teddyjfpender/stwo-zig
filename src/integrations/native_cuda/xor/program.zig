@@ -404,7 +404,8 @@ fn executionNodes(
             0,
             0,
             try mul(
-                geometry.fri_tree_count + 2,
+                geometry.fri_tree_count +
+                    geometry.decommitted_trace_tree_count,
                 geometry.protocol.fri_config.n_queries,
             ),
             1,
