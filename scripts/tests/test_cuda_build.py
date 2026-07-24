@@ -216,6 +216,27 @@ class CudaBuildTests(unittest.TestCase):
         self.assertNotIn("getenv(", sources)
         self.assertNotIn("system(", sources)
 
+    def test_fused_transforms_are_structural_exact_and_telemetry_bound(self) -> None:
+        schedules = (
+            NATIVE / "transform" / "transform_internal.cuh"
+        ).read_text(encoding="utf-8")
+        b2n = (NATIVE / "transform" / "b2n_retained.cu").read_text(
+            encoding="utf-8"
+        )
+        n2b = (NATIVE / "transform" / "n2b.cu").read_text(encoding="utf-8")
+        abi = (ROOT / "src/backends/cuda/abi/stages/transform.zig").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("kFirstFusedLogN = 13", schedules)
+        self.assertIn("kLastFusedLogN = 23", schedules)
+        self.assertIn("schedules_are_exact()", schedules)
+        self.assertIn("b2n_stage<false>", b2n)
+        self.assertIn("n2b_stage<<<", n2b)
+        self.assertIn("kFirstFusedLogN", b2n)
+        self.assertIn("kFirstFusedLogN", n2b)
+        self.assertNotIn("wide_fibonacci", (schedules + b2n + n2b).lower())
+        self.assertEqual(4, abi.count("launches_out: *u32"))
+
     def test_device_header_definitions_have_internal_or_inline_linkage(self) -> None:
         violations: list[str] = []
         definition = re.compile(r"^__device__\s+")

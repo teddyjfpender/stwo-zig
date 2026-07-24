@@ -179,6 +179,34 @@ test "retained trace layout admits exact in-place B2N expansion" {
     try std.testing.expectEqual(@as(usize, 8), session.launches);
 }
 
+test "transform telemetry uses the launch count returned by the CUDA ABI" {
+    const CountingApi = struct {
+        pub fn stwo_ntt_n2b_columns_on(
+            _: [*]u32,
+            _: usize,
+            _: u32,
+            _: u32,
+            _: [*]const u32,
+            _: u32,
+            _: u32,
+            _: *anyopaque,
+            launches_out: *u32,
+        ) c_int {
+            launches_out.* = 3;
+            return 0;
+        }
+    };
+    var session = FakeSession.init(.trace_commit);
+    try transform_module.OpsFor(CountingApi).forwardInPlace(
+        &session,
+        .trace_commit,
+        wordMatrix(0x30000, 37, 8192),
+        13,
+        words(4096),
+    );
+    try std.testing.expectEqual(@as(usize, 3), session.launches);
+}
+
 test "transform, commitment, and transcript wrappers bind the session stream" {
     var session = FakeSession.init(.trace_commit);
     try transform.inverseToRetained(

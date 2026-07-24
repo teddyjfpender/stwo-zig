@@ -11,6 +11,7 @@ pub extern "c" fn stwo_ntt_b2n_columns_to_retained_on(
     twiddle_words: u32,
     evaluation_domain_size: u32,
     stream: *anyopaque,
+    launches_out: *u32,
 ) c_int;
 
 pub extern "c" fn stwo_ntt_n2b_columns_on(
@@ -22,6 +23,7 @@ pub extern "c" fn stwo_ntt_n2b_columns_on(
     twiddle_words: u32,
     evaluation_domain_size: u32,
     stream: *anyopaque,
+    launches_out: *u32,
 ) c_int;
 
 pub extern "c" fn stwo_lde_n2b_columns_on(
@@ -36,6 +38,7 @@ pub extern "c" fn stwo_lde_n2b_columns_on(
     twiddle_words: u32,
     evaluation_domain_size: u32,
     stream: *anyopaque,
+    launches_out: *u32,
 ) c_int;
 
 pub extern "c" fn stwo_lde_n2b_columns_before_circle_on(
@@ -50,4 +53,5 @@ pub extern "c" fn stwo_lde_n2b_columns_before_circle_on(
     twiddle_words: u32,
     evaluation_domain_size: u32,
     stream: *anyopaque,
+    launches_out: *u32,
 ) c_int;

@@ -54,6 +54,7 @@ pub fn OpsFor(comptime Api: type) type {
             if (layout.overlap(output.range, twiddles.range))
                 return error.OverlappingDeviceRange;
 
+            var launches: u32 = 0;
             const status = Api.stwo_ntt_b2n_columns_to_retained_on(
                 input.pointer,
                 input.stride_words,
@@ -65,12 +66,13 @@ pub fn OpsFor(comptime Api: type) type {
                 try common.count(inverse_twiddles.len),
                 try common.count(shape.domain),
                 session.context.stream,
+                &launches,
             );
             try common.recordMany(
                 session,
                 stage,
                 status,
-                try transformLaunches(input.column_count, log_n),
+                launches,
             );
         }
 
@@ -94,6 +96,7 @@ pub fn OpsFor(comptime Api: type) type {
             if (layout.overlap(values.range, twiddle_values.range))
                 return error.OverlappingDeviceRange;
 
+            var launches: u32 = 0;
             const status = Api.stwo_ntt_n2b_columns_on(
                 values.pointer,
                 values.stride_words,
@@ -103,12 +106,13 @@ pub fn OpsFor(comptime Api: type) type {
                 try common.count(twiddles.len),
                 try common.count(shape.domain),
                 session.context.stream,
+                &launches,
             );
             try common.recordMany(
                 session,
                 stage,
                 status,
-                try transformLaunches(values.column_count, log_n),
+                launches,
             );
         }
 
@@ -159,6 +163,7 @@ pub fn OpsFor(comptime Api: type) type {
                     return error.OverlappingDeviceRange;
             }
 
+            var launches: u32 = 0;
             const status = if (before_final_circle)
                 Api.stwo_lde_n2b_columns_before_circle_on(
                     coefficient_values.pointer,
@@ -172,6 +177,7 @@ pub fn OpsFor(comptime Api: type) type {
                     try common.count(twiddles.len),
                     try common.count(shape.domain),
                     session.context.stream,
+                    &launches,
                 )
             else
                 Api.stwo_lde_n2b_columns_on(
@@ -186,19 +192,13 @@ pub fn OpsFor(comptime Api: type) type {
                     try common.count(twiddles.len),
                     try common.count(shape.domain),
                     session.context.stream,
+                    &launches,
                 );
-            const stages_per_chunk: u32 = if (before_final_circle)
-                log_n
-            else
-                log_n + 1;
             try common.recordMany(
                 session,
                 stage,
                 status,
-                try transformLaunches(
-                    evaluation_values.column_count,
-                    stages_per_chunk,
-                ),
+                launches,
             );
         }
     };
@@ -219,19 +219,6 @@ fn transformShape(log_n: u32) runtime_error.Error!TransformShape {
         .retained_values = std.math.mul(usize, values, 2) catch
             return error.SizeOverflow,
     };
-}
-
-fn transformLaunches(
-    column_count: u32,
-    stages_per_chunk: u32,
-) runtime_error.Error!u64 {
-    const chunks = std.math.divCeil(
-        u64,
-        column_count,
-        65_535,
-    ) catch return error.SizeOverflow;
-    return std.math.mul(u64, chunks, stages_per_chunk) catch
-        return error.SizeOverflow;
 }
 
 fn requireTransformStage(stage: telemetry.Stage) runtime_error.Error!void {

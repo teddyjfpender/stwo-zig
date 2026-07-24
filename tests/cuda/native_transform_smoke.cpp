@@ -42,7 +42,8 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_ntt_n2b_columns_on(
     std::uint32_t *columns,
     std::size_t column_stride_words,
@@ -51,7 +52,8 @@ extern "C" int stwo_ntt_n2b_columns_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_lde_n2b_columns_on(
     const std::uint32_t *coefficients,
     std::size_t coefficient_column_stride_words,
@@ -63,7 +65,8 @@ extern "C" int stwo_lde_n2b_columns_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_lde_n2b_columns_before_circle_on(
     const std::uint32_t *coefficients,
     std::size_t coefficient_column_stride_words,
@@ -75,11 +78,40 @@ extern "C" int stwo_lde_n2b_columns_before_circle_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
 
 namespace {
 
 constexpr std::uint32_t kM31Prime = 2147483647u;
+
+std::uint32_t b2n_launches(std::uint32_t log_n) {
+    if (log_n >= 13u && log_n <= 18u) return 2;
+    if (log_n >= 19u && log_n <= 23u) return 3;
+    return log_n;
+}
+
+std::uint32_t n2b_launches(
+    std::uint32_t log_n,
+    bool include_circle) {
+    if (log_n >= 13u && log_n <= 19u) return 2;
+    if (log_n >= 20u && log_n <= 23u) return 3;
+    return include_circle ? log_n : log_n - 1u;
+}
+
+bool check_launches(
+    std::uint32_t actual,
+    std::uint32_t expected,
+    const char *operation) {
+    if (actual == expected) return true;
+    std::fprintf(
+        stderr,
+        "%s launch telemetry mismatch: expected=%u actual=%u\n",
+        operation,
+        expected,
+        actual);
+    return false;
+}
 
 std::uint32_t add(std::uint32_t left, std::uint32_t right) {
     const std::uint64_t sum =
@@ -396,6 +428,7 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
         }
     }
     auto *device_retained = session.allocate(retained_host.size());
+    std::uint32_t retained_launches = 0;
     if (device_retained == nullptr ||
         !session.upload(
             device_retained,
@@ -412,10 +445,18 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_inverse_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &retained_launches),
             "launch retained B2N")) {
         return false;
     }
+    if (!check_launches(
+            retained_launches,
+            b2n_launches(log_n),
+            "retained B2N")) {
+        return false;
+    }
+    std::uint32_t rejected_launches = 17;
     if (!expect_invalid(
             stwo_ntt_b2n_columns_to_retained_on(
                 device_retained + 1,
@@ -427,7 +468,8 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_inverse_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject partial B2N alias") ||
         !expect_invalid(
             stwo_ntt_b2n_columns_to_retained_on(
@@ -440,10 +482,12 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_inverse_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject short B2N stride")) {
         return false;
     }
+    if (!check_launches(rejected_launches, 0, "rejected B2N")) return false;
     std::vector<std::uint32_t> retained_actual(retained_host.size());
     if (!session.download(
             retained_actual.data(),
@@ -489,6 +533,7 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 static_cast<std::size_t>(column) * forward_stride);
     }
     auto *device_forward = session.allocate(forward_host.size());
+    std::uint32_t forward_launches = 0;
     if (device_forward == nullptr ||
         !session.upload(
             device_forward,
@@ -503,10 +548,18 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &forward_launches),
             "launch N2B")) {
         return false;
     }
+    if (!check_launches(
+            forward_launches,
+            n2b_launches(log_n, true),
+            "N2B")) {
+        return false;
+    }
+    rejected_launches = 17;
     if (!expect_invalid(
             stwo_ntt_n2b_columns_on(
                 device_forward,
@@ -516,10 +569,12 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject short N2B stride")) {
         return false;
     }
+    if (!check_launches(rejected_launches, 0, "rejected N2B")) return false;
     std::vector<std::uint32_t> forward_actual(forward_host.size());
     if (!session.download(
             forward_actual.data(),
@@ -576,6 +631,8 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
     auto *device_pre_circle = session.allocate(
         static_cast<std::size_t>(width) * evaluation_stride);
     auto *device_sizes = session.allocate(width);
+    std::uint32_t lde_launches = 0;
+    std::uint32_t pre_circle_launches = 0;
     if (device_coefficients == nullptr ||
         device_lde == nullptr ||
         device_pre_circle == nullptr ||
@@ -600,7 +657,8 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &lde_launches),
             "launch full LDE") ||
         !check_status(
             stwo_lde_n2b_columns_before_circle_on(
@@ -614,10 +672,22 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &pre_circle_launches),
             "launch pre-circle LDE")) {
         return false;
     }
+    if (!check_launches(
+            lde_launches,
+            1u + n2b_launches(log_n, true),
+            "full LDE") ||
+        !check_launches(
+            pre_circle_launches,
+            1u + n2b_launches(log_n, false),
+            "pre-circle LDE")) {
+        return false;
+    }
+    rejected_launches = 17;
     if (!expect_invalid(
             stwo_lde_n2b_columns_on(
                 device_coefficients,
@@ -630,10 +700,12 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject overlapping LDE slabs")) {
         return false;
     }
+    if (!check_launches(rejected_launches, 0, "rejected LDE")) return false;
 
     std::vector<std::uint32_t> lde_actual(
         static_cast<std::size_t>(width) * evaluation_stride);
@@ -706,13 +778,15 @@ int main() {
         {9, 37},
         {10, 5},
         {13, 37},
+        {16, 3},
+        {18, 3},
     };
     for (const auto &test_case : cases) {
         if (!run_case(test_case.log_n, test_case.width)) return 1;
     }
     std::printf(
         "native CUDA transform smoke passed: %zu shapes, "
-        "including width 37 and log 8/9/10 boundaries\n",
+        "including width 37 and fused log 13/16/18 schedules\n",
         sizeof(cases) / sizeof(cases[0]));
     return 0;
 }

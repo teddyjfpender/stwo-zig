@@ -12,6 +12,77 @@ constexpr uint32_t kThreadsPerBlock = 256;
 constexpr uint32_t kMaxColumnsPerLaunch = 65535;
 constexpr uint32_t kMinLogN = 3;
 constexpr uint32_t kMaxLogN = 30;
+constexpr uint32_t kFirstFusedLogN = 13;
+constexpr uint32_t kLastFusedLogN = 23;
+
+template <typename T>
+struct ColumnSlab {
+    T *base;
+    size_t stride_words;
+
+    __device__ __forceinline__ T *column(uint32_t index) const {
+        return base + static_cast<size_t>(index) * stride_words;
+    }
+};
+
+struct TransformSchedule {
+    uint8_t interval_count;
+    uint8_t intervals[3];
+};
+
+constexpr TransformSchedule kB2nSchedules[] = {
+    {2, {7, 6, 0}},
+    {2, {8, 6, 0}},
+    {2, {7, 8, 0}},
+    {2, {8, 8, 0}},
+    {2, {9, 8, 0}},
+    {2, {10, 8, 0}},
+    {3, {7, 6, 6}},
+    {3, {8, 6, 6}},
+    {3, {7, 6, 8}},
+    {3, {8, 6, 8}},
+    {3, {7, 8, 8}},
+};
+
+constexpr TransformSchedule kN2bSchedules[] = {
+    {2, {6, 7, 0}},
+    {2, {6, 8, 0}},
+    {2, {8, 7, 0}},
+    {2, {8, 8, 0}},
+    {2, {6, 11, 0}},
+    {2, {8, 10, 0}},
+    {2, {8, 11, 0}},
+    {3, {6, 6, 8}},
+    {3, {6, 8, 7}},
+    {3, {6, 8, 8}},
+    {3, {8, 8, 7}},
+};
+
+constexpr bool valid_schedule(
+    const TransformSchedule &schedule,
+    uint32_t log_n) {
+    uint32_t covered = 0;
+    for (uint32_t i = 0; i < schedule.interval_count; ++i) {
+        if (schedule.intervals[i] == 0) return false;
+        covered += schedule.intervals[i];
+    }
+    return covered == log_n;
+}
+
+constexpr bool schedules_are_exact() {
+    for (uint32_t i = 0; i <= kLastFusedLogN - kFirstFusedLogN; ++i) {
+        const uint32_t log_n = kFirstFusedLogN + i;
+        if (!valid_schedule(kB2nSchedules[i], log_n) ||
+            !valid_schedule(kN2bSchedules[i], log_n)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static_assert(
+    schedules_are_exact(),
+    "fused transform schedules must partition every admitted stage exactly");
 
 struct DeviceRange {
     uintptr_t start;
@@ -77,7 +148,8 @@ cudaError_t n2b_columns_on(
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
     cudaStream_t stream,
-    bool include_circle);
+    bool include_circle,
+    uint32_t *launches_out);
 
 }  // namespace stwo::cuda::transform
 

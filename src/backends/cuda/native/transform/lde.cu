@@ -48,14 +48,17 @@ int lde_columns_on(
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
     void *stream_raw,
-    bool include_circle) {
+    bool include_circle,
+    uint32_t *launches_out) {
     using namespace stwo::cuda::transform;
+    if (launches_out != nullptr) *launches_out = 0;
     if (!valid_shape(
             log_n,
             polynomial_count,
             twiddle_words,
             evaluation_domain_size) ||
-        stream_raw == nullptr) {
+        stream_raw == nullptr ||
+        launches_out == nullptr) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
 
@@ -111,6 +114,7 @@ int lde_columns_on(
                 evaluation_domain_size);
         const cudaError_t status = cudaPeekAtLastError();
         if (status != cudaSuccess) return static_cast<int>(status);
+        ++*launches_out;
     }
     return static_cast<int>(n2b_columns_on(
         evaluations,
@@ -121,7 +125,8 @@ int lde_columns_on(
         twiddle_words,
         evaluation_domain_size,
         stream,
-        include_circle));
+        include_circle,
+        launches_out));
 }
 
 }  // namespace
@@ -137,7 +142,8 @@ extern "C" int stwo_lde_n2b_columns_on(
     const uint32_t *twiddles,
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
-    void *stream_raw) {
+    void *stream_raw,
+    uint32_t *launches_out) {
     return lde_columns_on(
         coefficients,
         coefficient_column_stride_words,
@@ -150,7 +156,8 @@ extern "C" int stwo_lde_n2b_columns_on(
         twiddle_words,
         evaluation_domain_size,
         stream_raw,
-        true);
+        true,
+        launches_out);
 }
 
 extern "C" int stwo_lde_n2b_columns_before_circle_on(
@@ -164,7 +171,8 @@ extern "C" int stwo_lde_n2b_columns_before_circle_on(
     const uint32_t *twiddles,
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
-    void *stream_raw) {
+    void *stream_raw,
+    uint32_t *launches_out) {
     return lde_columns_on(
         coefficients,
         coefficient_column_stride_words,
@@ -177,5 +185,6 @@ extern "C" int stwo_lde_n2b_columns_before_circle_on(
         twiddle_words,
         evaluation_domain_size,
         stream_raw,
-        false);
+        false,
+        launches_out);
 }

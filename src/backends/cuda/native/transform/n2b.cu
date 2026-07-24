@@ -1,8 +1,10 @@
 #include "../common/circle_twiddle.cuh"
+#include "n2b_fused.cuh"
 #include "transform_internal.cuh"
 
-// Exact stagewise N2B authority from pinned rfft.cu. The column slab and
-// twiddles are proof-session resident and every launch stays on its stream.
+// Qualified multi-stage intervals from pinned rfft.cu drive production logs;
+// the exact stagewise path remains the fallback. The slab and twiddles stay
+// proof-session resident and every launch stays on the caller's stream.
 
 namespace {
 
@@ -55,14 +57,11 @@ cudaError_t n2b_columns_on(
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
     cudaStream_t stream,
-    bool include_circle) {
+    bool include_circle,
+    uint32_t *launches_out) {
     auto *field_columns = reinterpret_cast<M31 *>(columns);
     const auto *domain_twiddles = reinterpret_cast<const M31 *>(
         twiddles + twiddle_words - evaluation_domain_size);
-    const uint32_t pair_count = 1u << (log_n - 1u);
-    const uint32_t blocks =
-        (pair_count + kThreadsPerBlock - 1u) / kThreadsPerBlock;
-    const uint32_t final_stage = include_circle ? log_n : log_n - 1u;
 
     for (uint32_t base = 0; base < polynomial_count;
          base += kMaxColumnsPerLaunch) {
@@ -70,6 +69,57 @@ cudaError_t n2b_columns_on(
         const uint32_t chunk = remaining < kMaxColumnsPerLaunch
             ? remaining
             : kMaxColumnsPerLaunch;
+        ColumnSlab<M31> slab{
+            field_columns +
+                static_cast<size_t>(base) * column_stride_words,
+            column_stride_words,
+        };
+        if (log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN) {
+            const TransformSchedule &schedule =
+                kN2bSchedules[log_n - kFirstFusedLogN];
+            uint32_t start_stage = 1;
+            for (uint32_t i = 0; i < schedule.interval_count; ++i) {
+                const uint32_t stages = schedule.intervals[i];
+                const bool final_interval =
+                    i + 1u == schedule.interval_count;
+                const cudaError_t status = final_interval
+                    ? (include_circle
+                           ? launch_n2b_final<true>(
+                                 slab,
+                                 log_n,
+                                 chunk,
+                                 start_stage,
+                                 stages,
+                                 domain_twiddles,
+                                 stream)
+                           : launch_n2b_final<false>(
+                                 slab,
+                                 log_n,
+                                 chunk,
+                                 start_stage,
+                                 stages,
+                                 domain_twiddles,
+                                 stream))
+                    : launch_n2b_continue(
+                          slab,
+                          log_n,
+                          chunk,
+                          start_stage,
+                          stages,
+                          domain_twiddles,
+                          stream);
+                if (status != cudaSuccess) return status;
+                ++*launches_out;
+                start_stage += stages;
+            }
+            continue;
+        }
+
+        const uint32_t pair_count = 1u << (log_n - 1u);
+        const uint32_t blocks =
+            (pair_count + kThreadsPerBlock - 1u) / kThreadsPerBlock;
+        const uint32_t final_stage =
+            include_circle ? log_n : log_n - 1u;
         uint32_t layer_size = 1;
         uint32_t layer_offset = pair_count - 2u;
         for (uint32_t stage = 1; stage <= final_stage; ++stage) {
@@ -88,6 +138,7 @@ cudaError_t n2b_columns_on(
                         : domain_twiddles + layer_offset);
             const cudaError_t status = cudaPeekAtLastError();
             if (status != cudaSuccess) return status;
+            ++*launches_out;
             if (stage < log_n - 1u) {
                 layer_size <<= 1;
                 layer_offset -= layer_size;
@@ -107,14 +158,17 @@ extern "C" int stwo_ntt_n2b_columns_on(
     const uint32_t *twiddles,
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
-    void *stream_raw) {
+    void *stream_raw,
+    uint32_t *launches_out) {
     using namespace stwo::cuda::transform;
+    if (launches_out != nullptr) *launches_out = 0;
     if (!valid_shape(
             log_n,
             polynomial_count,
             twiddle_words,
             evaluation_domain_size) ||
-        stream_raw == nullptr) {
+        stream_raw == nullptr ||
+        launches_out == nullptr) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
     const size_t values = static_cast<size_t>(1) << log_n;
@@ -139,5 +193,6 @@ extern "C" int stwo_ntt_n2b_columns_on(
         twiddle_words,
         evaluation_domain_size,
         reinterpret_cast<cudaStream_t>(stream_raw),
-        true));
+        true,
+        launches_out));
 }

@@ -1,9 +1,10 @@
 #include "../common/circle_twiddle.cuh"
+#include "b2n_fused.cuh"
 #include "transform_internal.cuh"
 
-// Exact stagewise B2N authority from pinned ifft.cu, reduced to the one
-// resident retained-output ABI. The boundary admits disjoint slabs or one
-// exact shared base/stride whose input occupies each output column's lower half.
+// Qualified multi-stage intervals from pinned ifft.cu drive production logs;
+// the exact stagewise path remains the fallback. Both use the same resident
+// retained-output ABI and admit disjoint slabs or one exact base/stride alias.
 
 namespace {
 
@@ -73,7 +74,8 @@ cudaError_t launch_columns(
     const uint32_t *twiddles,
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
-    cudaStream_t stream) {
+    cudaStream_t stream,
+    uint32_t *launches_out) {
     using namespace stwo::cuda::transform;
     const auto *inverse_twiddles = reinterpret_cast<const M31 *>(
         twiddles + twiddle_words - evaluation_domain_size);
@@ -92,6 +94,54 @@ cudaError_t launch_columns(
             static_cast<size_t>(base) * input_column_stride_words;
         auto *chunk_outputs = reinterpret_cast<M31 *>(retained_outputs) +
             static_cast<size_t>(base) * output_column_stride_words;
+        if (log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN) {
+            const TransformSchedule &schedule =
+                kB2nSchedules[log_n - kFirstFusedLogN];
+            const ColumnSlab<const M31> input_slab{
+                chunk_inputs,
+                input_column_stride_words,
+            };
+            const ColumnSlab<M31> output_slab{
+                chunk_outputs,
+                output_column_stride_words,
+            };
+            cudaError_t status = launch_b2n_init(
+                input_slab,
+                output_slab,
+                log_n,
+                chunk,
+                schedule.intervals[0],
+                inverse_twiddles,
+                stream);
+            if (status != cudaSuccess) return status;
+            ++*launches_out;
+            uint32_t start_stage = 1u + schedule.intervals[0];
+            for (uint32_t i = 1; i < schedule.interval_count; ++i) {
+                const uint32_t stages = schedule.intervals[i];
+                status = i + 1u == schedule.interval_count
+                    ? launch_b2n_continue<true>(
+                          output_slab,
+                          log_n,
+                          chunk,
+                          start_stage,
+                          stages,
+                          inverse_twiddles,
+                          stream)
+                    : launch_b2n_continue<false>(
+                          output_slab,
+                          log_n,
+                          chunk,
+                          start_stage,
+                          stages,
+                          inverse_twiddles,
+                          stream);
+                if (status != cudaSuccess) return status;
+                ++*launches_out;
+                start_stage += stages;
+            }
+            continue;
+        }
+
         b2n_stage<false><<<
             dim3(blocks, chunk),
             kThreadsPerBlock,
@@ -107,6 +157,7 @@ cudaError_t launch_columns(
                 rescale_factor);
         cudaError_t status = cudaPeekAtLastError();
         if (status != cudaSuccess) return status;
+        ++*launches_out;
 
         uint32_t layer_size = pair_count;
         uint32_t layer_offset = 0;
@@ -143,6 +194,7 @@ cudaError_t launch_columns(
             }
             status = cudaPeekAtLastError();
             if (status != cudaSuccess) return status;
+            ++*launches_out;
             if (!final_stage) {
                 layer_size >>= 1;
                 layer_offset += layer_size;
@@ -164,14 +216,17 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
     const uint32_t *twiddles,
     uint32_t twiddle_words,
     uint32_t evaluation_domain_size,
-    void *stream_raw) {
+    void *stream_raw,
+    uint32_t *launches_out) {
     using namespace stwo::cuda::transform;
+    if (launches_out != nullptr) *launches_out = 0;
     if (!valid_shape(
             log_n,
             polynomial_count,
             twiddle_words,
             evaluation_domain_size) ||
-        stream_raw == nullptr) {
+        stream_raw == nullptr ||
+        launches_out == nullptr) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
     DeviceRange input_range{};
@@ -208,5 +263,6 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
         twiddles,
         twiddle_words,
         evaluation_domain_size,
-        reinterpret_cast<cudaStream_t>(stream_raw)));
+        reinterpret_cast<cudaStream_t>(stream_raw),
+        launches_out));
 }
