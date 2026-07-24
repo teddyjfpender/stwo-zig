@@ -77,7 +77,8 @@ extern "C" int stwo_native_xor_trace_on(
     uint32_t log_step,
     uint64_t offset,
     void *stream) {
-    if (preprocessed == nullptr || main_trace == nullptr || stream == nullptr ||
+    if (preprocessed == nullptr || main_trace == nullptr ||
+        preprocessed == main_trace || stream == nullptr ||
         log_n_rows == 0u || log_n_rows >= 31u ||
         row_count != (1u << log_n_rows) || log_step > log_n_rows ||
         preprocessed_stride_words < (size_t)row_count ||

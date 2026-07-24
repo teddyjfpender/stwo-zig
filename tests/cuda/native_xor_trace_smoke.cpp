@@ -172,6 +172,57 @@ bool exercise(
             return false;
         }
     }
+    if (stwo_native_xor_trace_on(
+            device_preprocessed,
+            preprocessed_stride,
+            preprocessed_words - 1u,
+            device_main,
+            main_stride,
+            main_words,
+            row_count,
+            log_n_rows,
+            log_step,
+            offset,
+            stream) == 0 ||
+        stwo_native_xor_trace_on(
+            device_preprocessed,
+            preprocessed_stride,
+            preprocessed_words,
+            device_main,
+            main_stride,
+            main_words,
+            row_count,
+            log_n_rows,
+            log_n_rows + 1u,
+            offset,
+            stream) == 0 ||
+        stwo_native_xor_trace_on(
+            device_preprocessed,
+            preprocessed_stride,
+            preprocessed_words,
+            device_preprocessed,
+            main_stride,
+            main_words,
+            row_count,
+            log_n_rows,
+            log_step,
+            offset,
+            stream) == 0 ||
+        stwo_native_xor_trace_on(
+            device_preprocessed,
+            preprocessed_stride,
+            preprocessed_words,
+            device_main,
+            main_stride,
+            main_words,
+            row_count,
+            log_n_rows,
+            log_step,
+            offset,
+            nullptr) == 0) {
+        std::fprintf(stderr, "XOR trace ABI admitted an invalid descriptor\n");
+        return false;
+    }
     return check_status(
                stwo_exec_context_free_u32(context, device_preprocessed),
                "free preprocessed") &&
