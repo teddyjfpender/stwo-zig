@@ -163,7 +163,8 @@ WalkResult append_walk(
                 current[index + 1] == (value ^ 1u);
             const std::uint32_t parent = value >> 1u;
             parents.push_back(parent);
-            const auto &descriptor = layers[level];
+            const auto &descriptor =
+                layers[layers.size() - 1u - level];
             if (!pair) {
                 witnesses.push_back(
                     slab[descriptor.offset_hashes + (value ^ 1u)]);
