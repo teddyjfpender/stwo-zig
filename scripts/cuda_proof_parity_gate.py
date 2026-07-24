@@ -117,7 +117,7 @@ def validate_cuda_report(
 ) -> dict[str, Any]:
     report = load_object(path)
     required = {
-        "schema_version": 2,
+        "schema_version": 4,
         "product": "stwo-native-cuda",
         "backend": "cuda",
         "application": "wide_fibonacci",

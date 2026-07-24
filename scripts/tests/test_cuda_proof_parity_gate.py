@@ -72,7 +72,9 @@ if name == "cuda":
     report = Path(value("--report-out"))
     repeats = int(value("--repeat"))
     report.write_text(json.dumps({
-        "schema_version": 2,
+        "schema_version": (
+            2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 4
+        ),
         "product": "stwo-native-cuda",
         "backend": "cuda",
         "application": "wide_fibonacci",
@@ -190,6 +192,11 @@ class CudaProofParityGateTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"BAD_RESIDENCY": "1"}):
             with self.assertRaisesRegex(gate.GateError, "residency contract"):
                 gate.gate(self.arguments("nonresident"))
+
+    def test_rejects_obsolete_cuda_report_schema(self):
+        with mock.patch.dict(os.environ, {"OLD_CUDA_REPORT_SCHEMA": "1"}):
+            with self.assertRaisesRegex(gate.GateError, "schema_version"):
+                gate.gate(self.arguments("obsolete-report-schema"))
 
     def test_rejects_unpinned_rust_verifier(self):
         args = self.arguments("bad-pin")
