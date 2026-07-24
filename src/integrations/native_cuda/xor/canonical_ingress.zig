@@ -92,15 +92,15 @@ pub const Pack = struct {
             );
         }
 
-        const offsets: [geometry_mod.sampled_mask_points]field.CirclePointBaseField =
+        var offsets: [geometry_mod.sampled_mask_points]field.CirclePointBaseField =
             undefined;
-        @memset(offsets, rawBasePoint(CirclePointM31.identity()));
-        const folds: [geometry_mod.sampled_mask_points]u32 = undefined;
+        @memset(&offsets, rawBasePoint(CirclePointM31.identity()));
+        var folds: [geometry_mod.sampled_mask_points]u32 = undefined;
         const lifting_log =
             geometry.protocol.lifting_log_size orelse max_circle_log;
         if (lifting_log < max_circle_log)
             return error.UnsupportedProtocol;
-        @memset(folds, lifting_log - max_circle_log);
+        @memset(&folds, lifting_log - max_circle_log);
         var output_indices: [geometry_mod.sampled_mask_points]u32 = undefined;
         for (&output_indices, 0..) |*output, index| {
             output.* = try u32Count(index);

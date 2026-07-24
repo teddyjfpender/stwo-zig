@@ -424,7 +424,12 @@ fn commitmentLog(logical: anytype) Error!u32 {
 fn queryCount(logical: anytype) Error!usize {
     if (!@hasField(@TypeOf(logical.geometry), "protocol"))
         return error.UnsupportedProtocol;
-    return logical.geometry.protocol.n_queries;
+    const protocol = logical.geometry.protocol;
+    if (comptime @hasField(@TypeOf(protocol), "n_queries"))
+        return protocol.n_queries;
+    if (comptime @hasField(@TypeOf(protocol), "fri_config"))
+        return protocol.fri_config.n_queries;
+    return error.UnsupportedProtocol;
 }
 
 fn fillMerkleLayers(
