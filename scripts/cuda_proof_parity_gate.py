@@ -113,6 +113,7 @@ def validate_cuda_report(
     log_n_rows: int,
     sequence_len: int,
     repeat: int,
+    execution_mode: str,
     proof: dict[str, Any],
 ) -> dict[str, Any]:
     report = load_object(path)
@@ -122,6 +123,7 @@ def validate_cuda_report(
         "backend": "cuda",
         "application": "wide_fibonacci",
         "protocol": "raw-stwo-wide-v1",
+        "execution_mode": execution_mode,
     }
     for key, value in required.items():
         if report.get(key) != value:
@@ -168,18 +170,25 @@ def validate_cuda_report(
     pool_used_bytes = residency.get("pool_used_bytes")
     if (
         not isinstance(graph_launches, int)
-        or graph_launches <= 0
+        or graph_launches < 0
         or not isinstance(graph_hits, int)
         or graph_hits < 0
         or not isinstance(graph_misses, int)
         or graph_misses < 0
-        or graph_hits + graph_misses != graph_launches
         or not isinstance(persistent_bytes, int)
         or persistent_bytes <= 0
         or not isinstance(pool_used_bytes, int)
         or pool_used_bytes < persistent_bytes
     ):
-        raise GateError(f"{path}: CUDA graph residency evidence is invalid")
+        raise GateError(f"{path}: CUDA execution residency evidence is invalid")
+    if execution_mode == "graphs":
+        if graph_launches == 0 or graph_hits + graph_misses != graph_launches:
+            raise GateError(f"{path}: CUDA graph residency evidence is invalid")
+    elif execution_mode == "direct":
+        if any(value != 0 for value in (graph_launches, graph_hits, graph_misses)):
+            raise GateError(f"{path}: CUDA direct execution reported graph activity")
+    else:
+        raise GateError(f"{path}: unsupported CUDA execution mode")
     stage_timing = report.get("device_stage_timing_ns")
     if not isinstance(stage_timing, dict):
         raise GateError(f"{path}: CUDA device stage timing is missing")
@@ -223,12 +232,15 @@ def validate_cuda_report(
         }.items()
     ):
         raise GateError(f"{path}: process-repetition evidence is invalid")
+    expected_misses = graph_launches if execution_mode == "graphs" else 0
+    expected_hits = (
+        graph_launches * (repeat - 1) if execution_mode == "graphs" else 0
+    )
     if (
-        repetition.get("graph_cache_misses_total") != graph_launches
-        or repetition.get("graph_cache_hits_total")
-        != graph_launches * (repeat - 1)
+        repetition.get("graph_cache_misses_total") != expected_misses
+        or repetition.get("graph_cache_hits_total") != expected_hits
     ):
-        raise GateError(f"{path}: CUDA graph-cache lifecycle is invalid")
+        raise GateError(f"{path}: CUDA execution-cache lifecycle is invalid")
     for key in ("resident_prove_ns", "terminal_decode_ns"):
         samples = repetition.get(key)
         if (
@@ -253,6 +265,7 @@ def validate_cuda_report(
         "resident": True,
         "strict_aot": True,
         "cpu_fallbacks": 0,
+        "execution_mode": execution_mode,
     }
 
 
@@ -293,6 +306,7 @@ def gate(args: argparse.Namespace) -> Path:
         or args.sequence_len < 2
         or args.repeat < 3
         or args.repeat > 16
+        or args.execution_mode not in ("graphs", "direct")
         or len(args.rust_verifier_sha256) != 64
         or any(
             byte not in "0123456789abcdefABCDEF"
@@ -339,6 +353,8 @@ def gate(args: argparse.Namespace) -> Path:
                 str(cuda_report),
                 "--repeat",
                 str(args.repeat),
+                "--execution-mode",
+                args.execution_mode,
             ],
             args.timeout_seconds,
         )
@@ -386,6 +402,7 @@ def gate(args: argparse.Namespace) -> Path:
         log_n_rows=args.log_n_rows,
         sequence_len=args.sequence_len,
         repeat=args.repeat,
+        execution_mode=args.execution_mode,
         proof=cuda_proof,
     )
 
@@ -430,6 +447,7 @@ def gate(args: argparse.Namespace) -> Path:
             "sequence_len": args.sequence_len,
             "protocol": EXPECTED_CONFIG,
             "process_repetitions": args.repeat,
+            "cuda_execution_mode": args.execution_mode,
         },
         "products": {
             "cuda": binary_identity(cuda),
@@ -462,6 +480,11 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--log-n-rows", type=int, required=True)
     result.add_argument("--sequence-len", type=int, required=True)
     result.add_argument("--repeat", type=int, default=3)
+    result.add_argument(
+        "--execution-mode",
+        choices=("graphs", "direct"),
+        default="graphs",
+    )
     result.add_argument("--out-dir", type=Path, required=True)
     result.add_argument("--timeout-seconds", type=int, default=300)
     return result

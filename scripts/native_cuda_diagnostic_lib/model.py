@@ -76,6 +76,7 @@ class Settings:
     timeout_seconds: float
     device_ordinal: str
     shapes: tuple[Shape, ...] = DEFAULT_SHAPES
+    execution_mode: str = "graphs"
 
     @property
     def artifact_root(self) -> Path:
@@ -96,6 +97,8 @@ class Settings:
             )
         if not self.device_ordinal.isdecimal():
             raise DiagnosticError("CUDA device ordinal must be a decimal integer")
+        if self.execution_mode not in ("graphs", "direct"):
+            raise DiagnosticError("CUDA execution mode must be graphs or direct")
         if not self.shapes or len(set(self.shapes)) != len(self.shapes):
             raise DiagnosticError("diagnostic shapes must be nonempty and unique")
         for shape in self.shapes:

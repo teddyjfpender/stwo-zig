@@ -41,6 +41,11 @@ parser.add_argument("--sequence-len", required=True, type=int)
 parser.add_argument("--output", required=True)
 parser.add_argument("--report-out", required=True)
 parser.add_argument("--repeat", required=True, type=int)
+parser.add_argument(
+    "--execution-mode",
+    choices=("graphs", "direct"),
+    default="graphs",
+)
 args = parser.parse_args()
 
 mode = os.environ.get("FAKE_CUDA_MODE", "valid")
@@ -96,12 +101,16 @@ binary_scale = 2 if "baseline" in Path(__file__).name else 1
 resident_ns = (rows * args.sequence_len + 1_000_000) * binary_scale
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
+graph_launches = 2 if args.execution_mode == "graphs" else 0
+graph_hits = graph_launches if args.repeat > 1 else 0
+graph_misses = 0 if args.repeat > 1 else graph_launches
 report = {
     "schema_version": 5,
     "product": "stwo-native-cuda",
     "backend": "cuda",
     "application": "wide_fibonacci",
     "protocol": "raw-stwo-wide-v1",
+    "execution_mode": args.execution_mode,
     "product_identity": {
         "schema_version": 2,
         "name": "stwo-native-cuda",
@@ -178,8 +187,8 @@ report = {
         "stable_launch_topology": True,
         "request_allocations_released": True,
         "bounded_persistent_pool_usage": True,
-        "graph_cache_hits_total": 2 * (args.repeat - 1),
-        "graph_cache_misses_total": 2,
+        "graph_cache_hits_total": graph_launches * (args.repeat - 1),
+        "graph_cache_misses_total": graph_launches,
         "resident_prove_ns": [resident_ns] * args.repeat,
         "terminal_decode_ns": [1000] * args.repeat,
         "independent_verification_ns": [1000] * args.repeat,
@@ -198,9 +207,9 @@ report = {
         "cpu_fallback_attempts": fallbacks,
         "cpu_fallbacks_completed": fallbacks,
         "kernel_launches": 30,
-        "graph_launches": 2,
-        "graph_cache_hits": 2 if args.repeat > 1 else 0,
-        "graph_cache_misses": 0 if args.repeat > 1 else 2,
+        "graph_launches": graph_launches,
+        "graph_cache_hits": graph_hits,
+        "graph_cache_misses": graph_misses,
         "sync_calls": 4,
         "device_timing_intervals": 10,
         "device_elapsed_ns": 10000,
@@ -225,9 +234,13 @@ report = {
     "aot": {
         "entries": 1,
         "loads": 1,
-        "cache_hits": 0,
+        "cache_hits": (
+            0 if args.execution_mode == "graphs" else args.repeat - 1
+        ),
         "misses": 0,
-        "launches": 1,
+        "launches": (
+            1 if args.execution_mode == "graphs" else args.repeat
+        ),
         "launch_failures": 0,
         "build_identity_sha256": "a" * 64,
     },
@@ -277,6 +290,7 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
         product: Path,
         *,
         samples: int = 2,
+        execution_mode: str = "graphs",
     ) -> Settings:
         return Settings(
             product_bin=product,
@@ -287,6 +301,7 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
             timeout_seconds=10.0,
             device_ordinal="0",
             shapes=(Shape(5, 8), Shape(6, 16)),
+            execution_mode=execution_mode,
         )
 
     def test_fake_product_emits_stable_cold_diagnostic(self) -> None:
@@ -332,6 +347,29 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
                     workload["proof_identity"]["all_samples_identical"]
                 )
                 self.assertEqual(workload["cold_samples"], 2)
+
+    def test_direct_execution_is_explicit_and_has_no_graph_activity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root),
+                samples=1,
+                execution_mode="direct",
+            )
+            document, _ = run_diagnostic(settings)
+
+            self.assertEqual(
+                "direct",
+                document["measurement_contract"]["execution_mode"],
+            )
+            sample = document["workloads"][0]["samples"][0]
+            self.assertEqual("direct", sample["execution_mode"])
+            self.assertEqual(0, sample["residency"]["graph_launches"])
+            self.assertEqual(
+                0,
+                sample["process_repetition"]["graph_cache_misses_total"],
+            )
 
     def test_fallback_telemetry_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

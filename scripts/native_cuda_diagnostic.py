@@ -34,6 +34,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--cooldown-seconds", type=float, default=1.0)
     parser.add_argument("--timeout-seconds", type=float, default=3600.0)
     parser.add_argument("--device", default="0")
+    parser.add_argument(
+        "--execution-mode",
+        choices=("graphs", "direct"),
+        default="graphs",
+    )
     return parser.parse_args(argv)
 
 
@@ -47,6 +52,7 @@ def main(argv: list[str] | None = None) -> int:
         cooldown_seconds=args.cooldown_seconds,
         timeout_seconds=args.timeout_seconds,
         device_ordinal=args.device,
+        execution_mode=args.execution_mode,
     )
     try:
         _, encoded = run_diagnostic(settings)

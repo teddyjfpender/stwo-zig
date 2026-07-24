@@ -7,12 +7,18 @@ pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
 pub const max_repetitions: u32 = 16;
 
+pub const ExecutionMode = enum {
+    graphs,
+    direct,
+};
+
 pub const Prove = struct {
     log_n_rows: u32,
     sequence_len: u32,
     output: []const u8,
     report_out: ?[]const u8,
     repeat: u32,
+    execution_mode: ExecutionMode,
 };
 
 pub const Parsed = union(enum) {
@@ -29,6 +35,7 @@ const Flag = enum {
     output,
     report_out,
     repeat,
+    execution_mode,
     count,
 };
 
@@ -43,6 +50,7 @@ const Scratch = struct {
     output: ?[]const u8 = null,
     report_out: ?[]const u8 = null,
     repeat: ?u32 = null,
+    execution_mode: ?ExecutionMode = null,
 
     fn mark(self: *Scratch, flag: Flag) !void {
         const index = @intFromEnum(flag);
@@ -102,6 +110,7 @@ fn finish(scratch: Scratch) !Prove {
         .output = output,
         .report_out = report_out,
         .repeat = repeat,
+        .execution_mode = scratch.execution_mode orelse .graphs,
     };
 }
 
@@ -131,6 +140,9 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
         .repeat => scratch.repeat =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidRepeatCount,
+        .execution_mode => scratch.execution_mode =
+            std.meta.stringToEnum(ExecutionMode, value) orelse
+            return error.InvalidExecutionMode,
         .count => unreachable,
     }
 }
@@ -163,6 +175,7 @@ pub fn writeUsage(writer: anytype) !void {
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
+        \\  --execution-mode MODE Graphs (default) or forced direct execution
         \\
         \\The v1 product is strict-AOT and rejects CPU fallback, unsealed
         \\protocols, unsupported trace topology, and nonterminal device reads.
@@ -189,6 +202,7 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
     try std.testing.expectEqual(@as(u32, 14), request.log_n_rows);
     try std.testing.expectEqual(@as(u32, 100), request.sequence_len);
     try std.testing.expectEqual(@as(u32, 1), request.repeat);
+    try std.testing.expectEqual(ExecutionMode.graphs, request.execution_mode);
 
     try std.testing.expectError(error.UnsupportedBackend, parse(&.{
         "prove",
@@ -220,6 +234,27 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "--output",
         "proof.json",
     }));
+}
+
+test "parser admits explicit direct execution and rejects ambiguous modes" {
+    const prefix = [_][]const u8{
+        "prove",          "--air",            air_name,
+        "--backend",      backend_name,       "--protocol",
+        protocol_name,    "--log-n-rows",     "14",
+        "--sequence-len", "100",              "--output",
+        "proof.json",     "--execution-mode",
+    };
+    var direct = prefix ++ [_][]const u8{"direct"};
+    const request = (try parse(&direct)).prove;
+    try std.testing.expectEqual(ExecutionMode.direct, request.execution_mode);
+
+    var unsupported = prefix ++ [_][]const u8{"automatic"};
+    try std.testing.expectError(
+        error.InvalidExecutionMode,
+        parse(&unsupported),
+    );
+    var duplicate = direct ++ [_][]const u8{ "--execution-mode", "graphs" };
+    try std.testing.expectError(error.DuplicateArgument, parse(&duplicate));
 }
 
 test "parser rejects in-process CPU proving capability" {

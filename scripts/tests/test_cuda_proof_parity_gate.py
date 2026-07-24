@@ -71,6 +71,13 @@ output.write_text(json.dumps(artifact(proof)) + "\n")
 if name == "cuda":
     report = Path(value("--report-out"))
     repeats = int(value("--repeat"))
+    requested_execution_mode = value("--execution-mode")
+    reported_execution_mode = (
+        "direct"
+        if os.environ.get("MISREPORT_EXECUTION_MODE") == "1"
+        else requested_execution_mode
+    )
+    graph_launches = 2 if requested_execution_mode == "graphs" else 0
     report.write_text(json.dumps({
         "schema_version": (
             2 if os.environ.get("OLD_CUDA_REPORT_SCHEMA") == "1" else 5
@@ -79,6 +86,7 @@ if name == "cuda":
         "backend": "cuda",
         "application": "wide_fibonacci",
         "protocol": "raw-stwo-wide-v1",
+        "execution_mode": reported_execution_mode,
         "statement": {
             "log_n_rows": int(value("--log-n-rows")),
             "sequence_len": int(value("--sequence-len")),
@@ -101,9 +109,9 @@ if name == "cuda":
             "cpu_fallbacks_completed": 0,
             "device_timing_intervals": 10,
             "device_elapsed_ns": 10,
-            "graph_launches": 2,
-            "graph_cache_hits": 2 if repeats > 1 else 0,
-            "graph_cache_misses": 0 if repeats > 1 else 2,
+            "graph_launches": graph_launches,
+            "graph_cache_hits": graph_launches if repeats > 1 else 0,
+            "graph_cache_misses": 0 if repeats > 1 else graph_launches,
             "persistent_bytes": 4096,
             "pool_used_bytes": 4096,
         },
@@ -127,8 +135,8 @@ if name == "cuda":
             "stable_launch_topology": True,
             "request_allocations_released": True,
             "bounded_persistent_pool_usage": True,
-            "graph_cache_hits_total": 2 * (repeats - 1),
-            "graph_cache_misses_total": 2,
+            "graph_cache_hits_total": graph_launches * (repeats - 1),
+            "graph_cache_misses_total": graph_launches,
             "resident_prove_ns": [10] * repeats,
             "terminal_decode_ns": [2] * repeats,
             "device_elapsed_ns": [10] * repeats,
@@ -164,6 +172,7 @@ class CudaProofParityGateTests(unittest.TestCase):
             log_n_rows=5,
             sequence_len=8,
             repeat=3,
+            execution_mode="graphs",
             out_dir=self.root / name,
             timeout_seconds=10,
         )
@@ -176,6 +185,27 @@ class CudaProofParityGateTests(unittest.TestCase):
         self.assertEqual(4, len(receipt["verifications"]))
         self.assertEqual(3, receipt["challenge"]["process_repetitions"])
         self.assertTrue(receipt["cuda_residency"]["resident"])
+        self.assertEqual("graphs", receipt["challenge"]["cuda_execution_mode"])
+
+    def test_direct_execution_uses_same_product_and_oracles(self):
+        args = self.arguments("direct")
+        args.execution_mode = "direct"
+        receipt = json.loads(gate.gate(args).read_text())
+
+        self.assertEqual("direct", receipt["challenge"]["cuda_execution_mode"])
+        self.assertEqual("direct", receipt["cuda_residency"]["execution_mode"])
+        self.assertIn(
+            ["--execution-mode", "direct"],
+            [
+                receipt["commands"][0]["argv"][index : index + 2]
+                for index in range(len(receipt["commands"][0]["argv"]) - 1)
+            ],
+        )
+
+    def test_rejects_reported_execution_mode_mismatch(self):
+        with mock.patch.dict(os.environ, {"MISREPORT_EXECUTION_MODE": "1"}):
+            with self.assertRaisesRegex(gate.GateError, "execution_mode"):
+                gate.gate(self.arguments("mode-mismatch"))
 
     def test_accepts_known_cpu_artifact_without_skipping_verifiers(self):
         initial = gate.gate(self.arguments("initial"))

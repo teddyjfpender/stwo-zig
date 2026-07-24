@@ -27,6 +27,7 @@ REPORT_KEYS = {
     "backend",
     "application",
     "protocol",
+    "execution_mode",
     "product_identity",
     "statement",
     "plan",
@@ -318,6 +319,7 @@ def validate_report(
     artifact: dict[str, Any],
     *,
     expected_repetitions: int = 1,
+    expected_execution_mode: str = "graphs",
 ) -> dict[str, Any]:
     _exact_keys(report, REPORT_KEYS, "CUDA report")
     expected_scalars = {
@@ -326,6 +328,7 @@ def validate_report(
         "backend": BACKEND,
         "application": APPLICATION,
         "protocol": PROTOCOL,
+        "execution_mode": expected_execution_mode,
     }
     for key, expected in expected_scalars.items():
         if report[key] != expected:
@@ -526,7 +529,6 @@ def validate_report(
     graph_misses_total = _integer(
         repetition["graph_cache_misses_total"],
         "CUDA cumulative graph-cache misses",
-        minimum=1,
     )
     for key in (
         "resident_prove_ns",
@@ -595,7 +597,6 @@ def validate_report(
         "h2d_bytes",
         "d2d_bytes",
         "kernel_launches",
-        "graph_launches",
         "sync_calls",
         "peak_live_bytes",
         "persistent_bytes",
@@ -604,21 +605,38 @@ def validate_report(
     for key in (
         "graph_cache_hits",
         "graph_cache_misses",
+        "graph_launches",
         "pool_used_bytes",
         "pool_reserved_bytes",
     ):
         _integer(residency[key], f"CUDA residency {key}")
-    if (
-        residency["graph_cache_hits"] + residency["graph_cache_misses"]
-        != residency["graph_launches"]
-    ):
-        raise DiagnosticError("CUDA graph launches lack cache provenance")
-    if graph_misses_total != residency["graph_launches"]:
-        raise DiagnosticError("CUDA graph cache did not capture each stage once")
-    if graph_hits_total != residency["graph_launches"] * (
-        expected_repetitions - 1
-    ):
-        raise DiagnosticError("CUDA graph cache reuse count is inconsistent")
+    graph_launches = residency["graph_launches"]
+    if expected_execution_mode == "graphs":
+        if graph_launches == 0:
+            raise DiagnosticError("CUDA graph execution has no graph launches")
+        if (
+            residency["graph_cache_hits"] + residency["graph_cache_misses"]
+            != graph_launches
+        ):
+            raise DiagnosticError("CUDA graph launches lack cache provenance")
+        if graph_misses_total != graph_launches:
+            raise DiagnosticError("CUDA graph cache did not capture each stage once")
+        if graph_hits_total != graph_launches * (expected_repetitions - 1):
+            raise DiagnosticError("CUDA graph cache reuse count is inconsistent")
+    elif expected_execution_mode == "direct":
+        if any(
+            value != 0
+            for value in (
+                graph_launches,
+                residency["graph_cache_hits"],
+                residency["graph_cache_misses"],
+                graph_hits_total,
+                graph_misses_total,
+            )
+        ):
+            raise DiagnosticError("CUDA direct execution reported graph activity")
+    else:
+        raise DiagnosticError("unsupported expected CUDA execution mode")
     if residency["pool_used_bytes"] < residency["persistent_bytes"]:
         raise DiagnosticError("CUDA persistent arena is absent from its pool")
     if residency["pool_reserved_bytes"] < residency["pool_used_bytes"]:
@@ -655,9 +673,15 @@ def validate_report(
         _integer(aot[key], f"CUDA AOT {key}")
     if aot["misses"] != 0 or aot["launch_failures"] != 0:
         raise DiagnosticError("CUDA strict-AOT sample reported misses or failures")
-    if aot["launches"] != 1 or aot["loads"] != 1:
+    expected_aot_launches = (
+        1 if expected_execution_mode == "graphs" else expected_repetitions
+    )
+    expected_aot_hits = (
+        0 if expected_execution_mode == "graphs" else expected_repetitions - 1
+    )
+    if aot["launches"] != expected_aot_launches or aot["loads"] != 1:
         raise DiagnosticError("CUDA AOT lifecycle disagrees with repetitions")
-    if aot["cache_hits"] != 0:
+    if aot["cache_hits"] != expected_aot_hits:
         raise DiagnosticError("CUDA AOT cache-hit count disagrees with reuse")
     _digest(aot["build_identity_sha256"], "CUDA AOT build identity")
 
@@ -685,6 +709,7 @@ def validate_report(
         raise DiagnosticError("CUDA device capacity telemetry is invalid")
 
     return {
+        "execution_mode": report["execution_mode"],
         "product_identity": identity,
         "proof": proof,
         "plan": plan,

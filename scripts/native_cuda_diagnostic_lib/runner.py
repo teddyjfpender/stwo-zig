@@ -107,7 +107,13 @@ def _decode_stdout(stdout: bytes) -> dict[str, Any]:
     return report
 
 
-def _command(binary: Path, shape: Shape, proof: Path, report: Path) -> list[str]:
+def _command(
+    binary: Path,
+    shape: Shape,
+    proof: Path,
+    report: Path,
+    execution_mode: str,
+) -> list[str]:
     return [
         str(binary),
         "prove",
@@ -127,6 +133,8 @@ def _command(binary: Path, shape: Shape, proof: Path, report: Path) -> list[str]
         str(report),
         "--repeat",
         "1",
+        "--execution-mode",
+        execution_mode,
     ]
 
 
@@ -141,7 +149,13 @@ def _run_sample(
     proof_path = sample_dir / "proof-artifact.json"
     report_path = sample_dir / "product-report.json"
     stderr_path = sample_dir / "process.stderr.txt"
-    command = _command(binary, shape, proof_path, report_path)
+    command = _command(
+        binary,
+        shape,
+        proof_path,
+        report_path,
+        settings.execution_mode,
+    )
     measured, resource_measurement = measurement_command(command, required=True)
     environment = measurement_environment(
         {"CUDA_VISIBLE_DEVICES": settings.device_ordinal}
@@ -184,7 +198,13 @@ def _run_sample(
     if report_file.strip() != completed.stdout.strip():
         raise DiagnosticError("CUDA persisted report differs from stdout")
     artifact = validate_artifact(proof_path, shape)
-    validated = validate_report(report, shape, proof_path, artifact)
+    validated = validate_report(
+        report,
+        shape,
+        proof_path,
+        artifact,
+        expected_execution_mode=settings.execution_mode,
+    )
     try:
         resources = parse_process_resources(
             completed.stderr,
@@ -211,6 +231,7 @@ def _run_sample(
         "plan": validated["plan"],
         "timing_ns": validated["timing_ns"],
         "process_repetition": validated["process_repetition"],
+        "execution_mode": validated["execution_mode"],
         "throughput": {
             "resident_trace_row_mhz": validated["resident_trace_row_mhz"],
             "resident_committed_mcells_per_second": validated[
@@ -416,6 +437,7 @@ def run_diagnostic(settings: Settings) -> tuple[dict[str, Any], bytes]:
             "cooldown_seconds": settings.cooldown_seconds,
             "timeout_seconds": settings.timeout_seconds,
             "protocol": PROTOCOL,
+            "execution_mode": settings.execution_mode,
             "throughput_denominators": {
                 "trace_row_mhz": "trace_rows / elapsed_seconds / 1e6",
                 "committed_mcells_per_second": (

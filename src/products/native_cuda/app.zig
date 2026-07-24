@@ -69,14 +69,21 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
 
     var verified_request_timer = try std.time.Timer.start();
     var resident_timer = try std.time.Timer.start();
-    var output = try driver.runPreparedRetained(
-        &runtime,
-        proof_request,
-        &prepared,
-    );
+    var output = switch (request.execution_mode) {
+        .graphs => try driver.runPreparedRetained(
+            &runtime,
+            proof_request,
+            &prepared,
+        ),
+        .direct => try driver.runPreparedRetainedDirect(
+            &runtime,
+            proof_request,
+            &prepared,
+        ),
+    };
     const resident_prove_ns = resident_timer.read();
     defer output.deinit(allocator);
-    try requireResident(output.verdict);
+    try requireResident(output.verdict, request.execution_mode);
 
     var decode_timer = try std.time.Timer.start();
     var proof = try cuda.proof_decode.decodeProof(allocator, output.bundle);
@@ -120,18 +127,25 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     while (repetition < request.repeat) : (repetition += 1) {
         var repeated_verified_timer = try std.time.Timer.start();
         var repeated_timer = try std.time.Timer.start();
-        var repeated = try driver.runPreparedRetained(
-            &runtime,
-            proof_request,
-            &prepared,
-        );
+        var repeated = switch (request.execution_mode) {
+            .graphs => try driver.runPreparedRetained(
+                &runtime,
+                proof_request,
+                &prepared,
+            ),
+            .direct => try driver.runPreparedRetainedDirect(
+                &runtime,
+                proof_request,
+                &prepared,
+            ),
+        };
         repetition_prove_ns[repetition] = repeated_timer.read();
         repetition_device_ns[repetition] =
             repeated.verdict.counters.device_elapsed_ns;
         runtime_proof_indices[repetition] =
             repeated.verdict.runtime_proof_index;
         defer repeated.deinit(allocator);
-        try requireResident(repeated.verdict);
+        try requireResident(repeated.verdict, request.execution_mode);
         try requireStableRepetition(output.verdict, repeated.verdict);
         final_verdict = repeated.verdict;
 
@@ -252,7 +266,7 @@ fn pcsConfig() !stwo.core.pcs.PcsConfig {
     };
 }
 
-fn requireResident(verdict: anytype) !void {
+fn requireResident(verdict: anytype, execution_mode: cli.ExecutionMode) !void {
     const counters = verdict.counters;
     if (!verdict.isResident() or !verdict.aot.isStrict())
         return error.NonResidentCudaProof;
@@ -276,11 +290,21 @@ fn requireResident(verdict: anytype) !void {
     {
         return error.MissingTerminalProofRead;
     }
-    if (counters.graph_launches == 0 or
-        counters.graph_cache_hits + counters.graph_cache_misses !=
-            counters.graph_launches)
-    {
-        return error.IncompleteCudaGraphEvidence;
+    switch (execution_mode) {
+        .graphs => if (counters.graph_launches == 0 or
+            counters.graph_cache_hits + counters.graph_cache_misses !=
+                counters.graph_launches)
+        {
+            return error.IncompleteCudaGraphEvidence;
+        },
+        .direct => if (counters.graph_launches != 0 or
+            counters.graph_cache_hits != 0 or
+            counters.graph_cache_misses != 0 or
+            verdict.graph_cache_hits_total != 0 or
+            verdict.graph_cache_misses_total != 0)
+        {
+            return error.UnexpectedCudaGraphEvidence;
+        },
     }
 
     for (counters.stages, 0..) |stage, index| {
@@ -352,6 +376,7 @@ fn renderReport(
         .backend = cli.backend_name,
         .application = cli.air_name,
         .protocol = cli.protocol_name,
+        .execution_mode = @tagName(request.execution_mode),
         .product_identity = .{
             .schema_version = product_identity.schema_version,
             .name = product_identity.product,

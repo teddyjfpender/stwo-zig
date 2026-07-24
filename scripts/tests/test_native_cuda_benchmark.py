@@ -92,7 +92,7 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             )
             self.assertEqual(
                 session["metrics"]["mechanism"]["aot"]["cache_hits"],
-                3,
+                0,
             )
             self.assertEqual(
                 session["metrics"]["mechanism"]["plan"]["reuse_count"],
