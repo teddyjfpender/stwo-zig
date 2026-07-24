@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
+const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
 const geometry_mod = @import("geometry.zig");
 const proof_bundle = @import("proof_bundle.zig");
@@ -74,7 +75,10 @@ pub fn build(
     try add(&output, allocator, slots.oods_sample_points, try secureCircleWords(sample_count), .oods, .quotient);
     try add(&output, allocator, slots.oods_evaluation_points, try secureCircleWords(sample_count), .oods, .oods);
     try add(&output, allocator, slots.oods_folding_factors, try secureWords(try mul(sample_count, geometry.statement.log_size)), .oods, .oods);
-    const oods_scratch = try secureWords(try mul(sample_count, try ceilDiv(rows, 512)));
+    const oods_scratch = try secureWords(try mul(
+        sample_count,
+        try ceilDiv(rows, oods_stage.first_coefficients_per_block),
+    ));
     try add(&output, allocator, slots.oods_reduce_a, oods_scratch, .oods, .oods);
     try add(&output, allocator, slots.oods_reduce_b, oods_scratch, .oods, .oods);
     try add(&output, allocator, slots.sampled_values, try secureWords(sample_count), .oods, .proof_assembly);

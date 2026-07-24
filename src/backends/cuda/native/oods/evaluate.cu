@@ -12,7 +12,14 @@
 namespace stwo::cuda::oods {
 
 constexpr std::uint32_t kBlockSize = 256;
-constexpr std::uint32_t kCoefficientsPerBlock = 2 * kBlockSize;
+constexpr std::uint32_t kFirstCoefficientsPerThread = 16;
+constexpr std::uint32_t kFirstFoldLevels = 4;
+constexpr std::uint32_t kFirstCoefficientsPerBlock =
+    kFirstCoefficientsPerThread * kBlockSize;
+constexpr std::uint32_t kReduceCoefficientsPerBlock = 2 * kBlockSize;
+static_assert(
+    kFirstCoefficientsPerThread == (1u << kFirstFoldLevels),
+    "the register tile must consume exactly kFirstFoldLevels factors");
 
 __global__ void derive_points_kernel(
     const QM31 *oods_parameter,
@@ -75,39 +82,74 @@ __global__ void evaluate_first_kernel(
     const std::uint32_t sample = blockIdx.y;
     if (sample >= sample_count || blockIdx.x >= blocks_per_sample) return;
 
-    extern __shared__ unsigned char shared_bytes[];
-    auto *shared_coefficients = reinterpret_cast<M31 *>(shared_bytes);
-    auto *shared_level = reinterpret_cast<QM31 *>(
-        shared_bytes + kCoefficientsPerBlock * sizeof(M31));
-
+    extern __shared__ QM31 shared_level[];
     const std::uint32_t lane = threadIdx.x;
-    const std::uint32_t base = blockIdx.x * kCoefficientsPerBlock;
-    const std::uint32_t left = base + lane;
-    const std::uint32_t right = left + kBlockSize;
     const M31 *column =
         coefficients + static_cast<std::size_t>(sample) * column_stride_words;
-    shared_coefficients[lane] =
-        left < coefficient_size ? column[left] : 0u;
-    shared_coefficients[lane + kBlockSize] =
-        right < coefficient_size ? column[right] : 0u;
-    __syncthreads();
-
-    std::uint32_t level_size =
-        (coefficient_size < kCoefficientsPerBlock
-             ? coefficient_size
-             : kCoefficientsPerBlock) >>
-        1;
-    int factor_index = static_cast<int>(coefficient_log_size) - 1;
     const QM31 *factors =
         folding_factors + static_cast<std::size_t>(sample) * coefficient_log_size;
-    if (lane < level_size) {
-        shared_level[lane] = add(
-            shared_coefficients[2 * lane],
-            mul(shared_coefficients[2 * lane + 1], factors[factor_index]));
-    }
-    --factor_index;
-    level_size >>= 1;
 
+    if (coefficient_size < kFirstCoefficientsPerThread) {
+        if (lane == 0u) {
+            QM31 values[kFirstCoefficientsPerThread];
+            for (std::uint32_t index = 0; index < coefficient_size; ++index) {
+                values[index] = QM31{{column[index], 0u}, {0u, 0u}};
+            }
+            std::uint32_t size = coefficient_size;
+            int factor = static_cast<int>(coefficient_log_size) - 1;
+            while (size > 1u) {
+                for (std::uint32_t index = 0; index < size / 2u; ++index) {
+                    values[index] = add(
+                        values[2u * index],
+                        mul(values[2u * index + 1u], factors[factor]));
+                }
+                size >>= 1;
+                --factor;
+            }
+            scratch[static_cast<std::size_t>(sample) * blocks_per_sample] =
+                values[0];
+        }
+        return;
+    }
+
+    const std::uint32_t local_coefficient_size =
+        coefficient_size < kFirstCoefficientsPerBlock
+            ? coefficient_size
+            : kFirstCoefficientsPerBlock;
+    const std::uint32_t active_lanes =
+        local_coefficient_size / kFirstCoefficientsPerThread;
+    const std::uint32_t base =
+        blockIdx.x * kFirstCoefficientsPerBlock +
+        lane * kFirstCoefficientsPerThread;
+    int factor_index = static_cast<int>(coefficient_log_size) - 1;
+    if (lane < active_lanes) {
+        QM31 thread_values[kFirstCoefficientsPerThread / 2u];
+        for (std::uint32_t index = 0;
+             index < kFirstCoefficientsPerThread / 2u;
+             ++index) {
+            thread_values[index] = add(
+                column[base + 2u * index],
+                mul(
+                    column[base + 2u * index + 1u],
+                    factors[factor_index]));
+        }
+        std::uint32_t thread_size = kFirstCoefficientsPerThread / 2u;
+        int thread_factor = factor_index - 1;
+        while (thread_size > 1u) {
+            for (std::uint32_t index = 0; index < thread_size / 2u; ++index) {
+                thread_values[index] = add(
+                    thread_values[2u * index],
+                    mul(
+                        thread_values[2u * index + 1u],
+                        factors[thread_factor]));
+            }
+            thread_size >>= 1;
+            --thread_factor;
+        }
+        shared_level[lane] = thread_values[0];
+    }
+    factor_index -= kFirstFoldLevels;
+    std::uint32_t level_size = active_lanes >> 1;
     while (level_size != 0) {
         __syncthreads();
         QM31 left_value = zero();
@@ -146,7 +188,7 @@ __global__ void evaluate_reduce_kernel(
 
     extern __shared__ QM31 shared[];
     const std::uint32_t lane = threadIdx.x;
-    const std::uint32_t base = blockIdx.x * kCoefficientsPerBlock;
+    const std::uint32_t base = blockIdx.x * kReduceCoefficientsPerBlock;
     const std::uint32_t left = base + lane;
     const std::uint32_t right = left + kBlockSize;
     const QM31 *row =
@@ -157,9 +199,9 @@ __global__ void evaluate_reduce_kernel(
     __syncthreads();
 
     std::uint32_t level_size =
-        (input_size < kCoefficientsPerBlock
+        (input_size < kReduceCoefficientsPerBlock
              ? input_size
-             : kCoefficientsPerBlock) >>
+             : kReduceCoefficientsPerBlock) >>
         1;
     int current_factor = static_cast<int>(factor_index);
     const QM31 *factors =
@@ -313,7 +355,7 @@ extern "C" int stwo_oods_eval_first_on(
     }
     const std::uint32_t coefficient_log_size = log2_exact(coefficient_size);
     const std::uint32_t blocks_per_sample =
-        1u + (coefficient_size - 1u) / kCoefficientsPerBlock;
+        1u + (coefficient_size - 1u) / kFirstCoefficientsPerBlock;
     std::size_t coefficient_count;
     std::size_t factor_count;
     std::size_t scratch_count;
@@ -338,8 +380,7 @@ extern "C" int stwo_oods_eval_first_on(
         return static_cast<int>(cudaErrorInvalidValue);
     }
     const dim3 grid(blocks_per_sample, sample_count);
-    const std::size_t shared_bytes =
-        kCoefficientsPerBlock * sizeof(M31) + kBlockSize * sizeof(QM31);
+    const std::size_t shared_bytes = kBlockSize * sizeof(QM31);
     evaluate_first_kernel<<<
         grid,
         kBlockSize,
@@ -371,9 +412,11 @@ extern "C" int stwo_oods_eval_reduce_on(
     const std::uint32_t required_output_stride =
         input_size == 0
             ? 0
-            : 1u + (input_size - 1u) / kCoefficientsPerBlock;
+            : 1u + (input_size - 1u) / kReduceCoefficientsPerBlock;
     const std::uint32_t local_size =
-        input_size < kCoefficientsPerBlock ? input_size : kCoefficientsPerBlock;
+        input_size < kReduceCoefficientsPerBlock
+            ? input_size
+            : kReduceCoefficientsPerBlock;
     const std::uint32_t consumed_factors =
         is_power_of_two(local_size) ? log2_exact(local_size) : 0;
     if (input == nullptr || input_size < 2 || !is_power_of_two(input_size) ||
@@ -409,7 +452,7 @@ extern "C" int stwo_oods_eval_reduce_on(
     evaluate_reduce_kernel<<<
         grid,
         kBlockSize,
-        kCoefficientsPerBlock * sizeof(QM31),
+        kReduceCoefficientsPerBlock * sizeof(QM31),
         reinterpret_cast<cudaStream_t>(stream)>>>(
         input,
         input_size,

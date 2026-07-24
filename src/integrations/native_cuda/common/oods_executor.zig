@@ -233,7 +233,10 @@ fn buildBatches(
     {
         return error.InvalidKernelDescriptor;
     }
-    const blocks = try ceilDiv(rows, 512);
+    const blocks = try ceilDiv(
+        rows,
+        oods_stage.first_coefficients_per_block,
+    );
     const expected_scratch = try mul(sample_count, blocks);
     if (views.oods.reduce_a.len != expected_scratch or
         views.oods.reduce_b.len != expected_scratch)
@@ -251,7 +254,7 @@ fn evaluateBatch(
 ) !void {
     const blocks_per_sample = try ceilDiv(
         @as(usize, batch.coefficient_rows),
-        512,
+        oods_stage.first_coefficients_per_block,
     );
     const factor_first = try mul(
         batch.first_sample,
@@ -294,7 +297,10 @@ fn evaluateBatch(
     var alternate = scratch_b;
     var reduced_stride = try u32Count(blocks_per_sample);
     while (reduced_stride > 1) {
-        const output_stride = try ceilDivU32(reduced_stride, 512);
+        const output_stride = try ceilDivU32(
+            reduced_stride,
+            oods_stage.reduce_coefficients_per_block,
+        );
         const output_count = try mul(
             batch.sample_count,
             output_stride,
@@ -564,4 +570,51 @@ test "generic OODS evaluates every role batch in one sample space" {
     );
     try std.testing.expectEqual(@as(usize, 3), Recorder.evaluations);
     try std.testing.expectEqual(@as(usize, 3), Recorder.stores);
+}
+
+test "generic OODS preserves the coefficient factor schedule" {
+    const Case = struct {
+        log_size: u32,
+        first_blocks: u32,
+        first_factor: ?u32,
+        second_blocks: ?u32,
+        second_factor: ?u32,
+    };
+    const cases = [_]Case{
+        .{ .log_size = 3, .first_blocks = 1, .first_factor = null, .second_blocks = null, .second_factor = null },
+        .{ .log_size = 9, .first_blocks = 1, .first_factor = null, .second_blocks = null, .second_factor = null },
+        .{ .log_size = 10, .first_blocks = 1, .first_factor = null, .second_blocks = null, .second_factor = null },
+        .{ .log_size = 18, .first_blocks = 64, .first_factor = 5, .second_blocks = null, .second_factor = null },
+        .{ .log_size = 22, .first_blocks = 1024, .first_factor = 9, .second_blocks = 2, .second_factor = 0 },
+    };
+    for (cases) |case| {
+        const rows = try pow2(case.log_size);
+        var size = try u32Count(try ceilDiv(
+            rows,
+            oods_stage.first_coefficients_per_block,
+        ));
+        try std.testing.expectEqual(case.first_blocks, size);
+        if (case.first_factor) |factor| {
+            try std.testing.expectEqual(
+                factor,
+                std.math.log2_int(u32, size) - 1,
+            );
+            size = try ceilDivU32(
+                size,
+                oods_stage.reduce_coefficients_per_block,
+            );
+        }
+        if (case.second_blocks) |second| {
+            try std.testing.expectEqual(second, size);
+            try std.testing.expectEqual(
+                case.second_factor.?,
+                std.math.log2_int(u32, size) - 1,
+            );
+            size = try ceilDivU32(
+                size,
+                oods_stage.reduce_coefficients_per_block,
+            );
+        }
+        try std.testing.expectEqual(@as(u32, 1), size);
+    }
 }

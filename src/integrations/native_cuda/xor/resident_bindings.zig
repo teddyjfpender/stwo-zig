@@ -7,6 +7,7 @@ const quotient_abi = @import(
 );
 const column = @import("../../../backends/cuda/runtime/column.zig");
 const common = @import("../../../backends/cuda/runtime/stages/common.zig");
+const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
 const quotient_stage = @import(
     "../../../backends/cuda/runtime/stages/quotient.zig",
 );
@@ -236,7 +237,7 @@ fn bindOods(
     const samples: usize = geometry_mod.sampled_mask_points;
     const scratch_per_sample = try ceilDiv(
         try geometry.traceRowCount(),
-        512,
+        oods_stage.first_coefficients_per_block,
     );
     const scratch_count = try mul(samples, scratch_per_sample);
     return .{

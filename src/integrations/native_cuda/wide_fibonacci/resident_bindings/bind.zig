@@ -6,6 +6,7 @@ const quotient_abi = @import("../../../../backends/cuda/abi/stages/quotient.zig"
 const column = @import("../../../../backends/cuda/runtime/column.zig");
 const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
 const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
+const oods_stage = @import("../../../../backends/cuda/runtime/stages/oods.zig");
 const quotient_stage = @import("../../../../backends/cuda/runtime/stages/quotient.zig");
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
@@ -247,7 +248,10 @@ fn bindConstraint(
 
 fn bindOods(provider: anytype, geometry: request.Geometry) !types.Oods {
     const samples = geometry.sampled_value_count;
-    const scratch_per_sample = try ceilDiv(geometry.trace_rows, 512);
+    const scratch_per_sample = try ceilDiv(
+        geometry.trace_rows,
+        oods_stage.first_coefficients_per_block,
+    );
     const scratch_count = try mul(samples, scratch_per_sample);
     return .{
         .parameter = try exactAs(

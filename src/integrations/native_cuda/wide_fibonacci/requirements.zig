@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
+const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
 const canonical_ingress = @import("canonical_ingress.zig");
 const proof_bundle = @import("proof_bundle.zig");
@@ -151,7 +152,10 @@ pub fn build(
         .oods,
         .oods,
     );
-    const oods_blocks = try ceilDiv(rows, 512);
+    const oods_blocks = try ceilDiv(
+        rows,
+        oods_stage.first_coefficients_per_block,
+    );
     const oods_scratch = try secureWords(try mul(sample_count, oods_blocks));
     try add(&output, allocator, slots.oods_reduce_a, oods_scratch, .oods, .oods);
     try add(&output, allocator, slots.oods_reduce_b, oods_scratch, .oods, .oods);
