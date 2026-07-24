@@ -4,8 +4,8 @@ const field = @import("../field.zig");
 
 pub extern "c" fn stwo_blake2s_transcript_init_on(
     state: [*]u32,
-    seed: [*]const u32,
-    seed_snapshot: [*]u32,
+    seed: ?[*]const u32,
+    seed_snapshot: ?[*]u32,
     initial_chain: u64,
     stream: *anyopaque,
 ) c_int;

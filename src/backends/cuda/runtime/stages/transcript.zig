@@ -20,15 +20,20 @@ pub fn OpsFor(comptime Api: type) type {
             session: anytype,
             stage: telemetry.Stage,
             state: common.Words,
-            seed: common.Words,
-            seed_snapshot: common.Words,
+            seed: ?common.Words,
+            seed_snapshot: ?common.Words,
             initial_chain: u64,
         ) runtime_error.Error!void {
             try requireTranscriptStage(session, stage);
+            if ((seed == null) != (seed_snapshot == null))
+                return error.InvalidKernelDescriptor;
             const status = Api.stwo_blake2s_transcript_init_on(
                 try common.words(session, state, 16),
-                try common.words(session, seed, 8),
-                try common.words(session, seed_snapshot, 8),
+                if (seed) |value| try common.words(session, value, 9) else null,
+                if (seed_snapshot) |value|
+                    try common.words(session, value, 9)
+                else
+                    null,
                 initial_chain,
                 session.context.stream,
             );

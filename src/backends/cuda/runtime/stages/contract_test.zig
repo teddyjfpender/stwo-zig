@@ -198,9 +198,28 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         &session,
         .fri_commit,
         words(16),
-        words(8),
-        words(8),
+        words(9),
+        words(9),
         1,
+    );
+    try transcript.Native.initialize(
+        &session,
+        .fri_commit,
+        words(16),
+        null,
+        null,
+        1,
+    );
+    try std.testing.expectError(
+        error.InvalidDeviceAddress,
+        transcript.Native.initialize(
+            &session,
+            .fri_commit,
+            words(16),
+            words(8),
+            words(9),
+            1,
+        ),
     );
     try transcript.Native.mixWords(
         &session,
@@ -247,7 +266,7 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         words(16),
         words(16),
     );
-    try std.testing.expectEqual(@as(usize, 16), session.launches);
+    try std.testing.expectEqual(@as(usize, 17), session.launches);
 }
 
 test "OODS and quotient wrappers type-check every copied resident ABI" {
