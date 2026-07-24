@@ -186,15 +186,19 @@ pub fn targetFor(session: anytype) !cuda_plan.CompileOptions {
     // sub-digests separately.
     return .{
         .sm = sm,
+        .device_uuid = session.platform.uuid,
+        .driver_version = session.platform.driver_version,
+        .runtime_version = session.platform.runtime_version,
+        .toolkit_version = session.platform.toolkit_version,
         .runtime_build_identity = session.build_identity,
-        .toolchain_identity = session.build_identity,
+        .host_toolchain_identity = session.build_identity,
         .kernel_pack_identity = kernel_pack_identity,
         .lane_streams = if (session.context.lane_count > 1)
             @intCast(session.context.lane_count - 1)
         else
             0,
         .enable_graphs = true,
-        .version = scheduler_version,
+        .schedule_schema_version = scheduler_version,
     };
 }
 

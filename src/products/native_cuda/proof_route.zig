@@ -372,7 +372,7 @@ fn renderReport(
             .program_sha256 = &program_digest,
             .semantic_sha256 = &semantic_digest,
             .cache_key_sha256 = &plan_cache_key,
-            .schedule_version = plan.target.version,
+            .schedule_version = plan.target.schedule_schema_version,
             .compiled_once = true,
             .reuse_count = request.repeat,
             .node_count = plan.schedule.len,

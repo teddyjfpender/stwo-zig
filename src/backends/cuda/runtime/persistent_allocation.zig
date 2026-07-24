@@ -94,8 +94,7 @@ pub fn free(
     if (allocation_index == null) return error.ContextMismatch;
     if (context.active_stage != null or
         context.live_buffers != context.persistent_buffers or
-        context.capture_active or
-        allocation_index.? + 1 != context.persistent_buffers)
+        context.capture_active)
     {
         return error.InvalidState;
     }
@@ -105,6 +104,12 @@ pub fn free(
     context.live_buffers -= 1;
     context.persistent_buffers -= 1;
     context.persistent_bytes -= bytes;
+    // Registry indices are not handles, so idle cached arenas may free in LRU
+    // order while the live registry remains compact.
+    if (allocation_index.? != context.live_buffers) {
+        context.allocations[allocation_index.?] =
+            context.allocations[context.live_buffers];
+    }
     context.allocations[context.live_buffers] = .{};
     buffer.words = 0;
     buffer.owner = 0;

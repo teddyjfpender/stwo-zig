@@ -280,8 +280,12 @@ fn testTarget() cuda_plan_mod.CompileOptions {
     const proof_ir = @import("stwo_backend_contracts").proof_program;
     return .{
         .sm = 89,
+        .device_uuid = [_]u8{0x42} ** 16,
+        .driver_version = 12080,
+        .runtime_version = 12080,
+        .toolkit_version = 12080,
         .runtime_build_identity = proof_ir.identityDigest("test-runtime"),
-        .toolchain_identity = proof_ir.identityDigest("test-toolchain"),
+        .host_toolchain_identity = proof_ir.identityDigest("test-toolchain"),
         .kernel_pack_identity = proof_ir.identityDigest("test-pack"),
         .lane_streams = 0,
         .enable_graphs = false,

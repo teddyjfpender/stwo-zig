@@ -38,6 +38,7 @@ pub const Error = error{
     NullExecutionStream,
     OutOfMemory,
     OverlappingDeviceRange,
+    PreparedCacheBusy,
     SizeOverflow,
     StageAlreadyActive,
     StageNotActive,

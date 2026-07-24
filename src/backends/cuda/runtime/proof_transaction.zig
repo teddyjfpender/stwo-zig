@@ -135,7 +135,8 @@ pub fn TransactionFor(comptime Session: type) type {
             cache_key: [32]u8,
         ) runtime_error.Error!Self {
             errdefer session.abortRetained() catch {};
-            const persistent_arena = try session.preparedArena(cache_key);
+            const persistent_arena =
+                try session.acquirePreparedArena(cache_key);
             try session.beginStage(.ingress);
             return .{
                 .allocator = allocator,

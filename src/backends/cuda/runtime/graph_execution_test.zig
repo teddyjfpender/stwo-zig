@@ -6,7 +6,7 @@ const telemetry = @import("telemetry.zig");
 
 test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
     const Fake = struct {
-        var storage: [256]u32 = [_]u32{0} ** 256;
+        var storage: [512]u32 = [_]u32{0} ** 512;
         var graph_word: u8 = 0;
         var allocations: usize = 0;
         var frees: usize = 0;
@@ -23,9 +23,10 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
             words: usize,
             out: *?[*]u32,
         ) c_int {
-            if (words > storage.len) return 1;
+            const offset = allocations * 64;
+            if (words > 64 or offset + words > storage.len) return 1;
+            out.* = storage[offset..].ptr;
             allocations += 1;
-            out.* = &storage;
             return 0;
         }
 
@@ -110,6 +111,9 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
     }};
     const key_a = [_]u8{0xa1} ** 32;
     const key_b = [_]u8{0xb2} ** 32;
+    const key_c = [_]u8{0xc3} ** 32;
+    const key_d = [_]u8{0xd4} ** 32;
+    const key_e = [_]u8{0xe5} ** 32;
 
     var first_plan = try arena_module.Plan.init(allocator, &requirements);
     try cache.prepare(&context, allocator, key_a, first_plan);
@@ -118,6 +122,7 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
     try std.testing.expectEqual(@as(usize, 1), context.persistent_buffers);
 
     try context.beginProof();
+    _ = try cache.acquireArena(key_a);
     try context.beginStage(.ingress);
     try context.endStage(.ingress);
     try context.beginStage(.trace_generation);
@@ -133,6 +138,7 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
     try std.testing.expectEqual(@as(u64, 1), context.counters.graph_launches);
     try std.testing.expectEqual(@as(u64, 1), context.counters.graph_cache_misses);
     try context.abortProof();
+    try cache.releaseArena(key_a);
 
     var same_plan = try arena_module.Plan.init(allocator, &requirements);
     try cache.prepare(&context, allocator, key_a, same_plan);
@@ -141,6 +147,7 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
     try std.testing.expectEqual(@as(usize, 0), Fake.destroys);
 
     try context.beginProof();
+    _ = try cache.acquireArena(key_a);
     try context.beginStage(.ingress);
     try context.endStage(.ingress);
     try context.beginStage(.trace_generation);
@@ -150,16 +157,17 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
     try std.testing.expectEqual(@as(u64, 2), context.counters.kernel_launches);
     try std.testing.expectEqual(@as(u64, 1), context.counters.graph_cache_hits);
     try context.abortProof();
+    try cache.releaseArena(key_a);
 
     var replacement = try arena_module.Plan.init(allocator, &requirements);
     try cache.prepare(&context, allocator, key_b, replacement);
     replacement = undefined;
-    try std.testing.expect(Fake.destroy_before_free);
     try std.testing.expectEqual(@as(usize, 2), Fake.allocations);
-    try std.testing.expectEqual(@as(usize, 1), Fake.frees);
+    try std.testing.expectEqual(@as(usize, 0), Fake.frees);
 
     Fake.kernel_nodes = 1;
     try context.beginProof();
+    _ = try cache.acquireArena(key_b);
     try context.beginStage(.ingress);
     try context.endStage(.ingress);
     try context.beginStage(.trace_generation);
@@ -178,10 +186,12 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
         .trace_generation,
     )));
     try context.abortProof();
+    try cache.releaseArena(key_b);
 
     Fake.kernel_nodes = 2;
     Fake.fail_launch = true;
     try context.beginProof();
+    _ = try cache.acquireArena(key_b);
     try context.beginStage(.ingress);
     try context.endStage(.ingress);
     try context.beginStage(.trace_generation);
@@ -200,8 +210,10 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
         .trace_generation,
     )));
     try context.abortProof();
+    try cache.releaseArena(key_b);
 
     try context.beginProof();
+    _ = try cache.acquireArena(key_b);
     try context.beginStage(.ingress);
     try context.endStage(.ingress);
     try context.beginStage(.trace_generation);
@@ -210,7 +222,58 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
     try std.testing.expect(!context.capture_active);
     try std.testing.expectEqual(@as(usize, 1), Fake.capture_aborts);
     try context.abortProof();
+    try cache.releaseArena(key_b);
+
+    var third = try arena_module.Plan.init(allocator, &requirements);
+    try cache.prepare(&context, allocator, key_c, third);
+    third = undefined;
+    var fourth = try arena_module.Plan.init(allocator, &requirements);
+    try cache.prepare(&context, allocator, key_d, fourth);
+    fourth = undefined;
+    const arena_a = try cache.acquireArena(key_a);
+    const arena_b = try cache.acquireArena(key_b);
+    const arena_b_address = @intFromPtr(arena_b.backing.pointer);
+    _ = try cache.acquireArena(key_c);
+    _ = try cache.acquireArena(key_d);
+
+    var blocked = try arena_module.Plan.init(allocator, &requirements);
+    try std.testing.expectError(
+        error.PreparedCacheBusy,
+        cache.prepare(&context, allocator, key_e, blocked),
+    );
+    blocked = undefined;
+    try std.testing.expectEqual(@as(u64, 5), cache.prepared_misses);
+    try std.testing.expectEqual(@as(u64, 0), cache.evictions);
+    try std.testing.expect(cache.contains(key_a));
+    try std.testing.expect(cache.contains(key_b));
+
+    try cache.releaseArena(key_a);
+    try cache.releaseArena(key_c);
+    try cache.releaseArena(key_d);
+    var fifth = try arena_module.Plan.init(allocator, &requirements);
+    try cache.prepare(&context, allocator, key_e, fifth);
+    fifth = undefined;
+    try std.testing.expect(!cache.contains(key_a));
+    try std.testing.expect(cache.contains(key_b));
+    try std.testing.expectEqual(
+        arena_b_address,
+        @intFromPtr((try cache.acquireArena(key_b)).backing.pointer),
+    );
+    try cache.releaseArena(key_b);
+    try std.testing.expectError(
+        error.PreparedCacheBusy,
+        cache.deinit(&context),
+    );
+    try cache.releaseArena(key_b);
+    try std.testing.expectEqual(@as(u64, 1), cache.evictions);
+    try std.testing.expect(Fake.destroy_before_free);
+
+    var same_b = try arena_module.Plan.init(allocator, &requirements);
+    try cache.prepare(&context, allocator, key_b, same_b);
+    same_b = undefined;
+    try std.testing.expectEqual(@as(u64, 2), cache.prepared_hits);
+    _ = arena_a;
     try cache.deinit(&context);
-    try std.testing.expectEqual(@as(usize, 2), Fake.frees);
+    try std.testing.expectEqual(@as(usize, 5), Fake.frees);
     try std.testing.expectEqual(@as(usize, 3), Fake.destroys);
 }

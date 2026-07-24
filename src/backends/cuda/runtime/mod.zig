@@ -50,4 +50,5 @@ test {
     _ = @import("context_additional_test.zig");
     _ = @import("graph_execution_test.zig");
     _ = @import("resident_zero_test.zig");
+    _ = @import("session_test.zig");
 }

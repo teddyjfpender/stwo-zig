@@ -7,23 +7,34 @@ const telemetry = @import("telemetry.zig");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
 pub const schedule_version: u32 = 1;
+pub const graph_schema_version: u32 = 1;
 
 pub const CompileOptions = struct {
     sm: u32,
+    device_uuid: [16]u8,
+    driver_version: u32,
+    runtime_version: u32,
+    toolkit_version: u32,
     runtime_build_identity: proof_ir.Digest,
-    toolchain_identity: proof_ir.Digest,
+    host_toolchain_identity: proof_ir.Digest,
     kernel_pack_identity: proof_ir.Digest,
     lane_streams: u8,
     enable_graphs: bool,
-    version: u32 = schedule_version,
+    schedule_schema_version: u32 = schedule_version,
+    graph_schema_version: u32 = graph_schema_version,
 
     pub fn validate(self: CompileOptions) Error!void {
         if (self.sm < 50 or
+            std.mem.allEqual(u8, &self.device_uuid, 0) or
+            self.driver_version == 0 or
+            self.runtime_version == 0 or
+            self.toolkit_version == 0 or
             digestEmpty(self.runtime_build_identity) or
-            digestEmpty(self.toolchain_identity) or
+            digestEmpty(self.host_toolchain_identity) or
             digestEmpty(self.kernel_pack_identity) or
             self.lane_streams > max_lane_streams or
-            self.version == 0)
+            self.schedule_schema_version == 0 or
+            self.graph_schema_version == 0)
         {
             return error.InvalidCompileTarget;
         }
@@ -198,15 +209,20 @@ pub fn cacheKey(
     options: CompileOptions,
 ) proof_ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig-cuda-plan-v1");
+    hash.update("stwo-zig-cuda-plan-v2");
     hash.update(&program_digest);
+    hash.update(&options.device_uuid);
     hash.update(&options.runtime_build_identity);
-    hash.update(&options.toolchain_identity);
+    hash.update(&options.host_toolchain_identity);
     hash.update(&options.kernel_pack_identity);
     hashInt(&hash, u32, options.sm);
+    hashInt(&hash, u32, options.driver_version);
+    hashInt(&hash, u32, options.runtime_version);
+    hashInt(&hash, u32, options.toolkit_version);
     hashInt(&hash, u8, options.lane_streams);
     hashInt(&hash, u8, @intFromBool(options.enable_graphs));
-    hashInt(&hash, u32, options.version);
+    hashInt(&hash, u32, options.schedule_schema_version);
+    hashInt(&hash, u32, options.graph_schema_version);
     var digest: proof_ir.Digest = undefined;
     hash.final(&digest);
     return digest;
@@ -271,8 +287,12 @@ test "CUDA planning binds target identity and derives independent lanes" {
     const identity = proof_ir.identityDigest("runtime");
     const options = CompileOptions{
         .sm = 89,
+        .device_uuid = [_]u8{0x42} ** 16,
+        .driver_version = 12080,
+        .runtime_version = 12080,
+        .toolkit_version = 12080,
         .runtime_build_identity = identity,
-        .toolchain_identity = proof_ir.identityDigest("cuda-12.8"),
+        .host_toolchain_identity = proof_ir.identityDigest("zig-0.15.2"),
         .kernel_pack_identity = proof_ir.identityDigest("pack"),
         .lane_streams = 2,
         .enable_graphs = true,
@@ -293,6 +313,24 @@ test "CUDA planning binds target identity and derives independent lanes" {
         &plan.cache_key,
         &cacheKey(program.program_digest, changed),
     ));
+    const identity_variants = [_]CompileOptions{
+        changedOptions(options, .device_uuid),
+        changedOptions(options, .driver_version),
+        changedOptions(options, .runtime_version),
+        changedOptions(options, .toolkit_version),
+        changedOptions(options, .runtime_build),
+        changedOptions(options, .host_toolchain),
+        changedOptions(options, .kernel_pack),
+        changedOptions(options, .schedule_schema),
+        changedOptions(options, .graph_schema),
+    };
+    for (identity_variants) |identity_changed| {
+        try std.testing.expect(!std.mem.eql(
+            u8,
+            &plan.cache_key,
+            &cacheKey(program.program_digest, identity_changed),
+        ));
+    }
 
     var resource_changed = try testProgramWithGraph(allocator, false);
     defer resource_changed.deinit(allocator);
@@ -306,6 +344,37 @@ test "CUDA planning binds target identity and derives independent lanes" {
         &plan.cache_key,
         &cacheKey(resource_changed.program_digest, options),
     ));
+}
+
+const ChangedIdentity = enum {
+    device_uuid,
+    driver_version,
+    runtime_version,
+    toolkit_version,
+    runtime_build,
+    host_toolchain,
+    kernel_pack,
+    schedule_schema,
+    graph_schema,
+};
+
+fn changedOptions(
+    options: CompileOptions,
+    field: ChangedIdentity,
+) CompileOptions {
+    var changed = options;
+    switch (field) {
+        .device_uuid => changed.device_uuid[0] ^= 0xff,
+        .driver_version => changed.driver_version += 1,
+        .runtime_version => changed.runtime_version += 1,
+        .toolkit_version => changed.toolkit_version += 1,
+        .runtime_build => changed.runtime_build_identity[0] ^= 0xff,
+        .host_toolchain => changed.host_toolchain_identity[0] ^= 0xff,
+        .kernel_pack => changed.kernel_pack_identity[0] ^= 0xff,
+        .schedule_schema => changed.schedule_schema_version += 1,
+        .graph_schema => changed.graph_schema_version += 1,
+    }
+    return changed;
 }
 
 fn testProgram(allocator: std.mem.Allocator) !proof_ir.ProofProgram {

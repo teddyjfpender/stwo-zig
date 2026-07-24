@@ -66,8 +66,12 @@ const Policy = struct {
                 .identityDigest("native-plonk-cuda-test-target");
         return .{
             .sm = 89,
+            .device_uuid = [_]u8{0x42} ** 16,
+            .driver_version = 12080,
+            .runtime_version = 12080,
+            .toolkit_version = 12080,
             .runtime_build_identity = identity,
-            .toolchain_identity = identity,
+            .host_toolchain_identity = identity,
             .kernel_pack_identity = program.kernel_pack_identity,
             .lane_streams = 0,
             .enable_graphs = false,

@@ -15,6 +15,9 @@ pub const Verdict = struct {
     pool_reserved_bytes: usize,
     graph_cache_hits_total: u64,
     graph_cache_misses_total: u64,
+    prepared_cache_hits_total: u64,
+    prepared_cache_misses_total: u64,
+    prepared_cache_evictions_total: u64,
     runtime_proof_index: u64,
 
     pub fn isResident(self: Verdict) bool {

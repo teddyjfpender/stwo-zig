@@ -176,8 +176,12 @@ test "prepared executor owns canonical inputs and transfers its plan once" {
     const proof_ir = @import("stwo_backend_contracts").proof_program;
     var prepared = try prepare(allocator, geometry, .{
         .sm = 89,
+        .device_uuid = [_]u8{0x42} ** 16,
+        .driver_version = 12080,
+        .runtime_version = 12080,
+        .toolkit_version = 12080,
         .runtime_build_identity = proof_ir.identityDigest("test-runtime"),
-        .toolchain_identity = proof_ir.identityDigest("test-toolchain"),
+        .host_toolchain_identity = proof_ir.identityDigest("test-toolchain"),
         .kernel_pack_identity = proof_ir.identityDigest("test-pack"),
         .lane_streams = 0,
         .enable_graphs = false,
