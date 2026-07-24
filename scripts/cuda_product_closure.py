@@ -63,27 +63,48 @@ def validate_abi(
         raise ProductClosureError(f"CUDA ABI Rust authority is absent: {raw_path}")
 
     abi_files = sorted(ABI.rglob("*.zig"))
-    active = symbols(abi_files, ZIG_EXTERN_RE)
-    if not active:
+    declared = symbols(abi_files, ZIG_EXTERN_RE)
+    if not declared:
         raise ProductClosureError("resident CUDA ABI is empty")
+
+    staged_modules = policy.get("staged_stage_modules")
+    if (
+        not isinstance(staged_modules, list)
+        or staged_modules != sorted(set(staged_modules))
+    ):
+        raise ProductClosureError("staged CUDA stage modules must be sorted and unique")
+    staged_paths = [ABI / "stages" / f"{name}.zig" for name in staged_modules]
+    if any(not path.is_file() for path in staged_paths):
+        raise ProductClosureError("staged CUDA ABI names an absent stage module")
+    staged = symbols(staged_paths, ZIG_EXTERN_RE)
+    active = declared - staged
+    if not active or not staged:
+        raise ProductClosureError("CUDA ABI must separate active and staged symbols")
 
     forbidden = policy.get("forbidden_symbol_fragments")
     if not isinstance(forbidden, list) or not forbidden:
         raise ProductClosureError("forbidden CUDA ABI symbol policy is absent")
     bad = sorted(
         symbol
-        for symbol in active
+        for symbol in declared
         if any(str(fragment) in symbol for fragment in forbidden)
     )
     if bad:
         raise ProductClosureError(f"resident CUDA ABI exposes legacy policy: {bad}")
 
-    selected_names = ordinary.get("resident_candidates")
-    if not isinstance(selected_names, list):
-        raise ProductClosureError("CUDA resident source selection is absent")
-    selected = [SOURCE / str(name) for name in selected_names]
+    product_names = ordinary.get("product_sources")
+    candidate_names = ordinary.get("resident_candidates")
+    if not isinstance(product_names, list) or not isinstance(candidate_names, list):
+        raise ProductClosureError("CUDA product and candidate source sets are absent")
+    if product_names != sorted(set(product_names)) or not set(product_names).issubset(
+        candidate_names
+    ):
+        raise ProductClosureError("CUDA product sources must be a sorted candidate subset")
+    product_sources = [SOURCE / str(name) for name in product_names]
+    candidate_sources = [SOURCE / str(name) for name in candidate_names]
     native = sorted(NATIVE.rglob("*.cpp")) + sorted(NATIVE.rglob("*.cu"))
-    defined = symbols(selected + native, C_EXTERN_RE)
+    product_defined = symbols(product_sources + native, C_EXTERN_RE)
+    candidate_defined = symbols(candidate_sources, C_EXTERN_RE)
 
     generated = policy.get("generated_symbols")
     zig_owned = policy.get("zig_owned_symbols")
@@ -96,12 +117,19 @@ def validate_abi(
         raise ProductClosureError("generated and Zig-owned ABI symbols must be sorted arrays")
     generated_symbols = {str(name) for name in generated}
     zig_owned_symbols = {str(name) for name in zig_owned}
-    defined.update(generated_symbols)
+    product_defined.update(generated_symbols)
 
-    missing_definitions = sorted(active - defined)
+    missing_definitions = sorted(active - product_defined)
     if missing_definitions:
         raise ProductClosureError(
             f"resident CUDA ABI has no selected implementation: {missing_definitions}"
+        )
+
+    missing_staged_definitions = sorted(staged - candidate_defined)
+    if missing_staged_definitions:
+        raise ProductClosureError(
+            "staged CUDA ABI has no migration-candidate implementation: "
+            f"{missing_staged_definitions}"
         )
 
     rust_symbols = symbols([raw_path], RUST_EXTERN_RE)
@@ -109,6 +137,12 @@ def validate_abi(
     if missing_authority:
         raise ProductClosureError(
             f"resident CUDA ABI is absent from pinned Rust declarations: {missing_authority}"
+        )
+    missing_staged_authority = sorted(staged - rust_symbols)
+    if missing_staged_authority:
+        raise ProductClosureError(
+            f"staged CUDA ABI is absent from pinned Rust declarations: "
+            f"{missing_staged_authority}"
         )
     stage_symbols = symbols(sorted((ABI / "stages").glob("*.zig")), ZIG_EXTERN_RE)
     wrapper_payload = "\n".join(
@@ -122,13 +156,14 @@ def validate_abi(
         raise ProductClosureError(
             f"resident CUDA stage ABI has no checked Zig wrapper: {missing_wrappers}"
         )
-    unexpected_owned = sorted(zig_owned_symbols - defined)
+    unexpected_owned = sorted(zig_owned_symbols - product_defined)
     if unexpected_owned:
         raise ProductClosureError(
             f"Zig-owned CUDA ABI has no native definition: {unexpected_owned}"
         )
     return {
         "active_symbols": len(active),
+        "staged_symbols": len(staged),
         "rust_authority_symbols": len(active & rust_symbols),
         "zig_owned_symbols": len(active & zig_owned_symbols),
         "generated_symbols": len(active & generated_symbols),
@@ -224,6 +259,7 @@ def validate() -> dict[str, object]:
         digest.update(payload)
     return {
         "classified_ordinary_sources": len(classified),
+        "product_sources": len(ordinary["product_sources"]),
         "resident_candidates": len(ordinary["resident_candidates"]),
         "quarantined_or_deferred": len(classified)
         - len(ordinary["resident_candidates"]),
@@ -239,11 +275,13 @@ def main() -> int:
     print(
         "CUDA product closure verified: "
         f"{result['classified_ordinary_sources']} ordinary sources classified, "
+        f"{result['product_sources']} authority sources admitted, "
         f"{result['resident_candidates']} resident candidates, "
         f"{result['quarantined_or_deferred']} quarantined/deferred, "
         f"{result['copied_aot_reference_entries']} copied AOT entries excluded, "
         f"{result['native_aot_entries']} Native AOT entry admitted, "
-        f"{result['active_symbols']} resident ABI symbols verified"
+        f"{result['active_symbols']} active and "
+        f"{result['staged_symbols']} staged ABI symbols verified"
     )
     return 0
 

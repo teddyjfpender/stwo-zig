@@ -67,12 +67,12 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual([86, 90], plan["target_sms"])
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
-        self.assertEqual(37, plan["ordinary_source_count"])
+        self.assertEqual(0, plan["ordinary_source_count"])
         self.assertEqual(1, plan["aot_source_count"])
         self.assertEqual(2, plan["aot_cubin_count"])
-        self.assertEqual(2, plan["native_runtime_source_count"])
+        self.assertEqual(3, plan["native_runtime_source_count"])
         self.assertEqual(1, plan["native_host_source_count"])
-        self.assertEqual(1, plan["native_cuda_source_count"])
+        self.assertEqual(2, plan["native_cuda_source_count"])
         self.assertEqual(
             load_native_closure(NATIVE)["closure_sha256"],
             plan["native_runtime_closure_sha256"],
@@ -85,7 +85,8 @@ class CudaBuildTests(unittest.TestCase):
         )
         self.assertEqual("plan-only", plan["tools"]["nvcc"]["sha256"])
         self.assertIn("-dc", plan["fixed_flags"]["ordinary"])
-        self.assertIn("-dc", plan["fixed_flags"]["native_cuda"])
+        self.assertIn("-c", plan["fixed_flags"]["native_cuda"])
+        self.assertNotIn("-dc", plan["fixed_flags"]["native_cuda"])
         self.assertIn("-cubin", plan["fixed_flags"]["aot"])
         self.assertIn("-dlink", plan["fixed_flags"]["device_link"])
         self.assertNotIn("nvrtc", plan["fixed_flags"]["host"])

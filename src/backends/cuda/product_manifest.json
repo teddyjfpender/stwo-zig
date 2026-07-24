@@ -3,6 +3,7 @@
   "product": "stwo-native-cuda",
   "source_authority_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "ordinary": {
+    "product_sources": [],
     "resident_candidates": [
       "accumulate.cu",
       "barycentric.cu",
@@ -87,6 +88,22 @@
       "stwo_zig_cuda_aot_entry_count"
     ],
     "zig_owned_symbols": [
+      "stwo_cuda_device_snapshot",
+      "stwo_exec_context_alloc_u32",
+      "stwo_exec_context_create",
+      "stwo_exec_context_destroy",
+      "stwo_exec_context_device",
+      "stwo_exec_context_fill_u32_async",
+      "stwo_exec_context_free_u32",
+      "stwo_exec_context_join_all_lanes",
+      "stwo_exec_context_lane_count",
+      "stwo_exec_context_memcpy_d2d_async",
+      "stwo_exec_context_memcpy_d2h_async",
+      "stwo_exec_context_memcpy_h2d_async",
+      "stwo_exec_context_memset_async",
+      "stwo_exec_context_pool_current",
+      "stwo_exec_context_stream",
+      "stwo_exec_context_sync",
       "stwo_native_aot_function_bind",
       "stwo_native_aot_function_destroy",
       "stwo_native_aot_function_launch",
@@ -94,6 +111,15 @@
       "stwo_native_aot_loader_destroy",
       "stwo_native_aot_loader_stats",
       "stwo_native_wide_fibonacci_trace_on"
+    ],
+    "staged_stage_modules": [
+      "commitment",
+      "decommit",
+      "fri",
+      "oods",
+      "quotient",
+      "transcript",
+      "transform"
     ],
     "forbidden_symbol_fragments": [
       "_default_pool_",
@@ -109,6 +135,7 @@
   "forbidden_product_tokens": [
     "cuda_default_pool_",
     "cudaDeviceSynchronize(",
+    "cudaFree(nullptr)",
     "cudaStreamSynchronize(0)",
     "getenv(",
     "nvrtc",

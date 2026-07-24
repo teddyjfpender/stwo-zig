@@ -31,6 +31,22 @@ IDENTITY_64_RE = re.compile(r"^[0-9a-f]{16}$")
 IDENTITY_256_RE = re.compile(r"^[0-9a-f]{64}$")
 KERNEL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 LABEL_RE = re.compile(r"^[a-z0-9_]+$")
+ORDINARY_FIXED_FLAGS = (
+    "-dc",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+)
+NATIVE_CUDA_FIXED_FLAGS = (
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+)
 
 
 @dataclass(frozen=True)
@@ -106,9 +122,16 @@ def load_product_selection(
     ordinary = product.get("ordinary")
     if not isinstance(ordinary, dict):
         raise BuildError("CUDA product ordinary source selection is absent")
-    selected = ordinary.get("resident_candidates")
-    if not isinstance(selected, list) or selected != sorted(selected) or not selected:
-        raise BuildError("CUDA resident source selection must be a sorted non-empty array")
+    selected = ordinary.get("product_sources")
+    candidates = ordinary.get("resident_candidates")
+    if (
+        not isinstance(selected, list)
+        or selected != sorted(set(selected))
+        or not isinstance(candidates, list)
+        or candidates != sorted(set(candidates))
+        or not set(selected).issubset(candidates)
+    ):
+        raise BuildError("CUDA product sources must be a sorted candidate subset")
     ordinary_sources = tuple(authority.root / str(path) for path in selected)
     if any(not path.is_file() for path in ordinary_sources):
         raise BuildError("CUDA resident source selection names an absent authority file")
@@ -306,22 +329,8 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "archiver": tool_record(toolchain.archiver, ("--version",), probe_tools),
     }
     fixed = {
-        "ordinary": [
-            "-dc",
-            "-O3",
-            "--std=c++17",
-            "--expt-relaxed-constexpr",
-            "-Xcompiler",
-            "-fPIC",
-        ],
-        "native_cuda": [
-            "-dc",
-            "-O3",
-            "--std=c++17",
-            "--expt-relaxed-constexpr",
-            "-Xcompiler",
-            "-fPIC",
-        ],
+        "ordinary": list(ORDINARY_FIXED_FLAGS),
+        "native_cuda": list(NATIVE_CUDA_FIXED_FLAGS),
         "aot": ["-cubin", "-O3", "--std=c++17", "--expt-relaxed-constexpr"],
         "device_link": ["-dlink", "-Xcompiler", "-fPIC"],
         "host": ["-std=c++17", "-O3", "-fPIC", "-c"],
@@ -414,11 +423,10 @@ def execute(config: BuildConfig) -> dict[str, object]:
         plan,
         objects,
     )
-    dlink = device_link(
-        config,
-        plan,
-        [*ordinary_objects, *native_cuda_objects],
-        work,
+    dlink = (
+        device_link(config, plan, ordinary_objects, work)
+        if ordinary_objects
+        else None
     )
     aot_entries = compile_aot(config, product, plan, cubins)
     aot_pack = generated / AOT_PACK_NAME
@@ -447,7 +455,7 @@ def execute(config: BuildConfig) -> dict[str, object]:
             str(staged_archive),
             *(str(path) for path in ordinary_objects),
             *(str(path) for path in native_cuda_objects),
-            str(dlink),
+            *([str(dlink)] if dlink is not None else []),
             *(str(path) for path in aot_objects),
             str(identity_object),
             *(str(path) for path in native_objects),
@@ -499,12 +507,7 @@ def compile_ordinary(
     ]
     prefix = [
         str(toolchain.nvcc),
-        "-dc",
-        "-O3",
-        "--std=c++17",
-        "--expt-relaxed-constexpr",
-        "-Xcompiler",
-        "-fPIC",
+        *ORDINARY_FIXED_FLAGS,
         f"-ccbin={toolchain.host_cxx}",
         *include_flags,
         *gencode,
@@ -555,12 +558,7 @@ def compile_native_cuda(
     ]
     prefix = [
         str(toolchain.nvcc),
-        "-dc",
-        "-O3",
-        "--std=c++17",
-        "--expt-relaxed-constexpr",
-        "-Xcompiler",
-        "-fPIC",
+        *NATIVE_CUDA_FIXED_FLAGS,
         f"-ccbin={toolchain.host_cxx}",
         *include_flags,
         *gencode,

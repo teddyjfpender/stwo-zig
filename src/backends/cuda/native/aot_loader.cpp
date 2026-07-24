@@ -8,7 +8,6 @@
 #include "aot_loader.h"
 
 #include <cuda.h>
-#include <cuda_runtime_api.h>
 
 #include <cstring>
 #include <memory>
@@ -80,10 +79,6 @@ struct BoundFunction {
     uint32_t argument_count = 0;
 };
 
-int runtime_status(cudaError_t status) {
-    return status == cudaSuccess ? CUDA_SUCCESS : static_cast<int>(status);
-}
-
 int require_owner(Loader *loader) {
     if (loader == nullptr) return CUDA_ERROR_INVALID_HANDLE;
     if (loader->owner != std::this_thread::get_id()) return CUDA_ERROR_INVALID_CONTEXT;
@@ -106,21 +101,18 @@ int current_binding(
         out_device == nullptr || out_sm_major == nullptr || out_sm_minor == nullptr) {
         return CUDA_ERROR_INVALID_VALUE;
     }
-    const int runtime = runtime_status(cudaFree(nullptr));
-    if (runtime != CUDA_SUCCESS) return runtime;
-
     CUcontext context = nullptr;
     CUdevice device = 0;
     int context_device = -1;
     int sm_major = 0;
     int sm_minor = 0;
     void *stream = nullptr;
-    if (cuCtxGetCurrent(&context) != CUDA_SUCCESS || context == nullptr ||
-        cuCtxGetDevice(&device) != CUDA_SUCCESS || device < 0 ||
-        stwo_exec_context_device(exec_context, &context_device) != CUDA_SUCCESS ||
-        context_device != static_cast<int>(device) ||
+    if (stwo_exec_context_device(exec_context, &context_device) != CUDA_SUCCESS ||
         stwo_exec_context_stream(exec_context, &stream) != CUDA_SUCCESS ||
         stream == nullptr ||
+        cuCtxGetCurrent(&context) != CUDA_SUCCESS || context == nullptr ||
+        cuCtxGetDevice(&device) != CUDA_SUCCESS || device < 0 ||
+        context_device != static_cast<int>(device) ||
         cuDeviceGetAttribute(
             &sm_major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device) !=
             CUDA_SUCCESS ||
