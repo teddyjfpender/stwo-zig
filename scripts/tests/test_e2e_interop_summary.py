@@ -116,6 +116,18 @@ class ComputeSummaryTests(unittest.TestCase):
             return_code=1,
         )
         self.assertEqual(rejection, self.mod.REJECTION_CLASS_VERIFIER)
+        zig_claim = self.mod.classify_rejection(
+            "",
+            "error: InvalidClaimedSum",
+            return_code=1,
+        )
+        rust_claim = self.mod.classify_rejection(
+            "",
+            "Error: invalid xor claimed_sum",
+            return_code=1,
+        )
+        self.assertEqual(zig_claim, self.mod.REJECTION_CLASS_VERIFIER)
+        self.assertEqual(rust_claim, self.mod.REJECTION_CLASS_VERIFIER)
 
     def test_run_step_refuses_to_accept_a_verifier_panic(self) -> None:
         steps = []

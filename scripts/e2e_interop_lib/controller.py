@@ -239,6 +239,8 @@ def classify_rejection(
         "invalid proof shape",
         "invalid statement shape",
         "invalid plonk_logup log_n_rows",
+        "invalidclaimedsum",
+        "invalid xor claimed_sum",
         "proofconfigmismatch",
         "proof pcs config does not match artifact pcs config",
         "deep-ali",
