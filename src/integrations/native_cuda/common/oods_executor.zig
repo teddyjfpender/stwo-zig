@@ -60,7 +60,7 @@ pub fn executeWithOps(
     comptime OodsOps: type,
     session: anytype,
     schedule: anytype,
-    transcript: resident_views.Transcript,
+    transcript: anytype,
     oods: resident_views.Oods,
     quotient_challenge: common.SecureFields,
     batches: []const Batch,
