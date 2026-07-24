@@ -15,6 +15,7 @@ const program_mod = @import("program.zig");
 const proof_bundle = @import("proof_bundle.zig");
 const request = @import("request.zig");
 const requirements_mod = @import("requirements.zig");
+const shared = @import("../common/prepared_plan.zig");
 const slots = @import("slots.zig");
 const topology = @import("topology.zig");
 const transcript_schedule = @import("transcript_schedule.zig");
@@ -24,42 +25,16 @@ const transcript_schedule = @import("transcript_schedule.zig");
 /// twiddles and a persistent proof session can retain one pack across requests.
 pub const CanonicalIngress = canonical_ingress.Pack;
 
-pub const PreparedPlan = struct {
-    logical: layout_mod.Layout,
-    quotient: topology.Quotient,
-    fri: topology.Fri,
-    decommit: topology.Decommit,
-    proof: proof_bundle.Bundle,
-    transcript: transcript_schedule.Schedule,
-    requirement_storage: []arena.Requirement,
-    proof_program: @import("stwo_backend_contracts").proof_program.ProofProgram,
-    cuda_plan: cuda_plan_mod.CudaPlan,
-
-    pub fn init(
+const Policy = struct {
+    pub fn buildRequirements(
         allocator: std.mem.Allocator,
         geometry: request.Geometry,
-    ) !PreparedPlan {
-        return initForTarget(allocator, geometry, testTarget());
-    }
-
-    pub fn initForTarget(
-        allocator: std.mem.Allocator,
-        geometry: request.Geometry,
-        target: cuda_plan_mod.CompileOptions,
-    ) !PreparedPlan {
-        var logical = try layout_mod.Layout.init(allocator, geometry);
-        errdefer logical.deinit(allocator);
-        try logical.validate();
-        var quotient = try topology.Quotient.init(allocator, logical);
-        errdefer quotient.deinit(allocator);
-        var fri = try topology.Fri.init(allocator, logical);
-        errdefer fri.deinit(allocator);
-        var decommit = try topology.Decommit.init(allocator, logical);
-        errdefer decommit.deinit(allocator);
-        var proof = try proof_bundle.Bundle.init(allocator, logical, decommit);
-        errdefer proof.deinit(allocator);
-        try proof.validate(decommit.assembly_words);
-        const requirement_storage = try requirements_mod.build(
+        quotient: topology.Quotient,
+        fri: topology.Fri,
+        decommit: topology.Decommit,
+        proof: proof_bundle.Bundle,
+    ) ![]arena.Requirement {
+        return requirements_mod.build(
             allocator,
             geometry,
             quotient,
@@ -67,74 +42,47 @@ pub const PreparedPlan = struct {
             decommit,
             proof,
         );
-        errdefer allocator.free(requirement_storage);
-        var proof_program = try program_mod.emit(
+    }
+
+    pub fn emitProgram(
+        allocator: std.mem.Allocator,
+        geometry: request.Geometry,
+        logical: layout_mod.Layout,
+        quotient: topology.Quotient,
+        fri: topology.Fri,
+        requirements: []const arena.Requirement,
+    ) !@import("stwo_backend_contracts").proof_program.ProofProgram {
+        return program_mod.emit(
             allocator,
             geometry,
             logical,
             quotient,
             fri,
-            requirement_storage,
+            requirements,
         );
-        errdefer proof_program.deinit(allocator);
-        var cuda_plan = try cuda_plan_mod.CudaPlan.compile(
-            allocator,
-            proof_program,
-            target,
-        );
-        errdefer cuda_plan.deinit(allocator);
-        if (cuda_plan.arena_plan.total_words > requirements_mod.max_total_words)
-            return error.SizeOverflow;
-        return .{
-            .logical = logical,
-            .quotient = quotient,
-            .fri = fri,
-            .decommit = decommit,
-            .proof = proof,
-            .transcript = try transcript_schedule.Schedule.init(geometry),
-            .requirement_storage = requirement_storage,
-            .proof_program = proof_program,
-            .cuda_plan = cuda_plan,
-        };
     }
 
-    pub fn deinit(self: *PreparedPlan, allocator: std.mem.Allocator) void {
-        self.cuda_plan.deinit(allocator);
-        self.proof_program.deinit(allocator);
-        allocator.free(self.requirement_storage);
-        self.proof.deinit(allocator);
-        self.decommit.deinit(allocator);
-        self.fri.deinit(allocator);
-        self.quotient.deinit(allocator);
-        self.logical.deinit(allocator);
-        self.* = undefined;
-    }
-
-    pub fn requirements(self: *const PreparedPlan) []const arena.Requirement {
-        return self.requirement_storage;
-    }
-
-    pub fn proofSlot(_: *const PreparedPlan) arena.SlotId {
+    pub fn proofSlot() arena.SlotId {
         return slots.proof_bundle;
     }
 
-    pub fn totalWords(self: *const PreparedPlan) usize {
-        return self.cuda_plan.arena_plan.total_words;
+    pub fn maxTotalWords() usize {
+        return requirements_mod.max_total_words;
     }
 
-    pub fn instantiateArenaPlan(
-        self: *const PreparedPlan,
-        allocator: std.mem.Allocator,
-    ) std.mem.Allocator.Error!arena.Plan {
-        return self.cuda_plan.instantiateArenaPlan(allocator);
-    }
-
-    pub fn schedule(
-        self: *const PreparedPlan,
-    ) []const cuda_plan_mod.ScheduledNode {
-        return self.cuda_plan.schedule;
+    pub fn defaultTarget() cuda_plan_mod.CompileOptions {
+        return testTarget();
     }
 };
+
+pub const PreparedPlan = shared.PreparedPlanFor(
+    request.Geometry,
+    layout_mod.Layout,
+    topology,
+    proof_bundle.Bundle,
+    transcript_schedule.Schedule,
+    Policy,
+);
 
 test "prepared plans seal small standard and extreme admitted geometry" {
     const allocator = std.testing.allocator;
