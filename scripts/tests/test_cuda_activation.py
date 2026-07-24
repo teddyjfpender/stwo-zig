@@ -120,6 +120,42 @@ class CudaActivationTests(unittest.TestCase):
         ):
             validate_state(ROOT, document)
 
+    def test_candidate_dry_run_requires_parsed_diagnostic_receipt(self) -> None:
+        document = copy.deepcopy(self.state_document)
+        document["global"]["evidence"]["candidate_dry_run"] = [
+            "conformance/cuda-native-activation-state-v1.json"
+        ]
+        with self.assertRaisesRegex(
+            ActivationError,
+            "candidate_dry_run has no valid parsed release receipt",
+        ):
+            validate_state(ROOT, document)
+
+    def test_predecessor_rehearsal_requires_paired_abba_receipt(self) -> None:
+        document = copy.deepcopy(self.state_document)
+        document["global"]["evidence"]["predecessor_abba_rehearsal"] = [
+            "conformance/evidence/cuda/system-architecture-sm89/receipt.json"
+        ]
+        with self.assertRaisesRegex(
+            ActivationError,
+            "predecessor_abba_rehearsal has no valid parsed release receipt",
+        ):
+            validate_state(ROOT, document)
+
+    def test_future_global_gate_rejects_declarative_path(self) -> None:
+        document = copy.deepcopy(self.state_document)
+        global_entry = document["global"]
+        global_entry["gates"]["full_repository_gates"] = True
+        global_entry["blockers"]["full_repository_gates"] = None
+        global_entry["evidence"]["full_repository_gates"] = [
+            "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"
+        ]
+        with self.assertRaisesRegex(
+            ActivationError,
+            "full_repository_gates has no valid parsed release receipt",
+        ):
+            validate_state(ROOT, document)
+
     def test_rust_gate_requires_pinned_commit_authority_receipt(self) -> None:
         document = copy.deepcopy(self.state_document)
         wide = document["families"]["wide_fibonacci"]

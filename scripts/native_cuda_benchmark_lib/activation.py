@@ -206,6 +206,204 @@ def _valid_stage_map(value: object) -> bool:
     return value["total"] > 0
 
 
+def _is_hex_digest(value: object, length: int) -> bool:
+    if not isinstance(value, str) or len(value) != length:
+        return False
+    return all(character in "0123456789abcdef" for character in value)
+
+
+def _valid_candidate_dry_run(document: dict[str, Any]) -> bool:
+    product = document.get("product")
+    oracle = document.get("oracle")
+    invariants = document.get("invariants")
+    workloads = document.get("workloads")
+    if (
+        document.get("schema")
+        != "stwo-zig-cuda-structural-screen-receipt-v1"
+        or document.get("verdict") != "pass_diagnostic_only"
+        or not all(
+            isinstance(value, dict)
+            for value in (product, oracle, invariants)
+        )
+        or not isinstance(workloads, list)
+        or not workloads
+    ):
+        return False
+    if (
+        product.get("dirty") is not False
+        or product.get("aot_only") is not True
+        or not _is_hex_digest(product.get("commit"), 40)
+        or not _is_hex_digest(product.get("binary_sha256"), 64)
+        or oracle.get("authority") != "pinned-rust-stwo"
+        or oracle.get("upstream_commit") != PINNED_RUST_COMMIT
+        or oracle.get("all_accepted") is not True
+        or oracle.get("artifacts_checked") != len(workloads)
+        or oracle.get("artifacts_accepted") != len(workloads)
+    ):
+        return False
+    required_invariants = (
+        "all_proofs_zig_verified",
+        "all_proofs_repeat_identical",
+        "all_proofs_rust_oracle_accepted",
+        "all_rows_resident",
+        "all_rows_strict_aot",
+        "all_rows_zero_cpu_fallback",
+    )
+    if any(invariants.get(key) is not True for key in required_invariants):
+        return False
+    for workload in workloads:
+        if (
+            not isinstance(workload, dict)
+            or not _is_hex_digest(workload.get("proof_sha256"), 64)
+            or not _is_hex_digest(workload.get("artifact_sha256"), 64)
+            or not isinstance(workload.get("proof_bytes"), int)
+            or workload["proof_bytes"] <= 0
+            or not isinstance(workload.get("steady_verified_ms"), (int, float))
+            or workload["steady_verified_ms"] <= 0
+        ):
+            return False
+    return True
+
+
+def _valid_predecessor_abba(document: dict[str, Any]) -> bool:
+    measurement = document.get("measurement")
+    correctness = document.get("correctness")
+    predecessor = document.get("predecessor")
+    candidate = document.get("candidate")
+    portfolio = document.get("portfolio")
+    if (
+        document.get("schema") != "native_cuda_structural_verdict_v1"
+        or document.get("status")
+        not in ("qualified_checkpoint_not_promotion", "promotion")
+        or not all(
+            isinstance(value, dict)
+            for value in (
+                measurement,
+                correctness,
+                predecessor,
+                candidate,
+                portfolio,
+            )
+        )
+    ):
+        return False
+    if (
+        measurement.get("schedule") != "paired_counterbalanced_ABBA"
+        or not isinstance(measurement.get("rounds"), int)
+        or measurement["rounds"] < 7
+        or not isinstance(measurement.get("regression_ceiling"), (int, float))
+        or measurement["regression_ceiling"] > 1.05
+    ):
+        return False
+    required_correctness = (
+        "all_arms_byte_identical",
+        "zig_verified",
+        "rust_oracle_verified",
+        "zero_cpu_fallbacks",
+        "one_terminal_d2h",
+    )
+    if any(correctness.get(key) is not True for key in required_correctness):
+        return False
+    for identity in (predecessor, candidate):
+        if (
+            not _is_hex_digest(identity.get("commit"), 40)
+            or not _is_hex_digest(identity.get("binary_sha256"), 64)
+        ):
+            return False
+    if predecessor["commit"] == candidate["commit"]:
+        return False
+    interval = portfolio.get("confidence_interval_95")
+    ratio = portfolio.get("ratio")
+    if (
+        not isinstance(interval, dict)
+        or not all(
+            isinstance(interval.get(bound), (int, float))
+            for bound in ("low", "high")
+        )
+        or not isinstance(ratio, (int, float))
+        or not interval["low"] <= ratio <= interval["high"]
+        or not isinstance(portfolio.get("worst_workload_ratio"), (int, float))
+        or portfolio["worst_workload_ratio"]
+        > measurement["regression_ceiling"]
+    ):
+        return False
+    return True
+
+
+def _valid_structural_coverage(document: dict[str, Any]) -> bool:
+    coverage = document.get("coverage")
+    return (
+        _valid_candidate_dry_run(document)
+        and document.get("activation_eligible") is True
+        and isinstance(coverage, dict)
+        and coverage.get("activation_ready") is True
+        and coverage.get("blocked") == []
+    )
+
+
+def _valid_named_release_receipt(
+    document: dict[str, Any],
+    schema: str,
+) -> bool:
+    return (
+        document.get("schema") == schema
+        and document.get("verdict") == "pass"
+        and document.get("candidate_bound") is True
+        and document.get("rust_oracle_verified") is True
+        and document.get("zero_cpu_fallbacks") is True
+        and _is_hex_digest(document.get("candidate_commit"), 40)
+        and _is_hex_digest(document.get("candidate_binary_sha256"), 64)
+    )
+
+
+GLOBAL_RECEIPT_VALIDATORS = {
+    "complete_structural_coverage": _valid_structural_coverage,
+    "sustained_headline_calibrated": lambda document: _valid_named_release_receipt(
+        document,
+        "stwo-zig-cuda-sustained-judge-v1",
+    ),
+    "locked_cuda_judge_host": lambda document: _valid_named_release_receipt(
+        document,
+        "stwo-zig-cuda-judge-host-authority-v1",
+    ),
+    "locked_host_aa_calibration": lambda document: _valid_named_release_receipt(
+        document,
+        "stwo-zig-cuda-aa-calibration-v1",
+    ),
+    "candidate_dry_run": _valid_candidate_dry_run,
+    "predecessor_abba_rehearsal": _valid_predecessor_abba,
+    "mutation_and_anti_forgery": lambda document: _valid_named_release_receipt(
+        document,
+        "stwo-zig-cuda-anti-forgery-v1",
+    ),
+    "full_repository_gates": lambda document: _valid_named_release_receipt(
+        document,
+        "stwo-zig-cuda-release-gates-v1",
+    ),
+}
+
+
+def _validate_global_receipts(
+    root: Path,
+    gates: dict[str, bool],
+    evidence: dict[str, Any],
+    label: str,
+) -> None:
+    for gate, validator in GLOBAL_RECEIPT_VALIDATORS.items():
+        if not gates[gate]:
+            continue
+        if not any(
+            document is not None and validator(document)
+            for document in (
+                _load_json_evidence(root, path)
+                for path in evidence[gate]
+            )
+        ):
+            raise ActivationError(
+                f"{label}.{gate} has no valid parsed release receipt"
+            )
+
+
 def _validate_release_receipts(
     root: Path,
     gates: dict[str, bool],
@@ -316,6 +514,8 @@ def _validate_gate_set(
         normalized[gate] = status
     if required_gates == REQUIRED_FAMILY_GATES:
         _validate_release_receipts(root, normalized, evidence, label)
+    elif required_gates == REQUIRED_GLOBAL_GATES:
+        _validate_global_receipts(root, normalized, evidence, label)
     return normalized, blocked
 
 

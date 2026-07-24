@@ -32,6 +32,25 @@ incorrect, hybrid, narrow, or cross-machine result.
 - Mutation and anti-forgery tests fail as expected.
 - Every harness and full-repository gate passes.
 
+Passing booleans and repository paths are not evidence. The activation
+authority parses each positive global receipt and rejects schema, candidate
+identity, oracle, residency, AOT, schedule, or confidence-interval drift:
+
+| Gate | Required parsed receipt |
+| --- | --- |
+| Structural coverage | `stwo-zig-cuda-structural-screen-receipt-v1` with `activation_eligible=true`, no blocked class, and exact oracle/residency invariants |
+| Sustained calibration | `stwo-zig-cuda-sustained-judge-v1` |
+| Locked judge host | `stwo-zig-cuda-judge-host-authority-v1` |
+| Locked-host A/A | `stwo-zig-cuda-aa-calibration-v1` |
+| Candidate dry run | source-bound clean strict-AOT structural-screen receipt with every artifact accepted by pinned Rust |
+| Predecessor rehearsal | `native_cuda_structural_verdict_v1` with at least seven paired counterbalanced A-B-B-A rounds |
+| Mutation/anti-forgery | `stwo-zig-cuda-anti-forgery-v1` |
+| Full repository | `stwo-zig-cuda-release-gates-v1` |
+
+Every release receipt must bind the candidate commit and binary digest. A
+future state edit cannot activate a gate by pointing at source code, prose, or
+an unrelated JSON document.
+
 ## Exit Evidence
 
 - Reviewed immutable calibration package.
