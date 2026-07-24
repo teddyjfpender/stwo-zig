@@ -4,6 +4,7 @@ pub const driver = @import("driver.zig");
 pub const layout = @import("layout.zig");
 pub const plan = @import("plan.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
+pub const proof_decode = @import("proof_decode.zig");
 pub const protocol = @import("protocol.zig");
 pub const request = @import("request.zig");
 pub const requirements = @import("requirements.zig");
@@ -16,6 +17,7 @@ test {
     _ = layout;
     _ = plan;
     _ = proof_bundle;
+    _ = proof_decode;
     _ = protocol;
     _ = request;
     _ = requirements;
