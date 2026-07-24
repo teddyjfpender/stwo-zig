@@ -72,6 +72,16 @@ pub const Plan = struct {
         self.* = undefined;
     }
 
+    pub fn clone(
+        self: Plan,
+        allocator: std.mem.Allocator,
+    ) std.mem.Allocator.Error!Plan {
+        return .{
+            .placements = try allocator.dupe(Placement, self.placements),
+            .total_words = self.total_words,
+        };
+    }
+
     pub fn placement(self: Plan, id: SlotId) runtime_error.Error!Placement {
         var low: usize = 0;
         var high = self.placements.len;
@@ -356,4 +366,26 @@ test "arena materializes every slot from one context allocation" {
     try std.testing.expect(trace.owner == scratch.owner);
     try arena.deinit(&context);
     try std.testing.expectEqual(@as(usize, 1), context.frees);
+}
+
+test "arena plans clone without sharing placement ownership" {
+    const allocator = std.testing.allocator;
+    var plan = try Plan.init(allocator, &.{.{
+        .id = 1,
+        .words = 32,
+        .live_from = .ingress,
+        .live_through = .decommit,
+    }});
+    defer plan.deinit(allocator);
+    var cloned = try plan.clone(allocator);
+    defer cloned.deinit(allocator);
+    try std.testing.expectEqual(plan.total_words, cloned.total_words);
+    try std.testing.expectEqualSlices(
+        Placement,
+        plan.placements,
+        cloned.placements,
+    );
+    try std.testing.expect(
+        @intFromPtr(plan.placements.ptr) != @intFromPtr(cloned.placements.ptr),
+    );
 }

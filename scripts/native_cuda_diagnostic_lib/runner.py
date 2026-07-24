@@ -208,6 +208,7 @@ def _run_sample(
             "canonical_bytes": validated["proof"]["canonical_bytes"],
             "canonical_sha256": validated["proof"]["canonical_sha256"],
         },
+        "plan": validated["plan"],
         "timing_ns": validated["timing_ns"],
         "process_repetition": validated["process_repetition"],
         "throughput": {
@@ -250,6 +251,18 @@ def _shape_result(shape: Shape, samples: list[dict[str, Any]]) -> dict[str, Any]
         ],
         "runtime_init_ms": [
             sample["timing_ns"]["runtime_init"] / 1_000_000.0
+            for sample in samples
+        ],
+        "shape_prepare_ms": [
+            sample["timing_ns"]["shape_prepare"] / 1_000_000.0
+            for sample in samples
+        ],
+        "verified_request_ms": [
+            sample["timing_ns"]["verified_request"] / 1_000_000.0
+            for sample in samples
+        ],
+        "independent_verification_ms": [
+            sample["timing_ns"]["independent_verification"] / 1_000_000.0
             for sample in samples
         ],
         "runtime_teardown_ms": [
@@ -397,6 +410,7 @@ def run_diagnostic(settings: Settings) -> tuple[dict[str, Any], bytes]:
             "execution": "sequential_fixed_order",
             "cold_process_per_sample": True,
             "warm_request_measured": False,
+            "shape_plan_measured": True,
             "warmups": 0,
             "samples_per_shape": settings.cold_samples,
             "cooldown_seconds": settings.cooldown_seconds,

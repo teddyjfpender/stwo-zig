@@ -28,6 +28,7 @@ REPORT_KEYS = {
     "application",
     "protocol",
     "statement",
+    "plan",
     "proof",
     "timing_ns",
     "process_repetition",
@@ -35,6 +36,18 @@ REPORT_KEYS = {
     "device_stage_timing_ns",
     "aot",
     "device",
+}
+PLAN_KEYS = {
+    "program_sha256",
+    "cache_key_sha256",
+    "schedule_version",
+    "compiled_once",
+    "reuse_count",
+    "node_count",
+    "request_bytes",
+    "persistent_bytes",
+    "predicted_minimum_launches",
+    "transcript_barriers",
 }
 STATEMENT_KEYS = {
     "log_n_rows",
@@ -52,8 +65,11 @@ PROOF_KEYS = {
 }
 TIMING_KEYS = {
     "runtime_init",
+    "shape_prepare",
     "resident_prove",
     "terminal_decode",
+    "independent_verification",
+    "verified_request",
     "runtime_teardown",
     "total_before_publication",
 }
@@ -65,6 +81,8 @@ PROCESS_REPETITION_KEYS = {
     "zero_final_pool_usage",
     "resident_prove_ns",
     "terminal_decode_ns",
+    "independent_verification_ns",
+    "verified_request_ns",
     "device_elapsed_ns",
     "runtime_proof_indices",
 }
@@ -266,10 +284,12 @@ def validate_report(
     shape: Shape,
     proof_path: Path,
     artifact: dict[str, Any],
+    *,
+    expected_repetitions: int = 1,
 ) -> dict[str, Any]:
     _exact_keys(report, REPORT_KEYS, "CUDA report")
     expected_scalars = {
-        "schema_version": 2,
+        "schema_version": 3,
         "product": PRODUCT,
         "backend": BACKEND,
         "application": APPLICATION,
@@ -283,6 +303,26 @@ def validate_report(
     _exact_keys(statement, STATEMENT_KEYS, "CUDA report statement")
     if statement != shape.statement():
         raise DiagnosticError("CUDA report statement does not match request")
+
+    plan = _object(report["plan"], "CUDA report plan")
+    _exact_keys(plan, PLAN_KEYS, "CUDA report plan")
+    _digest(plan["program_sha256"], "CUDA proof-program digest")
+    _digest(plan["cache_key_sha256"], "CUDA plan cache key")
+    if plan["compiled_once"] is not True:
+        raise DiagnosticError("CUDA shape plan was not compiled exactly once")
+    if _integer(plan["reuse_count"], "CUDA plan reuse count", minimum=1) != (
+        expected_repetitions
+    ):
+        raise DiagnosticError("CUDA plan reuse count disagrees with repetitions")
+    for key in (
+        "schedule_version",
+        "node_count",
+        "request_bytes",
+        "predicted_minimum_launches",
+        "transcript_barriers",
+    ):
+        _integer(plan[key], f"CUDA plan {key}", minimum=1)
+    _integer(plan["persistent_bytes"], "CUDA plan persistent_bytes")
 
     proof = _object(report["proof"], "CUDA report proof")
     _exact_keys(proof, PROOF_KEYS, "CUDA report proof")
@@ -321,13 +361,35 @@ def validate_report(
         "CUDA runtime initialization time",
         minimum=1,
     )
+    shape_prepare_ns = _integer(
+        timing["shape_prepare"],
+        "CUDA shape preparation time",
+        minimum=1,
+    )
+    verification_ns = _integer(
+        timing["independent_verification"],
+        "CUDA independent verification time",
+        minimum=1,
+    )
+    verified_request_ns = _integer(
+        timing["verified_request"],
+        "CUDA verified request time",
+        minimum=1,
+    )
     runtime_teardown_ns = _integer(
         timing["runtime_teardown"],
         "CUDA runtime teardown time",
         minimum=1,
     )
+    if verified_request_ns < resident_ns + decode_ns + verification_ns:
+        raise DiagnosticError(
+            "CUDA verified request does not enclose prove, decode, and verification"
+        )
     if total_ns < (
-        runtime_init_ns + resident_ns + decode_ns + runtime_teardown_ns
+        runtime_init_ns
+        + shape_prepare_ns
+        + verified_request_ns
+        + runtime_teardown_ns
     ):
         raise DiagnosticError("CUDA total time does not enclose its lifecycle stages")
 
@@ -340,9 +402,12 @@ def validate_report(
         PROCESS_REPETITION_KEYS,
         "CUDA process repetition",
     )
-    if repetition["count"] != 1 or repetition["persistent_session"] is not True:
+    if (
+        repetition["count"] != expected_repetitions
+        or repetition["persistent_session"] is not True
+    ):
         raise DiagnosticError(
-            "CUDA product must expose one process-owned runtime for the cold request"
+            "CUDA product repetition count disagrees with the process contract"
         )
     for key in (
         "all_canonical_bytes_identical",
@@ -351,12 +416,45 @@ def validate_report(
     ):
         if repetition[key] is not True:
             raise DiagnosticError(f"CUDA repetition invariant failed: {key}")
-    if repetition["resident_prove_ns"] != [resident_ns]:
+    sequences = {}
+    for key in (
+        "resident_prove_ns",
+        "terminal_decode_ns",
+        "independent_verification_ns",
+        "verified_request_ns",
+        "device_elapsed_ns",
+        "runtime_proof_indices",
+    ):
+        value = repetition[key]
+        if not isinstance(value, list) or len(value) != expected_repetitions:
+            raise DiagnosticError(f"CUDA repetition {key} has the wrong length")
+        sequences[key] = [
+            _integer(item, f"CUDA repetition {key}", minimum=1)
+            for item in value
+        ]
+    if sequences["resident_prove_ns"][0] != resident_ns:
         raise DiagnosticError("CUDA repetition resident timing disagrees with sample")
-    if repetition["terminal_decode_ns"] != [decode_ns]:
+    if sequences["terminal_decode_ns"][0] != decode_ns:
         raise DiagnosticError("CUDA repetition decode timing disagrees with sample")
-    if repetition["runtime_proof_indices"] != [1]:
-        raise DiagnosticError("CUDA runtime proof sequence did not start at one")
+    if sequences["independent_verification_ns"][0] != verification_ns:
+        raise DiagnosticError("CUDA repetition verification timing disagrees")
+    if sequences["verified_request_ns"][0] != verified_request_ns:
+        raise DiagnosticError("CUDA repetition request timing disagrees")
+    if sequences["runtime_proof_indices"] != list(
+        range(1, expected_repetitions + 1)
+    ):
+        raise DiagnosticError("CUDA runtime proof sequence is not contiguous")
+    for resident, decode, verification, verified in zip(
+        sequences["resident_prove_ns"],
+        sequences["terminal_decode_ns"],
+        sequences["independent_verification_ns"],
+        sequences["verified_request_ns"],
+        strict=True,
+    ):
+        if verified < resident + decode + verification:
+            raise DiagnosticError(
+                "CUDA repeated verified request does not enclose all work"
+            )
 
     residency = _object(report["residency"], "CUDA residency")
     _exact_keys(residency, RESIDENCY_KEYS, "CUDA residency")
@@ -417,7 +515,7 @@ def validate_report(
         raise DiagnosticError("CUDA device stage timings do not sum to the total")
     if device_elapsed_ns > resident_ns:
         raise DiagnosticError("CUDA device time exceeds resident proof wall time")
-    if repetition["device_elapsed_ns"] != [device_elapsed_ns]:
+    if sequences["device_elapsed_ns"][-1] != device_elapsed_ns:
         raise DiagnosticError("CUDA repetition device timing disagrees with sample")
 
     aot = _object(report["aot"], "CUDA AOT telemetry")
@@ -428,6 +526,10 @@ def validate_report(
         _integer(aot[key], f"CUDA AOT {key}")
     if aot["misses"] != 0 or aot["launch_failures"] != 0:
         raise DiagnosticError("CUDA strict-AOT sample reported misses or failures")
+    if aot["launches"] != expected_repetitions or aot["loads"] != 1:
+        raise DiagnosticError("CUDA AOT lifecycle disagrees with repetitions")
+    if aot["cache_hits"] != expected_repetitions - 1:
+        raise DiagnosticError("CUDA AOT cache-hit count disagrees with reuse")
     _digest(aot["build_identity_sha256"], "CUDA AOT build identity")
 
     device = _object(report["device"], "CUDA device")
@@ -455,6 +557,7 @@ def validate_report(
 
     return {
         "proof": proof,
+        "plan": plan,
         "timing_ns": timing,
         "process_repetition": repetition,
         "residency": residency,

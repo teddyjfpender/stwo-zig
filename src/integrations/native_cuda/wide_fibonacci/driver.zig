@@ -18,34 +18,53 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
     comptime assertExecutor(Executor);
     return struct {
         const Self = @This();
+        pub const PreparedProof = Executor.PreparedPlan;
 
         allocator: std.mem.Allocator,
-        accepted_sms: []const u32,
+
+        pub fn prepare(
+            self: Self,
+            runtime: anytype,
+            request: request_mod.Request,
+        ) !PreparedProof {
+            const geometry = try request_mod.admit(request);
+            const target = try Executor.planTarget(runtime.planningSession());
+            return Executor.prepare(self.allocator, geometry, target);
+        }
 
         pub fn runRetained(
             self: Self,
             runtime: anytype,
             request: request_mod.Request,
         ) !Transaction.StarkBundleOutput {
+            var prepared = try self.prepare(runtime, request);
+            defer prepared.deinit(self.allocator);
+            return self.runPreparedRetained(runtime, request, &prepared);
+        }
+
+        pub fn runPreparedRetained(
+            self: Self,
+            runtime: anytype,
+            request: request_mod.Request,
+            prepared: *PreparedProof,
+        ) !Transaction.StarkBundleOutput {
             const geometry = try request_mod.admit(request);
+            try Executor.validatePrepared(prepared, geometry);
+            var arena_plan = try prepared.instantiateArenaPlan(self.allocator);
+            var arena_plan_live = true;
+            errdefer if (arena_plan_live) arena_plan.deinit(self.allocator);
             const session = try runtime.beginProof();
             var session_live = true;
             errdefer if (session_live) session.abortRetained() catch {};
-            const target = try Executor.planTarget(session);
-            var prepared = try Executor.prepare(
-                self.allocator,
-                geometry,
-                target,
-            );
-            defer prepared.deinit(self.allocator);
 
             session_live = false;
             var transaction = try Transaction.openPreparedRetained(
                 self.allocator,
                 session,
-                prepared.takeArenaPlan(),
+                arena_plan,
             );
-            return execute(self, &transaction, &prepared, geometry);
+            arena_plan_live = false;
+            return execute(self, &transaction, prepared, geometry);
         }
 
         fn execute(
@@ -87,6 +106,7 @@ fn assertExecutor(comptime Executor: type) void {
     inline for (&.{
         "prepare",
         "planTarget",
+        "validatePrepared",
         "ingress",
         "executeNode",
     }) |name| {
@@ -96,9 +116,9 @@ fn assertExecutor(comptime Executor: type) void {
     const Prepared = Executor.PreparedPlan;
     inline for (&.{
         "deinit",
+        "instantiateArenaPlan",
         "proofSlot",
         "schedule",
-        "takeArenaPlan",
     }) |name| {
         if (!@hasDecl(Prepared, name))
             @compileError("Native CUDA prepared plan is missing " ++ name);
@@ -206,10 +226,11 @@ test "driver owns exact stage order and one final proof read" {
             ).ScheduledNode {
                 return &self.scheduled;
             }
-            pub fn takeArenaPlan(self: *@This()) arena.Plan {
-                std.debug.assert(self.plan_live);
-                self.plan_live = false;
-                return self.plan;
+            pub fn instantiateArenaPlan(
+                self: *const @This(),
+                allocator: std.mem.Allocator,
+            ) !arena.Plan {
+                return self.plan.clone(allocator);
             }
         };
 
@@ -255,6 +276,14 @@ test "driver owns exact stage order and one final proof read" {
             return 7;
         }
 
+        pub fn validatePrepared(
+            _: *const PreparedPlan,
+            geometry: request_mod.Geometry,
+        ) !void {
+            if (geometry.trace_rows != 1 << 14)
+                return error.InvalidGeometry;
+        }
+
         pub fn ingress(
             _: *FakeTransaction,
             _: *PreparedPlan,
@@ -295,12 +324,15 @@ test "driver owns exact stage order and one final proof read" {
             self.begins += 1;
             return &self.session;
         }
+
+        pub fn planningSession(self: *const @This()) *const FakeSession {
+            return &self.session;
+        }
     };
 
     const Driver = DriverFor(FakeTransaction, FakeExecutor);
     const driver = Driver{
         .allocator = std.testing.allocator,
-        .accepted_sms = &.{89},
     };
     const request = request_mod.Request{
         .statement = .{ .log_n_rows = 14, .sequence_len = 100 },

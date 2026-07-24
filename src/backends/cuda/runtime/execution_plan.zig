@@ -67,7 +67,6 @@ pub const CudaPlan = struct {
     target: CompileOptions,
     schedule: []ScheduledNode,
     arena_plan: arena.Plan,
-    arena_plan_live: bool = true,
     prediction: Prediction,
 
     pub fn compile(
@@ -181,15 +180,16 @@ pub const CudaPlan = struct {
         self: *CudaPlan,
         allocator: std.mem.Allocator,
     ) void {
-        if (self.arena_plan_live) self.arena_plan.deinit(allocator);
+        self.arena_plan.deinit(allocator);
         allocator.free(self.schedule);
         self.* = undefined;
     }
 
-    pub fn takeArenaPlan(self: *CudaPlan) arena.Plan {
-        std.debug.assert(self.arena_plan_live);
-        self.arena_plan_live = false;
-        return self.arena_plan;
+    pub fn instantiateArenaPlan(
+        self: *const CudaPlan,
+        allocator: std.mem.Allocator,
+    ) std.mem.Allocator.Error!arena.Plan {
+        return self.arena_plan.clone(allocator);
     }
 };
 

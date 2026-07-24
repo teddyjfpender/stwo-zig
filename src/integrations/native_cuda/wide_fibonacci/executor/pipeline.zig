@@ -60,8 +60,11 @@ pub const PreparedPlan = struct {
         return self.structural.proofSlot();
     }
 
-    pub fn takeArenaPlan(self: *PreparedPlan) arena.Plan {
-        return self.structural.takeArenaPlan();
+    pub fn instantiateArenaPlan(
+        self: *const PreparedPlan,
+        allocator: std.mem.Allocator,
+    ) std.mem.Allocator.Error!arena.Plan {
+        return self.structural.instantiateArenaPlan(allocator);
     }
 
     pub fn schedule(
@@ -87,6 +90,13 @@ pub fn planTarget(session: anytype) !@import(
     "../../../../backends/cuda/runtime/execution_plan.zig",
 ).CompileOptions {
     return program_mod.targetFor(session);
+}
+
+pub fn validatePrepared(
+    prepared: *const PreparedPlan,
+    geometry: request.Geometry,
+) !void {
+    try requireGeometry(prepared, geometry);
 }
 
 pub fn ingressStage(
@@ -309,7 +319,10 @@ test "prepared executor owns canonical inputs and transfers its plan once" {
         prepared.canonical.forwardTwiddleWords().len,
     );
 
-    var owned_plan = prepared.takeArenaPlan();
+    var owned_plan = try prepared.instantiateArenaPlan(allocator);
     defer owned_plan.deinit(allocator);
-    try std.testing.expect(!prepared.structural.cuda_plan.arena_plan_live);
+    try std.testing.expectEqual(
+        prepared.structural.cuda_plan.arena_plan.total_words,
+        owned_plan.total_words,
+    );
 }

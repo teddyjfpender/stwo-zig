@@ -56,14 +56,23 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     defer if (runtime_live) runtime.abort() catch {};
     const driver = cuda.NativeDriver{
         .allocator = allocator,
-        .accepted_sms = &accepted_sms,
     };
-
-    var resident_timer = try std.time.Timer.start();
-    var output = try driver.runRetained(&runtime, .{
+    const proof_request = cuda.request.Request{
         .statement = admitted.statement,
         .protocol = admitted.protocol,
-    });
+    };
+    var shape_prepare_timer = try std.time.Timer.start();
+    var prepared = try driver.prepare(&runtime, proof_request);
+    const shape_prepare_ns = shape_prepare_timer.read();
+    defer prepared.deinit(allocator);
+
+    var verified_request_timer = try std.time.Timer.start();
+    var resident_timer = try std.time.Timer.start();
+    var output = try driver.runPreparedRetained(
+        &runtime,
+        proof_request,
+        &prepared,
+    );
     const resident_prove_ns = resident_timer.read();
     defer output.deinit(allocator);
     try requireResident(output.verdict);
@@ -78,6 +87,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
 
     const pcs_config = try pcsConfig();
 
+    var verification_timer = try std.time.Timer.start();
     // The verifier owns the proof after this point, including on failure.
     proof_live = false;
     try wide_fibonacci.verify(
@@ -89,23 +99,31 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         },
         proof,
     );
+    const verification_ns = verification_timer.read();
+    const verified_request_ns = verified_request_timer.read();
 
     var repetition_prove_ns: [cli.max_repetitions]u64 = undefined;
     var repetition_decode_ns: [cli.max_repetitions]u64 = undefined;
+    var repetition_verification_ns: [cli.max_repetitions]u64 = undefined;
+    var repetition_verified_request_ns: [cli.max_repetitions]u64 = undefined;
     var repetition_device_ns: [cli.max_repetitions]u64 = undefined;
     var runtime_proof_indices: [cli.max_repetitions]u64 = undefined;
     repetition_prove_ns[0] = resident_prove_ns;
     repetition_decode_ns[0] = decode_ns;
+    repetition_verification_ns[0] = verification_ns;
+    repetition_verified_request_ns[0] = verified_request_ns;
     repetition_device_ns[0] = output.verdict.counters.device_elapsed_ns;
     runtime_proof_indices[0] = output.verdict.runtime_proof_index;
     var final_verdict = output.verdict;
     var repetition: u32 = 1;
     while (repetition < request.repeat) : (repetition += 1) {
+        var repeated_verified_timer = try std.time.Timer.start();
         var repeated_timer = try std.time.Timer.start();
-        var repeated = try driver.runRetained(&runtime, .{
-            .statement = admitted.statement,
-            .protocol = admitted.protocol,
-        });
+        var repeated = try driver.runPreparedRetained(
+            &runtime,
+            proof_request,
+            &prepared,
+        );
         repetition_prove_ns[repetition] = repeated_timer.read();
         repetition_device_ns[repetition] =
             repeated.verdict.counters.device_elapsed_ns;
@@ -132,6 +150,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         if (!std.mem.eql(u8, canonical, repeated_canonical))
             return error.UnstableCanonicalProof;
 
+        var repeated_verification_timer = try std.time.Timer.start();
         repeated_proof_live = false;
         try wide_fibonacci.verify(
             allocator,
@@ -142,6 +161,10 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
             },
             repeated_proof,
         );
+        repetition_verification_ns[repetition] =
+            repeated_verification_timer.read();
+        repetition_verified_request_ns[repetition] =
+            repeated_verified_timer.read();
     }
 
     if (runtime.completedProofs() != request.repeat)
@@ -180,11 +203,15 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         build_identity,
         device_uuid,
         canonical.len,
+        &prepared,
         repetition_prove_ns[0..request.repeat],
         repetition_decode_ns[0..request.repeat],
+        repetition_verification_ns[0..request.repeat],
+        repetition_verified_request_ns[0..request.repeat],
         repetition_device_ns[0..request.repeat],
         runtime_proof_indices[0..request.repeat],
         runtime_init_ns,
+        shape_prepare_ns,
         runtime_teardown_ns,
         total_started.read(),
     );
@@ -288,17 +315,28 @@ fn renderReport(
     build_identity: [64]u8,
     device_uuid: [32]u8,
     proof_bytes: usize,
+    prepared: anytype,
     resident_prove_ns: []const u64,
     decode_ns: []const u64,
+    verification_ns: []const u64,
+    verified_request_ns: []const u64,
     device_elapsed_ns: []const u64,
     runtime_proof_indices: []const u64,
     runtime_init_ns: u64,
+    shape_prepare_ns: u64,
     runtime_teardown_ns: u64,
     total_ns: u64,
 ) ![]u8 {
     const counters = verdict.counters;
+    const structural = &prepared.structural;
+    const plan = &structural.cuda_plan;
+    const program_digest = std.fmt.bytesToHex(
+        structural.proof_program.program_digest,
+        .lower,
+    );
+    const plan_cache_key = std.fmt.bytesToHex(plan.cache_key, .lower);
     return std.json.Stringify.valueAlloc(allocator, .{
-        .schema_version = @as(u32, 2),
+        .schema_version = @as(u32, 3),
         .product = "stwo-native-cuda",
         .backend = cli.backend_name,
         .application = cli.air_name,
@@ -308,6 +346,18 @@ fn renderReport(
             .sequence_len = geometry.statement.sequence_len,
             .trace_rows = geometry.trace_rows,
             .trace_cells = geometry.trace_cells,
+        },
+        .plan = .{
+            .program_sha256 = &program_digest,
+            .cache_key_sha256 = &plan_cache_key,
+            .schedule_version = plan.target.version,
+            .compiled_once = true,
+            .reuse_count = request.repeat,
+            .node_count = plan.schedule.len,
+            .request_bytes = plan.prediction.request_bytes,
+            .persistent_bytes = plan.prediction.persistent_bytes,
+            .predicted_minimum_launches = plan.prediction.minimum_launches,
+            .transcript_barriers = plan.prediction.transcript_barriers,
         },
         .proof = .{
             .path = request.output,
@@ -319,8 +369,11 @@ fn renderReport(
         },
         .timing_ns = .{
             .runtime_init = runtime_init_ns,
+            .shape_prepare = shape_prepare_ns,
             .resident_prove = resident_prove_ns[0],
             .terminal_decode = decode_ns[0],
+            .independent_verification = verification_ns[0],
+            .verified_request = verified_request_ns[0],
             .runtime_teardown = runtime_teardown_ns,
             .total_before_publication = total_ns,
         },
@@ -332,6 +385,8 @@ fn renderReport(
             .zero_final_pool_usage = true,
             .resident_prove_ns = resident_prove_ns,
             .terminal_decode_ns = decode_ns,
+            .independent_verification_ns = verification_ns,
+            .verified_request_ns = verified_request_ns,
             .device_elapsed_ns = device_elapsed_ns,
             .runtime_proof_indices = runtime_proof_indices,
         },

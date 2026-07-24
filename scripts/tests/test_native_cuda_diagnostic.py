@@ -96,7 +96,7 @@ resident_ns = rows * args.sequence_len + 1_000_000
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
 report = {
-    "schema_version": 2,
+    "schema_version": 3,
     "product": "stwo-native-cuda",
     "backend": "cuda",
     "application": "wide_fibonacci",
@@ -106,6 +106,18 @@ report = {
         "sequence_len": args.sequence_len,
         "trace_rows": rows,
         "trace_cells": rows * args.sequence_len,
+    },
+    "plan": {
+        "program_sha256": "c" * 64,
+        "cache_key_sha256": "d" * 64,
+        "schedule_version": 1,
+        "compiled_once": True,
+        "reuse_count": args.repeat,
+        "node_count": 8,
+        "request_bytes": 4096,
+        "persistent_bytes": 0,
+        "predicted_minimum_launches": 8,
+        "transcript_barriers": 40,
     },
     "proof": {
         "path": args.output,
@@ -117,10 +129,13 @@ report = {
     },
     "timing_ns": {
         "runtime_init": 1000,
+        "shape_prepare": 1000,
         "resident_prove": resident_ns,
         "terminal_decode": 1000,
+        "independent_verification": 1000,
+        "verified_request": resident_ns + 3000,
         "runtime_teardown": 1000,
-        "total_before_publication": resident_ns + 4000,
+        "total_before_publication": resident_ns + 7000,
     },
     "process_repetition": {
         "count": args.repeat,
@@ -130,6 +145,8 @@ report = {
         "zero_final_pool_usage": True,
         "resident_prove_ns": [resident_ns],
         "terminal_decode_ns": [1000],
+        "independent_verification_ns": [1000],
+        "verified_request_ns": [resident_ns + 3000],
         "device_elapsed_ns": [10000],
         "runtime_proof_indices": [1],
     },
@@ -240,11 +257,11 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
 
             self.assertEqual(
                 document["schema"],
-                "native_cuda_cold_diagnostic_v2",
+                "native_cuda_cold_diagnostic_v3",
             )
             self.assertEqual(
                 document["evidence_class"],
-                "diagnostic_cold_process_stage_attributed",
+                "diagnostic_cold_process_plan_and_stage_attributed",
             )
             self.assertFalse(document["headline_eligible"])
             self.assertFalse(

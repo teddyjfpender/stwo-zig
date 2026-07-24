@@ -24,6 +24,13 @@ pub fn RuntimeFor(comptime Session: type) type {
             return &self.session;
         }
 
+        /// Returns immutable planning identity without starting a proof or
+        /// changing per-proof telemetry.
+        pub fn planningSession(self: *const Self) *const Session {
+            std.debug.assert(self.state == .ready);
+            return &self.session;
+        }
+
         pub fn completedProofs(self: Self) u64 {
             return self.session.completed_proofs;
         }
@@ -76,6 +83,7 @@ test "process runtime admits sequential proof sessions" {
 
     const Runtime = RuntimeFor(FakeSession);
     var runtime = try Runtime.open(&.{89});
+    try std.testing.expect(!runtime.planningSession().active);
     (try runtime.beginProof()).finishRetained() catch unreachable;
     (try runtime.beginProof()).finishRetained() catch unreachable;
     try std.testing.expectEqual(@as(u64, 2), runtime.completedProofs());

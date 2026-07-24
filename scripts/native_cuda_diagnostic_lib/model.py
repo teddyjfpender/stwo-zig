@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-SCHEMA = "native_cuda_cold_diagnostic_v2"
-EVIDENCE_CLASS = "diagnostic_cold_process_stage_attributed"
+SCHEMA = "native_cuda_cold_diagnostic_v3"
+EVIDENCE_CLASS = "diagnostic_cold_process_plan_and_stage_attributed"
 PRODUCT = "stwo-native-cuda"
 BACKEND = "cuda"
 APPLICATION = "wide_fibonacci"

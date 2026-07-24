@@ -122,8 +122,11 @@ pub const PreparedPlan = struct {
         return self.cuda_plan.arena_plan.total_words;
     }
 
-    pub fn takeArenaPlan(self: *PreparedPlan) arena.Plan {
-        return self.cuda_plan.takeArenaPlan();
+    pub fn instantiateArenaPlan(
+        self: *const PreparedPlan,
+        allocator: std.mem.Allocator,
+    ) std.mem.Allocator.Error!arena.Plan {
+        return self.cuda_plan.instantiateArenaPlan(allocator);
     }
 
     pub fn schedule(
