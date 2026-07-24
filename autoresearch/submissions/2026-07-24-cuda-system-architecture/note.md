@@ -1,5 +1,10 @@
 # Generic CUDA System Architecture
 
+The original checkpoint below is frozen evidence. Continuing system-extraction
+work is recorded in
+[`transcripts/session-02-system-extraction.md`](transcripts/session-02-system-extraction.md);
+new diagnostics do not retroactively change the qualified verdict.
+
 ## Verdict
 
 Commit `a49a389de5cf9c40305b521b9f18747bdb999887` is a
@@ -79,6 +84,54 @@ A retained four-level Merkle kernel reduced launch count by 31-39%, but
 regressed real proofs at small, wide, and extreme shapes. Its shared-memory
 and live-state cost plus underfilled upper levels outweighed launch savings.
 The experiment was removed rather than retained as benchmark-specific code.
+
+## Continuing System Extraction
+
+The architecture checkpoint became the baseline for a broader 12-workload
+CUDA matrix. Exact resident routes now cover wide Fibonacci, XOR, Plonk, and a
+truthfully labelled seeded-wide Blake example. The matrix has seven enabled
+structural classes; true hash-heavy, lookup-heavy, irregular state-machine,
+VM, and sustained-queue classes remain explicit blockers.
+
+Two general changes produced measurable portfolio gains:
+
+- fused LDE first-interval staging reduced the original eight-row diagnostic
+  portfolio to ratio `0.966055` (1.0351x);
+- precomputed exact Blake domain-prefix states reduced the same portfolio to
+  ratio `0.910995` (1.0977x) against the LDE checkpoint, with every row
+  improving and exact proofs retained.
+
+The second change is important architecturally. It removed identical work from
+every Merkle and FRI hash rather than specializing an AIR. It also reduced
+several SM89 hash kernels from 128-194 registers plus stack frames to 40
+registers or fewer.
+
+Subsequent experiments established a stricter optimization boundary:
+
+- FRI fold-plus-leaf fusion removed 9-21 launches and improved the FRI stage
+  by 2.1-6.3%, but the complete 12-workload portfolio improved only 1.0038x.
+  The 776-line candidate was reverted.
+- four-lane cooperative Blake hashing reduced register pressure but made the
+  portfolio about 1% slower and regressed the worst XOR row by 3.6%. It was
+  rejected before integration.
+
+Nsight Systems then measured the warmed `log20 x 100` product. Circle
+coefficient/evaluation transforms consumed roughly 58% of kernel time; the
+largest single `n2b` continuation consumed 21.3%. Merkle leaf and parent
+hashing together consumed about 12%, quotient accumulation 5.8%, and the AIR
+constraint kernel 5.6%.
+
+This evidence changes the optimization priority:
+
+> Stop treating launch-count reduction as the primary objective. Remove or
+> restructure the coefficient/evaluation representation transforms that
+> dominate the resident proof.
+
+The active hypotheses are therefore a stack-free log-21 N2B schedule, fused
+quotient production/combination without intermediate coordinate traffic, and
+completion of the state-machine route as the next independent CUDA customer.
+Each remains subject to the same exact-proof, strict-AOT, zero-fallback,
+single-terminal-D2H, and broad-portfolio gates.
 
 ## Coverage Blockers
 
