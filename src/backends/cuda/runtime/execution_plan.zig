@@ -293,9 +293,29 @@ test "CUDA planning binds target identity and derives independent lanes" {
         &plan.cache_key,
         &cacheKey(program.program_digest, changed),
     ));
+
+    var resource_changed = try testProgramWithGraph(allocator, false);
+    defer resource_changed.deinit(allocator);
+    try std.testing.expectEqualSlices(
+        u8,
+        &program.semantic_digest,
+        &resource_changed.semantic_digest,
+    );
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &plan.cache_key,
+        &cacheKey(resource_changed.program_digest, options),
+    ));
 }
 
 fn testProgram(allocator: std.mem.Allocator) !proof_ir.ProofProgram {
+    return testProgramWithGraph(allocator, true);
+}
+
+fn testProgramWithGraph(
+    allocator: std.mem.Allocator,
+    graph_candidate: bool,
+) !proof_ir.ProofProgram {
     const nodes = [_]proof_ir.Node{
         .{
             .id = 0,
@@ -303,7 +323,7 @@ fn testProgram(allocator: std.mem.Allocator) !proof_ir.ProofProgram {
             .stage = .trace_generation,
             .dependencies = .{ .first = 0, .count = 0 },
             .parallelism = .component,
-            .graph_candidate = true,
+            .graph_candidate = graph_candidate,
             .work = .{
                 .bytes_read = 0,
                 .bytes_written = 256,
@@ -318,7 +338,7 @@ fn testProgram(allocator: std.mem.Allocator) !proof_ir.ProofProgram {
             .stage = .trace_commit,
             .dependencies = .{ .first = 0, .count = 1 },
             .parallelism = .merkle_subtree,
-            .graph_candidate = true,
+            .graph_candidate = graph_candidate,
             .work = .{
                 .bytes_read = 256,
                 .bytes_written = 0,

@@ -4,8 +4,15 @@
 //! allocation and execution plans without learning workload names.
 
 const std = @import("std");
+const native_air = @import("proof_program_native_air.zig");
 
 pub const Digest = [32]u8;
+pub const NativeAirContract = native_air.Contract;
+pub const NativeTraceGeometry = native_air.TraceGeometry;
+pub const MaterializedHostTrace = native_air.MaterializedHostTrace;
+pub const NativeStatementBinding = native_air.StatementBinding;
+pub const NativeSampleMaskRecipe = native_air.SampleMaskRecipe;
+pub const NativeConstraintParameterAbi = native_air.ConstraintParameterAbi;
 
 pub const Stage = enum(u8) {
     ingress,
@@ -167,6 +174,8 @@ pub const Node = struct {
 
 pub const Description = struct {
     identity: Identity,
+    /// Null retains the original proof-program-v1 digest and semantics.
+    native_air_contract: ?NativeAirContract = null,
     trace_columns: []const TraceColumn,
     constraints: []const ConstraintProgram,
     commitments: []const CommitmentTree,
@@ -192,12 +201,14 @@ pub const Error = error{
     InvalidDependency,
     InvalidFriSchedule,
     InvalidNode,
+    InvalidNativeAir,
     InvalidQuotientSchedule,
     InvalidTranscript,
 };
 
 pub const ProofProgram = struct {
     identity: Identity,
+    native_air_contract: ?NativeAirContract,
     trace_columns: []TraceColumn,
     constraints: []ConstraintProgram,
     commitments: []CommitmentTree,
@@ -207,6 +218,9 @@ pub const ProofProgram = struct {
     buffers: []Buffer,
     nodes: []Node,
     dependency_ids: []u32,
+    /// Proof meaning, independent of backend scheduling and resource policy.
+    semantic_digest: Digest,
+    /// Complete executable identity used for backend compilation caches.
     program_digest: Digest,
 
     pub fn init(
@@ -250,6 +264,7 @@ pub const ProofProgram = struct {
 
         var program = ProofProgram{
             .identity = description.identity,
+            .native_air_contract = description.native_air_contract,
             .trace_columns = trace_columns,
             .constraints = constraints,
             .commitments = commitments,
@@ -259,9 +274,11 @@ pub const ProofProgram = struct {
             .buffers = buffers,
             .nodes = nodes,
             .dependency_ids = dependency_ids,
+            .semantic_digest = undefined,
             .program_digest = undefined,
         };
         try program.validate();
+        program.semantic_digest = program.computeSemanticDigest();
         program.program_digest = program.computeDigest();
         return program;
     }
@@ -283,6 +300,10 @@ pub const ProofProgram = struct {
 
     pub fn validate(self: ProofProgram) Error!void {
         try validateIdentity(self.identity);
+        if (self.native_air_contract) |contract| {
+            contract.validate() catch return error.InvalidNativeAir;
+            try validateNativeAir(self, contract);
+        }
         if (self.trace_columns.len == 0) return error.EmptyTrace;
         if (self.constraints.len == 0) return error.EmptyConstraintSet;
         if (self.commitments.len == 0) return error.EmptyCommitmentSet;
@@ -316,14 +337,17 @@ pub const ProofProgram = struct {
         for (self.commitments, 0..) |tree, index| {
             if (tree.id != index or tree.evaluation_log_rows == 0)
                 return error.InvalidCommitment;
-            if (tree.role == .preprocessed and tree.column_count == 0) continue;
             const end = std.math.add(
                 usize,
                 tree.first_column,
                 tree.column_count,
             ) catch return error.InvalidCommitment;
-            if (tree.column_count == 0 or end > self.trace_columns.len)
+            if (end > self.trace_columns.len)
                 return error.InvalidCommitment;
+            if (tree.column_count == 0) {
+                if (!isTraceRole(tree.role)) return error.InvalidCommitment;
+                continue;
+            }
         }
         for (self.transcript, 0..) |barrier, index| {
             if (barrier.ordinal != index or
@@ -394,7 +418,10 @@ pub const ProofProgram = struct {
 
     fn computeDigest(self: ProofProgram) Digest {
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update("stwo-zig-proof-program-v1");
+        hash.update(if (self.native_air_contract == null)
+            "stwo-zig-proof-program-v1"
+        else
+            "stwo-zig-proof-program-v2");
         hashInt(&hash, u8, @intFromEnum(self.identity.frontend));
         hash.update(&self.identity.air);
         hash.update(&self.identity.statement);
@@ -411,11 +438,169 @@ pub const ProofProgram = struct {
         for (self.dependency_ids) |dependency| {
             hashInt(&hash, u32, dependency);
         }
+        if (self.native_air_contract) |contract| hashStruct(&hash, contract);
+        var digest: Digest = undefined;
+        hash.final(&digest);
+        return digest;
+    }
+
+    fn computeSemanticDigest(self: ProofProgram) Digest {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("stwo-zig-proof-program-semantic-v1");
+        hashInt(&hash, u8, @intFromEnum(self.identity.frontend));
+        hash.update(&self.identity.air);
+        hash.update(&self.identity.statement);
+        hash.update(&self.identity.protocol);
+        hashSlice(&hash, self.trace_columns);
+        hashSlice(&hash, self.constraints);
+        hashSemanticCommitments(&hash, self.commitments);
+        hashSemanticTranscript(&hash, self.transcript, self.nodes);
+        hashStruct(&hash, self.quotient);
+        hashSlice(&hash, self.fri_layers);
+        if (self.native_air_contract) |contract| {
+            hashInt(&hash, u8, 1);
+            hashNativeAirSemantics(&hash, contract);
+        } else {
+            hashInt(&hash, u8, 0);
+        }
         var digest: Digest = undefined;
         hash.final(&digest);
         return digest;
     }
 };
+
+fn hashSemanticCommitments(
+    hash: *std.crypto.hash.sha2.Sha256,
+    trees: []const CommitmentTree,
+) void {
+    hashInt(hash, u64, trees.len);
+    for (trees) |tree| {
+        hashInt(hash, u32, tree.id);
+        hashInt(hash, u8, @intFromEnum(tree.role));
+        hashInt(hash, u32, tree.first_column);
+        hashInt(hash, u32, tree.column_count);
+        hashInt(hash, u32, tree.evaluation_log_rows);
+        hashInt(hash, u32, tree.log_rows_per_leaf);
+    }
+}
+
+fn hashSemanticTranscript(
+    hash: *std.crypto.hash.sha2.Sha256,
+    barriers: []const TranscriptBarrier,
+    nodes: []const Node,
+) void {
+    hashInt(hash, u64, barriers.len);
+    for (barriers) |barrier| {
+        const node = nodes[barrier.node];
+        hashInt(hash, u32, barrier.ordinal);
+        hashInt(hash, u8, @intFromEnum(barrier.kind));
+        hashInt(hash, u32, barrier.value_count);
+        hashInt(hash, u8, @intFromEnum(node.kind));
+        hashInt(hash, u8, @intFromEnum(node.stage));
+    }
+}
+
+fn hashNativeAirSemantics(
+    hash: *std.crypto.hash.sha2.Sha256,
+    contract: NativeAirContract,
+) void {
+    hashStruct(hash, contract);
+}
+
+fn validateNativeAir(
+    program: ProofProgram,
+    contract: NativeAirContract,
+) Error!void {
+    if (program.identity.frontend != .native) return error.InvalidNativeAir;
+    const geometry = contract.geometry;
+    var role_counts = [_]u32{0} ** 3;
+    for (program.trace_columns) |column| {
+        if (column.component != geometry.component or
+            column.log_rows != geometry.log_rows)
+        {
+            return error.InvalidNativeAir;
+        }
+        switch (column.role) {
+            .preprocessed => role_counts[0] += 1,
+            .main => role_counts[1] += 1,
+            .interaction => role_counts[2] += 1,
+            .composition => {},
+        }
+    }
+    if (role_counts[0] != geometry.preprocessed_columns or
+        role_counts[1] != geometry.main_columns or
+        role_counts[2] != geometry.interaction_columns)
+    {
+        return error.InvalidNativeAir;
+    }
+    for (program.constraints) |constraint| {
+        if (constraint.component != geometry.component)
+            return error.InvalidNativeAir;
+    }
+
+    const roles = [_]CommitmentRole{
+        .preprocessed,
+        .main,
+        .interaction,
+    };
+    const widths = [_]u32{
+        geometry.preprocessed_columns,
+        geometry.main_columns,
+        geometry.interaction_columns,
+    };
+    var first_column: u32 = 0;
+    var evaluation_log_rows: ?u32 = null;
+    for (roles, widths) |role, width| {
+        const tree = uniqueTree(program.commitments, role) orelse
+            return error.InvalidNativeAir;
+        if (tree.first_column != first_column or tree.column_count != width)
+            return error.InvalidNativeAir;
+        if (evaluation_log_rows) |expected| {
+            if (tree.evaluation_log_rows != expected)
+                return error.InvalidNativeAir;
+        } else {
+            evaluation_log_rows = tree.evaluation_log_rows;
+        }
+        var column_index: usize = tree.first_column;
+        const end = column_index + tree.column_count;
+        while (column_index < end) : (column_index += 1) {
+            if (columnRole(role) != program.trace_columns[column_index].role)
+                return error.InvalidNativeAir;
+        }
+        first_column = std.math.add(u32, first_column, width) catch
+            return error.InvalidNativeAir;
+    }
+}
+
+fn uniqueTree(
+    trees: []const CommitmentTree,
+    role: CommitmentRole,
+) ?CommitmentTree {
+    var result: ?CommitmentTree = null;
+    for (trees) |tree| {
+        if (tree.role != role) continue;
+        if (result != null) return null;
+        result = tree;
+    }
+    return result;
+}
+
+fn isTraceRole(role: CommitmentRole) bool {
+    return switch (role) {
+        .preprocessed, .main, .interaction => true,
+        .composition, .fri => false,
+    };
+}
+
+fn columnRole(role: CommitmentRole) ColumnRole {
+    return switch (role) {
+        .preprocessed => .preprocessed,
+        .main => .main,
+        .interaction => .interaction,
+        .composition => .composition,
+        .fri => unreachable,
+    };
+}
 
 pub fn identityDigest(bytes: []const u8) Digest {
     var digest: Digest = undefined;
@@ -583,6 +768,16 @@ test "program validation rejects cycles and produces stable identity" {
         u8,
         &first.program_digest,
         &second.program_digest,
+    );
+    var expected_v1: Digest = undefined;
+    _ = try std.fmt.hexToBytes(
+        &expected_v1,
+        "e3aeaa5c59c27266c6f1ac3f57d874567133b7af76547a22c8480fb282d265ff",
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &expected_v1,
+        &first.program_digest,
     );
 
     var invalid_nodes = nodes;

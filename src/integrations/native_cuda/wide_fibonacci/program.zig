@@ -125,6 +125,7 @@ pub fn emit(
             .statement = statementIdentity(geometry),
             .protocol = protocolIdentity(geometry),
         },
+        .native_air_contract = null,
         .trace_columns = trace_columns,
         .constraints = &constraint_programs,
         .commitments = &commitments,
@@ -492,6 +493,7 @@ test "wide Fibonacci emits one validated backend-neutral program" {
         @as(usize, 3),
         program.commitments.len,
     );
+    try std.testing.expect(program.native_air_contract == null);
 }
 
 fn testRequest() request.Request {

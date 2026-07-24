@@ -90,4 +90,5 @@ test "backend: contract modules compile" {
     _ = resident_storage;
     _ = secure_column;
     _ = proof_program;
+    _ = @import("proof_program_native_air_test.zig");
 }
