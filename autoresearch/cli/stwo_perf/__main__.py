@@ -96,8 +96,12 @@ def cmd_run(args) -> int:
     board = _resolve_board(args, m)
     if args.staged_calibration and not args.aa:
         return _fail("--staged-calibration is valid only with --aa")
-    if args.staged_calibration and board != "riscv":
-        return _fail("--staged-calibration is restricted to the RISC-V board")
+    staged_boards = {"riscv", "core_cuda"}
+    if args.staged_calibration and board not in staged_boards:
+        return _fail(
+            "--staged-calibration is restricted to the RISC-V and "
+            "core_cuda boards"
+        )
     if args.aa:
         lock = None
         try:
