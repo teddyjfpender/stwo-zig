@@ -7,6 +7,7 @@ const pcs = @import("stwo_core").pcs;
 pub const columns_per_round: u32 = 96;
 pub const preprocessed_columns: u32 = 0;
 pub const composition_columns: u32 = 8;
+pub const composition_coordinates: u32 = 4;
 pub const max_log_n_rows: u32 = 29;
 
 pub const Error = error{
@@ -28,6 +29,8 @@ pub const Geometry = struct {
     row_count: u32,
     main_columns: u32,
     main_cells: u64,
+    trace_cells: usize,
+    composition_rows: usize,
     sampled_value_count: usize,
     commitment_log_rows: u32,
     composition_log_rows: u32,
@@ -70,6 +73,8 @@ pub fn admit(
         trace_rows,
         main_columns,
     ) catch return error.GeometryOverflow;
+    const trace_cells = std.math.cast(usize, main_cells) orelse
+        return error.GeometryOverflow;
     const sampled_value_count = std.math.add(
         usize,
         std.math.cast(usize, main_columns) orelse
@@ -107,6 +112,13 @@ pub fn admit(
         .row_count = row_count,
         .main_columns = main_columns,
         .main_cells = main_cells,
+        .trace_cells = trace_cells,
+        .composition_rows = std.math.mul(
+            usize,
+            std.math.cast(usize, trace_rows) orelse
+                return error.GeometryOverflow,
+            2,
+        ) catch return error.GeometryOverflow,
         .sampled_value_count = sampled_value_count,
         .commitment_log_rows = commitment_log_rows,
         .composition_log_rows = composition_log_rows,
