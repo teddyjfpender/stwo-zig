@@ -4,6 +4,7 @@ const std = @import("std");
 const cli = @import("cli.zig");
 const proof_route = @import("proof_route.zig");
 const plonk_route = @import("plonk_route.zig");
+const blake_route = @import("blake_route.zig");
 const wide_route = @import("wide_route.zig");
 const xor_route = @import("xor_route.zig");
 
@@ -34,6 +35,11 @@ pub fn main() !void {
                 allocator,
                 request,
             ),
+            .blake => try proof_route.prove(
+                blake_route,
+                allocator,
+                request,
+            ),
         },
     }
 }
@@ -42,4 +48,5 @@ test {
     _ = wide_route;
     _ = xor_route;
     _ = plonk_route;
+    _ = blake_route;
 }

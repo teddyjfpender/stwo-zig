@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from scripts.native_cuda_diagnostic_lib.model import (
+    BlakeShape,
     DiagnosticError,
     PlonkShape,
     Shape,
@@ -31,7 +32,7 @@ class BenchmarkError(RuntimeError):
 class Workload:
     workload_id: str
     structural_class: str
-    shape: Shape | XorShape | PlonkShape | None
+    shape: Shape | XorShape | PlonkShape | BlakeShape | None
     enabled: bool
     unavailable_reason: str | None = None
 
@@ -84,11 +85,16 @@ COVERAGE_MATRIX = (
     Workload("wide_wf_log18x73", "wide", Shape(18, 73), True),
     Workload("wide_wf_log18x128", "wide", Shape(18, 128), True),
     Workload(
-        "hash_native",
+        "hash_blake_log10x10",
         "hash_heavy",
-        None,
-        False,
-        "Native Blake and Poseidon do not yet emit ProofProgram CUDA packs",
+        BlakeShape(10, 10),
+        True,
+    ),
+    Workload(
+        "hash_blake_log12x10",
+        "hash_heavy",
+        BlakeShape(12, 10),
+        True,
     ),
     Workload(
         "lookup_native",
@@ -136,6 +142,7 @@ PROFILES = {
         (
             "latency_wf_log14x32",
             "lookup_xor_log14_step2",
+            "hash_blake_log10x10",
             "wide_wf_log18x37",
         ),
         warmups=1,
