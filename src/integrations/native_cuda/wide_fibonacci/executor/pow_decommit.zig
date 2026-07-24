@@ -417,7 +417,7 @@ test "fake contract observes PoW then absorb without a host boundary" {
                 snapshot: stages.common.Words,
             ) !void {
                 try std.testing.expectEqual(
-                    try powStep(prepared.fri.layers.len),
+                    try powStep(3),
                     boundary_value.expected_step,
                 );
                 try std.testing.expectEqual(@as(usize, 2), nonce.len);

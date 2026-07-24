@@ -236,7 +236,20 @@ fn transformLaunches(
 
 fn requireTransformStage(stage: telemetry.Stage) runtime_error.Error!void {
     switch (stage) {
-        .trace_commit, .oods, .quotient, .fri_commit => {},
+        .trace_commit,
+        .constraint_evaluation,
+        .oods,
+        .quotient,
+        .fri_commit,
+        => {},
         else => return error.StageOrderViolation,
     }
+}
+
+test "composition extension is an admitted transform stage" {
+    try requireTransformStage(.constraint_evaluation);
+    try std.testing.expectError(
+        error.StageOrderViolation,
+        requireTransformStage(.ingress),
+    );
 }

@@ -206,7 +206,15 @@ pub fn OpsFor(comptime Api: type) type {
 
 fn requireCommitStage(stage: telemetry.Stage) runtime_error.Error!void {
     switch (stage) {
-        .trace_commit, .fri_commit => {},
+        .trace_commit, .constraint_evaluation, .fri_commit => {},
         else => return error.StageOrderViolation,
     }
+}
+
+test "composition commitment is an admitted commitment stage" {
+    try requireCommitStage(.constraint_evaluation);
+    try std.testing.expectError(
+        error.StageOrderViolation,
+        requireCommitStage(.ingress),
+    );
 }

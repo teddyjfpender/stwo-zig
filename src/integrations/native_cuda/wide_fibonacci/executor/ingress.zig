@@ -15,7 +15,6 @@ pub fn run(
     pack: *const canonical_ingress.Pack,
     views: *const bindings.Views,
 ) !void {
-    const geometry = prepared.logical.geometry;
     if (views.proof.bundle.len != prepared.proof.total_words or
         views.transcript.static_inputs.len !=
             canonical_ingress.transcript_static_words)
