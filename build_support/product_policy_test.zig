@@ -31,7 +31,7 @@ test "CUDA products cannot inherit toolchain defaults" {
         if (descriptor.product.backend == .cuda)
             try std.testing.expect(!descriptor.isConstructible());
     }
-    try std.testing.expectError(error.MissingCudaLibraryDirectory, (cuda.Toolchain{}).validate());
+    try std.testing.expectError(error.MissingCudaCompiler, (cuda.Toolchain{}).validate());
 }
 
 test "Native Metal alone is parity-gated and macOS compatible" {
