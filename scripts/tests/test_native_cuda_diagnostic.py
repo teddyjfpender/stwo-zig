@@ -36,8 +36,11 @@ parser.add_argument("command")
 parser.add_argument("--air", required=True)
 parser.add_argument("--backend", required=True)
 parser.add_argument("--protocol", required=True)
-parser.add_argument("--log-n-rows", required=True, type=int)
-parser.add_argument("--sequence-len", required=True, type=int)
+parser.add_argument("--log-n-rows", type=int)
+parser.add_argument("--sequence-len", type=int)
+parser.add_argument("--log-size", type=int)
+parser.add_argument("--log-step", type=int)
+parser.add_argument("--offset", type=int)
 parser.add_argument("--output", required=True)
 parser.add_argument("--report-out", required=True)
 parser.add_argument("--repeat", required=True, type=int)
@@ -48,12 +51,46 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+if args.air == "wide_fibonacci":
+    if args.log_n_rows is None or args.sequence_len is None:
+        parser.error("wide_fibonacci shape is incomplete")
+    rows = 1 << args.log_n_rows
+    trace_cells = rows * args.sequence_len
+    artifact_statement_key = "wide_fibonacci_statement"
+    artifact_statement = {
+        "log_n_rows": args.log_n_rows,
+        "sequence_len": args.sequence_len,
+    }
+    report_statement = {
+        **artifact_statement,
+        "trace_rows": rows,
+        "trace_cells": trace_cells,
+    }
+elif args.air == "xor":
+    if args.log_size is None or args.log_step is None or args.offset is None:
+        parser.error("xor shape is incomplete")
+    rows = 1 << args.log_size
+    trace_cells = rows * 3
+    artifact_statement_key = "xor_statement"
+    artifact_statement = {
+        "log_size": args.log_size,
+        "log_step": args.log_step,
+        "offset": args.offset,
+    }
+    report_statement = {
+        **artifact_statement,
+        "trace_rows": rows,
+        "trace_cells": trace_cells,
+    }
+else:
+    parser.error("unsupported AIR")
+
 mode = os.environ.get("FAKE_CUDA_MODE", "valid")
 sample = Path(args.output).parent.name
 proof_value = {
     "backend": "cuda",
-    "log_n_rows": args.log_n_rows,
-    "sequence_len": args.sequence_len,
+    "air": args.air,
+    "statement": artifact_statement,
 }
 if mode == "proof-drift" and sample.endswith("001"):
     proof_value["poison"] = True
@@ -69,7 +106,7 @@ artifact = {
     "upstream_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
     "exchange_mode": "proof_exchange_json_wire_v1",
     "generator": "zig",
-    "example": "wide_fibonacci",
+    "example": args.air,
     "prove_mode": "prove",
     "pcs_config": {
         "pow_bits": 10,
@@ -85,20 +122,22 @@ artifact = {
     "plonk_statement": None,
     "poseidon_statement": None,
     "state_machine_statement": None,
-    "wide_fibonacci_statement": {
-        "log_n_rows": args.log_n_rows,
-        "sequence_len": args.sequence_len,
-    },
-    "xor_statement": None,
+    "wide_fibonacci_statement": (
+        artifact_statement
+        if artifact_statement_key == "wide_fibonacci_statement"
+        else None
+    ),
+    "xor_statement": (
+        artifact_statement if artifact_statement_key == "xor_statement" else None
+    ),
     "proof_bytes_hex": proof_bytes.hex(),
 }
 Path(args.output).write_text(
     json.dumps(artifact, sort_keys=True, separators=(",", ":")) + "\n"
 )
 
-rows = 1 << args.log_n_rows
 binary_scale = 2 if "baseline" in Path(__file__).name else 1
-resident_ns = (rows * args.sequence_len + 1_000_000) * binary_scale
+resident_ns = (trace_cells + 1_000_000) * binary_scale
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
 historical_v4 = "schema-v4" in Path(__file__).name
@@ -121,8 +160,8 @@ report = {
     "schema_version": 6,
     "product": "stwo-native-cuda",
     "backend": "cuda",
-    "application": "wide_fibonacci",
-    "protocol": "raw-stwo-wide-v1",
+    "application": args.air,
+    "protocol": args.protocol,
     "execution_mode": args.execution_mode,
     "product_identity": {
         "schema_version": 2,
@@ -131,11 +170,11 @@ report = {
         "backend": "cuda",
         "role": "cli",
         "protocol_features": (
-            "native-wide-fibonacci-v1+cuda-resident-proof-v1+"
+            "native-examples-v1+cuda-resident-proof-v1+"
             "explicit-toolchain-v1"
         ),
         "protocol_manifest_sha256": hashlib.sha256(
-            b"native-wide-fibonacci-v1+cuda-resident-proof-v1+"
+            b"native-examples-v1+cuda-resident-proof-v1+"
             b"explicit-toolchain-v1"
         ).hexdigest(),
         "identity_sha256": "1" * 64,
@@ -157,12 +196,7 @@ report = {
         "sdk_manifest": "cuda-explicit-toolchain-v1",
         "aot_manifest": "cuda-authenticated-native-pack-v1",
     },
-    "statement": {
-        "log_n_rows": args.log_n_rows,
-        "sequence_len": args.sequence_len,
-        "trace_rows": rows,
-        "trace_cells": rows * args.sequence_len,
-    },
+    "statement": report_statement,
     "plan": {
         "program_sha256": program_sha256,
         "semantic_sha256": semantic_sha256,
@@ -216,8 +250,8 @@ report = {
         "all_stages_complete_once": True,
         "terminal_d2h_operations": 1,
         "terminal_d2h_bytes": len(proof_bytes),
-        "h2d_bytes": rows * args.sequence_len * 4,
-        "d2d_bytes": rows * args.sequence_len * 8,
+        "h2d_bytes": trace_cells * 4,
+        "d2d_bytes": trace_cells * 8,
         "cpu_fallback_attempts": fallbacks,
         "cpu_fallbacks_completed": fallbacks,
         "kernel_launches": 30,

@@ -19,7 +19,7 @@ from scripts.native_cuda_benchmark_lib import (  # noqa: E402
     Workload,
     run_benchmark,
 )
-from scripts.native_cuda_diagnostic_lib.model import Shape  # noqa: E402
+from scripts.native_cuda_diagnostic_lib.model import Shape, XorShape  # noqa: E402
 from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
     FAKE_PRODUCT,
 )
@@ -39,6 +39,7 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
         *,
         baseline: Path | None = None,
         rounds: int = 1,
+        workload: Workload | None = None,
     ) -> Settings:
         return Settings(
             candidate_bin=candidate,
@@ -55,11 +56,9 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             device_ordinal="0",
             bootstrap_resamples=1_000,
             workloads=(
-                Workload(
-                    "fake_latency",
-                    "latency",
-                    Shape(5, 8),
-                    True,
+                workload
+                or Workload(
+                    "fake_latency", "latency", Shape(5, 8), True
                 ),
             ),
         )
@@ -75,7 +74,7 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
 
             self.assertEqual(
                 document["schema"],
-                "native_cuda_structural_benchmark_v1",
+                "native_cuda_structural_benchmark_v2",
             )
             self.assertFalse(document["headline_eligible"])
             self.assertFalse(document["portfolio"]["available"])
@@ -98,6 +97,57 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
                 session["metrics"]["mechanism"]["plan"]["reuse_count"],
                 4,
             )
+
+    def test_xor_workload_uses_its_own_protocol_shape_and_throughput(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shape = XorShape(14, 2, 3)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                workload=Workload(
+                    "fake_xor",
+                    "lookup_periodic",
+                    shape,
+                    True,
+                ),
+            )
+            document, _ = run_benchmark(settings)
+
+            workload = document["workloads"][0]
+            self.assertEqual(shape.statement(), workload["statement"])
+            session = workload["sessions"][0]
+            command = session["raw"]["command"]
+            self.assertIn("raw-stwo-xor-v1", command)
+            self.assertIn("--log-size", command)
+            self.assertNotIn("--log-n-rows", command)
+            self.assertEqual("xor", session["raw"]["proof"]["example"])
+            self.assertAlmostEqual(
+                shape.trace_cells
+                / (
+                    session["metrics"]["steady"]["verified_ms"]["median"]
+                    * 1000.0
+                ),
+                session["metrics"]["steady"][
+                    "verified_committed_mcells_per_second"
+                ],
+            )
+
+    def test_xor_workload_rejects_noncanonical_periodic_offset(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                workload=Workload(
+                    "invalid_xor",
+                    "lookup_periodic",
+                    XorShape(14, 2, 4),
+                    True,
+                ),
+            )
+            with self.assertRaisesRegex(BenchmarkError, "XOR offset"):
+                settings.validate()
 
     def test_paired_rounds_produce_class_equal_portfolio(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -18,6 +18,7 @@ from .model import (
     UPSTREAM_COMMIT,
     DiagnosticError,
     Shape,
+    XorShape,
 )
 
 
@@ -79,12 +80,6 @@ PLAN_KEYS = {
     "transcript_barriers",
 }
 PLAN_KEYS_V4_V5 = PLAN_KEYS - {"semantic_sha256"}
-STATEMENT_KEYS = {
-    "log_n_rows",
-    "sequence_len",
-    "trace_rows",
-    "trace_cells",
-}
 PROOF_KEYS = {
     "path",
     "format",
@@ -290,7 +285,7 @@ def _read_json(path: Path, maximum: int, context: str) -> tuple[dict[str, Any], 
 
 def validate_artifact(
     path: Path,
-    shape: Shape,
+    shape: Shape | XorShape,
 ) -> dict[str, Any]:
     document, raw = _read_json(
         path,
@@ -303,7 +298,7 @@ def validate_artifact(
         "upstream_commit": UPSTREAM_COMMIT,
         "exchange_mode": EXCHANGE_MODE,
         "generator": "zig",
-        "example": APPLICATION,
+        "example": shape.application,
         "prove_mode": "prove",
     }
     for key, expected in expected_scalars.items():
@@ -311,15 +306,13 @@ def validate_artifact(
             raise DiagnosticError(f"CUDA proof artifact has invalid {key}")
     if document["pcs_config"] != EXPECTED_PCS:
         raise DiagnosticError("CUDA proof artifact has invalid PCS parameters")
-    if document["wide_fibonacci_statement"] != {
-        "log_n_rows": shape.log_n_rows,
-        "sequence_len": shape.sequence_len,
-    }:
+    statement_key = shape.artifact_statement_key
+    if document[statement_key] != shape.artifact_statement():
         raise DiagnosticError("CUDA proof artifact statement does not match request")
     for key in ARTIFACT_KEYS:
         if (
             key.endswith("_statement")
-            and key != "wide_fibonacci_statement"
+            and key != statement_key
             and document[key] is not None
         ):
             raise DiagnosticError(f"CUDA proof artifact has unexpected {key}")
@@ -340,6 +333,8 @@ def validate_artifact(
     if not isinstance(proof_wire, dict):
         raise DiagnosticError("CUDA canonical proof wire root must be an object")
     return {
+        "example": shape.application,
+        "statement": shape.artifact_statement(),
         "artifact_bytes": len(raw),
         "artifact_sha256": hashlib.sha256(raw).hexdigest(),
         "canonical_bytes": len(proof_bytes),
@@ -349,7 +344,7 @@ def validate_artifact(
 
 def validate_report(
     report: dict[str, Any],
-    shape: Shape,
+    shape: Shape | XorShape,
     proof_path: Path,
     artifact: dict[str, Any],
     *,
@@ -361,6 +356,8 @@ def validate_report(
     historical_v4 = schema_version == 4 and allow_historical_baseline
     historical_v5 = schema_version == 5 and allow_historical_baseline
     historical = historical_v4 or historical_v5
+    if historical and not isinstance(shape, Shape):
+        raise DiagnosticError("historical CUDA reports are wide-Fibonacci only")
     if schema_version != 6 and not historical:
         raise DiagnosticError("CUDA report has invalid schema_version")
     _exact_keys(
@@ -373,8 +370,8 @@ def validate_report(
         "schema_version": schema_version,
         "product": PRODUCT,
         "backend": BACKEND,
-        "application": APPLICATION,
-        "protocol": PROTOCOL,
+        "application": shape.application,
+        "protocol": shape.protocol,
     }
     if not historical_v4:
         expected_scalars["execution_mode"] = expected_execution_mode
@@ -394,10 +391,6 @@ def validate_report(
         "frontend": "native-examples",
         "backend": BACKEND,
         "role": "cli",
-        "protocol_features": (
-            "native-wide-fibonacci-v1+cuda-resident-proof-v1+"
-            "explicit-toolchain-v1"
-        ),
         "implementation_repository": (
             "https://github.com/teddyjfpender/stwo-zig"
         ),
@@ -408,6 +401,22 @@ def validate_report(
     for key, expected in expected_identity.items():
         if identity[key] != expected:
             raise DiagnosticError(f"CUDA product identity has invalid {key}")
+    current_protocol_features = (
+        "native-examples-v1+cuda-resident-proof-v1+explicit-toolchain-v1"
+    )
+    historical_protocol_features = (
+        "native-wide-fibonacci-v1+cuda-resident-proof-v1+"
+        "explicit-toolchain-v1"
+    )
+    accepted_protocol_features = (
+        {current_protocol_features, historical_protocol_features}
+        if historical
+        else {current_protocol_features}
+    )
+    if identity["protocol_features"] not in accepted_protocol_features:
+        raise DiagnosticError(
+            "CUDA product identity has invalid protocol_features"
+        )
     for key in (
         "zig_version",
         "target_arch",
@@ -452,7 +461,7 @@ def validate_report(
         _digest(dirty_digest, "CUDA dirty-content digest")
 
     statement = _object(report["statement"], "CUDA report statement")
-    _exact_keys(statement, STATEMENT_KEYS, "CUDA report statement")
+    _exact_keys(statement, set(shape.statement()), "CUDA report statement")
     if statement != shape.statement():
         raise DiagnosticError("CUDA report statement does not match request")
 

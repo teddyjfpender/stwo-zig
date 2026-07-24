@@ -5,10 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from scripts.native_cuda_diagnostic_lib.model import Shape
+from scripts.native_cuda_diagnostic_lib.model import (
+    DiagnosticError,
+    Shape,
+    XorShape,
+)
 
 
-SCHEMA = "native_cuda_structural_benchmark_v1"
+SCHEMA = "native_cuda_structural_benchmark_v2"
 MAX_REPEAT = 16
 MAX_ROUNDS = 30
 MAX_TIMEOUT_SECONDS = 7200.0
@@ -26,7 +30,7 @@ class BenchmarkError(RuntimeError):
 class Workload:
     workload_id: str
     structural_class: str
-    shape: Shape | None
+    shape: Shape | XorShape | None
     enabled: bool
     unavailable_reason: str | None = None
 
@@ -38,6 +42,10 @@ class Workload:
                 raise BenchmarkError(
                     f"enabled CUDA workload is malformed: {self.workload_id}"
                 )
+            try:
+                self.shape.validate()
+            except DiagnosticError as error:
+                raise BenchmarkError(str(error)) from error
         elif self.shape is not None or not self.unavailable_reason:
             raise BenchmarkError(
                 f"disabled CUDA workload lacks one reason: {self.workload_id}"
@@ -46,6 +54,18 @@ class Workload:
 
 COVERAGE_MATRIX = (
     Workload("latency_wf_log14x32", "latency", Shape(14, 32), True),
+    Workload(
+        "lookup_xor_log14_step2",
+        "lookup_periodic",
+        XorShape(14, 2, 3),
+        True,
+    ),
+    Workload(
+        "lookup_xor_log16_step2",
+        "lookup_periodic",
+        XorShape(16, 2, 3),
+        True,
+    ),
     Workload("narrow_deep_wf_log22x3", "narrow_deep", Shape(22, 3), True),
     Workload("wide_wf_log18x37", "wide", Shape(18, 37), True),
     Workload("wide_wf_log18x73", "wide", Shape(18, 73), True),
@@ -100,7 +120,11 @@ class Profile:
 
 PROFILES = {
     "smoke": Profile(
-        ("latency_wf_log14x32", "wide_wf_log18x37"),
+        (
+            "latency_wf_log14x32",
+            "lookup_xor_log14_step2",
+            "wide_wf_log18x37",
+        ),
         warmups=1,
         samples=2,
         rounds=1,

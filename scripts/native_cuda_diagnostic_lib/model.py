@@ -12,6 +12,8 @@ PRODUCT = "stwo-native-cuda"
 BACKEND = "cuda"
 APPLICATION = "wide_fibonacci"
 PROTOCOL = "raw-stwo-wide-v1"
+XOR_APPLICATION = "xor"
+XOR_PROTOCOL = "raw-stwo-xor-v1"
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 
@@ -52,6 +54,105 @@ class Shape:
             "trace_rows": self.trace_rows,
             "trace_cells": self.trace_cells,
         }
+
+    @property
+    def application(self) -> str:
+        return APPLICATION
+
+    @property
+    def protocol(self) -> str:
+        return PROTOCOL
+
+    @property
+    def artifact_statement_key(self) -> str:
+        return "wide_fibonacci_statement"
+
+    def artifact_statement(self) -> dict[str, int]:
+        return {
+            "log_n_rows": self.log_n_rows,
+            "sequence_len": self.sequence_len,
+        }
+
+    def cli_shape_args(self) -> list[str]:
+        return [
+            "--log-n-rows",
+            str(self.log_n_rows),
+            "--sequence-len",
+            str(self.sequence_len),
+        ]
+
+    def validate(self) -> None:
+        if not 3 <= self.log_n_rows <= 22:
+            raise DiagnosticError(f"unsupported log size: {self.log_n_rows}")
+        if not 3 <= self.sequence_len <= 128:
+            raise DiagnosticError(
+                f"unsupported sequence length: {self.sequence_len}"
+            )
+
+
+@dataclass(frozen=True, order=True)
+class XorShape:
+    log_size: int
+    log_step: int
+    offset: int
+
+    @property
+    def trace_rows(self) -> int:
+        return 1 << self.log_size
+
+    @property
+    def trace_cells(self) -> int:
+        return self.trace_rows * 3
+
+    @property
+    def slug(self) -> str:
+        return f"log{self.log_size}-step{self.log_step}-offset{self.offset}"
+
+    @property
+    def application(self) -> str:
+        return XOR_APPLICATION
+
+    @property
+    def protocol(self) -> str:
+        return XOR_PROTOCOL
+
+    @property
+    def artifact_statement_key(self) -> str:
+        return "xor_statement"
+
+    def artifact_statement(self) -> dict[str, int]:
+        return {
+            "log_size": self.log_size,
+            "log_step": self.log_step,
+            "offset": self.offset,
+        }
+
+    def statement(self) -> dict[str, int]:
+        return {
+            **self.artifact_statement(),
+            "trace_rows": self.trace_rows,
+            "trace_cells": self.trace_cells,
+        }
+
+    def cli_shape_args(self) -> list[str]:
+        return [
+            "--log-size",
+            str(self.log_size),
+            "--log-step",
+            str(self.log_step),
+            "--offset",
+            str(self.offset),
+        ]
+
+    def validate(self) -> None:
+        if not 1 <= self.log_size <= 22:
+            raise DiagnosticError(f"unsupported XOR log size: {self.log_size}")
+        if not 0 <= self.log_step <= self.log_size:
+            raise DiagnosticError(
+                f"unsupported XOR log step: {self.log_step}"
+            )
+        if not 0 <= self.offset < (1 << self.log_step):
+            raise DiagnosticError(f"unsupported XOR offset: {self.offset}")
 
 
 DEFAULT_SHAPES = (
@@ -102,9 +203,4 @@ class Settings:
         if not self.shapes or len(set(self.shapes)) != len(self.shapes):
             raise DiagnosticError("diagnostic shapes must be nonempty and unique")
         for shape in self.shapes:
-            if not 3 <= shape.log_n_rows <= 22:
-                raise DiagnosticError(f"unsupported log size: {shape.log_n_rows}")
-            if not 3 <= shape.sequence_len <= 128:
-                raise DiagnosticError(
-                    f"unsupported sequence length: {shape.sequence_len}"
-                )
+            shape.validate()
