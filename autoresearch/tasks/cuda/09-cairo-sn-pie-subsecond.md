@@ -15,7 +15,7 @@ components, or timing only the device kernel interval.
 The measured boundary is:
 
 ```text
-PIE bytes
+canonical PIE bytes available to the proving process
   -> decode and validate
   -> bind public statement
   -> construct all Cairo components and interactions
@@ -26,8 +26,15 @@ PIE bytes
   -> publish the proof
 ```
 
-Cold process, plan-miss, and sustained-queue boundaries remain separate
-measurements. They must not be hidden inside warmup.
+The primary request clock starts after the complete canonical request payload
+has reached process-owned host memory. PIE decoding, validation, host-to-device
+ingress, and every subsequent step remain inside it. Filesystem and network
+delivery are separately measured production boundaries because page-cache,
+storage, and transport state must not decide the prover verdict. A file-to-proof
+receipt is still required for the production CLI.
+
+Cold process, cold input delivery, plan miss, and sustained queue boundaries
+remain separate measurements. They must not be hidden inside warmup.
 
 ## Required Foundation
 
@@ -68,6 +75,11 @@ Their current adapted-cycle scale is approximately:
 | SN PIE 2 | 7,977,397 | 7.98 MHz |
 | SN PIE 3 | 14,345,552 | 14.35 MHz |
 | SN PIE 4 | 14,328,780 | 14.33 MHz |
+
+The current `memory.bin` payloads are 601,669,240, 330,648,840,
+585,694,480, and 593,715,160 bytes respectively. Input handling is therefore a
+first-class stage: parsing must be bounded and streaming or zero-copy where
+possible, but the primary verdict may not depend on an already decoded witness.
 
 Milestones apply to every corpus member, not just the median:
 
