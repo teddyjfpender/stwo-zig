@@ -410,6 +410,7 @@ fn transcriptValueCount(
     geometry: geometry_mod.Geometry,
 ) u32 {
     return switch (operation) {
+        .mix_statement => 2,
         .mix_sampled_values => @intCast(geometry.sampled_value_count),
         .draw_queries => @intCast(
             geometry.protocol.fri_config.n_queries,
@@ -491,6 +492,7 @@ test "Native Blake emits one validated backend-neutral program" {
         @as(usize, 3),
         program.commitments.len,
     );
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[3].value_count);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[4].node);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[5].node);
     try std.testing.expectEqual(@as(u32, 3), program.transcript[6].node);
