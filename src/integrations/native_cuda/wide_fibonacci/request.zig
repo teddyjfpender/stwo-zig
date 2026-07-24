@@ -3,6 +3,7 @@
 const std = @import("std");
 
 pub const min_log_n_rows: u32 = 3;
+pub const min_sequence_len: u32 = 3;
 pub const max_log_n_rows: u32 = 22;
 pub const max_sequence_len: u32 = 128;
 pub const max_queries: usize = 256;
@@ -72,7 +73,7 @@ pub fn admit(request: Request) Error!Geometry {
     {
         return error.UnsupportedLogSize;
     }
-    if (statement.sequence_len < 2 or
+    if (statement.sequence_len < min_sequence_len or
         statement.sequence_len > max_sequence_len)
     {
         return error.UnsupportedSequenceLength;
@@ -189,6 +190,9 @@ test "admission rejects shapes without a pinned parity contract" {
     request = baseline;
     request.protocol.n_queries = max_queries + 1;
     try std.testing.expectError(error.UnsupportedQueryCount, admit(request));
+    request = baseline;
+    request.statement.sequence_len = min_sequence_len - 1;
+    try std.testing.expectError(error.UnsupportedSequenceLength, admit(request));
     request = baseline;
     request.statement.sequence_len = max_sequence_len + 1;
     try std.testing.expectError(error.UnsupportedSequenceLength, admit(request));

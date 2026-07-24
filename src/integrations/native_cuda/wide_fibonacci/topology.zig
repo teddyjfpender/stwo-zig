@@ -10,7 +10,6 @@ pub const Quotient = struct {
     prepared_terms: []quotient_abi.PreparedTermDescriptor,
     group_offsets: []u32,
     group_term_indices: []u32,
-    batch_offsets: []u32,
     batch_terms: []quotient_abi.BatchTermDescriptor,
     group_log_sizes: []u32,
     partial_log_sizes: []u32,
@@ -35,8 +34,6 @@ pub const Quotient = struct {
         errdefer allocator.free(group_offsets);
         const indices = try allocator.alloc(u32, count);
         errdefer allocator.free(indices);
-        const batch_offsets = try allocator.dupe(u32, &.{ 0, count_u32 });
-        errdefer allocator.free(batch_offsets);
         const batch = try allocator.alloc(quotient_abi.BatchTermDescriptor, count);
         errdefer allocator.free(batch);
         const group_logs = try allocator.dupe(u32, &.{log_size});
@@ -64,7 +61,6 @@ pub const Quotient = struct {
             .prepared_terms = prepared,
             .group_offsets = group_offsets,
             .group_term_indices = indices,
-            .batch_offsets = batch_offsets,
             .batch_terms = batch,
             .group_log_sizes = group_logs,
             .partial_log_sizes = partial_logs,
@@ -78,7 +74,6 @@ pub const Quotient = struct {
         allocator.free(self.prepared_terms);
         allocator.free(self.group_offsets);
         allocator.free(self.group_term_indices);
-        allocator.free(self.batch_offsets);
         allocator.free(self.batch_terms);
         allocator.free(self.group_log_sizes);
         allocator.free(self.partial_log_sizes);

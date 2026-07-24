@@ -28,22 +28,13 @@ pub fn build(
 
     try add(&output, allocator, slots.twiddles_forward, rows, .ingress, .decommit);
     try add(&output, allocator, slots.twiddles_inverse, rows, .ingress, .fri_commit);
-    try add(
-        &output,
-        allocator,
-        slots.circle_domain,
-        commitment_rows,
-        .ingress,
-        .fri_commit,
-    );
     try add(&output, allocator, slots.transcript_state, 16, .ingress, .decommit);
-    try add(&output, allocator, slots.transcript_seed_snapshot, 9, .ingress, .trace_commit);
     try add(
         &output,
         allocator,
         slots.transcript_input_snapshot,
         @max(try secureWords(sample_count), 16),
-        .trace_commit,
+        .ingress,
         .pow,
     );
     try add(
@@ -59,7 +50,7 @@ pub fn build(
         allocator,
         slots.transcript_boundary_snapshot,
         16,
-        .trace_commit,
+        .ingress,
         .decommit,
     );
 
@@ -177,7 +168,6 @@ pub fn build(
     try add(&output, allocator, slots.quotient_prepared_terms, try mul(quotient.prepared_terms.len, 5), .ingress, .quotient);
     try add(&output, allocator, slots.quotient_group_offsets, quotient.group_offsets.len, .ingress, .quotient);
     try add(&output, allocator, slots.quotient_group_term_indices, quotient.group_term_indices.len, .ingress, .quotient);
-    try add(&output, allocator, slots.quotient_batch_offsets, quotient.batch_offsets.len, .ingress, .quotient);
     try add(&output, allocator, slots.quotient_batch_terms, try mul(quotient.batch_terms.len, 3), .ingress, .quotient);
     try add(&output, allocator, slots.quotient_group_log_sizes, quotient.group_log_sizes.len, .ingress, .quotient);
     try add(&output, allocator, slots.quotient_partial_log_sizes, quotient.partial_log_sizes.len, .ingress, .quotient);
@@ -188,6 +178,7 @@ pub fn build(
     try add(&output, allocator, slots.quotient_partial_coordinates, try mul(commitment_rows, 4), .quotient, .quotient);
 
     try add(&output, allocator, slots.fri_alpha, 4, .fri_commit, .fri_commit);
+    try add(&output, allocator, slots.fri_last_evaluation, try secureWords(geometry.last_layer_domain_rows), .fri_commit, .fri_commit);
     try add(&output, allocator, slots.fri_last_coefficients, try secureWords(geometry.last_layer_domain_rows), .fri_commit, .proof_assembly);
     try add(&output, allocator, slots.fri_last_degree_error, 1, .fri_commit, .proof_assembly);
     try add(&output, allocator, slots.fri_last_transcript, try secureWords(1), .fri_commit, .proof_assembly);

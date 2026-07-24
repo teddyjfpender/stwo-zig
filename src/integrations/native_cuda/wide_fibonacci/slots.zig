@@ -8,9 +8,7 @@ pub const SlotId = arena.SlotId;
 
 pub const twiddles_forward: SlotId = 0x0100;
 pub const twiddles_inverse: SlotId = 0x0101;
-pub const circle_domain: SlotId = 0x0102;
 pub const transcript_state: SlotId = 0x0110;
-pub const transcript_seed_snapshot: SlotId = 0x0111;
 pub const transcript_input_snapshot: SlotId = 0x0112;
 pub const transcript_output_snapshot: SlotId = 0x0113;
 pub const transcript_boundary_snapshot: SlotId = 0x0114;
@@ -45,7 +43,6 @@ pub const quotient_challenge: SlotId = 0x0500;
 pub const quotient_prepared_terms: SlotId = 0x0501;
 pub const quotient_group_offsets: SlotId = 0x0502;
 pub const quotient_group_term_indices: SlotId = 0x0503;
-pub const quotient_batch_offsets: SlotId = 0x0504;
 pub const quotient_batch_terms: SlotId = 0x0505;
 pub const quotient_group_log_sizes: SlotId = 0x0506;
 pub const quotient_partial_log_sizes: SlotId = 0x0507;
@@ -61,6 +58,7 @@ pub const fri_alpha: SlotId = 0x0600;
 pub const fri_last_coefficients: SlotId = 0x0601;
 pub const fri_last_degree_error: SlotId = 0x0602;
 pub const fri_last_transcript: SlotId = 0x0603;
+pub const fri_last_evaluation: SlotId = 0x0604;
 
 pub const pow_prefix_digest: SlotId = 0x0700;
 pub const pow_best_nonce: SlotId = 0x0701;

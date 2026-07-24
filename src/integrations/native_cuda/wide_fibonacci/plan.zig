@@ -15,7 +15,7 @@ const topology = @import("topology.zig");
 const transcript_schedule = @import("transcript_schedule.zig");
 
 pub const BindingId = enum {
-    canonical_domain_pack,
+    canonical_twiddle_pack,
     composition_split,
     circle_coset_constants,
     canonical_proof_sections,
@@ -31,9 +31,9 @@ pub const DynamicBinding = struct {
 /// protocol data derived by core Stwo or final proof assembly work.
 pub const remaining_dynamic_bindings = [_]DynamicBinding{
     .{
-        .id = .canonical_domain_pack,
+        .id = .canonical_twiddle_pack,
         .stage = .ingress,
-        .requirement = "bind canonical circle-domain words, forward/inverse twiddles, and per-fold twiddle offsets",
+        .requirement = "bind canonical forward/inverse twiddles and per-fold offsets; FRI consumes the inverse twiddle buffer",
     },
     .{
         .id = .composition_split,
@@ -156,8 +156,59 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             prepared.totalWords() <= requirements_mod.max_total_words,
         );
         try std.testing.expectEqual(
-            67 + 3 * @as(usize, log_n_rows),
+            65 + 3 * @as(usize, log_n_rows),
             prepared.requirements().len,
+        );
+        const inverse_twiddles = try prepared.arena_plan.placement(
+            slots.twiddles_inverse,
+        );
+        try std.testing.expectEqual(
+            geometry.trace_rows,
+            inverse_twiddles.requirement.words,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.ingress,
+            inverse_twiddles.requirement.live_from,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.fri_commit,
+            inverse_twiddles.requirement.live_through,
+        );
+        const last_evaluation = try prepared.arena_plan.placement(
+            slots.fri_last_evaluation,
+        );
+        try std.testing.expectEqual(
+            @as(usize, 8),
+            last_evaluation.requirement.words,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.fri_commit,
+            last_evaluation.requirement.live_from,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.fri_commit,
+            last_evaluation.requirement.live_through,
+        );
+        const last_coefficients = try prepared.arena_plan.placement(
+            slots.fri_last_coefficients,
+        );
+        try std.testing.expect(
+            try last_evaluation.endWords() <= last_coefficients.offset_words or
+                try last_coefficients.endWords() <= last_evaluation.offset_words,
+        );
+        const input_snapshot = try prepared.arena_plan.placement(
+            slots.transcript_input_snapshot,
+        );
+        const boundary_snapshot = try prepared.arena_plan.placement(
+            slots.transcript_boundary_snapshot,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.ingress,
+            input_snapshot.requirement.live_from,
+        );
+        try std.testing.expectEqual(
+            telemetry.Stage.ingress,
+            boundary_snapshot.requirement.live_from,
         );
         const coefficient_slab = try prepared.arena_plan.placement(
             slots.coefficient_slab,
@@ -175,6 +226,12 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             error.ArenaSlotMissing,
             prepared.arena_plan.placement(0x0200),
         );
+        for ([_]arena.SlotId{ 0x0102, 0x0111, 0x0504 }) |retired_slot| {
+            try std.testing.expectError(
+                error.ArenaSlotMissing,
+                prepared.arena_plan.placement(retired_slot),
+            );
+        }
         try std.testing.expectEqual(
             prepared.proof.total_words,
             (try prepared.arena_plan.placement(slots.proof_bundle))
