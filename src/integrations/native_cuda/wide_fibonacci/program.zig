@@ -270,7 +270,8 @@ fn executionNodes(
             .bytes_read = 32,
             .bytes_written = 8,
             .field_operations = 0,
-            .hash_compressions = 1 << geometry.protocol.pow_bits,
+            .hash_compressions = @as(u64, 1) <<
+                @intCast(geometry.protocol.pow_bits),
             .minimum_launches = 1,
         },
         .{
