@@ -48,6 +48,8 @@ pub const StageCounters = struct {
     h2d_bytes: u64 = 0,
     d2h_proof_bytes: u64 = 0,
     d2d_bytes: u64 = 0,
+    memset_bytes: u64 = 0,
+    memset_operations: u64 = 0,
     fill_words: u64 = 0,
     sync_calls: u64 = 0,
     lane_joins: u64 = 0,
@@ -64,6 +66,7 @@ pub const Counters = struct {
     d2h_proof_bytes: u64 = 0,
     d2d_bytes: u64 = 0,
     memset_bytes: u64 = 0,
+    memset_operations: u64 = 0,
     fill_words: u64 = 0,
     sync_calls: u64 = 0,
     lane_joins: u64 = 0,
@@ -105,6 +108,14 @@ pub const Counters = struct {
         const amount: u64 = @intCast(bytes);
         self.d2d_bytes += amount;
         if (stage) |value| self.stages[value.index()].d2d_bytes += amount;
+    }
+
+    pub fn memset(self: *Counters, stage: Stage, bytes: usize) void {
+        const amount: u64 = @intCast(bytes);
+        self.memset_bytes += amount;
+        self.memset_operations += 1;
+        self.stages[stage.index()].memset_bytes += amount;
+        self.stages[stage.index()].memset_operations += 1;
     }
 
     pub fn proofRead(self: *Counters, stage: Stage, bytes: usize) void {

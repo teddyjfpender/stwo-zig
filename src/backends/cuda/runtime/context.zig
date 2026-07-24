@@ -306,6 +306,33 @@ pub fn ContextFor(comptime Api: type) type {
             self.counters.d2d(self.active_stage, bytes);
         }
 
+        /// Enqueues one exact byte-zero operation on the proof-owned stream.
+        pub fn zeroDeviceSlice(
+            self: *Self,
+            comptime F: type,
+            destination: anytype,
+        ) runtime_error.Error!void {
+            const stage = self.active_stage orelse return error.StageNotActive;
+            if (destination.len == 0) return error.SizeOverflow;
+            const pointer = try self.deviceSlicePointer(
+                F,
+                destination,
+                destination.len,
+            );
+            const bytes = std.math.mul(
+                usize,
+                destination.len,
+                @sizeOf(F),
+            ) catch return error.SizeOverflow;
+            try runtime_error.check(Api.stwo_exec_context_memset_async(
+                try self.requireHandle(),
+                @ptrCast(pointer),
+                0,
+                bytes,
+            ));
+            self.counters.memset(stage, bytes);
+        }
+
         pub fn devicePointer(
             self: *Self,
             buffer: Buffer,

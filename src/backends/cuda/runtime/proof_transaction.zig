@@ -142,6 +142,37 @@ pub fn TransactionFor(comptime Session: type) type {
             try self.session.context.copyDeviceSlice(F, destination, source);
         }
 
+        /// Zeroes an exact live arena range on the active proof stage's stream.
+        pub fn zeroResidentSlice(
+            self: *Self,
+            comptime F: type,
+            stage: telemetry.Stage,
+            destination_id: arena_module.SlotId,
+            first: usize,
+            count: usize,
+        ) runtime_error.Error!void {
+            if (self.state != .proving or
+                stage == .ingress or
+                stage == .proof_assembly)
+            {
+                return error.InvalidState;
+            }
+            const active = self.session.context.active_stage orelse
+                return error.StageNotActive;
+            if (active != stage) return error.StageOrderViolation;
+            const placement = try self.plan.placement(destination_id);
+            if (stage.index() < placement.requirement.live_from.index() or
+                stage.index() > placement.requirement.live_through.index())
+            {
+                return error.StageOrderViolation;
+            }
+            const destination = try (try self.slotAs(
+                F,
+                destination_id,
+            )).sub(first, count);
+            try self.session.zeroResidentSlice(F, stage, destination);
+        }
+
         pub fn finishIngress(self: *Self) runtime_error.Error!void {
             if (self.state != .ingress) return error.InvalidState;
             try self.session.endStage(.ingress);

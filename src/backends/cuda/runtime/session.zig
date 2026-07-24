@@ -126,6 +126,20 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             try self.context.recordKernels(count);
         }
 
+        /// Zeroes one validated resident slice without allocating or waiting.
+        pub fn zeroResidentSlice(
+            self: *Self,
+            comptime F: type,
+            stage: telemetry.Stage,
+            destination: anytype,
+        ) runtime_error.Error!void {
+            if (self.state != .open) return error.InvalidState;
+            const active = self.context.active_stage orelse
+                return error.StageNotActive;
+            if (active != stage) return error.StageOrderViolation;
+            try self.context.zeroDeviceSlice(F, destination);
+        }
+
         /// Binds, validates, launches, and releases one AOT function without
         /// exposing the loader or a raw CUDA function handle to proving code.
         pub fn launchKernel(
