@@ -12,10 +12,10 @@ const request = @import("request.zig");
 const requirements_mod = @import("requirements.zig");
 const slots = @import("slots.zig");
 const topology = @import("topology.zig");
+const transcript_schedule = @import("transcript_schedule.zig");
 
 pub const BindingId = enum {
     canonical_domain_pack,
-    transcript_schedule,
     composition_split,
     circle_coset_constants,
     canonical_proof_sections,
@@ -34,11 +34,6 @@ pub const remaining_dynamic_bindings = [_]DynamicBinding{
         .id = .canonical_domain_pack,
         .stage = .ingress,
         .requirement = "bind canonical circle-domain words, forward/inverse twiddles, and per-fold twiddle offsets",
-    },
-    .{
-        .id = .transcript_schedule,
-        .stage = .trace_commit,
-        .requirement = "bind every expected/next chain tag and canonical mix payload in pinned Rust transcript order",
     },
     .{
         .id = .composition_split,
@@ -63,6 +58,7 @@ pub const PreparedPlan = struct {
     fri: topology.Fri,
     decommit: topology.Decommit,
     proof: proof_bundle.Bundle,
+    transcript: transcript_schedule.Schedule,
     requirement_storage: []arena.Requirement,
     arena_plan: arena.Plan,
     arena_plan_live: bool = true,
@@ -102,6 +98,7 @@ pub const PreparedPlan = struct {
             .fri = fri,
             .decommit = decommit,
             .proof = proof,
+            .transcript = try transcript_schedule.Schedule.init(geometry),
             .requirement_storage = requirement_storage,
             .arena_plan = planned,
         };
@@ -221,7 +218,7 @@ test "topology slots contain no device pointer table allocations" {
         error.ArenaSlotMissing,
         prepared.arena_plan.placement(0x0900),
     );
-    try std.testing.expectEqual(@as(usize, 5), remaining_dynamic_bindings.len);
+    try std.testing.expectEqual(@as(usize, 4), remaining_dynamic_bindings.len);
     for (remaining_dynamic_bindings, 0..) |binding, index| {
         for (remaining_dynamic_bindings[0..index]) |previous| {
             try std.testing.expect(binding.id != previous.id);

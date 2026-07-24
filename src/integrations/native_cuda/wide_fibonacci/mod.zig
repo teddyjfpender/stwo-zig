@@ -9,6 +9,7 @@ pub const request = @import("request.zig");
 pub const requirements = @import("requirements.zig");
 pub const slots = @import("slots.zig");
 pub const topology = @import("topology.zig");
+pub const transcript_schedule = @import("transcript_schedule.zig");
 
 test {
     _ = driver;
@@ -20,4 +21,5 @@ test {
     _ = requirements;
     _ = slots;
     _ = topology;
+    _ = transcript_schedule;
 }
