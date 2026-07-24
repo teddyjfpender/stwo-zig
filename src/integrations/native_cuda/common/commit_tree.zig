@@ -7,6 +7,9 @@ const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
 
 pub const Error = runtime_error.Error || error{InvalidMerkleLayout};
+// One cooperative block wins only after the remaining tree fits this range.
+const upper_tail_max_input_hashes: usize = 512;
+const upper_tail_min_levels: usize = 2;
 
 pub fn BuilderFor(comptime Ops: type) type {
     return struct {
@@ -108,6 +111,27 @@ pub fn BuilderFor(comptime Ops: type) type {
         ) Error!common.Hashes {
             var index: usize = 1;
             while (index < layers.len) : (index += 1) {
+                const remaining_levels = layers.len - index;
+                if (layers[index - 1].hash_count <=
+                    upper_tail_max_input_hashes and
+                    remaining_levels >= upper_tail_min_levels)
+                {
+                    const output_offset = std.math.cast(
+                        usize,
+                        layers[index].offset_hashes,
+                    ) orelse return error.SizeOverflow;
+                    try Ops.contiguousTail(
+                        session,
+                        stage,
+                        try layerSlice(hashes, layers[index - 1]),
+                        try hashes.sub(
+                            output_offset,
+                            hashes.len - output_offset,
+                        ),
+                        @intCast(remaining_levels),
+                    );
+                    break;
+                }
                 try Ops.layer(
                     session,
                     stage,
@@ -178,6 +202,7 @@ test "resident builder uses one sealed layout for base and FRI trees" {
         var finalize_calls: usize = 0;
         var fri_leaf_calls: usize = 0;
         var layer_calls: usize = 0;
+        var tail_calls: usize = 0;
 
         fn reset() void {
             contiguous_calls = 0;
@@ -186,6 +211,7 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             finalize_calls = 0;
             fri_leaf_calls = 0;
             layer_calls = 0;
+            tail_calls = 0;
         }
 
         pub fn contiguousLeaves(
@@ -262,6 +288,19 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             try std.testing.expectEqual(previous.len / 2, output.len);
             layer_calls += 1;
         }
+
+        pub fn contiguousTail(
+            _: anytype,
+            _: telemetry.Stage,
+            previous: common.Hashes,
+            outputs: common.Hashes,
+            level_count: u32,
+        ) !void {
+            try std.testing.expectEqual(@as(usize, 8), previous.len);
+            try std.testing.expectEqual(@as(usize, 7), outputs.len);
+            try std.testing.expectEqual(@as(u32, 3), level_count);
+            tail_calls += 1;
+        }
     };
     const Builder = BuilderFor(FakeOps);
     const layers = [_]field.MerkleLayerDescriptor{
@@ -301,7 +340,8 @@ test "resident builder uses one sealed layout for base and FRI trees" {
     try std.testing.expectEqual(@as(usize, 0), FakeOps.init_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeOps.absorb_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeOps.finalize_calls);
-    try std.testing.expectEqual(@as(usize, 3), FakeOps.layer_calls);
+    try std.testing.expectEqual(@as(usize, 0), FakeOps.layer_calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeOps.tail_calls);
 
     FakeOps.reset();
     const segments = [_]common.WordMatrix{
@@ -328,7 +368,8 @@ test "resident builder uses one sealed layout for base and FRI trees" {
     try std.testing.expectEqual(@as(usize, 1), FakeOps.init_calls);
     try std.testing.expectEqual(@as(usize, 2), FakeOps.absorb_calls);
     try std.testing.expectEqual(@as(usize, 1), FakeOps.finalize_calls);
-    try std.testing.expectEqual(@as(usize, 3), FakeOps.layer_calls);
+    try std.testing.expectEqual(@as(usize, 0), FakeOps.layer_calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeOps.tail_calls);
 
     FakeOps.reset();
     const fri_root = try Builder.fri(
@@ -344,7 +385,8 @@ test "resident builder uses one sealed layout for base and FRI trees" {
     );
     try std.testing.expectEqual(@as(usize, 1), fri_root.len);
     try std.testing.expectEqual(@as(usize, 1), FakeOps.fri_leaf_calls);
-    try std.testing.expectEqual(@as(usize, 3), FakeOps.layer_calls);
+    try std.testing.expectEqual(@as(usize, 0), FakeOps.layer_calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeOps.tail_calls);
 }
 
 test "commitment layout rejects gaps and non-power-of-two leaves" {

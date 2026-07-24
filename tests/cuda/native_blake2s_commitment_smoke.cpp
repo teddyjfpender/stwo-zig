@@ -44,6 +44,13 @@ extern "C" int stwo_blake2s_contiguous_leaf_on(
     std::size_t column_capacity_words,
     Hash *result,
     void *stream);
+extern "C" int stwo_blake2s_contiguous_tail_on(
+    const Hash *previous,
+    std::uint32_t previous_size,
+    Hash *outputs,
+    std::size_t output_capacity,
+    std::uint32_t level_count,
+    void *stream);
 extern "C" int stwo_blake2s_layer_on(
     const Hash *previous, std::uint32_t output_size, Hash *result, void *stream);
 extern "C" int stwo_blake2s_interior4_on(
@@ -570,6 +577,88 @@ bool test_merkle_and_fri(DeviceArena &arena) {
         if (!expect_hash(roots[index], reduced[index], "interior4", index)) {
             return false;
         }
+    }
+
+    constexpr std::uint32_t kTailLevels = 5;
+    constexpr std::uint32_t kTailInputHashes = 32;
+    constexpr std::size_t kTailHashes = kTailInputHashes - 1;
+    auto *device_tail =
+        reinterpret_cast<Hash *>(arena.allocate(kTailHashes * 8));
+    if (device_tail == nullptr) return false;
+    if (stwo_blake2s_contiguous_tail_on(
+            device_children,
+            kTailInputHashes,
+            device_tail,
+            kTailHashes - 1,
+            kTailLevels,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "Merkle tail accepted an undersized output\n");
+        return false;
+    }
+    if (stwo_blake2s_contiguous_tail_on(
+            device_children,
+            kTailInputHashes,
+            device_children,
+            kTailHashes,
+            kTailLevels,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "Merkle tail accepted overlapping buffers\n");
+        return false;
+    }
+    if (stwo_blake2s_contiguous_tail_on(
+            device_children,
+            kTailInputHashes,
+            device_tail,
+            0,
+            0,
+            arena.stream) == static_cast<int>(cudaSuccess) ||
+        stwo_blake2s_contiguous_tail_on(
+            device_children,
+            kTailInputHashes,
+            device_tail,
+            kTailHashes,
+            kTailLevels + 1,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(stderr, "Merkle tail accepted an invalid depth\n");
+        return false;
+    }
+    if (!check(
+            stwo_blake2s_contiguous_tail_on(
+                device_children,
+                kTailInputHashes,
+                device_tail,
+                kTailHashes,
+                kTailLevels,
+                arena.stream),
+            "Merkle tail")) {
+        return false;
+    }
+    std::vector<Hash> tail(kTailHashes);
+    if (!arena.read(tail.data(), device_tail, tail.size() * sizeof(Hash)) ||
+        !check(stwo_exec_context_sync(arena.context), "wait Merkle tail")) {
+        return false;
+    }
+    std::vector<Hash> previous = children;
+    std::size_t tail_offset = 0;
+    while (previous.size() > 1) {
+        std::vector<Hash> next(previous.size() / 2);
+        for (std::size_t index = 0; index < next.size(); ++index) {
+            next[index] = blake2s_reference::hash_children(
+                previous[2 * index], previous[2 * index + 1]);
+            if (!expect_hash(
+                    tail[tail_offset + index],
+                    next[index],
+                    "Merkle tail",
+                    tail_offset + index)) {
+                return false;
+            }
+        }
+        tail_offset += next.size();
+        previous = std::move(next);
+    }
+    if (tail_offset != kTailHashes) {
+        std::fprintf(stderr, "Merkle tail reference has the wrong size\n");
+        return false;
     }
     return true;
 }

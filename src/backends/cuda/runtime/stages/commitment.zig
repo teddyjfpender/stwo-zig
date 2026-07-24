@@ -186,6 +186,50 @@ pub fn OpsFor(comptime Api: type) type {
             try common.record(session, stage, status);
         }
 
+        pub fn contiguousTail(
+            session: anytype,
+            stage: telemetry.Stage,
+            previous: common.Hashes,
+            outputs: common.Hashes,
+            level_count: u32,
+        ) runtime_error.Error!void {
+            try requireCommitStage(stage);
+            try common.requireStage(session, stage);
+            if (previous.len == 0 or
+                !std.math.isPowerOfTwo(previous.len) or
+                level_count == 0 or
+                level_count >= @bitSizeOf(usize))
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const final_size = previous.len >> @intCast(level_count);
+            if (final_size == 0 or outputs.len != previous.len - final_size)
+                return error.SizeOverflow;
+            const previous_values = try layout.resident(
+                session,
+                field.Blake2sHash,
+                previous,
+                previous.len,
+            );
+            const output_values = try layout.resident(
+                session,
+                field.Blake2sHash,
+                outputs,
+                outputs.len,
+            );
+            if (layout.overlap(previous_values.range, output_values.range))
+                return error.OverlappingDeviceRange;
+            const status = Api.stwo_blake2s_contiguous_tail_on(
+                previous_values.pointer,
+                try common.count(previous.len),
+                output_values.pointer,
+                outputs.len,
+                level_count,
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn friLeaves(
             session: anytype,
             coordinate_columns: common.WordMatrix,

@@ -11,6 +11,15 @@ pub extern "c" fn stwo_blake2s_contiguous_leaf_on(
     stream: *anyopaque,
 ) c_int;
 
+pub extern "c" fn stwo_blake2s_contiguous_tail_on(
+    previous_layer: [*]const field.Blake2sHash,
+    previous_size: u32,
+    output_levels: [*]field.Blake2sHash,
+    output_capacity: usize,
+    level_count: u32,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_blake2s_progressive_init_on(
     size: u32,
     states: [*]field.ProgressiveBlake2sState,

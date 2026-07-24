@@ -65,6 +65,7 @@ __global__ void fri_leaf_kernel(
 
 constexpr uint32_t kInteriorBlock = 256;
 constexpr uint32_t kInteriorOutputsPerBlock = kInteriorBlock / 8;
+constexpr uint32_t kTailBlock = 256;
 
 __global__ void interior4_kernel(
     const Hash *previous,
@@ -99,6 +100,28 @@ __global__ void interior4_kernel(
     if (lane < window) {
         result[first_output + lane] =
             hash_children(level_three[2 * lane], level_three[2 * lane + 1]);
+    }
+}
+
+__global__ void upper_tail_kernel(
+    const Hash *previous,
+    uint32_t previous_size,
+    Hash *outputs,
+    uint32_t level_count) {
+    Hash *next = outputs;
+    uint32_t size = previous_size;
+    for (uint32_t level = 0; level < level_count; ++level) {
+        const uint32_t next_size = size / 2;
+        for (uint32_t index = threadIdx.x;
+             index < next_size;
+             index += blockDim.x) {
+            next[index] =
+                hash_children(previous[2 * index], previous[2 * index + 1]);
+        }
+        __syncthreads();
+        previous = next;
+        next += next_size;
+        size = next_size;
     }
 }
 
@@ -204,5 +227,41 @@ extern "C" int stwo_blake2s_interior4_on(
             previous,
             output_size,
             result);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_blake2s_contiguous_tail_on(
+    const stwo::cuda::blake2s::Hash *previous,
+    uint32_t previous_size,
+    stwo::cuda::blake2s::Hash *outputs,
+    size_t output_capacity,
+    uint32_t level_count,
+    void *stream) {
+    using namespace stwo::cuda::blake2s;
+    if (previous == nullptr || !is_power_of_two(previous_size) ||
+        outputs == nullptr || level_count == 0 || level_count >= 32 ||
+        stream == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const uint32_t final_size = previous_size >> level_count;
+    if (final_size == 0 ||
+        output_capacity !=
+            static_cast<size_t>(previous_size - final_size) ||
+        ranges_overlap(
+            previous,
+            static_cast<size_t>(previous_size) * sizeof(*previous),
+            outputs,
+            output_capacity * sizeof(*outputs))) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    upper_tail_kernel<<<
+        1,
+        kTailBlock,
+        0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(
+            previous,
+            previous_size,
+            outputs,
+            level_count);
     return static_cast<int>(cudaPeekAtLastError());
 }
