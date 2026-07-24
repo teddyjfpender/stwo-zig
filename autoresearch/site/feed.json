@@ -2328,8 +2328,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2652,8 +2652,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2840,8 +2840,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3058,8 +3058,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3453,8 +3453,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -5995,6 +5995,41 @@
      "verdict_kind": "claimed",
      "waits": null,
      "workload_class": "wide"
+    },
+    {
+     "board": "core_metal",
+     "ci_high": 1.023032,
+     "ci_low": 0.989908,
+     "commit": "6b8c39e64aa64057a0d6c305817d36efda2b652b",
+     "covers": [],
+     "credit_replaces": [],
+     "dispatches": null,
+     "energy_j": 0.286893,
+     "epoch": 2,
+     "evidence_kind": "promotion",
+     "evidence_sha256": "sha256:6528023ed3e37e407c1d5d49ff264a93df9a86d2249c2a7df96a01d8955a108e",
+     "gates": "G1..G5:pass",
+     "harness_commit": "496939a8acda",
+     "holdout": "none",
+     "judged_at_utc": "2026-07-23T20:37:41Z",
+     "judged_r": 1.006497,
+     "measurement_rounds": 15,
+     "measurement_seconds": 3.270828,
+     "native_mhz": 0.0,
+     "observation_id": "sha256:2414bf0c378884be08a36f0ef76a249d5d11111d94aa40c334285f44453749e5",
+     "outcome": "rejected",
+     "peak_rss_mib": 157.454018,
+     "predecessor": "467edbc9988a",
+     "proof_bytes": 45200,
+     "prove_ms": 3.55675,
+     "row_id": "sha256:4348f8e4ed03e98020e3a2f6f0a2b1355d2b545a6e333ef11571fd9337243fb1",
+     "schema_version": 3,
+     "scope": "s3",
+     "submission_id": "2026-07-23-metal-fragmented-quotient-policy",
+     "supersedes": "",
+     "verdict_kind": "claimed",
+     "waits": null,
+     "workload_class": "deep"
     }
    ],
    "frontier_by_class": {
@@ -6002,8 +6037,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6014,10 +6049,10 @@
       },
       "effective_score": 1.0,
       "evidence_share": {
-       "claimed": 0,
-       "claimed_share": null,
+       "claimed": 1,
+       "claimed_share": 1.0,
        "judged": 0,
-       "judged_share": null
+       "judged_share": 0.0
       },
       "overdue": {
        "direct": false,
@@ -6032,8 +6067,10 @@
        "share": null
       },
       "unaudited_tail": {
-       "count": 0,
-       "observation_ids": []
+       "count": 1,
+       "observation_ids": [
+        "sha256:2414bf0c378884be08a36f0ef76a249d5d11111d94aa40c334285f44453749e5"
+       ]
       }
      },
      "frontier": [
@@ -6463,8 +6500,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6583,8 +6620,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6869,8 +6906,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7404,8 +7441,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8040,8 +8077,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8231,8 +8268,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8347,8 +8384,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 344,
-       "seconds": 178387
+       "commits": 358,
+       "seconds": 186614
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9754,7 +9791,7 @@
   "inputs_sha256": {
    "autoresearch/MANIFEST.json": "26e28b839215051110d6c42e1a11a609752cc1bed8a15032461b3a6f31825b66",
    "autoresearch/ledger/epochs.json": "60162d440a812415d2943b1c1a2317b70be5fda727fae7eaa5c75ff408c4f7f5",
-   "autoresearch/ledger/promotions.tsv": "ca61555cf6515005c6e522aea3ebdc1487aa0bcb9bfae250f57817cdfb363afe",
+   "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/metal-calibration-epoch-2.json": "e1a733f19dfe552389e25ff71d487cb889a3117b7fd71ea47c28cbc9000147df",
    "autoresearch/reference/peer-relative-series.json": "b85b4f079b69db227b120c16c965667070f40a67d1b37590a490b3ab514a3b2a",
    "autoresearch/reference/peer-rust-scalar.json": "d03693e65c4f5a5b5f47e808672d81dba279b95d16f6178c84b9ad5e113dec92",
@@ -9894,6 +9931,7 @@
    "autoresearch/submissions/2026-07-22-riscv-register-grouped-quotients/verdict.json": "2ed91769c3537a1049a0c6dc2541feaedbad25f9b7a09eb7f3e2b7d80d4bf3e4",
    "autoresearch/submissions/2026-07-23-2026-07-23-cpu-latency-recurrence-plan/verdict.json": "cd372f8aeb34cf89d036c5446671fa80f3820834b27ef0505be65a2c68d21d45",
    "autoresearch/submissions/2026-07-23-metal-cooperative-high-circle-layers/verdict.json": "9405e9b0b4662724db508454dcdb6d89e168206132d7395cb2bd668c3f87cd0d",
+   "autoresearch/submissions/2026-07-23-metal-fragmented-quotient-policy/verdict.json": "d8350a4a2758fc0cc9058eae0715edd85239b9bfbff2c4901fb9280174f6f49c",
    "autoresearch/submissions/2026-07-23-metal-paired-expansion-high-transform/verdict.json": "ad61a5985508275aa84106ef957914a60a43266f783c233c18b91fa21ab939d0",
    "autoresearch/submissions/2026-07-23-metal-resident-quotient-fri-transaction/verdict.json": "ceab4bf3d5114d8efb837298a8aa246dd07dfc4465d675292cfd5d168f828076",
    "autoresearch/submissions/2026-07-23-metal-resident-transform-fusion-final/verdict-core_metal-huge.json": "e5db7996a61ae86fa817f2275d1fa9f5e11516ba57ee48410d2e54999f7bef20",
@@ -9907,8 +9945,8 @@
    "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
    "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
   },
-  "repo_commit": "cd57c746f9f3",
-  "repo_commit_time": "2026-07-23T18:20:34Z"
+  "repo_commit": "0fc7db7a064e",
+  "repo_commit_time": "2026-07-23T20:37:41Z"
  },
  "references": {
   "metal_calibration_epoch_2": {
@@ -17409,10 +17447,34 @@
    "core_metal": {
     "classes": {
      "deep": {
-      "available": false,
-      "available_points": 0,
-      "decay": [],
-      "latest": null,
+      "available": true,
+      "available_points": 1,
+      "decay": [
+       {
+        "credited_ln_improvement_per_measurement_hour": 0.0,
+        "judged_at_utc": "2026-07-23T20:37:41Z",
+        "points": 1,
+        "row_id": "sha256:4348f8e4ed03e98020e3a2f6f0a2b1355d2b545a6e333ef11571fd9337243fb1"
+       }
+      ],
+      "latest": {
+       "actual_rounds": 15,
+       "actual_rounds_per_workload": {
+        "mplonk_log14": 15
+       },
+       "auto_boost_reason": "insufficient_trailing_evidence",
+       "auto_boost_target_rounds": 15,
+       "available": true,
+       "configured_rounds": 15,
+       "credited_ln_improvement": -0.0,
+       "credited_ln_improvement_per_measurement_hour": -0.0,
+       "gradient_snr": 0.0,
+       "judged_at_utc": "2026-07-23T20:37:41Z",
+       "measurement_wall_hours": 0.0009085634488858179,
+       "row_id": "sha256:4348f8e4ed03e98020e3a2f6f0a2b1355d2b545a6e333ef11571fd9337243fb1",
+       "submission_id": "2026-07-23-metal-fragmented-quotient-policy",
+       "verdict_kind": "claimed"
+      },
       "time_series": [
        {
         "available": false,
@@ -17549,14 +17611,32 @@
         "submission_id": "2026-07-21-metal-simd-cooperative-merkle-tails",
         "unavailable_reason": "legacy_row_has_no_search_health_evidence",
         "verdict_kind": "claimed"
+       },
+       {
+        "actual_rounds": 15,
+        "actual_rounds_per_workload": {
+         "mplonk_log14": 15
+        },
+        "auto_boost_reason": "insufficient_trailing_evidence",
+        "auto_boost_target_rounds": 15,
+        "available": true,
+        "configured_rounds": 15,
+        "credited_ln_improvement": -0.0,
+        "credited_ln_improvement_per_measurement_hour": -0.0,
+        "gradient_snr": 0.0,
+        "judged_at_utc": "2026-07-23T20:37:41Z",
+        "measurement_wall_hours": 0.0009085634488858179,
+        "row_id": "sha256:4348f8e4ed03e98020e3a2f6f0a2b1355d2b545a6e333ef11571fd9337243fb1",
+        "submission_id": "2026-07-23-metal-fragmented-quotient-policy",
+        "verdict_kind": "claimed"
        }
       ],
       "trailing": {
-       "credited_ln_improvement": null,
-       "credited_ln_improvement_per_measurement_hour": null,
-       "measurement_wall_hours": null,
-       "median_gradient_snr": null,
-       "points": 0
+       "credited_ln_improvement": 0.0,
+       "credited_ln_improvement_per_measurement_hour": 0.0,
+       "measurement_wall_hours": 0.0009085634488858179,
+       "median_gradient_snr": 0.0,
+       "points": 1
       },
       "trailing_window": 8,
       "unavailable_points": 17
@@ -19816,6 +19896,24 @@
    ],
    "verdict_kind": "claimed",
    "workload_class": "xlarge"
+  },
+  {
+   "id": "2026-07-23-metal-fragmented-quotient-policy",
+   "judged_r": 1.006497,
+   "note": "# Bound fragmented resident quotient dispatches on Metal\n\n## Model and harness\n\nGPT-5 Codex investigated current main `467edbc9988a` and produced clean\ncandidate `6c20a595b5a5` on the same Apple M5 Max host, using Zig 0.15.2\nReleaseFast and the source-JIT Metal runtime. The local CLI/harness commit is\n`496939a8acda`. The exact predecessor and candidate binaries, proof artifacts,\nraw matrices, profiler streams, and both complete guard receipts are retained\nwith the research evidence.\n\nThe scored `core_metal/deep` workload is Plonk and is intentionally neutral for\nthis repair. Blake and Poseidon are regression guards in the current manifest,\nso the material result is reported as guard evidence rather than mislabeled as\na Plonk speedup.\n\n## Hypothesis\n\nThe post-`e58` resident quotient optimization selected a segmented zero-copy\nalgorithm from byte volume alone. It should instead select between segmented\nreduction and flat fused evaluation using physical source fragmentation,\nbecause each segmented source run repeats full-domain accumulator traffic.\nBounding that repeated work should recover Blake and Poseidon without removing\nthe low-run Wide-Fibonacci gain.\n\n## Root cause\n\nThe resident quotient/FRI pipeline lowered the segmented zero-copy crossover\nfrom 64 MiB to 8 MiB whenever any resident commitment tree was present. That\nwas a large win for low-fragmentation wide traces, but Blake `12x16` and\nPoseidon `log13` contain approximately 1,536 and 1,264 independently allocated\nraw columns.\n\nThe segmented quotient kernel launches a full row grid for every physical\nsource run and read-modify-writes every batch/row accumulator on each launch.\nAcross 31 profiled requests, command buffers remained fixed at 248 while:\n\n- Blake grew from 807 to 48,661 encoders, including 47,823 quotient-numerator\n  dispatches.\n- Poseidon grew from 899 to 40,246 encoders.\n\nMain-trace commitment and terminal BLAKE2s work were flat or faster. The\nregression was quotient scheduling, not hashing, protocol work, source-JIT\ninitialization, or a shifted measurement boundary.\n\n## Changes\n\nThe runtime now counts the physical source runs using exactly the same\nresident-tree and contiguous-range rules as the segmented encoder. The\n8--64 MiB resident optimization is admitted only at 64 runs or fewer. Inputs\nwith greater fragmentation use the pre-existing flat pack and one fused raw\nquotient dispatch. The existing >=64 MiB policy remains unchanged.\n\nSelection depends only on physical storage structure. No workload name, input\ndigest, trace size, column count, AIR, proof, or benchmark identifier is\nspecial-cased. No MSL, shader ABI, field arithmetic, transcript, protocol,\ncommand-buffer boundary, ownership transfer, wait, or fallback behavior\nchanges.\n\n## Results\n\nThe official S3 paired guard receipt measured:\n\n| guard | candidate / main | 95% CI | speedup |\n| --- | ---: | ---: | ---: |\n| Blake `12x16` | 0.7584 | [0.7270, 0.7758] | 1.319x |\n| Poseidon `log13` | 0.4268 | [0.4185, 0.4592] | 2.343x |\n\nAll 13 Metal regression guards were inside their time budget in that receipt.\nThe clean ten-warmup/ten-sample holistic matrix measured:\n\n| workload | CPU prove | Metal prove | regressed-main screen | improvement |\n| --- | ---: | ---: | ---: | ---: |\n| Blake `12x16` | 15.282 ms | 29.352 ms | 39.189 ms | 1.335x |\n| Poseidon `log13` | 12.343 ms | 8.743 ms | 20.609 ms | 2.357x |\n\nPoseidon now beats CPU by 1.412x and slightly improves on the old official\npre-regression anchor. Blake returns close to its old 27.96--28.13 ms anchor;\nfurther Blake-specific architecture work remains possible, but the severe\nresident-pipeline regression is removed.\n\nProfiler topology confirms the mechanism:\n\n| workload | main encoders | candidate encoders | candidate quotient dispatch |\n| --- | ---: | ---: | --- |\n| Blake `12x16` | 48,661 | 807 | 31 fused raw dispatches |\n| Poseidon `log13` | 40,246 | 899 | 31 fused raw dispatches |\n\nBlake aggregate GPU command time fell from 692.87 to 265.55 ms and encoder CPU\ntime from 476.82 to 88.28 ms across the same 31 requests. Command-buffer count\nstayed exactly 248.\n\n## Correctness and guards\n\nThe final holistic matrix verified 130 CPU and 130 Metal proofs. Every repeated\nproof was deterministic, CPU/Metal canonical bytes matched for every row, and\nfallback count remained zero. The official scored control passed the pinned\nRust Stwo oracle. Fixed target proof hashes are:\n\n- Blake `12x16`:\n  `70e516957d2d38ed78214bfda5b0b2bdfe41f1c93439fb68e124bfef096fbc9f`\n- Poseidon `log13`:\n  `f196835da5d4a155c6311bafb44335c2863cc028879d69a7ae53b802321200f1`\n\nWide Fibonacci `16x64`, the workload benefiting from the resident segmented\npath, remains preserved: 8.221 ms in the final matrix, with identical\ncommand-buffer/encoder topology to main. Exact profiles also confirmed\nunchanged topology for Plonk `log16`, state machine `log16`, and a non-target\nWide Fibonacci `15x48` shape. A non-target Blake `11x13` screen improved\n1.752x, demonstrating that the policy generalizes by fragmentation rather than\nby benchmark identity.\n\nReleaseFast core, prover, Native Metal lifecycle and independent-verification\ntests pass. Metal compile/link, source-JIT execution, AOT tooling/probe, and\nsource-conformance gates pass.\n\n## Caveats\n\nThe first full guard receipt passed all 13 time guards but missed the scored\nPlonk energy budget by 0.0224 in ratio. A declared confirmation retained that\nreceipt and passed the energy vector, but one tiny Wide-Fibonacci guard was\nthermally noisy. The submission therefore carries the clean objective-only S3\ncontrol; both complete guard attempts and the independent ten-by-ten matrix\nremain published in the evidence rather than selectively hidden. The judge\nwill rerun the complete guard matrix.\n\nThe repo-pinned standalone Rust oracle binary is authenticated by digest and\nwas not available as the exact local artifact; the complete holistic matrix is\ntherefore local-verification plus CPU/Metal canonical parity evidence. The\nofficial S3 control did execute the harness-provided pinned correctness oracle.\n\nThis repair does not claim PR6 Supremacy or a scored Plonk acceleration. It\ndoes establish statistically decisive performance recovery for the two\nreported Metal regressions while retaining the resident wide-trace gain.\n",
+   "outcome": "rejected",
+   "solver": "teddyjfpender",
+   "title": "Bound fragmented resident quotient dispatches on Metal",
+   "transcripts": [
+    {
+     "captured_by": "submitter",
+     "excerpt": "# Session 01 \u2014 Metal Blake/Poseidon regression\n\n## Objective\n\nInvestigate and reverse the current Metal regressions in Blake `12x16` and\nPoseidon `log13` while preserving proof bytes, protocol identity, source-JIT/AOT\nadmission, zero CPU fallback, and the broader Native CPU/Metal portfolio.\n\n## Starting evidence\n\nThe user supplied a same-matrix comparison of current `467edbc9` against\n`e58b4d1e`. Most Metal cells improved, especially wide Fibonacci `16x64`\n(`1.639x`), while Blake `12x16` regressed to `38.113 ms` (`0.738x`, or\n`1.35x` slower) and Poseidon `log13` regressed to `20.472 ms` (`0.431x`, or\n`2.32x` slower). The size-dependent reversal strongly suggests an execution\nplan, residency,",
+     "label": "session-01.md",
+     "sha256": "962ce260b9f5518526682171d4d0d71ff938ed49fab028d468bcc69e5e550e85"
+    }
+   ],
+   "verdict_kind": "claimed",
+   "workload_class": "deep"
   },
   {
    "id": "2026-07-23-metal-paired-expansion-high-transform",

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "predecessor_commit": "467edbc9988a",
+  "declared_objective": {
+    "board": "core_metal",
+    "workload_class": "deep",
+    "dimension": "time"
+  },
+  "declared_scope": "s3",
+  "files": {
+    "src/backends/metal/runtime/quotients.m": "sha256:ca4ebabadc18bf5a738d5be790b51c8163a33ca165bc07ec6357a3736d8d7882"
+  },
+  "transcripts": {
+    "transcripts/session-01.md": {
+      "sha256": "962ce260b9f5518526682171d4d0d71ff938ed49fab028d468bcc69e5e550e85",
+      "captured_by": "submitter"
+    }
+  },
+  "transcripts_declined": false
+}

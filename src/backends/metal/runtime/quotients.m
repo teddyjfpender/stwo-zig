@@ -1,3 +1,76 @@
+// Every segmented source run launches a full row grid and read-modify-writes
+// every quotient accumulator. Keep that repeated domain traffic bounded; a
+// more fragmented input is cheaper to pack once and evaluate in one kernel.
+static const size_t stwo_zig_quotient_max_segmented_source_runs = 64u;
+
+static StwoZigMetalTree *stwo_zig_quotient_resident_source(
+    NSArray<StwoZigMetalTree *> *resident_trees,
+    const uint32_t *column,
+    size_t column_words,
+    uintptr_t *resident_begin_out,
+    size_t *resident_words_out
+) {
+    uintptr_t address = (uintptr_t)column;
+    for (StwoZigMetalTree *tree in resident_trees) {
+        uintptr_t begin = tree.residentColumnsHostBegin;
+        size_t words = tree.residentColumnsWordCount;
+        if (tree.residentColumns == nil || address < begin) continue;
+        size_t offset_words = (address - begin) / sizeof(uint32_t);
+        if (offset_words <= words && column_words <= words - offset_words) {
+            *resident_begin_out = begin;
+            *resident_words_out = words;
+            return tree;
+        }
+    }
+    return nil;
+}
+
+static size_t stwo_zig_quotient_raw_source_run_count(
+    const uint32_t *const *raw_columns,
+    const size_t *raw_column_lengths,
+    uint32_t raw_column_count,
+    NSArray<StwoZigMetalTree *> *resident_trees
+) {
+    size_t runs = 0u;
+    size_t column = 0u;
+    while (column < raw_column_count) {
+        size_t run_start = column;
+        size_t run_words = raw_column_lengths[column];
+        uintptr_t resident_begin = 0u;
+        size_t resident_words = 0u;
+        StwoZigMetalTree *resident_tree = stwo_zig_quotient_resident_source(
+            resident_trees,
+            raw_columns[column],
+            raw_column_lengths[column],
+            &resident_begin,
+            &resident_words
+        );
+        column += 1u;
+        if (resident_tree != nil) {
+            while (column < raw_column_count) {
+                uintptr_t address = (uintptr_t)raw_columns[column];
+                if (address < resident_begin) break;
+                size_t offset_words = (address - resident_begin) / sizeof(uint32_t);
+                if (offset_words > resident_words ||
+                    raw_column_lengths[column] > resident_words - offset_words ||
+                    run_words > SIZE_MAX - raw_column_lengths[column])
+                    break;
+                run_words += raw_column_lengths[column];
+                column += 1u;
+            }
+        } else {
+            while (column < raw_column_count &&
+                   run_words <= SIZE_MAX - raw_column_lengths[column] &&
+                   raw_columns[column] == raw_columns[run_start] + run_words) {
+                run_words += raw_column_lengths[column];
+                column += 1u;
+            }
+        }
+        runs += 1u;
+    }
+    return runs;
+}
+
 bool stwo_zig_metal_compute_quotients(
     void *runtime_ptr,
     const uint32_t *flat_views, size_t flat_views_len,
@@ -80,9 +153,20 @@ bool stwo_zig_metal_compute_quotients(
         if (raw_views) {
             for (uint32_t i = 0; i < raw_column_count; ++i) raw_len += raw_column_lengths[i];
             size_t raw_bytes = raw_len * sizeof(uint32_t);
+            bool resident_segment_candidate =
+                resident_tree_count != 0u && raw_bytes >= (8u * 1024u * 1024u);
+            size_t raw_source_runs = resident_segment_candidate
+                ? stwo_zig_quotient_raw_source_run_count(
+                    raw_columns,
+                    raw_column_lengths,
+                    raw_column_count,
+                    resident_trees
+                )
+                : 0u;
             gpu_raw_upload =
                 raw_bytes >= (64u * 1024u * 1024u) ||
-                (resident_tree_count != 0u && raw_bytes >= (8u * 1024u * 1024u));
+                (resident_segment_candidate &&
+                 raw_source_runs <= stwo_zig_quotient_max_segmented_source_runs);
             flat_buffer = gpu_raw_upload
                 ? [runtime.device newBufferWithLength:sizeof(uint32_t) options:MTLResourceStorageModeShared]
                 : [runtime.device newBufferWithLength:raw_len * sizeof(uint32_t) options:MTLResourceStorageModeShared];
@@ -294,23 +378,17 @@ bool stwo_zig_metal_compute_quotients(
             while (column < raw_column_count) {
                 size_t run_start = column;
                 size_t run_words = raw_column_lengths[column];
-                uintptr_t first_address = (uintptr_t)raw_columns[column];
-                id<MTLBuffer> resident_source = nil;
                 uintptr_t resident_begin = 0u;
                 size_t resident_words = 0u;
-                for (StwoZigMetalTree *tree in resident_trees) {
-                    uintptr_t begin = tree.residentColumnsHostBegin;
-                    size_t words = tree.residentColumnsWordCount;
-                    if (tree.residentColumns == nil || first_address < begin) continue;
-                    size_t offset_words = (first_address - begin) / sizeof(uint32_t);
-                    if (offset_words <= words &&
-                        raw_column_lengths[column] <= words - offset_words) {
-                        resident_source = tree.residentColumns;
-                        resident_begin = begin;
-                        resident_words = words;
-                        break;
-                    }
-                }
+                StwoZigMetalTree *resident_tree = stwo_zig_quotient_resident_source(
+                    resident_trees,
+                    raw_columns[column],
+                    raw_column_lengths[column],
+                    &resident_begin,
+                    &resident_words
+                );
+                id<MTLBuffer> resident_source =
+                    resident_tree == nil ? nil : resident_tree.residentColumns;
                 bool resident_run = resident_source != nil;
                 column += 1;
                 if (resident_run) {

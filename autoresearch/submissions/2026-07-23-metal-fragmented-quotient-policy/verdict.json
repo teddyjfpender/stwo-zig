@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "kind": "claimed",
+  "harness_commit": "496939a8acda",
+  "repo_commit": "6c20a595b5a5",
+  "predecessor_commit": "467edbc9988a",
+  "scope": "s3",
+  "declared_objective": {
+    "board": "core_metal",
+    "workload_class": "deep",
+    "dimension": "time"
+  },
+  "environment": {
+    "host": "dc6522752aa8",
+    "os": "Darwin 25.5.0",
+    "zig_version": "0.15.2",
+    "release_fast": true,
+    "clean_tree": true,
+    "judge_lock_held": false,
+    "preflight": {
+      "load_ok": true,
+      "load1": 1.96
+    }
+  },
+  "search_health": {
+    "schema_version": 1,
+    "decision": {
+      "schema_version": 1,
+      "board": "core_metal",
+      "workload_class": "deep",
+      "trailing_window": 8,
+      "trailing_evidence_count": 0,
+      "trailing_median_gradient_snr": null,
+      "gradient_snr_threshold": 2.0,
+      "configured_rounds": 15,
+      "auto_boost_rounds": 5,
+      "maximum_rounds": 25,
+      "target_rounds": 15,
+      "workload_count": 1,
+      "class_wall_deadline_seconds": 600.0,
+      "estimated_seconds_per_round": null,
+      "deadline_round_limit": null,
+      "auto_boost_applied": false,
+      "auto_boost_reason": "insufficient_trailing_evidence",
+      "recorded_before_measurement": true
+    },
+    "decision_sha256": "sha256:0c269767899af1887a27d98bb68db35c9559d33b04d1c7725e46d73175fb9774",
+    "actual_rounds": 15,
+    "actual_rounds_per_workload": {
+      "mplonk_log14": 15
+    },
+    "objective_wall_seconds": 3.084553249995224,
+    "measurement_wall_seconds": 3.2708284159889445,
+    "measurement_wall_hours": 0.0009085634488858179,
+    "gradient_snr": null,
+    "credited_ln_improvement": null,
+    "credited_ln_improvement_per_measurement_hour": null,
+    "credit_status": "pending_ledger_adjudication",
+    "decision_record": "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/search-health-decision.json"
+  },
+  "gates": {
+    "G1": {
+      "pass": true,
+      "detail": "every timed sample verified; cross-arm proof digests byte-identical per round; pinned correctness oracle verified 1/1 workloads"
+    },
+    "G2": {
+      "pass": true,
+      "detail": "no locked or out-of-scope path touched"
+    },
+    "G3": {
+      "pass": true,
+      "detail": "native mechanism telemetry policy unchanged"
+    },
+    "G4": {
+      "pass": true,
+      "detail": "candidate/anchor 0.7833 vs targeted budget x1.02; matrix row upper CIs 1/1 within budget x1.05; request ratios 1/1 present rows within budget x1.05; resource vectors 1/1 within named budgets"
+    },
+    "G5": {
+      "pass": true,
+      "detail": "local advisory run"
+    }
+  },
+  "score": {
+    "per_workload": {
+      "mplonk_log14": {
+        "r": 1.006497,
+        "ci": [
+          0.990131,
+          1.022408
+        ],
+        "rounds": 15,
+        "a_median_ms": 3.539791,
+        "b_median_ms": 3.55675,
+        "request_ratio": 1.007236,
+        "rss_ratio": 0.997233,
+        "resources": {
+          "energy_j": {
+            "ratio": 0.998225,
+            "ci": [
+              0.984506,
+              1.006524
+            ],
+            "observations": 15,
+            "candidate": 0.286892515
+          },
+          "peak_rss_mib": {
+            "ratio": 0.997233,
+            "ci": [
+              0.995654,
+              0.998869
+            ],
+            "observations": 15,
+            "candidate": 157.45401763916016
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 45200.0
+          }
+        },
+        "mechanism_verified": null,
+        "proof_bytes": 45200,
+        "measurement_seconds": 2.9473,
+        "resources_complete": null
+      }
+    },
+    "R_geomean": 1.006497,
+    "portfolio": {
+      "ci_method": "independent_workload_round_bootstrap_percentile_v1",
+      "ci_level": 0.95,
+      "bootstrap_iterations": 4000,
+      "seed": 2364164286,
+      "ci": [
+        0.989908,
+        1.023032
+      ],
+      "prove_ms_method": "geometric_mean_candidate_workload_medians_ms_v1",
+      "b_median_ms_geomean": 3.55675,
+      "proof_bytes_method": "rounded_geometric_mean_candidate_proof_bytes_v1",
+      "proof_bytes": 45200,
+      "measurement_seconds": 2.9473,
+      "measurement_rounds": 15
+    },
+    "theta": 0.021128,
+    "aa_dispersion": 0.010564,
+    "significant": false,
+    "neutral": false,
+    "promotion_significance": {
+      "eligible": true,
+      "method": "independent_workload_round_bootstrap_percentile_v1",
+      "reason": "prove-time objective uses the deterministic workload portfolio CI"
+    },
+    "resource_portfolio": {
+      "peak_rss_mib": {
+        "ratio_geomean": 0.9972331160530634,
+        "upper_ci_geomean": 0.9988689256391698,
+        "candidate_geomean": 157.45401763916016
+      },
+      "energy_j": {
+        "ratio_geomean": 0.9982254138619033,
+        "upper_ci_geomean": 1.006523704872285,
+        "candidate_geomean": 0.286892515
+      },
+      "proof_bytes": {
+        "ratio_geomean": 1.0,
+        "upper_ci_geomean": 1.0,
+        "candidate_geomean": 45200.00000000004
+      }
+    }
+  },
+  "tiebreakers": {
+    "rss_ratio": 0.997233,
+    "waits": null,
+    "dispatches": null,
+    "energy_j": 0.286892515,
+    "proof_bytes": 45200.00000000004
+  },
+  "holdout": null,
+  "guards": {},
+  "rust_oracle": [
+    {
+      "workload": "mplonk_log14",
+      "verified": true,
+      "oracle": "pinned-rust-stwo",
+      "artifact_sha256": "ed64ff803f2e7ec8c5eeb81f520ee3cb228c6811795a53137092a8632f9e5e68"
+    }
+  ],
+  "skipped_groups": [
+    {
+      "group": "pr6_supremacy",
+      "reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete."
+    }
+  ],
+  "evidence": {
+    "pairing": "round-level ABBA (bench reports expose medians, not raw samples)",
+    "per_workload": {
+      "mplonk_log14": {
+        "round_ratios": [
+          0.970469,
+          1.139001,
+          1.023656,
+          1.060079,
+          1.022408,
+          0.998835,
+          1.00844,
+          0.963819,
+          0.969525,
+          1.015997,
+          1.00458,
+          1.014264,
+          0.989312,
+          0.980616,
+          1.012091
+        ],
+        "proof_digest": "d63a2c92846148edc075fbb46fe63f5cf0fc6fe05ae1d5d54d09bda33b69dbaf",
+        "request_ratio": 1.007236,
+        "rss_ratio": 0.997233,
+        "resources": {
+          "energy_j": {
+            "ratio": 0.998225,
+            "ci": [
+              0.984506,
+              1.006524
+            ],
+            "observations": 15,
+            "candidate": 0.286892515
+          },
+          "peak_rss_mib": {
+            "ratio": 0.997233,
+            "ci": [
+              0.995654,
+              0.998869
+            ],
+            "observations": 15,
+            "candidate": 157.45401763916016
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 45200.0
+          }
+        },
+        "report_sha256s": [
+          "c520aa6605a3baee962ec2a00c95da668c259d530c0451fad1d1bf309c5e7c01",
+          "da16851f83e6239ee5939b1e0ea5ce9d690673c349ce6acca7dd0dab11b7b7b6",
+          "d1b39e8969d3c6f91b888694674c9fc1ad19478959b046e927afaacc3d302dcc",
+          "799fa2fc714e91ff03ba26d4625112427b07c64d7b1b03253178fe8bd2bb77b8",
+          "5463c178c808690c1cdc217b722e4184e3c6985a9d06caf4c754787a57e13152",
+          "f703766d622d1c4f54ecdf6762872e03d9f1c2f9532797cc0b6fe9579889ca5a",
+          "520ba29107b81b56fe0da7dda2324bdbf4bb9833f7f543fd7da2957122380e2e",
+          "0814332bc8297d8ba2462486362e1fbc41e0f60d1ef4fa69e631609c6dfd94fe",
+          "93a6b10c05cd66413fb98344de82e366ca6e17eaabd58e87368ff82db686d793",
+          "f62d844a50d0ed2bf16b2d9e1af22aab73461cf8de9370bab15ffe9c88df96ca",
+          "f6d8aad9304f5cd26bdd05c34de05e33082c35f195830fae0c6816c3745bbd34",
+          "d7d2661aea20251db98c77a277178076b83f258c403dc31e4ae34ff959d6eeb2",
+          "e00a5d942afd7ad15fd84b1ba9f2258ffd7d3c65ebff363d470ca10c4417f64b",
+          "84e7a8f6c89ac31550c71f0cb57454958de508078a7ad8f4fde6e51ddbe664b6",
+          "605e773fc4296bc4ade49844a43f1b5e0533c4a7faf95cd18986ac3d30982da4",
+          "ff36b43fa5e8f41825080cae69bfabd1c664c9060870ac1af4acf6bcac3f79dc",
+          "016d317bd514b1e33aa2c96b534ad415adf4e6978b6003b236e03fc3eb662e80",
+          "14ec210c0447863164dd7ff622644fa9c2397d17e6d8c606689e20935a04c11e",
+          "baaccd6bf43bfe6e2ac7c0f2330986d781ff1c9a7f1eb29483051dc3dea3a406",
+          "6543e1950c65cc32385c87ab821b21a72fa7cf61363123944c26beb9571c8069",
+          "da11ac218807dde591b6356487714b24f81d5b66f149bc5637275879fb0c2e62",
+          "f7c219216ac1ee9229af403725d371f4a95a561dfe8269092d4cfbe8fde8444b",
+          "7ca9db11fef4db228be8a6e2afcc9d21c47776372e3e9d9460312f7436b3264e",
+          "80d3ab42ac56e12905279c591970f0d755bba9d4a47af09aa889627e60756b6d",
+          "0cca24eab2a47d12138b70c54e6d7b9b1c77b6b2c28cfa2d3eeb0e5ae474a991",
+          "679c7055a35ecefde89e84655f5dd042d673518525bed68da9cb94bf01d7a28e",
+          "560667046bbc46ae969011b286a09272037f6ea146eb6f0ea960a0e0e5a21e8b",
+          "a43d5e00e67d23dc31893149d98c6eb95d891ea25e343ddccecef156eb7e6ecf",
+          "536b3207138f579b69fff521ebe0968286a9649db94ccbd7df623fc61dbc698e",
+          "2103c72de56974db3b58bf873c7ae093c475e1d78700fa5d5ac95e58c32f26d1"
+        ],
+        "mechanism_verified": null,
+        "resources_complete": null
+      }
+    },
+    "reports": [
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a1.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b1.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a2.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b2.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a3.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b3.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a4.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b4.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a5.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b5.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a6.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b6.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a7.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b7.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a8.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b8.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a9.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b9.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a10.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b10.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a11.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b11.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a12.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b12.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a13.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b13.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a14.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b14.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.a15.json",
+      "/Users/theodorepender/code/auto-researching/ws-poseidon-blake-metal/autoresearch/.runs/latest/mplonk_log14.b15.json"
+    ]
+  }
+}
