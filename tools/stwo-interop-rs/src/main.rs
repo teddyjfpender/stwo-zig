@@ -8,6 +8,7 @@ mod proving;
 mod statements;
 mod traces;
 mod wire;
+mod xor;
 
 #[cfg(test)]
 mod backend_tests;

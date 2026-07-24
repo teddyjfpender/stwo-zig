@@ -1,6 +1,7 @@
 use crate::model::{
     BlakeStatement, PlonkStatement, PoseidonStatement, StateMachineElements, StateMachineStatement,
-    WideFibonacciStatement, XorStatement, POSEIDON_COLUMNS, POSEIDON_COLUMNS_PER_REP,
+    WideFibonacciStatement, XorLookupElements, XorStatement, POSEIDON_COLUMNS,
+    POSEIDON_COLUMNS_PER_REP,
 };
 use crate::traces::{blake_n_columns, checked_pow2};
 use anyhow::{bail, Result};
@@ -165,16 +166,17 @@ pub(crate) fn mix_blake_statement(channel: &mut Blake2sChannel, statement: Blake
     channel.mix_u32s(&[statement.log_n_rows, statement.n_rounds]);
 }
 
-pub(crate) fn xor_composition_eval(statement: XorStatement) -> SecureField {
-    SecureField::from_m31(
-        M31::from(statement.log_size),
-        M31::from(statement.log_step),
-        M31::from(statement.offset),
-        M31::one(),
-    )
+pub(crate) fn xor_combine(
+    elements: XorLookupElements,
+    a: SecureField,
+    b: SecureField,
+    c: SecureField,
+) -> SecureField {
+    a + elements.alpha * b + elements.alpha.square() * c - elements.z
 }
 
 pub(crate) fn mix_xor_statement(channel: &mut Blake2sChannel, statement: XorStatement) {
     channel.mix_u32s(&[statement.log_size, statement.log_step]);
     channel.mix_u64(statement.offset as u64);
+    channel.mix_felts(&[statement.claimed_sum]);
 }

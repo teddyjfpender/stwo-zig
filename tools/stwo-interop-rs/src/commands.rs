@@ -294,6 +294,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 log_size: cli.xor_log_size,
                 log_step: cli.xor_log_step,
                 offset: cli.xor_offset,
+                claimed_sum: Default::default(),
             };
             let (statement, proof) = selected_backend!(
                 cli,

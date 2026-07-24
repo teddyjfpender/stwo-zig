@@ -191,7 +191,7 @@
     "xor_lookup": {
       "release_ready": false,
       "gates": {
-        "exact_trace_semantics": true,
+        "exact_trace_semantics": false,
         "exact_constraint_semantics": false,
         "exact_cpu_cuda_proof_bytes": false,
         "pinned_rust_verification": false,
@@ -200,10 +200,13 @@
       },
       "evidence": {
         "exact_trace_semantics": [
+          "src/examples/xor/input.zig",
           "src/integrations/native_cuda/xor/trace.zig",
           "src/integrations/native_cuda/xor/device_trace.zig"
         ],
         "exact_constraint_semantics": [
+          "src/examples/xor/component.zig",
+          "src/examples/xor/interaction.zig",
           "src/integrations/native_cuda/xor/constraint.zig",
           "src/integrations/native_cuda/xor/geometry.zig"
         ],
@@ -215,10 +218,10 @@
         "complete_stage_telemetry": []
       },
       "blockers": {
-        "exact_trace_semantics": null,
-        "exact_constraint_semantics": "The CUDA route declares zero interaction columns and uses constant-QM31 composition rather than the XOR lookup relation.",
-        "exact_cpu_cuda_proof_bytes": "Only CPU proof identities are frozen; no CUDA XOR lookup artifact is retained.",
-        "pinned_rust_verification": "No retained pinned-Rust receipt exists for a CUDA XOR lookup proof.",
+        "exact_trace_semantics": "Native CPU now commits the seven-column canonical XOR truth table and four-column execution/multiplicity witness. CUDA still emits the former two-preprocessed/one-main structural trace.",
+        "exact_constraint_semantics": "Native CPU now proves 14 exact algebraic and LogUp constraints with a real interaction commitment and zero claimed sum. CUDA still declares zero interaction columns and uses constant-QM31 composition.",
+        "exact_cpu_cuda_proof_bytes": "Zig and pinned-Rust CPU artifacts are byte-identical for the exact lookup protocol, but no resident CUDA artifact exists for that protocol.",
+        "pinned_rust_verification": "The pinned Rust Stwo oracle accepts the exact CPU protocol; a candidate-bound receipt accepting a resident CUDA proof is still absent.",
         "zero_fallback": "No retained hardware XOR lookup run proves zero fallback.",
         "complete_stage_telemetry": "No retained hardware XOR lookup run contains complete stage telemetry."
       }

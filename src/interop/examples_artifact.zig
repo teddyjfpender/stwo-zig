@@ -41,6 +41,7 @@ pub const XorStatementWire = struct {
     log_size: u32,
     log_step: u32,
     offset: u64,
+    claimed_sum: Qm31Wire = .{0} ** 4,
 };
 
 pub const WideFibonacciStatementWire = struct {
@@ -298,6 +299,7 @@ pub fn xorStatementToWire(statement: xor.Statement) XorStatementWire {
         .log_size = statement.log_size,
         .log_step = statement.log_step,
         .offset = statement.offset,
+        .claimed_sum = qm31ToWire(statement.claimed_sum),
     };
 }
 
@@ -307,6 +309,7 @@ pub fn xorStatementFromWire(wire: XorStatementWire) ArtifactError!xor.Statement 
         .log_size = wire.log_size,
         .log_step = wire.log_step,
         .offset = @intCast(wire.offset),
+        .claimed_sum = try qm31FromWire(wire.claimed_sum),
     };
 }
 

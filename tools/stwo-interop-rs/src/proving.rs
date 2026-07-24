@@ -2,19 +2,17 @@ use crate::model::{
     BenchProofMetrics, BlakeComponent, BlakeStatement, Cli, Example, ExampleStatement,
     PlonkComponent, PlonkStatement, PoseidonComponent, PoseidonStatement, ProveMode, StageNode,
     StateMachineComponent, StateMachineElements, StateMachineStatement, WideFibonacciComponent,
-    WideFibonacciStatement, XorComponent, XorStatement, POSEIDON_COLUMNS,
+    WideFibonacciStatement, XorStatement, POSEIDON_COLUMNS,
 };
 use crate::profile::time_stage;
 use crate::statements::{
     mix_blake_statement, mix_plonk_statement, mix_poseidon_statement,
     mix_state_machine_public_input, mix_state_machine_stmt0, mix_state_machine_stmt1,
-    mix_wide_fibonacci_statement, mix_xor_statement, prepare_state_machine_statement,
-    verify_state_machine_statement,
+    mix_wide_fibonacci_statement, prepare_state_machine_statement, verify_state_machine_statement,
 };
 use crate::traces::{
     backend_eval, blake_n_columns, blake_validate_statement, gen_blake_trace, gen_is_first,
-    gen_is_step_with_offset, gen_plonk_trace, gen_poseidon_trace, gen_trace,
-    gen_wide_fibonacci_trace, gen_xor_main, poseidon_log_n_rows,
+    gen_plonk_trace, gen_poseidon_trace, gen_trace, gen_wide_fibonacci_trace, poseidon_log_n_rows,
 };
 use crate::wire::{checked_m31, proof_to_wire};
 use anyhow::{anyhow, bail, Result};
@@ -27,6 +25,8 @@ use stwo::core::vcs_lifted::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleH
 use stwo::core::verifier::verify;
 use stwo::prover::backend::{Backend, BackendForChannel};
 use stwo::prover::{prove, prove_ex, CommitmentSchemeProver};
+
+pub(crate) use crate::xor::{xor_prove, xor_verify};
 
 pub(crate) fn prove_example<B>(
     config: PcsConfig,
@@ -108,6 +108,7 @@ where
                 log_size: cli.xor_log_size,
                 log_step: cli.xor_log_step,
                 offset: cli.xor_offset,
+                claimed_sum: Default::default(),
             };
             let (statement, proof) = xor_prove::<B>(
                 config,
@@ -734,96 +735,4 @@ pub(crate) fn blake_verify(
     let component = BlakeComponent { statement };
     verify(&[&component], &mut channel, &mut commitment_scheme, proof)
         .map_err(|err| anyhow!("blake verify failed: {err}"))
-}
-
-pub(crate) fn xor_prove<B>(
-    config: PcsConfig,
-    statement: XorStatement,
-    prove_mode: ProveMode,
-    include_all_preprocessed_columns: bool,
-) -> Result<(XorStatement, StarkProof<Blake2sMerkleHasher>)>
-where
-    B: Backend + BackendForChannel<Blake2sMerkleChannel>,
-{
-    if statement.log_size == 0 {
-        bail!("invalid xor log_size");
-    }
-    if statement.log_step > statement.log_size {
-        bail!("invalid xor log_step");
-    }
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let twiddles = B::precompute_twiddles(
-        CanonicCoset::new(statement.log_size + config.fri_config.log_blowup_factor + 1)
-            .circle_domain()
-            .half_coset,
-    );
-    let mut scheme = CommitmentSchemeProver::<B, Blake2sMerkleChannel>::new(config, &twiddles);
-
-    let is_first = gen_is_first(statement.log_size)?;
-    let is_step =
-        gen_is_step_with_offset(statement.log_size, statement.log_step, statement.offset)?;
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(vec![
-        backend_eval::<B>(statement.log_size, is_first),
-        backend_eval::<B>(statement.log_size, is_step),
-    ]);
-    builder.commit(&mut channel);
-
-    let main = gen_xor_main(statement.log_size)?;
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(vec![backend_eval::<B>(statement.log_size, main)]);
-    builder.commit(&mut channel);
-
-    mix_xor_statement(&mut channel, statement);
-
-    let component = XorComponent { statement };
-    let proof = match prove_mode {
-        ProveMode::Prove => prove::<B, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?,
-        ProveMode::ProveEx => {
-            prove_ex::<B, Blake2sMerkleChannel>(
-                &[&component],
-                &mut channel,
-                scheme,
-                include_all_preprocessed_columns,
-            )?
-            .proof
-        }
-    };
-
-    Ok((statement, proof))
-}
-
-pub(crate) fn xor_verify(
-    config: PcsConfig,
-    statement: XorStatement,
-    proof: StarkProof<Blake2sMerkleHasher>,
-) -> Result<()> {
-    if statement.log_size == 0 {
-        bail!("invalid xor log_size");
-    }
-    if statement.log_step > statement.log_size {
-        bail!("invalid xor log_step");
-    }
-    if proof.0.commitments.len() < 2 {
-        bail!("invalid proof shape: expected at least 2 commitments");
-    }
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let c0 = proof.0.commitments[0];
-    let c1 = proof.0.commitments[1];
-
-    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
-    commitment_scheme.commit(c0, &[statement.log_size, statement.log_size], &mut channel);
-    commitment_scheme.commit(c1, &[statement.log_size], &mut channel);
-
-    mix_xor_statement(&mut channel, statement);
-
-    let component = XorComponent { statement };
-    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
-        .map_err(|err| anyhow!("xor verify failed: {err}"))
 }

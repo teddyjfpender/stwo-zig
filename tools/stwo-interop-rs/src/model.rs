@@ -179,6 +179,8 @@ pub(crate) struct XorStatementWire {
     pub(crate) log_size: u32,
     pub(crate) log_step: u32,
     pub(crate) offset: u64,
+    #[serde(default)]
+    pub(crate) claimed_sum: Qm31Wire,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -311,6 +313,7 @@ pub(crate) struct XorStatement {
     pub(crate) log_size: u32,
     pub(crate) log_step: u32,
     pub(crate) offset: usize,
+    pub(crate) claimed_sum: SecureField,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -344,6 +347,13 @@ pub(crate) struct StateMachineComponent {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct XorComponent {
     pub(crate) statement: XorStatement,
+    pub(crate) lookup_elements: XorLookupElements,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct XorLookupElements {
+    pub(crate) z: SecureField,
+    pub(crate) alpha: SecureField,
 }
 
 #[derive(Debug, Clone, Copy)]

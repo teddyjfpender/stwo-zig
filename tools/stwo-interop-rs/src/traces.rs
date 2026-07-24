@@ -1,5 +1,5 @@
 use crate::model::{
-    BlakeStatement, PoseidonStatement, BLAKE_ROUND_INPUT_FELTS, POSEIDON_COLUMNS,
+    BlakeStatement, PoseidonStatement, XorStatement, BLAKE_ROUND_INPUT_FELTS, POSEIDON_COLUMNS,
     POSEIDON_HALF_FULL_ROUNDS, POSEIDON_INSTANCES_PER_ROW, POSEIDON_LOG_INSTANCES_PER_ROW,
     POSEIDON_PARTIAL_ROUNDS, POSEIDON_STATE,
 };
@@ -120,19 +120,53 @@ pub(crate) fn gen_is_step_with_offset(
     Ok(values)
 }
 
-pub(crate) fn gen_xor_main(log_size: u32) -> Result<Vec<M31>> {
-    let n = checked_pow2(log_size)?;
-    let mut values = vec![M31::zero(); n];
-    for i in 0..n {
-        let circle_domain_index = coset_index_to_circle_domain_index(i, log_size);
-        let bit_rev_index = bit_reverse_index(circle_domain_index, log_size);
-        values[bit_rev_index] = if (i & 1) == 0 {
-            M31::one()
-        } else {
-            M31::zero()
-        };
+pub(crate) fn gen_xor_lookup_trace(
+    statement: XorStatement,
+) -> Result<(Vec<Vec<M31>>, Vec<Vec<M31>>)> {
+    if statement.log_size < 2 || statement.log_step > statement.log_size {
+        bail!("invalid xor statement");
     }
-    Ok(values)
+    let n = checked_pow2(statement.log_size)?;
+    let is_first = gen_is_first(statement.log_size)?;
+    let is_step =
+        gen_is_step_with_offset(statement.log_size, statement.log_step, statement.offset)?;
+    let mut preprocessed = vec![vec![M31::zero(); n]; 7];
+    preprocessed[0] = is_first;
+    preprocessed[1] = is_step;
+
+    for row in 0..n {
+        let storage = xor_storage_index(row, statement.log_size);
+        preprocessed[2][storage] = M31::from(((row >> 1) & 1) as u32);
+    }
+    for table_row in 0..4 {
+        let storage = xor_storage_index(table_row, statement.log_size);
+        let a = ((table_row >> 1) & 1) as u32;
+        let b = (table_row & 1) as u32;
+        preprocessed[3][storage] = M31::one();
+        preprocessed[4][storage] = M31::from(a);
+        preprocessed[5][storage] = M31::from(b);
+        preprocessed[6][storage] = M31::from(a ^ b);
+    }
+
+    let mut main = vec![vec![M31::zero(); n]; 4];
+    let mut counts = [0usize; 4];
+    for storage in 0..n {
+        let a = preprocessed[2][storage];
+        let b = preprocessed[1][storage];
+        let c = M31::from(a.0 ^ b.0);
+        main[0][storage] = a;
+        main[1][storage] = b;
+        main[2][storage] = c;
+        counts[((a.0 as usize) << 1) | b.0 as usize] += 1;
+    }
+    for (table_row, count) in counts.into_iter().enumerate() {
+        main[3][xor_storage_index(table_row, statement.log_size)] = M31::from(count);
+    }
+    Ok((preprocessed, main))
+}
+
+pub(crate) fn xor_storage_index(row: usize, log_size: u32) -> usize {
+    bit_reverse_index(coset_index_to_circle_domain_index(row, log_size), log_size)
 }
 
 pub(crate) fn gen_plonk_trace(log_n_rows: u32) -> Result<([Vec<M31>; 4], [Vec<M31>; 4])> {

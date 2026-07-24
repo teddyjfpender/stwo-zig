@@ -278,6 +278,7 @@ pub(crate) fn xor_statement_to_wire(statement: XorStatement) -> Result<XorStatem
         log_size: statement.log_size,
         log_step: statement.log_step,
         offset: statement.offset as u64,
+        claimed_sum: qm31_to_wire(statement.claimed_sum),
     })
 }
 
@@ -290,6 +291,7 @@ pub(crate) fn xor_statement_from_wire(wire: &XorStatementWire) -> Result<XorStat
         log_size: wire.log_size,
         log_step: wire.log_step,
         offset,
+        claimed_sum: qm31_from_wire(wire.claimed_sum)?,
     })
 }
 
