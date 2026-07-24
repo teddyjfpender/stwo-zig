@@ -36,12 +36,14 @@ pub const Error = error{
     NullDevicePointer,
     NullExecutionContext,
     NullExecutionStream,
+    OutOfMemory,
     OverlappingDeviceRange,
     SizeOverflow,
     StageAlreadyActive,
     StageNotActive,
     StageOrderViolation,
     StrictAotViolation,
+    ThreadOwnershipViolation,
 };
 
 pub fn check(status: c_int) Error!void {
