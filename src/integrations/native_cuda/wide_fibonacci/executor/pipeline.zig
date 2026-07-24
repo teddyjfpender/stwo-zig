@@ -270,7 +270,7 @@ const Adapter = struct {
     pub const Geometry = request.Geometry;
 
     pub fn program(
-        prepared: *const PreparedPlan,
+        prepared: *const pipeline.PreparedPlan,
     ) *const @import("stwo_backend_contracts").proof_program.ProofProgram {
         return &prepared.structural.proof_program;
     }

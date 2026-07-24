@@ -36,7 +36,7 @@ pub fn TopologyFor(comptime Layout: type) type {
                     return error.UnsupportedProtocol;
                 }
                 const count_u32 = try u32Count(count);
-                const log_size = commitmentLog(logical);
+                const log_size = try commitmentLog(logical);
                 const rows = try u32Count(logical.quotient.output_rows);
                 const prepared = try allocator.alloc(
                     quotient_abi.PreparedTermDescriptor,
@@ -231,8 +231,8 @@ pub fn TopologyFor(comptime Layout: type) type {
                 allocator: std.mem.Allocator,
                 logical: Layout,
             ) (std.mem.Allocator.Error || Error)!Decommit {
-                const query_count = queryCount(logical);
-                const log_size = commitmentLog(logical);
+                const query_count = try queryCount(logical);
+                const log_size = try commitmentLog(logical);
                 var trace_count: usize = 0;
                 var trace_layer_count: usize = 0;
                 var source_columns: usize = 0;
