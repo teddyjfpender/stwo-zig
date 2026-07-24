@@ -12,7 +12,7 @@ pub const TraceOpening = Set.TraceOpening;
 pub const FriOpening = Set.FriOpening;
 pub const Decommit = Set.Decommit;
 
-test "state-machine topology opens three trees and samples ten columns" {
+test "state-machine topology opens and samples all three trees" {
     const std = @import("std");
     const geometry_mod = @import("geometry.zig");
     const pcs = @import("stwo_core").pcs;
@@ -36,8 +36,8 @@ test "state-machine topology opens three trees and samples ten columns" {
     var decommit = try Decommit.init(allocator, logical);
     defer decommit.deinit(allocator);
 
-    try std.testing.expectEqual(@as(usize, 10), quotient.prepared_terms.len);
-    try std.testing.expectEqual(@as(u32, 10), quotient.source_count);
+    try std.testing.expectEqual(@as(usize, 11), quotient.prepared_terms.len);
+    try std.testing.expectEqual(@as(u32, 11), quotient.source_count);
     try std.testing.expectEqual(@as(usize, 16), fri.layers.len);
     try std.testing.expectEqual(@as(usize, 3), decommit.trace_trees.len);
     try std.testing.expectEqual(@as(usize, 16), decommit.fri_trees.len);

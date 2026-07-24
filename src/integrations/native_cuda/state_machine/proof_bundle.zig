@@ -100,7 +100,7 @@ test "state-machine bundle preserves exact three-tree wire cardinalities" {
         bundle.section(.trace_commitments).words,
     );
     try std.testing.expectEqual(
-        @as(usize, 10 * 4),
+        @as(usize, 11 * 4),
         bundle.section(.sampled_values).words,
     );
     try std.testing.expectEqual(

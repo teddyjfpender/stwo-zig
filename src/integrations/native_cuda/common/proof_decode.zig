@@ -163,9 +163,9 @@ fn decodeSamples(
     var cursor: usize = 0;
     for (trace_trees, 0..) |tree, index| {
         if (!tree.sampled) {
-            trees[index] = try allocator.alloc(
-                []proof_wire.Qm31Wire,
-                0,
+            trees[index] = try emptyColumns(
+                allocator,
+                tree.column_count,
             );
             continue;
         }
@@ -182,6 +182,17 @@ fn decodeSamples(
     }
     if (cursor != values.len) return error.InvalidSampleLayout;
     return trees;
+}
+
+fn emptyColumns(
+    allocator: std.mem.Allocator,
+    count: usize,
+) ![][]proof_wire.Qm31Wire {
+    const columns = try allocator.alloc([]proof_wire.Qm31Wire, count);
+    for (columns) |*column| {
+        column.* = try allocator.alloc(proof_wire.Qm31Wire, 0);
+    }
+    return columns;
 }
 
 fn singletonColumns(
@@ -635,4 +646,56 @@ test "sample reconstruction follows role descriptors" {
     try std.testing.expectEqual(@as(u32, 9), sampled[1][0][0][0]);
     try std.testing.expectEqual(@as(u32, 13), sampled[2][0][0][0]);
     try std.testing.expectEqual(@as(u32, 37), sampled[2][6][0][0]);
+}
+
+test "sample reconstruction preserves unsampled tree columns" {
+    const trees = [_]uniform_layout.TraceTree{
+        .{
+            .role = .preprocessed,
+            .column_count = 1,
+            .column_log_size = 4,
+            .commitment_log_size = 5,
+            .sampled = false,
+            .decommitted = true,
+        },
+        .{
+            .role = .main,
+            .column_count = 2,
+            .column_log_size = 4,
+            .commitment_log_size = 5,
+            .sampled = true,
+            .decommitted = true,
+        },
+        .{
+            .role = .composition,
+            .column_count = 8,
+            .column_log_size = 4,
+            .commitment_log_size = 5,
+            .sampled = true,
+            .decommitted = true,
+        },
+    };
+    var words: [10 * stark_bundle.secure_words]u32 = undefined;
+    for (&words, 0..) |*word, index| word.* = @intCast(index + 1);
+    const sampled = try decodeSamples(
+        std.testing.allocator,
+        &words,
+        trees,
+    );
+    defer {
+        for (sampled) |columns| {
+            for (columns) |column_values| {
+                std.testing.allocator.free(column_values);
+            }
+            std.testing.allocator.free(columns);
+        }
+        std.testing.allocator.free(sampled);
+    }
+
+    try std.testing.expectEqual(@as(usize, 1), sampled[0].len);
+    try std.testing.expectEqual(@as(usize, 0), sampled[0][0].len);
+    try std.testing.expectEqual(@as(usize, 2), sampled[1].len);
+    try std.testing.expectEqual(@as(usize, 8), sampled[2].len);
+    try std.testing.expectEqual(@as(u32, 1), sampled[1][0][0][0]);
+    try std.testing.expectEqual(@as(u32, 9), sampled[2][0][0][0]);
 }

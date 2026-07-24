@@ -8,10 +8,10 @@ pub const preprocessed_columns: u32 = 1;
 pub const main_columns: u32 = 2;
 pub const interaction_columns: u32 = 0;
 pub const composition_columns: u32 = 8;
-pub const sampled_mask_points: u32 = main_columns + composition_columns;
 pub const resident_evaluation_columns: u32 =
     preprocessed_columns + main_columns + composition_columns;
-pub const sampled_source_column_offset: u32 = preprocessed_columns;
+pub const sampled_mask_points: u32 = resident_evaluation_columns;
+pub const sampled_source_column_offset: u32 = 0;
 pub const coefficient_log_count: u32 = resident_evaluation_columns;
 pub const statement_word_count: usize = 14;
 pub const max_log_size: u32 = 29;
@@ -146,7 +146,7 @@ test "state-machine geometry distinguishes committed and sampled columns" {
     try std.testing.expectEqual(@as(u64, 1 << 16), shape.trace_rows);
     try std.testing.expectEqual(@as(u64, 3 * (1 << 16)), shape.trace_elements);
     try std.testing.expectEqual(@as(u32, 3), shape.traceColumnCount());
-    try std.testing.expectEqual(@as(u32, 10), sampled_mask_points);
+    try std.testing.expectEqual(@as(u32, 11), sampled_mask_points);
     try std.testing.expectEqual(@as(u32, 11), resident_evaluation_columns);
     try std.testing.expectEqual(@as(u32, 17), shape.commitment_log_rows);
     try std.testing.expectEqual(@as(usize, 19), shape.decommit_tree_count);

@@ -19,7 +19,7 @@ const Descriptor = struct {
                     .column_count = geometry_mod.preprocessed_columns,
                     .column_log_size = geometry.statement.log_n_rows,
                     .commitment_log_size = geometry.commitment_log_rows,
-                    .sampled = false,
+                    .sampled = true,
                     .decommitted = true,
                 },
                 .{
@@ -80,13 +80,11 @@ test "state-machine layout retains every CPU proof tree and sampled column" {
     try std.testing.expectEqual(@as(usize, 1), logical.trace_trees[0].column_count);
     try std.testing.expectEqual(@as(usize, 2), logical.trace_trees[1].column_count);
     try std.testing.expectEqual(@as(usize, 8), logical.trace_trees[2].column_count);
-    try std.testing.expect(!logical.trace_trees[0].sampled);
-    try std.testing.expect(logical.trace_trees[1].sampled);
-    try std.testing.expect(logical.trace_trees[2].sampled);
+    for (logical.trace_trees) |tree| try std.testing.expect(tree.sampled);
     for (logical.trace_trees) |tree| try std.testing.expect(tree.decommitted);
     try std.testing.expectEqual(@as(usize, 16), logical.fri_trees.len);
     try std.testing.expectEqual(@as(usize, 3), logical.fri_trees[0].tree_index);
     try std.testing.expectEqual(@as(u32, 17), logical.fri_trees[0].evaluation_log_size);
     try std.testing.expectEqual(@as(u32, 2), logical.fri_trees[15].evaluation_log_size);
-    try std.testing.expectEqual(@as(usize, 10), logical.quotient.term_count);
+    try std.testing.expectEqual(@as(usize, 11), logical.quotient.term_count);
 }

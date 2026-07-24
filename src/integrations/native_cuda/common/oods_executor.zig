@@ -155,7 +155,6 @@ fn buildBatches(
     if (sample_count != logical.quotient.source_column_count or
         ingress.circle.domain_log_size !=
             logical.geometry.queryLogSize() or
-        ingress.coefficient_log_sizes.len != sample_count or
         ingress.oods_offset_points.len != sample_count or
         ingress.oods_fold_counts.len != sample_count or
         ingress.oods_output_indices.len != sample_count or
@@ -172,10 +171,17 @@ fn buildBatches(
     }
 
     var batch_count: usize = 0;
+    var first_column: usize = 0;
     var first_sample: usize = 0;
     var common_log_size: ?u32 = null;
     var common_rows: ?usize = null;
     for (logical.trace_trees) |tree| {
+        const end_column = try add(first_column, tree.column_count);
+        if (end_column > ingress.coefficient_log_sizes.len)
+            return error.InvalidKernelDescriptor;
+        const column_log_sizes =
+            ingress.coefficient_log_sizes[first_column..end_column];
+        first_column = end_column;
         if (!tree.sampled) continue;
         if (batch_count == storage.len)
             return error.InvalidKernelDescriptor;
@@ -201,7 +207,7 @@ fn buildBatches(
         const end_sample = try add(first_sample, tree.column_count);
         for (first_sample..end_sample) |index| {
             const offset = ingress.oods_offset_points[index];
-            if (ingress.coefficient_log_sizes[index] !=
+            if (column_log_sizes[index - first_sample] !=
                 tree.column_log_size or
                 offset.x != 1 or
                 offset.y != 0 or
@@ -221,8 +227,12 @@ fn buildBatches(
         batch_count += 1;
         first_sample = end_sample;
     }
-    if (batch_count == 0 or first_sample != sample_count)
+    if (batch_count == 0 or
+        first_column != ingress.coefficient_log_sizes.len or
+        first_sample != sample_count)
+    {
         return error.InvalidKernelDescriptor;
+    }
 
     const log_size = common_log_size orelse
         return error.InvalidKernelDescriptor;

@@ -513,8 +513,42 @@ test "state-machine proof program matches the AIR topology" {
     try std.testing.expectEqual(@as(u32, 1), emitted.commitments[0].column_count);
     try std.testing.expectEqual(@as(u32, 2), emitted.commitments[1].column_count);
     try std.testing.expectEqual(@as(u32, 8), emitted.commitments[2].column_count);
-    try std.testing.expectEqual(@as(u32, 10), emitted.quotient.term_count);
+    try std.testing.expectEqual(@as(u32, 11), emitted.quotient.term_count);
     try std.testing.expectEqual(@as(u32, 14), emitted.transcript[3].value_count);
+}
+
+test "state-machine program sample topology matches a CPU proof" {
+    const allocator = std.testing.allocator;
+    const cpu_state_machine = @import("../../../examples/state_machine.zig");
+    const pcs = @import("stwo_core").pcs;
+    const M31 = @import("stwo_core").fields.m31.M31;
+    const protocol = pcs.PcsConfig.default();
+    const request = cpu_state_machine.Request{
+        .log_n_rows = 5,
+        .initial_state = .{ M31.fromU64(9), M31.fromU64(3) },
+    };
+    const geometry = try geometry_mod.admit(request, protocol);
+    var emitted = try emitGeometry(allocator, geometry);
+    defer emitted.deinit(allocator);
+    var output = try cpu_state_machine.prove(
+        allocator,
+        protocol,
+        request.log_n_rows,
+        request.initial_state,
+    );
+    defer output.proof.deinit(allocator);
+
+    const proof = output.proof.commitment_scheme_proof;
+    const widths = [_]usize{ 1, 2, 8 };
+    var samples: usize = 0;
+    for (proof.sampled_values.items, widths) |sampled_tree, width| {
+        try std.testing.expectEqual(width, sampled_tree.len);
+        for (sampled_tree) |column| {
+            try std.testing.expectEqual(@as(usize, 1), column.len);
+            samples += column.len;
+        }
+    }
+    try std.testing.expectEqual(emitted.quotient.term_count, samples);
 }
 
 test "state-machine request changes semantic identity without topology drift" {

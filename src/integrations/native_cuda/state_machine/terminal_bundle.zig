@@ -30,7 +30,7 @@ pub const Descriptor = struct {
     }
 
     pub fn sampledValueCount(_: stark.Protocol) stark.Error!usize {
-        return 10;
+        return 11;
     }
 };
 
@@ -50,7 +50,7 @@ test "state-machine terminal policy admits step zero and exact tree counts" {
     };
     try Descriptor.validateProtocol(protocol);
     try std.testing.expectEqual(
-        @as(usize, 10),
+        @as(usize, 11),
         try Descriptor.sampledValueCount(protocol),
     );
 }
