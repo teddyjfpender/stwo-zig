@@ -6,6 +6,7 @@
 // is a proof error.
 
 #include "aot_loader.h"
+#include "aot_sha256.h"
 
 #include <cuda.h>
 
@@ -23,13 +24,16 @@ extern "C" bool stwo_aot_lookup(
     uint32_t abi_schema,
     const char *kernel_name,
     const unsigned char **out_data,
-    size_t *out_len);
+    size_t *out_len,
+    unsigned char out_sha256[32]);
 extern "C" int stwo_exec_context_stream(void *handle, void **out_stream);
 extern "C" int stwo_exec_context_device(void *handle, int *out_device);
 
 namespace {
 
-constexpr uint32_t kReceiptAbiVersion = 1;
+constexpr uint32_t kReceiptAbiVersion = 2;
+constexpr uint32_t kVerificationAbiVersion = 1;
+constexpr uint32_t kVerificationVerified = 1;
 
 struct ModuleKey {
     uint64_t cache_key;
@@ -55,6 +59,7 @@ struct ModuleKeyHash {
 struct Module {
     CUmodule module = nullptr;
     CUfunction function = nullptr;
+    StwoNativeAotVerificationReceipt verification = {};
 };
 
 struct Loader {
@@ -170,6 +175,39 @@ int validate_launch(
     return CUDA_SUCCESS;
 }
 
+int authenticate_image(
+    const unsigned char *image,
+    size_t image_bytes,
+    const unsigned char expected_sha256[32],
+    StwoNativeAotVerificationReceipt *receipt) {
+    if (image == nullptr || image_bytes == 0 || expected_sha256 == nullptr ||
+        receipt == nullptr) {
+        return CUDA_ERROR_INVALID_IMAGE;
+    }
+    std::memset(receipt, 0, sizeof(*receipt));
+    receipt->abi_version = kVerificationAbiVersion;
+    receipt->cubin_bytes = image_bytes;
+    std::memcpy(receipt->expected_sha256, expected_sha256, 32);
+    if (!stwo_cuda_aot::sha256(
+            image,
+            image_bytes,
+            receipt->observed_sha256)) {
+        return CUDA_ERROR_INVALID_IMAGE;
+    }
+    unsigned char expected_present = 0;
+    for (size_t index = 0; index < 32; ++index) {
+        expected_present |= expected_sha256[index];
+    }
+    if (expected_present == 0 ||
+        !stwo_cuda_aot::digest_equal(
+            receipt->expected_sha256,
+            receipt->observed_sha256)) {
+        return CUDA_ERROR_INVALID_IMAGE;
+    }
+    receipt->verified = kVerificationVerified;
+    return CUDA_SUCCESS;
+}
+
 void unload_modules(Loader *loader) {
     for (auto &item : loader->modules) {
         if (item.second.module != nullptr) {
@@ -244,6 +282,7 @@ extern "C" int stwo_native_aot_function_bind(
     if (found == loader->modules.end()) {
         const unsigned char *image = nullptr;
         size_t image_bytes = 0;
+        unsigned char expected_sha256[32] = {};
         if (!stwo_aot_lookup(
                 cache_key,
                 loader->sm_major,
@@ -251,12 +290,19 @@ extern "C" int stwo_native_aot_function_bind(
                 abi_schema,
                 kernel_name,
                 &image,
-                &image_bytes) ||
+                &image_bytes,
+                expected_sha256) ||
             image == nullptr || image_bytes == 0) {
             loader->stats.aot_misses += 1;
             return CUDA_ERROR_NOT_FOUND;
         }
         Module module;
+        const int authentication = authenticate_image(
+            image,
+            image_bytes,
+            expected_sha256,
+            &module.verification);
+        if (authentication != CUDA_SUCCESS) return authentication;
         CUresult status = cuModuleLoadData(&module.module, image);
         if (status != CUDA_SUCCESS) return status;
         status = cuModuleGetFunction(&module.function, module.module, kernel_name);
@@ -306,6 +352,7 @@ extern "C" int stwo_native_aot_function_bind(
         static_cast<uint64_t>(reinterpret_cast<uintptr_t>(found->second.function));
     out_receipt->stream_token =
         static_cast<uint64_t>(reinterpret_cast<uintptr_t>(loader->stream));
+    out_receipt->verification = found->second.verification;
 
     loader->live_functions += 1;
     *out_function = function.release();

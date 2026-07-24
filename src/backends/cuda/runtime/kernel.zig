@@ -6,7 +6,7 @@ const types = @import("../abi/types.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
-pub const receipt_abi_version: u32 = 1;
+pub const receipt_abi_version: u32 = 2;
 
 pub const Kernel = struct {
     stage: telemetry.Stage,
@@ -55,7 +55,8 @@ pub const Kernel = struct {
             receipt.context_token == 0 or
             receipt.module_token == 0 or
             receipt.function_token == 0 or
-            receipt.stream_token != @intFromPtr(stream))
+            receipt.stream_token != @intFromPtr(stream) or
+            !receipt.verification.isVerified())
         {
             return error.AotReceiptMismatch;
         }
@@ -96,6 +97,13 @@ test "kernel receipt binds launch to the admitted device and stream" {
         .module_token = 2,
         .function_token = 3,
         .stream_token = @intFromPtr(&stream_word),
+        .verification = .{
+            .abi_version = types.aot_verification_abi_version,
+            .verified = types.aot_verification_verified,
+            .cubin_bytes = 4096,
+            .expected_sha256 = [_]u8{7} ** 32,
+            .observed_sha256 = [_]u8{7} ** 32,
+        },
     };
     try kernel.validateReceipt(receipt, device, &stream_word);
 
@@ -107,6 +115,12 @@ test "kernel receipt binds launch to the admitted device and stream" {
     );
     wrong = receipt;
     wrong.abi_schema = @intFromEnum(schema.KernelSchema.composition_wave_v2);
+    try std.testing.expectError(
+        error.AotReceiptMismatch,
+        kernel.validateReceipt(wrong, device, &stream_word),
+    );
+    wrong = receipt;
+    wrong.verification.observed_sha256[0] ^= 0xff;
     try std.testing.expectError(
         error.AotReceiptMismatch,
         kernel.validateReceipt(wrong, device, &stream_word),

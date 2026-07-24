@@ -300,6 +300,7 @@ class CudaBuildTests(unittest.TestCase):
                 "sm": 90,
                 "offset": 0,
                 "bytes": 4,
+                "sha256": hashlib.sha256(b"cbin").hexdigest(),
                 "abi_schema": 1,
                 "kernel_name": "test_kernel",
             }
@@ -316,6 +317,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("entry.sm != sm", lookup_source)
         self.assertIn("entry.abi_schema != abi_schema", lookup_source)
         self.assertIn("std::strcmp(entry.kernel_name, kernel_name)", lookup_source)
+        self.assertIn("unsigned char out_sha256[32]", lookup_source)
+        self.assertIn("std::memcpy(out_sha256, entry.sha256, 32)", lookup_source)
         self.assertNotIn("nvrtc", lookup_source.lower())
 
     def test_empty_native_aot_pack_is_standard_and_fail_closed(self) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Sequence
@@ -25,6 +26,7 @@ ABI_SCHEMAS = {
     "native_indexed_recurrence_trace_v1": 8,
     "native_circle_affine_state_trace_v1": 9,
 }
+DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 
 
 def write_aot_pack(entries: Sequence[dict[str, object]], destination: Path) -> None:
@@ -48,6 +50,7 @@ def write_aot_carriers(
     pack: Path,
     output: Path,
 ) -> tuple[Path, Path]:
+    _validate_carrier_entries(entries, pack)
     assembly = output / "cuda_aot_pack.S"
     lookup = output / "cuda_aot_lookup.cc"
     pack_path = str(pack.resolve()).replace("\\", "\\\\").replace('"', '\\"')
@@ -62,20 +65,9 @@ stwo_cuda_aot_pack_end:
 .size stwo_cuda_aot_pack_start, stwo_cuda_aot_pack_end-stwo_cuda_aot_pack_start
 .section .note.GNU-stack,"",@progbits
 """
-    rows = "\n".join(
-        "    {0x%016xULL, %dU, %dULL, %dULL, %dU, %s},"
-        % (
-            int(entry["cache_key"]),
-            int(entry["sm"]),
-            int(entry["offset"]),
-            int(entry["bytes"]),
-            int(entry["abi_schema"]),
-            json.dumps(str(entry["kernel_name"])),
-        )
-        for entry in entries
-    )
+    rows = "\n".join(_entry_row(entry) for entry in entries)
     if not rows:
-        rows = '    {0ULL, 0U, 0ULL, 0ULL, 0U, ""},'
+        rows = '    {0ULL, 0U, 0ULL, 0ULL, 0U, {}, ""},'
     lookup_text = f"""#include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -90,6 +82,7 @@ struct Entry {{
     std::uint64_t offset;
     std::uint64_t size;
     std::uint32_t abi_schema;
+    std::uint8_t sha256[32];
     const char *kernel_name;
 }};
 
@@ -106,8 +99,13 @@ extern "C" bool stwo_aot_lookup(
     std::uint32_t abi_schema,
     const char *kernel_name,
     const unsigned char **out_data,
-    std::size_t *out_len) {{
-    if (out_data == nullptr || out_len == nullptr || abi_schema == 0 ||
+    std::size_t *out_len,
+    unsigned char out_sha256[32]) {{
+    if (out_data == nullptr || out_len == nullptr || out_sha256 == nullptr) return false;
+    *out_data = nullptr;
+    *out_len = 0;
+    std::memset(out_sha256, 0, 32);
+    if (abi_schema == 0 ||
         kernel_name == nullptr || kernel_name[0] == '\\0' || sm_minor > 9) return false;
     const std::uint32_t sm = sm_major * 10U + sm_minor;
     std::size_t low = 0;
@@ -132,6 +130,7 @@ extern "C" bool stwo_aot_lookup(
     if (entry.offset > pack_size || entry.size > pack_size - entry.offset) return false;
     *out_data = stwo_cuda_aot_pack_start + entry.offset;
     *out_len = static_cast<std::size_t>(entry.size);
+    std::memcpy(out_sha256, entry.sha256, 32);
     return true;
 }}
 
@@ -142,6 +141,60 @@ extern "C" std::size_t stwo_zig_cuda_aot_entry_count() {{
     _atomic_write(assembly, assembly_text.encode("utf-8"))
     _atomic_write(lookup, lookup_text.encode("utf-8"))
     return assembly, lookup
+
+
+def _validate_carrier_entries(
+    entries: Sequence[dict[str, object]],
+    pack: Path,
+) -> None:
+    try:
+        payload = pack.read_bytes()
+    except OSError as error:
+        raise AotPackError(f"cannot read generated AOT pack: {error}") from error
+    for index, entry in enumerate(entries):
+        digest = entry.get("sha256")
+        if not isinstance(digest, str) or DIGEST_RE.fullmatch(digest) is None:
+            raise AotPackError(
+                f"AOT carrier entry {index} has a malformed cubin SHA-256"
+            )
+        try:
+            offset = int(entry["offset"])
+            size = int(entry["bytes"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise AotPackError(
+                f"AOT carrier entry {index} has invalid pack bounds"
+            ) from error
+        if (
+            offset < 0
+            or size <= 0
+            or offset > len(payload)
+            or size > len(payload) - offset
+        ):
+            raise AotPackError(
+                f"AOT carrier entry {index} is outside the generated pack"
+            )
+        observed = hashlib.sha256(payload[offset : offset + size]).hexdigest()
+        if observed != digest:
+            raise AotPackError(
+                f"AOT carrier entry {index} cubin digest disagrees with the pack"
+            )
+
+
+def _entry_row(entry: dict[str, object]) -> str:
+    digest = bytes.fromhex(str(entry["sha256"]))
+    digest_values = ", ".join(f"0x{value:02x}" for value in digest)
+    return (
+        "    {0x%016xULL, %dU, %dULL, %dULL, %dU, {%s}, %s},"
+        % (
+            int(entry["cache_key"]),
+            int(entry["sm"]),
+            int(entry["offset"]),
+            int(entry["bytes"]),
+            int(entry["abi_schema"]),
+            digest_values,
+            json.dumps(str(entry["kernel_name"])),
+        )
+    )
 
 
 def _publish(staging: Path, destination: Path) -> None:

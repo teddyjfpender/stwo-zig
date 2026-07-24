@@ -3,6 +3,7 @@
 const types = @import("types.zig");
 
 pub const Stats = types.NativeAotStats;
+pub const VerificationReceipt = types.NativeAotVerificationReceipt;
 pub const FunctionReceipt = types.NativeAotFunctionReceipt;
 
 pub extern "c" fn stwo_native_aot_loader_create(

@@ -116,6 +116,13 @@ test "strict session returns a resident verdict and never exposes fallback" {
                 .module_token = 2,
                 .function_token = 3,
                 .stream_token = @intFromPtr(&stream_word),
+                .verification = .{
+                    .abi_version = types.aot_verification_abi_version,
+                    .verified = types.aot_verification_verified,
+                    .cubin_bytes = 4096,
+                    .expected_sha256 = [_]u8{7} ** 32,
+                    .observed_sha256 = [_]u8{7} ** 32,
+                },
             };
             if (corrupt_next_receipt) {
                 receipt.cache_key +%= 1;
