@@ -65,6 +65,44 @@ pub fn OpsFor(comptime Api: type) type {
             try common.record(session, stage, status);
         }
 
+        pub fn mixWordsPair(
+            session: anytype,
+            stage: telemetry.Stage,
+            state: common.Words,
+            boundary: Boundary,
+            first: common.Words,
+            second: common.Words,
+            validate_m31: bool,
+            input_snapshot: common.Words,
+        ) runtime_error.Error!void {
+            try requireTranscriptStage(session, stage);
+            if (first.len == 0 or
+                second.len == 0 or
+                input_snapshot.len != first.len + second.len)
+            {
+                return error.SizeOverflow;
+            }
+            const status = Api.stwo_blake2s_transcript_mix_words_pair_on(
+                try common.words(session, state, 16),
+                boundary.expected_step,
+                boundary.expected_chain,
+                boundary.next_chain,
+                try common.words(session, first, 1),
+                try common.count(first.len),
+                try common.words(session, second, 1),
+                try common.count(second.len),
+                @intFromBool(validate_m31),
+                try common.words(
+                    session,
+                    input_snapshot,
+                    input_snapshot.len,
+                ),
+                try common.words(session, boundary.snapshot, 16),
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn absorbPow(
             session: anytype,
             state: common.Words,

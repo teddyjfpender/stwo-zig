@@ -147,6 +147,41 @@ __global__ void mix_words_kernel(
     finish_step(state, next_chain, boundary_snapshot);
 }
 
+__global__ void mix_words_pair_kernel(
+    uint32_t *state_words,
+    uint32_t expected_step,
+    uint64_t expected_chain,
+    uint64_t next_chain,
+    const uint32_t *first,
+    uint32_t first_word_count,
+    const uint32_t *second,
+    uint32_t second_word_count,
+    uint32_t validate_m31,
+    uint32_t *input_snapshot,
+    uint32_t *boundary_snapshot) {
+    State *state = as_state(state_words);
+    if (begin_step(state, expected_step, expected_chain)) {
+        copy_words(input_snapshot, first, first_word_count);
+        copy_words(
+            input_snapshot + first_word_count,
+            second,
+            second_word_count);
+        if (validate_m31 != 0) {
+            for (uint32_t word = 0; word < first_word_count; ++word) {
+                if (first[word] >= kM31Prime) state->status = kInvalidField;
+            }
+            for (uint32_t word = 0; word < second_word_count; ++word) {
+                if (second[word] >= kM31Prime) state->status = kInvalidField;
+            }
+        }
+        if (state->status == kOk) {
+            update_digest(state, first, first_word_count);
+            update_digest(state, second, second_word_count);
+        }
+    }
+    finish_step(state, next_chain, boundary_snapshot);
+}
+
 __global__ void absorb_pow_kernel(
     uint32_t *state_words,
     uint32_t expected_step,
@@ -307,6 +342,54 @@ extern "C" int stwo_blake2s_transcript_mix_words_on(
         1, 1, 0, reinterpret_cast<cudaStream_t>(stream)>>>(
             state, expected_step, expected_chain, next_chain, source,
             word_count, validate_m31, input_snapshot, boundary_snapshot);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_blake2s_transcript_mix_words_pair_on(
+    uint32_t *state,
+    uint32_t expected_step,
+    uint64_t expected_chain,
+    uint64_t next_chain,
+    const uint32_t *first,
+    uint32_t first_word_count,
+    const uint32_t *second,
+    uint32_t second_word_count,
+    uint32_t validate_m31,
+    uint32_t *input_snapshot,
+    uint32_t *boundary_snapshot,
+    void *stream) {
+    const uintptr_t first_begin = reinterpret_cast<uintptr_t>(first);
+    const uintptr_t second_begin = reinterpret_cast<uintptr_t>(second);
+    const uintptr_t first_bytes =
+        static_cast<uintptr_t>(first_word_count) * sizeof(uint32_t);
+    const uintptr_t second_bytes =
+        static_cast<uintptr_t>(second_word_count) * sizeof(uint32_t);
+    const bool sizes_valid =
+        first_word_count != 0 && second_word_count != 0 &&
+        first_word_count <= stwo::cuda::transcript::kMaximumMixWords &&
+        second_word_count <= stwo::cuda::transcript::kMaximumMixWords;
+    const bool ranges_valid =
+        sizes_valid &&
+        first_begin <= UINTPTR_MAX - first_bytes &&
+        second_begin <= UINTPTR_MAX - second_bytes;
+    const bool overlap =
+        ranges_valid &&
+        first_begin < second_begin + second_bytes &&
+        second_begin < first_begin + first_bytes;
+    if (state == nullptr ||
+        reinterpret_cast<uintptr_t>(state) %
+                alignof(stwo::cuda::transcript::State) !=
+            0 ||
+        first == nullptr || second == nullptr || !ranges_valid || overlap ||
+        validate_m31 > 1 || input_snapshot == nullptr ||
+        boundary_snapshot == nullptr || stream == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    stwo::cuda::transcript::mix_words_pair_kernel<<<
+        1, 1, 0, reinterpret_cast<cudaStream_t>(stream)>>>(
+            state, expected_step, expected_chain, next_chain, first,
+            first_word_count, second, second_word_count, validate_m31,
+            input_snapshot, boundary_snapshot);
     return static_cast<int>(cudaPeekAtLastError());
 }
 
