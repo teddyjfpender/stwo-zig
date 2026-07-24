@@ -12,6 +12,7 @@ pub const geometry = @import("geometry.zig");
 pub const identities = @import("identities.zig");
 pub const layout = @import("layout.zig");
 pub const parity_targets = @import("parity_targets.zig");
+pub const plan = @import("plan.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
 pub const proof_decode = @import("proof_decode.zig");
 pub const program = @import("program.zig");
@@ -31,6 +32,7 @@ test {
     _ = identities;
     _ = layout;
     _ = parity_targets;
+    _ = plan;
     _ = proof_bundle;
     _ = proof_decode;
     _ = program;
