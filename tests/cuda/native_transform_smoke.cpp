@@ -99,6 +99,16 @@ std::uint32_t n2b_launches(
     return include_circle ? log_n : log_n - 1u;
 }
 
+std::uint32_t expected_lde_launches(
+    std::uint32_t log_n,
+    bool include_circle) {
+    const std::uint32_t transform_launches =
+        n2b_launches(log_n, include_circle);
+    return log_n >= 13u && log_n <= 23u
+        ? transform_launches
+        : 1u + transform_launches;
+}
+
 bool check_launches(
     std::uint32_t actual,
     std::uint32_t expected,
@@ -679,11 +689,11 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
     }
     if (!check_launches(
             lde_launches,
-            1u + n2b_launches(log_n, true),
+            expected_lde_launches(log_n, true),
             "full LDE") ||
         !check_launches(
             pre_circle_launches,
-            1u + n2b_launches(log_n, false),
+            expected_lde_launches(log_n, false),
             "pre-circle LDE")) {
         return false;
     }

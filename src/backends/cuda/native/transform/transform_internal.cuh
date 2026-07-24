@@ -183,6 +183,18 @@ cudaError_t n2b_columns_on(
     bool include_circle,
     uint32_t *launches_out);
 
+cudaError_t n2b_columns_after_first_interval_on(
+    uint32_t *columns,
+    size_t column_stride_words,
+    uint32_t log_n,
+    uint32_t polynomial_count,
+    const uint32_t *twiddles,
+    uint32_t twiddle_words,
+    uint32_t evaluation_domain_size,
+    cudaStream_t stream,
+    bool include_circle,
+    uint32_t *launches_out);
+
 }  // namespace stwo::cuda::transform
 
 #endif

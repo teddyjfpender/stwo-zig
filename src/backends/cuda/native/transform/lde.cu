@@ -1,10 +1,14 @@
+#include "n2b_fused.cuh"
 #include "transform_internal.cuh"
 
-// Resident zero-extension followed by the exact N2B path. The product ABI
-// deliberately accepts coefficient log sizes: the same sealed metadata is
-// consumed by OODS, so a value of 5 means 2^5 coefficients, never 5 words.
+// Production schedules load and zero-extend coefficients in their first N2B
+// interval, avoiding a full evaluation-slab pass. Small and unsupported logs
+// retain the standalone staging kernel. The product ABI deliberately accepts
+// coefficient log sizes: 5 means 2^5 coefficients, never 5 words.
 
 namespace {
+
+using stwo::cuda::M31;
 
 __global__ void stage_lde_columns(
     const uint32_t *coefficients,
@@ -89,6 +93,10 @@ int lde_columns_on(
     }
     const cudaStream_t stream =
         reinterpret_cast<cudaStream_t>(stream_raw);
+    const auto *domain_twiddles = reinterpret_cast<const M31 *>(
+        twiddles + twiddle_words - evaluation_domain_size);
+    const bool fuse_first_interval =
+        log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN;
     const uint32_t blocks = static_cast<uint32_t>(
         (output_size + kThreadsPerBlock - 1u) / kThreadsPerBlock);
     for (uint32_t base = 0; base < polynomial_count;
@@ -97,24 +105,62 @@ int lde_columns_on(
         const uint32_t chunk = remaining < kMaxColumnsPerLaunch
             ? remaining
             : kMaxColumnsPerLaunch;
-        stage_lde_columns<<<
-            dim3(blocks, chunk),
-            kThreadsPerBlock,
-            0,
-            stream>>>(
-                coefficients +
-                    static_cast<size_t>(base) *
-                        coefficient_column_stride_words,
-                coefficient_column_stride_words,
+        cudaError_t status = cudaSuccess;
+        if (fuse_first_interval) {
+            const TransformSchedule &schedule =
+                kN2bSchedules[log_n - kFirstFusedLogN];
+            status = launch_n2b_first_from_coefficients(
+                {
+                    reinterpret_cast<const M31 *>(coefficients) +
+                        static_cast<size_t>(base) *
+                            coefficient_column_stride_words,
+                    coefficient_column_stride_words,
+                },
                 coefficient_log_sizes + base,
-                evaluations +
-                    static_cast<size_t>(base) *
-                        evaluation_column_stride_words,
-                evaluation_column_stride_words,
-                evaluation_domain_size);
-        const cudaError_t status = cudaPeekAtLastError();
+                {
+                    reinterpret_cast<M31 *>(evaluations) +
+                        static_cast<size_t>(base) *
+                            evaluation_column_stride_words,
+                    evaluation_column_stride_words,
+                },
+                log_n,
+                chunk,
+                schedule.intervals[0],
+                domain_twiddles,
+                stream);
+        } else {
+            stage_lde_columns<<<
+                dim3(blocks, chunk),
+                kThreadsPerBlock,
+                0,
+                stream>>>(
+                    coefficients +
+                        static_cast<size_t>(base) *
+                            coefficient_column_stride_words,
+                    coefficient_column_stride_words,
+                    coefficient_log_sizes + base,
+                    evaluations +
+                        static_cast<size_t>(base) *
+                            evaluation_column_stride_words,
+                    evaluation_column_stride_words,
+                    evaluation_domain_size);
+            status = cudaPeekAtLastError();
+        }
         if (status != cudaSuccess) return static_cast<int>(status);
         ++*launches_out;
+    }
+    if (fuse_first_interval) {
+        return static_cast<int>(n2b_columns_after_first_interval_on(
+            evaluations,
+            evaluation_column_stride_words,
+            log_n,
+            polynomial_count,
+            twiddles,
+            twiddle_words,
+            evaluation_domain_size,
+            stream,
+            include_circle,
+            launches_out));
     }
     return static_cast<int>(n2b_columns_on(
         evaluations,

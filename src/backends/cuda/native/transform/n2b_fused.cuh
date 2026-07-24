@@ -22,11 +22,16 @@ __device__ __forceinline__ void n2b_shuffle(
     }
 }
 
-template <uint32_t LogValues, uint32_t LogWarps = LogValues>
+template <
+    uint32_t LogValues,
+    uint32_t LogWarps = LogValues,
+    bool LoadCoefficients = false>
 __global__ __launch_bounds__(
     1u << (kN2bLogWarp + LogWarps),
     LogValues == 3 ? 6 : 2)
 void n2b_continue(
+    ColumnSlab<const M31> inputs,
+    const uint32_t *input_log_sizes,
     ColumnSlab<M31> columns,
     uint32_t log_n,
     uint32_t min_stage,
@@ -42,13 +47,30 @@ void n2b_continue(
     const uint32_t warp = threadIdx.y;
     const uint32_t lane = threadIdx.x;
     uint32_t offset = warp * min_stride + lane;
+    const M31 *input = inputs.column(column_index);
     M31 *column = columns.column(column_index);
     M31 values[1u << LogValues];
+    uint32_t input_count = 0;
+    if constexpr (LoadCoefficients) {
+        const uint32_t input_log_size = input_log_sizes[column_index];
+        const uint32_t requested_count = input_log_size < 31u
+            ? 1u << input_log_size
+            : 0u;
+        const uint32_t coefficient_domain_size = 1u << (log_n - 1u);
+        input_count = requested_count < coefficient_domain_size
+            ? requested_count
+            : coefficient_domain_size;
+    }
 
 #pragma unroll
     for (uint32_t i = 0; i < 1u << LogValues; ++i) {
-        values[i] = column[
-            block_start + i * (min_stride << LogWarps) + offset];
+        const uint32_t input_index =
+            block_start + i * (min_stride << LogWarps) + offset;
+        if constexpr (LoadCoefficients) {
+            values[i] = input_index < input_count ? input[input_index] : 0u;
+        } else {
+            values[i] = input[input_index];
+        }
     }
 
     uint32_t layer_size = 1;
@@ -376,7 +398,13 @@ inline cudaError_t launch_n2b_continue(
             column_count,
         };
         n2b_continue<3><<<grid, block, 0, stream>>>(
-            columns, log_n, start_stage, end_stage, twiddles);
+            {columns.base, columns.stride_words},
+            nullptr,
+            columns,
+            log_n,
+            start_stage,
+            end_stage,
+            twiddles);
     } else if (stages == 8) {
         const dim3 block{32, 16};
         const dim3 grid{
@@ -385,7 +413,64 @@ inline cudaError_t launch_n2b_continue(
             column_count,
         };
         n2b_continue<4><<<grid, block, 0, stream>>>(
-            columns, log_n, start_stage, end_stage, twiddles);
+            {columns.base, columns.stride_words},
+            nullptr,
+            columns,
+            log_n,
+            start_stage,
+            end_stage,
+            twiddles);
+    } else {
+        return cudaErrorInvalidConfiguration;
+    }
+    return cudaPeekAtLastError();
+}
+
+inline cudaError_t launch_n2b_first_from_coefficients(
+    ColumnSlab<const M31> coefficients,
+    const uint32_t *coefficient_log_sizes,
+    ColumnSlab<M31> evaluations,
+    uint32_t log_n,
+    uint32_t column_count,
+    uint32_t stages,
+    const M31 *twiddles,
+    cudaStream_t stream) {
+    if (column_count == 0 || coefficient_log_sizes == nullptr ||
+        stages >= log_n) {
+        return cudaErrorInvalidConfiguration;
+    }
+    const uint32_t min_stride = 1u << (log_n - stages);
+    if (min_stride < 32u) return cudaErrorInvalidConfiguration;
+    if (stages == 6) {
+        const dim3 block{32, 8};
+        const dim3 grid{
+            min_stride / 32u,
+            (1u << log_n) / (min_stride << 6u),
+            column_count,
+        };
+        n2b_continue<3, 3, true><<<grid, block, 0, stream>>>(
+            coefficients,
+            coefficient_log_sizes,
+            evaluations,
+            log_n,
+            1u,
+            stages,
+            twiddles);
+    } else if (stages == 8) {
+        const dim3 block{32, 16};
+        const dim3 grid{
+            min_stride / 32u,
+            (1u << log_n) / (min_stride << 8u),
+            column_count,
+        };
+        n2b_continue<4, 4, true><<<grid, block, 0, stream>>>(
+            coefficients,
+            coefficient_log_sizes,
+            evaluations,
+            log_n,
+            1u,
+            stages,
+            twiddles);
     } else {
         return cudaErrorInvalidConfiguration;
     }
