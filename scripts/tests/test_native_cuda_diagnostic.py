@@ -116,18 +116,22 @@ report = {
         "zig_verified": True,
     },
     "timing_ns": {
+        "runtime_init": 1000,
         "resident_prove": resident_ns,
         "terminal_decode": 1000,
-        "total_before_publication": resident_ns + 2000,
+        "runtime_teardown": 1000,
+        "total_before_publication": resident_ns + 4000,
     },
     "process_repetition": {
         "count": args.repeat,
-        "persistent_session": False,
+        "persistent_session": True,
         "all_canonical_bytes_identical": True,
         "stable_launch_topology": True,
         "zero_final_pool_usage": True,
         "resident_prove_ns": [resident_ns],
         "terminal_decode_ns": [1000],
+        "device_elapsed_ns": [10000],
+        "runtime_proof_indices": [1],
     },
     "residency": {
         "resident": resident,
@@ -236,11 +240,11 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
 
             self.assertEqual(
                 document["schema"],
-                "native_cuda_cold_diagnostic_v1",
+                "native_cuda_cold_diagnostic_v2",
             )
             self.assertEqual(
                 document["evidence_class"],
-                "diagnostic_cold_process_only",
+                "diagnostic_cold_process_stage_attributed",
             )
             self.assertFalse(document["headline_eligible"])
             self.assertFalse(

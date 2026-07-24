@@ -74,21 +74,36 @@ pub fn ContextFor(comptime Api: type) type {
             self.handle = null;
         }
 
-        /// Best-effort failure cleanup for a partially executed proof.
-        ///
-        /// Unlike `close`, this deliberately accepts an active stage and live
-        /// allocations. Every allocation registered by this context is queued
-        /// for release before destroying the stream and its isolated pool.
-        pub fn abort(self: *Self) runtime_error.Error!void {
-            const handle = self.handle orelse return error.ContextClosed;
+        pub fn beginProof(self: *Self) runtime_error.Error!void {
+            _ = try self.requireHandle();
+            if (self.live_buffers != 0) return error.DeviceBufferLive;
+            if (self.active_stage != null) return error.StageAlreadyActive;
+            if (!self.synchronized) return error.InvalidState;
+            self.next_stage_index = 0;
+            self.counters = .{};
+        }
+
+        /// Returns a failed proof to an empty synchronized context without
+        /// destroying process-owned streams, events, or the memory pool.
+        pub fn abortProof(self: *Self) runtime_error.Error!void {
+            _ = try self.requireHandle();
             var first_error: ?runtime_error.Error = null;
+            if (self.active_stage != null and
+                @hasDecl(Api, "stwo_exec_context_nvtx_pop"))
+            {
+                runtime_error.check(Api.stwo_exec_context_nvtx_pop(
+                    self.handle.?,
+                )) catch |err| {
+                    first_error = err;
+                };
+            }
             while (self.live_buffers != 0) {
                 self.live_buffers -= 1;
                 const allocation = self.allocations[self.live_buffers];
                 if (allocation.address != 0) {
                     var free_enqueued = true;
                     runtime_error.check(Api.stwo_exec_context_free_u32(
-                        handle,
+                        self.handle.?,
                         @ptrFromInt(allocation.address),
                     )) catch |err| {
                         free_enqueued = false;
@@ -105,6 +120,21 @@ pub fn ContextFor(comptime Api: type) type {
                 };
             }
             self.active_stage = null;
+            self.next_stage_index = 0;
+            if (first_error) |err| return err;
+        }
+
+        /// Best-effort failure cleanup for a partially executed proof.
+        ///
+        /// Unlike `close`, this deliberately accepts an active stage and live
+        /// allocations. Every allocation registered by this context is queued
+        /// for release before destroying the stream and its isolated pool.
+        pub fn abort(self: *Self) runtime_error.Error!void {
+            const handle = self.handle orelse return error.ContextClosed;
+            var first_error: ?runtime_error.Error = null;
+            self.abortProof() catch |err| {
+                first_error = err;
+            };
             runtime_error.check(Api.stwo_exec_context_destroy(handle)) catch |err| {
                 if (first_error == null) first_error = err;
             };

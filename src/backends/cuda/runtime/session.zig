@@ -21,10 +21,12 @@ pub const Verdict = struct {
     counters: telemetry.Counters,
     pool_used_bytes: usize,
     pool_reserved_bytes: usize,
+    runtime_proof_index: u64,
 
     pub fn isResident(self: Verdict) bool {
         return self.aot.isStrict() and
             self.lane_count != 0 and
+            self.runtime_proof_index != 0 and
             self.counters.lane_joins == self.lane_count and
             self.counters.isResident();
     }
@@ -42,7 +44,8 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         build_identity: [32]u8,
         aot_entries: usize,
         aot_loader: ?*anyopaque,
-        state: enum { open, proved, closed } = .open,
+        completed_proofs: u64 = 0,
+        state: enum { idle, open, proved, closed } = .idle,
 
         pub fn open(accepted_sms: []const u32) runtime_error.Error!Self {
             var device = types.DeviceSnapshot{};
@@ -85,6 +88,12 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
                 .aot_entries = aot_entries,
                 .aot_loader = aot_loader orelse return error.AotPackAbsent,
             };
+        }
+
+        pub fn beginProof(self: *Self) runtime_error.Error!void {
+            if (self.state != .idle) return error.InvalidState;
+            try self.context.beginProof();
+            self.state = .open;
         }
 
         pub fn markProofComplete(self: *Self) runtime_error.Error!void {
@@ -192,7 +201,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             try runtime_error.check(AotApi.stwo_native_aot_function_destroy(function));
         }
 
-        pub fn finish(self: *Self) runtime_error.Error!Verdict {
+        fn collectVerdict(self: *Self) runtime_error.Error!Verdict {
             if (self.state != .proved) return error.InvalidState;
             try self.context.joinLanes();
             if (self.context.live_buffers != 0) return error.DeviceBufferLive;
@@ -201,6 +210,11 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             var aot = types.NativeAotStats{};
             try runtime_error.check(AotApi.stwo_native_aot_loader_stats(loader, &aot));
             if (!aot.isStrict()) return error.StrictAotViolation;
+            const proof_index = std.math.add(
+                u64,
+                self.completed_proofs,
+                1,
+            ) catch return error.InvalidState;
             const verdict = Verdict{
                 .device = self.device,
                 .platform = self.platform,
@@ -211,13 +225,46 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
                 .counters = self.context.counters,
                 .pool_used_bytes = pool.used,
                 .pool_reserved_bytes = pool.reserved,
+                .runtime_proof_index = proof_index,
             };
             if (!verdict.isResident()) return error.StrictAotViolation;
+            self.completed_proofs = proof_index;
+            return verdict;
+        }
+
+        pub fn finishRetained(self: *Self) runtime_error.Error!Verdict {
+            const verdict = try self.collectVerdict();
+            self.state = .idle;
+            return verdict;
+        }
+
+        pub fn finish(self: *Self) runtime_error.Error!Verdict {
+            const verdict = try self.collectVerdict();
+            const loader = self.aot_loader orelse return error.InvalidState;
             try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
             self.aot_loader = null;
             try self.context.close();
             self.state = .closed;
             return verdict;
+        }
+
+        pub fn abortRetained(self: *Self) runtime_error.Error!void {
+            if (self.state == .idle or self.state == .closed)
+                return error.InvalidState;
+            self.context.abortProof() catch |err| {
+                self.abort() catch {};
+                return err;
+            };
+            self.state = .idle;
+        }
+
+        pub fn close(self: *Self) runtime_error.Error!void {
+            if (self.state != .idle) return error.InvalidState;
+            const loader = self.aot_loader orelse return error.InvalidState;
+            try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
+            self.aot_loader = null;
+            try self.context.close();
+            self.state = .closed;
         }
 
         pub fn abort(self: *Self) runtime_error.Error!void {
@@ -273,6 +320,8 @@ test "strict session returns a resident verdict and never exposes fallback" {
         var loader_word: u8 = 0;
         var lane_join_calls: usize = 0;
         var direct_sync_calls: usize = 0;
+        var context_destroy_calls: usize = 0;
+        var loader_destroy_calls: usize = 0;
 
         pub fn stwo_cuda_device_snapshot(
             count: *u32,
@@ -316,6 +365,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
             return 0;
         }
         pub fn stwo_native_aot_loader_destroy(_: *anyopaque) c_int {
+            loader_destroy_calls += 1;
             return 0;
         }
         pub fn stwo_native_aot_loader_stats(
@@ -374,6 +424,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
             return 0;
         }
         pub fn stwo_exec_context_destroy(_: *anyopaque) c_int {
+            context_destroy_calls += 1;
             return 0;
         }
         pub fn stwo_exec_context_stream(_: *anyopaque, out: *?*anyopaque) c_int {
@@ -409,6 +460,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
 
     const Session = SessionFor(Fake, Fake);
     var session = try Session.open(&.{90});
+    try session.beginProof();
     for (telemetry.all_stages) |stage| {
         try session.context.beginStage(stage);
         if (stage.requiresKernel()) {
@@ -429,7 +481,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
         try session.context.endStage(stage);
     }
     try session.markProofComplete();
-    const verdict = try session.finish();
+    const verdict = try session.finishRetained();
     try std.testing.expect(verdict.isResident());
     try std.testing.expectEqual(@as(u64, 0), verdict.counters.cpu_fallback_attempts);
     try std.testing.expectEqual(@as(u64, 0), verdict.counters.cpu_fallbacks_completed);
@@ -437,6 +489,27 @@ test "strict session returns a resident verdict and never exposes fallback" {
     try std.testing.expectEqual(@as(u64, 1), verdict.counters.lane_joins);
     try std.testing.expectEqual(@as(u64, 1), verdict.counters.sync_calls);
     try std.testing.expectEqual(@as(u64, 1), verdict.counters.d2h_proof_operations);
+    try std.testing.expectEqual(@as(u64, 1), verdict.runtime_proof_index);
     try std.testing.expectEqual(@as(usize, 1), Fake.lane_join_calls);
     try std.testing.expectEqual(@as(usize, 0), Fake.direct_sync_calls);
+
+    try session.beginProof();
+    for (telemetry.all_stages) |stage| {
+        try session.context.beginStage(stage);
+        if (stage.requiresKernel()) {
+            try session.context.recordKernels(1);
+        } else if (stage == .proof_assembly) {
+            session.context.counters.proofRead(stage, @sizeOf(u32));
+        }
+        try session.context.endStage(stage);
+    }
+    try session.markProofComplete();
+    const repeated = try session.finishRetained();
+    try std.testing.expectEqual(@as(u64, 2), repeated.runtime_proof_index);
+    try std.testing.expectEqual(@as(u64, 1), repeated.counters.lane_joins);
+    try std.testing.expectEqual(@as(usize, 0), Fake.context_destroy_calls);
+    try std.testing.expectEqual(@as(usize, 0), Fake.loader_destroy_calls);
+    try session.close();
+    try std.testing.expectEqual(@as(usize, 1), Fake.context_destroy_calls);
+    try std.testing.expectEqual(@as(usize, 1), Fake.loader_destroy_calls);
 }

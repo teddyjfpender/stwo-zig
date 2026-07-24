@@ -248,6 +248,14 @@ def _shape_result(shape: Shape, samples: list[dict[str, Any]]) -> dict[str, Any]
             sample["timing_ns"]["resident_prove"] / 1_000_000.0
             for sample in samples
         ],
+        "runtime_init_ms": [
+            sample["timing_ns"]["runtime_init"] / 1_000_000.0
+            for sample in samples
+        ],
+        "runtime_teardown_ms": [
+            sample["timing_ns"]["runtime_teardown"] / 1_000_000.0
+            for sample in samples
+        ],
         "total_before_publication_ms": [
             sample["timing_ns"]["total_before_publication"] / 1_000_000.0
             for sample in samples

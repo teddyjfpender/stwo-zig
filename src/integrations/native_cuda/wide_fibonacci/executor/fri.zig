@@ -44,7 +44,7 @@ fn runWith(
     }
     try proof_assembly.validateLayout(prepared, views);
 
-    const session = &transaction.session;
+    const session = transaction.proofSession();
     const Builder = commit_tree.BuilderFor(Ops.Commitment);
     for (topology, 0..) |layer, layer_index| {
         const resident = views.fri.layers[layer_index];

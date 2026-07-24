@@ -59,7 +59,7 @@ pub fn execute(
     try executeWithOps(
         NativeTranscript,
         NativeOods,
-        &transaction.session,
+        transaction.proofSession(),
         .{
             .schedule = prepared.transcript,
             .log_n_rows = geometry.statement.log_n_rows,
@@ -72,7 +72,7 @@ pub fn execute(
             .composition_coefficients = views.trace.composition_coefficients,
         },
     );
-    try proof_assembly.captureSampledValues(&transaction.session, views);
+    try proof_assembly.captureSampledValues(transaction.proofSession(), views);
 }
 
 /// Naming alias for stage executors that expose `run`.

@@ -196,7 +196,7 @@ def validate_cuda_report(
         repetition.get(key) != value
         for key, value in {
             "count": repeat,
-            "persistent_session": False,
+            "persistent_session": True,
             "all_canonical_bytes_identical": True,
             "stable_launch_topology": True,
             "zero_final_pool_usage": True,
@@ -211,6 +211,16 @@ def validate_cuda_report(
             or any(not isinstance(value, int) or value < 0 for value in samples)
         ):
             raise GateError(f"{path}: invalid repetition samples for {key}")
+    device_samples = repetition.get("device_elapsed_ns")
+    proof_indices = repetition.get("runtime_proof_indices")
+    if (
+        not isinstance(device_samples, list)
+        or len(device_samples) != repeat
+        or any(not isinstance(value, int) or value <= 0 for value in device_samples)
+    ):
+        raise GateError(f"{path}: invalid device timing samples")
+    if proof_indices != list(range(1, repeat + 1)):
+        raise GateError(f"{path}: invalid persistent runtime proof sequence")
     return {
         "path": str(path.resolve()),
         "sha256": sha256_file(path),

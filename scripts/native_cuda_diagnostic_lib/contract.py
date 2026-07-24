@@ -51,8 +51,10 @@ PROOF_KEYS = {
     "zig_verified",
 }
 TIMING_KEYS = {
+    "runtime_init",
     "resident_prove",
     "terminal_decode",
+    "runtime_teardown",
     "total_before_publication",
 }
 PROCESS_REPETITION_KEYS = {
@@ -63,6 +65,8 @@ PROCESS_REPETITION_KEYS = {
     "zero_final_pool_usage",
     "resident_prove_ns",
     "terminal_decode_ns",
+    "device_elapsed_ns",
+    "runtime_proof_indices",
 }
 RESIDENCY_KEYS = {
     "resident",
@@ -312,8 +316,20 @@ def validate_report(
         "CUDA total-before-publication time",
         minimum=1,
     )
-    if total_ns < resident_ns + decode_ns:
-        raise DiagnosticError("CUDA total time does not enclose resident proof and decode")
+    runtime_init_ns = _integer(
+        timing["runtime_init"],
+        "CUDA runtime initialization time",
+        minimum=1,
+    )
+    runtime_teardown_ns = _integer(
+        timing["runtime_teardown"],
+        "CUDA runtime teardown time",
+        minimum=1,
+    )
+    if total_ns < (
+        runtime_init_ns + resident_ns + decode_ns + runtime_teardown_ns
+    ):
+        raise DiagnosticError("CUDA total time does not enclose its lifecycle stages")
 
     repetition = _object(
         report["process_repetition"],
@@ -324,9 +340,9 @@ def validate_report(
         PROCESS_REPETITION_KEYS,
         "CUDA process repetition",
     )
-    if repetition["count"] != 1 or repetition["persistent_session"] is not False:
+    if repetition["count"] != 1 or repetition["persistent_session"] is not True:
         raise DiagnosticError(
-            "CUDA cold sample must contain exactly one nonpersistent repetition"
+            "CUDA product must expose one process-owned runtime for the cold request"
         )
     for key in (
         "all_canonical_bytes_identical",
@@ -339,6 +355,8 @@ def validate_report(
         raise DiagnosticError("CUDA repetition resident timing disagrees with sample")
     if repetition["terminal_decode_ns"] != [decode_ns]:
         raise DiagnosticError("CUDA repetition decode timing disagrees with sample")
+    if repetition["runtime_proof_indices"] != [1]:
+        raise DiagnosticError("CUDA runtime proof sequence did not start at one")
 
     residency = _object(report["residency"], "CUDA residency")
     _exact_keys(residency, RESIDENCY_KEYS, "CUDA residency")
@@ -399,6 +417,8 @@ def validate_report(
         raise DiagnosticError("CUDA device stage timings do not sum to the total")
     if device_elapsed_ns > resident_ns:
         raise DiagnosticError("CUDA device time exceeds resident proof wall time")
+    if repetition["device_elapsed_ns"] != [device_elapsed_ns]:
+        raise DiagnosticError("CUDA repetition device timing disagrees with sample")
 
     aot = _object(report["aot"], "CUDA AOT telemetry")
     _exact_keys(aot, AOT_KEYS, "CUDA AOT telemetry")

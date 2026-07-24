@@ -8,6 +8,8 @@ const request_mod = @import("request.zig");
 pub const NativeTransaction =
     @import("../../../backends/cuda/runtime/proof_transaction.zig")
         .ResidentProofTransaction;
+pub const NativeRuntime =
+    @import("../../../backends/cuda/runtime/process_runtime.zig").NativeRuntime;
 
 /// Instantiates the orchestration independently from a concrete kernel binder.
 /// `Executor` is the only layer allowed to translate admitted protocol
@@ -33,10 +35,37 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
                 self.accepted_sms,
                 prepared.takeArenaPlan(),
             );
+            return execute(self, &transaction, &prepared, geometry);
+        }
+
+        pub fn runRetained(
+            self: Self,
+            runtime: anytype,
+            request: request_mod.Request,
+        ) !Transaction.StarkBundleOutput {
+            const geometry = try request_mod.admit(request);
+            var prepared = try Executor.prepare(self.allocator, geometry);
+            defer prepared.deinit(self.allocator);
+
+            const session = try runtime.beginProof();
+            var transaction = try Transaction.openPreparedRetained(
+                self.allocator,
+                session,
+                prepared.takeArenaPlan(),
+            );
+            return execute(self, &transaction, &prepared, geometry);
+        }
+
+        fn execute(
+            self: Self,
+            transaction: *Transaction,
+            prepared: *Executor.PreparedPlan,
+            geometry: request_mod.Geometry,
+        ) !Transaction.StarkBundleOutput {
             var transaction_live = true;
             errdefer if (transaction_live) transaction.abort() catch {};
 
-            try Executor.ingress(&transaction, &prepared, geometry);
+            try Executor.ingress(transaction, prepared, geometry);
             try transaction.finishIngress();
 
             inline for (protocol.execution_stages) |stage| {
@@ -44,8 +73,8 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
                 try executeStage(
                     Executor,
                     stage,
-                    &transaction,
-                    &prepared,
+                    transaction,
+                    prepared,
                     geometry,
                 );
                 try transaction.endStage(stage);

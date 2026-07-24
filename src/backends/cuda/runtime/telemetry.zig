@@ -184,6 +184,18 @@ pub const Counters = struct {
         return self.device_timing_intervals == stage_count;
     }
 
+    pub fn hasSameTopology(self: Counters, other: Counters) bool {
+        var left = self;
+        var right = other;
+        left.device_elapsed_ns = 0;
+        right.device_elapsed_ns = 0;
+        for (0..stage_count) |index| {
+            left.stages[index].device_elapsed_ns = 0;
+            right.stages[index].device_elapsed_ns = 0;
+        }
+        return std.meta.eql(left, right);
+    }
+
     pub fn stagesCompleteExactlyOnce(self: Counters) bool {
         for (all_stages) |stage| {
             const counters = self.stages[stage.index()];
@@ -258,4 +270,18 @@ test "device timings cover every stage exactly once" {
         error.InvalidDeviceTiming,
         counters.recordDeviceTimings(&elapsed),
     );
+}
+
+test "topology stability ignores elapsed time but not work" {
+    var left = Counters{};
+    var right = Counters{};
+    left.device_timing_intervals = stage_count;
+    right.device_timing_intervals = stage_count;
+    left.device_elapsed_ns = 100;
+    right.device_elapsed_ns = 200;
+    left.stages[0].device_elapsed_ns = 100;
+    right.stages[0].device_elapsed_ns = 200;
+    try std.testing.expect(left.hasSameTopology(right));
+    right.kernel_launches = 1;
+    try std.testing.expect(!left.hasSameTopology(right));
 }

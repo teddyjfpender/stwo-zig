@@ -34,7 +34,7 @@ pub fn execute(
     try validate(prepared, ingress, views);
     try executeWithOps(
         NativeQuotient,
-        &transaction.session,
+        transaction.proofSession(),
         .{
             .circle = ingress.circle,
             .sample_points = views.oods.sample_points,

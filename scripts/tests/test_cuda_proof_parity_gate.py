@@ -115,12 +115,14 @@ if name == "cuda":
         },
         "process_repetition": {
             "count": repeats,
-            "persistent_session": False,
+            "persistent_session": True,
             "all_canonical_bytes_identical": True,
             "stable_launch_topology": True,
             "zero_final_pool_usage": True,
             "resident_prove_ns": [10] * repeats,
             "terminal_decode_ns": [2] * repeats,
+            "device_elapsed_ns": [10] * repeats,
+            "runtime_proof_indices": list(range(1, repeats + 1)),
         },
     }) + "\n")
 """

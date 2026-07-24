@@ -36,7 +36,7 @@ fn runWith(
     views: *const bindings.Views,
 ) !void {
     const geometry = prepared.logical.geometry;
-    const session = &transaction.session;
+    const session = transaction.proofSession();
     const trace_log = geometry.statement.log_n_rows;
     const commitment_log = geometry.queryLogSize();
 

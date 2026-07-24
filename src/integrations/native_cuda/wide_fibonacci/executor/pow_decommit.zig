@@ -48,7 +48,7 @@ fn executePowWith(
     prepared: *const plan_mod.PreparedPlan,
     views: *const bindings.Views,
 ) !void {
-    const session = &transaction.session;
+    const session = transaction.proofSession();
     try Ops.Fri.grindPow(
         session,
         views.transcript.state,
@@ -92,7 +92,7 @@ fn executeDecommitWith(
         return error.InvalidKernelDescriptor;
     }
 
-    const session = &transaction.session;
+    const session = transaction.proofSession();
     const query_step = try queryStep(prepared.fri.layers.len);
     switch (try prepared.transcript.operation(query_step)) {
         .draw_queries => {},

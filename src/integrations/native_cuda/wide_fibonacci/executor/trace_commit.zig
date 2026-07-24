@@ -40,7 +40,7 @@ fn generateWith(
 ) !void {
     const geometry = prepared.logical.geometry;
     try Ops.Trace.wideFibonacci(
-        &transaction.session,
+        transaction.proofSession(),
         views.trace.main_coefficients,
         try count(geometry.trace_rows),
         geometry.statement.log_n_rows,
@@ -56,7 +56,7 @@ fn commitWith(
     const geometry = prepared.logical.geometry;
     const trace_log = geometry.statement.log_n_rows;
     const commitment_log = geometry.queryLogSize();
-    const session = &transaction.session;
+    const session = transaction.proofSession();
 
     try Ops.Transcript.initialize(
         session,

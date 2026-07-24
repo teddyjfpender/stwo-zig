@@ -293,6 +293,8 @@ const FakeTransactionSession = struct {
         return .{};
     }
 
+    pub fn beginProof(_: *@This()) runtime_error.Error!void {}
+
     pub fn beginStage(
         self: *@This(),
         stage: telemetry.Stage,
@@ -330,6 +332,10 @@ const FakeTransactionSession = struct {
 
     pub fn abort(self: *@This()) runtime_error.Error!void {
         self.context.active_stage = null;
+    }
+
+    pub fn abortRetained(self: *@This()) runtime_error.Error!void {
+        return self.abort();
     }
 };
 
@@ -369,14 +375,14 @@ test "transaction zeroes a proof bundle then uploads only its static header" {
         &([_]u32{0} ** 12),
         FakeTransactionContext.storage[header.len..16],
     );
-    const ingress = transaction.session.context.counters
+    const ingress = transaction.sessionContext().counters
         .stages[telemetry.Stage.ingress.index()];
     try std.testing.expectEqual(@as(u64, 64), ingress.memset_bytes);
     try std.testing.expectEqual(@as(u64, 1), ingress.memset_operations);
     try std.testing.expectEqual(@as(u64, 16), ingress.h2d_bytes);
     try std.testing.expectEqual(
         @as(u64, 16),
-        transaction.session.context.counters.h2d_bytes,
+        transaction.sessionContext().counters.h2d_bytes,
     );
     try std.testing.expectError(
         error.StageOrderViolation,
@@ -464,7 +470,7 @@ test "transaction zero enforces stage, slot lifetime, and exact subrange" {
     try transaction.zeroResidentSlice(u32, .trace_generation, 1, 4, 4);
     try std.testing.expectEqual(
         @as(usize, 1),
-        transaction.session.context.zero_calls,
+        transaction.sessionContext().zero_calls,
     );
     try std.testing.expectEqualSlices(
         u32,

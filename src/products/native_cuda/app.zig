@@ -49,11 +49,18 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         .protocol = protocol,
     });
 
-    var resident_timer = try std.time.Timer.start();
-    var output = try (cuda.NativeDriver{
+    var runtime_init_timer = try std.time.Timer.start();
+    var runtime = try cuda.NativeRuntime.open(&accepted_sms);
+    const runtime_init_ns = runtime_init_timer.read();
+    var runtime_live = true;
+    defer if (runtime_live) runtime.abort() catch {};
+    const driver = cuda.NativeDriver{
         .allocator = allocator,
         .accepted_sms = &accepted_sms,
-    }).run(.{
+    };
+
+    var resident_timer = try std.time.Timer.start();
+    var output = try driver.runRetained(&runtime, .{
         .statement = admitted.statement,
         .protocol = admitted.protocol,
     });
@@ -85,22 +92,29 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
 
     var repetition_prove_ns: [cli.max_repetitions]u64 = undefined;
     var repetition_decode_ns: [cli.max_repetitions]u64 = undefined;
+    var repetition_device_ns: [cli.max_repetitions]u64 = undefined;
+    var runtime_proof_indices: [cli.max_repetitions]u64 = undefined;
     repetition_prove_ns[0] = resident_prove_ns;
     repetition_decode_ns[0] = decode_ns;
+    repetition_device_ns[0] = output.verdict.counters.device_elapsed_ns;
+    runtime_proof_indices[0] = output.verdict.runtime_proof_index;
+    var final_verdict = output.verdict;
     var repetition: u32 = 1;
     while (repetition < request.repeat) : (repetition += 1) {
         var repeated_timer = try std.time.Timer.start();
-        var repeated = try (cuda.NativeDriver{
-            .allocator = allocator,
-            .accepted_sms = &accepted_sms,
-        }).run(.{
+        var repeated = try driver.runRetained(&runtime, .{
             .statement = admitted.statement,
             .protocol = admitted.protocol,
         });
         repetition_prove_ns[repetition] = repeated_timer.read();
+        repetition_device_ns[repetition] =
+            repeated.verdict.counters.device_elapsed_ns;
+        runtime_proof_indices[repetition] =
+            repeated.verdict.runtime_proof_index;
         defer repeated.deinit(allocator);
         try requireResident(repeated.verdict);
         try requireStableRepetition(output.verdict, repeated.verdict);
+        final_verdict = repeated.verdict;
 
         var repeated_decode_timer = try std.time.Timer.start();
         var repeated_proof = try cuda.proof_decode.decodeProof(
@@ -130,6 +144,13 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         );
     }
 
+    if (runtime.completedProofs() != request.repeat)
+        return error.IncompleteCudaRuntimeSequence;
+    var runtime_teardown_timer = try std.time.Timer.start();
+    try runtime.close();
+    const runtime_teardown_ns = runtime_teardown_timer.read();
+    runtime_live = false;
+
     try artifacts.writeNativeProofArtifact(
         allocator,
         proof_temporary,
@@ -154,13 +175,17 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         allocator,
         request,
         admitted,
-        output.verdict,
+        final_verdict,
         proof_sha256,
         build_identity,
         device_uuid,
         canonical.len,
         repetition_prove_ns[0..request.repeat],
         repetition_decode_ns[0..request.repeat],
+        repetition_device_ns[0..request.repeat],
+        runtime_proof_indices[0..request.repeat],
+        runtime_init_ns,
+        runtime_teardown_ns,
         total_started.read(),
     );
     defer allocator.free(report);
@@ -239,7 +264,7 @@ fn requireResident(verdict: anytype) !void {
 }
 
 fn requireStableRepetition(first: anytype, repeated: @TypeOf(first)) !void {
-    if (!std.meta.eql(first.counters, repeated.counters) or
+    if (!first.counters.hasSameTopology(repeated.counters) or
         first.aot_entries != repeated.aot_entries or
         first.lane_count != repeated.lane_count or
         first.pool_used_bytes != repeated.pool_used_bytes or
@@ -265,6 +290,10 @@ fn renderReport(
     proof_bytes: usize,
     resident_prove_ns: []const u64,
     decode_ns: []const u64,
+    device_elapsed_ns: []const u64,
+    runtime_proof_indices: []const u64,
+    runtime_init_ns: u64,
+    runtime_teardown_ns: u64,
     total_ns: u64,
 ) ![]u8 {
     const counters = verdict.counters;
@@ -289,18 +318,22 @@ fn renderReport(
             .zig_verified = true,
         },
         .timing_ns = .{
+            .runtime_init = runtime_init_ns,
             .resident_prove = resident_prove_ns[0],
             .terminal_decode = decode_ns[0],
+            .runtime_teardown = runtime_teardown_ns,
             .total_before_publication = total_ns,
         },
         .process_repetition = .{
             .count = request.repeat,
-            .persistent_session = false,
+            .persistent_session = true,
             .all_canonical_bytes_identical = true,
             .stable_launch_topology = true,
             .zero_final_pool_usage = true,
             .resident_prove_ns = resident_prove_ns,
             .terminal_decode_ns = decode_ns,
+            .device_elapsed_ns = device_elapsed_ns,
+            .runtime_proof_indices = runtime_proof_indices,
         },
         .residency = .{
             .resident = true,
