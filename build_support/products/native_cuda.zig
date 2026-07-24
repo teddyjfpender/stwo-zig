@@ -1,8 +1,10 @@
 //! Explicit Linux Native + CUDA product ownership.
 
 const std = @import("std");
+const build_identity = @import("../build_identity.zig");
 const cuda = @import("../backends/cuda.zig");
 const cuda_tools = @import("../backends/cuda_tools.zig");
+const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
@@ -75,6 +77,7 @@ pub const Context = struct {
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    identity: build_identity.Identity,
     protocol: graph.ProtocolModules,
 };
 
@@ -104,6 +107,21 @@ pub fn addProduct(context: Context) void {
     context.protocol.addImports(root);
     root.addImport("stwo", stwo);
     root.addImport("stwo_native_cuda", stwo);
+    root.addOptions(
+        "product_identity",
+        graph_identity.productOptionsWithRuntime(
+            context.b,
+            context.identity,
+            descriptor.product,
+            context.target,
+            context.optimize,
+            .{
+                .runtime_manifest = "cuda-process-runtime-v1",
+                .sdk_manifest = "cuda-explicit-toolchain-v1",
+                .aot_manifest = "cuda-authenticated-native-pack-v1",
+            },
+        ),
+    );
 
     const installed = graph_install.executable(
         context.b,

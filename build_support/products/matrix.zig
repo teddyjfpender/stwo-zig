@@ -78,6 +78,7 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
                 .b = context.b,
                 .target = context.target,
                 .optimize = context.optimize,
+                .identity = context.identity,
                 .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
             }),
             .native_metal => native_metal.addProduct(.{

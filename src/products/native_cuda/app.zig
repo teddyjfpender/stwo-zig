@@ -1,6 +1,7 @@
 //! Lifecycle and residency reporting for Native CUDA proofs.
 
 const std = @import("std");
+const product_identity = @import("product_identity");
 const stwo = @import("stwo_native_cuda");
 const cli = @import("cli.zig");
 
@@ -336,11 +337,42 @@ fn renderReport(
     );
     const plan_cache_key = std.fmt.bytesToHex(plan.cache_key, .lower);
     return std.json.Stringify.valueAlloc(allocator, .{
-        .schema_version = @as(u32, 3),
+        .schema_version = @as(u32, 4),
         .product = "stwo-native-cuda",
         .backend = cli.backend_name,
         .application = cli.air_name,
         .protocol = cli.protocol_name,
+        .product_identity = .{
+            .schema_version = product_identity.schema_version,
+            .name = product_identity.product,
+            .frontend = product_identity.frontend,
+            .backend = product_identity.backend,
+            .role = product_identity.role,
+            .protocol_features = product_identity.protocol_features,
+            .protocol_manifest_sha256 = product_identity.protocol_manifest_sha256,
+            .identity_sha256 = product_identity.identity_sha256,
+            .implementation_repository = product_identity.implementation_repository,
+            .implementation_commit = product_identity.implementation_commit,
+            .implementation_tree = if (product_identity.implementation_tree_available)
+                product_identity.implementation_tree
+            else
+                null,
+            .implementation_dirty = product_identity.implementation_dirty,
+            .dirty_content_sha256 = if (product_identity.dirty_content_sha256_available)
+                product_identity.dirty_content_sha256
+            else
+                null,
+            .zig_version = product_identity.zig_version,
+            .target_arch = product_identity.target_arch,
+            .target_os = product_identity.target_os,
+            .target_abi = product_identity.target_abi,
+            .cpu_model = product_identity.cpu_model,
+            .cpu_features_sha256 = product_identity.cpu_features_sha256,
+            .optimize = product_identity.optimize,
+            .runtime_manifest = product_identity.runtime_manifest,
+            .sdk_manifest = product_identity.sdk_manifest,
+            .aot_manifest = product_identity.aot_manifest,
+        },
         .statement = .{
             .log_n_rows = geometry.statement.log_n_rows,
             .sequence_len = geometry.statement.sequence_len,

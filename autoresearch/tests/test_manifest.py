@@ -135,7 +135,7 @@ class ManifestTest(unittest.TestCase):
         self.assertFalse(group.enabled)
         self.assertFalse(group.promotion_eligible)
         self.assertIn("six Native AIR", group.disabled_reason)
-        self.assertEqual(group.report_schema, "native_cuda_product_v3")
+        self.assertEqual(group.report_schema, "native_cuda_product_v4")
         self.assertEqual(group.correctness_oracle["authority"], "pinned-rust-stwo")
         self.assertTrue(group.correctness_oracle["final_validator"])
         self.assertEqual(self.m.workloads(board="core_cuda"), [])

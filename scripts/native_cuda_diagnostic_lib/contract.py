@@ -27,6 +27,7 @@ REPORT_KEYS = {
     "backend",
     "application",
     "protocol",
+    "product_identity",
     "statement",
     "plan",
     "proof",
@@ -36,6 +37,31 @@ REPORT_KEYS = {
     "device_stage_timing_ns",
     "aot",
     "device",
+}
+PRODUCT_IDENTITY_KEYS = {
+    "schema_version",
+    "name",
+    "frontend",
+    "backend",
+    "role",
+    "protocol_features",
+    "protocol_manifest_sha256",
+    "identity_sha256",
+    "implementation_repository",
+    "implementation_commit",
+    "implementation_tree",
+    "implementation_dirty",
+    "dirty_content_sha256",
+    "zig_version",
+    "target_arch",
+    "target_os",
+    "target_abi",
+    "cpu_model",
+    "cpu_features_sha256",
+    "optimize",
+    "runtime_manifest",
+    "sdk_manifest",
+    "aot_manifest",
 }
 PLAN_KEYS = {
     "program_sha256",
@@ -289,7 +315,7 @@ def validate_report(
 ) -> dict[str, Any]:
     _exact_keys(report, REPORT_KEYS, "CUDA report")
     expected_scalars = {
-        "schema_version": 3,
+        "schema_version": 4,
         "product": PRODUCT,
         "backend": BACKEND,
         "application": APPLICATION,
@@ -298,6 +324,75 @@ def validate_report(
     for key, expected in expected_scalars.items():
         if report[key] != expected:
             raise DiagnosticError(f"CUDA report has invalid {key}")
+
+    identity = _object(report["product_identity"], "CUDA product identity")
+    _exact_keys(
+        identity,
+        PRODUCT_IDENTITY_KEYS,
+        "CUDA product identity",
+    )
+    expected_identity = {
+        "schema_version": 2,
+        "name": PRODUCT,
+        "frontend": "native",
+        "backend": BACKEND,
+        "role": "cli",
+        "protocol_features": (
+            "native-wide-fibonacci-v1+cuda-resident-proof-v1+"
+            "explicit-toolchain-v1"
+        ),
+        "implementation_repository": (
+            "https://github.com/teddyjfpender/stwo-zig"
+        ),
+        "runtime_manifest": "cuda-process-runtime-v1",
+        "sdk_manifest": "cuda-explicit-toolchain-v1",
+        "aot_manifest": "cuda-authenticated-native-pack-v1",
+    }
+    for key, expected in expected_identity.items():
+        if identity[key] != expected:
+            raise DiagnosticError(f"CUDA product identity has invalid {key}")
+    for key in (
+        "zig_version",
+        "target_arch",
+        "target_os",
+        "target_abi",
+        "cpu_model",
+        "optimize",
+    ):
+        if not isinstance(identity[key], str) or not identity[key]:
+            raise DiagnosticError(f"CUDA product identity has empty {key}")
+    protocol_sha256 = hashlib.sha256(
+        identity["protocol_features"].encode()
+    ).hexdigest()
+    if (
+        _digest(
+            identity["protocol_manifest_sha256"],
+            "CUDA protocol-manifest digest",
+        )
+        != protocol_sha256
+    ):
+        raise DiagnosticError("CUDA protocol-manifest digest is inconsistent")
+    _digest(identity["identity_sha256"], "CUDA product-identity digest")
+    _digest(
+        identity["cpu_features_sha256"],
+        "CUDA CPU-feature digest",
+    )
+    _digest(
+        identity["implementation_commit"],
+        "CUDA implementation commit",
+        length=40,
+    )
+    implementation_tree = identity["implementation_tree"]
+    if implementation_tree is None:
+        raise DiagnosticError("CUDA product identity has no implementation tree")
+    _digest(implementation_tree, "CUDA implementation tree", length=40)
+    if not isinstance(identity["implementation_dirty"], bool):
+        raise DiagnosticError("CUDA implementation dirty state is not boolean")
+    dirty_digest = identity["dirty_content_sha256"]
+    if identity["implementation_dirty"] != (dirty_digest is not None):
+        raise DiagnosticError("CUDA product dirty identity is inconsistent")
+    if dirty_digest is not None:
+        _digest(dirty_digest, "CUDA dirty-content digest")
 
     statement = _object(report["statement"], "CUDA report statement")
     _exact_keys(statement, STATEMENT_KEYS, "CUDA report statement")
@@ -556,6 +651,7 @@ def validate_report(
         raise DiagnosticError("CUDA device capacity telemetry is invalid")
 
     return {
+        "product_identity": identity,
         "proof": proof,
         "plan": plan,
         "timing_ns": timing,

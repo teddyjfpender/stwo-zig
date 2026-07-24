@@ -228,6 +228,7 @@ def _invoke(
         "external_wall_ns": external_wall_ns,
         "resources": resources,
         "proof": artifact,
+        "product_identity": validated["product_identity"],
         "plan": validated["plan"],
         "timing_ns": validated["timing_ns"],
         "repetition": validated["process_repetition"],
@@ -467,6 +468,13 @@ def _proof_and_platform_gate(
     }
     if len(devices) != 1:
         raise BenchmarkError("CUDA device identity changed during measurement")
+    identities_by_arm: dict[str, set[str]] = {}
+    for sample in all_samples:
+        identities_by_arm.setdefault(sample["arm"], set()).add(
+            json.dumps(sample["product_identity"], sort_keys=True)
+        )
+    if any(len(identities) != 1 for identities in identities_by_arm.values()):
+        raise BenchmarkError("CUDA product identity changed within one arm")
     proof = next(iter(proofs))
     return {
         "canonical_sha256": proof[0],
@@ -474,6 +482,10 @@ def _proof_and_platform_gate(
         "program_sha256": next(iter(program_digests)),
         "all_arms_byte_identical": True,
         "device": json.loads(next(iter(devices))),
+        "product_identities": {
+            arm: json.loads(next(iter(identities)))
+            for arm, identities in identities_by_arm.items()
+        },
     }
 
 

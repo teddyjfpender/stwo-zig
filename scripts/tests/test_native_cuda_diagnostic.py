@@ -97,11 +97,44 @@ resident_ns = (rows * args.sequence_len + 1_000_000) * binary_scale
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
 report = {
-    "schema_version": 3,
+    "schema_version": 4,
     "product": "stwo-native-cuda",
     "backend": "cuda",
     "application": "wide_fibonacci",
     "protocol": "raw-stwo-wide-v1",
+    "product_identity": {
+        "schema_version": 2,
+        "name": "stwo-native-cuda",
+        "frontend": "native",
+        "backend": "cuda",
+        "role": "cli",
+        "protocol_features": (
+            "native-wide-fibonacci-v1+cuda-resident-proof-v1+"
+            "explicit-toolchain-v1"
+        ),
+        "protocol_manifest_sha256": hashlib.sha256(
+            b"native-wide-fibonacci-v1+cuda-resident-proof-v1+"
+            b"explicit-toolchain-v1"
+        ).hexdigest(),
+        "identity_sha256": "1" * 64,
+        "implementation_repository": (
+            "https://github.com/teddyjfpender/stwo-zig"
+        ),
+        "implementation_commit": "2" * 40,
+        "implementation_tree": "3" * 40,
+        "implementation_dirty": False,
+        "dirty_content_sha256": None,
+        "zig_version": "0.15.2",
+        "target_arch": "x86_64",
+        "target_os": "linux",
+        "target_abi": "gnu",
+        "cpu_model": "baseline",
+        "cpu_features_sha256": "4" * 64,
+        "optimize": "ReleaseFast",
+        "runtime_manifest": "cuda-process-runtime-v1",
+        "sdk_manifest": "cuda-explicit-toolchain-v1",
+        "aot_manifest": "cuda-authenticated-native-pack-v1",
+    },
     "statement": {
         "log_n_rows": args.log_n_rows,
         "sequence_len": args.sequence_len,
