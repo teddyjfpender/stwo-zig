@@ -20,7 +20,7 @@ from scripts.native_cuda_diagnostic_lib.model import (
     StateMachineShape,
 )
 
-from .model import BenchmarkError, SustainedShape
+from .model import BenchmarkError
 
 
 SCHEMA = "native_cuda_mixed_service_v1"
@@ -163,6 +163,17 @@ def queue_digest(cycles: int) -> str:
     for ordinal in range(cycles * len(FAMILIES)):
         digest.update(FAMILIES[ordinal % len(FAMILIES)].encode())
     return digest.hexdigest()
+
+
+def validate_invocation_cycles(cycles: int) -> int:
+    """Admit one cold cycle or a public multi-cycle sustained run."""
+    if (
+        isinstance(cycles, bool)
+        or not isinstance(cycles, int)
+        or not 1 <= cycles <= 4
+    ):
+        raise BenchmarkError("CUDA service invocation cycles must be in [1, 4]")
+    return cycles
 
 
 def _expected_statement(family: str) -> dict[str, Any]:
@@ -419,8 +430,9 @@ def _validate_row(
 def validate_report(
     report_value: Any,
     artifact_dir: Path,
-    shape: SustainedShape,
+    cycles: int,
 ) -> dict[str, Any]:
+    cycles = validate_invocation_cycles(cycles)
     report = _object(report_value, "sustained CUDA report")
     _exact(report, TOP_KEYS, "sustained CUDA report")
     expected_scalars = {
@@ -434,16 +446,16 @@ def validate_report(
         if report[key] != value:
             raise BenchmarkError(f"sustained CUDA report has invalid {key}")
 
-    count = shape.cycles * len(FAMILIES)
+    count = cycles * len(FAMILIES)
     workload = _object(report["workload"], "sustained CUDA workload")
     expected_workload = {
         "id": WORKLOAD_ID,
         "structural_class": "sustained",
         "deterministic": True,
-        "cycles": shape.cycles,
+        "cycles": cycles,
         "request_count": count,
         "cycle_order": list(FAMILIES),
-        "queue_sha256": queue_digest(shape.cycles),
+        "queue_sha256": queue_digest(cycles),
     }
     if workload != expected_workload:
         raise BenchmarkError("sustained CUDA workload identity is invalid")
@@ -479,7 +491,7 @@ def validate_report(
     artifacts = []
     paths = []
     devices = set()
-    family_proofs: dict[str, set[tuple[str, int]]] = {
+    family_proofs: dict[str, set[tuple[str, int, str, int]]] = {
         family: set() for family in FAMILIES
     }
     for ordinal, row_value in enumerate(rows_value):
@@ -495,7 +507,12 @@ def validate_report(
         paths.append(path)
         devices.add(json.dumps(row["device"], sort_keys=True))
         family_proofs[family].add(
-            (artifact["canonical_sha256"], artifact["canonical_bytes"])
+            (
+                artifact["canonical_sha256"],
+                artifact["canonical_bytes"],
+                artifact["artifact_sha256"],
+                artifact["artifact_bytes"],
+            )
         )
     if len(devices) != 1 or any(
         len(proofs) != 1 for proofs in family_proofs.values()
@@ -572,6 +589,8 @@ def validate_report(
             family: {
                 "canonical_sha256": next(iter(proofs))[0],
                 "canonical_bytes": next(iter(proofs))[1],
+                "artifact_sha256": next(iter(proofs))[2],
+                "artifact_bytes": next(iter(proofs))[3],
             }
             for family, proofs in family_proofs.items()
         },

@@ -109,7 +109,7 @@ def _invoke(
     validated = sustained.validate_report(
         report,
         artifact_dir,
-        SustainedShape(cycles),
+        cycles,
     )
     try:
         resources = parse_process_resources(
@@ -239,13 +239,26 @@ def measure_sustained(
             cooldown(settings)
 
     gate = sustained.proof_identity(cold, sessions)
+    captured_artifact_count = sum(
+        len(sample["proof_paths"])
+        for samples in cold.values()
+        for sample in samples
+    ) + sum(len(session["raw"]["proof_paths"]) for session in sessions)
+    representative_paths = cold["candidate"][0]["proof_paths"]
     oracle_receipts = [
         rust_oracle_receipt(settings, workload, Path(path))
-        for path in cold["candidate"][0]["proof_paths"]
+        for path in representative_paths
     ]
     oracle = {
         "accepted": all(receipt["accepted"] for receipt in oracle_receipts),
-        "artifact_count": len(oracle_receipts),
+        "coverage": {
+            "scope": "one_representative_candidate_cold_artifact_set",
+            "receipted_artifact_count": len(oracle_receipts),
+            "captured_artifact_count": captured_artifact_count,
+            "all_captured_artifacts_receipted": (
+                len(oracle_receipts) == captured_artifact_count
+            ),
+        },
         "receipts": oracle_receipts,
     }
     return {

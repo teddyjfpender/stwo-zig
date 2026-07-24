@@ -5,6 +5,7 @@ import sys
 import tempfile
 import textwrap
 import hashlib
+import json
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -26,6 +27,7 @@ from scripts.native_cuda_benchmark_lib import runner as benchmark_runner  # noqa
 from scripts.native_cuda_benchmark_lib import sustained  # noqa: E402
 from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
     BlakeShape,
+    DiagnosticError,
     PlonkShape,
     PoseidonShape,
     Shape,
@@ -38,6 +40,20 @@ from scripts.tests.test_native_cuda_diagnostic import (  # noqa: E402
 
 
 class NativeCudaBenchmarkTests(unittest.TestCase):
+    def test_sustained_public_and_internal_cycle_contracts_are_distinct(
+        self,
+    ) -> None:
+        with self.assertRaisesRegex(DiagnosticError, r"must be in \[2, 4\]"):
+            SustainedShape(1).validate()
+        self.assertEqual(1, sustained.validate_invocation_cycles(1))
+        self.assertEqual(4, sustained.validate_invocation_cycles(4))
+        for cycles in (0, 5):
+            with self.subTest(cycles=cycles), self.assertRaisesRegex(
+                BenchmarkError,
+                r"must be in \[1, 4\]",
+            ):
+                sustained.validate_invocation_cycles(cycles)
+
     def test_mixed_service_is_executable_but_not_headline_scored(self) -> None:
         workload = next(
             item
@@ -84,6 +100,36 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             1_000,
         )
         self.assertFalse(result["available"])
+
+    def test_sustained_identity_binds_the_exact_artifact_catalog(self) -> None:
+        catalog = {
+            family: {
+                "canonical_sha256": str(index) * 64,
+                "canonical_bytes": index + 1,
+                "artifact_sha256": str(index + 3) * 64,
+                "artifact_bytes": index + 4,
+            }
+            for index, family in enumerate(sustained.FAMILIES)
+        }
+        raw = {
+            "arm": "candidate",
+            "proof_catalog": catalog,
+            "device": {"uuid": "1" * 32},
+            "product_identity": {"identity_sha256": "2" * 64},
+        }
+        gate = sustained.proof_identity(
+            {"candidate": [raw]},
+            [{"raw": raw}],
+        )
+        self.assertTrue(gate["all_arms_byte_identical"])
+
+        changed = json.loads(json.dumps(raw))
+        changed["proof_catalog"]["poseidon"]["artifact_sha256"] = "f" * 64
+        with self.assertRaisesRegex(BenchmarkError, "proof catalog"):
+            sustained.proof_identity(
+                {"candidate": [raw]},
+                [{"raw": changed}],
+            )
 
     def test_coverage_matrix_includes_large_transform_regime(self) -> None:
         workload = next(
