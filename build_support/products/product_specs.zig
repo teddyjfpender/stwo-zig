@@ -22,6 +22,7 @@ pub const Constructor = enum {
     core,
     prover,
     native_cpu,
+    native_cuda,
     riscv_cpu,
     native_metal,
     unavailable,
@@ -58,7 +59,13 @@ pub const products = [_]Spec{
     .{ .descriptor = cairo_cpu.descriptor, .scope = .deferred, .constructor = .unavailable },
     .{ .descriptor = cairo_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
     .{ .descriptor = riscv_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = native_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
+    .{
+        .descriptor = native_cuda.descriptor,
+        .scope = .native_cuda,
+        .constructor = .native_cuda,
+        .configure_tools = &.{"python3"},
+        .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
+    },
     .{ .descriptor = cairo_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
     .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
 };

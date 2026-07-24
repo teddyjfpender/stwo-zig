@@ -12,6 +12,8 @@ pub const archive_name = "stwo_cuda_kernels";
 pub const Toolchain = struct {
     nvcc: []const u8 = "",
     host_cxx: []const u8 = "",
+    host_runtime: []const u8 = "",
+    host_unwind_runtime: []const u8 = "",
     archiver: []const u8 = "",
     cuda_home: []const u8 = "",
     library_dir: []const u8 = "",
@@ -26,6 +28,17 @@ pub const Toolchain = struct {
         if (self.library_dir.len == 0) return error.MissingCudaLibraryDirectory;
         if (self.architectures.len == 0) return error.MissingCudaArchitecture;
         if (self.jobs == 0) return error.InvalidCudaBuildJobs;
+    }
+
+    pub fn validateRuntime(self: Toolchain) !void {
+        try self.validate();
+        if (self.host_runtime.len == 0) return error.MissingCudaHostRuntime;
+        if (!std.fs.path.isAbsolute(self.host_runtime))
+            return error.InvalidCudaHostRuntime;
+        if (self.host_unwind_runtime.len == 0)
+            return error.MissingCudaHostUnwindRuntime;
+        if (!std.fs.path.isAbsolute(self.host_unwind_runtime))
+            return error.InvalidCudaHostUnwindRuntime;
     }
 };
 
@@ -68,14 +81,15 @@ pub fn linkRuntime(
     toolchain: Toolchain,
     archive: Archive,
 ) void {
-    require(toolchain);
+    requireRuntime(toolchain);
     artifact.step.dependOn(&archive.build.step);
     artifact.addLibraryPath(archive.directory);
     artifact.addLibraryPath(.{ .cwd_relative = toolchain.library_dir });
     artifact.linkSystemLibrary(archive_name);
     artifact.linkSystemLibrary("cudart");
     artifact.linkSystemLibrary("cuda");
-    artifact.linkSystemLibrary("stdc++");
+    artifact.addObjectFile(.{ .cwd_relative = toolchain.host_runtime });
+    artifact.addObjectFile(.{ .cwd_relative = toolchain.host_unwind_runtime });
     artifact.linkLibC();
 }
 
@@ -110,6 +124,13 @@ fn buildCommand(
 fn require(toolchain: Toolchain) void {
     toolchain.validate() catch |err| std.debug.panic(
         "invalid explicit CUDA toolchain: {s}",
+        .{@errorName(err)},
+    );
+}
+
+fn requireRuntime(toolchain: Toolchain) void {
+    toolchain.validateRuntime() catch |err| std.debug.panic(
+        "invalid explicit CUDA runtime toolchain: {s}",
         .{@errorName(err)},
     );
 }
@@ -150,4 +171,37 @@ test "CUDA toolchain has no implicit compiler, path, or architecture" {
         .architectures = "sm_86,sm_90",
         .jobs = 8,
     }).validate();
+    try std.testing.expectError(
+        error.MissingCudaHostRuntime,
+        (Toolchain{
+            .nvcc = "/cuda/bin/nvcc",
+            .host_cxx = "/usr/bin/c++",
+            .archiver = "/usr/bin/ar",
+            .cuda_home = "/cuda",
+            .library_dir = "/cuda/lib64",
+            .architectures = "sm_89",
+        }).validateRuntime(),
+    );
+    try std.testing.expectError(
+        error.MissingCudaHostUnwindRuntime,
+        (Toolchain{
+            .nvcc = "/cuda/bin/nvcc",
+            .host_cxx = "/usr/bin/c++",
+            .host_runtime = "/usr/lib/libstdc++.so.6",
+            .archiver = "/usr/bin/ar",
+            .cuda_home = "/cuda",
+            .library_dir = "/cuda/lib64",
+            .architectures = "sm_89",
+        }).validateRuntime(),
+    );
+    try (Toolchain{
+        .nvcc = "/cuda/bin/nvcc",
+        .host_cxx = "/usr/bin/c++",
+        .host_runtime = "/usr/lib/libstdc++.so.6",
+        .host_unwind_runtime = "/usr/lib/libgcc_s.so.1",
+        .archiver = "/usr/bin/ar",
+        .cuda_home = "/cuda",
+        .library_dir = "/cuda/lib64",
+        .architectures = "sm_89",
+    }).validateRuntime();
 }

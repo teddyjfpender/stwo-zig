@@ -288,6 +288,7 @@ pub fn constructorName(constructor: specs.Constructor) []const u8 {
         .core => "products/matrix.construct.core",
         .prover => "products/matrix.construct.prover",
         .native_cpu => "products/matrix.construct.native_cpu",
+        .native_cuda => "products/matrix.construct.native_cuda",
         .native_metal => "products/matrix.construct.native_metal",
         .riscv_cpu => "products/matrix.construct.riscv_cpu",
         .unavailable => "products/matrix.addDeferredProducts",

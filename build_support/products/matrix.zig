@@ -11,6 +11,7 @@ const aggregate_cli = @import("aggregate_cli.zig");
 const catalog_manifest = @import("catalog_manifest.zig");
 const core = @import("core.zig");
 const native_cpu = @import("native_cpu.zig");
+const native_cuda = @import("native_cuda.zig");
 const native_metal = @import("native_metal.zig");
 const prover = @import("prover.zig");
 const riscv_cpu = @import("riscv_cpu.zig");
@@ -71,6 +72,12 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
                 .target = context.target,
                 .optimize = context.optimize,
                 .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
+            .native_cuda => native_cuda.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
                 .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
             }),
             .native_metal => native_metal.addProduct(.{
