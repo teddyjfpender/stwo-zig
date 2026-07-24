@@ -3,13 +3,7 @@
   "product": "stwo-native-cuda",
   "source_authority_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "ordinary": {
-    "product_sources": [
-      "batch_inverse.cu",
-      "cuda_mem_pool.cu",
-      "prefix_sum.cu",
-      "relation_graph.cu",
-      "utils.cu"
-    ],
+    "product_sources": [],
     "resident_candidates": [
       "accumulate.cu",
       "barycentric.cu",
@@ -20,7 +14,6 @@
       "blake2s_quad.cu",
       "composition.cu",
       "cuda_exec_context.cu",
-      "cuda_mem_pool.cu",
       "decommit.cu",
       "device_transcript.cu",
       "eval_at_point.cu",
@@ -38,7 +31,6 @@
       "oods.cu",
       "oods_collapsed.cu",
       "poly_utils.cu",
-      "prefix_sum.cu",
       "progressive_commit_in_place.cu",
       "quotient_numerator_group_direct_tiled.cu",
       "quotient_numerator_native_run_sum.cu",
@@ -49,12 +41,14 @@
       "relation_scan.cu",
       "resident_pow.cu",
       "rfft.cu",
-      "twiddles.cu",
-      "utils.cu"
+      "twiddles.cu"
     ],
     "quarantined_migration": [
+      "cuda_mem_pool.cu",
       "grind_blake2s.cu",
+      "prefix_sum.cu",
       "runtime_jit.cu",
+      "utils.cu",
       "witness/gen_preprocessed_columns_on_gpu.cu"
     ],
     "deferred_cairo": [
@@ -81,6 +75,63 @@
       "timer.cu"
     ]
   },
+  "resident_authority_derivations": [
+    {
+      "authority_files": [
+        {
+          "path": "batch_inverse.cu",
+          "sha256": "c129fd09d512e6cfa5686060ec778214823079e35adcbf61a909f08e787aed30"
+        },
+        {
+          "path": "batch_inverse.cuh",
+          "sha256": "92c1bf8fda9fb918954ebf1d2955c7f6fda36db3232fdd6d8170872db5cc81f4"
+        },
+        {
+          "path": "fields.cu",
+          "sha256": "5b31ff24b307b36be77d1910378167521bb9d3a980211059264e6b614b21bc95"
+        },
+        {
+          "path": "fields.cuh",
+          "sha256": "f4dde295ba4de91166280f6afc428af7018ba3b0be87d10c257f65fd811b3050"
+        },
+        {
+          "path": "relation_fused.cuh",
+          "sha256": "9539c4808b834e6a42be17f4640bf0c2ef17002e35b2e84cc60bcc8d94be6397"
+        },
+        {
+          "path": "relation_graph.cu",
+          "sha256": "2065ef419a3c53d390d310556434dc9b1e53f292fcc22dd1298d09b94c41d7f8"
+        },
+        {
+          "path": "relation_scan.cuh",
+          "sha256": "f158e7c1be47b349e668c35f4c44fd678c3f71a15d1adbe45b2526a394b6d921"
+        }
+      ],
+      "name": "relation_graph",
+      "native_files": [
+        {
+          "path": "oods/field.cuh",
+          "sha256": "8634cb0aa351e3fa7ef7a6d975f082e98ce5c2931bd1239d129947e9b8e86563"
+        },
+        {
+          "path": "relation/batch_inverse.cu",
+          "sha256": "f421cb7e106857748b95911fee6559a69b8c991704a4b806761f27350a578838"
+        },
+        {
+          "path": "relation/batch_inverse.cuh",
+          "sha256": "d536c11fe159e896a9c705d93fd3af7e6f477dc89f83bd01cf6a53dbff65fecf"
+        },
+        {
+          "path": "relation/graph.cu",
+          "sha256": "e3c293f05a71ed56d3f492199791cc59719e1ec25fed76a545d076d88cb6e275"
+        },
+        {
+          "path": "relation/layout.cuh",
+          "sha256": "ddcf90e99f7c009cfeec97bc3c40c64d9612a952438caf900c96e6447103d3a7"
+        }
+      ]
+    }
+  ],
   "generated_aot": {
     "copied_entry_count": 340,
     "copied_disposition": "cairo_reference_only",
@@ -170,6 +221,10 @@
       "stwo_oods_eval_reduce_on",
       "stwo_oods_store_results_on",
       "stwo_prepare_quotient_numerator_terms_on",
+      "stwo_relation_expand_challenges_on",
+      "stwo_relation_fraction_chain_global_on",
+      "stwo_relation_pairs_global_on",
+      "stwo_relation_tail_global_on",
       "stwo_zero_quotient_numerator_outputs_on"
     ],
     "staged_stage_modules": [],

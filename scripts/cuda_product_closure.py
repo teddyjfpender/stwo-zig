@@ -39,6 +39,7 @@ C_EXTERN_RE = re.compile(
     re.DOTALL,
 )
 RUST_EXTERN_RE = re.compile(r"\bpub\s+fn\s+(stwo_[A-Za-z0-9_]+)\s*\(")
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def symbols(paths: list[Path], pattern: re.Pattern[str]) -> set[str]:
@@ -46,6 +47,143 @@ def symbols(paths: list[Path], pattern: re.Pattern[str]) -> set[str]:
     for path in paths:
         found.update(pattern.findall(path.read_text(encoding="utf-8", errors="strict")))
     return found
+
+
+def closure_path(path: Path) -> str:
+    for label, root in (("authority", SOURCE), ("native", NATIVE)):
+        try:
+            relative = path.relative_to(root)
+        except ValueError:
+            continue
+        return f"{label}/{relative.as_posix()}"
+    return str(path)
+
+
+def validate_product_policy(
+    product: dict[str, object],
+    product_sources: list[Path],
+    native_files: list[Path],
+) -> None:
+    closure_files = product_sources + native_files
+    forbidden_tokens = product.get("forbidden_product_tokens")
+    if not isinstance(forbidden_tokens, list) or not forbidden_tokens:
+        raise ProductClosureError("forbidden CUDA product tokens are absent")
+
+    token_hits: list[str] = []
+    for path in closure_files:
+        payload = path.read_text(encoding="utf-8", errors="strict")
+        token_hits.extend(
+            f"{closure_path(path)}:{token}"
+            for token in forbidden_tokens
+            if str(token) in payload
+        )
+    if token_hits:
+        raise ProductClosureError(
+            f"CUDA product closure contains forbidden API/token policy: "
+            f"{sorted(token_hits)}"
+        )
+
+    abi = product.get("abi")
+    if not isinstance(abi, dict):
+        raise ProductClosureError("CUDA ABI policy is absent")
+    forbidden_fragments = abi.get("forbidden_symbol_fragments")
+    if not isinstance(forbidden_fragments, list) or not forbidden_fragments:
+        raise ProductClosureError("forbidden CUDA ABI symbol policy is absent")
+    bad_symbols = sorted(
+        symbol
+        for symbol in symbols(closure_files, C_EXTERN_RE)
+        if any(str(fragment) in symbol for fragment in forbidden_fragments)
+    )
+    if bad_symbols:
+        raise ProductClosureError(
+            f"CUDA product closure exposes forbidden symbols: {bad_symbols}"
+        )
+
+
+def validate_resident_derivations(
+    product: dict[str, object],
+    authority: dict[str, object],
+) -> int:
+    derivations = product.get("resident_authority_derivations")
+    if not isinstance(derivations, list) or not derivations:
+        raise ProductClosureError("resident CUDA authority derivations are absent")
+    names = [entry.get("name") for entry in derivations if isinstance(entry, dict)]
+    if (
+        len(names) != len(derivations)
+        or any(not isinstance(name, str) or not name for name in names)
+        or names != sorted(set(names))
+    ):
+        raise ProductClosureError(
+            "resident CUDA authority derivations must be named, sorted, and unique"
+        )
+
+    authority_hashes = {
+        str(entry.get("path")): str(entry.get("sha256"))
+        for entry in authority.get("files", [])
+        if isinstance(entry, dict)
+    }
+    seen_native: set[str] = set()
+    for derivation in derivations:
+        assert isinstance(derivation, dict)
+        if set(derivation) != {"authority_files", "name", "native_files"}:
+            raise ProductClosureError(
+                f"resident CUDA derivation {derivation['name']} has a malformed schema"
+            )
+        for field, root, expected_hashes in (
+            ("authority_files", SOURCE, authority_hashes),
+            ("native_files", NATIVE, None),
+        ):
+            entries = derivation.get(field)
+            if not isinstance(entries, list):
+                raise ProductClosureError(
+                    f"resident CUDA derivation {derivation['name']} lacks {field}"
+                )
+            paths = [
+                entry.get("path") for entry in entries if isinstance(entry, dict)
+            ]
+            if (
+                len(paths) != len(entries)
+                or any(not isinstance(path, str) or not path for path in paths)
+                or paths != sorted(set(paths))
+            ):
+                raise ProductClosureError(
+                    f"resident CUDA derivation {derivation['name']} {field} "
+                    "must be sorted and unique"
+                )
+            for entry in entries:
+                assert isinstance(entry, dict)
+                if set(entry) != {"path", "sha256"}:
+                    raise ProductClosureError(
+                        f"resident CUDA derivation {derivation['name']} "
+                        f"{field} entry has a malformed schema"
+                    )
+                relative = str(entry["path"])
+                expected = entry["sha256"]
+                if not isinstance(expected, str) or SHA256_RE.fullmatch(expected) is None:
+                    raise ProductClosureError(
+                        f"resident CUDA derivation {derivation['name']} has an "
+                        f"invalid hash for {relative}"
+                    )
+                path = root / relative
+                if not path.is_file():
+                    raise ProductClosureError(
+                        f"resident CUDA derivation input is absent: {path}"
+                    )
+                if expected_hashes is not None and expected_hashes.get(relative) != expected:
+                    raise ProductClosureError(
+                        f"resident CUDA derivation authority hash is stale: {relative}"
+                    )
+                if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+                    raise ProductClosureError(
+                        f"resident CUDA derivation content hash is stale: {relative}"
+                    )
+                if field == "native_files":
+                    if relative in seen_native:
+                        raise ProductClosureError(
+                            f"resident CUDA derivation output is duplicated: {relative}"
+                        )
+                    seen_native.add(relative)
+    return len(derivations)
 
 
 def validate_abi(
@@ -238,16 +376,13 @@ def validate() -> dict[str, object]:
     if not native_labels or any("cairo" in label for label in native_labels):
         raise ProductClosureError("Native AOT manifest contains a foreign frontend")
 
+    product_names = ordinary.get("product_sources")
+    if not isinstance(product_names, list):
+        raise ProductClosureError("CUDA product source set is absent")
+    product_sources = [SOURCE / str(name) for name in product_names]
     native_files = sorted(path for path in NATIVE.rglob("*") if path.is_file())
-    native_payload = "\n".join(
-        path.read_text(encoding="utf-8", errors="strict") for path in native_files
-    )
-    forbidden = product.get("forbidden_product_tokens")
-    if not isinstance(forbidden, list) or not forbidden:
-        raise ProductClosureError("forbidden CUDA product tokens are absent")
-    hits = [str(token) for token in forbidden if str(token) in native_payload]
-    if hits:
-        raise ProductClosureError(f"Zig-owned CUDA runtime contains forbidden policy: {hits}")
+    validate_product_policy(product, product_sources, native_files)
+    derivation_count = validate_resident_derivations(product, authority)
 
     abi = validate_abi(product, ordinary)
 
@@ -267,6 +402,7 @@ def validate() -> dict[str, object]:
         - len(ordinary["resident_candidates"]),
         "copied_aot_reference_entries": len(copied_aot),
         "native_aot_entries": len(native_aot),
+        "resident_authority_derivations": derivation_count,
         "native_runtime_sha256": digest.hexdigest(),
         **abi,
     }
@@ -282,6 +418,7 @@ def main() -> int:
         f"{result['quarantined_or_deferred']} quarantined/deferred, "
         f"{result['copied_aot_reference_entries']} copied AOT entries excluded, "
         f"{result['native_aot_entries']} Native AOT entry admitted, "
+        f"{result['resident_authority_derivations']} resident derivation verified, "
         f"{result['active_symbols']} active and "
         f"{result['staged_symbols']} staged ABI symbols verified"
     )

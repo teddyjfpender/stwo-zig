@@ -80,6 +80,10 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
     "pow": {
         "pow/search.cu",
     },
+    "relation": {
+        "relation/batch_inverse.cu",
+        "relation/graph.cu",
+    },
     "decommit": {
         "decommit/fri.cu",
         "decommit/query_planning.cu",
@@ -129,7 +133,7 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual([86, 90], plan["target_sms"])
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
-        self.assertEqual(5, plan["ordinary_source_count"])
+        self.assertEqual(0, plan["ordinary_source_count"])
         self.assertEqual(8, plan["aot_source_count"])
         self.assertEqual(16, plan["aot_cubin_count"])
         self.assertEqual(expected_sources, actual_sources)
