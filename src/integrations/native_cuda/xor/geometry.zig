@@ -8,7 +8,8 @@ pub const preprocessed_columns: u32 = 2;
 pub const main_columns: u32 = 1;
 pub const interaction_columns: u32 = 0;
 pub const composition_columns: u32 = 8;
-pub const sampled_mask_points: u32 = 1 + composition_columns;
+pub const sampled_mask_points: u32 =
+    preprocessed_columns + main_columns + composition_columns;
 
 pub const Error = error{
     GeometryOverflow,

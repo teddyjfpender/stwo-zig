@@ -129,25 +129,16 @@ fn traceColumns() [
 
 fn commitmentTrees(
     geometry: geometry_mod.Geometry,
-) [4]ir.CommitmentTree {
+) [3]ir.CommitmentTree {
     const preprocessed_end = geometry_mod.preprocessed_columns;
     const main_end = preprocessed_end + geometry_mod.main_columns;
-    const interaction_end = main_end + geometry_mod.interaction_columns;
     return .{
-        tree(0, .preprocessed, 0, geometry_mod.preprocessed_columns, geometry, false),
+        tree(0, .preprocessed, 0, geometry_mod.preprocessed_columns, geometry, true),
         tree(1, .main, preprocessed_end, geometry_mod.main_columns, geometry, true),
         tree(
             2,
-            .interaction,
-            main_end,
-            geometry_mod.interaction_columns,
-            geometry,
-            false,
-        ),
-        tree(
-            3,
             .composition,
-            interaction_end,
+            main_end,
             geometry_mod.composition_columns,
             geometry,
             true,
@@ -428,18 +419,57 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
     try std.testing.expectEqual(@as(u32, 0), contract.geometry.interaction_columns);
     try std.testing.expectEqual(@as(u64, 3 * (1 << 7)), contract.ingress.element_count);
     try std.testing.expectEqual(@as(usize, 11), program.trace_columns.len);
-    try std.testing.expectEqual(@as(usize, 4), program.commitments.len);
-    try std.testing.expectEqual(@as(u32, 0), program.commitments[2].column_count);
-    try std.testing.expectEqual(@as(u32, 8), program.commitments[3].column_count);
+    try std.testing.expectEqual(@as(usize, 3), program.commitments.len);
+    try std.testing.expectEqual(ir.CommitmentRole.composition, program.commitments[2].role);
+    try std.testing.expectEqual(@as(u32, 8), program.commitments[2].column_count);
+    try std.testing.expect(program.commitments[0].retain_openings);
+    try std.testing.expectEqual(@as(u32, 11), program.quotient.term_count);
     try std.testing.expectEqual(@as(usize, 7), program.fri_layers.len);
     try std.testing.expectEqual(@as(u32, 8), program.fri_layers[0].evaluation_log_rows);
     try std.testing.expectEqual(@as(u32, 2), program.fri_layers[6].evaluation_log_rows);
     var expected: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected,
-        "f5e5de5277f25fbb9daee0978ade1acd9d0bf212f9871c14669746c56212ac3a",
+        "a63f5b04be3cd6185992094b9c4d9d1957cab53d11b873bdd8b602678e2c24d1",
     );
     try std.testing.expectEqualSlices(u8, &expected, &program.semantic_digest);
+}
+
+test "XOR program tree and sample counts match a decoded CPU proof" {
+    const allocator = std.testing.allocator;
+    const cpu_xor = @import("../../../examples/xor.zig");
+    const protocol = @import("stwo_core").pcs.PcsConfig.default();
+    const statement = cpu_xor.Statement{
+        .log_size = 5,
+        .log_step = 2,
+        .offset = 3,
+    };
+    var materialized = try trace_mod.Materialized.init(
+        allocator,
+        statement,
+        protocol,
+    );
+    defer materialized.deinit(allocator);
+    var program = try emit(allocator, &materialized);
+    defer program.deinit(allocator);
+    var output = try cpu_xor.prove(allocator, protocol, statement);
+    defer output.proof.deinit(allocator);
+
+    const proof = output.proof.commitment_scheme_proof;
+    try std.testing.expectEqual(proof.commitments.items.len, program.commitments.len);
+    try std.testing.expectEqual(@as(usize, 3), proof.sampled_values.items.len);
+    try std.testing.expectEqual(@as(usize, 3), proof.decommitments.items.len);
+    try std.testing.expectEqual(@as(usize, 3), proof.queried_values.items.len);
+    const widths = [_]usize{ 2, 1, 8 };
+    var samples: usize = 0;
+    for (proof.sampled_values.items, widths) |sampled_tree, width| {
+        try std.testing.expectEqual(width, sampled_tree.len);
+        for (sampled_tree) |column| {
+            try std.testing.expectEqual(@as(usize, 1), column.len);
+            samples += column.len;
+        }
+    }
+    try std.testing.expectEqual(program.quotient.term_count, samples);
 }
 
 test "XOR public statement changes semantic identity without geometry drift" {

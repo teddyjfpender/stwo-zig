@@ -260,7 +260,7 @@ test "generic Native AIR rejects geometry and component substitution" {
     );
 }
 
-test "generic Native AIR requires all three trees including empty trees" {
+test "generic Native AIR permits an omitted zero-width interaction tree" {
     const allocator = std.testing.allocator;
     var zero_interaction = Fixture{};
     zero_interaction.columns[2] = .{
@@ -273,8 +273,8 @@ test "generic Native AIR requires all three trees including empty trees" {
     zero_interaction.commitments = .{
         tree(0, .preprocessed, 0, 0),
         tree(1, .main, 0, 2),
-        tree(2, .interaction, 2, 0),
-        tree(3, .composition, 2, 1),
+        tree(2, .composition, 2, 1),
+        tree(3, .fri, 0, 0),
     };
     var zero_interaction_contract = contract();
     zero_interaction_contract.geometry.interaction_columns = 0;
@@ -283,6 +283,7 @@ test "generic Native AIR requires all three trees including empty trees" {
         zero_interaction_contract,
     );
     zero_description.trace_columns = zero_interaction.columns[0..3];
+    zero_description.commitments = zero_interaction.commitments[0..3];
     var accepted = try ir.ProofProgram.init(allocator, zero_description);
     defer accepted.deinit(allocator);
 

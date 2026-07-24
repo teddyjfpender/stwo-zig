@@ -551,8 +551,10 @@ fn validateNativeAir(
     var first_column: u32 = 0;
     var evaluation_log_rows: ?u32 = null;
     for (roles, widths) |role, width| {
-        const tree = uniqueTree(program.commitments, role) orelse
-            return error.InvalidNativeAir;
+        const matching_trees = treeCount(program.commitments, role);
+        if (width == 0 and matching_trees == 0) continue;
+        if (matching_trees != 1) return error.InvalidNativeAir;
+        const tree = uniqueTree(program.commitments, role).?;
         if (tree.first_column != first_column or tree.column_count != width)
             return error.InvalidNativeAir;
         if (evaluation_log_rows) |expected| {
@@ -570,6 +572,17 @@ fn validateNativeAir(
         first_column = std.math.add(u32, first_column, width) catch
             return error.InvalidNativeAir;
     }
+}
+
+fn treeCount(
+    trees: []const CommitmentTree,
+    role: CommitmentRole,
+) usize {
+    var count: usize = 0;
+    for (trees) |tree| {
+        if (tree.role == role) count += 1;
+    }
+    return count;
 }
 
 fn uniqueTree(

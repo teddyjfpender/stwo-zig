@@ -55,10 +55,10 @@ pub const public_input_abi = digest(
     "stwo/native/xor/public-input:u32-log-size,u32-log-step,u64le-offset:v1",
 );
 pub const sampling_recipe = digest(
-    "stwo/native/xor/oods:main-point,composition-split-points:v1",
+    "stwo/native/xor/oods:referenced-preprocessed-points,main-point,composition-split-points:v1",
 );
 pub const mask_layout = digest(
-    "stwo/native/xor/mask:preprocessed[empty,empty],main[[0]],interaction[],composition[8x[0]]:v1",
+    "stwo/native/xor/mask:preprocessed[[0],[0]],main[[0]],interaction[],composition[8x[0]]:v1",
 );
 pub const constraint_parameter_abi = digest(
     "stwo/native/xor/constraint-abi:statement[4xu32le],alpha[4xm31],total[8xu32]:v1",
