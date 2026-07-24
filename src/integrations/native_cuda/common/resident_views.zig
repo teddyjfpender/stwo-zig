@@ -1,15 +1,94 @@
 //! Typed, allocation-free views over one prepared resident proof arena.
 
+const std = @import("std");
 const quotient_abi = @import("../../../backends/cuda/abi/stages/quotient.zig");
 const column = @import("../../../backends/cuda/runtime/column.zig");
 const common = @import("../../../backends/cuda/runtime/stages/common.zig");
 const decommit_stage = @import("../../../backends/cuda/runtime/stages/decommit.zig");
 const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
 const quotient_stage = @import("../../../backends/cuda/runtime/stages/quotient.zig");
+const trace_layout = @import("uniform_layout.zig");
 
 pub const max_fri_layers: usize = 32;
+pub const max_trace_trees: usize = 3;
+
+pub const TraceTree = struct {
+    role: trace_layout.TraceRole,
+    coefficients: common.WordMatrix,
+    evaluations: common.WordMatrix,
+    column_log_sizes: common.Words,
+    merkle_hashes: common.Hashes,
+    merkle_layers: common.MerkleLayers,
+};
+
+pub const TraceTrees = struct {
+    storage: [max_trace_trees]TraceTree,
+    len: usize,
+
+    pub fn init(trees: []const TraceTree) !TraceTrees {
+        if (trees.len == 0 or trees.len > max_trace_trees)
+            return error.InvalidKernelDescriptor;
+        var result = TraceTrees{
+            .storage = undefined,
+            .len = trees.len,
+        };
+        for (trees, 0..) |tree, index| {
+            try validateTraceTree(tree);
+            for (trees[0..index]) |previous| {
+                if (previous.role == tree.role)
+                    return error.InvalidKernelDescriptor;
+            }
+            result.storage[index] = tree;
+        }
+        return result;
+    }
+
+    pub fn active(self: *const TraceTrees) []const TraceTree {
+        return self.storage[0..self.len];
+    }
+
+    pub fn find(
+        self: *const TraceTrees,
+        role: trace_layout.TraceRole,
+    ) ?TraceTree {
+        for (self.active()) |tree| {
+            if (tree.role == role) return tree;
+        }
+        return null;
+    }
+
+    pub fn require(
+        self: *const TraceTrees,
+        role: trace_layout.TraceRole,
+    ) !TraceTree {
+        return self.find(role) orelse error.InvalidKernelDescriptor;
+    }
+};
+
+fn validateTraceTree(tree: TraceTree) !void {
+    if (tree.coefficients.storage.len == 0 or
+        tree.coefficients.column_stride_words == 0 or
+        tree.coefficients.storage.len %
+            tree.coefficients.column_stride_words != 0 or
+        tree.coefficients.storage.len /
+            tree.coefficients.column_stride_words !=
+            tree.column_log_sizes.len or
+        tree.evaluations.storage.len == 0 or
+        tree.evaluations.column_stride_words == 0 or
+        tree.evaluations.storage.len %
+            tree.evaluations.column_stride_words != 0 or
+        tree.evaluations.storage.len /
+            tree.evaluations.column_stride_words !=
+            tree.column_log_sizes.len or
+        tree.merkle_hashes.len == 0 or
+        tree.merkle_layers.len == 0)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+}
 
 pub const Trace = struct {
+    trees: TraceTrees,
     twiddles_forward: common.Words,
     twiddles_inverse: common.Words,
     coefficient_slab: common.Words,
@@ -230,3 +309,75 @@ pub const Views = struct {
     decommit: Decommit,
     proof: Proof,
 };
+
+test "trace tree lookup is role-indexed and rejects duplicate roles" {
+    const wordMatrix = struct {
+        fn make(address: usize, columns: usize) common.WordMatrix {
+            return .{
+                .storage = .{
+                    .address = address,
+                    .len = columns * 8,
+                    .owner = 1,
+                    .generation = 2,
+                },
+                .column_stride_words = 8,
+            };
+        }
+    }.make;
+    const words = struct {
+        fn make(address: usize, len: usize) common.Words {
+            return .{
+                .address = address,
+                .len = len,
+                .owner = 1,
+                .generation = 2,
+            };
+        }
+    }.make;
+    const hashes = struct {
+        fn make(address: usize) common.Hashes {
+            return .{
+                .address = address,
+                .len = 15,
+                .owner = 1,
+                .generation = 2,
+            };
+        }
+    }.make;
+    const layers = struct {
+        fn make(address: usize) common.MerkleLayers {
+            return .{
+                .address = address,
+                .len = 4,
+                .owner = 1,
+                .generation = 2,
+            };
+        }
+    }.make;
+    const main = TraceTree{
+        .role = .main,
+        .coefficients = wordMatrix(0x1000, 1),
+        .evaluations = wordMatrix(0x2000, 1),
+        .column_log_sizes = words(0x3000, 1),
+        .merkle_hashes = hashes(0x4000),
+        .merkle_layers = layers(0x5000),
+    };
+    const composition = TraceTree{
+        .role = .composition,
+        .coefficients = wordMatrix(0x6000, 8),
+        .evaluations = wordMatrix(0x7000, 8),
+        .column_log_sizes = words(0x8000, 8),
+        .merkle_hashes = hashes(0x9000),
+        .merkle_layers = layers(0xa000),
+    };
+    const trees = try TraceTrees.init(&.{ main, composition });
+    try std.testing.expectEqual(@as(usize, 2), trees.active().len);
+    try std.testing.expect(
+        (try trees.require(.composition)).role == .composition,
+    );
+    try std.testing.expect(trees.find(.preprocessed) == null);
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        TraceTrees.init(&.{ main, main }),
+    );
+}

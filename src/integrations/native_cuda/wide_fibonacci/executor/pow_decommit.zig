@@ -85,7 +85,7 @@ fn executeDecommitWith(
     const geometry = prepared.logical.geometry;
     const topology = prepared.decommit;
     if (views.decommit.raw_queries.len != topology.query_count or
-        topology.trace_trees.len != 2 or
+        topology.trace_trees.len != views.trace.trees.active().len or
         topology.fri_trees.len != views.fri.layer_count or
         views.proof.decommitment.len != topology.assembly_words)
     {
@@ -157,7 +157,7 @@ fn openTrace(
         queries,
     );
 
-    const source = traceSource(views, opening.role);
+    const source = try views.trace.trees.require(opening.role);
     // Each trace tree owns an independent resident slab. `first_column` is
     // therefore zero for both trees; the global sample offset is unrelated to
     // the local decommitment value layout.
@@ -166,15 +166,18 @@ fn openTrace(
         opening.tree_index,
         opening.column_count,
         localFirstColumn(opening.role),
-        source.columns,
-        source.log_sizes,
+        source.evaluations,
+        source.column_log_sizes,
         prepared.decommit.query_log_size,
         queries.mapped,
         queries.mapped_count,
         views.proof.decommitment,
     );
 
-    const retained = traceRetained(views, opening.role);
+    const retained = stages.decommit.RetainedTree{
+        .hashes = source.merkle_hashes,
+        .layers = source.merkle_layers,
+    };
     const empty_words = try views.decommit.sparse_indices.sub(0, 0);
     const empty_hashes = try views.decommit.sparse_hashes.sub(0, 0);
     const first_retained_log =
@@ -232,45 +235,6 @@ fn openFri(
             views.proof.decommitment,
         ),
     );
-}
-
-const TraceSource = struct {
-    columns: stages.common.WordMatrix,
-    log_sizes: stages.common.Words,
-};
-
-fn traceSource(
-    views: *const bindings.Views,
-    role: @import("../layout.zig").TraceRole,
-) TraceSource {
-    return switch (role) {
-        .main => .{
-            .columns = views.trace.main_evaluations,
-            .log_sizes = views.decommit.main_column_log_sizes,
-        },
-        .composition => .{
-            .columns = views.trace.composition_evaluations,
-            .log_sizes = views.decommit.composition_column_log_sizes,
-        },
-        .preprocessed => unreachable,
-    };
-}
-
-fn traceRetained(
-    views: *const bindings.Views,
-    role: @import("../layout.zig").TraceRole,
-) stages.decommit.RetainedTree {
-    return switch (role) {
-        .main => .{
-            .hashes = views.trace.main_merkle_hashes,
-            .layers = views.trace.main_merkle_layers,
-        },
-        .composition => .{
-            .hashes = views.trace.composition_merkle_hashes,
-            .layers = views.trace.composition_merkle_layers,
-        },
-        .preprocessed => unreachable,
-    };
 }
 
 fn boundary(
@@ -362,12 +326,9 @@ test "composition trace packing is tree-local rather than sample-global" {
 }
 
 fn localFirstColumn(
-    role: @import("../layout.zig").TraceRole,
+    _: @import("../layout.zig").TraceRole,
 ) u32 {
-    return switch (role) {
-        .main, .composition => 0,
-        .preprocessed => unreachable,
-    };
+    return 0;
 }
 
 test "fake contract observes PoW then absorb without a host boundary" {

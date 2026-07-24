@@ -24,7 +24,7 @@ pub fn bind(
 ) runtime_error.Error!types.Views {
     try validatePrepared(prepared);
     const geometry = prepared.logical.geometry;
-    const trace = try bindTrace(provider, geometry);
+    var trace = try bindTrace(provider, geometry);
     const transcript = try bindTranscript(provider, geometry);
     const constraint = try bindConstraint(provider, geometry);
     const oods = try bindOods(provider, geometry);
@@ -37,6 +37,7 @@ pub fn bind(
     );
     const pow = try bindPow(provider);
     const decommit = try bindDecommit(provider, prepared);
+    trace.trees = try bindTraceTrees(trace, decommit);
     const proof = try bindProof(provider, prepared);
     try requireDisjoint(
         fri.last_evaluation,
@@ -104,6 +105,10 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
     const hash_count = try sub(try mul(committed_rows, 2), 1);
     const layer_count = @as(usize, geometry.queryLogSize()) + 1;
     return .{
+        .trees = .{
+            .storage = undefined,
+            .len = 0,
+        },
         .twiddles_forward = try exactWords(
             provider,
             slots.twiddles_forward,
@@ -154,6 +159,30 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
             layer_count,
         ),
     };
+}
+
+fn bindTraceTrees(
+    trace: types.Trace,
+    decommit: types.Decommit,
+) !types.TraceTrees {
+    return types.TraceTrees.init(&.{
+        .{
+            .role = .main,
+            .coefficients = trace.main_coefficients,
+            .evaluations = trace.main_evaluations,
+            .column_log_sizes = decommit.main_column_log_sizes,
+            .merkle_hashes = trace.main_merkle_hashes,
+            .merkle_layers = trace.main_merkle_layers,
+        },
+        .{
+            .role = .composition,
+            .coefficients = trace.composition_coefficients,
+            .evaluations = trace.composition_evaluations,
+            .column_log_sizes = decommit.composition_column_log_sizes,
+            .merkle_hashes = trace.composition_merkle_hashes,
+            .merkle_layers = trace.composition_merkle_layers,
+        },
+    });
 }
 
 fn bindTranscript(
