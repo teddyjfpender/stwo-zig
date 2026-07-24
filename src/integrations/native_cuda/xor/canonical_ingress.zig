@@ -92,10 +92,10 @@ pub const Pack = struct {
             );
         }
 
-        var offsets: [geometry_mod.sampled_mask_points]field.CirclePointBaseField =
+        const offsets: [geometry_mod.sampled_mask_points]field.CirclePointBaseField =
             undefined;
         @memset(offsets, rawBasePoint(CirclePointM31.identity()));
-        var folds: [geometry_mod.sampled_mask_points]u32 = undefined;
+        const folds: [geometry_mod.sampled_mask_points]u32 = undefined;
         const lifting_log =
             geometry.protocol.lifting_log_size orelse max_circle_log;
         if (lifting_log < max_circle_log)
