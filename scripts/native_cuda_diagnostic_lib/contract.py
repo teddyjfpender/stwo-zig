@@ -39,6 +39,7 @@ REPORT_KEYS = {
     "aot",
     "device",
 }
+REPORT_KEYS_V4 = REPORT_KEYS - {"execution_mode"}
 PRODUCT_IDENTITY_KEYS = {
     "schema_version",
     "name",
@@ -116,6 +117,19 @@ PROCESS_REPETITION_KEYS = {
     "device_elapsed_ns",
     "runtime_proof_indices",
 }
+PROCESS_REPETITION_KEYS_V4 = {
+    "count",
+    "persistent_session",
+    "all_canonical_bytes_identical",
+    "stable_launch_topology",
+    "zero_final_pool_usage",
+    "resident_prove_ns",
+    "terminal_decode_ns",
+    "independent_verification_ns",
+    "verified_request_ns",
+    "device_elapsed_ns",
+    "runtime_proof_indices",
+}
 RESIDENCY_KEYS = {
     "resident",
     "strict_aot",
@@ -135,6 +149,25 @@ RESIDENCY_KEYS = {
     "device_elapsed_ns",
     "peak_live_bytes",
     "persistent_bytes",
+    "pool_used_bytes",
+    "pool_reserved_bytes",
+}
+RESIDENCY_KEYS_V4 = {
+    "resident",
+    "strict_aot",
+    "all_stages_complete_once",
+    "terminal_d2h_operations",
+    "terminal_d2h_bytes",
+    "h2d_bytes",
+    "d2d_bytes",
+    "cpu_fallback_attempts",
+    "cpu_fallbacks_completed",
+    "kernel_launches",
+    "graph_launches",
+    "sync_calls",
+    "device_timing_intervals",
+    "device_elapsed_ns",
+    "peak_live_bytes",
     "pool_used_bytes",
     "pool_reserved_bytes",
 }
@@ -320,16 +353,27 @@ def validate_report(
     *,
     expected_repetitions: int = 1,
     expected_execution_mode: str = "graphs",
+    allow_historical_v4: bool = False,
 ) -> dict[str, Any]:
-    _exact_keys(report, REPORT_KEYS, "CUDA report")
+    schema_version = report.get("schema_version")
+    historical_v4 = schema_version == 4 and allow_historical_v4
+    if schema_version != 5 and not historical_v4:
+        raise DiagnosticError("CUDA report has invalid schema_version")
+    _exact_keys(
+        report,
+        REPORT_KEYS_V4 if historical_v4 else REPORT_KEYS,
+        "CUDA report",
+    )
+    execution_mode = "direct" if historical_v4 else expected_execution_mode
     expected_scalars = {
-        "schema_version": 5,
+        "schema_version": 4 if historical_v4 else 5,
         "product": PRODUCT,
         "backend": BACKEND,
         "application": APPLICATION,
         "protocol": PROTOCOL,
-        "execution_mode": expected_execution_mode,
     }
+    if not historical_v4:
+        expected_scalars["execution_mode"] = expected_execution_mode
     for key, expected in expected_scalars.items():
         if report[key] != expected:
             raise DiagnosticError(f"CUDA report has invalid {key}")
@@ -426,7 +470,11 @@ def validate_report(
         "transcript_barriers",
     ):
         _integer(plan[key], f"CUDA plan {key}", minimum=1)
-    _integer(plan["persistent_bytes"], "CUDA plan persistent_bytes", minimum=1)
+    _integer(
+        plan["persistent_bytes"],
+        "CUDA plan persistent_bytes",
+        minimum=0 if historical_v4 else 1,
+    )
 
     proof = _object(report["proof"], "CUDA report proof")
     _exact_keys(proof, PROOF_KEYS, "CUDA report proof")
@@ -503,7 +551,11 @@ def validate_report(
     )
     _exact_keys(
         repetition,
-        PROCESS_REPETITION_KEYS,
+        (
+            PROCESS_REPETITION_KEYS_V4
+            if historical_v4
+            else PROCESS_REPETITION_KEYS
+        ),
         "CUDA process repetition",
     )
     if (
@@ -513,23 +565,35 @@ def validate_report(
         raise DiagnosticError(
             "CUDA product repetition count disagrees with the process contract"
         )
-    for key in (
-        "all_canonical_bytes_identical",
-        "stable_launch_topology",
-        "request_allocations_released",
-        "bounded_persistent_pool_usage",
-    ):
+    invariant_keys = (
+        (
+            "all_canonical_bytes_identical",
+            "stable_launch_topology",
+            "zero_final_pool_usage",
+        )
+        if historical_v4
+        else (
+            "all_canonical_bytes_identical",
+            "stable_launch_topology",
+            "request_allocations_released",
+            "bounded_persistent_pool_usage",
+        )
+    )
+    for key in invariant_keys:
         if repetition[key] is not True:
             raise DiagnosticError(f"CUDA repetition invariant failed: {key}")
     sequences = {}
-    graph_hits_total = _integer(
-        repetition["graph_cache_hits_total"],
-        "CUDA cumulative graph-cache hits",
-    )
-    graph_misses_total = _integer(
-        repetition["graph_cache_misses_total"],
-        "CUDA cumulative graph-cache misses",
-    )
+    graph_hits_total = 0
+    graph_misses_total = 0
+    if not historical_v4:
+        graph_hits_total = _integer(
+            repetition["graph_cache_hits_total"],
+            "CUDA cumulative graph-cache hits",
+        )
+        graph_misses_total = _integer(
+            repetition["graph_cache_misses_total"],
+            "CUDA cumulative graph-cache misses",
+        )
     for key in (
         "resident_prove_ns",
         "terminal_decode_ns",
@@ -570,7 +634,11 @@ def validate_report(
             )
 
     residency = _object(report["residency"], "CUDA residency")
-    _exact_keys(residency, RESIDENCY_KEYS, "CUDA residency")
+    _exact_keys(
+        residency,
+        RESIDENCY_KEYS_V4 if historical_v4 else RESIDENCY_KEYS,
+        "CUDA residency",
+    )
     for key in ("resident", "strict_aot", "all_stages_complete_once"):
         if residency[key] is not True:
             raise DiagnosticError(f"CUDA residency invariant failed: {key}")
@@ -599,19 +667,28 @@ def validate_report(
         "kernel_launches",
         "sync_calls",
         "peak_live_bytes",
-        "persistent_bytes",
     ):
         _integer(residency[key], f"CUDA residency {key}", minimum=1)
-    for key in (
-        "graph_cache_hits",
-        "graph_cache_misses",
-        "graph_launches",
-        "pool_used_bytes",
-        "pool_reserved_bytes",
-    ):
+    for key in ("graph_launches", "pool_used_bytes", "pool_reserved_bytes"):
         _integer(residency[key], f"CUDA residency {key}")
     graph_launches = residency["graph_launches"]
-    if expected_execution_mode == "graphs":
+    if historical_v4:
+        if graph_launches != 0:
+            raise DiagnosticError(
+                "historical schema-v4 CUDA baseline reported graph activity"
+            )
+        if residency["pool_used_bytes"] != 0:
+            raise DiagnosticError(
+                "historical schema-v4 CUDA baseline retained pool allocations"
+            )
+    else:
+        for key in (
+            "graph_cache_hits",
+            "graph_cache_misses",
+            "persistent_bytes",
+        ):
+            _integer(residency[key], f"CUDA residency {key}")
+    if not historical_v4 and execution_mode == "graphs":
         if graph_launches == 0:
             raise DiagnosticError("CUDA graph execution has no graph launches")
         if (
@@ -623,7 +700,7 @@ def validate_report(
             raise DiagnosticError("CUDA graph cache did not capture each stage once")
         if graph_hits_total != graph_launches * (expected_repetitions - 1):
             raise DiagnosticError("CUDA graph cache reuse count is inconsistent")
-    elif expected_execution_mode == "direct":
+    elif not historical_v4 and execution_mode == "direct":
         if any(
             value != 0
             for value in (
@@ -635,9 +712,12 @@ def validate_report(
             )
         ):
             raise DiagnosticError("CUDA direct execution reported graph activity")
-    else:
+    elif not historical_v4:
         raise DiagnosticError("unsupported expected CUDA execution mode")
-    if residency["pool_used_bytes"] < residency["persistent_bytes"]:
+    if (
+        not historical_v4
+        and residency["pool_used_bytes"] < residency["persistent_bytes"]
+    ):
         raise DiagnosticError("CUDA persistent arena is absent from its pool")
     if residency["pool_reserved_bytes"] < residency["pool_used_bytes"]:
         raise DiagnosticError("CUDA pool reserved bytes are below used bytes")
@@ -674,10 +754,10 @@ def validate_report(
     if aot["misses"] != 0 or aot["launch_failures"] != 0:
         raise DiagnosticError("CUDA strict-AOT sample reported misses or failures")
     expected_aot_launches = (
-        1 if expected_execution_mode == "graphs" else expected_repetitions
+        1 if execution_mode == "graphs" else expected_repetitions
     )
     expected_aot_hits = (
-        0 if expected_execution_mode == "graphs" else expected_repetitions - 1
+        0 if execution_mode == "graphs" else expected_repetitions - 1
     )
     if aot["launches"] != expected_aot_launches or aot["loads"] != 1:
         raise DiagnosticError("CUDA AOT lifecycle disagrees with repetitions")
@@ -709,7 +789,7 @@ def validate_report(
         raise DiagnosticError("CUDA device capacity telemetry is invalid")
 
     return {
-        "execution_mode": report["execution_mode"],
+        "execution_mode": execution_mode,
         "product_identity": identity,
         "proof": proof,
         "plan": plan,

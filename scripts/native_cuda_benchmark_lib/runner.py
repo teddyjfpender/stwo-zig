@@ -209,6 +209,7 @@ def _invoke(
             proof_path,
             artifact,
             expected_repetitions=repetitions,
+            allow_historical_v4=arm == "baseline",
         )
     except DiagnosticError as error:
         raise BenchmarkError(str(error)) from error
@@ -228,6 +229,7 @@ def _invoke(
         "external_wall_ns": external_wall_ns,
         "resources": resources,
         "proof": artifact,
+        "execution_mode": validated["execution_mode"],
         "product_identity": validated["product_identity"],
         "plan": validated["plan"],
         "timing_ns": validated["timing_ns"],

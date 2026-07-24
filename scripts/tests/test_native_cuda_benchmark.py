@@ -123,6 +123,69 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             self.assertGreater(document["portfolio"]["speedup"], 1.9)
             self.assertTrue(document["portfolio"]["passes_1_3x_target"])
 
+    def test_historical_schema_v4_is_normalized_only_for_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                baseline=self.make_product(root, "schema-v4-baseline"),
+                rounds=3,
+            )
+            document, _ = run_benchmark(settings)
+
+            baseline = next(
+                session
+                for session in document["workloads"][0]["sessions"]
+                if session["arm"] == "baseline"
+            )
+            self.assertEqual("direct", baseline["raw"]["execution_mode"])
+            self.assertTrue(
+                baseline["raw"]["repetition"]["zero_final_pool_usage"]
+            )
+            self.assertEqual(
+                0,
+                baseline["raw"]["residency"]["graph_launches"],
+            )
+
+    def test_historical_schema_v4_is_rejected_as_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "schema-v4-candidate"),
+            )
+            with self.assertRaisesRegex(BenchmarkError, "schema_version"):
+                run_benchmark(settings)
+
+    def test_historical_schema_v4_rejects_graph_activity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                baseline=self.make_product(root, "schema-v4-baseline"),
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_V4_GRAPH_ACTIVITY": "1"},
+            ), self.assertRaisesRegex(BenchmarkError, "graph activity"):
+                run_benchmark(settings)
+
+    def test_historical_schema_v4_rejects_new_graph_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                baseline=self.make_product(root, "schema-v4-baseline"),
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_V4_GRAPH_CACHE_FIELD": "1"},
+            ), self.assertRaisesRegex(BenchmarkError, "wrong fields"):
+                run_benchmark(settings)
+
     def test_fallback_telemetry_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -101,6 +101,7 @@ binary_scale = 2 if "baseline" in Path(__file__).name else 1
 resident_ns = (rows * args.sequence_len + 1_000_000) * binary_scale
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
+historical_v4 = "schema-v4" in Path(__file__).name
 graph_launches = 2 if args.execution_mode == "graphs" else 0
 graph_hits = graph_launches if args.repeat > 1 else 0
 graph_misses = 0 if args.repeat > 1 else graph_launches
@@ -256,6 +257,32 @@ report = {
         "multiprocessors": 128,
     },
 }
+if historical_v4:
+    report["schema_version"] = 4
+    report.pop("execution_mode")
+    repetition = report["process_repetition"]
+    repetition.pop("request_allocations_released")
+    repetition.pop("bounded_persistent_pool_usage")
+    repetition.pop("graph_cache_hits_total")
+    repetition.pop("graph_cache_misses_total")
+    repetition["zero_final_pool_usage"] = True
+    residency = report["residency"]
+    residency.pop("graph_cache_hits")
+    residency.pop("graph_cache_misses")
+    residency.pop("persistent_bytes")
+    residency["graph_launches"] = (
+        1 if os.environ.get("FAKE_V4_GRAPH_ACTIVITY") == "1" else 0
+    )
+    if os.environ.get("FAKE_V4_GRAPH_CACHE_FIELD") == "1":
+        residency["graph_cache_hits"] = 0
+    residency["pool_used_bytes"] = 0
+    report["aot"]["cache_hits"] = args.repeat - 1
+    report["aot"]["launches"] = args.repeat
+elif mode == "missing-execution-mode":
+    report.pop("execution_mode")
+elif mode == "inconsistent-graph-telemetry":
+    report["residency"]["graph_cache_hits"] = 0
+    report["residency"]["graph_cache_misses"] = 0
 encoded = json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n"
 Path(args.report_out).write_text(encoded)
 print(encoded, end="")
@@ -370,6 +397,34 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
                 0,
                 sample["process_repetition"]["graph_cache_misses_total"],
             )
+
+    def test_schema_v5_requires_explicit_execution_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root),
+                samples=1,
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_CUDA_MODE": "missing-execution-mode"},
+            ), self.assertRaisesRegex(DiagnosticError, "execution_mode"):
+                run_diagnostic(settings)
+
+    def test_schema_v5_requires_consistent_graph_telemetry(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self.settings(
+                root,
+                self.make_product(root),
+                samples=1,
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"FAKE_CUDA_MODE": "inconsistent-graph-telemetry"},
+            ), self.assertRaisesRegex(DiagnosticError, "cache provenance"):
+                run_diagnostic(settings)
 
     def test_fallback_telemetry_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
