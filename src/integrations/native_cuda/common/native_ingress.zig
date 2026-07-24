@@ -53,6 +53,7 @@ pub fn ExecutorFor(
                 &pack.statement_words,
             );
             try uploadColumnLogs(transaction, pack);
+            try uploadDecommitColumnLogs(transaction, prepared);
             try uploadTraceLayers(transaction, prepared);
             try transaction.upload(
                 field.CirclePointBaseField,
@@ -75,6 +76,34 @@ pub fn ExecutorFor(
                 u32,
                 slots.decommit_sparse_level_offsets,
                 &.{0},
+            );
+        }
+
+        fn uploadDecommitColumnLogs(
+            transaction: anytype,
+            prepared: *const plan_mod.PreparedPlan,
+        ) !void {
+            const logs = prepared.decommit.column_log_sizes;
+            const preprocessed_end = geometry_mod.preprocessed_columns;
+            const main_end = preprocessed_end + geometry_mod.main_columns;
+            const composition_end =
+                main_end + geometry_mod.composition_columns;
+            if (logs.len != composition_end)
+                return error.InvalidKernelDescriptor;
+            try transaction.upload(
+                u32,
+                slots.decommit_preprocessed_log_sizes,
+                logs[0..preprocessed_end],
+            );
+            try transaction.upload(
+                u32,
+                slots.decommit_main_log_sizes,
+                logs[preprocessed_end..main_end],
+            );
+            try transaction.upload(
+                u32,
+                slots.decommit_composition_log_sizes,
+                logs[main_end..composition_end],
             );
         }
 

@@ -57,6 +57,9 @@ pub fn build(
     try add(&output, allocator, slots.preprocessed_log_sizes, geometry_mod.preprocessed_columns, .ingress, .decommit);
     try add(&output, allocator, slots.main_log_sizes, geometry_mod.main_columns, .ingress, .decommit);
     try add(&output, allocator, slots.composition_log_sizes, geometry_mod.composition_columns, .ingress, .decommit);
+    try add(&output, allocator, slots.decommit_preprocessed_log_sizes, geometry_mod.preprocessed_columns, .ingress, .decommit);
+    try add(&output, allocator, slots.decommit_main_log_sizes, geometry_mod.main_columns, .ingress, .decommit);
+    try add(&output, allocator, slots.decommit_composition_log_sizes, geometry_mod.composition_columns, .ingress, .decommit);
     inline for (.{
         .{ slots.preprocessed_merkle_hashes, telemetry.Stage.trace_commit },
         .{ slots.main_merkle_hashes, telemetry.Stage.trace_commit },

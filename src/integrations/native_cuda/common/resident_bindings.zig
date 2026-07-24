@@ -608,14 +608,19 @@ pub fn BindingFor(
                     slots.decommit_sparse_level_counts,
                     1,
                 ),
+                .preprocessed_column_log_sizes = try exactWords(
+                    provider,
+                    slots.decommit_preprocessed_log_sizes,
+                    geometry_mod.preprocessed_columns,
+                ),
                 .main_column_log_sizes = try exactWords(
                     provider,
-                    slots.main_log_sizes,
+                    slots.decommit_main_log_sizes,
                     geometry_mod.main_columns,
                 ),
                 .composition_column_log_sizes = try exactWords(
                     provider,
-                    slots.composition_log_sizes,
+                    slots.decommit_composition_log_sizes,
                     geometry_mod.composition_columns,
                 ),
             };
