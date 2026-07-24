@@ -3,7 +3,13 @@
   "product": "stwo-native-cuda",
   "source_authority_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "ordinary": {
-    "product_sources": [],
+    "product_sources": [
+      "batch_inverse.cu",
+      "cuda_mem_pool.cu",
+      "prefix_sum.cu",
+      "relation_graph.cu",
+      "utils.cu"
+    ],
     "resident_candidates": [
       "accumulate.cu",
       "barycentric.cu",
@@ -14,6 +20,7 @@
       "blake2s_quad.cu",
       "composition.cu",
       "cuda_exec_context.cu",
+      "cuda_mem_pool.cu",
       "decommit.cu",
       "device_transcript.cu",
       "eval_at_point.cu",
@@ -31,6 +38,7 @@
       "oods.cu",
       "oods_collapsed.cu",
       "poly_utils.cu",
+      "prefix_sum.cu",
       "progressive_commit_in_place.cu",
       "quotient_numerator_group_direct_tiled.cu",
       "quotient_numerator_native_run_sum.cu",
@@ -41,14 +49,12 @@
       "relation_scan.cu",
       "resident_pow.cu",
       "rfft.cu",
-      "twiddles.cu"
+      "twiddles.cu",
+      "utils.cu"
     ],
     "quarantined_migration": [
-      "cuda_mem_pool.cu",
       "grind_blake2s.cu",
-      "prefix_sum.cu",
       "runtime_jit.cu",
-      "utils.cu",
       "witness/gen_preprocessed_columns_on_gpu.cu"
     ],
     "deferred_cairo": [

@@ -9,6 +9,7 @@ pub const fri = @import("fri.zig");
 pub const oods = @import("oods.zig");
 pub const oods_plan = @import("oods_plan.zig");
 pub const quotient = @import("quotient.zig");
+pub const relation = @import("relation.zig");
 pub const resident_layout = @import("resident_layout.zig");
 pub const trace = @import("trace.zig");
 pub const transcript = @import("transcript.zig");
@@ -24,11 +25,13 @@ test {
     _ = oods;
     _ = oods_plan;
     _ = quotient;
+    _ = relation;
     _ = resident_layout;
     _ = trace;
     _ = transcript;
     _ = transform;
     _ = @import("commitment_test.zig");
     _ = @import("contract_test.zig");
+    _ = @import("relation_test.zig");
     _ = @import("trace_test.zig");
 }
