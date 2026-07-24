@@ -55,6 +55,7 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
     },
     "transform": {
         "transform/b2n_retained.cu",
+        "transform/composition_split.cu",
         "transform/lde.cu",
         "transform/n2b.cu",
     },

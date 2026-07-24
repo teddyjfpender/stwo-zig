@@ -2,6 +2,7 @@
 
 pub const commitment = @import("commitment.zig");
 pub const common = @import("common.zig");
+pub const composition_split = @import("composition_split.zig");
 pub const constraint_power = @import("constraint_power.zig");
 pub const decommit = @import("decommit.zig");
 pub const fri = @import("fri.zig");
@@ -16,6 +17,7 @@ pub const transform = @import("transform.zig");
 test {
     _ = commitment;
     _ = common;
+    _ = composition_split;
     _ = constraint_power;
     _ = decommit;
     _ = fri;
