@@ -42,6 +42,11 @@ and a gate that parses and cross-checks the relevant receipt fields.
 - Blake uses a seeded-xorshift structural trace and constant-QM31 composition.
 - Plonk has the four preprocessed and four main columns, but zero interaction
   columns and no LogUp composition.
+- The CPU oracle path now has the exact pinned-Stwo three-constraint Plonk AIR,
+  two secure LogUp columns, claimed sum, independent Zig verification, and
+  controlled statement mutation rejection. Pinned-Rust acceptance and the
+  resident CUDA interaction/constraint path remain required; the provisional
+  CUDA `plonk` route does not inherit readiness from the CPU implementation.
 - State machine has its affine trace and proof route, but its constraint kernel
   is still the claimed-sum ABI placeholder.
 - XOR has its real three-column trace, but zero interaction columns and no
