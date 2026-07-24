@@ -97,11 +97,11 @@ pub const Bundle = struct {
         // result. Poisoning the template prevents a missing D2D copy from
         // masquerading as a successful degree check.
         header[15] = std.math.maxInt(u32);
-        for (sections, 0..) |section, index| {
+        for (sections, 0..) |bundle_section, index| {
             const base = fixed_header_words + index * section_record_words;
-            header[base] = @intFromEnum(section.kind);
-            header[base + 1] = try u32Count(section.offset_words);
-            header[base + 2] = try u32Count(section.words);
+            header[base] = @intFromEnum(bundle_section.kind);
+            header[base + 1] = try u32Count(bundle_section.offset_words);
+            header[base + 2] = try u32Count(bundle_section.words);
         }
         return .{
             .sections = sections,
