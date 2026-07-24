@@ -180,6 +180,30 @@ pub fn ContextFor(comptime Api: type) type {
             self.counters.h2d(self.active_stage, bytes);
         }
 
+        pub fn uploadSlice(
+            self: *Self,
+            comptime F: type,
+            destination: anytype,
+            source: []const F,
+        ) runtime_error.Error!void {
+            if (self.active_stage != .ingress)
+                return error.HostWriteOutsideIngress;
+            const pointer = try self.deviceSlicePointer(
+                F,
+                destination,
+                source.len,
+            );
+            const bytes = std.math.mul(usize, source.len, @sizeOf(F)) catch
+                return error.SizeOverflow;
+            try runtime_error.check(Api.stwo_exec_context_memcpy_h2d_async(
+                try self.requireHandle(),
+                pointer,
+                source.ptr,
+                bytes,
+            ));
+            self.counters.h2d(self.active_stage, bytes);
+        }
+
         pub fn copyDevice(
             self: *Self,
             destination: Buffer,
@@ -461,6 +485,7 @@ test "context owns buffers and accounts only explicit transfers" {
         @intFromPtr(buffer.pointer),
         @intFromPtr(try context.deviceSlicePointer(u32, owned_slice, 16)),
     );
+    try context.uploadSlice(u32, owned_slice, &.{ 5, 6, 7, 8 });
     var oversized_slice = owned_slice;
     oversized_slice.len = 17;
     try std.testing.expectError(
@@ -507,7 +532,7 @@ test "context owns buffers and accounts only explicit transfers" {
     try context.endStage(.proof_assembly);
     try context.close();
     try std.testing.expectEqual(@as(u64, 64), context.counters.peak_live_bytes);
-    try std.testing.expectEqual(@as(u64, 16), context.counters.h2d_bytes);
+    try std.testing.expectEqual(@as(u64, 32), context.counters.h2d_bytes);
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2h_proof_bytes);
     try std.testing.expect(context.counters.isResident());
     try std.testing.expect(context.counters.stagesCompleteExactlyOnce());

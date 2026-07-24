@@ -14,6 +14,10 @@ pub const SecureCirclePoints = column.DeviceSlice(field.SecureCirclePoint);
 pub const Hashes = column.DeviceSlice(field.Blake2sHash);
 pub const ProgressiveStates = column.DeviceSlice(field.ProgressiveBlake2sState);
 pub const Nonce = column.DeviceSlice(u64);
+pub const WordMatrix = struct {
+    storage: Words,
+    column_stride_words: usize,
+};
 
 pub fn words(
     session: anytype,
@@ -129,4 +133,13 @@ pub fn record(
     status: c_int,
 ) runtime_error.Error!void {
     try session.recordOrdinaryKernel(stage, status);
+}
+
+pub fn recordMany(
+    session: anytype,
+    stage: telemetry.Stage,
+    status: c_int,
+    launches: u64,
+) runtime_error.Error!void {
+    try session.recordOrdinaryKernels(stage, status, launches);
 }

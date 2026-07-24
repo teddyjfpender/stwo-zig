@@ -132,6 +132,7 @@ the executable closure is product-owned under `src/backends/cuda/native/`.
 Real-device evidence currently covers:
 
 - one proof-owned nonblocking stream and isolated async memory pool;
+- generation-bound live-allocation validation for every device capability;
 - resident wide-Fibonacci trace construction at a non-target width of 37;
 - strict Native AOT constraint loading and launch with an exact expected
   accumulator;
@@ -139,14 +140,28 @@ Real-device evidence currently covers:
   33;
 - ordinary Merkle layers, four-level fused reduction, and both supported FRI
   leaf layouts;
-- complete-range alias rejection for Merkle reductions.
+- complete-range alias rejection for Merkle reductions;
+- an eight-operation resident Blake2s Fiat-Shamir transcript including secure,
+  raw, query, boundary-state, seeded-state, and nonzero PoW vectors;
+- retained B2N, in-place N2B, full LDE, and pre-circle LDE over padded
+  contiguous slabs at logs 3, 8, 9, 10, and 13, including width 37;
+- OODS point derivation, staged coefficient evaluation, reduction, scatter,
+  barycentric weights, and multi-column evaluation with prepared unique index
+  maps and explicit capacity bounds;
+- every element of the 1024-value OODS batch-inverse tree, after its copied
+  final-pair indexing defect was found and corrected by the hardware gate.
+
+The exact clean rebuild contains zero imported authority objects, ten
+product-owned Native CUDA objects, and one Native AOT cubin. Seven independent
+real-device differentials pass on SM 89. The active product manifest now binds
+48 ABI symbols; quotient, FRI/PoW, and decommitment account for the 17 symbols
+that remain staged.
 
 The progressive Blake2s hot path has zero per-thread stack and zero compiler
 spills on SM 89. It uses 56 registers for absorb and 48 for finalize. This
 resource result is evidence for the copied scalar-state design; it is not a
 proof-performance claim.
 
-The backend is not yet a prover. Transform, transcript, OODS, quotient,
-FRI/PoW, decommitment, proof assembly, canonical proof parity, Rust-oracle
-acceptance, repeated-session stability, product activation, and judged
-benchmarks remain mandatory.
+The backend is not yet a prover. Quotient, FRI/PoW, decommitment, proof
+assembly, canonical proof parity, Rust-oracle acceptance, repeated-session
+stability, product activation, and judged benchmarks remain mandatory.

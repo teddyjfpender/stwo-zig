@@ -117,20 +117,28 @@
       "stwo_exec_context_pool_current",
       "stwo_exec_context_stream",
       "stwo_exec_context_sync",
+      "stwo_lde_n2b_columns_before_circle_on",
+      "stwo_lde_n2b_columns_on",
       "stwo_native_aot_function_bind",
       "stwo_native_aot_function_destroy",
       "stwo_native_aot_function_launch",
       "stwo_native_aot_loader_create",
       "stwo_native_aot_loader_destroy",
       "stwo_native_aot_loader_stats",
-      "stwo_native_wide_fibonacci_trace_on"
+      "stwo_native_wide_fibonacci_trace_on",
+      "stwo_ntt_b2n_columns_to_retained_on",
+      "stwo_ntt_n2b_columns_on",
+      "stwo_oods_barycentric_eval_many_on",
+      "stwo_oods_barycentric_weights_on",
+      "stwo_oods_derive_points_on",
+      "stwo_oods_eval_first_on",
+      "stwo_oods_eval_reduce_on",
+      "stwo_oods_store_results_on"
     ],
     "staged_stage_modules": [
       "decommit",
       "fri",
-      "oods",
-      "quotient",
-      "transform"
+      "quotient"
     ],
     "forbidden_symbol_fragments": [
       "_default_pool_",

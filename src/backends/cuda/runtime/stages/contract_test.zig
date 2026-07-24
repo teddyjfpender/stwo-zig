@@ -7,12 +7,14 @@ const telemetry = @import("../telemetry.zig");
 const commitment = @import("commitment.zig").Native;
 const decommit = @import("decommit.zig");
 const fri = @import("fri.zig").Native;
-const oods = @import("oods.zig").Native;
+const oods_module = @import("oods.zig");
+const oods = oods_module.Native;
 const quotient = @import("quotient.zig");
 const quotient_abi = @import("../../abi/stages/quotient.zig");
 const trace = @import("trace.zig").Native;
 const transcript = @import("transcript.zig");
-const transform = @import("transform.zig").Native;
+const transform_module = @import("transform.zig");
+const transform = transform_module.Native;
 
 const owner: usize = 7;
 
@@ -46,6 +48,16 @@ const FakeContext = struct {
     pub fn requireStage(self: *@This(), expected: telemetry.Stage) !void {
         if (self.active_stage != expected) return error.StageOrderViolation;
     }
+
+    pub fn uploadSlice(
+        self: *@This(),
+        comptime F: type,
+        destination: anytype,
+        source: []const F,
+    ) !void {
+        try self.requireStage(.ingress);
+        _ = try self.deviceSlicePointer(F, destination, source.len);
+    }
 };
 
 const FakeSession = struct {
@@ -61,14 +73,31 @@ const FakeSession = struct {
         stage: telemetry.Stage,
         status: c_int,
     ) !void {
+        try self.recordOrdinaryKernels(stage, status, 1);
+    }
+
+    pub fn recordOrdinaryKernels(
+        self: *@This(),
+        stage: telemetry.Stage,
+        status: c_int,
+        count: u64,
+    ) !void {
         if (status != 0) return error.CudaFailure;
         try self.context.requireStage(stage);
-        self.launches += 1;
+        self.launches += @intCast(count);
     }
 };
 
 fn view(comptime F: type, len: usize) column.DeviceSlice(F) {
     return .{ .address = 0x1000, .len = len, .owner = owner };
+}
+
+fn viewAt(
+    comptime F: type,
+    address: usize,
+    len: usize,
+) column.DeviceSlice(F) {
+    return .{ .address = address, .len = len, .owner = owner };
 }
 
 fn words(len: usize) column.DeviceSlice(u32) {
@@ -77,6 +106,21 @@ fn words(len: usize) column.DeviceSlice(u32) {
 
 fn pointers(len: usize) column.DeviceSlice(usize) {
     return view(usize, len);
+}
+
+fn wordMatrix(
+    address: usize,
+    column_count: usize,
+    stride_words: usize,
+) transform_module.WordMatrix {
+    return .{
+        .storage = .{
+            .address = address,
+            .len = column_count * stride_words,
+            .owner = owner,
+        },
+        .column_stride_words = stride_words,
+    };
 }
 
 fn secure(len: usize) column.DeviceSlice(field.SecureField) {
@@ -127,44 +171,36 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
     try transform.inverseToRetained(
         &session,
         .trace_commit,
-        pointers(4),
-        pointers(4),
+        wordMatrix(0x10000, 4, 256),
+        wordMatrix(0x20000, 4, 512),
         8,
-        4,
         words(256),
-        256,
     );
     try transform.forwardInPlace(
         &session,
         .trace_commit,
-        pointers(4),
+        wordMatrix(0x30000, 4, 256),
         8,
-        4,
         words(256),
-        256,
     );
     try transform.extend(
         &session,
         .trace_commit,
-        pointers(4),
+        wordMatrix(0x40000, 4, 128),
         words(4),
-        pointers(4),
+        wordMatrix(0x50000, 4, 256),
         8,
-        4,
         words(256),
-        256,
         false,
     );
     try transform.extend(
         &session,
         .trace_commit,
-        pointers(4),
+        wordMatrix(0x40000, 4, 128),
         words(4),
-        pointers(4),
+        wordMatrix(0x50000, 4, 256),
         8,
-        4,
         words(256),
-        256,
         true,
     );
     try commitment.progressiveInit(&session, .trace_commit, states(16));
@@ -266,46 +302,143 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         words(16),
         words(16),
     );
-    try std.testing.expectEqual(@as(usize, 17), session.launches);
+    try std.testing.expectEqual(@as(usize, 46), session.launches);
+}
+
+test "transform rejects unsafe ranges before launching CUDA" {
+    var session = FakeSession.init(.trace_commit);
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        transform.inverseToRetained(
+            &session,
+            .trace_commit,
+            wordMatrix(0x10000, 1, 256),
+            wordMatrix(0x10004, 1, 512),
+            8,
+            words(256),
+        ),
+    );
+
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        transform.forwardInPlace(
+            &session,
+            .trace_commit,
+            wordMatrix(0x30000, 2, 128),
+            8,
+            words(256),
+        ),
+    );
+    try std.testing.expectEqual(@as(usize, 0), session.launches);
 }
 
 test "OODS and quotient wrappers type-check every copied resident ABI" {
-    var session = FakeSession.init(.oods);
+    var session = FakeSession.init(.ingress);
+    const indices = try oods_module.prepareIndexMap(
+        &session,
+        &.{ 0, 1, 2, 3 },
+        viewAt(u32, 0x60000, 4),
+        4,
+    );
+    const samples = try oods_module.prepareSampleMap(
+        &session,
+        &.{ 0, 1, 2, 3 },
+        &.{ 1, 2, 3, 4 },
+        viewAt(u32, 0x61000, 4),
+        viewAt(u32, 0x62000, 4),
+        4,
+    );
+    session.context.active_stage = .oods;
     try oods.derivePoints(
         &session,
-        secure(1),
-        circles(4),
-        words(4),
-        words(4),
-        8,
-        secureCircles(4),
-        secureCircles(4),
-        secure(32),
+        viewAt(field.SecureField, 0x70000, 1),
+        viewAt(field.CirclePointBaseField, 0x71000, 4),
+        samples,
+        4,
+        viewAt(field.SecureCirclePoint, 0x72000, 4),
+        viewAt(field.SecureCirclePoint, 0x73000, 4),
+        viewAt(field.SecureField, 0x74000, 16),
     );
-    try oods.evaluateFirst(&session, pointers(4), 16, secure(4), secure(64));
-    try oods.reduce(&session, secure(64), 16, 16, 0, 4, secure(4), secure(32), 8);
-    try oods.storeResults(&session, secure(32), 8, words(4), secure(4));
+    try oods.evaluateFirst(
+        &session,
+        .{
+            .storage = viewAt(u32, 0x80000, 4 * 16),
+            .column_stride_words = 16,
+        },
+        16,
+        viewAt(field.SecureField, 0x81000, 16),
+        viewAt(field.SecureField, 0x82000, 4),
+    );
+    try oods.reduce(
+        &session,
+        viewAt(field.SecureField, 0x83000, 4 * 16),
+        16,
+        16,
+        3,
+        4,
+        viewAt(field.SecureField, 0x84000, 16),
+        viewAt(field.SecureField, 0x85000, 4),
+    );
+    try oods.storeResults(
+        &session,
+        viewAt(field.SecureField, 0x86000, 4),
+        1,
+        indices,
+        viewAt(field.SecureField, 0x87000, 4),
+    );
     try oods.barycentricWeights(
         &session,
         1,
         2,
-        8,
-        secureCircles(1),
+        4,
+        viewAt(field.SecureCirclePoint, 0x88000, 1),
         .{ .a = 1, .b = 2, .c = 3, .d = 4 },
         .{ .x = 1, .y = 2 },
-        secure(16),
-        secure(16),
-        secure(16),
+        viewAt(field.SecureField, 0x89000, 16),
+        viewAt(field.SecureField, 0x8a000, 16),
+        viewAt(field.SecureField, 0x8b000, 2),
     );
     try oods.barycentricEvaluate(
         &session,
-        pointers(4),
-        secure(16),
-        secure(32),
+        .{
+            .storage = viewAt(u32, 0x8c000, 4 * 16),
+            .column_stride_words = 16,
+        },
+        viewAt(field.SecureField, 0x8d000, 16),
+        viewAt(field.SecureField, 0x8e000, 32),
         8,
-        words(4),
-        secure(4),
+        indices,
+        viewAt(field.SecureField, 0x8f000, 4),
     );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        oods.reduce(
+            &session,
+            viewAt(field.SecureField, 0x83000, 4 * 16),
+            16,
+            16,
+            0,
+            4,
+            viewAt(field.SecureField, 0x84000, 16),
+            viewAt(field.SecureField, 0x85000, 4),
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        oods.barycentricWeights(
+            &session,
+            1,
+            2,
+            8,
+            viewAt(field.SecureCirclePoint, 0x88000, 1),
+            .{ .a = 1, .b = 2, .c = 3, .d = 4 },
+            .{ .x = 1, .y = 2 },
+            viewAt(field.SecureField, 0x89000, 16),
+            viewAt(field.SecureField, 0x8a000, 16),
+            viewAt(field.SecureField, 0x8b000, 2),
+        ),
+    );
+    try std.testing.expectEqual(@as(usize, 10), session.launches);
 
     session.context.active_stage = .quotient;
     const tables = quotient.CoordinateTables{
@@ -359,7 +492,7 @@ test "OODS and quotient wrappers type-check every copied resident ABI" {
             .c3 = words(256),
         },
     );
-    try std.testing.expectEqual(@as(usize, 11), session.launches);
+    try std.testing.expectEqual(@as(usize, 15), session.launches);
 }
 
 test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {

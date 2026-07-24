@@ -10,13 +10,15 @@ pub extern "c" fn stwo_oods_derive_points_on(
     sample_count: u32,
     coefficient_log_size: u32,
     sample_points: [*]field.SecureCirclePoint,
+    sample_point_capacity: usize,
     evaluation_points: [*]field.SecureCirclePoint,
     folding_factors: [*]field.SecureField,
     stream: *anyopaque,
 ) c_int;
 
 pub extern "c" fn stwo_oods_eval_first_on(
-    coefficients: *const [*]const u32,
+    coefficients: [*]const u32,
+    column_stride_words: usize,
     coefficient_size: u32,
     sample_count: u32,
     folding_factors: [*]const field.SecureField,
@@ -43,6 +45,7 @@ pub extern "c" fn stwo_oods_store_results_on(
     output_indices: [*]const u32,
     sample_count: u32,
     sampled_values: [*]field.SecureField,
+    sampled_value_capacity: usize,
     stream: *anyopaque,
 ) c_int;
 
@@ -61,7 +64,8 @@ pub extern "c" fn stwo_oods_barycentric_weights_on(
 ) c_int;
 
 pub extern "c" fn stwo_oods_barycentric_eval_many_on(
-    columns: *const [*]const u32,
+    columns: [*]const u32,
+    column_stride_words: usize,
     column_count: u32,
     weights: [*]const field.SecureField,
     size: u32,
@@ -69,5 +73,6 @@ pub extern "c" fn stwo_oods_barycentric_eval_many_on(
     reduction_blocks: u32,
     output_indices: [*]const u32,
     sampled_values: [*]field.SecureField,
+    sampled_value_capacity: usize,
     stream: *anyopaque,
 ) c_int;

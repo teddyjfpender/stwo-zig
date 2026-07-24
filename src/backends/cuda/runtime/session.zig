@@ -110,10 +110,19 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             stage: telemetry.Stage,
             status: c_int,
         ) runtime_error.Error!void {
+            try self.recordOrdinaryKernels(stage, status, 1);
+        }
+
+        pub fn recordOrdinaryKernels(
+            self: *Self,
+            stage: telemetry.Stage,
+            status: c_int,
+            count: u64,
+        ) runtime_error.Error!void {
             if (self.state != .open) return error.InvalidState;
             if (self.context.active_stage != stage) return error.StageOrderViolation;
             try runtime_error.check(status);
-            try self.context.recordKernels(1);
+            try self.context.recordKernels(count);
         }
 
         /// Binds, validates, launches, and releases one AOT function without

@@ -71,9 +71,9 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(0, plan["ordinary_source_count"])
         self.assertEqual(1, plan["aot_source_count"])
         self.assertEqual(2, plan["aot_cubin_count"])
-        self.assertEqual(5, plan["native_runtime_source_count"])
+        self.assertEqual(11, plan["native_runtime_source_count"])
         self.assertEqual(1, plan["native_host_source_count"])
-        self.assertEqual(4, plan["native_cuda_source_count"])
+        self.assertEqual(10, plan["native_cuda_source_count"])
         self.assertEqual(
             load_native_closure(NATIVE)["closure_sha256"],
             plan["native_runtime_closure_sha256"],
