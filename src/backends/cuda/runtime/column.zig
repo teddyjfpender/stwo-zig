@@ -26,6 +26,19 @@ pub fn DeviceSlice(comptime F: type) type {
             };
         }
 
+        pub fn cast(self: Self, comptime G: type) runtime_error.Error!DeviceSlice(G) {
+            requireFieldLayout(G);
+            const bytes = std.math.mul(usize, self.len, @sizeOf(F)) catch
+                return error.SizeOverflow;
+            if (self.address % @alignOf(G) != 0 or bytes % @sizeOf(G) != 0)
+                return error.InvalidDeviceAddress;
+            return .{
+                .address = self.address,
+                .len = bytes / @sizeOf(G),
+                .owner = self.owner,
+            };
+        }
+
         /// Device address for an exact native ABI call. It is never a host slice.
         pub fn devicePointer(self: Self) *anyopaque {
             return @ptrFromInt(self.address);
@@ -114,4 +127,20 @@ test "device slice arithmetic never creates a host slice" {
     try std.testing.expectEqual(@as(usize, 7), middle.owner);
     try std.testing.expect(!@hasDecl(Slice, "toHost"));
     try std.testing.expect(!@hasDecl(Slice, "items"));
+}
+
+test "device slice casts preserve byte extent and reject bad alignment" {
+    const words = DeviceSlice(u32){
+        .address = 0x1000,
+        .len = 16,
+        .owner = 7,
+    };
+    const wide = try words.cast(u64);
+    try std.testing.expectEqual(@as(usize, 8), wide.len);
+    try std.testing.expectEqual(words.address, wide.address);
+    try std.testing.expectEqual(words.owner, wide.owner);
+
+    var misaligned = words;
+    misaligned.address += @sizeOf(u32);
+    try std.testing.expectError(error.InvalidDeviceAddress, misaligned.cast(u64));
 }

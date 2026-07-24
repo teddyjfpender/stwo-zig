@@ -100,6 +100,11 @@ pub fn addProducts(
             .optimize = optimize,
         }),
     });
+    runtime_tests.addCSourceFile(.{
+        .file = b.path("src/backends/cuda/runtime/stages/test_stubs.c"),
+        .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },
+    });
+    runtime_tests.linkLibC();
     b.step(
         "test-cuda-runtime-contract",
         "Test proof-owned CUDA context, residency, and strict-AOT contracts",

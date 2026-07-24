@@ -21,6 +21,7 @@ pub const Error = error{
     InvalidDeviceArchitecture,
     InvalidDeviceOrdinal,
     InvalidArenaRequirement,
+    InvalidDeviceAddress,
     InvalidKernelDescriptor,
     InvalidState,
     KernelPathUnused,

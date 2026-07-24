@@ -131,6 +131,14 @@ pub fn ArenaFor(comptime Context: type) type {
             };
         }
 
+        pub fn sliceAs(
+            self: *const Self,
+            comptime F: type,
+            id: SlotId,
+        ) runtime_error.Error!column.DeviceSlice(F) {
+            return (try self.slice(id)).cast(F);
+        }
+
         pub fn deinit(
             self: *Self,
             context: *Context,

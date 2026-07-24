@@ -178,6 +178,32 @@ pub fn ContextFor(comptime Api: type) type {
             return buffer.pointer;
         }
 
+        pub fn deviceSlicePointer(
+            self: *Self,
+            comptime F: type,
+            slice: anytype,
+            minimum_elements: usize,
+        ) runtime_error.Error![*]F {
+            const handle = try self.requireHandle();
+            if (minimum_elements == 0 or
+                slice.len < minimum_elements or
+                slice.owner != @intFromPtr(handle) or
+                slice.address == 0 or
+                slice.address % @alignOf(F) != 0)
+            {
+                return error.InvalidDeviceAddress;
+            }
+            return @ptrFromInt(slice.address);
+        }
+
+        pub fn requireStage(
+            self: *Self,
+            expected: telemetry.Stage,
+        ) runtime_error.Error!void {
+            _ = try self.requireHandle();
+            if (self.active_stage != expected) return error.StageOrderViolation;
+        }
+
         /// The sole host-read API. It is named for the final proof boundary so
         /// intermediate proving code cannot acquire a generic device download.
         pub fn readProofWords(
@@ -355,6 +381,21 @@ test "context owns buffers and accounts only explicit transfers" {
     var buffer = try context.allocate(16);
     try context.upload(buffer, &.{ 1, 2, 3, 4 });
     try context.fill(buffer, 7);
+    const owned_slice = .{
+        .address = @intFromPtr(buffer.pointer),
+        .len = buffer.words,
+        .owner = buffer.owner,
+    };
+    try std.testing.expectEqual(
+        @intFromPtr(buffer.pointer),
+        @intFromPtr(try context.deviceSlicePointer(u32, owned_slice, 16)),
+    );
+    var foreign_slice = owned_slice;
+    foreign_slice.owner += 1;
+    try std.testing.expectError(
+        error.InvalidDeviceAddress,
+        context.deviceSlicePointer(u32, foreign_slice, 1),
+    );
     try context.endStage(.ingress);
     try context.beginStage(.trace_commit);
     try context.recordKernels(3);

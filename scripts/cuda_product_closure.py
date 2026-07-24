@@ -17,6 +17,7 @@ PRODUCT_MANIFEST = CUDA_ROOT / "product_manifest.json"
 NATIVE = CUDA_ROOT / "native"
 NATIVE_AOT = CUDA_ROOT / "aot/native"
 ABI = CUDA_ROOT / "abi"
+RUNTIME_STAGES = CUDA_ROOT / "runtime/stages"
 HOST_AUTHORITY = CUDA_ROOT / "vendor/host_authority"
 ORDINARY_ROLES = (
     "resident_candidates",
@@ -109,6 +110,18 @@ def validate_abi(
         raise ProductClosureError(
             f"resident CUDA ABI is absent from pinned Rust declarations: {missing_authority}"
         )
+    stage_symbols = symbols(sorted((ABI / "stages").glob("*.zig")), ZIG_EXTERN_RE)
+    wrapper_payload = "\n".join(
+        path.read_text(encoding="utf-8", errors="strict")
+        for path in sorted(RUNTIME_STAGES.glob("*.zig"))
+    )
+    missing_wrappers = sorted(
+        symbol for symbol in stage_symbols if symbol not in wrapper_payload
+    )
+    if missing_wrappers:
+        raise ProductClosureError(
+            f"resident CUDA stage ABI has no checked Zig wrapper: {missing_wrappers}"
+        )
     unexpected_owned = sorted(zig_owned_symbols - defined)
     if unexpected_owned:
         raise ProductClosureError(
@@ -119,6 +132,7 @@ def validate_abi(
         "rust_authority_symbols": len(active & rust_symbols),
         "zig_owned_symbols": len(active & zig_owned_symbols),
         "generated_symbols": len(active & generated_symbols),
+        "wrapped_stage_symbols": len(stage_symbols),
     }
 
 

@@ -7,6 +7,7 @@ pub const constraints = @import("constraints/mod.zig");
 pub const kernel = @import("kernel.zig");
 pub const runtime_error = @import("error.zig");
 pub const session = @import("session.zig");
+pub const stages = @import("stages/mod.zig");
 pub const telemetry = @import("telemetry.zig");
 
 pub const NativeContext = context.NativeContext;
@@ -21,5 +22,6 @@ test {
     _ = kernel;
     _ = runtime_error;
     _ = session;
+    _ = stages;
     _ = telemetry;
 }
