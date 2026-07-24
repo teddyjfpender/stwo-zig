@@ -33,14 +33,14 @@ struct TransformSchedule {
 constexpr TransformSchedule kB2nSchedules[] = {
     {2, {7, 6, 0}},
     {2, {8, 6, 0}},
-    {2, {7, 8, 0}},
-    {2, {8, 8, 0}},
+    {2, {9, 6, 0}},
+    {2, {10, 6, 0}},
     {2, {9, 8, 0}},
     {2, {10, 8, 0}},
     {3, {7, 6, 6}},
     {3, {8, 6, 6}},
-    {3, {7, 6, 8}},
-    {3, {8, 6, 8}},
+    {3, {9, 6, 6}},
+    {3, {10, 6, 6}},
     {3, {7, 8, 8}},
 };
 
@@ -54,8 +54,8 @@ constexpr TransformSchedule kN2bSchedules[] = {
     {2, {8, 11, 0}},
     {3, {6, 6, 8}},
     {3, {6, 8, 7}},
-    {3, {6, 8, 8}},
-    {3, {8, 8, 7}},
+    {3, {6, 6, 10}},
+    {3, {6, 6, 11}},
 };
 
 constexpr bool valid_schedule(
@@ -80,9 +80,41 @@ constexpr bool schedules_are_exact() {
     return true;
 }
 
+constexpr bool schedule_tail_is_stack_free(
+    const TransformSchedule &schedule,
+    uint32_t first_interval) {
+    for (uint32_t i = first_interval; i < schedule.interval_count; ++i) {
+        if (schedule.intervals[i] != 6) return false;
+    }
+    return true;
+}
+
+constexpr bool selected_schedule_resource_contracts_hold() {
+    // These rows replace the 8-stage continuation, whose sixteen dynamic
+    // values require a local stack on the supported AOT toolchain. The
+    // selected 6-stage continuation holds eight values in registers.
+    constexpr uint32_t b2n_indices[] = {2u, 3u, 8u, 9u};
+    for (uint32_t index : b2n_indices) {
+        if (!schedule_tail_is_stack_free(kB2nSchedules[index], 1)) {
+            return false;
+        }
+    }
+    constexpr uint32_t n2b_indices[] = {9u, 10u};
+    for (uint32_t index : n2b_indices) {
+        const TransformSchedule &schedule = kN2bSchedules[index];
+        for (uint32_t i = 0; i + 1u < schedule.interval_count; ++i) {
+            if (schedule.intervals[i] != 6) return false;
+        }
+    }
+    return true;
+}
+
 static_assert(
     schedules_are_exact(),
     "fused transform schedules must partition every admitted stage exactly");
+static_assert(
+    selected_schedule_resource_contracts_hold(),
+    "qualified transform rows must retain their stack-free continuations");
 
 struct DeviceRange {
     uintptr_t start;
