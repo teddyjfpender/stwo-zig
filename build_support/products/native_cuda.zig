@@ -146,15 +146,15 @@ pub fn addProduct(context: Context) void {
 
     const benchmark = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/native_cuda_diagnostic.py",
-        "--product-bin",
+        "scripts/native_cuda_benchmark.py",
+        "--candidate-bin",
     });
     benchmark.addFileArg(installed.executable.getEmittedBin());
-    benchmark.addArg("--output");
-    _ = benchmark.addOutputFileArg("native-cuda-diagnostic.json");
+    benchmark.addArgs(&.{ "--profile", "screen", "--output" });
+    _ = benchmark.addOutputFileArg("native-cuda-structural-screen.json");
     context.b.step(
         descriptor.benchmark_step.?,
-        "Run the fixed Native CUDA cold-process diagnostic matrix",
+        "Run the fail-closed Native CUDA structural screen",
     ).dependOn(&benchmark.step);
 }
 

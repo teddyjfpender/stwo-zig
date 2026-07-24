@@ -92,7 +92,8 @@ Path(args.output).write_text(
 )
 
 rows = 1 << args.log_n_rows
-resident_ns = rows * args.sequence_len + 1_000_000
+binary_scale = 2 if "baseline" in Path(__file__).name else 1
+resident_ns = (rows * args.sequence_len + 1_000_000) * binary_scale
 fallbacks = 1 if mode == "fallback" else 0
 resident = mode != "nonresident"
 report = {
@@ -143,12 +144,12 @@ report = {
         "all_canonical_bytes_identical": True,
         "stable_launch_topology": True,
         "zero_final_pool_usage": True,
-        "resident_prove_ns": [resident_ns],
-        "terminal_decode_ns": [1000],
-        "independent_verification_ns": [1000],
-        "verified_request_ns": [resident_ns + 3000],
-        "device_elapsed_ns": [10000],
-        "runtime_proof_indices": [1],
+        "resident_prove_ns": [resident_ns] * args.repeat,
+        "terminal_decode_ns": [1000] * args.repeat,
+        "independent_verification_ns": [1000] * args.repeat,
+        "verified_request_ns": [resident_ns + 3000] * args.repeat,
+        "device_elapsed_ns": [10000] * args.repeat,
+        "runtime_proof_indices": list(range(1, args.repeat + 1)),
     },
     "residency": {
         "resident": resident,
@@ -185,9 +186,9 @@ report = {
     "aot": {
         "entries": 1,
         "loads": 1,
-        "cache_hits": 0,
+        "cache_hits": args.repeat - 1,
         "misses": 0,
-        "launches": 1,
+        "launches": args.repeat,
         "launch_failures": 0,
         "build_identity_sha256": "a" * 64,
     },
