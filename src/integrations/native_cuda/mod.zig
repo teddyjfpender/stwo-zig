@@ -2,6 +2,7 @@
 
 pub const blake = @import("blake/mod.zig");
 pub const common = @import("common/mod.zig");
+pub const plonk = @import("plonk/mod.zig");
 pub const poseidon = @import("poseidon/mod.zig");
 pub const wide_fibonacci = @import("wide_fibonacci/mod.zig");
 pub const xor = @import("xor/mod.zig");
@@ -9,6 +10,7 @@ pub const xor = @import("xor/mod.zig");
 test {
     _ = blake;
     _ = common;
+    _ = plonk;
     _ = poseidon;
     _ = wide_fibonacci;
     _ = xor;

@@ -12,6 +12,7 @@ from .errors import BuildError
 NATIVE_AUTHENTICATED_SCHEMAS = {
     "native_constraint_slab_v1",
     "native_constant_qm31_v1",
+    "native_indexed_recurrence_trace_v1",
     "native_m31_permutation_trace_v1",
     "native_seeded_xorshift_trace_v1",
 }
