@@ -138,7 +138,11 @@ COVERAGE_MATRIX = (
         "sustained",
         None,
         False,
-        "The product CLI does not yet admit a randomized mixed-shape proof queue",
+        (
+            "The deterministic Native CUDA mixed-service CLI is staged, but "
+            "immutable hardware exact-proof and pinned Rust-oracle receipt "
+            "packages are not yet retained"
+        ),
     ),
 )
 

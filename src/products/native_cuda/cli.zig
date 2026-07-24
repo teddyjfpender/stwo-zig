@@ -13,6 +13,7 @@ pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
 pub const max_repetitions: u32 = 16;
+pub const max_sustained_cycles: u32 = 4;
 
 pub const Air = enum {
     wide_fibonacci,
@@ -56,8 +57,16 @@ pub const Prove = struct {
     execution_mode: ExecutionMode,
 };
 
+pub const Sustain = struct {
+    output_dir: []const u8,
+    report_out: []const u8,
+    cycles: u32,
+    execution_mode: ExecutionMode,
+};
+
 pub const Parsed = union(enum) {
     prove: Prove,
+    sustain: Sustain,
     help,
 };
 
@@ -111,8 +120,10 @@ const Scratch = struct {
 pub fn parse(argv: []const []const u8) !Parsed {
     if (argv.len == 1 and isHelp(argv[0])) return .help;
     if (argv.len == 0) return error.MissingCommand;
-    if (!std.mem.eql(u8, argv[0], "prove")) return error.UnknownCommand;
     if (argv.len == 2 and isHelp(argv[1])) return .help;
+    if (std.mem.eql(u8, argv[0], "sustain"))
+        return .{ .sustain = try parseSustain(argv[1..]) };
+    if (!std.mem.eql(u8, argv[0], "prove")) return error.UnknownCommand;
 
     var scratch = Scratch{};
     var index: usize = 1;
@@ -125,6 +136,77 @@ pub fn parse(argv: []const []const u8) !Parsed {
         index += 1;
     }
     return .{ .prove = try finish(scratch) };
+}
+
+const SustainFlag = enum {
+    backend,
+    output_dir,
+    report_out,
+    cycles,
+    execution_mode,
+    count,
+};
+
+fn parseSustain(argv: []const []const u8) !Sustain {
+    var seen = [_]bool{false} ** @intFromEnum(SustainFlag.count);
+    var backend: ?[]const u8 = null;
+    var output_dir: ?[]const u8 = null;
+    var report_out: ?[]const u8 = null;
+    var cycles: u32 = 2;
+    var execution_mode: ExecutionMode = .graphs;
+    var index: usize = 0;
+    while (index < argv.len) {
+        const flag = parseSustainFlag(argv[index]) orelse
+            return error.UnknownArgument;
+        const flag_index = @intFromEnum(flag);
+        if (seen[flag_index]) return error.DuplicateArgument;
+        seen[flag_index] = true;
+        index += 1;
+        if (index == argv.len) return error.MissingArgumentValue;
+        const value = argv[index];
+        switch (flag) {
+            .backend => backend = value,
+            .output_dir => output_dir = value,
+            .report_out => report_out = value,
+            .cycles => cycles = std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidCycleCount,
+            .execution_mode => execution_mode =
+                std.meta.stringToEnum(ExecutionMode, value) orelse
+                return error.InvalidExecutionMode,
+            .count => unreachable,
+        }
+        index += 1;
+    }
+    if (!std.mem.eql(
+        u8,
+        backend orelse return error.MissingBackend,
+        backend_name,
+    )) return error.UnsupportedBackend;
+    const output = try requiredPath(output_dir, error.MissingOutputDirectory);
+    const report = try requiredPath(report_out, error.MissingReportOutput);
+    if (std.mem.eql(u8, output, report)) return error.OutputPathCollision;
+    if (cycles == 0 or cycles > max_sustained_cycles)
+        return error.InvalidCycleCount;
+    return .{
+        .output_dir = output,
+        .report_out = report,
+        .cycles = cycles,
+        .execution_mode = execution_mode,
+    };
+}
+
+fn parseSustainFlag(value: []const u8) ?SustainFlag {
+    if (!std.mem.startsWith(u8, value, "--")) return null;
+    var normalized: [32]u8 = undefined;
+    const raw = value[2..];
+    if (raw.len > normalized.len) return null;
+    for (raw, 0..) |byte, index| {
+        normalized[index] = if (byte == '-') '_' else byte;
+    }
+    return std.meta.stringToEnum(
+        SustainFlag,
+        normalized[0..raw.len],
+    );
 }
 
 fn finish(scratch: Scratch) !Prove {
@@ -332,7 +414,9 @@ fn isHelp(value: []const u8) bool {
 
 pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
-        \\Usage: stwo-zig-native-cuda prove [options]
+        \\Usage:
+        \\  stwo-zig-native-cuda prove [options]
+        \\  stwo-zig-native-cuda sustain [options]
         \\
         \\  --air wide_fibonacci | xor | plonk | blake | poseidon | state_machine
         \\  --backend cuda
@@ -348,10 +432,63 @@ pub fn writeUsage(writer: anytype) !void {
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
         \\  --execution-mode MODE Graphs (default) or forced direct execution
         \\
+        \\Sustained mixed-family service:
+        \\  --backend cuda
+        \\  --output-dir PATH      Exclusive proof artifact directory
+        \\  --report-out PATH     Machine-readable service report
+        \\  --cycles N            wide/Poseidon/state-machine cycles (1-4)
+        \\  --execution-mode MODE Graphs (default) or forced direct execution
+        \\
         \\The v1 product is strict-AOT and rejects CPU fallback, unsealed
         \\protocols, unsupported trace topology, and nonterminal device reads.
         \\
     );
+}
+
+test "parser admits the deterministic mixed-family sustained service" {
+    const request = (try parse(&.{
+        "sustain",
+        "--backend",
+        backend_name,
+        "--output-dir",
+        "mixed-artifacts",
+        "--report-out",
+        "mixed-report.json",
+        "--cycles",
+        "3",
+        "--execution-mode",
+        "direct",
+    })).sustain;
+    try std.testing.expectEqual(@as(u32, 3), request.cycles);
+    try std.testing.expectEqualStrings(
+        "mixed-artifacts",
+        request.output_dir,
+    );
+    try std.testing.expectEqual(
+        ExecutionMode.direct,
+        request.execution_mode,
+    );
+}
+
+test "parser bounds and fully names sustained output" {
+    try std.testing.expectError(error.InvalidCycleCount, parse(&.{
+        "sustain",
+        "--backend",
+        backend_name,
+        "--output-dir",
+        "mixed-artifacts",
+        "--report-out",
+        "mixed-report.json",
+        "--cycles",
+        "0",
+    }));
+    try std.testing.expectError(error.MissingReportOutput, parse(&.{
+        "sustain",
+        "--backend",
+        backend_name,
+        "--output-dir",
+        "mixed-artifacts",
+    }));
 }
 
 test "parser admits only the sealed CUDA wide-Fibonacci product" {

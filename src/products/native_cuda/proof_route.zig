@@ -210,7 +210,7 @@ pub fn prove(
     if (request.report_out != null) try writeLine(stdout, report);
 }
 
-fn pcsConfig() !stwo.core.pcs.PcsConfig {
+pub fn pcsConfig() !stwo.core.pcs.PcsConfig {
     var fri_config = try stwo.core.fri.FriConfig.init(0, 1, 3);
     fri_config.fold_step = 1;
     return .{
@@ -220,7 +220,10 @@ fn pcsConfig() !stwo.core.pcs.PcsConfig {
     };
 }
 
-fn requireResident(verdict: anytype, execution_mode: cli.ExecutionMode) !void {
+pub fn requireResident(
+    verdict: anytype,
+    execution_mode: cli.ExecutionMode,
+) !void {
     const counters = verdict.counters;
     if (!verdict.isResident() or !verdict.aot.isStrict())
         return error.NonResidentCudaProof;

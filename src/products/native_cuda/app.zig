@@ -9,6 +9,7 @@ const blake_route = @import("blake_route.zig");
 const wide_route = @import("wide_route.zig");
 const xor_route = @import("xor_route.zig");
 const state_machine_route = @import("state_machine_route.zig");
+const mixed_service = @import("mixed_service.zig");
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
@@ -21,6 +22,7 @@ pub fn main() !void {
     };
     switch (parsed) {
         .help => try cli.writeUsage(std.fs.File.stdout().deprecatedWriter()),
+        .sustain => |request| try mixed_service.run(allocator, request),
         .prove => |request| switch (request.air) {
             .wide_fibonacci => try proof_route.prove(
                 wide_route,
@@ -63,4 +65,5 @@ test {
     _ = blake_route;
     _ = poseidon_route;
     _ = state_machine_route;
+    _ = mixed_service;
 }
