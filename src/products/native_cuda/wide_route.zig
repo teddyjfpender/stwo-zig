@@ -50,7 +50,10 @@ pub fn verify(
     try stwo.examples.wide_fibonacci.verify(
         allocator,
         pcs_config,
-        geometry.statement,
+        .{
+            .log_n_rows = geometry.statement.log_n_rows,
+            .sequence_len = geometry.statement.sequence_len,
+        },
         proof,
     );
 }
@@ -67,7 +70,10 @@ pub fn writeArtifact(
         path,
         pcs_config,
         "prove",
-        .{ .wide_fibonacci = geometry.statement },
+        .{ .wide_fibonacci = .{
+            .log_n_rows = geometry.statement.log_n_rows,
+            .sequence_len = geometry.statement.sequence_len,
+        } },
         canonical,
     );
 }
