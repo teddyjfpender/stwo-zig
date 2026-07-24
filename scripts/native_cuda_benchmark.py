@@ -44,6 +44,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--timeout-seconds", type=float, default=3600.0)
     parser.add_argument("--device", default="0")
     parser.add_argument("--bootstrap-resamples", type=int, default=100_000)
+    parser.add_argument("--rust-oracle-bin", type=Path)
+    parser.add_argument("--rust-oracle-sha256")
     return parser.parse_args(argv)
 
 
@@ -85,6 +87,12 @@ def main(argv: list[str] | None = None) -> int:
             for workload in COVERAGE_MATRIX
             if workload.workload_id in selected
         ),
+        rust_oracle_bin=(
+            args.rust_oracle_bin.resolve()
+            if args.rust_oracle_bin is not None
+            else None
+        ),
+        rust_oracle_sha256=args.rust_oracle_sha256,
     )
     try:
         _, encoded = run_benchmark(settings)

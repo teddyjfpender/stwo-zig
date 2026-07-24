@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import textwrap
+import hashlib
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -20,6 +21,7 @@ from scripts.native_cuda_benchmark_lib import (  # noqa: E402
     Workload,
     run_benchmark,
 )
+from scripts.native_cuda_benchmark_lib import runner as benchmark_runner  # noqa: E402
 from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
     PlonkShape,
     BlakeShape,
@@ -47,6 +49,12 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
         product.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
         product.chmod(0o755)
         return product
+
+    def make_oracle(self, root: Path) -> tuple[Path, str]:
+        oracle = root / "rust-oracle"
+        oracle.write_text("#!/bin/sh\nexit 0\n")
+        oracle.chmod(0o755)
+        return oracle, hashlib.sha256(oracle.read_bytes()).hexdigest()
 
     def settings(
         self,
@@ -115,6 +123,99 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             self.assertEqual(
                 session["metrics"]["mechanism"]["plan"]["reuse_count"],
                 4,
+            )
+            self.assertFalse(workload["rust_oracle"]["accepted"])
+            self.assertIsNone(workload["cold_comparison"])
+
+    def test_paired_workload_has_separate_cold_gate_and_rust_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = self.make_product(root, "candidate-product")
+            baseline = self.make_product(root, "baseline-product")
+            oracle, oracle_sha256 = self.make_oracle(root)
+            settings = Settings(
+                **{
+                    **self.settings(
+                        root,
+                        candidate,
+                        baseline=baseline,
+                    ).__dict__,
+                    "rust_oracle_bin": oracle,
+                    "rust_oracle_sha256": oracle_sha256,
+                }
+            )
+            document, _ = run_benchmark(settings)
+
+            workload = document["workloads"][0]
+            self.assertTrue(workload["rust_oracle"]["accepted"])
+            self.assertEqual(
+                oracle_sha256,
+                workload["rust_oracle"]["oracle_binary_sha256"],
+            )
+            self.assertEqual(
+                "cold_process_external_wall",
+                workload["cold_comparison"]["boundary"],
+            )
+            self.assertEqual(
+                1,
+                len(workload["cold_comparison"]["sample_ratios"]),
+            )
+
+    def test_rust_oracle_pin_mismatch_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            oracle, _ = self.make_oracle(root)
+            settings = Settings(
+                **{
+                    **self.settings(
+                        root,
+                        self.make_product(root, "candidate-product"),
+                    ).__dict__,
+                    "rust_oracle_bin": oracle,
+                    "rust_oracle_sha256": "0" * 64,
+                }
+            )
+            with self.assertRaisesRegex(BenchmarkError, "SHA-256 pin"):
+                run_benchmark(settings)
+
+    def test_headline_requires_target_oracle_and_both_time_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = Settings(
+                **{
+                    **self.settings(
+                        root,
+                        self.make_product(root, "candidate-product"),
+                    ).__dict__,
+                    "profile_name": "judge",
+                }
+            )
+            coverage = {"activation_ready": True}
+            portfolio = {
+                "available": True,
+                "passes_1_3x_target": False,
+            }
+            workload = {
+                "rust_oracle": {"accepted": True},
+                "comparison": {"passes_regression_ceiling": True},
+                "cold_comparison": {"passes_regression_ceiling": True},
+            }
+            self.assertFalse(
+                benchmark_runner._headline_eligible(
+                    settings, coverage, portfolio, [workload]
+                )
+            )
+            portfolio["passes_1_3x_target"] = True
+            self.assertTrue(
+                benchmark_runner._headline_eligible(
+                    settings, coverage, portfolio, [workload]
+                )
+            )
+            workload["cold_comparison"]["passes_regression_ceiling"] = False
+            self.assertFalse(
+                benchmark_runner._headline_eligible(
+                    settings, coverage, portfolio, [workload]
+                )
             )
 
     def test_graph_capture_allows_multiple_distinct_aot_functions(self) -> None:

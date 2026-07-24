@@ -32,6 +32,7 @@ from scripts.process_resources_lib import (
 )
 
 from .identity import validate_proof_identity
+from .oracle import rust_oracle_receipt
 from .model import (
     COVERAGE_MATRIX,
     MINIMUM_PORTFOLIO_RATIO,
@@ -226,6 +227,7 @@ def _invoke(
         "external_wall_ns": external_wall_ns,
         "resources": resources,
         "proof": artifact,
+        "proof_path": str(proof_path),
         "report_schema_version": validated["schema_version"],
         "execution_mode": validated["execution_mode"],
         "semantic_sha256": validated["semantic_sha256"],
@@ -376,6 +378,54 @@ def _cold_metrics(samples: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _cold_comparison(
+    cold: dict[str, list[dict[str, Any]]],
+    resamples: int,
+    seed: int,
+) -> dict[str, Any] | None:
+    if "baseline" not in cold:
+        return None
+    candidate = [
+        sample["external_wall_ns"] / 1_000_000.0
+        for sample in cold["candidate"]
+    ]
+    baseline = [
+        sample["external_wall_ns"] / 1_000_000.0
+        for sample in cold["baseline"]
+    ]
+    if len(candidate) != len(baseline):
+        raise BenchmarkError("CUDA cold arms have different sample counts")
+    ratios = [
+        candidate_ms / baseline_ms
+        for baseline_ms, candidate_ms in zip(baseline, candidate, strict=True)
+    ]
+    estimate = stats.hodges_lehmann(ratios)
+    interval = (
+        stats.bootstrap_ci(ratios, iterations=resamples, seed=seed)
+        if len(ratios) >= 3
+        else None
+    )
+    return {
+        "boundary": "cold_process_external_wall",
+        "estimator": "hodges_lehmann_paired_sample_ratio",
+        "candidate_over_baseline": estimate,
+        "confidence_interval_95": (
+            {"low": interval[0], "high": interval[1]}
+            if interval is not None
+            else None
+        ),
+        "sample_ratios": ratios,
+        "baseline_samples_ms": baseline,
+        "candidate_samples_ms": candidate,
+        "regression_ceiling": REGRESSION_CEILING,
+        "passes_regression_ceiling": (
+            interval[1] <= REGRESSION_CEILING
+            if interval is not None
+            else estimate <= REGRESSION_CEILING
+        ),
+    }
+
+
 def _arm_round_medians(
     sessions: list[dict[str, Any]],
 ) -> dict[str, list[float]]:
@@ -509,6 +559,11 @@ def _measure_workload(
             session_ordinal += 1
             _cooldown(settings)
     gate = validate_proof_identity(cold, sessions)
+    oracle = rust_oracle_receipt(
+        settings,
+        workload,
+        Path(cold["candidate"][0]["proof_path"]),
+    )
     result = {
         "workload_id": workload.workload_id,
         "structural_class": workload.structural_class,
@@ -517,6 +572,12 @@ def _measure_workload(
         "cold": {
             arm: _cold_metrics(samples) for arm, samples in cold.items()
         },
+        "cold_comparison": _cold_comparison(
+            cold,
+            settings.bootstrap_resamples,
+            _seed(f"cold:{workload.workload_id}"),
+        ),
+        "rust_oracle": oracle,
         "sessions": sessions,
         "comparison": _comparison(
             sessions,
@@ -652,6 +713,30 @@ def _coverage() -> dict[str, Any]:
     }
 
 
+def _headline_eligible(
+    settings: Settings,
+    coverage: dict[str, Any],
+    portfolio: dict[str, Any],
+    workloads: list[dict[str, Any]],
+) -> bool:
+    return (
+        settings.profile_name == "judge"
+        and portfolio["available"]
+        and portfolio["passes_1_3x_target"]
+        and coverage["activation_ready"]
+        and all(workload["rust_oracle"]["accepted"] for workload in workloads)
+        and all(
+            workload["comparison"]["passes_regression_ceiling"]
+            for workload in workloads
+        )
+        and all(
+            workload["cold_comparison"] is not None
+            and workload["cold_comparison"]["passes_regression_ceiling"]
+            for workload in workloads
+        )
+    )
+
+
 def run_benchmark(settings: Settings) -> tuple[dict[str, Any], bytes]:
     settings.validate()
     candidate = _require_binary(settings.candidate_bin, "candidate")
@@ -661,6 +746,12 @@ def run_benchmark(settings: Settings) -> tuple[dict[str, Any], bytes]:
             settings.baseline_bin,
             "baseline",
         )
+    if settings.rust_oracle_bin is not None:
+        oracle = _require_binary(settings.rust_oracle_bin, "Rust oracle")
+        if _sha256_file(oracle) != settings.rust_oracle_sha256:
+            raise BenchmarkError(
+                "CUDA Rust oracle binary differs from its SHA-256 pin"
+            )
     binary_digests = {
         arm: _sha256_file(binary) for arm, binary in binaries.items()
     }
@@ -677,15 +768,7 @@ def run_benchmark(settings: Settings) -> tuple[dict[str, Any], bytes]:
             raise BenchmarkError(f"CUDA {arm} binary changed during measurement")
     coverage = _coverage()
     portfolio = _portfolio(workloads, settings.bootstrap_resamples)
-    headline = (
-        settings.profile_name == "judge"
-        and portfolio["available"]
-        and coverage["activation_ready"]
-        and all(
-            workload["comparison"]["passes_regression_ceiling"]
-            for workload in workloads
-        )
-    )
+    headline = _headline_eligible(settings, coverage, portfolio, workloads)
     document = {
         "schema": SCHEMA,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -705,12 +788,17 @@ def run_benchmark(settings: Settings) -> tuple[dict[str, Any], bytes]:
             "one_process_runtime_per_session": True,
             "shape_plan_compiled_once_per_process": True,
             "stage_timing_source": "CUDA events resolved at terminal proof fence",
-            "proof_requirement": "byte-identical and independently Zig-verified",
+            "proof_requirement": (
+                "byte-identical, independently Zig-verified, and accepted "
+                "per workload by the pinned Rust stwo oracle"
+            ),
             "fallback_requirement": "zero CPU fallback attempts and completions",
             "portfolio_weighting": (
                 "equal-weight geometric mean across structural classes"
             ),
             "regression_ceiling": REGRESSION_CEILING,
+            "minimum_portfolio_speedup": 1.3,
+            "cold_process_is_separate_gate": True,
             "profiler_replay_is_verdict": False,
         },
         "provenance": {

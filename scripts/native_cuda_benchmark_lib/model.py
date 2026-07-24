@@ -203,6 +203,8 @@ class Settings:
     device_ordinal: str
     bootstrap_resamples: int
     workloads: tuple[Workload, ...]
+    rust_oracle_bin: Path | None = None
+    rust_oracle_sha256: str | None = None
 
     @property
     def artifact_root(self) -> Path:
@@ -246,3 +248,21 @@ class Settings:
                 raise BenchmarkError("CUDA judge profile requires a baseline binary")
             if self.rounds < 7 or self.warmups < 10 or self.samples < 5:
                 raise BenchmarkError("CUDA judge sampling contract was weakened")
+            if self.rust_oracle_bin is None or self.rust_oracle_sha256 is None:
+                raise BenchmarkError(
+                    "CUDA judge profile requires a pinned Rust oracle binary"
+                )
+        if (self.rust_oracle_bin is None) != (self.rust_oracle_sha256 is None):
+            raise BenchmarkError(
+                "CUDA Rust oracle binary and SHA-256 pin must be supplied together"
+            )
+        if self.rust_oracle_sha256 is not None and (
+            len(self.rust_oracle_sha256) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in self.rust_oracle_sha256
+            )
+        ):
+            raise BenchmarkError(
+                "CUDA Rust oracle SHA-256 pin must be canonical lowercase hex"
+            )

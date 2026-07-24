@@ -8,6 +8,7 @@ import os
 import shlex
 import sys
 import tempfile
+import textwrap
 import unittest
 from unittest import mock
 from pathlib import Path
@@ -15,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cli"))
 from stwo_perf import manifest as manifest_mod, runner
 from stwo_perf.manifest import Manifest
+from scripts.tests.test_native_cuda_diagnostic import FAKE_PRODUCT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -153,6 +155,36 @@ class RunnerGroupTest(unittest.TestCase):
         raw = make_raw(**kwargs)
         manifest_mod._validate(raw)  # fixture must be a valid v2 manifest
         return Manifest(root=self.root, raw=raw)
+
+    def _cuda_manifest(self) -> Manifest:
+        raw = make_raw(riscv_enabled=False)
+        raw["workload_registry"]["groups"]["native_cuda"] = {
+            "enabled": True,
+            "promotion_eligible": False,
+            "board": "core_cuda",
+            "build_step": "true",
+            "binary": "bin/cudabench",
+            "report_schema": "native_cuda_product_v6",
+            "correctness_oracle": {
+                "authority": "pinned-rust-stwo",
+                "repository": "https://github.com/starkware-libs/stwo",
+                "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+                "final_validator": True,
+            },
+            "workloads": {
+                "cuda_wf": {
+                    "class": "wide",
+                    "args": (
+                        "prove --air wide_fibonacci --backend cuda "
+                        "--protocol raw-stwo-wide-v1 --log-n-rows 5 "
+                        "--sequence-len 8 --repeat {samples}"
+                    ),
+                    "native_unit": "committed cells",
+                },
+            },
+        }
+        manifest_mod._validate(raw)
+        return Manifest(self.root, raw)
 
     def _set_riscv_phase(self, promoted: bool) -> None:
         capability = self.root / "src/products/riscv_cpu/capabilities.zig"
@@ -370,6 +402,54 @@ class RunnerGroupTest(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunError, "non-JSON output"):
             runner.bench_once(
                 self.root, manifest, workload, 0, 1, self.out_dir, "a1",
+            )
+
+    def test_cuda_bench_parses_retained_product_v6_fail_closed(self):
+        binary = self.root / "bin" / "cudabench"
+        binary.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
+        binary.chmod(0o755)
+        manifest = self._cuda_manifest()
+        workload = manifest.workloads("wide", board="core_cuda")[0]
+
+        result = runner.bench_once(
+            self.root,
+            manifest,
+            workload,
+            1,
+            2,
+            self.out_dir,
+            "a1",
+        )
+
+        self.assertEqual(2, result.proof_verified)
+        self.assertTrue(result.byte_identical)
+        self.assertGreater(result.prove_ms, 0)
+        self.assertGreater(result.request_ms, result.prove_ms)
+        self.assertIsNotNone(result.mechanism["residency"])
+        self.assertTrue(
+            (self.out_dir / "cuda_wf.a1.proof.json").is_file()
+        )
+        report = json.loads(
+            (self.out_dir / "cuda_wf.a1.product.json").read_text()
+        )
+        self.assertEqual(4, report["process_repetition"]["count"])
+
+    def test_cuda_bench_rejects_fallback_report(self):
+        binary = self.root / "bin" / "cudabench"
+        binary.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
+        binary.chmod(0o755)
+        manifest = self._cuda_manifest()
+        workload = manifest.workloads("wide", board="core_cuda")[0]
+        with mock.patch.dict(os.environ, {"FAKE_CUDA_MODE": "fallback"}), \
+                self.assertRaisesRegex(runner.RunError, "fallback"):
+            runner.bench_once(
+                self.root,
+                manifest,
+                workload,
+                0,
+                1,
+                self.out_dir,
+                "a1",
             )
 
     def test_native_report_resource_admission_fails_closed(self):
@@ -662,6 +742,49 @@ class RunnerGroupTest(unittest.TestCase):
             )
             riscv_check.assert_called_once()
             native_check.assert_not_called()
+
+        cuda = self._cuda_manifest()
+        cuda_workload = cuda.workloads("wide", board="core_cuda")[0]
+        with mock.patch.object(
+            runner, "_cuda_rust_oracle_check", return_value={"oracle": "cuda"},
+        ) as cuda_check:
+            self.assertEqual(
+                "cuda",
+                runner.rust_oracle_check(
+                    self.root, cuda, cuda_workload, self.out_dir,
+                )["oracle"],
+            )
+            cuda_check.assert_called_once()
+
+    def test_cuda_oracle_emits_artifact_bound_rust_receipt(self):
+        binary = self.root / "bin" / "cudabench"
+        binary.write_text(textwrap.dedent(FAKE_PRODUCT).lstrip())
+        binary.chmod(0o755)
+        oracle = (
+            self.root
+            / "tools/stwo-interop-rs/target/release/stwo-interop-rs"
+        )
+        oracle.parent.mkdir(parents=True)
+        oracle.write_text("#!/bin/sh\nexit 0\n")
+        oracle.chmod(0o755)
+        manifest = self._cuda_manifest()
+        group = manifest.group("native_cuda")
+        workload = manifest.workloads("wide", board="core_cuda")[0]
+
+        receipt = runner._cuda_rust_oracle_check(
+            self.root,
+            group,
+            workload,
+            self.out_dir,
+        )
+
+        self.assertTrue(receipt["verified"])
+        self.assertEqual("pinned-rust-stwo", receipt["oracle"])
+        self.assertEqual(
+            hashlib.sha256(oracle.read_bytes()).hexdigest(),
+            receipt["oracle_binary_sha256"],
+        )
+        self.assertRegex(receipt["canonical_proof_sha256"], r"^[0-9a-f]{64}$")
 
     def test_riscv_oracle_validates_anchor_and_retained_artifact_without_rebuild(self):
         self._set_riscv_phase(promoted=True)
