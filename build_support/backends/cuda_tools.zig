@@ -101,6 +101,7 @@ pub fn addProducts(
         "unittest",
         "scripts.tests.test_cuda_build",
         "scripts.tests.test_cuda_build_cache",
+        "scripts.tests.test_cuda_proof_parity_gate",
     });
     tests.step.dependOn(&source.step);
     b.step(

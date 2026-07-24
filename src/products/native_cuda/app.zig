@@ -1,4 +1,4 @@
-//! Lifecycle, parity, and residency reporting for Native CUDA proofs.
+//! Lifecycle and residency reporting for Native CUDA proofs.
 
 const std = @import("std");
 const stwo = @import("stwo_native_cuda");
@@ -70,17 +70,6 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     const decode_ns = decode_timer.read();
 
     const pcs_config = try pcsConfig();
-    var parity_ns: ?u64 = null;
-    if (request.self_check) {
-        var parity_timer = try std.time.Timer.start();
-        try requireCpuParity(
-            allocator,
-            pcs_config,
-            admitted.statement,
-            canonical,
-        );
-        parity_ns = parity_timer.read();
-    }
 
     // The verifier owns the proof after this point, including on failure.
     proof_live = false;
@@ -93,6 +82,53 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         },
         proof,
     );
+
+    var repetition_prove_ns: [cli.max_repetitions]u64 = undefined;
+    var repetition_decode_ns: [cli.max_repetitions]u64 = undefined;
+    repetition_prove_ns[0] = resident_prove_ns;
+    repetition_decode_ns[0] = decode_ns;
+    var repetition: u32 = 1;
+    while (repetition < request.repeat) : (repetition += 1) {
+        var repeated_timer = try std.time.Timer.start();
+        var repeated = try (cuda.NativeDriver{
+            .allocator = allocator,
+            .accepted_sms = &accepted_sms,
+        }).run(.{
+            .statement = admitted.statement,
+            .protocol = admitted.protocol,
+        });
+        repetition_prove_ns[repetition] = repeated_timer.read();
+        defer repeated.deinit(allocator);
+        try requireResident(repeated.verdict);
+        try requireStableRepetition(output.verdict, repeated.verdict);
+
+        var repeated_decode_timer = try std.time.Timer.start();
+        var repeated_proof = try cuda.proof_decode.decodeProof(
+            allocator,
+            repeated.bundle,
+        );
+        var repeated_proof_live = true;
+        defer if (repeated_proof_live) repeated_proof.deinit(allocator);
+        const repeated_canonical = try proof_wire.encodeProofBytes(
+            allocator,
+            repeated_proof,
+        );
+        defer allocator.free(repeated_canonical);
+        repetition_decode_ns[repetition] = repeated_decode_timer.read();
+        if (!std.mem.eql(u8, canonical, repeated_canonical))
+            return error.UnstableCanonicalProof;
+
+        repeated_proof_live = false;
+        try wide_fibonacci.verify(
+            allocator,
+            pcs_config,
+            .{
+                .log_n_rows = admitted.statement.log_n_rows,
+                .sequence_len = admitted.statement.sequence_len,
+            },
+            repeated_proof,
+        );
+    }
 
     try artifacts.writeNativeProofArtifact(
         allocator,
@@ -123,9 +159,8 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         build_identity,
         device_uuid,
         canonical.len,
-        resident_prove_ns,
-        decode_ns,
-        parity_ns,
+        repetition_prove_ns[0..request.repeat],
+        repetition_decode_ns[0..request.repeat],
         total_started.read(),
     );
     defer allocator.free(report);
@@ -164,31 +199,12 @@ fn pcsConfig() !stwo.core.pcs.PcsConfig {
     };
 }
 
-fn requireCpuParity(
-    allocator: std.mem.Allocator,
-    pcs_config: stwo.core.pcs.PcsConfig,
-    statement: cuda.request.Statement,
-    cuda_bytes: []const u8,
-) !void {
-    var cpu = try wide_fibonacci.prove(
-        allocator,
-        pcs_config,
-        .{
-            .log_n_rows = statement.log_n_rows,
-            .sequence_len = statement.sequence_len,
-        },
-    );
-    defer cpu.proof.deinit(allocator);
-    const cpu_bytes = try proof_wire.encodeProofBytes(allocator, cpu.proof);
-    defer allocator.free(cpu_bytes);
-    if (!std.mem.eql(u8, cpu_bytes, cuda_bytes))
-        return error.CpuCudaProofMismatch;
-}
-
 fn requireResident(verdict: anytype) !void {
     const counters = verdict.counters;
     if (!verdict.isResident() or !verdict.aot.isStrict())
         return error.NonResidentCudaProof;
+    if (verdict.pool_used_bytes != 0)
+        return error.CudaPoolNotReleased;
     if (!counters.stagesCompleteExactlyOnce())
         return error.IncompleteCudaProofStages;
     if (counters.cpu_fallback_attempts != 0 or
@@ -220,6 +236,22 @@ fn requireResident(verdict: anytype) !void {
     }
 }
 
+fn requireStableRepetition(first: anytype, repeated: @TypeOf(first)) !void {
+    if (!std.meta.eql(first.counters, repeated.counters) or
+        first.aot_entries != repeated.aot_entries or
+        first.lane_count != repeated.lane_count or
+        first.pool_used_bytes != repeated.pool_used_bytes or
+        first.pool_reserved_bytes != repeated.pool_reserved_bytes or
+        first.device.current != repeated.device.current or
+        first.device.sm_major != repeated.device.sm_major or
+        first.device.sm_minor != repeated.device.sm_minor or
+        !std.mem.eql(u8, &first.build_identity, &repeated.build_identity) or
+        !std.mem.eql(u8, &first.platform.uuid, &repeated.platform.uuid))
+    {
+        return error.UnstableCudaTopology;
+    }
+}
+
 fn renderReport(
     allocator: std.mem.Allocator,
     request: cli.Prove,
@@ -229,9 +261,8 @@ fn renderReport(
     build_identity: [64]u8,
     device_uuid: [32]u8,
     proof_bytes: usize,
-    resident_prove_ns: u64,
-    decode_ns: u64,
-    parity_ns: ?u64,
+    resident_prove_ns: []const u64,
+    decode_ns: []const u64,
     total_ns: u64,
 ) ![]u8 {
     const counters = verdict.counters;
@@ -254,13 +285,20 @@ fn renderReport(
             .canonical_sha256 = &proof_sha256,
             .upstream_commit = artifacts.UPSTREAM_COMMIT,
             .zig_verified = true,
-            .cpu_byte_parity = request.self_check,
         },
         .timing_ns = .{
-            .resident_prove = resident_prove_ns,
-            .terminal_decode = decode_ns,
-            .cpu_self_check = parity_ns,
+            .resident_prove = resident_prove_ns[0],
+            .terminal_decode = decode_ns[0],
             .total_before_publication = total_ns,
+        },
+        .process_repetition = .{
+            .count = request.repeat,
+            .persistent_session = false,
+            .all_canonical_bytes_identical = true,
+            .stable_launch_topology = true,
+            .zero_final_pool_usage = true,
+            .resident_prove_ns = resident_prove_ns,
+            .terminal_decode_ns = decode_ns,
         },
         .residency = .{
             .resident = true,

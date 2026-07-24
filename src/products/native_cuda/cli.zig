@@ -5,13 +5,14 @@ const std = @import("std");
 pub const protocol_name = "raw-stwo-wide-v1";
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
+pub const max_repetitions: u32 = 16;
 
 pub const Prove = struct {
     log_n_rows: u32,
     sequence_len: u32,
     output: []const u8,
     report_out: ?[]const u8,
-    self_check: bool,
+    repeat: u32,
 };
 
 pub const Parsed = union(enum) {
@@ -27,7 +28,7 @@ const Flag = enum {
     sequence_len,
     output,
     report_out,
-    self_check,
+    repeat,
     count,
 };
 
@@ -41,7 +42,7 @@ const Scratch = struct {
     sequence_len: ?u32 = null,
     output: ?[]const u8 = null,
     report_out: ?[]const u8 = null,
-    self_check: bool = false,
+    repeat: ?u32 = null,
 
     fn mark(self: *Scratch, flag: Flag) !void {
         const index = @intFromEnum(flag);
@@ -62,10 +63,6 @@ pub fn parse(argv: []const []const u8) !Parsed {
         const flag = parseFlag(argv[index]) orelse return error.UnknownArgument;
         try scratch.mark(flag);
         index += 1;
-        if (flag == .self_check) {
-            scratch.self_check = true;
-            continue;
-        }
         if (index == argv.len) return error.MissingArgumentValue;
         try assign(&scratch, flag, argv[index]);
         index += 1;
@@ -95,13 +92,16 @@ fn finish(scratch: Scratch) !Prove {
     if (report_out) |report| {
         if (std.mem.eql(u8, output, report)) return error.OutputPathCollision;
     }
+    const repeat = scratch.repeat orelse 1;
+    if (repeat == 0 or repeat > max_repetitions)
+        return error.InvalidRepeatCount;
     return .{
         .log_n_rows = scratch.log_n_rows orelse return error.MissingLogRows,
         .sequence_len = scratch.sequence_len orelse
             return error.MissingSequenceLength,
         .output = output,
         .report_out = report_out,
-        .self_check = scratch.self_check,
+        .repeat = repeat,
     };
 }
 
@@ -128,7 +128,10 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
                 return error.InvalidSequenceLength,
         .output => scratch.output = value,
         .report_out => scratch.report_out = value,
-        .self_check, .count => unreachable,
+        .repeat => scratch.repeat =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidRepeatCount,
+        .count => unreachable,
     }
 }
 
@@ -159,7 +162,7 @@ pub fn writeUsage(writer: anytype) !void {
         \\  --sequence-len N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
-        \\  --self-check          Require exact CUDA/CPU canonical proof parity
+        \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
         \\
         \\The v1 product is strict-AOT and rejects CPU fallback, unsealed
         \\protocols, unsupported trace topology, and nonterminal device reads.
@@ -182,11 +185,10 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "100",
         "--output",
         "proof.json",
-        "--self-check",
     })).prove;
     try std.testing.expectEqual(@as(u32, 14), request.log_n_rows);
     try std.testing.expectEqual(@as(u32, 100), request.sequence_len);
-    try std.testing.expect(request.self_check);
+    try std.testing.expectEqual(@as(u32, 1), request.repeat);
 
     try std.testing.expectError(error.UnsupportedBackend, parse(&.{
         "prove",
@@ -218,6 +220,39 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "--output",
         "proof.json",
     }));
+}
+
+test "parser rejects in-process CPU proving capability" {
+    try std.testing.expectError(error.UnknownArgument, parse(&.{
+        "prove",
+        "--air",
+        air_name,
+        "--backend",
+        backend_name,
+        "--protocol",
+        protocol_name,
+        "--log-n-rows",
+        "14",
+        "--sequence-len",
+        "100",
+        "--output",
+        "proof.json",
+        "--self-check",
+    }));
+}
+
+test "parser bounds process repetitions" {
+    const prefix = [_][]const u8{
+        "prove",          "--air",        air_name,
+        "--backend",      backend_name,   "--protocol",
+        protocol_name,    "--log-n-rows", "14",
+        "--sequence-len", "100",          "--output",
+        "proof.json",     "--repeat",
+    };
+    var zero = prefix ++ [_][]const u8{"0"};
+    try std.testing.expectError(error.InvalidRepeatCount, parse(&zero));
+    var excessive = prefix ++ [_][]const u8{"17"};
+    try std.testing.expectError(error.InvalidRepeatCount, parse(&excessive));
 }
 
 test "parser requires explicit topology and collision-free outputs" {
