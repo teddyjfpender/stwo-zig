@@ -101,8 +101,14 @@ def compute_profile(
     *,
     kernel: str | None,
     set_name: str,
+    launch_skip: int,
+    launch_count: int,
     timeout: int,
 ) -> Path:
+    if launch_skip < 0:
+        raise ProfError("CUDA profile launch skip must be nonnegative")
+    if launch_count <= 0:
+        raise ProfError("CUDA profile launch count must be positive")
     if output.exists():
         raise ProfError(f"refusing to overwrite profile artifact: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -117,6 +123,10 @@ def compute_profile(
         "demangled",
         "--replay-mode",
         "kernel",
+        "--launch-skip",
+        str(launch_skip),
+        "--launch-count",
+        str(launch_count),
         "--set",
         set_name,
         "--force-overwrite",
@@ -139,7 +149,7 @@ def load_stage_report(path: Path) -> dict:
         report = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ProfError(f"cannot read CUDA proof report {path}: {error}") from error
-    if report.get("schema_version") != 2 or report.get("backend") != "cuda":
+    if report.get("schema_version") not in (2, 3, 4) or report.get("backend") != "cuda":
         raise ProfError("input is not a CUDA proof report with stage timing")
     timing = report.get("device_stage_timing_ns")
     if not isinstance(timing, dict) or not isinstance(timing.get("total"), int):

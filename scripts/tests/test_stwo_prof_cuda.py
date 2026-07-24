@@ -34,24 +34,69 @@ class CudaToolsTests(unittest.TestCase):
         self.assertEqual(devices[0]["compute_cap"], "8.9")
         self.assertEqual(devices[0]["uuid"], "GPU-deadbeef")
 
-    def test_stage_report_requires_cuda_schema_v2(self) -> None:
+    def test_stage_report_accepts_current_and_historical_cuda_schemas(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "report.json"
-            path.write_text(json.dumps({
-                "schema_version": 2,
-                "backend": "cuda",
-                "device_stage_timing_ns": {"total": 7},
-            }))
-            self.assertEqual(
-                cudatools.load_stage_report(path)["device_stage_timing_ns"]["total"],
-                7,
-            )
+            for schema_version in (2, 3, 4):
+                path.write_text(json.dumps({
+                    "schema_version": schema_version,
+                    "backend": "cuda",
+                    "device_stage_timing_ns": {"total": 7},
+                }))
+                self.assertEqual(
+                    cudatools.load_stage_report(path)["device_stage_timing_ns"]["total"],
+                    7,
+                )
             path.write_text(json.dumps({
                 "schema_version": 1,
                 "backend": "cuda",
+                "device_stage_timing_ns": {"total": 7},
             }))
             with self.assertRaisesRegex(cudatools.ProfError, "stage timing"):
                 cudatools.load_stage_report(path)
+
+    def test_compute_profile_bounds_kernel_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "profile.ncu-rep"
+            artifact = output.with_suffix("")
+            artifact = artifact.with_suffix(".ncu-rep")
+
+            def run(arguments: list[str], timeout: int):
+                artifact.touch()
+                return subprocess.CompletedProcess(arguments, 0, "", "")
+
+            with mock.patch.object(cudatools, "_tool", return_value="/bin/ncu"):
+                with mock.patch.object(cudatools, "_run", side_effect=run) as execute:
+                    self.assertEqual(
+                        cudatools.compute_profile(
+                            ["--", "prove"],
+                            output,
+                            kernel="n2b_stage",
+                            set_name="detailed",
+                            launch_skip=3,
+                            launch_count=1,
+                            timeout=60,
+                        ),
+                        artifact,
+                    )
+
+            arguments = execute.call_args.args[0]
+            self.assertEqual(arguments[arguments.index("--launch-skip") + 1], "3")
+            self.assertEqual(arguments[arguments.index("--launch-count") + 1], "1")
+            self.assertIn("regex:n2b_stage", arguments)
+
+    def test_compute_profile_rejects_unbounded_launch_count(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(cudatools.ProfError, "positive"):
+                cudatools.compute_profile(
+                    ["prove"],
+                    Path(directory) / "profile.ncu-rep",
+                    kernel=None,
+                    set_name="basic",
+                    launch_skip=0,
+                    launch_count=0,
+                    timeout=60,
+                )
 
 
 if __name__ == "__main__":

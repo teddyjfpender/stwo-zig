@@ -244,6 +244,8 @@ def cmd_cuda_compute(args) -> int:
         Path(args.output),
         kernel=args.kernel,
         set_name=args.set,
+        launch_skip=args.launch_skip,
+        launch_count=args.launch_count,
         timeout=args.timeout,
     )
     print(f"{ansi.OK} Nsight Compute report: {artifact}")
@@ -341,6 +343,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output", default="stwo-cuda-compute.ncu-rep")
     p.add_argument("--kernel", help="demangled kernel-name regular expression")
     p.add_argument("--set", choices=("basic", "detailed", "full"), default="basic")
+    p.add_argument(
+        "--launch-skip",
+        type=int,
+        default=0,
+        help="skip matching kernel launches before collecting counters",
+    )
+    p.add_argument(
+        "--launch-count",
+        type=int,
+        default=1,
+        help="maximum matching kernel launches to replay (default: 1)",
+    )
     p.add_argument("--timeout", type=int, default=7200)
     p.add_argument("command", nargs=argparse.REMAINDER)
     p = cs.add_parser("report", help="rank device stages from a proof report")
