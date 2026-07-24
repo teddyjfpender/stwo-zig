@@ -63,6 +63,7 @@ pub const descriptor = policy.Descriptor{
         "test-cuda-adapter",
         "run-native-cuda-smoke",
     },
+    .benchmark_step = "benchmark-native-cuda",
     .dependencies = .{
         .module_roots = source_closure.entry_roots,
         .external_dependencies = &.{ "cuda", "cudart", "libstdc++.so.6" },
@@ -142,6 +143,19 @@ pub fn addProduct(context: Context) void {
         descriptor.test_step.?,
         "Run the repeated Native CUDA resident proof smoke",
     ).dependOn(&run.step);
+
+    const benchmark = context.b.addSystemCommand(&.{
+        "python3",
+        "scripts/native_cuda_diagnostic.py",
+        "--product-bin",
+    });
+    benchmark.addFileArg(installed.executable.getEmittedBin());
+    benchmark.addArg("--output");
+    _ = benchmark.addOutputFileArg("native-cuda-diagnostic.json");
+    context.b.step(
+        descriptor.benchmark_step.?,
+        "Run the fixed Native CUDA cold-process diagnostic matrix",
+    ).dependOn(&benchmark.step);
 }
 
 fn createStwoModule(context: Context) *std.Build.Module {
@@ -159,6 +173,7 @@ fn registerMissingToolchain(b: *std.Build) void {
     const unavailable = b.addFail(toolchain_requirement);
     b.step(descriptor.build_step, toolchain_requirement).dependOn(&unavailable.step);
     b.step(descriptor.test_step.?, toolchain_requirement).dependOn(&unavailable.step);
+    b.step(descriptor.benchmark_step.?, toolchain_requirement).dependOn(&unavailable.step);
 }
 
 fn product(role: graph.Role) graph.Product {
@@ -180,5 +195,9 @@ test "Native CUDA is staged only for explicit Linux construction" {
     try std.testing.expectEqualStrings(
         descriptor.test_step.?,
         descriptor.release_gates[descriptor.release_gates.len - 1],
+    );
+    try std.testing.expectEqualStrings(
+        "benchmark-native-cuda",
+        descriptor.benchmark_step.?,
     );
 }
