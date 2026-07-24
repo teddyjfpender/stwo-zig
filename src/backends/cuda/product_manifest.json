@@ -88,6 +88,12 @@
       "stwo_zig_cuda_aot_entry_count"
     ],
     "zig_owned_symbols": [
+      "stwo_blake2s_fri_leaf_on",
+      "stwo_blake2s_interior4_on",
+      "stwo_blake2s_layer_on",
+      "stwo_blake2s_progressive_absorb_on",
+      "stwo_blake2s_progressive_finalize_on",
+      "stwo_blake2s_progressive_init_on",
       "stwo_cuda_device_snapshot",
       "stwo_exec_context_alloc_u32",
       "stwo_exec_context_create",
@@ -113,7 +119,6 @@
       "stwo_native_wide_fibonacci_trace_on"
     ],
     "staged_stage_modules": [
-      "commitment",
       "decommit",
       "fri",
       "oods",
