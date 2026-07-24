@@ -1,9 +1,107 @@
-//! AIR-owned binding from Native Plonk semantics to a generic CUDA recipe.
+//! CPU oracle boundary and CUDA recipe for the Native Plonk trace.
 
+const std = @import("std");
 const cpu_plonk = @import("../../../examples/plonk/input.zig");
 const geometry_mod = @import("geometry.zig");
 const indexed_recurrence =
     @import("../../../backends/cuda/runtime/traces/indexed_recurrence.zig");
+const ir = @import("stwo_backend_contracts").proof_program;
+const pcs = @import("stwo_core").pcs;
+
+pub const Materialized = struct {
+    geometry: geometry_mod.Geometry,
+    prepared: cpu_plonk.PreparedInput,
+    digest: ir.Digest,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        statement: cpu_plonk.Statement,
+        protocol: pcs.PcsConfig,
+    ) !Materialized {
+        const geometry = try geometry_mod.admit(statement, protocol);
+        var prepared = try cpu_plonk.prepare(allocator, statement);
+        errdefer prepared.deinit(allocator);
+        try validatePrepared(&prepared, geometry);
+        return .{
+            .geometry = geometry,
+            .prepared = prepared,
+            .digest = try digestPrepared(&prepared),
+        };
+    }
+
+    pub fn deinit(self: *Materialized, allocator: std.mem.Allocator) void {
+        self.prepared.deinit(allocator);
+        self.* = undefined;
+    }
+};
+
+pub fn digestPrepared(
+    prepared: *const cpu_plonk.PreparedInput,
+) !ir.Digest {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo/native/plonk/materialized-trace-values/v1");
+    hashInt(&hash, u32, prepared.request.log_n_rows);
+    hashTree(
+        &hash,
+        0,
+        prepared.trace.preprocessed.columns orelse
+            return error.PreparedInputConsumed,
+    );
+    hashTree(
+        &hash,
+        1,
+        prepared.trace.main.columns orelse
+            return error.PreparedInputConsumed,
+    );
+    var result: ir.Digest = undefined;
+    hash.final(&result);
+    return result;
+}
+
+fn validatePrepared(
+    prepared: *const cpu_plonk.PreparedInput,
+    geometry: geometry_mod.Geometry,
+) !void {
+    try prepared.trace.validate();
+    if (!std.meta.eql(prepared.request, geometry.statement))
+        return error.InvalidPreparedGeometry;
+    const preprocessed = prepared.trace.preprocessed.columns orelse
+        return error.PreparedInputConsumed;
+    const main = prepared.trace.main.columns orelse
+        return error.PreparedInputConsumed;
+    if (preprocessed.len != geometry_mod.preprocessed_columns or
+        main.len != geometry_mod.main_columns or
+        prepared.trace.committed_columns != geometry.traceColumnCount() or
+        prepared.trace.committed_cells != geometry.trace_elements)
+    {
+        return error.InvalidPreparedGeometry;
+    }
+}
+
+fn hashTree(
+    hash: *std.crypto.hash.sha2.Sha256,
+    role: u32,
+    columns: anytype,
+) void {
+    hashInt(hash, u32, role);
+    hashInt(hash, u64, @intCast(columns.len));
+    for (columns, 0..) |column, ordinal| {
+        hashInt(hash, u64, @intCast(ordinal));
+        hashInt(hash, u32, column.log_size);
+        hashInt(hash, u64, @intCast(column.values.len));
+        for (column.values) |value| hashInt(hash, u32, value.toU32());
+    }
+}
+
+fn hashInt(
+    hash: *std.crypto.hash.sha2.Sha256,
+    comptime T: type,
+    value: T,
+) void {
+    var encoded: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &encoded, value, .little);
+    hash.update(&encoded);
+}
 
 pub const recipe = indexed_recurrence.Recipe{
     .index_base = 0,
@@ -21,7 +119,7 @@ pub fn prepare(
     destinations: indexed_recurrence.Destinations,
     statement: cpu_plonk.Statement,
 ) !indexed_recurrence.PreparedLaunch {
-    _ = try geometry_mod.admit(statement);
+    try cpu_plonk.validate(statement);
     return indexed_recurrence.prepare(
         session,
         destinations,
@@ -40,7 +138,6 @@ pub fn generate(
 }
 
 test "Plonk binding contributes only statement geometry and AIR recipe" {
-    const std = @import("std");
     var session = TestSession{};
     try generate(
         &session,
@@ -51,6 +148,24 @@ test "Plonk binding contributes only statement geometry and AIR recipe" {
         .{ .log_n_rows = 5 },
     );
     try std.testing.expectEqual(@as(u64, 1), session.launches);
+}
+
+test "materialized Plonk trace is exactly the CPU oracle trace" {
+    const allocator = std.testing.allocator;
+    const statement = cpu_plonk.Statement{ .log_n_rows = 7 };
+    var materialized = try Materialized.init(
+        allocator,
+        statement,
+        pcs.PcsConfig.default(),
+    );
+    defer materialized.deinit(allocator);
+    var oracle = try cpu_plonk.prepare(allocator, statement);
+    defer oracle.deinit(allocator);
+    try std.testing.expectEqualSlices(
+        u8,
+        &(try digestPrepared(&oracle)),
+        &materialized.digest,
+    );
 }
 
 const TestSession = struct {
