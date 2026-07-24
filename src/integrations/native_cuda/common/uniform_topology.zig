@@ -305,7 +305,7 @@ pub fn TopologyFor(comptime Layout: type) type {
                     );
                     @memset(
                         column_logs[column_cursor..][0..tree.column_count],
-                        tree.column_log_size,
+                        tree.commitment_log_size,
                     );
                     trace_trees[trace_cursor] = .{
                         .tree_index = try u32Count(trace_cursor),
@@ -581,6 +581,9 @@ test "indexed XOR preprocessed columns are sampled and opened" {
     try std.testing.expectEqual(@as(u32, 11), quotient.source_count);
     try std.testing.expectEqual(@as(usize, 3), decommit.trace_trees.len);
     try std.testing.expectEqual(@as(usize, 11), decommit.column_log_sizes.len);
+    for (decommit.column_log_sizes) |log_size| {
+        try std.testing.expectEqual(@as(u32, 4), log_size);
+    }
     try std.testing.expectEqual(
         layout_mod.TraceRole.preprocessed,
         decommit.trace_trees[0].role,
