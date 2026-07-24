@@ -143,6 +143,8 @@ fn openTrace(
     views: *const bindings.Views,
     opening: topology_mod.TraceOpening,
 ) !void {
+    if (opening.unretained_bottom_layers != 0)
+        return error.InvalidKernelDescriptor;
     const queries = views.decommit.traceQueries();
     try Decommit.prepareTraceQueries(
         session,
@@ -163,7 +165,7 @@ fn openTrace(
         session,
         opening.tree_index,
         opening.column_count,
-        0,
+        localFirstColumn(opening.role),
         source.columns,
         source.log_sizes,
         prepared.decommit.query_log_size,

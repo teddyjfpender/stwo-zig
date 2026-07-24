@@ -1,9 +1,9 @@
 //! Fully resident FRI commitment, folding, and terminal polynomial stage.
 
 const std = @import("std");
+const field = @import("../../../../backends/cuda/abi/field.zig");
 const stages = @import("../../../../backends/cuda/runtime/stages/mod.zig");
 const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
-const telemetry = @import("../../../../backends/cuda/runtime/telemetry.zig");
 const canonical_ingress = @import("../canonical_ingress.zig");
 const commit_tree = @import("../commit_tree.zig");
 const plan_mod = @import("../plan.zig");
@@ -26,8 +26,6 @@ pub fn run(
 ) !void {
     return runWith(NativeOps, transaction, prepared, pack, views);
 }
-
-pub const execute = run;
 
 fn runWith(
     comptime Ops: type,
@@ -193,7 +191,7 @@ fn drawAlpha(
         max_rejection_rounds,
         views.fri.alpha,
         try (try views.transcript.output_snapshot.sub(0, 4)).cast(
-            @import("../../../../backends/cuda/abi/field.zig").SecureField,
+            field.SecureField,
         ),
     );
 }
@@ -319,8 +317,4 @@ test "terminal FRI storage is distinct and exactly size two" {
 
 test {
     _ = @import("pow_decommit.zig");
-}
-
-comptime {
-    _ = telemetry;
 }
