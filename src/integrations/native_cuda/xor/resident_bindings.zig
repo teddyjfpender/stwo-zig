@@ -20,6 +20,7 @@ const Words = column.DeviceSlice(u32);
 
 pub const Bound = struct {
     trees: views.TraceTrees,
+    trace: Trace,
     twiddles_forward: common.Words,
     twiddles_inverse: common.Words,
     protocol_words: common.Words,
@@ -33,6 +34,13 @@ pub const Bound = struct {
     pow: views.Pow,
     decommit: views.Decommit,
     proof: views.Proof,
+};
+
+pub const Trace = struct {
+    trees: views.TraceTrees,
+    twiddles_forward: common.Words,
+    twiddles_inverse: common.Words,
+    source_evaluations: common.WordMatrix,
 };
 
 pub const Transcript = struct {
@@ -171,18 +179,26 @@ pub fn bind(
         .storage = source_words,
         .column_stride_words = committed_rows,
     };
+    const twiddles_forward = try exactWords(
+        provider,
+        slots.twiddles_forward,
+        rows,
+    );
+    const twiddles_inverse = try exactWords(
+        provider,
+        slots.twiddles_inverse,
+        rows,
+    );
     return .{
         .trees = trees,
-        .twiddles_forward = try exactWords(
-            provider,
-            slots.twiddles_forward,
-            rows,
-        ),
-        .twiddles_inverse = try exactWords(
-            provider,
-            slots.twiddles_inverse,
-            rows,
-        ),
+        .trace = .{
+            .trees = trees,
+            .twiddles_forward = twiddles_forward,
+            .twiddles_inverse = twiddles_inverse,
+            .source_evaluations = source_evaluations,
+        },
+        .twiddles_forward = twiddles_forward,
+        .twiddles_inverse = twiddles_inverse,
         .protocol_words = protocol_words,
         .statement_words = statement_words,
         .transcript = transcript,
