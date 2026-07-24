@@ -83,6 +83,7 @@ test "Plonk route seals the production protocol" {
         .air = .plonk,
         .log_n_rows = 8,
         .sequence_len = null,
+        .n_rounds = null,
         .log_size = null,
         .log_step = null,
         .offset = null,

@@ -378,6 +378,7 @@ fn transcriptValueCount(
     geometry: request.Geometry,
 ) u32 {
     return switch (operation) {
+        .mix_statement => 2,
         .mix_sampled_values => @intCast(geometry.sampled_value_count),
         .draw_queries => @intCast(geometry.protocol.n_queries),
         else => 1,
@@ -499,6 +500,7 @@ test "wide Fibonacci emits one validated backend-neutral program" {
     try std.testing.expectEqual(@as(u32, 2), program.transcript[5].node);
     try std.testing.expectEqual(@as(u32, 3), program.transcript[6].node);
     try std.testing.expectEqual(@as(u32, 3), program.transcript[8].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[3].value_count);
     try std.testing.expect(program.native_air_contract == null);
 }
 

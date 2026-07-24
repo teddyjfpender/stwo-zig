@@ -323,6 +323,7 @@ fn transcriptValueCount(
     operation: u32,
     geometry: geometry_mod.Geometry,
 ) u32 {
+    if (operation == 3) return 3;
     if (operation == 7) return geometry_mod.sampled_mask_points;
     if (operation == 11 + 2 * geometry.fri_tree_count)
         return @intCast(geometry.protocol.fri_config.n_queries);
@@ -523,10 +524,11 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
     try std.testing.expectEqual(@as(u32, 2), program.transcript[5].node);
     try std.testing.expectEqual(@as(u32, 3), program.transcript[6].node);
     try std.testing.expectEqual(@as(u32, 3), program.transcript[8].node);
+    try std.testing.expectEqual(@as(u32, 3), program.transcript[3].value_count);
     var expected: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected,
-        "a63f5b04be3cd6185992094b9c4d9d1957cab53d11b873bdd8b602678e2c24d1",
+        "0a160d351ea48aaf86425a046c435c32f2c84f65a33b29867fad821a96c4fe88",
     );
     try std.testing.expectEqualSlices(u8, &expected, &program.semantic_digest);
 }
