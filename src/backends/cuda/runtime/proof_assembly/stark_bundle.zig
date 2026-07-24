@@ -590,7 +590,7 @@ test "SWPC v1 rejects gaps counts truncation and poisoned degree verdict" {
         const storage = try Fixture.make(allocator, 5, 8);
         storage[14] += 1;
         try std.testing.expectError(
-            error.InvalidNestedDecommitment,
+            error.InvalidProtocolCounts,
             Bundle.decodeOwned(allocator, storage),
         );
     }
