@@ -14,10 +14,13 @@ const ir = @import("stwo_backend_contracts").proof_program;
 
 const node_count = 8;
 
-pub const kernel_pack_identity: ir.Digest = ir.identityDigest(
-    "stwo-zig/native-cuda/xor/aot-pack/v1",
-);
+pub const kernel_pack_identity: ir.Digest = digestKernelPack();
 pub const scheduler_version = cuda_plan.schedule_version;
+
+fn digestKernelPack() ir.Digest {
+    @setEvalBranchQuota(10_000);
+    return ir.identityDigest("stwo-zig/native-cuda/xor/aot-pack/v1");
+}
 
 pub fn emit(
     allocator: std.mem.Allocator,
