@@ -4,6 +4,7 @@ const std = @import("std");
 const arena_module = @import("arena.zig");
 const column = @import("column.zig");
 const decommit_bundle = @import("proof_assembly/decommit_bundle.zig");
+const stark_bundle = @import("proof_assembly/stark_bundle.zig");
 const runtime_error = @import("error.zig");
 const session_module = @import("session.zig");
 const telemetry = @import("telemetry.zig");
@@ -18,6 +19,19 @@ pub fn TransactionFor(comptime Session: type) type {
 
         pub const BundleOutput = struct {
             bundle: decommit_bundle.Bundle,
+            verdict: Session.FinishVerdict,
+
+            pub fn deinit(
+                self: *@This(),
+                allocator: std.mem.Allocator,
+            ) void {
+                self.bundle.deinit(allocator);
+                self.* = undefined;
+            }
+        };
+
+        pub const StarkBundleOutput = struct {
+            bundle: stark_bundle.Bundle,
             verdict: Session.FinishVerdict,
 
             pub fn deinit(
@@ -93,6 +107,29 @@ pub fn TransactionFor(comptime Session: type) type {
             const destination = try self.slotAs(F, id);
             if (destination.len != values.len) return error.SizeOverflow;
             try self.session.context.uploadSlice(F, destination, values);
+        }
+
+        /// Copies one exact resident range without constructing arena-backed
+        /// Buffer handles or crossing the host boundary.
+        pub fn copyResidentSlice(
+            self: *Self,
+            comptime F: type,
+            destination_id: arena_module.SlotId,
+            destination_first: usize,
+            source_id: arena_module.SlotId,
+            source_first: usize,
+            count: usize,
+        ) runtime_error.Error!void {
+            if (self.state != .proving) return error.InvalidState;
+            const destination = try (try self.slotAs(
+                F,
+                destination_id,
+            )).sub(destination_first, count);
+            const source = try (try self.slotAs(
+                F,
+                source_id,
+            )).sub(source_first, count);
+            try self.session.context.copyDeviceSlice(F, destination, source);
         }
 
         pub fn finishIngress(self: *Self) runtime_error.Error!void {
@@ -175,6 +212,31 @@ pub fn TransactionFor(comptime Session: type) type {
             };
         }
 
+        /// Decodes the complete STARK proof transport after the sole terminal
+        /// read. The nested decommitment borrows this allocation.
+        pub fn assembleStarkBundleAndFinish(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            proof_slot: arena_module.SlotId,
+        ) !StarkBundleOutput {
+            const source = try self.slot(proof_slot);
+            const storage = try allocator.alloc(u32, source.len);
+            const verdict = self.assembleAndFinish(
+                storage,
+                proof_slot,
+            ) catch |err| {
+                allocator.free(storage);
+                return err;
+            };
+            return .{
+                .bundle = try stark_bundle.Bundle.decodeOwned(
+                    allocator,
+                    storage,
+                ),
+                .verdict = verdict,
+            };
+        }
+
         /// Releases all registered device memory even when a kernel failed
         /// with an active proof stage.
         pub fn abort(self: *Self) runtime_error.Error!void {
@@ -194,6 +256,7 @@ test "proof transaction surface exposes no intermediate host read" {
     try std.testing.expect(!@hasDecl(Transaction, "download"));
     try std.testing.expect(!@hasDecl(Transaction, "read"));
     try std.testing.expect(@hasDecl(Transaction, "assembleAndFinish"));
+    try std.testing.expect(@hasDecl(Transaction, "assembleStarkBundleAndFinish"));
     try std.testing.expect(@hasDecl(Transaction, "abort"));
 }
 
@@ -255,6 +318,30 @@ test "proof transaction survives value movement and owns failure cleanup" {
                 return error.HostWriteOutsideIngress;
             const pointer = try self.deviceSlicePointer(F, destination, source.len);
             @memcpy(pointer[0..source.len], source);
+        }
+
+        pub fn copyDeviceSlice(
+            self: *@This(),
+            comptime F: type,
+            destination: anytype,
+            source: anytype,
+        ) runtime_error.Error!void {
+            if (self.active_stage == null or destination.len != source.len)
+                return error.InvalidState;
+            const destination_pointer = try self.deviceSlicePointer(
+                F,
+                destination,
+                destination.len,
+            );
+            const source_pointer = try self.deviceSlicePointer(
+                F,
+                source,
+                source.len,
+            );
+            @memcpy(
+                destination_pointer[0..destination.len],
+                source_pointer[0..source.len],
+            );
         }
 
         pub fn readProofSlice(
@@ -326,7 +413,7 @@ test "proof transaction survives value movement and owns failure cleanup" {
     const allocator = std.testing.allocator;
     const requirements = [_]arena_module.Requirement{.{
         .id = 9,
-        .words = 4,
+        .words = 8,
         .live_from = .ingress,
         .live_through = .proof_assembly,
     }};
@@ -335,10 +422,12 @@ test "proof transaction survives value movement and owns failure cleanup" {
         &.{89},
         &requirements,
     );
-    try transaction.upload(u32, 9, &.{ 1, 2, 3, 4 });
+    try transaction.upload(u32, 9, &.{ 1, 2, 3, 4, 0, 0, 0, 0 });
     try transaction.finishIngress();
+    try transaction.beginStage(.trace_generation);
+    try transaction.copyResidentSlice(u32, 9, 4, 9, 0, 4);
+    try transaction.endStage(.trace_generation);
     inline for (.{
-        telemetry.Stage.trace_generation,
         telemetry.Stage.trace_commit,
         telemetry.Stage.constraint_evaluation,
         telemetry.Stage.oods,
@@ -350,12 +439,16 @@ test "proof transaction survives value movement and owns failure cleanup" {
         try transaction.beginStage(stage);
         try transaction.endStage(stage);
     }
-    var output: [4]u32 = undefined;
+    var output: [8]u32 = undefined;
     try std.testing.expectEqual(
         @as(u8, 7),
         try transaction.assembleAndFinish(&output, 9),
     );
-    try std.testing.expectEqualSlices(u32, &.{ 1, 2, 3, 4 }, &output);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 1, 2, 3, 4, 1, 2, 3, 4 },
+        &output,
+    );
 
     var failed = try Transaction.open(allocator, &.{89}, &requirements);
     try failed.finishIngress();

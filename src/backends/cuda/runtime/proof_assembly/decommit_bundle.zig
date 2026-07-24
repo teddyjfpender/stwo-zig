@@ -11,6 +11,7 @@ pub const aux_node_words: usize = 10;
 pub const secure_words: usize = 4;
 pub const indexed_secure_words: usize = 5;
 pub const max_protocol_queries: usize = 256;
+pub const max_tree_count: usize = 512;
 
 pub const Error = error{
     InvalidHeader,
@@ -49,6 +50,7 @@ pub const TreeMeta = struct {
 
 pub const Bundle = struct {
     storage: []u32,
+    owns_storage: bool,
     used_words: usize,
     raw_query_offset: usize,
     raw_query_count: usize,
@@ -60,7 +62,23 @@ pub const Bundle = struct {
         allocator: std.mem.Allocator,
         storage: []u32,
     ) (std.mem.Allocator.Error || Error)!Bundle {
-        errdefer allocator.free(storage);
+        return decode(allocator, storage, true);
+    }
+
+    /// Decodes an exact subrange owned by a containing proof bundle.
+    pub fn decodeBorrowed(
+        allocator: std.mem.Allocator,
+        storage: []u32,
+    ) (std.mem.Allocator.Error || Error)!Bundle {
+        return decode(allocator, storage, false);
+    }
+
+    fn decode(
+        allocator: std.mem.Allocator,
+        storage: []u32,
+        owns_storage: bool,
+    ) (std.mem.Allocator.Error || Error)!Bundle {
+        errdefer if (owns_storage) allocator.free(storage);
         if (storage.len < header_words or
             storage[0] != magic or
             storage[1] != version)
@@ -76,7 +94,8 @@ pub const Bundle = struct {
         const used: usize = storage[7];
         if (used < header_words or used > storage.len)
             return error.InvalidUsedWords;
-        if (tree_count == 0) return error.InvalidTreeCount;
+        if (tree_count == 0 or tree_count > max_tree_count)
+            return error.InvalidTreeCount;
 
         const metadata_words = std.math.mul(
             usize,
@@ -235,6 +254,7 @@ pub const Bundle = struct {
 
         return .{
             .storage = storage,
+            .owns_storage = owns_storage,
             .used_words = used,
             .raw_query_offset = raw_offset,
             .raw_query_count = raw_count,
@@ -246,7 +266,7 @@ pub const Bundle = struct {
 
     pub fn deinit(self: *Bundle, allocator: std.mem.Allocator) void {
         allocator.free(self.trees);
-        allocator.free(self.storage);
+        if (self.owns_storage) allocator.free(self.storage);
         self.* = undefined;
     }
 

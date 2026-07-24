@@ -254,6 +254,58 @@ pub fn ContextFor(comptime Api: type) type {
             self.counters.d2d(self.active_stage, bytes);
         }
 
+        /// Copies exact, independently validated resident subranges.
+        ///
+        /// Arena slices remain slices: callers cannot forge whole-allocation
+        /// Buffer handles merely to assemble a proof output.
+        pub fn copyDeviceSlice(
+            self: *Self,
+            comptime F: type,
+            destination: anytype,
+            source: anytype,
+        ) runtime_error.Error!void {
+            if (self.active_stage == null) return error.StageNotActive;
+            if (destination.len == 0 or destination.len != source.len)
+                return error.SizeOverflow;
+            const destination_pointer = try self.deviceSlicePointer(
+                F,
+                destination,
+                destination.len,
+            );
+            const source_pointer = try self.deviceSlicePointer(
+                F,
+                source,
+                source.len,
+            );
+            const bytes = std.math.mul(
+                usize,
+                destination.len,
+                @sizeOf(F),
+            ) catch return error.SizeOverflow;
+            const destination_end = std.math.add(
+                usize,
+                destination.address,
+                bytes,
+            ) catch return error.SizeOverflow;
+            const source_end = std.math.add(
+                usize,
+                source.address,
+                bytes,
+            ) catch return error.SizeOverflow;
+            if (destination.address < source_end and
+                source.address < destination_end)
+            {
+                return error.OverlappingDeviceRange;
+            }
+            try runtime_error.check(Api.stwo_exec_context_memcpy_d2d_async(
+                try self.requireHandle(),
+                destination_pointer,
+                source_pointer,
+                bytes,
+            ));
+            self.counters.d2d(self.active_stage, bytes);
+        }
+
         pub fn devicePointer(
             self: *Self,
             buffer: Buffer,
@@ -518,6 +570,29 @@ test "context owns buffers and accounts only explicit transfers" {
         @intFromPtr(try context.deviceSlicePointer(u32, owned_slice, 16)),
     );
     try context.uploadSlice(u32, owned_slice, &.{ 5, 6, 7, 8 });
+    const source_slice = .{
+        .address = owned_slice.address,
+        .len = 4,
+        .owner = owned_slice.owner,
+        .generation = owned_slice.generation,
+    };
+    const destination_slice = .{
+        .address = owned_slice.address + 8 * @sizeOf(u32),
+        .len = 4,
+        .owner = owned_slice.owner,
+        .generation = owned_slice.generation,
+    };
+    try context.copyDeviceSlice(u32, destination_slice, source_slice);
+    const overlapping_slice = .{
+        .address = owned_slice.address + 2 * @sizeOf(u32),
+        .len = 4,
+        .owner = owned_slice.owner,
+        .generation = owned_slice.generation,
+    };
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        context.copyDeviceSlice(u32, overlapping_slice, source_slice),
+    );
     var oversized_slice = owned_slice;
     oversized_slice.len = 17;
     try std.testing.expectError(
@@ -567,6 +642,7 @@ test "context owns buffers and accounts only explicit transfers" {
     try context.close();
     try std.testing.expectEqual(@as(u64, 64), context.counters.peak_live_bytes);
     try std.testing.expectEqual(@as(u64, 32), context.counters.h2d_bytes);
+    try std.testing.expectEqual(@as(u64, 16), context.counters.d2d_bytes);
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2h_proof_bytes);
     try std.testing.expect(context.counters.isResident());
     try std.testing.expect(context.counters.stagesCompleteExactlyOnce());
