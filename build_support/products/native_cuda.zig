@@ -97,31 +97,8 @@ pub fn addProduct(context: Context) void {
         return;
     }
 
-    const stwo = createStwoModule(context);
-    const root = graph.create(context.b, .{
-        .product = descriptor.product,
-        .root_source_file = "src/products/native_cuda/main.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    context.protocol.addImports(root);
-    root.addImport("stwo", stwo);
-    root.addImport("stwo_native_cuda", stwo);
-    root.addOptions(
-        "product_identity",
-        graph_identity.productOptionsWithRuntime(
-            context.b,
-            context.identity,
-            descriptor.product,
-            context.target,
-            context.optimize,
-            .{
-                .runtime_manifest = "cuda-process-runtime-v1",
-                .sdk_manifest = "cuda-explicit-toolchain-v1",
-                .aot_manifest = "cuda-authenticated-native-pack-v1",
-            },
-        ),
-    );
+    const stwo = createStwoModule(context, .library);
+    const root = createProductModule(context, descriptor.product, stwo);
 
     const installed = graph_install.executable(
         context.b,
@@ -157,10 +134,21 @@ pub fn addProduct(context: Context) void {
     run.addArg("--report-out");
     _ = run.addOutputFileArg("native-cuda-smoke-report.json");
     run.addArgs(&.{ "--repeat", "3" });
-    context.b.step(
+    const test_step = context.b.step(
         descriptor.test_step.?,
         "Run the repeated Native CUDA resident proof smoke",
-    ).dependOn(&run.step);
+    );
+    test_step.dependOn(&run.step);
+    const test_stwo = createStwoModule(context, .@"test");
+    const tests = context.b.addTest(.{
+        .root_module = createProductModule(
+            context,
+            product(.@"test"),
+            test_stwo,
+        ),
+    });
+    cuda.linkRuntime(tests, options.toolchain(), archive);
+    test_step.dependOn(&context.b.addRunArtifact(tests).step);
 
     const benchmark = context.b.addSystemCommand(&.{
         "python3",
@@ -176,15 +164,50 @@ pub fn addProduct(context: Context) void {
     ).dependOn(&benchmark.step);
 }
 
-fn createStwoModule(context: Context) *std.Build.Module {
+fn createStwoModule(
+    context: Context,
+    role: graph.Role,
+) *std.Build.Module {
     const module = graph.create(context.b, .{
-        .product = product(.library),
+        .product = product(role),
         .root_source_file = "src/stwo.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
     return module;
+}
+
+fn createProductModule(
+    context: Context,
+    product_descriptor: graph.Product,
+    stwo: *std.Build.Module,
+) *std.Build.Module {
+    const root = graph.create(context.b, .{
+        .product = product_descriptor,
+        .root_source_file = "src/products/native_cuda/main.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(root);
+    root.addImport("stwo", stwo);
+    root.addImport("stwo_native_cuda", stwo);
+    root.addOptions(
+        "product_identity",
+        graph_identity.productOptionsWithRuntime(
+            context.b,
+            context.identity,
+            product_descriptor,
+            context.target,
+            context.optimize,
+            .{
+                .runtime_manifest = "cuda-process-runtime-v1",
+                .sdk_manifest = "cuda-explicit-toolchain-v1",
+                .aot_manifest = "cuda-authenticated-native-pack-v1",
+            },
+        ),
+    );
+    return root;
 }
 
 fn registerMissingToolchain(b: *std.Build) void {

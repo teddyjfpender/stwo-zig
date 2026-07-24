@@ -185,23 +185,30 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             )
 
     def test_blake_shape_binds_rounds_cli_and_committed_cells(self) -> None:
-        shape = BlakeShape(12, 10)
-        shape.validate()
-        self.assertEqual(
-            ["--log-n-rows", "12", "--n-rounds", "10"],
-            shape.cli_shape_args(),
-        )
-        self.assertEqual(
-            4096 * 10 * 96,
-            shape.trace_cells,
-        )
-        self.assertEqual(
-            {
-                "log_n_rows": 12,
-                "n_rounds": 10,
-            },
-            shape.artifact_statement(),
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shape = BlakeShape(12, 10)
+            settings = self.settings(
+                root,
+                self.make_product(root, "candidate-product"),
+                workload=Workload(
+                    "fake_blake",
+                    "seeded_wide",
+                    shape,
+                    True,
+                ),
+            )
+            document, _ = run_benchmark(settings)
+
+            workload = document["workloads"][0]
+            self.assertEqual(shape.statement(), workload["statement"])
+            command = workload["sessions"][0]["raw"]["command"]
+            self.assertIn("raw-stwo-blake-v1", command)
+            self.assertIn("--n-rounds", command)
+            self.assertEqual(
+                "blake",
+                workload["sessions"][0]["raw"]["proof"]["example"],
+            )
 
     def test_paired_rounds_produce_class_equal_portfolio(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

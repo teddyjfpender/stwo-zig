@@ -38,6 +38,7 @@ parser.add_argument("--backend", required=True)
 parser.add_argument("--protocol", required=True)
 parser.add_argument("--log-n-rows", type=int)
 parser.add_argument("--sequence-len", type=int)
+parser.add_argument("--n-rounds", type=int)
 parser.add_argument("--log-size", type=int)
 parser.add_argument("--log-step", type=int)
 parser.add_argument("--offset", type=int)
@@ -94,6 +95,21 @@ elif args.air == "plonk":
         "trace_rows": rows,
         "trace_cells": trace_cells,
     }
+elif args.air == "blake":
+    if args.log_n_rows is None or args.n_rounds is None:
+        parser.error("blake shape is incomplete")
+    rows = 1 << args.log_n_rows
+    trace_cells = rows * args.n_rounds * 96
+    artifact_statement_key = "blake_statement"
+    artifact_statement = {
+        "log_n_rows": args.log_n_rows,
+        "n_rounds": args.n_rounds,
+    }
+    report_statement = {
+        **artifact_statement,
+        "trace_rows": rows,
+        "trace_cells": trace_cells,
+    }
 else:
     parser.error("unsupported AIR")
 
@@ -130,7 +146,9 @@ artifact = {
         },
         "lifting_log_size": None,
     },
-    "blake_statement": None,
+    "blake_statement": (
+        artifact_statement if artifact_statement_key == "blake_statement" else None
+    ),
     "plonk_statement": (
         artifact_statement if artifact_statement_key == "plonk_statement" else None
     ),
