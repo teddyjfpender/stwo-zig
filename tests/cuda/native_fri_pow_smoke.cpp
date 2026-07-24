@@ -1,3 +1,4 @@
+#include "blake2s_reference.h"
 #include "transcript_reference.h"
 
 #include <cuda_runtime_api.h>
@@ -32,10 +33,20 @@ extern "C" int stwo_fold_circle_into_line_on(
     const std::uint32_t *, std::size_t, std::uint32_t, std::uint32_t,
     const std::uint32_t *, std::size_t, std::uint32_t, const Qm31 *,
     std::uint32_t, std::uint32_t *, std::size_t, std::uint32_t, void *);
+extern "C" int stwo_fold_circle_into_line_and_hash_on(
+    const std::uint32_t *, std::size_t, std::uint32_t, std::uint32_t,
+    const std::uint32_t *, std::size_t, std::uint32_t, const Qm31 *,
+    std::uint32_t, std::uint32_t *, std::size_t, std::uint32_t,
+    blake2s_reference::Hash *, std::size_t, void *);
 extern "C" int stwo_fold_line_on(
     const std::uint32_t *, std::size_t, std::uint32_t, std::uint32_t,
     const std::uint32_t *, std::size_t, std::uint32_t, const Qm31 *,
     std::uint32_t, std::uint32_t *, std::size_t, std::uint32_t, void *);
+extern "C" int stwo_fold_line_and_hash_on(
+    const std::uint32_t *, std::size_t, std::uint32_t, std::uint32_t,
+    const std::uint32_t *, std::size_t, std::uint32_t, const Qm31 *,
+    std::uint32_t, std::uint32_t *, std::size_t, std::uint32_t,
+    blake2s_reference::Hash *, std::size_t, void *);
 extern "C" int stwo_fri_fold_fused3_on(
     const std::uint32_t *, std::size_t, std::uint32_t, std::uint32_t,
     std::uint32_t, std::uint32_t, std::uint32_t, const std::uint32_t *,
@@ -330,21 +341,38 @@ bool test_folds(Arena &arena) {
     auto *device_source = arena.allocate(source.size());
     auto *device_alpha = arena.allocate(4);
     auto *device_circle = arena.allocate(initial.size());
+    auto *device_circle_hashed = arena.allocate(initial.size());
     auto *device_line = arena.allocate(line_expected.size());
+    auto *device_line_hashed = arena.allocate(line_expected.size());
+    auto *device_circle_leaves = arena.allocate(8 * (size / 2));
+    auto *device_line_leaves = arena.allocate(8 * (size / 2));
     auto *device_fused_circle = arena.allocate(4 * fused_stride);
     auto *device_fused_line = arena.allocate(4 * fused_stride);
     if (device_domain == nullptr || device_source == nullptr ||
         device_alpha == nullptr || device_circle == nullptr ||
-        device_line == nullptr || device_fused_circle == nullptr ||
+        device_circle_hashed == nullptr || device_line == nullptr ||
+        device_line_hashed == nullptr || device_circle_leaves == nullptr ||
+        device_line_leaves == nullptr || device_fused_circle == nullptr ||
         device_fused_line == nullptr ||
         !arena.upload(device_domain, domain.data(), domain.size() * 4) ||
         !arena.upload(device_source, source.data(), source.size() * 4) ||
         !arena.upload(device_alpha, &alpha, sizeof(alpha)) ||
         !arena.upload(device_circle, initial.data(), initial.size() * 4) ||
+        !arena.upload(
+            device_circle_hashed,
+            initial.data(),
+            initial.size() * sizeof(initial[0])) ||
         !check(
             stwo_exec_context_fill_u32_async(
                 arena.context, device_line, 0, line_expected.size()),
             "clear line output") ||
+        !check(
+            stwo_exec_context_fill_u32_async(
+                arena.context,
+                device_line_hashed,
+                0,
+                line_expected.size()),
+            "clear hashed line output") ||
         !check(
             stwo_exec_context_fill_u32_async(
                 arena.context, device_fused_circle, 0, 4 * fused_stride),
@@ -364,12 +392,32 @@ bool test_folds(Arena &arena) {
                 device_circle, initial.size(), fold_stride, arena.stream),
             "circle fold") ||
         !check(
+            stwo_fold_circle_into_line_and_hash_on(
+                device_domain, domain.size(), circle_offset, size,
+                device_source, source.size(), source_stride,
+                reinterpret_cast<Qm31 *>(device_alpha), 2,
+                device_circle_hashed, initial.size(), fold_stride,
+                reinterpret_cast<blake2s_reference::Hash *>(
+                    device_circle_leaves),
+                size / 2, arena.stream),
+            "circle fold with leaves") ||
+        !check(
             stwo_fold_line_on(
                 device_domain, domain.size(), line_offset, size,
                 device_source, source.size(), source_stride,
                 reinterpret_cast<Qm31 *>(device_alpha), 1,
                 device_line, line_expected.size(), fold_stride, arena.stream),
             "line fold") ||
+        !check(
+            stwo_fold_line_and_hash_on(
+                device_domain, domain.size(), line_offset, size,
+                device_source, source.size(), source_stride,
+                reinterpret_cast<Qm31 *>(device_alpha), 1,
+                device_line_hashed, line_expected.size(), fold_stride,
+                reinterpret_cast<blake2s_reference::Hash *>(
+                    device_line_leaves),
+                size / 2, arena.stream),
+            "line fold with leaves") ||
         !check(
             stwo_fri_fold_fused3_on(
                 device_domain, domain.size(), circle_offset, line_offset,
@@ -388,6 +436,14 @@ bool test_folds(Arena &arena) {
             "fused line fold")) {
         return false;
     }
+    auto hashed_fold_status = [&](blake2s_reference::Hash *leaves,
+                                  std::size_t count) {
+        return stwo_fold_line_and_hash_on(
+            device_domain, domain.size(), line_offset, size, device_source,
+            source.size(), source_stride,
+            reinterpret_cast<Qm31 *>(device_alpha), 0, device_line_hashed,
+            line_expected.size(), fold_stride, leaves, count, arena.stream);
+    };
     if (stwo_fold_line_on(
             device_domain, domain.size(), line_offset, size,
             device_source, source.size() - 1, source_stride,
@@ -400,6 +456,19 @@ bool test_folds(Arena &arena) {
             reinterpret_cast<Qm31 *>(device_alpha), 0,
             device_source, source.size(), source_stride,
             arena.stream) == static_cast<int>(cudaSuccess) ||
+        hashed_fold_status(
+            reinterpret_cast<blake2s_reference::Hash *>(device_line_leaves),
+            size / 2 - 1) == static_cast<int>(cudaSuccess) ||
+        hashed_fold_status(
+            reinterpret_cast<blake2s_reference::Hash *>(device_domain),
+            size / 2) == static_cast<int>(cudaSuccess) ||
+        hashed_fold_status(
+            reinterpret_cast<blake2s_reference::Hash *>(device_alpha),
+            size / 2) == static_cast<int>(cudaSuccess) ||
+        hashed_fold_status(
+            reinterpret_cast<blake2s_reference::Hash *>(
+                device_line_leaves + 1),
+            size / 2) == static_cast<int>(cudaSuccess) ||
         stwo_fri_fold_fused3_on(
             device_domain, final_offset + size / 8 - 1, circle_offset,
             line_offset, final_offset, size, 1, device_source, source.size(),
@@ -410,13 +479,31 @@ bool test_folds(Arena &arena) {
         return false;
     }
 
-    std::vector<std::uint32_t> circle_actual(initial.size());
-    std::vector<std::uint32_t> line_actual(line_expected.size());
+    std::vector<std::uint32_t> circle_actual(initial.size()),
+        circle_hashed_actual(initial.size());
+    std::vector<std::uint32_t> line_actual(line_expected.size()),
+        line_hashed_actual(line_expected.size());
+    std::vector<std::uint32_t> circle_leaf_actual(8 * (size / 2));
+    std::vector<std::uint32_t> line_leaf_actual(8 * (size / 2));
     std::vector<std::uint32_t> fused_circle_actual(4 * fused_stride);
     std::vector<std::uint32_t> fused_line_actual(4 * fused_stride);
     if (!arena.read(
             circle_actual.data(), device_circle, circle_actual.size() * 4) ||
+        !arena.read(
+            circle_hashed_actual.data(), device_circle_hashed,
+            circle_hashed_actual.size() * 4) ||
         !arena.read(line_actual.data(), device_line, line_actual.size() * 4) ||
+        !arena.read(
+            line_hashed_actual.data(), device_line_hashed,
+            line_hashed_actual.size() * 4) ||
+        !arena.read(
+            circle_leaf_actual.data(),
+            device_circle_leaves,
+            circle_leaf_actual.size() * 4) ||
+        !arena.read(
+            line_leaf_actual.data(),
+            device_line_leaves,
+            line_leaf_actual.size() * 4) ||
         !arena.read(
             fused_circle_actual.data(), device_fused_circle,
             fused_circle_actual.size() * 4) ||
@@ -426,80 +513,29 @@ bool test_folds(Arena &arena) {
         !check(stwo_exec_context_sync(arena.context), "wait for folds")) {
         return false;
     }
+    auto expected_leaves = [&](const std::vector<std::uint32_t> &values) {
+        std::vector<std::uint32_t> hashes;
+        for (std::uint32_t row = 0; row < size / 2; ++row) {
+            const Qm31 value = load(values, fold_stride, row);
+            const auto hash = blake2s_reference::hash_leaf_words(
+                std::vector<std::uint32_t>(value.words, value.words + 4));
+            hashes.insert(hashes.end(), hash.words, hash.words + 8);
+        }
+        return hashes;
+    };
+    const auto circle_leaf_expected = expected_leaves(circle_expected);
+    const auto line_leaf_expected = expected_leaves(line_expected);
     return expect(circle_actual, circle_expected, "circle fold") &&
+        expect(circle_hashed_actual, circle_expected, "fused circle fold") &&
         expect(line_actual, line_expected, "line fold") &&
+        expect(line_hashed_actual, line_expected, "fused line fold") &&
+        expect(circle_leaf_actual, circle_leaf_expected, "circle fold leaves") &&
+        expect(line_leaf_actual, line_leaf_expected, "line fold leaves") &&
         expect(fused_circle_actual, fused_circle_expected, "fused circle") &&
         expect(fused_line_actual, fused_line_expected, "fused line");
 }
 
-std::vector<std::uint32_t> final_reference(
-    const std::vector<std::uint32_t> &evaluation,
-    std::uint32_t stride,
-    std::uint32_t log_size,
-    const std::vector<std::uint32_t> &twiddles) {
-    const std::uint32_t size = 1u << log_size;
-    std::vector<std::uint32_t> coefficients(4 * size);
-    for (std::uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
-        for (std::uint32_t row = 0; row < size; ++row) {
-            coefficients[coordinate * size + row] =
-                evaluation[coordinate * stride + bit_reverse(row, log_size)];
-        }
-    }
-    for (std::uint32_t stage = log_size; stage > 0; --stage) {
-        const std::uint32_t domain_size = 1u << stage;
-        const std::uint32_t half = domain_size / 2;
-        for (std::uint32_t butterfly = 0; butterfly < size / 2; ++butterfly) {
-            const std::uint32_t chunk = butterfly / half;
-            const std::uint32_t index = butterfly - chunk * half;
-            const std::uint32_t left = chunk * domain_size + index;
-            const std::uint32_t right = left + half;
-            const std::uint32_t twiddle_index =
-                stage == 1 ? 0 : bit_reverse(index, stage - 1);
-            const std::uint32_t twiddle =
-                twiddles[twiddles.size() - domain_size + twiddle_index];
-            for (std::uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
-                auto *column = coefficients.data() + coordinate * size;
-                const std::uint32_t left_value = column[left];
-                const std::uint32_t right_value = column[right];
-                column[left] = add(left_value, right_value);
-                column[right] = mul(sub(left_value, right_value), twiddle);
-            }
-        }
-    }
-    const std::uint32_t factor = 1u << (31u - log_size);
-    for (auto &coefficient : coefficients) {
-        coefficient = mul(coefficient, factor);
-    }
-    return coefficients;
-}
-
-std::vector<std::uint32_t> transcript_coefficients(
-    const std::vector<std::uint32_t> &coefficients,
-    std::uint32_t log_size,
-    std::uint32_t log_bound,
-    bool *degree_error) {
-    const std::uint32_t size = 1u << log_size;
-    const std::uint32_t bound = 1u << log_bound;
-    *degree_error = false;
-    for (std::uint32_t ordered = bound; ordered < size; ++ordered) {
-        const std::uint32_t source = bit_reverse(ordered, log_size);
-        for (std::uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
-            *degree_error |= coefficients[coordinate * size + source] != 0;
-        }
-    }
-    std::vector<std::uint32_t> result(4 * bound);
-    for (std::uint32_t output = 0; output < bound; ++output) {
-        const std::uint32_t ordered =
-            log_bound == 0 ? 0 : bit_reverse(output, log_bound);
-        const std::uint32_t source = bit_reverse(ordered, log_size);
-        for (std::uint32_t coordinate = 0; coordinate < 4; ++coordinate) {
-            result[4 * output + coordinate] =
-                coefficients[coordinate * size + source];
-        }
-    }
-    if (*degree_error) result[0] = kPrime;
-    return result;
-}
+#include "native_fri_reference.h"
 
 bool test_final(Arena &arena) {
     constexpr std::uint32_t log_size = 3;

@@ -50,14 +50,23 @@ pub fn runWith(
         const evaluation_size = try pow2Count(
             layer.evaluation_log_size,
         );
-        const root = try Builder.fri(
-            session,
-            evaluation_size,
-            layer.log_rows_per_leaf,
-            resident.coordinates,
-            resident.merkle_hashes,
-            retained,
-        );
+        const root = if (layer_index == 0)
+            try Builder.fri(
+                session,
+                evaluation_size,
+                layer.log_rows_per_leaf,
+                resident.coordinates,
+                resident.merkle_hashes,
+                retained,
+            )
+        else
+            try Builder.friPrehashed(
+                session,
+                evaluation_size,
+                layer.log_rows_per_leaf,
+                resident.merkle_hashes,
+                retained,
+            );
         try Ops.Capture.captureFriRoot(
             session,
             views,
@@ -97,17 +106,47 @@ pub fn runWith(
                 destination.storage,
             );
         }
-        try Ops.Fri.fold(
-            session,
-            is_circle,
-            views.trace.twiddles_inverse,
-            pack.fri_inverse_twiddle_offsets[layer_index],
-            evaluation_size,
-            resident.coordinates,
-            views.fri.alpha,
-            0,
-            destination,
-        );
+        if (layer_index + 1 < topology.len) {
+            const next = topology[layer_index + 1];
+            if (next.log_rows_per_leaf != 0)
+                return error.InvalidKernelDescriptor;
+            const next_evaluation_size = try pow2Count(
+                next.evaluation_log_size,
+            );
+            if (next_evaluation_size != evaluation_size / 2)
+                return error.InvalidKernelDescriptor;
+            const next_first = next.retained_layer_offset;
+            const next_retained = prepared.fri.retained_layers[next_first..][0..next.retained_layer_count];
+            const next_leaves = try commit_tree.leafHashes(
+                next_evaluation_size,
+                views.fri.layers[layer_index + 1].merkle_hashes,
+                next_retained,
+            );
+            try Ops.Fri.foldAndHash(
+                session,
+                is_circle,
+                views.trace.twiddles_inverse,
+                pack.fri_inverse_twiddle_offsets[layer_index],
+                evaluation_size,
+                resident.coordinates,
+                views.fri.alpha,
+                0,
+                destination,
+                next_leaves,
+            );
+        } else {
+            try Ops.Fri.fold(
+                session,
+                is_circle,
+                views.trace.twiddles_inverse,
+                pack.fri_inverse_twiddle_offsets[layer_index],
+                evaluation_size,
+                resident.coordinates,
+                views.fri.alpha,
+                0,
+                destination,
+            );
+        }
     }
 
     const geometry = prepared.logical.geometry;

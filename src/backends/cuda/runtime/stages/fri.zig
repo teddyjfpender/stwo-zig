@@ -1,6 +1,7 @@
 //! Checked resident FRI folding, terminal interpolation, and PoW dispatch.
 
 const abi = @import("../../abi/stages/fri.zig");
+const field = @import("../../abi/field.zig");
 const common = @import("common.zig");
 const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
@@ -72,6 +73,80 @@ pub fn OpsFor(comptime Api: type) type {
                     destination.pointer,
                     destination.words,
                     destination.stride,
+                    session.context.stream,
+                );
+            try common.record(session, stage, status);
+        }
+
+        pub fn foldAndHash(
+            session: anytype,
+            circle: bool,
+            domain: common.Words,
+            twiddle_offset: u32,
+            size: u32,
+            evaluation_values: common.WordMatrix,
+            alpha: common.SecureFields,
+            alpha_squarings: u32,
+            folded_values: common.WordMatrix,
+            leaves: common.Hashes,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.fri_commit;
+            try common.requireStage(session, stage);
+            try common.requireNonZero(&.{size});
+            if (size > (@as(u32, 1) << 30) or
+                size & (size - 1) != 0 or
+                alpha_squarings > 30 or
+                leaves.len != size / 2)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const output_size = size / 2;
+            const source = try matrix(session, evaluation_values, size);
+            const destination = try matrix(
+                session,
+                folded_values,
+                output_size,
+            );
+            const domain_pointer = try common.words(session, domain, 1);
+            const alpha_pointer = @as(
+                *const @import("../../abi/field.zig").SecureField,
+                @ptrCast(try common.secure(session, alpha, 1)),
+            );
+            const leaf_pointer = try common.hashes(session, leaves, leaves.len);
+            const status = if (circle)
+                Api.stwo_fold_circle_into_line_and_hash_on(
+                    domain_pointer,
+                    domain.len,
+                    twiddle_offset,
+                    size,
+                    source.pointer,
+                    source.words,
+                    source.stride,
+                    alpha_pointer,
+                    alpha_squarings,
+                    destination.pointer,
+                    destination.words,
+                    destination.stride,
+                    leaf_pointer,
+                    leaves.len,
+                    session.context.stream,
+                )
+            else
+                Api.stwo_fold_line_and_hash_on(
+                    domain_pointer,
+                    domain.len,
+                    twiddle_offset,
+                    size,
+                    source.pointer,
+                    source.words,
+                    source.stride,
+                    alpha_pointer,
+                    alpha_squarings,
+                    destination.pointer,
+                    destination.words,
+                    destination.stride,
+                    leaf_pointer,
+                    leaves.len,
                     session.context.stream,
                 );
             try common.record(session, stage, status);
@@ -230,4 +305,156 @@ fn matrix(
         .words = words,
         .stride = try common.count(value.column_stride_words),
     };
+}
+
+const TestApi = struct {
+    var circle_calls: usize = 0;
+    var line_calls: usize = 0;
+
+    pub fn stwo_fold_circle_into_line_and_hash_on(
+        _: [*]const u32,
+        _: usize,
+        _: u32,
+        _: u32,
+        _: [*]const u32,
+        _: usize,
+        _: u32,
+        _: *const field.SecureField,
+        _: u32,
+        _: [*]u32,
+        _: usize,
+        _: u32,
+        _: [*]field.Blake2sHash,
+        _: usize,
+        _: *anyopaque,
+    ) c_int {
+        circle_calls += 1;
+        return 0;
+    }
+
+    pub fn stwo_fold_line_and_hash_on(
+        _: [*]const u32,
+        _: usize,
+        _: u32,
+        _: u32,
+        _: [*]const u32,
+        _: usize,
+        _: u32,
+        _: *const field.SecureField,
+        _: u32,
+        _: [*]u32,
+        _: usize,
+        _: u32,
+        _: [*]field.Blake2sHash,
+        _: usize,
+        _: *anyopaque,
+    ) c_int {
+        line_calls += 1;
+        return 0;
+    }
+};
+
+const TestContext = struct {
+    stream_storage: u8 = 0,
+    stream: *anyopaque = undefined,
+    active_stage: telemetry.Stage = .fri_commit,
+
+    fn init() TestContext {
+        var result = TestContext{};
+        result.stream = &result.stream_storage;
+        return result;
+    }
+
+    pub fn deviceSlicePointer(
+        _: *@This(),
+        comptime F: type,
+        slice: anytype,
+        minimum: usize,
+    ) ![*]F {
+        if (slice.owner != 7 or slice.len < minimum or
+            slice.address == 0 or slice.address % @alignOf(F) != 0)
+        {
+            return error.InvalidDeviceAddress;
+        }
+        return @ptrFromInt(slice.address);
+    }
+
+    pub fn requireStage(self: *@This(), expected: telemetry.Stage) !void {
+        if (self.active_stage != expected) return error.StageOrderViolation;
+    }
+};
+
+const TestSession = struct {
+    context: TestContext,
+    launches: usize = 0,
+
+    fn init() TestSession {
+        return .{ .context = TestContext.init() };
+    }
+
+    pub fn recordOrdinaryKernel(
+        self: *@This(),
+        stage: telemetry.Stage,
+        status: c_int,
+    ) !void {
+        if (status != 0) return error.CudaFailure;
+        try self.context.requireStage(stage);
+        self.launches += 1;
+    }
+};
+
+fn testSlice(
+    comptime F: type,
+    address: usize,
+    len: usize,
+) @import("../column.zig").DeviceSlice(F) {
+    return .{ .address = address, .len = len, .owner = 7 };
+}
+
+test "fused FRI fold hashes exactly one validated next layer" {
+    const Ops = OpsFor(TestApi);
+    const source = common.WordMatrix{
+        .storage = testSlice(u32, 0x2000, 64),
+        .column_stride_words = 16,
+    };
+    const destination = common.WordMatrix{
+        .storage = testSlice(u32, 0x4000, 32),
+        .column_stride_words = 8,
+    };
+    var session = TestSession.init();
+    TestApi.circle_calls = 0;
+    TestApi.line_calls = 0;
+    inline for (.{ true, false }) |circle| {
+        try Ops.foldAndHash(
+            &session,
+            circle,
+            testSlice(u32, 0x1000, 64),
+            0,
+            16,
+            source,
+            testSlice(field.SecureField, 0x3000, 1),
+            0,
+            destination,
+            testSlice(field.Blake2sHash, 0x5000, 8),
+        );
+    }
+    try @import("std").testing.expectEqual(@as(usize, 2), session.launches);
+    try @import("std").testing.expectEqual(@as(usize, 1), TestApi.circle_calls);
+    try @import("std").testing.expectEqual(@as(usize, 1), TestApi.line_calls);
+    try @import("std").testing.expectError(
+        error.InvalidKernelDescriptor,
+        Ops.foldAndHash(
+            &session,
+            false,
+            testSlice(u32, 0x1000, 64),
+            0,
+            16,
+            source,
+            testSlice(field.SecureField, 0x3000, 1),
+            0,
+            destination,
+            testSlice(field.Blake2sHash, 0x5000, 7),
+        ),
+    );
+    try @import("std").testing.expectEqual(@as(usize, 2), session.launches);
 }

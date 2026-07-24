@@ -18,6 +18,24 @@ pub extern "c" fn stwo_fold_circle_into_line_on(
     stream: *anyopaque,
 ) c_int;
 
+pub extern "c" fn stwo_fold_circle_into_line_and_hash_on(
+    domain: [*]const u32,
+    domain_words: usize,
+    twiddle_offset: u32,
+    size: u32,
+    evaluation_values: [*]const u32,
+    evaluation_words: usize,
+    evaluation_stride: u32,
+    alpha: *const field.SecureField,
+    alpha_squarings: u32,
+    folded_values: [*]u32,
+    folded_words: usize,
+    folded_stride: u32,
+    leaves: [*]field.Blake2sHash,
+    leaf_count: usize,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_fold_line_on(
     domain: [*]const u32,
     domain_words: usize,
@@ -31,6 +49,24 @@ pub extern "c" fn stwo_fold_line_on(
     folded_values: [*]u32,
     folded_words: usize,
     folded_stride: u32,
+    stream: *anyopaque,
+) c_int;
+
+pub extern "c" fn stwo_fold_line_and_hash_on(
+    domain: [*]const u32,
+    domain_words: usize,
+    twiddle_offset: u32,
+    size: u32,
+    evaluation_values: [*]const u32,
+    evaluation_words: usize,
+    evaluation_stride: u32,
+    alpha: *const field.SecureField,
+    alpha_squarings: u32,
+    folded_values: [*]u32,
+    folded_words: usize,
+    folded_stride: u32,
+    leaves: [*]field.Blake2sHash,
+    leaf_count: usize,
     stream: *anyopaque,
 ) c_int;
 
