@@ -46,6 +46,7 @@ pub const StageCounters = struct {
     allocation_bytes: u64 = 0,
     frees: u64 = 0,
     h2d_bytes: u64 = 0,
+    d2h_proof_operations: u64 = 0,
     d2h_proof_bytes: u64 = 0,
     d2d_bytes: u64 = 0,
     memset_bytes: u64 = 0,
@@ -63,6 +64,7 @@ pub const Counters = struct {
     allocation_bytes: u64 = 0,
     frees: u64 = 0,
     h2d_bytes: u64 = 0,
+    d2h_proof_operations: u64 = 0,
     d2h_proof_bytes: u64 = 0,
     d2d_bytes: u64 = 0,
     memset_bytes: u64 = 0,
@@ -120,7 +122,9 @@ pub const Counters = struct {
 
     pub fn proofRead(self: *Counters, stage: Stage, bytes: usize) void {
         const amount: u64 = @intCast(bytes);
+        self.d2h_proof_operations += 1;
         self.d2h_proof_bytes += amount;
+        self.stages[stage.index()].d2h_proof_operations += 1;
         self.stages[stage.index()].d2h_proof_bytes += amount;
     }
 
@@ -135,9 +139,9 @@ pub const Counters = struct {
         if (stage) |value| self.stages[value.index()].sync_calls += 1;
     }
 
-    pub fn join(self: *Counters, stage: ?Stage) void {
-        self.lane_joins += 1;
-        if (stage) |value| self.stages[value.index()].lane_joins += 1;
+    pub fn join(self: *Counters, stage: ?Stage, lanes: u32) void {
+        self.lane_joins += lanes;
+        if (stage) |value| self.stages[value.index()].lane_joins += lanes;
     }
 
     pub fn kernels(self: *Counters, stage: Stage, count: u64) void {
@@ -171,6 +175,9 @@ pub const Counters = struct {
     pub fn isResident(self: Counters) bool {
         return self.cpu_fallback_attempts == 0 and
             self.cpu_fallbacks_completed == 0 and
+            self.d2h_proof_operations == 1 and
+            self.d2h_proof_bytes != 0 and
+            self.sync_calls == 1 and
             self.live_bytes == 0 and
             self.kernel_launches != 0;
     }
@@ -199,4 +206,15 @@ test "stage evidence requires every ordered protocol stage" {
     try std.testing.expect(counters.stagesCompleteExactlyOnce());
     counters.stages[Stage.quotient.index()].completions += 1;
     try std.testing.expect(!counters.stagesCompleteExactlyOnce());
+}
+
+test "terminal proof reads count operations and bytes per stage" {
+    var counters = Counters{};
+    counters.proofRead(.proof_assembly, 64);
+    counters.proofRead(.proof_assembly, 32);
+    try std.testing.expectEqual(@as(u64, 2), counters.d2h_proof_operations);
+    try std.testing.expectEqual(@as(u64, 96), counters.d2h_proof_bytes);
+    const stage = counters.stages[Stage.proof_assembly.index()];
+    try std.testing.expectEqual(@as(u64, 2), stage.d2h_proof_operations);
+    try std.testing.expectEqual(@as(u64, 96), stage.d2h_proof_bytes);
 }

@@ -174,11 +174,9 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
-    status = cudaStreamSynchronize(context->stream);
     const cudaError_t stream_status = cudaStreamDestroy(context->stream);
     const cudaError_t pool_status = cudaMemPoolDestroy(context->pool);
     delete context;
-    if (status != cudaSuccess) return static_cast<int>(status);
     if (stream_status != cudaSuccess) return static_cast<int>(stream_status);
     return static_cast<int>(pool_status);
 }
@@ -188,6 +186,19 @@ extern "C" int stwo_exec_context_sync(void *handle) {
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
     return static_cast<int>(cudaStreamSynchronize(context->stream));
+}
+
+extern "C" int stwo_exec_context_memory_info(
+    void *handle,
+    size_t *free_bytes,
+    size_t *total_bytes) {
+    if (free_bytes == nullptr || total_bytes == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    return static_cast<int>(cudaMemGetInfo(free_bytes, total_bytes));
 }
 
 extern "C" int stwo_exec_context_pool_current(
@@ -252,13 +263,17 @@ extern "C" int stwo_exec_context_lane_count(
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
-    *out_count = 0;
+    // The native product currently owns exactly one proof stream. Exposing it
+    // as one lane keeps admission and telemetry aligned with actual execution.
+    *out_count = 1;
     return 0;
 }
 
 extern "C" int stwo_exec_context_join_all_lanes(void *handle) {
     StwoNativeCudaContext *context = nullptr;
-    return static_cast<int>(require_context(handle, &context));
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    return static_cast<int>(cudaStreamSynchronize(context->stream));
 }
 
 extern "C" int stwo_exec_context_alloc_u32(

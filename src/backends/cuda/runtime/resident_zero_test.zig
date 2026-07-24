@@ -46,6 +46,9 @@ test "context zeroes one exact resident range and records physical work" {
             out.* = 1;
             return 0;
         }
+        pub fn stwo_exec_context_sync(_: *anyopaque) c_int {
+            return 0;
+        }
 
         pub fn stwo_exec_context_alloc_u32(
             _: *anyopaque,
@@ -182,6 +185,7 @@ const FakeTransactionContext = struct {
     backing_words: usize = 0,
     zero_calls: usize = 0,
     counters: telemetry.Counters = .{},
+    free_memory_bytes: usize = 1024 * 1024 * 1024,
 
     pub fn allocate(
         self: *@This(),
@@ -264,6 +268,16 @@ const FakeTransactionContext = struct {
         ) catch return error.SizeOverflow;
         self.counters.memset(self.active_stage.?, bytes);
         self.zero_calls += 1;
+    }
+
+    pub fn memoryInfo(self: *@This()) runtime_error.Error!struct {
+        free: usize,
+        total: usize,
+    } {
+        return .{
+            .free = self.free_memory_bytes,
+            .total = 2 * 1024 * 1024 * 1024,
+        };
     }
 };
 

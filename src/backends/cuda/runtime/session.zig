@@ -17,12 +17,16 @@ pub const Verdict = struct {
     build_identity: [32]u8,
     aot_entries: usize,
     aot: types.NativeAotStats,
+    lane_count: u32,
     counters: telemetry.Counters,
     pool_used_bytes: usize,
     pool_reserved_bytes: usize,
 
     pub fn isResident(self: Verdict) bool {
-        return self.aot.isStrict() and self.counters.isResident();
+        return self.aot.isStrict() and
+            self.lane_count != 0 and
+            self.counters.lane_joins == self.lane_count and
+            self.counters.isResident();
     }
 };
 
@@ -191,7 +195,6 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
         pub fn finish(self: *Self) runtime_error.Error!Verdict {
             if (self.state != .proved) return error.InvalidState;
             try self.context.joinLanes();
-            try self.context.sync();
             if (self.context.live_buffers != 0) return error.DeviceBufferLive;
             const pool = try self.context.poolCurrent();
             const loader = self.aot_loader orelse return error.InvalidState;
@@ -204,6 +207,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
                 .build_identity = self.build_identity,
                 .aot_entries = self.aot_entries,
                 .aot = aot,
+                .lane_count = self.context.lane_count,
                 .counters = self.context.counters,
                 .pool_used_bytes = pool.used,
                 .pool_reserved_bytes = pool.reserved,
@@ -267,6 +271,8 @@ test "strict session returns a resident verdict and never exposes fallback" {
         var handle_word: u8 = 0;
         var stream_word: u8 = 0;
         var loader_word: u8 = 0;
+        var lane_join_calls: usize = 0;
+        var direct_sync_calls: usize = 0;
 
         pub fn stwo_cuda_device_snapshot(
             count: *u32,
@@ -379,13 +385,15 @@ test "strict session returns a resident verdict and never exposes fallback" {
             return 0;
         }
         pub fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
-            out.* = 4;
+            out.* = 1;
             return 0;
         }
         pub fn stwo_exec_context_join_all_lanes(_: *anyopaque) c_int {
+            lane_join_calls += 1;
             return 0;
         }
         pub fn stwo_exec_context_sync(_: *anyopaque) c_int {
+            direct_sync_calls += 1;
             return 0;
         }
         pub fn stwo_exec_context_pool_current(
@@ -415,6 +423,8 @@ test "strict session returns a resident verdict and never exposes fallback" {
                 .block = .{ 32, 1, 1 },
                 .argument_count = 1,
             }, &arguments);
+        } else if (stage == .proof_assembly) {
+            session.context.counters.proofRead(stage, @sizeOf(u32));
         }
         try session.context.endStage(stage);
     }
@@ -423,4 +433,10 @@ test "strict session returns a resident verdict and never exposes fallback" {
     try std.testing.expect(verdict.isResident());
     try std.testing.expectEqual(@as(u64, 0), verdict.counters.cpu_fallback_attempts);
     try std.testing.expectEqual(@as(u64, 0), verdict.counters.cpu_fallbacks_completed);
+    try std.testing.expectEqual(@as(u32, 1), verdict.lane_count);
+    try std.testing.expectEqual(@as(u64, 1), verdict.counters.lane_joins);
+    try std.testing.expectEqual(@as(u64, 1), verdict.counters.sync_calls);
+    try std.testing.expectEqual(@as(u64, 1), verdict.counters.d2h_proof_operations);
+    try std.testing.expectEqual(@as(usize, 1), Fake.lane_join_calls);
+    try std.testing.expectEqual(@as(usize, 0), Fake.direct_sync_calls);
 }

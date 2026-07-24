@@ -10,6 +10,7 @@ const session_module = @import("session.zig");
 const telemetry = @import("telemetry.zig");
 
 pub const ResidentProofTransaction = TransactionFor(session_module.NativeSession);
+pub const device_memory_safety_reserve_bytes: usize = 256 * 1024 * 1024;
 
 pub fn TransactionFor(comptime Session: type) type {
     const Context = @FieldType(Session, "context");
@@ -70,6 +71,16 @@ pub fn TransactionFor(comptime Session: type) type {
             errdefer plan.deinit(allocator);
             var session = try Session.open(accepted_sms);
             errdefer session.abort() catch {};
+            const arena_bytes = std.math.mul(
+                usize,
+                plan.total_words,
+                @sizeOf(u32),
+            ) catch return error.SizeOverflow;
+            const memory = try session.context.memoryInfo();
+            const usable_free = memory.free -
+                @min(memory.free, device_memory_safety_reserve_bytes);
+            if (arena_bytes > usable_free)
+                return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
             const arena = try Arena.init(&session.context, &plan);
             return .{
@@ -261,8 +272,9 @@ pub fn TransactionFor(comptime Session: type) type {
                 allocator.free(storage);
                 return err;
             };
+            errdefer allocator.free(storage);
             return .{
-                .bundle = try decommit_bundle.Bundle.decodeOwned(
+                .bundle = try decommit_bundle.Bundle.decodeOwnedCallerGuarded(
                     allocator,
                     storage,
                 ),
@@ -286,8 +298,9 @@ pub fn TransactionFor(comptime Session: type) type {
                 allocator.free(storage);
                 return err;
             };
+            errdefer allocator.free(storage);
             return .{
-                .bundle = try stark_bundle.Bundle.decodeOwned(
+                .bundle = try stark_bundle.Bundle.decodeOwnedCallerGuarded(
                     allocator,
                     storage,
                 ),
@@ -341,13 +354,26 @@ test "proof transaction survives value movement and owns failure cleanup" {
         };
 
         var storage: [64]u32 = [_]u32{0} ** 64;
+        var available_memory_bytes: usize = 1024 * 1024 * 1024;
+        var allocation_calls: usize = 0;
         active_stage: ?telemetry.Stage = null,
         frees: usize = 0,
         aborted: bool = false,
 
+        pub fn memoryInfo(_: *@This()) runtime_error.Error!struct {
+            free: usize,
+            total: usize,
+        } {
+            return .{
+                .free = available_memory_bytes,
+                .total = 2 * 1024 * 1024 * 1024,
+            };
+        }
+
         pub fn allocate(self: *@This(), words: usize) runtime_error.Error!Buffer {
             if (self.active_stage != .ingress or words > storage.len)
                 return error.AllocationOutsideIngress;
+            allocation_calls += 1;
             return .{
                 .pointer = &storage,
                 .words = words,
@@ -526,4 +552,49 @@ test "proof transaction survives value movement and owns failure cleanup" {
     try failed.beginStage(.trace_generation);
     try failed.abort();
     try std.testing.expect(failed.session.context.aborted);
+
+    FakeContext.available_memory_bytes = device_memory_safety_reserve_bytes;
+    defer FakeContext.available_memory_bytes = 1024 * 1024 * 1024;
+    const allocations_before_rejection = FakeContext.allocation_calls;
+    try std.testing.expectError(
+        error.InsufficientDeviceMemory,
+        Transaction.open(allocator, &.{89}, &requirements),
+    );
+    try std.testing.expectEqual(
+        allocations_before_rejection,
+        FakeContext.allocation_calls,
+    );
+    FakeContext.available_memory_bytes = 1024 * 1024 * 1024;
+
+    FakeContext.storage = [_]u32{0} ** FakeContext.storage.len;
+    var malformed_decommit = try Transaction.open(
+        allocator,
+        &.{89},
+        &requirements,
+    );
+    try malformed_decommit.finishIngress();
+    inline for (telemetry.all_stages[1 .. telemetry.all_stages.len - 1]) |stage| {
+        try malformed_decommit.beginStage(stage);
+        try malformed_decommit.endStage(stage);
+    }
+    try std.testing.expectError(
+        error.InvalidHeader,
+        malformed_decommit.assembleBundleAndFinish(allocator, 9),
+    );
+
+    FakeContext.storage = [_]u32{0} ** FakeContext.storage.len;
+    var malformed_stark = try Transaction.open(
+        allocator,
+        &.{89},
+        &requirements,
+    );
+    try malformed_stark.finishIngress();
+    inline for (telemetry.all_stages[1 .. telemetry.all_stages.len - 1]) |stage| {
+        try malformed_stark.beginStage(stage);
+        try malformed_stark.endStage(stage);
+    }
+    try std.testing.expectError(
+        error.InvalidHeader,
+        malformed_stark.assembleStarkBundleAndFinish(allocator, 9),
+    );
 }

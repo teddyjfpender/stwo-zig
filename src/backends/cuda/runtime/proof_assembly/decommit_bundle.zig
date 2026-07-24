@@ -62,7 +62,15 @@ pub const Bundle = struct {
         allocator: std.mem.Allocator,
         storage: []u32,
     ) (std.mem.Allocator.Error || Error)!Bundle {
-        return decode(allocator, storage, true);
+        return decode(allocator, storage, true, true);
+    }
+
+    /// Caller retains failure cleanup until this decoder accepts ownership.
+    pub fn decodeOwnedCallerGuarded(
+        allocator: std.mem.Allocator,
+        storage: []u32,
+    ) (std.mem.Allocator.Error || Error)!Bundle {
+        return decode(allocator, storage, true, false);
     }
 
     /// Decodes an exact subrange owned by a containing proof bundle.
@@ -70,15 +78,16 @@ pub const Bundle = struct {
         allocator: std.mem.Allocator,
         storage: []u32,
     ) (std.mem.Allocator.Error || Error)!Bundle {
-        return decode(allocator, storage, false);
+        return decode(allocator, storage, false, false);
     }
 
     fn decode(
         allocator: std.mem.Allocator,
         storage: []u32,
         owns_storage: bool,
+        free_storage_on_error: bool,
     ) (std.mem.Allocator.Error || Error)!Bundle {
-        errdefer if (owns_storage) allocator.free(storage);
+        errdefer if (free_storage_on_error) allocator.free(storage);
         if (storage.len < header_words or
             storage[0] != magic or
             storage[1] != version)

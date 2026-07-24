@@ -76,7 +76,23 @@ pub const Bundle = struct {
         allocator: std.mem.Allocator,
         storage: []u32,
     ) (std.mem.Allocator.Error || Error)!Bundle {
-        errdefer allocator.free(storage);
+        return decode(allocator, storage, true);
+    }
+
+    /// Caller retains failure cleanup until this decoder accepts ownership.
+    pub fn decodeOwnedCallerGuarded(
+        allocator: std.mem.Allocator,
+        storage: []u32,
+    ) (std.mem.Allocator.Error || Error)!Bundle {
+        return decode(allocator, storage, false);
+    }
+
+    fn decode(
+        allocator: std.mem.Allocator,
+        storage: []u32,
+        free_storage_on_error: bool,
+    ) (std.mem.Allocator.Error || Error)!Bundle {
+        errdefer if (free_storage_on_error) allocator.free(storage);
         if (storage.len < header_words or storage.len > max_bundle_words or
             storage[0] != magic or storage[1] != version or
             storage[2] != storage.len or storage[3] != section_count)

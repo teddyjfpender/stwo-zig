@@ -27,6 +27,7 @@ pub fn ContextFor(comptime Api: type) type {
         next_allocation_generation: u64 = 1,
         active_stage: ?telemetry.Stage = null,
         next_stage_index: usize = 0,
+        synchronized: bool = true,
         counters: telemetry.Counters = .{},
 
         pub const Buffer = struct {
@@ -55,6 +56,7 @@ pub fn ContextFor(comptime Api: type) type {
             if (device < 0) return error.InvalidDeviceOrdinal;
             var lane_count: u32 = 0;
             try runtime_error.check(Api.stwo_exec_context_lane_count(handle, &lane_count));
+            if (lane_count == 0) return error.InvalidExecutionLaneCount;
             return .{
                 .handle = handle,
                 .stream = stream,
@@ -67,6 +69,7 @@ pub fn ContextFor(comptime Api: type) type {
             const handle = self.handle orelse return error.ContextClosed;
             if (self.live_buffers != 0) return error.DeviceBufferLive;
             if (self.active_stage != null) return error.StageAlreadyActive;
+            if (!self.synchronized) try self.sync();
             try runtime_error.check(Api.stwo_exec_context_destroy(handle));
             self.handle = null;
         }
@@ -83,15 +86,23 @@ pub fn ContextFor(comptime Api: type) type {
                 self.live_buffers -= 1;
                 const allocation = self.allocations[self.live_buffers];
                 if (allocation.address != 0) {
+                    var free_enqueued = true;
                     runtime_error.check(Api.stwo_exec_context_free_u32(
                         handle,
                         @ptrFromInt(allocation.address),
                     )) catch |err| {
+                        free_enqueued = false;
                         if (first_error == null) first_error = err;
                     };
+                    if (free_enqueued) self.synchronized = false;
                     self.counters.free(self.active_stage, allocation.bytes);
                 }
                 self.allocations[self.live_buffers] = .{};
+            }
+            if (!self.synchronized) {
+                self.sync() catch |err| {
+                    if (first_error == null) first_error = err;
+                };
             }
             self.active_stage = null;
             runtime_error.check(Api.stwo_exec_context_destroy(handle)) catch |err| {
@@ -148,6 +159,7 @@ pub fn ContextFor(comptime Api: type) type {
                 return error.SizeOverflow;
             var raw: ?[*]u32 = null;
             try runtime_error.check(Api.stwo_exec_context_alloc_u32(handle, words, &raw));
+            self.synchronized = false;
             const pointer = raw orelse return error.NullDevicePointer;
             if (self.live_buffers == max_allocations) {
                 _ = Api.stwo_exec_context_free_u32(handle, pointer);
@@ -181,6 +193,7 @@ pub fn ContextFor(comptime Api: type) type {
             const handle = try self.requireOwner(buffer.*);
             const allocation_index = try self.exactAllocation(buffer.*);
             try runtime_error.check(Api.stwo_exec_context_free_u32(handle, buffer.pointer));
+            self.synchronized = false;
             self.counters.free(self.active_stage, try buffer.bytes());
             self.live_buffers -= 1;
             self.allocations[allocation_index] = self.allocations[self.live_buffers];
@@ -207,6 +220,7 @@ pub fn ContextFor(comptime Api: type) type {
                 source.ptr,
                 bytes,
             ));
+            self.synchronized = false;
             self.counters.h2d(self.active_stage, bytes);
         }
 
@@ -231,6 +245,7 @@ pub fn ContextFor(comptime Api: type) type {
                 source.ptr,
                 bytes,
             ));
+            self.synchronized = false;
             self.counters.h2d(self.active_stage, bytes);
         }
 
@@ -251,6 +266,7 @@ pub fn ContextFor(comptime Api: type) type {
                 source.pointer,
                 bytes,
             ));
+            self.synchronized = false;
             self.counters.d2d(self.active_stage, bytes);
         }
 
@@ -303,6 +319,7 @@ pub fn ContextFor(comptime Api: type) type {
                 source_pointer,
                 bytes,
             ));
+            self.synchronized = false;
             self.counters.d2d(self.active_stage, bytes);
         }
 
@@ -330,6 +347,7 @@ pub fn ContextFor(comptime Api: type) type {
                 0,
                 bytes,
             ));
+            self.synchronized = false;
             self.counters.memset(stage, bytes);
         }
 
@@ -412,6 +430,7 @@ pub fn ContextFor(comptime Api: type) type {
                 pointer,
                 bytes,
             ));
+            self.synchronized = false;
             self.counters.proofRead(stage, bytes);
         }
 
@@ -427,6 +446,7 @@ pub fn ContextFor(comptime Api: type) type {
                 value,
                 destination.words,
             ));
+            self.synchronized = false;
             self.counters.fill(self.active_stage, destination.words);
         }
 
@@ -434,11 +454,14 @@ pub fn ContextFor(comptime Api: type) type {
             try runtime_error.check(Api.stwo_exec_context_join_all_lanes(
                 try self.requireHandle(),
             ));
-            self.counters.join(self.active_stage);
+            self.synchronized = true;
+            self.counters.join(self.active_stage, self.lane_count);
+            self.counters.sync(self.active_stage);
         }
 
         pub fn sync(self: *Self) runtime_error.Error!void {
             try runtime_error.check(Api.stwo_exec_context_sync(try self.requireHandle()));
+            self.synchronized = true;
             self.counters.sync(self.active_stage);
         }
 
@@ -456,15 +479,33 @@ pub fn ContextFor(comptime Api: type) type {
             return .{ .used = used, .reserved = reserved };
         }
 
+        pub fn memoryInfo(self: *Self) runtime_error.Error!struct {
+            free: usize,
+            total: usize,
+        } {
+            var available: usize = 0;
+            var total: usize = 0;
+            try runtime_error.check(Api.stwo_exec_context_memory_info(
+                try self.requireHandle(),
+                &available,
+                &total,
+            ));
+            if (total == 0 or available > total)
+                return error.InvalidDeviceMemorySnapshot;
+            return .{ .free = available, .total = total };
+        }
+
         pub fn recordKernels(self: *Self, count: u64) runtime_error.Error!void {
             if (count == 0) return error.KernelPathUnused;
             const stage = self.active_stage orelse return error.StageNotActive;
+            self.synchronized = false;
             self.counters.kernels(stage, count);
         }
 
         pub fn recordGraphs(self: *Self, count: u64) runtime_error.Error!void {
             if (count == 0) return error.KernelPathUnused;
             const stage = self.active_stage orelse return error.StageNotActive;
+            self.synchronized = false;
             self.counters.graphs(stage, count);
         }
 
@@ -504,6 +545,7 @@ test "context owns buffers and accounts only explicit transfers" {
         var handle_word: u8 = 0;
         var stream_word: u8 = 0;
         var device_words: [16]u32 = [_]u32{0} ** 16;
+        var sync_calls: usize = 0;
 
         fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
@@ -567,6 +609,7 @@ test "context owns buffers and accounts only explicit transfers" {
             return 0;
         }
         fn stwo_exec_context_sync(_: *anyopaque) c_int {
+            sync_calls += 1;
             return 0;
         }
         fn stwo_exec_context_pool_current(
@@ -671,6 +714,9 @@ test "context owns buffers and accounts only explicit transfers" {
     try std.testing.expectEqual(@as(u64, 32), context.counters.h2d_bytes);
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2d_bytes);
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2h_proof_bytes);
+    try std.testing.expectEqual(@as(u64, 1), context.counters.d2h_proof_operations);
+    try std.testing.expectEqual(@as(usize, 1), Fake.sync_calls);
+    try std.testing.expectEqual(@as(u64, 1), context.counters.sync_calls);
     try std.testing.expect(context.counters.isResident());
     try std.testing.expect(context.counters.stagesCompleteExactlyOnce());
 }
@@ -697,7 +743,10 @@ test "context rejects close with a live device buffer" {
             return 0;
         }
         fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
-            out.* = 0;
+            out.* = 1;
+            return 0;
+        }
+        fn stwo_exec_context_sync(_: *anyopaque) c_int {
             return 0;
         }
         fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
@@ -726,6 +775,7 @@ test "context abort releases live allocations from an active stage" {
         var device_word: u32 = 0;
         var frees: usize = 0;
         var destroys: usize = 0;
+        var sync_calls: usize = 0;
 
         fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
@@ -755,6 +805,10 @@ test "context abort releases live allocations from an active stage" {
             frees += 1;
             return 0;
         }
+        fn stwo_exec_context_sync(_: *anyopaque) c_int {
+            sync_calls += 1;
+            return 0;
+        }
     };
 
     const Context = ContextFor(Fake);
@@ -764,63 +818,9 @@ test "context abort releases live allocations from an active stage" {
     try context.abort();
     try std.testing.expectEqual(@as(usize, 1), Fake.frees);
     try std.testing.expectEqual(@as(usize, 1), Fake.destroys);
+    try std.testing.expectEqual(@as(usize, 1), Fake.sync_calls);
+    try std.testing.expectEqual(@as(u64, 1), context.counters.sync_calls);
     try std.testing.expectEqual(@as(usize, 0), context.live_buffers);
     try std.testing.expectEqual(@as(?telemetry.Stage, null), context.active_stage);
     try std.testing.expect(context.handle == null);
-}
-
-test "context rejects late allocation and host writes" {
-    const Fake = struct {
-        var handle_word: u8 = 0;
-        var stream_word: u8 = 0;
-        var device_word: u32 = 0;
-
-        fn stwo_exec_context_create(out: *?*anyopaque) c_int {
-            out.* = &handle_word;
-            return 0;
-        }
-        fn stwo_exec_context_destroy(_: *anyopaque) c_int {
-            return 0;
-        }
-        fn stwo_exec_context_stream(_: *anyopaque, out: *?*anyopaque) c_int {
-            out.* = &stream_word;
-            return 0;
-        }
-        fn stwo_exec_context_device(_: *anyopaque, out: *c_int) c_int {
-            out.* = 0;
-            return 0;
-        }
-        fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
-            out.* = 1;
-            return 0;
-        }
-        fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
-            out.* = @ptrCast(&device_word);
-            return 0;
-        }
-        fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
-            return 0;
-        }
-        fn stwo_exec_context_memcpy_h2d_async(
-            _: *anyopaque,
-            _: *anyopaque,
-            _: *const anyopaque,
-            _: usize,
-        ) c_int {
-            return 0;
-        }
-    };
-
-    const Context = ContextFor(Fake);
-    var context = try Context.open();
-    try std.testing.expectError(error.AllocationOutsideIngress, context.allocate(1));
-    try context.beginStage(.ingress);
-    var buffer = try context.allocate(1);
-    try context.endStage(.ingress);
-    try std.testing.expectError(
-        error.HostWriteOutsideIngress,
-        context.upload(buffer, &.{1}),
-    );
-    try context.free(&buffer);
-    try context.close();
 }

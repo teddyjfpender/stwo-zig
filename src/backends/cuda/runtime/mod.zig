@@ -28,5 +28,6 @@ test {
     _ = session;
     _ = stages;
     _ = telemetry;
+    _ = @import("context_additional_test.zig");
     _ = @import("resident_zero_test.zig");
 }

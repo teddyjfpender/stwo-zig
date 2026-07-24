@@ -17,6 +17,11 @@ pub extern "c" fn stwo_cuda_platform_snapshot(
 pub extern "c" fn stwo_exec_context_create(out_handle: *?*anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_destroy(handle: *anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_sync(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_exec_context_memory_info(
+    handle: *anyopaque,
+    free_bytes: *usize,
+    total_bytes: *usize,
+) c_int;
 pub extern "c" fn stwo_exec_context_pool_current(
     handle: *anyopaque,
     used_current: *usize,
