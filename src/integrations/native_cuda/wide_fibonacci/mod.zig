@@ -6,6 +6,7 @@ pub const executor = @import("executor/mod.zig");
 pub const commit_tree = @import("commit_tree.zig");
 pub const layout = @import("layout.zig");
 pub const plan = @import("plan.zig");
+pub const program = @import("program.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
 pub const proof_decode = @import("proof_decode.zig");
 pub const protocol = @import("protocol.zig");
@@ -29,6 +30,7 @@ test {
     _ = commit_tree;
     _ = layout;
     _ = plan;
+    _ = program;
     _ = proof_bundle;
     _ = proof_decode;
     _ = protocol;

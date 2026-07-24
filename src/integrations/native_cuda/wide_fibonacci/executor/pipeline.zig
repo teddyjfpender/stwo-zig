@@ -4,6 +4,7 @@ const std = @import("std");
 const arena = @import("../../../../backends/cuda/runtime/arena.zig");
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
+const program_mod = @import("../program.zig");
 const request = @import("../request.zig");
 const bindings = @import("../resident_bindings/mod.zig");
 const composition = @import("composition.zig");
@@ -21,10 +22,14 @@ pub const PreparedPlan = struct {
     pub fn init(
         allocator: std.mem.Allocator,
         geometry: request.Geometry,
+        target: @import(
+            "../../../../backends/cuda/runtime/execution_plan.zig",
+        ).CompileOptions,
     ) !PreparedPlan {
-        var structural = try plan_mod.PreparedPlan.init(
+        var structural = try plan_mod.PreparedPlan.initForTarget(
             allocator,
             geometry,
+            target,
         );
         errdefer structural.deinit(allocator);
         return .{
@@ -58,13 +63,30 @@ pub const PreparedPlan = struct {
     pub fn takeArenaPlan(self: *PreparedPlan) arena.Plan {
         return self.structural.takeArenaPlan();
     }
+
+    pub fn schedule(
+        self: *const PreparedPlan,
+    ) []const @import(
+        "../../../../backends/cuda/runtime/execution_plan.zig",
+    ).ScheduledNode {
+        return self.structural.schedule();
+    }
 };
 
 pub fn prepare(
     allocator: std.mem.Allocator,
     geometry: request.Geometry,
+    target: @import(
+        "../../../../backends/cuda/runtime/execution_plan.zig",
+    ).CompileOptions,
 ) !PreparedPlan {
-    return PreparedPlan.init(allocator, geometry);
+    return PreparedPlan.init(allocator, geometry, target);
+}
+
+pub fn planTarget(session: anytype) !@import(
+    "../../../../backends/cuda/runtime/execution_plan.zig",
+).CompileOptions {
+    return program_mod.targetFor(session);
 }
 
 pub fn ingressStage(
@@ -203,6 +225,39 @@ pub fn decommit(
     );
 }
 
+pub fn executeNode(
+    transaction: anytype,
+    prepared: *PreparedPlan,
+    geometry: request.Geometry,
+    scheduled: @import(
+        "../../../../backends/cuda/runtime/execution_plan.zig",
+    ).ScheduledNode,
+) !void {
+    const proof_ir = @import("stwo_backend_contracts").proof_program;
+    switch (scheduled.kind) {
+        .trace_generation => try traceGeneration(
+            transaction,
+            prepared,
+            geometry,
+        ),
+        .commitment => try traceCommit(transaction, prepared, geometry),
+        .constraint_evaluation => try constraintEvaluation(
+            transaction,
+            prepared,
+            geometry,
+        ),
+        .oods => try oods(transaction, prepared, geometry),
+        .quotient => try quotient(transaction, prepared, geometry),
+        .fri_commit => try friCommit(transaction, prepared, geometry),
+        .pow => try pow(transaction, prepared, geometry),
+        .decommit => try decommit(transaction, prepared, geometry),
+    }
+    const expected_stage: proof_ir.Stage =
+        prepared.structural.proof_program.nodes[scheduled.node_id].stage;
+    if (@intFromEnum(expected_stage) != @intFromEnum(scheduled.stage))
+        return error.InvalidKernelDescriptor;
+}
+
 fn bind(
     transaction: anytype,
     prepared: *const PreparedPlan,
@@ -231,7 +286,15 @@ test "prepared executor owns canonical inputs and transfers its plan once" {
             .lifting_log_size = null,
         },
     });
-    var prepared = try prepare(allocator, geometry);
+    const proof_ir = @import("stwo_backend_contracts").proof_program;
+    var prepared = try prepare(allocator, geometry, .{
+        .sm = 89,
+        .runtime_build_identity = proof_ir.identityDigest("test-runtime"),
+        .toolchain_identity = proof_ir.identityDigest("test-toolchain"),
+        .kernel_pack_identity = proof_ir.identityDigest("test-pack"),
+        .lane_streams = 0,
+        .enable_graphs = false,
+    });
     defer prepared.deinit(allocator);
     try std.testing.expectEqual(
         prepared.structural.requirements().len,
@@ -248,5 +311,5 @@ test "prepared executor owns canonical inputs and transfers its plan once" {
 
     var owned_plan = prepared.takeArenaPlan();
     defer owned_plan.deinit(allocator);
-    try std.testing.expect(!prepared.structural.arena_plan_live);
+    try std.testing.expect(!prepared.structural.cuda_plan.arena_plan_live);
 }

@@ -4,6 +4,7 @@ pub const arena = @import("arena.zig");
 pub const context = @import("context.zig");
 pub const column = @import("column.zig");
 pub const constraints = @import("constraints/mod.zig");
+pub const execution_plan = @import("execution_plan.zig");
 pub const kernel = @import("kernel.zig");
 pub const proof_transaction = @import("proof_transaction.zig");
 pub const process_runtime = @import("process_runtime.zig");
@@ -23,6 +24,7 @@ test {
     _ = context;
     _ = column;
     _ = constraints;
+    _ = execution_plan;
     _ = kernel;
     _ = proof_transaction;
     _ = process_runtime;

@@ -1,4 +1,4 @@
-//! Backend-owned ordering for one resident wide-Fibonacci CUDA proof.
+//! Backend-owned execution of one compiled resident CUDA proof program.
 
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
@@ -22,32 +22,24 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
         allocator: std.mem.Allocator,
         accepted_sms: []const u32,
 
-        pub fn run(
-            self: Self,
-            request: request_mod.Request,
-        ) !Transaction.StarkBundleOutput {
-            const geometry = try request_mod.admit(request);
-            var prepared = try Executor.prepare(self.allocator, geometry);
-            defer prepared.deinit(self.allocator);
-
-            var transaction = try Transaction.openPrepared(
-                self.allocator,
-                self.accepted_sms,
-                prepared.takeArenaPlan(),
-            );
-            return execute(self, &transaction, &prepared, geometry);
-        }
-
         pub fn runRetained(
             self: Self,
             runtime: anytype,
             request: request_mod.Request,
         ) !Transaction.StarkBundleOutput {
             const geometry = try request_mod.admit(request);
-            var prepared = try Executor.prepare(self.allocator, geometry);
+            const session = try runtime.beginProof();
+            var session_live = true;
+            errdefer if (session_live) session.abortRetained() catch {};
+            const target = try Executor.planTarget(session);
+            var prepared = try Executor.prepare(
+                self.allocator,
+                geometry,
+                target,
+            );
             defer prepared.deinit(self.allocator);
 
-            const session = try runtime.beginProof();
+            session_live = false;
             var transaction = try Transaction.openPreparedRetained(
                 self.allocator,
                 session,
@@ -68,16 +60,15 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             try Executor.ingress(transaction, prepared, geometry);
             try transaction.finishIngress();
 
-            inline for (protocol.execution_stages) |stage| {
-                try transaction.beginStage(stage);
-                try executeStage(
-                    Executor,
-                    stage,
+            for (prepared.schedule()) |scheduled| {
+                try transaction.beginStage(scheduled.stage);
+                try Executor.executeNode(
                     transaction,
                     prepared,
                     geometry,
+                    scheduled,
                 );
-                try transaction.endStage(stage);
+                try transaction.endStage(scheduled.stage);
             }
 
             const output = try transaction.assembleStarkBundleAndFinish(
@@ -90,58 +81,25 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
     };
 }
 
-fn executeStage(
-    comptime Executor: type,
-    comptime stage: protocol.Stage,
-    transaction: anytype,
-    prepared: *Executor.PreparedPlan,
-    geometry: request_mod.Geometry,
-) !void {
-    switch (stage) {
-        .trace_generation => try Executor.traceGeneration(
-            transaction,
-            prepared,
-            geometry,
-        ),
-        .trace_commit => try Executor.traceCommit(
-            transaction,
-            prepared,
-            geometry,
-        ),
-        .constraint_evaluation => try Executor.constraintEvaluation(
-            transaction,
-            prepared,
-            geometry,
-        ),
-        .oods => try Executor.oods(transaction, prepared, geometry),
-        .quotient => try Executor.quotient(transaction, prepared, geometry),
-        .fri_commit => try Executor.friCommit(transaction, prepared, geometry),
-        .pow => try Executor.pow(transaction, prepared, geometry),
-        .decommit => try Executor.decommit(transaction, prepared, geometry),
-        .ingress, .proof_assembly => unreachable,
-    }
-}
-
 fn assertExecutor(comptime Executor: type) void {
     if (!@hasDecl(Executor, "PreparedPlan"))
         @compileError("Native CUDA executor requires PreparedPlan");
     inline for (&.{
         "prepare",
+        "planTarget",
         "ingress",
-        "traceGeneration",
-        "traceCommit",
-        "constraintEvaluation",
-        "oods",
-        "quotient",
-        "friCommit",
-        "pow",
-        "decommit",
+        "executeNode",
     }) |name| {
         if (!@hasDecl(Executor, name))
             @compileError("Native CUDA executor is missing " ++ name);
     }
     const Prepared = Executor.PreparedPlan;
-    inline for (&.{ "deinit", "requirements", "proofSlot", "takeArenaPlan" }) |name| {
+    inline for (&.{
+        "deinit",
+        "proofSlot",
+        "schedule",
+        "takeArenaPlan",
+    }) |name| {
         if (!@hasDecl(Prepared, name))
             @compileError("Native CUDA prepared plan is missing " ++ name);
     }
@@ -158,13 +116,21 @@ test "driver owns exact stage order and one final proof read" {
         aborted: bool = false,
 
         pub fn openPrepared(
+            _: std.mem.Allocator,
+            _: []const u32,
+            _: arena.Plan,
+        ) !@This() {
+            return error.UnexpectedOneShotTransaction;
+        }
+
+        pub fn openPreparedRetained(
             allocator: std.mem.Allocator,
-            accepted_sms: []const u32,
+            _: anytype,
             owned_plan: arena.Plan,
         ) !@This() {
             var plan = owned_plan;
             defer plan.deinit(allocator);
-            if (accepted_sms.len == 0 or plan.placements.len != 1)
+            if (plan.placements.len != 1)
                 return error.InvalidPlan;
             return .{};
         }
@@ -223,15 +189,22 @@ test "driver owns exact stage order and one final proof read" {
             }},
             plan: arena.Plan,
             plan_live: bool = true,
+            scheduled: [protocol.execution_stages.len]@import(
+                "../../../backends/cuda/runtime/execution_plan.zig",
+            ).ScheduledNode,
 
             pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
                 if (self.plan_live) self.plan.deinit(allocator);
             }
-            pub fn requirements(self: *const @This()) []const arena.Requirement {
-                return &self.items;
-            }
             pub fn proofSlot(_: *const @This()) arena.SlotId {
                 return 99;
+            }
+            pub fn schedule(
+                self: *const @This(),
+            ) []const @import(
+                "../../../backends/cuda/runtime/execution_plan.zig",
+            ).ScheduledNode {
+                return &self.scheduled;
             }
             pub fn takeArenaPlan(self: *@This()) arena.Plan {
                 std.debug.assert(self.plan_live);
@@ -243,12 +216,43 @@ test "driver owns exact stage order and one final proof read" {
         pub fn prepare(
             allocator: std.mem.Allocator,
             _: request_mod.Geometry,
+            target: u8,
         ) !PreparedPlan {
+            if (target != 7) return error.InvalidTarget;
             calls = 0;
             prepare_calls += 1;
-            var prepared = PreparedPlan{ .plan = undefined };
+            var prepared = PreparedPlan{
+                .plan = undefined,
+                .scheduled = undefined,
+            };
             prepared.plan = try arena.Plan.init(allocator, &prepared.items);
+            const kinds = [_]@import("stwo_backend_contracts")
+                .proof_program.OperationKind{
+                .trace_generation,
+                .commitment,
+                .constraint_evaluation,
+                .oods,
+                .quotient,
+                .fri_commit,
+                .pow,
+                .decommit,
+            };
+            for (&prepared.scheduled, 0..) |*scheduled, index| {
+                scheduled.* = .{
+                    .node_id = @intCast(index),
+                    .kind = kinds[index],
+                    .stage = stages[index],
+                    .stream_index = 0,
+                    .graph_region = @intCast(index),
+                    .graph_candidate = false,
+                    .dependency_count = @intFromBool(index != 0),
+                };
+            }
             return prepared;
+        }
+
+        pub fn planTarget(_: anytype) !u8 {
+            return 7;
         }
 
         pub fn ingress(
@@ -264,29 +268,32 @@ test "driver owns exact stage order and one final proof read" {
             calls += 1;
         }
 
-        pub fn traceGeneration(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.trace_generation);
+        pub fn executeNode(
+            _: *FakeTransaction,
+            _: *PreparedPlan,
+            _: request_mod.Geometry,
+            scheduled: @import(
+                "../../../backends/cuda/runtime/execution_plan.zig",
+            ).ScheduledNode,
+        ) !void {
+            try stage(scheduled.stage);
         }
-        pub fn traceCommit(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.trace_commit);
+    };
+
+    const FakeSession = struct {
+        aborts: usize = 0,
+
+        pub fn abortRetained(self: *@This()) !void {
+            self.aborts += 1;
         }
-        pub fn constraintEvaluation(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.constraint_evaluation);
-        }
-        pub fn oods(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.oods);
-        }
-        pub fn quotient(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.quotient);
-        }
-        pub fn friCommit(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.fri_commit);
-        }
-        pub fn pow(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.pow);
-        }
-        pub fn decommit(_: *FakeTransaction, _: *PreparedPlan, _: request_mod.Geometry) !void {
-            try stage(.decommit);
+    };
+    const FakeRuntime = struct {
+        session: FakeSession = .{},
+        begins: usize = 0,
+
+        pub fn beginProof(self: *@This()) !*FakeSession {
+            self.begins += 1;
+            return &self.session;
         }
     };
 
@@ -307,7 +314,8 @@ test "driver owns exact stage order and one final proof read" {
         },
     };
     FakeExecutor.prepare_calls = 0;
-    const output = try driver.run(request);
+    var runtime = FakeRuntime{};
+    const output = try driver.runRetained(&runtime, request);
     try std.testing.expectEqual(@as(u32, 0xcada), output.marker);
     try std.testing.expectEqual(protocol.execution_stages.len, FakeExecutor.calls);
     try std.testing.expectEqual(@as(usize, 1), FakeExecutor.prepare_calls);
@@ -316,7 +324,7 @@ test "driver owns exact stage order and one final proof read" {
     unsupported.protocol.pow_bits = 11;
     try std.testing.expectError(
         error.UnsupportedProtocol,
-        driver.run(unsupported),
+        driver.runRetained(&runtime, unsupported),
     );
     try std.testing.expectEqual(@as(usize, 1), FakeExecutor.prepare_calls);
 }

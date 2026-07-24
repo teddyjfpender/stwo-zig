@@ -18,3 +18,4 @@ pub const task_graph = @import("task_graph.zig");
 pub const work_pool = @import("work_pool.zig");
 pub const resident_storage = @import("resident_storage.zig");
 pub const measurement = @import("measurement/mod.zig");
+pub const execution = @import("execution/mod.zig");

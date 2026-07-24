@@ -116,6 +116,14 @@ pub fn addProducts(
             .optimize = optimize,
         }),
     });
+    runtime_tests.root_module.addImport(
+        "stwo_backend_contracts",
+        b.createModule(.{
+            .root_source_file = b.path("src/backend/mod.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    );
     runtime_tests.addCSourceFile(.{
         .file = b.path("src/backends/cuda/runtime/stages/test_stubs.c"),
         .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },
