@@ -8,6 +8,7 @@ pub const preprocessed_columns: u32 = 2;
 pub const main_columns: u32 = 1;
 pub const interaction_columns: u32 = 0;
 pub const composition_columns: u32 = 8;
+pub const statement_first_segment_words: usize = 2;
 pub const sampled_mask_points: u32 =
     preprocessed_columns + main_columns + composition_columns;
 // The quotient/commitment domain is one bit larger and the current resident
@@ -42,6 +43,10 @@ pub const Geometry = struct {
 
     pub fn traceColumnCount(_: Geometry) u32 {
         return preprocessed_columns + main_columns + interaction_columns;
+    }
+
+    pub fn traceLogSize(self: Geometry) u32 {
+        return self.statement.log_size;
     }
 
     pub fn queryLogSize(self: Geometry) u32 {
