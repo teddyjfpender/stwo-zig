@@ -160,18 +160,16 @@ fn fillRoundComponents(
     for (
         constants.ROUND_LOG_SPLIT,
         geometry.ROUND_MAIN_OFFSETS,
-    ) |split, column_offset| {
+        0..,
+    ) |split, column_offset, component_index| {
         const component_log = log_size + split;
         const row_count = try checkedPow2(component_log);
         for (0..row_count) |storage| {
-            const packed_input_index = packed_input_offset + storage / 16;
-            const scheduler_pack = packed_input_index / constants.N_ROUNDS;
-            const round_index = packed_input_index % constants.N_ROUNDS;
-            const lane = storage % 16;
-            const scheduler_input =
-                scheduler_trace.inputForPackedLane(scheduler_pack, lane);
-            const scheduler_output = scheduler_trace.generate(scheduler_input);
-            const round_input = scheduler_output.round_inputs[round_index];
+            const round_input = try roundInputForStorage(
+                log_size,
+                component_index,
+                storage,
+            );
             const output = round_trace.generate(
                 round_input.state,
                 round_input.message,
@@ -188,6 +186,44 @@ fn fillRoundComponents(
     std.debug.assert(
         packed_input_offset == scheduler_pack_count * constants.N_ROUNDS,
     );
+}
+
+pub fn roundInputForStorage(
+    log_size: u32,
+    component_index: usize,
+    storage: usize,
+) Error!scheduler_trace.RoundInput {
+    if (component_index >= constants.ROUND_LOG_SPLIT.len)
+        return error.InvalidPreparedGeometry;
+    const scheduler_pack_count = try checkedPow2(log_size - 4);
+    var packed_input_offset: usize = 0;
+    for (constants.ROUND_LOG_SPLIT[0..component_index]) |split| {
+        packed_input_offset += scheduler_pack_count *
+            (@as(usize, 1) << @intCast(split));
+    }
+    const packed_input_index = packed_input_offset + storage / 16;
+    const scheduler_pack = packed_input_index / constants.N_ROUNDS;
+    const round_index = packed_input_index % constants.N_ROUNDS;
+    const scheduler_input =
+        scheduler_trace.inputForPackedLane(scheduler_pack, storage % 16);
+    return scheduler_trace.generate(scheduler_input).round_inputs[round_index];
+}
+
+pub fn populateXorAccumulator(
+    log_size: u32,
+    accumulator: *xor_tables.Accumulator,
+) Error!void {
+    for (constants.ROUND_LOG_SPLIT, 0..) |split, component_index| {
+        const row_count = try checkedPow2(log_size + split);
+        for (0..row_count) |storage| {
+            const input = try roundInputForStorage(
+                log_size,
+                component_index,
+                storage,
+            );
+            _ = round_trace.generate(input.state, input.message, accumulator);
+        }
+    }
 }
 
 pub fn checkedPow2(log_size: u32) Error!usize {
