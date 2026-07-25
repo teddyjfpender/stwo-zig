@@ -139,6 +139,7 @@
     "native_cpu": ["native_cpu"],
     "riscv_cpu": ["riscv_cpu"],
     "native_cuda": ["native_cuda_static", "native_cuda_device"],
+    "cairo_cuda": ["native_cuda_static"],
     "native_metal": ["native_metal", "aggregate_metal"],
     "deferred": ["deferred"]
   },
