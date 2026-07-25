@@ -163,42 +163,28 @@ __device__ __forceinline__ Qm31 load_secure_source(
     };
 }
 
-__device__ __forceinline__ Qm31 relation_value(
-    const std::uint32_t *relations,
-    std::uint32_t relation_index,
-    const Qm31 *values,
-    std::uint32_t count) {
-    const Qm31 z = load_qm31(relations, 2u * relation_index);
-    const Qm31 alpha = load_qm31(relations, 2u * relation_index + 1u);
-    Qm31 result = neg_qm31(z);
-    Qm31 power = one_qm31();
-    for (std::uint32_t index = 0u; index < count; ++index) {
-        result = add_qm31(result, mul_qm31(power, values[index]));
-        power = mul_qm31(power, alpha);
-    }
-    return result;
+__device__ __forceinline__ void relation_append(
+    Qm31 *result,
+    Qm31 *power,
+    Qm31 alpha,
+    Qm31 value) {
+    *result = add_qm31(*result, mul_qm31(*power, value));
+    *power = mul_qm31(*power, alpha);
 }
 
-__device__ __forceinline__ Qm31 relation_base_columns(
+__device__ __forceinline__ Qm31 relation_three(
     const std::uint32_t *relations,
     std::uint32_t relation_index,
-    const std::uint32_t *source,
-    u64 stride,
-    std::uint32_t row,
-    const std::uint32_t *columns,
-    std::uint32_t count) {
+    Qm31 first,
+    Qm31 second,
+    Qm31 third) {
     const Qm31 z = load_qm31(relations, 2u * relation_index);
     const Qm31 alpha = load_qm31(relations, 2u * relation_index + 1u);
     Qm31 result = neg_qm31(z);
     Qm31 power = one_qm31();
-    for (std::uint32_t index = 0u; index < count; ++index) {
-        result = add_qm31(
-            result,
-            mul_base(
-                power,
-                load_source(source, stride, columns[index], row)));
-        power = mul_qm31(power, alpha);
-    }
+    relation_append(&result, &power, alpha, first);
+    relation_append(&result, &power, alpha, second);
+    relation_append(&result, &power, alpha, third);
     return result;
 }
 
@@ -290,19 +276,35 @@ __device__ __forceinline__ Qm31 scheduler_round_relation(
     std::uint32_t row,
     const std::uint32_t *relations,
     std::uint32_t round) {
-    std::uint32_t columns[96];
-    std::uint32_t index = 0u;
+    const Qm31 z = load_qm31(relations, 2u);
+    const Qm31 alpha = load_qm31(relations, 3u);
+    Qm31 result = neg_qm31(z);
+    Qm31 power = one_qm31();
     const std::uint32_t state_start = 32u + round * 32u;
     for (std::uint32_t column = 0u; column < 64u; ++column) {
-        columns[index++] = state_start + column;
+        relation_append(
+            &result,
+            &power,
+            alpha,
+            from_base(load_source(
+                source, stride, state_start + column, row)));
     }
     for (std::uint32_t word = 0u; word < 16u; ++word) {
         const std::uint32_t message = kSigma[round][word];
-        columns[index++] = 2u * message;
-        columns[index++] = 2u * message + 1u;
+        relation_append(
+            &result,
+            &power,
+            alpha,
+            from_base(load_source(
+                source, stride, 2u * message, row)));
+        relation_append(
+            &result,
+            &power,
+            alpha,
+            from_base(load_source(
+                source, stride, 2u * message + 1u, row)));
     }
-    return relation_base_columns(
-        relations, 1u, source, stride, row, columns, index);
+    return result;
 }
 
 __device__ __forceinline__ Qm31 scheduler_blake_relation(
@@ -310,19 +312,32 @@ __device__ __forceinline__ Qm31 scheduler_blake_relation(
     u64 stride,
     std::uint32_t row,
     const std::uint32_t *relations) {
-    std::uint32_t columns[96];
-    std::uint32_t index = 0u;
+    const Qm31 z = load_qm31(relations, 0u);
+    const Qm31 alpha = load_qm31(relations, 1u);
+    Qm31 result = neg_qm31(z);
+    Qm31 power = one_qm31();
     for (std::uint32_t column = 32u; column < 64u; ++column) {
-        columns[index++] = column;
+        relation_append(
+            &result,
+            &power,
+            alpha,
+            from_base(load_source(source, stride, column, row)));
     }
     for (std::uint32_t column = 352u; column < 384u; ++column) {
-        columns[index++] = column;
+        relation_append(
+            &result,
+            &power,
+            alpha,
+            from_base(load_source(source, stride, column, row)));
     }
     for (std::uint32_t column = 0u; column < 32u; ++column) {
-        columns[index++] = column;
+        relation_append(
+            &result,
+            &power,
+            alpha,
+            from_base(load_source(source, stride, column, row)));
     }
-    return relation_base_columns(
-        relations, 0u, source, stride, row, columns, index);
+    return result;
 }
 
 __device__ __forceinline__ Qm31 evaluate_scheduler(
@@ -334,7 +349,11 @@ __device__ __forceinline__ Qm31 evaluate_scheduler(
     const std::uint32_t *relations,
     const std::uint32_t *claims,
     std::uint32_t inverse_rows) {
-    RelationBatch batches[6];
+    Qm31 combined = zero_qm31();
+    Qm31 previous_column = zero_qm31();
+    const Qm31 previous_row_last =
+        load_secure_source(source, stride, 384u + 4u * 5u, previous_row);
+    const Qm31 claim = load_qm31(claims, 0u);
     for (std::uint32_t batch = 0u; batch < 5u; ++batch) {
         const RelationEntry first = {
             one_qm31(),
@@ -346,19 +365,6 @@ __device__ __forceinline__ Qm31 evaluate_scheduler(
             scheduler_round_relation(
                 source, stride, row, relations, 2u * batch + 1u),
         };
-        batches[batch] = pair_entries(first, second);
-    }
-    batches[5] = single_entry({
-        zero_qm31(),
-        scheduler_blake_relation(source, stride, row, relations),
-    });
-
-    Qm31 combined = zero_qm31();
-    Qm31 previous_column = zero_qm31();
-    const Qm31 previous_row_last =
-        load_secure_source(source, stride, 384u + 4u * 5u, previous_row);
-    const Qm31 claim = load_qm31(claims, 0u);
-    for (std::uint32_t batch = 0u; batch < 6u; ++batch) {
         const Qm31 current =
             load_secure_source(source, stride, 384u + 4u * batch, row);
         add_weighted(
@@ -368,15 +374,35 @@ __device__ __forceinline__ Qm31 evaluate_scheduler(
             6u,
             batch,
             logup_constraint(
-                batches[batch],
+                pair_entries(first, second),
                 current,
                 previous_column,
                 previous_row_last,
                 claim,
                 inverse_rows,
-                batch == 5u));
+                false));
         previous_column = current;
     }
+    const RelationBatch final_batch = single_entry({
+        zero_qm31(),
+        scheduler_blake_relation(source, stride, row, relations),
+    });
+    const Qm31 final_current =
+        load_secure_source(source, stride, 384u + 4u * 5u, row);
+    add_weighted(
+        &combined,
+        powers,
+        411u,
+        6u,
+        5u,
+        logup_constraint(
+            final_batch,
+            final_current,
+            previous_column,
+            previous_row_last,
+            claim,
+            inverse_rows,
+            true));
     return combined;
 }
 
@@ -388,10 +414,13 @@ struct RoundReader {
     const std::uint32_t *powers;
     std::uint32_t power_start;
     std::uint32_t main_index;
-    std::uint32_t constraint_index;
+    std::uint32_t algebraic_index;
     std::uint32_t entry_count;
     RelationEntry pending;
-    RelationBatch batches[65];
+    Qm31 previous_column;
+    Qm31 previous_row_last;
+    Qm31 claim;
+    std::uint32_t inverse_rows;
     Qm31 combined;
 
     __device__ __forceinline__ Qm31 next() {
@@ -409,17 +438,47 @@ struct RoundReader {
             powers,
             power_start,
             129u,
-            constraint_index++,
+            algebraic_index++,
             value);
+    }
+
+    __device__ __forceinline__ void emit_batch(
+        RelationBatch batch,
+        std::uint32_t batch_index,
+        bool last) {
+        const Qm31 current = load_secure_source(
+            source, stride, kRoundMain + 4u * batch_index, row);
+        add_weighted(
+            &combined,
+            powers,
+            power_start,
+            129u,
+            64u + batch_index,
+            logup_constraint(
+                batch,
+                current,
+                previous_column,
+                previous_row_last,
+                claim,
+                inverse_rows,
+                last));
+        previous_column = current;
     }
 
     __device__ __forceinline__ void entry(RelationEntry value) {
         if ((entry_count & 1u) == 0u) {
             pending = value;
         } else {
-            batches[entry_count >> 1u] = pair_entries(pending, value);
+            emit_batch(
+                pair_entries(pending, value),
+                entry_count >> 1u,
+                false);
         }
         ++entry_count;
+    }
+
+    __device__ __forceinline__ void flush_last_entry() {
+        emit_batch(single_entry(pending), entry_count >> 1u, true);
     }
 
     __device__ __forceinline__ Fu32 add2(Fu32 lhs, Fu32 rhs) {
@@ -501,17 +560,13 @@ struct RoundReader {
             width == 9u ? 3u :
             width == 8u ? 4u :
             width == 7u ? 5u : 6u;
-        Qm31 values[3] = {a0, b0, *r0};
         entry({
             one_qm31(),
-            relation_value(relations, relation_index, values, 3u),
+            relation_three(relations, relation_index, a0, b0, *r0),
         });
-        values[0] = a1;
-        values[1] = b1;
-        values[2] = *r1;
         entry({
             one_qm31(),
-            relation_value(relations, relation_index, values, 3u),
+            relation_three(relations, relation_index, a1, b1, *r1),
         });
     }
 
@@ -553,23 +608,42 @@ struct RoundReader {
     }
 
     __device__ __forceinline__ void g(
-        Fu32 *state,
-        std::uint32_t a,
-        std::uint32_t b,
-        std::uint32_t c,
-        std::uint32_t d,
+        Fu32 *a,
+        Fu32 *b,
+        Fu32 *c,
+        Fu32 *d,
         Fu32 message0,
         Fu32 message1) {
-        state[a] = add3(state[a], state[b], message0);
-        state[d] = xor_rotate16(state[a], state[d]);
-        state[c] = add2(state[c], state[d]);
-        state[b] = xor_rotate(state[b], state[c], 12u);
-        state[a] = add3(state[a], state[b], message1);
-        state[d] = xor_rotate(state[a], state[d], 8u);
-        state[c] = add2(state[c], state[d]);
-        state[b] = xor_rotate(state[b], state[c], 7u);
+        *a = add3(*a, *b, message0);
+        *d = xor_rotate16(*a, *d);
+        *c = add2(*c, *d);
+        *b = xor_rotate(*b, *c, 12u);
+        *a = add3(*a, *b, message1);
+        *d = xor_rotate(*a, *d, 8u);
+        *c = add2(*c, *d);
+        *b = xor_rotate(*b, *c, 7u);
     }
 };
+
+__device__ __forceinline__ Fu32 load_fu32_source(
+    const std::uint32_t *source,
+    u64 stride,
+    std::uint32_t column,
+    std::uint32_t row) {
+    return {
+        from_base(load_source(source, stride, column, row)),
+        from_base(load_source(source, stride, column + 1u, row)),
+    };
+}
+
+__device__ __forceinline__ void relation_append_word(
+    Qm31 *result,
+    Qm31 *power,
+    Qm31 alpha,
+    Fu32 word) {
+    relation_append(result, power, alpha, word.low);
+    relation_append(result, power, alpha, word.high);
+}
 
 __device__ __forceinline__ Qm31 evaluate_round(
     const std::uint32_t *source,
@@ -593,65 +667,103 @@ __device__ __forceinline__ Qm31 evaluate_round(
         0u,
         0u,
         {},
-        {},
+        zero_qm31(),
+        load_secure_source(
+            source, stride, kRoundMain + 4u * 64u, previous_row),
+        load_qm31(claims, claim_index),
+        inverse_rows,
         zero_qm31(),
     };
-    Fu32 state[16];
-    Fu32 input_state[16];
-    Fu32 message[16];
-    for (std::uint32_t index = 0u; index < 16u; ++index) {
-        state[index] = reader.next_u32();
-        input_state[index] = state[index];
-    }
-    for (std::uint32_t index = 0u; index < 16u; ++index) {
-        message[index] = reader.next_u32();
-    }
-    reader.g(state, 0, 4, 8, 12, message[0], message[1]);
-    reader.g(state, 1, 5, 9, 13, message[2], message[3]);
-    reader.g(state, 2, 6, 10, 14, message[4], message[5]);
-    reader.g(state, 3, 7, 11, 15, message[6], message[7]);
-    reader.g(state, 0, 5, 10, 15, message[8], message[9]);
-    reader.g(state, 1, 6, 11, 12, message[10], message[11]);
-    reader.g(state, 2, 7, 8, 13, message[12], message[13]);
-    reader.g(state, 3, 4, 9, 14, message[14], message[15]);
+    Fu32 v0 = reader.next_u32();
+    Fu32 v1 = reader.next_u32();
+    Fu32 v2 = reader.next_u32();
+    Fu32 v3 = reader.next_u32();
+    Fu32 v4 = reader.next_u32();
+    Fu32 v5 = reader.next_u32();
+    Fu32 v6 = reader.next_u32();
+    Fu32 v7 = reader.next_u32();
+    Fu32 v8 = reader.next_u32();
+    Fu32 v9 = reader.next_u32();
+    Fu32 v10 = reader.next_u32();
+    Fu32 v11 = reader.next_u32();
+    Fu32 v12 = reader.next_u32();
+    Fu32 v13 = reader.next_u32();
+    Fu32 v14 = reader.next_u32();
+    Fu32 v15 = reader.next_u32();
+    reader.main_index = 64u;
 
-    Qm31 tuple[96];
-    std::uint32_t tuple_index = 0u;
-    for (std::uint32_t index = 0u; index < 16u; ++index) {
-        tuple[tuple_index++] = input_state[index].low;
-        tuple[tuple_index++] = input_state[index].high;
+    reader.g(
+        &v0, &v4, &v8, &v12,
+        load_fu32_source(source, stride, 32u, row),
+        load_fu32_source(source, stride, 34u, row));
+    reader.g(
+        &v1, &v5, &v9, &v13,
+        load_fu32_source(source, stride, 36u, row),
+        load_fu32_source(source, stride, 38u, row));
+    reader.g(
+        &v2, &v6, &v10, &v14,
+        load_fu32_source(source, stride, 40u, row),
+        load_fu32_source(source, stride, 42u, row));
+    reader.g(
+        &v3, &v7, &v11, &v15,
+        load_fu32_source(source, stride, 44u, row),
+        load_fu32_source(source, stride, 46u, row));
+    reader.g(
+        &v0, &v5, &v10, &v15,
+        load_fu32_source(source, stride, 48u, row),
+        load_fu32_source(source, stride, 50u, row));
+    reader.g(
+        &v1, &v6, &v11, &v12,
+        load_fu32_source(source, stride, 52u, row),
+        load_fu32_source(source, stride, 54u, row));
+    reader.g(
+        &v2, &v7, &v8, &v13,
+        load_fu32_source(source, stride, 56u, row),
+        load_fu32_source(source, stride, 58u, row));
+    reader.g(
+        &v3, &v4, &v9, &v14,
+        load_fu32_source(source, stride, 60u, row),
+        load_fu32_source(source, stride, 62u, row));
+
+    const Qm31 round_z = load_qm31(relations, 2u);
+    const Qm31 round_alpha = load_qm31(relations, 3u);
+    Qm31 round_relation = neg_qm31(round_z);
+    Qm31 round_power = one_qm31();
+    for (std::uint32_t column = 0u; column < 32u; column += 2u) {
+        relation_append_word(
+            &round_relation,
+            &round_power,
+            round_alpha,
+            load_fu32_source(source, stride, column, row));
     }
-    for (std::uint32_t index = 0u; index < 16u; ++index) {
-        tuple[tuple_index++] = state[index].low;
-        tuple[tuple_index++] = state[index].high;
-    }
-    for (std::uint32_t index = 0u; index < 16u; ++index) {
-        tuple[tuple_index++] = message[index].low;
-        tuple[tuple_index++] = message[index].high;
+    relation_append_word(&round_relation, &round_power, round_alpha, v0);
+    relation_append_word(&round_relation, &round_power, round_alpha, v1);
+    relation_append_word(&round_relation, &round_power, round_alpha, v2);
+    relation_append_word(&round_relation, &round_power, round_alpha, v3);
+    relation_append_word(&round_relation, &round_power, round_alpha, v4);
+    relation_append_word(&round_relation, &round_power, round_alpha, v5);
+    relation_append_word(&round_relation, &round_power, round_alpha, v6);
+    relation_append_word(&round_relation, &round_power, round_alpha, v7);
+    relation_append_word(&round_relation, &round_power, round_alpha, v8);
+    relation_append_word(&round_relation, &round_power, round_alpha, v9);
+    relation_append_word(&round_relation, &round_power, round_alpha, v10);
+    relation_append_word(&round_relation, &round_power, round_alpha, v11);
+    relation_append_word(&round_relation, &round_power, round_alpha, v12);
+    relation_append_word(&round_relation, &round_power, round_alpha, v13);
+    relation_append_word(&round_relation, &round_power, round_alpha, v14);
+    relation_append_word(&round_relation, &round_power, round_alpha, v15);
+    for (std::uint32_t column = 32u; column < 64u; column += 2u) {
+        relation_append_word(
+            &round_relation,
+            &round_power,
+            round_alpha,
+            load_fu32_source(source, stride, column, row));
     }
     reader.entry({
         neg_qm31(one_qm31()),
-        relation_value(relations, 1u, tuple, tuple_index),
+        round_relation,
     });
-    reader.batches[64] = single_entry(reader.pending);
-
-    Qm31 previous_column = zero_qm31();
-    const Qm31 previous_row_last = load_secure_source(
-        source, stride, kRoundMain + 4u * 64u, previous_row);
-    const Qm31 claim = load_qm31(claims, claim_index);
-    for (std::uint32_t batch = 0u; batch < 65u; ++batch) {
-        const Qm31 current = load_secure_source(
-            source, stride, kRoundMain + 4u * batch, row);
-        reader.constraint(logup_constraint(
-            reader.batches[batch],
-            current,
-            previous_column,
-            previous_row_last,
-            claim,
-            inverse_rows,
-            batch == 64u));
-        previous_column = current;
-    }
+    reader.flush_last_entry();
     return reader.combined;
 }
 
@@ -672,41 +784,7 @@ __device__ __forceinline__ Qm31 evaluate_xor(
     constexpr std::uint32_t power_start[5] = {25u, 17u, 9u, 1u, 0u};
     const std::uint32_t count = multiplicities[table_index];
     const std::uint32_t batches_count = secure_columns[table_index];
-    RelationBatch batches[128];
     RelationEntry pending = {};
-    for (std::uint32_t column = 0u; column < count; ++column) {
-        const std::uint32_t expand = expand_bits[table_index];
-        const std::uint32_t ah = column >> expand;
-        const std::uint32_t bh =
-            column & ((1u << expand) - 1u);
-        const std::uint32_t shift = limb_bits[table_index];
-        Qm31 tuple[3] = {
-            add_qm31(
-                from_base(load_source(source, stride, 0u, row)),
-                from_base(ah << shift)),
-            add_qm31(
-                from_base(load_source(source, stride, 1u, row)),
-                from_base(bh << shift)),
-            add_qm31(
-                from_base(load_source(source, stride, 2u, row)),
-                from_base((ah ^ bh) << shift)),
-        };
-        const RelationEntry entry = {
-            neg_qm31(from_base(
-                load_source(source, stride, 3u + column, row))),
-            relation_value(
-                relations, 2u + table_index, tuple, 3u),
-        };
-        if ((column & 1u) == 0u) {
-            pending = entry;
-        } else {
-            batches[column >> 1u] = pair_entries(pending, entry);
-        }
-    }
-    if ((count & 1u) != 0u) {
-        batches[batches_count - 1u] = single_entry(pending);
-    }
-
     Qm31 combined = zero_qm31();
     Qm31 previous_column = zero_qm31();
     const std::uint32_t interaction_start = 3u + count;
@@ -715,8 +793,54 @@ __device__ __forceinline__ Qm31 evaluate_xor(
         stride,
         interaction_start + 4u * (batches_count - 1u),
         previous_row);
-    const Qm31 claim = load_qm31(claims, 3u + table_index);
-    for (std::uint32_t batch = 0u; batch < batches_count; ++batch) {
+    const Qm31 claim = load_qm31(claims, 1u + table_index);
+    for (std::uint32_t column = 0u; column < count; ++column) {
+        const std::uint32_t expand = expand_bits[table_index];
+        const std::uint32_t ah = column >> expand;
+        const std::uint32_t bh =
+            column & ((1u << expand) - 1u);
+        const std::uint32_t shift = limb_bits[table_index];
+        const RelationEntry entry = {
+            neg_qm31(from_base(
+                load_source(source, stride, 3u + column, row))),
+            relation_three(
+                relations,
+                2u + table_index,
+                add_qm31(
+                    from_base(load_source(source, stride, 0u, row)),
+                    from_base(ah << shift)),
+                add_qm31(
+                    from_base(load_source(source, stride, 1u, row)),
+                    from_base(bh << shift)),
+                add_qm31(
+                    from_base(load_source(source, stride, 2u, row)),
+                    from_base((ah ^ bh) << shift))),
+        };
+        if ((column & 1u) == 0u) {
+            pending = entry;
+        } else {
+            const std::uint32_t batch = column >> 1u;
+            const Qm31 current = load_secure_source(
+                source, stride, interaction_start + 4u * batch, row);
+            add_weighted(
+                &combined,
+                powers,
+                power_start[table_index],
+                batches_count,
+                batch,
+                logup_constraint(
+                    pair_entries(pending, entry),
+                    current,
+                    previous_column,
+                    previous_row_last,
+                    claim,
+                    inverse_rows,
+                    batch + 1u == batches_count));
+            previous_column = current;
+        }
+    }
+    if ((count & 1u) != 0u) {
+        const std::uint32_t batch = batches_count - 1u;
         const Qm31 current = load_secure_source(
             source, stride, interaction_start + 4u * batch, row);
         add_weighted(
@@ -726,13 +850,13 @@ __device__ __forceinline__ Qm31 evaluate_xor(
             batches_count,
             batch,
             logup_constraint(
-                batches[batch],
+                single_entry(pending),
                 current,
                 previous_column,
                 previous_row_last,
                 claim,
                 inverse_rows,
-                batch + 1u == batches_count));
+                true));
         previous_column = current;
     }
     return combined;
@@ -767,7 +891,7 @@ __device__ __forceinline__ void store_lifted(
 }
 
 extern "C" __global__ void __launch_bounds__(64)
-stwo_native_constraint_blake_component_v1_ad0197bc74a3e568(
+stwo_native_constraint_blake_component_v1_64a336ee32f09d7e(
     const std::uint32_t *source_slab,
     u64 source_slab_words,
     u64 source_stride_words,
@@ -839,7 +963,7 @@ stwo_native_constraint_blake_component_v1_ad0197bc74a3e568(
             component_index == 1u ? 282u : 153u,
             relation_elements,
             claimed_sums,
-            component_index,
+            component_index == 1u ? 6u : 7u,
             inverse_rows);
     } else {
         combined = evaluate_xor(

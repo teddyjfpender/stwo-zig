@@ -121,8 +121,8 @@ def weighted(constraints: list[Q], power_start: int) -> Q:
     return result
 
 
-def scheduler() -> Q:
-    row, previous = 1, 2
+def scheduler(previous: int = 2) -> Q:
+    row = 1
     def round_value(round_index: int) -> Q:
         columns = list(range(32 + round_index * 32, 96 + round_index * 32))
         for message in SIGMA[round_index]:
@@ -141,9 +141,15 @@ def scheduler() -> Q:
 
 
 class Round:
-    def __init__(self, component: int, trace_log: int, power_start: int):
+    def __init__(
+        self,
+        component: int,
+        trace_log: int,
+        power_start: int,
+        previous: int = 2,
+    ):
         self.component, self.trace_log = component, trace_log
-        self.power_start, self.row, self.previous = power_start, 1, 2
+        self.power_start, self.row, self.previous = power_start, 1, previous
         self.column, self.constraints = 0, []
         self.entries: list[tuple[Q, Q]] = []
 
@@ -232,8 +238,9 @@ class Round:
                           for c in range(4)) for i in range(65)]
         previous_last = tuple(source(self.component, 640 + c, self.previous)
                               for c in range(4))
+        claim_index = 6 if self.component == 1 else 7
         self.constraints.extend(logup(
-            batches, currents, previous_last, claim(self.component), self.trace_log))
+            batches, currents, previous_last, claim(claim_index), self.trace_log))
         self.assert_shape()
         return weighted(self.constraints, self.power_start)
 
@@ -242,8 +249,8 @@ class Round:
         assert len(self.constraints) == 129
 
 
-def xor_component(component: int, table: int) -> Q:
-    row, previous = 1, 2
+def xor_component(component: int, table: int, previous: int = 2) -> Q:
+    row = 1
     counts, secure = (256, 16, 16, 16, 1), (128, 8, 8, 8, 1)
     limbs, expands = (8, 7, 6, 5, 4), (4, 2, 2, 2, 0)
     starts, logs = (25, 17, 9, 1, 0), (16, 14, 12, 10, 8)
@@ -273,8 +280,22 @@ def xor_component(component: int, table: int) -> Q:
         for c in range(4)
     )
     constraints = logup(
-        batches, currents, previous_last, claim(component), logs[table])
+        batches, currents, previous_last, claim(1 + table), logs[table])
     return weighted(constraints, starts[table])
+
+
+def previous_storage(row: int, evaluation_log: int) -> int:
+    def reverse(value: int, bits: int) -> int:
+        return int(f"{value:0{bits}b}"[::-1], 2)
+
+    half = 1 << (evaluation_log - 1)
+    natural = reverse(row, evaluation_log)
+    if natural < half:
+        natural = half - 1 if natural == 0 else natural - 1
+    else:
+        offset = natural - half
+        natural = half + (0 if offset + 1 == half else offset + 1)
+    return reverse(natural, evaluation_log)
 
 
 class CudaBlakeAotTests(unittest.TestCase):
@@ -306,6 +327,18 @@ class CudaBlakeAotTests(unittest.TestCase):
             target = 2 * ((3 >> 1) * 4 + repeat) + (3 & 1)
             for coordinate in range(4):
                 lifted[coordinate * 32 + target] = lift_value[coordinate]
+        exported = [
+            mul_base(scheduler(previous_storage(1, 5)), 3),
+            mul_base(
+                Round(1, 7, 282, previous_storage(1, 8)).evaluate(),
+                3,
+            ),
+            mul_base(
+                xor_component(7, 4, previous_storage(1, 9)),
+                3,
+            ),
+        ]
+        flattened.extend(item for value in exported for item in value)
         self.assertEqual(flattened + lifted, actual)
 
     def test_differential_is_sensitive_to_structural_bindings(self) -> None:
@@ -331,6 +364,20 @@ class CudaBlakeAotTests(unittest.TestCase):
         ):
             mutated_claim = xor_component(7, 4)
         self.assertNotEqual(xor_component(7, 4), mutated_claim)
+        exact_round_claim = Round(1, 7, 282).evaluate()
+        with mock.patch(
+            f"{__name__}.claim",
+            side_effect=lambda index: original_claim(1 if index == 6 else index),
+        ):
+            component_order_round = Round(1, 7, 282).evaluate()
+        self.assertNotEqual(exact_round_claim, component_order_round)
+        exact_xor_claim = xor_component(3, 0)
+        with mock.patch(
+            f"{__name__}.claim",
+            side_effect=lambda index: original_claim(3 if index == 1 else index),
+        ):
+            component_order_xor = xor_component(3, 0)
+        self.assertNotEqual(exact_xor_claim, component_order_xor)
         exact_targets = [
             2 * ((3 >> 1) * 4 + repeat) + (3 & 1)
             for repeat in range(4)
@@ -344,6 +391,7 @@ class CudaBlakeAotTests(unittest.TestCase):
     @staticmethod
     def _harness(source_path: Path) -> str:
         return f"""
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #define __device__
@@ -369,6 +417,13 @@ std::vector<unsigned> sources(unsigned component, unsigned columns) {{
     out[c*4u+r]=value(component,c,r);
   return out;
 }}
+std::vector<unsigned> sources_at_stride(
+    unsigned component, unsigned columns, unsigned stride) {{
+  std::vector<unsigned> out(static_cast<std::size_t>(columns)*stride);
+  for(unsigned c=0;c<columns;++c) for(unsigned r=0;r<stride;++r)
+    out[static_cast<std::size_t>(c)*stride+r]=value(component,c,r);
+  return out;
+}}
 void print(Qm31 x) {{
   std::cout<<x.a.a<<' '<<x.a.b<<' '<<x.b.a<<' '<<x.b.b<<' ';
 }}
@@ -387,10 +442,10 @@ int main() {{
                            claims.data(),1u<<27));
   s=sources(1,644);
   print(evaluate_round(s.data(),4,1,2,powers.data(),282,relations.data(),
-                       claims.data(),1,1u<<24));
+                       claims.data(),6,1u<<24));
   s=sources(2,644);
   print(evaluate_round(s.data(),4,1,2,powers.data(),153,relations.data(),
-                       claims.data(),2,1u<<26));
+                       claims.data(),7,1u<<26));
   const unsigned columns[5]={{771,51,51,51,8}};
   const unsigned inverses[5]={{1u<<15,1u<<17,1u<<19,1u<<21,1u<<23}};
   for(unsigned table=0;table<5;++table) {{
@@ -398,6 +453,33 @@ int main() {{
     print(evaluate_xor(s.data(),4,1,2,powers.data(),relations.data(),
                        claims.data(),table,inverses[table]));
   }}
+  constexpr unsigned maximum_stride=1u<<17;
+  std::vector<unsigned> coordinates(4u*maximum_stride);
+  unsigned denominators[2]={{3u,5u}};
+  threadIdx={{1,0,0}};
+  s=sources_at_stride(0,408,1u<<5);
+  stwo_native_constraint_blake_component_v1_64a336ee32f09d7e(
+      s.data(),s.size(),1u<<5,powers.data(),powers.size(),
+      denominators,2,relations.data(),relations.size(),
+      claims.data(),claims.size(),coordinates.data(),coordinates.size(),
+      maximum_stride,1u<<5,4,5,17,0,1);
+  for(unsigned c=0;c<4;++c) std::cout<<coordinates[c*maximum_stride+1]<<' ';
+  std::fill(coordinates.begin(),coordinates.end(),0u);
+  s=sources_at_stride(1,644,1u<<8);
+  stwo_native_constraint_blake_component_v1_64a336ee32f09d7e(
+      s.data(),s.size(),1u<<8,powers.data(),powers.size(),
+      denominators,2,relations.data(),relations.size(),
+      claims.data(),claims.size(),coordinates.data(),coordinates.size(),
+      maximum_stride,1u<<8,7,8,17,1,0);
+  for(unsigned c=0;c<4;++c) std::cout<<coordinates[c*maximum_stride+1]<<' ';
+  std::fill(coordinates.begin(),coordinates.end(),0u);
+  s=sources_at_stride(7,8,1u<<9);
+  stwo_native_constraint_blake_component_v1_64a336ee32f09d7e(
+      s.data(),s.size(),1u<<9,powers.data(),powers.size(),
+      denominators,2,relations.data(),relations.size(),
+      claims.data(),claims.size(),coordinates.data(),coordinates.size(),
+      maximum_stride,1u<<9,8,9,17,7,0);
+  for(unsigned c=0;c<4;++c) std::cout<<coordinates[c*maximum_stride+1]<<' ';
   unsigned lifted[4u*32u]={{}};
   Qm31 lift_value={{{{101u,103u}},{{107u,109u}}}};
   store_lifted(lifted,32,3,3,5,lift_value,true);

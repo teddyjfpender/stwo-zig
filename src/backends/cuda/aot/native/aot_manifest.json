@@ -1,15 +1,15 @@
 [
   {
     "abi_schema": "native_blake_constraint_v1",
-    "cache_key": "724c070b46f67f61",
-    "file": "constraint_blake_724c070b46f67f61.cu",
+    "cache_key": "3b9fbc925d6d3336",
+    "file": "constraint_blake_3b9fbc925d6d3336.cu",
     "identity_scheme": "sha256-source-and-contract-v1",
-    "kernel_name": "stwo_native_constraint_blake_component_v1_ad0197bc74a3e568",
+    "kernel_name": "stwo_native_constraint_blake_component_v1_64a336ee32f09d7e",
     "kind": "constraint",
     "label": "blake",
-    "program_identity": "a82bdf19a46ddab62544ee0e8c9e1ab8080b9bcd4d981d1a790e047e0602a3a7",
-    "semantic_contract": "stwo-zig/native/blake-constraint/v1;field=qm31;components=scheduler@L+1,round0@L+4,round1@L+2,xor12@17,xor9@15,xor8@13,xor7@11,xor4@9;sources=component-local-preprocessed-main-interaction-lde;constraints=6+129+129+128+8+8+8+1;relations=blake,round,xor12,xor9,xor8,xor7,xor4;claims=component-order;scheduler=ten-round-pairs-plus-blake-zero-multiplicity;round=64-arithmetic-plus-65-paired-logup;xor=paired-multiplicity-table-logup;previous=bit-reversed-circle-offset-minus-one;coefficients=reverse-417-component-order;denominator=component-coset-vanishing-inverse-2;lift=bit-reversed-domain-bucket-to-max(L+4,17);output=4-coordinate-additive-slab;launches=8",
-    "semantic_hash": "ad0197bc74a3e568"
+    "program_identity": "0c6df4e6b8d33b524539c5518aea63858632d7043811724a8f455bcbad6a85bd",
+    "semantic_contract": "stwo-zig/native/blake-constraint/v1;field=qm31;components=scheduler@L+1,round0@L+4,round1@L+2,xor12@17,xor9@15,xor8@13,xor7@11,xor4@9;sources=component-local-preprocessed-main-interaction-lde;constraints=6+129+129+128+8+8+8+1;relations=blake,round,xor12,xor9,xor8,xor7,xor4;claims=public-statement-order(scheduler,xor12,xor9,xor8,xor7,xor4,round0,round1);working_set=streamed-relations-no-dynamic-local-arrays;scheduler=ten-round-pairs-plus-blake-zero-multiplicity;round=64-arithmetic-plus-65-paired-logup;xor=paired-multiplicity-table-logup;previous=bit-reversed-circle-offset-minus-one;coefficients=reverse-417-component-order;denominator=component-coset-vanishing-inverse-2;lift=bit-reversed-domain-bucket-to-max(L+4,17);output=4-coordinate-additive-slab;launches=8",
+    "semantic_hash": "64a336ee32f09d7e"
   },
   {
     "abi_schema": "native_constant_qm31_v1",

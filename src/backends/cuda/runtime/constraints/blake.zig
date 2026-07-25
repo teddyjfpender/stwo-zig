@@ -12,9 +12,9 @@ pub const relation_element_count: usize = 14;
 pub const claimed_sum_count: usize = component_count;
 pub const constraint_count: usize = 417;
 pub const argument_count: u32 = 20;
-pub const cache_key: u64 = 0x724c070b46f67f61;
+pub const cache_key: u64 = 0x3b9fbc925d6d3336;
 pub const kernel_name =
-    "stwo_native_constraint_blake_component_v1_ad0197bc74a3e568";
+    "stwo_native_constraint_blake_component_v1_64a336ee32f09d7e";
 
 pub const ComponentKind = enum(u32) {
     scheduler,
@@ -236,13 +236,13 @@ pub fn componentDescriptors(
         return error.InvalidKernelDescriptor;
     return .{
         component(.scheduler, 408, 6, 411, log_size, log_size + 1, 0, 0, 0),
-        component(.round, 644, 129, 282, log_size + 3, log_size + 4, 1, 1, 0),
-        component(.round, 644, 129, 153, log_size + 1, log_size + 2, 1, 2, 0),
-        component(.xor, 771, 128, 25, 16, 17, 2, 3, 0),
-        component(.xor, 51, 8, 17, 14, 15, 3, 4, 1),
-        component(.xor, 51, 8, 9, 12, 13, 4, 5, 2),
-        component(.xor, 51, 8, 1, 10, 11, 5, 6, 3),
-        component(.xor, 8, 1, 0, 8, 9, 6, 7, 4),
+        component(.round, 644, 129, 282, log_size + 3, log_size + 4, 1, 6, 0),
+        component(.round, 644, 129, 153, log_size + 1, log_size + 2, 1, 7, 0),
+        component(.xor, 771, 128, 25, 16, 17, 2, 1, 0),
+        component(.xor, 51, 8, 17, 14, 15, 3, 2, 1),
+        component(.xor, 51, 8, 9, 12, 13, 4, 3, 2),
+        component(.xor, 51, 8, 1, 10, 11, 5, 4, 3),
+        component(.xor, 8, 1, 0, 8, 9, 6, 5, 4),
     };
 }
 
@@ -321,6 +321,16 @@ test "exact Blake descriptors preserve mixed-height AIR and power order" {
     try std.testing.expectEqual(@as(u32, constraint_count), constraints);
     try std.testing.expectEqual(@as(u32, 411), descriptors[0].power_start);
     try std.testing.expectEqual(@as(u32, 0), descriptors[7].power_start);
+    try std.testing.expectEqual(
+        [component_count]u32{ 0, 6, 7, 1, 2, 3, 4, 5 },
+        blk: {
+            var indices: [component_count]u32 = undefined;
+            for (descriptors, &indices) |descriptor, *index| {
+                index.* = descriptor.claimed_sum_index;
+            }
+            break :blk indices;
+        },
+    );
 }
 
 test "exact Blake descriptor rejects geometry outside resident u32 domains" {
