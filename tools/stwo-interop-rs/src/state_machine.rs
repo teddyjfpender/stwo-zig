@@ -22,6 +22,7 @@ use stwo_examples::state_machine::components::{
 use stwo_examples::state_machine::gen::{gen_interaction_trace, gen_trace};
 
 const PROOF_COMMITMENTS: usize = 4;
+pub(crate) const PROTOCOL_NAME: &str = "raw-stwo-state-machine-v2";
 
 pub(crate) fn state_machine_prove(
     config: PcsConfig,

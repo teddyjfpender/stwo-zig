@@ -53,6 +53,7 @@ pub(crate) fn parse_cli(args: Vec<String>) -> Result<Cli> {
         match flag.as_str() {
             "--mode" => {
                 mode = match value.as_str() {
+                    "capabilities" => Some(Mode::Capabilities),
                     "generate" => Some(Mode::Generate),
                     "verify" => Some(Mode::Verify),
                     "bench" => Some(Mode::Bench),
@@ -114,10 +115,16 @@ pub(crate) fn parse_cli(args: Vec<String>) -> Result<Cli> {
         }
     }
 
+    let mode = mode.ok_or_else(|| anyhow!("--mode is required"))?;
+    let artifact = match (mode, artifact) {
+        (Mode::Capabilities, None) => String::new(),
+        (_, Some(value)) => value,
+        _ => bail!("--artifact is required"),
+    };
     Ok(Cli {
-        mode: mode.ok_or_else(|| anyhow!("--mode is required"))?,
+        mode,
         example,
-        artifact: artifact.ok_or_else(|| anyhow!("--artifact is required"))?,
+        artifact,
         stage_profile_out,
         prove_mode,
         include_all_preprocessed_columns,
@@ -207,7 +214,7 @@ pub(crate) fn pcs_config_from_wire(wire: &PcsConfigWire) -> Result<PcsConfig> {
 #[cfg(test)]
 mod tests {
     use super::{parse_cli, pcs_config_from_wire};
-    use crate::model::{FriConfigWire, PcsConfigWire, ProverBackend};
+    use crate::model::{FriConfigWire, Mode, PcsConfigWire, ProverBackend};
 
     fn config_wire() -> PcsConfigWire {
         PcsConfigWire {
@@ -262,5 +269,19 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(simd.backend, ProverBackend::Simd);
+    }
+
+    #[test]
+    fn capabilities_is_the_only_artifact_free_mode() {
+        let capabilities =
+            parse_cli(vec!["tool".into(), "--mode".into(), "capabilities".into()]).unwrap();
+        assert_eq!(capabilities.mode, Mode::Capabilities);
+        assert!(capabilities.artifact.is_empty());
+
+        let verify = parse_cli(vec!["tool".into(), "--mode".into(), "verify".into()]);
+        assert!(verify
+            .unwrap_err()
+            .to_string()
+            .contains("--artifact is required"));
     }
 }

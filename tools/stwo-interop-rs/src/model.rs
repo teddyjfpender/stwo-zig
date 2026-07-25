@@ -21,6 +21,7 @@ pub(crate) const BLAKE_ROUND_INPUT_FELTS: usize =
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mode {
+    Capabilities,
     Generate,
     Verify,
     Bench,

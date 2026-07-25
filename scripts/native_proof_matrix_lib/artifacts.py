@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from .model import (
+    AIR_PROTOCOLS,
     INTEROP_UPSTREAM_COMMIT,
+    RUST_ORACLE_CAPABILITY_PROTOCOL,
     RUST_ORACLE_SHA256,
     RUST_ORACLE_TOOLCHAIN,
     MatrixError,
@@ -383,6 +385,60 @@ def run_rust_oracle(
         "stdout_sha256": hashlib.sha256(completed.stdout).hexdigest(),
         "stderr_sha256": hashlib.sha256(completed.stderr).hexdigest(),
     }
+
+
+def preflight_rust_oracle_adapter(
+    binary: Path,
+    timeout_seconds: float,
+) -> dict[str, Any]:
+    resolved = require_binary(binary, "Rust oracle")
+    binary_sha256 = sha256_file(resolved)
+    if binary_sha256 != RUST_ORACLE_SHA256:
+        raise MatrixError(
+            "Rust oracle binary digest does not match the pinned verifier "
+            f"({binary_sha256} != {RUST_ORACLE_SHA256})"
+        )
+    command = [str(resolved), "--mode", "capabilities"]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise MatrixError(
+            f"Rust oracle capability preflight timed out after {timeout_seconds} seconds"
+        ) from error
+    if len(completed.stdout) > MAX_STDOUT_BYTES or len(completed.stderr) > MAX_STDERR_BYTES:
+        raise MatrixError("Rust oracle capability output exceeded capture limits")
+    if completed.returncode != 0:
+        tail = completed.stderr[-4000:].decode("utf-8", errors="replace")
+        raise MatrixError(
+            "Rust oracle does not expose the required exact AIR adapter "
+            f"capabilities; stderr tail:\n{tail}"
+        )
+    if completed.stderr.strip():
+        raise MatrixError("Rust oracle capability preflight produced unexpected stderr")
+    try:
+        manifest = json.loads(completed.stdout)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise MatrixError("Rust oracle capability manifest is invalid JSON") from error
+    expected = {
+        "schema_version": 1,
+        "protocol": RUST_ORACLE_CAPABILITY_PROTOCOL,
+        "upstream_commit": INTEROP_UPSTREAM_COMMIT,
+        "exact_air_protocols": {
+            "state_machine": AIR_PROTOCOLS["state_machine"],
+        },
+    }
+    if manifest != expected:
+        raise MatrixError("Rust oracle exact AIR adapter capabilities are stale")
+    if sha256_file(resolved) != RUST_ORACLE_SHA256:
+        raise MatrixError("Rust oracle binary changed during capability preflight")
+    return manifest
 
 
 def run_lane(

@@ -21,6 +21,7 @@ INTEROP_UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 INTEROP_EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 RUST_ORACLE_TOOLCHAIN = "nightly-2025-07-14"
 RUST_ORACLE_SHA256 = "a2304005ff1bb45151dfbb6491bc5eb53468fe9cdd6c6aefc7168b75ab0684ca"
+RUST_ORACLE_CAPABILITY_PROTOCOL = "stwo_interop_capabilities_v1"
 
 DEFAULT_WORKLOADS = (
     "wide_fibonacci:log_n_rows=10,sequence_len=8",

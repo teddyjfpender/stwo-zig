@@ -19,6 +19,7 @@ use anyhow::{bail, Result};
 use cli::parse_cli;
 use commands::{run_bench, run_generate, run_verify};
 use model::Mode;
+use serde_json::json;
 use std::env;
 use std::panic::{self, AssertUnwindSafe};
 
@@ -30,10 +31,24 @@ fn main() -> Result<()> {
         bail!("--stage-profile-out is only supported for generate mode");
     }
     match cli.mode {
+        Mode::Capabilities => run_capabilities(),
         Mode::Generate => run_generate(&cli),
         Mode::Verify => run_verify_guarded(&cli),
         Mode::Bench => run_bench(&cli),
     }
+}
+
+fn run_capabilities() -> Result<()> {
+    let manifest = json!({
+        "schema_version": 1,
+        "protocol": "stwo_interop_capabilities_v1",
+        "upstream_commit": UPSTREAM_COMMIT,
+        "exact_air_protocols": {
+            "state_machine": state_machine::PROTOCOL_NAME,
+        },
+    });
+    println!("{}", serde_json::to_string(&manifest)?);
+    Ok(())
 }
 
 fn run_verify_guarded(cli: &model::Cli) -> Result<()> {
