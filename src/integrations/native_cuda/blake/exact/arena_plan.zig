@@ -1,0 +1,383 @@
+//! Lifetime-sealed proof arena for exact mixed-height CUDA Blake.
+
+const std = @import("std");
+const arena = @import("../../../../backends/cuda/runtime/arena.zig");
+const telemetry = @import("../../../../backends/cuda/runtime/telemetry.zig");
+const geometry_mod = @import("geometry.zig");
+const slots = @import("slots.zig");
+const views_mod = @import("views.zig");
+
+pub const Prepared = struct {
+    geometry: geometry_mod.Geometry,
+    views: views_mod.TreeViews,
+    requirements: []arena.Requirement,
+    plan: arena.Plan,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        geometry: geometry_mod.Geometry,
+    ) !Prepared {
+        const views = try views_mod.TreeViews.init(geometry);
+        try views.validate(geometry);
+        const requirements = try buildRequirements(allocator, geometry);
+        errdefer allocator.free(requirements);
+        return .{
+            .geometry = geometry,
+            .views = views,
+            .requirements = requirements,
+            .plan = try arena.Plan.init(allocator, requirements),
+        };
+    }
+
+    pub fn deinit(self: *Prepared, allocator: std.mem.Allocator) void {
+        self.plan.deinit(allocator);
+        allocator.free(self.requirements);
+        self.* = undefined;
+    }
+
+    pub fn placement(
+        self: Prepared,
+        id: arena.SlotId,
+    ) !arena.Placement {
+        return self.plan.placement(id);
+    }
+
+    pub fn validate(self: Prepared) !void {
+        try self.views.validate(self.geometry);
+        for (self.plan.placements, 0..) |left, index| {
+            for (self.plan.placements[index + 1 ..]) |right| {
+                if (!lifetimesOverlap(
+                    left.requirement,
+                    right.requirement,
+                )) continue;
+                if (try left.endWords() > right.offset_words and
+                    try right.endWords() > left.offset_words)
+                {
+                    return error.OverlappingResidentLifetime;
+                }
+            }
+        }
+        try requireWords(
+            self,
+            slots.main_evaluations,
+            self.geometry.main_words,
+        );
+        try requireWords(
+            self,
+            slots.interaction_evaluations,
+            self.geometry.interaction_words,
+        );
+        try requireWords(
+            self,
+            slots.statement1_claims,
+            geometry_mod.statement1_words,
+        );
+        try requireWords(
+            self,
+            slots.sampled_values,
+            geometry_mod.sampled_value_count * 4,
+        );
+    }
+};
+
+pub fn buildRequirements(
+    allocator: std.mem.Allocator,
+    geometry: geometry_mod.Geometry,
+) ![]arena.Requirement {
+    var result = std.ArrayList(arena.Requirement).empty;
+    errdefer result.deinit(allocator);
+    const query_rows = try rowsAtLog(geometry.query_log);
+
+    try add(&result, allocator, slots.twiddles_forward, query_rows, .ingress, .decommit);
+    try add(&result, allocator, slots.twiddles_inverse, query_rows, .ingress, .fri_commit);
+    try add(&result, allocator, slots.transcript_state, 16, .ingress, .decommit);
+    try add(&result, allocator, slots.relation_elements, geometry_mod.relation_element_words, .trace_commit, .constraint_evaluation);
+    try add(&result, allocator, slots.statement1_claims, geometry_mod.statement1_words, .constraint_evaluation, .proof_assembly);
+    try add(&result, allocator, slots.composition_challenge, 4, .constraint_evaluation, .constraint_evaluation);
+
+    try addTree(
+        &result,
+        allocator,
+        .preprocessed,
+        slots.preprocessed_evaluations,
+        slots.preprocessed_coefficients,
+        slots.preprocessed_lde,
+        slots.preprocessed_hashes,
+        slots.preprocessed_layers,
+        geometry,
+        .trace_generation,
+        .trace_commit,
+    );
+    try addTree(
+        &result,
+        allocator,
+        .main,
+        slots.main_evaluations,
+        slots.main_coefficients,
+        slots.main_lde,
+        slots.main_hashes,
+        slots.main_layers,
+        geometry,
+        .trace_generation,
+        .trace_commit,
+    );
+    try addTree(
+        &result,
+        allocator,
+        .interaction,
+        slots.interaction_evaluations,
+        slots.interaction_coefficients,
+        slots.interaction_lde,
+        slots.interaction_hashes,
+        slots.interaction_layers,
+        geometry,
+        .constraint_evaluation,
+        .constraint_evaluation,
+    );
+    try addTree(
+        &result,
+        allocator,
+        .composition,
+        slots.composition_evaluations,
+        slots.composition_coefficients,
+        slots.composition_lde,
+        slots.composition_hashes,
+        slots.composition_layers,
+        geometry,
+        .constraint_evaluation,
+        .constraint_evaluation,
+    );
+
+    try add(&result, allocator, slots.constraint_random_powers, geometry_mod.constraint_count * 4, .constraint_evaluation, .constraint_evaluation);
+    try add(&result, allocator, slots.constraint_denominator_inverses, geometry_mod.component_count * 2, .constraint_evaluation, .constraint_evaluation);
+    try add(&result, allocator, slots.constraint_component_partials, geometry_mod.component_count * query_rows * 4, .constraint_evaluation, .constraint_evaluation);
+
+    const sample_words = geometry_mod.sampled_value_count * 4;
+    try add(&result, allocator, slots.oods_parameter, 4, .oods, .quotient);
+    try add(&result, allocator, slots.oods_points, geometry_mod.sampled_value_count * 4, .oods, .quotient);
+    try add(&result, allocator, slots.oods_fold_counts, geometry_mod.sampled_value_count, .ingress, .oods);
+    try add(&result, allocator, slots.oods_output_indices, geometry_mod.sampled_value_count, .ingress, .oods);
+    try add(&result, allocator, slots.oods_scratch_a, sample_words, .oods, .oods);
+    try add(&result, allocator, slots.oods_scratch_b, sample_words, .oods, .oods);
+    try add(&result, allocator, slots.sampled_values, sample_words, .oods, .proof_assembly);
+
+    try add(&result, allocator, slots.quotient_challenge, 4, .oods, .quotient);
+    try add(&result, allocator, slots.quotient_descriptors, geometry_mod.sampled_value_count * 8, .ingress, .quotient);
+    try add(&result, allocator, slots.quotient_term_points, geometry_mod.sampled_value_count * 4, .quotient, .quotient);
+    try add(&result, allocator, slots.quotient_line_coefficients, geometry_mod.sampled_value_count * 12, .quotient, .quotient);
+    try add(&result, allocator, slots.quotient_partials, query_rows * 4, .quotient, .quotient);
+    try add(&result, allocator, slots.quotient_coordinates, query_rows * 4, .quotient, .decommit);
+
+    var layer_log = geometry.query_log;
+    for (0..geometry.fri_tree_count) |index| {
+        const layer_rows = try rowsAtLog(layer_log);
+        try add(
+            &result,
+            allocator,
+            slots.friCoordinates(index),
+            layer_rows * 4,
+            if (index == 0) .quotient else .fri_commit,
+            .decommit,
+        );
+        try addAligned(
+            &result,
+            allocator,
+            slots.friHashes(index),
+            try hashWords(layer_rows),
+            8,
+            .fri_commit,
+            .decommit,
+        );
+        try addAligned(
+            &result,
+            allocator,
+            slots.friLayers(index),
+            (layer_log + 1) * 2,
+            2,
+            .fri_commit,
+            .decommit,
+        );
+        layer_log -= 1;
+    }
+
+    try add(&result, allocator, slots.pow_nonce, 2, .pow, .proof_assembly);
+    try add(&result, allocator, slots.raw_queries, geometry.protocol.fri_config.n_queries, .decommit, .proof_assembly);
+    try add(&result, allocator, slots.decommit_scratch, try decommitScratchWords(geometry), .decommit, .decommit);
+    try addAligned(&result, allocator, slots.proof_bundle, try terminalBundleCapacity(geometry), 8, .proof_assembly, .proof_assembly);
+    return result.toOwnedSlice(allocator);
+}
+
+fn addTree(
+    result: *std.ArrayList(arena.Requirement),
+    allocator: std.mem.Allocator,
+    tree: geometry_mod.Tree,
+    evaluation_slot: arena.SlotId,
+    coefficient_slot: arena.SlotId,
+    lde_slot: arena.SlotId,
+    hash_slot: arena.SlotId,
+    layer_slot: arena.SlotId,
+    geometry: geometry_mod.Geometry,
+    generate_stage: telemetry.Stage,
+    commit_stage: telemetry.Stage,
+) !void {
+    const source_words = geometry.treeWords(tree);
+    const commitment_rows = try rowsAtLog(
+        geometry.treeCommitmentLog(tree),
+    );
+    try add(result, allocator, evaluation_slot, source_words, generate_stage, commit_stage);
+    try add(result, allocator, coefficient_slot, source_words, commit_stage, .oods);
+    try add(result, allocator, lde_slot, source_words * 2, commit_stage, .decommit);
+    try addAligned(result, allocator, hash_slot, try hashWords(commitment_rows), 8, commit_stage, .decommit);
+    try addAligned(result, allocator, layer_slot, (geometry.treeCommitmentLog(tree) + 1) * 2, 2, commit_stage, .decommit);
+}
+
+fn terminalBundleCapacity(geometry: geometry_mod.Geometry) !usize {
+    const roots = (geometry_mod.trace_tree_count +
+        geometry.fri_tree_count) * 8;
+    const fixed = 128 +
+        roots +
+        geometry_mod.sampled_value_count * 4 +
+        geometry_mod.statement1_words +
+        8;
+    return std.math.add(
+        usize,
+        fixed,
+        try decommitScratchWords(geometry),
+    ) catch error.GeometryOverflow;
+}
+
+fn decommitScratchWords(geometry: geometry_mod.Geometry) !usize {
+    const queries = geometry.protocol.fri_config.n_queries;
+    const trace_values = std.math.mul(
+        usize,
+        queries,
+        geometry_mod.source_column_count,
+    ) catch return error.GeometryOverflow;
+    const trace_hashes = geometry_mod.trace_tree_count *
+        queries *
+        geometry.query_log *
+        8;
+    const fri = geometry.fri_tree_count *
+        queries *
+        (4 + geometry.query_log * 8);
+    return std.math.add(
+        usize,
+        trace_values + trace_hashes,
+        fri,
+    ) catch error.GeometryOverflow;
+}
+
+fn hashWords(rows: usize) !usize {
+    const hashes = std.math.sub(
+        usize,
+        std.math.mul(usize, rows, 2) catch
+            return error.GeometryOverflow,
+        1,
+    ) catch return error.GeometryOverflow;
+    return std.math.mul(usize, hashes, 8) catch error.GeometryOverflow;
+}
+
+fn rowsAtLog(log_rows: u32) !usize {
+    if (log_rows >= @bitSizeOf(usize)) return error.GeometryOverflow;
+    return @as(usize, 1) << @intCast(log_rows);
+}
+
+fn add(
+    result: *std.ArrayList(arena.Requirement),
+    allocator: std.mem.Allocator,
+    id: arena.SlotId,
+    words: usize,
+    live_from: telemetry.Stage,
+    live_through: telemetry.Stage,
+) !void {
+    try addAligned(
+        result,
+        allocator,
+        id,
+        words,
+        1,
+        live_from,
+        live_through,
+    );
+}
+
+fn addAligned(
+    result: *std.ArrayList(arena.Requirement),
+    allocator: std.mem.Allocator,
+    id: arena.SlotId,
+    words: usize,
+    alignment_words: usize,
+    live_from: telemetry.Stage,
+    live_through: telemetry.Stage,
+) !void {
+    if (words == 0) return error.InvalidArenaRequirement;
+    try result.append(allocator, .{
+        .id = id,
+        .words = words,
+        .alignment_words = alignment_words,
+        .live_from = live_from,
+        .live_through = live_through,
+    });
+}
+
+fn requireWords(
+    prepared: Prepared,
+    id: arena.SlotId,
+    words: usize,
+) !void {
+    if ((try prepared.plan.placement(id)).requirement.words != words)
+        return error.InvalidArenaRequirement;
+}
+
+fn lifetimesOverlap(
+    left: arena.Requirement,
+    right: arena.Requirement,
+) bool {
+    return left.live_from.index() <= right.live_through.index() and
+        right.live_from.index() <= left.live_through.index();
+}
+
+test "exact Blake arena seals all mixed-height trees and terminal read" {
+    const allocator = std.testing.allocator;
+    const geometry = try geometry_mod.admit(.{
+        .statement = .{ .log_n_rows = 4 },
+        .protocol = @import("stwo_core").pcs.PcsConfig.default(),
+    });
+    var prepared = try Prepared.init(allocator, geometry);
+    defer prepared.deinit(allocator);
+    try prepared.validate();
+
+    try std.testing.expectEqual(
+        geometry.main_words,
+        (try prepared.placement(slots.main_evaluations))
+            .requirement.words,
+    );
+    try std.testing.expectEqual(
+        geometry.interaction_words,
+        (try prepared.placement(slots.interaction_evaluations))
+            .requirement.words,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 4),
+        (try prepared.placement(slots.quotient_coordinates))
+            .requirement.words /
+            (@as(usize, 1) << @intCast(geometry.query_log)),
+    );
+    try std.testing.expectEqual(
+        telemetry.Stage.proof_assembly,
+        (try prepared.placement(slots.proof_bundle))
+            .requirement.live_from,
+    );
+}
+
+test "exact Blake arena aliases only disjoint protocol lifetimes" {
+    const allocator = std.testing.allocator;
+    const geometry = try geometry_mod.admit(.{
+        .statement = .{ .log_n_rows = 5 },
+        .protocol = @import("stwo_core").pcs.PcsConfig.default(),
+    });
+    var prepared = try Prepared.init(allocator, geometry);
+    defer prepared.deinit(allocator);
+    try prepared.validate();
+    try std.testing.expect(prepared.plan.total_words > geometry.trace_words);
+}

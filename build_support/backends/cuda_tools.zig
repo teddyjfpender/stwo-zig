@@ -212,6 +212,22 @@ pub fn addProducts(
         "Test exact Poseidon CUDA arena contracts without a GPU",
     ).dependOn(&b.addRunArtifact(poseidon_arena_tests).step);
 
+    const blake_exact_root = b.createModule(.{
+        .root_source_file = b.path(
+            "tests/native_cuda_blake_exact_structure.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    blake_exact_root.addImport("stwo_under_test", stwo);
+    const blake_exact_tests = b.addTest(.{
+        .root_module = blake_exact_root,
+    });
+    b.step(
+        "test-cuda-blake-exact-structure",
+        "Test exact mixed-height Blake CUDA contracts without a GPU",
+    ).dependOn(&b.addRunArtifact(blake_exact_tests).step);
+
     const adapter_tests = b.addSystemCommand(&.{
         "cargo",
         "+nightly-2025-07-14",
