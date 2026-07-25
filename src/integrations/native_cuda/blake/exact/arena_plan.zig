@@ -201,10 +201,10 @@ pub fn buildRequirements(
         .trace_commit,
         .constraint_evaluation,
     );
-    try add(&result, allocator, slots.interaction_output_pointer_table, geometry_mod.interaction_columns * pointer_words, .ingress, .constraint_evaluation);
-    try add(&result, allocator, slots.interaction_output_tables, top_table_words, .ingress, .constraint_evaluation);
-    try add(&result, allocator, slots.interaction_denominator_tables, top_table_words, .ingress, .constraint_evaluation);
-    try add(&result, allocator, slots.interaction_claim_tables, top_table_words, .ingress, .constraint_evaluation);
+    try addAligned(&result, allocator, slots.interaction_output_pointer_table, geometry_mod.interaction_columns * pointer_words, pointer_words, .ingress, .constraint_evaluation);
+    try addAligned(&result, allocator, slots.interaction_output_tables, top_table_words, pointer_words, .ingress, .constraint_evaluation);
+    try addAligned(&result, allocator, slots.interaction_denominator_tables, top_table_words, pointer_words, .ingress, .constraint_evaluation);
+    try addAligned(&result, allocator, slots.interaction_claim_tables, top_table_words, pointer_words, .ingress, .constraint_evaluation);
     try add(&result, allocator, slots.interaction_geometry, geometry_mod.component_count * relation_abi.geometry_words, .ingress, .constraint_evaluation);
     try add(&result, allocator, slots.interaction_reduction_partials, scratch_words, .constraint_evaluation, .constraint_evaluation);
     try add(&result, allocator, slots.interaction_scan_block_sums, scratch_words, .constraint_evaluation, .constraint_evaluation);
