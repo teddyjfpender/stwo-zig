@@ -141,7 +141,7 @@ pub fn commit(
     );
 }
 
-fn snapshotRelationSources(
+pub fn snapshotRelationSources(
     transaction: anytype,
     geometry: @import("../geometry.zig").Geometry,
 ) !void {
