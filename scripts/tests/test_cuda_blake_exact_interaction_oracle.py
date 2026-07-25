@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from typing import Sequence
 
-from .blake_exact_interaction_oracle import (
+from scripts.tests.blake_exact_interaction_oracle import (
     P,
     QM31,
     base,

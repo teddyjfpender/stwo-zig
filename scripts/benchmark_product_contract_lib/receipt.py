@@ -14,6 +14,9 @@ RECEIPT_PROTOCOL = "focused_product_measurement_receipt_v1"
 MIN_PROMOTION_WARMUPS = 10
 MIN_PROMOTION_VERIFIED_SAMPLES = 10
 MAX_TRACE_LOG_ROWS = 22
+BLAKE_COMMITTED_COLUMNS = 2_628
+BLAKE_FIXED_COMMITTED_CELLS = 51_627_008
+BLAKE_VARIABLE_CELLS_PER_ROW = 6_848
 RECEIPT_KEYS = {
     "schema_version",
     "protocol",
@@ -231,7 +234,9 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     trace_rows = _require_int(workload["trace_rows"], f"{context}.trace_rows", minimum=1)
     if trace_rows != 1 << log_rows:
         raise ProductEvidenceError(f"{context}.trace_rows is inconsistent")
-    expected_trees = 3 if name in {"xor", "state_machine", "poseidon"} else 2
+    expected_trees = (
+        3 if name in {"xor", "state_machine", "blake", "poseidon"} else 2
+    )
     if workload["committed_trees"] != expected_trees:
         raise ProductEvidenceError(f"{context}.committed_trees is unsupported")
     columns = _require_int(
@@ -240,7 +245,7 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     expected_columns = (
         parameters["sequence_len"]
         if name == "wide_fibonacci"
-        else parameters["n_rounds"] * 96
+        else BLAKE_COMMITTED_COLUMNS
         if name == "blake"
         else 1296
         if name == "poseidon"
@@ -257,7 +262,14 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         f"{context}.committed_trace_cells",
         minimum=1,
     )
-    expected_cells = trace_rows * 9 if name == "state_machine" else trace_rows * columns
+    expected_cells = (
+        trace_rows * 9
+        if name == "state_machine"
+        else BLAKE_FIXED_COMMITTED_CELLS
+        + trace_rows * BLAKE_VARIABLE_CELLS_PER_ROW
+        if name == "blake"
+        else trace_rows * columns
+    )
     if cells != expected_cells:
         raise ProductEvidenceError(f"{context}.committed_trace_cells is inconsistent")
     if workload["native_unit"] != NATIVE_UNITS[name]:
