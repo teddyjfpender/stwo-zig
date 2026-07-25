@@ -415,8 +415,6 @@ test "Cairo interaction reference accepts every generated relation template" {
         }
     }
     try std.testing.expectEqual(@as(usize, 68), trace_count);
-    for (source_kinds, 0..) |covered, kind|
-        try std.testing.expectFmt(covered, "generated templates do not cover source kind {}", .{kind});
-    for (multiplicity_kinds, 0..) |covered, kind|
-        try std.testing.expectFmt(covered, "generated templates do not cover multiplicity kind {}", .{kind});
+    for (source_kinds) |covered| try std.testing.expect(covered);
+    for (multiplicity_kinds) |covered| try std.testing.expect(covered);
 }
