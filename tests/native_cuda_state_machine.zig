@@ -197,6 +197,7 @@ test "exact ingress uploads the sealed relation graph" {
         exact.slots.relation_claimed_sum_tables,
         exact.slots.constraint_denominator_inverses,
         exact.slots.empty_preprocessed_root,
+        exact.slots.transcript_statement_words,
     }) |id| {
         try std.testing.expect(transaction.wasUploaded(id));
     }
@@ -295,6 +296,30 @@ const TraceOps = struct {
                 stage,
             );
             try std.testing.expectEqual(source.len, snapshot.len);
+            try Calls.transcript(boundary.expected_step);
+        }
+
+        pub fn mixWordsPair(
+            _: anytype,
+            stage: anytype,
+            _: anytype,
+            boundary: anytype,
+            first: anytype,
+            second: anytype,
+            _: bool,
+            snapshot: anytype,
+        ) !void {
+            try std.testing.expectEqual(
+                @import("stwo_under_test").backends.cuda.runtime
+                    .telemetry.Stage.trace_commit,
+                stage,
+            );
+            try std.testing.expectEqual(@as(usize, 2), first.len);
+            try std.testing.expectEqual(@as(usize, 2), second.len);
+            try std.testing.expectEqual(
+                first.len + second.len,
+                snapshot.len,
+            );
             try Calls.transcript(boundary.expected_step);
         }
     };

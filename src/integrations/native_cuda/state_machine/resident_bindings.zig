@@ -72,6 +72,7 @@ pub const Relation = struct {
 pub const Bound = struct {
     base: shared.Bound,
     empty_preprocessed_root: Words,
+    transcript_statement_words: Words,
     relation: Relation,
     constraint_buffers: constraint.Buffers,
 };
@@ -154,6 +155,11 @@ pub fn bind(
             provider,
             slots.empty_preprocessed_root,
             8,
+        ),
+        .transcript_statement_words = try exactWords(
+            provider,
+            slots.transcript_statement_words,
+            geometry_mod.transcript_statement_word_count,
         ),
         .relation = .{
             .buffers = .{

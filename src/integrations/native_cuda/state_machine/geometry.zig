@@ -20,6 +20,9 @@ pub const coefficient_log_count: u32 = source_columns;
 /// `[n, m]` is mixed before the main commitment. The two public initial
 /// coordinates are already bound by the canonical request.
 pub const statement_word_count: usize = 2;
+/// CPU `mixStatement0` performs two independent `mixU64` calls. Each value
+/// therefore needs a low/high u32 pair in the resident transcript source.
+pub const transcript_statement_word_count: usize = 4;
 /// The terminal transaction returns both QM31 claimed sums.
 pub const terminal_statement_words: usize = 8;
 pub const public_statement_word_count: usize =

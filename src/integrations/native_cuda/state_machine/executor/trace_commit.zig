@@ -81,7 +81,7 @@ pub fn commitWith(
         0,
         views.empty_preprocessed_root,
     );
-    try transcript.mixWords(
+    try transcript.mixWordsPair(
         Ops.Transcript,
         session,
         .trace_commit,
@@ -89,7 +89,8 @@ pub fn commitWith(
         views.base.transcript,
         2,
         .mix_statement,
-        views.base.statement_words,
+        try views.transcript_statement_words.sub(0, 2),
+        try views.transcript_statement_words.sub(2, 2),
         false,
     );
 

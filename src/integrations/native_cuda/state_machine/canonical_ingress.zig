@@ -38,6 +38,7 @@ pub const Pack = struct {
     oods_output_indices: [geometry_mod.sampled_mask_points]u32,
     protocol_words: [canonical_input.protocol_word_count]u32,
     statement_words: [canonical_input.statement_word_count]u32,
+    transcript_statement_words: [geometry_mod.transcript_statement_word_count]u32,
     empty_preprocessed_root: [8]u32,
     circle: CircleConstants,
 
@@ -143,6 +144,9 @@ pub const Pack = struct {
             .oods_output_indices = output_indices,
             .protocol_words = canonical_input.protocolWords(geometry.protocol),
             .statement_words = canonical_input.statementWords(geometry.statement),
+            .transcript_statement_words = canonical_input.transcriptStatementWords(
+                geometry.statement,
+            ),
             .empty_preprocessed_root = emptyPreprocessedRoot(),
             .circle = try deriveCircleConstants(geometry),
         };
@@ -361,6 +365,11 @@ test "canonical state-machine ingress is exact and reusable" {
         u32,
         &.{ 8, 7 },
         &pack.statement_words,
+    );
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 8, 0, 7, 0 },
+        &pack.transcript_statement_words,
     );
     try std.testing.expect(!std.mem.allEqual(
         u32,

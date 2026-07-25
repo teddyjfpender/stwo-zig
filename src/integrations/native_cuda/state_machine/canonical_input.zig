@@ -28,6 +28,17 @@ pub fn statementWords(
     };
 }
 
+pub fn transcriptStatementWords(
+    value: cpu_state_machine.Request,
+) [geometry_mod.transcript_statement_word_count]u32 {
+    return .{
+        value.log_n_rows,
+        0,
+        value.log_n_rows - 1,
+        0,
+    };
+}
+
 pub fn coefficientLogSizes(
     geometry: geometry_mod.Geometry,
 ) [geometry_mod.coefficient_log_count]u32 {
@@ -57,6 +68,14 @@ test "State Machine v2 ingress preserves mixed-height column logs" {
         &.{ 16, 15 },
         &words,
     );
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 16, 0, 15, 0 },
+        &transcriptStatementWords(.{
+            .log_n_rows = 16,
+            .initial_state = .{ M31.fromU64(9), M31.fromU64(3) },
+        }),
+    );
     const logs = coefficientLogSizes(try geometry_mod.admit(
         .{
             .log_n_rows = 16,
@@ -76,4 +95,32 @@ test "State Machine v2 ingress preserves mixed-height column logs" {
     );
     const protocol = protocolWords(pcs.PcsConfig.default());
     try std.testing.expectEqualSlices(u32, &.{ 10, 1, 3, 0 }, &protocol);
+}
+
+test "resident Statement0 words exactly match two CPU mixU64 calls" {
+    const statement = @import(
+        "../../../examples/state_machine/statement.zig",
+    );
+    const request = cpu_state_machine.Request{
+        .log_n_rows = 16,
+        .initial_state = .{
+            @import("stwo_core").fields.m31.M31.fromU64(9),
+            @import("stwo_core").fields.m31.M31.fromU64(3),
+        },
+    };
+    var expected = statement.Channel{};
+    statement.mixStatement0(
+        &expected,
+        .{ .n = 16, .m = 15 },
+    );
+
+    const words = transcriptStatementWords(request);
+    var actual = statement.Channel{};
+    actual.mixU32s(words[0..2]);
+    actual.mixU32s(words[2..4]);
+    try @import("std").testing.expectEqualSlices(
+        u8,
+        &expected.digestBytes(),
+        &actual.digestBytes(),
+    );
 }

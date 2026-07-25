@@ -32,6 +32,11 @@ pub fn run(
     );
     try transaction.upload(
         u32,
+        slots.transcript_statement_words,
+        &pack.transcript_statement_words,
+    );
+    try transaction.upload(
+        u32,
         slots.constraint_denominator_inverses,
         &pack.circle.composition_denominator_inverses,
     );

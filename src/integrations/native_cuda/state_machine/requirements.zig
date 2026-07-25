@@ -62,6 +62,14 @@ pub fn build(
     try add(
         &output,
         allocator,
+        slots.transcript_statement_words,
+        geometry_mod.transcript_statement_word_count,
+        .ingress,
+        .trace_commit,
+    );
+    try add(
+        &output,
+        allocator,
         slots.statement_words,
         geometry_mod.statement_word_count,
         .ingress,
