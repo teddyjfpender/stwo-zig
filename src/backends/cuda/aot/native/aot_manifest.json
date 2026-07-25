@@ -96,6 +96,18 @@
     "semantic_hash": "74e91bf393755b46"
   },
   {
+    "abi_schema": "native_blake_exact_trace_v1",
+    "cache_key": "904701cc6586063e",
+    "file": "witness_blake_exact_trace_904701cc6586063e.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_trace_blake_exact_mixed_v1_5d9d1dc25f011625",
+    "kind": "witness",
+    "label": "blake_exact_trace",
+    "program_identity": "603cc155ccf5f92e5c152192b3979d98c850b952dc7eeae0a45f2c95343875aa",
+    "semantic_contract": "stwo-zig/native/blake-exact-trace/v1;field=m31;statement=log_n_rows[4..13],n_rounds=10;groups=scheduler[L,384],round[L+3,384],round[L+1,384],xor12[16,256],xor9[14,16],xor8[12,16],xor7[10,16],xor4[8,1];preprocessed=xor12..xor4[a,b,a_xor_b];scheduler=pinned-packed-lane-input-and-ten-round-state-sequence;round=pinned-sigma-input-and-eight-G-row;xor_multiplicity=prezeroed-u32-atomic-unit-increments,bound=1280*2^L<=10485760;relation=immutable-full-preprocessed-then-main-copy;layout=compact-component-column-major;host_transfer=none;fallback=none;launches=1",
+    "semantic_hash": "5d9d1dc25f011625"
+  },
+  {
     "abi_schema": "native_circle_affine_state_trace_v1",
     "cache_key": "17c0a4c208b9f08a",
     "file": "witness_circle_affine_state_trace_17c0a4c208b9f08a.cu",
