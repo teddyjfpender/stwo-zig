@@ -149,6 +149,12 @@ class ComputeSummaryTests(unittest.TestCase):
             return_code=1,
         )
         self.assertEqual(root_mismatch, self.mod.REJECTION_CLASS_VERIFIER)
+        fri_query = self.mod.classify_rejection(
+            "",
+            "Error: queries do not resolve to their commitment in the first layer",
+            return_code=1,
+        )
+        self.assertEqual(fri_query, self.mod.REJECTION_CLASS_VERIFIER)
         invalid_log_size = self.mod.classify_rejection(
             "",
             "error: InvalidLogSize",
