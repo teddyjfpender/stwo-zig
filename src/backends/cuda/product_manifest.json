@@ -232,6 +232,7 @@
       "stwo_witness_casm_input_scatter_on",
       "stwo_witness_edge_gather_contiguous_on",
       "stwo_witness_input_seed_contiguous_on",
+      "stwo_witness_multi_edge_gather_contiguous_on",
       "stwo_zero_quotient_numerator_outputs_on"
     ],
     "staged_stage_modules": [],

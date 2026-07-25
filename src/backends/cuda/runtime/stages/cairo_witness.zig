@@ -6,6 +6,7 @@ const common = @import("common.zig");
 const layout = @import("resident_layout.zig");
 const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
+const witness_plan = @import("cairo_witness_plan.zig");
 
 pub const Native = OpsFor(abi);
 
@@ -327,5 +328,99 @@ pub fn OpsFor(comptime Api: type) type {
             );
             try common.record(session, stage, status);
         }
+
+        pub fn gatherEdges(
+            session: anytype,
+            topology: witness_plan.MultiEdgeTopology,
+            producer_arena: common.Words,
+            outputs: common.WordMatrix,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.trace_generation;
+            try common.requireStage(session, stage);
+            const binding = try bindMultiEdge(
+                session,
+                topology,
+                producer_arena,
+                outputs,
+            );
+            const status =
+                Api.stwo_witness_multi_edge_gather_contiguous_on(
+                    binding.producer.pointer,
+                    producer_arena.len,
+                    binding.descriptors.pointer,
+                    topology.edge_count,
+                    topology.input_width,
+                    topology.total_real_rows,
+                    topology.consumer_rows,
+                    binding.destination.pointer,
+                    outputs.column_stride_words,
+                    outputs.storage.len,
+                    @intFromBool(topology.include_enabler),
+                    @intFromBool(topology.include_iota),
+                    session.context.stream,
+                );
+            try common.record(session, stage, status);
+        }
+    };
+}
+
+const MultiEdgeBinding = struct {
+    producer: layout.Resident(u32),
+    descriptors: layout.Resident(abi.MultiEdgeDescriptor),
+    destination: layout.WordMatrix,
+};
+
+fn bindMultiEdge(
+    session: anytype,
+    topology: witness_plan.MultiEdgeTopology,
+    producer_arena: common.Words,
+    outputs: common.WordMatrix,
+) runtime_error.Error!MultiEdgeBinding {
+    if (topology.edge_count == 0 or topology.input_width == 0 or
+        topology.total_real_rows == 0 or
+        topology.total_real_rows > topology.consumer_rows or
+        topology.producer_word_count == 0 or
+        producer_arena.len != topology.producer_word_count or
+        topology.descriptors.len != @as(usize, topology.edge_count))
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    const exact_capacity = std.math.mul(
+        usize,
+        outputs.column_stride_words,
+        topology.output_columns,
+    ) catch return error.SizeOverflow;
+    if (outputs.column_stride_words < topology.consumer_rows or
+        outputs.storage.len != exact_capacity)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    const producer = try layout.resident(
+        session,
+        u32,
+        producer_arena,
+        producer_arena.len,
+    );
+    const descriptors = try layout.resident(
+        session,
+        abi.MultiEdgeDescriptor,
+        topology.descriptors,
+        @as(usize, topology.edge_count),
+    );
+    const destination = try layout.wordMatrix(
+        session,
+        outputs,
+        topology.consumer_rows,
+    );
+    if (destination.column_count != topology.output_columns)
+        return error.InvalidKernelDescriptor;
+    try layout.requireDisjoint(
+        &.{destination.range},
+        &.{ producer.range, descriptors.range },
+    );
+    return .{
+        .producer = producer,
+        .descriptors = descriptors,
+        .destination = destination,
     };
 }

@@ -2,6 +2,7 @@
 
 pub const commitment = @import("commitment.zig");
 pub const cairo_witness = @import("cairo_witness.zig");
+pub const cairo_witness_plan = @import("cairo_witness_plan.zig");
 pub const common = @import("common.zig");
 pub const composition_split = @import("composition_split.zig");
 pub const constraint_power = @import("constraint_power.zig");
@@ -20,6 +21,7 @@ pub const transform = @import("transform.zig");
 test {
     _ = commitment;
     _ = cairo_witness;
+    _ = cairo_witness_plan;
     _ = common;
     _ = composition_split;
     _ = constraint_power;
