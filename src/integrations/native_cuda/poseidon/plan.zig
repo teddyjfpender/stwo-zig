@@ -110,14 +110,14 @@ test "prepared plans seal small standard and large admitted geometry" {
             prepared.totalWords() <= requirements_mod.max_total_words,
         );
         try std.testing.expectEqual(
-            64 + 3 * @as(usize, log_n_rows),
+            88 + 3 * @as(usize, log_n_rows),
             prepared.requirements().len,
         );
         const inverse_twiddles = try prepared.cuda_plan.arena_plan.placement(
             slots.twiddles_inverse,
         );
         try std.testing.expectEqual(
-            geometry.trace_rows,
+            geometry.commitment_rows,
             inverse_twiddles.requirement.words,
         );
         try std.testing.expectEqual(
@@ -182,17 +182,58 @@ test "prepared plans seal small standard and large admitted geometry" {
             telemetry.Stage.constraint_evaluation,
             coefficient_log_sizes.requirement.live_through,
         );
-        const coefficient_slab = try prepared.cuda_plan.arena_plan.placement(
-            slots.coefficient_slab,
+        const main_coefficients = try prepared.cuda_plan.arena_plan.placement(
+            slots.main_coefficients,
         );
         try std.testing.expectEqual(
-            geometry.main_columns * (2 * geometry.trace_rows) +
-                geometry_mod.composition_columns * geometry.trace_rows,
-            coefficient_slab.requirement.words,
+            geometry.main_columns * geometry.commitment_rows,
+            main_coefficients.requirement.words,
         );
         try std.testing.expectEqual(
             telemetry.Stage.trace_generation,
-            coefficient_slab.requirement.live_from,
+            main_coefficients.requirement.live_from,
+        );
+        const relation_sources =
+            try prepared.cuda_plan.arena_plan.placement(
+                slots.relation_source_values,
+            );
+        try std.testing.expectEqual(
+            @as(usize, 256) * geometry.trace_rows,
+            relation_sources.requirement.words,
+        );
+        const constraint_sources =
+            try prepared.cuda_plan.arena_plan.placement(
+                slots.constraint_source_evaluations,
+            );
+        try std.testing.expectEqual(
+            @as(usize, 1296) * geometry.composition_rows,
+            constraint_sources.requirement.words,
+        );
+        const interaction_coefficients =
+            try prepared.cuda_plan.arena_plan.placement(
+                slots.interaction_coefficients,
+            );
+        try std.testing.expectEqual(
+            @as(usize, geometry_mod.interaction_columns) *
+                geometry.commitment_rows,
+            interaction_coefficients.requirement.words,
+        );
+        const split_coefficients =
+            try prepared.cuda_plan.arena_plan.placement(
+                slots.composition_split_coefficients,
+            );
+        try std.testing.expectEqual(
+            8 * geometry.commitment_rows,
+            split_coefficients.requirement.words,
+        );
+        const composition_coefficients =
+            try prepared.cuda_plan.arena_plan.placement(
+                slots.composition_coefficients,
+            );
+        try std.testing.expectEqual(
+            @as(usize, geometry_mod.composition_columns) *
+                try geometry.traceRowCount(),
+            composition_coefficients.requirement.words,
         );
         try std.testing.expectError(
             error.ArenaSlotMissing,
@@ -211,7 +252,8 @@ test "prepared plans seal small standard and large admitted geometry" {
             );
         }
         try std.testing.expectEqual(
-            prepared.proof.total_words,
+            prepared.proof.total_words +
+                geometry_mod.terminal_statement_words,
             (try prepared.cuda_plan.arena_plan.placement(slots.proof_bundle))
                 .requirement.words,
         );

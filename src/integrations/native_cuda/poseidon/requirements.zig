@@ -7,6 +7,10 @@ const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
 const canonical_ingress = @import("canonical_ingress.zig");
 const proof_bundle = @import("proof_bundle.zig");
 const geometry_mod = @import("geometry.zig");
+const relation_abi = @import(
+    "../../../backends/cuda/abi/stages/relation.zig",
+);
+const relation_mod = @import("relation.zig");
 const slots = @import("slots.zig");
 const topology = @import("topology.zig");
 
@@ -19,7 +23,7 @@ pub fn build(
     fri: topology.Fri,
     decommit: topology.Decommit,
     proof: proof_bundle.Bundle,
-) (std.mem.Allocator.Error || geometry_mod.Error)![]arena.Requirement {
+) ![]arena.Requirement {
     var output: std.ArrayList(arena.Requirement) = .empty;
     errdefer output.deinit(allocator);
     const rows = geometry.trace_rows;
@@ -27,9 +31,31 @@ pub fn build(
     const source_count = quotient.source_count;
     const sample_count = geometry.sampled_value_count;
     const commitment_log = geometry.queryLogSize();
+    const relation_plan = try relation_mod.Plan.init(geometry.log_n_rows);
+    const relation_scratch = try usizeCount(
+        try relation_plan.topology().scratchWords(),
+    );
+    const terminal_words = try sum(
+        geometry_mod.terminal_statement_words,
+        proof.total_words,
+    );
 
-    try add(&output, allocator, slots.twiddles_forward, rows, .ingress, .decommit);
-    try add(&output, allocator, slots.twiddles_inverse, rows, .ingress, .fri_commit);
+    try add(
+        &output,
+        allocator,
+        slots.twiddles_forward,
+        commitment_rows,
+        .ingress,
+        .decommit,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.twiddles_inverse,
+        commitment_rows,
+        .ingress,
+        .fri_commit,
+    );
     try add(&output, allocator, slots.transcript_state, 16, .ingress, .decommit);
     try add(
         &output,
@@ -64,29 +90,58 @@ pub fn build(
         .constraint_evaluation,
     );
 
-    const main_retained_words = try mul(
-        geometry.main_columns,
-        try mul(rows, 2),
-    );
-    const composition_coefficient_words = try mul(
-        geometry_mod.composition_columns,
-        rows,
-    );
     try add(
         &output,
         allocator,
-        slots.coefficient_slab,
-        try sum(main_retained_words, composition_coefficient_words),
+        slots.main_coefficients,
+        try mul(geometry.main_columns, commitment_rows),
         .trace_generation,
         .oods,
     );
     try add(
         &output,
         allocator,
-        slots.committed_evaluation_slab,
-        try mul(source_count, commitment_rows),
+        slots.interaction_coefficients,
+        try mul(geometry_mod.interaction_columns, commitment_rows),
+        .constraint_evaluation,
+        .oods,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.composition_coefficients,
+        try mul(geometry_mod.composition_columns, rows),
+        .constraint_evaluation,
+        .oods,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.composition_split_coefficients,
+        // First split is 8 x 2N; the executor then reorders its halves into
+        // the canonical 16 x N depth-two composition tree.
+        try mul(8, commitment_rows),
+        .constraint_evaluation,
+        .constraint_evaluation,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.source_evaluations,
+        try mul(geometry_mod.source_columns, commitment_rows),
         .trace_commit,
         .decommit,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.constraint_source_evaluations,
+        try mul(
+            geometry.main_columns + geometry_mod.interaction_columns,
+            geometry.composition_rows,
+        ),
+        .trace_commit,
+        .constraint_evaluation,
     );
     try add(
         &output,
@@ -97,46 +152,159 @@ pub fn build(
         .constraint_evaluation,
     );
     const trace_hashes = try fullTreeHashes(commitment_rows);
-    try addAligned(
-        &output,
-        allocator,
-        slots.main_merkle_hashes,
-        try hashWords(trace_hashes),
-        8,
-        .trace_commit,
-        .decommit,
-    );
-    try addAligned(
-        &output,
-        allocator,
-        slots.composition_merkle_hashes,
-        try hashWords(trace_hashes),
-        8,
-        .constraint_evaluation,
-        .decommit,
-    );
+    inline for (.{
+        .{ slots.main_merkle_hashes, telemetry.Stage.trace_commit },
+        .{
+            slots.interaction_merkle_hashes,
+            telemetry.Stage.constraint_evaluation,
+        },
+        .{
+            slots.composition_merkle_hashes,
+            telemetry.Stage.constraint_evaluation,
+        },
+    }) |entry| {
+        try addAligned(
+            &output,
+            allocator,
+            entry[0],
+            try hashWords(trace_hashes),
+            8,
+            entry[1],
+            .decommit,
+        );
+    }
     const trace_layers = @as(usize, commitment_log) + 1;
     try addAligned(&output, allocator, slots.main_merkle_layers, try descriptorWords(trace_layers), 2, .ingress, .decommit);
+    try addAligned(&output, allocator, slots.interaction_merkle_layers, try descriptorWords(trace_layers), 2, .ingress, .decommit);
     try addAligned(&output, allocator, slots.composition_merkle_layers, try descriptorWords(trace_layers), 2, .ingress, .decommit);
 
     try add(
         &output,
         allocator,
-        slots.constraint_random_powers,
-        try secureWords(1),
+        slots.composition_powers,
+        try secureWords(
+            @import("../../../examples/poseidon/component.zig").N_CONSTRAINTS,
+        ),
         .constraint_evaluation,
         .constraint_evaluation,
     );
-    try add(&output, allocator, slots.constraint_denominator_inverses, 2, .ingress, .constraint_evaluation);
+    try add(&output, allocator, slots.constraint_denominator_inverses, 4, .ingress, .constraint_evaluation);
     try add(
         &output,
         allocator,
         slots.composition_coordinates,
-        try mul(geometry_mod.composition_coordinates, commitment_rows),
+        try mul(
+            geometry_mod.composition_coordinates,
+            geometry.composition_rows,
+        ),
         .constraint_evaluation,
         .constraint_evaluation,
     );
     try add(&output, allocator, slots.composition_challenge, 4, .constraint_evaluation, .constraint_evaluation);
+    try add(&output, allocator, slots.lookup_elements, try secureWords(2), .constraint_evaluation, .constraint_evaluation);
+    try add(&output, allocator, slots.relation_alpha_powers, try secureWords(relation_mod.max_alpha_powers), .constraint_evaluation, .constraint_evaluation);
+    try add(&output, allocator, slots.relation_z, try secureWords(1), .constraint_evaluation, .constraint_evaluation);
+    // These values are copied while the witness is still in evaluation form.
+    // The main slab is then free to undergo its destructive circle IFFT.
+    try add(
+        &output,
+        allocator,
+        slots.relation_source_values,
+        try mul(relation_mod.source_pointer_count, rows),
+        .trace_generation,
+        .constraint_evaluation,
+    );
+    inline for (.{
+        slots.relation_source_tables,
+        slots.relation_descriptor_tables,
+        slots.relation_output_tables,
+        slots.relation_denominator_tables,
+        slots.relation_claimed_sum_tables,
+    }) |id| {
+        try addAligned(
+            &output,
+            allocator,
+            id,
+            2,
+            2,
+            .ingress,
+            .constraint_evaluation,
+        );
+    }
+    try addAligned(
+        &output,
+        allocator,
+        slots.relation_geometry,
+        @sizeOf(relation_abi.Geometry) / @sizeOf(u32),
+        @alignOf(relation_abi.Geometry) / @alignOf(u32),
+        .ingress,
+        .constraint_evaluation,
+    );
+    try addAligned(
+        &output,
+        allocator,
+        slots.relation_source_pointer_table,
+        try mul(relation_mod.source_pointer_count, 2),
+        2,
+        .ingress,
+        .constraint_evaluation,
+    );
+    try addAligned(
+        &output,
+        allocator,
+        slots.relation_descriptors,
+        try mul(
+            relation_mod.interaction_column_count,
+            relation_abi.descriptor_words,
+        ),
+        @alignOf(relation_abi.ColumnDescriptor) / @alignOf(u32),
+        .ingress,
+        .constraint_evaluation,
+    );
+    try addAligned(
+        &output,
+        allocator,
+        slots.relation_output_pointer_table,
+        try mul(relation_mod.output_coordinate_count, 2),
+        2,
+        .ingress,
+        .constraint_evaluation,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.relation_denominator_slab,
+        try secureWords(try mul(
+            relation_mod.interaction_column_count,
+            rows,
+        )),
+        .constraint_evaluation,
+        .constraint_evaluation,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.relation_claimed_sum,
+        try secureWords(1),
+        .constraint_evaluation,
+        .proof_assembly,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.relation_reduction_partials,
+        relation_scratch,
+        .constraint_evaluation,
+        .constraint_evaluation,
+    );
+    try add(
+        &output,
+        allocator,
+        slots.relation_scan_block_sums,
+        relation_scratch,
+        .constraint_evaluation,
+        .constraint_evaluation,
+    );
 
     try add(&output, allocator, slots.oods_parameter, 4, .oods, .quotient);
     try add(&output, allocator, slots.oods_offset_points, try mul(sample_count, 2), .ingress, .oods);
@@ -233,6 +401,7 @@ pub fn build(
     try add(&output, allocator, slots.decommit_sparse_level_offsets, 1, .ingress, .decommit);
     try add(&output, allocator, slots.decommit_sparse_level_counts, 1, .decommit, .decommit);
     try add(&output, allocator, slots.main_column_log_sizes, geometry.main_columns, .ingress, .decommit);
+    try add(&output, allocator, slots.interaction_column_log_sizes, geometry_mod.interaction_columns, .ingress, .decommit);
     try add(&output, allocator, slots.composition_column_log_sizes, geometry_mod.composition_columns, .ingress, .decommit);
     // The header is uploaded at ingress. Every dynamic section is then filled
     // in-place, and the transaction reads this exact whole-proof extent once.
@@ -240,7 +409,7 @@ pub fn build(
         &output,
         allocator,
         slots.proof_bundle,
-        proof.total_words,
+        terminal_words,
         .ingress,
         .proof_assembly,
     );
@@ -291,6 +460,10 @@ fn hashWords(count: usize) geometry_mod.Error!usize {
 
 fn descriptorWords(count: usize) geometry_mod.Error!usize {
     return mul(count, 4);
+}
+
+fn usizeCount(value: anytype) geometry_mod.Error!usize {
+    return std.math.cast(usize, value) orelse error.GeometryOverflow;
 }
 
 fn fullTreeHashes(leaves: usize) geometry_mod.Error!usize {

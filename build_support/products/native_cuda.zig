@@ -64,6 +64,7 @@ pub const descriptor = policy.Descriptor{
         "test-cuda-runtime-contract",
         "test-cuda-plonk-logup-contract",
         "test-cuda-xor-logup-contract",
+        "test-cuda-poseidon-arena-contract",
         "test-cuda-adapter",
         "run-native-cuda-smoke",
     },

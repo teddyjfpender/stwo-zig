@@ -196,6 +196,22 @@ pub fn addProducts(
         "Test activation-disabled exact State Machine v2 CUDA contracts",
     ).dependOn(&b.addRunArtifact(state_machine_tests).step);
 
+    const poseidon_arena_root = b.createModule(.{
+        .root_source_file = b.path(
+            "tests/native_cuda_poseidon_arena.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    poseidon_arena_root.addImport("stwo_under_test", stwo);
+    const poseidon_arena_tests = b.addTest(.{
+        .root_module = poseidon_arena_root,
+    });
+    b.step(
+        "test-cuda-poseidon-arena-contract",
+        "Test exact Poseidon CUDA arena contracts without a GPU",
+    ).dependOn(&b.addRunArtifact(poseidon_arena_tests).step);
+
     const adapter_tests = b.addSystemCommand(&.{
         "cargo",
         "+nightly-2025-07-14",

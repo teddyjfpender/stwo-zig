@@ -14,18 +14,44 @@ pub const transcript_output_snapshot: SlotId = 0x0113;
 pub const transcript_boundary_snapshot: SlotId = 0x0114;
 pub const transcript_static_inputs: SlotId = 0x0115;
 
-pub const coefficient_slab: SlotId = 0x0201;
-pub const committed_evaluation_slab: SlotId = 0x0202;
-pub const coefficient_log_sizes: SlotId = 0x0203;
+pub const main_coefficients: SlotId = 0x0201;
+pub const interaction_coefficients: SlotId = 0x0202;
+pub const composition_coefficients: SlotId = 0x0203;
+/// The 2N commitment-domain evaluations in canonical tree-column order.
+pub const source_evaluations: SlotId = 0x0204;
+/// The independent 4N source domain consumed by the exact AIR kernel.
+pub const constraint_source_evaluations: SlotId = 0x0205;
+pub const coefficient_log_sizes: SlotId = 0x0206;
+/// First depth split: eight degree-<2N columns before canonical depth two.
+pub const composition_split_coefficients: SlotId = 0x0207;
 pub const main_merkle_hashes: SlotId = 0x0220;
-pub const composition_merkle_hashes: SlotId = 0x0221;
-pub const main_merkle_layers: SlotId = 0x0222;
-pub const composition_merkle_layers: SlotId = 0x0223;
+pub const interaction_merkle_hashes: SlotId = 0x0221;
+pub const composition_merkle_hashes: SlotId = 0x0222;
+pub const main_merkle_layers: SlotId = 0x0223;
+pub const interaction_merkle_layers: SlotId = 0x0224;
+pub const composition_merkle_layers: SlotId = 0x0225;
 
-pub const constraint_random_powers: SlotId = 0x0303;
+pub const composition_powers: SlotId = 0x0303;
 pub const constraint_denominator_inverses: SlotId = 0x0304;
 pub const composition_coordinates: SlotId = 0x0305;
 pub const composition_challenge: SlotId = 0x0306;
+pub const lookup_elements: SlotId = 0x0310;
+pub const relation_alpha_powers: SlotId = 0x0311;
+pub const relation_z: SlotId = 0x0312;
+pub const relation_source_values: SlotId = 0x0313;
+pub const relation_source_tables: SlotId = 0x0314;
+pub const relation_descriptor_tables: SlotId = 0x0315;
+pub const relation_output_tables: SlotId = 0x0316;
+pub const relation_denominator_tables: SlotId = 0x0317;
+pub const relation_geometry: SlotId = 0x0318;
+pub const relation_claimed_sum_tables: SlotId = 0x0319;
+pub const relation_source_pointer_table: SlotId = 0x031a;
+pub const relation_descriptors: SlotId = 0x031b;
+pub const relation_output_pointer_table: SlotId = 0x031c;
+pub const relation_denominator_slab: SlotId = 0x031d;
+pub const relation_claimed_sum: SlotId = 0x031e;
+pub const relation_reduction_partials: SlotId = 0x031f;
+pub const relation_scan_block_sums: SlotId = 0x0320;
 
 pub const oods_parameter: SlotId = 0x0400;
 pub const oods_offset_points: SlotId = 0x0401;
@@ -77,7 +103,8 @@ pub const decommit_counts: SlotId = 0x0809;
 pub const decommit_sparse_level_offsets: SlotId = 0x080a;
 pub const decommit_sparse_level_counts: SlotId = 0x080b;
 pub const main_column_log_sizes: SlotId = 0x080c;
-pub const composition_column_log_sizes: SlotId = 0x080d;
+pub const interaction_column_log_sizes: SlotId = 0x080d;
+pub const composition_column_log_sizes: SlotId = 0x080e;
 pub const proof_bundle: SlotId = 0x08ff;
 
 const fri_coordinates_base: SlotId = 0x1000;

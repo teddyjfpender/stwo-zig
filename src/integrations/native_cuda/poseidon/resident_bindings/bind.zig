@@ -4,7 +4,6 @@ const std = @import("std");
 const field = @import("../../../../backends/cuda/abi/field.zig");
 const quotient_abi = @import("../../../../backends/cuda/abi/stages/quotient.zig");
 const column = @import("../../../../backends/cuda/runtime/column.zig");
-const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
 const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
 const oods_stage = @import("../../../../backends/cuda/runtime/stages/oods.zig");
 const quotient_stage = @import("../../../../backends/cuda/runtime/stages/quotient.zig");
@@ -13,6 +12,8 @@ const plan_mod = @import("../plan.zig");
 const proof_bundle = @import("../proof_bundle.zig");
 const geometry_mod = @import("../geometry.zig");
 const slots = @import("../slots.zig");
+const relation_binding = @import("relation.zig");
+const trace_binding = @import("trace.zig");
 const types = @import("types.zig");
 
 const Words = column.DeviceSlice(u32);
@@ -22,12 +23,11 @@ const Words = column.DeviceSlice(u32);
 pub fn bind(
     provider: anytype,
     prepared: *const plan_mod.PreparedPlan,
-) runtime_error.Error!types.Views {
+) !types.Views {
     try validatePrepared(prepared);
     const geometry = prepared.logical.geometry;
-    var trace = try bindTrace(provider, geometry);
+    var trace = try trace_binding.bind(provider, geometry);
     const transcript = try bindTranscript(provider, geometry);
-    const constraint = try bindConstraint(provider, geometry);
     const oods = try bindOods(provider, geometry);
     const fri = try bindFri(provider, prepared);
     const quotient = try bindQuotient(
@@ -38,7 +38,14 @@ pub fn bind(
     );
     const pow = try bindPow(provider);
     const decommit = try bindDecommit(provider, prepared);
-    trace.trees = try bindTraceTrees(trace, decommit);
+    trace.trees = try trace_binding.bindTrees(trace, decommit);
+    const relation = try relation_binding.bind(provider, geometry, trace);
+    const constraint = try bindConstraint(
+        provider,
+        geometry,
+        trace.constraint_evaluations,
+        relation,
+    );
     const proof = try bindProof(provider, prepared);
     try requireDisjoint(
         fri.last_evaluation,
@@ -47,6 +54,7 @@ pub fn bind(
     return .{
         .trace = trace,
         .transcript = transcript,
+        .relation = relation,
         .constraint = constraint,
         .oods = oods,
         .quotient = quotient,
@@ -55,135 +63,6 @@ pub fn bind(
         .decommit = decommit,
         .proof = proof,
     };
-}
-
-fn bindTrace(provider: anytype, geometry: geometry_mod.Geometry) !types.Trace {
-    const rows = geometry.trace_rows;
-    const committed_rows = geometry.commitment_rows;
-    const main_words = try mul(geometry.main_columns, committed_rows);
-    const composition_coefficient_words = try mul(
-        geometry_mod.composition_columns,
-        rows,
-    );
-    const coefficient_slab = try exactWords(
-        provider,
-        slots.coefficient_slab,
-        try add(main_words, composition_coefficient_words),
-    );
-    const main_coefficients = common.WordMatrix{
-        .storage = try coefficient_slab.sub(0, main_words),
-        .column_stride_words = committed_rows,
-    };
-    const composition_coefficients = common.WordMatrix{
-        .storage = try coefficient_slab.sub(
-            main_words,
-            composition_coefficient_words,
-        ),
-        .column_stride_words = rows,
-    };
-
-    const source_count = try add(
-        geometry.main_columns,
-        geometry_mod.composition_columns,
-    );
-    const evaluation_words = try mul(source_count, committed_rows);
-    const committed_evaluation_slab = try exactWords(
-        provider,
-        slots.committed_evaluation_slab,
-        evaluation_words,
-    );
-    const main_evaluations = common.WordMatrix{
-        .storage = try committed_evaluation_slab.sub(0, main_words),
-        .column_stride_words = committed_rows,
-    };
-    const composition_evaluations = common.WordMatrix{
-        .storage = try committed_evaluation_slab.sub(
-            main_words,
-            try mul(geometry_mod.composition_columns, committed_rows),
-        ),
-        .column_stride_words = committed_rows,
-    };
-    const hash_count = try sub(try mul(committed_rows, 2), 1);
-    const layer_count = @as(usize, geometry.queryLogSize()) + 1;
-    return .{
-        .trees = .{
-            .storage = undefined,
-            .len = 0,
-        },
-        .twiddles_forward = try exactWords(
-            provider,
-            slots.twiddles_forward,
-            rows,
-        ),
-        .twiddles_inverse = try exactWords(
-            provider,
-            slots.twiddles_inverse,
-            rows,
-        ),
-        .coefficient_slab = coefficient_slab,
-        .main_coefficients = main_coefficients,
-        .composition_coefficients = composition_coefficients,
-        .committed_evaluation_slab = committed_evaluation_slab,
-        .main_evaluations = main_evaluations,
-        .composition_evaluations = composition_evaluations,
-        .all_evaluations = .{
-            .storage = committed_evaluation_slab,
-            .column_stride_words = committed_rows,
-        },
-        .coefficient_log_sizes = try exactWords(
-            provider,
-            slots.coefficient_log_sizes,
-            source_count,
-        ),
-        .main_merkle_hashes = try exactAs(
-            provider,
-            field.Blake2sHash,
-            slots.main_merkle_hashes,
-            hash_count,
-        ),
-        .composition_merkle_hashes = try exactAs(
-            provider,
-            field.Blake2sHash,
-            slots.composition_merkle_hashes,
-            hash_count,
-        ),
-        .main_merkle_layers = try exactAs(
-            provider,
-            field.MerkleLayerDescriptor,
-            slots.main_merkle_layers,
-            layer_count,
-        ),
-        .composition_merkle_layers = try exactAs(
-            provider,
-            field.MerkleLayerDescriptor,
-            slots.composition_merkle_layers,
-            layer_count,
-        ),
-    };
-}
-
-fn bindTraceTrees(
-    trace: types.Trace,
-    decommit: types.Decommit,
-) !types.TraceTrees {
-    return types.TraceTrees.init(&.{
-        .{
-            .role = .main,
-            .coefficients = trace.main_coefficients,
-            .evaluations = trace.main_evaluations,
-            .column_log_sizes = decommit.main_column_log_sizes,
-            .merkle_hashes = trace.main_merkle_hashes,
-            .merkle_layers = trace.main_merkle_layers,
-        },
-        .{
-            .role = .composition,
-            .coefficients = trace.composition_coefficients,
-            .evaluations = trace.composition_evaluations,
-            .column_log_sizes = decommit.composition_column_log_sizes,
-            .merkle_hashes = trace.composition_merkle_hashes,
-            .merkle_layers = trace.composition_merkle_layers,
-        },
-    });
 }
 
 fn bindTranscript(
@@ -218,24 +97,36 @@ fn bindTranscript(
 fn bindConstraint(
     provider: anytype,
     geometry: geometry_mod.Geometry,
+    source_evaluations: common.WordMatrix,
+    relation: types.Relation,
 ) !types.Constraint {
     return .{
+        .source_evaluations = source_evaluations,
         .random_powers = try exactAs(
             provider,
             field.SecureField,
-            slots.constraint_random_powers,
-            1,
+            slots.composition_powers,
+            @import(
+                "../../../../examples/poseidon/component.zig",
+            ).N_CONSTRAINTS,
         ),
         .denominator_inverses = try exactWords(
             provider,
             slots.constraint_denominator_inverses,
+            4,
+        ),
+        .lookup_elements = try exactAs(
+            provider,
+            field.SecureField,
+            slots.lookup_elements,
             2,
         ),
+        .claimed_sum = relation.claimed_sum,
         .composition_coordinates = try matrix(
             provider,
             slots.composition_coordinates,
             geometry_mod.composition_coordinates,
-            geometry.commitment_rows,
+            geometry.composition_rows,
         ),
         .composition_challenge = try exactAs(
             provider,
@@ -609,7 +500,11 @@ fn bindDecommit(
         ),
         .preprocessed_column_log_sizes = try main_column_log_sizes.sub(0, 0),
         .main_column_log_sizes = main_column_log_sizes,
-        .interaction_column_log_sizes = try main_column_log_sizes.sub(0, 0),
+        .interaction_column_log_sizes = try exactWords(
+            provider,
+            slots.interaction_column_log_sizes,
+            geometry_mod.interaction_columns,
+        ),
         .composition_column_log_sizes = try exactWords(
             provider,
             slots.composition_column_log_sizes,
@@ -622,12 +517,25 @@ fn bindProof(
     provider: anytype,
     prepared: *const plan_mod.PreparedPlan,
 ) !types.Proof {
-    const bundle = try exactWords(
+    const terminal = try exactWords(
         provider,
         slots.proof_bundle,
+        try add(
+            geometry_mod.terminal_statement_words,
+            prepared.proof.total_words,
+        ),
+    );
+    const statement = try terminal.sub(
+        0,
+        geometry_mod.terminal_statement_words,
+    );
+    const bundle = try terminal.sub(
+        geometry_mod.terminal_statement_words,
         prepared.proof.total_words,
     );
     return .{
+        .terminal = terminal,
+        .statement = statement,
         .bundle = bundle,
         .degree_verdict = try bundle.sub(15, 1),
         .trace_commitments = try section(
@@ -658,10 +566,7 @@ fn section(
 
 fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {
     const geometry = prepared.logical.geometry;
-    const source_count = try add(
-        geometry.main_columns,
-        geometry_mod.composition_columns,
-    );
+    const source_count: usize = geometry_mod.source_columns;
     const trace_layer_count = @as(usize, geometry.queryLogSize()) + 1;
     const groups = prepared.quotient.group_log_sizes.len;
     if (prepared.fri.layers.len == 0 or
@@ -672,9 +577,12 @@ fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {
             geometry.protocol.fri_config.n_queries or
         prepared.decommit.count_words != 5 or
         prepared.decommit.column_log_sizes.len != source_count or
+        prepared.decommit.trace_trees.len != 3 or
         prepared.decommit.trace_trees[0].column_count !=
             geometry.main_columns or
         prepared.decommit.trace_trees[1].column_count !=
+            geometry_mod.interaction_columns or
+        prepared.decommit.trace_trees[2].column_count !=
             geometry_mod.composition_columns or
         prepared.decommit.trace_trees[0].retained_layer_offset != 0 or
         prepared.decommit.trace_trees[0].retained_layer_count !=
@@ -682,6 +590,10 @@ fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {
         prepared.decommit.trace_trees[1].retained_layer_offset !=
             trace_layer_count or
         prepared.decommit.trace_trees[1].retained_layer_count !=
+            trace_layer_count or
+        prepared.decommit.trace_trees[2].retained_layer_offset !=
+            trace_layer_count * 2 or
+        prepared.decommit.trace_trees[2].retained_layer_count !=
             trace_layer_count or
         prepared.quotient.source_count != source_count or
         prepared.quotient.source_stride_words != geometry.commitment_rows or
@@ -697,7 +609,7 @@ fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {
     {
         return error.InvalidKernelDescriptor;
     }
-    var retained_count = trace_layer_count * 2;
+    var retained_count = trace_layer_count * 3;
     for (prepared.fri.layers, 0..) |layer, index| {
         const opening = prepared.decommit.fri_trees[index];
         if (@as(usize, layer.tree_index) !=
@@ -726,7 +638,7 @@ fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {
     }
     if (prepared.decommit.retained_layers.len != retained_count or
         prepared.fri.retained_layers.len != retained_count -
-            trace_layer_count * 2 or
+            trace_layer_count * 3 or
         prepared.proof.section(.decommitment).words !=
             prepared.decommit.assembly_words)
     {
