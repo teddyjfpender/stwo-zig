@@ -64,6 +64,9 @@ PYTHON_LIBRARY_DEPENDENCIES = {
         "metal_profile_report_lib",
         "native_proof_matrix_lib",
     }),
+    "native_cuda_benchmark_lib": frozenset({
+        "native_cuda_diagnostic_lib",
+    }),
 }
 DEFERRED_PREFIXES = (
     "src/bench/cairo_metal/",

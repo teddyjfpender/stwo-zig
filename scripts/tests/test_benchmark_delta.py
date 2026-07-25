@@ -227,6 +227,33 @@ class BenchmarkDeltaTests(unittest.TestCase):
                 self.assertEqual(result["comparisons"], [])
                 self.assertIn(expected, result["incompatibilities"][0])
 
+    def test_state_machine_v1_and_v2_evidence_cannot_compare(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_directory:
+            baseline = native_report("a" * 40, "3")
+            current = native_report("b" * 40, "4")
+            state_workload = {
+                "name": "state_machine",
+                "parameters": {
+                    "log_n_rows": 10,
+                    "initial_x": 9,
+                    "initial_y": 3,
+                },
+                "trace_rows": 1024,
+            }
+            baseline["rows"][0]["workload"] = copy.deepcopy(state_workload)
+            current["rows"][0]["workload"] = copy.deepcopy(state_workload)
+            baseline["rows"][0]["descriptor_sha256"] = (
+                "2aef739c7447cb192da8648b7a4b539cc"
+                "b86c1f532de7de986287cb89844b8a7"
+            )
+            current["rows"][0]["descriptor_sha256"] = (
+                "90501fb81745fd984bd8186e5750f9b7"
+                "ff6bf2017b0df4df869f313299b771e9"
+            )
+            result = self.compare(Path(raw_directory), baseline, current)
+        self.assertEqual(result["status"], "incomparable")
+        self.assertIn("descriptor/order differs", result["incompatibilities"][0])
+
     def test_native_unstable_rows_retain_deltas_as_diagnostic_only(self) -> None:
         with tempfile.TemporaryDirectory() as raw_directory:
             baseline = native_report("a" * 40, "3")

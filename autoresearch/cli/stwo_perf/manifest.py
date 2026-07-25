@@ -11,6 +11,7 @@ RUNGS = ("s1", "s2", "s3", "s4", "s5")
 ACCEPTANCE_FLOOR = "s3"
 REPORT_SCHEMA_VERSIONS = {
     "native_proof_v7": 7,
+    "native_cuda_product_v6": 6,
     "pr6_supremacy_v1": 1,
     "riscv_proof_v2": 2,
 }
@@ -384,6 +385,17 @@ def load(root: Path | None = None) -> Manifest:
     except json.JSONDecodeError as exc:
         raise ManifestError(f"invalid MANIFEST.json: {exc}") from exc
     _validate(raw)
+    groups = raw["workload_registry"]["groups"]
+    if "cuda" in groups:
+        try:
+            from scripts.native_cuda_benchmark_lib.activation import (
+                ActivationError,
+                validate_manifest_activation,
+            )
+
+            validate_manifest_activation(repo, raw)
+        except ActivationError as exc:
+            raise ManifestError(str(exc)) from exc
     return Manifest(root=repo, raw=raw)
 
 

@@ -10,6 +10,7 @@ const telemetry = @import("../telemetry.zig");
 pub const Native = OpsFor(abi);
 pub const coordinate_count: usize = 4;
 pub const coefficient_column_count: usize = 8;
+pub const depth_two_coefficient_column_count: usize = 16;
 
 const stage = telemetry.Stage.constraint_evaluation;
 
@@ -51,6 +52,7 @@ pub fn OpsFor(comptime Api: type) type {
             if (layout.overlap(inputs.range, twiddles.range))
                 return error.OverlappingDeviceRange;
 
+            var launches: u32 = 0;
             const status =
                 Api.stwo_ntt_b2n_composition_split_compact_on(
                     inputs.pointer,
@@ -64,8 +66,68 @@ pub fn OpsFor(comptime Api: type) type {
                     try common.count(inverse_twiddles.len),
                     try common.count(shape.domain),
                     session.context.stream,
+                    &launches,
                 );
-            try common.recordMany(session, stage, status, log_n);
+            try common.recordMany(session, stage, status, launches);
+        }
+
+        /// Interpolates four secure coordinates and emits the canonical
+        /// depth-two coefficient partition directly as 16 degree-<N columns.
+        pub fn interpolateAndSplitDepthTwo(
+            session: anytype,
+            coordinates: common.WordMatrix,
+            coefficients: common.WordMatrix,
+            log_n: u32,
+            inverse_twiddles: common.Words,
+        ) runtime_error.Error!void {
+            try common.requireStage(session, stage);
+            if (log_n < 4)
+                return error.InvalidKernelDescriptor;
+            const shape = try compositionShape(log_n);
+            const inputs = try exactMatrix(
+                session,
+                coordinates,
+                coordinate_count,
+                shape.values,
+            );
+            const outputs = try exactMatrix(
+                session,
+                coefficients,
+                depth_two_coefficient_column_count,
+                shape.domain / 2,
+            );
+            if (inverse_twiddles.len < shape.domain)
+                return error.InvalidKernelDescriptor;
+            const twiddles = try layout.resident(
+                session,
+                u32,
+                inverse_twiddles,
+                inverse_twiddles.len,
+            );
+            try layout.requireDisjoint(
+                &.{outputs.range},
+                &.{ inputs.range, twiddles.range },
+            );
+            if (layout.overlap(inputs.range, twiddles.range))
+                return error.OverlappingDeviceRange;
+
+            var launches: u32 = 0;
+            const status =
+                Api.stwo_ntt_b2n_composition_split_depth_two_on(
+                    inputs.pointer,
+                    coordinates.storage.len,
+                    inputs.stride_words,
+                    outputs.pointer,
+                    coefficients.storage.len,
+                    outputs.stride_words,
+                    log_n,
+                    twiddles.pointer,
+                    try common.count(inverse_twiddles.len),
+                    try common.count(shape.domain),
+                    session.context.stream,
+                    &launches,
+                );
+            try common.recordMany(session, stage, status, launches);
         }
     };
 }
@@ -125,6 +187,7 @@ test "composition split maps four log4 evaluations to eight log3 coefficients" {
             twiddle_words: u32,
             domain: u32,
             proof_stream: *anyopaque,
+            launches_out: *u32,
         ) c_int {
             const values = @as(usize, 1) << @intCast(log_n);
             if (input_capacity != coordinate_count * values or
@@ -137,6 +200,7 @@ test "composition split maps four log4 evaluations to eight log3 coefficients" {
             }
             launches += 1;
             stream = @intFromPtr(proof_stream);
+            launches_out.* = 2;
             return 0;
         }
     };
@@ -158,7 +222,7 @@ test "composition split maps four log4 evaluations to eight log3 coefficients" {
         @intFromPtr(session.context.stream),
         TestApi.stream,
     );
-    try std.testing.expectEqual(@as(u64, 4), session.launches);
+    try std.testing.expectEqual(@as(u64, 2), session.launches);
 
     var short_input = inputs;
     short_input.storage.len -= 1;
@@ -216,6 +280,87 @@ test "composition split maps four log4 evaluations to eight log3 coefficients" {
             outputs,
             4,
             twiddles,
+        ),
+    );
+}
+
+test "depth-two composition split emits sixteen canonical columns directly" {
+    const TestApi = struct {
+        var calls: u32 = 0;
+
+        fn stwo_ntt_b2n_composition_split_depth_two_on(
+            _: [*]u32,
+            input_capacity: usize,
+            input_stride: usize,
+            _: [*]u32,
+            output_capacity: usize,
+            output_stride: usize,
+            log_n: u32,
+            _: [*]const u32,
+            twiddle_words: u32,
+            domain: u32,
+            _: *anyopaque,
+            launches_out: *u32,
+        ) c_int {
+            const values = @as(usize, 1) << @intCast(log_n);
+            if (input_capacity != coordinate_count * values or
+                input_stride != values or
+                output_capacity !=
+                    depth_two_coefficient_column_count * (values / 4) or
+                output_stride != values / 4 or
+                twiddle_words < domain)
+            {
+                return 1;
+            }
+            calls += 1;
+            launches_out.* = 3;
+            return 0;
+        }
+    };
+    const Ops = OpsFor(TestApi);
+    var session = TestSession{};
+    const inputs = testMatrix(0x1000, coordinate_count, 16);
+    const outputs = testMatrix(
+        0x1200,
+        depth_two_coefficient_column_count,
+        4,
+    );
+    const twiddles = testWords(0x1500, 8);
+
+    try Ops.interpolateAndSplitDepthTwo(
+        &session,
+        inputs,
+        outputs,
+        4,
+        twiddles,
+    );
+    try std.testing.expectEqual(@as(u32, 1), TestApi.calls);
+    try std.testing.expectEqual(@as(u64, 3), session.launches);
+
+    var wrong_stride = outputs;
+    wrong_stride.column_stride_words = 8;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        Ops.interpolateAndSplitDepthTwo(
+            &session,
+            inputs,
+            wrong_stride,
+            4,
+            twiddles,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        Ops.interpolateAndSplitDepthTwo(
+            &session,
+            testMatrix(0x1000, coordinate_count, 8),
+            testMatrix(
+                0x1200,
+                depth_two_coefficient_column_count,
+                2,
+            ),
+            3,
+            testWords(0x1500, 4),
         ),
     );
 }

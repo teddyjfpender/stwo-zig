@@ -27,6 +27,7 @@ from cuda_build_lib.builder import (  # noqa: E402
     validate_aot_manifest,
     write_aot_carriers,
 )
+from cuda_build_lib.aot_identity import source_closure_identity  # noqa: E402
 from cuda_device_smoke import compile_command  # noqa: E402
 
 
@@ -37,14 +38,21 @@ NATIVE = ROOT / "src/backends/cuda/native"
 NATIVE_AOT = ROOT / "src/backends/cuda/aot/native"
 
 EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
-    "host": {
-        "aot_loader.cpp",
-    },
-    "runtime": {
-        "runtime/context.cu",
-    },
+    "host": {"aot_loader.cpp"},
+    "runtime": {"runtime/context.cu"},
     "trace": {
         "kernels/wide_fibonacci_trace.cu",
+        "kernels/xor_trace.cu",
+    },
+    "cairo": {
+        "cairo/casm_input.cu",
+        "cairo/eval_params.cu",
+        "cairo/memory_base.cu",
+        "cairo/memory_execution.cu",
+        "cairo/witness_edge.cu",
+        "cairo/witness_compact_v2.cu",
+        "cairo/witness_multi_edge.cu",
+        "cairo/witness_seed.cu",
     },
     "commitment": {
         "commitment/merkle.cu",
@@ -77,6 +85,10 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
     },
     "pow": {
         "pow/search.cu",
+    },
+    "relation": {
+        "relation/batch_inverse.cu",
+        "relation/graph.cu",
     },
     "decommit": {
         "decommit/fri.cu",
@@ -127,9 +139,9 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual([86, 90], plan["target_sms"])
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
-        self.assertEqual(0, plan["ordinary_source_count"])
-        self.assertEqual(1, plan["aot_source_count"])
-        self.assertEqual(2, plan["aot_cubin_count"])
+        self.assertEqual(6, plan["ordinary_source_count"])
+        self.assertEqual(319, plan["aot_source_count"])
+        self.assertEqual(638, plan["aot_cubin_count"])
         self.assertEqual(expected_sources, actual_sources)
         self.assertEqual(len(native["sources"]), plan["native_runtime_source_count"])
         self.assertEqual(len(native["host_sources"]), plan["native_host_source_count"])
@@ -167,6 +179,7 @@ class CudaBuildTests(unittest.TestCase):
             manifest = [{
                 "kind": "constraint",
                 "label": "test",
+                "module_globals": "none",
                 "abi_schema": "ordinary_constraint_v1",
                 "kernel_name": "test",
                 "cache_key": "0000000000000005",
@@ -203,6 +216,31 @@ class CudaBuildTests(unittest.TestCase):
             after["build_identity_sha256"],
         )
 
+    def test_native_aot_closure_identity_binds_headers_not_entry_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            cuda_root = Path(temporary) / "cuda"
+            native_aot = cuda_root / "aot" / "native"
+            native_headers = cuda_root / "native" / "transcript"
+            native_aot.mkdir(parents=True)
+            native_headers.mkdir(parents=True)
+            header = native_headers / "state.cuh"
+            header.write_text("#define STATE_WORDS 14\n", encoding="utf-8")
+            source_a = native_aot / "statement_aaaaaaaaaaaaaaaa.cu"
+            source_b = native_aot / "statement_bbbbbbbbbbbbbbbb.cu"
+            source_bytes = '#include "../../native/transcript/state.cuh"\n'
+            source_a.write_text(source_bytes, encoding="utf-8")
+            source_b.write_text(source_bytes, encoding="utf-8")
+
+            before = source_closure_identity(native_aot, source_a)
+            self.assertEqual(
+                before,
+                source_closure_identity(native_aot, source_b),
+            )
+            header.write_text("#define STATE_WORDS 15\n", encoding="utf-8")
+            after = source_closure_identity(native_aot, source_a)
+
+        self.assertNotEqual(before, after)
+
     def test_native_runtime_has_no_jit_or_cpu_fallback_surface(self) -> None:
         closure = load_native_closure(NATIVE)
         sources = "\n".join(
@@ -215,6 +253,42 @@ class CudaBuildTests(unittest.TestCase):
         self.assertNotIn("fallback(", sources.lower())
         self.assertNotIn("getenv(", sources)
         self.assertNotIn("system(", sources)
+
+    def test_fused_transforms_are_structural_exact_and_telemetry_bound(self) -> None:
+        schedules = (
+            NATIVE / "transform" / "transform_internal.cuh"
+        ).read_text(encoding="utf-8")
+        b2n = (NATIVE / "transform" / "b2n_retained.cu").read_text(
+            encoding="utf-8"
+        )
+        n2b = (NATIVE / "transform" / "n2b.cu").read_text(encoding="utf-8")
+        composition = (
+            NATIVE / "transform" / "composition_split.cu"
+        ).read_text(encoding="utf-8")
+        abi = (ROOT / "src/backends/cuda/abi/stages/transform.zig").read_text(
+            encoding="utf-8"
+        )
+        composition_abi = (
+            ROOT / "src/backends/cuda/abi/stages/composition_split.zig"
+        ).read_text(encoding="utf-8")
+        self.assertIn("kFirstFusedLogN = 13", schedules)
+        self.assertIn("kLastFusedLogN = 23", schedules)
+        self.assertIn("schedules_are_exact()", schedules)
+        self.assertIn("b2n_stage<false>", b2n)
+        self.assertIn("n2b_stage<<<", n2b)
+        self.assertIn("kFirstFusedLogN", b2n)
+        self.assertIn("kFirstFusedLogN", n2b)
+        self.assertIn("kB2nSchedules", composition)
+        self.assertIn("launch_b2n_continue_compact", composition)
+        self.assertIn("b2n_composition_stage", composition)
+        self.assertNotIn(
+            "wide_fibonacci",
+            (schedules + b2n + n2b + composition).lower(),
+        )
+        self.assertEqual(6, abi.count("launches_out: *u32"))
+        self.assertEqual(2, composition_abi.count("launches_out: *u32"))
+        self.assertIn("CompactDepth", composition)
+        self.assertIn("stwo_ntt_b2n_composition_split_depth_two_on", composition)
 
     def test_device_header_definitions_have_internal_or_inline_linkage(self) -> None:
         violations: list[str] = []
@@ -265,7 +339,9 @@ class CudaBuildTests(unittest.TestCase):
                 "sm": 90,
                 "offset": 0,
                 "bytes": 4,
+                "sha256": hashlib.sha256(b"cbin").hexdigest(),
                 "abi_schema": 1,
+                "module_globals": 0,
                 "kernel_name": "test_kernel",
             }
         ]
@@ -281,6 +357,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("entry.sm != sm", lookup_source)
         self.assertIn("entry.abi_schema != abi_schema", lookup_source)
         self.assertIn("std::strcmp(entry.kernel_name, kernel_name)", lookup_source)
+        self.assertIn("unsigned char out_sha256[32]", lookup_source)
+        self.assertIn("std::memcpy(out_sha256, entry.sha256, 32)", lookup_source)
         self.assertNotIn("nvrtc", lookup_source.lower())
 
     def test_empty_native_aot_pack_is_standard_and_fail_closed(self) -> None:
@@ -320,21 +398,22 @@ class CudaBuildTests(unittest.TestCase):
         manifest = json.loads(
             (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(1, len(manifest))
-        self.assertEqual("native_constraint_slab_v1", manifest[0]["abi_schema"])
+        self.assertEqual(48, len(manifest))
+        entry = next(item for item in manifest if item["label"] == "wide_fibonacci")
+        self.assertEqual("native_constraint_slab_v1", entry["abi_schema"])
         self.assertEqual(
             "sha256-source-and-contract-v1",
-            manifest[0]["identity_scheme"],
+            entry["identity_scheme"],
         )
-        source = NATIVE_AOT / manifest[0]["file"]
-        self.assertEqual(source.name, manifest[0]["file"])
+        source = NATIVE_AOT / entry["file"]
+        self.assertEqual(source.name, entry["file"])
         self.assertEqual(
             hashlib.sha256(source.read_bytes()).hexdigest(),
-            manifest[0]["program_identity"],
+            entry["program_identity"],
         )
         self.assertNotIn("const unsigned *const *", source.read_text(encoding="utf-8"))
         validate_aot_manifest(NATIVE_AOT, manifest)
-        kernel_name = manifest[0]["kernel_name"]
+        kernel_name = entry["kernel_name"]
         harness = f"""
 #include <cassert>
 #define __device__
@@ -385,25 +464,164 @@ int main() {{
             )
             subprocess.run([str(executable)], check=True)
 
-    def test_native_aot_identity_rejects_source_or_contract_drift(self) -> None:
+    def test_native_constant_qm31_aot_matches_structural_domain(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
         manifest = json.loads(
             (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
         )
+        entry = next(item for item in manifest if item["label"] == "constant_qm31")
+        self.assertEqual("native_constant_qm31_v1", entry["abi_schema"])
+        source = NATIVE_AOT / entry["file"]
+        self.assertEqual(
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+            entry["program_identity"],
+        )
+        kernel_name = entry["kernel_name"]
+        harness = f"""
+#include <cassert>
+#include <cstddef>
+#define __device__
+#define __global__
+#define __forceinline__ inline
+#define __launch_bounds__(...)
+struct Dim3 {{ unsigned x, y, z; }};
+static Dim3 blockIdx{{0, 0, 0}}, blockDim{{128, 1, 1}}, threadIdx{{0, 0, 0}};
+#include {json.dumps(str(source))}
+
+int main() {{
+    constexpr unsigned rows = 8;
+    constexpr unsigned long long stride = 11;
+    unsigned statement[3] = {{2, 3, 5}};
+    unsigned coordinates[3 * stride + rows];
+    for (unsigned &word : coordinates) word = 0xa5a5a5a5u;
+    const StwoCudaQm31 expected{{7, 11, 13, 17}};
+    for (unsigned row = 0; row < rows; ++row) {{
+        threadIdx.x = row;
+        {kernel_name}(
+            0, 1, 3, 2, 0, 37, statement, 3, nullptr, 0, expected,
+            coordinates, 3 * stride + rows, stride, rows);
+    }}
+    const unsigned values[4] = {{
+        expected.a, expected.b, expected.c, expected.d
+    }};
+    for (unsigned coordinate = 0; coordinate < 4; ++coordinate) {{
+        for (unsigned row = 0; row < rows; ++row) {{
+            assert(coordinates[coordinate * stride + row] == values[coordinate]);
+        }}
+    }}
+
+    unsigned challenges[2] = {{19, 23}};
+    const StwoCudaQm31 second{{29, 31, 37, 41}};
+    for (unsigned row = 0; row < rows; ++row) {{
+        threadIdx.x = row;
+        {kernel_name}(
+            2, 4, 3, 3, 5, 32, nullptr, 0, challenges, 2, second,
+            coordinates, 3 * stride + rows, stride, rows);
+    }}
+    assert(coordinates[0] == second.a);
+    assert(coordinates[stride] == second.b);
+    assert(coordinates[2 * stride] == second.c);
+    assert(coordinates[3 * stride] == second.d);
+}}
+"""
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            source = NATIVE_AOT / manifest[0]["file"]
-            shutil.copy2(source, root / source.name)
-            validate_aot_manifest(root, manifest)
+            harness_path = root / "constant_qm31_aot_test.cpp"
+            executable = root / "constant_qm31_aot_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
 
-            (root / source.name).write_bytes(source.read_bytes() + b"\\n")
-            with self.assertRaisesRegex(BuildError, "stale Native identities"):
-                validate_aot_manifest(root, manifest)
+    def test_native_seeded_xorshift_aot_matches_scalar_recipe(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
+        manifest = json.loads(
+            (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
+        )
+        entry = next(
+            item for item in manifest if item["label"] == "seeded_xorshift_trace"
+        )
+        self.assertEqual("native_seeded_xorshift_trace_v1", entry["abi_schema"])
+        source = NATIVE_AOT / entry["file"]
+        self.assertEqual(
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+            entry["program_identity"],
+        )
+        kernel_name = entry["kernel_name"]
+        harness = f"""
+#include <cassert>
+#include <cstdint>
+#define __device__
+#define __global__
+#define __forceinline__ inline
+#define __launch_bounds__(...)
+struct Dim3 {{ unsigned x, y, z; }};
+static Dim3 blockIdx{{0, 0, 0}}, blockDim{{256, 1, 1}}, threadIdx{{0, 0, 0}};
+#include {json.dumps(str(source))}
 
-            shutil.copy2(source, root / source.name)
-            changed = json.loads(json.dumps(manifest))
-            changed[0]["semantic_contract"] += ";changed"
-            with self.assertRaisesRegex(BuildError, "stale Native identities"):
-                validate_aot_manifest(root, changed)
+static std::uint64_t next_seed(std::uint64_t value) {{
+    value ^= value << 13;
+    value ^= value >> 7;
+    value ^= value << 17;
+    return value;
+}}
+
+int main() {{
+    constexpr unsigned rows = 8;
+    constexpr unsigned groups = 2;
+    constexpr unsigned per_group = 3;
+    constexpr unsigned long long stride = 11;
+    constexpr unsigned columns = groups * per_group;
+    constexpr unsigned long long group_mix = 0x9e3779b97f4a7c15ull;
+    constexpr unsigned long long item_mix = 0x517cc1b727220a95ull;
+    unsigned trace[stride * columns];
+    for (unsigned &word : trace) word = 0xa5a5a5a5u;
+    for (unsigned row = 0; row < rows; ++row) {{
+        threadIdx.x = row;
+        {kernel_name}(
+            trace, stride * columns, stride, rows, 3, groups, per_group,
+            1, 13, 7, 17, group_mix, item_mix);
+    }}
+    for (unsigned row = 0; row < rows; ++row) {{
+        std::uint64_t seed = row + 1;
+        unsigned column = 0;
+        for (unsigned group = 0; group < groups; ++group) {{
+            for (unsigned item = 0; item < per_group; ++item) {{
+                seed = next_seed(seed);
+                const std::uint64_t mixed =
+                    seed ^ (group * group_mix) ^ ((item + 1) * item_mix);
+                assert(trace[column * stride + row] == stwo_m31_from_u64(mixed));
+                ++column;
+            }}
+        }}
+    }}
+    for (unsigned column = 0; column < columns; ++column) {{
+        for (unsigned row = rows; row < stride; ++row) {{
+            assert(trace[column * stride + row] == 0xa5a5a5a5u);
+        }}
+    }}
+}}
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness_path = root / "seeded_xorshift_aot_test.cpp"
+            executable = root / "seeded_xorshift_aot_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
 
     def test_constraint_power_expansion_matches_zig_vector(self) -> None:
         compiler = shutil.which("c++")
@@ -509,6 +727,89 @@ int main() {{
             root = Path(temporary)
             harness_path = root / "wide_fibonacci_trace_test.cpp"
             executable = root / "wide_fibonacci_trace_test"
+            harness_path.write_text(harness, encoding="utf-8")
+            subprocess.run(
+                [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run([str(executable)], check=True)
+
+    def test_native_xor_trace_matches_canonical_layout(self) -> None:
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler unavailable")
+        source = NATIVE / "kernels/xor_trace.cu"
+        harness = f"""
+#include <cassert>
+#include <cstdint>
+#define STWO_CUDA_HOST_TEST
+#define __device__
+#define __global__
+#define __forceinline__ inline
+#define __launch_bounds__(...)
+struct Dim3 {{ unsigned x, y, z; }};
+static Dim3 blockIdx{{0, 0, 0}}, blockDim{{1, 1, 1}}, threadIdx{{0, 0, 0}};
+#include {json.dumps(str(source))}
+
+unsigned logical_row(unsigned storage, unsigned rows, unsigned log_rows) {{
+    const unsigned circle = stwo_xor_trace_reverse_bits(storage) >>
+        (32u - log_rows);
+    return circle < rows / 2u
+        ? circle * 2u
+        : (rows - 1u - circle) * 2u + 1u;
+}}
+
+void check_case(unsigned log_rows, unsigned log_step, std::uint64_t offset) {{
+    const unsigned rows = 1u << log_rows;
+    const unsigned preprocessed_stride = rows + 3u;
+    const unsigned main_stride = rows + 5u;
+    unsigned preprocessed[2u * ((1u << 10u) + 3u)];
+    unsigned main_trace[(1u << 10u) + 5u];
+    for (unsigned &word : preprocessed) word = 0xa5a5a5a5u;
+    for (unsigned &word : main_trace) word = 0xa5a5a5a5u;
+    blockDim.x = 1;
+    for (unsigned row = 0; row < rows; ++row) {{
+        blockIdx.x = row;
+        threadIdx.x = 0;
+        stwo_native_xor_trace_kernel(
+            preprocessed,
+            preprocessed_stride,
+            main_trace,
+            main_stride,
+            rows,
+            log_rows,
+            log_step,
+            offset);
+    }}
+    const unsigned step = 1u << log_step;
+    for (unsigned row = 0; row < rows; ++row) {{
+        const unsigned logical = logical_row(row, rows, log_rows);
+        assert(preprocessed[row] == (row == 0u ? 1u : 0u));
+        assert(preprocessed[preprocessed_stride + row] ==
+            (logical % step == offset % step ? 1u : 0u));
+        assert(main_trace[row] == ((logical & 1u) == 0u ? 1u : 0u));
+    }}
+    for (unsigned row = rows; row < preprocessed_stride; ++row) {{
+        assert(preprocessed[row] == 0xa5a5a5a5u);
+        assert(preprocessed[preprocessed_stride + row] == 0xa5a5a5a5u);
+    }}
+    for (unsigned row = rows; row < main_stride; ++row) {{
+        assert(main_trace[row] == 0xa5a5a5a5u);
+    }}
+}}
+
+int main() {{
+    check_case(5, 0, 0);
+    check_case(7, 3, 5);
+    check_case(10, 10, 0x1'0000'03ffull);
+}}
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness_path = root / "xor_trace_test.cpp"
+            executable = root / "xor_trace_test"
             harness_path.write_text(harness, encoding="utf-8")
             subprocess.run(
                 [compiler, "-std=c++17", "-O2", str(harness_path), "-o", str(executable)],

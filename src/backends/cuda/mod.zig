@@ -5,6 +5,7 @@
 //! generated kernels are strict-AOT, and no CPU fallback API exists.
 
 pub const abi = @import("abi/mod.zig");
+pub const product_aot = @import("aot/product_registry.zig");
 pub const runtime = @import("runtime/mod.zig");
 
 pub const CudaBackend = struct {
@@ -24,5 +25,6 @@ test "CUDA backend advertises only the resident fail-closed architecture" {
 
 test {
     _ = abi;
+    _ = product_aot;
     _ = runtime;
 }

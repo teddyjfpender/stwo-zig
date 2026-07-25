@@ -105,6 +105,18 @@
       "min_rung": "s3"
     },
     {
+      "glob": "src/backend/proof_program.zig",
+      "min_rung": "s4"
+    },
+    {
+      "glob": "src/backends/cuda/**",
+      "min_rung": "s3"
+    },
+    {
+      "glob": "src/integrations/native_cuda/**",
+      "min_rung": "s3"
+    },
+    {
       "glob": "src/backends/metal/**",
       "min_rung": "s3"
     },
@@ -530,6 +542,104 @@
           }
         }
       },
+      "cuda": {
+        "enabled": false,
+        "promotion_eligible": false,
+        "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
+        "board": "core_cuda",
+        "build_step": "zig build stwo-native-cuda -Doptimize=ReleaseFast",
+        "binary": "zig-out/bin/stwo-zig-native-cuda",
+        "report_schema": "native_cuda_product_v6",
+        "correctness_oracle": {
+          "authority": "pinned-rust-stwo",
+          "repository": "https://github.com/starkware-libs/stwo",
+          "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+          "final_validator": true
+        },
+        "activation_contract": {
+          "schema": "stwo_zig_native_cuda_activation_state_v1",
+          "state_path": "conformance/cuda-native-activation-state-v1.json",
+          "state_sha256": "b3ae13156e62276281cc395281c460defbf63edead93b7838ff5cbc8d7114127",
+          "required_families": [
+            "wide_fibonacci",
+            "blake",
+            "poseidon",
+            "plonk_logup",
+            "state_machine",
+            "xor_lookup"
+          ],
+          "required_family_gates": [
+            "exact_trace_semantics",
+            "exact_constraint_semantics",
+            "exact_cpu_cuda_proof_bytes",
+            "pinned_rust_verification",
+            "zero_fallback",
+            "complete_stage_telemetry"
+          ],
+          "required_global_gates": [
+            "complete_structural_coverage",
+            "sustained_headline_calibrated",
+            "locked_cuda_judge_host",
+            "locked_host_aa_calibration",
+            "candidate_dry_run",
+            "predecessor_abba_rehearsal",
+            "mutation_and_anti_forgery",
+            "full_repository_gates"
+          ]
+        },
+        "workloads": {
+          "cuda_wf_log14x32": {
+            "class": "small",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 14 --sequence-len 32 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log22x3": {
+            "class": "deep",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 22 --sequence-len 3 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x37": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 37 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x73": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 73 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x128": {
+            "class": "wide",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 128 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log18x100": {
+            "class": "xlarge",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 18 --sequence-len 100 --resource-profile large --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log20x100": {
+            "class": "huge",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 20 --sequence-len 100 --resource-profile large --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_wf_log22x100": {
+            "class": "extreme",
+            "args": "prove --air wide_fibonacci --backend cuda --protocol raw-stwo-wide-v1 --log-n-rows 22 --sequence-len 100 --resource-profile extreme --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_poseidon_log10": {
+            "class": "small",
+            "args": "prove --air poseidon --backend cuda --protocol raw-stwo-poseidon-v1 --log-n-instances 10 --repeat {samples}",
+            "native_unit": "committed cells"
+          },
+          "cuda_poseidon_log13": {
+            "class": "wide",
+            "args": "prove --air poseidon --backend cuda --protocol raw-stwo-poseidon-v1 --log-n-instances 13 --repeat {samples}",
+            "native_unit": "committed cells"
+          }
+        }
+      },
       "pr6_supremacy": {
         "enabled": false,
         "promotion_eligible": false,
@@ -720,20 +830,16 @@
           "args": "--example plonk --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
           "native_unit": "plonk_rows"
         },
-        "guard_sm_14": {
+        "guard_sm_v2_14": {
           "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 14 --warmups {warmups} --samples {samples} --protocol functional",
           "native_unit": "state_transitions"
         },
-        "guard_sm_16": {
+        "guard_sm_v2_16": {
           "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
           "native_unit": "state_transitions"
         },
         "guard_blake_10x10": {
-          "args": "--example blake --log-n-rows 10 --n-rounds 10 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "blake_round_instances"
-        },
-        "guard_blake_12x16": {
-          "args": "--example blake --log-n-rows 12 --n-rounds 16 --warmups {warmups} --samples {samples} --protocol functional",
+          "args": "--example blake --log-n-rows 10 --n-rounds 10 --warmups {warmups} --samples {samples} --protocol functional --resource-profile large",
           "native_unit": "blake_round_instances"
         },
         "guard_poseidon_10": {
@@ -780,7 +886,6 @@
             ],
             "guards": [
               "guard_blake_10x10",
-              "guard_blake_12x16",
               "guard_poseidon_10",
               "guard_poseidon_13",
               "guard_wf_10x8",

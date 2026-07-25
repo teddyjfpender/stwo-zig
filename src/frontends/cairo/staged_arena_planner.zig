@@ -1,5 +1,7 @@
 const std = @import("std");
-const arena_plan = @import("stwo_backend_contracts").arena_plan;
+const backend = @import("stwo_backend_contracts");
+const arena_plan = backend.arena_plan;
+const proof_program = backend.proof_program;
 const proof_plan = @import("proof_plan.zig");
 
 pub const BufferRole = enum {
@@ -125,6 +127,21 @@ pub const StagedArenaPlanner = struct {
         self.allocator.free(self.last_consumer_ticks);
         self.allocator.free(self.component_ticks);
         self.* = undefined;
+    }
+
+    /// Maps the planner's exact live-range endpoints onto the coarse,
+    /// backend-neutral proof-program lifecycle.
+    pub fn programStageForTick(self: StagedArenaPlanner, tick: u16) Error!proof_program.Stage {
+        if (tick == 0) return .ingress;
+        if (tick < self.ticks.base_commit) return .trace_generation;
+        if (tick < self.ticks.composition) return .trace_commit;
+        if (tick == self.ticks.composition) return .constraint_evaluation;
+        if (tick == self.ticks.oods) return .oods;
+        if (tick == self.ticks.quotient) return .quotient;
+        if (tick == self.ticks.fri) return .fri_commit;
+        if (tick == self.ticks.decommit) return .decommit;
+        if (tick == self.ticks.assemble) return .proof_assembly;
+        return Error.InvalidProtocolTicks;
     }
 
     pub fn derive(self: StagedArenaPlanner, allocator: std.mem.Allocator, specs: []const BufferSpec) !Inputs {

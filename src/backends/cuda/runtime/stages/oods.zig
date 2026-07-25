@@ -17,6 +17,9 @@ pub const prepareSampleMap = plan.prepareSampleMap;
 
 const stage = telemetry.Stage.oods;
 
+pub const first_coefficients_per_block: usize = 4096;
+pub const reduce_coefficients_per_block: usize = 512;
+
 pub fn OpsFor(comptime Api: type) type {
     return struct {
         pub fn derivePoints(
@@ -153,7 +156,7 @@ pub fn OpsFor(comptime Api: type) type {
             const blocks_per_sample = std.math.divCeil(
                 usize,
                 coefficient_size,
-                512,
+                first_coefficients_per_block,
             ) catch return error.SizeOverflow;
             const scratch_count = std.math.mul(
                 usize,
@@ -217,7 +220,7 @@ pub fn OpsFor(comptime Api: type) type {
             const output_stride = std.math.divCeil(
                 u32,
                 input_size,
-                512,
+                reduce_coefficients_per_block,
             ) catch return error.SizeOverflow;
             const input_count = try matrixElements(
                 sample_count_usize,

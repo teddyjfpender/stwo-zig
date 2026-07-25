@@ -209,6 +209,14 @@ a verdict per board: run once per board (`--board core_cpu`,
 `--board core_metal`, or `--board riscv`), pass every verdict to `submit` via repeated
 `--verdict` flags, and each board/class pair earns its own ledger row.
 
+**core_cuda is staged, disabled, and promotion-ineligible.** CUDA backend and
+Native-CUDA integration diffs auto-select it so they fail loudly instead of
+recording a meaningless CPU neutral. Activation is governed by
+`conformance/2026-07-24-cuda-system-architecture-goal.md` and the ordered tasks
+under `autoresearch/tasks/cuda/`: all six Native AIR families, exact CPU/CUDA
+bytes, pinned Rust verification, zero fallback, stage telemetry, structural
+coverage, and locked-host A/A calibration are mandatory.
+
 ## Session policy — maximize verified improvement, not first significance
 
 The suite score is `100 × geomean` over the board's manifest-declared scored
@@ -350,5 +358,7 @@ row supersedes them.
 The repository ships skills under `autoresearch/skills/`:
 `match-algorithmic-problems` (apply before replacing any algorithm),
 `zig-profiling` and `metal-profiling` (S1 evidence via `stwo-prof`), and
-`metal-performance-design`. Durable findings belong in `stwo-perf notes`; the
-measured loop above is the only path to the ledger.
+`metal-performance-design`. CUDA work additionally uses `cuda-profiling`,
+`cuda-performance-design`, and `cuda-kernel-engineering`. Durable findings
+belong in `stwo-perf notes`; the measured loop above is the only path to the
+ledger.

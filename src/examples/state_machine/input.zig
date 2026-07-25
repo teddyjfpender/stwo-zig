@@ -1,8 +1,8 @@
 //! Owned State Machine trace preparation for backend-neutral proving.
 
 const std = @import("std");
-const core_air_utils = @import("stwo_core").air.utils;
 const m31 = @import("stwo_core").fields.m31;
+const utils = @import("stwo_core").utils;
 const prover_pcs = @import("stwo_prover_impl").pcs;
 const prover_transaction = @import("../common/prover_transaction.zig");
 
@@ -16,8 +16,7 @@ pub const Request = struct {
 };
 
 pub const Trace = struct {
-    preprocessed: []M31,
-    main: [2][]M31,
+    main: [4][]M31,
 };
 
 pub const PreparedInput = prover_transaction.PreparedInput(Request);
@@ -28,7 +27,7 @@ pub const Error = prover_transaction.Error || error{
 };
 
 pub fn validate(request: Request) Error!void {
-    if (request.log_n_rows == 0 or request.log_n_rows >= 31)
+    if (request.log_n_rows < 5 or request.log_n_rows >= 31)
         return error.InvalidLogSize;
 }
 
@@ -54,8 +53,7 @@ pub fn genTrace(
 
     var curr_state = initial_state;
     for (0..n) |i| {
-        const bit_rev_index = core_air_utils.circleBitReversedIndex(log_size, i) catch
-            return error.InvalidLogSize;
+        const bit_rev_index = storageIndex(i, log_size);
         col0[bit_rev_index] = curr_state[0];
         col1[bit_rev_index] = curr_state[1];
         curr_state[inc_index] = curr_state[inc_index].add(M31.one());
@@ -76,35 +74,41 @@ pub fn prepare(
 ) (std.mem.Allocator.Error || Error)!PreparedInput {
     try validate(request);
 
-    const preprocessed_values = try genIsFirst(allocator, request.log_n_rows);
-    var preprocessed_moved = false;
-    defer if (!preprocessed_moved) allocator.free(preprocessed_values);
-
-    var main_values = try genTrace(
+    var trace0 = try genTrace(
         allocator,
         request.log_n_rows,
         request.initial_state,
         0,
     );
-    var main_moved = false;
-    defer if (!main_moved) deinitTrace(allocator, &main_values);
+    var trace0_moved = false;
+    defer if (!trace0_moved) deinitTrace(allocator, &trace0);
 
-    const preprocessed = try allocator.alloc(prover_pcs.ColumnEvaluation, 1);
+    var intermediate = request.initial_state;
+    intermediate[0] = intermediate[0].add(
+        M31.fromCanonical(@as(u32, 1) << @intCast(request.log_n_rows)),
+    );
+    var trace1 = try genTrace(
+        allocator,
+        request.log_n_rows - 1,
+        intermediate,
+        1,
+    );
+    var trace1_moved = false;
+    defer if (!trace1_moved) deinitTrace(allocator, &trace1);
+
+    const preprocessed = try allocator.alloc(prover_pcs.ColumnEvaluation, 0);
     var preprocessed_owner = prover_transaction.OwnedColumns.init(preprocessed);
     errdefer preprocessed_owner.deinit(allocator);
-    preprocessed[0] = .{
-        .log_size = request.log_n_rows,
-        .values = preprocessed_values,
-    };
-    preprocessed_moved = true;
 
-    const main = try allocator.alloc(prover_pcs.ColumnEvaluation, main_values.len);
+    const main = try allocator.alloc(prover_pcs.ColumnEvaluation, 4);
     var main_owner = prover_transaction.OwnedColumns.init(main);
     errdefer main_owner.deinit(allocator);
-    for (main_values, 0..) |values, index| {
-        main[index] = .{ .log_size = request.log_n_rows, .values = values };
-    }
-    main_moved = true;
+    main[0] = .{ .log_size = request.log_n_rows, .values = trace0[0] };
+    main[1] = .{ .log_size = request.log_n_rows, .values = trace0[1] };
+    main[2] = .{ .log_size = request.log_n_rows - 1, .values = trace1[0] };
+    main[3] = .{ .log_size = request.log_n_rows - 1, .values = trace1[1] };
+    trace0_moved = true;
+    trace1_moved = true;
 
     return .{
         .request = request,
@@ -121,13 +125,7 @@ pub fn checkedPow2(log_size: u32) Error!usize {
     return @as(usize, 1) << @intCast(log_size);
 }
 
-fn genIsFirst(
-    allocator: std.mem.Allocator,
-    log_size: u32,
-) (std.mem.Allocator.Error || Error)![]M31 {
-    const n = try checkedPow2(log_size);
-    const column = try allocator.alloc(M31, n);
-    @memset(column, M31.zero());
-    column[0] = M31.one();
-    return column;
+pub fn storageIndex(coset_index: usize, log_size: u32) usize {
+    const circle_index = utils.cosetIndexToCircleDomainIndex(coset_index, log_size);
+    return utils.bitReverseIndex(circle_index, log_size);
 }

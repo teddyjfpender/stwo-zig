@@ -87,6 +87,26 @@ test "commitment slabs reject invalid shapes, overflow, and aliases" {
     var session = FakeSession.init(.trace_commit);
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
+        commitment.contiguousLeaves(
+            &session,
+            .trace_commit,
+            16,
+            wordMatrix(0x10000, 4, 15),
+            viewAt(field.Blake2sHash, 0x20000, 16),
+        ),
+    );
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        commitment.contiguousLeaves(
+            &session,
+            .trace_commit,
+            16,
+            wordMatrix(0x10000, 4, 16),
+            viewAt(field.Blake2sHash, 0x10000, 16),
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
         commitment.progressiveAbsorb(
             &session,
             .trace_commit,
@@ -115,6 +135,42 @@ test "commitment slabs reject invalid shapes, overflow, and aliases" {
             16,
             0,
             wordMatrix(0x10000, 4, 16),
+            viewAt(field.ProgressiveBlake2sState, 0x10000, 16),
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        commitment.progressiveAbsorbLifted(
+            &session,
+            .trace_commit,
+            16,
+            3,
+            0,
+            wordMatrix(0x10000, 4, 3),
+            viewAt(field.ProgressiveBlake2sState, 0x20000, 16),
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        commitment.progressiveAbsorbLifted(
+            &session,
+            .trace_commit,
+            8,
+            16,
+            0,
+            wordMatrix(0x10000, 4, 16),
+            viewAt(field.ProgressiveBlake2sState, 0x20000, 8),
+        ),
+    );
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        commitment.progressiveAbsorbLifted(
+            &session,
+            .trace_commit,
+            16,
+            8,
+            0,
+            wordMatrix(0x10000, 4, 8),
             viewAt(field.ProgressiveBlake2sState, 0x10000, 16),
         ),
     );
@@ -161,4 +217,18 @@ test "commitment slabs reject invalid shapes, overflow, and aliases" {
         ),
     );
     try std.testing.expectEqual(@as(usize, 0), session.launches);
+}
+
+test "lifted progressive commitment binds one resident stream launch" {
+    var session = FakeSession.init(.trace_commit);
+    try commitment.progressiveAbsorbLifted(
+        &session,
+        .trace_commit,
+        16,
+        8,
+        4,
+        wordMatrix(0x10000, 3, 8),
+        viewAt(field.ProgressiveBlake2sState, 0x20000, 16),
+    );
+    try std.testing.expectEqual(@as(usize, 1), session.launches);
 }

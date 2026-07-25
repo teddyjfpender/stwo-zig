@@ -1,0 +1,65 @@
+{
+  "schema": "stwo-zig-sn2-recorded-witness-matrix-sm89-v1",
+  "date": "2026-07-25",
+  "device": {
+    "name": "NVIDIA GeForce RTX 4090",
+    "uuid": "GPU-3dabce32-b71d-9cdf-6392-026267492cb6",
+    "compute_capability": "8.9",
+    "driver": "580.126.09",
+    "cuda": "12.8",
+    "nvcc_build": "cuda_12.8.r12.8/compiler.35583870_0"
+  },
+  "inventory": {
+    "standalone_placements": 32,
+    "native_composite_exclusions": 1,
+    "recorded_product_entries": 33,
+    "authenticated_archive_aot_entries": 319,
+    "fixture_rows": 4,
+    "pedersen_global_placements": 2
+  },
+  "telemetry": {
+    "aot_loads": 32,
+    "aot_cache_hits": 0,
+    "aot_misses": 0,
+    "launches": 32,
+    "launch_failures": 0,
+    "runtime_compiles": 0,
+    "cpu_fallbacks": 0,
+    "allocation_ledger_probe_count": 300,
+    "pool_used_current_bytes_after_cleanup": 0
+  },
+  "result": {
+    "status": "pass",
+    "output_parity": "exact",
+    "lookup_parity": "exact",
+    "sub_parity": "exact",
+    "wall_seconds": 0.43,
+    "max_rss_kib": 133736,
+    "stdout": "native CUDA recorded-witness matrix passed: 32 exact Zig SIMD differential cases, 1 native-composite exclusion"
+  },
+  "felt_mul_isolation_profile": {
+    "profiler": "Nsight Systems",
+    "samples": 7,
+    "kernel": "stwo_jit_witness_752513a1a2621451",
+    "broken_inline_median_ns": 141385,
+    "isolated_median_ns": 133992,
+    "delta_ns": -7393,
+    "delta_percent": -5.228985,
+    "performance_regression": false
+  },
+  "released_product": {
+    "archive_sha256": "2a9219e993283c60ef974396e1ee9eeba954d67f5e6bd538cfbf7b6a4f6f7d72",
+    "aot_pack_sha256": "8ba6eacd92c3c95b23663c36ce151808e6bd3a995ba0812b337bd965b3bb9980",
+    "build_identity": "a7a3fb2ed4402e15475b5b7b7760b19f8e943e4c1ab3d61c5625c136e163d6bb",
+    "executable_sha256": "4ec2f95f0070e97fee412b6563b51becc468d854473e5028e6ec6be0427eb3e2"
+  },
+  "sources": {
+    "aot_manifest_sha256": "529d03f4637e9bd433a4d0e398d1bee44ed2868d0aae97f0da7a5de61ce7e56f",
+    "fixture_sha256": "eca7049ce9043e30f85f10b01b71eb0cc647b8fe3c1ce3c30201965d8b82180c",
+    "smoke_sha256": "b15cb52b2d7d8880e4ffbcc288521e8c53c365c186db916420baaca6e56faaca",
+    "fixture_generator_sha256": "5f2696bf8461dee657eae31d03fd819dc1d8af6a65b51cbed532b1e5fb749569",
+    "simd_oracle_sha256": "102abcca860dd9b9d76325de999b0d418ce74ed466eef8d2f591b7784d9fab1e",
+    "pedersen_fixture_sha256": "32c9abfaeed3d85244b97aae9d22813e6c0507e36a66eb12aecfea0c2c764883",
+    "product_derivation_sha256": "1f308e950a73eeacfb1f396793d32cce3d57104c4b095c6e55ce19888d286b81"
+  }
+}

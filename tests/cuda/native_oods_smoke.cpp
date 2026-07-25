@@ -181,9 +181,13 @@ struct DeviceArena {
 
 struct EvaluationFixture {
     static constexpr std::uint32_t sample_count = 3;
-    static constexpr std::uint32_t coefficient_log_size = 10;
+    static constexpr std::uint32_t coefficient_log_size = 13;
     static constexpr std::uint32_t coefficient_size =
         1u << coefficient_log_size;
+    static constexpr std::uint32_t first_coefficients_per_block = 4096;
+    static constexpr std::uint32_t first_pass_size =
+        coefficient_size / first_coefficients_per_block;
+    static_assert(first_pass_size == 2);
 
     QM31 parameter{{7u, 2u}, {3u, 4u}};
     std::vector<CirclePoint> offsets{
@@ -294,7 +298,8 @@ bool test_evaluation(
     }
     auto *device_coefficients =
         arena.allocate<M31>(coefficient_slab.size());
-    auto *scratch = arena.allocate<QM31>(fixture.sample_count * 2);
+    auto *scratch = arena.allocate<QM31>(
+        fixture.sample_count * fixture.first_pass_size);
     auto *reduced = arena.allocate<QM31>(fixture.sample_count);
     auto *sampled = arena.allocate<QM31>(fixture.sample_count);
     if (device_coefficients == nullptr || scratch == nullptr ||
@@ -317,8 +322,8 @@ bool test_evaluation(
         !check(
             stwo_oods_eval_reduce_on(
                 scratch,
-                2,
-                2,
+                fixture.first_pass_size,
+                fixture.first_pass_size,
                 0,
                 fixture.coefficient_log_size,
                 fixture.sample_count,

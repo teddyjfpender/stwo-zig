@@ -41,13 +41,20 @@ extern "C" int stwo_ntt_b2n_composition_split_compact_on(
     const std::uint32_t *inverse_twiddles,
     std::uint32_t inverse_twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
 
 namespace {
 
 constexpr std::uint32_t kPrime = 2147483647u;
 constexpr std::uint32_t kCoordinates = 4u;
 constexpr std::uint32_t kCoefficientColumns = 8u;
+
+std::uint32_t expected_launches(std::uint32_t log_n) {
+    if (log_n >= 13u && log_n <= 18u) return 2u;
+    if (log_n >= 19u && log_n <= 23u) return 3u;
+    return log_n;
+}
 
 bool check_status(int status, const char *operation) {
     if (status == 0) return true;
@@ -157,6 +164,7 @@ bool run_case(std::uint32_t log_n) {
     std::uint32_t *device_input = nullptr;
     std::uint32_t *device_output = nullptr;
     std::uint32_t *device_twiddles = nullptr;
+    std::uint32_t launches = 0;
     if (!check_status(stwo_exec_context_create(&context), "create context") ||
         !check_status(
             stwo_exec_context_stream(context, &stream),
@@ -228,11 +236,22 @@ bool run_case(std::uint32_t log_n) {
                 device_twiddles,
                 static_cast<std::uint32_t>(domain),
                 static_cast<std::uint32_t>(domain),
-                stream),
+                stream,
+                &launches),
             "interpolate and split composition")) {
         return false;
     }
+    if (launches != expected_launches(log_n)) {
+        std::fprintf(
+            stderr,
+            "composition launch mismatch log=%u expected=%u actual=%u\n",
+            log_n,
+            expected_launches(log_n),
+            launches);
+        return false;
+    }
 
+    std::uint32_t invalid_launches = 99u;
     if (stwo_ntt_b2n_composition_split_compact_on(
             device_input,
             input_words - 1u,
@@ -244,7 +263,9 @@ bool run_case(std::uint32_t log_n) {
             device_twiddles,
             static_cast<std::uint32_t>(domain),
             static_cast<std::uint32_t>(domain),
-            stream) == 0 ||
+            stream,
+            &invalid_launches) == 0 ||
+        invalid_launches != 0 ||
         stwo_ntt_b2n_composition_split_compact_on(
             device_input,
             input_words,
@@ -256,7 +277,9 @@ bool run_case(std::uint32_t log_n) {
             device_twiddles,
             static_cast<std::uint32_t>(domain),
             static_cast<std::uint32_t>(domain),
-            nullptr) == 0 ||
+            nullptr,
+            &invalid_launches) == 0 ||
+        invalid_launches != 0 ||
         stwo_ntt_b2n_composition_split_compact_on(
             device_input,
             input_words,
@@ -268,7 +291,22 @@ bool run_case(std::uint32_t log_n) {
             device_twiddles,
             static_cast<std::uint32_t>(domain),
             static_cast<std::uint32_t>(domain),
-            stream) == 0) {
+            stream,
+            &invalid_launches) == 0 ||
+        invalid_launches != 0 ||
+        stwo_ntt_b2n_composition_split_compact_on(
+            device_input,
+            input_words,
+            values,
+            device_output,
+            output_words,
+            domain,
+            log_n,
+            device_twiddles,
+            static_cast<std::uint32_t>(domain),
+            static_cast<std::uint32_t>(domain),
+            stream,
+            nullptr) == 0) {
         std::fprintf(stderr, "invalid composition slab was admitted\n");
         return false;
     }
@@ -351,7 +389,14 @@ bool run_case(std::uint32_t log_n) {
 }  // namespace
 
 int main() {
-    if (!run_case(4) || !run_case(8)) return 1;
+    if (!run_case(4) ||
+        !run_case(12) ||
+        !run_case(13) ||
+        !run_case(16) ||
+        !run_case(18) ||
+        !run_case(19)) {
+        return 1;
+    }
     std::printf("native CUDA composition-split smoke passed\n");
     return 0;
 }

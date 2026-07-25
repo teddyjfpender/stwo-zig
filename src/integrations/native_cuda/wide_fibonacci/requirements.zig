@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
+const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
 const canonical_ingress = @import("canonical_ingress.zig");
 const proof_bundle = @import("proof_bundle.zig");
@@ -63,10 +64,7 @@ pub fn build(
         .trace_commit,
     );
 
-    const main_retained_words = try mul(
-        geometry.main_columns,
-        try mul(rows, 2),
-    );
+    const main_coefficient_words = try mul(geometry.main_columns, rows);
     const composition_coefficient_words = try mul(
         request.composition_column_count,
         rows,
@@ -75,7 +73,7 @@ pub fn build(
         &output,
         allocator,
         slots.coefficient_slab,
-        try sum(main_retained_words, composition_coefficient_words),
+        try sum(main_coefficient_words, composition_coefficient_words),
         .trace_generation,
         .oods,
     );
@@ -93,22 +91,6 @@ pub fn build(
         slots.coefficient_log_sizes,
         source_count,
         .ingress,
-        .constraint_evaluation,
-    );
-    try add(
-        &output,
-        allocator,
-        slots.main_commit_states,
-        try progressiveWords(commitment_rows),
-        .trace_commit,
-        .trace_commit,
-    );
-    try add(
-        &output,
-        allocator,
-        slots.composition_commit_states,
-        try progressiveWords(commitment_rows),
-        .constraint_evaluation,
         .constraint_evaluation,
     );
     const trace_hashes = try fullTreeHashes(commitment_rows);
@@ -167,7 +149,10 @@ pub fn build(
         .oods,
         .oods,
     );
-    const oods_blocks = try ceilDiv(rows, 512);
+    const oods_blocks = try ceilDiv(
+        rows,
+        oods_stage.first_coefficients_per_block,
+    );
     const oods_scratch = try secureWords(try mul(sample_count, oods_blocks));
     try add(&output, allocator, slots.oods_reduce_a, oods_scratch, .oods, .oods);
     try add(&output, allocator, slots.oods_reduce_b, oods_scratch, .oods, .oods);
@@ -288,10 +273,6 @@ fn secureWords(count: usize) request.Error!usize {
 
 fn secureCircleWords(count: usize) request.Error!usize {
     return mul(count, 8);
-}
-
-fn progressiveWords(count: usize) request.Error!usize {
-    return mul(count, 24);
 }
 
 fn hashWords(count: usize) request.Error!usize {

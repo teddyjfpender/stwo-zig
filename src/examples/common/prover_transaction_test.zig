@@ -22,6 +22,7 @@ const FakeEngine = struct {
     pub const Scheme = struct { allocation: *u8 };
 
     var commit_calls: usize = 0;
+    var flush_calls: usize = 0;
     var deinit_calls: usize = 0;
     var prove_calls: usize = 0;
     var fail_commit_index: ?usize = null;
@@ -29,6 +30,7 @@ const FakeEngine = struct {
 
     pub fn reset() void {
         commit_calls = 0;
+        flush_calls = 0;
         deinit_calls = 0;
         prove_calls = 0;
         fail_commit_index = null;
@@ -100,6 +102,14 @@ const FakeEngine = struct {
         );
     }
 
+    pub fn flushPendingCommit(
+        _: *Scheme,
+        _: std.mem.Allocator,
+        _: *Channel,
+    ) !void {
+        flush_calls += 1;
+    }
+
     pub fn prove(
         allocator: std.mem.Allocator,
         _: []const prover_component.ComponentProver,
@@ -111,6 +121,25 @@ const FakeEngine = struct {
         allocator.destroy(scheme.allocation);
         if (fail_prove) return error.InjectedProveFailure;
         return .{ .marker = 0xa5 };
+    }
+};
+
+const FakeBoundarySpec = struct {
+    pub const Statement = FakeSpec.Statement;
+    pub const PreparedInput = FakeSpec.PreparedInput;
+    pub const max_components = FakeSpec.max_components;
+    pub const ProverContext = FakeSpec.ProverContext;
+
+    pub const validateRequest = FakeSpec.validateRequest;
+    pub const validatePrepared = FakeSpec.validatePrepared;
+    pub const compositionLog = FakeSpec.compositionLog;
+    pub const initProverContext = FakeSpec.initProverContext;
+    pub const statement = FakeSpec.statement;
+    pub const proverComponents = FakeSpec.proverComponents;
+
+    pub fn beforeMainCommit(_: *Blake2sChannel, _: FakeRequest) !void {
+        if (FakeEngine.flush_calls != 1)
+            return error.TranscriptBoundaryNotFlushed;
     }
 };
 
@@ -151,6 +180,59 @@ const FakeSpec = struct {
         out: []prover_component.ComponentProver,
     ) ![]const prover_component.ComponentProver {
         return out;
+    }
+};
+
+const FakeInteractionSpec = struct {
+    pub const Statement = FakeStatement;
+    pub const PreparedInput = FakeSpec.PreparedInput;
+    pub const PreparedInteraction = struct {
+        columns: subject.OwnedColumns,
+    };
+    pub const max_components: usize = 0;
+    pub const ProverContext = FakeSpec.ProverContext;
+
+    var fail_prepare = false;
+    var interaction_deinit_calls: usize = 0;
+
+    pub fn reset() void {
+        fail_prepare = false;
+        interaction_deinit_calls = 0;
+    }
+
+    pub const validateRequest = FakeSpec.validateRequest;
+    pub const validatePrepared = FakeSpec.validatePrepared;
+    pub const compositionLog = FakeSpec.compositionLog;
+    pub const statement = FakeSpec.statement;
+    pub const proverComponents = FakeSpec.proverComponents;
+
+    pub fn prepareInteraction(
+        allocator: std.mem.Allocator,
+        _: *Blake2sChannel,
+        _: *const PreparedInput,
+    ) !PreparedInteraction {
+        if (fail_prepare) return error.InjectedInteractionPrepareFailure;
+        return .{
+            .columns = subject.OwnedColumns.init(try makeColumns(allocator, 1)),
+        };
+    }
+
+    pub fn deinitPreparedInteraction(
+        prepared: *PreparedInteraction,
+        allocator: std.mem.Allocator,
+    ) void {
+        interaction_deinit_calls += 1;
+        prepared.columns.deinit(allocator);
+        prepared.* = undefined;
+    }
+
+    pub fn initProverContext(
+        out: *ProverContext,
+        _: *Blake2sChannel,
+        _: FakeRequest,
+        _: *const PreparedInteraction,
+    ) !void {
+        out.* = .{ .statement_value = 7 };
     }
 };
 
@@ -223,6 +305,38 @@ fn runTransaction(allocator: std.mem.Allocator) !FakeEngine.ExtendedProof {
     return output.proof;
 }
 
+fn runBoundaryTransaction(allocator: std.mem.Allocator) !FakeEngine.ExtendedProof {
+    const prepared = try makePrepared(allocator);
+    const output = try subject.provePreparedEx(
+        FakeEngine,
+        FakeBoundarySpec,
+        false,
+        {},
+        allocator,
+        try config(),
+        prepared,
+        .{},
+    );
+    return output.proof;
+}
+
+fn runInteractionTransaction(
+    allocator: std.mem.Allocator,
+) !FakeEngine.ExtendedProof {
+    const prepared = try makePrepared(allocator);
+    const output = try subject.provePreparedEx(
+        FakeEngine,
+        FakeInteractionSpec,
+        false,
+        {},
+        allocator,
+        try config(),
+        prepared,
+        .{},
+    );
+    return output.proof;
+}
+
 test "prover transaction: prepared trace cleans up every allocation failure" {
     try std.testing.checkAllAllocationFailures(
         std.testing.allocator,
@@ -270,6 +384,30 @@ test "prover transaction: success transfers every owned resource once" {
     const proof = try runTransaction(std.testing.allocator);
     try std.testing.expectEqual(@as(u8, 0xa5), proof.marker);
     try std.testing.expectEqual(@as(usize, 2), FakeEngine.commit_calls);
+    try std.testing.expectEqual(@as(usize, 0), FakeEngine.flush_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeEngine.deinit_calls);
     try std.testing.expectEqual(@as(usize, 1), FakeEngine.prove_calls);
+}
+
+test "prover transaction: flushes a deferred root before transcript boundary data" {
+    FakeEngine.reset();
+    const proof = try runBoundaryTransaction(std.testing.allocator);
+    try std.testing.expectEqual(@as(u8, 0xa5), proof.marker);
+    try std.testing.expectEqual(@as(usize, 1), FakeEngine.flush_calls);
+}
+
+test "prover transaction: failed interaction preparation never deinitializes undefined state" {
+    FakeEngine.reset();
+    FakeInteractionSpec.reset();
+    FakeInteractionSpec.fail_prepare = true;
+    try std.testing.expectError(
+        error.InjectedInteractionPrepareFailure,
+        runInteractionTransaction(std.testing.allocator),
+    );
+    try std.testing.expectEqual(@as(usize, 2), FakeEngine.commit_calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeEngine.deinit_calls);
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        FakeInteractionSpec.interaction_deinit_calls,
+    );
 }

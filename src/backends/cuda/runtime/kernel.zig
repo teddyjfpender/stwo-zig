@@ -1,12 +1,32 @@
 //! Validated description and receipt for one strict-AOT CUDA launch.
 
 const std = @import("std");
+const module_globals = @import("../aot/module_globals.zig");
 const schema = @import("../abi/schema.zig");
 const types = @import("../abi/types.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
-pub const receipt_abi_version: u32 = 1;
+pub const receipt_abi_version: u32 = 3;
+pub const ModuleGlobals = module_globals.Requirement;
+
+pub const PedersenW18Publication = struct {
+    columns: [module_globals.pedersen_w18_column_count]u64,
+    row_count: u32,
+    table_identity: [32]u8,
+
+    pub fn validate(self: PedersenW18Publication) runtime_error.Error!void {
+        if (self.row_count != module_globals.pedersen_w18_row_count or
+            std.mem.allEqual(u8, &self.table_identity, 0))
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        for (self.columns) |column| {
+            if (column == 0 or column % @alignOf(u32) != 0)
+                return error.InvalidKernelDescriptor;
+        }
+    }
+};
 
 pub const Kernel = struct {
     stage: telemetry.Stage,
@@ -17,6 +37,9 @@ pub const Kernel = struct {
     block: [3]u32,
     dynamic_shared_bytes: u32 = 0,
     argument_count: u32,
+    module_globals: ModuleGlobals = .none,
+    max_registers_per_thread: ?u32 = null,
+    max_local_bytes: ?u64 = null,
 
     pub fn validate(self: Kernel) runtime_error.Error!void {
         if (self.cache_key == 0 or self.name.len == 0 or self.argument_count == 0)
@@ -55,7 +78,13 @@ pub const Kernel = struct {
             receipt.context_token == 0 or
             receipt.module_token == 0 or
             receipt.function_token == 0 or
-            receipt.stream_token != @intFromPtr(stream))
+            receipt.stream_token != @intFromPtr(stream) or
+            (self.max_registers_per_thread != null and
+                receipt.registers_per_thread >
+                    self.max_registers_per_thread.?) or
+            (self.max_local_bytes != null and
+                receipt.local_bytes > self.max_local_bytes.?) or
+            !receipt.verification.isVerified())
         {
             return error.AotReceiptMismatch;
         }
@@ -91,11 +120,20 @@ test "kernel receipt binds launch to the admitted device and stream" {
         .registers_per_thread = 48,
         .max_threads_per_block = 1024,
         .binary_version = 90,
+        .local_bytes = 128,
+        .static_shared_bytes = 256,
         .cache_key = 0x1234,
         .context_token = 1,
         .module_token = 2,
         .function_token = 3,
         .stream_token = @intFromPtr(&stream_word),
+        .verification = .{
+            .abi_version = types.aot_verification_abi_version,
+            .verified = types.aot_verification_verified,
+            .cubin_bytes = 4096,
+            .expected_sha256 = [_]u8{7} ** 32,
+            .observed_sha256 = [_]u8{7} ** 32,
+        },
     };
     try kernel.validateReceipt(receipt, device, &stream_word);
 
@@ -107,6 +145,28 @@ test "kernel receipt binds launch to the admitted device and stream" {
     );
     wrong = receipt;
     wrong.abi_schema = @intFromEnum(schema.KernelSchema.composition_wave_v2);
+    try std.testing.expectError(
+        error.AotReceiptMismatch,
+        kernel.validateReceipt(wrong, device, &stream_word),
+    );
+    wrong = receipt;
+    wrong.local_bytes = 129;
+    const resource_bounded = Kernel{
+        .stage = kernel.stage,
+        .abi_schema = kernel.abi_schema,
+        .cache_key = kernel.cache_key,
+        .name = kernel.name,
+        .grid = kernel.grid,
+        .block = kernel.block,
+        .argument_count = kernel.argument_count,
+        .max_local_bytes = 128,
+    };
+    try std.testing.expectError(
+        error.AotReceiptMismatch,
+        resource_bounded.validateReceipt(wrong, device, &stream_word),
+    );
+    wrong = receipt;
+    wrong.verification.observed_sha256[0] ^= 0xff;
     try std.testing.expectError(
         error.AotReceiptMismatch,
         kernel.validateReceipt(wrong, device, &stream_word),

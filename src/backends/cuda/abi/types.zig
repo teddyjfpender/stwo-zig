@@ -55,6 +55,25 @@ pub const NativeAotStats = extern struct {
     }
 };
 
+pub const aot_verification_abi_version: u32 = 1;
+pub const aot_verification_verified: u32 = 1;
+
+pub const NativeAotVerificationReceipt = extern struct {
+    abi_version: u32 = 0,
+    verified: u32 = 0,
+    cubin_bytes: u64 = 0,
+    expected_sha256: [32]u8 = [_]u8{0} ** 32,
+    observed_sha256: [32]u8 = [_]u8{0} ** 32,
+
+    pub fn isVerified(self: NativeAotVerificationReceipt) bool {
+        return self.abi_version == aot_verification_abi_version and
+            self.verified == aot_verification_verified and
+            self.cubin_bytes != 0 and
+            !std.mem.allEqual(u8, &self.expected_sha256, 0) and
+            std.mem.eql(u8, &self.expected_sha256, &self.observed_sha256);
+    }
+};
+
 pub const NativeAotFunctionReceipt = extern struct {
     abi_version: u32 = 0,
     abi_schema: u32 = 0,
@@ -68,11 +87,30 @@ pub const NativeAotFunctionReceipt = extern struct {
     registers_per_thread: u32 = 0,
     max_threads_per_block: u32 = 0,
     binary_version: u32 = 0,
+    local_bytes: u64 = 0,
+    static_shared_bytes: u64 = 0,
     cache_key: u64 = 0,
     context_token: u64 = 0,
     module_token: u64 = 0,
     function_token: u64 = 0,
     stream_token: u64 = 0,
+    verification: NativeAotVerificationReceipt = .{},
+};
+
+pub const aot_module_globals_receipt_abi_version: u32 = 1;
+
+pub const NativeAotModuleGlobalsReceipt = extern struct {
+    abi_version: u32 = 0,
+    verified: u32 = 0,
+    module_globals: u32 = 0,
+    column_count: u32 = 0,
+    row_count: u32 = 0,
+    reserved: u32 = 0,
+    columns_symbol_bytes: u64 = 0,
+    row_count_symbol_bytes: u64 = 0,
+    module_token: u64 = 0,
+    stream_token: u64 = 0,
+    table_identity: [32]u8 = [_]u8{0} ** 32,
 };
 
 const std = @import("std");
@@ -83,11 +121,26 @@ comptime {
     std.debug.assert(@offsetOf(PlatformSnapshot, "total_global_memory") == 32);
     std.debug.assert(@sizeOf(NativeAotStats) == 40);
     std.debug.assert(@alignOf(NativeAotStats) == 8);
-    std.debug.assert(@sizeOf(NativeAotFunctionReceipt) == 104);
+    std.debug.assert(@sizeOf(NativeAotVerificationReceipt) == 80);
+    std.debug.assert(@alignOf(NativeAotVerificationReceipt) == 8);
+    std.debug.assert(@offsetOf(NativeAotVerificationReceipt, "cubin_bytes") == 8);
+    std.debug.assert(@offsetOf(NativeAotVerificationReceipt, "expected_sha256") == 16);
+    std.debug.assert(@offsetOf(NativeAotVerificationReceipt, "observed_sha256") == 48);
+    std.debug.assert(@sizeOf(NativeAotFunctionReceipt) == 200);
     std.debug.assert(@alignOf(NativeAotFunctionReceipt) == 8);
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "abi_schema") == 4);
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "grid") == 20);
-    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "cache_key") == 64);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "local_bytes") == 64);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "cache_key") == 80);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "verification") == 120);
+    std.debug.assert(@sizeOf(NativeAotModuleGlobalsReceipt) == 88);
+    std.debug.assert(@alignOf(NativeAotModuleGlobalsReceipt) == 8);
+    std.debug.assert(
+        @offsetOf(NativeAotModuleGlobalsReceipt, "columns_symbol_bytes") == 24,
+    );
+    std.debug.assert(
+        @offsetOf(NativeAotModuleGlobalsReceipt, "table_identity") == 56,
+    );
 }
 
 test "platform snapshot rejects incomplete provenance" {
@@ -117,4 +170,25 @@ test "strict AOT stats reject every non-AOT provenance" {
     rejected.launch_failures = 1;
     try std.testing.expect(!rejected.isStrict());
     try std.testing.expect(!(NativeAotStats{}).isStrict());
+}
+
+test "AOT verification receipt requires exact nonzero digest equality" {
+    const verified = NativeAotVerificationReceipt{
+        .abi_version = aot_verification_abi_version,
+        .verified = aot_verification_verified,
+        .cubin_bytes = 4096,
+        .expected_sha256 = [_]u8{7} ** 32,
+        .observed_sha256 = [_]u8{7} ** 32,
+    };
+    try std.testing.expect(verified.isVerified());
+    var rejected = verified;
+    rejected.observed_sha256[0] ^= 0xff;
+    try std.testing.expect(!rejected.isVerified());
+    rejected = verified;
+    rejected.expected_sha256 = [_]u8{0} ** 32;
+    rejected.observed_sha256 = [_]u8{0} ** 32;
+    try std.testing.expect(!rejected.isVerified());
+    rejected = verified;
+    rejected.verified = 0;
+    try std.testing.expect(!rejected.isVerified());
 }

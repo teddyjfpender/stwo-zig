@@ -1,6 +1,8 @@
 #ifndef STWO_ZIG_CUDA_BLAKE2S_CORE_CUH
 #define STWO_ZIG_CUDA_BLAKE2S_CORE_CUH
 
+#include "blake2s_domain_states.h"
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -110,11 +112,17 @@ __device__ __forceinline__ void initialize_domain(
 }
 
 __device__ __forceinline__ void initialize_leaf(uint32_t hash[8]) {
-    initialize_domain(hash, kLeafTag);
+#pragma unroll
+    for (int index = 0; index < 8; ++index) {
+        hash[index] = kLeafInitialState.words[index];
+    }
 }
 
 __device__ __forceinline__ void initialize_node(uint32_t hash[8]) {
-    initialize_domain(hash, kNodeTag);
+#pragma unroll
+    for (int index = 0; index < 8; ++index) {
+        hash[index] = kNodeInitialState.words[index];
+    }
 }
 
 __device__ __forceinline__ Hash hash_children(

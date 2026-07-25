@@ -1,0 +1,54 @@
+{
+  "schema": "stwo-zig-cuda-profiler-evidence-v1",
+  "evidence_class": "diagnostic_profile_not_benchmark_verdict",
+  "headline_eligible": false,
+  "workload": {
+    "application": "wide_fibonacci",
+    "log_n_rows": 20,
+    "sequence_len": 100,
+    "trace_rows": 1048576,
+    "committed_cells": 104857600
+  },
+  "product": {
+    "checkpoint": "b7b83be6",
+    "binary_sha256": "b42e5449581d1ea32c0942bf9422a36cea8c86295bf42df1dbd0e756a3d479a0",
+    "note": "This is the immediate pre-N2B scheduling checkpoint and not the final benchmark candidate."
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 4090",
+    "uuid": "GPU-3dabce32-b71d-9cdf-6392-026267492cb6",
+    "compute_capability": "8.9",
+    "driver_version": "580.126.09"
+  },
+  "nsight_systems": {
+    "version": "2024.6.2.225-246235244400v0",
+    "trace": {
+      "retention": "omitted_from_repository",
+      "reason": "Raw profiler captures may contain environment metadata or credentials; retain them only in access-controlled artifact storage.",
+      "original_bytes": 147011,
+      "original_sha256": "fb30e4e9e91fa6053e08a9f0f944d606be72e09d45ca5f1a6a27587ef3cacab4"
+    },
+    "kernel_summary": {
+      "path": "log20x100-kernels.csv",
+      "bytes": 11860,
+      "sha256": "3e4d8413d0d24c4d1147123a0d3954a55ed4058c0a466e0d0c472f262f76d01a"
+    },
+    "dominant_kernel_time_percent": {
+      "n2b_continue_4_4": 21.3,
+      "n2b_final_warp": 10.3,
+      "n2b_continue_3_3": 8.3,
+      "b2n_continue_3": 7.8,
+      "contiguous_blake_leaf": 6.2,
+      "quotient_accumulate_single_write": 5.8,
+      "blake_child_layer": 5.6,
+      "air_constraint": 5.6
+    }
+  },
+  "nsight_compute": {
+    "version": "2025.1.1.0",
+    "status": "unavailable_on_host",
+    "error": "ERR_NVGPUCTRPERM",
+    "reason": "The container host disables NVIDIA hardware performance-counter access. No roofline, bandwidth, occupancy, register, or spill claim is made.",
+    "required_follow_up": "Repeat the bounded dominant-kernel capture on the locked CUDA judge host with performance counters explicitly enabled."
+  }
+}

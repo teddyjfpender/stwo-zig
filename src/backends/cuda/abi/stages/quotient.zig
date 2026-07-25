@@ -1,5 +1,6 @@
 //! Resident quotient-numerator and quotient-combination entry points.
 
+const compact_source = @import("../compact_source.zig");
 const field = @import("../field.zig");
 
 pub const PreparedTermDescriptor = extern struct {
@@ -15,6 +16,9 @@ pub const BatchTermDescriptor = extern struct {
     term_index: u32,
     source_log_size: u32,
 };
+
+pub const CompactSourceDescriptor = compact_source.Descriptor;
+pub const AddressedSourceDescriptor = compact_source.AddressedDescriptor;
 
 pub extern "c" fn stwo_prepare_quotient_numerator_terms_on(
     term_descriptors: [*]const PreparedTermDescriptor,
@@ -73,6 +77,47 @@ pub extern "c" fn stwo_accumulate_quotient_numerator_single_write_on(
     stream: *anyopaque,
 ) c_int;
 
+pub extern "c" fn stwo_accumulate_quotient_numerator_compact_on(
+    group_offsets: [*]const u32,
+    term_descriptors: [*]const BatchTermDescriptor,
+    term_count: u32,
+    group_count: u32,
+    max_output_size: u32,
+    source_evaluations: [*]const u32,
+    source_word_count: usize,
+    source_descriptors: [*]const CompactSourceDescriptor,
+    source_count: u32,
+    line_coefficients: [*]const field.SecureField,
+    line_term_count: u32,
+    group_log_sizes: [*]const u32,
+    outputs_0: [*]u32,
+    outputs_1: [*]u32,
+    outputs_2: [*]u32,
+    outputs_3: [*]u32,
+    output_stride_words: usize,
+    stream: *anyopaque,
+) c_int;
+
+pub extern "c" fn stwo_accumulate_quotient_numerator_addressed_on(
+    group_offsets: [*]const u32,
+    term_descriptors: [*]const BatchTermDescriptor,
+    term_count: u32,
+    group_count: u32,
+    max_output_size: u32,
+    source_descriptors: [*]const AddressedSourceDescriptor,
+    source_count: u32,
+    line_coefficients: [*]const field.SecureField,
+    line_term_count: u32,
+    group_log_sizes: [*]const u32,
+    output_offsets: [*]const u64,
+    output_word_count: usize,
+    outputs_0: [*]u32,
+    outputs_1: [*]u32,
+    outputs_2: [*]u32,
+    outputs_3: [*]u32,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_combine_quotients_from_numerators_on(
     half_coset_initial_index: u32,
     half_coset_step_size: u32,
@@ -87,6 +132,28 @@ pub extern "c" fn stwo_combine_quotients_from_numerators_on(
     partial_numerators_2: [*]const u32,
     partial_numerators_3: [*]const u32,
     partial_numerator_stride_words: usize,
+    result_column_0: [*]u32,
+    result_column_1: [*]u32,
+    result_column_2: [*]u32,
+    result_column_3: [*]u32,
+    stream: *anyopaque,
+) c_int;
+
+pub extern "c" fn stwo_combine_quotients_from_compact_numerators_on(
+    half_coset_initial_index: u32,
+    half_coset_step_size: u32,
+    domain_size: u32,
+    domain_log_size: u32,
+    sample_points: [*]const field.SecureCirclePoint,
+    sample_count: u32,
+    first_linear_term_accumulators: [*]const field.SecureField,
+    partial_numerator_log_sizes: [*]const u32,
+    partial_numerator_offsets: [*]const u64,
+    partial_numerator_word_count: usize,
+    partial_numerators_0: [*]const u32,
+    partial_numerators_1: [*]const u32,
+    partial_numerators_2: [*]const u32,
+    partial_numerators_3: [*]const u32,
     result_column_0: [*]u32,
     result_column_1: [*]u32,
     result_column_2: [*]u32,

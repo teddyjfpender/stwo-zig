@@ -115,6 +115,43 @@ pub fn OpsFor(comptime Api: type) type {
             try common.record(session, stage, status);
         }
 
+        pub fn foldTwo(
+            session: anytype,
+            domain: common.Words,
+            twiddle_offsets: [2]u32,
+            size: u32,
+            first_fold_is_circle: bool,
+            evaluation_values: common.WordMatrix,
+            alpha: common.SecureFields,
+            folded_values: common.WordMatrix,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.fri_commit;
+            try common.requireStage(session, stage);
+            try common.requireNonZero(&.{size});
+            if (size < 4 or size > (@as(u32, 1) << 30) or
+                size & (size - 1) != 0)
+                return error.InvalidKernelDescriptor;
+            const source = try matrix(session, evaluation_values, size);
+            const destination = try matrix(session, folded_values, size / 4);
+            const status = Api.stwo_fri_fold_fused2_on(
+                try common.words(session, domain, 1),
+                domain.len,
+                twiddle_offsets[0],
+                twiddle_offsets[1],
+                size,
+                @intFromBool(first_fold_is_circle),
+                source.pointer,
+                source.words,
+                source.stride,
+                @ptrCast(try common.secure(session, alpha, 1)),
+                destination.pointer,
+                destination.words,
+                destination.stride,
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn lastLayer(
             session: anytype,
             evaluation: common.Words,
@@ -187,7 +224,35 @@ pub fn OpsFor(comptime Api: type) type {
             completed_blocks: common.Words,
             transcript_nonce: common.Words,
         ) runtime_error.Error!void {
-            const stage = telemetry.Stage.pow;
+            return grindPowAtStage(
+                session,
+                .pow,
+                transcript_state,
+                pow_bits,
+                search_end,
+                prefix_digest,
+                best_nonce,
+                completed_blocks,
+                transcript_nonce,
+            );
+        }
+
+        /// Executes a protocol-authenticated PoW barrier in its owning stage.
+        /// Cairo uses this for interaction PoW before relation challenges;
+        /// native AIRs retain the final query PoW in `.pow`.
+        pub fn grindPowAtStage(
+            session: anytype,
+            stage: telemetry.Stage,
+            transcript_state: common.Words,
+            pow_bits: u32,
+            search_end: u64,
+            prefix_digest: common.Words,
+            best_nonce: common.Nonce,
+            completed_blocks: common.Words,
+            transcript_nonce: common.Words,
+        ) runtime_error.Error!void {
+            if (stage != .trace_commit and stage != .pow)
+                return error.InvalidKernelDescriptor;
             try common.requireStage(session, stage);
             if (pow_bits > 32 or search_end == 0 or
                 search_end > (@as(u64, 0x7fff_ffff) << 20))

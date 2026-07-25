@@ -12,6 +12,37 @@ pub const Native = OpsFor(abi);
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        pub fn contiguousLeaves(
+            session: anytype,
+            stage: telemetry.Stage,
+            size: u32,
+            columns: common.WordMatrix,
+            output: common.Hashes,
+        ) runtime_error.Error!void {
+            try requireCommitStage(stage);
+            try common.requireStage(session, stage);
+            try common.requireNonZero(&.{size});
+            const source = try layout.wordMatrix(session, columns, size);
+            if (output.len != size) return error.SizeOverflow;
+            const hashes = try layout.resident(
+                session,
+                field.Blake2sHash,
+                output,
+                output.len,
+            );
+            if (layout.overlap(source.range, hashes.range))
+                return error.OverlappingDeviceRange;
+            const status = Api.stwo_blake2s_contiguous_leaf_on(
+                size,
+                source.pointer,
+                source.stride_words,
+                columns.storage.len,
+                hashes.pointer,
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn progressiveInit(
             session: anytype,
             stage: telemetry.Stage,
@@ -67,6 +98,64 @@ pub fn OpsFor(comptime Api: type) type {
                 state_values.pointer,
                 session.context.stream,
             );
+            try common.record(session, stage, status);
+        }
+
+        /// Absorb one contiguous variable-height group into a lifted leaf
+        /// domain. `columns` remains packed at `source_size`; no expanded
+        /// pointer table or padded max-height matrix is admitted.
+        pub fn progressiveAbsorbLifted(
+            session: anytype,
+            stage: telemetry.Stage,
+            size: u32,
+            source_size: u32,
+            absorbed_columns_before: u32,
+            columns: common.WordMatrix,
+            states: common.ProgressiveStates,
+        ) runtime_error.Error!void {
+            try requireCommitStage(stage);
+            try common.requireStage(session, stage);
+            if (!std.math.isPowerOfTwo(size) or
+                !std.math.isPowerOfTwo(source_size) or
+                source_size < 2 or
+                source_size > size)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const source = try layout.wordMatrix(
+                session,
+                columns,
+                source_size,
+            );
+            _ = std.math.add(
+                u32,
+                absorbed_columns_before,
+                source.column_count,
+            ) catch return error.SizeOverflow;
+            const state_values = try layout.resident(
+                session,
+                field.ProgressiveBlake2sState,
+                states,
+                size,
+            );
+            const source_capacity = try layout.elementRange(
+                columns.storage.address,
+                columns.storage.len,
+                @sizeOf(u32),
+            );
+            if (layout.overlap(source_capacity, state_values.range))
+                return error.OverlappingDeviceRange;
+            const status =
+                Api.stwo_blake2s_progressive_absorb_lifted_on(
+                    size,
+                    source_size,
+                    absorbed_columns_before,
+                    source.pointer,
+                    source.stride_words,
+                    columns.storage.len,
+                    state_values.pointer,
+                    session.context.stream,
+                );
             try common.record(session, stage, status);
         }
 
@@ -152,6 +241,50 @@ pub fn OpsFor(comptime Api: type) type {
                     output_values.pointer,
                     session.context.stream,
                 );
+            try common.record(session, stage, status);
+        }
+
+        pub fn contiguousTail(
+            session: anytype,
+            stage: telemetry.Stage,
+            previous: common.Hashes,
+            outputs: common.Hashes,
+            level_count: u32,
+        ) runtime_error.Error!void {
+            try requireCommitStage(stage);
+            try common.requireStage(session, stage);
+            if (previous.len == 0 or
+                !std.math.isPowerOfTwo(previous.len) or
+                level_count == 0 or
+                level_count >= @bitSizeOf(usize))
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const final_size = previous.len >> @intCast(level_count);
+            if (final_size == 0 or outputs.len != previous.len - final_size)
+                return error.SizeOverflow;
+            const previous_values = try layout.resident(
+                session,
+                field.Blake2sHash,
+                previous,
+                previous.len,
+            );
+            const output_values = try layout.resident(
+                session,
+                field.Blake2sHash,
+                outputs,
+                outputs.len,
+            );
+            if (layout.overlap(previous_values.range, output_values.range))
+                return error.OverlappingDeviceRange;
+            const status = Api.stwo_blake2s_contiguous_tail_on(
+                previous_values.pointer,
+                try common.count(previous.len),
+                output_values.pointer,
+                outputs.len,
+                level_count,
+                session.context.stream,
+            );
             try common.record(session, stage, status);
         }
 

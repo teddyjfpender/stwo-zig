@@ -3,6 +3,7 @@
 const std = @import("std");
 const cuda = @import("cuda.zig");
 const construction_observer = @import("../graph/construction_observer.zig");
+const graph = @import("../graph/modules.zig");
 
 pub const Options = struct {
     nvcc: ?[]const u8,
@@ -100,8 +101,22 @@ pub fn addProducts(
         "-m",
         "unittest",
         "scripts.tests.test_cuda_build",
+        "scripts.tests.test_cuda_aot_identity",
         "scripts.tests.test_cuda_build_cache",
+        "scripts.tests.test_cuda_source_closure",
+        "scripts.tests.test_cuda_product_closure",
+        "scripts.tests.test_cuda_aot_authentication",
+        "scripts.tests.test_cuda_blake_aot",
+        "scripts.tests.test_cuda_blake_exact_interaction_oracle",
+        "scripts.tests.test_cuda_blake_exact_trace_aot",
+        "scripts.tests.test_cuda_compact_b2n",
+        "scripts.tests.test_cuda_blake_exact_interaction_aot",
+        "scripts.tests.test_cuda_plonk_logup_aot",
+        "scripts.tests.test_cuda_poseidon_aot",
+        "scripts.tests.test_cuda_xor_logup_aot",
+        "scripts.tests.test_cuda_xor_logup_trace_aot",
         "scripts.tests.test_cuda_proof_parity_gate",
+        "scripts.tests.test_cuda_activation",
     });
     tests.step.dependOn(&source.step);
     b.step(
@@ -116,6 +131,14 @@ pub fn addProducts(
             .optimize = optimize,
         }),
     });
+    runtime_tests.root_module.addImport(
+        "stwo_backend_contracts",
+        b.createModule(.{
+            .root_source_file = b.path("src/backend/mod.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    );
     runtime_tests.addCSourceFile(.{
         .file = b.path("src/backends/cuda/runtime/stages/test_stubs.c"),
         .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },
@@ -125,6 +148,121 @@ pub fn addProducts(
         "test-cuda-runtime-contract",
         "Test proof-owned CUDA context, residency, and strict-AOT contracts",
     ).dependOn(&b.addRunArtifact(runtime_tests).step);
+
+    const protocol = graph.createPrivateProtocolModules(
+        b,
+        target,
+        optimize,
+    );
+    const stwo = b.createModule(.{
+        .root_source_file = b.path("src/stwo.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(stwo);
+    const ec_oracle_root = b.createModule(.{
+        .root_source_file = b.path(
+            "src/tools/cuda_native_ec_composite_oracle/main.zig",
+        ),
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+    ec_oracle_root.addImport("stwo_under_test", stwo);
+    const ec_oracle = b.addExecutable(.{
+        .name = "cuda-native-ec-composite-oracle",
+        .root_module = ec_oracle_root,
+    });
+    b.step(
+        "cuda-native-ec-composite-oracle",
+        "Emit the canonical Zig SIMD receipt for the native EC consumer",
+    ).dependOn(&b.addRunArtifact(ec_oracle).step);
+    const plonk_logup_root = b.createModule(.{
+        .root_source_file = b.path("tests/native_cuda_plonk_logup.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    plonk_logup_root.addImport("stwo_under_test", stwo);
+    const plonk_logup_tests = b.addTest(.{
+        .root_module = plonk_logup_root,
+    });
+    b.step(
+        "test-cuda-plonk-logup-contract",
+        "Test activation-disabled exact Plonk/LogUp CUDA contracts",
+    ).dependOn(&b.addRunArtifact(plonk_logup_tests).step);
+
+    const xor_logup_root = b.createModule(.{
+        .root_source_file = b.path("tests/native_cuda_xor_logup.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    xor_logup_root.addImport("stwo_under_test", stwo);
+    const xor_logup_tests = b.addTest(.{
+        .root_module = xor_logup_root,
+    });
+    b.step(
+        "test-cuda-xor-logup-contract",
+        "Test exact XOR/LogUp CUDA contracts without a GPU",
+    ).dependOn(&b.addRunArtifact(xor_logup_tests).step);
+
+    const state_machine_root = b.createModule(.{
+        .root_source_file = b.path("tests/native_cuda_state_machine.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    state_machine_root.addImport("stwo_under_test", stwo);
+    const state_machine_tests = b.addTest(.{
+        .root_module = state_machine_root,
+    });
+    b.step(
+        "test-cuda-state-machine-contract",
+        "Test activation-disabled exact State Machine v2 CUDA contracts",
+    ).dependOn(&b.addRunArtifact(state_machine_tests).step);
+
+    const poseidon_arena_root = b.createModule(.{
+        .root_source_file = b.path(
+            "tests/native_cuda_poseidon_arena.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    poseidon_arena_root.addImport("stwo_under_test", stwo);
+    const poseidon_arena_tests = b.addTest(.{
+        .root_module = poseidon_arena_root,
+    });
+    b.step(
+        "test-cuda-poseidon-arena-contract",
+        "Test exact Poseidon CUDA arena contracts without a GPU",
+    ).dependOn(&b.addRunArtifact(poseidon_arena_tests).step);
+
+    const blake_exact_root = b.createModule(.{
+        .root_source_file = b.path(
+            "tests/native_cuda_blake_exact_structure.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    blake_exact_root.addImport("stwo_under_test", stwo);
+    const blake_exact_tests = b.addTest(.{
+        .root_module = blake_exact_root,
+    });
+    const blake_exact_step = b.step(
+        "test-cuda-blake-exact-structure",
+        "Test exact mixed-height Blake CUDA contracts without a GPU",
+    );
+    blake_exact_step.dependOn(&b.addRunArtifact(blake_exact_tests).step);
+
+    const blake_route_root = b.createModule(.{
+        .root_source_file = b.path(
+            "src/products/native_cuda/blake_route.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    blake_route_root.addImport("stwo_native_cuda", stwo);
+    const blake_route_tests = b.addTest(.{
+        .root_module = blake_route_root,
+    });
+    blake_exact_step.dependOn(&b.addRunArtifact(blake_route_tests).step);
 
     const adapter_tests = b.addSystemCommand(&.{
         "cargo",

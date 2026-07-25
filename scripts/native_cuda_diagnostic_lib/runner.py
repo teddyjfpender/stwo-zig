@@ -33,11 +33,10 @@ from .model import (
     EVIDENCE_CLASS,
     MAX_REPORT_BYTES,
     MAX_STDERR_BYTES,
-    PROTOCOL,
     SCHEMA,
     DiagnosticError,
+    ProductShape,
     Settings,
-    Shape,
 )
 
 
@@ -107,33 +106,38 @@ def _decode_stdout(stdout: bytes) -> dict[str, Any]:
     return report
 
 
-def _command(binary: Path, shape: Shape, proof: Path, report: Path) -> list[str]:
+def _command(
+    binary: Path,
+    shape: ProductShape,
+    proof: Path,
+    report: Path,
+    execution_mode: str,
+) -> list[str]:
     return [
         str(binary),
         "prove",
         "--air",
-        "wide_fibonacci",
+        shape.application,
         "--backend",
         "cuda",
         "--protocol",
-        PROTOCOL,
-        "--log-n-rows",
-        str(shape.log_n_rows),
-        "--sequence-len",
-        str(shape.sequence_len),
+        shape.protocol,
+        *shape.cli_shape_args(),
         "--output",
         str(proof),
         "--report-out",
         str(report),
         "--repeat",
         "1",
+        "--execution-mode",
+        execution_mode,
     ]
 
 
 def _run_sample(
     settings: Settings,
     binary: Path,
-    shape: Shape,
+    shape: ProductShape,
     sample_index: int,
 ) -> dict[str, Any]:
     sample_dir = settings.artifact_root / shape.slug / f"sample-{sample_index:03d}"
@@ -141,7 +145,13 @@ def _run_sample(
     proof_path = sample_dir / "proof-artifact.json"
     report_path = sample_dir / "product-report.json"
     stderr_path = sample_dir / "process.stderr.txt"
-    command = _command(binary, shape, proof_path, report_path)
+    command = _command(
+        binary,
+        shape,
+        proof_path,
+        report_path,
+        settings.execution_mode,
+    )
     measured, resource_measurement = measurement_command(command, required=True)
     environment = measurement_environment(
         {"CUDA_VISIBLE_DEVICES": settings.device_ordinal}
@@ -184,7 +194,13 @@ def _run_sample(
     if report_file.strip() != completed.stdout.strip():
         raise DiagnosticError("CUDA persisted report differs from stdout")
     artifact = validate_artifact(proof_path, shape)
-    validated = validate_report(report, shape, proof_path, artifact)
+    validated = validate_report(
+        report,
+        shape,
+        proof_path,
+        artifact,
+        expected_execution_mode=settings.execution_mode,
+    )
     try:
         resources = parse_process_resources(
             completed.stderr,
@@ -208,8 +224,10 @@ def _run_sample(
             "canonical_bytes": validated["proof"]["canonical_bytes"],
             "canonical_sha256": validated["proof"]["canonical_sha256"],
         },
+        "plan": validated["plan"],
         "timing_ns": validated["timing_ns"],
         "process_repetition": validated["process_repetition"],
+        "execution_mode": validated["execution_mode"],
         "throughput": {
             "resident_trace_row_mhz": validated["resident_trace_row_mhz"],
             "resident_committed_mcells_per_second": validated[
@@ -223,6 +241,7 @@ def _run_sample(
             / 1_000_000.0,
         },
         "residency": validated["residency"],
+        "device_stage_timing_ns": validated["device_stage_timing_ns"],
         "aot": validated["aot"],
         "device": validated["device"],
         "raw_report_sha256": hashlib.sha256(report_file).hexdigest(),
@@ -231,7 +250,10 @@ def _run_sample(
     }
 
 
-def _shape_result(shape: Shape, samples: list[dict[str, Any]]) -> dict[str, Any]:
+def _shape_result(
+    shape: ProductShape,
+    samples: list[dict[str, Any]],
+) -> dict[str, Any]:
     proof_identities = {
         (sample["proof"]["canonical_sha256"], sample["proof"]["canonical_bytes"])
         for sample in samples
@@ -245,6 +267,26 @@ def _shape_result(shape: Shape, samples: list[dict[str, Any]]) -> dict[str, Any]
         ],
         "resident_prove_ms": [
             sample["timing_ns"]["resident_prove"] / 1_000_000.0
+            for sample in samples
+        ],
+        "runtime_init_ms": [
+            sample["timing_ns"]["runtime_init"] / 1_000_000.0
+            for sample in samples
+        ],
+        "shape_prepare_ms": [
+            sample["timing_ns"]["shape_prepare"] / 1_000_000.0
+            for sample in samples
+        ],
+        "verified_request_ms": [
+            sample["timing_ns"]["verified_request"] / 1_000_000.0
+            for sample in samples
+        ],
+        "independent_verification_ms": [
+            sample["timing_ns"]["independent_verification"] / 1_000_000.0
+            for sample in samples
+        ],
+        "runtime_teardown_ms": [
+            sample["timing_ns"]["runtime_teardown"] / 1_000_000.0
             for sample in samples
         ],
         "total_before_publication_ms": [
@@ -296,6 +338,23 @@ def _shape_result(shape: Shape, samples: list[dict[str, Any]]) -> dict[str, Any]
             float(sample["residency"]["sync_calls"]) for sample in samples
         ],
     }
+    for stage in (
+        "ingress",
+        "trace_generation",
+        "trace_commit",
+        "constraint_evaluation",
+        "oods",
+        "quotient",
+        "fri_commit",
+        "pow",
+        "decommit",
+        "proof_assembly",
+        "total",
+    ):
+        metric_paths[f"device_stage_{stage}_ms"] = [
+            sample["device_stage_timing_ns"][stage] / 1_000_000.0
+            for sample in samples
+        ]
     return {
         "shape_id": shape.slug,
         "statement": shape.statement(),
@@ -371,15 +430,21 @@ def run_diagnostic(settings: Settings) -> tuple[dict[str, Any], bytes]:
             "execution": "sequential_fixed_order",
             "cold_process_per_sample": True,
             "warm_request_measured": False,
+            "shape_plan_measured": True,
             "warmups": 0,
             "samples_per_shape": settings.cold_samples,
             "cooldown_seconds": settings.cooldown_seconds,
             "timeout_seconds": settings.timeout_seconds,
-            "protocol": PROTOCOL,
+            "protocol": (
+                settings.shapes[0].protocol
+                if len({shape.protocol for shape in settings.shapes}) == 1
+                else sorted({shape.protocol for shape in settings.shapes})
+            ),
+            "execution_mode": settings.execution_mode,
             "throughput_denominators": {
                 "trace_row_mhz": "trace_rows / elapsed_seconds / 1e6",
                 "committed_mcells_per_second": (
-                    "trace_rows * sequence_len / elapsed_seconds / 1e6"
+                    "trace_cells / elapsed_seconds / 1e6"
                 ),
                 "resident_elapsed": "product timing_ns.resident_prove",
                 "cold_external_elapsed": (

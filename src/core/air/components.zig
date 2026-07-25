@@ -14,6 +14,8 @@ pub const MaskPoints = pcs.TreeVec([][]Point);
 pub const MaskValues = pcs.TreeVec([][]QM31);
 
 pub const Error = error{
+    InvalidCompositionLogSplit,
+    InconsistentCompositionLogSplit,
     MissingPreprocessedTree,
     PreprocessedColumnSizeMismatch,
     PreprocessedColumnSizeMissing,
@@ -22,6 +24,7 @@ pub const Error = error{
 pub const ComponentVTable = struct {
     nConstraints: *const fn (ctx: *const anyopaque) usize,
     maxConstraintLogDegreeBound: *const fn (ctx: *const anyopaque) u32,
+    compositionLogSplit: ?*const fn (ctx: *const anyopaque) u32 = null,
     traceLogDegreeBounds: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror!TraceLogDegreeBounds,
     maskPoints: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator, point: Point, max_log_degree_bound: u32) anyerror!MaskPoints,
     preprocessedColumnIndices: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror![]usize,
@@ -44,6 +47,11 @@ pub const Component = struct {
 
     pub inline fn maxConstraintLogDegreeBound(self: Component) u32 {
         return self.vtable.maxConstraintLogDegreeBound(self.ctx);
+    }
+
+    pub inline fn compositionLogSplit(self: Component) u32 {
+        const get = self.vtable.compositionLogSplit orelse return verifier_types.COMPOSITION_LOG_SPLIT;
+        return get(self.ctx);
     }
 
     pub inline fn traceLogDegreeBounds(self: Component, allocator: std.mem.Allocator) anyerror!TraceLogDegreeBounds {
@@ -85,6 +93,23 @@ pub const Components = struct {
             max_bound = @max(max_bound, c.maxConstraintLogDegreeBound());
         }
         return max_bound;
+    }
+
+    pub fn compositionLogSplit(self: Components) Error!u32 {
+        if (self.components.len == 0) return Error.InvalidCompositionLogSplit;
+        const split = self.components[0].compositionLogSplit();
+        if (split == 0 or split > verifier_types.MAX_COMPOSITION_LOG_SPLIT) {
+            return Error.InvalidCompositionLogSplit;
+        }
+        for (self.components[1..]) |component| {
+            if (component.compositionLogSplit() != split) {
+                return Error.InconsistentCompositionLogSplit;
+            }
+        }
+        if (self.compositionLogDegreeBound() <= split) {
+            return Error.InvalidCompositionLogSplit;
+        }
+        return split;
     }
 
     pub fn maskPoints(
@@ -231,6 +256,7 @@ test "air components: orchestration" {
         eval_value: QM31,
         preprocessed_idx: []const usize,
         preprocessed_sizes: []const u32,
+        split_depth: u32,
 
         fn asComponent(self: *const @This()) Component {
             return .{
@@ -238,6 +264,21 @@ test "air components: orchestration" {
                 .vtable = &.{
                     .nConstraints = nConstraints,
                     .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
+                    .traceLogDegreeBounds = traceLogDegreeBounds,
+                    .maskPoints = maskPoints,
+                    .preprocessedColumnIndices = preprocessedColumnIndices,
+                    .evaluateConstraintQuotientsAtPoint = evaluateConstraintQuotientsAtPoint,
+                },
+            };
+        }
+
+        fn asSplitComponent(self: *const @This()) Component {
+            return .{
+                .ctx = self,
+                .vtable = &.{
+                    .nConstraints = nConstraints,
+                    .maxConstraintLogDegreeBound = maxConstraintLogDegreeBound,
+                    .compositionLogSplit = compositionLogSplit,
                     .traceLogDegreeBounds = traceLogDegreeBounds,
                     .maskPoints = maskPoints,
                     .preprocessedColumnIndices = preprocessedColumnIndices,
@@ -256,6 +297,10 @@ test "air components: orchestration" {
 
         fn maxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
             return cast(ctx).max_bound;
+        }
+
+        fn compositionLogSplit(ctx: *const anyopaque) u32 {
+            return cast(ctx).split_depth;
         }
 
         fn traceLogDegreeBounds(ctx: *const anyopaque, allocator: std.mem.Allocator) !TraceLogDegreeBounds {
@@ -295,12 +340,14 @@ test "air components: orchestration" {
         .eval_value = QM31.fromBase(QM31.fromU32Unchecked(1, 0, 0, 0).tryIntoM31() catch unreachable),
         .preprocessed_idx = &[_]usize{0},
         .preprocessed_sizes = &[_]u32{5},
+        .split_depth = 1,
     };
     const comp1 = Mock{
         .max_bound = 9,
         .eval_value = QM31.fromBase(QM31.fromU32Unchecked(2, 0, 0, 0).tryIntoM31() catch unreachable),
         .preprocessed_idx = &[_]usize{0},
         .preprocessed_sizes = &[_]u32{5},
+        .split_depth = 1,
     };
 
     const components_arr = [_]Component{ comp0.asComponent(), comp1.asComponent() };
@@ -310,6 +357,7 @@ test "air components: orchestration" {
     };
 
     try std.testing.expectEqual(@as(u32, 9), components.compositionLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 1), try components.compositionLogSplit());
 
     var mask_values = MaskValues.initOwned(try alloc.alloc([][]QM31, 0));
     defer mask_values.deinitDeep(alloc);
@@ -329,4 +377,55 @@ test "air components: orchestration" {
     defer mask.deinitDeep(alloc);
     try std.testing.expectEqual(@as(usize, 1), mask.items[verifier_types.PREPROCESSED_TRACE_IDX][0].len);
     try std.testing.expect(mask.items[verifier_types.PREPROCESSED_TRACE_IDX][0][0].eql(point));
+
+    const split_two = Mock{
+        .max_bound = 9,
+        .eval_value = QM31.zero(),
+        .preprocessed_idx = &.{0},
+        .preprocessed_sizes = &.{5},
+        .split_depth = 2,
+    };
+    const mixed_arr = [_]Component{
+        comp0.asSplitComponent(),
+        split_two.asSplitComponent(),
+    };
+    try std.testing.expectError(
+        Error.InconsistentCompositionLogSplit,
+        (Components{
+            .components = &mixed_arr,
+            .n_preprocessed_columns = 1,
+        }).compositionLogSplit(),
+    );
+
+    const split_zero = Mock{
+        .max_bound = 9,
+        .eval_value = QM31.zero(),
+        .preprocessed_idx = &.{0},
+        .preprocessed_sizes = &.{5},
+        .split_depth = 0,
+    };
+    const invalid_arr = [_]Component{split_zero.asSplitComponent()};
+    try std.testing.expectError(
+        Error.InvalidCompositionLogSplit,
+        (Components{
+            .components = &invalid_arr,
+            .n_preprocessed_columns = 1,
+        }).compositionLogSplit(),
+    );
+
+    const split_at_bound = Mock{
+        .max_bound = 2,
+        .eval_value = QM31.zero(),
+        .preprocessed_idx = &.{0},
+        .preprocessed_sizes = &.{5},
+        .split_depth = 2,
+    };
+    const at_bound_arr = [_]Component{split_at_bound.asSplitComponent()};
+    try std.testing.expectError(
+        Error.InvalidCompositionLogSplit,
+        (Components{
+            .components = &at_bound_arr,
+            .n_preprocessed_columns = 1,
+        }).compositionLogSplit(),
+    );
 }

@@ -13,6 +13,10 @@ from .identity import ProductEvidenceError, validate_product_identity
 RECEIPT_PROTOCOL = "focused_product_measurement_receipt_v1"
 MIN_PROMOTION_WARMUPS = 10
 MIN_PROMOTION_VERIFIED_SAMPLES = 10
+MAX_TRACE_LOG_ROWS = 22
+BLAKE_COMMITTED_COLUMNS = 2_628
+BLAKE_FIXED_COMMITTED_CELLS = 51_627_008
+BLAKE_VARIABLE_CELLS_PER_ROW = 6_848
 RECEIPT_KEYS = {
     "schema_version",
     "protocol",
@@ -105,6 +109,11 @@ NATIVE_UNITS = {
     "state_machine": "state_transitions",
     "blake": "blake_round_instances",
     "poseidon": "poseidon_instances",
+}
+AIR_PROTOCOLS = {
+    "xor": "raw-stwo-xor-lookup-v2",
+    "poseidon": "raw-stwo-poseidon-logup-split2-v1",
+    "state_machine": "raw-stwo-state-machine-v2",
 }
 
 
@@ -205,6 +214,8 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     for field, item in parameters.items():
         _require_int(item, f"{context}.parameters.{field}")
     log_rows = _require_int(workload["trace_log_rows"], f"{context}.trace_log_rows", minimum=1)
+    if log_rows > MAX_TRACE_LOG_ROWS:
+        raise ProductEvidenceError(f"{context}.trace_log_rows exceeds the product limit")
     expected_log_rows = (
         parameters["log_size"]
         if name == "xor"
@@ -214,10 +225,19 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     )
     if log_rows != expected_log_rows:
         raise ProductEvidenceError(f"{context}.trace_log_rows disagrees with parameters")
+    if name == "xor" and log_rows < 2:
+        raise ProductEvidenceError(f"{context}.trace_log_rows is unsupported for exact XOR")
+    if name == "state_machine" and log_rows < 5:
+        raise ProductEvidenceError(
+            f"{context}.trace_log_rows is unsupported for exact State Machine"
+        )
     trace_rows = _require_int(workload["trace_rows"], f"{context}.trace_rows", minimum=1)
     if trace_rows != 1 << log_rows:
         raise ProductEvidenceError(f"{context}.trace_rows is inconsistent")
-    if workload["committed_trees"] != 2:
+    expected_trees = (
+        3 if name in {"xor", "state_machine", "blake", "poseidon"} else 2
+    )
+    if workload["committed_trees"] != expected_trees:
         raise ProductEvidenceError(f"{context}.committed_trees is unsupported")
     columns = _require_int(
         workload["committed_columns"], f"{context}.committed_columns", minimum=1
@@ -225,12 +245,14 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     expected_columns = (
         parameters["sequence_len"]
         if name == "wide_fibonacci"
-        else parameters["n_rounds"] * 96
+        else BLAKE_COMMITTED_COLUMNS
         if name == "blake"
-        else 1264
+        else 1296
         if name == "poseidon"
-        else 3
-        if name in {"xor", "state_machine"}
+        else 15
+        if name == "xor"
+        else 12
+        if name == "state_machine"
         else 8
     )
     if columns != expected_columns:
@@ -240,7 +262,15 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         f"{context}.committed_trace_cells",
         minimum=1,
     )
-    if cells != trace_rows * columns:
+    expected_cells = (
+        trace_rows * 9
+        if name == "state_machine"
+        else BLAKE_FIXED_COMMITTED_CELLS
+        + trace_rows * BLAKE_VARIABLE_CELLS_PER_ROW
+        if name == "blake"
+        else trace_rows * columns
+    )
+    if cells != expected_cells:
         raise ProductEvidenceError(f"{context}.committed_trace_cells is inconsistent")
     if workload["native_unit"] != NATIVE_UNITS[name]:
         raise ProductEvidenceError(f"{context}.native_unit is unsupported")
@@ -252,6 +282,8 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         if name == "blake"
         else 1 << parameters["log_n_instances"]
         if name == "poseidon"
+        else trace_rows + trace_rows // 2
+        if name == "state_machine"
         else trace_rows
     )
     if native_units != expected_native_units:
@@ -286,6 +318,8 @@ def _validate_measurement(
         f"{field}={workload['parameters'][field]}"
         for field in WORKLOAD_PARAMETERS[workload["name"]]
     )
+    if air_protocol := AIR_PROTOCOLS.get(workload["name"]):
+        descriptor_fields.append(f"air_protocol={air_protocol}")
     descriptor_fields.extend(
         (
             f"protocol={security['name']}",

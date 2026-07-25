@@ -111,6 +111,15 @@ pub fn run(
             args.workload(),
             examples.PlonkSpec.request(parameters),
         ),
+        .plonk_logup => |parameters| executeExample(
+            Engine,
+            backend,
+            examples.PlonkLogupSpec,
+            allocator,
+            args,
+            args.workload(),
+            examples.PlonkLogupSpec.request(parameters),
+        ),
         .state_machine => |parameters| executeExample(
             Engine,
             backend,

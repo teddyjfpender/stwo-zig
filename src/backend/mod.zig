@@ -46,6 +46,7 @@ pub const arena_plan = @import("arena_plan.zig");
 pub const line_evaluation = @import("line_evaluation.zig");
 pub const resident_storage = @import("resident_storage.zig");
 pub const secure_column = @import("secure_column.zig");
+pub const proof_program = @import("proof_program.zig");
 
 /// Convenience re-export: backend-specific column type.
 pub const Column = column.Column;
@@ -88,4 +89,6 @@ test "backend: contract modules compile" {
     _ = line_evaluation;
     _ = resident_storage;
     _ = secure_column;
+    _ = proof_program;
+    _ = @import("proof_program_native_air_test.zig");
 }

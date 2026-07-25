@@ -18,7 +18,7 @@ PROFILE_WORKLOAD_DESCRIPTORS = (
     "xor:log_size=17,log_step=2,offset=3",
     "plonk:log_n_rows=16",
     "state_machine:log_n_rows=17,initial_x=9,initial_y=3",
-    "blake:log_n_rows=12,n_rounds=16",
+    "blake:log_n_rows=12,n_rounds=10",
     "poseidon:log_n_instances=14",
 )
 PROFILE_WORKLOADS = tuple(parse_workload(value) for value in PROFILE_WORKLOAD_DESCRIPTORS)
@@ -98,3 +98,7 @@ class CaptureSettings:
     @property
     def samples(self) -> int:
         return PROFILE_SAMPLES
+
+    @property
+    def resource_profile(self) -> str:
+        return "large"

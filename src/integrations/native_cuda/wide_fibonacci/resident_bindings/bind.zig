@@ -6,6 +6,7 @@ const quotient_abi = @import("../../../../backends/cuda/abi/stages/quotient.zig"
 const column = @import("../../../../backends/cuda/runtime/column.zig");
 const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
 const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
+const oods_stage = @import("../../../../backends/cuda/runtime/stages/oods.zig");
 const quotient_stage = @import("../../../../backends/cuda/runtime/stages/quotient.zig");
 const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
@@ -24,7 +25,7 @@ pub fn bind(
 ) runtime_error.Error!types.Views {
     try validatePrepared(prepared);
     const geometry = prepared.logical.geometry;
-    const trace = try bindTrace(provider, geometry);
+    var trace = try bindTrace(provider, geometry);
     const transcript = try bindTranscript(provider, geometry);
     const constraint = try bindConstraint(provider, geometry);
     const oods = try bindOods(provider, geometry);
@@ -37,6 +38,7 @@ pub fn bind(
     );
     const pow = try bindPow(provider);
     const decommit = try bindDecommit(provider, prepared);
+    trace.trees = try bindTraceTrees(trace, decommit);
     const proof = try bindProof(provider, prepared);
     try requireDisjoint(
         fri.last_evaluation,
@@ -58,7 +60,11 @@ pub fn bind(
 fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
     const rows = geometry.trace_rows;
     const committed_rows = geometry.commitment_rows;
-    const main_words = try mul(geometry.main_columns, committed_rows);
+    const main_coefficient_words = try mul(geometry.main_columns, rows);
+    const main_evaluation_words = try mul(
+        geometry.main_columns,
+        committed_rows,
+    );
     const composition_coefficient_words = try mul(
         request.composition_column_count,
         rows,
@@ -66,15 +72,15 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
     const coefficient_slab = try exactWords(
         provider,
         slots.coefficient_slab,
-        try add(main_words, composition_coefficient_words),
+        try add(main_coefficient_words, composition_coefficient_words),
     );
     const main_coefficients = common.WordMatrix{
-        .storage = try coefficient_slab.sub(0, main_words),
-        .column_stride_words = committed_rows,
+        .storage = try coefficient_slab.sub(0, main_coefficient_words),
+        .column_stride_words = rows,
     };
     const composition_coefficients = common.WordMatrix{
         .storage = try coefficient_slab.sub(
-            main_words,
+            main_coefficient_words,
             composition_coefficient_words,
         ),
         .column_stride_words = rows,
@@ -91,12 +97,15 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
         evaluation_words,
     );
     const main_evaluations = common.WordMatrix{
-        .storage = try committed_evaluation_slab.sub(0, main_words),
+        .storage = try committed_evaluation_slab.sub(
+            0,
+            main_evaluation_words,
+        ),
         .column_stride_words = committed_rows,
     };
     const composition_evaluations = common.WordMatrix{
         .storage = try committed_evaluation_slab.sub(
-            main_words,
+            main_evaluation_words,
             try mul(request.composition_column_count, committed_rows),
         ),
         .column_stride_words = committed_rows,
@@ -104,6 +113,10 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
     const hash_count = try sub(try mul(committed_rows, 2), 1);
     const layer_count = @as(usize, geometry.queryLogSize()) + 1;
     return .{
+        .trees = .{
+            .storage = undefined,
+            .len = 0,
+        },
         .twiddles_forward = try exactWords(
             provider,
             slots.twiddles_forward,
@@ -128,18 +141,6 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
             provider,
             slots.coefficient_log_sizes,
             source_count,
-        ),
-        .main_commit_states = try exactAs(
-            provider,
-            field.ProgressiveBlake2sState,
-            slots.main_commit_states,
-            committed_rows,
-        ),
-        .composition_commit_states = try exactAs(
-            provider,
-            field.ProgressiveBlake2sState,
-            slots.composition_commit_states,
-            committed_rows,
         ),
         .main_merkle_hashes = try exactAs(
             provider,
@@ -166,6 +167,30 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
             layer_count,
         ),
     };
+}
+
+fn bindTraceTrees(
+    trace: types.Trace,
+    decommit: types.Decommit,
+) !types.TraceTrees {
+    return types.TraceTrees.init(&.{
+        .{
+            .role = .main,
+            .coefficients = trace.main_coefficients,
+            .evaluations = trace.main_evaluations,
+            .column_log_sizes = decommit.main_column_log_sizes,
+            .merkle_hashes = trace.main_merkle_hashes,
+            .merkle_layers = trace.main_merkle_layers,
+        },
+        .{
+            .role = .composition,
+            .coefficients = trace.composition_coefficients,
+            .evaluations = trace.composition_evaluations,
+            .column_log_sizes = decommit.composition_column_log_sizes,
+            .merkle_hashes = trace.composition_merkle_hashes,
+            .merkle_layers = trace.composition_merkle_layers,
+        },
+    });
 }
 
 fn bindTranscript(
@@ -230,7 +255,10 @@ fn bindConstraint(
 
 fn bindOods(provider: anytype, geometry: request.Geometry) !types.Oods {
     const samples = geometry.sampled_value_count;
-    const scratch_per_sample = try ceilDiv(geometry.trace_rows, 512);
+    const scratch_per_sample = try ceilDiv(
+        geometry.trace_rows,
+        oods_stage.first_coefficients_per_block,
+    );
     const scratch_count = try mul(samples, scratch_per_sample);
     return .{
         .parameter = try exactAs(
@@ -428,7 +456,7 @@ fn bindFri(
     provider: anytype,
     prepared: *const plan_mod.PreparedPlan,
 ) !types.Fri {
-    var layers: [request.max_log_n_rows]types.FriLayer = undefined;
+    var layers: [types.max_fri_layers]types.FriLayer = undefined;
     for (prepared.fri.layers, 0..) |layer, index| {
         layers[index] = .{
             .coordinates = try matrix(
@@ -517,6 +545,11 @@ fn bindDecommit(
         topology.count_words,
     );
     if (counts.len != 5) return error.InvalidKernelDescriptor;
+    const main_column_log_sizes = try exactWords(
+        provider,
+        slots.main_column_log_sizes,
+        prepared.logical.geometry.main_columns,
+    );
     return .{
         .raw_queries = try exactWords(
             provider,
@@ -581,11 +614,9 @@ fn bindDecommit(
             slots.decommit_sparse_level_counts,
             1,
         ),
-        .main_column_log_sizes = try exactWords(
-            provider,
-            slots.main_column_log_sizes,
-            prepared.logical.geometry.main_columns,
-        ),
+        .preprocessed_column_log_sizes = try main_column_log_sizes.sub(0, 0),
+        .main_column_log_sizes = main_column_log_sizes,
+        .interaction_column_log_sizes = try main_column_log_sizes.sub(0, 0),
         .composition_column_log_sizes = try exactWords(
             provider,
             slots.composition_column_log_sizes,
@@ -641,7 +672,7 @@ fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {
     const trace_layer_count = @as(usize, geometry.queryLogSize()) + 1;
     const groups = prepared.quotient.group_log_sizes.len;
     if (prepared.fri.layers.len == 0 or
-        prepared.fri.layers.len > request.max_log_n_rows or
+        prepared.fri.layers.len > types.max_fri_layers or
         prepared.fri.layers.len != geometry.fri_tree_count or
         prepared.decommit.fri_trees.len != geometry.fri_tree_count or
         prepared.decommit.query_count != geometry.protocol.n_queries or

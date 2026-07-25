@@ -1,0 +1,178 @@
+{
+  "challenge": {
+    "air": "state_machine",
+    "cuda_execution_mode": "graphs",
+    "initial_x": 9,
+    "initial_y": 3,
+    "log_n_rows": 14,
+    "process_repetitions": 3,
+    "protocol": {
+      "fri_config": {
+        "fold_step": 1,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 3
+      },
+      "lifting_log_size": null,
+      "pow_bits": 10
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-state-machine-final-3f7e58aa/zig-out/bin/stwo-zig-native-cuda",
+        "prove",
+        "--air",
+        "state_machine",
+        "--backend",
+        "cuda",
+        "--protocol",
+        "raw-stwo-state-machine-v1",
+        "--log-n-rows",
+        "14",
+        "--initial-x",
+        "9",
+        "--initial-y",
+        "3",
+        "--output",
+        "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cuda-proof.json",
+        "--report-out",
+        "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cuda-report.json",
+        "--repeat",
+        "3",
+        "--execution-mode",
+        "graphs"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "073a2996375c121d370bc8966445ac4ae9083b966900100847ceeddc64c68881"
+    },
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-state-machine-final-3f7e58aa/zig-out/bin/stwo-zig-native-cpu",
+        "prove",
+        "--example",
+        "state_machine",
+        "--log-n-rows",
+        "14",
+        "--initial-x",
+        "9",
+        "--initial-y",
+        "3",
+        "--protocol",
+        "functional",
+        "--output",
+        "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cpu-proof.json"
+      ],
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "6b18becdd33ff907323112ab2fe0e28b22e14bcf53f7dd2dd55ea3f6d9b1e3db"
+    }
+  ],
+  "cuda_residency": {
+    "cache_key_sha256": "80b50e25456b0739497d023c1a43fff2522ef7d3c78e91b79e2a45139682cffb",
+    "cpu_fallbacks": 0,
+    "execution_mode": "graphs",
+    "path": "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cuda-report.json",
+    "program_sha256": "de72dd29721bbfa4af6d2d746c79982d4165f87689b907ef69c5bd0142a4e7ee",
+    "resident": true,
+    "semantic_sha256": "f91bb4e1f12755a293a0f6f2b83238b108ab978590cedfd8892270888a2c6b7a",
+    "sha256": "b53f36483ec692b6b54be2f83dd40ff730fb8e3036fb83f8dd16ff9632d386a2",
+    "strict_aot": true
+  },
+  "products": {
+    "cuda": {
+      "bytes": 11906712,
+      "path": "/workspace/stwo-zig-cuda-state-machine-final-3f7e58aa/zig-out/bin/stwo-zig-native-cuda",
+      "sha256": "349ca49c829137695ba4dec95495e3449e89fee4c9b399e37b63d3546a9d31d3"
+    },
+    "native_cpu": {
+      "bytes": 10621552,
+      "path": "/workspace/stwo-zig-cuda-state-machine-final-3f7e58aa/zig-out/bin/stwo-zig-native-cpu",
+      "sha256": "4d4b590a0d7bf01aa2824ae769dca0aa6acda5c20ccbcc60b97fc80abb989b76"
+    },
+    "rust_verifier": {
+      "bytes": 3200224,
+      "path": "/tmp/stwo-cuda-cache/cargo-target/release/stwo-interop-rs",
+      "sha256": "a14c130ce59379fb2ede7f45c132aa864cef4a22119504ec4014a6f3e4d1e04a"
+    }
+  },
+  "proofs": {
+    "canonical_byte_parity": true,
+    "cpu": {
+      "artifact_sha256": "e7e8630688fe219048e447ebaffedec76774be527dc68724ac5ee82c18f57c79",
+      "path": "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cpu-proof.json",
+      "proof_bytes": 40082,
+      "proof_sha256": "488fadeeb4e5d76b6fc0a9c10ab258bab6673de8e912ae5de927561650920b37",
+      "source": "generated"
+    },
+    "cuda": {
+      "artifact_sha256": "e7e8630688fe219048e447ebaffedec76774be527dc68724ac5ee82c18f57c79",
+      "path": "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cuda-proof.json",
+      "proof_bytes": 40082,
+      "proof_sha256": "488fadeeb4e5d76b6fc0a9c10ab258bab6673de8e912ae5de927561650920b37"
+    }
+  },
+  "schema": "stwo-zig-cuda-parity-oracle-v1",
+  "verdict": "pass",
+  "verifications": [
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-state-machine-final-3f7e58aa/zig-out/bin/stwo-zig-native-cpu",
+        "verify",
+        "--artifact",
+        "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cuda-proof.json",
+        "--protocol",
+        "functional"
+      ],
+      "artifact": "cuda-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "9e6588ab56a8f3979acbf4c0e19004ede5061e3e5076558460618ef7226ddac4",
+      "verifier": "zig-native-cpu"
+    },
+    {
+      "argv": [
+        "/tmp/stwo-cuda-cache/cargo-target/release/stwo-interop-rs",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cuda-proof.json"
+      ],
+      "artifact": "cuda-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verifier": "pinned-rust-stwo"
+    },
+    {
+      "argv": [
+        "/workspace/stwo-zig-cuda-state-machine-final-3f7e58aa/zig-out/bin/stwo-zig-native-cpu",
+        "verify",
+        "--artifact",
+        "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cpu-proof.json",
+        "--protocol",
+        "functional"
+      ],
+      "artifact": "cpu-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "9e6588ab56a8f3979acbf4c0e19004ede5061e3e5076558460618ef7226ddac4",
+      "verifier": "zig-native-cpu"
+    },
+    {
+      "argv": [
+        "/tmp/stwo-cuda-cache/cargo-target/release/stwo-interop-rs",
+        "--mode",
+        "verify",
+        "--artifact",
+        "/workspace/state-machine-final-3f7e58aa-evidence/rust-parity-graphs/cpu-proof.json"
+      ],
+      "artifact": "cpu-proof.json",
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verifier": "pinned-rust-stwo"
+    }
+  ]
+}

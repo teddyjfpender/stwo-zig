@@ -2,21 +2,75 @@
 
 const std = @import("std");
 
-pub const protocol_name = "raw-stwo-wide-v1";
+pub const wide_protocol_name = "raw-stwo-wide-v1";
+pub const xor_protocol_name = "raw-stwo-xor-lookup-v2";
+pub const plonk_protocol_name = "raw-stwo-plonk-v1";
+pub const blake_protocol_name = "raw-stwo-blake-logup-v2";
+pub const poseidon_protocol_name = "raw-stwo-poseidon-v1";
+pub const legacy_state_machine_protocol_name =
+    "raw-stwo-state-machine-v1";
+pub const state_machine_protocol_name = legacy_state_machine_protocol_name;
+pub const exact_state_machine_protocol_name =
+    "raw-stwo-state-machine-v2";
+pub const state_machine_exact_protocol_available = false;
+pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
 pub const max_repetitions: u32 = 16;
+pub const max_sustained_cycles: u32 = 4;
+
+pub const Air = enum {
+    wide_fibonacci,
+    xor,
+    plonk,
+    blake,
+    poseidon,
+    state_machine,
+
+    pub fn protocolName(self: Air) []const u8 {
+        return switch (self) {
+            .wide_fibonacci => wide_protocol_name,
+            .xor => xor_protocol_name,
+            .plonk => plonk_protocol_name,
+            .blake => blake_protocol_name,
+            .poseidon => poseidon_protocol_name,
+            .state_machine => state_machine_protocol_name,
+        };
+    }
+};
+
+pub const ExecutionMode = enum {
+    graphs,
+    direct,
+};
 
 pub const Prove = struct {
-    log_n_rows: u32,
-    sequence_len: u32,
+    air: Air,
+    log_n_rows: ?u32,
+    sequence_len: ?u32,
+    n_rounds: ?u32,
+    log_n_instances: ?u32 = null,
+    log_size: ?u32,
+    log_step: ?u32,
+    offset: ?u64,
+    initial_x: ?u32 = null,
+    initial_y: ?u32 = null,
     output: []const u8,
     report_out: ?[]const u8,
     repeat: u32,
+    execution_mode: ExecutionMode,
+};
+
+pub const Sustain = struct {
+    output_dir: []const u8,
+    report_out: []const u8,
+    cycles: u32,
+    execution_mode: ExecutionMode,
 };
 
 pub const Parsed = union(enum) {
     prove: Prove,
+    sustain: Sustain,
     help,
 };
 
@@ -26,9 +80,17 @@ const Flag = enum {
     protocol,
     log_n_rows,
     sequence_len,
+    n_rounds,
+    log_n_instances,
+    log_size,
+    log_step,
+    offset,
+    initial_x,
+    initial_y,
     output,
     report_out,
     repeat,
+    execution_mode,
     count,
 };
 
@@ -40,9 +102,17 @@ const Scratch = struct {
     protocol: ?[]const u8 = null,
     log_n_rows: ?u32 = null,
     sequence_len: ?u32 = null,
+    n_rounds: ?u32 = null,
+    log_n_instances: ?u32 = null,
+    log_size: ?u32 = null,
+    log_step: ?u32 = null,
+    offset: ?u64 = null,
+    initial_x: ?u32 = null,
+    initial_y: ?u32 = null,
     output: ?[]const u8 = null,
     report_out: ?[]const u8 = null,
     repeat: ?u32 = null,
+    execution_mode: ?ExecutionMode = null,
 
     fn mark(self: *Scratch, flag: Flag) !void {
         const index = @intFromEnum(flag);
@@ -54,8 +124,10 @@ const Scratch = struct {
 pub fn parse(argv: []const []const u8) !Parsed {
     if (argv.len == 1 and isHelp(argv[0])) return .help;
     if (argv.len == 0) return error.MissingCommand;
-    if (!std.mem.eql(u8, argv[0], "prove")) return error.UnknownCommand;
     if (argv.len == 2 and isHelp(argv[1])) return .help;
+    if (std.mem.eql(u8, argv[0], "sustain"))
+        return .{ .sustain = try parseSustain(argv[1..]) };
+    if (!std.mem.eql(u8, argv[0], "prove")) return error.UnknownCommand;
 
     var scratch = Scratch{};
     var index: usize = 1;
@@ -70,21 +142,97 @@ pub fn parse(argv: []const []const u8) !Parsed {
     return .{ .prove = try finish(scratch) };
 }
 
-fn finish(scratch: Scratch) !Prove {
+const SustainFlag = enum {
+    backend,
+    output_dir,
+    report_out,
+    cycles,
+    execution_mode,
+    count,
+};
+
+fn parseSustain(argv: []const []const u8) !Sustain {
+    var seen = [_]bool{false} ** @intFromEnum(SustainFlag.count);
+    var backend: ?[]const u8 = null;
+    var output_dir: ?[]const u8 = null;
+    var report_out: ?[]const u8 = null;
+    var cycles: u32 = 2;
+    var execution_mode: ExecutionMode = .graphs;
+    var index: usize = 0;
+    while (index < argv.len) {
+        const flag = parseSustainFlag(argv[index]) orelse
+            return error.UnknownArgument;
+        const flag_index = @intFromEnum(flag);
+        if (seen[flag_index]) return error.DuplicateArgument;
+        seen[flag_index] = true;
+        index += 1;
+        if (index == argv.len) return error.MissingArgumentValue;
+        const value = argv[index];
+        switch (flag) {
+            .backend => backend = value,
+            .output_dir => output_dir = value,
+            .report_out => report_out = value,
+            .cycles => cycles = std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidCycleCount,
+            .execution_mode => execution_mode =
+                std.meta.stringToEnum(ExecutionMode, value) orelse
+                return error.InvalidExecutionMode,
+            .count => unreachable,
+        }
+        index += 1;
+    }
     if (!std.mem.eql(
         u8,
+        backend orelse return error.MissingBackend,
+        backend_name,
+    )) return error.UnsupportedBackend;
+    const output = try requiredPath(output_dir, error.MissingOutputDirectory);
+    const report = try requiredPath(report_out, error.MissingReportOutput);
+    if (std.mem.eql(u8, output, report)) return error.OutputPathCollision;
+    if (cycles == 0 or cycles > max_sustained_cycles)
+        return error.InvalidCycleCount;
+    // The sustained queue includes State Machine. Keep it closed until the
+    // CUDA route implements the exact v2 interaction protocol.
+    if (!state_machine_exact_protocol_available)
+        return error.StateMachineExactProtocolUnavailable;
+    return .{
+        .output_dir = output,
+        .report_out = report,
+        .cycles = cycles,
+        .execution_mode = execution_mode,
+    };
+}
+
+fn parseSustainFlag(value: []const u8) ?SustainFlag {
+    if (!std.mem.startsWith(u8, value, "--")) return null;
+    var normalized: [32]u8 = undefined;
+    const raw = value[2..];
+    if (raw.len > normalized.len) return null;
+    for (raw, 0..) |byte, index| {
+        normalized[index] = if (byte == '-') '_' else byte;
+    }
+    return std.meta.stringToEnum(
+        SustainFlag,
+        normalized[0..raw.len],
+    );
+}
+
+fn finish(scratch: Scratch) !Prove {
+    const air = std.meta.stringToEnum(
+        Air,
         scratch.air orelse return error.MissingAir,
-        air_name,
-    )) return error.UnsupportedAir;
+    ) orelse return error.UnsupportedAir;
     if (!std.mem.eql(
         u8,
         scratch.backend orelse return error.MissingBackend,
         backend_name,
     )) return error.UnsupportedBackend;
+    if (air == .state_machine and !state_machine_exact_protocol_available)
+        return error.StateMachineExactProtocolUnavailable;
     if (!std.mem.eql(
         u8,
         scratch.protocol orelse return error.MissingProtocol,
-        protocol_name,
+        air.protocolName(),
     )) return error.UnsupportedProtocol;
 
     const output = try requiredPath(scratch.output, error.MissingOutput);
@@ -95,13 +243,112 @@ fn finish(scratch: Scratch) !Prove {
     const repeat = scratch.repeat orelse 1;
     if (repeat == 0 or repeat > max_repetitions)
         return error.InvalidRepeatCount;
+    if (air != .state_machine and
+        (scratch.initial_x != null or scratch.initial_y != null))
+    {
+        return error.UnexpectedShapeArgument;
+    }
+    switch (air) {
+        .wide_fibonacci => {
+            if (scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null or
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse return error.MissingLogRows;
+            _ = scratch.sequence_len orelse
+                return error.MissingSequenceLength;
+        },
+        .xor => {
+            if (scratch.log_n_rows != null or
+                scratch.sequence_len != null or
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null)
+                return error.UnexpectedShapeArgument;
+            _ = scratch.log_size orelse return error.MissingLogSize;
+            _ = scratch.log_step orelse return error.MissingLogStep;
+            _ = scratch.offset orelse return error.MissingOffset;
+        },
+        .plonk => {
+            if (scratch.sequence_len != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null or
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse return error.MissingLogRows;
+        },
+        .blake => {
+            if (scratch.sequence_len != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null or
+                scratch.log_n_instances != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse
+                return error.MissingLogRows;
+            _ = scratch.n_rounds orelse
+                return error.MissingRoundCount;
+        },
+        .poseidon => {
+            if (scratch.log_n_rows != null or
+                scratch.sequence_len != null or
+                scratch.n_rounds != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_instances orelse
+                return error.MissingLogInstances;
+        },
+        .state_machine => {
+            if (scratch.sequence_len != null or
+                scratch.n_rounds != null or
+                scratch.log_n_instances != null or
+                scratch.log_size != null or
+                scratch.log_step != null or
+                scratch.offset != null)
+            {
+                return error.UnexpectedShapeArgument;
+            }
+            _ = scratch.log_n_rows orelse
+                return error.MissingLogRows;
+            const initial_x = scratch.initial_x orelse
+                return error.MissingInitialX;
+            const initial_y = scratch.initial_y orelse
+                return error.MissingInitialY;
+            if (initial_x >= 2_147_483_647 or
+                initial_y >= 2_147_483_647)
+            {
+                return error.InvalidInitialState;
+            }
+        },
+    }
     return .{
-        .log_n_rows = scratch.log_n_rows orelse return error.MissingLogRows,
-        .sequence_len = scratch.sequence_len orelse
-            return error.MissingSequenceLength,
+        .air = air,
+        .log_n_rows = scratch.log_n_rows,
+        .sequence_len = scratch.sequence_len,
+        .n_rounds = scratch.n_rounds,
+        .log_n_instances = scratch.log_n_instances,
+        .log_size = scratch.log_size,
+        .log_step = scratch.log_step,
+        .offset = scratch.offset,
+        .initial_x = scratch.initial_x,
+        .initial_y = scratch.initial_y,
         .output = output,
         .report_out = report_out,
         .repeat = repeat,
+        .execution_mode = scratch.execution_mode orelse .graphs,
     };
 }
 
@@ -126,11 +373,35 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
         .sequence_len => scratch.sequence_len =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidSequenceLength,
+        .n_rounds => scratch.n_rounds =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidRoundCount,
+        .log_n_instances => scratch.log_n_instances =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidLogInstances,
+        .log_size => scratch.log_size =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidLogSize,
+        .log_step => scratch.log_step =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidLogStep,
+        .offset => scratch.offset =
+            std.fmt.parseInt(u64, value, 10) catch
+                return error.InvalidOffset,
+        .initial_x => scratch.initial_x =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidInitialState,
+        .initial_y => scratch.initial_y =
+            std.fmt.parseInt(u32, value, 10) catch
+                return error.InvalidInitialState,
         .output => scratch.output = value,
         .report_out => scratch.report_out = value,
         .repeat => scratch.repeat =
             std.fmt.parseInt(u32, value, 10) catch
                 return error.InvalidRepeatCount,
+        .execution_mode => scratch.execution_mode =
+            std.meta.stringToEnum(ExecutionMode, value) orelse
+            return error.InvalidExecutionMode,
         .count => unreachable,
     }
 }
@@ -153,21 +424,69 @@ fn isHelp(value: []const u8) bool {
 
 pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
-        \\Usage: stwo-zig-native-cuda prove [options]
+        \\Usage:
+        \\  stwo-zig-native-cuda prove [options]
         \\
-        \\  --air wide_fibonacci
+        \\  --air wide_fibonacci | xor | plonk | blake | poseidon
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1
-        \\  --log-n-rows N
-        \\  --sequence-len N
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-lookup-v2 | raw-stwo-plonk-v1 | raw-stwo-blake-logup-v2 | raw-stwo-poseidon-v1
+        \\  wide_fibonacci: --log-n-rows N --sequence-len N
+        \\  xor:            --log-size N --log-step N --offset N
+        \\  plonk:          --log-n-rows N
+        \\  blake:          --log-n-rows N --n-rounds N
+        \\  poseidon:       --log-n-instances N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
+        \\  --execution-mode MODE Graphs (default) or forced direct execution
+        \\
+        \\State Machine and the mixed-family sustained service are unavailable
+        \\until CUDA implements exact raw-stwo-state-machine-v2.
         \\
         \\The v1 product is strict-AOT and rejects CPU fallback, unsealed
         \\protocols, unsupported trace topology, and nonterminal device reads.
         \\
     );
+}
+
+test "parser blocks the legacy mixed-family sustained service" {
+    try std.testing.expectError(
+        error.StateMachineExactProtocolUnavailable,
+        parse(&.{
+            "sustain",
+            "--backend",
+            backend_name,
+            "--output-dir",
+            "mixed-artifacts",
+            "--report-out",
+            "mixed-report.json",
+            "--cycles",
+            "3",
+            "--execution-mode",
+            "direct",
+        }),
+    );
+}
+
+test "parser bounds and fully names sustained output" {
+    try std.testing.expectError(error.InvalidCycleCount, parse(&.{
+        "sustain",
+        "--backend",
+        backend_name,
+        "--output-dir",
+        "mixed-artifacts",
+        "--report-out",
+        "mixed-report.json",
+        "--cycles",
+        "0",
+    }));
+    try std.testing.expectError(error.MissingReportOutput, parse(&.{
+        "sustain",
+        "--backend",
+        backend_name,
+        "--output-dir",
+        "mixed-artifacts",
+    }));
 }
 
 test "parser admits only the sealed CUDA wide-Fibonacci product" {
@@ -186,9 +505,12 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "--output",
         "proof.json",
     })).prove;
-    try std.testing.expectEqual(@as(u32, 14), request.log_n_rows);
-    try std.testing.expectEqual(@as(u32, 100), request.sequence_len);
+    try std.testing.expectEqual(Air.wide_fibonacci, request.air);
+    try std.testing.expectEqual(@as(u32, 14), request.log_n_rows.?);
+    try std.testing.expectEqual(@as(u32, 100), request.sequence_len.?);
+    try std.testing.expect(request.n_rounds == null);
     try std.testing.expectEqual(@as(u32, 1), request.repeat);
+    try std.testing.expectEqual(ExecutionMode.graphs, request.execution_mode);
 
     try std.testing.expectError(error.UnsupportedBackend, parse(&.{
         "prove",
@@ -220,6 +542,158 @@ test "parser admits only the sealed CUDA wide-Fibonacci product" {
         "--output",
         "proof.json",
     }));
+}
+
+test "parser admits the exact Blake shape and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "blake",
+        "--backend",
+        backend_name,
+        "--protocol",
+        blake_protocol_name,
+        "--log-n-rows",
+        "10",
+        "--n-rounds",
+        "10",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.blake, request.air);
+    try std.testing.expectEqual(
+        @as(u32, 10),
+        request.log_n_rows.?,
+    );
+    try std.testing.expectEqual(@as(u32, 10), request.n_rounds.?);
+    try std.testing.expect(request.sequence_len == null);
+}
+
+test "parser admits the exact Poseidon statement and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "poseidon",
+        "--backend",
+        backend_name,
+        "--protocol",
+        poseidon_protocol_name,
+        "--log-n-instances",
+        "13",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.poseidon, request.air);
+    try std.testing.expectEqual(
+        @as(u32, 13),
+        request.log_n_instances.?,
+    );
+    try std.testing.expect(request.log_n_rows == null);
+}
+
+test "parser admits only the exact XOR shape and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "xor",
+        "--backend",
+        backend_name,
+        "--protocol",
+        xor_protocol_name,
+        "--log-size",
+        "16",
+        "--log-step",
+        "2",
+        "--offset",
+        "3",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.xor, request.air);
+    try std.testing.expectEqual(@as(u32, 16), request.log_size.?);
+    try std.testing.expectEqual(@as(u32, 2), request.log_step.?);
+    try std.testing.expectEqual(@as(u64, 3), request.offset.?);
+    try std.testing.expect(request.log_n_rows == null);
+
+    try std.testing.expectError(error.UnexpectedShapeArgument, parse(&.{
+        "prove",
+        "--air",
+        "xor",
+        "--backend",
+        backend_name,
+        "--protocol",
+        xor_protocol_name,
+        "--log-size",
+        "16",
+        "--log-step",
+        "2",
+        "--offset",
+        "3",
+        "--sequence-len",
+        "8",
+        "--output",
+        "proof.json",
+    }));
+}
+
+test "parser admits only the exact Plonk shape and protocol" {
+    const request = (try parse(&.{
+        "prove",
+        "--air",
+        "plonk",
+        "--backend",
+        backend_name,
+        "--protocol",
+        plonk_protocol_name,
+        "--log-n-rows",
+        "16",
+        "--output",
+        "proof.json",
+    })).prove;
+    try std.testing.expectEqual(Air.plonk, request.air);
+    try std.testing.expectEqual(@as(u32, 16), request.log_n_rows.?);
+    try std.testing.expect(request.sequence_len == null);
+}
+
+test "parser rejects the legacy State Machine CUDA protocol" {
+    try std.testing.expectError(error.StateMachineExactProtocolUnavailable, parse(&.{
+        "prove",
+        "--air",
+        "state_machine",
+        "--backend",
+        backend_name,
+        "--protocol",
+        state_machine_protocol_name,
+        "--log-n-rows",
+        "16",
+        "--initial-x",
+        "9",
+        "--initial-y",
+        "3",
+        "--output",
+        "proof.json",
+    }));
+}
+
+test "parser admits explicit direct execution and rejects ambiguous modes" {
+    const prefix = [_][]const u8{
+        "prove",          "--air",            air_name,
+        "--backend",      backend_name,       "--protocol",
+        protocol_name,    "--log-n-rows",     "14",
+        "--sequence-len", "100",              "--output",
+        "proof.json",     "--execution-mode",
+    };
+    var direct = prefix ++ [_][]const u8{"direct"};
+    const request = (try parse(&direct)).prove;
+    try std.testing.expectEqual(ExecutionMode.direct, request.execution_mode);
+
+    var unsupported = prefix ++ [_][]const u8{"automatic"};
+    try std.testing.expectError(
+        error.InvalidExecutionMode,
+        parse(&unsupported),
+    );
+    var duplicate = direct ++ [_][]const u8{ "--execution-mode", "graphs" };
+    try std.testing.expectError(error.DuplicateArgument, parse(&duplicate));
 }
 
 test "parser rejects in-process CPU proving capability" {

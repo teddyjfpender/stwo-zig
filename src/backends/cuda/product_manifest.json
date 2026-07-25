@@ -3,7 +3,14 @@
   "product": "stwo-native-cuda",
   "source_authority_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "ordinary": {
-    "product_sources": [],
+    "product_sources": [
+      "composition.cu",
+      "ec_op_witness.cu",
+      "fields.cu",
+      "fixed_table_materializer.cu",
+      "witness_edge_gather.cu",
+      "witness_feed_counts.cu"
+    ],
     "resident_candidates": [
       "accumulate.cu",
       "barycentric.cu",
@@ -16,6 +23,7 @@
       "cuda_exec_context.cu",
       "decommit.cu",
       "device_transcript.cu",
+      "ec_op_witness.cu",
       "eval_at_point.cu",
       "fields.cu",
       "fixed_table_materializer.cu",
@@ -41,7 +49,9 @@
       "relation_scan.cu",
       "resident_pow.cu",
       "rfft.cu",
-      "twiddles.cu"
+      "twiddles.cu",
+      "witness_edge_gather.cu",
+      "witness_feed_counts.cu"
     ],
     "quarantined_migration": [
       "cuda_mem_pool.cu",
@@ -53,16 +63,13 @@
     ],
     "deferred_cairo": [
       "blake_witness.cu",
-      "ec_op_witness.cu",
       "memory_witness.cu",
       "pedersen_table_init.cu",
       "pedersen_witness.cu",
       "poseidon252_starknet.cu",
       "relation_blake_g_inputs.cu",
       "stwo_wit_deduce_oracle.cu",
-      "witness_casm_input.cu",
-      "witness_edge_gather.cu",
-      "witness_feed_counts.cu"
+      "witness_casm_input.cu"
     ],
     "deferred_features": [
       "cuda_ipc_exchange.cu",
@@ -75,11 +82,70 @@
       "timer.cu"
     ]
   },
+  "resident_authority_derivations": [
+    {
+      "authority_files": [
+        {
+          "path": "batch_inverse.cu",
+          "sha256": "c129fd09d512e6cfa5686060ec778214823079e35adcbf61a909f08e787aed30"
+        },
+        {
+          "path": "batch_inverse.cuh",
+          "sha256": "92c1bf8fda9fb918954ebf1d2955c7f6fda36db3232fdd6d8170872db5cc81f4"
+        },
+        {
+          "path": "fields.cu",
+          "sha256": "5b31ff24b307b36be77d1910378167521bb9d3a980211059264e6b614b21bc95"
+        },
+        {
+          "path": "fields.cuh",
+          "sha256": "f4dde295ba4de91166280f6afc428af7018ba3b0be87d10c257f65fd811b3050"
+        },
+        {
+          "path": "relation_fused.cuh",
+          "sha256": "9539c4808b834e6a42be17f4640bf0c2ef17002e35b2e84cc60bcc8d94be6397"
+        },
+        {
+          "path": "relation_graph.cu",
+          "sha256": "2065ef419a3c53d390d310556434dc9b1e53f292fcc22dd1298d09b94c41d7f8"
+        },
+        {
+          "path": "relation_scan.cuh",
+          "sha256": "f158e7c1be47b349e668c35f4c44fd678c3f71a15d1adbe45b2526a394b6d921"
+        }
+      ],
+      "name": "relation_graph",
+      "native_files": [
+        {
+          "path": "oods/field.cuh",
+          "sha256": "8634cb0aa351e3fa7ef7a6d975f082e98ce5c2931bd1239d129947e9b8e86563"
+        },
+        {
+          "path": "relation/batch_inverse.cu",
+          "sha256": "f421cb7e106857748b95911fee6559a69b8c991704a4b806761f27350a578838"
+        },
+        {
+          "path": "relation/batch_inverse.cuh",
+          "sha256": "d536c11fe159e896a9c705d93fd3af7e6f477dc89f83bd01cf6a53dbff65fecf"
+        },
+        {
+          "path": "relation/graph.cu",
+          "sha256": "f2aa9076ae28c5e654337192479477cd83ba24874742133207d9941546a03a1c"
+        },
+        {
+          "path": "relation/layout.cuh",
+          "sha256": "8db4ce3edfb0a916d70f2371b4b01f139ff5458c247c6828053fc9fa213c9bdd"
+        }
+      ]
+    }
+  ],
   "generated_aot": {
     "copied_entry_count": 340,
     "copied_disposition": "cairo_reference_only",
-    "native_entry_count": 1,
-    "product_policy": "native_generated_identity_only"
+    "cairo_eval_entry_count": 271,
+    "cairo_eval_occurrence_count": 279,
+    "native_entry_count": 48,
+    "product_policy": "authenticated_zig_generated_identity_only"
   },
   "abi": {
     "rust_authority": "crates/backend-cuda-kernels/src/raw.rs",
@@ -88,11 +154,16 @@
       "stwo_zig_cuda_aot_entry_count"
     ],
     "zig_owned_symbols": [
+      "stwo_accumulate_quotient_numerator_addressed_on",
+      "stwo_accumulate_quotient_numerator_compact_on",
       "stwo_accumulate_quotient_numerator_single_write_on",
+      "stwo_blake2s_contiguous_leaf_on",
+      "stwo_blake2s_contiguous_tail_on",
       "stwo_blake2s_fri_leaf_on",
       "stwo_blake2s_interior4_on",
       "stwo_blake2s_layer_on",
       "stwo_blake2s_pow_persistent_on",
+      "stwo_blake2s_progressive_absorb_lifted_on",
       "stwo_blake2s_progressive_absorb_on",
       "stwo_blake2s_progressive_finalize_on",
       "stwo_blake2s_progressive_init_on",
@@ -102,6 +173,14 @@
       "stwo_blake2s_transcript_draw_u32s_on",
       "stwo_blake2s_transcript_init_on",
       "stwo_blake2s_transcript_mix_words_on",
+      "stwo_blake2s_transcript_mix_words_pair_on",
+      "stwo_cairo_eval_materialize_params_on",
+      "stwo_cairo_memory_address_base_on",
+      "stwo_cairo_memory_range_check_9_9_on",
+      "stwo_cairo_memory_split_big_on",
+      "stwo_cairo_memory_split_small_on",
+      "stwo_cairo_memory_value_base_on",
+      "stwo_combine_quotients_from_compact_numerators_on",
       "stwo_combine_quotients_from_numerators_on",
       "stwo_constraint_expand_powers_on",
       "stwo_cuda_device_snapshot",
@@ -126,25 +205,40 @@
       "stwo_exec_context_memcpy_h2d_async",
       "stwo_exec_context_memory_info",
       "stwo_exec_context_memset_async",
+      "stwo_exec_context_nvtx_pop",
+      "stwo_exec_context_nvtx_push",
       "stwo_exec_context_pool_current",
       "stwo_exec_context_stream",
       "stwo_exec_context_sync",
+      "stwo_exec_context_validate_allocation",
       "stwo_finalize_quotient_numerator_groups_on",
       "stwo_fold_circle_into_line_on",
       "stwo_fold_line_on",
+      "stwo_fri_fold_fused2_on",
       "stwo_fri_fold_fused3_on",
       "stwo_fri_last_layer_on",
+      "stwo_graph_capture_abort",
+      "stwo_graph_capture_begin",
+      "stwo_graph_capture_end",
+      "stwo_graph_destroy",
+      "stwo_graph_launch",
+      "stwo_lde_n2b_addressed_on",
       "stwo_lde_n2b_columns_before_circle_on",
       "stwo_lde_n2b_columns_on",
       "stwo_native_aot_function_bind",
+      "stwo_native_aot_function_bind_with_globals",
       "stwo_native_aot_function_destroy",
       "stwo_native_aot_function_launch",
+      "stwo_native_aot_function_publish_pedersen_w18",
       "stwo_native_aot_loader_create",
       "stwo_native_aot_loader_destroy",
       "stwo_native_aot_loader_stats",
       "stwo_native_wide_fibonacci_trace_on",
+      "stwo_native_xor_trace_on",
+      "stwo_ntt_b2n_columns_compact_on",
       "stwo_ntt_b2n_columns_to_retained_on",
       "stwo_ntt_b2n_composition_split_compact_on",
+      "stwo_ntt_b2n_composition_split_depth_two_on",
       "stwo_ntt_n2b_columns_on",
       "stwo_oods_barycentric_eval_many_on",
       "stwo_oods_barycentric_weights_on",
@@ -153,6 +247,15 @@
       "stwo_oods_eval_reduce_on",
       "stwo_oods_store_results_on",
       "stwo_prepare_quotient_numerator_terms_on",
+      "stwo_relation_expand_challenges_on",
+      "stwo_relation_fraction_chain_global_on",
+      "stwo_relation_pairs_global_on",
+      "stwo_relation_tail_global_on",
+      "stwo_witness_casm_input_scatter_on",
+      "stwo_witness_edge_gather_contiguous_on",
+      "stwo_witness_input_compact_v2_on",
+      "stwo_witness_input_seed_contiguous_on",
+      "stwo_witness_multi_edge_gather_contiguous_on",
       "stwo_zero_quotient_numerator_outputs_on"
     ],
     "staged_stage_modules": [],

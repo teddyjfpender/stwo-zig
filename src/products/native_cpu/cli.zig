@@ -208,7 +208,7 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
 fn writeRunUsage(writer: anytype, command: []const u8) !void {
     try writer.print(
         \\Usage: stwo-zig-native-cpu {s} [options]
-        \\  --example NAME       wide_fibonacci, xor, plonk, state_machine, blake, poseidon
+        \\  --example NAME       wide_fibonacci, xor, plonk, plonk_logup, state_machine, blake, poseidon
         \\  --protocol NAME      smoke, functional, or secure
         \\  --blake2-backend     auto, scalar, or simd
         \\  --report-out PATH    Write the machine-readable report

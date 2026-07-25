@@ -69,6 +69,8 @@ class UpstreamPinTests(unittest.TestCase):
         self.assertIn("scripts/e2e_interop_lib/controller.py", joined)
         self.assertIn("scripts/prove_checkpoints.py", joined)
         self.assertIn("tools/stwo-interop-rs/Cargo.toml", joined)
+        self.assertIn("tools/stwo-interop-rs/upstream_blake_provenance.json", joined)
+        self.assertIn("Blake oracle provenance commit", joined)
         self.assertIn("tools/stwo-vector-gen/Cargo.lock", joined)
         self.assertIn("tools/stwo-cf-vector-gen/Cargo.toml", joined)
 

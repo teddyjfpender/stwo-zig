@@ -19,6 +19,7 @@ import os
 import platform
 import re
 import shlex
+import statistics
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -27,6 +28,18 @@ from pathlib import Path
 from scripts.native_proof_matrix_lib.resource_admission import (
     ACCOUNTED_BYTES_PER_COMMITTED_CELL,
     resource_limits,
+)
+from scripts.native_cuda_diagnostic_lib.contract import (
+    validate_artifact as validate_cuda_artifact,
+    validate_report as validate_cuda_report,
+)
+from scripts.native_cuda_diagnostic_lib.model import (
+    BlakeShape,
+    DiagnosticError as CudaDiagnosticError,
+    PlonkShape,
+    PoseidonShape,
+    Shape as CudaShape,
+    XorShape,
 )
 
 from . import dimensions, ledger, search_health, stats
@@ -429,12 +442,32 @@ def bench_once(
         )
     out_dir.mkdir(parents=True, exist_ok=True)
     proof_path = None
+    product_report_path = None
     if group.report_schema == "riscv_proof_v2":
         proof_path = (out_dir / f"{workload.workload_id}.{tag}.proof.json").resolve()
-    args = _format_workload_args(
-        arm_root, group, workload, warmups, samples,
+    elif group.report_schema == "native_cuda_product_v6":
+        proof_path = (out_dir / f"{workload.workload_id}.{tag}.proof.json").resolve()
+        product_report_path = (
+            out_dir / f"{workload.workload_id}.{tag}.product.json"
+        ).resolve()
+    command_samples = (
+        1 + warmups + samples
+        if group.report_schema == "native_cuda_product_v6"
+        else samples
     )
-    extra = f" --proof-out {shlex.quote(str(proof_path))}" if proof_path else ""
+    args = _format_workload_args(
+        arm_root, group, workload, warmups, command_samples,
+    )
+    if group.report_schema == "riscv_proof_v2":
+        extra = f" --proof-out {shlex.quote(str(proof_path))}"
+    elif group.report_schema == "native_cuda_product_v6":
+        assert proof_path is not None and product_report_path is not None
+        extra = (
+            f" --output {shlex.quote(str(proof_path))}"
+            f" --report-out {shlex.quote(str(product_report_path))}"
+        )
+    else:
+        extra = ""
     timeout = (
         timeout_seconds
         if timeout_seconds is not None
@@ -467,6 +500,18 @@ def bench_once(
             result = _parse_riscv_report(
                 report, group, workload, warmups, samples, out_path, proof_path, arm_root,
             )
+        elif group.report_schema == "native_cuda_product_v6":
+            assert proof_path is not None and product_report_path is not None
+            result = _parse_cuda_report(
+                report,
+                group,
+                workload,
+                warmups,
+                samples,
+                out_path,
+                proof_path,
+                product_report_path,
+            )
         else:  # Manifest validation owns the supported schema set.
             raise RunError(
                 f"{workload.workload_id}: unsupported report schema "
@@ -478,6 +523,130 @@ def bench_once(
         ) from exc
     out_path.write_text(json.dumps(report, indent=1))
     return result
+
+
+def _argument_value(tokens: list[str], flag: str) -> str:
+    positions = [index for index, token in enumerate(tokens) if token == flag]
+    if len(positions) != 1 or positions[0] + 1 >= len(tokens):
+        raise ValueError(f"CUDA workload must contain exactly one {flag}")
+    return tokens[positions[0] + 1]
+
+
+def _cuda_shape_from_args(
+    args: str,
+) -> CudaShape | XorShape | PlonkShape | BlakeShape | PoseidonShape:
+    tokens = shlex.split(args)
+    if _argument_value(tokens, "--backend") != "cuda":
+        raise ValueError("CUDA workload backend must equal cuda")
+    application = _argument_value(tokens, "--air")
+    try:
+        if application == "wide_fibonacci":
+            shape = CudaShape(
+                int(_argument_value(tokens, "--log-n-rows")),
+                int(_argument_value(tokens, "--sequence-len")),
+            )
+        elif application == "xor":
+            shape = XorShape(
+                int(_argument_value(tokens, "--log-size")),
+                int(_argument_value(tokens, "--log-step")),
+                int(_argument_value(tokens, "--offset")),
+            )
+        elif application == "plonk":
+            shape = PlonkShape(
+                int(_argument_value(tokens, "--log-n-rows")),
+            )
+        elif application == "blake":
+            shape = BlakeShape(
+                int(_argument_value(tokens, "--log-n-rows")),
+                int(_argument_value(tokens, "--n-rounds")),
+            )
+        elif application == "poseidon":
+            shape = PoseidonShape(
+                int(_argument_value(tokens, "--log-n-instances")),
+            )
+        else:
+            raise ValueError(f"unsupported CUDA AIR {application!r}")
+        shape.validate()
+    except CudaDiagnosticError as exc:
+        raise ValueError(str(exc)) from exc
+    if _argument_value(tokens, "--protocol") != shape.protocol:
+        raise ValueError("CUDA workload protocol does not match its AIR")
+    return shape
+
+
+def _parse_cuda_report(
+    report: dict,
+    group: WorkloadGroup,
+    workload: Workload,
+    warmups: int,
+    samples: int,
+    out_path: Path,
+    proof_path: Path,
+    product_report_path: Path,
+) -> ArmResult:
+    expected = REPORT_SCHEMA_VERSIONS[group.report_schema]
+    if report.get("schema_version") != expected:
+        raise RunError(
+            f"{workload.workload_id}: group {group.group_id} expected "
+            f"{group.report_schema} (schema_version={expected}), got "
+            f"schema_version={report.get('schema_version')!r}"
+        )
+    shape = _cuda_shape_from_args(
+        _format_workload_args(
+            Path("."),
+            group,
+            workload,
+            warmups,
+            1 + warmups + samples,
+        )
+    )
+    try:
+        artifact = validate_cuda_artifact(proof_path, shape)
+        validated = validate_cuda_report(
+            report,
+            shape,
+            proof_path,
+            artifact,
+            expected_repetitions=1 + warmups + samples,
+        )
+    except CudaDiagnosticError as exc:
+        raise ValueError(str(exc)) from exc
+    persisted = _load_json_object(
+        product_report_path.read_text(encoding="utf-8"),
+        "persisted CUDA product report",
+    )
+    if persisted != report:
+        raise ValueError("persisted CUDA product report differs from stdout")
+    repetition = validated["process_repetition"]
+    first = 1 + warmups
+    stop = first + samples
+
+    def selected(key: str) -> list[float]:
+        values = repetition[key][first:stop]
+        if len(values) != samples:
+            raise ValueError(f"CUDA steady vector is incomplete: {key}")
+        return [float(value) for value in values]
+
+    resident = selected("resident_prove_ns")
+    verified = selected("verified_request_ns")
+    if not repetition["all_canonical_bytes_identical"]:
+        raise ValueError("CUDA product repetitions are not byte-identical")
+    return ArmResult(
+        prove_ms=statistics.median(resident) / 1_000_000.0,
+        proof_verified=samples,
+        byte_identical=True,
+        peak_rss_mib=None,
+        report_path=str(out_path),
+        proof_digest=artifact["canonical_sha256"],
+        proof_bytes=artifact["canonical_bytes"],
+        request_ms=statistics.median(verified) / 1_000_000.0,
+        mechanism={
+            "residency": validated["residency"],
+            "plan": validated["plan"],
+            "aot": validated["aot"],
+        },
+        resources_complete=False,
+    )
 
 
 def _load_json_object(raw: str, label: str) -> dict:
@@ -1374,10 +1543,110 @@ def rust_oracle_check(candidate_root: Path, manifest: Manifest,
         return _riscv_stark_v_oracle_check(
             candidate_root, group, workload, out_dir,
         )
+    if group.report_schema == "native_cuda_product_v6":
+        return _cuda_rust_oracle_check(
+            candidate_root, group, workload, out_dir,
+        )
     raise RunError(
         f"{workload.workload_id}: no correctness oracle for "
         f"{group.report_schema!r}"
     )
+
+
+def _cuda_rust_oracle_check(
+    candidate_root: Path,
+    group: WorkloadGroup,
+    workload: Workload,
+    out_dir: Path,
+) -> dict:
+    expected_oracle = {
+        "authority": "pinned-rust-stwo",
+        "repository": "https://github.com/starkware-libs/stwo",
+        "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+        "final_validator": True,
+    }
+    if group.correctness_oracle != expected_oracle:
+        raise RunError(
+            f"{workload.workload_id}: CUDA correctness oracle is not the "
+            "pinned Rust stwo final validator"
+        )
+    oracle = candidate_root / RUST_ORACLE_RELPATH
+    if not oracle.is_file():
+        _run(
+            f"cargo +{RUST_ORACLE_TOOLCHAIN} build --release --locked "
+            f"--manifest-path tools/stwo-interop-rs/Cargo.toml",
+            candidate_root,
+            timeout=1200,
+        )
+    if not oracle.is_file():
+        raise RunError("pinned Rust stwo verifier was not produced")
+    binary = candidate_root / group.binary
+    if not binary.is_file():
+        raise RunError(
+            f"{workload.workload_id}: CUDA product binary is missing"
+        )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    artifact = (
+        out_dir / f"{workload.workload_id}.cuda-oracle-artifact.json"
+    ).resolve()
+    product_report = (
+        out_dir / f"{workload.workload_id}.cuda-oracle-report.json"
+    ).resolve()
+    args = _format_workload_args(candidate_root, group, workload, 0, 1)
+    shape = _cuda_shape_from_args(args)
+    stdout = _run(
+        shlex.join(
+            [
+                str(binary),
+                *shlex.split(args),
+                "--output",
+                str(artifact),
+                "--report-out",
+                str(product_report),
+            ]
+        ),
+        candidate_root,
+        timeout=600,
+    )
+    report = _load_json_object(stdout, "CUDA oracle product report")
+    try:
+        artifact_meta = validate_cuda_artifact(artifact, shape)
+        validate_cuda_report(
+            report,
+            shape,
+            artifact,
+            artifact_meta,
+            expected_repetitions=1,
+        )
+    except CudaDiagnosticError as exc:
+        raise RunError(
+            f"{workload.workload_id}: malformed CUDA oracle artifact: {exc}"
+        ) from exc
+    persisted = _load_json_object(
+        product_report.read_text(encoding="utf-8"),
+        "persisted CUDA oracle product report",
+    )
+    if persisted != report:
+        raise RunError("persisted CUDA oracle report differs from stdout")
+    oracle_sha256 = hashlib.sha256(oracle.read_bytes()).hexdigest()
+    _run(
+        shlex.join(
+            [str(oracle), "--mode", "verify", "--artifact", str(artifact)]
+        ),
+        candidate_root,
+        timeout=600,
+    )
+    if hashlib.sha256(oracle.read_bytes()).hexdigest() != oracle_sha256:
+        raise RunError("pinned Rust stwo verifier changed during validation")
+    return {
+        "workload": workload.workload_id,
+        "verified": True,
+        "oracle": "pinned-rust-stwo",
+        "oracle_commit": expected_oracle["commit"],
+        "oracle_binary_sha256": oracle_sha256,
+        "artifact_sha256": artifact_meta["artifact_sha256"],
+        "canonical_proof_sha256": artifact_meta["canonical_sha256"],
+    }
 
 
 def _native_rust_oracle_check(

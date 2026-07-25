@@ -87,25 +87,48 @@ pub fn buildQueryPositionsTree(
     var initialized: usize = 0;
     errdefer for (out[0..initialized]) |positions| allocator.free(positions);
 
-    const preprocessed_index = verifier_types.PREPROCESSED_TRACE_IDX;
-    if (scheme.trees.items.len <= preprocessed_index) return error.InvalidPreprocessedTree;
-    var preprocessed_log_size: u32 = 0;
-    for (scheme.trees.items[preprocessed_index].columns) |column|
-        preprocessed_log_size = @max(preprocessed_log_size, column.log_size);
-    const preprocessed_positions = try pcs_utils.preparePreprocessedQueryPositions(
-        allocator,
-        query_positions,
-        lifting_log_size,
-        preprocessed_log_size,
-    );
-    defer allocator.free(preprocessed_positions);
-
-    for (0..scheme.trees.items.len) |tree_index| {
-        out[tree_index] = try allocator.dupe(
-            usize,
-            if (tree_index == preprocessed_index) preprocessed_positions else query_positions,
+    for (scheme.trees.items, 0..) |tree, tree_index| {
+        const tree_log_size: ?u32 = if (tree.columns.len == 0) null else blk: {
+            var max_log_size: u32 = 0;
+            for (tree.columns) |column| {
+                max_log_size = @max(max_log_size, column.log_size);
+            }
+            break :blk max_log_size;
+        };
+        out[tree_index] = try pcs_utils.prepareTreeQueryPositions(
+            allocator,
+            query_positions,
+            lifting_log_size,
+            tree_log_size,
         );
         initialized += 1;
     }
     return TreeVec([]usize).initOwned(out);
+}
+
+fn checkHeterogeneousQueryTreeAllocationFailures(allocator: std.mem.Allocator) !void {
+    const Column = struct { log_size: u32 };
+    const Tree = struct { columns: []const Column };
+    const Trees = struct { items: []const Tree };
+    const small = [_]Column{.{ .log_size = 1 }};
+    const large = [_]Column{.{ .log_size = 3 }};
+    const trees = [_]Tree{
+        .{ .columns = &small },
+        .{ .columns = &large },
+        .{ .columns = &.{} },
+    };
+    const scheme = .{ .trees = Trees{ .items = &trees } };
+    const query_positions = [_]usize{ 0, 1, 5, 6 };
+    var result = try buildQueryPositionsTree(scheme, allocator, &query_positions, 4);
+    defer result.deinitDeep(allocator);
+    try std.testing.expectEqual(@as(usize, 3), result.items.len);
+    try std.testing.expectEqual(@as(usize, 0), result.items[2].len);
+}
+
+test "prover pcs views: heterogeneous query tree cleans up every allocation failure" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        checkHeterogeneousQueryTreeAllocationFailures,
+        .{},
+    );
 }

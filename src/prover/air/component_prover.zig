@@ -82,6 +82,7 @@ pub const BackendCompositionCapability = union(enum) {
 pub const ComponentProverVTable = struct {
     nConstraints: *const fn (ctx: *const anyopaque) usize,
     maxConstraintLogDegreeBound: *const fn (ctx: *const anyopaque) u32,
+    compositionLogSplit: ?*const fn (ctx: *const anyopaque) u32 = null,
     traceLogDegreeBounds: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror!core_air_components.TraceLogDegreeBounds,
     maskPoints: *const fn (
         ctx: *const anyopaque,
@@ -115,6 +116,12 @@ pub const ComponentProver = struct {
 
     pub inline fn maxConstraintLogDegreeBound(self: ComponentProver) u32 {
         return self.vtable.maxConstraintLogDegreeBound(self.ctx);
+    }
+
+    pub inline fn compositionLogSplit(self: ComponentProver) u32 {
+        const get = self.vtable.compositionLogSplit orelse
+            return @import("stwo_core").verifier_types.COMPOSITION_LOG_SPLIT;
+        return get(self.ctx);
     }
 
     pub inline fn traceLogDegreeBounds(
@@ -230,6 +237,25 @@ pub const ComponentProvers = struct {
             max_bound = @max(max_bound, component.maxConstraintLogDegreeBound());
         }
         return max_bound;
+    }
+
+    pub fn compositionLogSplit(self: ComponentProvers) !u32 {
+        if (self.components.len == 0) return error.InvalidCompositionLogSplit;
+        const split = self.components[0].compositionLogSplit();
+        if (split == 0 or
+            split > @import("stwo_core").verifier_types.MAX_COMPOSITION_LOG_SPLIT)
+        {
+            return error.InvalidCompositionLogSplit;
+        }
+        for (self.components[1..]) |component| {
+            if (component.compositionLogSplit() != split) {
+                return error.InconsistentCompositionLogSplit;
+            }
+        }
+        if (self.compositionLogDegreeBound() <= split) {
+            return error.InvalidCompositionLogSplit;
+        }
+        return split;
     }
 
     pub fn totalConstraints(self: ComponentProvers) usize {
@@ -417,6 +443,7 @@ pub const ComponentProvers = struct {
 const CORE_COMPONENT_ADAPTER_VTABLE = core_air_components.ComponentVTable{
     .nConstraints = coreAdapterNConstraints,
     .maxConstraintLogDegreeBound = coreAdapterMaxConstraintLogDegreeBound,
+    .compositionLogSplit = coreAdapterCompositionLogSplit,
     .traceLogDegreeBounds = coreAdapterTraceLogDegreeBounds,
     .maskPoints = coreAdapterMaskPoints,
     .preprocessedColumnIndices = coreAdapterPreprocessedColumnIndices,
@@ -433,6 +460,10 @@ fn coreAdapterNConstraints(ctx: *const anyopaque) usize {
 
 fn coreAdapterMaxConstraintLogDegreeBound(ctx: *const anyopaque) u32 {
     return coreAdapterCast(ctx).maxConstraintLogDegreeBound();
+}
+
+fn coreAdapterCompositionLogSplit(ctx: *const anyopaque) u32 {
+    return coreAdapterCast(ctx).compositionLogSplit();
 }
 
 fn coreAdapterTraceLogDegreeBounds(
@@ -787,7 +818,6 @@ test "prover air component prover: multi-component sequential matches merged acc
     var trace = Trace{ .polys = TreeVec([]const Poly).initOwned(try alloc.alloc([]const Poly, 0)) };
     defer trace.polys.deinit(alloc);
 
-    // Sequential path (getGlobalPool returns null in tests)
     var sequential = try component_provers.computeCompositionEvaluationSequential(
         alloc,
         alpha,
@@ -796,32 +826,22 @@ test "prover air component prover: multi-component sequential matches merged acc
     defer sequential.deinit(alloc);
     const seq_vec = try sequential.toVec(alloc);
     defer alloc.free(seq_vec);
-
-    // Simulate what the parallel path does: split into per-component
-    // accumulators, evaluate, merge, finalize.
     const total_constraints = component_provers.totalConstraints();
     const max_log_size = component_provers.compositionLogDegreeBound();
     const powers = try accumulation.generateSecurePowers(alloc, alpha, total_constraints);
     defer alloc.free(powers);
-
-    // Component A gets power_cursor = 2, component B gets power_cursor = 1
     var acc_a = try accumulation.DomainEvaluationAccumulator.initForComponent(powers, alloc, max_log_size, 2);
     defer acc_a.deinit();
     var acc_b = try accumulation.DomainEvaluationAccumulator.initForComponent(powers, alloc, max_log_size, 1);
     defer acc_b.deinit();
-
     try components_arr[0].evaluateConstraintQuotientsOnDomain(&trace, &acc_a);
     try components_arr[1].evaluateConstraintQuotientsOnDomain(&trace, &acc_b);
-
     acc_a.merge(&acc_b);
     acc_a.next_power_index = 0;
-
     var merged = try acc_a.finalize();
     defer merged.deinit(alloc);
     const merged_vec = try merged.toVec(alloc);
     defer alloc.free(merged_vec);
-
-    // Both paths must produce identical results
     try std.testing.expectEqual(seq_vec.len, merged_vec.len);
     for (seq_vec, merged_vec) |s, m| {
         try std.testing.expect(s.eql(m));

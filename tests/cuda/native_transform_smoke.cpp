@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 
 extern "C" int stwo_exec_context_create(void **out_handle);
@@ -42,7 +43,20 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
+extern "C" int stwo_ntt_b2n_columns_compact_on(
+    const std::uint32_t *inputs,
+    std::size_t input_column_stride_words,
+    std::uint32_t *outputs,
+    std::size_t output_column_stride_words,
+    std::uint32_t log_n,
+    std::uint32_t polynomial_count,
+    const std::uint32_t *twiddles,
+    std::uint32_t twiddle_words,
+    std::uint32_t evaluation_domain_size,
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_ntt_n2b_columns_on(
     std::uint32_t *columns,
     std::size_t column_stride_words,
@@ -51,7 +65,8 @@ extern "C" int stwo_ntt_n2b_columns_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_lde_n2b_columns_on(
     const std::uint32_t *coefficients,
     std::size_t coefficient_column_stride_words,
@@ -63,7 +78,8 @@ extern "C" int stwo_lde_n2b_columns_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_lde_n2b_columns_before_circle_on(
     const std::uint32_t *coefficients,
     std::size_t coefficient_column_stride_words,
@@ -75,11 +91,73 @@ extern "C" int stwo_lde_n2b_columns_before_circle_on(
     const std::uint32_t *twiddles,
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
-    void *stream);
+    void *stream,
+    std::uint32_t *launches_out);
+
+struct alignas(8) AddressedLdeDescriptor {
+    std::uint64_t coefficient_offset_words;
+    std::uint64_t evaluation_offset_words;
+    std::uint32_t coefficient_log_size;
+    std::uint32_t reserved;
+};
+
+static_assert(sizeof(AddressedLdeDescriptor) == 24);
+
+extern "C" int stwo_lde_n2b_addressed_on(
+    std::uint32_t *arena,
+    std::size_t arena_words,
+    const AddressedLdeDescriptor *descriptors,
+    std::uint32_t descriptor_count,
+    std::size_t evaluation_tile_offset_words,
+    std::uint32_t log_n,
+    const std::uint32_t *twiddles,
+    std::uint32_t twiddle_words,
+    std::uint32_t evaluation_domain_size,
+    void *stream,
+    std::uint32_t include_circle,
+    std::uint32_t *launches_out);
 
 namespace {
 
 constexpr std::uint32_t kM31Prime = 2147483647u;
+
+std::uint32_t b2n_launches(std::uint32_t log_n) {
+    if (log_n >= 13u && log_n <= 18u) return 2;
+    if (log_n >= 19u && log_n <= 23u) return 3;
+    return log_n;
+}
+
+std::uint32_t n2b_launches(
+    std::uint32_t log_n,
+    bool include_circle) {
+    if (log_n >= 13u && log_n <= 19u) return 2;
+    if (log_n >= 20u && log_n <= 23u) return 3;
+    return include_circle ? log_n : log_n - 1u;
+}
+
+std::uint32_t expected_lde_launches(
+    std::uint32_t log_n,
+    bool include_circle) {
+    const std::uint32_t transform_launches =
+        n2b_launches(log_n, include_circle);
+    return log_n >= 13u && log_n <= 23u
+        ? transform_launches
+        : 1u + transform_launches;
+}
+
+bool check_launches(
+    std::uint32_t actual,
+    std::uint32_t expected,
+    const char *operation) {
+    if (actual == expected) return true;
+    std::fprintf(
+        stderr,
+        "%s launch telemetry mismatch: expected=%u actual=%u\n",
+        operation,
+        expected,
+        actual);
+    return false;
+}
 
 std::uint32_t add(std::uint32_t left, std::uint32_t right) {
     const std::uint64_t sum =
@@ -396,6 +474,7 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
         }
     }
     auto *device_retained = session.allocate(retained_host.size());
+    std::uint32_t retained_launches = 0;
     if (device_retained == nullptr ||
         !session.upload(
             device_retained,
@@ -412,10 +491,18 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_inverse_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &retained_launches),
             "launch retained B2N")) {
         return false;
     }
+    if (!check_launches(
+            retained_launches,
+            b2n_launches(log_n),
+            "retained B2N")) {
+        return false;
+    }
+    std::uint32_t rejected_launches = 17;
     if (!expect_invalid(
             stwo_ntt_b2n_columns_to_retained_on(
                 device_retained + 1,
@@ -427,7 +514,8 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_inverse_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject partial B2N alias") ||
         !expect_invalid(
             stwo_ntt_b2n_columns_to_retained_on(
@@ -440,10 +528,12 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_inverse_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject short B2N stride")) {
         return false;
     }
+    if (!check_launches(rejected_launches, 0, "rejected B2N")) return false;
     std::vector<std::uint32_t> retained_actual(retained_host.size());
     if (!session.download(
             retained_actual.data(),
@@ -476,6 +566,148 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
         }
     }
 
+    constexpr std::uint32_t kCompactGuard = 0x5a5a5a5au;
+    const std::size_t compact_stride = size + 7u;
+    std::vector<std::uint32_t> compact_host(
+        static_cast<std::size_t>(width) * compact_stride,
+        kCompactGuard);
+    for (std::uint32_t column = 0; column < width; ++column) {
+        std::copy(
+            source[column].begin(),
+            source[column].end(),
+            compact_host.begin() +
+                static_cast<std::size_t>(column) * compact_stride);
+    }
+    auto *device_compact = session.allocate(compact_host.size());
+    std::uint32_t compact_launches = 0;
+    if (device_compact == nullptr ||
+        !session.upload(
+            device_compact,
+            compact_host.data(),
+            compact_host.size() * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact,
+                compact_stride,
+                device_compact,
+                compact_stride,
+                log_n,
+                width,
+                device_inverse_twiddles,
+                domain_size,
+                domain_size,
+                session.stream,
+                &compact_launches),
+            "launch compact B2N") ||
+        !check_launches(
+            compact_launches,
+            b2n_launches(log_n),
+            "compact B2N")) {
+        return false;
+    }
+    rejected_launches = 17;
+    if (!expect_invalid(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact + 1,
+                compact_stride,
+                device_compact,
+                compact_stride,
+                log_n,
+                width,
+                device_inverse_twiddles,
+                domain_size,
+                domain_size,
+                session.stream,
+                &rejected_launches),
+            "reject partial compact B2N alias") ||
+        !expect_invalid(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact,
+                compact_stride,
+                device_compact,
+                size - 1u,
+                log_n,
+                width,
+                device_inverse_twiddles,
+                domain_size,
+                domain_size,
+                session.stream,
+                &rejected_launches),
+            "reject short compact B2N stride") ||
+        !expect_invalid(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact,
+                compact_stride,
+                device_compact,
+                compact_stride,
+                log_n,
+                width,
+                device_compact,
+                domain_size,
+                domain_size,
+                session.stream,
+                &rejected_launches),
+            "reject compact output and twiddle alias") ||
+        !check_launches(rejected_launches, 0, "rejected compact B2N")) {
+        return false;
+    }
+    std::vector<std::uint32_t> compact_actual(compact_host.size());
+    if (!session.download(
+            compact_actual.data(),
+            device_compact,
+            compact_actual.size() * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_exec_context_sync(session.context),
+            "wait for compact B2N")) {
+        return false;
+    }
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const auto expected_retained = b2n_retained_reference(
+            source[column],
+            log_n,
+            inverse_twiddles);
+        const std::vector<std::uint32_t> expected(
+            expected_retained.begin(),
+            expected_retained.begin() + size);
+        const auto first = compact_actual.begin() +
+            static_cast<std::size_t>(column) * compact_stride;
+        const std::vector<std::uint32_t> actual(first, first + size);
+        if (!compare(
+                expected,
+                actual,
+                "compact B2N",
+                log_n,
+                column)) {
+            return false;
+        }
+        const auto retained_first = retained_actual.begin() +
+            static_cast<std::size_t>(column) * retained_stride;
+        const std::vector<std::uint32_t> retained_prefix(
+            retained_first,
+            retained_first + size);
+        if (!compare(
+                retained_prefix,
+                actual,
+                "compact/retained B2N compatibility",
+                log_n,
+                column)) {
+            return false;
+        }
+        if (!std::all_of(
+                first + size,
+                first + compact_stride,
+                [=](std::uint32_t value) {
+                    return value == kCompactGuard;
+                })) {
+            std::fprintf(
+                stderr,
+                "compact B2N wrote beyond N words at log=%u column=%u\n",
+                log_n,
+                column);
+            return false;
+        }
+    }
+
     std::vector<std::vector<std::uint32_t>> forward_expected = source;
     const std::size_t forward_stride = size + 5u;
     std::vector<std::uint32_t> forward_host(
@@ -489,6 +721,7 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 static_cast<std::size_t>(column) * forward_stride);
     }
     auto *device_forward = session.allocate(forward_host.size());
+    std::uint32_t forward_launches = 0;
     if (device_forward == nullptr ||
         !session.upload(
             device_forward,
@@ -503,10 +736,18 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &forward_launches),
             "launch N2B")) {
         return false;
     }
+    if (!check_launches(
+            forward_launches,
+            n2b_launches(log_n, true),
+            "N2B")) {
+        return false;
+    }
+    rejected_launches = 17;
     if (!expect_invalid(
             stwo_ntt_n2b_columns_on(
                 device_forward,
@@ -516,10 +757,12 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject short N2B stride")) {
         return false;
     }
+    if (!check_launches(rejected_launches, 0, "rejected N2B")) return false;
     std::vector<std::uint32_t> forward_actual(forward_host.size());
     if (!session.download(
             forward_actual.data(),
@@ -576,6 +819,8 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
     auto *device_pre_circle = session.allocate(
         static_cast<std::size_t>(width) * evaluation_stride);
     auto *device_sizes = session.allocate(width);
+    std::uint32_t lde_launches = 0;
+    std::uint32_t pre_circle_launches = 0;
     if (device_coefficients == nullptr ||
         device_lde == nullptr ||
         device_pre_circle == nullptr ||
@@ -600,7 +845,8 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &lde_launches),
             "launch full LDE") ||
         !check_status(
             stwo_lde_n2b_columns_before_circle_on(
@@ -614,10 +860,22 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &pre_circle_launches),
             "launch pre-circle LDE")) {
         return false;
     }
+    if (!check_launches(
+            lde_launches,
+            expected_lde_launches(log_n, true),
+            "full LDE") ||
+        !check_launches(
+            pre_circle_launches,
+            expected_lde_launches(log_n, false),
+            "pre-circle LDE")) {
+        return false;
+    }
+    rejected_launches = 17;
     if (!expect_invalid(
             stwo_lde_n2b_columns_on(
                 device_coefficients,
@@ -630,10 +888,12 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 device_twiddles,
                 domain_size,
                 domain_size,
-                session.stream),
+                session.stream,
+                &rejected_launches),
             "reject overlapping LDE slabs")) {
         return false;
     }
+    if (!check_launches(rejected_launches, 0, "rejected LDE")) return false;
 
     std::vector<std::uint32_t> lde_actual(
         static_cast<std::size_t>(width) * evaluation_stride);
@@ -691,6 +951,135 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
             return false;
         }
     }
+
+    std::vector<AddressedLdeDescriptor> addressed_descriptors(width);
+    std::size_t source_cursor = 0;
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const std::size_t coefficient_count =
+            static_cast<std::size_t>(1)
+            << coefficient_log_sizes[column];
+        addressed_descriptors[column] = {
+            source_cursor,
+            0,
+            coefficient_log_sizes[column],
+            0,
+        };
+        source_cursor += coefficient_count;
+    }
+    const std::size_t descriptor_offset = (source_cursor + 1u) & ~1u;
+    const std::size_t descriptor_words =
+        width * sizeof(AddressedLdeDescriptor) / sizeof(std::uint32_t);
+    const std::size_t twiddle_offset =
+        descriptor_offset + descriptor_words;
+    const std::size_t tile_offset = twiddle_offset + domain_size;
+    const std::size_t tile_words =
+        static_cast<std::size_t>(width) * size;
+    std::vector<std::uint32_t> addressed_host(
+        tile_offset + tile_words,
+        0);
+    source_cursor = 0;
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const std::size_t coefficient_count =
+            static_cast<std::size_t>(1)
+            << coefficient_log_sizes[column];
+        std::copy_n(
+            coefficients[column].begin(),
+            coefficient_count,
+            addressed_host.begin() + source_cursor);
+        addressed_descriptors[column].evaluation_offset_words =
+            tile_offset + static_cast<std::size_t>(column) * size;
+        source_cursor += coefficient_count;
+    }
+    std::memcpy(
+        addressed_host.data() + descriptor_offset,
+        addressed_descriptors.data(),
+        width * sizeof(AddressedLdeDescriptor));
+    std::copy(
+        twiddles.begin(),
+        twiddles.end(),
+        addressed_host.begin() + twiddle_offset);
+    auto *device_addressed = session.allocate(addressed_host.size());
+    std::uint32_t addressed_launches = 0;
+    if (device_addressed == nullptr ||
+        !session.upload(
+            device_addressed,
+            addressed_host.data(),
+            addressed_host.size() * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_lde_n2b_addressed_on(
+                device_addressed,
+                addressed_host.size(),
+                reinterpret_cast<const AddressedLdeDescriptor *>(
+                    device_addressed + descriptor_offset),
+                width,
+                tile_offset,
+                log_n,
+                device_addressed + twiddle_offset,
+                domain_size,
+                domain_size,
+                session.stream,
+                1,
+                &addressed_launches),
+            "launch addressed LDE") ||
+        !check_launches(
+            addressed_launches,
+            1u + n2b_launches(log_n, true),
+            "addressed LDE")) {
+        return false;
+    }
+    rejected_launches = 17;
+    if (!expect_invalid(
+            stwo_lde_n2b_addressed_on(
+                device_addressed,
+                addressed_host.size(),
+                reinterpret_cast<const AddressedLdeDescriptor *>(
+                    device_addressed + descriptor_offset),
+                width,
+                descriptor_offset,
+                log_n,
+                device_addressed + twiddle_offset,
+                domain_size,
+                domain_size,
+                session.stream,
+                1,
+                &rejected_launches),
+            "reject addressed LDE tile over descriptor table") ||
+        !check_launches(
+            rejected_launches,
+            0,
+            "rejected addressed LDE")) {
+        return false;
+    }
+    std::vector<std::uint32_t> addressed_actual(tile_words);
+    if (!session.download(
+            addressed_actual.data(),
+            device_addressed + tile_offset,
+            tile_words * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_exec_context_sync(session.context),
+            "wait for addressed LDE")) {
+        return false;
+    }
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const auto expected_first = lde_actual.begin() +
+            static_cast<std::size_t>(column) * evaluation_stride;
+        const std::vector<std::uint32_t> expected(
+            expected_first,
+            expected_first + size);
+        const auto actual_first = addressed_actual.begin() +
+            static_cast<std::size_t>(column) * size;
+        const std::vector<std::uint32_t> actual(
+            actual_first,
+            actual_first + size);
+        if (!compare(
+                expected,
+                actual,
+                "addressed LDE",
+                log_n,
+                column)) {
+            return false;
+        }
+    }
     return session.finish();
 }
 
@@ -706,13 +1095,21 @@ int main() {
         {9, 37},
         {10, 5},
         {13, 37},
+        {15, 1},
+        {16, 3},
+        {18, 3},
+        {20, 1},
+        {21, 1},
+        {22, 1},
+        {23, 1},
     };
     for (const auto &test_case : cases) {
         if (!run_case(test_case.log_n, test_case.width)) return 1;
     }
     std::printf(
         "native CUDA transform smoke passed: %zu shapes, "
-        "including width 37 and log 8/9/10 boundaries\n",
+        "including width 37 and fused log "
+        "13/15/16/18/20/21/22/23 schedules\n",
         sizeof(cases) / sizeof(cases[0]));
     return 0;
 }

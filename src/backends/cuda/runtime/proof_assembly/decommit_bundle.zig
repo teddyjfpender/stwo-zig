@@ -184,7 +184,9 @@ pub const Bundle = struct {
             for (tree_queries, 0..) |query, query_index| {
                 if (query >= leaf_count or
                     (query_index != 0 and
-                        tree_queries[query_index - 1] >= query))
+                        (tree_queries[query_index - 1] > query or
+                            (tree.kind == .fri and
+                                tree_queries[query_index - 1] == query))))
                 {
                     return error.InvalidQueryLayout;
                 }
@@ -428,6 +430,9 @@ test "compact decommit bundle is canonical and retains allocation extent" {
     @memcpy(storage[raw_offset..unique_offset], &raw);
     @memcpy(storage[unique_offset..query_offset], &unique);
     @memcpy(storage[query_offset..values_offset], &unique);
+    // A smaller lifted trace tree may project two protocol queries onto the
+    // same leaf. Trace values retain both positions; the Merkle walk dedups.
+    storage[query_offset + 1] = storage[query_offset];
 
     var bundle = try Bundle.decodeOwned(allocator, storage);
     defer bundle.deinit(allocator);

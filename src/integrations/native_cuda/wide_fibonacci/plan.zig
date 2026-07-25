@@ -5,12 +5,17 @@
 
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
+const cuda_plan_mod = @import(
+    "../../../backends/cuda/runtime/execution_plan.zig",
+);
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
 const canonical_ingress = @import("canonical_ingress.zig");
 const layout_mod = @import("layout.zig");
+const program_mod = @import("program.zig");
 const proof_bundle = @import("proof_bundle.zig");
 const request = @import("request.zig");
 const requirements_mod = @import("requirements.zig");
+const shared = @import("../common/prepared_plan.zig");
 const slots = @import("slots.zig");
 const topology = @import("topology.zig");
 const transcript_schedule = @import("transcript_schedule.zig");
@@ -20,34 +25,16 @@ const transcript_schedule = @import("transcript_schedule.zig");
 /// twiddles and a persistent proof session can retain one pack across requests.
 pub const CanonicalIngress = canonical_ingress.Pack;
 
-pub const PreparedPlan = struct {
-    logical: layout_mod.Layout,
-    quotient: topology.Quotient,
-    fri: topology.Fri,
-    decommit: topology.Decommit,
-    proof: proof_bundle.Bundle,
-    transcript: transcript_schedule.Schedule,
-    requirement_storage: []arena.Requirement,
-    arena_plan: arena.Plan,
-    arena_plan_live: bool = true,
-
-    pub fn init(
+const Policy = struct {
+    pub fn buildRequirements(
         allocator: std.mem.Allocator,
         geometry: request.Geometry,
-    ) !PreparedPlan {
-        var logical = try layout_mod.Layout.init(allocator, geometry);
-        errdefer logical.deinit(allocator);
-        try logical.validate();
-        var quotient = try topology.Quotient.init(allocator, logical);
-        errdefer quotient.deinit(allocator);
-        var fri = try topology.Fri.init(allocator, logical);
-        errdefer fri.deinit(allocator);
-        var decommit = try topology.Decommit.init(allocator, logical);
-        errdefer decommit.deinit(allocator);
-        var proof = try proof_bundle.Bundle.init(allocator, logical, decommit);
-        errdefer proof.deinit(allocator);
-        try proof.validate(decommit.assembly_words);
-        const requirement_storage = try requirements_mod.build(
+        quotient: topology.Quotient,
+        fri: topology.Fri,
+        decommit: topology.Decommit,
+        proof: proof_bundle.Bundle,
+    ) ![]arena.Requirement {
+        return requirements_mod.build(
             allocator,
             geometry,
             quotient,
@@ -55,59 +42,58 @@ pub const PreparedPlan = struct {
             decommit,
             proof,
         );
-        errdefer allocator.free(requirement_storage);
-        var planned = try arena.Plan.init(allocator, requirement_storage);
-        errdefer planned.deinit(allocator);
-        if (planned.total_words > requirements_mod.max_total_words)
-            return error.SizeOverflow;
-        return .{
-            .logical = logical,
-            .quotient = quotient,
-            .fri = fri,
-            .decommit = decommit,
-            .proof = proof,
-            .transcript = try transcript_schedule.Schedule.init(geometry),
-            .requirement_storage = requirement_storage,
-            .arena_plan = planned,
-        };
     }
 
-    pub fn deinit(self: *PreparedPlan, allocator: std.mem.Allocator) void {
-        if (self.arena_plan_live) self.arena_plan.deinit(allocator);
-        allocator.free(self.requirement_storage);
-        self.proof.deinit(allocator);
-        self.decommit.deinit(allocator);
-        self.fri.deinit(allocator);
-        self.quotient.deinit(allocator);
-        self.logical.deinit(allocator);
-        self.* = undefined;
+    pub fn emitProgram(
+        allocator: std.mem.Allocator,
+        geometry: request.Geometry,
+        logical: layout_mod.Layout,
+        quotient: topology.Quotient,
+        fri: topology.Fri,
+        requirements: []const arena.Requirement,
+    ) !@import("stwo_backend_contracts").proof_program.ProofProgram {
+        return program_mod.emit(
+            allocator,
+            geometry,
+            logical,
+            quotient,
+            fri,
+            requirements,
+        );
     }
 
-    pub fn requirements(self: *const PreparedPlan) []const arena.Requirement {
-        return self.requirement_storage;
-    }
-
-    pub fn proofSlot(_: *const PreparedPlan) arena.SlotId {
+    pub fn proofSlot() arena.SlotId {
         return slots.proof_bundle;
     }
 
-    pub fn totalWords(self: *const PreparedPlan) usize {
-        return self.arena_plan.total_words;
+    pub fn maxTotalWords() usize {
+        return requirements_mod.max_total_words;
     }
 
-    pub fn takeArenaPlan(self: *PreparedPlan) arena.Plan {
-        std.debug.assert(self.arena_plan_live);
-        self.arena_plan_live = false;
-        return self.arena_plan;
+    pub fn defaultTarget() cuda_plan_mod.CompileOptions {
+        return testTarget();
     }
 };
+
+pub const PreparedPlan = shared.PreparedPlanFor(
+    request.Geometry,
+    layout_mod.Layout,
+    topology,
+    proof_bundle.Bundle,
+    transcript_schedule.Schedule,
+    Policy,
+);
 
 test "prepared plans seal small standard and extreme admitted geometry" {
     const allocator = std.testing.allocator;
     var previous_words: usize = 0;
     for ([_]u32{ 3, 14, 22 }) |log_n_rows| {
         const geometry = try request.admit(testRequest(log_n_rows));
-        var prepared = try PreparedPlan.init(allocator, geometry);
+        var prepared = try PreparedPlan.initForTarget(
+            allocator,
+            geometry,
+            testTarget(),
+        );
         defer prepared.deinit(allocator);
         try std.testing.expectEqual(
             @as(usize, log_n_rows),
@@ -127,7 +113,7 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             66 + 3 * @as(usize, log_n_rows),
             prepared.requirements().len,
         );
-        const inverse_twiddles = try prepared.arena_plan.placement(
+        const inverse_twiddles = try prepared.cuda_plan.arena_plan.placement(
             slots.twiddles_inverse,
         );
         try std.testing.expectEqual(
@@ -142,7 +128,7 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             telemetry.Stage.fri_commit,
             inverse_twiddles.requirement.live_through,
         );
-        const last_evaluation = try prepared.arena_plan.placement(
+        const last_evaluation = try prepared.cuda_plan.arena_plan.placement(
             slots.fri_last_evaluation,
         );
         try std.testing.expectEqual(
@@ -157,17 +143,17 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             telemetry.Stage.fri_commit,
             last_evaluation.requirement.live_through,
         );
-        const last_coefficients = try prepared.arena_plan.placement(
+        const last_coefficients = try prepared.cuda_plan.arena_plan.placement(
             slots.fri_last_coefficients,
         );
         try std.testing.expect(
             try last_evaluation.endWords() <= last_coefficients.offset_words or
                 try last_coefficients.endWords() <= last_evaluation.offset_words,
         );
-        const input_snapshot = try prepared.arena_plan.placement(
+        const input_snapshot = try prepared.cuda_plan.arena_plan.placement(
             slots.transcript_input_snapshot,
         );
-        const boundary_snapshot = try prepared.arena_plan.placement(
+        const boundary_snapshot = try prepared.cuda_plan.arena_plan.placement(
             slots.transcript_boundary_snapshot,
         );
         try std.testing.expectEqual(
@@ -178,7 +164,7 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             telemetry.Stage.ingress,
             boundary_snapshot.requirement.live_from,
         );
-        const quotient_challenge = try prepared.arena_plan.placement(
+        const quotient_challenge = try prepared.cuda_plan.arena_plan.placement(
             slots.quotient_challenge,
         );
         try std.testing.expectEqual(
@@ -189,18 +175,18 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             telemetry.Stage.quotient,
             quotient_challenge.requirement.live_through,
         );
-        const coefficient_log_sizes = try prepared.arena_plan.placement(
+        const coefficient_log_sizes = try prepared.cuda_plan.arena_plan.placement(
             slots.coefficient_log_sizes,
         );
         try std.testing.expectEqual(
             telemetry.Stage.constraint_evaluation,
             coefficient_log_sizes.requirement.live_through,
         );
-        const coefficient_slab = try prepared.arena_plan.placement(
+        const coefficient_slab = try prepared.cuda_plan.arena_plan.placement(
             slots.coefficient_slab,
         );
         try std.testing.expectEqual(
-            geometry.main_columns * (2 * geometry.trace_rows) +
+            geometry.main_columns * geometry.trace_rows +
                 request.composition_column_count * geometry.trace_rows,
             coefficient_slab.requirement.words,
         );
@@ -210,30 +196,40 @@ test "prepared plans seal small standard and extreme admitted geometry" {
         );
         try std.testing.expectError(
             error.ArenaSlotMissing,
-            prepared.arena_plan.placement(0x0200),
+            prepared.cuda_plan.arena_plan.placement(0x0200),
         );
-        for ([_]arena.SlotId{ 0x0102, 0x0111, 0x0504 }) |retired_slot| {
+        for ([_]arena.SlotId{
+            0x0102,
+            0x0111,
+            0x0210,
+            0x0211,
+            0x0504,
+        }) |retired_slot| {
             try std.testing.expectError(
                 error.ArenaSlotMissing,
-                prepared.arena_plan.placement(retired_slot),
+                prepared.cuda_plan.arena_plan.placement(retired_slot),
             );
         }
         try std.testing.expectEqual(
             prepared.proof.total_words,
-            (try prepared.arena_plan.placement(slots.proof_bundle))
+            (try prepared.cuda_plan.arena_plan.placement(slots.proof_bundle))
                 .requirement.words,
         );
         try prepared.proof.validate(prepared.decommit.assembly_words);
     }
 }
 
-test "concurrent lifetimes never overlap and stage-local commitment scratch aliases" {
+test "concurrent arena lifetimes never overlap" {
     const allocator = std.testing.allocator;
     const geometry = try request.admit(testRequest(14));
-    var prepared = try PreparedPlan.init(allocator, geometry);
+    var prepared = try PreparedPlan.initForTarget(
+        allocator,
+        geometry,
+        testTarget(),
+    );
     defer prepared.deinit(allocator);
 
-    const placements = prepared.arena_plan.placements;
+    const placements = prepared.cuda_plan.arena_plan.placements;
     for (placements, 0..) |left, index| {
         for (placements[index + 1 ..]) |right| {
             if (!lifetimesOverlap(left.requirement, right.requirement)) continue;
@@ -243,23 +239,21 @@ test "concurrent lifetimes never overlap and stage-local commitment scratch alia
             );
         }
     }
-    const main = try prepared.arena_plan.placement(slots.main_commit_states);
-    const composition = try prepared.arena_plan.placement(
-        slots.composition_commit_states,
-    );
-    try std.testing.expectEqual(main.requirement.words, composition.requirement.words);
-    try std.testing.expectEqual(main.offset_words, composition.offset_words);
 }
 
 test "topology slots contain no device pointer table allocations" {
     const allocator = std.testing.allocator;
     const geometry = try request.admit(testRequest(14));
-    var prepared = try PreparedPlan.init(allocator, geometry);
+    var prepared = try PreparedPlan.initForTarget(
+        allocator,
+        geometry,
+        testTarget(),
+    );
     defer prepared.deinit(allocator);
 
     try std.testing.expectError(
         error.ArenaSlotMissing,
-        prepared.arena_plan.placement(0x0900),
+        prepared.cuda_plan.arena_plan.placement(0x0900),
     );
 }
 
@@ -279,5 +273,21 @@ fn testRequest(log_n_rows: u32) request.Request {
             .fold_step = 1,
             .lifting_log_size = null,
         },
+    };
+}
+
+fn testTarget() cuda_plan_mod.CompileOptions {
+    const proof_ir = @import("stwo_backend_contracts").proof_program;
+    return .{
+        .sm = 89,
+        .device_uuid = [_]u8{0x42} ** 16,
+        .driver_version = 12080,
+        .runtime_version = 12080,
+        .toolkit_version = 12080,
+        .runtime_build_identity = proof_ir.identityDigest("test-runtime"),
+        .host_toolchain_identity = proof_ir.identityDigest("test-toolchain"),
+        .kernel_pack_identity = proof_ir.identityDigest("test-pack"),
+        .lane_streams = 0,
+        .enable_graphs = false,
     };
 }

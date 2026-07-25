@@ -288,29 +288,51 @@ pub fn subTree(
     return TreeVec([]const T).initOwned(out);
 }
 
-/// Converts max-query positions to preprocessed-query positions.
-pub fn preparePreprocessedQueryPositions(
+/// Converts query positions from the lifted domain to one commitment tree.
+///
+/// An empty tree has no positions. Non-empty trees preserve the circle-domain
+/// pair bit while folding or expanding the coset index to the tree's domain.
+pub fn prepareTreeQueryPositions(
     allocator: std.mem.Allocator,
     query_positions: []const usize,
     max_log_size: u32,
-    pp_max_log_size: u32,
+    tree_max_log_size: ?u32,
 ) ![]usize {
-    if (pp_max_log_size == 0) {
+    const tree_log_size = tree_max_log_size orelse {
         return allocator.alloc(usize, 0);
-    }
+    };
 
     const out = try allocator.alloc(usize, query_positions.len);
-    if (max_log_size < pp_max_log_size) {
+    if (tree_log_size == 0) {
+        @memset(out, 0);
+        return out;
+    }
+
+    if (max_log_size < tree_log_size) {
         for (query_positions, 0..) |pos, i| {
-            out[i] = (pos >> 1 << @intCast(pp_max_log_size - max_log_size + 1)) + (pos & 1);
+            out[i] = (pos >> 1 << @intCast(tree_log_size - max_log_size + 1)) + (pos & 1);
         }
         return out;
     }
 
     for (query_positions, 0..) |pos, i| {
-        out[i] = (pos >> @intCast(max_log_size - pp_max_log_size + 1) << 1) + (pos & 1);
+        out[i] = (pos >> @intCast(max_log_size - tree_log_size + 1) << 1) + (pos & 1);
     }
     return out;
+}
+
+pub fn preparePreprocessedQueryPositions(
+    allocator: std.mem.Allocator,
+    query_positions: []const usize,
+    max_log_size: u32,
+    preprocessed_max_log_size: u32,
+) ![]usize {
+    return prepareTreeQueryPositions(
+        allocator,
+        query_positions,
+        max_log_size,
+        if (preprocessed_max_log_size == 0) null else preprocessed_max_log_size,
+    );
 }
 
 test "pcs utils: concat cols" {
@@ -340,13 +362,21 @@ test "pcs utils: prepare preprocessed query positions" {
     const alloc = std.testing.allocator;
     const q = [_]usize{ 3, 7, 11, 15 };
 
-    const a = try preparePreprocessedQueryPositions(alloc, q[0..], 8, 6);
+    const a = try prepareTreeQueryPositions(alloc, q[0..], 8, 6);
     defer alloc.free(a);
     try std.testing.expectEqualSlices(usize, &[_]usize{ 1, 1, 3, 3 }, a);
 
-    const b = try preparePreprocessedQueryPositions(alloc, q[0..], 6, 8);
+    const b = try prepareTreeQueryPositions(alloc, q[0..], 6, 8);
     defer alloc.free(b);
     try std.testing.expectEqualSlices(usize, &[_]usize{ 9, 25, 41, 57 }, b);
+
+    const constant = try prepareTreeQueryPositions(alloc, q[0..], 8, 0);
+    defer alloc.free(constant);
+    try std.testing.expectEqualSlices(usize, &[_]usize{ 0, 0, 0, 0 }, constant);
+
+    const empty = try prepareTreeQueryPositions(alloc, q[0..], 8, null);
+    defer alloc.free(empty);
+    try std.testing.expectEqual(@as(usize, 0), empty.len);
 }
 
 test "pcs utils: treevec zip and zipEq" {

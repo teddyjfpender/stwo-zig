@@ -1,0 +1,45 @@
+{
+  "archive": {
+    "path": "/root/build-sn2-ec-ledger/libstwo_cuda_kernels.a",
+    "sha256": "bbf7426d3e988dbc35a1e777e9d1855c607936e1ab8a8b490da5c773d49a08c2"
+  },
+  "authority": {
+    "composition_sha256": "fdb84be46893a8bb6eb8eeac19bc8746d064a04c3700accca367911a921a47e9",
+    "graph_hash": "73963831c53df4a2",
+    "relation_templates_sha256": "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f",
+    "topology_identity": "ebd25f86d8c0e291ee00c333f4f3a20f7d1e81f170de582cd9aff8e0f3d469c8"
+  },
+  "device": {
+    "compute_capability": "8.9",
+    "cuda_toolkit": "12.8",
+    "driver": "580.126.09",
+    "memory_mib": 24564,
+    "name": "NVIDIA GeForce RTX 4090",
+    "uuid": "GPU-3dabce32-b71d-9cdf-6392-026267492cb6"
+  },
+  "evidence": {
+    "executable_sha256": "b87bdb73cb23c8140059e7f20d7d62232a8f1f89e62370544acf62287bf42f15",
+    "fixture_sha256": "7046b7776747cd40d405bea348bde378e44595b234f308fac281e9c18c632f4a",
+    "smoke_source_sha256": "795c3a849a5039b53403d7e44707c7f4c6e788ea857daa2bbd37bcace1374847"
+  },
+  "implementation_commit": "265cc711b358277a91fb94fa515787c4dd082be3",
+  "oracle": {
+    "challenge_alpha": [3, 5, 7, 11],
+    "challenge_z": [101, 103, 107, 109],
+    "source_policy": "deterministic_constant_columns_with_exact_row_dependent_layout_semantics",
+    "type": "zig_relation_reference"
+  },
+  "result": {
+    "component_checkpoints": 58,
+    "coordinate_cells": 1356284992,
+    "cpu_fallbacks": 0,
+    "first_mismatch": null,
+    "host_peak_rss_kib": 114480,
+    "jit_compiles": 0,
+    "peak_device_bytes_model": 5335154688,
+    "terminal_residue_failures": 0,
+    "wall_seconds": 0.54
+  },
+  "schema": "stwo-zig-cuda-sn2-relation-cumulative-parity-v1",
+  "stdout": "SN2 relation cumulative parity passed: components=58 coordinate_cells=1356284992 peak_bytes=5335154688 jit=0 fallbacks=0 graph=73963831c53df4a2"
+}

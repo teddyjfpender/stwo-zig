@@ -9,6 +9,7 @@ pub const relation_bundle = @import("relation_bundle.zig");
 pub const interaction_trace = @import("interaction_trace.zig");
 pub const fixed_table_bundle = @import("fixed_table_bundle.zig");
 pub const semantic_pack = @import("semantic_pack.zig");
+pub const source_semantic_pack = @import("source_semantic_pack.zig");
 pub const eval_program = @import("eval_program.zig");
 pub const composition_bundle = @import("composition_bundle.zig");
 pub const quotient_geometry = @import("quotient_geometry.zig");
@@ -20,11 +21,13 @@ pub const checkpoint = @import("../conformance/checkpoint.zig");
 pub const checkpoint_receipt = @import("../conformance/receipt.zig");
 
 test {
+    _ = @import("relation_cuda_fixture_test.zig");
     _ = execution_tables;
     _ = verify_instruction_inputs;
     _ = direct_inputs;
     _ = interaction_trace;
     _ = semantic_pack;
+    _ = source_semantic_pack;
     _ = eval_program;
     _ = composition_bundle;
     _ = quotient_geometry;

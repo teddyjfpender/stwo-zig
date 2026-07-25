@@ -15,6 +15,10 @@ __pycache__/
 # Metal pipeline archives
 *.metallib.binarchive
 
+# Raw profiler captures may contain environment metadata and credentials.
+*.nsys-rep
+*.ncu-rep
+
 # Judge run products (published signed to the judge-verdicts branch, never tracked)
 judge-out/
 

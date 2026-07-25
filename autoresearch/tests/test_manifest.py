@@ -1,4 +1,6 @@
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -20,6 +22,10 @@ class ManifestTest(unittest.TestCase):
 
     def test_editable_rungs(self):
         self.assertEqual(self.m.path_rung("src/backends/cpu_scalar/mod.zig"), "s3")
+        self.assertEqual(self.m.path_rung("src/backends/cuda/runtime.zig"), "s3")
+        self.assertEqual(
+            self.m.path_rung("src/backend/proof_program.zig"), "s4",
+        )
         self.assertEqual(self.m.path_rung("src/prover/work_pool.zig"), "s4")
         self.assertIsNone(self.m.path_rung("README.md"))
 
@@ -125,6 +131,30 @@ class ManifestTest(unittest.TestCase):
         )
         self.assertEqual(group.mechanism_telemetry, manifest_mod.PR6_MECHANISM_TELEMETRY)
         self.assertEqual(group.resource_telemetry, manifest_mod.PR6_RESOURCE_TELEMETRY)
+
+    def test_cuda_board_is_staged_and_fail_closed(self):
+        group = self.m.group_for_board("core_cuda")
+        self.assertFalse(group.enabled)
+        self.assertFalse(group.promotion_eligible)
+        self.assertIn("six Native AIR", group.disabled_reason)
+        self.assertEqual(group.report_schema, "native_cuda_product_v6")
+        self.assertEqual(group.correctness_oracle["authority"], "pinned-rust-stwo")
+        self.assertTrue(group.correctness_oracle["final_validator"])
+        self.assertEqual(self.m.workloads(board="core_cuda"), [])
+        staged = self.m.workloads(board="core_cuda", include_disabled=True)
+        self.assertEqual(len(staged), 10)
+        self.assertIn(
+            "cuda_wf_log22x100",
+            {workload.workload_id for workload in staged},
+        )
+        self.assertIn(
+            "--resource-profile extreme",
+            next(
+                workload.args
+                for workload in staged
+                if workload.workload_id == "cuda_wf_log22x100"
+            ),
+        )
 
     def test_extreme_profile_does_not_change_live_scored_classes(self):
         extreme = self.m.workload_class("extreme")
@@ -259,6 +289,18 @@ class RegistryValidationTest(unittest.TestCase):
 
     def test_grouped_registry_validates(self):
         manifest_mod._validate(self._base_raw())  # must not raise
+
+    def test_load_does_not_require_optional_cuda_group(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_dir = root / "autoresearch"
+            manifest_dir.mkdir()
+            (manifest_dir / "MANIFEST.json").write_text(
+                json.dumps(self._base_raw()),
+                encoding="utf-8",
+            )
+            loaded = manifest_mod.load(root)
+        self.assertEqual(loaded.group("native").board, "core_cpu")
 
     def test_flat_v1_registry_rejected_with_migration_hint(self):
         raw = self._base_raw()

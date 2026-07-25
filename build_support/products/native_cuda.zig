@@ -1,14 +1,16 @@
 //! Explicit Linux Native + CUDA product ownership.
 
 const std = @import("std");
+const build_identity = @import("../build_identity.zig");
 const cuda = @import("../backends/cuda.zig");
 const cuda_tools = @import("../backends/cuda_tools.zig");
+const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
-    "native-wide-fibonacci-v1+cuda-resident-proof-v1+explicit-toolchain-v1";
+    "native-examples-v1+cuda-resident-proof-v1+explicit-toolchain-v1";
 const toolchain_requirement =
     "the Native CUDA product requires -Dcuda-nvcc, -Dcuda-host-cxx, " ++
     "-Dcuda-host-runtime, -Dcuda-host-unwind-runtime, -Dcuda-ar, " ++
@@ -60,6 +62,12 @@ pub const descriptor = policy.Descriptor{
         "cuda-source-closure",
         "test-cuda-build-plan",
         "test-cuda-runtime-contract",
+        "test-cuda-plonk-logup-contract",
+        "test-cuda-xor-logup-contract",
+        "test-cuda-state-machine-contract",
+        "test-cuda-poseidon-arena-contract",
+        "test-cuda-blake-exact-structure",
+        "upstream-pins",
         "test-cuda-adapter",
         "run-native-cuda-smoke",
     },
@@ -75,6 +83,7 @@ pub const Context = struct {
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    identity: build_identity.Identity,
     protocol: graph.ProtocolModules,
 };
 
@@ -94,16 +103,8 @@ pub fn addProduct(context: Context) void {
         return;
     }
 
-    const stwo = createStwoModule(context);
-    const root = graph.create(context.b, .{
-        .product = descriptor.product,
-        .root_source_file = "src/products/native_cuda/main.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    context.protocol.addImports(root);
-    root.addImport("stwo", stwo);
-    root.addImport("stwo_native_cuda", stwo);
+    const stwo = createStwoModule(context, .library);
+    const root = createProductModule(context, descriptor.product, stwo);
 
     const installed = graph_install.executable(
         context.b,
@@ -139,34 +140,80 @@ pub fn addProduct(context: Context) void {
     run.addArg("--report-out");
     _ = run.addOutputFileArg("native-cuda-smoke-report.json");
     run.addArgs(&.{ "--repeat", "3" });
-    context.b.step(
+    const test_step = context.b.step(
         descriptor.test_step.?,
-        "Run the repeated Native CUDA resident proof smoke",
-    ).dependOn(&run.step);
+        "Run repeated Native CUDA resident proof smokes",
+    );
+    test_step.dependOn(&run.step);
+    const test_stwo = createStwoModule(context, .@"test");
+    const tests = context.b.addTest(.{
+        .root_module = createProductModule(
+            context,
+            product(.@"test"),
+            test_stwo,
+        ),
+    });
+    cuda.linkRuntime(tests, options.toolchain(), archive);
+    test_step.dependOn(&context.b.addRunArtifact(tests).step);
 
     const benchmark = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/native_cuda_diagnostic.py",
-        "--product-bin",
+        "scripts/native_cuda_benchmark.py",
+        "--candidate-bin",
     });
     benchmark.addFileArg(installed.executable.getEmittedBin());
-    benchmark.addArg("--output");
-    _ = benchmark.addOutputFileArg("native-cuda-diagnostic.json");
+    benchmark.addArgs(&.{ "--profile", "screen", "--output" });
+    _ = benchmark.addOutputFileArg("native-cuda-structural-screen.json");
     context.b.step(
         descriptor.benchmark_step.?,
-        "Run the fixed Native CUDA cold-process diagnostic matrix",
+        "Run the fail-closed Native CUDA structural screen",
     ).dependOn(&benchmark.step);
 }
 
-fn createStwoModule(context: Context) *std.Build.Module {
+fn createStwoModule(
+    context: Context,
+    role: graph.Role,
+) *std.Build.Module {
     const module = graph.create(context.b, .{
-        .product = product(.library),
+        .product = product(role),
         .root_source_file = "src/stwo.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
     return module;
+}
+
+fn createProductModule(
+    context: Context,
+    product_descriptor: graph.Product,
+    stwo: *std.Build.Module,
+) *std.Build.Module {
+    const root = graph.create(context.b, .{
+        .product = product_descriptor,
+        .root_source_file = "src/products/native_cuda/main.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(root);
+    root.addImport("stwo", stwo);
+    root.addImport("stwo_native_cuda", stwo);
+    root.addOptions(
+        "product_identity",
+        graph_identity.productOptionsWithRuntime(
+            context.b,
+            context.identity,
+            product_descriptor,
+            context.target,
+            context.optimize,
+            .{
+                .runtime_manifest = "cuda-process-runtime-v1",
+                .sdk_manifest = "cuda-explicit-toolchain-v1",
+                .aot_manifest = "cuda-authenticated-native-pack-v1",
+            },
+        ),
+    );
+    return root;
 }
 
 fn registerMissingToolchain(b: *std.Build) void {

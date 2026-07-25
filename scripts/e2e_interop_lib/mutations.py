@@ -35,6 +35,7 @@ class MutationSpec:
     field_path: str
     required_rejection_class: str
     apply: Callable[[dict[str, Any], str], None]
+    examples: tuple[str, ...] = SUPPORTED_EXAMPLES
 
 
 def _object(value: Any, label: str) -> dict[str, Any]:
@@ -83,12 +84,19 @@ def _mutate_qm31(value: Any, label: str) -> None:
 
 def _statement(artifact: dict[str, Any], example: str) -> None:
     statements = {
-        "blake": ("blake_statement", "n_rounds"),
         "plonk": ("plonk_statement", "log_n_rows"),
         "poseidon": ("poseidon_statement", "log_n_instances"),
         "xor": ("xor_statement", "offset"),
         "wide_fibonacci": ("wide_fibonacci_statement", "sequence_len"),
     }
+    if example == "blake":
+        statement = _object(artifact.get("blake_statement"), "blake_statement")
+        stmt1 = _object(statement.get("stmt1"), "blake_statement.stmt1")
+        _mutate_qm31(
+            stmt1.get("scheduler_claimed_sum"),
+            "blake_statement.stmt1.scheduler_claimed_sum",
+        )
+        return
     if example == "state_machine":
         statement = _object(artifact.get("state_machine_statement"), "state_machine_statement")
         public_input = _list(statement.get("public_input"), "state_machine_statement.public_input")
@@ -101,6 +109,37 @@ def _statement(artifact: dict[str, Any], example: str) -> None:
         raise MutationError(f"unsupported Native example {example}") from error
     statement = _object(artifact.get(statement_name), statement_name)
     statement[field] = int(statement.get(field, 0)) + 1
+
+
+def _plonk_logup_claimed_sum(artifact: dict[str, Any], example: str) -> None:
+    if example != "plonk_logup":
+        raise MutationError("claimed-sum mutation requires plonk_logup")
+    statement = _object(
+        artifact.get("plonk_logup_statement"), "plonk_logup_statement"
+    )
+    _mutate_qm31(statement.get("claimed_sum"), "plonk_logup_statement.claimed_sum")
+
+
+def _plonk_logup_log_size(artifact: dict[str, Any], example: str) -> None:
+    if example != "plonk_logup":
+        raise MutationError("log-size mutation requires plonk_logup")
+    statement = _object(
+        artifact.get("plonk_logup_statement"), "plonk_logup_statement"
+    )
+    statement["log_n_rows"] = int(statement.get("log_n_rows", 0)) + 1
+
+
+def _plonk_logup_statement_exclusivity(
+    artifact: dict[str, Any], example: str
+) -> None:
+    if example != "plonk_logup":
+        raise MutationError("statement-exclusivity mutation requires plonk_logup")
+    if artifact.get("plonk_statement") is not None:
+        raise MutationError("plonk_statement is already present")
+    statement = _object(
+        artifact.get("plonk_logup_statement"), "plonk_logup_statement"
+    )
+    artifact["plonk_statement"] = {"log_n_rows": int(statement["log_n_rows"])}
 
 
 def _proof_metadata(artifact: dict[str, Any], _example: str) -> None:
@@ -241,6 +280,64 @@ def _proof_config(wire: dict[str, Any]) -> None:
     fri["n_queries"] = int(fri.get("n_queries", 0)) + 1
 
 
+def _xor_statement_integer(field: str) -> Callable[[dict[str, Any], str], None]:
+    def apply(artifact: dict[str, Any], _example: str) -> None:
+        statement = _object(artifact.get("xor_statement"), "xor_statement")
+        statement[field] = int(statement.get(field, 0)) + 1
+
+    return apply
+
+
+def _xor_claimed_sum(artifact: dict[str, Any], _example: str) -> None:
+    statement = _object(artifact.get("xor_statement"), "xor_statement")
+    _mutate_qm31(statement.get("claimed_sum"), "xor_statement.claimed_sum")
+
+
+def _state_machine_stmt0(field: str) -> Callable[[dict[str, Any], str], None]:
+    def apply(artifact: dict[str, Any], _example: str) -> None:
+        statement = _object(
+            artifact.get("state_machine_statement"), "state_machine_statement"
+        )
+        stmt0 = _object(statement.get("stmt0"), "state_machine_statement.stmt0")
+        stmt0[field] = int(stmt0.get(field, 0)) + 1
+
+    return apply
+
+
+def _state_machine_claim(field: str) -> Callable[[dict[str, Any], str], None]:
+    def apply(artifact: dict[str, Any], _example: str) -> None:
+        statement = _object(
+            artifact.get("state_machine_statement"), "state_machine_statement"
+        )
+        stmt1 = _object(statement.get("stmt1"), "state_machine_statement.stmt1")
+        _mutate_qm31(stmt1.get(field), f"state_machine_statement.stmt1.{field}")
+
+    return apply
+
+
+def _state_machine_initial(artifact: dict[str, Any], _example: str) -> None:
+    statement = _object(
+        artifact.get("state_machine_statement"), "state_machine_statement"
+    )
+    public_input = _list(
+        statement.get("public_input"), "state_machine_statement.public_input"
+    )
+    initial = _list(public_input[0], "state_machine_statement.public_input[0]")
+    initial[0] = (int(initial[0]) + 1) % M31_MODULUS
+
+
+def _commitment_count_missing(wire: dict[str, Any]) -> None:
+    commitments = _list(wire.get("commitments"), "commitments")
+    if len(commitments) < 2:
+        raise MutationError("commitments must contain at least two entries")
+    commitments.pop()
+
+
+def _commitment_count_extra(wire: dict[str, Any]) -> None:
+    commitments = _list(wire.get("commitments"), "commitments")
+    commitments.append(copy.deepcopy(commitments[-1]))
+
+
 ACTIVE_MUTATIONS = (
     MutationSpec("statement", "statement", "<example>_statement", REJECTION_CLASS_VERIFIER, _statement),
     MutationSpec("proof_metadata_prove_mode", "proof_metadata", "prove_mode", REJECTION_CLASS_METADATA, _proof_metadata),
@@ -259,7 +356,56 @@ ACTIVE_MUTATIONS = (
     MutationSpec("outer_fold_step", "protocol_config", "pcs_config.fri_config.fold_step", REJECTION_CLASS_VERIFIER, _outer_fold_step),
     MutationSpec("outer_lifting_log_size", "protocol_config", "pcs_config.lifting_log_size", REJECTION_CLASS_VERIFIER, _outer_lifting_log_size),
     MutationSpec("proof_pcs_config", "protocol_config", "proof.config.fri_config.n_queries", REJECTION_CLASS_VERIFIER, _wire_mutation(_proof_config)),
+    MutationSpec("xor_statement_log_size", "statement", "xor_statement.log_size", REJECTION_CLASS_VERIFIER, _xor_statement_integer("log_size"), ("xor",)),
+    MutationSpec("xor_statement_log_step", "statement", "xor_statement.log_step", REJECTION_CLASS_VERIFIER, _xor_statement_integer("log_step"), ("xor",)),
+    MutationSpec("xor_statement_claimed_sum", "statement", "xor_statement.claimed_sum", REJECTION_CLASS_VERIFIER, _xor_claimed_sum, ("xor",)),
+    MutationSpec("xor_commitment_count_missing", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_missing), ("xor",)),
+    MutationSpec("xor_commitment_count_extra", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_extra), ("xor",)),
+    MutationSpec("state_machine_stmt0_n", "statement", "state_machine_statement.stmt0.n", REJECTION_CLASS_VERIFIER, _state_machine_stmt0("n"), ("state_machine",)),
+    MutationSpec("state_machine_stmt0_m", "statement", "state_machine_statement.stmt0.m", REJECTION_CLASS_VERIFIER, _state_machine_stmt0("m"), ("state_machine",)),
+    MutationSpec("state_machine_initial_state", "statement", "state_machine_statement.public_input[0][0]", REJECTION_CLASS_VERIFIER, _state_machine_initial, ("state_machine",)),
+    MutationSpec("state_machine_x_axis_claimed_sum", "statement", "state_machine_statement.stmt1.x_axis_claimed_sum", REJECTION_CLASS_VERIFIER, _state_machine_claim("x_axis_claimed_sum"), ("state_machine",)),
+    MutationSpec("state_machine_y_axis_claimed_sum", "statement", "state_machine_statement.stmt1.y_axis_claimed_sum", REJECTION_CLASS_VERIFIER, _state_machine_claim("y_axis_claimed_sum"), ("state_machine",)),
+    MutationSpec("state_machine_commitment_count_missing", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_missing), ("state_machine",)),
+    MutationSpec("state_machine_commitment_count_extra", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_extra), ("state_machine",)),
 )
+
+PLONK_LOGUP_ORACLE_MUTATIONS = (
+    MutationSpec(
+        "plonk_logup_claimed_sum",
+        "statement",
+        "plonk_logup_statement.claimed_sum",
+        REJECTION_CLASS_VERIFIER,
+        _plonk_logup_claimed_sum,
+    ),
+    MutationSpec(
+        "plonk_logup_log_size",
+        "statement",
+        "plonk_logup_statement.log_n_rows",
+        REJECTION_CLASS_VERIFIER,
+        _plonk_logup_log_size,
+    ),
+    MutationSpec(
+        "plonk_logup_statement_exclusivity",
+        "statement_shape",
+        "plonk_statement",
+        REJECTION_CLASS_VERIFIER,
+        _plonk_logup_statement_exclusivity,
+    ),
+    MutationSpec(
+        "plonk_logup_proof_commitment",
+        "proof_bytes",
+        "proof.commitments[0][0]",
+        REJECTION_CLASS_VERIFIER,
+        _wire_mutation(_commitment),
+    ),
+)
+
+
+def mutations_for_example(example: str) -> tuple[MutationSpec, ...]:
+    if example not in SUPPORTED_EXAMPLES:
+        raise MutationError(f"unsupported Native example {example}")
+    return tuple(spec for spec in ACTIVE_MUTATIONS if example in spec.examples)
 
 
 NOT_APPLICABLE_COVERAGE = (
@@ -294,22 +440,50 @@ def coverage_manifest(examples: tuple[str, ...] | list[str]) -> dict[str, Any]:
     unknown = sorted(set(selected) - set(SUPPORTED_EXAMPLES))
     if unknown:
         raise MutationError(f"unsupported examples in coverage manifest: {unknown}")
-    applicable = [
-        {
-            "mutation_id": spec.mutation_id,
-            "category": spec.category,
-            "field_path": spec.field_path,
-            "status": "required",
-            "required_rejection_class": spec.required_rejection_class,
-            "examples": selected,
-            "directions": ["rust_to_zig", "zig_to_rust"],
-        }
-        for spec in ACTIVE_MUTATIONS
-    ]
+    applicable = []
+    required_cases = 0
+    for spec in ACTIVE_MUTATIONS:
+        applicable_examples = [
+            example for example in selected if example in spec.examples
+        ]
+        if not applicable_examples:
+            continue
+        applicable.append(
+            {
+                "mutation_id": spec.mutation_id,
+                "category": spec.category,
+                "field_path": spec.field_path,
+                "status": "required",
+                "required_rejection_class": spec.required_rejection_class,
+                "examples": applicable_examples,
+                "directions": ["rust_to_zig", "zig_to_rust"],
+            }
+        )
+        required_cases += len(applicable_examples) * 2
     not_applicable = [dict(item, examples=selected) for item in NOT_APPLICABLE_COVERAGE]
     return {
         "proof_schema": NATIVE_PROOF_SCHEMA,
         "applicable": applicable,
         "not_applicable": not_applicable,
-        "required_cases": len(selected) * 2 * len(applicable),
+        "required_cases": required_cases,
+    }
+
+
+def plonk_logup_oracle_coverage_manifest() -> dict[str, Any]:
+    return {
+        "proof_schema": NATIVE_PROOF_SCHEMA,
+        "applicable": [
+            {
+                "mutation_id": spec.mutation_id,
+                "category": spec.category,
+                "field_path": spec.field_path,
+                "status": "required",
+                "required_rejection_class": spec.required_rejection_class,
+                "examples": ["plonk_logup"],
+                "directions": ["zig_to_rust"],
+            }
+            for spec in PLONK_LOGUP_ORACLE_MUTATIONS
+        ],
+        "not_applicable": [],
+        "required_cases": len(PLONK_LOGUP_ORACLE_MUTATIONS),
     }

@@ -76,6 +76,14 @@ def catalog_fixture() -> dict[str, object]:
                 "src/products/native_cuda",
                 state="staged",
             ),
+            product(
+                "cairo_cuda",
+                "src/backends/cuda",
+                "src/frontends/cairo",
+                "src/integrations/cairo_cuda",
+                "src/products/cairo_cuda",
+                state="staged",
+            ),
         ],
     }
 
@@ -168,7 +176,18 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("scripts/cuda_proof_parity_gate.py", command)
         self.assertIn("--rust-verifier-sha256", command)
         self.assertIn("--repeat 3", command)
+        self.assertIn("--air poseidon", command)
+        self.assertIn("--execution-mode graphs", command)
+        self.assertIn("--execution-mode direct", command)
+        self.assertIn("native-cuda-poseidon-graphs/receipt.json", command)
+        self.assertIn("native-cuda-poseidon-direct/receipt.json", command)
         self.assertIn("nvidia-smi", command)
+
+    def test_cairo_cuda_scope_has_a_host_only_contract_lane(self) -> None:
+        self.assertEqual(
+            {"static", "native_cuda_static"},
+            self.lanes_for("src/integrations/cairo_cuda/executor/mod.zig"),
+        )
 
     def test_metal_shader_selects_aot_but_runtime_does_not(self) -> None:
         shader = self.lanes_for(

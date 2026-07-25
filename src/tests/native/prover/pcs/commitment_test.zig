@@ -307,7 +307,7 @@ test "prover pcs: prove values deinitializes scheme before sample transfer" {
     );
 }
 
-test "prover pcs: build query positions tree applies preprocessed mapping" {
+test "prover pcs: build query positions tree maps every heterogeneous and empty tree" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
@@ -343,9 +343,19 @@ test "prover pcs: build query positions tree applies preprocessed mapping" {
         &channel,
     );
 
+    const interaction_col = [_]M31{ M31.fromCanonical(9), M31.fromCanonical(10) };
+    try scheme.commit(
+        alloc,
+        &[_]ColumnEvaluation{.{ .log_size = 1, .values = interaction_col[0..] }},
+        &channel,
+    );
+    try scheme.commit(alloc, &.{}, &channel);
+
     const query_positions = [_]usize{ 0, 1, 5, 6 };
     const lifting_log_size = @as(u32, 3) + scheme.config.fri_config.log_blowup_factor;
     const pp_max_log_size = @as(u32, 2) + scheme.config.fri_config.log_blowup_factor;
+    const interaction_max_log_size = @as(u32, 1) +
+        scheme.config.fri_config.log_blowup_factor;
     var tree_queries = try scheme.buildQueryPositionsTree(alloc, query_positions[0..], lifting_log_size);
     defer tree_queries.deinitDeep(alloc);
 
@@ -356,10 +366,23 @@ test "prover pcs: build query positions tree applies preprocessed mapping" {
         pp_max_log_size,
     );
     defer alloc.free(expected_pp);
+    const expected_interaction = try pcs_utils.prepareTreeQueryPositions(
+        alloc,
+        query_positions[0..],
+        lifting_log_size,
+        interaction_max_log_size,
+    );
+    defer alloc.free(expected_interaction);
 
-    try std.testing.expectEqual(@as(usize, 2), tree_queries.items.len);
+    try std.testing.expectEqual(@as(usize, 4), tree_queries.items.len);
     try std.testing.expectEqualSlices(usize, expected_pp, tree_queries.items[0]);
     try std.testing.expectEqualSlices(usize, query_positions[0..], tree_queries.items[1]);
+    try std.testing.expectEqualSlices(
+        usize,
+        expected_interaction,
+        tree_queries.items[2],
+    );
+    try std.testing.expectEqual(@as(usize, 0), tree_queries.items[3].len);
 }
 
 test "prover pcs: decommit by tree positions verifies" {

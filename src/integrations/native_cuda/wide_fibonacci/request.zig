@@ -66,6 +66,14 @@ pub const Geometry = struct {
     pub fn queryLogSize(self: Geometry) u32 {
         return self.statement.log_n_rows + self.protocol.log_blowup_factor;
     }
+
+    pub fn powBits(self: Geometry) u32 {
+        return self.protocol.pow_bits;
+    }
+
+    pub fn lastLayerDegreeBound(self: Geometry) u32 {
+        return self.protocol.log_last_layer_degree_bound;
+    }
 };
 
 /// Native CUDA v1 intentionally admits the exact pinned-Rust protocol used by

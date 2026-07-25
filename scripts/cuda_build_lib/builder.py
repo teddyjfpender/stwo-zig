@@ -15,10 +15,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
-from .aot_identity import validate_native_aot_identity
 from .aot_pack import ABI_SCHEMAS, AotPackError, write_aot_carriers, write_aot_pack
 from .errors import BuildError
 from .native_closure import load_native_closure
+from .product_selection import (
+    MODULE_GLOBAL_REQUIREMENTS,
+    ProductSelection,
+    load_product_selection,
+    validate_aot_manifest,
+)
 
 
 SCHEMA = "stwo-zig-cuda-native-build-v1"
@@ -28,10 +33,6 @@ PLAN_NAME = "cuda_build_plan.json"
 AOT_PACK_NAME = "cuda_aot_pack.bin"
 GENERATED = "generated"
 SM_RE = re.compile(r"^(?:sm_)?([1-9][0-9])$")
-IDENTITY_64_RE = re.compile(r"^[0-9a-f]{16}$")
-IDENTITY_256_RE = re.compile(r"^[0-9a-f]{64}$")
-KERNEL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-LABEL_RE = re.compile(r"^[a-z0-9_]+$")
 ORDINARY_FIXED_FLAGS = (
     "-dc",
     "-O3",
@@ -83,15 +84,6 @@ class BuildConfig:
     toolchain: Toolchain
 
 
-@dataclass(frozen=True)
-class ProductSelection:
-    manifest_sha256: str
-    ordinary_sources: tuple[Path, ...]
-    aot_sources: tuple[Path, ...]
-    aot_manifest: tuple[dict[str, object], ...]
-    aot_closure_sha256: str
-
-
 def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
     result: set[int] = set()
     for raw in values:
@@ -105,64 +97,6 @@ def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
     if not result:
         raise BuildError("at least one explicit CUDA architecture is required")
     return tuple(sorted(result))
-
-
-def load_product_selection(
-    config: BuildConfig,
-    authority: SourceClosure,
-) -> ProductSelection:
-    try:
-        payload = config.product_manifest.read_bytes()
-        product = json.loads(payload)
-    except (OSError, json.JSONDecodeError) as error:
-        raise BuildError(f"cannot read CUDA product manifest: {error}") from error
-    if product.get("schema") != "stwo-zig-cuda-product-closure-v1":
-        raise BuildError("unsupported CUDA product-closure manifest")
-    if product.get("source_authority_sha256") != authority.closure_sha256:
-        raise BuildError("CUDA product selection is stale against its source authority")
-    ordinary = product.get("ordinary")
-    if not isinstance(ordinary, dict):
-        raise BuildError("CUDA product ordinary source selection is absent")
-    selected = ordinary.get("product_sources")
-    candidates = ordinary.get("resident_candidates")
-    if (
-        not isinstance(selected, list)
-        or selected != sorted(set(selected))
-        or not isinstance(candidates, list)
-        or candidates != sorted(set(candidates))
-        or not set(selected).issubset(candidates)
-    ):
-        raise BuildError("CUDA product sources must be a sorted candidate subset")
-    ordinary_sources = tuple(authority.root / str(path) for path in selected)
-    if any(not path.is_file() for path in ordinary_sources):
-        raise BuildError("CUDA resident source selection names an absent authority file")
-
-    aot_root = config.native_aot_root.resolve()
-    aot_manifest_path = aot_root / "aot_manifest.json"
-    try:
-        aot_manifest = json.loads(aot_manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise BuildError(f"cannot read Native AOT manifest: {error}") from error
-    validate_aot_manifest(aot_root, aot_manifest, allow_empty=True)
-    aot_sources = tuple(aot_root / str(entry["file"]) for entry in aot_manifest)
-    aot_closure = hashlib.sha256()
-    manifest_payload = canonical_json_bytes(aot_manifest)
-    aot_closure.update(len(manifest_payload).to_bytes(8, "little"))
-    aot_closure.update(manifest_payload)
-    for source in aot_sources:
-        relative = source.relative_to(aot_root).as_posix().encode("utf-8")
-        source_payload = source.read_bytes()
-        aot_closure.update(len(relative).to_bytes(8, "little"))
-        aot_closure.update(relative)
-        aot_closure.update(len(source_payload).to_bytes(8, "little"))
-        aot_closure.update(source_payload)
-    return ProductSelection(
-        manifest_sha256=hashlib.sha256(payload).hexdigest(),
-        ordinary_sources=ordinary_sources,
-        aot_sources=aot_sources,
-        aot_manifest=tuple(aot_manifest),
-        aot_closure_sha256=aot_closure.hexdigest(),
-    )
 
 
 def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure:
@@ -239,78 +173,6 @@ def load_source_closure(source_root: Path, manifest_path: Path) -> SourceClosure
         include_dirs=include_dirs,
         aot_manifest=tuple(aot_manifest),
     )
-
-
-def validate_aot_manifest(
-    generated_dir: Path,
-    manifest: object,
-    allow_empty: bool = False,
-) -> None:
-    if not isinstance(manifest, list) or (not manifest and not allow_empty):
-        raise BuildError("AOT manifest must be an array with the required entries")
-    seen_files: set[str] = set()
-    seen_keys: set[int] = set()
-    previous: tuple[str, str, int] | None = None
-    required = {
-        "kind",
-        "label",
-        "abi_schema",
-        "kernel_name",
-        "cache_key",
-        "semantic_hash",
-        "program_identity",
-        "file",
-    }
-    for index, raw in enumerate(manifest):
-        if not isinstance(raw, dict) or not required.issubset(raw):
-            raise BuildError(f"AOT manifest entry {index} is incomplete")
-        kind = str(raw["kind"])
-        label = str(raw["label"])
-        abi_schema = str(raw["abi_schema"])
-        kernel_name = str(raw["kernel_name"])
-        cache_key_hex = str(raw["cache_key"])
-        semantic_hash = str(raw["semantic_hash"])
-        program_identity = str(raw["program_identity"])
-        file_name = str(raw["file"])
-        if kind not in {"constraint", "witness"}:
-            raise BuildError(f"AOT manifest entry {index} has invalid kind")
-        if abi_schema not in ABI_SCHEMAS:
-            raise BuildError(f"AOT manifest entry {index} has invalid ABI schema")
-        if (
-            LABEL_RE.fullmatch(label) is None
-            or KERNEL_RE.fullmatch(kernel_name) is None
-            or IDENTITY_64_RE.fullmatch(cache_key_hex) is None
-            or IDENTITY_64_RE.fullmatch(semantic_hash) is None
-            or IDENTITY_256_RE.fullmatch(program_identity) is None
-        ):
-            raise BuildError(f"AOT manifest entry {index} has invalid identity syntax")
-        try:
-            cache_key = int(cache_key_hex, 16)
-            semantic_key = int(semantic_hash, 16)
-        except ValueError as error:
-            raise BuildError(f"AOT manifest entry {index} has invalid hex identity") from error
-        if cache_key == 0 or semantic_key == 0:
-            raise BuildError(f"AOT manifest entry {index} has a zero identity")
-        expected_name = f"{kind}_{label}_{cache_key:016x}.cu"
-        if (
-            file_name != expected_name
-            or Path(file_name).name != file_name
-            or file_name in seen_files
-            or cache_key in seen_keys
-        ):
-            raise BuildError(f"AOT manifest entry {index} is non-canonical")
-        order = (kind, label, cache_key)
-        if previous is not None and previous >= order:
-            raise BuildError("AOT manifest order is not canonical")
-        if not (generated_dir / file_name).is_file():
-            raise BuildError(f"copied AOT source is absent: {file_name}")
-        validate_native_aot_identity(generated_dir, raw, required, index)
-        previous = order
-        seen_files.add(file_name)
-        seen_keys.add(cache_key)
-    copied = {path.name for path in generated_dir.glob("*.cu")}
-    if copied != seen_files:
-        raise BuildError("copied generated CUDA sources do not match the AOT manifest")
 
 
 def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
@@ -624,11 +486,15 @@ def compile_aot(
     plan: dict[str, object],
     output: Path,
 ) -> list[dict[str, object]]:
-    source_by_name = {path.name: path for path in product.aot_sources}
+    if len(product.aot_sources) != len(product.aot_manifest):
+        raise BuildError("CUDA AOT product sources lost manifest order")
     jobs: list[tuple[list[str], Path]] = []
     entries: list[dict[str, object]] = []
-    for metadata in product.aot_manifest:
-        source = source_by_name[str(metadata["file"])]
+    for metadata, source in zip(
+        product.aot_manifest,
+        product.aot_sources,
+        strict=True,
+    ):
         for sm in config.toolchain.sms:
             key = hashlib.sha256(
                 (
@@ -645,6 +511,9 @@ def compile_aot(
                     "cache_key": int(str(metadata["cache_key"]), 16),
                     "sm": sm,
                     "kernel_name": str(metadata["kernel_name"]),
+                    "module_globals": MODULE_GLOBAL_REQUIREMENTS[
+                        str(metadata["module_globals"])
+                    ],
                     "abi_schema": ABI_SCHEMAS[str(metadata["abi_schema"])],
                     "source": source.name,
                     "cubin": destination,

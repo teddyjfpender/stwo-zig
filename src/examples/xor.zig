@@ -1,7 +1,11 @@
+//! Repo-defined Native XOR truth-table lookup protocol.
+//!
+//! Upstream Stwo's XOR example supplies GKR/MLE preprocessed-column utilities,
+//! not a STARK AIR. This module therefore defines the AIR explicitly and keeps
+//! a byte-identical implementation in the pinned Rust correctness oracle.
+
 const std = @import("std");
-const core_air_accumulation = @import("stwo_core").air.accumulation;
 const core_air_components = @import("stwo_core").air.components;
-const core_air_derive = @import("stwo_core").air.derive;
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
@@ -10,12 +14,12 @@ const pcs_verifier = @import("stwo_core").pcs.verifier;
 const core_proof = @import("stwo_core").proof;
 const core_verifier = @import("stwo_core").verifier;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
 const prover_component = @import("stwo_prover_impl").air.component_prover;
 const prover_engine = @import("stwo_prover_impl").engine;
 const stage_profile = @import("stwo_prover_impl").stage_profile;
-const secure_column = @import("stwo_prover_impl").secure_column;
 const prover_transaction = @import("common/prover_transaction.zig");
+const component_mod = @import("xor/component.zig");
+const interaction = @import("xor/interaction.zig");
 const trace_input = @import("xor/input.zig");
 const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
 
@@ -33,6 +37,8 @@ pub const CpuProverEngine = prover_engine.ProverEngine(
     MerkleChannel,
     Channel,
 );
+pub const protocol_name = "raw-stwo-xor-lookup-v2";
+const PROOF_COMMITMENTS: usize = 4;
 
 pub fn ProverEngineForBackend(comptime Backend: type) type {
     return prover_engine.ProverEngine(Backend, Hasher, MerkleChannel, Channel);
@@ -59,6 +65,7 @@ pub const genIsStepWithOffsetColumn = trace_input.genIsStepWithOffsetColumn;
 pub const Statement = trace_input.Statement;
 pub const PreparedInput = trace_input.PreparedInput;
 pub const prepareInput = trace_input.prepare;
+pub const validateStatement = trace_input.validate;
 
 pub const ProveOutput = struct {
     statement: Statement,
@@ -355,17 +362,12 @@ pub fn verify(
     statement: Statement,
     proof_in: Proof,
 ) anyerror!void {
-    if (statement.log_size == 0) {
-        var proof = proof_in;
-        proof.deinit(allocator);
-        return Error.InvalidLogSize;
-    }
-    if (statement.log_step > statement.log_size) {
-        var proof = proof_in;
-        proof.deinit(allocator);
-        return Error.InvalidStep;
-    }
-    if (proof_in.commitment_scheme_proof.commitments.items.len < 2) {
+    trace_input.validate(statement) catch |err| {
+        var invalid = proof_in;
+        invalid.deinit(allocator);
+        return err;
+    };
+    if (proof_in.commitment_scheme_proof.commitments.items.len != PROOF_COMMITMENTS) {
         var proof = proof_in;
         proof.deinit(allocator);
         return Error.InvalidProofShape;
@@ -387,20 +389,29 @@ pub fn verify(
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[0],
-        &[_]u32{ statement.log_size, statement.log_size },
+        &([_]u32{statement.log_size} ** trace_input.PREPROCESSED_COLUMNS),
         &channel,
     );
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[1],
-        &[_]u32{statement.log_size},
+        &([_]u32{statement.log_size} ** trace_input.MAIN_COLUMNS),
+        &channel,
+    );
+    const lookup_elements = try interaction.LookupElements.draw(allocator, &channel);
+    try commitment_scheme.commit(
+        allocator,
+        proof.commitment_scheme_proof.commitments.items[2],
+        &([_]u32{statement.log_size} ** interaction.N_COLUMNS),
         &channel,
     );
 
     mixStatement(&channel, statement);
 
-    const component = XorExampleComponent{
-        .statement = statement,
+    const component = component_mod.Component{
+        .log_size = statement.log_size,
+        .lookup_elements = lookup_elements,
+        .claimed_sum = statement.claimed_sum,
     };
     const verifier_components = [_]core_air_components.Component{
         component.asVerifierComponent(),
@@ -418,123 +429,15 @@ pub fn verify(
     );
 }
 
-const XorExampleComponent = struct {
-    statement: Statement,
-
-    const Adapter = core_air_derive.ComponentAdapter(
-        @This(),
-        prover_component.ComponentProver,
-        prover_component.Trace,
-        prover_air_accumulation.DomainEvaluationAccumulator,
-    );
-
-    fn asVerifierComponent(self: *const @This()) core_air_components.Component {
-        return Adapter.asVerifierComponent(self);
-    }
-
-    fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
-        return Adapter.asProverComponent(self);
-    }
-
-    pub fn nConstraints(_: *const @This()) usize {
-        return 1;
-    }
-
-    pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
-        return self.statement.log_size + 1;
-    }
-
-    pub fn traceLogDegreeBounds(
-        self: *const @This(),
-        allocator: std.mem.Allocator,
-    ) !core_air_components.TraceLogDegreeBounds {
-        const preprocessed = try allocator.dupe(u32, &[_]u32{
-            self.statement.log_size,
-            self.statement.log_size,
-        });
-        const main = try allocator.dupe(u32, &[_]u32{
-            self.statement.log_size,
-        });
-        return core_air_components.TraceLogDegreeBounds.initOwned(
-            try allocator.dupe([]u32, &[_][]u32{
-                preprocessed,
-                main,
-            }),
-        );
-    }
-
-    pub fn maskPoints(
-        _: *const @This(),
-        allocator: std.mem.Allocator,
-        point: CirclePointQM31,
-        _: u32,
-    ) !core_air_components.MaskPoints {
-        const preprocessed_col0 = try allocator.alloc(CirclePointQM31, 0);
-        const preprocessed_col1 = try allocator.alloc(CirclePointQM31, 0);
-        const preprocessed_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
-            preprocessed_col0,
-            preprocessed_col1,
-        });
-
-        const main_col = try allocator.alloc(CirclePointQM31, 1);
-        main_col[0] = point;
-        const main_cols = try allocator.dupe([]CirclePointQM31, &[_][]CirclePointQM31{
-            main_col,
-        });
-
-        return core_air_components.MaskPoints.initOwned(
-            try allocator.dupe([][]CirclePointQM31, &[_][][]CirclePointQM31{
-                preprocessed_cols,
-                main_cols,
-            }),
-        );
-    }
-
-    pub fn preprocessedColumnIndices(
-        _: *const @This(),
-        allocator: std.mem.Allocator,
-    ) ![]usize {
-        return allocator.dupe(usize, &[_]usize{ 0, 1 });
-    }
-
-    pub fn evaluateConstraintQuotientsAtPoint(
-        self: *const @This(),
-        _: CirclePointQM31,
-        _: *const core_air_components.MaskValues,
-        evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
-        _: u32,
-    ) !void {
-        evaluation_accumulator.accumulate(compositionEval(self.statement));
-    }
-
-    pub fn evaluateConstraintQuotientsOnDomain(
-        self: *const @This(),
-        _: *const prover_component.Trace,
-        evaluation_accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
-    ) !void {
-        const composition_eval = compositionEval(self.statement);
-        const domain_size = @as(usize, 1) << @intCast(self.statement.log_size + 1);
-        const values = try evaluation_accumulator.allocator.alloc(QM31, domain_size);
-        defer evaluation_accumulator.allocator.free(values);
-        @memset(values, composition_eval);
-
-        var col = try secure_column.SecureColumnByCoords.fromSecureSlice(
-            evaluation_accumulator.allocator,
-            values,
-        );
-        defer col.deinit(evaluation_accumulator.allocator);
-        try evaluation_accumulator.accumulateColumn(self.statement.log_size + 1, &col);
-    }
-};
-
 const ProvingSpec = struct {
     pub const Statement = trace_input.Statement;
     pub const PreparedInput = trace_input.PreparedInput;
+    pub const PreparedInteraction = interaction.PreparedInteraction;
     pub const max_components: usize = 1;
 
     pub const ProverContext = struct {
         statement_value: trace_input.Statement,
-        component: XorExampleComponent,
+        component: component_mod.Component,
     };
 
     pub fn validateRequest(request: trace_input.Statement) Error!void {
@@ -546,14 +449,19 @@ const ProvingSpec = struct {
             return error.PreparedInputConsumed;
         const main = prepared.trace.main.columns orelse
             return error.PreparedInputConsumed;
-        if (preprocessed.len != 2 or main.len != 1)
+        if (preprocessed.len != trace_input.PREPROCESSED_COLUMNS or
+            main.len != trace_input.MAIN_COLUMNS)
+        {
             return error.InvalidPreparedGeometry;
+        }
         for (preprocessed) |column| {
             if (column.log_size != prepared.request.log_size)
                 return error.InvalidPreparedGeometry;
         }
-        if (main[0].log_size != prepared.request.log_size)
-            return error.InvalidPreparedGeometry;
+        for (main) |column| {
+            if (column.log_size != prepared.request.log_size)
+                return error.InvalidPreparedGeometry;
+        }
     }
 
     pub fn compositionLog(request: trace_input.Statement) Error!u32 {
@@ -561,15 +469,39 @@ const ProvingSpec = struct {
             return error.InvalidLogSize;
     }
 
+    pub fn prepareInteraction(
+        allocator: std.mem.Allocator,
+        channel: *Channel,
+        prepared: *const trace_input.PreparedInput,
+    ) !PreparedInteraction {
+        return interaction.generate(allocator, channel, prepared);
+    }
+
+    pub fn deinitPreparedInteraction(
+        prepared: *PreparedInteraction,
+        allocator: std.mem.Allocator,
+    ) void {
+        prepared.deinit(allocator);
+    }
+
     pub fn initProverContext(
         out: *ProverContext,
         channel: *Channel,
         request: trace_input.Statement,
+        prepared_interaction: *const PreparedInteraction,
     ) !void {
-        mixStatement(channel, request);
+        if (!prepared_interaction.claimed_sum.eql(QM31.zero()))
+            return error.InvalidClaimedSum;
+        var statement_value = request;
+        statement_value.claimed_sum = prepared_interaction.claimed_sum;
+        mixStatement(channel, statement_value);
         out.* = .{
-            .statement_value = request,
-            .component = .{ .statement = request },
+            .statement_value = statement_value,
+            .component = .{
+                .log_size = request.log_size,
+                .lookup_elements = prepared_interaction.lookup_elements,
+                .claimed_sum = prepared_interaction.claimed_sum,
+            },
         };
     }
 
@@ -587,21 +519,13 @@ const ProvingSpec = struct {
     }
 };
 
-fn compositionEval(statement: Statement) QM31 {
-    return QM31.fromM31(
-        M31.fromCanonical(statement.log_size),
-        M31.fromCanonical(statement.log_step),
-        M31.fromU64(@intCast(statement.offset)),
-        M31.one(),
-    );
-}
-
 fn mixStatement(channel: *Channel, statement: Statement) void {
     channel.mixU32s(&[_]u32{
         statement.log_size,
         statement.log_step,
     });
     channel.mixU64(@intCast(statement.offset));
+    channel.mixFelts(&.{statement.claimed_sum});
 }
 
 test "examples xor: is_first has exactly one leading one" {
@@ -635,6 +559,10 @@ test "examples xor: prove/verify wrapper roundtrip" {
     };
 
     const output = try prove(std.testing.allocator, config, statement);
+    try std.testing.expectEqual(
+        PROOF_COMMITMENTS,
+        output.proof.commitment_scheme_proof.commitments.items.len,
+    );
     try verify(std.testing.allocator, config, output.statement, output.proof);
 }
 
@@ -707,4 +635,23 @@ test "examples xor: verify wrapper rejects statement mismatch" {
                 err == verification_error.ShapeMismatch,
         );
     }
+}
+
+test "examples xor: verifier rejects a mutated lookup claimed sum" {
+    const allocator = std.testing.allocator;
+    const config = pcs_core.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("stwo_core").fri.FriConfig.init(0, 1, 3),
+    };
+    const output = try prove(allocator, config, .{
+        .log_size = 5,
+        .log_step = 2,
+        .offset = 3,
+    });
+    var bad_statement = output.statement;
+    bad_statement.claimed_sum = QM31.one();
+    try std.testing.expectError(
+        error.InvalidClaimedSum,
+        verify(allocator, config, bad_statement, output.proof),
+    );
 }

@@ -161,7 +161,7 @@ test "field vectors: examples state machine lookup draw parity" {
         var channel = Channel{};
         channel.mixU64(v.mix_u64);
         channel.mixU32s(v.mix_u32s);
-        const elements = example_state_machine_mod.Elements.draw(&channel);
+        const elements = try example_state_machine_mod.Elements.draw(alloc, &channel);
         try std.testing.expect(elements.z.eql(qm31From(v.z)));
         try std.testing.expect(elements.alpha.eql(qm31From(v.alpha)));
 
@@ -169,7 +169,7 @@ test "field vectors: examples state machine lookup draw parity" {
             var altered_channel = Channel{};
             altered_channel.mixU64(v.mix_u64 +% 1);
             altered_channel.mixU32s(v.mix_u32s);
-            const altered = example_state_machine_mod.Elements.draw(&altered_channel);
+            const altered = try example_state_machine_mod.Elements.draw(alloc, &altered_channel);
             try std.testing.expect(!altered.z.eql(elements.z) or !altered.alpha.eql(elements.alpha));
         }
     }

@@ -1,0 +1,154 @@
+{
+  "schema": "stwo-zig-cuda-mixed-service-evidence-v1",
+  "verdict": "pass_diagnostic_unjudged",
+  "captured_at": "2026-07-24T20:16:00Z",
+  "report": {
+    "path": "report.json",
+    "sha256": "075760f14ba56bcf7417fac57aaf10cca477ef639013ac6b910bb7df1ef0c011",
+    "schema": "native_cuda_mixed_service_v1",
+    "published_before_oracle_receipts": true
+  },
+  "product": {
+    "commit": "71bda1cd41a8a539554524d4c9e7401274c4b563",
+    "tree": "0331bee2fa5accd6a66f503918c237d6dd8134b9",
+    "dirty": false,
+    "identity_sha256": "f705e11e1c4e019dd2867ccb333f66208993af987bede06f2cb251f02d790b08",
+    "binary_sha256": "93925a1210404c96178d2d28c95a9cf2dafe64ec596a2f9d412c5e1da4e830da",
+    "binary_bytes": 13109896,
+    "zig_version": "0.15.2",
+    "optimize": "ReleaseFast",
+    "aot_only": true
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 4090",
+    "uuid": "GPU-3dabce32-b71d-9cdf-6392-026267492cb6",
+    "sm": 89,
+    "multiprocessors": 128,
+    "global_memory_bytes": 25250627584,
+    "driver_version_reported": 13000,
+    "driver_version_nvidia_smi": "580.126.09",
+    "runtime_version": 12080,
+    "toolkit_version": 12080,
+    "power_limit_watts": 450.0
+  },
+  "service": {
+    "cycles": 2,
+    "request_count": 6,
+    "order": [
+      "wide_fibonacci",
+      "poseidon",
+      "state_machine",
+      "wide_fibonacci",
+      "poseidon",
+      "state_machine"
+    ],
+    "queue_sha256": "941d7ac045167e58c6f11294ad63a7346fe292930eca0e11535b7f9f584f5feb",
+    "process_count": 1,
+    "runtime_generation_count": 1,
+    "execution_lane_count": 1,
+    "queue_high_water": 6,
+    "requests_completed": 6,
+    "publications": 6,
+    "shape_hits": 6,
+    "shape_misses": 0,
+    "requests_failed": 0,
+    "runtime_poisons": 0,
+    "all_repeated_family_proofs_exact": true,
+    "all_zig_verified": true,
+    "all_rust_verified": true,
+    "all_strict_aot": true,
+    "all_resident": true,
+    "all_zero_fallback": true,
+    "one_terminal_d2h_per_request": true
+  },
+  "timing_ns": {
+    "runtime_init": 1175036973,
+    "shape_preparation": 38099256,
+    "service_wall": 60010659,
+    "device_critical_path": 38573120,
+    "runtime_teardown": 103518815,
+    "total_before_report_publication": 1376722313
+  },
+  "throughput": {
+    "trace_rows": 657408,
+    "committed_trace_cells": 22380544,
+    "verified_trace_row_mhz": 10.954853870209957,
+    "verified_committed_mcells_per_second": 372.94281337587046
+  },
+  "oracle": {
+    "authority": "pinned-rust-stwo",
+    "upstream_commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+    "verifier_sha256": "a14c130ce59379fb2ede7f45c132aa864cef4a22119504ec4014a6f3e4d1e04a",
+    "verifier_bytes": 3200224,
+    "artifacts_checked": 6,
+    "artifacts_accepted": 6,
+    "all_accepted": true,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "ordinal": 0,
+      "family": "wide_fibonacci",
+      "path": "mixed-artifacts/000-wide_fibonacci.proof.json",
+      "artifact_sha256": "21ac8f935304c485e9025892515b0430c4f311db9937c65afdd8bc98b5413e77",
+      "canonical_bytes": 71248,
+      "canonical_sha256": "1d751d4a65d044f91686d65db6d5858bad78afd60da54bfa64317f42a07fddbb",
+      "rust_exit_code": 0
+    },
+    {
+      "ordinal": 1,
+      "family": "poseidon",
+      "path": "mixed-artifacts/001-poseidon.proof.json",
+      "artifact_sha256": "6bccb92b95c8012c9c8c3de885b9027c4b3ecd480428564201df1645af959d9b",
+      "canonical_bytes": 124194,
+      "canonical_sha256": "f196835da5d4a155c6311bafb44335c2863cc028879d69a7ae53b802321200f1",
+      "rust_exit_code": 0
+    },
+    {
+      "ordinal": 2,
+      "family": "state_machine",
+      "path": "mixed-artifacts/002-state_machine.proof.json",
+      "artifact_sha256": "dc52cb5ec618c46599b8acf020c687b26670b9836aed8d33c8f109b27edf72b4",
+      "canonical_bytes": 60502,
+      "canonical_sha256": "88ec35ee88a05ce0a5db4b6cb063f4cf7824ee65284db0908a62a9362879af73",
+      "rust_exit_code": 0
+    },
+    {
+      "ordinal": 3,
+      "family": "wide_fibonacci",
+      "path": "mixed-artifacts/003-wide_fibonacci.proof.json",
+      "artifact_sha256": "21ac8f935304c485e9025892515b0430c4f311db9937c65afdd8bc98b5413e77",
+      "canonical_bytes": 71248,
+      "canonical_sha256": "1d751d4a65d044f91686d65db6d5858bad78afd60da54bfa64317f42a07fddbb",
+      "rust_exit_code": 0
+    },
+    {
+      "ordinal": 4,
+      "family": "poseidon",
+      "path": "mixed-artifacts/004-poseidon.proof.json",
+      "artifact_sha256": "6bccb92b95c8012c9c8c3de885b9027c4b3ecd480428564201df1645af959d9b",
+      "canonical_bytes": 124194,
+      "canonical_sha256": "f196835da5d4a155c6311bafb44335c2863cc028879d69a7ae53b802321200f1",
+      "rust_exit_code": 0
+    },
+    {
+      "ordinal": 5,
+      "family": "state_machine",
+      "path": "mixed-artifacts/005-state_machine.proof.json",
+      "artifact_sha256": "dc52cb5ec618c46599b8acf020c687b26670b9836aed8d33c8f109b27edf72b4",
+      "canonical_bytes": 60502,
+      "canonical_sha256": "88ec35ee88a05ce0a5db4b6cb063f4cf7824ee65284db0908a62a9362879af73",
+      "rust_exit_code": 0
+    }
+  ],
+  "promotion": {
+    "headline_eligible": false,
+    "activation_eligible": false,
+    "remaining_blockers": [
+      "the structural benchmark controller does not yet execute the sustained-service schema",
+      "exact Native Plonk/LogUp CUDA coverage remains pending",
+      "locked-host CUDA A/A calibration remains pending"
+    ]
+  }
+}

@@ -28,6 +28,10 @@ extern "C" int stwo_blake2s_transcript_mix_words_on(
     std::uint32_t *, std::uint32_t, std::uint64_t, std::uint64_t,
     const std::uint32_t *, std::uint32_t, std::uint32_t,
     std::uint32_t *, std::uint32_t *, void *);
+extern "C" int stwo_blake2s_transcript_mix_words_pair_on(
+    std::uint32_t *, std::uint32_t, std::uint64_t, std::uint64_t,
+    const std::uint32_t *, std::uint32_t, const std::uint32_t *,
+    std::uint32_t, std::uint32_t, std::uint32_t *, std::uint32_t *, void *);
 extern "C" int stwo_blake2s_transcript_absorb_pow_on(
     std::uint32_t *, std::uint32_t, std::uint64_t, std::uint64_t,
     const std::uint32_t *, std::uint32_t, std::uint32_t *,
@@ -243,12 +247,16 @@ int main() {
     auto *query_snapshot = arena.allocate(kPinnedQueries.size());
     auto *seed = arena.allocate(9);
     auto *seed_snapshot = arena.allocate(9);
+    auto *pair_state = arena.allocate(16);
+    auto *pair_input_snapshot = arena.allocate(5);
+    auto *pair_boundary = arena.allocate(16);
     if (state == nullptr || input == nullptr || input_snapshot == nullptr ||
         boundaries == nullptr || secure == nullptr ||
         secure_snapshot == nullptr || raw == nullptr ||
         raw_snapshot == nullptr || queries == nullptr ||
         query_snapshot == nullptr || seed == nullptr ||
-        seed_snapshot == nullptr) {
+        seed_snapshot == nullptr || pair_state == nullptr ||
+        pair_input_snapshot == nullptr || pair_boundary == nullptr) {
         return 1;
     }
 
@@ -310,6 +318,42 @@ int main() {
         return 1;
     }
 
+    transcript_reference::Channel pair_reference;
+    pair_reference.mix(u32s);
+    pair_reference.mix(u64_words);
+    const auto pair_expected = pair_reference.state_words(1, kChains[1]);
+    if (!check(
+            stwo_blake2s_transcript_init_on(
+                pair_state, nullptr, nullptr, kChains[0], arena.stream),
+            "initialize paired transcript")) {
+        return 1;
+    }
+    if (stwo_blake2s_transcript_mix_words_pair_on(
+            pair_state, 0, kChains[0], kChains[1], input + 8, 0,
+            input + 11, 2, 0, pair_input_snapshot, pair_boundary,
+            arena.stream) == static_cast<int>(cudaSuccess) ||
+        stwo_blake2s_transcript_mix_words_pair_on(
+            pair_state, 0, kChains[0], kChains[1], input + 8, 3,
+            input + 10, 2, 0, pair_input_snapshot, pair_boundary,
+            arena.stream) == static_cast<int>(cudaSuccess) ||
+        stwo_blake2s_transcript_mix_words_pair_on(
+            pair_state, 0, kChains[0], kChains[1], input + 8, UINT32_MAX,
+            input + 11, 2, 0, pair_input_snapshot, pair_boundary,
+            arena.stream) == static_cast<int>(cudaSuccess)) {
+        std::fprintf(
+            stderr,
+            "paired transcript accepted an empty, overlapping, or invalid split\n");
+        return 1;
+    }
+    if (!check(
+            stwo_blake2s_transcript_mix_words_pair_on(
+                pair_state, 0, kChains[0], kChains[1], input + 8, 3,
+                input + 11, 2, 0, pair_input_snapshot, pair_boundary,
+                arena.stream),
+            "mix paired transcript words")) {
+        return 1;
+    }
+
     std::array<std::uint32_t, 16> actual_state{};
     std::array<std::uint32_t, kOperationCount * 16> actual_boundaries{};
     std::array<std::uint32_t, 23> actual_input_snapshot{};
@@ -319,6 +363,9 @@ int main() {
     std::array<std::uint32_t, kPinnedRaw.size()> actual_raw_snapshot{};
     std::array<std::uint32_t, kPinnedQueries.size()> actual_queries{};
     std::array<std::uint32_t, kPinnedQueries.size()> actual_query_snapshot{};
+    std::array<std::uint32_t, 16> actual_pair_state{};
+    std::array<std::uint32_t, 16> actual_pair_boundary{};
+    std::array<std::uint32_t, 5> actual_pair_input{};
     if (!arena.read(actual_state.data(), state, sizeof(actual_state)) ||
         !arena.read(
             actual_boundaries.data(), boundaries, sizeof(actual_boundaries)) ||
@@ -337,6 +384,15 @@ int main() {
         !arena.read(
             actual_query_snapshot.data(), query_snapshot,
             sizeof(actual_query_snapshot)) ||
+        !arena.read(
+            actual_pair_state.data(), pair_state,
+            sizeof(actual_pair_state)) ||
+        !arena.read(
+            actual_pair_boundary.data(), pair_boundary,
+            sizeof(actual_pair_boundary)) ||
+        !arena.read(
+            actual_pair_input.data(), pair_input_snapshot,
+            sizeof(actual_pair_input)) ||
         !check(stwo_exec_context_sync(arena.context), "wait for transcript")) {
         return 1;
     }
@@ -350,6 +406,12 @@ int main() {
     }
     std::array<std::uint32_t, 23> expected_input{};
     std::copy(host_input.begin(), host_input.end(), expected_input.begin());
+    std::array<std::uint32_t, 5> expected_pair_input{};
+    std::copy(u32s.begin(), u32s.end(), expected_pair_input.begin());
+    std::copy(
+        u64_words.begin(),
+        u64_words.end(),
+        expected_pair_input.begin() + u32s.size());
     const bool matches =
         expect_words(actual_state, kPinnedFinalState, "GPU final state") &&
         expect_words(
@@ -364,7 +426,16 @@ int main() {
             actual_raw_snapshot, kPinnedRaw, "GPU raw snapshot") &&
         expect_words(actual_queries, kPinnedQueries, "GPU queries") &&
         expect_words(
-            actual_query_snapshot, kPinnedQueries, "GPU query snapshot");
+            actual_query_snapshot, kPinnedQueries, "GPU query snapshot") &&
+        expect_words(
+            actual_pair_state, pair_expected,
+            "GPU paired transcript state") &&
+        expect_words(
+            actual_pair_boundary, pair_expected,
+            "GPU paired transcript boundary") &&
+        expect_words(
+            actual_pair_input, expected_pair_input,
+            "GPU paired transcript input");
     if (!matches) return 1;
 
     std::array<std::uint32_t, 9> host_seed{};

@@ -40,7 +40,7 @@ fn generateWith(
 ) !void {
     const geometry = prepared.logical.geometry;
     try Ops.Trace.wideFibonacci(
-        &transaction.session,
+        transaction.proofSession(),
         views.trace.main_coefficients,
         try count(geometry.trace_rows),
         geometry.statement.log_n_rows,
@@ -56,7 +56,7 @@ fn commitWith(
     const geometry = prepared.logical.geometry;
     const trace_log = geometry.statement.log_n_rows;
     const commitment_log = geometry.queryLogSize();
-    const session = &transaction.session;
+    const session = transaction.proofSession();
 
     try Ops.Transcript.initialize(
         session,
@@ -91,7 +91,7 @@ fn commitWith(
         try ingress.emptyRootSource(views),
     );
 
-    try Ops.Transform.inverseToRetained(
+    try Ops.Transform.inverseCompact(
         session,
         .trace_commit,
         views.trace.main_coefficients,
@@ -126,7 +126,6 @@ fn commitWith(
         .trace_commit,
         try count(geometry.commitment_rows),
         views.trace.main_evaluations,
-        views.trace.main_commit_states,
         views.trace.main_merkle_hashes,
         layers,
     );
@@ -191,7 +190,7 @@ fn requirePrefixOperation(
             else => return error.InvalidKernelDescriptor,
         },
         1 => switch (operation) {
-            .mix_empty_preprocessed_root => {},
+            .mix_preprocessed_root => {},
             else => return error.InvalidKernelDescriptor,
         },
         2 => switch (operation) {
@@ -229,9 +228,7 @@ test "trace executor follows raw upstream prefix without host escape" {
         var mix_count: usize = 0;
         var mix_lengths: [4]usize = undefined;
         var mix_validate: [4]bool = undefined;
-        var progressive_init: usize = 0;
-        var progressive_absorb: usize = 0;
-        var progressive_finalize: usize = 0;
+        var contiguous_leaves: usize = 0;
         var merkle_layers: usize = 0;
         var device_copies: usize = 0;
 
@@ -241,9 +238,7 @@ test "trace executor follows raw upstream prefix without host escape" {
             extend = 0;
             initialize = 0;
             mix_count = 0;
-            progressive_init = 0;
-            progressive_absorb = 0;
-            progressive_finalize = 0;
+            contiguous_leaves = 0;
             merkle_layers = 0;
             device_copies = 0;
         }
@@ -257,7 +252,7 @@ test "trace executor follows raw upstream prefix without host escape" {
                 log_n_rows: u32,
             ) !void {
                 try std.testing.expectEqual(
-                    @as(usize, rows) * 2,
+                    @as(usize, rows),
                     matrix.column_stride_words,
                 );
                 try std.testing.expectEqual(
@@ -268,7 +263,7 @@ test "trace executor follows raw upstream prefix without host escape" {
             }
         };
         const Transform = struct {
-            pub fn inverseToRetained(
+            pub fn inverseCompact(
                 _: anytype,
                 stage: anytype,
                 input: stages.common.WordMatrix,
@@ -310,31 +305,14 @@ test "trace executor follows raw upstream prefix without host escape" {
             }
         };
         const Commitment = struct {
-            pub fn progressiveInit(
-                _: anytype,
-                _: anytype,
-                _: anytype,
-            ) !void {
-                Calls.progressive_init += 1;
-            }
-            pub fn progressiveAbsorb(
-                _: anytype,
-                _: anytype,
-                _: u32,
-                _: u32,
-                _: anytype,
-                _: anytype,
-            ) !void {
-                Calls.progressive_absorb += 1;
-            }
-            pub fn progressiveFinalize(
+            pub fn contiguousLeaves(
                 _: anytype,
                 _: anytype,
                 _: u32,
                 _: anytype,
                 _: anytype,
             ) !void {
-                Calls.progressive_finalize += 1;
+                Calls.contiguous_leaves += 1;
             }
             pub fn layer(
                 _: anytype,
@@ -422,9 +400,7 @@ test "trace executor follows raw upstream prefix without host escape" {
         &.{ true, false, false, false },
         &Calls.mix_validate,
     );
-    try std.testing.expectEqual(@as(usize, 1), Calls.progressive_init);
-    try std.testing.expectEqual(@as(usize, 1), Calls.progressive_absorb);
-    try std.testing.expectEqual(@as(usize, 1), Calls.progressive_finalize);
+    try std.testing.expectEqual(@as(usize, 1), Calls.contiguous_leaves);
     try std.testing.expectEqual(@as(usize, 2), Calls.device_copies);
     try std.testing.expectEqual(
         @as(usize, geometry.queryLogSize()),

@@ -40,6 +40,34 @@ pub extern "c" fn stwo_exec_context_lane_count(
     out_count: *u32,
 ) c_int;
 pub extern "c" fn stwo_exec_context_join_all_lanes(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_exec_context_timing_begin(
+    handle: *anyopaque,
+    out_interval_capacity: *u32,
+) c_int;
+pub extern "c" fn stwo_exec_context_timing_mark(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_exec_context_timing_elapsed(
+    handle: *anyopaque,
+    out_elapsed_ms: [*]f32,
+    capacity: u32,
+    out_count: *u32,
+) c_int;
+pub extern "c" fn stwo_exec_context_nvtx_push(
+    handle: *anyopaque,
+    label: [*:0]const u8,
+) c_int;
+pub extern "c" fn stwo_exec_context_nvtx_pop(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_graph_capture_begin(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_graph_capture_end(
+    handle: *anyopaque,
+    out_exec: *?*anyopaque,
+    out_kernel_nodes: *u64,
+) c_int;
+pub extern "c" fn stwo_graph_capture_abort(handle: *anyopaque) c_int;
+pub extern "c" fn stwo_graph_launch(
+    exec_handle: *anyopaque,
+    context_handle: *anyopaque,
+) c_int;
+pub extern "c" fn stwo_graph_destroy(exec_handle: *anyopaque) c_int;
 
 pub extern "c" fn stwo_exec_context_alloc_u32(
     handle: *anyopaque,
@@ -49,6 +77,11 @@ pub extern "c" fn stwo_exec_context_alloc_u32(
 pub extern "c" fn stwo_exec_context_free_u32(
     handle: *anyopaque,
     ptr: [*]u32,
+) c_int;
+pub extern "c" fn stwo_exec_context_validate_allocation(
+    handle: *anyopaque,
+    pointer: *const anyopaque,
+    required_bytes: usize,
 ) c_int;
 pub extern "c" fn stwo_exec_context_memset_async(
     handle: *anyopaque,

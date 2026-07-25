@@ -17,6 +17,10 @@ pub fn TransactionFor(comptime Session: type) type {
     const Arena = arena_module.ArenaFor(Context);
     return struct {
         const Self = @This();
+        const SessionOwner = union(enum) {
+            owned: Session,
+            retained: *Session,
+        };
 
         pub const BundleOutput = struct {
             bundle: decommit_bundle.Bundle,
@@ -44,11 +48,28 @@ pub fn TransactionFor(comptime Session: type) type {
             }
         };
 
+        pub const StarkStatementBundleOutput = struct {
+            statement_words: []u32,
+            bundle: stark_bundle.Bundle,
+            verdict: Session.FinishVerdict,
+
+            pub fn deinit(
+                self: *@This(),
+                allocator: std.mem.Allocator,
+            ) void {
+                allocator.free(self.statement_words);
+                self.bundle.deinit(allocator);
+                self.* = undefined;
+            }
+        };
+
         allocator: std.mem.Allocator,
         plan: arena_module.Plan,
-        session: Session,
+        session_owner: SessionOwner,
         arena: Arena,
         arena_live: bool = true,
+        owns_arena: bool = true,
+        owns_plan: bool = true,
         state: enum { ingress, proving, finished, aborted } = .ingress,
 
         pub fn open(
@@ -71,6 +92,7 @@ pub fn TransactionFor(comptime Session: type) type {
             errdefer plan.deinit(allocator);
             var session = try Session.open(accepted_sms);
             errdefer session.abort() catch {};
+            try session.beginProof();
             const arena_bytes = std.math.mul(
                 usize,
                 plan.total_words,
@@ -86,8 +108,76 @@ pub fn TransactionFor(comptime Session: type) type {
             return .{
                 .allocator = allocator,
                 .plan = plan,
-                .session = session,
+                .session_owner = .{ .owned = session },
                 .arena = arena,
+            };
+        }
+
+        pub fn openPreparedRetained(
+            allocator: std.mem.Allocator,
+            session: *Session,
+            owned_plan: arena_module.Plan,
+        ) runtime_error.Error!Self {
+            var plan = owned_plan;
+            errdefer plan.deinit(allocator);
+            errdefer session.abortRetained() catch {};
+            const arena_bytes = std.math.mul(
+                usize,
+                plan.total_words,
+                @sizeOf(u32),
+            ) catch return error.SizeOverflow;
+            const memory = try session.context.memoryInfo();
+            const usable_free = memory.free -
+                @min(memory.free, device_memory_safety_reserve_bytes);
+            if (arena_bytes > usable_free)
+                return error.InsufficientDeviceMemory;
+            try session.beginStage(.ingress);
+            const arena = try Arena.init(&session.context, &plan);
+            return .{
+                .allocator = allocator,
+                .plan = plan,
+                .session_owner = .{ .retained = session },
+                .arena = arena,
+            };
+        }
+
+        /// Borrows the session's full-plan-keyed, fixed-address arena. The
+        /// transaction owns proof state only; graph and arena lifetimes remain
+        /// process-owned by the retained session.
+        pub fn openPreparedCachedRetained(
+            allocator: std.mem.Allocator,
+            session: *Session,
+            cache_key: [32]u8,
+        ) runtime_error.Error!Self {
+            errdefer session.abortRetained() catch {};
+            const persistent_arena =
+                try session.acquirePreparedArena(cache_key);
+            try session.beginStage(.ingress);
+            return .{
+                .allocator = allocator,
+                .plan = persistent_arena.plan,
+                .session_owner = .{ .retained = session },
+                .arena = persistent_arena.*,
+                .owns_arena = false,
+                .owns_plan = false,
+            };
+        }
+
+        pub fn proofSession(self: *Self) *Session {
+            return switch (self.session_owner) {
+                .owned => &self.session_owner.owned,
+                .retained => |session| session,
+            };
+        }
+
+        pub fn sessionContext(self: *Self) *Context {
+            return &self.proofSession().context;
+        }
+
+        fn retainsSession(self: *const Self) bool {
+            return switch (self.session_owner) {
+                .owned => false,
+                .retained => true,
             };
         }
 
@@ -118,6 +208,21 @@ pub fn TransactionFor(comptime Session: type) type {
             return self.arena.sliceAs(F, id);
         }
 
+        /// Borrows the exact transaction arena for authenticated
+        /// offset-addressed kernels. The arena remains the sole authority for
+        /// its base address, extent, owner, and allocation generation.
+        pub fn residentArenaWords(
+            self: *const Self,
+        ) runtime_error.Error!column.DeviceSlice(u32) {
+            if (!self.arena_live or
+                self.state == .finished or
+                self.state == .aborted)
+            {
+                return error.InvalidState;
+            }
+            return self.arena.words();
+        }
+
         pub fn upload(
             self: *Self,
             comptime F: type,
@@ -139,7 +244,7 @@ pub fn TransactionFor(comptime Session: type) type {
             values: []const F,
         ) runtime_error.Error!void {
             if (self.state != .ingress) return error.InvalidState;
-            const active = self.session.context.active_stage orelse
+            const active = self.sessionContext().active_stage orelse
                 return error.StageNotActive;
             if (active != .ingress) return error.StageOrderViolation;
             try self.requireSlotLiveAt(destination_id, .ingress);
@@ -148,7 +253,7 @@ pub fn TransactionFor(comptime Session: type) type {
                 F,
                 destination_id,
             )).sub(first, values.len);
-            try self.session.context.uploadSlice(F, destination, values);
+            try self.sessionContext().uploadSlice(F, destination, values);
         }
 
         /// Copies one exact resident range without constructing arena-backed
@@ -171,7 +276,7 @@ pub fn TransactionFor(comptime Session: type) type {
                 F,
                 source_id,
             )).sub(source_first, count);
-            try self.session.context.copyDeviceSlice(F, destination, source);
+            try self.sessionContext().copyDeviceSlice(F, destination, source);
         }
 
         /// Zeroes an exact live arena range on the active proof stage's stream.
@@ -190,7 +295,7 @@ pub fn TransactionFor(comptime Session: type) type {
                 else => if (self.state != .proving)
                     return error.InvalidState,
             }
-            const active = self.session.context.active_stage orelse
+            const active = self.sessionContext().active_stage orelse
                 return error.StageNotActive;
             if (active != stage) return error.StageOrderViolation;
             try self.requireSlotLiveAt(destination_id, stage);
@@ -198,12 +303,12 @@ pub fn TransactionFor(comptime Session: type) type {
                 F,
                 destination_id,
             )).sub(first, count);
-            try self.session.zeroResidentSlice(F, stage, destination);
+            try self.proofSession().zeroResidentSlice(F, stage, destination);
         }
 
         pub fn finishIngress(self: *Self) runtime_error.Error!void {
             if (self.state != .ingress) return error.InvalidState;
-            try self.session.endStage(.ingress);
+            try self.proofSession().endStage(.ingress);
             self.state = .proving;
         }
 
@@ -217,7 +322,7 @@ pub fn TransactionFor(comptime Session: type) type {
             {
                 return error.InvalidState;
             }
-            try self.session.beginStage(stage);
+            try self.proofSession().beginStage(stage);
         }
 
         pub fn endStage(
@@ -230,7 +335,7 @@ pub fn TransactionFor(comptime Session: type) type {
             {
                 return error.InvalidState;
             }
-            try self.session.endStage(stage);
+            try self.proofSession().endStage(stage);
         }
 
         /// Performs the one allowed device-to-host read, releases the proof
@@ -242,16 +347,20 @@ pub fn TransactionFor(comptime Session: type) type {
         ) runtime_error.Error!Session.FinishVerdict {
             if (self.state != .proving or !self.arena_live)
                 return error.InvalidState;
-            try self.session.beginStage(.proof_assembly);
+            try self.proofSession().beginStage(.proof_assembly);
             const source = try self.slot(proof_slot);
             if (source.len != destination.len) return error.SizeOverflow;
-            try self.session.context.readProofSlice(u32, destination, source);
-            try self.arena.deinit(&self.session.context);
+            try self.sessionContext().readProofSlice(u32, destination, source);
+            if (self.owns_arena)
+                try self.arena.deinit(self.sessionContext());
             self.arena_live = false;
-            try self.session.endStage(.proof_assembly);
-            try self.session.markProofComplete();
-            const verdict = try self.session.finish();
-            self.plan.deinit(self.allocator);
+            try self.proofSession().endStage(.proof_assembly);
+            try self.proofSession().markProofComplete();
+            const verdict = if (self.retainsSession())
+                try self.proofSession().finishRetained()
+            else
+                try self.proofSession().finish();
+            if (self.owns_plan) self.plan.deinit(self.allocator);
             self.state = .finished;
             return verdict;
         }
@@ -289,6 +398,19 @@ pub fn TransactionFor(comptime Session: type) type {
             allocator: std.mem.Allocator,
             proof_slot: arena_module.SlotId,
         ) !StarkBundleOutput {
+            return self.assembleStarkBundleAndFinishWith(
+                stark_bundle.WideDescriptor,
+                allocator,
+                proof_slot,
+            );
+        }
+
+        pub fn assembleStarkBundleAndFinishWith(
+            self: *Self,
+            comptime Descriptor: type,
+            allocator: std.mem.Allocator,
+            proof_slot: arena_module.SlotId,
+        ) !StarkBundleOutput {
             const source = try self.slot(proof_slot);
             const storage = try allocator.alloc(u32, source.len);
             const verdict = self.assembleAndFinish(
@@ -300,9 +422,58 @@ pub fn TransactionFor(comptime Session: type) type {
             };
             errdefer allocator.free(storage);
             return .{
-                .bundle = try stark_bundle.Bundle.decodeOwnedCallerGuarded(
+                .bundle = try stark_bundle.Bundle
+                    .decodeOwnedCallerGuardedWith(
+                    Descriptor,
                     allocator,
                     storage,
+                ),
+                .verdict = verdict,
+            };
+        }
+
+        /// Downloads one statement-prefixed proof envelope exactly once, then
+        /// separates the public statement from the unchanged SWPC proof.
+        pub fn assembleStarkBundleAndStatementFinishWith(
+            self: *Self,
+            comptime Descriptor: type,
+            allocator: std.mem.Allocator,
+            proof_slot: arena_module.SlotId,
+            statement_word_count: usize,
+        ) !StarkStatementBundleOutput {
+            const source = try self.slot(proof_slot);
+            if (statement_word_count == 0 or
+                statement_word_count >= source.len)
+            {
+                return error.SizeOverflow;
+            }
+            const envelope = try allocator.alloc(u32, source.len);
+            const verdict = self.assembleAndFinish(
+                envelope,
+                proof_slot,
+            ) catch |err| {
+                allocator.free(envelope);
+                return err;
+            };
+            defer allocator.free(envelope);
+
+            const statement_words = try allocator.dupe(
+                u32,
+                envelope[0..statement_word_count],
+            );
+            errdefer allocator.free(statement_words);
+            const proof_storage = try allocator.dupe(
+                u32,
+                envelope[statement_word_count..],
+            );
+            errdefer allocator.free(proof_storage);
+            return .{
+                .statement_words = statement_words,
+                .bundle = try stark_bundle.Bundle
+                    .decodeOwnedCallerGuardedWith(
+                    Descriptor,
+                    allocator,
+                    proof_storage,
                 ),
                 .verdict = verdict,
             };
@@ -313,9 +484,12 @@ pub fn TransactionFor(comptime Session: type) type {
         pub fn abort(self: *Self) runtime_error.Error!void {
             if (self.state == .finished or self.state == .aborted)
                 return error.InvalidState;
-            const abort_result = self.session.abort();
+            const abort_result = if (self.retainsSession())
+                self.proofSession().abortRetained()
+            else
+                self.proofSession().abort();
             self.arena_live = false;
-            self.plan.deinit(self.allocator);
+            if (self.owns_plan) self.plan.deinit(self.allocator);
             self.state = .aborted;
             return abort_result;
         }
@@ -465,6 +639,8 @@ test "proof transaction survives value movement and owns failure cleanup" {
             return .{};
         }
 
+        pub fn beginProof(_: *@This()) runtime_error.Error!void {}
+
         pub fn beginStage(
             self: *@This(),
             stage: telemetry.Stage,
@@ -498,6 +674,14 @@ test "proof transaction survives value movement and owns failure cleanup" {
             if (!self.complete or self.context.frees != 1)
                 return error.InvalidState;
             return 7;
+        }
+
+        pub fn finishRetained(self: *@This()) runtime_error.Error!FinishVerdict {
+            return self.finish();
+        }
+
+        pub fn abortRetained(self: *@This()) runtime_error.Error!void {
+            return self.abort();
         }
 
         pub fn abort(self: *@This()) runtime_error.Error!void {
@@ -551,7 +735,7 @@ test "proof transaction survives value movement and owns failure cleanup" {
     try failed.finishIngress();
     try failed.beginStage(.trace_generation);
     try failed.abort();
-    try std.testing.expect(failed.session.context.aborted);
+    try std.testing.expect(failed.sessionContext().aborted);
 
     FakeContext.available_memory_bytes = device_memory_safety_reserve_bytes;
     defer FakeContext.available_memory_bytes = 1024 * 1024 * 1024;

@@ -65,6 +65,14 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | Cairo products | No production host | Deferred until the separate Rust-oracle semantic goal resumes |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
+The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
+select decoding and component coverage only, never component semantics or
+correctness authority. Validate its source reconciliation with
+`python3 scripts/cairo_four_pie_source_coverage.py check-record`; add
+`--require-coverage-ready` to fail on every recorded source-coverage blocker.
+Source-semantic packs themselves are generated separately with
+`scripts/generate_cairo_source_semantic_pack.py` from an authenticated checkout.
+
 Library consumers can select the smallest public module they need:
 
 | Import | Contract |

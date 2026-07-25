@@ -1,7 +1,16 @@
 //! Native AIR constraint kernels admitted into the resident CUDA product.
 
+pub const constant_qm31 = @import("constant_qm31.zig");
+pub const blake = @import("blake.zig");
+pub const plonk_logup = @import("plonk_logup.zig");
+pub const poseidon = @import("poseidon.zig");
 pub const wide_fibonacci = @import("wide_fibonacci.zig");
+pub const xor_logup = @import("xor_logup.zig");
 
 test {
+    _ = constant_qm31;
+    _ = blake;
+    _ = plonk_logup;
     _ = wide_fibonacci;
+    _ = xor_logup;
 }

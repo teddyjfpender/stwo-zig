@@ -160,6 +160,14 @@ pub fn ProverEngine(
             );
         }
 
+        pub fn flushPendingCommit(
+            scheme: *Scheme,
+            allocator: std.mem.Allocator,
+            channel: *C,
+        ) !void {
+            try pcs.flushPendingCommit(MC, scheme, allocator, channel);
+        }
+
         pub fn prove(
             allocator: std.mem.Allocator,
             components: []const component.ComponentProver,

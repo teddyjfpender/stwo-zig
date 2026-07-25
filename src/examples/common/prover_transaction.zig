@@ -230,6 +230,7 @@ pub fn provePreparedEx(
     options: prover_engine.ProveOptions,
 ) anyerror!Output(Spec.Statement, Engine.ExtendedProof) {
     comptime assertContract(Engine, Spec, use_session);
+    const has_interaction = comptime @hasDecl(Spec, "PreparedInteraction");
 
     var prepared = prepared_input;
     defer prepared.deinit(allocator);
@@ -261,7 +262,13 @@ pub fn provePreparedEx(
         defer stage.end();
 
         var channel = Engine.Channel{};
-        pcs_config.mixInto(&channel);
+        const mix_pcs_config = comptime if (@hasDecl(Spec, "mix_pcs_config"))
+            Spec.mix_pcs_config
+        else
+            true;
+        if (mix_pcs_config) {
+            pcs_config.mixInto(&channel);
+        }
         break :blk Initialized{
             .channel = channel,
             .scheme = if (comptime use_session)
@@ -293,6 +300,12 @@ pub fn provePreparedEx(
             &channel,
         );
     }
+    if (comptime @hasDecl(Spec, "beforeMainCommit")) {
+        // A deferred first tree must enter the transcript before statement
+        // data that is ordered between the first and second commitments.
+        try Engine.flushPendingCommit(&scheme, allocator, &channel);
+        try Spec.beforeMainCommit(&channel, prepared.request);
+    }
     {
         var stage = try stage_profile.StageScope.begin(
             options.recorder,
@@ -312,6 +325,55 @@ pub fn provePreparedEx(
         );
     }
 
+    var prepared_interaction: if (has_interaction) Spec.PreparedInteraction else void =
+        if (has_interaction) undefined else {};
+    var prepared_interaction_initialized = false;
+    defer if (comptime has_interaction) {
+        if (prepared_interaction_initialized)
+            Spec.deinitPreparedInteraction(&prepared_interaction, allocator);
+    };
+    if (comptime has_interaction) {
+        {
+            var stage = try stage_profile.StageScope.begin(
+                options.recorder,
+                "interaction_trace_generation",
+                "Interaction trace generation",
+            );
+            defer stage.end();
+            prepared_interaction = try Spec.prepareInteraction(
+                allocator,
+                &channel,
+                &prepared,
+            );
+            prepared_interaction_initialized = true;
+        }
+        if (comptime @hasDecl(Spec, "beforeInteractionCommit")) {
+            try Spec.beforeInteractionCommit(
+                &channel,
+                prepared.request,
+                &prepared_interaction,
+            );
+        }
+        {
+            var stage = try stage_profile.StageScope.begin(
+                options.recorder,
+                "interaction_trace_commit",
+                "Interaction trace commit",
+            );
+            defer stage.end();
+            const owned = prepared_interaction.columns.takeWithBacking();
+            try Engine.commitPreparedWithBacking(
+                &scheme,
+                allocator,
+                owned.columns,
+                owned.backing_buffers,
+                owned.source,
+                options.recorder,
+                &channel,
+            );
+        }
+    }
+
     var context: Spec.ProverContext = undefined;
     {
         var stage = try stage_profile.StageScope.begin(
@@ -320,7 +382,16 @@ pub fn provePreparedEx(
             "Statement mix",
         );
         defer stage.end();
-        try Spec.initProverContext(&context, &channel, prepared.request);
+        if (comptime has_interaction) {
+            try Spec.initProverContext(
+                &context,
+                &channel,
+                prepared.request,
+                &prepared_interaction,
+            );
+        } else {
+            try Spec.initProverContext(&context, &channel, prepared.request);
+        }
     }
 
     var component_storage: [Spec.max_components]prover_component.ComponentProver = undefined;
@@ -362,5 +433,11 @@ fn assertContract(comptime Engine: type, comptime Spec: type, comptime use_sessi
         "proverComponents",
     }) |name| {
         if (!@hasDecl(Spec, name)) @compileError("prover spec requires " ++ name);
+    }
+    if (@hasDecl(Spec, "PreparedInteraction")) {
+        inline for (&.{ "prepareInteraction", "deinitPreparedInteraction" }) |name| {
+            if (!@hasDecl(Spec, name))
+                @compileError("interaction prover spec requires " ++ name);
+        }
     }
 }

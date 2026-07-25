@@ -13,6 +13,7 @@ const canonical_ingress = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const request = @import("../request.zig");
 const types = @import("../resident_bindings/types.zig");
+const shared_executor = @import("../../common/quotient_executor.zig");
 
 const NativeQuotient = quotient_stage.Native;
 
@@ -31,17 +32,7 @@ pub fn execute(
     ingress: *const canonical_ingress.Pack,
     views: *const types.Views,
 ) !void {
-    try validate(prepared, ingress, views);
-    try executeWithOps(
-        NativeQuotient,
-        &transaction.session,
-        .{
-            .circle = ingress.circle,
-            .sample_points = views.oods.sample_points,
-            .sampled_values = views.oods.sampled_values,
-            .quotient = views.quotient,
-        },
-    );
+    return shared_executor.run(transaction, prepared, ingress, views);
 }
 
 /// Naming alias for stage executors that expose `run`.

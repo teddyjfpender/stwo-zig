@@ -36,7 +36,7 @@ fn runWith(
     views: *const bindings.Views,
 ) !void {
     const geometry = prepared.logical.geometry;
-    const session = &transaction.session;
+    const session = transaction.proofSession();
     const trace_log = geometry.statement.log_n_rows;
     const commitment_log = geometry.queryLogSize();
 
@@ -116,7 +116,6 @@ fn runWith(
         .constraint_evaluation,
         try count(geometry.commitment_rows),
         views.trace.composition_evaluations,
-        views.trace.composition_commit_states,
         views.trace.composition_merkle_hashes,
         layers,
     );
@@ -187,9 +186,7 @@ test "composition executor keeps the complete AOT path resident" {
         var launch: usize = 0;
         var split: usize = 0;
         var extend: usize = 0;
-        var commitment_init: usize = 0;
-        var commitment_absorb: usize = 0;
-        var commitment_finalize: usize = 0;
+        var contiguous_leaves: usize = 0;
         var merkle_layers: usize = 0;
         var copies: usize = 0;
 
@@ -202,9 +199,7 @@ test "composition executor keeps the complete AOT path resident" {
             launch = 0;
             split = 0;
             extend = 0;
-            commitment_init = 0;
-            commitment_absorb = 0;
-            commitment_finalize = 0;
+            contiguous_leaves = 0;
             merkle_layers = 0;
             copies = 0;
         }
@@ -338,32 +333,14 @@ test "composition executor keeps the complete AOT path resident" {
             }
         };
         const Commitment = struct {
-            pub fn progressiveInit(
-                _: anytype,
-                _: anytype,
-                _: anytype,
-            ) !void {
-                Calls.commitment_init += 1;
-            }
-            pub fn progressiveAbsorb(
+            pub fn contiguousLeaves(
                 _: anytype,
                 _: anytype,
                 _: u32,
-                _: u32,
                 _: anytype,
                 _: anytype,
             ) !void {
-                Calls.commitment_absorb += 1;
-            }
-            pub fn progressiveFinalize(
-                _: anytype,
-                _: anytype,
-                columns: u32,
-                _: anytype,
-                _: anytype,
-            ) !void {
-                try std.testing.expectEqual(@as(u32, 8), columns);
-                Calls.commitment_finalize += 1;
+                Calls.contiguous_leaves += 1;
             }
             pub fn layer(
                 _: anytype,
@@ -429,9 +406,7 @@ test "composition executor keeps the complete AOT path resident" {
     try std.testing.expectEqual(@as(usize, 1), Calls.launch);
     try std.testing.expectEqual(@as(usize, 1), Calls.split);
     try std.testing.expectEqual(@as(usize, 1), Calls.extend);
-    try std.testing.expectEqual(@as(usize, 1), Calls.commitment_init);
-    try std.testing.expectEqual(@as(usize, 1), Calls.commitment_absorb);
-    try std.testing.expectEqual(@as(usize, 1), Calls.commitment_finalize);
+    try std.testing.expectEqual(@as(usize, 1), Calls.contiguous_leaves);
     try std.testing.expectEqual(
         @as(usize, geometry.queryLogSize()),
         Calls.merkle_layers,

@@ -20,14 +20,14 @@ INTEROP_ARTIFACT_SCHEMA_VERSION = 1
 INTEROP_UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 INTEROP_EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 RUST_ORACLE_TOOLCHAIN = "nightly-2025-07-14"
-RUST_ORACLE_SHA256 = "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b"
+RUST_ORACLE_SHA256 = "075a01f4cc23f455985cd396f5870159d2856271c5fe1e9ab7c86b41c4f1e36d"
+RUST_ORACLE_CAPABILITY_PROTOCOL = "stwo_interop_capabilities_v1"
 
 DEFAULT_WORKLOADS = (
     "wide_fibonacci:log_n_rows=10,sequence_len=8",
     "xor:log_size=10,log_step=2,offset=3",
     "plonk:log_n_rows=10",
     "state_machine:log_n_rows=10,initial_x=9,initial_y=3",
-    "blake:log_n_rows=8,n_rounds=2",
     "poseidon:log_n_instances=13",
 )
 DEFAULT_WARMUPS = 10
@@ -38,7 +38,10 @@ MAX_MATRIX_ROWS = 13
 MIN_HEADLINE_WARMUPS = 10
 MAX_LOG_ROWS = 22
 MAX_SEQUENCE_LEN = 512
-MAX_BLAKE_ROUNDS = 32
+BLAKE_N_ROUNDS = 10
+BLAKE_COMMITTED_COLUMNS = 2_628
+BLAKE_FIXED_COMMITTED_CELLS = 51_627_008
+BLAKE_VARIABLE_CELLS_PER_ROW = 6_848
 MAX_XOR_OFFSET = (1 << 31) - 1
 M31_MODULUS = (1 << 31) - 1
 MAX_COMMITTED_TRACE_CELLS = RESOURCE_PROFILES["standard"].max_committed_cells
@@ -207,6 +210,11 @@ NATIVE_UNITS = {
     "blake": "blake_round_instances",
     "poseidon": "poseidon_instances",
 }
+AIR_PROTOCOLS = {
+    "xor": "raw-stwo-xor-lookup-v2",
+    "state_machine": "raw-stwo-state-machine-v2",
+    "poseidon": "raw-stwo-poseidon-logup-split2-v1",
+}
 
 
 class MatrixError(RuntimeError):
@@ -279,17 +287,32 @@ class Workload:
     @property
     def committed_columns(self) -> int:
         if self.name == "blake":
-            return self.parameters["n_rounds"] * 96
+            return BLAKE_COMMITTED_COLUMNS
         if self.name == "poseidon":
-            return 1264
+            return 1296
         if self.name == "wide_fibonacci":
             return self.parameters["sequence_len"]
-        if self.name in ("xor", "state_machine"):
-            return 3
+        if self.name == "xor":
+            return 15
+        if self.name == "state_machine":
+            return 12
         return 8
 
     @property
+    def committed_trees(self) -> int:
+        if self.name in ("xor", "state_machine", "blake", "poseidon"):
+            return 3
+        return 2
+
+    @property
     def committed_trace_cells(self) -> int:
+        if self.name == "state_machine":
+            return self.trace_rows * 9
+        if self.name == "blake":
+            return (
+                BLAKE_FIXED_COMMITTED_CELLS
+                + self.trace_rows * BLAKE_VARIABLE_CELLS_PER_ROW
+            )
         return self.trace_rows * self.committed_columns
 
     @property
@@ -306,6 +329,8 @@ class Workload:
             return self.trace_rows * self.parameters["n_rounds"]
         if self.name == "poseidon":
             return 1 << self.parameters["log_n_instances"]
+        if self.name == "state_machine":
+            return self.trace_rows + self.trace_rows // 2
         return self.trace_rows
 
     @property
@@ -319,7 +344,7 @@ class Workload:
             "parameters": self.parameters,
             "trace_log_rows": self.trace_log_rows,
             "trace_rows": self.trace_rows,
-            "committed_trees": 2,
+            "committed_trees": self.committed_trees,
             "committed_columns": self.committed_columns,
             "committed_trace_cells": self.committed_trace_cells,
             "native_unit": self.native_unit,
@@ -388,6 +413,8 @@ def validate_workload(workload: Workload, resource_profile: str = "standard") ->
         if sequence_len < 2 or sequence_len > MAX_SEQUENCE_LEN:
             raise ValueError(f"sequence length must be in [2, {MAX_SEQUENCE_LEN}]")
     elif workload.name == "xor":
+        if workload.trace_log_rows < 2:
+            raise ValueError("XOR trace log rows must be at least 2")
         log_step = values["log_step"]
         if log_step < 0 or log_step > values["log_size"]:
             raise ValueError("XOR log_step must be in [0, log_size]")
@@ -396,15 +423,19 @@ def validate_workload(workload: Workload, resource_profile: str = "standard") ->
         if values["offset"] >= 1 << log_step:
             raise ValueError("XOR offset must be smaller than 2^log_step")
     elif workload.name == "state_machine":
+        if workload.trace_log_rows < 5:
+            raise ValueError("State Machine trace log rows must be at least 5")
         for coordinate in ("initial_x", "initial_y"):
             if values[coordinate] < 0 or values[coordinate] >= M31_MODULUS:
                 raise ValueError(
                     f"State Machine {coordinate} must be a canonical M31 value"
                 )
     elif workload.name == "blake":
+        if workload.trace_log_rows < 4:
+            raise ValueError("exact Blake log rows must be at least 4")
         n_rounds = values["n_rounds"]
-        if n_rounds < 1 or n_rounds > MAX_BLAKE_ROUNDS:
-            raise ValueError(f"Blake rounds must be in [1, {MAX_BLAKE_ROUNDS}]")
+        if n_rounds != BLAKE_N_ROUNDS:
+            raise ValueError(f"exact Blake requires {BLAKE_N_ROUNDS} rounds")
     limits = resource_limits(resource_profile)
     if workload.committed_trace_cells > limits.max_committed_cells:
         raise ValueError(
@@ -424,6 +455,8 @@ def descriptor_bytes(workload: Workload, protocol_name: str) -> bytes:
     protocol = PROTOCOL_PRESETS[protocol_name]
     fields = ["native-proof-workload-v3", f"example={workload.name}"]
     fields.extend(f"{key}={value}" for key, value in workload.parameter_items)
+    if air_protocol := AIR_PROTOCOLS.get(workload.name):
+        fields.append(f"air_protocol={air_protocol}")
     fields.extend(
         (
             f"protocol={protocol['name']}",
@@ -452,6 +485,7 @@ class WorkloadSuite:
     name: str
     description: str
     rows: tuple[SuiteRow, ...]
+    resource_profile: str = "standard"
 
     @property
     def workloads(self) -> tuple[Workload, ...]:
@@ -479,13 +513,13 @@ HOLISTIC_SUITE = WorkloadSuite(
         SuiteRow("xor_log16", Workload.xor(16, 2, 3)),
         SuiteRow("plonk_log14", Workload.plonk(14)),
         SuiteRow("plonk_log16", Workload.plonk(16)),
-        SuiteRow("sm_log14", Workload.state_machine(14, 9, 3)),
-        SuiteRow("sm_log16", Workload.state_machine(16, 9, 3)),
+        SuiteRow("sm_v2_log14", Workload.state_machine(14, 9, 3)),
+        SuiteRow("sm_v2_log16", Workload.state_machine(16, 9, 3)),
         SuiteRow("blake_log10x10", Workload.blake(10, 10)),
-        SuiteRow("blake_log12x16", Workload.blake(12, 16)),
         SuiteRow("poseidon_log10", Workload.poseidon(10)),
         SuiteRow("poseidon_log13", Workload.poseidon(13)),
     ),
+    resource_profile="large",
 )
 
 WORKLOAD_SUITES = MappingProxyType({HOLISTIC_SUITE.name: HOLISTIC_SUITE})
@@ -503,13 +537,22 @@ def validate_suite(suite: WorkloadSuite) -> None:
         raise ValueError("workload suite row IDs must be unique and nonempty")
     if len(set(suite.workloads)) != len(suite.workloads):
         raise ValueError("workload suite rows must be unique")
+    if suite.resource_profile not in RESOURCE_PROFILES:
+        raise ValueError("workload suite resource profile is unsupported")
     for workload in suite.workloads:
-        validate_workload(workload)
+        validate_workload(workload, resource_profile=suite.resource_profile)
     maximum_request_cells = suite.request_cells(MAX_WARMUPS, MAX_SAMPLES)
-    if maximum_request_cells > MAX_TOTAL_REQUEST_CELLS:
+    maximum_allowed = (
+        MAX_TOTAL_REQUEST_CELLS
+        if suite.resource_profile == "standard"
+        else RESOURCE_PROFILES[suite.resource_profile].max_committed_cells
+        * len(LANES)
+        * (MAX_WARMUPS + MAX_SAMPLES)
+    )
+    if maximum_request_cells > maximum_allowed:
         raise ValueError(
             "workload suite exceeds aggregate cell budget at maximum sampling "
-            f"({maximum_request_cells} > {MAX_TOTAL_REQUEST_CELLS})"
+            f"({maximum_request_cells} > {maximum_allowed})"
         )
 
 

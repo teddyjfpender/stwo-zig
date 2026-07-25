@@ -2,6 +2,7 @@ const builtin = @import("builtin");
 
 pub const blake = @import("blake.zig");
 pub const plonk = @import("plonk.zig");
+pub const plonk_logup = @import("plonk_logup.zig");
 pub const poseidon = @import("poseidon.zig");
 pub const state_machine = @import("state_machine.zig");
 pub const wide_fibonacci = @import("wide_fibonacci.zig");

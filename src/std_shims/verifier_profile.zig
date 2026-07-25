@@ -145,7 +145,7 @@ test "std_shims verifier profile: blake verification parity with standard path" 
         .pow_bits = 0,
         .fri_config = try @import("stwo_core").fri.FriConfig.init(0, 1, 3),
     };
-    const statement: examples_blake.Statement = .{
+    const statement: examples_blake.Request = .{
         .log_n_rows = 5,
         .n_rounds = 10,
     };

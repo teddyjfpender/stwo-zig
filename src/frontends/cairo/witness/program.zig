@@ -1,7 +1,9 @@
 //! Canonical stwo-cairo witness bytecode shared with the generated Rust writers.
 
 const std = @import("std");
-const M31 = @import("stwo_core").fields.m31.M31;
+const stwo_core = @import("stwo_core");
+const M31 = stwo_core.fields.m31.M31;
+const Blake3Hasher = stwo_core.vcs.blake3_hash.Blake3Hasher;
 
 pub const Op = enum(u8) {
     input = 0,
@@ -73,6 +75,52 @@ pub const Program = struct {
         return hash;
     }
 
+    /// Collision-resistant identity shared with the CUDA recorded-witness AOT
+    /// authority. The diagnostic label is deliberately excluded.
+    pub fn semanticIdentity(self: Program) [32]u8 {
+        var hash = Blake3Hasher.init();
+        hash.update("stwo-cuda-witness-program-semantic-identity-v1\x00");
+        hashLittle(&hash, u64, self.insts.len);
+        for (self.insts) |inst| {
+            hash.update(&.{ inst.op, inst.pad });
+            hashLittle(&hash, u16, inst.dst);
+            hashLittle(&hash, u32, inst.a);
+            hashLittle(&hash, u32, inst.b);
+            hashLittle(&hash, u32, inst.imm);
+        }
+        for ([_]u32{
+            self.n_regs,
+            self.n_inputs,
+            self.n_cols,
+            self.n_mult_tables,
+            self.n_lookup_words,
+            self.n_sub_words,
+        }) |count| hashLittle(&hash, u32, count);
+        return hash.finalize();
+    }
+
+    pub const DeductionRequirements = packed struct {
+        pedersen_table: bool = false,
+        poseidon_constants: bool = false,
+    };
+
+    /// Reports fixed data required by generated fast-deduction calls. This is
+    /// semantic capability data; backends must reject a program when their AOT
+    /// module has not bound every required table.
+    pub fn deductionRequirements(self: Program) DeductionRequirements {
+        var requirements = DeductionRequirements{};
+        for (self.insts) |inst| {
+            const op = std.meta.intToEnum(Op, inst.op) catch continue;
+            if (op != .deduce_call) continue;
+            switch (inst.imm) {
+                2, 3 => requirements.pedersen_table = true,
+                8, 10, 11 => requirements.poseidon_constants = true,
+                else => {},
+            }
+        }
+        return requirements;
+    }
+
     pub fn validate(self: Program) !void {
         var next_register: u32 = 0;
         var pending_deduce_args: u32 = 0;
@@ -113,6 +161,12 @@ pub const Program = struct {
         if (pending_deduce_args != 0 or next_register != self.n_regs) return error.InvalidRegister;
     }
 };
+
+fn hashLittle(hash: *Blake3Hasher, comptime T: type, value: anytype) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, @intCast(value), .little);
+    hash.update(&bytes);
+}
 
 fn writesRegister(op: Op) bool {
     return switch (op) {

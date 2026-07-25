@@ -1,6 +1,7 @@
 //! Public map for prover-side polynomial commitment scheme facilities.
 
 const scheme = @import("scheme.zig");
+const deferred_commit = @import("deferred_commit.zig");
 
 pub const quotient_ops = scheme.quotient_ops;
 pub const CommitmentSchemeError = scheme.CommitmentSchemeError;
@@ -25,4 +26,14 @@ pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
 
 pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
     return scheme.StreamingTreeBuilder(B, H, MC);
+}
+
+/// Resolves a deferred first tree before later transcript data is mixed.
+pub fn flushPendingCommit(
+    comptime MC: type,
+    commitment_scheme: anytype,
+    allocator: @import("std").mem.Allocator,
+    channel: anytype,
+) !void {
+    try deferred_commit.resolve(MC, commitment_scheme, allocator, channel);
 }

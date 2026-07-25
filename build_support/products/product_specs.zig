@@ -19,6 +19,7 @@ pub const Scope = catalog.Scope;
 
 pub const Constructor = enum {
     aggregate,
+    cairo_cuda,
     core,
     prover,
     native_cpu,
@@ -66,7 +67,14 @@ pub const products = [_]Spec{
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
     },
-    .{ .descriptor = cairo_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
+    .{
+        .descriptor = cairo_cuda.descriptor,
+        .scope = .cairo_cuda,
+        .constructor = .cairo_cuda,
+        .configure_tools = &.{"python3"},
+        .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
+        .generated_module_roots = &.{"generated:options:"},
+    },
     .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable },
 };
 

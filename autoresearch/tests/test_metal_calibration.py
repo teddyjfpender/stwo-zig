@@ -59,6 +59,7 @@ class MetalCalibrationTest(unittest.TestCase):
         self.repo = Path(self.temp.name) / "repo"
         (self.repo / "autoresearch/ledger").mkdir(parents=True)
         manifest_doc = json.loads((ROOT / "autoresearch/MANIFEST.json").read_text())
+        manifest_doc["workload_registry"]["groups"].pop("cuda")
         epochs_doc = json.loads((ROOT / "autoresearch/ledger/epochs.json").read_text())
         _reset_pending_authority(manifest_doc, epochs_doc)
         (self.repo / "autoresearch/MANIFEST.json").write_text(
