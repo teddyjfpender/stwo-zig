@@ -265,7 +265,7 @@
         "conformance/evidence/cuda/system-architecture-sm89/receipt.json"
       ],
       "predecessor_abba_rehearsal": [
-        "autoresearch/submissions/2026-07-24-cuda-system-architecture/verdict.json"
+        "autoresearch/notes/2026-07-24-cuda-system-architecture/verdict.json"
       ],
       "mutation_and_anti_forgery": [
         "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"

@@ -39,7 +39,7 @@ must not be relabelled as kernel time.
 ## Eligibility and provenance
 
 The authoritative repository record is
-[`autoresearch/submissions/2026-07-24-cuda-system-architecture/verdict.json`](../submissions/2026-07-24-cuda-system-architecture/verdict.json),
+[`autoresearch/notes/2026-07-24-cuda-system-architecture/verdict.json`](2026-07-24-cuda-system-architecture/verdict.json),
 added by evidence commit
 `8c865721985e74265e018ac0183088bf97365a4f`. It binds:
 

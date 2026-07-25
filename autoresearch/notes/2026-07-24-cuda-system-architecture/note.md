@@ -64,7 +64,7 @@ candidate/predecessor estimates.
 The extreme row is 52.8 row-MHz and approximately 5.28 billion committed
 cells/s at the verified-request boundary. The unit derivation, provenance
 boundary, and distinction from SN PIE latency are recorded in the focused
-[`log22 x 100` baseline note](../../notes/20260725-071513-native-cuda-wide-fibonacci-throughput-baseline.md).
+[`log22 x 100` baseline note](../20260725-071513-native-cuda-wide-fibonacci-throughput-baseline.md).
 
 Every row remains below the 1.05 regression ceiling. The worst steady row is
 the small latency case at 0.8397. Cold-process time is a separate boundary:
