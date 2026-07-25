@@ -186,3 +186,53 @@ must be folded for every commitment tree according to that tree's maximum
 column degree, not only for the preprocessed tree. The acceptance gate is a
 heterogeneous-tree regression plus unchanged exact Plonk/XOR proof bytes and
 pinned-Rust acceptance.
+
+## Exact State Machine And Accounting Checkpoint
+
+The exact upstream State Machine protocol is now integrated on Native CPU and
+the pinned Rust oracle:
+
+- three trace trees are committed: one preprocessed, one main, and one
+  interaction tree;
+- two components use different trace heights, with the shorter component at
+  `log_n_rows - 1`;
+- the interaction contains eight secure columns, represented by 32 M31
+  coordinate columns across the two heights;
+- both components consume their own random-coefficient powers and claimed
+  sums;
+- `log_n_rows < 5` is rejected at request, statement, Zig verifier, and Rust
+  oracle boundaries.
+
+The formal bidirectional exchange produced a 10,145-byte proof with SHA-256
+`cb870f4e3b1380212890ac9aff7edd6cf11a25214d2705dc61e2e582cf4f1b1b`.
+Its content-addressed receipt is
+`bf5696348a06b5535841b094d18295f220741a84cb064a8807764f55cb33783d`.
+All 52 State-specific tamper mutations were rejected: 46 by verifier
+semantics and six at the artifact metadata boundary.
+
+The prior CUDA State route remains the simplified
+`raw-stwo-state-machine-v1` protocol. It is not relabelled as exact. CLI,
+direct-route, verification, artifact, benchmark, parity, diagnostic, and
+sustained-service entry points now fail closed until the resident CUDA path
+implements `raw-stwo-state-machine-v2`. The exact `sm_v2_log14` and
+`sm_v2_log16` portfolio guards remain registered so the eventual CUDA
+implementation must improve the real protocol rather than remove the family
+from the score.
+
+Benchmark geometry is now protocol-bound rather than inferred from the old
+CUDA-shaped stubs:
+
+- exact XOR has three trace commitments, 15 logical columns, and a
+  `raw-stwo-xor-lookup-v2` descriptor identity;
+- exact State Machine has three trace commitments, 12 logical columns,
+  `9 * rows` committed cells across its mixed-height main and interaction
+  trees, and a `raw-stwo-state-machine-v2` descriptor identity;
+- resource admission accepts explicit mixed-height committed-cell geometry;
+- product receipts reject a workload whose tree count, logical-column count,
+  committed-cell count, or AIR protocol identity disagrees with its exact
+  descriptor.
+
+This correction is performance-critical evidence hygiene. It prevents a fast
+legacy CUDA route from being compared with a materially different exact CPU
+AIR, and it prevents cells-per-second or memory-admission claims from using
+columns that the proof never committed.
