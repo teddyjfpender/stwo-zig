@@ -1,5 +1,10 @@
-//! Native CUDA proof frontend for the simplified Blake AIR.
+//! Native CUDA Blake integrations.
+//!
+//! `exact` is the only product-admissible proof structure. The direct exports
+//! below belong to the fail-closed legacy experiment and remain temporarily
+//! available only so its host contracts can be retired without a flag day.
 
+pub const exact = @import("exact/mod.zig");
 pub const geometry = @import("geometry.zig");
 pub const canonical_ingress = @import("canonical_ingress.zig");
 pub const commit_tree = @import("commit_tree.zig");
@@ -29,6 +34,7 @@ pub const NativeDriver = driver.DriverFor(
 pub const NativeRuntime = driver.NativeRuntime;
 
 test {
+    _ = exact;
     _ = geometry;
     _ = canonical_ingress;
     _ = commit_tree;
