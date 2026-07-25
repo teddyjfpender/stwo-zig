@@ -1,8 +1,7 @@
 use crate::model::{
     BenchProofMetrics, BlakeComponent, BlakeStatement, Cli, Example, ExampleStatement,
     PlonkComponent, PlonkStatement, PoseidonComponent, PoseidonStatement, ProveMode, StageNode,
-    WideFibonacciStatement, XorStatement,
-    WideFibonacciComponent,
+    WideFibonacciComponent, WideFibonacciStatement, XorStatement,
 };
 use crate::profile::time_stage;
 use crate::statements::{
