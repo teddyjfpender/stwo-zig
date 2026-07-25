@@ -128,6 +128,15 @@ class ComputeSummaryTests(unittest.TestCase):
         )
         self.assertEqual(zig_claim, self.mod.REJECTION_CLASS_VERIFIER)
         self.assertEqual(rust_claim, self.mod.REJECTION_CLASS_VERIFIER)
+        claimed_sum_mismatch = self.mod.classify_rejection(
+            "",
+            "error: ClaimedSumMismatch",
+            return_code=1,
+        )
+        self.assertEqual(
+            claimed_sum_mismatch,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
         invalid_log_size = self.mod.classify_rejection(
             "",
             "error: InvalidLogSize",

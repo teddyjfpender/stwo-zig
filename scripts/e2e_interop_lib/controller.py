@@ -243,6 +243,7 @@ def classify_rejection(
         "invalid state_machine statement",
         "invalid plonk_logup log_n_rows",
         "invalidclaimedsum",
+        "claimedsummismatch",
         "invalid xor claimed_sum",
         "proofconfigmismatch",
         "proof pcs config does not match artifact pcs config",
