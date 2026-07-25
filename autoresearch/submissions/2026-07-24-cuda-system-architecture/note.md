@@ -3,7 +3,9 @@
 The original checkpoint below is frozen evidence. Continuing system-extraction
 work is recorded in
 [`transcripts/session-02-system-extraction.md`](transcripts/session-02-system-extraction.md);
-new diagnostics do not retroactively change the qualified verdict.
+exact Native AIR closure continues in
+[`transcripts/session-03-exact-air-coverage.md`](transcripts/session-03-exact-air-coverage.md).
+New diagnostics do not retroactively change the qualified verdict.
 
 ## Verdict
 
