@@ -13,16 +13,10 @@ pub fn protocol() stwo.core.pcs.PcsConfig {
 }
 
 pub fn admit(
-    request: cli.Prove,
-    sealed: stwo.core.pcs.PcsConfig,
+    _: cli.Prove,
+    _: stwo.core.pcs.PcsConfig,
 ) !cuda.geometry.Geometry {
-    return cuda.geometry.admit(
-        .{
-            .log_n_rows = request.log_n_rows.?,
-            .n_rounds = request.n_rounds.?,
-        },
-        sealed,
-    );
+    return error.UnsupportedExactBlakeProtocol;
 }
 
 pub fn proofRequest(
@@ -40,12 +34,11 @@ pub fn verify(
     geometry: cuda.geometry.Geometry,
     proof: anytype,
 ) !void {
-    try stwo.examples.blake.verify(
-        allocator,
-        pcs_config,
-        geometry.statement,
-        proof,
-    );
+    _ = pcs_config;
+    _ = geometry;
+    var owned_proof = proof;
+    owned_proof.deinit(allocator);
+    return error.UnsupportedExactBlakeProtocol;
 }
 
 pub fn writeArtifact(
@@ -55,14 +48,12 @@ pub fn writeArtifact(
     geometry: cuda.geometry.Geometry,
     canonical: []const u8,
 ) !void {
-    try stwo.interop.examples_artifact.writeNativeProofArtifact(
-        allocator,
-        path,
-        pcs_config,
-        "prove",
-        .{ .blake = geometry.statement },
-        canonical,
-    );
+    _ = allocator;
+    _ = path;
+    _ = pcs_config;
+    _ = geometry;
+    _ = canonical;
+    return error.UnsupportedExactBlakeProtocol;
 }
 
 pub const ReportStatement = struct {
@@ -83,26 +74,21 @@ pub fn reportStatement(
     };
 }
 
-test "Blake route seals statement and production protocol" {
-    const geometry = try admit(.{
-        .air = .blake,
-        .log_n_rows = 10,
-        .sequence_len = null,
-        .n_rounds = 10,
-        .log_size = null,
-        .log_step = null,
-        .offset = null,
-        .output = "proof.json",
-        .report_out = null,
-        .repeat = 1,
-        .execution_mode = .graphs,
-    }, protocol());
-    try std.testing.expectEqual(
-        @as(u32, 960),
-        geometry.main_columns,
-    );
-    try std.testing.expectEqual(
-        @as(usize, 3),
-        geometry.protocol.fri_config.n_queries,
+test "Blake route rejects provisional CUDA v1 as exact Blake" {
+    try std.testing.expectError(
+        error.UnsupportedExactBlakeProtocol,
+        admit(.{
+            .air = .blake,
+            .log_n_rows = 10,
+            .sequence_len = null,
+            .n_rounds = 10,
+            .log_size = null,
+            .log_step = null,
+            .offset = null,
+            .output = "proof.json",
+            .report_out = null,
+            .repeat = 1,
+            .execution_mode = .graphs,
+        }, protocol()),
     );
 }

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const ir = @import("stwo_backend_contracts").proof_program;
-const cpu_blake = @import("../../../examples/blake.zig");
+const geometry = @import("geometry.zig");
 const pcs = @import("stwo_core").pcs;
 
 pub const rust_oracle_repository =
@@ -38,7 +38,7 @@ pub const constraint_parameter_abi = digest(
     "stwo/native/blake/constraint-parameters:u32-log-rows,u32-rounds,u32-width,u32-one,qm31-alpha:v1",
 );
 
-pub fn statement(value: cpu_blake.Statement) ir.Digest {
+pub fn statement(value: geometry.LegacyStatement) ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo/native/blake/statement/v1");
     hashInt(&hash, u32, value.log_n_rows);

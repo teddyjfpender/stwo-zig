@@ -1,12 +1,10 @@
-//! Frozen clean-M5 CPU targets for final CUDA/Rust parity gates.
+//! Historical targets for the provisional CUDA Blake v1 protocol.
 
 const std = @import("std");
-const cpu_blake = @import("../../../examples/blake.zig");
-const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../../interop/proof_wire.zig");
+const geometry = @import("geometry.zig");
 
 pub const Target = struct {
-    statement: cpu_blake.Statement,
+    statement: geometry.LegacyStatement,
     proof_bytes: usize,
     proof_sha256: [32]u8,
 };
@@ -29,38 +27,10 @@ pub const clean_m5_functional = [_]Target{
 };
 
 pub fn checkCpuOracle(
-    allocator: std.mem.Allocator,
-    target: Target,
+    _: std.mem.Allocator,
+    _: Target,
 ) !void {
-    const protocol = pcs.PcsConfig.default();
-    var output = try cpu_blake.prove(
-        allocator,
-        protocol,
-        target.statement,
-    );
-    var proof_live = true;
-    defer if (proof_live) output.proof.deinit(allocator);
-
-    const encoded = try proof_wire.encodeProofBytes(
-        allocator,
-        output.proof,
-    );
-    defer allocator.free(encoded);
-    var actual: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(encoded, &actual, .{});
-    if (encoded.len != target.proof_bytes or
-        !std.mem.eql(u8, &actual, &target.proof_sha256))
-    {
-        return error.ParityTargetMismatch;
-    }
-
-    proof_live = false;
-    try cpu_blake.verify(
-        allocator,
-        protocol,
-        target.statement,
-        output.proof,
-    );
+    return error.UnsupportedExactBlakeProtocol;
 }
 
 fn digest(comptime text: []const u8) [32]u8 {
@@ -85,8 +55,11 @@ test "Blake parity targets increase trace size with fixed width" {
     );
 }
 
-test "Blake clean-M5 CPU parity targets remain exact and verified" {
+test "legacy Blake targets cannot claim exact CPU parity" {
     for (clean_m5_functional) |target| {
-        try checkCpuOracle(std.testing.allocator, target);
+        try std.testing.expectError(
+            error.UnsupportedExactBlakeProtocol,
+            checkCpuOracle(std.testing.allocator, target),
+        );
     }
 }

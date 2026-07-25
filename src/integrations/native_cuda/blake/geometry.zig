@@ -1,7 +1,6 @@
 //! Fail-closed Native Blake proof geometry from the public statement.
 
 const std = @import("std");
-const cpu_blake = @import("../../../examples/blake.zig");
 const pcs = @import("stwo_core").pcs;
 
 pub const columns_per_round: u32 = 96;
@@ -17,13 +16,20 @@ pub const Error = error{
     UnsupportedProtocol,
 };
 
+/// Input statement for the provisional CUDA Blake v1 protocol. This is not
+/// the exact upstream Blake statement, whose output also binds LogUp claims.
+pub const LegacyStatement = struct {
+    log_n_rows: u32,
+    n_rounds: u32,
+};
+
 pub const Request = struct {
-    statement: cpu_blake.Statement,
+    statement: LegacyStatement,
     protocol: pcs.PcsConfig,
 };
 
 pub const Geometry = struct {
-    statement: cpu_blake.Statement,
+    statement: LegacyStatement,
     protocol: pcs.PcsConfig,
     trace_rows: u64,
     row_count: u32,
@@ -60,7 +66,7 @@ pub const Geometry = struct {
 };
 
 pub fn admit(
-    statement: cpu_blake.Statement,
+    statement: LegacyStatement,
     protocol: pcs.PcsConfig,
 ) Error!Geometry {
     if (!supportedProtocol(protocol)) return error.UnsupportedProtocol;
@@ -137,7 +143,7 @@ pub fn admitRequest(request: Request) Error!Geometry {
 }
 
 pub fn mainColumnCount(
-    statement: cpu_blake.Statement,
+    statement: LegacyStatement,
 ) Error!u32 {
     if (statement.log_n_rows == 0 or
         statement.log_n_rows > max_log_n_rows)
