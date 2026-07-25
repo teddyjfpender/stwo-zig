@@ -218,25 +218,27 @@ pub fn interactionWidths() [component_count]usize {
     };
 }
 
-pub fn relationEntryWidths() [component_count]usize {
+/// One paired-fraction denominator per secure interaction column. The two
+/// underlying relation uses are combined algebraically before inversion.
+pub fn relationFractionWidths() [component_count]usize {
     return .{
-        2 * air_geometry.SCHEDULER_INTERACTION_SECURE_COLUMNS - 1,
-        2 * air_geometry.ROUND_INTERACTION_SECURE_COLUMNS - 1,
-        2 * air_geometry.ROUND_INTERACTION_SECURE_COLUMNS - 1,
-        air_geometry.XOR_TABLES[0].multiplicityColumns(),
-        air_geometry.XOR_TABLES[1].multiplicityColumns(),
-        air_geometry.XOR_TABLES[2].multiplicityColumns(),
-        air_geometry.XOR_TABLES[3].multiplicityColumns(),
-        air_geometry.XOR_TABLES[4].multiplicityColumns(),
+        air_geometry.SCHEDULER_INTERACTION_SECURE_COLUMNS,
+        air_geometry.ROUND_INTERACTION_SECURE_COLUMNS,
+        air_geometry.ROUND_INTERACTION_SECURE_COLUMNS,
+        air_geometry.XOR_TABLES[0].interactionSecureColumns(),
+        air_geometry.XOR_TABLES[1].interactionSecureColumns(),
+        air_geometry.XOR_TABLES[2].interactionSecureColumns(),
+        air_geometry.XOR_TABLES[3].interactionSecureColumns(),
+        air_geometry.XOR_TABLES[4].interactionSecureColumns(),
     };
 }
 
-pub fn relationEntryWords(log_n_rows: u32) Error!usize {
-    const secure_entries = try groupWords(
+pub fn relationFractionWorkspaceWords(log_n_rows: u32) Error!usize {
+    const secure_fractions = try groupWords(
         componentLogs(log_n_rows),
-        relationEntryWidths(),
+        relationFractionWidths(),
     );
-    return std.math.mul(usize, secure_entries, 4) catch
+    return std.math.mul(usize, secure_fractions, 4) catch
         error.GeometryOverflow;
 }
 
@@ -309,8 +311,8 @@ test "exact CUDA Blake geometry has four trees and eight mixed-height components
     );
     try std.testing.expectEqual(@as(usize, 2_668), sampled_value_count);
     try std.testing.expectEqual(
-        @as(usize, 68_569_408),
-        try relationEntryWords(4),
+        @as(usize, 34_285_568),
+        try relationFractionWorkspaceWords(4),
     );
 }
 
