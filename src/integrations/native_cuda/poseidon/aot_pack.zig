@@ -10,7 +10,7 @@ const witness = @import(
     "../../../backends/cuda/runtime/traces/m31_permutation.zig",
 );
 const constraint = @import(
-    "../../../backends/cuda/runtime/constraints/constant_qm31.zig",
+    "../../../backends/cuda/runtime/constraints/poseidon.zig",
 );
 
 pub const sm89: u32 = 89;
@@ -31,7 +31,7 @@ pub const entries = [_]Entry{
     },
     .{
         .stage = .constraint_evaluation,
-        .abi_schema = .native_constant_qm31_v1,
+        .abi_schema = .native_poseidon_constraint_v1,
         .cache_key = constraint.cache_key,
         .kernel_name = constraint.kernel_name,
     },
@@ -40,17 +40,17 @@ pub const entries = [_]Entry{
 pub const identity: ir.Digest = blk: {
     @setEvalBranchQuota(10_000);
     break :blk ir.identityDigest(
-        "stwo-zig/native-cuda/poseidon/aot-pack/v1;" ++
+        "stwo-zig/native-cuda/poseidon/aot-pack/v2;" ++
             "sm=89;" ++
             "witness=m31-permutation:d5701a3db042081d;" ++
-            "constraint=constant-qm31:d363e2a1d1c6b31d",
+            "constraint=poseidon:fab354a9f2437fcb",
     );
 };
 
 test "Poseidon AOT pack binds the exact witness and constraint descriptors" {
     try std.testing.expectEqual(@as(usize, 2), entries.len);
     const witness_descriptor = try witness.descriptor(7);
-    const constraint_descriptor = try constraint.descriptor(8);
+    const constraint_descriptor = try constraint.descriptor(7);
     try std.testing.expectEqual(
         entries[0].abi_schema,
         witness_descriptor.abi_schema,

@@ -1,11 +1,16 @@
 //! Canonical host-to-resident initialization for Native Poseidon.
 
+const std = @import("std");
 const field = @import(
     "../../../../backends/cuda/abi/field.zig",
+);
+const relation_abi = @import(
+    "../../../../backends/cuda/abi/stages/relation.zig",
 );
 const canonical = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");
+const relation_mod = @import("../relation.zig");
 const slots = @import("../slots.zig");
 
 pub fn run(
@@ -72,6 +77,7 @@ pub fn run(
     try uploadQuotientTopology(transaction, prepared);
     try uploadFriLayers(transaction, prepared);
     try uploadDecommitTopology(transaction, prepared);
+    try uploadRelationGraph(transaction, prepared, views);
 }
 
 pub fn configSource(views: anytype) !@TypeOf(
@@ -106,8 +112,9 @@ fn uploadTraceLayers(
     transaction: anytype,
     prepared: *const plan_mod.PreparedPlan,
 ) !void {
-    const main = prepared.decommit.trace_trees[0];
-    const composition = prepared.decommit.trace_trees[1];
+    const main = try traceOpening(prepared, .main);
+    const interaction = try traceOpening(prepared, .interaction);
+    const composition = try traceOpening(prepared, .composition);
     try transaction.upload(
         field.MerkleLayerDescriptor,
         slots.main_merkle_layers,
@@ -115,6 +122,15 @@ fn uploadTraceLayers(
             prepared,
             main.retained_layer_offset,
             main.retained_layer_count,
+        ),
+    );
+    try transaction.upload(
+        field.MerkleLayerDescriptor,
+        slots.interaction_merkle_layers,
+        retainedLayers(
+            prepared,
+            interaction.retained_layer_offset,
+            interaction.retained_layer_count,
         ),
     );
     try transaction.upload(
@@ -198,11 +214,131 @@ fn uploadDecommitTopology(
         slots.main_column_log_sizes,
         logs[0..geometry.main_columns],
     );
+    const interaction_first = geometry.main_columns;
+    const composition_first =
+        interaction_first + @import("../geometry.zig").interaction_columns;
+    try transaction.upload(
+        u32,
+        slots.interaction_column_log_sizes,
+        logs[interaction_first..composition_first],
+    );
     try transaction.upload(
         u32,
         slots.composition_column_log_sizes,
-        logs[geometry.main_columns..],
+        logs[composition_first..],
     );
+}
+
+fn uploadRelationGraph(
+    transaction: anytype,
+    prepared: *const plan_mod.PreparedPlan,
+    views: anytype,
+) !void {
+    const relation = &views.relation;
+    const plan = try relation_mod.Plan.init(
+        prepared.logical.geometry.log_n_rows,
+    );
+    const source_table = try pointerTable(&relation.source_columns);
+    const output_table = try pointerTable(
+        &relation.output_coordinates,
+    );
+
+    try transaction.upload(
+        u32,
+        slots.relation_source_pointer_table,
+        &source_table,
+    );
+    try transaction.upload(
+        relation_abi.ColumnDescriptor,
+        slots.relation_descriptors,
+        &relation_mod.descriptors,
+    );
+    try transaction.upload(
+        u32,
+        slots.relation_output_pointer_table,
+        &output_table,
+    );
+    try transaction.upload(
+        relation_abi.Geometry,
+        slots.relation_geometry,
+        &plan.geometry,
+    );
+    try uploadSinglePointer(
+        transaction,
+        slots.relation_source_tables,
+        relation.source_pointer_table.address,
+    );
+    try uploadSinglePointer(
+        transaction,
+        slots.relation_descriptor_tables,
+        relation.descriptor_storage.address,
+    );
+    try uploadSinglePointer(
+        transaction,
+        slots.relation_output_tables,
+        relation.output_pointer_table.address,
+    );
+    try uploadSinglePointer(
+        transaction,
+        slots.relation_denominator_tables,
+        relation.denominator_slab.address,
+    );
+    try uploadSinglePointer(
+        transaction,
+        slots.relation_claimed_sum_tables,
+        relation.claimed_sum.address,
+    );
+}
+
+fn pointerTable(values: anytype) ![
+    values.len * (@sizeOf(usize) / @sizeOf(u32))
+]u32 {
+    var result: [
+        values.len * (@sizeOf(usize) / @sizeOf(u32))
+    ]u32 = undefined;
+    for (values, 0..) |value, index| {
+        const encoded = try pointerWords(value.address);
+        const first = index * encoded.len;
+        result[first..][0..encoded.len].* = encoded;
+    }
+    return result;
+}
+
+fn uploadSinglePointer(
+    transaction: anytype,
+    id: slots.SlotId,
+    address: usize,
+) !void {
+    const encoded = try pointerWords(address);
+    try transaction.upload(u32, id, &encoded);
+}
+
+fn pointerWords(
+    address: usize,
+) ![@sizeOf(usize) / @sizeOf(u32)]u32 {
+    comptime std.debug.assert(@sizeOf(usize) == @sizeOf(u64));
+    var bytes: [@sizeOf(u64)]u8 = undefined;
+    std.mem.writeInt(u64, &bytes, @intCast(address), .little);
+    var result: [2]u32 = undefined;
+    inline for (0..2) |index| {
+        const first = index * @sizeOf(u32);
+        result[index] = std.mem.readInt(
+            u32,
+            bytes[first..][0..@sizeOf(u32)],
+            .little,
+        );
+    }
+    return result;
+}
+
+fn traceOpening(
+    prepared: *const plan_mod.PreparedPlan,
+    role: @import("../../common/uniform_layout.zig").TraceRole,
+) !@TypeOf(prepared.decommit.trace_trees[0]) {
+    for (prepared.decommit.trace_trees) |opening| {
+        if (opening.role == role) return opening;
+    }
+    return error.InvalidKernelDescriptor;
 }
 
 fn retainedLayers(

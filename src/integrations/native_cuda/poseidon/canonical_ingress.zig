@@ -37,7 +37,7 @@ pub const CircleConstants = struct {
     half_coset_step_size: u32,
     barycentric_si0: field.SecureField,
     vanishing_rotation: field.CirclePointBaseField,
-    composition_denominator_inverses: [2]u32,
+    composition_denominator_inverses: [4]u32,
 };
 
 pub const Pack = struct {
@@ -57,7 +57,9 @@ pub const Pack = struct {
         allocator: std.mem.Allocator,
         geometry: geometry_mod.Geometry,
     ) !Self {
-        const max_circle_log = geometry.queryLogSize();
+        // Poseidon's AIR has degree log + 2 even though its trace trees commit
+        // at log + 1. One rooted tree supplies suffix views for both domains.
+        const max_circle_log = geometry.composition_log_rows;
         const root_coset = CanonicCoset
             .new(max_circle_log)
             .circleDomain()
@@ -159,8 +161,10 @@ pub const Pack = struct {
         self: *const Self,
         circle_log_size: u32,
     ) error{InvalidCircleLog}!TwiddleView {
+        const max_circle_log = min_executed_circle_log +
+            @as(u32, @intCast(self.twiddle_views.len - 1));
         if (circle_log_size < min_executed_circle_log or
-            circle_log_size > self.circle.domain_log_size)
+            circle_log_size > max_circle_log)
         {
             return error.InvalidCircleLog;
         }
@@ -246,15 +250,18 @@ fn deriveCircleConstants(
     const trace_coset = CanonicCoset
         .new(geometry.log_n_rows)
         .coset();
-    // The AOT kernel selects `row >> log_n_rows`. Since committed evaluations
-    // are bit reversed, the first row of those physical halves is domain point
-    // 0 and domain point 1 respectively.
-    var denominator_inverses: [2]u32 = undefined;
+    // The exact AIR evaluates over 4N rows and selects the physical coset with
+    // `row >> log_n_rows`. Bit-reversed storage places coset representatives
+    // at the first four logical domain points.
+    const composition_domain = CanonicCoset
+        .new(geometry.composition_log_rows)
+        .circleDomain();
+    var denominator_inverses: [4]u32 = undefined;
     for (&denominator_inverses, 0..) |*inverse, row| {
         inverse.* = (try core.constraints.cosetVanishing(
             M31,
             trace_coset,
-            domain.at(row),
+            composition_domain.at(row),
         ).inv()).toU32();
     }
 
@@ -558,11 +565,14 @@ test "canonical ingress circle constants satisfy core field identities" {
         );
 
         const trace_coset = CanonicCoset.new(trace_log).coset();
+        const composition_domain = CanonicCoset
+            .new(geometry.composition_log_rows)
+            .circleDomain();
         for (pack.circle.composition_denominator_inverses, 0..) |raw, row| {
             const vanishing = core.constraints.cosetVanishing(
                 M31,
                 trace_coset,
-                domain.at(row),
+                composition_domain.at(row),
             );
             try std.testing.expect(
                 vanishing.mul(M31.fromCanonical(raw)).eql(M31.one()),
@@ -571,19 +581,19 @@ test "canonical ingress circle constants satisfy core field identities" {
     }
 }
 
-test "canonical ingress denominators match both physical AOT row halves" {
+test "canonical ingress denominators match all four physical AIR cosets" {
     const allocator = std.testing.allocator;
     for ([_]u32{ 3, 5, 14 }) |trace_log| {
         const geometry = try testGeometry(trace_log);
         var pack = try Pack.init(allocator, geometry);
         defer pack.deinit(allocator);
 
-        const domain_log = geometry.queryLogSize();
+        const domain_log = geometry.composition_log_rows;
         const domain = CanonicCoset.new(domain_log).circleDomain();
         const trace_coset = CanonicCoset.new(trace_log).coset();
         for (0..geometry.commitment_rows) |physical_row| {
             const denominator_index = physical_row >> @intCast(trace_log);
-            try std.testing.expect(denominator_index < 2);
+            try std.testing.expect(denominator_index < 4);
             const logical_row = core.utils.bitReverseIndex(
                 physical_row,
                 domain_log,
@@ -624,6 +634,6 @@ test "canonical ingress rejects twiddle views outside executed logs" {
     );
     try std.testing.expectError(
         error.InvalidCircleLog,
-        pack.viewForCircleLog(geometry.queryLogSize() + 1),
+        pack.viewForCircleLog(geometry.composition_log_rows + 1),
     );
 }

@@ -63,7 +63,7 @@ pub const bindings = [_]Binding{
         .stage = .trace_commit,
         .kind = .protocol_derivation,
         .state = .resident,
-        .requirement = "mix the main root and the Native Poseidon statement in Rust order",
+        .requirement = "mix the main root before drawing the Poseidon lookup elements",
     },
     .{
         .id = "composition_challenge",
@@ -77,7 +77,7 @@ pub const bindings = [_]Binding{
         .stage = .constraint_evaluation,
         .kind = .resident_layout,
         .state = .resident,
-        .requirement = "interpolate, split, commit, and retain eight composition columns",
+        .requirement = "interpolate at 4N, split twice, commit, and retain sixteen degree-N composition columns",
     },
     .{
         .id = "composition_root_transcript",

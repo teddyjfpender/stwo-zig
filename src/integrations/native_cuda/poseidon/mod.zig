@@ -21,6 +21,7 @@ pub const relation = @import("relation.zig");
 pub const resident_bindings = @import("resident_bindings/mod.zig");
 pub const slots = @import("slots.zig");
 pub const terminal_bundle = @import("terminal_bundle.zig");
+pub const terminal_output = @import("terminal_output.zig");
 pub const topology = @import("topology.zig");
 pub const trace = @import("trace.zig");
 pub const transcript_schedule = @import("transcript_schedule.zig");
@@ -53,6 +54,7 @@ test {
     _ = resident_bindings;
     _ = slots;
     _ = terminal_bundle;
+    _ = terminal_output;
     _ = topology;
     _ = trace;
     _ = transcript_schedule;

@@ -5,6 +5,8 @@ const common_pipeline = @import("../../common/pipeline.zig");
 const frontend_hooks = @import("frontend_hooks.zig");
 const geometry_mod = @import("../geometry.zig");
 const plan_mod = @import("../plan.zig");
+const std = @import("std");
+const terminal_output = @import("../terminal_output.zig");
 
 const Pipeline = common_pipeline.PipelineFor(
     geometry_mod.Request,
@@ -25,8 +27,30 @@ pub const validatePrepared = Pipeline.validatePrepared;
 pub const ingress = Pipeline.ingress;
 pub const executeNode = Pipeline.executeNode;
 
+pub fn OutputFor(comptime Transaction: type) type {
+    return terminal_output.OutputFor(Transaction);
+}
+
+pub fn finish(
+    transaction: anytype,
+    allocator: std.mem.Allocator,
+    prepared: anytype,
+) !OutputFor(@TypeOf(transaction.*)) {
+    const raw = try transaction.assembleStarkBundleAndStatementFinishWith(
+        BundleDescriptor,
+        allocator,
+        prepared.proofSlot(),
+        geometry_mod.terminal_statement_words,
+    );
+    return terminal_output.fromRaw(
+        @TypeOf(transaction.*),
+        allocator,
+        prepared.structural.logical.geometry.statement,
+        raw,
+    );
+}
+
 test "Poseidon pipeline prepares one exact resident proof plan" {
-    const std = @import("std");
     const allocator = std.testing.allocator;
     const geometry = try admit(.{
         .statement = .{ .log_n_instances = 13 },
