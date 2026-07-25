@@ -262,7 +262,13 @@ pub fn provePreparedEx(
         defer stage.end();
 
         var channel = Engine.Channel{};
-        pcs_config.mixInto(&channel);
+        const mix_pcs_config = comptime if (@hasDecl(Spec, "mix_pcs_config"))
+            Spec.mix_pcs_config
+        else
+            true;
+        if (mix_pcs_config) {
+            pcs_config.mixInto(&channel);
+        }
         break :blk Initialized{
             .channel = channel,
             .scheme = if (comptime use_session)
@@ -295,6 +301,9 @@ pub fn provePreparedEx(
         );
     }
     if (comptime @hasDecl(Spec, "beforeMainCommit")) {
+        // A deferred first tree must enter the transcript before statement
+        // data that is ordered between the first and second commitments.
+        try Engine.flushPendingCommit(&scheme, allocator, &channel);
         try Spec.beforeMainCommit(&channel, prepared.request);
     }
     {
