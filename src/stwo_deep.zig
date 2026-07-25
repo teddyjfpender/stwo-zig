@@ -1,5 +1,19 @@
 const std = @import("std");
 const stwo = @import("stwo.zig");
+const native_cuda_poseidon_geometry =
+    @import("integrations/native_cuda/poseidon/geometry.zig");
+const native_cuda_poseidon_layout =
+    @import("integrations/native_cuda/poseidon/layout.zig");
+const native_cuda_poseidon_topology =
+    @import("integrations/native_cuda/poseidon/topology.zig");
+const native_cuda_poseidon_oods =
+    @import("integrations/native_cuda/poseidon/oods.zig");
+const native_cuda_poseidon_ingress =
+    @import("integrations/native_cuda/poseidon/canonical_ingress.zig");
+const native_cuda_poseidon_program =
+    @import("integrations/native_cuda/poseidon/program.zig");
+const native_cuda_poseidon_transcript =
+    @import("integrations/native_cuda/poseidon/transcript_schedule.zig");
 
 test {
     _ = @import("backends/metal/telemetry.zig");
@@ -24,4 +38,11 @@ test {
     std.testing.refAllDeclsRecursive(stwo.examples);
     std.testing.refAllDeclsRecursive(stwo.interop);
     std.testing.refAllDeclsRecursive(stwo.tracing);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_geometry);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_layout);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_topology);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_oods);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_ingress);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_program);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_transcript);
 }

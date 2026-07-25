@@ -11,31 +11,31 @@ pub const rust_oracle_commit =
     "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2";
 
 pub const air = digest(
-    "stwo/native/poseidon/air:constant-qm31(log_instances,158,1264,1):v1",
+    "stwo/native/poseidon/air:m31-permutation+16-tuple-logup:1144:v2",
 );
 pub const ingress_recipe = digest(
-    "stwo/native/poseidon/trace:m31-permutation-16x8-replicas:v1",
+    "stwo/native/poseidon/trace:m31-permutation-16x8-replicas:exact-v2",
 );
 pub const ingress_layout = digest(
     "stwo/native/poseidon/trace-layout:m31-column-major:circle-domain:v1",
 );
 pub const transcript_recipe = digest(
-    "stwo/native/poseidon/transcript:pcs-config,empty-preprocessed,main,log-instances:u32:v1",
+    "stwo/native/poseidon/transcript:pcs,empty,main,z-alpha,interaction,composition,oods,fri:v2",
 );
 pub const public_input_abi = digest(
     "stwo/native/poseidon/public-input:u32-log-instances:v1",
 );
 pub const sampling_recipe = digest(
-    "stwo/native/poseidon/oods:main-points,composition-split-points:v1",
+    "stwo/native/poseidon/oods:main-current,interaction-previous-current,composition-current:v2",
 );
 pub const mask_layout = digest(
-    "stwo/native/poseidon/mask:preprocessed[],main[1264x[0]],composition[8x[0]]:v1",
+    "stwo/native/poseidon/mask:preprocessed[],main[1264x[0]],interaction[28x[0],4x[-1,0]],composition[16x[0]]:v2",
 );
 pub const constraint_expression = digest(
-    "stwo/native/poseidon/constraint:constant-qm31(log-instances,158,1264,1):v1",
+    "stwo/native/poseidon/constraint:1144-exact-transition-and-logup:v2",
 );
 pub const constraint_parameter_abi = digest(
-    "stwo/native/poseidon/constraint-parameters:u32-log-instances,qm31-alpha:v1",
+    "stwo/native/poseidon/constraint-parameters:statement[log_instances,claimed_sum],lookup[z,alpha],composition-alpha:v2",
 );
 
 pub fn statement(value: cpu_poseidon.Statement) ir.Digest {

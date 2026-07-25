@@ -1,4 +1,4 @@
-//! Native Poseidon policy for the shared uniform three-tree layout.
+//! Exact four-tree Native Poseidon proof layout.
 
 const common = @import("../common/uniform_layout.zig");
 const geometry_mod = @import("geometry.zig");
@@ -6,7 +6,7 @@ const geometry_mod = @import("geometry.zig");
 const Descriptor = struct {
     pub fn describe(
         geometry: geometry_mod.Geometry,
-    ) geometry_mod.Error!common.Description {
+    ) geometry_mod.Error!common.DescriptionFor(4) {
         return .{
             .trace_trees = .{
                 .{
@@ -20,6 +20,14 @@ const Descriptor = struct {
                 .{
                     .role = .main,
                     .column_count = geometry.main_columns,
+                    .column_log_size = geometry.log_n_rows,
+                    .commitment_log_size = geometry.commitment_log_rows,
+                    .sampled = true,
+                    .decommitted = true,
+                },
+                .{
+                    .role = .interaction,
+                    .column_count = geometry_mod.interaction_columns,
                     .column_log_size = geometry.log_n_rows,
                     .commitment_log_size = geometry.commitment_log_rows,
                     .sampled = true,
@@ -41,10 +49,10 @@ const Descriptor = struct {
             .fri_fold_step = geometry.protocol.fri_config.fold_step,
             .fri_log_rows_per_leaf = 0,
             .quotient = .{
-                .sample_count = geometry.sampled_value_count,
-                .term_count = geometry.sampled_value_count,
+                .sample_count = geometry_mod.sampled_mask_points,
+                .term_count = geometry_mod.sampled_mask_points,
                 .structural_group_count = 1,
-                .source_column_count = geometry.sampled_value_count,
+                .source_column_count = geometry_mod.source_columns,
                 .source_stride_words = geometry.commitment_rows,
                 .output_rows = geometry.commitment_rows,
             },
@@ -52,9 +60,10 @@ const Descriptor = struct {
     }
 };
 
-pub const Layout = common.LayoutFor(
+pub const Layout = common.LayoutForTreeCount(
     geometry_mod.Geometry,
     Descriptor,
+    4,
 );
 
 test "Poseidon layout preserves empty preprocessed and wide main trees" {
@@ -78,11 +87,15 @@ test "Poseidon layout preserves empty preprocessed and wide main trees" {
         logical.trace_trees[1].column_count,
     );
     try std.testing.expectEqual(
-        @as(usize, 8),
+        @as(usize, 32),
         logical.trace_trees[2].column_count,
     );
     try std.testing.expectEqual(
-        @as(usize, 1272),
+        @as(usize, 16),
+        logical.trace_trees[3].column_count,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 1316),
         logical.quotient.term_count,
     );
     try std.testing.expectEqual(
@@ -90,7 +103,7 @@ test "Poseidon layout preserves empty preprocessed and wide main trees" {
         logical.fri_trees.len,
     );
     try std.testing.expectEqual(
-        @as(usize, 2),
+        @as(usize, 3),
         logical.fri_trees[0].tree_index,
     );
 }

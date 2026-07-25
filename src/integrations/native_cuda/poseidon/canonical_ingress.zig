@@ -9,6 +9,7 @@ const core = @import("stwo_core");
 const prover = @import("stwo_prover_impl");
 const field = @import("../../../backends/cuda/abi/field.zig");
 const geometry_mod = @import("geometry.zig");
+const exact_oods = @import("oods.zig");
 
 const CirclePointM31 = core.circle.CirclePointM31;
 const M31 = core.fields.m31.M31;
@@ -99,22 +100,19 @@ pub const Pack = struct {
 
         const coefficient_logs = try allocator.alloc(
             u32,
-            geometry.sampled_value_count,
+            geometry_mod.source_columns,
         );
         errdefer allocator.free(coefficient_logs);
-        @memset(coefficient_logs, geometry.log_n_rows);
 
         const offsets = try allocator.alloc(
             field.CirclePointBaseField,
-            geometry.sampled_value_count,
+            geometry_mod.sampled_mask_points,
         );
         errdefer allocator.free(offsets);
-        const identity = rawBasePoint(CirclePointM31.identity());
-        @memset(offsets, identity);
 
         const folds = try allocator.alloc(
             u32,
-            geometry.sampled_value_count,
+            geometry_mod.sampled_mask_points,
         );
         errdefer allocator.free(folds);
         const lifting_log = geometry.protocol.lifting_log_size orelse
@@ -125,12 +123,13 @@ pub const Pack = struct {
 
         const output_indices = try allocator.alloc(
             u32,
-            geometry.sampled_value_count,
+            geometry_mod.sampled_mask_points,
         );
         errdefer allocator.free(output_indices);
-        for (output_indices, 0..) |*output_index, index| {
-            output_index.* = try u32Count(index);
-        }
+        const oods_policy = exact_oods.Policy.init(geometry);
+        @memcpy(coefficient_logs, &oods_policy.coefficient_log_sizes);
+        @memcpy(offsets, &oods_policy.offset_points);
+        @memcpy(output_indices, &oods_policy.output_indices);
 
         return .{
             .twiddle_tree = tree,
@@ -433,19 +432,34 @@ test "canonical ingress OODS descriptors retain proof order" {
         defer pack.deinit(allocator);
 
         try std.testing.expectEqual(
-            geometry.sampled_value_count,
+            geometry_mod.source_columns,
             pack.coefficient_log_sizes.len,
         );
-        const identity = CirclePointM31.identity();
-        for (0..geometry.sampled_value_count) |index| {
+        try std.testing.expectEqual(
+            geometry_mod.sampled_mask_points,
+            pack.oods_offset_points.len,
+        );
+        const policy = exact_oods.Policy.init(geometry);
+        for (0..geometry_mod.source_columns) |index| {
             try std.testing.expectEqual(
                 trace_log,
                 pack.coefficient_log_sizes[index],
             );
-            try std.testing.expectEqual(identity.x.toU32(), pack.oods_offset_points[index].x);
-            try std.testing.expectEqual(identity.y.toU32(), pack.oods_offset_points[index].y);
+            try std.testing.expectEqual(
+                policy.coefficient_log_sizes[index],
+                pack.coefficient_log_sizes[index],
+            );
+        }
+        for (0..geometry_mod.sampled_mask_points) |index| {
+            try std.testing.expectEqual(
+                policy.offset_points[index],
+                pack.oods_offset_points[index],
+            );
             try std.testing.expectEqual(@as(u32, 0), pack.oods_fold_counts[index]);
-            try std.testing.expectEqual(@as(u32, @intCast(index)), pack.oods_output_indices[index]);
+            try std.testing.expectEqual(
+                policy.output_indices[index],
+                pack.oods_output_indices[index],
+            );
         }
     }
 }

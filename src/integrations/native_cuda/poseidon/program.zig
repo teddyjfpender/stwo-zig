@@ -29,17 +29,24 @@ pub fn emit(
 ) !ir.ProofProgram {
     const trace_columns = try allocator.alloc(
         ir.TraceColumn,
-        geometry.sampled_value_count,
+        geometry_mod.source_columns,
     );
     defer allocator.free(trace_columns);
     for (trace_columns, 0..) |*column, index| {
-        const main = index < geometry.main_columns;
+        const main_end = geometry.main_columns;
+        const interaction_end =
+            main_end + geometry_mod.interaction_columns;
         column.* = .{
             .id = @intCast(index),
             .component = 0,
             .ordinal = @intCast(index),
             .log_rows = geometry.log_n_rows,
-            .role = if (main) .main else .composition,
+            .role = if (index < main_end)
+                .main
+            else if (index < interaction_end)
+                .interaction
+            else
+                .composition,
         };
     }
 
@@ -47,10 +54,13 @@ pub fn emit(
         .id = 0,
         .component = 0,
         .expression = identities.constraint_expression,
-        .constraint_count = 1,
+        .constraint_count = 1144,
         .max_degree_log = 2,
     }};
     const commitment_log = geometry.queryLogSize();
+    const main_end = geometry.main_columns;
+    const interaction_end =
+        main_end + geometry_mod.interaction_columns;
     const commitments = [_]ir.CommitmentTree{
         .{
             .id = 0,
@@ -72,8 +82,17 @@ pub fn emit(
         },
         .{
             .id = 2,
+            .role = .interaction,
+            .first_column = @intCast(main_end),
+            .column_count = geometry_mod.interaction_columns,
+            .evaluation_log_rows = commitment_log,
+            .log_rows_per_leaf = commitment_log,
+            .retain_openings = true,
+        },
+        .{
+            .id = 3,
             .role = .composition,
-            .first_column = @intCast(geometry.main_columns),
+            .first_column = @intCast(interaction_end),
             .column_count = geometry_mod.composition_columns,
             .evaluation_log_rows = commitment_log,
             .log_rows_per_leaf = commitment_log,
@@ -145,28 +164,28 @@ fn nativeContract(
             .log_rows = geometry.log_n_rows,
             .preprocessed_columns = geometry_mod.preprocessed_columns,
             .main_columns = geometry.main_columns,
-            .interaction_columns = 0,
+            .interaction_columns = geometry_mod.interaction_columns,
         },
         .ingress = .{
             .recipe_identity = identities.ingress_recipe,
             .layout_abi_identity = identities.ingress_layout,
-            .element_count = geometry.main_cells,
+            .element_count = geometry.committed_cells,
         },
         .statement = .{
             .transcript_recipe_identity = identities.transcript_recipe,
             .public_input_abi_identity = identities.public_input_abi,
-            .public_input_words = 1,
+            .public_input_words = geometry_mod.public_statement_word_count,
         },
         .sampling = .{
             .recipe_identity = identities.sampling_recipe,
             .mask_layout_identity = identities.mask_layout,
-            .mask_point_count = @intCast(geometry.sampled_value_count),
+            .mask_point_count = geometry_mod.sampled_mask_points,
         },
         .constraint_parameters = .{
             .identity = identities.constraint_parameter_abi,
-            .statement_words = 1,
-            .challenge_words = 4,
-            .parameter_words = 4,
+            .statement_words = geometry_mod.public_statement_word_count,
+            .challenge_words = 12,
+            .parameter_words = geometry_mod.public_statement_word_count + 12,
         },
     };
 }
@@ -373,7 +392,11 @@ fn transcriptNode(operation: transcript.Operation) u32 {
         .mix_main_root,
         .mix_statement,
         => 1,
-        .draw_composition_alpha, .mix_composition_root => 2,
+        .draw_lookup_elements,
+        .mix_interaction_root,
+        .draw_composition_alpha,
+        .mix_composition_root,
+        => 2,
         .draw_oods_point,
         .mix_sampled_values,
         .draw_quotient_alpha,
@@ -390,11 +413,13 @@ fn transcriptKind(operation: transcript.Operation) ir.TranscriptKind {
         .mix_preprocessed_root,
         .mix_main_root,
         .mix_statement,
+        .mix_interaction_root,
         .mix_composition_root,
         .mix_sampled_values,
         .mix_fri_root,
         .mix_last_layer,
         => .mix,
+        .draw_lookup_elements,
         .draw_composition_alpha,
         .draw_oods_point,
         .draw_quotient_alpha,
@@ -410,7 +435,7 @@ fn transcriptValueCount(
     geometry: geometry_mod.Geometry,
 ) u32 {
     return switch (operation) {
-        .mix_statement => 2,
+        .draw_lookup_elements => 2,
         .mix_sampled_values => @intCast(geometry.sampled_value_count),
         .draw_queries => @intCast(
             geometry.protocol.fri_config.n_queries,
@@ -484,23 +509,23 @@ test "Native Poseidon emits one validated backend-neutral program" {
     defer program.deinit(allocator);
     try program.validate();
     try std.testing.expectEqual(
-        geometry.sampled_value_count,
+        geometry_mod.source_columns,
         program.trace_columns.len,
     );
     try std.testing.expectEqual(@as(usize, 8), program.nodes.len);
     try std.testing.expectEqual(
-        @as(usize, 3),
+        @as(usize, 4),
         program.commitments.len,
     );
-    try std.testing.expectEqual(@as(u32, 1), program.transcript[3].value_count);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[3].value_count);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[4].node);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[5].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[6].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[6].node);
     try std.testing.expectEqual(@as(u32, 3), program.transcript[8].node);
     const contract = program.native_air_contract.?;
     try contract.validate();
     try std.testing.expectEqual(
-        geometry.main_cells,
+        geometry.committed_cells,
         contract.ingress.element_count,
     );
 }

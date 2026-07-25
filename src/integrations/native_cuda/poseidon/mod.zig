@@ -9,6 +9,7 @@ pub const executor = @import("executor/mod.zig");
 pub const constraint = @import("constraint.zig");
 pub const identities = @import("identities.zig");
 pub const layout = @import("layout.zig");
+pub const oods = @import("oods.zig");
 pub const parity_targets = @import("parity_targets.zig");
 pub const plan = @import("plan.zig");
 pub const program = @import("program.zig");
@@ -40,6 +41,7 @@ test {
     _ = constraint;
     _ = identities;
     _ = layout;
+    _ = oods;
     _ = parity_targets;
     _ = plan;
     _ = program;
@@ -47,6 +49,7 @@ test {
     _ = proof_decode;
     _ = protocol;
     _ = requirements;
+    _ = relation;
     _ = resident_bindings;
     _ = slots;
     _ = terminal_bundle;

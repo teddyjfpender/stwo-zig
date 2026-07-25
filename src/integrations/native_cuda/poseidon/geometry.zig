@@ -6,9 +6,19 @@ const poseidon_input = @import("../../../examples/poseidon/input.zig");
 const pcs = @import("stwo_core").pcs;
 
 pub const preprocessed_columns: u32 = 0;
-pub const composition_columns: u32 = 8;
+pub const interaction_columns: u32 = 32;
+pub const composition_columns: u32 = 16;
 pub const composition_coordinates: u32 = 4;
-pub const max_log_n_rows: u32 = 30;
+pub const statement_word_count: usize = 1;
+pub const terminal_statement_words: usize = 4;
+pub const public_statement_word_count: usize =
+    statement_word_count + terminal_statement_words;
+pub const source_columns: u32 =
+    preprocessed_columns + 1264 + interaction_columns +
+    composition_columns;
+pub const sampled_mask_points: u32 =
+    source_columns + 4;
+pub const max_log_n_rows: u32 = 28;
 
 pub const Error = poseidon_input.Error || error{
     GeometryOverflow,
@@ -28,6 +38,8 @@ pub const Geometry = struct {
     row_count: u32,
     main_columns: u32,
     main_cells: u64,
+    interaction_cells: u64,
+    committed_cells: u64,
     trace_cells: usize,
     composition_rows: usize,
     sampled_value_count: usize,
@@ -77,13 +89,19 @@ pub fn admit(
         trace_rows,
         main_columns,
     ) catch return error.GeometryOverflow;
+    const interaction_cells = std.math.mul(
+        u64,
+        trace_rows,
+        interaction_columns,
+    ) catch return error.GeometryOverflow;
+    const committed_cells = std.math.add(
+        u64,
+        main_cells,
+        interaction_cells,
+    ) catch return error.GeometryOverflow;
     const trace_cells = std.math.cast(usize, main_cells) orelse
         return error.GeometryOverflow;
-    const sampled_value_count = std.math.add(
-        usize,
-        poseidon_input.N_COLUMNS,
-        composition_columns,
-    ) catch return error.GeometryOverflow;
+    const sampled_value_count: usize = sampled_mask_points;
     const commitment_log_rows = std.math.add(
         u32,
         log_n_rows,
@@ -92,7 +110,7 @@ pub fn admit(
     const composition_log_rows = std.math.add(
         u32,
         log_n_rows,
-        1,
+        2,
     ) catch return error.GeometryOverflow;
     const commitment_rows_u64 =
         @as(u64, 1) << @intCast(commitment_log_rows);
@@ -101,7 +119,7 @@ pub fn admit(
         commitment_rows_u64,
     ) orelse return error.GeometryOverflow;
     const fri_tree_count = log_n_rows;
-    const decommitted_trace_tree_count: usize = 2;
+    const decommitted_trace_tree_count: usize = 3;
     const decommit_tree_count = std.math.add(
         usize,
         decommitted_trace_tree_count,
@@ -116,19 +134,21 @@ pub fn admit(
         .row_count = row_count,
         .main_columns = main_columns,
         .main_cells = main_cells,
+        .interaction_cells = interaction_cells,
+        .committed_cells = committed_cells,
         .trace_cells = trace_cells,
         .composition_rows = std.math.mul(
             usize,
             std.math.cast(usize, trace_rows) orelse
                 return error.GeometryOverflow,
-            2,
+            4,
         ) catch return error.GeometryOverflow,
         .sampled_value_count = sampled_value_count,
         .commitment_log_rows = commitment_log_rows,
         .composition_log_rows = composition_log_rows,
         .commitment_rows = commitment_rows,
         .fri_tree_count = fri_tree_count,
-        .committed_tree_count = 3,
+        .committed_tree_count = 4,
         .decommitted_trace_tree_count = decommitted_trace_tree_count,
         .decommit_tree_count = decommit_tree_count,
         .last_layer_domain_rows = 2,
@@ -158,10 +178,12 @@ test "Poseidon geometry seals complete proof cardinalities" {
     try std.testing.expectEqual(@as(u32, 1024), geometry.row_count);
     try std.testing.expectEqual(@as(u32, 1264), geometry.main_columns);
     try std.testing.expectEqual(@as(u64, 1_294_336), geometry.main_cells);
-    try std.testing.expectEqual(@as(usize, 1272), geometry.sampled_value_count);
+    try std.testing.expectEqual(@as(u64, 32_768), geometry.interaction_cells);
+    try std.testing.expectEqual(@as(usize, 1316), geometry.sampled_value_count);
     try std.testing.expectEqual(@as(u32, 11), geometry.commitment_log_rows);
-    try std.testing.expectEqual(@as(usize, 3), geometry.committed_tree_count);
-    try std.testing.expectEqual(@as(usize, 12), geometry.decommit_tree_count);
+    try std.testing.expectEqual(@as(u32, 12), geometry.composition_log_rows);
+    try std.testing.expectEqual(@as(usize, 4), geometry.committed_tree_count);
+    try std.testing.expectEqual(@as(usize, 13), geometry.decommit_tree_count);
 }
 
 test "Poseidon geometry rejects statement and protocol drift" {
