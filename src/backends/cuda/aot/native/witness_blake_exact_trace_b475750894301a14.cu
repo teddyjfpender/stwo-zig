@@ -14,19 +14,26 @@ constexpr std::uint32_t kRounds = 10u;
 constexpr std::uint32_t kColumnsPerScheduler = 384u;
 constexpr std::uint32_t kColumnsPerRound = 384u;
 constexpr std::uint32_t kTableCount = 5u;
-constexpr std::uint32_t kTableLogs[kTableCount] = {
+
+#ifdef __CUDACC__
+#define STWO_DEVICE_CONSTANT __device__ __constant__
+#else
+#define STWO_DEVICE_CONSTANT constexpr
+#endif
+
+STWO_DEVICE_CONSTANT std::uint32_t kTableLogs[kTableCount] = {
     16u, 14u, 12u, 10u, 8u,
 };
-constexpr std::uint32_t kTableWidths[kTableCount] = {
+STWO_DEVICE_CONSTANT std::uint32_t kTableWidths[kTableCount] = {
     12u, 9u, 8u, 7u, 4u,
 };
-constexpr std::uint32_t kTableExpands[kTableCount] = {
+STWO_DEVICE_CONSTANT std::uint32_t kTableExpands[kTableCount] = {
     4u, 2u, 2u, 2u, 0u,
 };
-constexpr std::uint32_t kMultiplicityColumns[kTableCount] = {
+STWO_DEVICE_CONSTANT std::uint32_t kMultiplicityColumns[kTableCount] = {
     256u, 16u, 16u, 16u, 1u,
 };
-constexpr std::uint8_t kSigma[kRounds][16] = {
+STWO_DEVICE_CONSTANT std::uint8_t kSigma[kRounds][16] = {
     {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
     {14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},
     {11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4},
@@ -38,6 +45,8 @@ constexpr std::uint8_t kSigma[kRounds][16] = {
     {6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5},
     {10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0},
 };
+
+#undef STWO_DEVICE_CONSTANT
 
 __device__ __forceinline__ std::uint32_t rotate_right(
     std::uint32_t value,

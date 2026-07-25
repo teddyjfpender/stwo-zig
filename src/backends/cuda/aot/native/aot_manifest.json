@@ -109,13 +109,13 @@
   },
   {
     "abi_schema": "native_blake_exact_trace_v2",
-    "cache_key": "1237511ff22c0d09",
-    "file": "witness_blake_exact_trace_1237511ff22c0d09.cu",
+    "cache_key": "b475750894301a14",
+    "file": "witness_blake_exact_trace_b475750894301a14.cu",
     "identity_scheme": "sha256-source-and-contract-v1",
     "kernel_name": "stwo_native_trace_blake_exact_mixed_v2_b8a99643ffc4a29b",
     "kind": "witness",
     "label": "blake_exact_trace",
-    "program_identity": "b21e389f9c425aca1aa131fbd45c4cae1755ff26cad7e37817fb2b9e2bc56ac6",
+    "program_identity": "294a6264a11c1efb77ae3f3106a1b4293bdca2af753e1573f4548895a541316c",
     "semantic_contract": "stwo-zig/native/blake-exact-trace/v2;field=m31;statement=log_n_rows[4..13],n_rounds=10;groups=scheduler[L,384],round[L+3,384],round[L+1,384],xor12[16,256],xor9[14,16],xor8[12,16],xor7[10,16],xor4[8,1];preprocessed=xor12..xor4[a,b,a_xor_b];scheduler=pinned-packed-lane-input-and-ten-round-state-sequence;round=pinned-sigma-input-and-eight-G-row;xor_multiplicity=prezeroed-u32-atomic-unit-increments,bound=1280*2^L<=10485760;interaction_sources=direct-preprocessed-and-main-evaluation-slabs;layout=compact-component-column-major;host_transfer=none;fallback=none;launches=1",
     "semantic_hash": "b8a99643ffc4a29b"
   },
