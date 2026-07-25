@@ -67,6 +67,33 @@ extern "C" int stwo_witness_edge_gather_contiguous_on(
     std::uint32_t include_iota,
     void *stream);
 
+struct alignas(8) MultiEdgeDescriptor {
+    std::uint64_t source_offset_words;
+    std::uint32_t producer_rows;
+    std::uint32_t word_base;
+    std::uint32_t words_per_instance;
+    std::uint32_t instance_count;
+    std::uint32_t destination_row_offset;
+    std::uint32_t reserved;
+};
+
+static_assert(sizeof(MultiEdgeDescriptor) == 32);
+
+extern "C" int stwo_witness_multi_edge_gather_contiguous_on(
+    const std::uint32_t *producer_arena,
+    std::size_t producer_word_count,
+    const MultiEdgeDescriptor *descriptors,
+    std::uint32_t edge_count,
+    std::uint32_t input_width,
+    std::uint32_t total_real_rows,
+    std::uint32_t consumer_rows,
+    std::uint32_t *outputs,
+    std::size_t output_stride_words,
+    std::size_t output_capacity_words,
+    std::uint32_t include_enabler,
+    std::uint32_t include_iota,
+    void *stream);
+
 namespace {
 
 constexpr std::uint32_t kRealRows = 17;
@@ -85,6 +112,10 @@ constexpr std::size_t kEdgeProducerWords =
 constexpr std::size_t kEdgeStride = 67;
 constexpr std::size_t kEdgeColumns = 4;
 constexpr std::size_t kEdgeWords = kEdgeStride * kEdgeColumns;
+constexpr std::size_t kMultiProducerWords = 160;
+constexpr std::uint32_t kMultiRows = 64;
+constexpr std::size_t kMultiStride = 70;
+constexpr std::size_t kMultiWords = kMultiStride * 4;
 
 bool check_status(int status, const char *operation) {
     if (status == 0) return true;
@@ -161,6 +192,9 @@ bool run() {
     std::uint32_t *device_seed = nullptr;
     std::uint32_t *device_edge_producer = nullptr;
     std::uint32_t *device_edge = nullptr;
+    std::uint32_t *device_multi_producer = nullptr;
+    std::uint32_t *device_multi_descriptors = nullptr;
+    std::uint32_t *device_multi = nullptr;
     if (!allocate(kStateWords, &device_states) ||
         !allocate(kConsumerRows, &device_pc) ||
         !allocate(kConsumerRows, &device_ap) ||
@@ -170,7 +204,12 @@ bool run() {
         !allocate(3, &device_scalars) ||
         !allocate(kSeedWords, &device_seed) ||
         !allocate(kEdgeProducerWords, &device_edge_producer) ||
-        !allocate(kEdgeWords, &device_edge)) {
+        !allocate(kEdgeWords, &device_edge) ||
+        !allocate(kMultiProducerWords, &device_multi_producer) ||
+        !allocate(
+            2 * sizeof(MultiEdgeDescriptor) / sizeof(std::uint32_t),
+            &device_multi_descriptors) ||
+        !allocate(kMultiWords, &device_multi)) {
         return false;
     }
 
@@ -190,6 +229,31 @@ bool run() {
                 static_cast<std::uint32_t>(word * 1000 + row * 7 + 3);
         }
     }
+    std::vector<std::uint32_t> multi_producer(kMultiProducerWords);
+    for (std::size_t index = 0; index < multi_producer.size(); ++index) {
+        multi_producer[index] =
+            static_cast<std::uint32_t>(10000 + index * 5);
+    }
+    const MultiEdgeDescriptor multi_descriptors[2] = {
+        {
+            0,
+            16,
+            1,
+            2,
+            1,
+            0,
+            0,
+        },
+        {
+            64,
+            32,
+            0,
+            2,
+            1,
+            16,
+            0,
+        },
+    };
     if (!check_status(
             stwo_exec_context_memcpy_h2d_async(
                 context,
@@ -211,6 +275,20 @@ bool run() {
                 edge_producer.data(),
                 edge_producer.size() * sizeof(std::uint32_t)),
             "upload packed edge producer") ||
+        !check_status(
+            stwo_exec_context_memcpy_h2d_async(
+                context,
+                device_multi_producer,
+                multi_producer.data(),
+                multi_producer.size() * sizeof(std::uint32_t)),
+            "upload multi-edge producer arena") ||
+        !check_status(
+            stwo_exec_context_memcpy_h2d_async(
+                context,
+                device_multi_descriptors,
+                multi_descriptors,
+                sizeof(multi_descriptors)),
+            "upload multi-edge descriptors") ||
         !check_status(
             stwo_witness_casm_input_scatter_on(
                 device_states,
@@ -251,7 +329,24 @@ bool run() {
                 1,
                 1,
                 stream),
-            "gather packed witness edge")) {
+            "gather packed witness edge") ||
+        !check_status(
+            stwo_witness_multi_edge_gather_contiguous_on(
+                device_multi_producer,
+                kMultiProducerWords,
+                reinterpret_cast<const MultiEdgeDescriptor *>(
+                    device_multi_descriptors),
+                2,
+                2,
+                48,
+                kMultiRows,
+                device_multi,
+                kMultiStride,
+                kMultiWords,
+                1,
+                1,
+                stream),
+            "gather resident multi-edge witness")) {
         return false;
     }
 
@@ -339,6 +434,42 @@ bool run() {
             "reject overlapping edge ranges")) {
         return false;
     }
+    if (!expect_invalid(
+            stwo_witness_multi_edge_gather_contiguous_on(
+                device_multi_producer,
+                kMultiProducerWords,
+                reinterpret_cast<const MultiEdgeDescriptor *>(
+                    device_multi_descriptors),
+                2,
+                2,
+                48,
+                kMultiRows,
+                device_multi,
+                kMultiStride,
+                kMultiWords - 1,
+                1,
+                1,
+                stream),
+            "reject truncated multi-edge output") ||
+        !expect_invalid(
+            stwo_witness_multi_edge_gather_contiguous_on(
+                device_multi_producer,
+                kMultiProducerWords,
+                reinterpret_cast<const MultiEdgeDescriptor *>(
+                    device_multi_descriptors),
+                2,
+                2,
+                48,
+                kMultiRows,
+                device_multi_producer,
+                kMultiStride,
+                kMultiWords,
+                1,
+                1,
+                stream),
+            "reject overlapping multi-edge ranges")) {
+        return false;
+    }
 
     std::vector<std::uint32_t> pc(kConsumerRows);
     std::vector<std::uint32_t> ap(kConsumerRows);
@@ -347,6 +478,7 @@ bool run() {
     std::vector<std::uint32_t> iota(kConsumerRows);
     std::vector<std::uint32_t> seed(kSeedWords);
     std::vector<std::uint32_t> edge(kEdgeWords);
+    std::vector<std::uint32_t> multi(kMultiWords);
     const struct {
         void *host;
         const void *device;
@@ -380,6 +512,12 @@ bool run() {
             edge.size() * sizeof(std::uint32_t),
             "read packed edge",
         },
+        {
+            multi.data(),
+            device_multi,
+            multi.size() * sizeof(std::uint32_t),
+            "read resident multi-edge",
+        },
     };
     for (const auto &copy : copies) {
         if (!check_status(
@@ -389,6 +527,45 @@ bool run() {
                     copy.device,
                     copy.bytes),
                 copy.label)) {
+            return false;
+        }
+    }
+    for (std::uint32_t row = 0; row < kMultiRows; ++row) {
+        const std::uint32_t source_global = row < 48 ? row : (row & 15u);
+        const bool first_edge = source_global < 16;
+        const std::uint32_t local_row =
+            first_edge ? source_global : source_global - 16;
+        const std::uint32_t producer_rows = first_edge ? 16 : 32;
+        const std::uint64_t source_offset = first_edge ? 0 : 64;
+        const std::uint32_t word_base = first_edge ? 1 : 0;
+        for (std::uint32_t column = 0; column < 2; ++column) {
+            const std::uint64_t source_index =
+                source_offset +
+                static_cast<std::uint64_t>(word_base + column) *
+                    producer_rows +
+                local_row;
+            const std::uint32_t expected = multi_producer[source_index];
+            const std::uint32_t observed =
+                multi[column * kMultiStride + row];
+            if (observed != expected) {
+                std::fprintf(
+                    stderr,
+                    "multi-edge mismatch column=%u row=%u "
+                    "expected=%u actual=%u\n",
+                    column,
+                    row,
+                    expected,
+                    observed);
+                return false;
+            }
+        }
+        const std::uint32_t expected_enabler = row < 48 ? 1 : 0;
+        if (multi[2 * kMultiStride + row] != expected_enabler ||
+            multi[3 * kMultiStride + row] != row) {
+            std::fprintf(
+                stderr,
+                "multi-edge derived-column mismatch row=%u\n",
+                row);
             return false;
         }
     }
