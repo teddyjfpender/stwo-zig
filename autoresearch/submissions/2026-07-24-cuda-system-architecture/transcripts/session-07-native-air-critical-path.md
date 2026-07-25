@@ -236,3 +236,65 @@ This correction is performance-critical evidence hygiene. It prevents a fast
 legacy CUDA route from being compared with a materially different exact CPU
 AIR, and it prevents cells-per-second or memory-admission claims from using
 columns that the proof never committed.
+
+## Exact Poseidon, Plonk Terminal, And Combined Oracle Checkpoint
+
+Native Poseidon now uses the pinned upstream 1,264-column permutation trace,
+32 interaction-coordinate columns, all 1,144 transition and LogUp
+constraints, and a four-chunk composition commitment. The local protocol is
+`raw-stwo-poseidon-logup-split2-v1`: it changes the pinned Stwo composition
+split from depth one to depth two so the degree-`log_n_rows + 2` composition
+returns to the trace height. AIR evaluation, interaction generation, PCS,
+FRI, Merkle hashing, transcript order, and proof encoding remain pinned
+upstream behavior.
+
+The Rust oracle now generates as well as verifies that exact split-depth-two
+protocol. Its local prover derivative recursively splits the composition
+polynomial into `left-left`, `left-right`, `right-left`, and `right-right`
+chunks before committing their 16 M31 coordinate columns. Scalar and SIMD
+oracle backends, and `prove` and `prove_ex`, emit identical canonical bytes.
+The retired synthetic Poseidon trace, one-constraint component, statement
+composition constant, and transcript branch were deleted.
+
+At `log_n_instances = 8`, both Zig and Rust emit a 112,247-byte proof with
+SHA-256
+`21a22831010da14e3a8d3b097184e2def2751d4f665756cc2a3d25f7287ff115`.
+The sampled tree widths are exactly `0 / 1264 / 32 / 16`. The final M5 Rust
+oracle binary is pinned at
+`99143abcb2847bcf3fd3e085c5f8f3c1ed18b943ba5810f32340eea6418a4aa1`.
+Its capability manifest binds exact Poseidon, State Machine, and XOR protocol
+identities to pinned Stwo commit `a8fcf4bd`.
+
+The host-executed Plonk/LogUp resident transaction is also terminal-complete:
+it constructs the exact interaction and composition trees, derives all OODS
+samples, evaluates the quotient from 24 source columns into 28 terms, executes
+FRI, PoW, and decommitment, and produces the typed one-read terminal envelope.
+The activation authority therefore marks only its
+`exact_constraint_semantics` gate complete. CUDA proof-byte parity, pinned
+Rust acceptance of a hardware-produced artifact, zero fallback, and complete
+hardware telemetry remain deliberately false.
+
+The clean combined exchange gate at commits `5430b019`, `25d0d475`, and
+`d034e4c5` completed 186 steps in 18.05 seconds:
+
+- 9/9 accepted proof exchanges passed;
+- 164/164 adversarial mutations were rejected;
+- 140 rejections were verifier-semantic and 24 were metadata-policy;
+- Plonk, Poseidon, XOR, and State Machine were byte-identical in both
+  Rust-to-Zig and Zig-to-Rust directions;
+- the exact Plonk/LogUp Zig artifact was accepted by pinned Rust.
+
+The content-addressed combined receipt is
+`e3a79bb02a564f8ba1d4b0fc2da70af1630ee741967b427db7f4a1365f949f61`.
+This is CPU/oracle correctness evidence, not CUDA-hardware release evidence.
+
+The immediate critical path is now:
+
+1. integrate the exact multi-component Blake AIR and its bidirectional oracle;
+2. finish the deep-suite allocation and equal-log indexing regressions;
+3. replace provisional CUDA XOR, State Machine, Poseidon, and Blake constraint
+   routes with their exact AIR-owned relation and composition programs;
+4. obtain locked-CUDA byte parity, oracle acceptance, zero-fallback, and full
+   telemetry receipts for every family;
+5. profile the exact six-family portfolio and remove representation
+   transforms and redundant N2B/B2N passes before accepting any 2-5x claim.
