@@ -25,6 +25,7 @@ pub const CircleConstants = struct {
     half_coset_step_size: u32,
     barycentric_si0: field.SecureField,
     vanishing_rotation: field.CirclePointBaseField,
+    composition_denominator_inverses: [6]u32,
 };
 
 pub const Pack = struct {
@@ -37,6 +38,7 @@ pub const Pack = struct {
     oods_output_indices: [geometry_mod.sampled_mask_points]u32,
     protocol_words: [canonical_input.protocol_word_count]u32,
     statement_words: [canonical_input.statement_word_count]u32,
+    empty_preprocessed_root: [8]u32,
     circle: CircleConstants,
 
     pub fn init(
@@ -141,6 +143,7 @@ pub const Pack = struct {
             .oods_output_indices = output_indices,
             .protocol_words = canonical_input.protocolWords(geometry.protocol),
             .statement_words = canonical_input.statementWords(geometry.statement),
+            .empty_preprocessed_root = emptyPreprocessedRoot(),
             .circle = try deriveCircleConstants(geometry),
         };
     }
@@ -222,6 +225,24 @@ fn deriveCircleConstants(
         .mul(derivative)
         .inv();
     const coset = canonic.coset();
+    var denominator_inverses: [6]u32 = undefined;
+    var first: usize = 0;
+    inline for (.{ geometry.statement.log_n_rows, geometry.statement.log_n_rows - 1 }) |
+        trace_log,
+    | {
+        const trace_coset = CanonicCoset.new(trace_log).coset();
+        const period = @as(usize, 1) <<
+            @intCast(domain_log - trace_log);
+        for (0..period) |row| {
+            denominator_inverses[first + row] =
+                (try core.constraints.cosetVanishing(
+                    M31,
+                    trace_coset,
+                    domain.at(row),
+                ).inv()).toU32();
+        }
+        first += period;
+    }
     return .{
         .domain_log_size = domain_log,
         .half_coset_initial_index = try u32Count(domain.half_coset.initial_index.v),
@@ -232,6 +253,7 @@ fn deriveCircleConstants(
                 .conjugate()
                 .add(coset.step_size.half().toPoint()),
         ),
+        .composition_denominator_inverses = denominator_inverses,
     };
 }
 
@@ -243,6 +265,23 @@ fn rawSecure(value: QM31) field.SecureField {
         .c = coordinates[2].toU32(),
         .d = coordinates[3].toU32(),
     };
+}
+
+fn emptyPreprocessedRoot() [8]u32 {
+    const Hasher =
+        core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
+    var hasher = Hasher.defaultWithInitialState();
+    const digest = hasher.finalize();
+    var words: [8]u32 = undefined;
+    for (&words, 0..) |*word, index| {
+        const first = index * @sizeOf(u32);
+        word.* = std.mem.readInt(
+            u32,
+            digest[first..][0..@sizeOf(u32)],
+            .little,
+        );
+    }
+    return words;
 }
 
 fn rawBasePoint(
@@ -323,6 +362,11 @@ test "canonical state-machine ingress is exact and reusable" {
         &.{ 8, 7 },
         &pack.statement_words,
     );
+    try std.testing.expect(!std.mem.allEqual(
+        u32,
+        &pack.empty_preprocessed_root,
+        0,
+    ));
     try std.testing.expectEqualSlices(
         u32,
         &.{ 8, 8, 7, 7 },

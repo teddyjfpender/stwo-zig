@@ -88,7 +88,7 @@ pub const PreparedPlan = shared.PreparedPlanFor(
     Policy,
 );
 
-test "state-machine prepared plan seals all three proof trees" {
+test "State v2 plan retains four commitments and opens three trees" {
     const geometry = try geometry_mod.admit(
         .{
             .log_n_rows = 8,
@@ -105,7 +105,7 @@ test "state-machine prepared plan seals all three proof trees" {
     );
     defer prepared.deinit(std.testing.allocator);
     try std.testing.expectEqual(
-        @as(usize, 3),
+        @as(usize, 4),
         prepared.logical.trace_trees.len,
     );
     try std.testing.expectEqual(

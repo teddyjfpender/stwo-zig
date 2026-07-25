@@ -173,26 +173,19 @@ pub fn ExecutorFor(
             transaction: anytype,
             prepared: *const plan_mod.PreparedPlan,
         ) !void {
-            const has_interaction = @hasDecl(
-                geometry_mod,
-                "interaction_columns",
-            ) and geometry_mod.interaction_columns > 0;
-            const ids = if (has_interaction)
-                [_]@TypeOf(slots.preprocessed_merkle_layers){
-                    slots.preprocessed_merkle_layers,
-                    slots.main_merkle_layers,
-                    slots.interaction_merkle_layers,
-                    slots.composition_merkle_layers,
-                }
-            else
-                [_]@TypeOf(slots.preprocessed_merkle_layers){
-                    slots.preprocessed_merkle_layers,
-                    slots.main_merkle_layers,
-                    slots.composition_merkle_layers,
+            for (prepared.decommit.trace_trees) |tree| {
+                const id = switch (tree.role) {
+                    .preprocessed => slots.preprocessed_merkle_layers,
+                    .main => slots.main_merkle_layers,
+                    .interaction => if (@hasDecl(
+                        slots,
+                        "interaction_merkle_layers",
+                    ))
+                        slots.interaction_merkle_layers
+                    else
+                        return error.InvalidKernelDescriptor,
+                    .composition => slots.composition_merkle_layers,
                 };
-            if (prepared.decommit.trace_trees.len != ids.len)
-                return error.InvalidKernelDescriptor;
-            for (prepared.decommit.trace_trees, ids) |tree, id| {
                 const begin = tree.retained_layer_offset;
                 const end = begin + tree.retained_layer_count;
                 try transaction.upload(

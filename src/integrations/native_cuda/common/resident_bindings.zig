@@ -121,6 +121,14 @@ pub fn BindingFor(
                 geometry_mod,
                 "interaction_columns",
             ) and geometry_mod.interaction_columns > 0;
+            const interaction_coefficient_stride =
+                if (@hasDecl(
+                    geometry_mod,
+                    "interactionCoefficientStride",
+                ))
+                    geometry_mod.interactionCoefficientStride(geometry)
+                else
+                    rows;
             const interaction_offset = after_main;
             const composition_offset = if (has_interaction)
                 try add(
@@ -189,7 +197,7 @@ pub fn BindingFor(
                     slots.interaction_merkle_hashes,
                     slots.interaction_merkle_layers,
                     geometry_mod.interaction_columns,
-                    rows,
+                    interaction_coefficient_stride,
                     hash_count,
                     layer_count,
                 )

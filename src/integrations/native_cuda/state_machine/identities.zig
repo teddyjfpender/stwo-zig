@@ -21,59 +21,63 @@ pub const Artifact = struct {
 
 pub const zig_artifact = Artifact{
     .authority = "stwo-zig repository source closure",
-    .revision = "src/examples/state_machine.zig+src/examples/state_machine/input.zig",
-    .trace_recipe = digest("stwo-zig/src/examples/state_machine/input.zig:prepare:v1"),
-    .air_recipe = digest("stwo-zig/src/examples/state_machine.zig:StateMachineExampleComponent:v1"),
+    .revision = "src/examples/state_machine/{input,statement,interaction,component}.zig",
+    .trace_recipe = digest(
+        "stwo-zig/state-machine-v2:mixed-height-x-n,y-n-1:main[4]:v2",
+    ),
+    .air_recipe = digest(
+        "stwo-zig/state-machine-v2:two-component-transition-logup:interaction[8]:v2",
+    ),
 };
 
 pub const rust_artifact = Artifact{
     .authority = rust_oracle_repository,
     .revision = rust_oracle_commit,
     .trace_recipe = digest(
-        "stwo-rust:a8fcf4bd:examples-state_machine:gen-is-first+is-step+gen-state_machine-main:v1",
+        "stwo-rust:a8fcf4bd:examples-state_machine:mixed-height-main:v2",
     ),
     .air_recipe = digest(
-        "stwo-rust:a8fcf4bd:examples-state_machine:StateMachineComponent:v1",
+        "stwo-rust:a8fcf4bd:examples-state_machine:two-transition-logup-components:v2",
     ),
 };
 
 pub const air = pairDigest(
-    "stwo/native/state_machine/air/bilateral/v1",
+    "stwo/native/state_machine/air/bilateral/v2",
     zig_artifact.air_recipe,
     rust_artifact.air_recipe,
 );
 pub const ingress_recipe = pairDigest(
-    "stwo/native/state_machine/materialized-trace/bilateral/v1",
+    "stwo/native/state_machine/materialized-trace/bilateral/v2",
     zig_artifact.trace_recipe,
     rust_artifact.trace_recipe,
 );
 pub const ingress_layout = digest(
-    "stwo/native/state_machine/trace-layout:m31-column-major:bit-reversed-circle:v1",
+    "stwo/native/state_machine/trace-layout:mixed-height-m31-column-major:bit-reversed-circle:v2",
 );
 pub const transcript_recipe = digest(
-    "stwo/native/state_machine/transcript:pcs,preprocessed,main,stmt0,draw-z,draw-alpha,public-input,stmt1:v1",
+    "stwo/native/state_machine/transcript:pcs,empty-preprocessed,stmt0,main,draw-z-alpha,stmt1,interaction,composition:v2",
 );
 pub const public_input_abi = digest(
-    "stwo/native/state_machine/public-input:initial-state[2xm31],final-state[2xm31]:v1",
+    "stwo/native/state_machine/public-input:stmt0[2xu32],initial-final[4xm31],stmt1[2xqm31]:v2",
 );
 pub const sampling_recipe = digest(
-    "stwo/native/state_machine/oods:main-points,composition-split-points;preprocessed-unsampled:v1",
+    "stwo/native/state_machine/oods:main-current,interaction-previous-current,composition-current:mixed-height:v2",
 );
 pub const mask_layout = digest(
-    "stwo/native/state_machine/mask:preprocessed[[]],main[[0],[0]],interaction[],composition[8x[0]]:v1",
+    "stwo/native/state_machine/mask:preprocessed[],main[4xcurrent],interaction[8x(previous,current)],composition[8xcurrent]:v2",
 );
 pub const constraint_parameter_abi = digest(
-    "stwo/native/state_machine/constraint-abi:statement[14xu32le],alpha[4xm31],total[18xu32]:v1",
+    "stwo/native/state_machine/constraint-abi:statement[2xu32],lookup[2xqm31],composition-alpha[qm31],total[14xu32]:v2",
 );
 pub const constraint_expression = pairDigest(
-    "stwo/native/state_machine/constraint:x-axis-claimed-sum+y-axis-claimed-sum:v1",
+    "stwo/native/state_machine/constraint:two-transition-fractions-with-independent-claimed-sums:v2",
     zig_artifact.air_recipe,
     rust_artifact.air_recipe,
 );
 
 pub fn statement(value: cpu_state_machine.Request) ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo/native/state_machine/statement/v1");
+    hash.update("stwo/native/state_machine/statement/v2");
     hashInt(&hash, u32, value.log_n_rows);
     hashInt(&hash, u32, value.initial_state[0].toU32());
     hashInt(&hash, u32, value.initial_state[1].toU32());

@@ -54,6 +54,14 @@ pub fn build(
     try add(
         &output,
         allocator,
+        slots.empty_preprocessed_root,
+        8,
+        .ingress,
+        .trace_commit,
+    );
+    try add(
+        &output,
+        allocator,
         slots.statement_words,
         geometry_mod.statement_word_count,
         .ingress,
@@ -61,7 +69,17 @@ pub fn build(
     );
 
     try add(&output, allocator, slots.main_coefficients, try mul(geometry_mod.main_columns, committed_rows), .trace_generation, .oods);
-    try add(&output, allocator, slots.interaction_coefficients, try mul(geometry_mod.interaction_columns, rows), .constraint_evaluation, .oods);
+    try add(
+        &output,
+        allocator,
+        slots.interaction_coefficients,
+        try mul(
+            geometry_mod.interaction_columns,
+            geometry_mod.interactionCoefficientStride(geometry),
+        ),
+        .constraint_evaluation,
+        .oods,
+    );
     try add(&output, allocator, slots.composition_coefficients, try mul(geometry_mod.composition_columns, rows), .constraint_evaluation, .oods);
     try add(
         &output,
@@ -95,7 +113,7 @@ pub fn build(
     try add(&output, allocator, slots.composition_challenge, 4, .constraint_evaluation, .constraint_evaluation);
     try add(&output, allocator, slots.composition_coordinates, try mul(4, committed_rows), .constraint_evaluation, .constraint_evaluation);
     try add(&output, allocator, slots.composition_powers, try secureWords(2), .constraint_evaluation, .constraint_evaluation);
-    try add(&output, allocator, slots.constraint_denominator_inverses, 2, .ingress, .constraint_evaluation);
+    try add(&output, allocator, slots.constraint_denominator_inverses, 6, .ingress, .constraint_evaluation);
     try add(&output, allocator, slots.lookup_elements, try secureWords(2), .constraint_evaluation, .constraint_evaluation);
     try add(&output, allocator, slots.relation_alpha_powers, try secureWords(relation_mod.max_alpha_powers), .constraint_evaluation, .constraint_evaluation);
     try add(&output, allocator, slots.relation_z, try secureWords(1), .constraint_evaluation, .constraint_evaluation);

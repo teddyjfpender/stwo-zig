@@ -12,6 +12,7 @@ const common = @import(
 const relation_stage = @import(
     "../../../backends/cuda/runtime/stages/relation.zig",
 );
+const constraint = @import("constraint.zig");
 const geometry_mod = @import("geometry.zig");
 const plan_mod = @import("plan.zig");
 const proof_bundle = @import("proof_bundle.zig");
@@ -70,7 +71,9 @@ pub const Relation = struct {
 
 pub const Bound = struct {
     base: shared.Bound,
+    empty_preprocessed_root: Words,
     relation: Relation,
+    constraint_buffers: constraint.Buffers,
 };
 
 pub fn bind(
@@ -144,8 +147,14 @@ pub fn bind(
         denominator_storage,
         try claimed_sums.sub(1, 1),
     );
+    const committed_rows = geometry.commitment_rows;
     return .{
         .base = base,
+        .empty_preprocessed_root = try exactWords(
+            provider,
+            slots.empty_preprocessed_root,
+            8,
+        ),
         .relation = .{
             .buffers = .{
                 .drawn_z_alpha = lookup_elements,
@@ -209,6 +218,29 @@ pub fn bind(
             },
             .instances = .{ x_instance, y_instance },
             .claimed_sums = claimed_sums,
+        },
+        .constraint_buffers = .{
+            .source_evaluations = .{
+                .storage = try base.source_evaluations.storage.sub(
+                    0,
+                    constraint.source_column_count * committed_rows,
+                ),
+                .column_stride_words = committed_rows,
+            },
+            .random_coefficient_powers = try exactAs(
+                provider,
+                field.SecureField,
+                slots.composition_powers,
+                constraint.constraint_count,
+            ),
+            .denominator_inverses = try exactWords(
+                provider,
+                slots.constraint_denominator_inverses,
+                6,
+            ),
+            .lookup_elements = lookup_elements,
+            .claimed_sums = claimed_sums,
+            .composition_coordinates = base.constraint_buffers.composition_coordinates,
         },
     };
 }

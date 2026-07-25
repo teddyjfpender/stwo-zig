@@ -1,20 +1,16 @@
-//! Native state-machine policy hooks for the shared resident proof pipeline.
+//! Native State Machine v2 hooks for the resident proof pipeline.
 
 const std = @import("std");
 const canonical = @import("../canonical_ingress.zig");
 const composition = @import("composition.zig");
+const fri_executor = @import("fri.zig");
 const geometry_mod = @import("../geometry.zig");
 const ingress_stage = @import("ingress.zig");
-const oods_executor = @import("../../common/oods_executor.zig");
+const oods_executor = @import("oods.zig");
 const plan_mod = @import("../plan.zig");
 const program = @import("../program.zig");
-const fri_executor = @import("../../common/fri_executor.zig");
-const pow_decommit = @import(
-    "../../common/pow_decommit_executor.zig",
-);
-const quotient_executor = @import(
-    "../../common/quotient_executor.zig",
-);
+const pow_decommit = @import("pow_decommit.zig");
+const quotient_executor = @import("quotient.zig");
 const bindings = @import("../resident_bindings.zig");
 const terminal = @import("../terminal_bundle.zig");
 const trace = @import("trace_commit.zig");
@@ -89,7 +85,7 @@ pub const Hooks = struct {
             transaction,
             prepared,
             pack,
-            &views,
+            &views.base,
         );
     }
 
@@ -103,7 +99,7 @@ pub const Hooks = struct {
             transaction,
             prepared,
             pack,
-            &views,
+            &views.base,
         );
     }
 
@@ -117,7 +113,7 @@ pub const Hooks = struct {
             transaction,
             prepared,
             pack,
-            &views,
+            &views.base,
         );
     }
 
@@ -127,10 +123,10 @@ pub const Hooks = struct {
         _: *canonical.Pack,
     ) !void {
         const views = try bindings.bind(transaction, prepared);
-        try pow_decommit.executePow(
+        try pow_decommit.runPow(
             transaction,
             prepared,
-            &views,
+            &views.base,
         );
     }
 
@@ -140,15 +136,15 @@ pub const Hooks = struct {
         _: *canonical.Pack,
     ) !void {
         const views = try bindings.bind(transaction, prepared);
-        try pow_decommit.executeDecommit(
+        try pow_decommit.runDecommit(
             transaction,
             prepared,
-            &views,
+            &views.base,
         );
     }
 };
 
-test "state-machine frontend hooks expose only AIR-owned policy" {
+test "State v2 frontend hooks expose only AIR-owned policy" {
     inline for (&.{
         "BundleDescriptor",
         "admit",

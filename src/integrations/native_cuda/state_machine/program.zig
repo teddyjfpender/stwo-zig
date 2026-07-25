@@ -18,7 +18,9 @@ pub const scheduler_version = cuda_plan.schedule_version;
 
 fn digestKernelPack() ir.Digest {
     @setEvalBranchQuota(10_000);
-    return ir.identityDigest("stwo-zig/native-cuda/state_machine/aot-pack/v1");
+    return ir.identityDigest(
+        "stwo-zig/native-cuda/state_machine/exact-aot-pack-required/v2",
+    );
 }
 
 pub fn emitGeometry(
@@ -175,7 +177,7 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
         .statement = .{
             .transcript_recipe_identity = identities.transcript_recipe,
             .public_input_abi_identity = identities.public_input_abi,
-            .public_input_words = 4,
+            .public_input_words = geometry_mod.public_statement_word_count,
         },
         .sampling = .{
             .recipe_identity = identities.sampling_recipe,
@@ -185,8 +187,8 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
         .constraint_parameters = .{
             .identity = identities.constraint_parameter_abi,
             .statement_words = geometry_mod.statement_word_count,
-            .challenge_words = 4,
-            .parameter_words = geometry_mod.statement_word_count + 4,
+            .challenge_words = 12,
+            .parameter_words = geometry_mod.statement_word_count + 12,
         },
     };
 }
@@ -290,7 +292,7 @@ fn transcriptBarriers(
 ) ![]ir.TranscriptBarrier {
     const count = try std.math.add(
         u32,
-        12,
+        15,
         try std.math.mul(u32, geometry.fri_tree_count, 2),
     );
     const barriers = try allocator.alloc(ir.TranscriptBarrier, count);
@@ -320,9 +322,9 @@ fn transcriptBarriers(
 fn transcriptNode(operation: u32, fri_tree_count: u32) u32 {
     if (operation == 0) return 0;
     if (operation <= 3) return 1;
-    if (operation <= 5) return 2;
-    if (operation <= 8) return 3;
-    const after_fri = 9 + 2 * fri_tree_count;
+    if (operation <= 8) return 2;
+    if (operation <= 11) return 3;
+    const after_fri = 12 + 2 * fri_tree_count;
     if (operation < after_fri) return 5;
     return switch (operation - after_fri) {
         0 => 5,
@@ -333,11 +335,19 @@ fn transcriptNode(operation: u32, fri_tree_count: u32) u32 {
 }
 
 fn transcriptKind(operation: u32, fri_tree_count: u32) ir.TranscriptKind {
-    if (operation <= 3 or operation == 5 or operation == 7) return .mix;
-    if (operation == 4 or operation == 6 or operation == 8) return .challenge;
-    const fri_end = 9 + 2 * fri_tree_count;
+    if (operation <= 3 or operation == 5 or
+        operation == 6 or operation == 8 or operation == 10)
+    {
+        return .mix;
+    }
+    if (operation == 4 or operation == 7 or
+        operation == 9 or operation == 11)
+    {
+        return .challenge;
+    }
+    const fri_end = 12 + 2 * fri_tree_count;
     if (operation < fri_end) {
-        return if ((operation - 9) % 2 == 0) .mix else .challenge;
+        return if ((operation - 12) % 2 == 0) .mix else .challenge;
     }
     return switch (operation - fri_end) {
         0 => .mix,
@@ -351,9 +361,10 @@ fn transcriptValueCount(
     operation: u32,
     geometry: geometry_mod.Geometry,
 ) u32 {
-    if (operation == 3) return geometry_mod.statement_word_count;
-    if (operation == 7) return geometry_mod.sampled_mask_points;
-    if (operation == 11 + 2 * geometry.fri_tree_count)
+    if (operation == 2) return geometry_mod.statement_word_count;
+    if (operation == 4 or operation == 5) return 2;
+    if (operation == 10) return geometry_mod.sampled_mask_points;
+    if (operation == 14 + 2 * geometry.fri_tree_count)
         return @intCast(geometry.protocol.fri_config.n_queries);
     return 1;
 }
@@ -539,20 +550,24 @@ test "state-machine proof program matches the AIR topology" {
     try emitted.validate();
     const contract = emitted.native_air_contract.?;
     try std.testing.expectEqual(
-        @as(u32, 1),
+        @as(u32, 0),
         contract.geometry.preprocessed_columns,
     );
     try std.testing.expectEqual(
-        @as(u32, 2),
+        @as(u32, 4),
         contract.geometry.main_columns,
     );
-    try std.testing.expectEqual(@as(usize, 11), emitted.trace_columns.len);
-    try std.testing.expectEqual(@as(usize, 3), emitted.commitments.len);
-    try std.testing.expectEqual(@as(u32, 1), emitted.commitments[0].column_count);
-    try std.testing.expectEqual(@as(u32, 2), emitted.commitments[1].column_count);
+    try std.testing.expectEqual(@as(usize, 20), emitted.trace_columns.len);
+    try std.testing.expectEqual(@as(usize, 4), emitted.commitments.len);
+    try std.testing.expectEqual(@as(u32, 0), emitted.commitments[0].column_count);
+    try std.testing.expectEqual(@as(u32, 4), emitted.commitments[1].column_count);
     try std.testing.expectEqual(@as(u32, 8), emitted.commitments[2].column_count);
-    try std.testing.expectEqual(@as(u32, 11), emitted.quotient.term_count);
-    try std.testing.expectEqual(@as(u32, 14), emitted.transcript[3].value_count);
+    try std.testing.expectEqual(@as(u32, 8), emitted.commitments[3].column_count);
+    try std.testing.expectEqual(@as(u32, 28), emitted.quotient.term_count);
+    try std.testing.expectEqual(@as(u32, 2), emitted.transcript[2].value_count);
+    try std.testing.expectEqual(@as(u32, 2), emitted.transcript[4].value_count);
+    try std.testing.expectEqual(@as(u32, 2), emitted.transcript[5].value_count);
+    try std.testing.expectEqual(@as(u32, 28), emitted.transcript[10].value_count);
 }
 
 test "state-machine program sample topology matches a CPU proof" {
@@ -577,12 +592,17 @@ test "state-machine program sample topology matches a CPU proof" {
     defer output.proof.deinit(allocator);
 
     const proof = output.proof.commitment_scheme_proof;
-    const widths = [_]usize{ 1, 2, 8 };
+    const widths = [_]usize{ 0, 4, 8, 8 };
     var samples: usize = 0;
     for (proof.sampled_values.items, widths) |sampled_tree, width| {
         try std.testing.expectEqual(width, sampled_tree.len);
         for (sampled_tree) |column| {
-            try std.testing.expectEqual(@as(usize, 1), column.len);
+            const expected_points: usize =
+                if (width == 8 and samples >= 4 and samples < 20)
+                    2
+                else
+                    1;
+            try std.testing.expectEqual(expected_points, column.len);
             samples += column.len;
         }
     }

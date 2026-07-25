@@ -1,4 +1,4 @@
-//! Native state-machine binding of the AIR-neutral resident CUDA pipeline.
+//! Native State Machine v2 binding of the AIR-neutral resident CUDA pipeline.
 
 const std = @import("std");
 const common_pipeline = @import("../../common/pipeline.zig");
@@ -6,6 +6,7 @@ const canonical = @import("../canonical_ingress.zig");
 const frontend_hooks = @import("frontend_hooks.zig");
 const geometry_mod = @import("../geometry.zig");
 const plan_mod = @import("../plan.zig");
+const terminal_output = @import("../terminal_output.zig");
 
 const Pipeline = common_pipeline.PipelineFor(
     geometry_mod.Request,
@@ -26,7 +27,30 @@ pub const validatePrepared = Pipeline.validatePrepared;
 pub const ingress = Pipeline.ingress;
 pub const executeNode = Pipeline.executeNode;
 
-test "state-machine pipeline owns canonical inputs and one compiled arena plan" {
+pub fn OutputFor(comptime Transaction: type) type {
+    return terminal_output.OutputFor(Transaction);
+}
+
+pub fn finish(
+    transaction: anytype,
+    allocator: std.mem.Allocator,
+    prepared: anytype,
+) !OutputFor(@TypeOf(transaction.*)) {
+    const raw = try transaction.assembleStarkBundleAndStatementFinishWith(
+        BundleDescriptor,
+        allocator,
+        prepared.proofSlot(),
+        geometry_mod.terminal_statement_words,
+    );
+    return terminal_output.fromRaw(
+        @TypeOf(transaction.*),
+        allocator,
+        prepared.structural.logical.geometry.statement,
+        raw,
+    );
+}
+
+test "State v2 pipeline owns canonical inputs and one compiled arena plan" {
     const allocator = std.testing.allocator;
     const geometry = try admit(.{
         .statement = .{
@@ -41,8 +65,12 @@ test "state-machine pipeline owns canonical inputs and one compiled arena plan" 
     const proof_ir = @import("stwo_backend_contracts").proof_program;
     var prepared = try prepare(allocator, geometry, .{
         .sm = 89,
+        .device_uuid = [_]u8{0x42} ** 16,
+        .driver_version = 12080,
+        .runtime_version = 12080,
+        .toolkit_version = 12080,
         .runtime_build_identity = proof_ir.identityDigest("test-runtime"),
-        .toolchain_identity = proof_ir.identityDigest("test-toolchain"),
+        .host_toolchain_identity = proof_ir.identityDigest("test-toolchain"),
         .kernel_pack_identity = proof_ir.identityDigest("test-pack"),
         .lane_streams = 0,
         .enable_graphs = false,

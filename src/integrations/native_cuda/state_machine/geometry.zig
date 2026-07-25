@@ -79,6 +79,12 @@ pub const Geometry = struct {
     }
 };
 
+/// Interaction values are generated at their logical heights, then the circle
+/// inverse uses the second half of each padded column as retained workspace.
+pub fn interactionCoefficientStride(geometry: Geometry) usize {
+    return geometry.commitment_rows;
+}
+
 pub fn admit(
     statement: cpu_state_machine.Request,
     protocol: pcs.PcsConfig,

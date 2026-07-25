@@ -1,14 +1,17 @@
-//! Legacy resident CUDA adapter for the simplified State Machine v1 AIR.
+//! Exact State Machine v2 CUDA semantics with hardware activation disabled.
 //!
-//! Native CPU and pinned Rust now use the exact v2 interaction protocol. This
-//! module remains compiled as compatibility code, but no product, benchmark,
-//! or parity gate may present it as an exact State Machine backend.
+//! Geometry, relation, transcript, proof decoding, and host-emulated terminal
+//! execution match Native CPU v2. The legacy product remains fail-closed until
+//! exact v2 trace and constraint AOT entries are built and hardware evidence
+//! satisfies every activation gate.
 
 const exact_state_machine = @import("../../../examples/state_machine.zig");
 
 pub const legacy_protocol_name = "raw-stwo-state-machine-v1";
 pub const exact_protocol_name = exact_state_machine.protocol_name;
+pub const exact_semantics_available = true;
 pub const exact_protocol_available = false;
+pub const release_enabled = false;
 
 pub fn requireExactProtocol() !void {
     if (!exact_protocol_available)
@@ -35,6 +38,7 @@ pub const requirements = @import("requirements.zig");
 pub const resident_bindings = @import("resident_bindings.zig");
 pub const slots = @import("slots.zig");
 pub const terminal_bundle = @import("terminal_bundle.zig");
+pub const terminal_output = @import("terminal_output.zig");
 pub const topology = @import("topology.zig");
 pub const trace = @import("trace.zig");
 pub const transcript_schedule = @import("transcript_schedule.zig");
@@ -66,13 +70,16 @@ test {
     _ = resident_bindings;
     _ = slots;
     _ = terminal_bundle;
+    _ = terminal_output;
     _ = topology;
     _ = trace;
     _ = transcript_schedule;
 }
 
 test "legacy CUDA State Machine cannot satisfy the exact CPU protocol" {
+    try @import("std").testing.expect(exact_semantics_available);
     try @import("std").testing.expect(!exact_protocol_available);
+    try @import("std").testing.expect(!release_enabled);
     try @import("std").testing.expect(!@import("std").mem.eql(
         u8,
         legacy_protocol_name,

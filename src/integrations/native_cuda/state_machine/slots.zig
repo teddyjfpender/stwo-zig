@@ -15,6 +15,7 @@ pub const transcript_output_snapshot: SlotId = 0x0112;
 pub const transcript_boundary_snapshot: SlotId = 0x0113;
 pub const protocol_words: SlotId = 0x0114;
 pub const statement_words: SlotId = 0x0115;
+pub const empty_preprocessed_root: SlotId = 0x0116;
 
 pub const preprocessed_coefficients: SlotId = 0x0200;
 pub const main_coefficients: SlotId = 0x0201;

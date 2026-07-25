@@ -1,37 +1,37 @@
-//! State-machine binding to the resident circle-affine trace primitive.
+//! Strict-AOT boundary for the exact mixed-height State Machine v2 trace.
 
-const circle_affine = @import(
-    "../../../backends/cuda/runtime/traces/circle_affine_state.zig",
+const common = @import(
+    "../../../backends/cuda/runtime/stages/common.zig",
 );
 const geometry_mod = @import("geometry.zig");
 
-pub const Buffers = circle_affine.Destinations;
+pub const Buffers = common.WordMatrix;
 
+/// The legacy affine kernel emits one uniform component plus an indicator
+/// column. State v2 requires two differently sized components and no
+/// preprocessed column, so reusing that kernel would produce a plausible but
+/// invalid proof. CUDA execution remains fail-closed until its exact AOT trace
+/// kernel is built and pinned on a CUDA host.
 pub fn generate(
-    session: anytype,
-    buffers: Buffers,
-    geometry: geometry_mod.Geometry,
+    _: anytype,
+    _: Buffers,
+    _: geometry_mod.Geometry,
 ) !void {
-    var launch = try circle_affine.prepare(
-        session,
-        buffers,
-        .{ .log_n_rows = geometry.statement.log_n_rows },
-        .{ .initial_state = .{
-            geometry.statement.initial_state[0].toU32(),
-            geometry.statement.initial_state[1].toU32(),
-        } },
-        .{
-            .increment_coordinate = 0,
-            .increment_value = 1,
-            .indicator_first = 1,
-            .indicator_default = 0,
-        },
-    );
-    try launch.launch(session);
+    return error.StateMachineV2AotUnavailable;
 }
 
-test "state-machine device trace uses the existing strict-AOT recipe" {
+test "State v2 trace generation does not reuse the legacy AOT recipe" {
     const std = @import("std");
-    try std.testing.expectEqual(@as(u32, 1), circle_affine.preprocessed_columns);
-    try std.testing.expectEqual(@as(u32, 2), circle_affine.main_columns);
+    const empty = Buffers{
+        .storage = .{
+            .address = 0,
+            .len = 0,
+            .owner = 0,
+        },
+        .column_stride_words = 0,
+    };
+    try std.testing.expectError(
+        error.StateMachineV2AotUnavailable,
+        generate({}, empty, undefined),
+    );
 }
