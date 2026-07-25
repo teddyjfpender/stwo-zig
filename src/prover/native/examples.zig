@@ -4,6 +4,7 @@ const std = @import("std");
 const stwo = @import("stwo");
 const config = @import("config.zig");
 const report = @import("report.zig");
+const test_support = @import("examples_test_support.zig");
 
 const artifacts = stwo.interop.examples_artifact;
 const stage_profile = stwo.prover.stage_profile;
@@ -111,12 +112,17 @@ pub fn geometry(workload: config.Workload) !Geometry {
         },
         .blake => |value| blk: {
             const rows = @as(u64, 1) << @intCast(value.log_n_rows);
-            const columns = try std.math.mul(u64, value.n_rounds, 96);
+            const columns = blake.geometry.PREPROCESSED_COLUMNS +
+                blake.geometry.MAIN_COLUMNS +
+                blake.geometry.INTERACTION_COLUMNS;
             break :blk .{
                 .trace_log_rows = value.log_n_rows,
                 .trace_rows = rows,
+                .committed_trees = 3,
                 .committed_columns = columns,
-                .committed_trace_cells = try std.math.mul(u64, rows, columns),
+                .committed_trace_cells = try blake.geometry.committedCells(
+                    value.log_n_rows,
+                ),
                 .native_unit = "blake_round_instances",
                 .native_units = try std.math.mul(u64, rows, value.n_rounds),
             };
@@ -726,7 +732,7 @@ test "native proof examples: geometry and descriptors are tagged" {
     } };
     const blake_workload: config.Workload = .{ .blake = .{
         .log_n_rows = 5,
-        .n_rounds = 2,
+        .n_rounds = 10,
     } };
     const poseidon_workload: config.Workload = .{ .poseidon = .{ .log_n_instances = 8 } };
     const wide_geometry = try geometry(wide);
@@ -744,12 +750,17 @@ test "native proof examples: geometry and descriptors are tagged" {
     try std.testing.expectEqual(@as(u64, 12), state_geometry.committed_columns);
     try std.testing.expectEqual(@as(u64, 288), state_geometry.committed_trace_cells);
     try std.testing.expectEqual(@as(u64, 48), state_geometry.native_units);
-    try std.testing.expectEqual(@as(u64, 6_144), blake_geometry.committed_trace_cells);
-    try std.testing.expectEqual(@as(u64, 64), blake_geometry.native_units);
+    try std.testing.expectEqual(@as(u64, 51_846_144), blake_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u64, 320), blake_geometry.native_units);
     try std.testing.expectEqualStrings("blake_round_instances", blake_geometry.native_unit);
     try std.testing.expectEqual(@as(u32, 3), poseidon_geometry.committed_trees);
     try std.testing.expectEqual(@as(u64, 1_296), poseidon_geometry.committed_columns);
     try std.testing.expectEqual(@as(u64, 41_472), poseidon_geometry.committed_trace_cells);
+    const blake_admission = try config.admitWorkload(blake_workload, .large);
+    try std.testing.expect(blake_geometry.committed_columns ==
+        blake_admission.geometry.committed_columns);
+    try std.testing.expect(blake_geometry.committed_trace_cells ==
+        blake_admission.geometry.committed_cells);
     try std.testing.expectEqual(@as(u64, 256), poseidon_geometry.native_units);
     try std.testing.expectEqualStrings("poseidon_instances", poseidon_geometry.native_unit);
     try std.testing.expect(!std.mem.eql(
@@ -770,45 +781,33 @@ test "native proof examples: descriptor digests match independent fixed vectors"
     } };
     const blake_workload: config.Workload = .{ .blake = .{
         .log_n_rows = 8,
-        .n_rounds = 2,
+        .n_rounds = 10,
     } };
     const poseidon_workload: config.Workload = .{ .poseidon = .{ .log_n_instances = 13 } };
-    var expected_wide: [32]u8 = undefined;
-    var expected_xor: [32]u8 = undefined;
-    var expected_plonk: [32]u8 = undefined;
-    var expected_state: [32]u8 = undefined;
-    var expected_blake: [32]u8 = undefined;
-    var expected_poseidon: [32]u8 = undefined;
-    _ = try std.fmt.hexToBytes(
-        &expected_wide,
+    try test_support.expectDigest(
+        descriptorDigest(wide, .functional),
         "8586bce9ae8c0673453803b3b65ca8d4fc677638d53e5933e7692af4dd38586f",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_xor,
+    try test_support.expectDigest(
+        descriptorDigest(xor_workload, .functional),
         "7cc6f69d95db54edac2908b65701c3c3674215f0c83c29db474680bf5a1405db",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_plonk,
+    try test_support.expectDigest(
+        descriptorDigest(plonk_workload, .functional),
         "8e22d72f97cfe01bdb3fdf94e362160418ca16022db7cdaccacf073e2ef67cee",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_state,
+    try test_support.expectDigest(
+        descriptorDigest(state_workload, .functional),
         "90501fb81745fd984bd8186e5750f9b7ff6bf2017b0df4df869f313299b771e9",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_blake,
-        "bee0efa41b40d2f61fbecccb2096af92ff2bcf6fbbc253a852077d4c95a1830e",
+    try test_support.expectDigest(
+        descriptorDigest(blake_workload, .functional),
+        "5cfebf8c9565c41c67b574454b43de6f36e2a9d9307e7bfb8aec693cdb92f4aa",
     );
-    _ = try std.fmt.hexToBytes(
-        &expected_poseidon,
+    try test_support.expectDigest(
+        descriptorDigest(poseidon_workload, .functional),
         "bb508f796006fc2b8482e04b0fc941be001c86d05be029600bc3ca8af123c7e3",
     );
-    try std.testing.expectEqualSlices(u8, &expected_wide, &descriptorDigest(wide, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_xor, &descriptorDigest(xor_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_plonk, &descriptorDigest(plonk_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_state, &descriptorDigest(state_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_blake, &descriptorDigest(blake_workload, .functional));
-    try std.testing.expectEqualSlices(u8, &expected_poseidon, &descriptorDigest(poseidon_workload, .functional));
 }
 
 test "native proof examples: Blake output statement is bound to the request" {

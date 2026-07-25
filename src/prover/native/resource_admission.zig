@@ -124,6 +124,27 @@ pub fn admitExactWithLimits(
     return .{ .profile = profile, .geometry = geometry, .limits = limits };
 }
 
+/// Admits a trace whose committed columns may use component domains taller
+/// than the statement's logical row domain.
+pub fn admitMixedHeight(
+    profile: Profile,
+    log_rows: u32,
+    committed_columns: u64,
+    committed_cells: u64,
+) Error!Admission {
+    const geometry = try measureMixedHeight(
+        log_rows,
+        committed_columns,
+        committed_cells,
+    );
+    const limits = profile.limits();
+    if (geometry.committed_cells > limits.max_committed_cells)
+        return error.CommittedCellBudgetExceeded;
+    if (geometry.accounted_bytes > limits.max_accounted_bytes)
+        return error.AccountedMemoryBudgetExceeded;
+    return .{ .profile = profile, .geometry = geometry, .limits = limits };
+}
+
 pub fn measure(log_rows: u32, committed_columns: u64) Error!Geometry {
     if (log_rows == 0 or log_rows > MAX_LOG_ROWS) return error.InvalidLogRows;
     if (committed_columns == 0) return error.InvalidCommittedColumnCount;
@@ -138,14 +159,30 @@ pub fn measureExact(
     committed_columns: u64,
     committed_cells: u64,
 ) Error!Geometry {
+    const geometry = try measureMixedHeight(
+        log_rows,
+        committed_columns,
+        committed_cells,
+    );
+    const maximum_cells = std.math.mul(
+        u64,
+        geometry.rows,
+        committed_columns,
+    ) catch return error.CommittedCellCountOverflow;
+    if (committed_cells > maximum_cells)
+        return error.CommittedCellCountExceedsLogicalGeometry;
+    return geometry;
+}
+
+pub fn measureMixedHeight(
+    log_rows: u32,
+    committed_columns: u64,
+    committed_cells: u64,
+) Error!Geometry {
     if (log_rows == 0 or log_rows > MAX_LOG_ROWS) return error.InvalidLogRows;
     if (committed_columns == 0) return error.InvalidCommittedColumnCount;
     if (committed_cells == 0) return error.InvalidCommittedCellCount;
     const rows = @as(u64, 1) << @intCast(log_rows);
-    const maximum_cells = std.math.mul(u64, rows, committed_columns) catch
-        return error.CommittedCellCountOverflow;
-    if (committed_cells > maximum_cells)
-        return error.CommittedCellCountExceedsLogicalGeometry;
     const accounted_bytes = std.math.mul(
         u64,
         committed_cells,
@@ -168,6 +205,17 @@ test "resource admission: mixed-height geometry retains logical width" {
     try std.testing.expectError(
         error.CommittedCellCountExceedsLogicalGeometry,
         admitExact(.standard, 10, 12, 13 * rows),
+    );
+}
+
+test "resource admission: taller mixed-height components remain bounded" {
+    const cells: u64 = 1 << 20;
+    const admission = try admitMixedHeight(.standard, 5, 8, cells);
+    try std.testing.expectEqual(@as(u64, 32), admission.geometry.rows);
+    try std.testing.expectEqual(cells, admission.geometry.committed_cells);
+    try std.testing.expectError(
+        error.CommittedCellBudgetExceeded,
+        admitMixedHeight(.standard, 5, 8, STANDARD_MAX_COMMITTED_CELLS + 1),
     );
 }
 

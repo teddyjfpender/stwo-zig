@@ -384,6 +384,7 @@ test "prover transaction: success transfers every owned resource once" {
     const proof = try runTransaction(std.testing.allocator);
     try std.testing.expectEqual(@as(u8, 0xa5), proof.marker);
     try std.testing.expectEqual(@as(usize, 2), FakeEngine.commit_calls);
+    try std.testing.expectEqual(@as(usize, 0), FakeEngine.flush_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeEngine.deinit_calls);
     try std.testing.expectEqual(@as(usize, 1), FakeEngine.prove_calls);
 }
