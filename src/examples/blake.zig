@@ -20,6 +20,7 @@ const trace_input = @import("blake/input.zig");
 const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
 
 pub const constants = @import("blake/constants.zig");
+pub const exact_input = @import("blake/exact_input.zig");
 pub const geometry = @import("blake/geometry.zig");
 pub const round_trace = @import("blake/round_trace.zig");
 pub const scheduler_trace = @import("blake/scheduler_trace.zig");
