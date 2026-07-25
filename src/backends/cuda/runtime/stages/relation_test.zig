@@ -277,6 +277,41 @@ test "resident relation graph rejects alias and stage drift before launch" {
     try std.testing.expectEqual(@as(u32, 0), TestApi.calls);
 }
 
+test "resident relation graph ranges the complete flattened lookup source" {
+    var flattened = instance();
+    const extents = [_]u32{ 32, 16 };
+    flattened.source_word_extents = &extents;
+
+    var undersized_sources = source_columns;
+    undersized_sources[0].len = 31;
+    flattened.source_columns = &undersized_sources;
+    const undersized = [_]relation.InstanceBinding{flattened};
+    try std.testing.expectError(
+        error.InvalidDeviceAddress,
+        relation.prepare(std.testing.allocator, .{
+            .topology = topology,
+            .buffers = buffers(),
+            .instances = &undersized,
+        }),
+    );
+
+    var overlapping_sources = source_columns;
+    overlapping_sources[0].len = 32;
+    flattened.source_columns = &overlapping_sources;
+    var overlapping_outputs = output_coordinates;
+    overlapping_outputs[0] = slice(u32, 0x20_0040, 16);
+    flattened.output_coordinates = &overlapping_outputs;
+    const overlapping = [_]relation.InstanceBinding{flattened};
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        relation.prepare(std.testing.allocator, .{
+            .topology = topology,
+            .buffers = buffers(),
+            .instances = &overlapping,
+        }),
+    );
+}
+
 test "prepared plan rejects unaligned pointer tables and stale pointees" {
     var unaligned_buffers = buffers();
     unaligned_buffers.source_tables.address += @sizeOf(u32);

@@ -38,6 +38,10 @@ pub const Topology = struct {
     total_inverse_blocks: u32,
     total_chain_blocks: u32,
     total_row_blocks: u32,
+    /// Optional frontend-owned identity for the exact relation topology.
+    /// Native static frontends retain the zero identity because their trusted
+    /// ingress already uploads compile-time descriptors and pointer tables.
+    topology_identity: [32]u8 = [_]u8{0} ** 32,
 
     pub fn validate(self: Topology) runtime_error.Error!void {
         if (self.geometry.len == 0 or self.max_alpha_powers == 0 or
@@ -131,6 +135,9 @@ pub const DeviceBuffers = struct {
 pub const InstanceBinding = struct {
     source_pointer_table: common.Words,
     source_columns: []const common.Words,
+    /// Exact words reachable through each source pointer. An empty slice is
+    /// reserved for trusted static frontends whose sources are one column each.
+    source_word_extents: []const u32 = &.{},
     lookup_word_columns: u32 = 0,
     descriptor_storage: common.Words,
     descriptors: []const ColumnDescriptor,
@@ -153,6 +160,7 @@ pub const PreparedPlan = opaque {};
 const OwnedInstance = struct {
     source_pointer_table: common.Words,
     source_columns: []common.Words,
+    source_word_extents: []u32,
     lookup_word_columns: u32,
     descriptor_storage: common.Words,
     descriptors: []ColumnDescriptor,
@@ -202,6 +210,7 @@ pub fn prepare(
             .total_inverse_blocks = options.topology.total_inverse_blocks,
             .total_chain_blocks = options.topology.total_chain_blocks,
             .total_row_blocks = options.topology.total_row_blocks,
+            .topology_identity = options.topology.topology_identity,
         },
         .geometry = geometry,
         .buffers = options.buffers,
@@ -216,6 +225,10 @@ pub fn deinit(allocator: std.mem.Allocator, prepared: *PreparedPlan) void {
     allocator.free(state.instances);
     allocator.free(state.geometry);
     allocator.destroy(state);
+}
+
+pub fn topologyIdentity(prepared: *const PreparedPlan) [32]u8 {
+    return planStateConst(prepared).topology.topology_identity;
 }
 
 pub fn OpsFor(comptime Api: type) type {
@@ -486,7 +499,9 @@ fn retainInstanceRanges(
         geometry.rows,
         geometry.columns,
     );
-    if (instance.descriptors.len != geometry.columns or
+    if ((instance.source_word_extents.len != 0 and
+        instance.source_word_extents.len != instance.source_columns.len) or
+        instance.descriptors.len != geometry.columns or
         instance.output_coordinates.len != output_count or
         instance.source_pointer_table.len !=
             pointerTableWords(source_count) or
@@ -530,13 +545,18 @@ fn retainInstanceRanges(
             identity,
         ),
     );
-    for (instance.source_columns) |source| {
+    for (instance.source_columns, 0..) |source, source_index| {
+        const extent = try sourceWordExtent(
+            instance.source_word_extents,
+            source_index,
+            geometry.rows,
+        );
         try reads.append(
             allocator,
             try checkedRange(
                 u32,
                 source,
-                geometry.rows,
+                extent,
                 @alignOf(u32),
                 identity,
             ),
@@ -601,11 +621,15 @@ fn validateResidentPlan(
             instance.output_pointer_table,
             instance.output_pointer_table.len,
         );
-        for (instance.source_columns) |source| {
+        for (instance.source_columns, 0..) |source, source_index| {
             _ = try session.context.deviceSlicePointer(
                 u32,
                 source,
-                geometry.rows,
+                try sourceWordExtent(
+                    instance.source_word_extents,
+                    source_index,
+                    geometry.rows,
+                ),
             );
         }
         for (instance.output_coordinates) |output| {
@@ -665,6 +689,11 @@ fn copyInstance(
         source.source_columns,
     );
     errdefer allocator.free(source_columns);
+    const source_word_extents = try allocator.dupe(
+        u32,
+        source.source_word_extents,
+    );
+    errdefer allocator.free(source_word_extents);
     const descriptors = try allocator.dupe(
         ColumnDescriptor,
         source.descriptors,
@@ -677,6 +706,7 @@ fn copyInstance(
     return .{
         .source_pointer_table = source.source_pointer_table,
         .source_columns = source_columns,
+        .source_word_extents = source_word_extents,
         .lookup_word_columns = source.lookup_word_columns,
         .descriptor_storage = source.descriptor_storage,
         .descriptors = descriptors,
@@ -692,6 +722,7 @@ fn deinitInstance(
     instance: *OwnedInstance,
 ) void {
     allocator.free(instance.source_columns);
+    allocator.free(instance.source_word_extents);
     allocator.free(instance.descriptors);
     allocator.free(instance.output_coordinates);
     instance.* = undefined;
@@ -745,6 +776,17 @@ fn validatePointerTableAlignment(
 
 fn pointerTableWords(count: u32) usize {
     return @as(usize, count) * pointer_words;
+}
+
+fn sourceWordExtent(
+    extents: []const u32,
+    index: usize,
+    rows: u32,
+) runtime_error.Error!u32 {
+    if (extents.len == 0) return rows;
+    if (index >= extents.len or extents[index] < rows)
+        return error.InvalidKernelDescriptor;
+    return extents[index];
 }
 
 fn blocks(values: u32, block_size: u32) u32 {
