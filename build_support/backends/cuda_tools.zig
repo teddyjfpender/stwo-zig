@@ -109,6 +109,7 @@ pub fn addProducts(
         "scripts.tests.test_cuda_blake_exact_interaction_oracle",
         "scripts.tests.test_cuda_blake_exact_trace_aot",
         "scripts.tests.test_cuda_compact_b2n",
+        "scripts.tests.test_cuda_blake_exact_interaction_aot",
         "scripts.tests.test_cuda_plonk_logup_aot",
         "scripts.tests.test_cuda_poseidon_aot",
         "scripts.tests.test_cuda_xor_logup_aot",

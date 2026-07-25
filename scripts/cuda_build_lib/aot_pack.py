@@ -35,6 +35,7 @@ ABI_SCHEMAS = {
     "native_blake_constraint_v1": 17,
     "native_m31_permutation_trace_v3": 18,
     "native_blake_exact_trace_v1": 19,
+    "native_blake_exact_interaction_v1": 20,
 }
 DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 

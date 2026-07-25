@@ -20,6 +20,7 @@ pub const KernelSchema = enum(u32) {
     native_blake_constraint_v1 = 17,
     native_m31_permutation_trace_v3 = 18,
     native_blake_exact_trace_v1 = 19,
+    native_blake_exact_interaction_v1 = 20,
 };
 
 test "CUDA AOT schema identities are explicit and nonzero" {

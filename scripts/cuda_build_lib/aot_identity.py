@@ -21,6 +21,7 @@ NATIVE_AUTHENTICATED_SCHEMAS = {
     "native_xor_logup_constraint_v1",
     "native_xor_logup_trace_v1",
     "native_blake_exact_trace_v1",
+    "native_blake_exact_interaction_v1",
     "native_indexed_recurrence_trace_v1",
     "native_m31_permutation_trace_v1",
     "native_m31_permutation_trace_v2",
