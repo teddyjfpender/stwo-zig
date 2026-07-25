@@ -80,7 +80,7 @@
       "release_ready": false,
       "gates": {
         "exact_trace_semantics": true,
-        "exact_constraint_semantics": false,
+        "exact_constraint_semantics": true,
         "exact_cpu_cuda_proof_bytes": false,
         "pinned_rust_verification": false,
         "zero_fallback": false,
@@ -92,7 +92,9 @@
           "scripts/tests/test_cuda_m31_permutation_trace.py"
         ],
         "exact_constraint_semantics": [
-          "src/integrations/native_cuda/poseidon/constraint.zig"
+          "src/integrations/native_cuda/poseidon/constraint.zig",
+          "src/integrations/native_cuda/poseidon/executor/composition.zig",
+          "tests/native_cuda_poseidon_arena.zig"
         ],
         "exact_cpu_cuda_proof_bytes": [
           "conformance/evidence/cuda/system-architecture-sm89/poseidon/README.md"
@@ -109,7 +111,7 @@
       },
       "blockers": {
         "exact_trace_semantics": null,
-        "exact_constraint_semantics": "The real 1,264-column permutation trace is followed by a statement-derived constant-QM31 composition, not the Poseidon AIR.",
+        "exact_constraint_semantics": null,
         "exact_cpu_cuda_proof_bytes": "The retained CPU/CUDA byte match covers the provisional constant-composition route, not an exact Poseidon AIR proof.",
         "pinned_rust_verification": "Pinned Rust accepted the provisional route; it is not release evidence for the missing exact Poseidon constraint semantics.",
         "zero_fallback": "Zero fallback was observed for the provisional route only and must be re-established after exact Poseidon constraints land.",
