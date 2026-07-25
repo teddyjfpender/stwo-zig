@@ -41,11 +41,20 @@ class CudaActivationTests(unittest.TestCase):
                 "exact_constraint_semantics"
             ]
         )
+        self.assertTrue(
+            state["families"]["xor_lookup"]["gates"][
+                "exact_trace_semantics"
+            ]
+        )
+        self.assertTrue(
+            state["families"]["xor_lookup"]["gates"][
+                "exact_constraint_semantics"
+            ]
+        )
         for family in (
             "blake",
             "poseidon",
             "state_machine",
-            "xor_lookup",
         ):
             with self.subTest(family=family):
                 self.assertFalse(state["families"][family]["release_ready"])
