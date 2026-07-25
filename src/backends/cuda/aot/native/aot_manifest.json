@@ -97,13 +97,13 @@
   },
   {
     "abi_schema": "native_blake_exact_interaction_v1",
-    "cache_key": "acf7150636f20e67",
-    "file": "witness_blake_exact_interaction_acf7150636f20e67.cu",
+    "cache_key": "260f153f7fcfec80",
+    "file": "witness_blake_exact_interaction_260f153f7fcfec80.cu",
     "identity_scheme": "sha256-source-closure-and-contract-v2",
     "kernel_name": "stwo_native_interaction_blake_exact_pairs_v1",
     "kind": "witness",
     "label": "blake_exact_interaction",
-    "program_identity": "6703346c3bd302591c88ba8ae07a462260d828bfe2f97732a435e3dae6db77e1",
+    "program_identity": "5900ac2a9ea9b3274bb955d1504d624147bfecc3e4eb3f0ebad8713a6dd38a6e",
     "semantic_contract": "stwo-zig/native/blake-exact-interaction/v1;field=qm31;statement=log_n_rows[4..13],rounds=10;components=scheduler[L,6],round[L+3,65],round[L+1,65],xor12[16,128],xor9[14,8],xor8[12,8],xor7[10,8],xor4[8,1];relations=blake,round,xor12,xor9,xor8,xor7,xor4;fractions=canonical-paired-numerator-and-denominator;source=immutable-preprocessed-plus-main-resident-slab;output=ragged-coordinate-major-numerators-and-qm31-denominators;completion=resident-relation-fraction-chain-and-circle-order-tail;claims=public-order-scheduler,xor12,xor9,xor8,xor7,xor4,round3,round1;host_transfer=none;fallback=none;pair_launches=8",
     "semantic_hash": "85d2ba7bfd3cc7db"
   },
