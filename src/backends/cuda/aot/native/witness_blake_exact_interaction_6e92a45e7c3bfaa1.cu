@@ -4,7 +4,7 @@
 // The resident relation fraction-chain and circle-order tail own inversion,
 // cumulative columns, claimed sums, shifting, and the final prefix scan.
 
-#include "constraint_blake_724c070b46f67f61.cu"
+#include "constraint_blake_3b9fbc925d6d3336.cu"
 
 namespace {
 
@@ -16,6 +16,19 @@ constexpr std::uint32_t kSecureColumns[8] = {
     6u, 65u, 65u, 128u, 8u, 8u, 8u, 1u,
 };
 constexpr std::uint32_t kFixedLogs[5] = {16u, 14u, 12u, 10u, 8u};
+
+__device__ __forceinline__ Qm31 relation_value(
+    const std::uint32_t *relations, std::uint32_t relation_index,
+    const Qm31 *values, std::uint32_t count) {
+  const Qm31 z = load_qm31(relations, 2u * relation_index);
+  const Qm31 alpha = load_qm31(relations, 2u * relation_index + 1u);
+  Qm31 result = neg_qm31(z);
+  Qm31 power = one_qm31();
+  for (std::uint32_t index = 0u; index < count; ++index) {
+    relation_append(&result, &power, alpha, values[index]);
+  }
+  return result;
+}
 
 __device__ __forceinline__ void store_fraction(
     std::uint32_t *output, Qm31 *denominators, u64 stride,
