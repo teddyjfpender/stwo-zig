@@ -37,7 +37,7 @@ class CudaBlakeExactTraceAotTests(unittest.TestCase):
             item for item in manifest if item["label"] == "blake_exact_trace"
         )
         self.assertEqual(
-            "native_blake_exact_trace_v1",
+            "native_blake_exact_trace_v2",
             entry["abi_schema"],
         )
         source = NATIVE_AOT / entry["file"]
@@ -97,6 +97,21 @@ class CudaBlakeExactTraceAotTests(unittest.TestCase):
             )
             self.assertEqual(CPU_MAIN_SHA256, self._sha256(main))
 
+    def test_interaction_consumes_canonical_evaluations_without_mirror(
+        self,
+    ) -> None:
+        exact_root = ROOT / "src/integrations/native_cuda/blake/exact"
+        binding = (exact_root / "resident_bindings.zig").read_text(
+            encoding="utf-8"
+        )
+        slots = (exact_root / "slots.zig").read_text(encoding="utf-8")
+        trace = RUNTIME_BINDING.read_text(encoding="utf-8")
+        self.assertIn("slots.preprocessed_evaluations", binding)
+        self.assertIn("slots.main_evaluations", binding)
+        self.assertNotIn("relation_sources", binding)
+        self.assertNotIn("relation_sources", slots)
+        self.assertNotIn("relation_slab", trace)
+
     @staticmethod
     def _sha256(path: Path) -> str:
         digest = hashlib.sha256()
@@ -139,8 +154,7 @@ void write_words(
 
 void launch_all(
     std::vector<unsigned> *preprocessed,
-    std::vector<unsigned> *main,
-    std::vector<unsigned> *relation) {{
+    std::vector<unsigned> *main) {{
     constexpr unsigned kWorkers = 8;
     constexpr unsigned kWorkRows = 1u << 16u;
     std::vector<std::thread> workers;
@@ -155,8 +169,6 @@ void launch_all(
                     preprocessed->size(),
                     main->data(),
                     main->size(),
-                    relation->data(),
-                    relation->size(),
                     4u,
                     10u);
             }}
@@ -173,17 +185,6 @@ std::uint64_t multiplicity_sum(const std::vector<unsigned> &main) {{
     return result;
 }}
 
-void require_relation_copy(
-    const std::vector<unsigned> &preprocessed,
-    const std::vector<unsigned> &main,
-    const std::vector<unsigned> &relation) {{
-    assert(relation.size() == preprocessed.size() + main.size());
-    for (std::size_t index = 0; index < preprocessed.size(); ++index)
-        assert(relation[index] == preprocessed[index]);
-    for (std::size_t index = 0; index < main.size(); ++index)
-        assert(relation[preprocessed.size() + index] == main[index]);
-}}
-
 int main(int argc, char **argv) {{
     assert(argc == 3);
     const std::size_t preprocessed_words =
@@ -192,12 +193,7 @@ int main(int argc, char **argv) {{
         static_cast<std::size_t>(required_main_words(4u));
     std::vector<unsigned> preprocessed(preprocessed_words, 0u);
     std::vector<unsigned> main(main_words, 0u);
-    std::vector<unsigned> relation(
-        preprocessed_words + main_words,
-        0u);
-
-    launch_all(&preprocessed, &main, &relation);
-    require_relation_copy(preprocessed, main, relation);
+    launch_all(&preprocessed, &main);
     // 2^(4+3) + 2^(4+1) round rows, each with 128 lookups.
     assert(multiplicity_sum(main) == 20480u);
     write_words(argv[1], preprocessed);
@@ -206,8 +202,7 @@ int main(int argc, char **argv) {{
     // Replaying without pre-zeroing proves every shared write is an unsigned
     // unit increment: nonmultiplicity cells overwrite identically and every
     // exact multiplicity doubles under real host-thread contention.
-    launch_all(&preprocessed, &main, &relation);
-    require_relation_copy(preprocessed, main, relation);
+    launch_all(&preprocessed, &main);
     assert(multiplicity_sum(main) == 40960u);
 }}
 """

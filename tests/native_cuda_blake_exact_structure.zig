@@ -37,6 +37,10 @@ test "exact Blake host contract seals variable-height arena and facades" {
         ready.trace.context,
         invocation,
     );
+    try ready.interaction.prepare_ingress(
+        ready.interaction.context,
+        invocation,
+    );
     try ready.interaction.generate_interaction(
         ready.interaction.context,
         invocation,
@@ -46,14 +50,10 @@ test "exact Blake host contract seals variable-height arena and facades" {
         invocation,
     );
 
-    try std.testing.expectEqual(@as(usize, 4), calls.kernel_count);
+    try std.testing.expectEqual(@as(usize, 5), calls.kernel_count);
     try std.testing.expectEqual(
         exact.slots.main_evaluations,
         calls.last_main_slot,
-    );
-    try std.testing.expectEqual(
-        exact.slots.relation_sources,
-        calls.last_relation_slot,
     );
     try std.testing.expectEqual(
         @as(u32, 16),
@@ -86,10 +86,6 @@ test "exact Blake witness binding is fixed to authenticated AOT authority" {
         shape.main_words,
     );
     try std.testing.expectEqual(
-        geometry.treeWords(.preprocessed) + geometry.main_words,
-        shape.relation_words,
-    );
-    try std.testing.expectEqual(
         stwo.backends.cuda.runtime.traces.blake_exact.cache_key,
         exact.trace_binding.cache_key,
     );
@@ -109,7 +105,7 @@ test "exact Blake witness binding is fixed to authenticated AOT authority" {
         &transaction,
         exact.facades.invocation(geometry, prepared.views),
     );
-    try std.testing.expectEqual(@as(usize, 2), transaction.zero_count);
+    try std.testing.expectEqual(@as(usize, 1), transaction.zero_count);
     try std.testing.expectEqual(@as(u64, 1), transaction.session.launches);
     try std.testing.expectEqual(
         exact.trace_binding.abi_schema,
@@ -260,7 +256,7 @@ test "exact Blake executor exposes every Fiat-Shamir root and alpha barrier" {
     };
     try executor.runWith(TestOps, &calls);
     try std.testing.expectEqual(exact.executor.Phase.assembled, executor.phase);
-    try std.testing.expectEqual(@as(usize, 4), calls.kernel_count);
+    try std.testing.expectEqual(@as(usize, 5), calls.kernel_count);
     try std.testing.expectEqual(@as(usize, 4), calls.commit_count);
     try std.testing.expectEqual(@as(usize, 16), calls.fri_count);
     try std.testing.expectEqual(@as(u32, 17), calls.fri_logs[0]);
@@ -285,7 +281,6 @@ test "exact Blake executor exposes every Fiat-Shamir root and alpha barrier" {
 const Calls = struct {
     kernel_count: usize = 0,
     last_main_slot: exact.slots.SlotId = 0,
-    last_relation_slot: exact.slots.SlotId = 0,
     last_max_trace_log: u32 = 0,
     commit_count: usize = 0,
     commits: [4]exact.geometry.Tree = undefined,
@@ -308,7 +303,6 @@ fn callback(
     try invocation.views.validate(invocation.geometry);
     calls.kernel_count += 1;
     calls.last_main_slot = invocation.main_slot;
-    calls.last_relation_slot = invocation.relation_sources_slot;
     calls.last_max_trace_log = invocation.geometry.max_trace_log;
 }
 
@@ -428,6 +422,7 @@ fn facadeInteraction(calls: *Calls) exact.facades.Interaction {
         .version = exact.facades.abi_version,
         .identity = [_]u8{0x37} ** 32,
         .context = calls,
+        .prepare_ingress = callback,
         .generate_interaction = callback,
     };
 }

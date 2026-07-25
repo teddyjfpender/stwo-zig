@@ -170,7 +170,6 @@ pub fn OpsFor(comptime Api: type) type {
                 scan.range,
             };
             try layout.requireDisjoint(&mutable, &immutable);
-            try layout.requireDisjoint(&mutable, &.{});
 
             var status = Api.stwo_relation_fraction_chain_global_on(
                 outputs.pointer,
@@ -296,7 +295,6 @@ fn validateOptions(
         );
     }
     try layout.requireDisjoint(writes.items, reads.items);
-    try layout.requireDisjoint(writes.items, &.{});
 }
 
 fn validateBufferLengths(

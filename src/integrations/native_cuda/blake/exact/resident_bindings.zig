@@ -23,7 +23,6 @@ pub const Component = struct {
     preprocessed: ?common.WordMatrix,
     interaction: common.WordMatrix,
     denominators: common.SecureFields,
-    batch_prefix: common.SecureFields,
     claim: common.SecureFields,
     relation_mask: u8,
 };
@@ -40,10 +39,15 @@ pub fn bind(
     views: views_mod.TreeViews,
 ) !Bound {
     const plan = try interaction_plan.Plan.init(geometry, views);
-    const relation_sources = try exactWords(
+    const preprocessed_sources = try exactWords(
         provider,
-        slots.relation_sources,
-        geometry.treeWords(.preprocessed) + geometry.main_words,
+        slots.preprocessed_evaluations,
+        geometry.treeWords(.preprocessed),
+    );
+    const main_sources = try exactWords(
+        provider,
+        slots.main_evaluations,
+        geometry.main_words,
     );
     const interaction = try exactWords(
         provider,
@@ -53,11 +57,6 @@ pub fn bind(
     const denominator_words = try exactWords(
         provider,
         slots.interaction_denominators,
-        plan.workspace_words,
-    );
-    const prefix_words = try exactWords(
-        provider,
-        slots.interaction_batch_prefix,
         plan.workspace_words,
     );
     const public_claims = try exactAs(
@@ -79,7 +78,7 @@ pub fn bind(
             .kind = component.kind,
             .log_rows = component.log_rows,
             .main = .{
-                .storage = try relation_sources.sub(
+                .storage = try main_sources.sub(
                     component.main_first_word,
                     main_words,
                 ),
@@ -87,7 +86,7 @@ pub fn bind(
             },
             .preprocessed = if (component.preprocessed_first_word) |first|
                 .{
-                    .storage = try relation_sources.sub(
+                    .storage = try preprocessed_sources.sub(
                         first,
                         try mul(component.preprocessed_columns, component.rows),
                     ),
@@ -106,19 +105,13 @@ pub fn bind(
                 component.workspace_first_word,
                 component.workspace_words,
             )).cast(field.SecureField),
-            .batch_prefix = try (try prefix_words.sub(
-                component.workspace_first_word,
-                component.workspace_words,
-            )).cast(field.SecureField),
             .claim = try public_claims.sub(
                 component.public_claim_index,
                 1,
             ),
             .relation_mask = component.relation_mask,
         };
-        if (output.denominators.len != fraction_count or
-            output.batch_prefix.len != fraction_count)
-        {
+        if (output.denominators.len != fraction_count) {
             return error.InvalidInteractionBinding;
         }
     }

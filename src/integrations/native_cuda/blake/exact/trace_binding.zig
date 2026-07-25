@@ -9,7 +9,7 @@ const views_mod = @import("views.zig");
 
 pub const abi_schema = @import(
     "../../../../backends/cuda/abi/schema.zig",
-).KernelSchema.native_blake_exact_trace_v1;
+).KernelSchema.native_blake_exact_trace_v2;
 pub const cache_key = witness.cache_key;
 pub const kernel_name = witness.kernel_name;
 pub const program_identity = witness.program_identity;
@@ -31,22 +31,10 @@ pub fn generate(
         main_xor,
         xor_words,
     );
-    try transaction.zeroResidentSlice(
-        u32,
-        .trace_generation,
-        slots.relation_sources,
-        shape.preprocessed_words + main_xor,
-        xor_words,
-    );
-    try witness.generate(
-        transaction.proofSession(),
-        .{
-            .preprocessed = try transaction.slot(slots.preprocessed_evaluations),
-            .main = try transaction.slot(slots.main_evaluations),
-            .relation_sources = try transaction.slot(slots.relation_sources),
-        },
-        statement(invocation.geometry),
-    );
+    try witness.generate(transaction.proofSession(), .{
+        .preprocessed = try transaction.slot(slots.preprocessed_evaluations),
+        .main = try transaction.slot(slots.main_evaluations),
+    }, statement(invocation.geometry));
 }
 
 pub fn validate(
@@ -55,7 +43,6 @@ pub fn validate(
     if (invocation.preprocessed_slot !=
         slots.preprocessed_evaluations or
         invocation.main_slot != slots.main_evaluations or
-        invocation.relation_sources_slot != slots.relation_sources or
         invocation.interaction_slot != slots.interaction_evaluations or
         invocation.composition_slot != slots.composition_evaluations)
     {
@@ -70,9 +57,7 @@ pub fn validate(
     try validateGroups(&shape.main, &invocation.views.main);
     if (shape.preprocessed_words !=
         invocation.geometry.treeWords(.preprocessed) or
-        shape.main_words != invocation.geometry.main_words or
-        shape.relation_words !=
-            shape.preprocessed_words + shape.main_words)
+        shape.main_words != invocation.geometry.main_words)
     {
         return error.InvalidKernelDescriptor;
     }

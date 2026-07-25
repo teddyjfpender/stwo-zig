@@ -51,6 +51,10 @@ pub const Executor = struct {
 
         try Ops.ingress(context, self.prepared);
         self.phase = .ingress;
+        try self.kernels.interaction.prepare_ingress(
+            self.kernels.interaction.context,
+            invocation,
+        );
         try self.kernels.trace.generate_preprocessed(
             self.kernels.trace.context,
             invocation,

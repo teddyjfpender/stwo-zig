@@ -81,23 +81,12 @@ pub const Prepared = struct {
             slots.statement1_claims,
             geometry_mod.statement1_words,
         );
-        try requireWords(
-            self,
-            slots.relation_sources,
-            self.geometry.treeWords(.preprocessed) +
-                self.geometry.main_words,
-        );
         const relation_words = try geometry_mod.relationFractionWorkspaceWords(
             self.geometry.statement.log_n_rows,
         );
         try requireWords(
             self,
             slots.interaction_denominators,
-            relation_words,
-        );
-        try requireWords(
-            self,
-            slots.interaction_batch_prefix,
             relation_words,
         );
         const interaction = try interaction_plan.Plan.init(
@@ -191,7 +180,6 @@ pub fn buildRequirements(
     const top_table_words = geometry_mod.component_count * pointer_words;
     const scratch_words = try completion.scratchWords();
     try add(&result, allocator, slots.interaction_denominators, relation_words, .constraint_evaluation, .constraint_evaluation);
-    try add(&result, allocator, slots.interaction_batch_prefix, relation_words, .constraint_evaluation, .constraint_evaluation);
     try addAligned(
         &result,
         allocator,
@@ -221,16 +209,6 @@ pub fn buildRequirements(
         geometry,
         .trace_generation,
         .trace_commit,
-        .constraint_evaluation,
-    );
-    const relation_source_words = geometry.treeWords(.preprocessed) +
-        geometry.main_words;
-    try add(
-        &result,
-        allocator,
-        slots.relation_sources,
-        relation_source_words,
-        .trace_generation,
         .constraint_evaluation,
     );
     try addTree(
@@ -582,4 +560,46 @@ test "exact Blake arena aliases only disjoint protocol lifetimes" {
     defer prepared.deinit(allocator);
     try prepared.validate();
     try std.testing.expect(prepared.plan.total_words > geometry.trace_words);
+}
+
+test "exact arena excludes both legacy full-size interaction mirrors" {
+    const allocator = std.testing.allocator;
+    const geometry = try geometry_mod.admit(.{
+        .statement = .{ .log_n_rows = 4 },
+        .protocol = @import("stwo_core").pcs.PcsConfig.default(),
+    });
+    const current_requirements = try buildRequirements(allocator, geometry);
+    defer allocator.free(current_requirements);
+    for (current_requirements) |requirement| {
+        try std.testing.expect(requirement.id != 0x2121);
+        try std.testing.expect(requirement.id != 0x2215);
+    }
+    var legacy_requirements = std.ArrayList(arena.Requirement).empty;
+    defer legacy_requirements.deinit(allocator);
+    try legacy_requirements.appendSlice(allocator, current_requirements);
+    const relation_words = try geometry_mod.relationFractionWorkspaceWords(
+        geometry.statement.log_n_rows,
+    );
+    const source_words = geometry.treeWords(.preprocessed) +
+        geometry.main_words;
+    try legacy_requirements.append(allocator, .{
+        .id = 0x2121,
+        .words = relation_words,
+        .live_from = .constraint_evaluation,
+        .live_through = .constraint_evaluation,
+    });
+    try legacy_requirements.append(allocator, .{
+        .id = 0x2215,
+        .words = source_words,
+        .live_from = .trace_generation,
+        .live_through = .constraint_evaluation,
+    });
+    var current = try arena.Plan.init(allocator, current_requirements);
+    defer current.deinit(allocator);
+    var legacy = try arena.Plan.init(allocator, legacy_requirements.items);
+    defer legacy.deinit(allocator);
+    try std.testing.expectEqual(
+        relation_words + source_words,
+        legacy.total_words - current.total_words,
+    );
 }

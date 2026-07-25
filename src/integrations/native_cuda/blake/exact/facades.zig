@@ -5,17 +5,15 @@ const geometry_mod = @import("geometry.zig");
 const slots = @import("slots.zig");
 const views = @import("views.zig");
 
-pub const abi_version: u32 = 1;
+pub const abi_version: u32 = 2;
 
 pub const Invocation = struct {
     geometry: geometry_mod.Geometry,
     views: views.TreeViews,
     preprocessed_slot: slots.SlotId,
     main_slot: slots.SlotId,
-    relation_sources_slot: slots.SlotId,
     interaction_slot: slots.SlotId,
     interaction_denominators_slot: slots.SlotId,
-    interaction_batch_prefix_slot: slots.SlotId,
     statement1_claims_slot: slots.SlotId,
     composition_slot: slots.SlotId,
 };
@@ -45,6 +43,7 @@ pub const Interaction = struct {
     version: u32,
     identity: [32]u8,
     context: *anyopaque,
+    prepare_ingress: Callback,
     generate_interaction: Callback,
 
     pub fn validate(self: Interaction) !void {
@@ -132,10 +131,8 @@ pub fn invocation(
         .views = tree_views,
         .preprocessed_slot = slots.preprocessed_evaluations,
         .main_slot = slots.main_evaluations,
-        .relation_sources_slot = slots.relation_sources,
         .interaction_slot = slots.interaction_evaluations,
         .interaction_denominators_slot = slots.interaction_denominators,
-        .interaction_batch_prefix_slot = slots.interaction_batch_prefix,
         .statement1_claims_slot = slots.statement1_claims,
         .composition_slot = slots.composition_evaluations,
     };

@@ -74,7 +74,8 @@ pub fn AuthorityFor(comptime Transaction: type) type {
                 .version = facades.abi_version,
                 .identity = program_identity,
                 .context = transaction,
-                .generate_interaction = callback,
+                .prepare_ingress = ingressCallback,
+                .generate_interaction = generateCallback,
             };
         }
 
@@ -85,7 +86,15 @@ pub fn AuthorityFor(comptime Transaction: type) type {
             try interaction_ingress.upload(transaction, invocation);
         }
 
-        fn callback(
+        fn ingressCallback(
+            context: *anyopaque,
+            invocation: facades.Invocation,
+        ) anyerror!void {
+            const transaction: *Transaction = @ptrCast(@alignCast(context));
+            try uploadGraph(transaction, invocation);
+        }
+
+        fn generateCallback(
             context: *anyopaque,
             invocation: facades.Invocation,
         ) anyerror!void {
@@ -96,12 +105,9 @@ pub fn AuthorityFor(comptime Transaction: type) type {
 }
 
 fn validateInvocation(invocation: facades.Invocation) !void {
-    if (invocation.relation_sources_slot != slots.relation_sources or
-        invocation.interaction_slot != slots.interaction_evaluations or
+    if (invocation.interaction_slot != slots.interaction_evaluations or
         invocation.interaction_denominators_slot !=
             slots.interaction_denominators or
-        invocation.interaction_batch_prefix_slot !=
-            slots.interaction_batch_prefix or
         invocation.statement1_claims_slot != slots.statement1_claims)
     {
         return error.InvalidKernelDescriptor;

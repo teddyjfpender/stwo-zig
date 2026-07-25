@@ -73,8 +73,6 @@ fn validateInvocation(invocation: facades.Invocation) !void {
     if (invocation.interaction_slot != slots.interaction_evaluations or
         invocation.interaction_denominators_slot !=
             slots.interaction_denominators or
-        invocation.interaction_batch_prefix_slot !=
-            slots.interaction_batch_prefix or
         invocation.statement1_claims_slot != slots.statement1_claims)
     {
         return error.InvalidKernelDescriptor;

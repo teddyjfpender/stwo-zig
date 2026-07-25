@@ -7,21 +7,19 @@ const common = @import("../stages/common.zig");
 const resident_layout = @import("../stages/resident_layout.zig");
 const telemetry = @import("../telemetry.zig");
 
-pub const argument_count: u32 = 8;
-pub const cache_key: u64 = 0x904701cc6586063e;
+pub const argument_count: u32 = 6;
+pub const cache_key: u64 = 0x1237511ff22c0d09;
 pub const kernel_name =
-    "stwo_native_trace_blake_exact_mixed_v1_5d9d1dc25f011625";
+    "stwo_native_trace_blake_exact_mixed_v2_b8a99643ffc4a29b";
 pub const program_identity = [32]u8{
-    0x60, 0x3c, 0xc1, 0x55, 0xcc, 0xf5, 0xf9, 0x2e,
-    0x5c, 0x15, 0x21, 0x92, 0xb3, 0x97, 0x9d, 0x98,
-    0xc8, 0x50, 0xb9, 0x52, 0xdc, 0x7e, 0xea, 0xe0,
-    0xa4, 0x5f, 0x2c, 0x95, 0x34, 0x38, 0x75, 0xaa,
+    0xb2, 0x1e, 0x38, 0x9f, 0x9c, 0x42, 0x5a, 0xca,
+    0x1a, 0xa1, 0x31, 0xfb, 0xd4, 0x5c, 0x4c, 0xae,
+    0x17, 0x55, 0xff, 0x26, 0xca, 0xd7, 0xe3, 0x78,
+    0x17, 0xfb, 0x2b, 0x9e, 0x2b, 0xc5, 0x6a, 0xc6,
 };
 
 pub const preprocessed_group_count: usize = 5;
 pub const main_group_count: usize = 8;
-pub const relation_group_count: usize =
-    preprocessed_group_count + main_group_count;
 pub const exact_round_count: u32 = 10;
 pub const minimum_log_rows: u32 = 4;
 pub const maximum_log_rows: u32 = 13;
@@ -34,7 +32,6 @@ pub const Statement = struct {
 pub const Destinations = struct {
     preprocessed: common.Words,
     main: common.Words,
-    relation_sources: common.Words,
 };
 
 pub const Group = struct {
@@ -52,10 +49,8 @@ pub const Group = struct {
 pub const Layout = struct {
     preprocessed: [preprocessed_group_count]Group,
     main: [main_group_count]Group,
-    relation: [relation_group_count]Group,
     preprocessed_words: usize,
     main_words: usize,
-    relation_words: usize,
 
     pub fn init(statement: Statement) runtime_error.Error!Layout {
         try validateStatement(statement);
@@ -89,20 +84,6 @@ pub const Layout = struct {
             0,
             0,
         );
-        _ = try fillGroups(
-            result.relation[0..preprocessed_group_count],
-            preprocessed_widths,
-            table_logs,
-            0,
-            0,
-        );
-        result.relation_words = try fillGroups(
-            result.relation[preprocessed_group_count..],
-            main_widths,
-            main_logs,
-            15,
-            result.preprocessed_words,
-        );
         return result;
     }
 };
@@ -125,8 +106,6 @@ const Arguments = struct {
     preprocessed_words: u64,
     main_slab: [*]u32,
     main_words: u64,
-    relation_slab: [*]u32,
-    relation_words: u64,
     log_n_rows: u32,
     n_rounds: u32,
 
@@ -136,8 +115,6 @@ const Arguments = struct {
             @ptrCast(&self.preprocessed_words),
             @ptrCast(&self.main_slab),
             @ptrCast(&self.main_words),
-            @ptrCast(&self.relation_slab),
-            @ptrCast(&self.relation_words),
             @ptrCast(&self.log_n_rows),
             @ptrCast(&self.n_rounds),
         };
@@ -161,13 +138,8 @@ pub fn prepare(
         destinations.main,
         shape.main_words,
     );
-    const relation = try exactWords(
-        session,
-        destinations.relation_sources,
-        shape.relation_words,
-    );
     try resident_layout.requireDisjoint(
-        &.{ preprocessed.range, main.range, relation.range },
+        &.{ preprocessed.range, main.range },
         &.{},
     );
     return .{
@@ -177,8 +149,6 @@ pub fn prepare(
             .preprocessed_words = try u64Count(shape.preprocessed_words),
             .main_slab = main.pointer,
             .main_words = try u64Count(shape.main_words),
-            .relation_slab = relation.pointer,
-            .relation_words = try u64Count(shape.relation_words),
             .log_n_rows = statement.log_n_rows,
             .n_rounds = statement.n_rounds,
         },
@@ -207,7 +177,7 @@ pub fn descriptor(
     );
     return .{
         .stage = .trace_generation,
-        .abi_schema = .native_blake_exact_trace_v1,
+        .abi_schema = .native_blake_exact_trace_v2,
         .cache_key = cache_key,
         .name = kernel_name,
         .grid = .{ 1 + (work_rows - 1) / 128, 1, 1 },
@@ -290,10 +260,6 @@ test "exact Blake layout seals all mixed-height component groups" {
         const last = shape.main[main_group_count - 1];
         break :blk last.first_column + last.column_count;
     });
-    try std.testing.expectEqual(
-        shape.preprocessed_words + shape.main_words,
-        shape.relation_words,
-    );
 }
 
 test "exact Blake binding rejects aliases and incomplete slabs" {
@@ -315,7 +281,7 @@ test "exact Blake binding rejects aliases and incomplete slabs" {
         prepare(&session, short, statement),
     );
     var alias = destinations;
-    alias.relation_sources.address = alias.main.address;
+    alias.main.address = alias.preprocessed.address;
     try std.testing.expectError(
         error.OverlappingDeviceRange,
         prepare(&session, alias, statement),
@@ -332,7 +298,7 @@ const TestSession = struct {
         arguments: []const ?*anyopaque,
     ) runtime_error.Error!void {
         try kernel.validate();
-        if (kernel.abi_schema != .native_blake_exact_trace_v1 or
+        if (kernel.abi_schema != .native_blake_exact_trace_v2 or
             arguments.len != argument_count)
         {
             return error.InvalidKernelDescriptor;
@@ -372,10 +338,6 @@ fn testDestinations(shape: Layout) Destinations {
     return .{
         .preprocessed = testWords(0x1000, shape.preprocessed_words),
         .main = testWords(0x1000_0000, shape.main_words),
-        .relation_sources = testWords(
-            0x8000_0000,
-            shape.relation_words,
-        ),
     };
 }
 

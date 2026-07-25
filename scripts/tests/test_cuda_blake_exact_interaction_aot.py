@@ -111,6 +111,8 @@ class CudaBlakeExactInteractionAotTests(unittest.TestCase):
             "Qm31 second_values[",
         ):
             self.assertNotIn(spill_pattern, source)
+        self.assertNotRegex(source, r"\bFu32 v0")
+        self.assertIn("BaseFu32 v0", source)
 
     def test_pair_kernel_matches_independent_exact_air(self) -> None:
         compiler = shutil.which("c++")

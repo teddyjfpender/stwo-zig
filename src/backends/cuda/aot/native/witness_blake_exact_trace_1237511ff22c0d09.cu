@@ -3,7 +3,7 @@
 // One lane owns one stored scheduler, round, or XOR-table row. XOR
 // multiplicities are the only shared writes: atomic unit increments are
 // commutative in u32, and admission bounds their maximum at 10,485,760.
-// Callers must zero both multiplicity ranges before this launch.
+// Callers must zero the main multiplicity range before this launch.
 
 #include <cstdint>
 
@@ -113,9 +113,7 @@ __device__ __forceinline__ u64 required_main_words(
 
 struct ColumnWriter {
     std::uint32_t *main;
-    std::uint32_t *relation;
     u64 main_base;
-    u64 relation_base;
     u64 stride;
     std::uint32_t row;
     u64 column = 0;
@@ -123,7 +121,6 @@ struct ColumnWriter {
     __device__ __forceinline__ void append_felt(std::uint32_t value) {
         const u64 index = main_base + column * stride + row;
         main[index] = value;
-        relation[relation_base + column * stride + row] = value;
         ++column;
     }
 
@@ -135,7 +132,6 @@ struct ColumnWriter {
 
 struct RoundWriter : ColumnWriter {
     std::uint32_t log_n_rows;
-    u64 relation_main_base;
 
     __device__ __forceinline__ void record_xor(
         std::uint32_t width,
@@ -158,7 +154,6 @@ struct RoundWriter : ColumnWriter {
             static_cast<u64>(column) * (1ull << kTableLogs[table]) +
             table_row;
         atomicAdd(main + index, 1u);
-        atomicAdd(relation + relation_main_base + index, 1u);
     }
 
     __device__ __forceinline__ std::uint32_t xor_rotate(
@@ -253,7 +248,6 @@ struct RoundWriter : ColumnWriter {
 
 __device__ __forceinline__ void fill_preprocessed(
     std::uint32_t *preprocessed,
-    std::uint32_t *relation,
     std::uint32_t row) {
     for (std::uint32_t table = 0; table < kTableCount; ++table) {
         const std::uint32_t rows = 1u << kTableLogs[table];
@@ -269,15 +263,12 @@ __device__ __forceinline__ void fill_preprocessed(
             const u64 index =
                 base + static_cast<u64>(column) * rows + row;
             preprocessed[index] = values[column];
-            relation[index] = values[column];
         }
     }
 }
 
 __device__ __forceinline__ void fill_scheduler(
     std::uint32_t *main,
-    std::uint32_t *relation,
-    u64 relation_main_base,
     std::uint32_t log_n_rows,
     std::uint32_t row) {
     const std::uint32_t rows = 1u << log_n_rows;
@@ -289,9 +280,7 @@ __device__ __forceinline__ void fill_scheduler(
         state[lane] = base;
         message[lane] = base + 1u;
     }
-    ColumnWriter writer{
-        main, relation, 0, relation_main_base, rows, row,
-    };
+    ColumnWriter writer{main, 0, rows, row};
     for (std::uint32_t lane = 0; lane < 16; ++lane)
         writer.append_u32(message[lane]);
     for (std::uint32_t lane = 0; lane < 16; ++lane)
@@ -305,8 +294,6 @@ __device__ __forceinline__ void fill_scheduler(
 
 __device__ __forceinline__ void fill_round_component(
     std::uint32_t *main,
-    std::uint32_t *relation,
-    u64 relation_main_base,
     std::uint32_t log_n_rows,
     std::uint32_t component,
     std::uint32_t row) {
@@ -340,13 +327,10 @@ __device__ __forceinline__ void fill_round_component(
             static_cast<u64>(kColumnsPerRound) * (scheduler_rows << 3u);
     RoundWriter writer{};
     writer.main = main;
-    writer.relation = relation;
     writer.main_base = main_base;
-    writer.relation_base = relation_main_base + main_base;
     writer.stride = rows;
     writer.row = row;
     writer.log_n_rows = log_n_rows;
-    writer.relation_main_base = relation_main_base;
     for (std::uint32_t lane = 0; lane < 16; ++lane)
         writer.append_u32(state[lane]);
     for (std::uint32_t lane = 0; lane < 16; ++lane)
@@ -363,50 +347,41 @@ __device__ __forceinline__ void fill_round_component(
 }  // namespace
 
 extern "C" __global__ void __launch_bounds__(128)
-stwo_native_trace_blake_exact_mixed_v1_5d9d1dc25f011625(
+stwo_native_trace_blake_exact_mixed_v2_b8a99643ffc4a29b(
     std::uint32_t *preprocessed,
     u64 preprocessed_words,
     std::uint32_t *main,
     u64 main_words,
-    std::uint32_t *relation,
-    u64 relation_words,
     std::uint32_t log_n_rows,
     std::uint32_t n_rounds) {
     const std::uint32_t row =
         blockIdx.x * blockDim.x + threadIdx.x;
-    if (preprocessed == nullptr || main == nullptr || relation == nullptr ||
+    if (preprocessed == nullptr || main == nullptr ||
         log_n_rows < 4u || log_n_rows > 13u || n_rounds != kRounds) {
         return;
     }
     const u64 expected_preprocessed = required_preprocessed_words();
     const u64 expected_main = required_main_words(log_n_rows);
     if (preprocessed_words != expected_preprocessed ||
-        main_words != expected_main ||
-        relation_words != expected_preprocessed + expected_main) {
+        main_words != expected_main) {
         return;
     }
     const std::uint32_t max_rows =
         1u << (log_n_rows + 3u > 16u ? log_n_rows + 3u : 16u);
     if (row >= max_rows) return;
 
-    fill_preprocessed(preprocessed, relation, row);
+    fill_preprocessed(preprocessed, row);
     fill_scheduler(
         main,
-        relation,
-        expected_preprocessed,
         log_n_rows,
         row);
     fill_round_component(
         main,
-        relation,
-        expected_preprocessed,
         log_n_rows,
         0u,
         row);
     fill_round_component(
         main,
-        relation,
-        expected_preprocessed,
         log_n_rows,
         1u,
         row);

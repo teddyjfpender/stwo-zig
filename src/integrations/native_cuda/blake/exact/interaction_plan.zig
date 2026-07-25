@@ -46,8 +46,7 @@ pub const Plan = struct {
                 .kind = geometry_mod.component_order[index],
                 .log_rows = main.log_rows,
                 .rows = main.row_count,
-                .main_first_word = geometry.treeWords(.preprocessed) +
-                    main.arena_offset_words,
+                .main_first_word = main.arena_offset_words,
                 .main_columns = main.column_count,
                 .preprocessed_first_word = if (xor_index) |table|
                     views.preprocessed[table].arena_offset_words

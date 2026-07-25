@@ -97,27 +97,27 @@
   },
   {
     "abi_schema": "native_blake_exact_interaction_v1",
-    "cache_key": "3a3849f2a4f47320",
-    "file": "witness_blake_exact_interaction_3a3849f2a4f47320.cu",
+    "cache_key": "3790df091bfb99bf",
+    "file": "witness_blake_exact_interaction_3790df091bfb99bf.cu",
     "identity_scheme": "sha256-source-closure-and-contract-v2",
     "kernel_name": "stwo_native_interaction_blake_exact_pairs_v1",
     "kind": "witness",
     "label": "blake_exact_interaction",
-    "program_identity": "cb8434101b21f5472e8676c628a4027173625b276c5686eec102e35e82e71e61",
+    "program_identity": "b0bcfe3ab0c71d5fa0d8c7af6ad018b822de245069d06610b2d645146ad29810",
     "semantic_contract": "stwo-zig/native/blake-exact-interaction/v1;field=qm31;statement=log_n_rows[4..13],rounds=10;components=scheduler[L,6],round[L+3,65],round[L+1,65],xor12[16,128],xor9[14,8],xor8[12,8],xor7[10,8],xor4[8,1];relations=blake,round,xor12,xor9,xor8,xor7,xor4;fractions=canonical-paired-numerator-and-denominator;source=immutable-preprocessed-plus-main-resident-slab;output=ragged-coordinate-major-numerators-and-qm31-denominators;completion=resident-relation-fraction-chain-and-circle-order-tail;claims=public-order-scheduler,xor12,xor9,xor8,xor7,xor4,round3,round1;host_transfer=none;fallback=none;pair_launches=8",
     "semantic_hash": "85d2ba7bfd3cc7db"
   },
   {
-    "abi_schema": "native_blake_exact_trace_v1",
-    "cache_key": "904701cc6586063e",
-    "file": "witness_blake_exact_trace_904701cc6586063e.cu",
+    "abi_schema": "native_blake_exact_trace_v2",
+    "cache_key": "1237511ff22c0d09",
+    "file": "witness_blake_exact_trace_1237511ff22c0d09.cu",
     "identity_scheme": "sha256-source-and-contract-v1",
-    "kernel_name": "stwo_native_trace_blake_exact_mixed_v1_5d9d1dc25f011625",
+    "kernel_name": "stwo_native_trace_blake_exact_mixed_v2_b8a99643ffc4a29b",
     "kind": "witness",
     "label": "blake_exact_trace",
-    "program_identity": "603cc155ccf5f92e5c152192b3979d98c850b952dc7eeae0a45f2c95343875aa",
-    "semantic_contract": "stwo-zig/native/blake-exact-trace/v1;field=m31;statement=log_n_rows[4..13],n_rounds=10;groups=scheduler[L,384],round[L+3,384],round[L+1,384],xor12[16,256],xor9[14,16],xor8[12,16],xor7[10,16],xor4[8,1];preprocessed=xor12..xor4[a,b,a_xor_b];scheduler=pinned-packed-lane-input-and-ten-round-state-sequence;round=pinned-sigma-input-and-eight-G-row;xor_multiplicity=prezeroed-u32-atomic-unit-increments,bound=1280*2^L<=10485760;relation=immutable-full-preprocessed-then-main-copy;layout=compact-component-column-major;host_transfer=none;fallback=none;launches=1",
-    "semantic_hash": "5d9d1dc25f011625"
+    "program_identity": "b21e389f9c425aca1aa131fbd45c4cae1755ff26cad7e37817fb2b9e2bc56ac6",
+    "semantic_contract": "stwo-zig/native/blake-exact-trace/v2;field=m31;statement=log_n_rows[4..13],n_rounds=10;groups=scheduler[L,384],round[L+3,384],round[L+1,384],xor12[16,256],xor9[14,16],xor8[12,16],xor7[10,16],xor4[8,1];preprocessed=xor12..xor4[a,b,a_xor_b];scheduler=pinned-packed-lane-input-and-ten-round-state-sequence;round=pinned-sigma-input-and-eight-G-row;xor_multiplicity=prezeroed-u32-atomic-unit-increments,bound=1280*2^L<=10485760;interaction_sources=direct-preprocessed-and-main-evaluation-slabs;layout=compact-component-column-major;host_transfer=none;fallback=none;launches=1",
+    "semantic_hash": "b8a99643ffc4a29b"
   },
   {
     "abi_schema": "native_circle_affine_state_trace_v1",

@@ -2,6 +2,8 @@
 
 const std = @import("std");
 const field = @import("../../abi/field.zig");
+const abi_schema = @import("../../abi/schema.zig");
+const abi_types = @import("../../abi/types.zig");
 const kernel_module = @import("../kernel.zig");
 const runtime_error = @import("../error.zig");
 const common = @import("../stages/common.zig");
@@ -11,13 +13,13 @@ const telemetry = @import("../telemetry.zig");
 pub const component_count: usize = 8;
 pub const relation_element_count: usize = 14;
 pub const argument_count: u32 = 12;
-pub const cache_key: u64 = 0x3a3849f2a4f47320;
+pub const cache_key: u64 = 0x3790df091bfb99bf;
 pub const kernel_name = "stwo_native_interaction_blake_exact_pairs_v1";
 pub const program_identity = [32]u8{
-    0xcb, 0x84, 0x34, 0x10, 0x1b, 0x21, 0xf5, 0x47,
-    0x2e, 0x86, 0x76, 0xc6, 0x28, 0xa4, 0x02, 0x71,
-    0x73, 0x62, 0x5b, 0x27, 0x6c, 0x56, 0x86, 0xee,
-    0xc1, 0x02, 0xe3, 0x5e, 0x82, 0xe7, 0x1e, 0x61,
+    0xb0, 0xbc, 0xfe, 0x3a, 0xb0, 0xc7, 0x1d, 0x5f,
+    0xa0, 0xd8, 0xc7, 0xaf, 0x6a, 0xd0, 0x18, 0xb8,
+    0x22, 0xde, 0x24, 0x50, 0x69, 0xd0, 0x66, 0x10,
+    0xb2, 0xd6, 0x45, 0x14, 0x6a, 0xd2, 0x98, 0x10,
 };
 
 pub const main_columns = [component_count]usize{
@@ -26,6 +28,35 @@ pub const main_columns = [component_count]usize{
 pub const secure_columns = [component_count]usize{
     6, 65, 65, 128, 8, 8, 8, 1,
 };
+
+pub const ResourceCeiling = struct {
+    max_registers_per_thread: u32,
+    max_local_bytes: u64,
+
+    pub fn fromRetainedReceipt(
+        receipt: abi_types.NativeAotFunctionReceipt,
+    ) runtime_error.Error!ResourceCeiling {
+        if (receipt.abi_version != kernel_module.receipt_abi_version or
+            receipt.abi_schema != @intFromEnum(
+                abi_schema.KernelSchema.native_blake_exact_interaction_v1,
+            ) or
+            receipt.cache_key != cache_key or
+            receipt.sm_major == 0 or
+            receipt.registers_per_thread == 0 or
+            !receipt.verification.isVerified())
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        return .{
+            .max_registers_per_thread = receipt.registers_per_thread,
+            .max_local_bytes = receipt.local_bytes,
+        };
+    }
+};
+
+// Populated only from a retained locked-device receipt. Host-only source
+// inspection cannot justify CUDA register or local-memory ceilings.
+pub const retained_resource_ceiling: ?ResourceCeiling = null;
 
 pub const Component = struct {
     log_rows: u32,
@@ -185,7 +216,6 @@ pub fn prepare(
     reads[read_count] = relation.range;
     read_count += 1;
     try layout.requireDisjoint(&writes, reads[0..read_count]);
-    try layout.requireDisjoint(&writes, &.{});
     return result;
 }
 
@@ -199,6 +229,13 @@ pub fn generate(
 }
 
 pub fn descriptor(log_rows: u32) runtime_error.Error!kernel_module.Kernel {
+    return descriptorWithCeiling(log_rows, retained_resource_ceiling);
+}
+
+fn descriptorWithCeiling(
+    log_rows: u32,
+    ceiling: ?ResourceCeiling,
+) runtime_error.Error!kernel_module.Kernel {
     const rows = try rowsAtLog(log_rows);
     return .{
         .stage = .constraint_evaluation,
@@ -208,6 +245,14 @@ pub fn descriptor(log_rows: u32) runtime_error.Error!kernel_module.Kernel {
         .grid = .{ @intCast((rows + 127) / 128), 1, 1 },
         .block = .{ 128, 1, 1 },
         .argument_count = argument_count,
+        .max_registers_per_thread = if (ceiling) |value|
+            value.max_registers_per_thread
+        else
+            null,
+        .max_local_bytes = if (ceiling) |value|
+            value.max_local_bytes
+        else
+            null,
     };
 }
 
@@ -310,6 +355,48 @@ test "exact interaction binding launches all mixed-height components" {
         .components = components,
     }, 4);
     try std.testing.expectEqual(@as(u64, component_count), session.launches);
+}
+
+test "interaction resource ceilings require retained device evidence" {
+    const unbounded = try descriptor(16);
+    try std.testing.expectEqual(
+        @as(?u32, null),
+        unbounded.max_registers_per_thread,
+    );
+    try std.testing.expectEqual(@as(?u64, null), unbounded.max_local_bytes);
+
+    const receipt = abi_types.NativeAotFunctionReceipt{
+        .abi_version = kernel_module.receipt_abi_version,
+        .abi_schema = @intFromEnum(
+            abi_schema.KernelSchema.native_blake_exact_interaction_v1,
+        ),
+        .registers_per_thread = 96,
+        .local_bytes = 0,
+        .cache_key = cache_key,
+        .sm_major = 8,
+        .sm_minor = 9,
+        .verification = .{
+            .abi_version = abi_types.aot_verification_abi_version,
+            .verified = abi_types.aot_verification_verified,
+            .cubin_bytes = 4096,
+            .expected_sha256 = [_]u8{7} ** 32,
+            .observed_sha256 = [_]u8{7} ** 32,
+        },
+    };
+    const ceiling = try ResourceCeiling.fromRetainedReceipt(receipt);
+    const retained = try descriptorWithCeiling(16, ceiling);
+    try std.testing.expectEqual(
+        @as(?u32, 96),
+        retained.max_registers_per_thread,
+    );
+    try std.testing.expectEqual(@as(?u64, 0), retained.max_local_bytes);
+
+    var foreign = receipt;
+    foreign.cache_key ^= 1;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        ResourceCeiling.fromRetainedReceipt(foreign),
+    );
 }
 
 const TestSession = struct {

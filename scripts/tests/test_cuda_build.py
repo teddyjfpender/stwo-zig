@@ -134,8 +134,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
         self.assertEqual(0, plan["ordinary_source_count"])
-        self.assertEqual(14, plan["aot_source_count"])
-        self.assertEqual(28, plan["aot_cubin_count"])
+        self.assertEqual(15, plan["aot_source_count"])
+        self.assertEqual(30, plan["aot_cubin_count"])
         self.assertEqual(expected_sources, actual_sources)
         self.assertEqual(len(native["sources"]), plan["native_runtime_source_count"])
         self.assertEqual(len(native["host_sources"]), plan["native_host_source_count"])
@@ -390,7 +390,7 @@ class CudaBuildTests(unittest.TestCase):
         manifest = json.loads(
             (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(14, len(manifest))
+        self.assertEqual(15, len(manifest))
         entry = next(item for item in manifest if item["label"] == "wide_fibonacci")
         self.assertEqual("native_constraint_slab_v1", entry["abi_schema"])
         self.assertEqual(

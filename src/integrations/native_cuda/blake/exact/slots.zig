@@ -11,7 +11,6 @@ pub const relation_elements: SlotId = 0x2111;
 pub const statement1_claims: SlotId = 0x2112;
 pub const composition_challenge: SlotId = 0x2113;
 pub const interaction_denominators: SlotId = 0x2120;
-pub const interaction_batch_prefix: SlotId = 0x2121;
 pub const interaction_output_pointer_table: SlotId = 0x2122;
 pub const interaction_output_tables: SlotId = 0x2123;
 pub const interaction_denominator_tables: SlotId = 0x2124;
@@ -33,8 +32,6 @@ pub const main_coefficients: SlotId = 0x2211;
 pub const main_lde: SlotId = 0x2212;
 pub const main_hashes: SlotId = 0x2213;
 pub const main_layers: SlotId = 0x2214;
-/// Immutable preprocessed+main witness emitted by the exact witness AOT.
-pub const relation_sources: SlotId = 0x2215;
 
 pub const interaction_evaluations: SlotId = 0x2220;
 pub const interaction_coefficients: SlotId = 0x2221;
