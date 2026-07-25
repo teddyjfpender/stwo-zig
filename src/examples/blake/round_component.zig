@@ -262,7 +262,7 @@ test "exact Blake round component exposes arithmetic and paired LogUp constraint
     };
     try std.testing.expectEqual(@as(usize, 129), component.nConstraints());
     var bounds = try component.traceLogDegreeBounds(std.testing.allocator);
-    defer bounds.deinit(std.testing.allocator);
+    defer bounds.deinitDeep(std.testing.allocator);
     try std.testing.expectEqual(geometry.ROUND_MAIN_COLUMNS, bounds.items[1].len);
     try std.testing.expectEqual(
         4 * geometry.ROUND_INTERACTION_SECURE_COLUMNS,

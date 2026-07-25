@@ -255,7 +255,7 @@ fn appendFu32s(
 test "exact Blake round witness satisfies all 64 arithmetic constraints" {
     const round_trace = @import("round_trace.zig");
     const NullObserver = struct {
-        fn record(_: *@This(), _: u5, _: u32, _: u32, _: u32) void {}
+        pub fn record(_: *@This(), _: u5, _: u32, _: u32, _: u32) void {}
     };
     var observer = NullObserver{};
     const trace = round_trace.generate(

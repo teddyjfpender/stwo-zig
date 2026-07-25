@@ -313,7 +313,7 @@ test "exact Blake scheduler exposes six paired relation constraints" {
     };
     try std.testing.expectEqual(@as(usize, 6), component.nConstraints());
     var bounds = try component.traceLogDegreeBounds(std.testing.allocator);
-    defer bounds.deinit(std.testing.allocator);
+    defer bounds.deinitDeep(std.testing.allocator);
     try std.testing.expectEqual(
         geometry.SCHEDULER_MAIN_COLUMNS,
         bounds.items[1].len,
