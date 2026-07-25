@@ -16,6 +16,8 @@ pub const Batch = struct {
     coefficient_log_size: u32,
     first_sample: usize,
     sample_count: usize,
+    factor_first: usize = 0,
+    scratch_first: usize = 0,
 };
 
 pub const Descriptor = struct {
@@ -56,8 +58,8 @@ pub fn buildExplicit(
     }
 
     var sample_cursor: usize = 0;
-    var common_log_size: ?u32 = null;
-    var common_rows: ?usize = null;
+    var factor_cursor: usize = 0;
+    var scratch_cursor: usize = 0;
     for (descriptors, storage[0..descriptors.len]) |descriptor, *batch| {
         if (descriptor.column_count == 0 or
             descriptor.first_execution_sample != sample_cursor)
@@ -75,12 +77,14 @@ pub fn buildExplicit(
             return error.InvalidKernelDescriptor;
         }
         const source_first = try treeSourceFirst(logical, descriptor.role);
+        const coefficient_log_size =
+            ingress.coefficient_log_sizes[source_first + first_column];
+        if (coefficient_log_size > tree.column_log_size)
+            return error.InvalidKernelDescriptor;
         for (source_first + first_column..source_first + end_column) |index| {
             if (ingress.coefficient_log_sizes[index] !=
-                tree.column_log_size)
-            {
+                coefficient_log_size)
                 return error.InvalidKernelDescriptor;
-            }
         }
         const end_sample = try add(sample_cursor, column_count);
         if (end_sample > sample_count)
@@ -97,7 +101,7 @@ pub fn buildExplicit(
             }
         }
 
-        const rows = try pow2(tree.column_log_size);
+        const rows = try pow2(coefficient_log_size);
         const stride = resident.coefficients.column_stride_words;
         if (stride < rows or
             resident.coefficients.storage.len !=
@@ -105,13 +109,10 @@ pub fn buildExplicit(
         {
             return error.InvalidKernelDescriptor;
         }
-        if (common_log_size) |expected| {
-            if (expected != tree.column_log_size)
-                return error.InvalidKernelDescriptor;
-        } else {
-            common_log_size = tree.column_log_size;
-            common_rows = rows;
-        }
+        const blocks = try ceilDiv(
+            rows,
+            oods_stage.first_coefficients_per_block,
+        );
         batch.* = .{
             .coefficients = .{
                 .storage = try resident.coefficients.storage.sub(
@@ -121,31 +122,29 @@ pub fn buildExplicit(
                 .column_stride_words = stride,
             },
             .coefficient_rows = try u32Count(rows),
-            .coefficient_log_size = tree.column_log_size,
+            .coefficient_log_size = coefficient_log_size,
             .first_sample = sample_cursor,
             .sample_count = column_count,
+            .factor_first = factor_cursor,
+            .scratch_first = scratch_cursor,
         };
+        factor_cursor = try add(
+            factor_cursor,
+            try mul(column_count, coefficient_log_size),
+        );
+        scratch_cursor = try add(
+            scratch_cursor,
+            try mul(column_count, blocks),
+        );
         sample_cursor = end_sample;
     }
     if (sample_cursor != sample_count)
         return error.InvalidKernelDescriptor;
 
-    const log_size = common_log_size orelse
+    if (views.oods.folding_factors.len != factor_cursor)
         return error.InvalidKernelDescriptor;
-    const rows = common_rows orelse
-        return error.InvalidKernelDescriptor;
-    if (views.oods.folding_factors.len !=
-        try mul(sample_count, log_size))
-    {
-        return error.InvalidKernelDescriptor;
-    }
-    const blocks = try ceilDiv(
-        rows,
-        oods_stage.first_coefficients_per_block,
-    );
-    const scratch = try mul(sample_count, blocks);
-    if (views.oods.reduce_a.len != scratch or
-        views.oods.reduce_b.len != scratch)
+    if (views.oods.reduce_a.len != scratch_cursor or
+        views.oods.reduce_b.len != scratch_cursor)
     {
         return error.InvalidKernelDescriptor;
     }

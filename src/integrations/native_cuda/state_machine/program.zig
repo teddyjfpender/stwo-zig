@@ -100,16 +100,23 @@ fn emitWithBuffers(
     geometry: geometry_mod.Geometry,
     buffers: []const ir.Buffer,
 ) !ir.ProofProgram {
-    var columns = traceColumns();
-    for (&columns) |*column|
-        column.log_rows = geometry.statement.log_n_rows;
-    const constraints = [_]ir.ConstraintProgram{.{
-        .id = 0,
-        .component = 0,
-        .expression = identities.constraint_expression,
-        .constraint_count = 1,
-        .max_degree_log = 2,
-    }};
+    const columns = traceColumns(geometry);
+    const constraints = [_]ir.ConstraintProgram{
+        .{
+            .id = 0,
+            .component = 0,
+            .expression = identities.constraint_expression,
+            .constraint_count = 1,
+            .max_degree_log = 2,
+        },
+        .{
+            .id = 1,
+            .component = 1,
+            .expression = identities.constraint_expression,
+            .constraint_count = 1,
+            .max_degree_log = 2,
+        },
+    };
     const commitments = commitmentTrees(geometry);
     const barriers = try transcriptBarriers(allocator, geometry);
     defer allocator.free(barriers);
@@ -153,10 +160,12 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
     return .{
         .geometry = .{
             .component = 0,
+            .component_count = 2,
             .log_rows = geometry.statement.log_n_rows,
             .preprocessed_columns = geometry_mod.preprocessed_columns,
             .main_columns = geometry_mod.main_columns,
             .interaction_columns = geometry_mod.interaction_columns,
+            .mixed_height_element_count = geometry.committed_cells,
         },
         .ingress = .{
             .recipe_identity = identities.ingress_recipe,
@@ -182,7 +191,7 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
     };
 }
 
-fn traceColumns() [
+fn traceColumns(geometry: geometry_mod.Geometry) [
     geometry_mod.preprocessed_columns +
         geometry_mod.main_columns +
         geometry_mod.interaction_columns +
@@ -195,18 +204,34 @@ fn traceColumns() [
     var columns: [count]ir.TraceColumn = undefined;
     for (&columns, 0..) |*column, index| {
         const ordinal: u32 = @intCast(index);
+        const main_end = geometry_mod.main_columns;
+        const interaction_end =
+            main_end + geometry_mod.interaction_columns;
+        const role: ir.ColumnRole = if (index < main_end)
+            .main
+        else if (index < interaction_end)
+            .interaction
+        else
+            .composition;
+        const local_index = if (index < main_end)
+            index
+        else if (index < interaction_end)
+            index - main_end
+        else
+            index - interaction_end;
+        const component: u32 = switch (role) {
+            .main => @intFromBool(local_index >= 2),
+            .interaction => @intFromBool(local_index >= 4),
+            .composition => 0,
+            else => unreachable,
+        };
         column.* = .{
             .id = ordinal,
-            .component = 0,
+            .component = component,
             .ordinal = ordinal,
-            .log_rows = 1,
-            .role = if (index < geometry_mod.preprocessed_columns)
-                .preprocessed
-            else if (index < geometry_mod.preprocessed_columns +
-                geometry_mod.main_columns)
-                .main
-            else
-                .composition,
+            .log_rows = geometry.statement.log_n_rows -
+                @intFromBool(component == 1),
+            .role = role,
         };
     }
     return columns;
@@ -214,16 +239,25 @@ fn traceColumns() [
 
 fn commitmentTrees(
     geometry: geometry_mod.Geometry,
-) [3]ir.CommitmentTree {
+) [4]ir.CommitmentTree {
     const preprocessed_end = geometry_mod.preprocessed_columns;
     const main_end = preprocessed_end + geometry_mod.main_columns;
+    const interaction_end = main_end + geometry_mod.interaction_columns;
     return .{
-        tree(0, .preprocessed, 0, geometry_mod.preprocessed_columns, geometry, true),
+        tree(0, .preprocessed, 0, geometry_mod.preprocessed_columns, geometry, false),
         tree(1, .main, preprocessed_end, geometry_mod.main_columns, geometry, true),
         tree(
             2,
-            .composition,
+            .interaction,
             main_end,
+            geometry_mod.interaction_columns,
+            geometry,
+            true,
+        ),
+        tree(
+            3,
+            .composition,
+            interaction_end,
             geometry_mod.composition_columns,
             geometry,
             true,

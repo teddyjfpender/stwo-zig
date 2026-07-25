@@ -139,19 +139,24 @@ pub fn BindingFor(
                 ),
                 .column_stride_words = committed_rows,
             };
-            const preprocessed = try tree_binding.bind(
-                provider,
-                .preprocessed,
-                slots.preprocessed_coefficients,
-                preprocessed_evaluations,
-                slots.preprocessed_log_sizes,
-                slots.preprocessed_merkle_hashes,
-                slots.preprocessed_merkle_layers,
-                geometry_mod.preprocessed_columns,
-                committed_rows,
-                hash_count,
-                layer_count,
-            );
+            const has_preprocessed =
+                geometry_mod.preprocessed_columns > 0;
+            const preprocessed = if (has_preprocessed)
+                try tree_binding.bind(
+                    provider,
+                    .preprocessed,
+                    slots.preprocessed_coefficients,
+                    preprocessed_evaluations,
+                    slots.preprocessed_log_sizes,
+                    slots.preprocessed_merkle_hashes,
+                    slots.preprocessed_merkle_layers,
+                    geometry_mod.preprocessed_columns,
+                    committed_rows,
+                    hash_count,
+                    layer_count,
+                )
+            else
+                undefined;
             const main = try tree_binding.bind(
                 provider,
                 .main,
@@ -238,16 +243,27 @@ pub fn BindingFor(
                 .protocol_words = protocol_words,
                 .statement_words = statement_words,
             };
-            const trees = if (has_interaction)
+            const trees = if (has_preprocessed and has_interaction)
                 try views.TraceTrees.init(&.{
                     preprocessed,
                     main,
                     interaction,
                     composition,
                 })
-            else
+            else if (has_preprocessed)
                 try views.TraceTrees.init(&.{
                     preprocessed,
+                    main,
+                    composition,
+                })
+            else if (has_interaction)
+                try views.TraceTrees.init(&.{
+                    main,
+                    interaction,
+                    composition,
+                })
+            else
+                try views.TraceTrees.init(&.{
                     main,
                     composition,
                 });
@@ -323,11 +339,26 @@ pub fn BindingFor(
             geometry: geometry_mod.Geometry,
         ) !views.Oods {
             const samples: usize = geometry_mod.sampled_mask_points;
-            const scratch_per_sample = try ceilDiv(
-                try geometry.traceRowCount(),
-                oods_stage.first_coefficients_per_block,
-            );
-            const scratch_count = try mul(samples, scratch_per_sample);
+            const factor_count = if (@hasDecl(
+                geometry_mod,
+                "oodsFactorCount",
+            ))
+                try geometry_mod.oodsFactorCount(geometry)
+            else
+                try mul(samples, geometry.traceLogSize());
+            const scratch_count = if (@hasDecl(
+                geometry_mod,
+                "oodsScratchCount",
+            ))
+                try geometry_mod.oodsScratchCount(geometry)
+            else
+                try mul(
+                    samples,
+                    try ceilDiv(
+                        try geometry.traceRowCount(),
+                        oods_stage.first_coefficients_per_block,
+                    ),
+                );
             return .{
                 .parameter = try exactAs(
                     provider,
@@ -367,7 +398,7 @@ pub fn BindingFor(
                     provider,
                     field.SecureField,
                     slots.oods_folding_factors,
-                    try mul(samples, geometry.traceLogSize()),
+                    factor_count,
                 ),
                 .reduce_a = try exactAs(
                     provider,
@@ -690,11 +721,19 @@ pub fn BindingFor(
                     slots.decommit_sparse_level_counts,
                     1,
                 ),
-                .preprocessed_column_log_sizes = try exactWords(
-                    provider,
-                    slots.decommit_preprocessed_log_sizes,
-                    geometry_mod.preprocessed_columns,
-                ),
+                .preprocessed_column_log_sizes = if (geometry_mod.preprocessed_columns > 0)
+                    try exactWords(
+                        provider,
+                        slots.decommit_preprocessed_log_sizes,
+                        geometry_mod.preprocessed_columns,
+                    )
+                else
+                    .{
+                        .address = 0,
+                        .len = 0,
+                        .owner = 0,
+                        .generation = 0,
+                    },
                 .main_column_log_sizes = try exactWords(
                     provider,
                     slots.decommit_main_log_sizes,

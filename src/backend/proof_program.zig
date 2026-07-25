@@ -515,8 +515,15 @@ fn validateNativeAir(
     const geometry = contract.geometry;
     var role_counts = [_]u32{0} ** 3;
     for (program.trace_columns) |column| {
-        if (column.component != geometry.component or
-            column.log_rows != geometry.log_rows)
+        const component_end = std.math.add(
+            u32,
+            geometry.component,
+            geometry.component_count,
+        ) catch return error.InvalidNativeAir;
+        if (column.component < geometry.component or
+            column.component >= component_end or
+            column.log_rows == 0 or
+            column.log_rows > geometry.log_rows)
         {
             return error.InvalidNativeAir;
         }
@@ -534,7 +541,9 @@ fn validateNativeAir(
         return error.InvalidNativeAir;
     }
     for (program.constraints) |constraint| {
-        if (constraint.component != geometry.component)
+        if (constraint.component < geometry.component or
+            constraint.component >=
+                geometry.component + geometry.component_count)
             return error.InvalidNativeAir;
     }
 

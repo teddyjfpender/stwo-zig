@@ -157,6 +157,37 @@ pub fn admitRequest(request: Request) Error!Geometry {
     return admit(request.statement, request.protocol);
 }
 
+pub fn oodsFactorCount(geometry: Geometry) Error!usize {
+    const n: usize = geometry.statement.log_n_rows;
+    return std.math.add(
+        usize,
+        try usizeMul(18, n),
+        try usizeMul(10, n - 1),
+    ) catch error.GeometryOverflow;
+}
+
+pub fn oodsScratchCount(geometry: Geometry) Error!usize {
+    const rows = try geometry.traceRowCount();
+    const block = @import(
+        "../../../backends/cuda/runtime/stages/oods.zig",
+    ).first_coefficients_per_block;
+    return std.math.add(
+        usize,
+        try usizeMul(18, try usizeCeilDiv(rows, block)),
+        try usizeMul(10, try usizeCeilDiv(rows / 2, block)),
+    ) catch error.GeometryOverflow;
+}
+
+fn usizeMul(left: usize, right: usize) Error!usize {
+    return std.math.mul(usize, left, right) catch
+        error.GeometryOverflow;
+}
+
+fn usizeCeilDiv(left: usize, right: usize) Error!usize {
+    return std.math.divCeil(usize, left, right) catch
+        error.GeometryOverflow;
+}
+
 fn supportedProtocol(value: pcs.PcsConfig) bool {
     const fri = value.fri_config;
     return value.pow_bits == 10 and

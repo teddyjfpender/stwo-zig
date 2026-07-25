@@ -74,7 +74,7 @@ pub const Bundle = shared.BundleFor(
     Descriptor,
 );
 
-test "state-machine bundle preserves exact three-tree wire cardinalities" {
+test "State v2 bundle preserves four commitments and mixed openings" {
     const allocator = std.testing.allocator;
     const pcs = @import("stwo_core").pcs;
     const geometry = try geometry_mod.admit(
@@ -96,11 +96,11 @@ test "state-machine bundle preserves exact three-tree wire cardinalities" {
     try bundle.validate(openings.assembly_words);
 
     try std.testing.expectEqual(
-        @as(usize, 3 * 8),
+        @as(usize, 4 * 8),
         bundle.section(.trace_commitments).words,
     );
     try std.testing.expectEqual(
-        @as(usize, 11 * 4),
+        @as(usize, 28 * 4),
         bundle.section(.sampled_values).words,
     );
     try std.testing.expectEqual(
@@ -113,7 +113,7 @@ test "state-machine bundle preserves exact three-tree wire cardinalities" {
     );
     try std.testing.expectEqual(@as(u32, 16), bundle.static_header[4]);
     try std.testing.expectEqual(@as(u32, 0), bundle.static_header[5]);
-    try std.testing.expectEqual(@as(u32, 3), bundle.static_header[12]);
+    try std.testing.expectEqual(@as(u32, 4), bundle.static_header[12]);
     try std.testing.expectEqual(@as(u32, 19), bundle.static_header[14]);
     try std.testing.expectEqual(
         std.math.maxInt(u32),

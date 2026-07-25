@@ -166,16 +166,32 @@ pub fn executeWithOpsAt(
         output_snapshot,
     );
 
-    try OodsOps.derivePoints(
-        session,
-        oods.parameter,
-        oods.offset_points,
-        oods.sampleMap(),
-        log_size,
-        oods.sample_points,
-        oods.evaluation_points,
-        oods.folding_factors,
-    );
+    var uniform = true;
+    for (batches) |batch| {
+        if (batch.coefficient_log_size != log_size or
+            batch.factor_first !=
+                batch.first_sample * @as(usize, log_size))
+        {
+            uniform = false;
+            break;
+        }
+    }
+    if (uniform) {
+        try OodsOps.derivePoints(
+            session,
+            oods.parameter,
+            oods.offset_points,
+            oods.sampleMap(),
+            log_size,
+            oods.sample_points,
+            oods.evaluation_points,
+            oods.folding_factors,
+        );
+    } else {
+        for (batches) |batch| {
+            try deriveBatch(OodsOps, session, batch, oods);
+        }
+    }
     for (batches) |batch| {
         try evaluateBatch(OodsOps, session, batch, oods);
     }
@@ -299,6 +315,17 @@ fn buildBatches(
             .coefficient_log_size = tree.column_log_size,
             .first_sample = first_sample,
             .sample_count = tree.column_count,
+            .factor_first = try mul(
+                first_sample,
+                tree.column_log_size,
+            ),
+            .scratch_first = try mul(
+                first_sample,
+                try ceilDiv(
+                    coefficient_rows,
+                    oods_stage.first_coefficients_per_block,
+                ),
+            ),
         };
         batch_count += 1;
         first_sample = end_sample;
@@ -342,32 +369,24 @@ fn evaluateBatch(
         @as(usize, batch.coefficient_rows),
         oods_stage.first_coefficients_per_block,
     );
-    const factor_first = try mul(
-        batch.first_sample,
-        batch.coefficient_log_size,
-    );
     const factor_count = try mul(
         batch.sample_count,
         batch.coefficient_log_size,
     );
     const factors = try oods.folding_factors.sub(
-        factor_first,
+        batch.factor_first,
         factor_count,
-    );
-    const scratch_first = try mul(
-        batch.first_sample,
-        blocks_per_sample,
     );
     const scratch_count = try mul(
         batch.sample_count,
         blocks_per_sample,
     );
     const scratch_a = try oods.reduce_a.sub(
-        scratch_first,
+        batch.scratch_first,
         scratch_count,
     );
     const scratch_b = try oods.reduce_b.sub(
-        scratch_first,
+        batch.scratch_first,
         scratch_count,
     );
 
@@ -419,6 +438,49 @@ fn evaluateBatch(
             .output_capacity = oods.sampled_values.len,
         },
         oods.sampled_values,
+    );
+}
+
+fn deriveBatch(
+    comptime OodsOps: type,
+    session: anytype,
+    batch: Batch,
+    oods: resident_views.Oods,
+) !void {
+    const factor_count = try mul(
+        batch.sample_count,
+        batch.coefficient_log_size,
+    );
+    try OodsOps.derivePoints(
+        session,
+        oods.parameter,
+        try oods.offset_points.sub(
+            batch.first_sample,
+            batch.sample_count,
+        ),
+        .{
+            .indices = .{
+                .device = try oods.output_indices.sub(
+                    batch.first_sample,
+                    batch.sample_count,
+                ),
+                .output_capacity = oods.sample_points.len,
+            },
+            .fold_counts = try oods.fold_counts.sub(
+                batch.first_sample,
+                batch.sample_count,
+            ),
+        },
+        batch.coefficient_log_size,
+        oods.sample_points,
+        try oods.evaluation_points.sub(
+            batch.first_sample,
+            batch.sample_count,
+        ),
+        try oods.folding_factors.sub(
+            batch.factor_first,
+            factor_count,
+        ),
     );
 }
 

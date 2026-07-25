@@ -24,6 +24,7 @@ pub const executor = @import("executor/mod.zig");
 pub const geometry = @import("geometry.zig");
 pub const identities = @import("identities.zig");
 pub const layout = @import("layout.zig");
+pub const oods = @import("oods.zig");
 pub const parity_targets = @import("parity_targets.zig");
 pub const plan = @import("plan.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
@@ -54,6 +55,7 @@ test {
     _ = geometry;
     _ = identities;
     _ = layout;
+    _ = oods;
     _ = parity_targets;
     _ = plan;
     _ = proof_bundle;

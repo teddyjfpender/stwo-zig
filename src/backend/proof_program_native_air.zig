@@ -9,10 +9,14 @@ pub const Digest = [32]u8;
 
 pub const TraceGeometry = struct {
     component: u32,
+    component_count: u32 = 1,
     log_rows: u32,
     preprocessed_columns: u32,
     main_columns: u32,
     interaction_columns: u32,
+    /// Exact logical cell count for mixed-height component trees. Uniform
+    /// frontends leave this null and retain the original calculation.
+    mixed_height_element_count: u64 = 0,
 
     pub fn columnCount(self: TraceGeometry) Error!u64 {
         const preprocessed_and_main = std.math.add(
@@ -28,6 +32,8 @@ pub const TraceGeometry = struct {
     }
 
     pub fn elementCount(self: TraceGeometry) Error!u64 {
+        if (self.mixed_height_element_count != 0)
+            return self.mixed_height_element_count;
         if (self.log_rows >= 63) return error.InvalidGeometry;
         return std.math.mul(
             u64,
@@ -82,6 +88,7 @@ pub const Contract = struct {
     pub fn validate(self: Contract) Error!void {
         if (self.version != current_version) return error.UnsupportedVersion;
         if (self.geometry.log_rows == 0 or
+            self.geometry.component_count == 0 or
             try self.geometry.columnCount() == 0)
         {
             return error.InvalidGeometry;

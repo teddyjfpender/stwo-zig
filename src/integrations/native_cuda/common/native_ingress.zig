@@ -98,11 +98,13 @@ pub fn ExecutorFor(
                 interaction_end + geometry_mod.composition_columns;
             if (logs.len != composition_end)
                 return error.InvalidKernelDescriptor;
-            try transaction.upload(
-                u32,
-                slots.decommit_preprocessed_log_sizes,
-                logs[0..preprocessed_end],
-            );
+            if (geometry_mod.preprocessed_columns > 0) {
+                try transaction.upload(
+                    u32,
+                    slots.decommit_preprocessed_log_sizes,
+                    logs[0..preprocessed_end],
+                );
+            }
             try transaction.upload(
                 u32,
                 slots.decommit_main_log_sizes,
@@ -141,11 +143,13 @@ pub fn ExecutorFor(
                 interaction_end + geometry_mod.composition_columns;
             if (logs.len != composition_end)
                 return error.InvalidKernelDescriptor;
-            try transaction.upload(
-                u32,
-                slots.preprocessed_log_sizes,
-                logs[0..preprocessed_end],
-            );
+            if (geometry_mod.preprocessed_columns > 0) {
+                try transaction.upload(
+                    u32,
+                    slots.preprocessed_log_sizes,
+                    logs[0..preprocessed_end],
+                );
+            }
             try transaction.upload(
                 u32,
                 slots.main_log_sizes,

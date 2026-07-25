@@ -74,6 +74,7 @@ pub const steps = [_]Step{
     .{ .name = "test-cuda-runtime-contract", .description = "Test proof-owned CUDA context, residency, and strict-AOT contracts", .scope = .cuda_tools },
     .{ .name = "test-cuda-plonk-logup-contract", .description = "Test activation-disabled exact Plonk/LogUp CUDA contracts", .scope = .cuda_tools },
     .{ .name = "test-cuda-xor-logup-contract", .description = "Test exact XOR/LogUp CUDA contracts without a GPU", .scope = .cuda_tools },
+    .{ .name = "test-cuda-state-machine-contract", .description = "Test activation-disabled exact State Machine v2 CUDA contracts", .scope = .cuda_tools },
     .{ .name = "test-cuda-adapter", .description = "Compile and test the isolated copied-backend Native proof adapter", .scope = .cuda_tools },
     .{ .name = "cuda-native-archive", .description = "Build the exact static CUDA runtime and copied AOT pack", .scope = .cuda_tools },
     .{ .name = "cuda-native-adapter", .description = "Build the copied-backend Native CUDA proof adapter", .scope = .cuda_tools },

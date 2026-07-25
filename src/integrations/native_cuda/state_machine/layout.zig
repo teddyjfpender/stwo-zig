@@ -73,7 +73,7 @@ const Descriptor = struct {
         geometry: geometry_mod.Geometry,
         role: TraceRole,
         column_index: usize,
-    ) geometry_mod.Error!u32 {
+    ) error{UnsupportedProtocol}!u32 {
         const n = geometry.statement.log_n_rows;
         return switch (role) {
             .preprocessed => error.UnsupportedProtocol,

@@ -182,6 +182,20 @@ pub fn addProducts(
         "Test exact XOR/LogUp CUDA contracts without a GPU",
     ).dependOn(&b.addRunArtifact(xor_logup_tests).step);
 
+    const state_machine_root = b.createModule(.{
+        .root_source_file = b.path("tests/native_cuda_state_machine.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    state_machine_root.addImport("stwo_under_test", stwo);
+    const state_machine_tests = b.addTest(.{
+        .root_module = state_machine_root,
+    });
+    b.step(
+        "test-cuda-state-machine-contract",
+        "Test activation-disabled exact State Machine v2 CUDA contracts",
+    ).dependOn(&b.addRunArtifact(state_machine_tests).step);
+
     const adapter_tests = b.addSystemCommand(&.{
         "cargo",
         "+nightly-2025-07-14",
