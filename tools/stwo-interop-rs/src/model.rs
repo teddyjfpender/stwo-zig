@@ -253,12 +253,25 @@ pub(crate) struct BenchReport {
     pub(crate) runtime: String,
     pub(crate) backend: String,
     pub(crate) backend_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) execution_profile: Option<BenchExecutionProfile>,
     pub(crate) example: String,
     pub(crate) prove_mode: String,
     pub(crate) include_all_preprocessed_columns: bool,
     pub(crate) prove: BenchTiming,
     pub(crate) verify: BenchTiming,
     pub(crate) proof_metrics: BenchProofMetrics,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct BenchExecutionProfile {
+    pub(crate) proof_backend_type: String,
+    pub(crate) witness_generation_backend_type: String,
+    pub(crate) interaction_generation_backend_type: String,
+    pub(crate) backend_homogeneous: bool,
+    pub(crate) pure_backend_promotion_eligible: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) promotion_ineligibility_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

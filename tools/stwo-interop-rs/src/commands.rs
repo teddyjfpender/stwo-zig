@@ -3,9 +3,9 @@ use crate::cli::{
     prove_mode_to_str,
 };
 use crate::model::{
-    BenchReport, BenchTiming, BlakeStatement, Cli, Example, InteropArtifact, PlonkStatement,
-    PoseidonStatement, ProofWire, WideFibonacciStatement, XorStatement, EXCHANGE_MODE,
-    SCHEMA_VERSION,
+    BenchExecutionProfile, BenchReport, BenchTiming, BlakeStatement, Cli, Example, InteropArtifact,
+    PlonkStatement, PoseidonStatement, ProofWire, ProverBackend, WideFibonacciStatement,
+    XorStatement, EXCHANGE_MODE, SCHEMA_VERSION,
 };
 use crate::plonk_logup::verify_exact as plonk_logup_verify;
 use crate::profile::{time_stage, write_stage_profile};
@@ -490,6 +490,7 @@ pub(crate) fn run_bench(cli: &Cli) -> Result<()> {
         runtime: "rust".to_string(),
         backend: cli.backend.name().to_string(),
         backend_type: cli.backend.rust_type().to_string(),
+        execution_profile: bench_execution_profile(example, cli.backend),
         example: match example {
             Example::Blake => "blake",
             Example::Plonk => "plonk",
@@ -510,9 +511,33 @@ pub(crate) fn run_bench(cli: &Cli) -> Result<()> {
     Ok(())
 }
 
+fn bench_execution_profile(
+    example: Example,
+    proof_backend: ProverBackend,
+) -> Option<BenchExecutionProfile> {
+    if example != Example::Poseidon {
+        return None;
+    }
+
+    let simd_backend = ProverBackend::Simd.rust_type();
+    let backend_homogeneous = proof_backend == ProverBackend::Simd;
+    Some(BenchExecutionProfile {
+        proof_backend_type: proof_backend.rust_type().to_string(),
+        witness_generation_backend_type: simd_backend.to_string(),
+        interaction_generation_backend_type: simd_backend.to_string(),
+        backend_homogeneous,
+        pure_backend_promotion_eligible: backend_homogeneous,
+        promotion_ineligibility_reason: (!backend_homogeneous).then(|| {
+            "exact Poseidon witness and interaction generation use the pinned SIMD generator"
+                .to_string()
+        }),
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use super::pcs_configs_match;
+    use super::{bench_execution_profile, pcs_configs_match};
+    use crate::model::{Example, ProverBackend};
     use stwo::core::fri::FriConfig;
     use stwo::core::pcs::PcsConfig;
 
@@ -536,6 +561,41 @@ mod tests {
         for actual in fields {
             assert!(!pcs_configs_match(expected, actual));
         }
+    }
+
+    #[test]
+    fn scalar_poseidon_benchmark_discloses_mixed_execution_and_is_not_promotable() {
+        let profile = bench_execution_profile(Example::Poseidon, ProverBackend::Scalar).unwrap();
+
+        assert_eq!(
+            profile.proof_backend_type,
+            "stwo::prover::backend::cpu::CpuBackend"
+        );
+        assert_eq!(
+            profile.witness_generation_backend_type,
+            "stwo::prover::backend::simd::SimdBackend"
+        );
+        assert_eq!(
+            profile.interaction_generation_backend_type,
+            "stwo::prover::backend::simd::SimdBackend"
+        );
+        assert!(!profile.backend_homogeneous);
+        assert!(!profile.pure_backend_promotion_eligible);
+        assert!(profile.promotion_ineligibility_reason.is_some());
+    }
+
+    #[test]
+    fn simd_poseidon_benchmark_is_homogeneous_and_promotable() {
+        let profile = bench_execution_profile(Example::Poseidon, ProverBackend::Simd).unwrap();
+
+        assert!(profile.backend_homogeneous);
+        assert!(profile.pure_backend_promotion_eligible);
+        assert!(profile.promotion_ineligibility_reason.is_none());
+    }
+
+    #[test]
+    fn unrelated_benchmarks_do_not_claim_an_unclassified_execution_profile() {
+        assert!(bench_execution_profile(Example::WideFibonacci, ProverBackend::Scalar).is_none());
     }
 }
 
