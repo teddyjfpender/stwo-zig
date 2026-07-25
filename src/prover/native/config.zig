@@ -385,7 +385,7 @@ pub fn admitWorkload(
             );
         },
         .xor => |parameters| blk: {
-            const admission = try resource_admission.admit(profile, parameters.log_size, 3);
+            const admission = try resource_admission.admit(profile, parameters.log_size, 15);
             if (parameters.log_step > parameters.log_size) return error.InvalidStep;
             if (parameters.offset > MAX_XOR_OFFSET) return error.InvalidOffset;
             const period = @as(usize, 1) << @intCast(parameters.log_step);
@@ -469,6 +469,8 @@ test "native proof config: parses tagged workloads and legacy wide requests" {
     try std.testing.expectEqual(Example.xor, xor_args.example);
     try std.testing.expectEqual(@as(u32, 8), xor_args.xor.log_size);
     try std.testing.expectEqual(@as(usize, 5), xor_args.xor.offset);
+    const xor_admission = try admitWorkload(xor_args.workload(), xor_args.resource_profile);
+    try std.testing.expectEqual(@as(u64, 3_840), xor_admission.geometry.committed_cells);
 
     const wide = (try parseArgs(.cpu_native, &.{ "--log-rows", "7", "--sequence-len", "9" })).run;
     try std.testing.expectEqual(@as(u32, 7), wide.wide_fibonacci.log_n_rows);

@@ -106,6 +106,9 @@ NATIVE_UNITS = {
     "blake": "blake_round_instances",
     "poseidon": "poseidon_instances",
 }
+AIR_PROTOCOLS = {
+    "xor": "raw-stwo-xor-lookup-v2",
+}
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -217,7 +220,8 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     trace_rows = _require_int(workload["trace_rows"], f"{context}.trace_rows", minimum=1)
     if trace_rows != 1 << log_rows:
         raise ProductEvidenceError(f"{context}.trace_rows is inconsistent")
-    if workload["committed_trees"] != 2:
+    expected_trees = 3 if name == "xor" else 2
+    if workload["committed_trees"] != expected_trees:
         raise ProductEvidenceError(f"{context}.committed_trees is unsupported")
     columns = _require_int(
         workload["committed_columns"], f"{context}.committed_columns", minimum=1
@@ -229,8 +233,10 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         if name == "blake"
         else 1264
         if name == "poseidon"
+        else 15
+        if name == "xor"
         else 3
-        if name in {"xor", "state_machine"}
+        if name == "state_machine"
         else 8
     )
     if columns != expected_columns:
@@ -286,6 +292,8 @@ def _validate_measurement(
         f"{field}={workload['parameters'][field]}"
         for field in WORKLOAD_PARAMETERS[workload["name"]]
     )
+    if air_protocol := AIR_PROTOCOLS.get(workload["name"]):
+        descriptor_fields.append(f"air_protocol={air_protocol}")
     descriptor_fields.extend(
         (
             f"protocol={security['name']}",
