@@ -137,6 +137,12 @@ class ComputeSummaryTests(unittest.TestCase):
             claimed_sum_mismatch,
             self.mod.REJECTION_CLASS_VERIFIER,
         )
+        proof_of_work = self.mod.classify_rejection(
+            "",
+            "error: ProofOfWork",
+            return_code=1,
+        )
+        self.assertEqual(proof_of_work, self.mod.REJECTION_CLASS_VERIFIER)
         invalid_log_size = self.mod.classify_rejection(
             "",
             "error: InvalidLogSize",
