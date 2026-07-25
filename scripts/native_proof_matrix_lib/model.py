@@ -405,6 +405,8 @@ def validate_workload(workload: Workload, resource_profile: str = "standard") ->
         if sequence_len < 2 or sequence_len > MAX_SEQUENCE_LEN:
             raise ValueError(f"sequence length must be in [2, {MAX_SEQUENCE_LEN}]")
     elif workload.name == "xor":
+        if workload.trace_log_rows < 2:
+            raise ValueError("XOR trace log rows must be at least 2")
         log_step = values["log_step"]
         if log_step < 0 or log_step > values["log_size"]:
             raise ValueError("XOR log_step must be in [0, log_size]")
@@ -413,6 +415,8 @@ def validate_workload(workload: Workload, resource_profile: str = "standard") ->
         if values["offset"] >= 1 << log_step:
             raise ValueError("XOR offset must be smaller than 2^log_step")
     elif workload.name == "state_machine":
+        if workload.trace_log_rows < 5:
+            raise ValueError("State Machine trace log rows must be at least 5")
         for coordinate in ("initial_x", "initial_y"):
             if values[coordinate] < 0 or values[coordinate] >= M31_MODULUS:
                 raise ValueError(

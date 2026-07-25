@@ -13,6 +13,7 @@ from .identity import ProductEvidenceError, validate_product_identity
 RECEIPT_PROTOCOL = "focused_product_measurement_receipt_v1"
 MIN_PROMOTION_WARMUPS = 10
 MIN_PROMOTION_VERIFIED_SAMPLES = 10
+MAX_TRACE_LOG_ROWS = 22
 RECEIPT_KEYS = {
     "schema_version",
     "protocol",
@@ -109,6 +110,7 @@ NATIVE_UNITS = {
 AIR_PROTOCOLS = {
     "xor": "raw-stwo-xor-lookup-v2",
     "poseidon": "raw-stwo-poseidon-logup-split2-v1",
+    "state_machine": "raw-stwo-state-machine-v2",
 }
 
 
@@ -209,6 +211,8 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     for field, item in parameters.items():
         _require_int(item, f"{context}.parameters.{field}")
     log_rows = _require_int(workload["trace_log_rows"], f"{context}.trace_log_rows", minimum=1)
+    if log_rows > MAX_TRACE_LOG_ROWS:
+        raise ProductEvidenceError(f"{context}.trace_log_rows exceeds the product limit")
     expected_log_rows = (
         parameters["log_size"]
         if name == "xor"
@@ -218,10 +222,16 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     )
     if log_rows != expected_log_rows:
         raise ProductEvidenceError(f"{context}.trace_log_rows disagrees with parameters")
+    if name == "xor" and log_rows < 2:
+        raise ProductEvidenceError(f"{context}.trace_log_rows is unsupported for exact XOR")
+    if name == "state_machine" and log_rows < 5:
+        raise ProductEvidenceError(
+            f"{context}.trace_log_rows is unsupported for exact State Machine"
+        )
     trace_rows = _require_int(workload["trace_rows"], f"{context}.trace_rows", minimum=1)
     if trace_rows != 1 << log_rows:
         raise ProductEvidenceError(f"{context}.trace_rows is inconsistent")
-    expected_trees = 3 if name in {"xor", "poseidon"} else 2
+    expected_trees = 3 if name in {"xor", "state_machine", "poseidon"} else 2
     if workload["committed_trees"] != expected_trees:
         raise ProductEvidenceError(f"{context}.committed_trees is unsupported")
     columns = _require_int(
@@ -236,7 +246,7 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         if name == "poseidon"
         else 15
         if name == "xor"
-        else 3
+        else 12
         if name == "state_machine"
         else 8
     )
@@ -247,7 +257,8 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         f"{context}.committed_trace_cells",
         minimum=1,
     )
-    if cells != trace_rows * columns:
+    expected_cells = trace_rows * 9 if name == "state_machine" else trace_rows * columns
+    if cells != expected_cells:
         raise ProductEvidenceError(f"{context}.committed_trace_cells is inconsistent")
     if workload["native_unit"] != NATIVE_UNITS[name]:
         raise ProductEvidenceError(f"{context}.native_unit is unsupported")
@@ -259,6 +270,8 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         if name == "blake"
         else 1 << parameters["log_n_instances"]
         if name == "poseidon"
+        else trace_rows + trace_rows // 2
+        if name == "state_machine"
         else trace_rows
     )
     if native_units != expected_native_units:

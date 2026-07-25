@@ -385,6 +385,7 @@ pub fn admitWorkload(
             );
         },
         .xor => |parameters| blk: {
+            if (parameters.log_size < 2) return error.InvalidLogRows;
             const admission = try resource_admission.admit(profile, parameters.log_size, 15);
             if (parameters.log_step > parameters.log_size) return error.InvalidStep;
             if (parameters.offset > MAX_XOR_OFFSET) return error.InvalidOffset;
@@ -401,8 +402,9 @@ pub fn admitWorkload(
         .state_machine => |parameters| blk: {
             if (parameters.initial_x >= M31_MODULUS or parameters.initial_y >= M31_MODULUS)
                 return error.InvalidInitialState;
-            const rows = @as(u64, 1) << @intCast(parameters.log_n_rows);
-            const committed_cells = try std.math.mul(u64, rows, 9);
+            if (parameters.log_n_rows < 5) return error.InvalidLogRows;
+            const logical = try resource_admission.measure(parameters.log_n_rows, 12);
+            const committed_cells = try std.math.mul(u64, logical.rows, 9);
             break :blk resource_admission.admitExact(
                 profile,
                 parameters.log_n_rows,
@@ -508,10 +510,19 @@ test "native proof config: bounds and tags fail closed" {
     try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
         "--example", "xor", "--log-size", "4294967295", "--log-step", "4294967295",
     }));
+    try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
+        "--example", "xor", "--log-size", "1", "--log-step", "1", "--offset", "0",
+    }));
     try std.testing.expectError(error.InvalidOffset, parseArgs(.cpu_native, &.{ "--example", "xor", "--offset", "4" }));
     try std.testing.expectError(error.IrrelevantWorkloadParameter, parseArgs(.cpu_native, &.{ "--example", "xor", "--log-rows", "5" }));
     try std.testing.expectError(error.IrrelevantWorkloadParameter, parseArgs(.cpu_native, &.{ "--example", "plonk", "--sequence-len", "4" }));
     try std.testing.expectError(error.InvalidInitialState, parseArgs(.cpu_native, &.{ "--example", "state_machine", "--initial-x", "2147483647" }));
+    try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
+        "--example", "state_machine", "--log-n-rows", "4", "--initial-x", "9", "--initial-y", "3",
+    }));
+    try std.testing.expectError(error.InvalidLogRows, parseArgs(.cpu_native, &.{
+        "--example", "state_machine", "--log-n-rows", "64", "--initial-x", "9", "--initial-y", "3",
+    }));
     try std.testing.expectError(error.IrrelevantWorkloadParameter, parseArgs(.cpu_native, &.{ "--example", "state_machine", "--offset", "1" }));
     try std.testing.expectError(error.InvalidRoundCount, parseArgs(.cpu_native, &.{ "--example", "blake", "--n-rounds", "0" }));
     try std.testing.expectError(error.InvalidRoundCount, parseArgs(.cpu_native, &.{ "--example", "blake", "--n-rounds", "33" }));

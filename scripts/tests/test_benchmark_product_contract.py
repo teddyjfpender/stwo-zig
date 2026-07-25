@@ -27,14 +27,18 @@ def functional_descriptor(name: str, parameters: dict[str, int]) -> str:
         "wide_fibonacci": ("log_n_rows", "sequence_len"),
         "xor": ("log_size", "log_step", "offset"),
         "plonk": ("log_n_rows",),
+        "state_machine": ("log_n_rows", "initial_x", "initial_y"),
         "poseidon": ("log_n_instances",),
     }
     fields = ["native-proof-workload-v3", f"example={name}"]
     fields.extend(f"{key}={parameters[key]}" for key in parameter_order[name])
-    if name == "xor":
-        fields.append("air_protocol=raw-stwo-xor-lookup-v2")
-    elif name == "poseidon":
-        fields.append("air_protocol=raw-stwo-poseidon-logup-split2-v1")
+    air_protocols = {
+        "xor": "raw-stwo-xor-lookup-v2",
+        "state_machine": "raw-stwo-state-machine-v2",
+        "poseidon": "raw-stwo-poseidon-logup-split2-v1",
+    }
+    if air_protocol := air_protocols.get(name):
+        fields.append(f"air_protocol={air_protocol}")
     fields.extend((
         "protocol=functional",
         "pow_bits=10",

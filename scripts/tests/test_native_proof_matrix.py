@@ -35,7 +35,6 @@ from native_proof_matrix_lib.contract import pipeline_preparation_occurred
 class NativeProofMatrixTests(unittest.TestCase):
     def test_real_wide_fibonacci_oracle_identity_is_pinned(self) -> None:
         from native_proof_matrix_lib import RUST_ORACLE_SHA256
-
         self.assertEqual(
             RUST_ORACLE_SHA256,
             "a2304005ff1bb45151dfbb6491bc5eb53468fe9cdd6c6aefc7168b75ab0684ca",
@@ -201,12 +200,14 @@ class NativeProofMatrixTests(unittest.TestCase):
             "xor:log_size=10,log_step=11,offset=3",
             "xor:log_size=10,log_step=2,offset=-1",
             "xor:log_size=10,log_step=2,offset=4",
+            "xor:log_size=1,log_step=1,offset=0",
             "wide_fibonacci:log_n_rows=10,log_n_rows=11,sequence_len=8",
             "wide_fibonacci:log_n_rows=22,sequence_len=512",
             "plonk:log_n_rows=0",
             "plonk:log_n_rows=23",
             "plonk:log_size=10",
             "state_machine:log_n_rows=0,initial_x=9,initial_y=3",
+            "state_machine:log_n_rows=4,initial_x=9,initial_y=3",
             "state_machine:log_n_rows=10,initial_x=-1,initial_y=3",
             "state_machine:log_n_rows=10,initial_x=2147483647,initial_y=3",
             "state_machine:log_n_rows=10,initial_x=9",
