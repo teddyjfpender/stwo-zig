@@ -249,6 +249,7 @@ def classify_rejection(
         "deep-ali",
         "verify failed",
         "verification failed",
+        "oods evaluation does not match",
         "not matching",
         "witnesstooshort",
         "merkleverificationerror",

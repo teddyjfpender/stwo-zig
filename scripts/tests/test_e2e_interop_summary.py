@@ -146,6 +146,15 @@ class ComputeSummaryTests(unittest.TestCase):
             rust_state_statement,
             self.mod.REJECTION_CLASS_VERIFIER,
         )
+        rust_poseidon_oods = self.mod.classify_rejection(
+            "",
+            "Error: exact Poseidon split-depth-2 OODS evaluation does not match",
+            return_code=1,
+        )
+        self.assertEqual(
+            rust_poseidon_oods,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
 
     def test_run_step_refuses_to_accept_a_verifier_panic(self) -> None:
         steps = []
