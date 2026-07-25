@@ -16,6 +16,16 @@ pub const BatchTermDescriptor = extern struct {
     source_log_size: u32,
 };
 
+/// One logical source column inside a compact, variably-strided backing.
+///
+/// The explicit 64-bit offset keeps the device ABI stable across hosts and
+/// admits Cairo-scale arenas without truncating word offsets.
+pub const CompactSourceDescriptor = extern struct {
+    offset_words: u64,
+    stride_words: u32,
+    log_size: u32,
+};
+
 pub extern "c" fn stwo_prepare_quotient_numerator_terms_on(
     term_descriptors: [*]const PreparedTermDescriptor,
     term_count: u32,
@@ -61,6 +71,27 @@ pub extern "c" fn stwo_accumulate_quotient_numerator_single_write_on(
     max_output_size: u32,
     source_evaluations: [*]const u32,
     source_stride_words: usize,
+    source_count: u32,
+    line_coefficients: [*]const field.SecureField,
+    line_term_count: u32,
+    group_log_sizes: [*]const u32,
+    outputs_0: [*]u32,
+    outputs_1: [*]u32,
+    outputs_2: [*]u32,
+    outputs_3: [*]u32,
+    output_stride_words: usize,
+    stream: *anyopaque,
+) c_int;
+
+pub extern "c" fn stwo_accumulate_quotient_numerator_compact_on(
+    group_offsets: [*]const u32,
+    term_descriptors: [*]const BatchTermDescriptor,
+    term_count: u32,
+    group_count: u32,
+    max_output_size: u32,
+    source_evaluations: [*]const u32,
+    source_word_count: usize,
+    source_descriptors: [*]const CompactSourceDescriptor,
     source_count: u32,
     line_coefficients: [*]const field.SecureField,
     line_term_count: u32,

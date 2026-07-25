@@ -193,6 +193,7 @@ int stwo_ntt_b2n_composition_split_depth_two_on(
 }
 
 STUB(stwo_accumulate_quotient_numerator_single_write_on)
+STUB(stwo_accumulate_quotient_numerator_compact_on)
 STUB(stwo_blake2s_contiguous_leaf_on)
 STUB(stwo_blake2s_fri_leaf_on)
 STUB(stwo_blake2s_interior4_on)

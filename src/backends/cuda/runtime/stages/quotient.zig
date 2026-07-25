@@ -12,9 +12,12 @@ const telemetry = @import("../telemetry.zig");
 pub const Native = OpsFor(abi);
 pub const PreparedGroups = plan.PreparedGroups;
 pub const NumeratorTopology = plan.NumeratorTopology;
+pub const CompactNumeratorTopology = plan.CompactNumeratorTopology;
 pub const CombineTopology = plan.CombineTopology;
 pub const prepareGroups = plan.prepareGroups;
 pub const prepareNumeratorTopology = plan.prepareNumeratorTopology;
+pub const prepareCompactNumeratorTopology =
+    plan.prepareCompactNumeratorTopology;
 pub const prepareCombineTopology = plan.prepareCombineTopology;
 const stage = telemetry.Stage.quotient;
 
@@ -381,6 +384,111 @@ pub fn OpsFor(comptime Api: type) type {
                     sources.pointer,
                     sources.stride_words,
                     sources.column_count,
+                    lines.pointer,
+                    topology.line_term_count,
+                    logs.pointer,
+                    output.c0.pointer,
+                    output.c1.pointer,
+                    output.c2.pointer,
+                    output.c3.pointer,
+                    output.stride_words,
+                    session.context.stream,
+                );
+            try common.record(session, stage, status);
+        }
+
+        /// Accumulates directly from a compact mixed-height source arena.
+        ///
+        /// This path is descriptor-driven and never repacks source columns.
+        /// The existing `accumulate` remains the uniform Native fast path.
+        pub fn accumulateCompact(
+            session: anytype,
+            topology: CompactNumeratorTopology,
+            source_evaluations: common.Words,
+            line_coefficients: common.SecureFields,
+            outputs: CoordinateSlabs,
+        ) runtime_error.Error!void {
+            try common.requireStage(session, stage);
+            const group_count = topology.group_count;
+            const term_count = try common.count(topology.terms.len);
+            const max_output_size = topology.max_output_size;
+            if (group_count == 0 or term_count == 0 or
+                topology.source_count == 0 or
+                topology.source_word_count == 0 or
+                !std.math.isPowerOfTwo(max_output_size) or
+                topology.offsets.len != group_count + 1 or
+                topology.group_log_sizes.len != group_count or
+                topology.sources.len != topology.source_count or
+                line_coefficients.len !=
+                    @as(usize, topology.line_term_count) * 3)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const offsets = try layout.resident(
+                session,
+                u32,
+                topology.offsets,
+                group_count + 1,
+            );
+            const terms = try layout.resident(
+                session,
+                abi.BatchTermDescriptor,
+                topology.terms,
+                term_count,
+            );
+            const sources = try layout.resident(
+                session,
+                u32,
+                source_evaluations,
+                topology.source_word_count,
+            );
+            const source_descriptors = try layout.resident(
+                session,
+                abi.CompactSourceDescriptor,
+                topology.sources,
+                topology.source_count,
+            );
+            const lines = try layout.resident(
+                session,
+                field.SecureField,
+                line_coefficients,
+                line_coefficients.len,
+            );
+            const logs = try layout.resident(
+                session,
+                u32,
+                topology.group_log_sizes,
+                group_count,
+            );
+            const output = try residentCoordinateSlabs(
+                session,
+                outputs,
+                max_output_size,
+                group_count,
+            );
+            const output_ranges = output.ranges();
+            try layout.requireDisjoint(
+                &output_ranges,
+                &.{
+                    offsets.range,
+                    terms.range,
+                    sources.range,
+                    source_descriptors.range,
+                    lines.range,
+                    logs.range,
+                },
+            );
+            const status =
+                Api.stwo_accumulate_quotient_numerator_compact_on(
+                    offsets.pointer,
+                    terms.pointer,
+                    term_count,
+                    group_count,
+                    max_output_size,
+                    sources.pointer,
+                    topology.source_word_count,
+                    source_descriptors.pointer,
+                    topology.source_count,
                     lines.pointer,
                     topology.line_term_count,
                     logs.pointer,

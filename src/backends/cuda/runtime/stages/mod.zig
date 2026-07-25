@@ -34,6 +34,7 @@ test {
     _ = transform;
     _ = @import("commitment_test.zig");
     _ = @import("contract_test.zig");
+    _ = @import("quotient_compact_test.zig");
     _ = @import("relation_test.zig");
     _ = @import("trace_test.zig");
     _ = @import("transform_test.zig");

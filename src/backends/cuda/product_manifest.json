@@ -145,6 +145,7 @@
       "stwo_zig_cuda_aot_entry_count"
     ],
     "zig_owned_symbols": [
+      "stwo_accumulate_quotient_numerator_compact_on",
       "stwo_accumulate_quotient_numerator_single_write_on",
       "stwo_blake2s_contiguous_leaf_on",
       "stwo_blake2s_contiguous_tail_on",
