@@ -286,6 +286,39 @@ def _xor_claimed_sum(artifact: dict[str, Any], _example: str) -> None:
     _mutate_qm31(statement.get("claimed_sum"), "xor_statement.claimed_sum")
 
 
+def _state_machine_stmt0(field: str) -> Callable[[dict[str, Any], str], None]:
+    def apply(artifact: dict[str, Any], _example: str) -> None:
+        statement = _object(
+            artifact.get("state_machine_statement"), "state_machine_statement"
+        )
+        stmt0 = _object(statement.get("stmt0"), "state_machine_statement.stmt0")
+        stmt0[field] = int(stmt0.get(field, 0)) + 1
+
+    return apply
+
+
+def _state_machine_claim(field: str) -> Callable[[dict[str, Any], str], None]:
+    def apply(artifact: dict[str, Any], _example: str) -> None:
+        statement = _object(
+            artifact.get("state_machine_statement"), "state_machine_statement"
+        )
+        stmt1 = _object(statement.get("stmt1"), "state_machine_statement.stmt1")
+        _mutate_qm31(stmt1.get(field), f"state_machine_statement.stmt1.{field}")
+
+    return apply
+
+
+def _state_machine_initial(artifact: dict[str, Any], _example: str) -> None:
+    statement = _object(
+        artifact.get("state_machine_statement"), "state_machine_statement"
+    )
+    public_input = _list(
+        statement.get("public_input"), "state_machine_statement.public_input"
+    )
+    initial = _list(public_input[0], "state_machine_statement.public_input[0]")
+    initial[0] = (int(initial[0]) + 1) % M31_MODULUS
+
+
 def _commitment_count_missing(wire: dict[str, Any]) -> None:
     commitments = _list(wire.get("commitments"), "commitments")
     if len(commitments) < 2:
@@ -321,6 +354,13 @@ ACTIVE_MUTATIONS = (
     MutationSpec("xor_statement_claimed_sum", "statement", "xor_statement.claimed_sum", REJECTION_CLASS_VERIFIER, _xor_claimed_sum, ("xor",)),
     MutationSpec("xor_commitment_count_missing", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_missing), ("xor",)),
     MutationSpec("xor_commitment_count_extra", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_extra), ("xor",)),
+    MutationSpec("state_machine_stmt0_n", "statement", "state_machine_statement.stmt0.n", REJECTION_CLASS_VERIFIER, _state_machine_stmt0("n"), ("state_machine",)),
+    MutationSpec("state_machine_stmt0_m", "statement", "state_machine_statement.stmt0.m", REJECTION_CLASS_VERIFIER, _state_machine_stmt0("m"), ("state_machine",)),
+    MutationSpec("state_machine_initial_state", "statement", "state_machine_statement.public_input[0][0]", REJECTION_CLASS_VERIFIER, _state_machine_initial, ("state_machine",)),
+    MutationSpec("state_machine_x_axis_claimed_sum", "statement", "state_machine_statement.stmt1.x_axis_claimed_sum", REJECTION_CLASS_VERIFIER, _state_machine_claim("x_axis_claimed_sum"), ("state_machine",)),
+    MutationSpec("state_machine_y_axis_claimed_sum", "statement", "state_machine_statement.stmt1.y_axis_claimed_sum", REJECTION_CLASS_VERIFIER, _state_machine_claim("y_axis_claimed_sum"), ("state_machine",)),
+    MutationSpec("state_machine_commitment_count_missing", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_missing), ("state_machine",)),
+    MutationSpec("state_machine_commitment_count_extra", "proof_shape", "proof.commitments", REJECTION_CLASS_VERIFIER, _wire_mutation(_commitment_count_extra), ("state_machine",)),
 )
 
 PLONK_LOGUP_ORACLE_MUTATIONS = (

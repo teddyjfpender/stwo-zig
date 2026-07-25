@@ -196,6 +196,12 @@ class InteropMutationTests(unittest.TestCase):
         self.assertIn("transcript_bound_sampled_value", ids)
         self.assertIn("xor_commitment_count_missing", ids)
         self.assertIn("xor_commitment_count_extra", ids)
+        self.assertIn("state_machine_stmt0_n", ids)
+        self.assertIn("state_machine_stmt0_m", ids)
+        self.assertIn("state_machine_x_axis_claimed_sum", ids)
+        self.assertIn("state_machine_y_axis_claimed_sum", ids)
+        self.assertIn("state_machine_commitment_count_missing", ids)
+        self.assertIn("state_machine_commitment_count_extra", ids)
 
     def test_coverage_names_all_required_and_not_applicable_surfaces(self) -> None:
         coverage = coverage_manifest(list(SUPPORTED_EXAMPLES))

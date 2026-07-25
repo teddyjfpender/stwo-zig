@@ -37,31 +37,6 @@ pub(crate) fn gen_is_first(log_size: u32) -> Result<Vec<M31>> {
     Ok(values)
 }
 
-pub(crate) fn gen_trace(
-    log_size: u32,
-    initial_state: [M31; 2],
-    inc_index: usize,
-) -> Result<[Vec<M31>; 2]> {
-    if inc_index >= 2 {
-        bail!("invalid inc_index {inc_index}");
-    }
-    let n = checked_pow2(log_size)?;
-
-    let mut col0 = vec![M31::zero(); n];
-    let mut col1 = vec![M31::zero(); n];
-
-    let mut curr_state = initial_state;
-    for i in 0..n {
-        let bit_rev_index =
-            bit_reverse_index(coset_index_to_circle_domain_index(i, log_size), log_size);
-        col0[bit_rev_index] = curr_state[0];
-        col1[bit_rev_index] = curr_state[1];
-        curr_state[inc_index] += M31::one();
-    }
-
-    Ok([col0, col1])
-}
-
 pub(crate) fn gen_wide_fibonacci_trace(
     log_n_rows: u32,
     sequence_len: u32,

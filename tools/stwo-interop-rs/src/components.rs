@@ -1,6 +1,6 @@
 use crate::model::{
-    BlakeComponent, PlonkComponent, PoseidonComponent, StateMachineComponent,
-    WideFibonacciComponent, XorComponent, POSEIDON_COLUMNS,
+    BlakeComponent, PlonkComponent, PoseidonComponent, WideFibonacciComponent, XorComponent,
+    POSEIDON_COLUMNS,
 };
 use crate::statements::{
     blake_composition_eval, plonk_composition_eval, poseidon_composition_eval, xor_combine,
@@ -19,45 +19,6 @@ use stwo::core::utils::{bit_reverse, previous_bit_reversed_circle_domain_index};
 use stwo::prover::backend::{Backend, Column};
 use stwo::prover::{ColumnAccumulator, ComponentProver, DomainEvaluationAccumulator, Trace};
 
-impl Component for StateMachineComponent {
-    fn n_constraints(&self) -> usize {
-        1
-    }
-
-    fn max_constraint_log_degree_bound(&self) -> u32 {
-        self.trace_log_size + 1
-    }
-
-    fn trace_log_degree_bounds(&self) -> TreeVec<Vec<u32>> {
-        TreeVec::new(vec![
-            vec![self.trace_log_size],
-            vec![self.trace_log_size, self.trace_log_size],
-        ])
-    }
-
-    fn mask_points(
-        &self,
-        point: CirclePoint<SecureField>,
-        _max_log_degree_bound: u32,
-    ) -> TreeVec<Vec<Vec<CirclePoint<SecureField>>>> {
-        TreeVec::new(vec![vec![vec![]], vec![vec![point], vec![point]]])
-    }
-
-    fn preprocessed_column_indices(&self) -> Vec<usize> {
-        vec![0]
-    }
-
-    fn evaluate_constraint_quotients_at_point(
-        &self,
-        _point: CirclePoint<SecureField>,
-        _mask: &TreeVec<Vec<Vec<SecureField>>>,
-        evaluation_accumulator: &mut PointEvaluationAccumulator,
-        _max_log_degree_bound: u32,
-    ) {
-        evaluation_accumulator.accumulate(self.composition_eval);
-    }
-}
-
 fn accumulate<B: Backend>(
     column: &mut ColumnAccumulator<'_, B>,
     index: usize,
@@ -65,20 +26,6 @@ fn accumulate<B: Backend>(
 ) {
     let value = column.col.at(index) + evaluation;
     column.col.set(index, value);
-}
-
-impl<B: Backend> ComponentProver<B> for StateMachineComponent {
-    fn evaluate_constraint_quotients_on_domain(
-        &self,
-        _trace: &Trace<'_, B>,
-        evaluation_accumulator: &mut DomainEvaluationAccumulator<B>,
-    ) {
-        let [mut col] = evaluation_accumulator.columns([(self.trace_log_size + 1, 1)]);
-        let domain_size = 1usize << (self.trace_log_size + 1);
-        for i in 0..domain_size {
-            accumulate(&mut col, i, self.composition_eval);
-        }
-    }
 }
 
 impl Component for WideFibonacciComponent {

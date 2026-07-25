@@ -183,15 +183,12 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
                 checked_m31(cli.sm_initial_0)?,
                 checked_m31(cli.sm_initial_1)?,
             ];
-            let (statement, proof) = selected_backend!(
-                cli,
-                state_machine_prove(
-                    config,
-                    cli.sm_log_n_rows,
-                    initial_state,
-                    cli.prove_mode,
-                    cli.include_all_preprocessed_columns,
-                )
+            let (statement, proof) = state_machine_prove(
+                config,
+                cli.sm_log_n_rows,
+                initial_state,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
             )?;
             let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
             InteropArtifact {

@@ -5,6 +5,7 @@ mod model;
 mod plonk_logup;
 mod profile;
 mod proving;
+mod state_machine;
 mod statements;
 mod traces;
 mod wire;

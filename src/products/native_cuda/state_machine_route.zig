@@ -139,7 +139,7 @@ fn deriveStatement(
         &channel,
     );
     channel.mixU32s(&.{ log_rows, log_rows - 1 });
-    const elements = stwo.examples.state_machine.Elements.draw(&channel);
+    const elements = try stwo.examples.state_machine.Elements.draw(allocator, &channel);
     return stwo.examples.state_machine.prepareStatement(
         log_rows,
         geometry.statement.initial_state,

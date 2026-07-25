@@ -294,12 +294,6 @@ pub(crate) enum ExampleStatement {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct StateMachineElements {
-    pub(crate) z: SecureField,
-    pub(crate) alpha: SecureField,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub(crate) struct StateMachineStatement {
     pub(crate) public_input: [[M31; 2]; 2],
     pub(crate) stmt0_n: u32,
@@ -336,12 +330,6 @@ pub(crate) struct PoseidonStatement {
 pub(crate) struct BlakeStatement {
     pub(crate) log_n_rows: u32,
     pub(crate) n_rounds: u32,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct StateMachineComponent {
-    pub(crate) trace_log_size: u32,
-    pub(crate) composition_eval: SecureField,
 }
 
 #[derive(Debug, Clone, Copy)]

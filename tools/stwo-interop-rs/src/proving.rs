@@ -1,23 +1,19 @@
 use crate::model::{
     BenchProofMetrics, BlakeComponent, BlakeStatement, Cli, Example, ExampleStatement,
     PlonkComponent, PlonkStatement, PoseidonComponent, PoseidonStatement, ProveMode, StageNode,
-    StateMachineComponent, StateMachineElements, StateMachineStatement, WideFibonacciComponent,
-    WideFibonacciStatement, XorStatement, POSEIDON_COLUMNS,
+    WideFibonacciComponent, WideFibonacciStatement, XorStatement, POSEIDON_COLUMNS,
 };
 use crate::profile::time_stage;
 use crate::statements::{
-    mix_blake_statement, mix_plonk_statement, mix_poseidon_statement,
-    mix_state_machine_public_input, mix_state_machine_stmt0, mix_state_machine_stmt1,
-    mix_wide_fibonacci_statement, prepare_state_machine_statement, verify_state_machine_statement,
+    mix_blake_statement, mix_plonk_statement, mix_poseidon_statement, mix_wide_fibonacci_statement,
 };
 use crate::traces::{
-    backend_eval, blake_n_columns, blake_validate_statement, gen_blake_trace, gen_is_first,
-    gen_plonk_trace, gen_poseidon_trace, gen_trace, gen_wide_fibonacci_trace, poseidon_log_n_rows,
+    backend_eval, blake_n_columns, blake_validate_statement, gen_blake_trace, gen_plonk_trace,
+    gen_poseidon_trace, gen_wide_fibonacci_trace, poseidon_log_n_rows,
 };
 use crate::wire::{checked_m31, proof_to_wire};
 use anyhow::{anyhow, bail, Result};
-use stwo::core::channel::{Blake2sChannel, Channel};
-use stwo::core::fields::m31::M31;
+use stwo::core::channel::Blake2sChannel;
 use stwo::core::pcs::{CommitmentSchemeVerifier, PcsConfig};
 use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::proof::StarkProof;
@@ -26,6 +22,7 @@ use stwo::core::verifier::verify;
 use stwo::prover::backend::{Backend, BackendForChannel};
 use stwo::prover::{prove, prove_ex, CommitmentSchemeProver};
 
+pub(crate) use crate::state_machine::{state_machine_prove, state_machine_verify};
 pub(crate) use crate::xor::{xor_prove, xor_verify};
 
 pub(crate) fn prove_example<B>(
@@ -81,7 +78,7 @@ where
                 checked_m31(cli.sm_initial_0)?,
                 checked_m31(cli.sm_initial_1)?,
             ];
-            let (statement, proof) = state_machine_prove::<B>(
+            let (statement, proof) = state_machine_prove(
                 config,
                 cli.sm_log_n_rows,
                 initial_state,
@@ -164,127 +161,6 @@ pub(crate) fn proof_metrics_from_proof(
         fri_last_layer_poly_len: wire.fri_proof.last_layer_poly.len(),
         fri_decommit_hashes_total,
     })
-}
-
-pub(crate) fn state_machine_prove<B>(
-    config: PcsConfig,
-    log_n_rows: u32,
-    initial_state: [M31; 2],
-    prove_mode: ProveMode,
-    include_all_preprocessed_columns: bool,
-) -> Result<(StateMachineStatement, StarkProof<Blake2sMerkleHasher>)>
-where
-    B: Backend + BackendForChannel<Blake2sMerkleChannel>,
-{
-    if log_n_rows == 0 || log_n_rows >= 31 {
-        bail!("invalid log_n_rows {log_n_rows}");
-    }
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let twiddles = B::precompute_twiddles(
-        CanonicCoset::new(log_n_rows + config.fri_config.log_blowup_factor + 1)
-            .circle_domain()
-            .half_coset,
-    );
-    let mut scheme = CommitmentSchemeProver::<B, Blake2sMerkleChannel>::new(config, &twiddles);
-
-    let preprocessed = gen_is_first(log_n_rows)?;
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(vec![backend_eval::<B>(log_n_rows, preprocessed)]);
-    builder.commit(&mut channel);
-
-    let [trace0, trace1] = gen_trace(log_n_rows, initial_state, 0)?;
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(vec![
-        backend_eval::<B>(log_n_rows, trace0),
-        backend_eval::<B>(log_n_rows, trace1),
-    ]);
-    builder.commit(&mut channel);
-
-    let stmt0_n = log_n_rows;
-    let stmt0_m = log_n_rows - 1;
-    mix_state_machine_stmt0(&mut channel, stmt0_n, stmt0_m);
-
-    let elements = StateMachineElements {
-        z: channel.draw_secure_felt(),
-        alpha: channel.draw_secure_felt(),
-    };
-
-    let statement = prepare_state_machine_statement(log_n_rows, initial_state, elements)?;
-    mix_state_machine_public_input(&mut channel, &statement.public_input);
-    mix_state_machine_stmt1(
-        &mut channel,
-        statement.stmt1_x_axis_claimed_sum,
-        statement.stmt1_y_axis_claimed_sum,
-    );
-
-    let component = StateMachineComponent {
-        trace_log_size: log_n_rows,
-        composition_eval: statement.stmt1_x_axis_claimed_sum + statement.stmt1_y_axis_claimed_sum,
-    };
-    let proof = match prove_mode {
-        ProveMode::Prove => prove::<B, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?,
-        ProveMode::ProveEx => {
-            prove_ex::<B, Blake2sMerkleChannel>(
-                &[&component],
-                &mut channel,
-                scheme,
-                include_all_preprocessed_columns,
-            )?
-            .proof
-        }
-    };
-
-    Ok((statement, proof))
-}
-
-pub(crate) fn state_machine_verify(
-    config: PcsConfig,
-    statement: StateMachineStatement,
-    proof: StarkProof<Blake2sMerkleHasher>,
-) -> Result<()> {
-    if statement.stmt0_n == 0 || statement.stmt0_n >= 31 {
-        bail!("invalid statement n");
-    }
-    if statement.stmt0_m != statement.stmt0_n - 1 {
-        bail!("invalid statement m");
-    }
-    if proof.0.commitments.len() < 2 {
-        bail!("invalid proof shape: expected at least 2 commitments");
-    }
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let c0 = proof.0.commitments[0];
-    let c1 = proof.0.commitments[1];
-
-    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
-    commitment_scheme.commit(c0, &[statement.stmt0_n], &mut channel);
-    commitment_scheme.commit(c1, &[statement.stmt0_n, statement.stmt0_n], &mut channel);
-
-    mix_state_machine_stmt0(&mut channel, statement.stmt0_n, statement.stmt0_m);
-    let elements = StateMachineElements {
-        z: channel.draw_secure_felt(),
-        alpha: channel.draw_secure_felt(),
-    };
-    verify_state_machine_statement(statement, elements)?;
-    mix_state_machine_public_input(&mut channel, &statement.public_input);
-    mix_state_machine_stmt1(
-        &mut channel,
-        statement.stmt1_x_axis_claimed_sum,
-        statement.stmt1_y_axis_claimed_sum,
-    );
-
-    let component = StateMachineComponent {
-        trace_log_size: statement.stmt0_n,
-        composition_eval: statement.stmt1_x_axis_claimed_sum + statement.stmt1_y_axis_claimed_sum,
-    };
-
-    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
-        .map_err(|err| anyhow!("state_machine verify failed: {err}"))
 }
 
 pub(crate) fn wide_fibonacci_prove<B>(

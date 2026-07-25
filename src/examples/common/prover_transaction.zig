@@ -294,6 +294,9 @@ pub fn provePreparedEx(
             &channel,
         );
     }
+    if (comptime @hasDecl(Spec, "beforeMainCommit")) {
+        try Spec.beforeMainCommit(&channel, prepared.request);
+    }
     {
         var stage = try stage_profile.StageScope.begin(
             options.recorder,
@@ -334,6 +337,13 @@ pub fn provePreparedEx(
                 &prepared,
             );
             prepared_interaction_initialized = true;
+        }
+        if (comptime @hasDecl(Spec, "beforeInteractionCommit")) {
+            try Spec.beforeInteractionCommit(
+                &channel,
+                prepared.request,
+                &prepared_interaction,
+            );
         }
         {
             var stage = try stage_profile.StageScope.begin(

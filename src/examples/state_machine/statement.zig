@@ -1,5 +1,6 @@
 //! Transcript-derived public statement for the State Machine example.
 
+const std = @import("std");
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
@@ -46,10 +47,12 @@ pub const Elements = struct {
     z: QM31,
     alpha: QM31,
 
-    pub fn draw(channel: anytype) Elements {
+    pub fn draw(allocator: std.mem.Allocator, channel: anytype) !Elements {
+        const values = try channel.drawSecureFelts(allocator, 2);
+        defer allocator.free(values);
         return .{
-            .z = channel.drawSecureFelt(),
-            .alpha = channel.drawSecureFelt(),
+            .z = values[0],
+            .alpha = values[1],
         };
     }
 
@@ -171,7 +174,8 @@ pub fn verify(statement: PreparedStatement, elements: Elements) Error!void {
 }
 
 pub fn mixStatement0(channel: *Channel, statement: Statement0) void {
-    channel.mixU32s(&[_]u32{ statement.n, statement.m });
+    channel.mixU64(statement.n);
+    channel.mixU64(statement.m);
 }
 
 pub fn mixPublicInput(channel: *Channel, public_input: [2]State) void {
@@ -188,6 +192,19 @@ pub fn mixStatement1(channel: *Channel, statement: Statement1) void {
         statement.x_axis_claimed_sum,
         statement.y_axis_claimed_sum,
     });
+}
+
+test "State Machine lookup elements share one batched transcript draw" {
+    const allocator = std.testing.allocator;
+    var expected_channel = Channel{};
+    const expected = try expected_channel.drawSecureFelts(allocator, 2);
+    defer allocator.free(expected);
+
+    var actual_channel = Channel{};
+    const actual = try Elements.draw(allocator, &actual_channel);
+    try std.testing.expect(actual.z.eql(expected[0]));
+    try std.testing.expect(actual.alpha.eql(expected[1]));
+    try std.testing.expectEqual(@as(u32, 1), actual_channel.n_draws);
 }
 
 fn checkedPow2(log_size: u32) Error!usize {
