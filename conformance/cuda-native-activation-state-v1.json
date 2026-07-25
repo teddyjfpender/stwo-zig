@@ -119,7 +119,7 @@
       "release_ready": false,
       "gates": {
         "exact_trace_semantics": true,
-        "exact_constraint_semantics": false,
+        "exact_constraint_semantics": true,
         "exact_cpu_cuda_proof_bytes": false,
         "pinned_rust_verification": false,
         "zero_fallback": false,
@@ -127,14 +127,19 @@
       },
       "evidence": {
         "exact_trace_semantics": [
-          "src/integrations/native_cuda/plonk/trace.zig"
+          "src/integrations/native_cuda/plonk_logup/canonical_ingress.zig",
+          "src/integrations/native_cuda/plonk_logup/program.zig"
         ],
         "exact_constraint_semantics": [
-          "src/integrations/native_cuda/plonk/constraint.zig",
-          "src/integrations/native_cuda/plonk/geometry.zig"
+          "src/integrations/native_cuda/plonk_logup/executor/composition.zig",
+          "src/integrations/native_cuda/plonk_logup/executor/oods.zig",
+          "src/integrations/native_cuda/plonk_logup/executor/quotient.zig",
+          "src/integrations/native_cuda/plonk_logup/executor/fri.zig",
+          "src/integrations/native_cuda/plonk_logup/executor/pow_decommit.zig",
+          "tests/native_cuda_plonk_logup_terminal.zig"
         ],
         "exact_cpu_cuda_proof_bytes": [
-          "src/integrations/native_cuda/plonk/parity_targets.zig"
+          "src/integrations/native_cuda/plonk_logup/parity_targets.zig"
         ],
         "pinned_rust_verification": [],
         "zero_fallback": [],
@@ -142,9 +147,9 @@
       },
       "blockers": {
         "exact_trace_semantics": null,
-        "exact_constraint_semantics": "The CUDA route declares zero interaction columns and uses constant-QM31 composition; Native Plonk with LogUp requires its interaction commitment and claimed sum.",
-        "exact_cpu_cuda_proof_bytes": "Only CPU proof identities are frozen; no CUDA Plonk/LogUp artifact is retained.",
-        "pinned_rust_verification": "No retained pinned-Rust receipt exists for a CUDA Plonk/LogUp proof.",
+        "exact_constraint_semantics": null,
+        "exact_cpu_cuda_proof_bytes": "The terminal resident transaction and CPU proof identities are frozen, but no CUDA-hardware Plonk/LogUp artifact is retained for byte equality.",
+        "pinned_rust_verification": "Pinned Rust accepts the exact CPU and host-executed functional artifacts; no candidate-bound receipt yet accepts a CUDA-hardware-produced Plonk/LogUp artifact.",
         "zero_fallback": "No retained hardware Plonk/LogUp run proves zero fallback.",
         "complete_stage_telemetry": "No retained hardware Plonk/LogUp run contains complete stage telemetry."
       }
