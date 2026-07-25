@@ -86,8 +86,16 @@ pub fn ExecutorFor(
             const logs = prepared.decommit.column_log_sizes;
             const preprocessed_end = geometry_mod.preprocessed_columns;
             const main_end = preprocessed_end + geometry_mod.main_columns;
+            const has_interaction = @hasDecl(
+                geometry_mod,
+                "interaction_columns",
+            ) and geometry_mod.interaction_columns > 0;
+            const interaction_end = if (has_interaction)
+                main_end + geometry_mod.interaction_columns
+            else
+                main_end;
             const composition_end =
-                main_end + geometry_mod.composition_columns;
+                interaction_end + geometry_mod.composition_columns;
             if (logs.len != composition_end)
                 return error.InvalidKernelDescriptor;
             try transaction.upload(
@@ -100,10 +108,17 @@ pub fn ExecutorFor(
                 slots.decommit_main_log_sizes,
                 logs[preprocessed_end..main_end],
             );
+            if (has_interaction) {
+                try transaction.upload(
+                    u32,
+                    slots.decommit_interaction_log_sizes,
+                    logs[main_end..interaction_end],
+                );
+            }
             try transaction.upload(
                 u32,
                 slots.decommit_composition_log_sizes,
-                logs[main_end..composition_end],
+                logs[interaction_end..composition_end],
             );
         }
 
@@ -114,7 +129,18 @@ pub fn ExecutorFor(
             const logs = &pack.coefficient_log_sizes;
             const preprocessed_end = geometry_mod.preprocessed_columns;
             const main_end = preprocessed_end + geometry_mod.main_columns;
-            const composition_end = main_end + geometry_mod.composition_columns;
+            const has_interaction = @hasDecl(
+                geometry_mod,
+                "interaction_columns",
+            ) and geometry_mod.interaction_columns > 0;
+            const interaction_end = if (has_interaction)
+                main_end + geometry_mod.interaction_columns
+            else
+                main_end;
+            const composition_end =
+                interaction_end + geometry_mod.composition_columns;
+            if (logs.len != composition_end)
+                return error.InvalidKernelDescriptor;
             try transaction.upload(
                 u32,
                 slots.preprocessed_log_sizes,
@@ -125,10 +151,17 @@ pub fn ExecutorFor(
                 slots.main_log_sizes,
                 logs[preprocessed_end..main_end],
             );
+            if (has_interaction) {
+                try transaction.upload(
+                    u32,
+                    slots.interaction_log_sizes,
+                    logs[main_end..interaction_end],
+                );
+            }
             try transaction.upload(
                 u32,
                 slots.composition_log_sizes,
-                logs[main_end..composition_end],
+                logs[interaction_end..composition_end],
             );
         }
 
@@ -136,11 +169,23 @@ pub fn ExecutorFor(
             transaction: anytype,
             prepared: *const plan_mod.PreparedPlan,
         ) !void {
-            const ids = [_]@TypeOf(slots.preprocessed_merkle_layers){
-                slots.preprocessed_merkle_layers,
-                slots.main_merkle_layers,
-                slots.composition_merkle_layers,
-            };
+            const has_interaction = @hasDecl(
+                geometry_mod,
+                "interaction_columns",
+            ) and geometry_mod.interaction_columns > 0;
+            const ids = if (has_interaction)
+                [_]@TypeOf(slots.preprocessed_merkle_layers){
+                    slots.preprocessed_merkle_layers,
+                    slots.main_merkle_layers,
+                    slots.interaction_merkle_layers,
+                    slots.composition_merkle_layers,
+                }
+            else
+                [_]@TypeOf(slots.preprocessed_merkle_layers){
+                    slots.preprocessed_merkle_layers,
+                    slots.main_merkle_layers,
+                    slots.composition_merkle_layers,
+                };
             if (prepared.decommit.trace_trees.len != ids.len)
                 return error.InvalidKernelDescriptor;
             for (prepared.decommit.trace_trees, ids) |tree, id| {

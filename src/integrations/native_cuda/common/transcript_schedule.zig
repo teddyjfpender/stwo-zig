@@ -12,6 +12,8 @@ pub const Operation = union(enum) {
     mix_preprocessed_root,
     mix_main_root,
     mix_statement,
+    draw_lookup_elements,
+    mix_interaction_root,
     draw_composition_alpha,
     mix_composition_root,
     draw_oods_point,

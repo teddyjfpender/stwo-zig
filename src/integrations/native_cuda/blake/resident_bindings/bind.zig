@@ -609,6 +609,7 @@ fn bindDecommit(
         ),
         .preprocessed_column_log_sizes = try main_column_log_sizes.sub(0, 0),
         .main_column_log_sizes = main_column_log_sizes,
+        .interaction_column_log_sizes = try main_column_log_sizes.sub(0, 0),
         .composition_column_log_sizes = try exactWords(
             provider,
             slots.composition_column_log_sizes,

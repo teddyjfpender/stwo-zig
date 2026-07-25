@@ -8,8 +8,12 @@ pub const preprocessed_columns: u32 = 4;
 pub const main_columns: u32 = 4;
 pub const interaction_columns: u32 = 8;
 pub const composition_columns: u32 = 8;
+pub const statement_word_count: usize = 1;
 pub const source_columns: u32 = preprocessed_columns +
     main_columns + interaction_columns + composition_columns;
+pub const resident_evaluation_columns: u32 = source_columns;
+pub const sampled_source_column_offset: u32 = 0;
+pub const sampled_source_column_count: u32 = source_columns;
 pub const sampled_mask_points: u32 = 28;
 pub const max_log_size: u32 = 29;
 
@@ -18,12 +22,22 @@ pub const Error = cpu_input.Error || error{
     UnsupportedProtocol,
 };
 
+pub const Request = struct {
+    statement: cpu_input.Request,
+    protocol: pcs.PcsConfig,
+};
+
 pub const Geometry = struct {
     statement: cpu_input.Request,
     protocol: pcs.PcsConfig,
     trace_rows: u64,
     trace_elements: u64,
+    preprocessed_cells: u64,
+    main_cells: u64,
+    interaction_cells: u64,
+    committed_cells: u64,
     commitment_log_rows: u32,
+    composition_log_rows: u32,
     fri_tree_count: u32,
     commitment_rows: usize,
     committed_tree_count: usize,
@@ -67,10 +81,24 @@ pub fn admit(
     if (!supportedProtocol(protocol)) return error.UnsupportedProtocol;
 
     const trace_rows = @as(u64, 1) << @intCast(statement.log_n_rows);
-    const trace_elements = std.math.mul(
-        u64,
+    const preprocessed_cells = try cells(
         trace_rows,
-        preprocessed_columns + main_columns + interaction_columns,
+        preprocessed_columns,
+    );
+    const main_cells = try cells(trace_rows, main_columns);
+    const interaction_cells = try cells(
+        trace_rows,
+        interaction_columns,
+    );
+    const base_trace_elements = std.math.add(
+        u64,
+        preprocessed_cells,
+        main_cells,
+    ) catch return error.GeometryOverflow;
+    const trace_elements = std.math.add(
+        u64,
+        base_trace_elements,
+        interaction_cells,
     ) catch return error.GeometryOverflow;
     const commitment_log_rows = std.math.add(
         u32,
@@ -93,7 +121,12 @@ pub fn admit(
         .protocol = protocol,
         .trace_rows = trace_rows,
         .trace_elements = trace_elements,
+        .preprocessed_cells = preprocessed_cells,
+        .main_cells = main_cells,
+        .interaction_cells = interaction_cells,
+        .committed_cells = trace_elements,
         .commitment_log_rows = commitment_log_rows,
+        .composition_log_rows = commitment_log_rows,
         .fri_tree_count = fri_tree_count,
         .commitment_rows = commitment_rows,
         .committed_tree_count = 4,
@@ -101,6 +134,15 @@ pub fn admit(
         .decommit_tree_count = decommit_tree_count,
         .last_layer_domain_rows = 2,
     };
+}
+
+pub fn admitRequest(request: Request) Error!Geometry {
+    return admit(request.statement, request.protocol);
+}
+
+fn cells(rows: u64, columns: u32) Error!u64 {
+    return std.math.mul(u64, rows, columns) catch
+        error.GeometryOverflow;
 }
 
 fn supportedProtocol(value: pcs.PcsConfig) bool {

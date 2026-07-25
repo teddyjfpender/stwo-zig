@@ -1,5 +1,4 @@
 //! Geometry-checked views over one prepared resident Native CUDA proof arena.
-
 const std = @import("std");
 const field = @import("../../../backends/cuda/abi/field.zig");
 const quotient_abi = @import(
@@ -14,6 +13,7 @@ const quotient_stage = @import(
 const constraint = @import(
     "../../../backends/cuda/runtime/constraints/constant_qm31.zig",
 );
+const tree_binding = @import("resident_tree_binding.zig");
 const views = @import("resident_views.zig");
 
 const Words = column.DeviceSlice(u32);
@@ -82,6 +82,13 @@ pub fn BindingFor(
                 geometry_mod.sampled_source_column_offset
             else
                 0;
+            const sampled_source_count = if (@hasDecl(
+                geometry_mod,
+                "sampled_source_column_count",
+            ))
+                geometry_mod.sampled_source_column_count
+            else
+                geometry_mod.sampled_mask_points;
             const source_words = try exactWords(
                 provider,
                 slots.source_evaluations,
@@ -105,10 +112,25 @@ pub fn BindingFor(
                 ),
                 .column_stride_words = committed_rows,
             };
-            const composition_offset = try add(
+            const after_main = try add(
                 main_offset,
                 try mul(geometry_mod.main_columns, committed_rows),
             );
+            const has_interaction = @hasDecl(
+                geometry_mod,
+                "interaction_columns",
+            ) and geometry_mod.interaction_columns > 0;
+            const interaction_offset = after_main;
+            const composition_offset = if (has_interaction)
+                try add(
+                    interaction_offset,
+                    try mul(
+                        geometry_mod.interaction_columns,
+                        committed_rows,
+                    ),
+                )
+            else
+                after_main;
             const composition_evaluations = common.WordMatrix{
                 .storage = try source_words.sub(
                     composition_offset,
@@ -116,7 +138,7 @@ pub fn BindingFor(
                 ),
                 .column_stride_words = committed_rows,
             };
-            const preprocessed = try tree(
+            const preprocessed = try tree_binding.bind(
                 provider,
                 .preprocessed,
                 slots.preprocessed_coefficients,
@@ -129,7 +151,7 @@ pub fn BindingFor(
                 hash_count,
                 layer_count,
             );
-            const main = try tree(
+            const main = try tree_binding.bind(
                 provider,
                 .main,
                 slots.main_coefficients,
@@ -142,7 +164,32 @@ pub fn BindingFor(
                 hash_count,
                 layer_count,
             );
-            const composition = try tree(
+            const interaction = if (has_interaction)
+                try tree_binding.bind(
+                    provider,
+                    .interaction,
+                    slots.interaction_coefficients,
+                    .{
+                        .storage = try source_words.sub(
+                            interaction_offset,
+                            try mul(
+                                geometry_mod.interaction_columns,
+                                committed_rows,
+                            ),
+                        ),
+                        .column_stride_words = committed_rows,
+                    },
+                    slots.interaction_log_sizes,
+                    slots.interaction_merkle_hashes,
+                    slots.interaction_merkle_layers,
+                    geometry_mod.interaction_columns,
+                    rows,
+                    hash_count,
+                    layer_count,
+                )
+            else
+                undefined;
+            const composition = try tree_binding.bind(
                 provider,
                 .composition,
                 slots.composition_coefficients,
@@ -190,17 +237,25 @@ pub fn BindingFor(
                 .protocol_words = protocol_words,
                 .statement_words = statement_words,
             };
-            const trees = try views.TraceTrees.init(&.{
-                preprocessed,
-                main,
-                composition,
-            });
+            const trees = if (has_interaction)
+                try views.TraceTrees.init(&.{
+                    preprocessed,
+                    main,
+                    interaction,
+                    composition,
+                })
+            else
+                try views.TraceTrees.init(&.{
+                    preprocessed,
+                    main,
+                    composition,
+                });
             const fri = try bindFri(provider, prepared);
             const source_evaluations = common.WordMatrix{
                 .storage = try source_words.sub(
                     try mul(sampled_source_offset, committed_rows),
                     try mul(
-                        geometry_mod.sampled_mask_points,
+                        sampled_source_count,
                         committed_rows,
                     ),
                 ),
@@ -638,6 +693,22 @@ pub fn BindingFor(
                     slots.decommit_main_log_sizes,
                     geometry_mod.main_columns,
                 ),
+                .interaction_column_log_sizes = if (@hasDecl(
+                    geometry_mod,
+                    "interaction_columns",
+                ) and geometry_mod.interaction_columns > 0)
+                    try exactWords(
+                        provider,
+                        slots.decommit_interaction_log_sizes,
+                        geometry_mod.interaction_columns,
+                    )
+                else
+                    .{
+                        .address = 0,
+                        .len = 0,
+                        .owner = 0,
+                        .generation = 0,
+                    },
                 .composition_column_log_sizes = try exactWords(
                     provider,
                     slots.decommit_composition_log_sizes,
@@ -701,50 +772,6 @@ pub fn BindingFor(
                 descriptor.offset_words,
                 descriptor.words,
             );
-        }
-
-        fn tree(
-            provider: anytype,
-            role: @import("../common/uniform_layout.zig").TraceRole,
-            coefficient_slot: slots.SlotId,
-            evaluations: common.WordMatrix,
-            log_slot: slots.SlotId,
-            hash_slot: slots.SlotId,
-            layer_slot: slots.SlotId,
-            column_count: usize,
-            coefficient_stride: usize,
-            hash_count: usize,
-            layer_count: usize,
-        ) !views.TraceTree {
-            return .{
-                .role = role,
-                .coefficients = .{
-                    .storage = try exactWords(
-                        provider,
-                        coefficient_slot,
-                        try mul(column_count, coefficient_stride),
-                    ),
-                    .column_stride_words = coefficient_stride,
-                },
-                .evaluations = evaluations,
-                .column_log_sizes = try exactWords(
-                    provider,
-                    log_slot,
-                    column_count,
-                ),
-                .merkle_hashes = try exactAs(
-                    provider,
-                    field.Blake2sHash,
-                    hash_slot,
-                    hash_count,
-                ),
-                .merkle_layers = try exactAs(
-                    provider,
-                    field.MerkleLayerDescriptor,
-                    layer_slot,
-                    layer_count,
-                ),
-            };
         }
 
         fn exactWords(
