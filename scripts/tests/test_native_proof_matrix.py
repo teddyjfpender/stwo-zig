@@ -81,9 +81,9 @@ class NativeProofMatrixTests(unittest.TestCase):
             ),
             (
                 MODULE.parse_workload("xor:offset=3,log_step=2,log_size=10"),
-                3,
-                3072,
-                "b0272044b4e572bf519aa58c00ee3520f2961b409d2ecb67ba86c5760a991c0e",
+                15,
+                15360,
+                "7cc6f69d95db54edac2908b65701c3c3674215f0c83c29db474680bf5a1405db",
             ),
             (
                 MODULE.parse_workload("plonk:log_n_rows=10"),
@@ -156,11 +156,11 @@ class NativeProofMatrixTests(unittest.TestCase):
             ],
         )
         self.assertEqual(len(suite.rows), MODULE.MAX_MATRIX_ROWS)
-        self.assertEqual(suite.committed_trace_cells_per_lane, 14_604_288)
+        self.assertEqual(suite.committed_trace_cells_per_lane, 15_587_328)
         maximum_request_cells = suite.request_cells(
             MODULE.MAX_WARMUPS, MODULE.MAX_SAMPLES
         )
-        self.assertEqual(maximum_request_cells, 1_489_637_376)
+        self.assertEqual(maximum_request_cells, 1_589_907_456)
         self.assertLessEqual(maximum_request_cells, MODULE.MAX_TOTAL_REQUEST_CELLS)
         MODULE.validate_suite(suite)
 

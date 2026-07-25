@@ -67,8 +67,9 @@ pub fn geometry(workload: config.Workload) !Geometry {
             break :blk .{
                 .trace_log_rows = value.log_size,
                 .trace_rows = rows,
-                .committed_columns = 3,
-                .committed_trace_cells = try std.math.mul(u64, rows, 3),
+                .committed_trees = 3,
+                .committed_columns = 15,
+                .committed_trace_cells = try std.math.mul(u64, rows, 15),
                 .native_unit = "xor_rows",
                 .native_units = rows,
             };
@@ -151,7 +152,7 @@ pub fn descriptorDigest(
         ) catch unreachable,
         .xor => |value| std.fmt.bufPrint(
             &buffer,
-            "native-proof-workload-v3|example=xor|log_size={d}|log_step={d}|offset={d}",
+            "native-proof-workload-v3|example=xor|log_size={d}|log_step={d}|offset={d}|air_protocol=raw-stwo-xor-lookup-v2",
             .{ value.log_size, value.log_step, value.offset },
         ) catch unreachable,
         .plonk => |value| std.fmt.bufPrint(
@@ -727,7 +728,9 @@ test "native proof examples: geometry and descriptors are tagged" {
     const blake_geometry = try geometry(blake_workload);
     const poseidon_geometry = try geometry(poseidon_workload);
     try std.testing.expectEqual(@as(u64, 256), wide_geometry.committed_trace_cells);
-    try std.testing.expectEqual(@as(u64, 96), xor_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u64, 480), xor_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u32, 3), xor_geometry.committed_trees);
+    try std.testing.expectEqual(@as(u64, 15), xor_geometry.committed_columns);
     try std.testing.expectEqual(@as(u64, 256), plonk_geometry.committed_trace_cells);
     try std.testing.expectEqual(@as(u64, 96), state_geometry.committed_trace_cells);
     try std.testing.expectEqual(@as(u64, 6_144), blake_geometry.committed_trace_cells);
@@ -769,7 +772,7 @@ test "native proof examples: descriptor digests match independent fixed vectors"
     );
     _ = try std.fmt.hexToBytes(
         &expected_xor,
-        "b0272044b4e572bf519aa58c00ee3520f2961b409d2ecb67ba86c5760a991c0e",
+        "7cc6f69d95db54edac2908b65701c3c3674215f0c83c29db474680bf5a1405db",
     );
     _ = try std.fmt.hexToBytes(
         &expected_plonk,

@@ -207,6 +207,9 @@ NATIVE_UNITS = {
     "blake": "blake_round_instances",
     "poseidon": "poseidon_instances",
 }
+AIR_PROTOCOLS = {
+    "xor": "raw-stwo-xor-lookup-v2",
+}
 
 
 class MatrixError(RuntimeError):
@@ -284,9 +287,17 @@ class Workload:
             return 1264
         if self.name == "wide_fibonacci":
             return self.parameters["sequence_len"]
-        if self.name in ("xor", "state_machine"):
+        if self.name == "xor":
+            return 15
+        if self.name == "state_machine":
             return 3
         return 8
+
+    @property
+    def committed_trees(self) -> int:
+        if self.name == "xor":
+            return 3
+        return 2
 
     @property
     def committed_trace_cells(self) -> int:
@@ -319,7 +330,7 @@ class Workload:
             "parameters": self.parameters,
             "trace_log_rows": self.trace_log_rows,
             "trace_rows": self.trace_rows,
-            "committed_trees": 2,
+            "committed_trees": self.committed_trees,
             "committed_columns": self.committed_columns,
             "committed_trace_cells": self.committed_trace_cells,
             "native_unit": self.native_unit,
@@ -424,6 +435,8 @@ def descriptor_bytes(workload: Workload, protocol_name: str) -> bytes:
     protocol = PROTOCOL_PRESETS[protocol_name]
     fields = ["native-proof-workload-v3", f"example={workload.name}"]
     fields.extend(f"{key}={value}" for key, value in workload.parameter_items)
+    if air_protocol := AIR_PROTOCOLS.get(workload.name):
+        fields.append(f"air_protocol={air_protocol}")
     fields.extend(
         (
             f"protocol={protocol['name']}",
