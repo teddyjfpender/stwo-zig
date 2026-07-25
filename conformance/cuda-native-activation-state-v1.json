@@ -79,7 +79,7 @@
     "poseidon": {
       "release_ready": false,
       "gates": {
-        "exact_trace_semantics": true,
+        "exact_trace_semantics": false,
         "exact_constraint_semantics": false,
         "exact_cpu_cuda_proof_bytes": false,
         "pinned_rust_verification": false,
@@ -107,7 +107,7 @@
         ]
       },
       "blockers": {
-        "exact_trace_semantics": null,
+        "exact_trace_semantics": "The provisional v1 CUDA recipe varies external constants by round and lane and uses a distinct internal constant schedule. Native and pinned Rust Poseidon use M31(1234) for every external lane and internal round. Exact activation requires the versioned v2 recipe plus an independent full-row differential.",
         "exact_constraint_semantics": "The real 1,264-column permutation trace is followed by a statement-derived constant-QM31 composition, not the Poseidon AIR.",
         "exact_cpu_cuda_proof_bytes": "The retained CPU/CUDA byte match covers the provisional constant-composition route, not an exact Poseidon AIR proof.",
         "pinned_rust_verification": "Pinned Rust accepted the provisional route; it is not release evidence for the missing exact Poseidon constraint semantics.",

@@ -559,7 +559,7 @@
         "activation_contract": {
           "schema": "stwo_zig_native_cuda_activation_state_v1",
           "state_path": "conformance/cuda-native-activation-state-v1.json",
-          "state_sha256": "f26faa354620df75f89cbe7bfa355b68feaf97b6e39deb9e71542db56686a65b",
+          "state_sha256": "5ee33c6aa296825aed1df6ca3ba2755aec9a7dc9214cba968deb014d4952a514",
           "required_families": [
             "wide_fibonacci",
             "blake",
