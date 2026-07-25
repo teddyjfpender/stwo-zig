@@ -110,6 +110,14 @@ pub fn build(
     try add(&output, allocator, slots.lookup_elements, try secureWords(2), .constraint_evaluation, .constraint_evaluation);
     try add(&output, allocator, slots.relation_alpha_powers, try secureWords(relation_mod.max_alpha_powers), .constraint_evaluation, .constraint_evaluation);
     try add(&output, allocator, slots.relation_z, try secureWords(1), .constraint_evaluation, .constraint_evaluation);
+    try add(
+        &output,
+        allocator,
+        slots.relation_source_values,
+        try mul(relation_mod.source_pointer_count, rows),
+        .trace_generation,
+        .constraint_evaluation,
+    );
     inline for (.{
         slots.relation_source_tables,
         slots.relation_descriptor_tables,

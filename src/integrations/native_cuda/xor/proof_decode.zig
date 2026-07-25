@@ -29,6 +29,15 @@ const Descriptor = struct {
             },
         );
     }
+
+    pub fn sampleCount(
+        tree: @import("../common/uniform_layout.zig").TraceTree,
+        column_index: usize,
+    ) !usize {
+        if (column_index >= tree.column_count)
+            return error.InvalidSampleLayout;
+        return if (tree.role == .interaction) 2 else 1;
+    }
 };
 
 const Decoder = shared.DecoderFor(layout.Layout, Descriptor);
@@ -46,9 +55,9 @@ test "XOR decoder descriptor admits the canonical protocol" {
         .n_queries = 3,
         .fold_step = 1,
         .lifting_log_size = null,
-        .commitment_root_count = 3,
+        .commitment_root_count = 4,
         .fri_root_count = 14,
-        .decommit_tree_count = 17,
+        .decommit_tree_count = 18,
     };
     const geometry = try Descriptor.geometry(protocol);
     try @import("std").testing.expectEqual(@as(u32, 14), geometry.statement.log_size);

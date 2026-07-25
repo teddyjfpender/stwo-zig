@@ -27,6 +27,7 @@ const Words = column.DeviceSlice(u32);
 
 pub const Relation = struct {
     buffers: relation_stage.DeviceBuffers,
+    source_values: common.WordMatrix,
     source_columns: [relation_mod.source_pointer_count]Words,
     output_coordinates: [relation_mod.output_coordinate_count]Words,
     source_pointer_table: Words,
@@ -63,18 +64,24 @@ pub fn bind(
     const geometry = prepared.logical.geometry;
     const rows = try geometry.traceRowCount();
     const committed_rows = geometry.commitment_rows;
-    const preprocessed = try base.trees.require(.preprocessed);
-    const main = try base.trees.require(.main);
     const interaction = try base.trees.require(.interaction);
 
+    const source_values = common.WordMatrix{
+        .storage = try exactWords(
+            provider,
+            slots.relation_source_values,
+            relation_mod.source_pointer_count * rows,
+        ),
+        .column_stride_words = rows,
+    };
     const source_columns = [relation_mod.source_pointer_count]Words{
-        try coefficientColumn(preprocessed, 4, rows),
-        try coefficientColumn(preprocessed, 5, rows),
-        try coefficientColumn(preprocessed, 6, rows),
-        try coefficientColumn(main, 3, rows),
-        try coefficientColumn(main, 0, rows),
-        try coefficientColumn(main, 1, rows),
-        try coefficientColumn(main, 2, rows),
+        try matrixColumn(source_values, 0, rows),
+        try matrixColumn(source_values, 1, rows),
+        try matrixColumn(source_values, 2, rows),
+        try matrixColumn(source_values, 3, rows),
+        try matrixColumn(source_values, 4, rows),
+        try matrixColumn(source_values, 5, rows),
+        try matrixColumn(source_values, 6, rows),
     };
     var output_coordinates: [relation_mod.output_coordinate_count]Words =
         undefined;
@@ -95,6 +102,7 @@ pub fn bind(
         1,
     );
     const relation = Relation{
+        .source_values = source_values,
         .buffers = .{
             .drawn_z_alpha = lookup_elements,
             .alpha_powers = try exactAs(
@@ -221,6 +229,24 @@ fn coefficientColumn(
     }
     return tree.coefficients.storage.sub(
         index * tree.coefficients.column_stride_words,
+        rows,
+    );
+}
+
+fn matrixColumn(
+    matrix_value: common.WordMatrix,
+    index: usize,
+    rows: usize,
+) !Words {
+    if (matrix_value.column_stride_words < rows or
+        matrix_value.storage.len % matrix_value.column_stride_words != 0 or
+        index >= matrix_value.storage.len /
+            matrix_value.column_stride_words)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    return matrix_value.storage.sub(
+        index * matrix_value.column_stride_words,
         rows,
     );
 }

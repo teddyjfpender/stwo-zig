@@ -31,6 +31,7 @@ ABI_SCHEMAS = {
     "native_m31_permutation_trace_v2": 13,
     "native_poseidon_constraint_v1": 14,
     "native_xor_logup_constraint_v1": 15,
+    "native_xor_logup_trace_v1": 16,
 }
 DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 

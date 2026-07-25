@@ -37,7 +37,7 @@ pub const Schedule = struct {
         ) orelse return error.GeometryOverflow;
         const operation_count = std.math.add(
             u32,
-            13,
+            16,
             std.math.mul(u32, fri_count, 2) catch
                 return error.GeometryOverflow,
         ) catch return error.GeometryOverflow;
@@ -61,11 +61,14 @@ pub const Schedule = struct {
             2 => .mix_main_root,
             3 => .draw_lookup_elements,
             4 => .mix_interaction_root,
-            5 => .draw_composition_alpha,
-            6 => .mix_composition_root,
-            7 => .draw_oods_point,
-            8 => .mix_sampled_values,
-            9 => .draw_quotient_alpha,
+            // The CPU oracle hashes these as three distinct Blake2s
+            // absorptions: (log_size, log_step), offset, then claimed_sum.
+            5...7 => .mix_statement,
+            8 => .draw_composition_alpha,
+            9 => .mix_composition_root,
+            10 => .draw_oods_point,
+            11 => .mix_sampled_values,
+            12 => .draw_quotient_alpha,
             else => self.operationAfterQuotient(step),
         };
     }
@@ -91,7 +94,7 @@ pub const Schedule = struct {
         self: Schedule,
         step: u32,
     ) Operation {
-        const fri_offset = step - 10;
+        const fri_offset = step - 13;
         const fri_operations = self.fri_tree_count * 2;
         if (fri_offset < fri_operations) {
             const tree_index = fri_offset / 2;
@@ -135,7 +138,7 @@ test "XOR schedule binds the complete public statement" {
         .{ .log_size = 7, .log_step = 3, .offset = 6 },
         pcs.PcsConfig.default(),
     ));
-    try std.testing.expectEqual(@as(u32, 27), first.operationCount());
+    try std.testing.expectEqual(@as(u32, 30), first.operationCount());
     try std.testing.expectEqual(
         Operation.mix_preprocessed_root,
         try first.operation(1),
@@ -148,5 +151,60 @@ test "XOR schedule binds the complete public statement" {
         Operation.mix_interaction_root,
         try first.operation(4),
     );
+    try std.testing.expectEqual(
+        Operation.mix_statement,
+        try first.operation(5),
+    );
+    try std.testing.expectEqual(
+        Operation.mix_statement,
+        try first.operation(6),
+    );
+    try std.testing.expectEqual(
+        Operation.mix_statement,
+        try first.operation(7),
+    );
+    try std.testing.expectEqual(
+        Operation.draw_composition_alpha,
+        try first.operation(8),
+    );
     try std.testing.expect(first.initialChain() != second.initialChain());
+}
+
+test "three resident statement absorptions match the CPU XOR oracle" {
+    const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
+    const QM31 = @import("stwo_core").fields.qm31.QM31;
+    const statement = [_]u32{ 16, 3, 0x1234_5678, 0xfeed_face };
+    const claim = QM31.fromU32Unchecked(3, 5, 7, 11);
+    const coordinates = claim.toM31Array();
+    const claim_words = [_]u32{
+        coordinates[0].toU32(),
+        coordinates[1].toU32(),
+        coordinates[2].toU32(),
+        coordinates[3].toU32(),
+    };
+
+    var oracle = Channel{};
+    oracle.mixU32s(statement[0..2]);
+    oracle.mixU64(
+        @as(u64, statement[2]) |
+            (@as(u64, statement[3]) << 32),
+    );
+    oracle.mixFelts(&.{claim});
+
+    var resident = Channel{};
+    resident.mixU32s(statement[0..2]);
+    resident.mixU32s(statement[2..4]);
+    resident.mixU32s(&claim_words);
+    try std.testing.expectEqual(
+        oracle.digestBytes(),
+        resident.digestBytes(),
+    );
+
+    var collapsed = Channel{};
+    collapsed.mixU32s(&statement ++ claim_words);
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &oracle.digestBytes(),
+        &collapsed.digestBytes(),
+    ));
 }

@@ -1,6 +1,7 @@
 //! Exact terminal SWPC admission policy for Native XOR.
 
 const std = @import("std");
+const geometry_mod = @import("geometry.zig");
 const stark = @import(
     "../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig",
 );
@@ -12,9 +13,9 @@ pub const Descriptor = struct {
             protocol.log_n_rows,
             4,
         ) catch return error.SizeOverflow;
-        if (protocol.log_n_rows == 0 or
+        if (protocol.log_n_rows < geometry_mod.min_log_size or
             protocol.log_n_rows > 29 or
-            protocol.sequence_len != 0 or
+            protocol.sequence_len > protocol.log_n_rows or
             protocol.pow_bits != 10 or
             protocol.log_blowup_factor != 1 or
             protocol.log_last_layer_degree_bound != 0 or
@@ -37,7 +38,7 @@ pub const Descriptor = struct {
 test "XOR terminal policy admits step zero and exact tree counts" {
     const protocol = stark.Protocol{
         .log_n_rows = 14,
-        .sequence_len = 0,
+        .sequence_len = 3,
         .pow_bits = 10,
         .log_blowup_factor = 1,
         .log_last_layer_degree_bound = 0,

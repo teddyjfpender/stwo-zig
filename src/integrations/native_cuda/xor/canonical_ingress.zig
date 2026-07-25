@@ -6,6 +6,7 @@ const prover = @import("stwo_prover_impl");
 const field = @import("../../../backends/cuda/abi/field.zig");
 const canonical_input = @import("canonical_input.zig");
 const geometry_mod = @import("geometry.zig");
+const exact_oods = @import("oods.zig");
 
 const CirclePointM31 = core.circle.CirclePointM31;
 const M31 = core.fields.m31.M31;
@@ -25,13 +26,14 @@ pub const CircleConstants = struct {
     half_coset_step_size: u32,
     barycentric_si0: field.SecureField,
     vanishing_rotation: field.CirclePointBaseField,
+    composition_denominator_inverses: [2]u32,
 };
 
 pub const Pack = struct {
     twiddle_tree: prover_twiddles.TwiddleTree([]M31),
     twiddle_views: []TwiddleView,
     fri_inverse_twiddle_offsets: []u32,
-    coefficient_log_sizes: [geometry_mod.sampled_mask_points]u32,
+    coefficient_log_sizes: [geometry_mod.source_columns]u32,
     oods_offset_points: [geometry_mod.sampled_mask_points]field.CirclePointBaseField,
     oods_fold_counts: [geometry_mod.sampled_mask_points]u32,
     oods_output_indices: [geometry_mod.sampled_mask_points]u32,
@@ -92,28 +94,22 @@ pub const Pack = struct {
             );
         }
 
-        var offsets: [geometry_mod.sampled_mask_points]field.CirclePointBaseField =
-            undefined;
-        @memset(&offsets, rawBasePoint(CirclePointM31.identity()));
+        const oods_policy = exact_oods.Policy.init(geometry);
         var folds: [geometry_mod.sampled_mask_points]u32 = undefined;
         const lifting_log =
             geometry.protocol.lifting_log_size orelse max_circle_log;
         if (lifting_log < max_circle_log)
             return error.UnsupportedProtocol;
         @memset(&folds, lifting_log - max_circle_log);
-        var output_indices: [geometry_mod.sampled_mask_points]u32 = undefined;
-        for (&output_indices, 0..) |*output, index| {
-            output.* = try u32Count(index);
-        }
 
         return .{
             .twiddle_tree = tree,
             .twiddle_views = views,
             .fri_inverse_twiddle_offsets = fri_offsets,
-            .coefficient_log_sizes = canonical_input.coefficientLogSizes(geometry),
-            .oods_offset_points = offsets,
+            .coefficient_log_sizes = oods_policy.coefficient_log_sizes,
+            .oods_offset_points = oods_policy.offset_points,
             .oods_fold_counts = folds,
-            .oods_output_indices = output_indices,
+            .oods_output_indices = oods_policy.output_indices,
             .protocol_words = canonical_input.protocolWords(geometry.protocol),
             .statement_words = canonical_input.statementWords(geometry.statement),
             .circle = try deriveCircleConstants(geometry),
@@ -197,6 +193,17 @@ fn deriveCircleConstants(
         .mul(derivative)
         .inv();
     const coset = canonic.coset();
+    const trace_coset = CanonicCoset
+        .new(geometry.statement.log_size)
+        .coset();
+    var denominator_inverses: [2]u32 = undefined;
+    for (&denominator_inverses, 0..) |*inverse, row| {
+        inverse.* = (try core.constraints.cosetVanishing(
+            M31,
+            trace_coset,
+            domain.at(row),
+        ).inv()).toU32();
+    }
     return .{
         .domain_log_size = domain_log,
         .half_coset_initial_index = try u32Count(domain.half_coset.initial_index.v),
@@ -207,6 +214,7 @@ fn deriveCircleConstants(
                 .conjugate()
                 .add(coset.step_size.half().toPoint()),
         ),
+        .composition_denominator_inverses = denominator_inverses,
     };
 }
 

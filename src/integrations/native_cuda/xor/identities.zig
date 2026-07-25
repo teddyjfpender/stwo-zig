@@ -102,7 +102,7 @@ pub fn protocol(value: pcs.PcsConfig) ir.Digest {
 }
 
 fn digest(value: []const u8) ir.Digest {
-    @setEvalBranchQuota(10_000);
+    @setEvalBranchQuota(100_000);
     return ir.identityDigest(value);
 }
 

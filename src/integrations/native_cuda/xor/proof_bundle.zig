@@ -74,7 +74,7 @@ pub const Bundle = shared.BundleFor(
     Descriptor,
 );
 
-test "XOR bundle preserves exact three-tree wire cardinalities" {
+test "XOR bundle preserves exact four-tree wire cardinalities" {
     const allocator = std.testing.allocator;
     const pcs = @import("stwo_core").pcs;
     const geometry = try geometry_mod.admit(
@@ -90,11 +90,11 @@ test "XOR bundle preserves exact three-tree wire cardinalities" {
     try bundle.validate(openings.assembly_words);
 
     try std.testing.expectEqual(
-        @as(usize, 3 * 8),
+        @as(usize, 4 * 8),
         bundle.section(.trace_commitments).words,
     );
     try std.testing.expectEqual(
-        @as(usize, 11 * 4),
+        @as(usize, 27 * 4),
         bundle.section(.sampled_values).words,
     );
     try std.testing.expectEqual(
@@ -107,8 +107,8 @@ test "XOR bundle preserves exact three-tree wire cardinalities" {
     );
     try std.testing.expectEqual(@as(u32, 16), bundle.static_header[4]);
     try std.testing.expectEqual(@as(u32, 3), bundle.static_header[5]);
-    try std.testing.expectEqual(@as(u32, 3), bundle.static_header[12]);
-    try std.testing.expectEqual(@as(u32, 19), bundle.static_header[14]);
+    try std.testing.expectEqual(@as(u32, 4), bundle.static_header[12]);
+    try std.testing.expectEqual(@as(u32, 20), bundle.static_header[14]);
     try std.testing.expectEqual(
         std.math.maxInt(u32),
         bundle.static_header[15],

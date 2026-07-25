@@ -59,6 +59,7 @@ pub const relation_denominator_slab: SlotId = 0x0323;
 pub const relation_claimed_sum: SlotId = 0x0324;
 pub const relation_reduction_partials: SlotId = 0x0325;
 pub const relation_scan_block_sums: SlotId = 0x0326;
+pub const relation_source_values: SlotId = 0x0327;
 
 pub const oods_parameter: SlotId = 0x0400;
 pub const oods_offset_points: SlotId = 0x0401;

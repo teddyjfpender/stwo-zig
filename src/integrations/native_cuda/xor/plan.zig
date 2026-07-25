@@ -88,7 +88,7 @@ pub const PreparedPlan = shared.PreparedPlanFor(
     Policy,
 );
 
-test "XOR prepared plan seals all three proof trees" {
+test "XOR prepared plan seals all four proof trees" {
     const geometry = try geometry_mod.admit(
         .{ .log_size = 8, .log_step = 2, .offset = 3 },
         @import("stwo_core").pcs.PcsConfig.default(),
@@ -99,11 +99,11 @@ test "XOR prepared plan seals all three proof trees" {
     );
     defer prepared.deinit(std.testing.allocator);
     try std.testing.expectEqual(
-        @as(usize, 3),
+        @as(usize, 4),
         prepared.logical.trace_trees.len,
     );
     try std.testing.expectEqual(
-        @as(usize, 3),
+        @as(usize, 4),
         prepared.decommit.trace_trees.len,
     );
     try std.testing.expectEqual(

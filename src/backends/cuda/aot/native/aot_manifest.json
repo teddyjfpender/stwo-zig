@@ -130,5 +130,17 @@
     "program_identity": "b25a80d447eac9f1d9c86b3e567781489067d99b1c0a8cb20b8466c9576c928c",
     "semantic_contract": "stwo-zig/native/seeded-xorshift-columns/v1;geometry=row_count=2^log_n_rows,column_count=group_count*columns_per_group;seed=row+seed_offset;x1=seed^(seed<<left_shift);x2=x1^(x1>>right_shift);next=x2^(x2<<final_left_shift);value=m31(next^(group*group_mix)^((item+1)*item_mix));layout=column_major_slab[column*stride+row];launches=1",
     "semantic_hash": "21cc1d6d9728809e"
+  },
+  {
+    "abi_schema": "native_xor_logup_trace_v1",
+    "cache_key": "9c64de1ac2adb7de",
+    "file": "witness_xor_logup_trace_9c64de1ac2adb7de.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_trace_xor_logup_slabs_v1_77dc01e39a2d5eb5",
+    "kind": "witness",
+    "label": "xor_logup_trace",
+    "program_identity": "d3871d6a09e4f76e559302cc23de947ffcd3d9e9683fe87ca1a7e36b0138067e",
+    "semantic_contract": "stwo-zig/native/xor-logup/trace/v1;rows=2^log_size;storage=circle-domain-bit-reversed;preprocessed=is_first,is_step,row_bit,table_selector,table_a,table_b,table_c;main=a,b,c,multiplicity;step=2^log_step;offset=offset_mod_step;multiplicity=closed_form_truth_table_counts;output=preprocessed7+main4+relation_sources[table_a,table_b,table_c,multiplicity,a,b,c];relation_sources=immutable_pre_ifft_values;launches=1",
+    "semantic_hash": "77dc01e39a2d5eb5"
   }
 ]

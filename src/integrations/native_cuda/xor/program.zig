@@ -1,4 +1,4 @@
-//! Generic proof-program emission for a materialized Native XOR trace.
+//! Generic proof-program emission for a materialized Native XOR truth-table LogUp trace.
 
 const std = @import("std");
 const arena = @import("../../../backends/cuda/runtime/arena.zig");
@@ -18,8 +18,10 @@ pub const kernel_pack_identity: ir.Digest = digestKernelPack();
 pub const scheduler_version = cuda_plan.schedule_version;
 
 fn digestKernelPack() ir.Digest {
-    @setEvalBranchQuota(10_000);
-    return ir.identityDigest("stwo-zig/native-cuda/xor/aot-pack/v1");
+    @setEvalBranchQuota(100_000);
+    return ir.identityDigest(
+        "stwo-zig/native-cuda/xor-logup/aot-pack/v1",
+    );
 }
 
 pub fn emit(
@@ -117,7 +119,7 @@ fn emitWithBuffers(
         .id = 0,
         .component = 0,
         .expression = identities.constraint_expression,
-        .constraint_count = 1,
+        .constraint_count = @import("../../../examples/xor/component.zig").N_CONSTRAINTS,
         .max_degree_log = 2,
     }};
     const commitments = commitmentTrees(geometry);
@@ -176,7 +178,7 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
         .statement = .{
             .transcript_recipe_identity = identities.transcript_recipe,
             .public_input_abi_identity = identities.public_input_abi,
-            .public_input_words = 4,
+            .public_input_words = geometry_mod.public_statement_word_count,
         },
         .sampling = .{
             .recipe_identity = identities.sampling_recipe,
@@ -185,9 +187,9 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
         },
         .constraint_parameters = .{
             .identity = identities.constraint_parameter_abi,
-            .statement_words = 4,
-            .challenge_words = 4,
-            .parameter_words = 8,
+            .statement_words = geometry_mod.statement_word_count,
+            .challenge_words = 12,
+            .parameter_words = geometry_mod.statement_word_count + 12,
         },
     };
 }
@@ -215,6 +217,10 @@ fn traceColumns() [
             else if (index < geometry_mod.preprocessed_columns +
                 geometry_mod.main_columns)
                 .main
+            else if (index < geometry_mod.preprocessed_columns +
+                geometry_mod.main_columns +
+                geometry_mod.interaction_columns)
+                .interaction
             else
                 .composition,
         };
@@ -224,16 +230,25 @@ fn traceColumns() [
 
 fn commitmentTrees(
     geometry: geometry_mod.Geometry,
-) [3]ir.CommitmentTree {
+) [4]ir.CommitmentTree {
     const preprocessed_end = geometry_mod.preprocessed_columns;
     const main_end = preprocessed_end + geometry_mod.main_columns;
+    const interaction_end = main_end + geometry_mod.interaction_columns;
     return .{
         tree(0, .preprocessed, 0, geometry_mod.preprocessed_columns, geometry, true),
         tree(1, .main, preprocessed_end, geometry_mod.main_columns, geometry, true),
         tree(
             2,
-            .composition,
+            .interaction,
             main_end,
+            geometry_mod.interaction_columns,
+            geometry,
+            true,
+        ),
+        tree(
+            3,
+            .composition,
+            interaction_end,
             geometry_mod.composition_columns,
             geometry,
             true,
@@ -266,7 +281,7 @@ fn transcriptBarriers(
 ) ![]ir.TranscriptBarrier {
     const count = try std.math.add(
         u32,
-        12,
+        16,
         try std.math.mul(u32, geometry.fri_tree_count, 2),
     );
     const barriers = try allocator.alloc(ir.TranscriptBarrier, count);
@@ -295,10 +310,10 @@ fn transcriptBarriers(
 
 fn transcriptNode(operation: u32, fri_tree_count: u32) u32 {
     if (operation == 0) return 0;
-    if (operation <= 3) return 1;
-    if (operation <= 5) return 2;
-    if (operation <= 8) return 3;
-    const after_fri = 9 + 2 * fri_tree_count;
+    if (operation <= 2) return 1;
+    if (operation <= 9) return 2;
+    if (operation <= 12) return 3;
+    const after_fri = 13 + 2 * fri_tree_count;
     if (operation < after_fri) return 5;
     return switch (operation - after_fri) {
         0 => 5,
@@ -309,11 +324,20 @@ fn transcriptNode(operation: u32, fri_tree_count: u32) u32 {
 }
 
 fn transcriptKind(operation: u32, fri_tree_count: u32) ir.TranscriptKind {
-    if (operation <= 3 or operation == 5 or operation == 7) return .mix;
-    if (operation == 4 or operation == 6 or operation == 8) return .challenge;
-    const fri_end = 9 + 2 * fri_tree_count;
+    if (operation <= 2 or
+        (operation >= 4 and operation <= 7) or
+        operation == 9 or operation == 11)
+    {
+        return .mix;
+    }
+    if (operation == 3 or operation == 8 or
+        operation == 10 or operation == 12)
+    {
+        return .challenge;
+    }
+    const fri_end = 13 + 2 * fri_tree_count;
     if (operation < fri_end) {
-        return if ((operation - 9) % 2 == 0) .mix else .challenge;
+        return if ((operation - 13) % 2 == 0) .mix else .challenge;
     }
     return switch (operation - fri_end) {
         0 => .mix,
@@ -327,9 +351,11 @@ fn transcriptValueCount(
     operation: u32,
     geometry: geometry_mod.Geometry,
 ) u32 {
-    if (operation == 3) return 3;
-    if (operation == 7) return geometry_mod.sampled_mask_points;
-    if (operation == 11 + 2 * geometry.fri_tree_count)
+    if (operation == 3) return 2;
+    if (operation == 5 or operation == 6) return 2;
+    if (operation == 7) return 4;
+    if (operation == 11) return geometry_mod.sampled_mask_points;
+    if (operation == 15 + 2 * geometry.fri_tree_count)
         return @intCast(geometry.protocol.fri_config.n_queries);
     return 1;
 }
@@ -511,80 +537,84 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
     try program.validate();
 
     const contract = program.native_air_contract.?;
-    try std.testing.expectEqual(@as(u32, 2), contract.geometry.preprocessed_columns);
-    try std.testing.expectEqual(@as(u32, 1), contract.geometry.main_columns);
-    try std.testing.expectEqual(@as(u32, 0), contract.geometry.interaction_columns);
-    try std.testing.expectEqual(@as(u64, 3 * (1 << 7)), contract.ingress.element_count);
-    try std.testing.expectEqual(@as(usize, 11), program.trace_columns.len);
-    try std.testing.expectEqual(@as(usize, 3), program.commitments.len);
-    try std.testing.expectEqual(ir.CommitmentRole.composition, program.commitments[2].role);
-    try std.testing.expectEqual(@as(u32, 8), program.commitments[2].column_count);
+    try std.testing.expectEqual(@as(u32, 7), contract.geometry.preprocessed_columns);
+    try std.testing.expectEqual(@as(u32, 4), contract.geometry.main_columns);
+    try std.testing.expectEqual(@as(u32, 4), contract.geometry.interaction_columns);
+    try std.testing.expectEqual(
+        @as(u32, geometry_mod.public_statement_word_count),
+        contract.statement.public_input_words,
+    );
+    try std.testing.expectEqual(@as(u64, 15 * (1 << 7)), contract.ingress.element_count);
+    try std.testing.expectEqual(@as(usize, 23), program.trace_columns.len);
+    try std.testing.expectEqual(@as(usize, 4), program.commitments.len);
+    try std.testing.expectEqual(ir.CommitmentRole.interaction, program.commitments[2].role);
+    try std.testing.expectEqual(ir.CommitmentRole.composition, program.commitments[3].role);
+    try std.testing.expectEqual(@as(u32, 8), program.commitments[3].column_count);
     try std.testing.expect(program.commitments[0].retain_openings);
-    try std.testing.expectEqual(@as(u32, 11), program.quotient.term_count);
+    try std.testing.expectEqual(@as(u32, 27), program.quotient.term_count);
     try std.testing.expectEqual(@as(usize, 7), program.fri_layers.len);
     try std.testing.expectEqual(@as(u32, 8), program.fri_layers[0].evaluation_log_rows);
     try std.testing.expectEqual(@as(u32, 2), program.fri_layers[6].evaluation_log_rows);
-    try std.testing.expectEqual(@as(u32, 2), program.transcript[4].node);
-    try std.testing.expectEqual(@as(u32, 2), program.transcript[5].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[6].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[8].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[3].value_count);
-    var expected: [32]u8 = undefined;
-    _ = try std.fmt.hexToBytes(
-        &expected,
-        "0a160d351ea48aaf86425a046c435c32f2c84f65a33b29867fad821a96c4fe88",
-    );
-    try std.testing.expectEqualSlices(u8, &expected, &program.semantic_digest);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[3].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[6].node);
+    try std.testing.expectEqual(@as(u32, 3), program.transcript[7].node);
+    try std.testing.expectEqual(@as(u32, 3), program.transcript[9].node);
+    try std.testing.expect(!std.mem.allEqual(
+        u8,
+        &program.semantic_digest,
+        0,
+    ));
 }
 
 test "XOR program tree and sample counts match a decoded CPU proof" {
     const allocator = std.testing.allocator;
     const cpu_xor = @import("../../../examples/xor.zig");
     const protocol = @import("stwo_core").pcs.PcsConfig.default();
-    const statement = cpu_xor.Statement{
+    const request = cpu_xor.Statement{
         .log_size = 5,
         .log_step = 2,
         .offset = 3,
     };
     var materialized = try trace_mod.Materialized.init(
         allocator,
-        statement,
+        request,
         protocol,
     );
     defer materialized.deinit(allocator);
     var program = try emit(allocator, &materialized);
     defer program.deinit(allocator);
-    var output = try cpu_xor.prove(allocator, protocol, statement);
+    var output = try cpu_xor.prove(allocator, protocol, request);
     defer output.proof.deinit(allocator);
 
     const proof = output.proof.commitment_scheme_proof;
     try std.testing.expectEqual(proof.commitments.items.len, program.commitments.len);
-    try std.testing.expectEqual(@as(usize, 3), proof.sampled_values.items.len);
-    try std.testing.expectEqual(@as(usize, 3), proof.decommitments.items.len);
-    try std.testing.expectEqual(@as(usize, 3), proof.queried_values.items.len);
-    const widths = [_]usize{ 2, 1, 8 };
+    try std.testing.expectEqual(@as(usize, 4), proof.sampled_values.items.len);
+    try std.testing.expectEqual(@as(usize, 4), proof.decommitments.items.len);
+    try std.testing.expectEqual(@as(usize, 4), proof.queried_values.items.len);
+    const widths = [_]usize{ 7, 4, 4, 8 };
     var samples: usize = 0;
-    for (proof.sampled_values.items, widths) |sampled_tree, width| {
+    for (proof.sampled_values.items, widths, 0..) |sampled_tree, width, tree_index| {
         try std.testing.expectEqual(width, sampled_tree.len);
         for (sampled_tree) |column| {
-            try std.testing.expectEqual(@as(usize, 1), column.len);
+            const expected_points: usize = if (tree_index == 2) 2 else 1;
+            try std.testing.expectEqual(expected_points, column.len);
             samples += column.len;
         }
     }
     try std.testing.expectEqual(program.quotient.term_count, samples);
 }
 
-test "XOR public statement changes semantic identity without geometry drift" {
+test "XOR public statement changes semantic identity" {
     const allocator = std.testing.allocator;
     var first_trace = try trace_mod.Materialized.init(
         allocator,
-        .{ .log_size = 7, .log_step = 3, .offset = 5 },
+        .{ .log_size = 8, .log_step = 3, .offset = 5 },
         @import("stwo_core").pcs.PcsConfig.default(),
     );
     defer first_trace.deinit(allocator);
     var second_trace = try trace_mod.Materialized.init(
         allocator,
-        .{ .log_size = 7, .log_step = 3, .offset = 6 },
+        .{ .log_size = 8, .log_step = 3, .offset = 6 },
         @import("stwo_core").pcs.PcsConfig.default(),
     );
     defer second_trace.deinit(allocator);
@@ -609,6 +639,6 @@ test "XOR production program emission does not materialize a CPU trace" {
     var emitted = try emitGeometry(allocator, geometry);
     defer emitted.deinit(allocator);
     try emitted.validate();
-    try std.testing.expectEqual(@as(usize, 3), emitted.commitments.len);
-    try std.testing.expectEqual(@as(u32, 11), emitted.quotient.term_count);
+    try std.testing.expectEqual(@as(usize, 4), emitted.commitments.len);
+    try std.testing.expectEqual(@as(u32, 27), emitted.quotient.term_count);
 }

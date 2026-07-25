@@ -108,6 +108,7 @@ pub fn addProducts(
         "scripts.tests.test_cuda_plonk_logup_aot",
         "scripts.tests.test_cuda_poseidon_aot",
         "scripts.tests.test_cuda_xor_logup_aot",
+        "scripts.tests.test_cuda_xor_logup_trace_aot",
         "scripts.tests.test_cuda_proof_parity_gate",
         "scripts.tests.test_cuda_activation",
     });
@@ -166,6 +167,20 @@ pub fn addProducts(
         "test-cuda-plonk-logup-contract",
         "Test activation-disabled exact Plonk/LogUp CUDA contracts",
     ).dependOn(&b.addRunArtifact(plonk_logup_tests).step);
+
+    const xor_logup_root = b.createModule(.{
+        .root_source_file = b.path("tests/native_cuda_xor_logup.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    xor_logup_root.addImport("stwo_under_test", stwo);
+    const xor_logup_tests = b.addTest(.{
+        .root_module = xor_logup_root,
+    });
+    b.step(
+        "test-cuda-xor-logup-contract",
+        "Test exact XOR/LogUp CUDA contracts without a GPU",
+    ).dependOn(&b.addRunArtifact(xor_logup_tests).step);
 
     const adapter_tests = b.addSystemCommand(&.{
         "cargo",

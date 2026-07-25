@@ -1,29 +1,21 @@
-//! XOR-owned binding to the resident three-column CUDA trace primitive.
+//! Exact XOR binding to the authenticated 7+4 resident witness kernel.
 
 const common = @import(
     "../../../backends/cuda/runtime/stages/common.zig",
 );
-const native_trace = @import(
-    "../../../backends/cuda/runtime/stages/trace.zig",
+const exact_trace = @import(
+    "../../../backends/cuda/runtime/traces/xor_logup.zig",
 );
 const geometry_mod = @import("geometry.zig");
 
-pub const Buffers = struct {
-    preprocessed: common.WordMatrix,
-    main: common.WordMatrix,
-};
+pub const Buffers = exact_trace.Destinations;
 
 pub fn generate(
     session: anytype,
     buffers: Buffers,
     geometry: geometry_mod.Geometry,
 ) !void {
-    return generateWithApi(
-        native_trace.Native,
-        session,
-        buffers,
-        geometry,
-    );
+    return generateWithApi(exact_trace, session, buffers, geometry);
 }
 
 pub fn generateWithApi(
@@ -32,53 +24,60 @@ pub fn generateWithApi(
     buffers: Buffers,
     geometry: geometry_mod.Geometry,
 ) !void {
-    const row_count = @as(u32, @intCast(geometry.trace_rows));
-    try Api.xor(
+    try Api.generate(
         session,
-        buffers.preprocessed,
-        buffers.main,
-        row_count,
-        geometry.statement.log_size,
-        geometry.statement.log_step,
-        @intCast(geometry.statement.offset),
+        buffers,
+        .{
+            .log_size = geometry.statement.log_size,
+            .log_step = geometry.statement.log_step,
+            .offset = @intCast(geometry.statement.offset),
+        },
     );
 }
 
-test "XOR device trace contributes only admitted statement geometry" {
+test "XOR device trace binds exact truth-table destinations and statement" {
     const std = @import("std");
-    const pcs = @import("stwo_core").pcs;
     const Mock = struct {
         var calls: usize = 0;
 
-        pub fn xor(
+        pub fn generate(
             _: anytype,
-            preprocessed: common.WordMatrix,
-            main: common.WordMatrix,
-            row_count: u32,
-            log_size: u32,
-            log_step: u32,
-            offset: u64,
+            destinations: exact_trace.Destinations,
+            statement: exact_trace.Statement,
         ) !void {
-            try std.testing.expectEqual(@as(usize, 2 * 256), preprocessed.storage.len);
-            try std.testing.expectEqual(@as(usize, 256), main.storage.len);
-            try std.testing.expectEqual(@as(u32, 256), row_count);
-            try std.testing.expectEqual(@as(u32, 8), log_size);
-            try std.testing.expectEqual(@as(u32, 3), log_step);
-            try std.testing.expectEqual(@as(u64, 0x1_0000_0005), offset);
+            try std.testing.expectEqual(
+                @as(usize, 7 * 256),
+                destinations.preprocessed.storage.len,
+            );
+            try std.testing.expectEqual(
+                @as(usize, 4 * 256),
+                destinations.main.storage.len,
+            );
+            try std.testing.expectEqual(
+                @as(usize, 7 * 256),
+                destinations.relation_sources.storage.len,
+            );
+            try std.testing.expectEqual(@as(u32, 8), statement.log_size);
+            try std.testing.expectEqual(@as(u32, 3), statement.log_step);
+            try std.testing.expectEqual(
+                @as(u64, 0x1_0000_0005),
+                statement.offset,
+            );
             calls += 1;
         }
     };
     const geometry = try geometry_mod.admit(
         .{ .log_size = 8, .log_step = 3, .offset = 0x1_0000_0005 },
-        pcs.PcsConfig.default(),
+        @import("stwo_core").pcs.PcsConfig.default(),
     );
     var token: u8 = 0;
     try generateWithApi(
         Mock,
         &token,
         .{
-            .preprocessed = matrix(0x1000, 256, 2),
-            .main = matrix(0x2000, 256, 1),
+            .preprocessed = matrix(0x1000, 256, 7),
+            .main = matrix(0x20_0000, 256, 4),
+            .relation_sources = matrix(0x40_0000, 256, 7),
         },
         geometry,
     );
