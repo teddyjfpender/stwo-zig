@@ -16,6 +16,7 @@ pub const proof_bundle = @import("proof_bundle.zig");
 pub const proof_decode = @import("proof_decode.zig");
 pub const protocol = @import("protocol.zig");
 pub const requirements = @import("requirements.zig");
+pub const relation = @import("relation.zig");
 pub const resident_bindings = @import("resident_bindings/mod.zig");
 pub const slots = @import("slots.zig");
 pub const terminal_bundle = @import("terminal_bundle.zig");
