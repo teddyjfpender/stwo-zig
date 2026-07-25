@@ -26,6 +26,11 @@ const INTERACTION_COLUMNS: usize = 32;
 const COMPOSITION_LOG_SPLIT: u32 = 2;
 const COMPOSITION_CHUNKS: usize = 1 << COMPOSITION_LOG_SPLIT;
 const COMPOSITION_COLUMNS: usize = COMPOSITION_CHUNKS * SECURE_EXTENSION_DEGREE;
+// Match the repository's standard committed-cell admission. The pinned
+// Poseidon witness builders allocate infallibly, and the backend conversion
+// temporarily retains both representations, so proving must reject before
+// either allocation can turn an untrusted request into a process abort.
+const MAX_ORACLE_TRACE_CELLS: u64 = 33_554_432;
 pub(crate) const PROTOCOL_NAME: &str = "raw-stwo-poseidon-logup-split2-v1";
 
 pub(crate) fn prove_exact<B>(
@@ -38,10 +43,7 @@ where
     B: Backend + BackendForChannel<Blake2sMerkleChannel>,
     PoseidonComponent: ComponentProver<B>,
 {
-    if !(7..34).contains(&log_n_instances) {
-        bail!("invalid exact Poseidon log_n_instances");
-    }
-    let log_n_rows = log_n_instances - LOG_INSTANCES_PER_ROW;
+    let log_n_rows = validate_prove_geometry(log_n_instances)?;
 
     let mut channel = Blake2sChannel::default();
     config.mix_into(&mut channel);
@@ -95,6 +97,26 @@ where
         prove_mode == ProveMode::ProveEx && include_all_preprocessed_columns,
     )?;
     Ok((claimed_sum, proof))
+}
+
+fn validate_prove_geometry(log_n_instances: u32) -> Result<u32> {
+    if !(7..34).contains(&log_n_instances) {
+        bail!("invalid exact Poseidon log_n_instances");
+    }
+    let log_n_rows = log_n_instances - LOG_INSTANCES_PER_ROW;
+    let rows = 1u64
+        .checked_shl(log_n_rows)
+        .ok_or_else(|| anyhow!("exact Poseidon row count overflow"))?;
+    let trace_cells = rows
+        .checked_mul((MAIN_COLUMNS + INTERACTION_COLUMNS) as u64)
+        .ok_or_else(|| anyhow!("exact Poseidon trace-cell count overflow"))?;
+    if trace_cells > MAX_ORACLE_TRACE_CELLS {
+        bail!(
+            "exact Poseidon oracle resource cap exceeded: \
+             {trace_cells} trace cells > {MAX_ORACLE_TRACE_CELLS}"
+        );
+    }
+    Ok(log_n_rows)
 }
 
 fn convert_simd_evaluation<B>(
@@ -322,4 +344,21 @@ fn extract_split2_composition_oods_eval(
     let right = *chunk2 + first_factor * *chunk3;
     let root_factor = oods_point.repeated_double(composition_log_size - 2).x;
     Ok(left + root_factor * right)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{validate_prove_geometry, MAX_ORACLE_TRACE_CELLS};
+
+    #[test]
+    fn proving_geometry_fails_before_infallible_witness_allocation() {
+        assert_eq!(validate_prove_geometry(7).unwrap(), 4);
+        assert_eq!(validate_prove_geometry(17).unwrap(), 14);
+
+        let error = validate_prove_geometry(18).unwrap_err().to_string();
+        assert!(error.contains("resource cap exceeded"));
+        assert!(error.contains(&MAX_ORACLE_TRACE_CELLS.to_string()));
+        assert!(validate_prove_geometry(6).is_err());
+        assert!(validate_prove_geometry(34).is_err());
+    }
 }
