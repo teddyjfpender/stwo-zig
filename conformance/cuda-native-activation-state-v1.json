@@ -112,10 +112,10 @@
       "blockers": {
         "exact_trace_semantics": null,
         "exact_constraint_semantics": null,
-        "exact_cpu_cuda_proof_bytes": "The retained CPU/CUDA byte match covers the provisional constant-composition route, not an exact Poseidon AIR proof.",
-        "pinned_rust_verification": "Pinned Rust accepted the provisional route; it is not release evidence for the missing exact Poseidon constraint semantics.",
-        "zero_fallback": "Zero fallback was observed for the provisional route only and must be re-established after exact Poseidon constraints land.",
-        "complete_stage_telemetry": "Stage telemetry covers the provisional route only and must be re-established after exact Poseidon constraints land."
+        "exact_cpu_cuda_proof_bytes": "Exact Poseidon trace, relation, and constraint semantics pass host/AOT differentials, but no locked-RTX CPU/CUDA proof-byte match has been retained.",
+        "pinned_rust_verification": "The exact CUDA Poseidon proof has not yet been produced on the locked RTX host and accepted by the pinned Rust oracle.",
+        "zero_fallback": "Zero fallback must be established by an exact Poseidon proof request on the locked RTX host.",
+        "complete_stage_telemetry": "Complete exact Poseidon stage telemetry must be retained from the locked RTX host."
       }
     },
     "plonk_logup": {
