@@ -28,7 +28,7 @@ const request_compiler = @import("../../request_compiler.zig");
 const resident_plan = @import("../resident_plan.zig");
 const trace_writer = @import("../trace_writer_controller.zig");
 const writer_inputs = @import("writer_inputs.zig");
-const geometry = @import("writer_preaction_geometry.zig");
+const preaction_geometry = @import("writer_preaction_geometry.zig");
 const writer_views = @import("writer_views.zig");
 
 const expected_gather_actions = 8;
@@ -272,13 +272,13 @@ fn prepareGather(
             .instance_count = edge.instances,
             .destination_row_offset = destination_row,
         };
-        destination_row = try geometry.addU32(
+        destination_row = try preaction_geometry.addU32(
             destination_row,
-            try geometry.mulU32(source.padded_rows, edge.instances),
+            try preaction_geometry.mulU32(source.padded_rows, edge.instances),
         );
     }
     if (destination_row > consumer_rows or
-        try geometry.canonicalRows(destination_row) != consumer_rows)
+        try preaction_geometry.canonicalRows(destination_row) != consumer_rows)
     {
         return error.InvalidWriterPreactionLayout;
     }
@@ -393,12 +393,12 @@ fn prepareCompact(
             host_descriptors[first..][0..compact_descriptor_words],
             &descriptor,
         );
-        total_rows = try geometry.addU32(
+        total_rows = try preaction_geometry.addU32(
             total_rows,
-            try geometry.mulU32(real_rows, edge.instances),
+            try preaction_geometry.mulU32(real_rows, edge.instances),
         );
     }
-    const sort_rows = try geometry.nextPowerOfTwo(total_rows);
+    const sort_rows = try preaction_geometry.nextPowerOfTwo(total_rows);
     if (total_rows == 0 or consumer_rows < 16 or
         !std.math.isPowerOfTwo(consumer_rows))
     {
@@ -533,7 +533,7 @@ fn producerSource(
         return error.MissingRecordedWitnessLowering).program;
     if (program.n_sub_words == 0 or view.sub_words.len == 0 or
         view.sub_words.len % program.n_sub_words != 0 or
-        !geometry.contains(scratch, view.sub_words))
+        !preaction_geometry.contains(scratch, view.sub_words))
     {
         return error.InvalidWriterPreactionProducer;
     }
