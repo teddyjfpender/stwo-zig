@@ -4,10 +4,6 @@ const commit_tree = @import("../../common/commit_tree.zig");
 const ingress = @import("ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");
-const poseidon_input = @import(
-    "../../../../examples/poseidon/input.zig",
-);
-const slots = @import("../slots.zig");
 const stages = @import(
     "../../../../backends/cuda/runtime/stages/mod.zig",
 );
@@ -29,11 +25,8 @@ pub fn generate(
     try trace.generate(
         transaction.proofSession(),
         main.coefficients,
+        views.relation.source_values,
         prepared.logical.geometry.statement,
-    );
-    try snapshotRelationSources(
-        transaction,
-        prepared.logical.geometry,
     );
 }
 
@@ -139,40 +132,6 @@ pub fn commit(
         try ingress.statementSource(views),
         false,
     );
-}
-
-pub fn snapshotRelationSources(
-    transaction: anytype,
-    geometry: @import("../geometry.zig").Geometry,
-) !void {
-    const rows = try geometry.traceRowCount();
-    const retained_stride = geometry.commitment_rows;
-    for (0..poseidon_input.N_INSTANCES_PER_ROW) |rep| {
-        const trace_base = rep * poseidon_input.N_COLUMNS_PER_REP;
-        const final_base =
-            trace_base + poseidon_input.N_COLUMNS_PER_REP -
-            poseidon_input.N_STATE;
-        const relation_base = rep * poseidon_input.N_STATE * 2;
-        for (0..poseidon_input.N_STATE) |lane| {
-            try transaction.copyResidentSlice(
-                u32,
-                slots.relation_source_values,
-                (relation_base + lane) * rows,
-                slots.main_coefficients,
-                (trace_base + lane) * retained_stride,
-                rows,
-            );
-            try transaction.copyResidentSlice(
-                u32,
-                slots.relation_source_values,
-                (relation_base + poseidon_input.N_STATE + lane) *
-                    rows,
-                slots.main_coefficients,
-                (final_base + lane) * retained_stride,
-                rows,
-            );
-        }
-    }
 }
 
 fn traceOpening(

@@ -19,12 +19,14 @@ pub const recipe = m31_permutation.Recipe{
 pub fn prepare(
     session: anytype,
     destination: common.WordMatrix,
+    relation_snapshot: common.WordMatrix,
     statement: cpu_poseidon.Statement,
 ) !m31_permutation.PreparedLaunch {
     const log_n_rows = try cpu_poseidon.logNRows(statement);
     return m31_permutation.prepare(
         session,
         destination,
+        relation_snapshot,
         .{
             .log_n_rows = log_n_rows,
             .replication_count = cpu_poseidon.N_INSTANCES_PER_ROW,
@@ -38,9 +40,15 @@ pub fn prepare(
 pub fn generate(
     session: anytype,
     destination: common.WordMatrix,
+    relation_snapshot: common.WordMatrix,
     statement: cpu_poseidon.Statement,
 ) !void {
-    var launch = try prepare(session, destination, statement);
+    var launch = try prepare(
+        session,
+        destination,
+        relation_snapshot,
+        statement,
+    );
     try launch.launch(session);
 }
 
@@ -53,6 +61,15 @@ test "Poseidon binding contributes only statement geometry and AIR recipe" {
             .storage = .{
                 .address = 0x1000,
                 .len = 8 * cpu_poseidon.N_COLUMNS,
+                .owner = 7,
+                .generation = 11,
+            },
+            .column_stride_words = 8,
+        },
+        .{
+            .storage = .{
+                .address = 0x20_0000,
+                .len = 8 * 256,
                 .owner = 7,
                 .generation = 11,
             },

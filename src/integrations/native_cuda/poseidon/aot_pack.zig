@@ -25,7 +25,7 @@ pub const Entry = struct {
 pub const entries = [_]Entry{
     .{
         .stage = .trace_generation,
-        .abi_schema = .native_m31_permutation_trace_v2,
+        .abi_schema = .native_m31_permutation_trace_v3,
         .cache_key = witness.cache_key,
         .kernel_name = witness.kernel_name,
     },
@@ -40,9 +40,9 @@ pub const entries = [_]Entry{
 pub const identity: ir.Digest = blk: {
     @setEvalBranchQuota(10_000);
     break :blk ir.identityDigest(
-        "stwo-zig/native-cuda/poseidon/aot-pack/v2;" ++
+        "stwo-zig/native-cuda/poseidon/aot-pack/v3;" ++
             "sm=89;" ++
-            "witness=m31-permutation:d5701a3db042081d;" ++
+            "witness=m31-permutation:0ce5a65a150f8601;" ++
             "constraint=poseidon:fab354a9f2437fcb",
     );
 };

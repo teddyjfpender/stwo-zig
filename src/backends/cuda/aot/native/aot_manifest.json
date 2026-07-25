@@ -108,16 +108,16 @@
     "semantic_hash": "ad484862f20d700c"
   },
   {
-    "abi_schema": "native_m31_permutation_trace_v2",
-    "cache_key": "d5701a3db042081d",
-    "file": "witness_m31_permutation_trace_d5701a3db042081d.cu",
+    "abi_schema": "native_m31_permutation_trace_v3",
+    "cache_key": "0ce5a65a150f8601",
+    "file": "witness_m31_permutation_trace_0ce5a65a150f8601.cu",
     "identity_scheme": "sha256-source-and-contract-v1",
-    "kernel_name": "stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782",
+    "kernel_name": "stwo_native_trace_m31_permutation_slab_v3_5c1cfb67d2fc10b4",
     "kind": "witness",
     "label": "m31_permutation_trace",
-    "program_identity": "102ef585ed348ab618d1c157a77117cac2eabf390f16e1c822a8c835ca4cd68a",
-    "semantic_contract": "stwo-zig/native/m31-permutation-trace/v2;field=m31;state_width=16;geometry=row_count=2^log_n_rows,column_count=replication_count*(16*(1+2*half_full_rounds)+partial_rounds);initial=from_u64(row*initial_row_stride+state+rep*initial_rep_stride);external=add(base+round*round_stride+state*lane_stride),m4x4,interblock_sum,pow5,store16;partial=state0+base+round*stride,internal_diag_pow2_plus_sum,pow5_state0,store1;layout=column_major_slab[column*stride+row];launches=1",
-    "semantic_hash": "92bacae40f1ca782"
+    "program_identity": "5c58180cd2175142ae9c7f5fde1e1b7a01b198a63e44ceff83143deeb1d25fa1",
+    "semantic_contract": "stwo-zig/native/m31-permutation-trace/v3;field=m31;state_width=16;geometry=row_count=2^log_n_rows,column_count=replication_count*(16*(1+2*half_full_rounds)+partial_rounds);initial=from_u64(row*initial_row_stride+state+rep*initial_rep_stride);external=add(base+round*round_stride+state*lane_stride),m4x4,interblock_sum,pow5,store16;partial=state0+base+round*stride,internal_diag_pow2_plus_sum,pow5_state0,store1;trace_layout=column_major_slab[column*trace_stride+row];relation_snapshot=per_rep[initial16,final16],column_major[(rep*32+phase*16+lane)*relation_stride+row];launches=1",
+    "semantic_hash": "5c1cfb67d2fc10b4"
   },
   {
     "abi_schema": "native_seeded_xorshift_trace_v1",

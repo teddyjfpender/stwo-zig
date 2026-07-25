@@ -136,25 +136,6 @@ test "exact Poseidon composition executes the four-tree transcript" {
     try std.testing.expectEqual(@as(usize, 1), Calls.zeroes);
 }
 
-test "Poseidon relation snapshot preserves initial and final rows" {
-    const geometry = try exact.geometry.admit(
-        .{ .log_n_instances = 11 },
-        stwo.core.pcs.PcsConfig.default(),
-    );
-    var transaction = SnapshotTransaction{
-        .rows = try geometry.traceRowCount(),
-        .retained_stride = geometry.commitment_rows,
-    };
-    try exact.executor.trace_commit.snapshotRelationSources(
-        &transaction,
-        geometry,
-    );
-    try std.testing.expectEqual(
-        @as(usize, 256),
-        transaction.copies,
-    );
-}
-
 const Provider = struct {
     prepared: *const exact.plan.PreparedPlan,
 
@@ -456,46 +437,5 @@ const FakeTransaction = struct {
             return error.InvalidKernelDescriptor;
         }
         Calls.zeroes += 1;
-    }
-};
-
-const SnapshotTransaction = struct {
-    rows: usize,
-    retained_stride: usize,
-    copies: usize = 0,
-
-    pub fn copyResidentSlice(
-        self: *SnapshotTransaction,
-        comptime F: type,
-        destination_id: exact.slots.SlotId,
-        destination_first: usize,
-        source_id: exact.slots.SlotId,
-        source_first: usize,
-        count: usize,
-    ) !void {
-        if (F != u32 or
-            destination_id != exact.slots.relation_source_values or
-            source_id != exact.slots.main_coefficients or
-            count != self.rows)
-        {
-            return error.InvalidKernelDescriptor;
-        }
-        const rep = self.copies / 32;
-        const within = self.copies % 32;
-        const lane = within / 2;
-        const final = within % 2 == 1;
-        const relation_column =
-            rep * 32 + (if (final) @as(usize, 16) else 0) + lane;
-        const trace_column = rep * 158 +
-            (if (final) @as(usize, 142) else 0) + lane;
-        try std.testing.expectEqual(
-            relation_column * self.rows,
-            destination_first,
-        );
-        try std.testing.expectEqual(
-            trace_column * self.retained_stride,
-            source_first,
-        );
-        self.copies += 1;
     }
 };

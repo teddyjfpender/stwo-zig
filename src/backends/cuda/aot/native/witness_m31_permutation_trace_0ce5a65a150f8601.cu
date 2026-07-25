@@ -1,4 +1,4 @@
-// Generic 16-lane M31 algebraic-permutation trace generation.
+// Generic 16-lane M31 algebraic-permutation trace and relation projection.
 //
 // The proof frontend supplies statement geometry and the complete scalar
 // recipe. This program owns no statement policy, allocation, transfer,
@@ -87,10 +87,13 @@ __device__ __forceinline__ void stwo_m31_internal_matrix(
 }
 
 extern "C" __global__ void __launch_bounds__(256)
-stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782(
+stwo_native_trace_m31_permutation_slab_v3_5c1cfb67d2fc10b4(
     unsigned *trace_slab,
     u64 trace_slab_words,
     u64 column_stride_words,
+    unsigned *relation_snapshot_slab,
+    u64 relation_snapshot_words,
+    u64 relation_column_stride_words,
     unsigned row_count,
     unsigned log_n_rows,
     unsigned replication_count,
@@ -110,12 +113,15 @@ stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782(
         (u64)STWO_M31_STATE_WIDTH * (1ull + 2ull * half_full_rounds) +
         partial_rounds;
     const u64 column_count = (u64)replication_count * columns_per_rep;
+    const u64 relation_column_count =
+        (u64)replication_count * 2ull * STWO_M31_STATE_WIDTH;
     const u64 expected_rows =
         log_n_rows < 31u ? 1ull << log_n_rows : 0ull;
     const u64 maximum_row_base =
         expected_rows == 0ull ? ~0ull :
         (expected_rows - 1ull) * initial_row_stride;
-    if (trace_slab == nullptr || log_n_rows >= 31u ||
+    if (trace_slab == nullptr || relation_snapshot_slab == nullptr ||
+        log_n_rows >= 31u ||
         (u64)row_count != expected_rows ||
         replication_count == 0u || replication_count > 256u ||
         half_full_rounds == 0u || half_full_rounds > 64u ||
@@ -124,6 +130,10 @@ stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782(
         column_stride_words < expected_rows ||
         column_stride_words > (~0ull) / column_count ||
         trace_slab_words != column_stride_words * column_count ||
+        relation_column_stride_words < expected_rows ||
+        relation_column_stride_words > (~0ull) / relation_column_count ||
+        relation_snapshot_words !=
+            relation_column_stride_words * relation_column_count ||
         initial_row_stride == 0ull || initial_rep_stride == 0ull ||
         (expected_rows - 1ull) > (~0ull) / initial_row_stride ||
         maximum_row_base > ~0ull - (STWO_M31_STATE_WIDTH - 1u) ||
@@ -141,6 +151,10 @@ stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782(
         for (unsigned lane = 0u; lane < STWO_M31_STATE_WIDTH; ++lane) {
             state[lane] = stwo_m31_from_u64(initial_base + lane);
             trace_slab[column * column_stride_words + row] = state[lane];
+            relation_snapshot_slab[
+                ((u64)rep * 2ull * STWO_M31_STATE_WIDTH + lane) *
+                    relation_column_stride_words +
+                row] = state[lane];
             ++column;
         }
 
@@ -190,6 +204,13 @@ stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782(
                 trace_slab[column * column_stride_words + row] = state[lane];
                 ++column;
             }
+        }
+        for (unsigned lane = 0u; lane < STWO_M31_STATE_WIDTH; ++lane) {
+            relation_snapshot_slab[
+                ((u64)rep * 2ull * STWO_M31_STATE_WIDTH +
+                 STWO_M31_STATE_WIDTH + lane) *
+                    relation_column_stride_words +
+                row] = state[lane];
         }
     }
 }

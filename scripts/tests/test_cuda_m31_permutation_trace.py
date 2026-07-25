@@ -25,7 +25,7 @@ class CudaM31PermutationTraceTests(unittest.TestCase):
             item for item in manifest if item["label"] == "m31_permutation_trace"
         )
         self.assertEqual(
-            "native_m31_permutation_trace_v2",
+            "native_m31_permutation_trace_v3",
             entry["abi_schema"],
         )
         source = NATIVE_AOT / entry["file"]
@@ -137,6 +137,8 @@ void internal_matrix(unsigned *state) {{
 void row(
     unsigned *trace,
     std::uint64_t stride,
+    unsigned *relation,
+    std::uint64_t relation_stride,
     unsigned row_index,
     unsigned reps,
     unsigned half_rounds,
@@ -148,6 +150,10 @@ void row(
             state[lane] = from_u64(
                 static_cast<std::uint64_t>(row_index) + lane + rep);
             trace[column++ * stride + row_index] = state[lane];
+            relation[
+                (static_cast<std::uint64_t>(rep) * 32 + lane) *
+                    relation_stride +
+                row_index] = state[lane];
         }}
         for (unsigned round = 0; round < half_rounds; ++round) {{
             for (unsigned lane = 0; lane < 16; ++lane) {{
@@ -180,6 +186,12 @@ void row(
                 trace[column++ * stride + row_index] = state[lane];
             }}
         }}
+        for (unsigned lane = 0; lane < 16; ++lane) {{
+            relation[
+                (static_cast<std::uint64_t>(rep) * 32 + 16 + lane) *
+                    relation_stride +
+                row_index] = state[lane];
+        }}
     }}
 }}
 }}  // namespace expected
@@ -194,17 +206,27 @@ void run_case(
         16ull * (1ull + 2ull * half_rounds) + partial_rounds;
     const std::uint64_t columns = reps * columns_per_rep;
     const std::uint64_t stride = rows + 3;
+    const std::uint64_t relation_columns = reps * 32ull;
+    const std::uint64_t relation_stride = rows + 5;
     std::vector<unsigned> actual(stride * columns, 0xa5a5a5a5u);
     std::vector<unsigned> oracle(stride * columns, 0xa5a5a5a5u);
+    std::vector<unsigned> actual_relation(
+        relation_stride * relation_columns, 0x5a5a5a5au);
+    std::vector<unsigned> oracle_relation(
+        relation_stride * relation_columns, 0x5a5a5a5au);
     for (unsigned row = 0; row < rows; ++row) {{
         threadIdx.x = row;
         {kernel_name}(
-            actual.data(), actual.size(), stride, rows, log_rows, reps,
+            actual.data(), actual.size(), stride,
+            actual_relation.data(), actual_relation.size(), relation_stride,
+            rows, log_rows, reps,
             half_rounds, partial_rounds, 1, 1, 1234, 0, 0, 1234, 0);
         expected::row(
-            oracle.data(), stride, row, reps, half_rounds, partial_rounds);
+            oracle.data(), stride, oracle_relation.data(), relation_stride,
+            row, reps, half_rounds, partial_rounds);
     }}
     assert(actual == oracle);
+    assert(actual_relation == oracle_relation);
 }}
 
 int main() {{

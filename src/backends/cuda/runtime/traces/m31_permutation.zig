@@ -7,10 +7,10 @@ const common = @import("../stages/common.zig");
 const layout = @import("../stages/resident_layout.zig");
 const telemetry = @import("../telemetry.zig");
 
-pub const argument_count: u32 = 15;
-pub const cache_key: u64 = 0xd5701a3db042081d;
+pub const argument_count: u32 = 18;
+pub const cache_key: u64 = 0x0ce5a65a150f8601;
 pub const kernel_name =
-    "stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782";
+    "stwo_native_trace_m31_permutation_slab_v3_5c1cfb67d2fc10b4";
 
 pub const state_width: u32 = 16;
 
@@ -45,6 +45,9 @@ const Arguments = struct {
     trace_slab: [*]u32,
     trace_slab_words: u64,
     column_stride_words: u64,
+    relation_snapshot_slab: [*]u32,
+    relation_snapshot_words: u64,
+    relation_column_stride_words: u64,
     row_count: u32,
     log_n_rows: u32,
     replication_count: u32,
@@ -63,6 +66,9 @@ const Arguments = struct {
             @ptrCast(&self.trace_slab),
             @ptrCast(&self.trace_slab_words),
             @ptrCast(&self.column_stride_words),
+            @ptrCast(&self.relation_snapshot_slab),
+            @ptrCast(&self.relation_snapshot_words),
+            @ptrCast(&self.relation_column_stride_words),
             @ptrCast(&self.row_count),
             @ptrCast(&self.log_n_rows),
             @ptrCast(&self.replication_count),
@@ -82,6 +88,7 @@ const Arguments = struct {
 pub fn prepare(
     session: anytype,
     destination: common.WordMatrix,
+    relation_snapshot: common.WordMatrix,
     geometry: Geometry,
     recipe: Recipe,
 ) runtime_error.Error!PreparedLaunch {
@@ -100,6 +107,26 @@ pub fn prepare(
     ) catch return error.SizeOverflow;
     if (destination.storage.len != exact_words)
         return error.InvalidKernelDescriptor;
+    const relation_column_count = std.math.mul(
+        usize,
+        geometry.replication_count,
+        2 * state_width,
+    ) catch return error.SizeOverflow;
+    const relation = try layout.wordMatrix(
+        session,
+        relation_snapshot,
+        row_count,
+    );
+    if (relation.column_count != relation_column_count)
+        return error.InvalidKernelDescriptor;
+    const relation_words = std.math.mul(
+        usize,
+        relation.stride_words,
+        relation_column_count,
+    ) catch return error.SizeOverflow;
+    if (relation_snapshot.storage.len != relation_words)
+        return error.InvalidKernelDescriptor;
+    try layout.requireDisjoint(&.{matrix.range}, &.{relation.range});
 
     return .{
         .kernel = try descriptor(geometry.log_n_rows),
@@ -107,6 +134,9 @@ pub fn prepare(
             .trace_slab = matrix.pointer,
             .trace_slab_words = try u64Count(destination.storage.len),
             .column_stride_words = try u64Count(matrix.stride_words),
+            .relation_snapshot_slab = relation.pointer,
+            .relation_snapshot_words = try u64Count(relation_snapshot.storage.len),
+            .relation_column_stride_words = try u64Count(relation.stride_words),
             .row_count = row_count,
             .log_n_rows = geometry.log_n_rows,
             .replication_count = geometry.replication_count,
@@ -127,7 +157,7 @@ pub fn descriptor(log_n_rows: u32) runtime_error.Error!kernel_module.Kernel {
     const rows = try rowCount(log_n_rows);
     return .{
         .stage = .trace_generation,
-        .abi_schema = .native_m31_permutation_trace_v2,
+        .abi_schema = .native_m31_permutation_trace_v3,
         .cache_key = cache_key,
         .name = kernel_name,
         .grid = .{ 1 + (rows - 1) / 256, 1, 1 },
@@ -252,6 +282,7 @@ test "M31 permutation binding admits target and non-target geometry" {
     var target = try prepare(
         &session,
         testMatrix(0x1000, 128, 1264),
+        testMatrix(0x20_0000, 128, 256),
         .{
             .log_n_rows = 7,
             .replication_count = 8,
@@ -264,6 +295,7 @@ test "M31 permutation binding admits target and non-target geometry" {
     var non_target = try prepare(
         &session,
         testMatrix(0x1000, 8, 158),
+        testMatrix(0x30_000, 8, 32),
         .{
             .log_n_rows = 3,
             .replication_count = 1,
@@ -285,23 +317,46 @@ test "M31 permutation binding rejects shape range and recipe drift" {
         .partial_rounds = 14,
     };
     const matrix = testMatrix(0x1000, 8, 158);
+    const relation = testMatrix(0x30_000, 8, 32);
     var short = matrix;
     short.storage.len -= 1;
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
-        prepare(&session, short, geometry, testRecipe()),
+        prepare(&session, short, relation, geometry, testRecipe()),
     );
     var foreign = matrix;
     foreign.storage.owner += 1;
     try std.testing.expectError(
         error.InvalidDeviceAddress,
-        prepare(&session, foreign, geometry, testRecipe()),
+        prepare(&session, foreign, relation, geometry, testRecipe()),
     );
     var invalid = testRecipe();
     invalid.initial_rep_stride = 0;
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
-        prepare(&session, matrix, geometry, invalid),
+        prepare(&session, matrix, relation, geometry, invalid),
+    );
+    var short_relation = relation;
+    short_relation.storage.len -= 1;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        prepare(
+            &session,
+            matrix,
+            short_relation,
+            geometry,
+            testRecipe(),
+        ),
+    );
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        prepare(
+            &session,
+            matrix,
+            testMatrix(0x1000, 8, 32),
+            geometry,
+            testRecipe(),
+        ),
     );
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
