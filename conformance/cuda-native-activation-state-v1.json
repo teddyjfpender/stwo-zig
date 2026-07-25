@@ -6,7 +6,7 @@
     "wide_fibonacci": {
       "release_ready": true,
       "gates": {
-        "exact_trace_semantics": false,
+        "exact_trace_semantics": true,
         "exact_constraint_semantics": true,
         "exact_cpu_cuda_proof_bytes": true,
         "pinned_rust_verification": true,
@@ -158,7 +158,7 @@
     "state_machine": {
       "release_ready": false,
       "gates": {
-        "exact_trace_semantics": true,
+        "exact_trace_semantics": false,
         "exact_constraint_semantics": false,
         "exact_cpu_cuda_proof_bytes": false,
         "pinned_rust_verification": false,
