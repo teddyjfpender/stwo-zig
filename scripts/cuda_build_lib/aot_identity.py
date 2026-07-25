@@ -16,6 +16,7 @@ NATIVE_AUTHENTICATED_SCHEMAS = {
     "native_circle_affine_state_trace_v1",
     "native_state_machine_statement_v1",
     "native_state_machine_constraint_v1",
+    "native_plonk_logup_constraint_v1",
     "native_indexed_recurrence_trace_v1",
     "native_m31_permutation_trace_v1",
     "native_seeded_xorshift_trace_v1",

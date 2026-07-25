@@ -18,6 +18,19 @@ const interaction = @import("interaction.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
 
+pub const DomainRowInput = struct {
+    log_n_rows: u32,
+    preprocessed: [4]M31,
+    main: [4]M31,
+    first_sum: QM31,
+    cumulative_previous: QM31,
+    cumulative_current: QM31,
+    lookup_elements: interaction.LookupElements,
+    claimed_sum: [4]M31,
+    random_powers: [3]QM31,
+    denominator_inverse: M31,
+};
+
 pub const Component = struct {
     log_n_rows: u32,
     lookup_elements: interaction.LookupElements,
@@ -221,9 +234,6 @@ pub const Component = struct {
         defer allocator.free(accumulators);
         var column_accumulator = &accumulators[0];
 
-        const shift = try self.claimedSum().divM31(
-            M31.fromU64(@as(u64, 1) << @intCast(self.log_n_rows)),
-        );
         const denominator_shift: std.math.Log2Int(usize) = @intCast(self.log_n_rows);
         for (0..eval_size) |row| {
             const previous_row = utils.previousBitReversedCircleDomainIndex(
@@ -231,37 +241,43 @@ pub const Component = struct {
                 self.log_n_rows,
                 eval_log_size,
             );
-            const algebraic = algebraicConstraint(
-                QM31.fromBase(evaluations[3][row]),
-                QM31.fromBase(evaluations[5][row]),
-                QM31.fromBase(evaluations[6][row]),
-                QM31.fromBase(evaluations[7][row]),
-            );
-            const q0 = self.lookup_elements.combineBase(
-                evaluations[0][row],
-                evaluations[5][row],
-            );
-            const q1 = self.lookup_elements.combineBase(
-                evaluations[1][row],
-                evaluations[6][row],
-            );
-            const first_sum = secureAt(evaluations[8..12], row);
-            const first_logup = first_sum.mul(q0).mul(q1).sub(q0.add(q1));
-            const q2 = self.lookup_elements.combineBase(
-                evaluations[2][row],
-                evaluations[7][row],
-            );
-            const current = secureAt(evaluations[12..16], row);
-            const previous = secureAt(evaluations[12..16], previous_row);
-            const final_logup = current.sub(previous).sub(first_sum).add(shift)
-                .mul(q2).addM31(evaluations[4][row]);
             const powers = column_accumulator.random_coeff_powers;
-            const combined = powers[powers.len - 1].mul(algebraic)
-                .add(powers[powers.len - 2].mul(first_logup))
-                .add(powers[powers.len - 3].mul(final_logup));
+            if (powers.len < 3) return error.InvalidProofShape;
+            const combined = try evaluateDomainRow(.{
+                .log_n_rows = self.log_n_rows,
+                .preprocessed = .{
+                    evaluations[0][row],
+                    evaluations[1][row],
+                    evaluations[2][row],
+                    evaluations[3][row],
+                },
+                .main = .{
+                    evaluations[4][row],
+                    evaluations[5][row],
+                    evaluations[6][row],
+                    evaluations[7][row],
+                },
+                .first_sum = secureAt(evaluations[8..12], row),
+                .cumulative_previous = secureAt(
+                    evaluations[12..16],
+                    previous_row,
+                ),
+                .cumulative_current = secureAt(
+                    evaluations[12..16],
+                    row,
+                ),
+                .lookup_elements = self.lookup_elements,
+                .claimed_sum = self.claimed_sum,
+                .random_powers = .{
+                    powers[powers.len - 3],
+                    powers[powers.len - 2],
+                    powers[powers.len - 1],
+                },
+                .denominator_inverse = denominator_inv[row >> denominator_shift],
+            });
             column_accumulator.accumulate(
                 row,
-                combined.mulM31(denominator_inv[row >> denominator_shift]),
+                combined,
             );
         }
     }
@@ -270,6 +286,42 @@ pub const Component = struct {
         return QM31.fromM31Array(self.claimed_sum);
     }
 };
+
+pub fn evaluateDomainRow(input: DomainRowInput) !QM31 {
+    const algebraic = algebraicConstraint(
+        QM31.fromBase(input.preprocessed[3]),
+        QM31.fromBase(input.main[1]),
+        QM31.fromBase(input.main[2]),
+        QM31.fromBase(input.main[3]),
+    );
+    const q0 = input.lookup_elements.combineBase(
+        input.preprocessed[0],
+        input.main[1],
+    );
+    const q1 = input.lookup_elements.combineBase(
+        input.preprocessed[1],
+        input.main[2],
+    );
+    const first_logup = input.first_sum.mul(q0).mul(q1).sub(q0.add(q1));
+    const q2 = input.lookup_elements.combineBase(
+        input.preprocessed[2],
+        input.main[3],
+    );
+    const rows = M31.fromU64(
+        @as(u64, 1) << @intCast(input.log_n_rows),
+    );
+    const shift = try QM31.fromM31Array(input.claimed_sum).divM31(rows);
+    const final_logup = input.cumulative_current
+        .sub(input.cumulative_previous)
+        .sub(input.first_sum)
+        .add(shift)
+        .mul(q2)
+        .addM31(input.main[0]);
+    return input.random_powers[2].mul(algebraic)
+        .add(input.random_powers[1].mul(first_logup))
+        .add(input.random_powers[0].mul(final_logup))
+        .mulM31(input.denominator_inverse);
+}
 
 fn algebraicConstraint(op: QM31, a: QM31, b: QM31, c: QM31) QM31 {
     return c.sub(op.mul(a.add(b))).add(QM31.one().sub(op).mul(a).mul(b));

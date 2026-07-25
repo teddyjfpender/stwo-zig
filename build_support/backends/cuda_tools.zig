@@ -105,6 +105,7 @@ pub fn addProducts(
         "scripts.tests.test_cuda_source_closure",
         "scripts.tests.test_cuda_product_closure",
         "scripts.tests.test_cuda_aot_authentication",
+        "scripts.tests.test_cuda_plonk_logup_aot",
         "scripts.tests.test_cuda_proof_parity_gate",
         "scripts.tests.test_cuda_activation",
     });

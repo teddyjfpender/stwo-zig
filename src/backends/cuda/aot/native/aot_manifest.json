@@ -12,6 +12,18 @@
     "semantic_hash": "578d333ea30082f5"
   },
   {
+    "abi_schema": "native_plonk_logup_constraint_v1",
+    "cache_key": "bfa4f42232b92676",
+    "file": "constraint_plonk_logup_bfa4f42232b92676.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_constraint_plonk_logup_slab_v1_1aeccc54c43f17c3",
+    "kind": "constraint",
+    "label": "plonk_logup",
+    "program_identity": "2f3b7526733402d8643ee767fb0f29eb0e98fa20022460a8d5352e7b83a0da23",
+    "semantic_contract": "stwo-zig/native/plonk-logup/constraint/v1;field=qm31;rows=2^(log_n_rows+1);sources=preprocessed4,main4,interaction8;lookup=z,alpha;claimed_sum=resident;constraints=algebraic,first_logup,cumulative_logup;previous=bit_reversed_circle_offset_minus_one;coefficients=alpha^2,alpha^1,alpha^0;denominator=coset_vanishing_inverse[row>>log_n_rows];output=coordinate_slab;launches=1",
+    "semantic_hash": "1aeccc54c43f17c3"
+  },
+  {
     "abi_schema": "native_state_machine_constraint_v1",
     "cache_key": "be136f524ac0d95c",
     "file": "constraint_state_machine_be136f524ac0d95c.cu",

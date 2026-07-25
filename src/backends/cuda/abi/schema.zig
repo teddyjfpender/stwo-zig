@@ -12,6 +12,7 @@ pub const KernelSchema = enum(u32) {
     native_circle_affine_state_trace_v1 = 9,
     native_state_machine_statement_v1 = 10,
     native_state_machine_constraint_v1 = 11,
+    native_plonk_logup_constraint_v1 = 12,
 };
 
 test "CUDA AOT schema identities are explicit and nonzero" {
