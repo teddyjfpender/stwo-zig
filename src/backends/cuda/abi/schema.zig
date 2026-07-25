@@ -17,6 +17,7 @@ pub const KernelSchema = enum(u32) {
     native_poseidon_constraint_v1 = 14,
     native_xor_logup_constraint_v1 = 15,
     native_xor_logup_trace_v1 = 16,
+    native_blake_constraint_v1 = 17,
     native_m31_permutation_trace_v3 = 18,
 };
 
