@@ -1,5 +1,6 @@
 //! Resident quotient-numerator and quotient-combination entry points.
 
+const compact_source = @import("../compact_source.zig");
 const field = @import("../field.zig");
 
 pub const PreparedTermDescriptor = extern struct {
@@ -16,15 +17,7 @@ pub const BatchTermDescriptor = extern struct {
     source_log_size: u32,
 };
 
-/// One logical source column inside a compact, variably-strided backing.
-///
-/// The explicit 64-bit offset keeps the device ABI stable across hosts and
-/// admits Cairo-scale arenas without truncating word offsets.
-pub const CompactSourceDescriptor = extern struct {
-    offset_words: u64,
-    stride_words: u32,
-    log_size: u32,
-};
+pub const CompactSourceDescriptor = compact_source.Descriptor;
 
 pub extern "c" fn stwo_prepare_quotient_numerator_terms_on(
     term_descriptors: [*]const PreparedTermDescriptor,

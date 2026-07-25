@@ -35,6 +35,12 @@ pub const default_steps = Steps{
 pub const Batch = oods_batches.Batch;
 pub const ExplicitBatch = oods_batches.Descriptor;
 pub const buildExplicitBatches = oods_batches.buildExplicit;
+pub const CompactSource = oods_batches.CompactSource;
+pub const CompactSample = oods_batches.CompactSample;
+pub const CompactCohort = oods_batches.CompactCohort;
+pub const CompactSchedule = oods_batches.CompactSchedule;
+pub const compileCompactSchedule = oods_batches.compileCompactSchedule;
+pub const bindCompactBatches = oods_batches.bindCompact;
 
 pub fn run(
     transaction: anytype,

@@ -32,6 +32,7 @@ test {
     _ = native_trace_commit;
     _ = oods_executor;
     _ = oods_batches;
+    _ = @import("oods_compact_schedule_test.zig");
     _ = pipeline;
     _ = pow_decommit_executor;
     _ = prepared_plan;
