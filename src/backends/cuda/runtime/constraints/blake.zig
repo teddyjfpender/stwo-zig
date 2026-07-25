@@ -2,6 +2,8 @@
 
 const std = @import("std");
 const field = @import("../../abi/field.zig");
+const abi_schema = @import("../../abi/schema.zig");
+const abi_types = @import("../../abi/types.zig");
 const kernel_module = @import("../kernel.zig");
 const runtime_error = @import("../error.zig");
 const common = @import("../stages/common.zig");
@@ -21,6 +23,34 @@ pub const ComponentKind = enum(u32) {
     round,
     xor,
 };
+
+pub const ResourceCeiling = struct {
+    max_registers_per_thread: u32,
+    max_local_bytes: u64,
+
+    pub fn fromRetainedReceipt(
+        receipt: abi_types.NativeAotFunctionReceipt,
+    ) runtime_error.Error!ResourceCeiling {
+        if (receipt.abi_version != kernel_module.receipt_abi_version or
+            receipt.abi_schema !=
+                @intFromEnum(abi_schema.KernelSchema.native_blake_constraint_v1) or
+            receipt.cache_key != cache_key or
+            receipt.sm_major == 0 or
+            receipt.registers_per_thread == 0 or
+            !receipt.verification.isVerified())
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        return .{
+            .max_registers_per_thread = receipt.registers_per_thread,
+            .max_local_bytes = receipt.local_bytes,
+        };
+    }
+};
+
+// Populated only from a retained locked-device receipt. Host-only evidence
+// cannot justify a CUDA compiler resource ceiling.
+pub const retained_resource_ceiling: ?ResourceCeiling = null;
 
 pub const ComponentDescriptor = struct {
     kind: ComponentKind,
@@ -281,6 +311,13 @@ fn component(
 fn descriptorForRows(
     rows: u32,
 ) runtime_error.Error!kernel_module.Kernel {
+    return descriptorForRowsWithCeiling(rows, retained_resource_ceiling);
+}
+
+fn descriptorForRowsWithCeiling(
+    rows: u32,
+    ceiling: ?ResourceCeiling,
+) runtime_error.Error!kernel_module.Kernel {
     return .{
         .stage = .constraint_evaluation,
         .abi_schema = .native_blake_constraint_v1,
@@ -289,6 +326,14 @@ fn descriptorForRows(
         .grid = .{ 1 + (rows - 1) / 64, 1, 1 },
         .block = .{ 64, 1, 1 },
         .argument_count = argument_count,
+        .max_registers_per_thread = if (ceiling) |value|
+            value.max_registers_per_thread
+        else
+            null,
+        .max_local_bytes = if (ceiling) |value|
+            value.max_local_bytes
+        else
+            null,
     };
 }
 
@@ -341,6 +386,48 @@ test "exact Blake descriptor rejects geometry outside resident u32 domains" {
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
         componentDescriptors(25),
+    );
+}
+
+test "exact Blake resource ceilings require retained device evidence" {
+    const unbounded = try descriptorForRows(64);
+    try std.testing.expectEqual(
+        @as(?u32, null),
+        unbounded.max_registers_per_thread,
+    );
+    try std.testing.expectEqual(@as(?u64, null), unbounded.max_local_bytes);
+
+    const retained_receipt = abi_types.NativeAotFunctionReceipt{
+        .abi_version = kernel_module.receipt_abi_version,
+        .abi_schema = @intFromEnum(
+            abi_schema.KernelSchema.native_blake_constraint_v1,
+        ),
+        .registers_per_thread = 128,
+        .local_bytes = 512,
+        .cache_key = cache_key,
+        .sm_major = 8,
+        .sm_minor = 9,
+        .verification = .{
+            .abi_version = abi_types.aot_verification_abi_version,
+            .verified = abi_types.aot_verification_verified,
+            .cubin_bytes = 4096,
+            .expected_sha256 = [_]u8{7} ** 32,
+            .observed_sha256 = [_]u8{7} ** 32,
+        },
+    };
+    const ceiling = try ResourceCeiling.fromRetainedReceipt(retained_receipt);
+    const retained = try descriptorForRowsWithCeiling(64, ceiling);
+    try std.testing.expectEqual(
+        @as(?u32, 128),
+        retained.max_registers_per_thread,
+    );
+    try std.testing.expectEqual(@as(?u64, 512), retained.max_local_bytes);
+
+    var foreign = retained_receipt;
+    foreign.cache_key ^= 1;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        ResourceCeiling.fromRetainedReceipt(foreign),
     );
 }
 

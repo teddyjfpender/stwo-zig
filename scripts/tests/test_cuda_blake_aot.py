@@ -334,6 +334,10 @@ class CudaBlakeAotTests(unittest.TestCase):
                 3,
             ),
             mul_base(
+                Round(2, 5, 153, previous_storage(1, 6)).evaluate(),
+                3,
+            ),
+            mul_base(
                 xor_component(7, 4, previous_storage(1, 9)),
                 3,
             ),
@@ -471,6 +475,14 @@ int main() {{
       denominators,2,relations.data(),relations.size(),
       claims.data(),claims.size(),coordinates.data(),coordinates.size(),
       maximum_stride,1u<<8,7,8,17,1,0);
+  for(unsigned c=0;c<4;++c) std::cout<<coordinates[c*maximum_stride+1]<<' ';
+  std::fill(coordinates.begin(),coordinates.end(),0u);
+  s=sources_at_stride(2,644,1u<<6);
+  stwo_native_constraint_blake_component_v1_64a336ee32f09d7e(
+      s.data(),s.size(),1u<<6,powers.data(),powers.size(),
+      denominators,2,relations.data(),relations.size(),
+      claims.data(),claims.size(),coordinates.data(),coordinates.size(),
+      maximum_stride,1u<<6,5,6,17,2,0);
   for(unsigned c=0;c<4;++c) std::cout<<coordinates[c*maximum_stride+1]<<' ';
   std::fill(coordinates.begin(),coordinates.end(),0u);
   s=sources_at_stride(7,8,1u<<9);
