@@ -10,6 +10,7 @@ pub const oods = @import("oods.zig");
 pub const oods_plan = @import("oods_plan.zig");
 pub const quotient = @import("quotient.zig");
 pub const relation = @import("relation.zig");
+pub const relation_completion = @import("relation_completion.zig");
 pub const resident_layout = @import("resident_layout.zig");
 pub const trace = @import("trace.zig");
 pub const transcript = @import("transcript.zig");
@@ -26,6 +27,7 @@ test {
     _ = oods_plan;
     _ = quotient;
     _ = relation;
+    _ = relation_completion;
     _ = resident_layout;
     _ = trace;
     _ = transcript;
