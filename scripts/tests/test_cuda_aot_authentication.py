@@ -215,6 +215,8 @@ extern "C" CUresult cuFuncGetAttribute(
         case CU_FUNC_ATTRIBUTE_NUM_REGS: *out = 32; break;
         case CU_FUNC_ATTRIBUTE_BINARY_VERSION: *out = 90; break;
         case CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES: *out = 49152; break;
+        case CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES: *out = 96; break;
+        case CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES: *out = 128; break;
         default: return CUDA_ERROR_INVALID_VALUE;
     }}
     return CUDA_SUCCESS;
@@ -239,7 +241,9 @@ int main() {{
         loader, 5, 1, "test_kernel", grid, block, 0, 1,
         &function, &receipt) == CUDA_SUCCESS);
     assert(kModuleLoads == 1);
-    assert(receipt.abi_version == 2);
+    assert(receipt.abi_version == 3);
+    assert(receipt.local_bytes == 96);
+    assert(receipt.static_shared_bytes == 128);
     assert(receipt.verification.abi_version == 1);
     assert(receipt.verification.verified == 1);
     assert(receipt.verification.cubin_bytes == sizeof(kImage));
@@ -296,6 +300,8 @@ enum {
     CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR = 75,
     CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR = 76,
     CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 0,
+    CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES = 1,
+    CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES = 3,
     CU_FUNC_ATTRIBUTE_NUM_REGS = 4,
     CU_FUNC_ATTRIBUTE_BINARY_VERSION = 6,
     CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES = 8,

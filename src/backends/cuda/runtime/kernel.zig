@@ -6,7 +6,7 @@ const types = @import("../abi/types.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
-pub const receipt_abi_version: u32 = 2;
+pub const receipt_abi_version: u32 = 3;
 
 pub const Kernel = struct {
     stage: telemetry.Stage,
@@ -17,6 +17,8 @@ pub const Kernel = struct {
     block: [3]u32,
     dynamic_shared_bytes: u32 = 0,
     argument_count: u32,
+    max_registers_per_thread: ?u32 = null,
+    max_local_bytes: ?u64 = null,
 
     pub fn validate(self: Kernel) runtime_error.Error!void {
         if (self.cache_key == 0 or self.name.len == 0 or self.argument_count == 0)
@@ -56,6 +58,11 @@ pub const Kernel = struct {
             receipt.module_token == 0 or
             receipt.function_token == 0 or
             receipt.stream_token != @intFromPtr(stream) or
+            (self.max_registers_per_thread != null and
+                receipt.registers_per_thread >
+                    self.max_registers_per_thread.?) or
+            (self.max_local_bytes != null and
+                receipt.local_bytes > self.max_local_bytes.?) or
             !receipt.verification.isVerified())
         {
             return error.AotReceiptMismatch;
@@ -92,6 +99,8 @@ test "kernel receipt binds launch to the admitted device and stream" {
         .registers_per_thread = 48,
         .max_threads_per_block = 1024,
         .binary_version = 90,
+        .local_bytes = 128,
+        .static_shared_bytes = 256,
         .cache_key = 0x1234,
         .context_token = 1,
         .module_token = 2,
@@ -118,6 +127,22 @@ test "kernel receipt binds launch to the admitted device and stream" {
     try std.testing.expectError(
         error.AotReceiptMismatch,
         kernel.validateReceipt(wrong, device, &stream_word),
+    );
+    wrong = receipt;
+    wrong.local_bytes = 129;
+    const resource_bounded = Kernel{
+        .stage = kernel.stage,
+        .abi_schema = kernel.abi_schema,
+        .cache_key = kernel.cache_key,
+        .name = kernel.name,
+        .grid = kernel.grid,
+        .block = kernel.block,
+        .argument_count = kernel.argument_count,
+        .max_local_bytes = 128,
+    };
+    try std.testing.expectError(
+        error.AotReceiptMismatch,
+        resource_bounded.validateReceipt(wrong, device, &stream_word),
     );
     wrong = receipt;
     wrong.verification.observed_sha256[0] ^= 0xff;

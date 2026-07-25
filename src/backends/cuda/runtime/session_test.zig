@@ -111,6 +111,8 @@ test "strict session returns a resident verdict and never exposes fallback" {
                 .registers_per_thread = 32,
                 .max_threads_per_block = 1024,
                 .binary_version = 90,
+                .local_bytes = 0,
+                .static_shared_bytes = 0,
                 .cache_key = cache_key,
                 .context_token = 1,
                 .module_token = 2,

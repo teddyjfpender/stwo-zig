@@ -87,6 +87,8 @@ pub const NativeAotFunctionReceipt = extern struct {
     registers_per_thread: u32 = 0,
     max_threads_per_block: u32 = 0,
     binary_version: u32 = 0,
+    local_bytes: u64 = 0,
+    static_shared_bytes: u64 = 0,
     cache_key: u64 = 0,
     context_token: u64 = 0,
     module_token: u64 = 0,
@@ -108,12 +110,13 @@ comptime {
     std.debug.assert(@offsetOf(NativeAotVerificationReceipt, "cubin_bytes") == 8);
     std.debug.assert(@offsetOf(NativeAotVerificationReceipt, "expected_sha256") == 16);
     std.debug.assert(@offsetOf(NativeAotVerificationReceipt, "observed_sha256") == 48);
-    std.debug.assert(@sizeOf(NativeAotFunctionReceipt) == 184);
+    std.debug.assert(@sizeOf(NativeAotFunctionReceipt) == 200);
     std.debug.assert(@alignOf(NativeAotFunctionReceipt) == 8);
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "abi_schema") == 4);
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "grid") == 20);
-    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "cache_key") == 64);
-    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "verification") == 104);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "local_bytes") == 64);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "cache_key") == 80);
+    std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "verification") == 120);
 }
 
 test "platform snapshot rejects incomplete provenance" {

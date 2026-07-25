@@ -37,6 +37,8 @@ typedef struct {
     uint32_t registers_per_thread;
     uint32_t max_threads_per_block;
     uint32_t binary_version;
+    uint64_t local_bytes;
+    uint64_t static_shared_bytes;
     uint64_t cache_key;
     uint64_t context_token;
     uint64_t module_token;
@@ -55,14 +57,16 @@ static_assert(offsetof(StwoNativeAotVerificationReceipt, expected_sha256) == 16,
               "AOT verification receipt expected-digest offset");
 static_assert(offsetof(StwoNativeAotVerificationReceipt, observed_sha256) == 48,
               "AOT verification receipt observed-digest offset");
-static_assert(sizeof(StwoNativeAotFunctionReceipt) == 184, "AOT receipt ABI size");
+static_assert(sizeof(StwoNativeAotFunctionReceipt) == 200, "AOT receipt ABI size");
 static_assert(offsetof(StwoNativeAotFunctionReceipt, abi_schema) == 4,
               "AOT receipt schema offset");
 static_assert(offsetof(StwoNativeAotFunctionReceipt, grid) == 20,
               "AOT receipt grid offset");
-static_assert(offsetof(StwoNativeAotFunctionReceipt, cache_key) == 64,
+static_assert(offsetof(StwoNativeAotFunctionReceipt, local_bytes) == 64,
+              "AOT receipt local-byte offset");
+static_assert(offsetof(StwoNativeAotFunctionReceipt, cache_key) == 80,
               "AOT receipt cache-key offset");
-static_assert(offsetof(StwoNativeAotFunctionReceipt, verification) == 104,
+static_assert(offsetof(StwoNativeAotFunctionReceipt, verification) == 120,
               "AOT receipt verification offset");
 #endif
 

@@ -31,7 +31,7 @@ extern "C" int stwo_exec_context_device(void *handle, int *out_device);
 
 namespace {
 
-constexpr uint32_t kReceiptAbiVersion = 2;
+constexpr uint32_t kReceiptAbiVersion = 3;
 constexpr uint32_t kVerificationAbiVersion = 1;
 constexpr uint32_t kVerificationVerified = 1;
 
@@ -153,6 +153,8 @@ int validate_launch(
     int registers = 0;
     int binary_version = 0;
     int max_dynamic_shared = 0;
+    int local_bytes = 0;
+    int static_shared_bytes = 0;
     if (cuFuncGetAttribute(
             &max_threads, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, function) !=
             CUDA_SUCCESS ||
@@ -165,13 +167,24 @@ int validate_launch(
             &max_dynamic_shared,
             CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES,
             function) != CUDA_SUCCESS ||
+        cuFuncGetAttribute(
+            &local_bytes, CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES, function) !=
+            CUDA_SUCCESS ||
+        cuFuncGetAttribute(
+            &static_shared_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, function) !=
+            CUDA_SUCCESS ||
         max_threads <= 0 || threads > static_cast<uint64_t>(max_threads) ||
+        registers < 0 || binary_version <= 0 || local_bytes < 0 ||
+        static_shared_bytes < 0 ||
         dynamic_shared_bytes > static_cast<uint32_t>(max_dynamic_shared)) {
         return CUDA_ERROR_INVALID_VALUE;
     }
     receipt->registers_per_thread = static_cast<uint32_t>(registers);
     receipt->max_threads_per_block = static_cast<uint32_t>(max_threads);
     receipt->binary_version = static_cast<uint32_t>(binary_version);
+    receipt->local_bytes = static_cast<uint64_t>(local_bytes);
+    receipt->static_shared_bytes =
+        static_cast<uint64_t>(static_shared_bytes);
     return CUDA_SUCCESS;
 }
 
