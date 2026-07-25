@@ -44,7 +44,9 @@ fn run_capabilities() -> Result<()> {
         "protocol": "stwo_interop_capabilities_v1",
         "upstream_commit": UPSTREAM_COMMIT,
         "exact_air_protocols": {
+            "poseidon": poseidon_exact::PROTOCOL_NAME,
             "state_machine": state_machine::PROTOCOL_NAME,
+            "xor": xor::PROTOCOL_NAME,
         },
     });
     println!("{}", serde_json::to_string(&manifest)?);

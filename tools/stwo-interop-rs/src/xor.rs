@@ -18,6 +18,7 @@ use stwo::prover::backend::{Backend, BackendForChannel};
 use stwo::prover::{prove, prove_ex, CommitmentSchemeProver};
 
 const PROOF_COMMITMENTS: usize = 4;
+pub(crate) const PROTOCOL_NAME: &str = "raw-stwo-xor-lookup-v2";
 
 pub(crate) fn xor_prove<B>(
     config: PcsConfig,

@@ -15,6 +15,7 @@ const INTERACTION_COLUMNS: usize = 32;
 const COMPOSITION_LOG_SPLIT: u32 = 2;
 const COMPOSITION_CHUNKS: usize = 1 << COMPOSITION_LOG_SPLIT;
 const COMPOSITION_COLUMNS: usize = COMPOSITION_CHUNKS * SECURE_EXTENSION_DEGREE;
+pub(crate) const PROTOCOL_NAME: &str = "raw-stwo-poseidon-logup-split2-v1";
 
 pub(crate) fn verify_exact(
     config: PcsConfig,

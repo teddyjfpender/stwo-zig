@@ -188,7 +188,9 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
                     "protocol": "stwo_interop_capabilities_v1",
                     "upstream_commit": UPSTREAM_COMMIT,
                     "exact_air_protocols": {
+                        "poseidon": "raw-stwo-poseidon-logup-split2-v1",
                         "state_machine": "raw-stwo-state-machine-v2",
+                        "xor": "raw-stwo-xor-lookup-v2",
                     },
                 },
             ) as oracle_preflight, mock.patch(

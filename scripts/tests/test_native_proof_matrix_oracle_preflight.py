@@ -23,7 +23,9 @@ def capability_manifest() -> dict[str, object]:
         "protocol": RUST_ORACLE_CAPABILITY_PROTOCOL,
         "upstream_commit": INTEROP_UPSTREAM_COMMIT,
         "exact_air_protocols": {
+            "poseidon": AIR_PROTOCOLS["poseidon"],
             "state_machine": AIR_PROTOCOLS["state_machine"],
+            "xor": AIR_PROTOCOLS["xor"],
         },
     }
 
