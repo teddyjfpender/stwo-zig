@@ -1,4 +1,6 @@
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -287,6 +289,18 @@ class RegistryValidationTest(unittest.TestCase):
 
     def test_grouped_registry_validates(self):
         manifest_mod._validate(self._base_raw())  # must not raise
+
+    def test_load_does_not_require_optional_cuda_group(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_dir = root / "autoresearch"
+            manifest_dir.mkdir()
+            (manifest_dir / "MANIFEST.json").write_text(
+                json.dumps(self._base_raw()),
+                encoding="utf-8",
+            )
+            loaded = manifest_mod.load(root)
+        self.assertEqual(loaded.group("native").board, "core_cpu")
 
     def test_flat_v1_registry_rejected_with_migration_hint(self):
         raw = self._base_raw()

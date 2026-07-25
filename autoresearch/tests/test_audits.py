@@ -245,6 +245,10 @@ class AuditExecutionTest(unittest.TestCase):
         self._git(repo, "config", "user.name", "Audit Test")
         self._git(repo, "config", "user.email", "audit@example.com")
         shutil.copytree(ROOT / "autoresearch", repo / "autoresearch")
+        manifest_path = repo / "autoresearch" / "MANIFEST.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["workload_registry"]["groups"].pop("cuda")
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
         shutil.copy2(ROOT / ".gitignore", repo / ".gitignore")
         self._git(repo, "add", ".")
         self._git(repo, "commit", "-qm", "base")
