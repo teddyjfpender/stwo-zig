@@ -92,7 +92,7 @@ The codebase is divided by responsibility, not by arbitrary file size or impleme
 The intended dependency direction is:
 
 ```text
-frontends/cairo               block/program semantics, ingestion, AIR, witness (parked until stwo-cairo resumes)
+frontends/cairo               block/program semantics, ingestion, AIR, witness
              |
              v
 prover + backend contracts    protocol orchestration and capability interfaces
@@ -1118,11 +1118,15 @@ For Metal work on a supported Mac:
 zig build metal-test -Doptimize=ReleaseFast
 ```
 
-For the independent Cairo verifier adapter:
+For the final official Cairo correctness oracle:
 
 ```bash
-cargo test --manifest-path tools/stwo-cairo-verifier-rs/Cargo.toml
+cargo test --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml
 ```
+
+`tools/stwo-cairo-verifier-rs` remains a legacy SN2 envelope adapter. Its
+acceptance is not official Stwo-Cairo acceptance and cannot release a Cairo
+product.
 
 Release signoff uses the repository's documented release gates. Do not run expensive or thermal
 stress workloads casually on a shared development machine; choose a bounded smoke first and keep

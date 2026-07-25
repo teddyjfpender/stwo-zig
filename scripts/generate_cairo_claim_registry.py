@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the version-pinned Cairo claim registry used by the Zig port."""
+"""Generate the official, version-pinned Cairo claim registry used by the Zig port."""
 
 from __future__ import annotations
 
@@ -19,23 +19,24 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUST_ROOT = Path(
     os.environ.get(
         "STWO_CAIRO_RUST_ROOT",
-        ROOT.parent.parent / "personal" / "stwo-cairo",
+        ROOT.parent / "stwo-cairo",
     )
 )
-DEFAULT_OUTPUT = ROOT / "src/frontends/cairo/claim_registry.zig"
+DEFAULT_OUTPUT = ROOT / "src/frontends/cairo/air/official_claim_registry.zig"
 
-PINNED_STWO_CAIRO_REVISION = "dcd5834565b7a26a27a614e353c9c60109ebc1d9"
-PINNED_STWO_REVISION = "9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2"
+PINNED_STWO_CAIRO_REVISION = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78"
+PINNED_STWO_REVISION = "7b211edde786775016ef3eecb837a6240d8fe792"
 
-CLAIMS_PATH = Path("stwo_cairo_prover/crates/cairo-air/src/claims.rs")
-COMPONENTS_PATH = Path("stwo_cairo_prover/crates/cairo-air/src/components")
+CLAIMS_PATH = Path("crates/cairo-air/src/claims.rs")
+COMPONENTS_PATH = Path("crates/cairo-air/src/components")
 MEMORY_ADDRESS_PATH = COMPONENTS_PATH / "memory_address_to_id.rs"
 MEMORY_BIG_PATH = COMPONENTS_PATH / "memory_id_to_big.rs"
-MEMORY_CONSTANTS_PATH = Path("stwo_cairo_prover/crates/common/src/memory.rs")
+MEMORY_CONSTANTS_PATH = Path("crates/common/src/memory.rs")
 PREPROCESSED_PATH = Path(
-    "stwo_cairo_prover/crates/common/src/preprocessed_columns/preprocessed_trace.rs"
+    "crates/common/src/preprocessed_columns/preprocessed_trace.rs"
 )
-CARGO_MANIFEST_PATH = Path("stwo_cairo_prover/Cargo.toml")
+CARGO_MANIFEST_PATH = Path("Cargo.toml")
+CARGO_LOCK_PATH = Path("Cargo.lock")
 
 
 class RegistryError(ValueError):
@@ -339,15 +340,32 @@ def _verify_revisions(root: Path) -> None:
             f"expected stwo-cairo {PINNED_STWO_CAIRO_REVISION}, found {head}"
         )
     manifest = _git_show(root, CARGO_MANIFEST_PATH)
-    revisions = set(
+    declared_revisions = set(
         re.findall(
-            r'^stwo(?:-[\w-]+)?\s*=\s*\{[^\n]*rev\s*=\s*"([0-9a-f]{40})"',
+            r'^stwo(?:-[\w-]+)?\s*=\s*\{[^\n]*rev\s*=\s*"([0-9a-f]{8,40})"',
             manifest,
             re.MULTILINE,
         )
     )
-    if revisions != {PINNED_STWO_REVISION}:
-        raise RegistryError(f"unexpected Stwo revisions in pinned Cargo.toml: {revisions}")
+    if not declared_revisions or any(
+        not PINNED_STWO_REVISION.startswith(revision)
+        for revision in declared_revisions
+    ):
+        raise RegistryError(
+            f"unexpected Stwo revisions in pinned Cargo.toml: {declared_revisions}"
+        )
+    lockfile = _git_show(root, CARGO_LOCK_PATH)
+    locked_revisions = set(
+        re.findall(
+            r"git\+https://github\.com/starkware-libs/stwo"
+            r"(?:\?rev=[0-9a-f]{8,40})?#([0-9a-f]{40})",
+            lockfile,
+        )
+    )
+    if locked_revisions != {PINNED_STWO_REVISION}:
+        raise RegistryError(
+            f"unexpected Stwo revisions in pinned Cargo.lock: {locked_revisions}"
+        )
 
 
 def _verify_clean_sources(root: Path, paths: list[Path]) -> None:
@@ -407,6 +425,8 @@ def load_registry(root: Path) -> Registry:
         fixed_log_sizes[name] = _parse_u32_constant(_read_source(root, path), "LOG_SIZE")
 
     source_paths = [
+        CARGO_MANIFEST_PATH,
+        CARGO_LOCK_PATH,
         CLAIMS_PATH,
         MEMORY_ADDRESS_PATH,
         MEMORY_BIG_PATH,

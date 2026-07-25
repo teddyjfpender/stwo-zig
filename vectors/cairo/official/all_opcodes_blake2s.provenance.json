@@ -1,0 +1,25 @@
+{
+  "schema": "stwo_cairo_official_oracle_vector_v1",
+  "case": "test_prove_verify_all_opcode_components",
+  "source": {
+    "repository": "https://github.com/starkware-libs/stwo-cairo",
+    "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "prover_input_path": "test_data/test_prove_verify_all_opcode_components/prover_input.json",
+    "prover_input_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+    "stwo_repository": "https://github.com/starkware-libs/stwo",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+  },
+  "proof": {
+    "path": "vectors/cairo/official/all_opcodes_blake2s.proof.bz2",
+    "format": "binary",
+    "channel": "blake2s",
+    "bytes": 875491,
+    "sha256": "2d7acaabc6ac00afd1a840aaa1527c4a73a4807a9153dc3fe1d4fdefa86104f1"
+  },
+  "generation": {
+    "proof_command": "cargo run --profile witness-opt-1 --bin prove -- --prover_input_path INPUT --proof_path PROOF --proof-format json --verify",
+    "transcode_command": "cargo run --example compact_blake2s_fixture -- PROOF VECTOR",
+    "upstream_verify_cairo": true,
+    "isolated_oracle_verify_cairo": true
+  }
+}

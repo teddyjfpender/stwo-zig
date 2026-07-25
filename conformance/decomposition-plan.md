@@ -19,8 +19,8 @@ is the operative ledger.
 | `src/tools/metal_arena_plan/main.zig` | the active owner now has a responsible directory behind a 7-line Zig 0.15 package-root facade; split its retained 4,887-line orchestration by admission, schedule construction, proving, verification, and reporting without changing Metal semantics |
 | `src/backends/metal/runtime.zig` | continue the runtime decomposition into `src/backends/metal/runtime/` owners |
 | `src/backends/metal/runtime.m` | split the Objective-C bridge by admission, resources, encoding, and lifecycle |
-| `src/integrations/cairo_metal/arena_binding.zig` | phase facade split per the archived arena-binding plan (Cairo work resumes with stwo-cairo) |
-| Cairo-deferred trees (`src/frontends/cairo/`, `src/tests/cairo/`, tooling) | untouched until the stwo-cairo effort restarts; entries stay frozen |
+| `src/integrations/cairo_metal/arena_binding.zig` | split by statement binding, witness arenas, commitment trees, interaction state, quotient state, decommitment, and proof-session lifetime as each owner is replaced by the active [Stwo-Cairo port](2026-07-26-stwo-cairo-production-port-goal.md) |
+| Cairo trees (`src/frontends/cairo/`, `src/tests/cairo/`, tooling) | actively replace fork-derived SN2 surfaces with the official Stwo-Cairo port; shrink each exception in the same focused increment that supplies official Rust-oracle evidence |
 | Rust support crates over the size ceiling | reduce when the pinned oracle next changes; never edited casually |
 | `src/frontends/riscv/prover.zig` | split statement and column planning from backend-neutral proof orchestration; concrete CPU selection now lives in `src/integrations/riscv_cpu/` |
 | RISC-V oversized trace sources (`air/trace_columns.zig`, `infra_trace.zig`, `runner/trace.zig`) | decompose during the active Stark-V adapter completion; shrink each baseline entry with its extraction |

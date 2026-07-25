@@ -28,6 +28,10 @@ class PinLedger:
     native_revision: str
     riscv_repository: str
     riscv_revision: str
+    official_cairo_repository: str
+    official_cairo_revision: str
+    official_cairo_stwo_repository: str
+    official_cairo_stwo_revision: str
     cairo_repository: str
     cairo_revision: str
     cairo_stwo_repository: str
@@ -66,6 +70,26 @@ def parse_ledger(path: Path = DEFAULT_LEDGER) -> PinLedger:
             text,
             rf"^- Pinned Stark-V commit: `({REVISION_RE})`$",
             "Stark-V revision",
+        ),
+        official_cairo_repository=_single_field(
+            text,
+            r"^- Official Stwo-Cairo repository: `([^`]+)`$",
+            "official Stwo-Cairo repository",
+        ),
+        official_cairo_revision=_single_field(
+            text,
+            rf"^- Pinned official Stwo-Cairo commit: `({REVISION_RE})`$",
+            "official Stwo-Cairo revision",
+        ),
+        official_cairo_stwo_repository=_single_field(
+            text,
+            r"^- Official Cairo Stwo repository: `([^`]+)`$",
+            "official Cairo Stwo repository",
+        ),
+        official_cairo_stwo_revision=_single_field(
+            text,
+            rf"^- Pinned official Cairo Stwo commit: `({REVISION_RE})`$",
+            "official Cairo Stwo revision",
         ),
         cairo_repository=_single_field(
             text, r"^- Stwo-Cairo repository: `([^`]+)`$", "Cairo Stwo-Cairo repository"
@@ -172,6 +196,98 @@ def _check_cairo_manifest(root: Path, ledger: PinLedger) -> list[str]:
             ledger.cairo_stwo_revision,
         )
     )
+    return errors
+
+
+def _check_official_cairo_manifest(root: Path, ledger: PinLedger) -> list[str]:
+    relative_path = "tools/stwo-cairo-official-verifier-rs/Cargo.toml"
+    try:
+        manifest = _load_toml(root / relative_path)
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        return [f"{relative_path}: unable to parse manifest: {error}"]
+
+    metadata = manifest.get("package", {}).get("metadata", {}).get("official-verifier", {})
+    expected_metadata = {
+        "stwo-cairo-repository": ledger.official_cairo_repository,
+        "stwo-cairo-revision": ledger.official_cairo_revision,
+        "stwo-repository": ledger.official_cairo_stwo_repository,
+        "stwo-revision": ledger.official_cairo_stwo_revision,
+    }
+    errors = [
+        f"{relative_path}: metadata {key!r} is {metadata.get(key)!r}, expected {expected!r}"
+        for key, expected in expected_metadata.items()
+        if metadata.get(key) != expected
+    ]
+    dependencies = manifest.get("dependencies", {})
+    expected_dependencies = {
+        "cairo-air": (
+            ledger.official_cairo_repository,
+            ledger.official_cairo_revision,
+        ),
+        # Stwo-Cairo uses this short rev spelling. Matching it prevents Cargo
+        # from creating two incompatible identities for the same Stwo commit.
+        "stwo": (
+            ledger.official_cairo_stwo_repository,
+            ledger.official_cairo_stwo_revision[:8],
+        ),
+    }
+    for dependency, (repository, revision) in expected_dependencies.items():
+        value = dependencies.get(dependency)
+        if not isinstance(value, dict):
+            errors.append(f"{relative_path}: missing table dependency {dependency!r}")
+            continue
+        if value.get("git") != repository or value.get("rev") != revision:
+            errors.append(
+                f"{relative_path}: dependency {dependency!r} is "
+                f"{value.get('git')!r}@{value.get('rev')!r}, "
+                f"expected {repository!r}@{revision!r}"
+            )
+    for name, value in dependencies.items():
+        if isinstance(value, dict) and "path" in value:
+            errors.append(f"{relative_path}: path dependency {name!r} is forbidden")
+    for key in ("patch", "replace"):
+        if key in manifest:
+            errors.append(f"{relative_path}: [{key}] is forbidden in the official oracle")
+    return errors
+
+
+def _check_official_cairo_vector(root: Path, ledger: PinLedger) -> list[str]:
+    relative_path = "vectors/cairo/official/all_opcodes_blake2s.provenance.json"
+    try:
+        record = json.loads((root / relative_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative_path}: invalid provenance: {error}"]
+    if not isinstance(record, dict) or record.get("schema") != "stwo_cairo_official_oracle_vector_v1":
+        return [f"{relative_path}: invalid schema"]
+
+    source = record.get("source")
+    proof = record.get("proof")
+    if not isinstance(source, dict) or not isinstance(proof, dict):
+        return [f"{relative_path}: source and proof objects are required"]
+    expected_source = {
+        "repository": ledger.official_cairo_repository,
+        "revision": ledger.official_cairo_revision,
+        "stwo_repository": ledger.official_cairo_stwo_repository,
+        "stwo_revision": ledger.official_cairo_stwo_revision,
+    }
+    errors = [
+        f"{relative_path}: source {key!r} is {source.get(key)!r}, expected {expected!r}"
+        for key, expected in expected_source.items()
+        if source.get(key) != expected
+    ]
+    vector_path = proof.get("path")
+    if not isinstance(vector_path, str) or Path(vector_path).is_absolute():
+        return errors + [f"{relative_path}: proof path is invalid"]
+    try:
+        vector = (root / vector_path).read_bytes()
+    except OSError as error:
+        return errors + [f"{relative_path}: unable to read proof vector: {error}"]
+    if proof.get("bytes") != len(vector):
+        errors.append(f"{relative_path}: proof byte count drifted")
+    if proof.get("sha256") != hashlib.sha256(vector).hexdigest():
+        errors.append(f"{relative_path}: proof digest drifted")
+    if proof.get("channel") != "blake2s" or proof.get("format") != "binary":
+        errors.append(f"{relative_path}: proof transport identity drifted")
     return errors
 
 
@@ -318,6 +434,35 @@ def _check_lock_sources(
             f"expected only {expected!r}"
         ]
     return []
+
+
+def _check_lock_source(
+    root: Path,
+    relative_path: str,
+    repository: str,
+    declared_revision: str,
+    resolved_revision: str,
+) -> list[str]:
+    try:
+        lock = _load_toml(root / relative_path)
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        return [f"{relative_path}: unable to parse lockfile: {error}"]
+    prefix = f"git+{repository}?"
+    sources = {
+        package.get("source")
+        for package in lock.get("package", [])
+        if isinstance(package, dict)
+        and isinstance(package.get("source"), str)
+        and package["source"].startswith(prefix)
+    }
+    expected = f"git+{repository}?rev={declared_revision}#{resolved_revision}"
+    if sources != {expected}:
+        return [
+            f"{relative_path}: locked sources for {repository} are {sorted(sources)!r}, "
+            f"expected only {expected!r}"
+        ]
+    return []
+
 
 def _check_blake_oracle_source(root: Path, ledger: PinLedger) -> list[str]:
     base = root / "tools" / "stwo-interop-rs"
@@ -469,15 +614,51 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
         ),
         TextPin(
             "scripts/generate_cairo_claim_registry.py",
-            "claim-generator Stwo-Cairo revision",
+            "official claim-generator Stwo-Cairo revision",
             rf'^PINNED_STWO_CAIRO_REVISION = "({REVISION_RE})"$',
-            cairo,
+            ledger.official_cairo_revision,
         ),
         TextPin(
             "scripts/generate_cairo_claim_registry.py",
-            "claim-generator Stwo revision",
+            "official claim-generator Stwo revision",
             rf'^PINNED_STWO_REVISION = "({REVISION_RE})"$',
-            cairo_stwo,
+            ledger.official_cairo_stwo_revision,
+        ),
+        TextPin(
+            "tools/stwo-cairo-official-verifier-rs/src/lib.rs",
+            "official verifier Stwo-Cairo repository",
+            r'^pub const STWO_CAIRO_REPOSITORY: &str = "([^"]+)";$',
+            ledger.official_cairo_repository,
+        ),
+        TextPin(
+            "tools/stwo-cairo-official-verifier-rs/src/lib.rs",
+            "official verifier Stwo-Cairo revision",
+            rf'^pub const STWO_CAIRO_REVISION: &str = "({REVISION_RE})";$',
+            ledger.official_cairo_revision,
+        ),
+        TextPin(
+            "tools/stwo-cairo-official-verifier-rs/src/lib.rs",
+            "official verifier Stwo repository",
+            r'^pub const STWO_REPOSITORY: &str = "([^"]+)";$',
+            ledger.official_cairo_stwo_repository,
+        ),
+        TextPin(
+            "tools/stwo-cairo-official-verifier-rs/src/lib.rs",
+            "official verifier Stwo revision",
+            rf'^pub const STWO_REVISION: &str = "({REVISION_RE})";$',
+            ledger.official_cairo_stwo_revision,
+        ),
+        TextPin(
+            "src/frontends/cairo/air/official_claim_registry.zig",
+            "official generated claim-registry Stwo-Cairo revision",
+            rf'^    \.stwo_cairo = "({REVISION_RE})",$',
+            ledger.official_cairo_revision,
+        ),
+        TextPin(
+            "src/frontends/cairo/air/official_claim_registry.zig",
+            "official generated claim-registry Stwo revision",
+            rf'^    \.stwo = "({REVISION_RE})",$',
+            ledger.official_cairo_stwo_revision,
         ),
         TextPin(
             "src/tools/metal_prover_session/state.zig",
@@ -567,6 +748,27 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
         )
 
     errors.extend(_check_blake_oracle_source(root, ledger))
+    errors.extend(_check_official_cairo_manifest(root, ledger))
+    errors.extend(_check_official_cairo_vector(root, ledger))
+    official_lock = "tools/stwo-cairo-official-verifier-rs/Cargo.lock"
+    errors.extend(
+        _check_lock_source(
+            root,
+            official_lock,
+            ledger.official_cairo_repository,
+            ledger.official_cairo_revision,
+            ledger.official_cairo_revision,
+        )
+    )
+    errors.extend(
+        _check_lock_source(
+            root,
+            official_lock,
+            ledger.official_cairo_stwo_repository,
+            ledger.official_cairo_stwo_revision[:8],
+            ledger.official_cairo_stwo_revision,
+        )
+    )
     errors.extend(_check_cairo_manifest(root, ledger))
     cairo_lock = "tools/stwo-cairo-verifier-rs/Cargo.lock"
     errors.extend(

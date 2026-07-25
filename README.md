@@ -19,7 +19,7 @@ Protocol parity with Rust. Portable CPU execution. Resident GPU proving on Metal
 `stwo-zig` is a parity-first port of [StarkWare's Stwo](https://github.com/starkware-libs/stwo).
 It brings Stwo's circle-STARK protocol to Zig while making memory, vectorization, and device
 execution explicit. The result is one proving stack: pure Stwo with native examples today,
-and the Cairo frontend (stwo-cairo in Zig) when that effort resumes.
+with the complete official Cairo frontend now being ported under a formal conformance goal.
 
 > [!IMPORTANT]
 > The [pinned Rust Stwo revision](conformance/upstream.md) is the final correctness oracle.
@@ -38,7 +38,7 @@ and the Cairo frontend (stwo-cairo in Zig) when that effort resumes.
 | Surface | Current status |
 | :--- | :--- |
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
-| **Cairo** | Versioned PIE ingestion and SN2-specialized resident proof machinery, parked until the stwo-cairo effort resumes; the general Cairo proof path is not release-gated |
+| **Cairo** | Active production port against official Stwo-Cairo `1.2.2`; existing SN2 machinery is not yet a release-gated general Cairo prover |
 | **RISC-V** | Release-gated Stark-V RV32IM ELF adapter with sharded AIR components, CPU proving, independent verification, and pinned-Rust oracle evidence |
 
 ## Quick Start
@@ -62,7 +62,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-native-metal` | macOS with Apple Metal | Parity-gated, source-JIT, device-only CLI |
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
-| Cairo products | No production host | Deferred until the separate Rust-oracle semantic goal resumes |
+| Cairo products | No production host | Active port; disabled until the [formal completion matrix](conformance/2026-07-26-stwo-cairo-production-port-goal.md) passes |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes

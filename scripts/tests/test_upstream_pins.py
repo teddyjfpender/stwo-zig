@@ -33,12 +33,44 @@ class UpstreamPinTests(unittest.TestCase):
             "tools/stwo-cairo-trace-oracle/Cargo.toml",
             "tools/stwo-cairo-trace-oracle/Cargo.lock",
             ".github/workflows/ci.yml",
-            "scripts/generate_cairo_claim_registry.py",
             "src/tools/metal_prover_session/state.zig",
             "src/frontends/cairo/prover.zig",
             "src/frontends/cairo/claim_registry.zig",
         ):
             self.assertIn(carrier, joined)
+
+    def test_official_cairo_drift_reaches_registry_generator_and_output(self) -> None:
+        drifted = LEDGER.read_text(encoding="utf-8").replace(
+            "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+            "1" * 40,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "upstream.md"
+            path.write_text(drifted, encoding="utf-8")
+            errors = validate_repository(ROOT, path)
+
+        joined = "\n".join(errors)
+        self.assertIn("scripts/generate_cairo_claim_registry.py", joined)
+        self.assertIn(
+            "src/frontends/cairo/air/official_claim_registry.zig",
+            joined,
+        )
+        self.assertIn(
+            "tools/stwo-cairo-official-verifier-rs/Cargo.toml",
+            joined,
+        )
+        self.assertIn(
+            "tools/stwo-cairo-official-verifier-rs/Cargo.lock",
+            joined,
+        )
+        self.assertIn(
+            "tools/stwo-cairo-official-verifier-rs/src/lib.rs",
+            joined,
+        )
+        self.assertIn(
+            "vectors/cairo/official/all_opcodes_blake2s.provenance.json",
+            joined,
+        )
 
     def test_cairo_prover_stwo_drift_reaches_trace_manifest_and_lock(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(
