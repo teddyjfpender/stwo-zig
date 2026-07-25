@@ -24,7 +24,7 @@ static uint32_t n2b_intervals(uint32_t log_n, int include_circle) {
     return include_circle ? log_n : log_n - 1u;
 }
 
-int stwo_ntt_b2n_columns_to_retained_on(
+static int b2n_columns_stub(
     const uint32_t *inputs,
     size_t input_stride,
     uint32_t *outputs,
@@ -47,6 +47,36 @@ int stwo_ntt_b2n_columns_to_retained_on(
     *launches_out = transform_chunks(columns) * b2n_intervals(log_n);
     return 0;
 }
+
+#define B2N_STUB(name)                                                       \
+    int name(                                                                \
+        const uint32_t *inputs,                                              \
+        size_t input_stride,                                                 \
+        uint32_t *outputs,                                                   \
+        size_t output_stride,                                                \
+        uint32_t log_n,                                                      \
+        uint32_t columns,                                                    \
+        const uint32_t *twiddles,                                            \
+        uint32_t twiddle_words,                                              \
+        uint32_t domain_size,                                                \
+        void *stream,                                                        \
+        uint32_t *launches_out) {                                            \
+        return b2n_columns_stub(                                             \
+            inputs,                                                          \
+            input_stride,                                                    \
+            outputs,                                                         \
+            output_stride,                                                   \
+            log_n,                                                           \
+            columns,                                                         \
+            twiddles,                                                        \
+            twiddle_words,                                                   \
+            domain_size,                                                     \
+            stream,                                                          \
+            launches_out);                                                   \
+    }
+
+B2N_STUB(stwo_ntt_b2n_columns_compact_on)
+B2N_STUB(stwo_ntt_b2n_columns_to_retained_on)
 
 int stwo_ntt_n2b_columns_on(
     uint32_t *columns_base,

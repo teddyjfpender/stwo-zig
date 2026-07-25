@@ -16,6 +16,28 @@ pub const WordMatrix = common.WordMatrix;
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        /// Writes one normalized N-word coefficient image per column.
+        pub fn inverseCompact(
+            session: anytype,
+            stage: telemetry.Stage,
+            inputs: WordMatrix,
+            outputs: WordMatrix,
+            log_n: u32,
+            inverse_twiddles: common.Words,
+        ) runtime_error.Error!void {
+            return inverse(
+                session,
+                stage,
+                inputs,
+                outputs,
+                log_n,
+                inverse_twiddles,
+                false,
+            );
+        }
+
+        /// Preserves the retained-layout ABI by duplicating the normalized
+        /// N-word coefficient image into both halves of every 2N-word column.
         pub fn inverseToRetained(
             session: anytype,
             stage: telemetry.Stage,
@@ -23,6 +45,26 @@ pub fn OpsFor(comptime Api: type) type {
             retained_outputs: WordMatrix,
             log_n: u32,
             inverse_twiddles: common.Words,
+        ) runtime_error.Error!void {
+            return inverse(
+                session,
+                stage,
+                inputs,
+                retained_outputs,
+                log_n,
+                inverse_twiddles,
+                true,
+            );
+        }
+
+        fn inverse(
+            session: anytype,
+            stage: telemetry.Stage,
+            inputs: WordMatrix,
+            outputs: WordMatrix,
+            log_n: u32,
+            inverse_twiddles: common.Words,
+            comptime duplicate_to_retained: bool,
         ) runtime_error.Error!void {
             try requireTransformStage(stage);
             try common.requireStage(session, stage);
@@ -34,8 +76,11 @@ pub fn OpsFor(comptime Api: type) type {
             );
             const output = try layout.wordMatrix(
                 session,
-                retained_outputs,
-                shape.retained_values,
+                outputs,
+                if (duplicate_to_retained)
+                    shape.retained_values
+                else
+                    shape.values,
             );
             if (input.column_count != output.column_count)
                 return error.InvalidKernelDescriptor;
@@ -45,29 +90,46 @@ pub fn OpsFor(comptime Api: type) type {
             {
                 return error.OverlappingDeviceRange;
             }
+            if (inverse_twiddles.len < shape.domain)
+                return error.InvalidKernelDescriptor;
             const twiddles = try layout.resident(
                 session,
                 u32,
                 inverse_twiddles,
-                shape.domain,
+                inverse_twiddles.len,
             );
             if (layout.overlap(output.range, twiddles.range))
                 return error.OverlappingDeviceRange;
 
             var launches: u32 = 0;
-            const status = Api.stwo_ntt_b2n_columns_to_retained_on(
-                input.pointer,
-                input.stride_words,
-                output.pointer,
-                output.stride_words,
-                log_n,
-                input.column_count,
-                twiddles.pointer,
-                try common.count(inverse_twiddles.len),
-                try common.count(shape.domain),
-                session.context.stream,
-                &launches,
-            );
+            const status = if (duplicate_to_retained)
+                Api.stwo_ntt_b2n_columns_to_retained_on(
+                    input.pointer,
+                    input.stride_words,
+                    output.pointer,
+                    output.stride_words,
+                    log_n,
+                    input.column_count,
+                    twiddles.pointer,
+                    try common.count(inverse_twiddles.len),
+                    try common.count(shape.domain),
+                    session.context.stream,
+                    &launches,
+                )
+            else
+                Api.stwo_ntt_b2n_columns_compact_on(
+                    input.pointer,
+                    input.stride_words,
+                    output.pointer,
+                    output.stride_words,
+                    log_n,
+                    input.column_count,
+                    twiddles.pointer,
+                    try common.count(inverse_twiddles.len),
+                    try common.count(shape.domain),
+                    session.context.stream,
+                    &launches,
+                );
             try common.recordMany(
                 session,
                 stage,

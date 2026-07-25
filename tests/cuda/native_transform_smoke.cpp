@@ -44,6 +44,18 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
     std::uint32_t evaluation_domain_size,
     void *stream,
     std::uint32_t *launches_out);
+extern "C" int stwo_ntt_b2n_columns_compact_on(
+    const std::uint32_t *inputs,
+    std::size_t input_column_stride_words,
+    std::uint32_t *outputs,
+    std::size_t output_column_stride_words,
+    std::uint32_t log_n,
+    std::uint32_t polynomial_count,
+    const std::uint32_t *twiddles,
+    std::uint32_t twiddle_words,
+    std::uint32_t evaluation_domain_size,
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_ntt_n2b_columns_on(
     std::uint32_t *columns,
     std::size_t column_stride_words,
@@ -526,6 +538,148 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 "retained B2N",
                 log_n,
                 column)) {
+            return false;
+        }
+    }
+
+    constexpr std::uint32_t kCompactGuard = 0x5a5a5a5au;
+    const std::size_t compact_stride = size + 7u;
+    std::vector<std::uint32_t> compact_host(
+        static_cast<std::size_t>(width) * compact_stride,
+        kCompactGuard);
+    for (std::uint32_t column = 0; column < width; ++column) {
+        std::copy(
+            source[column].begin(),
+            source[column].end(),
+            compact_host.begin() +
+                static_cast<std::size_t>(column) * compact_stride);
+    }
+    auto *device_compact = session.allocate(compact_host.size());
+    std::uint32_t compact_launches = 0;
+    if (device_compact == nullptr ||
+        !session.upload(
+            device_compact,
+            compact_host.data(),
+            compact_host.size() * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact,
+                compact_stride,
+                device_compact,
+                compact_stride,
+                log_n,
+                width,
+                device_inverse_twiddles,
+                domain_size,
+                domain_size,
+                session.stream,
+                &compact_launches),
+            "launch compact B2N") ||
+        !check_launches(
+            compact_launches,
+            b2n_launches(log_n),
+            "compact B2N")) {
+        return false;
+    }
+    rejected_launches = 17;
+    if (!expect_invalid(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact + 1,
+                compact_stride,
+                device_compact,
+                compact_stride,
+                log_n,
+                width,
+                device_inverse_twiddles,
+                domain_size,
+                domain_size,
+                session.stream,
+                &rejected_launches),
+            "reject partial compact B2N alias") ||
+        !expect_invalid(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact,
+                compact_stride,
+                device_compact,
+                size - 1u,
+                log_n,
+                width,
+                device_inverse_twiddles,
+                domain_size,
+                domain_size,
+                session.stream,
+                &rejected_launches),
+            "reject short compact B2N stride") ||
+        !expect_invalid(
+            stwo_ntt_b2n_columns_compact_on(
+                device_compact,
+                compact_stride,
+                device_compact,
+                compact_stride,
+                log_n,
+                width,
+                device_compact,
+                domain_size,
+                domain_size,
+                session.stream,
+                &rejected_launches),
+            "reject compact output and twiddle alias") ||
+        !check_launches(rejected_launches, 0, "rejected compact B2N")) {
+        return false;
+    }
+    std::vector<std::uint32_t> compact_actual(compact_host.size());
+    if (!session.download(
+            compact_actual.data(),
+            device_compact,
+            compact_actual.size() * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_exec_context_sync(session.context),
+            "wait for compact B2N")) {
+        return false;
+    }
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const auto expected_retained = b2n_retained_reference(
+            source[column],
+            log_n,
+            inverse_twiddles);
+        const std::vector<std::uint32_t> expected(
+            expected_retained.begin(),
+            expected_retained.begin() + size);
+        const auto first = compact_actual.begin() +
+            static_cast<std::size_t>(column) * compact_stride;
+        const std::vector<std::uint32_t> actual(first, first + size);
+        if (!compare(
+                expected,
+                actual,
+                "compact B2N",
+                log_n,
+                column)) {
+            return false;
+        }
+        const auto retained_first = retained_actual.begin() +
+            static_cast<std::size_t>(column) * retained_stride;
+        const std::vector<std::uint32_t> retained_prefix(
+            retained_first,
+            retained_first + size);
+        if (!compare(
+                retained_prefix,
+                actual,
+                "compact/retained B2N compatibility",
+                log_n,
+                column)) {
+            return false;
+        }
+        if (!std::all_of(
+                first + size,
+                first + compact_stride,
+                [=](std::uint32_t value) {
+                    return value == kCompactGuard;
+                })) {
+            std::fprintf(
+                stderr,
+                "compact B2N wrote beyond N words at log=%u column=%u\n",
+                log_n,
+                column);
             return false;
         }
     }

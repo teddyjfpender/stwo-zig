@@ -278,7 +278,7 @@ class CudaBuildTests(unittest.TestCase):
             "wide_fibonacci",
             (schedules + b2n + n2b + composition).lower(),
         )
-        self.assertEqual(4, abi.count("launches_out: *u32"))
+        self.assertEqual(5, abi.count("launches_out: *u32"))
         self.assertEqual(2, composition_abi.count("launches_out: *u32"))
         self.assertIn("CompactDepth", composition)
         self.assertIn("stwo_ntt_b2n_composition_split_depth_two_on", composition)

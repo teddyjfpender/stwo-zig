@@ -1,5 +1,23 @@
 //! Allocation-free circle transform entry points on an explicit proof stream.
 
+/// Normalized B2N transform with one N-word coefficient image per column.
+/// Inputs and outputs may be disjoint or exactly alias with equal strides.
+pub extern "c" fn stwo_ntt_b2n_columns_compact_on(
+    inputs: [*]const u32,
+    input_column_stride_words: usize,
+    outputs: [*]u32,
+    output_column_stride_words: usize,
+    log_n: u32,
+    num_poly: u32,
+    twiddles: [*]const u32,
+    twiddle_words: u32,
+    evaluation_domain_size: u32,
+    stream: *anyopaque,
+    launches_out: *u32,
+) c_int;
+
+/// Compatibility transform whose normalized N-word image is duplicated into
+/// both halves of each 2N-word retained output column.
 pub extern "c" fn stwo_ntt_b2n_columns_to_retained_on(
     inputs: [*]const u32,
     input_column_stride_words: usize,

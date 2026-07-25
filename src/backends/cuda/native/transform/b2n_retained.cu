@@ -3,8 +3,10 @@
 #include "transform_internal.cuh"
 
 // Qualified multi-stage intervals from pinned ifft.cu drive production logs;
-// the exact stagewise path remains the fallback. Both use the same resident
-// retained-output ABI and admit disjoint slabs or one exact base/stride alias.
+// the exact stagewise path remains the fallback. The compact ABI writes N
+// normalized coefficients per column. The retained compatibility ABI writes
+// the same N-word image to both halves of a 2N column. Both admit disjoint
+// slabs or one exact base/stride alias.
 
 namespace {
 
@@ -64,10 +66,11 @@ __global__ void b2n_stage(
     }
 }
 
+template <bool DuplicateToRetained>
 cudaError_t launch_columns(
     const uint32_t *inputs,
     size_t input_column_stride_words,
-    uint32_t *retained_outputs,
+    uint32_t *outputs,
     size_t output_column_stride_words,
     uint32_t log_n,
     uint32_t polynomial_count,
@@ -92,7 +95,7 @@ cudaError_t launch_columns(
             : kMaxColumnsPerLaunch;
         const auto *chunk_inputs = reinterpret_cast<const M31 *>(inputs) +
             static_cast<size_t>(base) * input_column_stride_words;
-        auto *chunk_outputs = reinterpret_cast<M31 *>(retained_outputs) +
+        auto *chunk_outputs = reinterpret_cast<M31 *>(outputs) +
             static_cast<size_t>(base) * output_column_stride_words;
         if (log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN) {
             const TransformSchedule &schedule =
@@ -119,7 +122,7 @@ cudaError_t launch_columns(
             for (uint32_t i = 1; i < schedule.interval_count; ++i) {
                 const uint32_t stages = schedule.intervals[i];
                 status = i + 1u == schedule.interval_count
-                    ? launch_b2n_continue<true>(
+                    ? launch_b2n_continue<DuplicateToRetained>(
                           output_slab,
                           log_n,
                           chunk,
@@ -164,7 +167,7 @@ cudaError_t launch_columns(
         for (uint32_t stage = 2; stage <= log_n; ++stage) {
             const bool final_stage = stage == log_n;
             if (final_stage) {
-                b2n_stage<true><<<
+                b2n_stage<DuplicateToRetained><<<
                     dim3(blocks, chunk),
                     kThreadsPerBlock,
                     0,
@@ -206,10 +209,11 @@ cudaError_t launch_columns(
 
 }  // namespace
 
-extern "C" int stwo_ntt_b2n_columns_to_retained_on(
+template <bool DuplicateToRetained>
+int b2n_columns_entry(
     const uint32_t *inputs,
     size_t input_column_stride_words,
-    uint32_t *retained_outputs,
+    uint32_t *outputs,
     size_t output_column_stride_words,
     uint32_t log_n,
     uint32_t polynomial_count,
@@ -233,8 +237,10 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
     DeviceRange output_range{};
     DeviceRange twiddle_range{};
     const size_t values = static_cast<size_t>(1) << log_n;
+    const size_t output_values =
+        DuplicateToRetained ? 2u * values : values;
     const bool exact_alias =
-        inputs == retained_outputs &&
+        inputs == outputs &&
         input_column_stride_words == output_column_stride_words;
     if (!column_range(
             inputs,
@@ -243,17 +249,69 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
             values,
             &input_range) ||
         !column_range(
-            retained_outputs,
+            outputs,
             output_column_stride_words,
             polynomial_count,
-            2u * values,
+            output_values,
             &output_range) ||
         !word_range(twiddles, twiddle_words, &twiddle_range) ||
         (!exact_alias && ranges_overlap(input_range, output_range)) ||
         ranges_overlap(output_range, twiddle_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    return static_cast<int>(launch_columns(
+    return static_cast<int>(launch_columns<DuplicateToRetained>(
+        inputs,
+        input_column_stride_words,
+        outputs,
+        output_column_stride_words,
+        log_n,
+        polynomial_count,
+        twiddles,
+        twiddle_words,
+        evaluation_domain_size,
+        reinterpret_cast<cudaStream_t>(stream_raw),
+        launches_out));
+}
+
+extern "C" int stwo_ntt_b2n_columns_compact_on(
+    const uint32_t *inputs,
+    size_t input_column_stride_words,
+    uint32_t *outputs,
+    size_t output_column_stride_words,
+    uint32_t log_n,
+    uint32_t polynomial_count,
+    const uint32_t *twiddles,
+    uint32_t twiddle_words,
+    uint32_t evaluation_domain_size,
+    void *stream_raw,
+    uint32_t *launches_out) {
+    return b2n_columns_entry<false>(
+        inputs,
+        input_column_stride_words,
+        outputs,
+        output_column_stride_words,
+        log_n,
+        polynomial_count,
+        twiddles,
+        twiddle_words,
+        evaluation_domain_size,
+        stream_raw,
+        launches_out);
+}
+
+extern "C" int stwo_ntt_b2n_columns_to_retained_on(
+    const uint32_t *inputs,
+    size_t input_column_stride_words,
+    uint32_t *retained_outputs,
+    size_t output_column_stride_words,
+    uint32_t log_n,
+    uint32_t polynomial_count,
+    const uint32_t *twiddles,
+    uint32_t twiddle_words,
+    uint32_t evaluation_domain_size,
+    void *stream_raw,
+    uint32_t *launches_out) {
+    return b2n_columns_entry<true>(
         inputs,
         input_column_stride_words,
         retained_outputs,
@@ -263,6 +321,6 @@ extern "C" int stwo_ntt_b2n_columns_to_retained_on(
         twiddles,
         twiddle_words,
         evaluation_domain_size,
-        reinterpret_cast<cudaStream_t>(stream_raw),
-        launches_out));
+        stream_raw,
+        launches_out);
 }
