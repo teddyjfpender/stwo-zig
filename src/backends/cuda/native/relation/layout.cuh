@@ -46,15 +46,18 @@ __device__ __forceinline__ M31 relation_tuple_word(
     std::uint32_t word) {
     const std::uint32_t kind = use[0];
     const std::uint32_t argument = use[1];
+    if (kind == 8u || kind == 9u) {
+        const M31 value = sources[argument + word][row];
+        return kind == 9u && word == use[3]
+            ? add(value, 1u)
+            : value;
+    }
     if (word == 0) return use[3];
     if (kind == 0u) {
         return sources[0][(argument + word) * rows + row];
     }
     if (kind == 7u) {
         return sources[argument + word - 1u][row];
-    }
-    if (kind == 8u) {
-        return sources[argument + word][row];
     }
     if (kind == 1u) {
         if (word == 1u) return row + 1u + argument * rows;

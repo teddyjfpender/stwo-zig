@@ -21,6 +21,10 @@ pub const TupleKind = enum(u32) {
     /// A tuple made directly from consecutive source columns. Unlike
     /// `projected_columns`, the first tuple word is not a relation id.
     projected_columns_no_id = 8,
+    /// Consecutive source columns with exactly one tuple coordinate advanced
+    /// by one. `relation_id` carries the zero-based coordinate. This models
+    /// transition outputs without allocating a derived device column.
+    affine_projected_columns_no_id = 9,
 };
 
 pub const MultiplicityKind = enum(u32) {
@@ -81,11 +85,11 @@ pub const UseDescriptor = extern struct {
             MultiplicityKind,
             self.multiplicity_kind,
         ) catch return error.InvalidKernelDescriptor;
-        if (tuple_kind == .projected_columns_no_id and
-            self.relation_id != 0)
-        {
+        if ((tuple_kind == .projected_columns_no_id and
+            self.relation_id != 0) or
+            (tuple_kind == .affine_projected_columns_no_id and
+                self.relation_id >= self.tuple_words))
             return error.InvalidKernelDescriptor;
-        }
         switch (tuple_kind) {
             .lookup_words => try requireLookupColumns(
                 bounds,
@@ -97,7 +101,9 @@ pub const UseDescriptor = extern struct {
                 self.tuple_argument,
                 self.tuple_words - 1,
             ),
-            .projected_columns_no_id => try requireSources(
+            .projected_columns_no_id,
+            .affine_projected_columns_no_id,
+            => try requireSources(
                 bounds,
                 self.tuple_argument,
                 self.tuple_words,

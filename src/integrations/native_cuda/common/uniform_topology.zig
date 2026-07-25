@@ -295,7 +295,7 @@ pub fn TopologyFor(comptime Layout: type) type {
                     trace_count + logical.fri_trees.len,
                     query_count,
                 );
-                for (logical.trace_trees) |tree| {
+                for (logical.trace_trees, 0..) |tree, tree_index| {
                     if (!tree.decommitted) continue;
                     const layer_count =
                         @as(usize, tree.commitment_log_size) + 1;
@@ -303,10 +303,16 @@ pub fn TopologyFor(comptime Layout: type) type {
                         retained[descriptor_cursor..][0..layer_count],
                         tree.commitment_log_size,
                     );
-                    @memset(
+                    for (
                         column_logs[column_cursor..][0..tree.column_count],
-                        tree.commitment_log_size,
-                    );
+                        0..,
+                    ) |*column_log, column_index| {
+                        column_log.* = try logical
+                            .columnCommitmentLogSize(
+                            tree_index,
+                            column_index,
+                        );
+                    }
                     trace_trees[trace_cursor] = .{
                         .tree_index = try u32Count(trace_cursor),
                         .role = tree.role,

@@ -95,6 +95,25 @@ pub const Pack = struct {
         var offsets: [geometry_mod.sampled_mask_points]field.CirclePointBaseField =
             undefined;
         @memset(&offsets, rawBasePoint(CirclePointM31.identity()));
+        const x_step = CanonicCoset
+            .new(geometry.statement.log_n_rows + 1)
+            .coset_value
+            .step;
+        const y_step = CanonicCoset
+            .new(geometry.statement.log_n_rows)
+            .coset_value
+            .step;
+        const x_previous = rawBasePoint(
+            CirclePointM31.identity().sub(x_step),
+        );
+        const y_previous = rawBasePoint(
+            CirclePointM31.identity().sub(y_step),
+        );
+        // OODS execution order is main, x previous/current, y
+        // previous/current, composition. Canonical output indices below
+        // restore the interleaved per-column proof order.
+        for (offsets[4..8]) |*offset| offset.* = x_previous;
+        for (offsets[12..16]) |*offset| offset.* = y_previous;
         var folds: [geometry_mod.sampled_mask_points]u32 = undefined;
         const lifting_log =
             geometry.protocol.lifting_log_size orelse max_circle_log;
@@ -102,9 +121,15 @@ pub const Pack = struct {
             return error.UnsupportedProtocol;
         @memset(&folds, lifting_log - max_circle_log);
         var output_indices: [geometry_mod.sampled_mask_points]u32 = undefined;
-        for (&output_indices, 0..) |*output, index| {
-            output.* = try u32Count(index);
-        }
+        output_indices = .{
+            0,  1,  2,  3,
+            4,  6,  8,  10,
+            5,  7,  9,  11,
+            12, 14, 16, 18,
+            13, 15, 17, 19,
+            20, 21, 22, 23,
+            24, 25, 26, 27,
+        };
 
         return .{
             .twiddle_tree = tree,
@@ -295,12 +320,25 @@ test "canonical state-machine ingress is exact and reusable" {
     );
     try std.testing.expectEqualSlices(
         u32,
-        &.{ 8, 7, 9, 3 },
-        pack.statement_words[0..4],
+        &.{ 8, 7 },
+        &pack.statement_words,
     );
-    try std.testing.expect(std.mem.allEqual(
+    try std.testing.expectEqualSlices(
         u32,
-        pack.statement_words[4..],
-        0,
+        &.{ 8, 8, 7, 7 },
+        pack.coefficient_log_sizes[0..4],
+    );
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 8, 8, 8, 8, 7, 7, 7, 7 },
+        pack.coefficient_log_sizes[4..12],
+    );
+    try std.testing.expect(!std.meta.eql(
+        pack.oods_offset_points[4],
+        pack.oods_offset_points[8],
+    ));
+    try std.testing.expect(!std.meta.eql(
+        pack.oods_offset_points[12],
+        pack.oods_offset_points[16],
     ));
 }

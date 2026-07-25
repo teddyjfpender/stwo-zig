@@ -1,19 +1,29 @@
-//! Fail-closed geometry for the Native state-machine proof program.
+//! Exact mixed-height geometry for the Native State Machine v2 proof.
 
 const std = @import("std");
 const cpu_state_machine = @import("../../../examples/state_machine/input.zig");
 const pcs = @import("stwo_core").pcs;
 
-pub const preprocessed_columns: u32 = 1;
-pub const main_columns: u32 = 2;
-pub const interaction_columns: u32 = 0;
+pub const preprocessed_columns: u32 = 0;
+pub const main_columns: u32 = 4;
+pub const interaction_columns: u32 = 8;
 pub const composition_columns: u32 = 8;
+pub const source_columns: u32 =
+    preprocessed_columns + main_columns +
+    interaction_columns + composition_columns;
 pub const resident_evaluation_columns: u32 =
-    preprocessed_columns + main_columns + composition_columns;
-pub const sampled_mask_points: u32 = resident_evaluation_columns;
+    source_columns;
+pub const sampled_mask_points: u32 = 28;
 pub const sampled_source_column_offset: u32 = 0;
-pub const coefficient_log_count: u32 = resident_evaluation_columns;
-pub const statement_word_count: usize = 14;
+pub const sampled_source_column_count: u32 = source_columns;
+pub const coefficient_log_count: u32 = source_columns;
+/// `[n, m]` is mixed before the main commitment. The two public initial
+/// coordinates are already bound by the canonical request.
+pub const statement_word_count: usize = 2;
+/// The terminal transaction returns both QM31 claimed sums.
+pub const terminal_statement_words: usize = 8;
+pub const public_statement_word_count: usize =
+    statement_word_count + terminal_statement_words;
 pub const max_log_size: u32 = 29;
 
 pub const Error = cpu_state_machine.Error || error{
@@ -31,6 +41,9 @@ pub const Geometry = struct {
     protocol: pcs.PcsConfig,
     trace_rows: u64,
     trace_elements: u64,
+    main_cells: u64,
+    interaction_cells: u64,
+    committed_cells: u64,
     commitment_log_rows: u32,
     composition_log_rows: u32,
     fri_tree_count: u32,
@@ -76,11 +89,16 @@ pub fn admit(
     if (!supportedProtocol(protocol)) return error.UnsupportedProtocol;
 
     const trace_rows = @as(u64, 1) << @intCast(statement.log_n_rows);
-    const trace_elements = std.math.mul(
-        u64,
-        trace_rows,
-        preprocessed_columns + main_columns,
-    ) catch return error.GeometryOverflow;
+    const half_rows = trace_rows / 2;
+    const main_cells = try addCells(
+        try cells(trace_rows, 2),
+        try cells(half_rows, 2),
+    );
+    const interaction_cells = try addCells(
+        try cells(trace_rows, 4),
+        try cells(half_rows, 4),
+    );
+    const trace_elements = try addCells(main_cells, interaction_cells);
     const commitment_log_rows = std.math.add(
         u32,
         statement.log_n_rows,
@@ -93,6 +111,8 @@ pub fn admit(
         commitment_rows_u64,
     ) orelse return error.GeometryOverflow;
     const fri_tree_count = statement.log_n_rows;
+    // The empty preprocessed commitment is transcript-visible but has no
+    // columns to open.
     const decommitted_trace_tree_count: usize = 3;
     const decommit_tree_count = std.math.add(
         usize,
@@ -105,6 +125,9 @@ pub fn admit(
         .protocol = protocol,
         .trace_rows = trace_rows,
         .trace_elements = trace_elements,
+        .main_cells = main_cells,
+        .interaction_cells = interaction_cells,
+        .committed_cells = trace_elements,
         .commitment_log_rows = commitment_log_rows,
         .composition_log_rows = std.math.add(
             u32,
@@ -113,11 +136,21 @@ pub fn admit(
         ) catch return error.GeometryOverflow,
         .fri_tree_count = fri_tree_count,
         .commitment_rows = commitment_rows,
-        .committed_tree_count = 3,
+        .committed_tree_count = 4,
         .decommitted_trace_tree_count = decommitted_trace_tree_count,
         .decommit_tree_count = decommit_tree_count,
         .last_layer_domain_rows = 2,
     };
+}
+
+fn cells(rows: u64, columns: u32) Error!u64 {
+    return std.math.mul(u64, rows, columns) catch
+        error.GeometryOverflow;
+}
+
+fn addCells(left: u64, right: u64) Error!u64 {
+    return std.math.add(u64, left, right) catch
+        error.GeometryOverflow;
 }
 
 pub fn admitRequest(request: Request) Error!Geometry {
@@ -134,7 +167,7 @@ fn supportedProtocol(value: pcs.PcsConfig) bool {
         value.lifting_log_size == null;
 }
 
-test "state-machine geometry distinguishes committed and sampled columns" {
+test "State Machine v2 geometry preserves exact mixed-height cells" {
     const M31 = @import("stwo_core").fields.m31.M31;
     const shape = try admit(
         .{
@@ -144,10 +177,18 @@ test "state-machine geometry distinguishes committed and sampled columns" {
         pcs.PcsConfig.default(),
     );
     try std.testing.expectEqual(@as(u64, 1 << 16), shape.trace_rows);
-    try std.testing.expectEqual(@as(u64, 3 * (1 << 16)), shape.trace_elements);
-    try std.testing.expectEqual(@as(u32, 3), shape.traceColumnCount());
-    try std.testing.expectEqual(@as(u32, 11), sampled_mask_points);
-    try std.testing.expectEqual(@as(u32, 11), resident_evaluation_columns);
+    try std.testing.expectEqual(@as(u64, 3 * (1 << 16)), shape.main_cells);
+    try std.testing.expectEqual(
+        @as(u64, 6 * (1 << 16)),
+        shape.interaction_cells,
+    );
+    try std.testing.expectEqual(
+        @as(u64, 9 * (1 << 16)),
+        shape.committed_cells,
+    );
+    try std.testing.expectEqual(@as(u32, 12), shape.traceColumnCount());
+    try std.testing.expectEqual(@as(u32, 28), sampled_mask_points);
+    try std.testing.expectEqual(@as(u32, 20), resident_evaluation_columns);
     try std.testing.expectEqual(@as(u32, 17), shape.commitment_log_rows);
     try std.testing.expectEqual(@as(usize, 19), shape.decommit_tree_count);
 }

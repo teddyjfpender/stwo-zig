@@ -161,6 +161,51 @@ pub fn LayoutForTreeCount(
                 return error.UnsupportedProtocol;
             }
         }
+
+        /// Returns the exact coefficient log for one logical column. Uniform
+        /// layouts inherit the tree maximum; mixed-height frontends provide
+        /// `Descriptor.columnLogSize`.
+        pub fn columnLogSize(
+            self: Self,
+            tree_index: usize,
+            column_index: usize,
+        ) !u32 {
+            if (tree_index >= self.trace_trees.len or
+                column_index >= self.trace_trees[tree_index].column_count)
+            {
+                return error.UnsupportedProtocol;
+            }
+            const tree = self.trace_trees[tree_index];
+            const value = if (@hasDecl(Descriptor, "columnLogSize"))
+                try Descriptor.columnLogSize(
+                    self.geometry,
+                    tree.role,
+                    column_index,
+                )
+            else
+                tree.column_log_size;
+            if (value > tree.column_log_size)
+                return error.UnsupportedProtocol;
+            return value;
+        }
+
+        pub fn columnCommitmentLogSize(
+            self: Self,
+            tree_index: usize,
+            column_index: usize,
+        ) !u32 {
+            const tree = self.trace_trees[tree_index];
+            const blowup = std.math.sub(
+                u32,
+                tree.commitment_log_size,
+                tree.column_log_size,
+            ) catch return error.UnsupportedProtocol;
+            return std.math.add(
+                u32,
+                try self.columnLogSize(tree_index, column_index),
+                blowup,
+            ) catch return error.GeometryOverflow;
+        }
     };
 }
 

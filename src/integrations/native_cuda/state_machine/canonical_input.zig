@@ -16,37 +16,36 @@ pub fn protocolWords(value: pcs.PcsConfig) [protocol_word_count]u32 {
     };
 }
 
-/// The device fills final state and claimed sums after drawing relation
-/// elements. The four request words are immutable inputs to that derivation.
+/// Exact Statement0 words mixed between the empty preprocessed and main
+/// commitments. Public initial state remains request metadata, as it does in
+/// the pinned CPU/Rust transcript.
 pub fn statementWords(
     value: cpu_state_machine.Request,
 ) [statement_word_count]u32 {
     return .{
         value.log_n_rows,
         value.log_n_rows - 1,
-        value.initial_state[0].toU32(),
-        value.initial_state[1].toU32(),
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
     };
 }
 
 pub fn coefficientLogSizes(
     geometry: geometry_mod.Geometry,
 ) [geometry_mod.coefficient_log_count]u32 {
-    return [_]u32{geometry.statement.log_n_rows} **
-        geometry_mod.coefficient_log_count;
+    const n = geometry.statement.log_n_rows;
+    const m = n - 1;
+    return .{
+        // Main: x state then y state.
+        n, n, m, m,
+        // Interaction: x cumulative QM31 then y cumulative QM31.
+        n, n, n, n,
+        m, m, m, m,
+        // Composition split coordinates all live at the maximum log.
+        n, n, n, n,
+        n, n, n, n,
+    };
 }
 
-test "state-machine request words reserve challenge-derived statement output" {
+test "State Machine v2 ingress preserves mixed-height column logs" {
     const std = @import("std");
     const M31 = @import("stwo_core").fields.m31.M31;
     const words = statementWords(.{
@@ -55,10 +54,26 @@ test "state-machine request words reserve challenge-derived statement output" {
     });
     try std.testing.expectEqualSlices(
         u32,
-        &.{ 16, 15, 9, 3 },
-        words[0..4],
+        &.{ 16, 15 },
+        &words,
     );
-    try std.testing.expect(std.mem.allEqual(u32, words[4..], 0));
+    const logs = coefficientLogSizes(try geometry_mod.admit(
+        .{
+            .log_n_rows = 16,
+            .initial_state = .{ M31.fromU64(9), M31.fromU64(3) },
+        },
+        pcs.PcsConfig.default(),
+    ));
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 16, 16, 15, 15 },
+        logs[0..4],
+    );
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 16, 16, 16, 16, 15, 15, 15, 15 },
+        logs[4..12],
+    );
     const protocol = protocolWords(pcs.PcsConfig.default());
     try std.testing.expectEqualSlices(u32, &.{ 10, 1, 3, 0 }, &protocol);
 }

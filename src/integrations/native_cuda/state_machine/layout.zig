@@ -1,4 +1,4 @@
-//! state-machine policy for the shared uniform three-tree proof layout.
+//! Four-tree resident layout for exact mixed-height State Machine v2.
 
 const common = @import("../common/uniform_layout.zig");
 const geometry_mod = @import("geometry.zig");
@@ -11,30 +11,43 @@ pub const Quotient = common.Quotient;
 const Descriptor = struct {
     pub fn describe(
         geometry: geometry_mod.Geometry,
-    ) geometry_mod.Error!common.Description {
+    ) geometry_mod.Error!common.DescriptionFor(4) {
+        const trace_log = geometry.statement.log_n_rows;
+        const commitment_log = geometry.commitment_log_rows;
         return .{
             .trace_trees = .{
                 .{
                     .role = .preprocessed,
                     .column_count = geometry_mod.preprocessed_columns,
-                    .column_log_size = geometry.statement.log_n_rows,
-                    .commitment_log_size = geometry.commitment_log_rows,
-                    .sampled = true,
-                    .decommitted = true,
+                    .column_log_size = trace_log,
+                    .commitment_log_size = commitment_log,
+                    .sampled = false,
+                    .decommitted = false,
                 },
                 .{
                     .role = .main,
                     .column_count = geometry_mod.main_columns,
-                    .column_log_size = geometry.statement.log_n_rows,
-                    .commitment_log_size = geometry.commitment_log_rows,
+                    // The tree contains log n and log n-1 columns. This field
+                    // is the tree's maximum logical log; topology.zig carries
+                    // the exact per-column logs.
+                    .column_log_size = trace_log,
+                    .commitment_log_size = commitment_log,
+                    .sampled = true,
+                    .decommitted = true,
+                },
+                .{
+                    .role = .interaction,
+                    .column_count = geometry_mod.interaction_columns,
+                    .column_log_size = trace_log,
+                    .commitment_log_size = commitment_log,
                     .sampled = true,
                     .decommitted = true,
                 },
                 .{
                     .role = .composition,
                     .column_count = geometry_mod.composition_columns,
-                    .column_log_size = geometry.statement.log_n_rows,
-                    .commitment_log_size = geometry.commitment_log_rows,
+                    .column_log_size = trace_log,
+                    .commitment_log_size = commitment_log,
                     .sampled = true,
                     .decommitted = true,
                 },
@@ -49,17 +62,35 @@ const Descriptor = struct {
                 .sample_count = geometry_mod.sampled_mask_points,
                 .term_count = geometry_mod.sampled_mask_points,
                 .structural_group_count = 1,
-                .source_column_count = geometry_mod.sampled_mask_points,
+                .source_column_count = geometry_mod.source_columns,
                 .source_stride_words = geometry.commitment_rows,
                 .output_rows = geometry.commitment_rows,
             },
         };
     }
+
+    pub fn columnLogSize(
+        geometry: geometry_mod.Geometry,
+        role: TraceRole,
+        column_index: usize,
+    ) geometry_mod.Error!u32 {
+        const n = geometry.statement.log_n_rows;
+        return switch (role) {
+            .preprocessed => error.UnsupportedProtocol,
+            .main => if (column_index < 2) n else n - 1,
+            .interaction => if (column_index < 4) n else n - 1,
+            .composition => n,
+        };
+    }
 };
 
-pub const Layout = common.LayoutFor(geometry_mod.Geometry, Descriptor);
+pub const Layout = common.LayoutForTreeCount(
+    geometry_mod.Geometry,
+    Descriptor,
+    4,
+);
 
-test "state-machine layout retains every CPU proof tree and sampled column" {
+test "State Machine v2 layout retains all four proof trees" {
     const std = @import("std");
     const pcs = @import("stwo_core").pcs;
     const allocator = std.testing.allocator;
@@ -77,14 +108,18 @@ test "state-machine layout retains every CPU proof tree and sampled column" {
     defer logical.deinit(allocator);
     try logical.validate();
 
-    try std.testing.expectEqual(@as(usize, 1), logical.trace_trees[0].column_count);
-    try std.testing.expectEqual(@as(usize, 2), logical.trace_trees[1].column_count);
+    try std.testing.expectEqual(@as(usize, 0), logical.trace_trees[0].column_count);
+    try std.testing.expectEqual(@as(usize, 4), logical.trace_trees[1].column_count);
     try std.testing.expectEqual(@as(usize, 8), logical.trace_trees[2].column_count);
-    for (logical.trace_trees) |tree| try std.testing.expect(tree.sampled);
-    for (logical.trace_trees) |tree| try std.testing.expect(tree.decommitted);
+    try std.testing.expectEqual(@as(usize, 8), logical.trace_trees[3].column_count);
+    try std.testing.expect(!logical.trace_trees[0].sampled);
+    try std.testing.expect(!logical.trace_trees[0].decommitted);
+    for (logical.trace_trees[1..]) |tree| try std.testing.expect(tree.sampled);
+    for (logical.trace_trees[1..]) |tree| try std.testing.expect(tree.decommitted);
     try std.testing.expectEqual(@as(usize, 16), logical.fri_trees.len);
     try std.testing.expectEqual(@as(usize, 3), logical.fri_trees[0].tree_index);
     try std.testing.expectEqual(@as(u32, 17), logical.fri_trees[0].evaluation_log_size);
     try std.testing.expectEqual(@as(u32, 2), logical.fri_trees[15].evaluation_log_size);
-    try std.testing.expectEqual(@as(usize, 11), logical.quotient.term_count);
+    try std.testing.expectEqual(@as(usize, 28), logical.quotient.term_count);
+    try std.testing.expectEqual(@as(usize, 20), logical.quotient.source_column_count);
 }
