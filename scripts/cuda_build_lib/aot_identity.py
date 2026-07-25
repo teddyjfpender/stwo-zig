@@ -11,6 +11,7 @@ from .errors import BuildError
 
 
 NATIVE_AUTHENTICATED_SCHEMAS = {
+    "native_blake_constraint_v1",
     "native_constraint_slab_v1",
     "native_constant_qm31_v1",
     "native_circle_affine_state_trace_v1",

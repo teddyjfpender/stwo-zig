@@ -12,9 +12,9 @@ pub const relation_element_count: usize = 14;
 pub const claimed_sum_count: usize = component_count;
 pub const constraint_count: usize = 417;
 pub const argument_count: u32 = 20;
-pub const cache_key: u64 = 0xb1a4e5c0a8710a7e;
+pub const cache_key: u64 = 0x724c070b46f67f61;
 pub const kernel_name =
-    "stwo_native_constraint_blake_component_v1_08d9dbf3ffea403a";
+    "stwo_native_constraint_blake_component_v1_ad0197bc74a3e568";
 
 pub const ComponentKind = enum(u32) {
     scheduler,
