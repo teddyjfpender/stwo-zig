@@ -1,7 +1,6 @@
 use crate::model::{
-    BlakeStatement, PoseidonStatement, XorStatement, BLAKE_ROUND_INPUT_FELTS, POSEIDON_COLUMNS,
-    POSEIDON_HALF_FULL_ROUNDS, POSEIDON_INSTANCES_PER_ROW, POSEIDON_LOG_INSTANCES_PER_ROW,
-    POSEIDON_PARTIAL_ROUNDS, POSEIDON_STATE,
+    BlakeStatement, PoseidonStatement, XorStatement, BLAKE_ROUND_INPUT_FELTS,
+    POSEIDON_LOG_INSTANCES_PER_ROW,
 };
 use anyhow::{anyhow, bail, Result};
 use num_traits::{One, Zero};
@@ -189,127 +188,6 @@ pub(crate) fn poseidon_log_n_rows(statement: PoseidonStatement) -> Result<u32> {
         bail!("invalid poseidon log_n_rows");
     }
     Ok(log_n_rows)
-}
-
-pub(crate) fn poseidon_external_round_const(round: usize, state_i: usize) -> M31 {
-    M31::from(((1234u64 + (round as u64 * 37) + state_i as u64) % P as u64) as u32)
-}
-
-pub(crate) fn poseidon_internal_round_const(round: usize) -> M31 {
-    M31::from(((9876u64 + (round as u64 * 17)) % P as u64) as u32)
-}
-
-pub(crate) fn poseidon_pow5(x: M31) -> M31 {
-    let x2 = x.square();
-    let x4 = x2.square();
-    x4 * x
-}
-
-pub(crate) fn poseidon_apply_m4(x: [M31; 4]) -> [M31; 4] {
-    let t0 = x[0] + x[1];
-    let t02 = t0 + t0;
-    let t1 = x[2] + x[3];
-    let t12 = t1 + t1;
-    let t2 = x[1] + x[1] + t1;
-    let t3 = x[3] + x[3] + t0;
-    let t4 = t12 + t12 + t3;
-    let t5 = t02 + t02 + t2;
-    let t6 = t3 + t5;
-    let t7 = t2 + t4;
-    [t6, t5, t7, t4]
-}
-
-pub(crate) fn poseidon_apply_external_round_matrix(state: &mut [M31; POSEIDON_STATE]) {
-    for i in 0..4 {
-        let offset = i * 4;
-        let mixed = poseidon_apply_m4([
-            state[offset],
-            state[offset + 1],
-            state[offset + 2],
-            state[offset + 3],
-        ]);
-        state[offset] = mixed[0];
-        state[offset + 1] = mixed[1];
-        state[offset + 2] = mixed[2];
-        state[offset + 3] = mixed[3];
-    }
-
-    for j in 0..4 {
-        let s = state[j] + state[j + 4] + state[j + 8] + state[j + 12];
-        for i in 0..4 {
-            let idx = i * 4 + j;
-            state[idx] += s;
-        }
-    }
-}
-
-pub(crate) fn poseidon_apply_internal_round_matrix(state: &mut [M31; POSEIDON_STATE]) {
-    let sum = state
-        .iter()
-        .copied()
-        .fold(M31::zero(), |acc, item| acc + item);
-    for (i, value) in state.iter_mut().enumerate() {
-        let coeff = M31::from_u32_unchecked(1u32 << ((i + 1) as u32));
-        *value = *value * coeff + sum;
-    }
-}
-
-pub(crate) fn gen_poseidon_trace(log_n_rows: u32) -> Result<Vec<Vec<M31>>> {
-    if log_n_rows >= 31 {
-        bail!("invalid poseidon log_n_rows");
-    }
-    let n = checked_pow2(log_n_rows)?;
-    let mut trace = vec![vec![M31::zero(); n]; POSEIDON_COLUMNS];
-
-    for row in 0..n {
-        let mut col_index = 0usize;
-        for rep_i in 0..POSEIDON_INSTANCES_PER_ROW {
-            let mut state = std::array::from_fn(|state_i| {
-                M31::from(((row * POSEIDON_STATE + state_i + rep_i) % P as usize) as u32)
-            });
-
-            for value in state {
-                trace[col_index][row] = value;
-                col_index += 1;
-            }
-
-            for round in 0..POSEIDON_HALF_FULL_ROUNDS {
-                for (state_i, value) in state.iter_mut().enumerate() {
-                    *value += poseidon_external_round_const(round, state_i);
-                }
-                poseidon_apply_external_round_matrix(&mut state);
-                for value in state.iter_mut() {
-                    *value = poseidon_pow5(*value);
-                    trace[col_index][row] = *value;
-                    col_index += 1;
-                }
-            }
-
-            for round in 0..POSEIDON_PARTIAL_ROUNDS {
-                state[0] += poseidon_internal_round_const(round);
-                poseidon_apply_internal_round_matrix(&mut state);
-                state[0] = poseidon_pow5(state[0]);
-                trace[col_index][row] = state[0];
-                col_index += 1;
-            }
-
-            for half_round in 0..POSEIDON_HALF_FULL_ROUNDS {
-                let round = half_round + POSEIDON_HALF_FULL_ROUNDS;
-                for (state_i, value) in state.iter_mut().enumerate() {
-                    *value += poseidon_external_round_const(round, state_i);
-                }
-                poseidon_apply_external_round_matrix(&mut state);
-                for value in state.iter_mut() {
-                    *value = poseidon_pow5(*value);
-                    trace[col_index][row] = *value;
-                    col_index += 1;
-                }
-            }
-        }
-        debug_assert_eq!(col_index, POSEIDON_COLUMNS);
-    }
-
-    Ok(trace)
 }
 
 pub(crate) fn blake_validate_statement(statement: BlakeStatement) -> Result<()> {

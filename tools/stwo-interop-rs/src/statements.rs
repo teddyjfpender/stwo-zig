@@ -1,6 +1,5 @@
 use crate::model::{
-    BlakeStatement, PlonkStatement, PoseidonStatement, WideFibonacciStatement, XorLookupElements,
-    XorStatement, POSEIDON_COLUMNS, POSEIDON_COLUMNS_PER_REP,
+    BlakeStatement, PlonkStatement, WideFibonacciStatement, XorLookupElements, XorStatement,
 };
 use crate::traces::blake_n_columns;
 use num_traits::One;
@@ -27,19 +26,6 @@ pub(crate) fn plonk_composition_eval(statement: PlonkStatement) -> SecureField {
 
 pub(crate) fn mix_plonk_statement(channel: &mut Blake2sChannel, statement: PlonkStatement) {
     channel.mix_u32s(&[statement.log_n_rows]);
-}
-
-pub(crate) fn poseidon_composition_eval(statement: PoseidonStatement) -> SecureField {
-    SecureField::from_m31(
-        M31::from(statement.log_n_instances),
-        M31::from(POSEIDON_COLUMNS_PER_REP as u32),
-        M31::from(POSEIDON_COLUMNS as u32),
-        M31::one(),
-    )
-}
-
-pub(crate) fn mix_poseidon_statement(channel: &mut Blake2sChannel, statement: PoseidonStatement) {
-    channel.mix_u32s(&[statement.log_n_instances]);
 }
 
 pub(crate) fn blake_composition_eval(statement: BlakeStatement) -> SecureField {

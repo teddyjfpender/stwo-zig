@@ -5,14 +5,6 @@ use stwo::core::fields::qm31::SecureField;
 pub(crate) const SCHEMA_VERSION: u32 = 1;
 pub(crate) const EXCHANGE_MODE: &str = "proof_exchange_json_wire_v1";
 pub(crate) const POSEIDON_LOG_INSTANCES_PER_ROW: u32 = 3;
-pub(crate) const POSEIDON_INSTANCES_PER_ROW: usize = 1 << POSEIDON_LOG_INSTANCES_PER_ROW;
-pub(crate) const POSEIDON_STATE: usize = 16;
-pub(crate) const POSEIDON_PARTIAL_ROUNDS: usize = 14;
-pub(crate) const POSEIDON_HALF_FULL_ROUNDS: usize = 4;
-pub(crate) const POSEIDON_FULL_ROUNDS: usize = POSEIDON_HALF_FULL_ROUNDS * 2;
-pub(crate) const POSEIDON_COLUMNS_PER_REP: usize =
-    POSEIDON_STATE * (1 + POSEIDON_FULL_ROUNDS) + POSEIDON_PARTIAL_ROUNDS;
-pub(crate) const POSEIDON_COLUMNS: usize = POSEIDON_COLUMNS_PER_REP * POSEIDON_INSTANCES_PER_ROW;
 pub(crate) const BLAKE_STATE: usize = 16;
 pub(crate) const BLAKE_MESSAGE_WORDS: usize = 16;
 pub(crate) const BLAKE_FELTS_IN_U32: usize = 2;
@@ -356,11 +348,6 @@ pub(crate) struct WideFibonacciComponent {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PlonkComponent {
     pub(crate) statement: PlonkStatement,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct PoseidonComponent {
-    pub(crate) statement: PoseidonStatement,
 }
 
 #[derive(Debug, Clone, Copy)]

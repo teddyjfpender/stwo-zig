@@ -1,15 +1,13 @@
 use crate::model::{
     BenchProofMetrics, BlakeComponent, BlakeStatement, Cli, Example, ExampleStatement,
-    PlonkComponent, PlonkStatement, PoseidonComponent, PoseidonStatement, ProveMode, StageNode,
+    PlonkComponent, PlonkStatement, PoseidonStatement, ProveMode, StageNode,
     WideFibonacciComponent, WideFibonacciStatement, XorStatement,
 };
 use crate::profile::time_stage;
-use crate::statements::{
-    mix_blake_statement, mix_plonk_statement, mix_poseidon_statement, mix_wide_fibonacci_statement,
-};
+use crate::statements::{mix_blake_statement, mix_plonk_statement, mix_wide_fibonacci_statement};
 use crate::traces::{
     backend_eval, blake_n_columns, blake_validate_statement, gen_blake_trace, gen_plonk_trace,
-    gen_poseidon_trace, gen_wide_fibonacci_trace, poseidon_log_n_rows,
+    gen_wide_fibonacci_trace, poseidon_log_n_rows,
 };
 use crate::wire::{checked_m31, proof_to_wire};
 use anyhow::{anyhow, bail, Result};
@@ -34,6 +32,7 @@ pub(crate) fn prove_example<B>(
 ) -> Result<(ExampleStatement, StarkProof<Blake2sMerkleHasher>)>
 where
     B: Backend + BackendForChannel<Blake2sMerkleChannel>,
+    stwo_examples::poseidon::PoseidonComponent: stwo::prover::ComponentProver<B>,
 {
     match example {
         Example::Blake => {
@@ -455,50 +454,22 @@ pub(crate) fn poseidon_prove<B>(
 ) -> Result<(PoseidonStatement, StarkProof<Blake2sMerkleHasher>)>
 where
     B: Backend + BackendForChannel<Blake2sMerkleChannel>,
+    stwo_examples::poseidon::PoseidonComponent: stwo::prover::ComponentProver<B>,
 {
-    let log_n_rows = poseidon_log_n_rows(statement)?;
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let twiddles = B::precompute_twiddles(
-        CanonicCoset::new(log_n_rows + config.fri_config.log_blowup_factor + 1)
-            .circle_domain()
-            .half_coset,
-    );
-    let mut scheme = CommitmentSchemeProver::<B, Blake2sMerkleChannel>::new(config, &twiddles);
-
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(vec![]);
-    builder.commit(&mut channel);
-
-    let trace = gen_poseidon_trace(log_n_rows)?;
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(
-        trace
-            .into_iter()
-            .map(|col| backend_eval::<B>(log_n_rows, col))
-            .collect(),
-    );
-    builder.commit(&mut channel);
-
-    mix_poseidon_statement(&mut channel, statement);
-
-    let component = PoseidonComponent { statement };
-    let proof = match prove_mode {
-        ProveMode::Prove => prove::<B, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?,
-        ProveMode::ProveEx => {
-            prove_ex::<B, Blake2sMerkleChannel>(
-                &[&component],
-                &mut channel,
-                scheme,
-                include_all_preprocessed_columns,
-            )?
-            .proof
-        }
-    };
-
-    Ok((statement, proof))
+    poseidon_log_n_rows(statement)?;
+    let (claimed_sum, proof) = crate::poseidon_exact::prove_exact::<B>(
+        config,
+        statement.log_n_instances,
+        prove_mode,
+        include_all_preprocessed_columns,
+    )?;
+    Ok((
+        PoseidonStatement {
+            log_n_instances: statement.log_n_instances,
+            claimed_sum,
+        },
+        proof,
+    ))
 }
 
 pub(crate) fn poseidon_verify(

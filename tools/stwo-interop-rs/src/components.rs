@@ -1,11 +1,6 @@
-use crate::model::{
-    BlakeComponent, PlonkComponent, PoseidonComponent, WideFibonacciComponent, XorComponent,
-    POSEIDON_COLUMNS,
-};
-use crate::statements::{
-    blake_composition_eval, plonk_composition_eval, poseidon_composition_eval, xor_combine,
-};
-use crate::traces::{blake_n_columns, poseidon_log_n_rows};
+use crate::model::{BlakeComponent, PlonkComponent, WideFibonacciComponent, XorComponent};
+use crate::statements::{blake_composition_eval, plonk_composition_eval, xor_combine};
+use crate::traces::blake_n_columns;
 use num_traits::{One, Zero};
 use stwo::core::air::accumulation::PointEvaluationAccumulator;
 use stwo::core::air::Component;
@@ -176,59 +171,6 @@ impl<B: Backend> ComponentProver<B> for PlonkComponent {
         let composition_eval = plonk_composition_eval(self.statement);
         let [mut col] = evaluation_accumulator.columns([(self.statement.log_n_rows + 1, 1)]);
         let domain_size = 1usize << (self.statement.log_n_rows + 1);
-        for i in 0..domain_size {
-            accumulate(&mut col, i, composition_eval);
-        }
-    }
-}
-
-impl Component for PoseidonComponent {
-    fn n_constraints(&self) -> usize {
-        1
-    }
-
-    fn max_constraint_log_degree_bound(&self) -> u32 {
-        poseidon_log_n_rows(self.statement).unwrap_or(0) + 1
-    }
-
-    fn trace_log_degree_bounds(&self) -> TreeVec<Vec<u32>> {
-        let log_n_rows = poseidon_log_n_rows(self.statement).unwrap_or(0);
-        TreeVec::new(vec![vec![], vec![log_n_rows; POSEIDON_COLUMNS]])
-    }
-
-    fn mask_points(
-        &self,
-        point: CirclePoint<SecureField>,
-        _max_log_degree_bound: u32,
-    ) -> TreeVec<Vec<Vec<CirclePoint<SecureField>>>> {
-        TreeVec::new(vec![vec![], vec![vec![point]; POSEIDON_COLUMNS]])
-    }
-
-    fn preprocessed_column_indices(&self) -> Vec<usize> {
-        vec![]
-    }
-
-    fn evaluate_constraint_quotients_at_point(
-        &self,
-        _point: CirclePoint<SecureField>,
-        _mask: &TreeVec<Vec<Vec<SecureField>>>,
-        evaluation_accumulator: &mut PointEvaluationAccumulator,
-        _max_log_degree_bound: u32,
-    ) {
-        evaluation_accumulator.accumulate(poseidon_composition_eval(self.statement));
-    }
-}
-
-impl<B: Backend> ComponentProver<B> for PoseidonComponent {
-    fn evaluate_constraint_quotients_on_domain(
-        &self,
-        _trace: &Trace<'_, B>,
-        evaluation_accumulator: &mut DomainEvaluationAccumulator<B>,
-    ) {
-        let log_n_rows = poseidon_log_n_rows(self.statement).unwrap_or(0);
-        let composition_eval = poseidon_composition_eval(self.statement);
-        let [mut col] = evaluation_accumulator.columns([(log_n_rows + 1, 1)]);
-        let domain_size = 1usize << (log_n_rows + 1);
         for i in 0..domain_size {
             accumulate(&mut col, i, composition_eval);
         }
