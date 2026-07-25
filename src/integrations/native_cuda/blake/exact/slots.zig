@@ -10,6 +10,8 @@ pub const transcript_state: SlotId = 0x2110;
 pub const relation_elements: SlotId = 0x2111;
 pub const statement1_claims: SlotId = 0x2112;
 pub const composition_challenge: SlotId = 0x2113;
+pub const interaction_denominators: SlotId = 0x2120;
+pub const interaction_batch_prefix: SlotId = 0x2121;
 
 pub const preprocessed_evaluations: SlotId = 0x2200;
 pub const preprocessed_coefficients: SlotId = 0x2201;

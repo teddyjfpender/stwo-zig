@@ -71,8 +71,8 @@ pub const Executor = struct {
 
         try self.applyTranscript(Ops, context, .draw_relation_elements);
         self.phase = .relations_drawn;
-        try self.kernels.constraint.generate_interaction(
-            self.kernels.constraint.context,
+        try self.kernels.interaction.generate_interaction(
+            self.kernels.interaction.context,
             invocation,
         );
         try self.applyTranscript(Ops, context, .mix_statement1_claims);

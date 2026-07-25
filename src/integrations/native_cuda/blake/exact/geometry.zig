@@ -218,6 +218,28 @@ pub fn interactionWidths() [component_count]usize {
     };
 }
 
+pub fn relationEntryWidths() [component_count]usize {
+    return .{
+        2 * air_geometry.SCHEDULER_INTERACTION_SECURE_COLUMNS - 1,
+        2 * air_geometry.ROUND_INTERACTION_SECURE_COLUMNS - 1,
+        2 * air_geometry.ROUND_INTERACTION_SECURE_COLUMNS - 1,
+        air_geometry.XOR_TABLES[0].multiplicityColumns(),
+        air_geometry.XOR_TABLES[1].multiplicityColumns(),
+        air_geometry.XOR_TABLES[2].multiplicityColumns(),
+        air_geometry.XOR_TABLES[3].multiplicityColumns(),
+        air_geometry.XOR_TABLES[4].multiplicityColumns(),
+    };
+}
+
+pub fn relationEntryWords(log_n_rows: u32) Error!usize {
+    const secure_entries = try groupWords(
+        componentLogs(log_n_rows),
+        relationEntryWidths(),
+    );
+    return std.math.mul(usize, secure_entries, 4) catch
+        error.GeometryOverflow;
+}
+
 pub fn xorLogs() [air_geometry.XOR_TABLES.len]u32 {
     var logs: [air_geometry.XOR_TABLES.len]u32 = undefined;
     for (air_geometry.XOR_TABLES, 0..) |table, index| {
@@ -286,6 +308,10 @@ test "exact CUDA Blake geometry has four trees and eight mixed-height components
         geometry.composition_words,
     );
     try std.testing.expectEqual(@as(usize, 2_668), sampled_value_count);
+    try std.testing.expectEqual(
+        @as(usize, 68_569_408),
+        try relationEntryWords(4),
+    );
 }
 
 test "exact CUDA Blake admission rejects legacy rounds and protocol drift" {

@@ -5,20 +5,20 @@
 //! immutable kernel pack and bound by the fixed executor.
 
 pub const State = enum {
-    structural_only,
+    missing_interaction_aot,
     product_ready,
 };
 
-pub const state: State = .structural_only;
+pub const state: State = .missing_interaction_aot;
 
 pub fn requireProductReady() !void {
     if (state != .product_ready)
-        return error.ExactBlakeCudaAotBindingsUnavailable;
+        return error.ExactBlakeCudaInteractionAotUnavailable;
 }
 
 test "exact Blake CUDA product remains fail closed before AOT binding" {
     try @import("std").testing.expectError(
-        error.ExactBlakeCudaAotBindingsUnavailable,
+        error.ExactBlakeCudaInteractionAotUnavailable,
         requireProductReady(),
     );
 }

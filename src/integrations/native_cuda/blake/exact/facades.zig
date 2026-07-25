@@ -14,6 +14,9 @@ pub const Invocation = struct {
     main_slot: slots.SlotId,
     relation_sources_slot: slots.SlotId,
     interaction_slot: slots.SlotId,
+    interaction_denominators_slot: slots.SlotId,
+    interaction_batch_prefix_slot: slots.SlotId,
+    statement1_claims_slot: slots.SlotId,
     composition_slot: slots.SlotId,
 };
 
@@ -35,11 +38,25 @@ pub const Trace = struct {
     }
 };
 
-pub const Constraint = struct {
+/// Exact paired-LogUp generation is a separate authority from algebraic AIR
+/// evaluation. It owns denominator construction, batch inversion, all 1,156
+/// interaction base columns, and the eight claimed sums.
+pub const Interaction = struct {
     version: u32,
     identity: [32]u8,
     context: *anyopaque,
     generate_interaction: Callback,
+
+    pub fn validate(self: Interaction) !void {
+        if (self.version != abi_version or isZero(self.identity))
+            return error.UnavailableExactBlakeInteractionFacade;
+    }
+};
+
+pub const Constraint = struct {
+    version: u32,
+    identity: [32]u8,
+    context: *anyopaque,
     evaluate_composition: Callback,
 
     pub fn validate(self: Constraint) !void {
@@ -50,14 +67,18 @@ pub const Constraint = struct {
 
 pub const Set = struct {
     trace: ?Trace = null,
+    interaction: ?Interaction = null,
     constraint: ?Constraint = null,
 
     pub fn requireReady(self: Set, authority: Authority) !Ready {
         const trace = self.trace orelse
             return error.UnavailableExactBlakeTraceFacade;
+        const interaction = self.interaction orelse
+            return error.UnavailableExactBlakeInteractionFacade;
         const constraint = self.constraint orelse
             return error.UnavailableExactBlakeConstraintFacade;
         try trace.validate();
+        try interaction.validate();
         try constraint.validate();
         if (!std.mem.eql(
             u8,
@@ -68,12 +89,23 @@ pub const Set = struct {
         }
         if (!std.mem.eql(
             u8,
+            &interaction.identity,
+            &authority.interaction_identity,
+        )) {
+            return error.UnauthenticatedExactBlakeInteractionFacade;
+        }
+        if (!std.mem.eql(
+            u8,
             &constraint.identity,
             &authority.constraint_identity,
         )) {
             return error.UnauthenticatedExactBlakeConstraintFacade;
         }
-        return .{ .trace = trace, .constraint = constraint };
+        return .{
+            .trace = trace,
+            .interaction = interaction,
+            .constraint = constraint,
+        };
     }
 };
 
@@ -81,11 +113,13 @@ pub const Set = struct {
 /// request or caller-selected frontend configuration.
 pub const Authority = struct {
     trace_identity: [32]u8,
+    interaction_identity: [32]u8,
     constraint_identity: [32]u8,
 };
 
 pub const Ready = struct {
     trace: Trace,
+    interaction: Interaction,
     constraint: Constraint,
 };
 
@@ -100,6 +134,9 @@ pub fn invocation(
         .main_slot = slots.main_evaluations,
         .relation_sources_slot = slots.relation_sources,
         .interaction_slot = slots.interaction_evaluations,
+        .interaction_denominators_slot = slots.interaction_denominators,
+        .interaction_batch_prefix_slot = slots.interaction_batch_prefix,
+        .statement1_claims_slot = slots.statement1_claims,
         .composition_slot = slots.composition_evaluations,
     };
 }
@@ -113,6 +150,7 @@ test "exact Blake kernel facades fail closed without both identities" {
         error.UnavailableExactBlakeTraceFacade,
         (Set{}).requireReady(.{
             .trace_identity = [_]u8{1} ** 32,
+            .interaction_identity = [_]u8{3} ** 32,
             .constraint_identity = [_]u8{2} ** 32,
         }),
     );
@@ -131,6 +169,7 @@ test "exact Blake kernel facades fail closed without both identities" {
         error.UnavailableExactBlakeConstraintFacade,
         (Set{ .trace = trace }).requireReady(.{
             .trace_identity = [_]u8{1} ** 32,
+            .interaction_identity = [_]u8{3} ** 32,
             .constraint_identity = [_]u8{2} ** 32,
         }),
     );

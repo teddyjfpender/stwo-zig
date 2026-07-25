@@ -22,6 +22,7 @@ test "exact Blake host contract seals variable-height arena and facades" {
     var calls = Calls{};
     const ready = try (exact.facades.Set{
         .trace = facadeTrace(&calls),
+        .interaction = facadeInteraction(&calls),
         .constraint = facadeConstraint(&calls),
     }).requireReady(authority());
     const invocation = exact.facades.invocation(
@@ -36,8 +37,8 @@ test "exact Blake host contract seals variable-height arena and facades" {
         ready.trace.context,
         invocation,
     );
-    try ready.constraint.generate_interaction(
-        ready.constraint.context,
+    try ready.interaction.generate_interaction(
+        ready.interaction.context,
         invocation,
     );
     try ready.constraint.evaluate_composition(
@@ -66,7 +67,7 @@ test "exact Blake route prerequisites reject missing kernel authorities" {
         .trace = facadeTrace(&calls),
     };
     try std.testing.expectError(
-        error.UnavailableExactBlakeConstraintFacade,
+        error.UnavailableExactBlakeInteractionFacade,
         trace_only.requireReady(authority()),
     );
 }
@@ -95,6 +96,7 @@ test "exact Blake executor exposes every Fiat-Shamir root and alpha barrier" {
         .proof_topology = &topology,
         .kernels = try (exact.facades.Set{
             .trace = facadeTrace(&calls),
+            .interaction = facadeInteraction(&calls),
             .constraint = facadeConstraint(&calls),
         }).requireReady(authority()),
     };
@@ -259,14 +261,23 @@ fn facadeConstraint(calls: *Calls) exact.facades.Constraint {
         .version = exact.facades.abi_version,
         .identity = [_]u8{0x42} ** 32,
         .context = calls,
-        .generate_interaction = callback,
         .evaluate_composition = callback,
+    };
+}
+
+fn facadeInteraction(calls: *Calls) exact.facades.Interaction {
+    return .{
+        .version = exact.facades.abi_version,
+        .identity = [_]u8{0x37} ** 32,
+        .context = calls,
+        .generate_interaction = callback,
     };
 }
 
 fn authority() exact.facades.Authority {
     return .{
         .trace_identity = [_]u8{0x31} ** 32,
+        .interaction_identity = [_]u8{0x37} ** 32,
         .constraint_identity = [_]u8{0x42} ** 32,
     };
 }

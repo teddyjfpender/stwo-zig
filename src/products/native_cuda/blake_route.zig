@@ -85,7 +85,7 @@ pub fn reportStatement(
 
 test "Blake route admits exact geometry then fails closed on kernel authority" {
     try std.testing.expectError(
-        error.ExactBlakeCudaAotBindingsUnavailable,
+        error.ExactBlakeCudaInteractionAotUnavailable,
         admit(.{
             .air = .blake,
             .log_n_rows = 10,

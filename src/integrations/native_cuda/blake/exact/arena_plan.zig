@@ -78,6 +78,19 @@ pub const Prepared = struct {
             self.geometry.treeWords(.preprocessed) +
                 self.geometry.main_words,
         );
+        const relation_words = try geometry_mod.relationEntryWords(
+            self.geometry.statement.log_n_rows,
+        );
+        try requireWords(
+            self,
+            slots.interaction_denominators,
+            relation_words,
+        );
+        try requireWords(
+            self,
+            slots.interaction_batch_prefix,
+            relation_words,
+        );
         try requireWords(
             self,
             slots.sampled_values,
@@ -100,6 +113,11 @@ pub fn buildRequirements(
     try add(&result, allocator, slots.relation_elements, geometry_mod.relation_element_words, .trace_commit, .constraint_evaluation);
     try add(&result, allocator, slots.statement1_claims, geometry_mod.statement1_words, .constraint_evaluation, .proof_assembly);
     try add(&result, allocator, slots.composition_challenge, 4, .constraint_evaluation, .constraint_evaluation);
+    const relation_words = try geometry_mod.relationEntryWords(
+        geometry.statement.log_n_rows,
+    );
+    try add(&result, allocator, slots.interaction_denominators, relation_words, .constraint_evaluation, .constraint_evaluation);
+    try add(&result, allocator, slots.interaction_batch_prefix, relation_words, .constraint_evaluation, .constraint_evaluation);
 
     try addTree(
         &result,
