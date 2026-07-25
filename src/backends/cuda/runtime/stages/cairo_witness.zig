@@ -35,6 +35,23 @@ pub const Columns = struct {
     iota: common.Words,
 };
 
+pub const SeedGeometry = struct {
+    real_rows: u32,
+    consumer_rows: u32,
+    include_enabler: bool,
+    include_iota: bool,
+
+    pub fn validate(self: SeedGeometry) runtime_error.Error!void {
+        if (self.real_rows == 0 or
+            self.real_rows > self.consumer_rows or
+            self.consumer_rows == 0 or
+            self.consumer_rows % 16 != 0)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+    }
+};
+
 pub fn OpsFor(comptime Api: type) type {
     return struct {
         pub fn scatter(
@@ -124,6 +141,70 @@ pub fn OpsFor(comptime Api: type) type {
                 fp.pointer,
                 enabler.pointer,
                 iota_pointer,
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
+        pub fn seed(
+            session: anytype,
+            geometry: SeedGeometry,
+            scalars: common.Words,
+            outputs: common.WordMatrix,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.trace_generation;
+            try common.requireStage(session, stage);
+            try geometry.validate();
+            if (scalars.len == 0) return error.InvalidKernelDescriptor;
+            const scalar_count = try common.count(scalars.len);
+            const output_columns = std.math.add(
+                usize,
+                scalars.len,
+                @intFromBool(geometry.include_enabler),
+            ) catch return error.SizeOverflow;
+            const exact_columns = std.math.add(
+                usize,
+                output_columns,
+                @intFromBool(geometry.include_iota),
+            ) catch return error.SizeOverflow;
+            const exact_capacity = std.math.mul(
+                usize,
+                outputs.column_stride_words,
+                exact_columns,
+            ) catch return error.SizeOverflow;
+            if (outputs.column_stride_words < geometry.consumer_rows or
+                outputs.storage.len != exact_capacity)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+
+            const source = try layout.resident(
+                session,
+                u32,
+                scalars,
+                scalars.len,
+            );
+            const destination = try layout.wordMatrix(
+                session,
+                outputs,
+                geometry.consumer_rows,
+            );
+            if (destination.column_count != try common.count(exact_columns))
+                return error.InvalidKernelDescriptor;
+            try layout.requireDisjoint(
+                &.{destination.range},
+                &.{source.range},
+            );
+            const status = Api.stwo_witness_input_seed_contiguous_on(
+                source.pointer,
+                scalar_count,
+                geometry.real_rows,
+                geometry.consumer_rows,
+                destination.pointer,
+                outputs.column_stride_words,
+                outputs.storage.len,
+                @intFromBool(geometry.include_enabler),
+                @intFromBool(geometry.include_iota),
                 session.context.stream,
             );
             try common.record(session, stage, status);
