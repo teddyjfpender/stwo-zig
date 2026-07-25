@@ -21,6 +21,7 @@ pub const checkpoint = @import("../conformance/checkpoint.zig");
 pub const checkpoint_receipt = @import("../conformance/receipt.zig");
 
 test {
+    _ = @import("recorded_cuda_fixture_test.zig");
     _ = execution_tables;
     _ = verify_instruction_inputs;
     _ = direct_inputs;

@@ -34,6 +34,9 @@ NATIVE_IDENTITY_SCHEME = "sha256-source-and-contract-v1"
 NATIVE_CLOSURE_IDENTITY_SCHEME = (
     "sha256-source-closure-and-contract-v2"
 )
+RECORDED_WITNESS_IDENTITY_SCHEME = "sha256-source-and-blake3-program-v1"
+RECORDED_WITNESS_SCHEMA = "recorded_witness_v1"
+WITNESS_CODEGEN_VERSION = 12
 LOCAL_INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"]+)"', re.MULTILINE)
 
 
@@ -43,6 +46,21 @@ def validate_native_aot_identity(
     base_fields: set[str],
     index: int,
 ) -> None:
+    if entry["abi_schema"] == RECORDED_WITNESS_SCHEMA:
+        if (
+            "identity_scheme" not in entry
+            and "source_sha256" not in entry
+        ):
+            # The copied authority remains usable as a reference inventory, but
+            # it is not eligible for the Native product pack.
+            return
+        validate_recorded_witness_identity(
+            generated_dir,
+            entry,
+            base_fields,
+            index,
+        )
+        return
     if entry["abi_schema"] not in NATIVE_AUTHENTICATED_SCHEMAS:
         return
     required = base_fields | {"identity_scheme", "semantic_contract"}
@@ -93,6 +111,49 @@ def validate_native_aot_identity(
         raise BuildError(
             f"AOT manifest entry {index} has stale Native identities"
         )
+
+
+def validate_recorded_witness_identity(
+    generated_dir: Path,
+    entry: dict[str, object],
+    base_fields: set[str],
+    index: int,
+) -> None:
+    required = base_fields | {"identity_scheme", "source_sha256"}
+    if set(entry) != required:
+        raise BuildError(
+            f"AOT manifest entry {index} has a non-canonical recorded-witness identity"
+        )
+    if entry["identity_scheme"] != RECORDED_WITNESS_IDENTITY_SCHEME:
+        raise BuildError(
+            f"AOT manifest entry {index} has an unknown recorded-witness identity scheme"
+        )
+
+    semantic_hash = int(str(entry["semantic_hash"]), 16)
+    expected_kernel = f"stwo_jit_witness_{semantic_hash:016x}"
+    expected_cache_key = witness_cache_key(semantic_hash)
+    source = generated_dir / str(entry["file"])
+    expected_source = hashlib.sha256(source.read_bytes()).hexdigest()
+    if (
+        entry["kernel_name"] != expected_kernel
+        or entry["cache_key"] != f"{expected_cache_key:016x}"
+        or entry["source_sha256"] != expected_source
+    ):
+        raise BuildError(
+            f"AOT manifest entry {index} has stale recorded-witness identities"
+        )
+
+
+def witness_cache_key(semantic_hash: int) -> int:
+    value = 0xCBF29CE484222325
+    payload = semantic_hash.to_bytes(8, "little") + WITNESS_CODEGEN_VERSION.to_bytes(
+        8,
+        "little",
+    )
+    for byte in payload:
+        value ^= byte
+        value = (value * 0x100000001B3) & ((1 << 64) - 1)
+    return value
 
 
 def source_closure_identity(generated_dir: Path, source: Path) -> str:

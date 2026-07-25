@@ -7,6 +7,7 @@
 
 const std = @import("std");
 const cuda_plan = @import("../../backends/cuda/runtime/execution_plan.zig");
+const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
 const prover = @import("../../frontends/cairo/prover.zig");
 const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
 const semantic_authority = @import("../../frontends/cairo/proof_plan/semantic_authority.zig");
@@ -150,11 +151,15 @@ pub fn compileDevelopmentRequest(
     var plan = try cuda_plan.CudaPlan.compile(allocator, proof_program, target);
     errdefer plan.deinit(allocator);
 
+    var product_registry = try product_aot.Registry.initProduct(allocator);
+    defer product_registry.deinit();
     const missing = try missingLowerings(
         allocator,
         &proof,
+        prepared.artifacts.witness_programs,
         prepared.artifacts.composition,
         proof_program.constraints,
+        product_registry,
     );
     errdefer allocator.free(missing);
     const receipt = AdmissionReceipt{
@@ -230,44 +235,41 @@ fn buildBufferDescriptions(
 fn missingLowerings(
     allocator: std.mem.Allocator,
     proof: *const proof_plan.CairoProofPlan,
+    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
     bundle: composition.Bundle,
     constraints: []const @import("stwo_backend_contracts").proof_program.ConstraintProgram,
+    product_registry: product_aot.Registry,
 ) ![]MissingLowering {
     if (constraints.len != proof.components.len or constraints.len != bundle.components.len)
         return error.CairoCudaConstraintCardinalityMismatch;
-    var count = std.math.mul(usize, proof.components.len, 2) catch
-        return error.CairoCudaGeometryOverflow;
-    for (bundle.components) |component|
-        count = std.math.add(usize, count, component.parts.len) catch
-            return error.CairoCudaGeometryOverflow;
-    const missing = try allocator.alloc(MissingLowering, count);
-    var cursor: usize = 0;
+    var missing = std.ArrayList(MissingLowering).empty;
+    errdefer missing.deinit(allocator);
     for (constraints, 0..) |constraint, index| {
         if (constraint.component != index)
             return error.CairoCudaConstraintOrderMismatch;
         const component = bundle.components[index];
         const planned = proof.findInstance(component.label, component.instance) orelse
             return error.MissingCompositionComponent;
-        missing[cursor] = .{
-            .kind = .base_writer,
-            .component_index = @intCast(index),
-            .component = planned.name,
-            .component_instance = planned.instance,
-            .ordinal = 0,
-            .semantic = baseWriterIdentity(planned.*, constraint.expression),
-        };
-        cursor += 1;
-        missing[cursor] = .{
+        if (!baseWriterAdmitted(planned.*, witnesses, product_registry)) {
+            try missing.append(allocator, .{
+                .kind = .base_writer,
+                .component_index = @intCast(index),
+                .component = planned.name,
+                .component_instance = planned.instance,
+                .ordinal = 0,
+                .semantic = baseWriterIdentity(planned.*, constraint.expression),
+            });
+        }
+        try missing.append(allocator, .{
             .kind = .interaction,
             .component_index = @intCast(index),
             .component = planned.name,
             .component_instance = planned.instance,
             .ordinal = 0,
             .semantic = interactionIdentity(constraint.expression),
-        };
-        cursor += 1;
+        });
         for (component.parts, 0..) |part, part_index| {
-            missing[cursor] = .{
+            try missing.append(allocator, .{
                 .kind = .constraint_part,
                 .component_index = @intCast(index),
                 .component = planned.name,
@@ -278,12 +280,28 @@ fn missingLowerings(
                     @intCast(part_index),
                     part,
                 ),
-            };
-            cursor += 1;
+            });
         }
     }
-    std.debug.assert(cursor == missing.len);
-    return missing;
+    return missing.toOwnedSlice(allocator);
+}
+
+fn baseWriterAdmitted(
+    component: proof_plan.Component,
+    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
+    product_registry: product_aot.Registry,
+) bool {
+    if (component.writer != .recorded_aot) return false;
+    const witness = witnesses.find(component.name) orelse return false;
+    // The copied AOT modules for Pedersen deduction own module-local pointer
+    // globals. Packaging the cubin is not execution admission until the Zig
+    // loader authenticates and initializes those globals.
+    if (witness.program.deductionRequirements().pedersen_table) return false;
+    return product_registry.admitsRecordedWitness(.{
+        .label = witness.label,
+        .semantic_hash = witness.semantic_hash,
+        .program_identity = witness.program.semanticIdentity(),
+    });
 }
 
 fn loweringDigest(missing: []const MissingLowering) [32]u8 {
@@ -403,6 +421,69 @@ test "Cairo CUDA admission remains fail closed and binds every missing lowering"
     forged.execution_admissible = true;
     try std.testing.expectError(error.InvalidCairoCudaAdmissionReceipt, forged.validate());
     try std.testing.expect(!production_ready);
+}
+
+test "Cairo CUDA base-writer admission requires an exact product identity" {
+    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+    var witnesses = try witness_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/sn_pie_2_witness_programs.bin",
+    );
+    defer witnesses.deinit();
+    var registry = try product_aot.Registry.initProduct(std.testing.allocator);
+    defer registry.deinit();
+
+    const empty_parts = [_]proof_plan.TracePart{};
+    const empty_edges = [_]proof_plan.ProducerEdge{};
+    const empty_feeds = [_]proof_plan.CapacityFeed{};
+    const admitted = proof_plan.Component{
+        .name = "add_ap_opcode",
+        .canonical_ordinal = 0,
+        .writer = .recorded_aot,
+        .trace_parts = &empty_parts,
+        .producer_edges = &empty_edges,
+        .capacity_feeds = &empty_feeds,
+    };
+    try std.testing.expect(baseWriterAdmitted(admitted, witnesses, registry));
+
+    var second_admitted = admitted;
+    second_admitted.name = "add_opcode";
+    try std.testing.expect(baseWriterAdmitted(
+        second_admitted,
+        witnesses,
+        registry,
+    ));
+
+    var unbound_pedersen = admitted;
+    unbound_pedersen.name = "partial_ec_mul_window_bits_18";
+    try std.testing.expect(!baseWriterAdmitted(
+        unbound_pedersen,
+        witnesses,
+        registry,
+    ));
+    unbound_pedersen.name = "pedersen_aggregator_window_bits_18";
+    try std.testing.expect(!baseWriterAdmitted(
+        unbound_pedersen,
+        witnesses,
+        registry,
+    ));
+
+    var embedded_poseidon = admitted;
+    embedded_poseidon.name = "poseidon_aggregator";
+    try std.testing.expect(baseWriterAdmitted(
+        embedded_poseidon,
+        witnesses,
+        registry,
+    ));
+
+    var wrong_family = admitted;
+    wrong_family.name = "partial_ec_mul_generic";
+    wrong_family.writer = .native_backend;
+    try std.testing.expect(!baseWriterAdmitted(
+        wrong_family,
+        witnesses,
+        registry,
+    ));
 }
 
 test "Cairo CUDA proof plans preserve distinct memory instances" {
@@ -582,11 +663,15 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
     defer program.deinit(allocator);
     var cuda = try cuda_plan.CudaPlan.compile(allocator, program, testTarget());
     defer cuda.deinit(allocator);
+    var product_registry = try product_aot.Registry.initProduct(allocator);
+    defer product_registry.deinit();
     const missing = try missingLowerings(
         allocator,
         &proof,
+        witnesses,
         bundle,
         program.constraints,
+        product_registry,
     );
     defer allocator.free(missing);
 
@@ -617,8 +702,20 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
     try std.testing.expectEqual(@as(usize, 58), proof.components.len);
     try std.testing.expectEqual(bundle.components.len, program.constraints.len);
     try std.testing.expectEqual(1 + 2 * bundle.components.len, program.buffers.len);
-    try std.testing.expectEqual(2 * bundle.components.len + part_count, missing.len);
-    try std.testing.expectEqual(bundle.components.len, lowering_counts[@intFromEnum(LoweringKind.base_writer)]);
+    var admitted_writer_count: usize = 0;
+    for (proof.components) |component| {
+        if (baseWriterAdmitted(component, witnesses, product_registry))
+            admitted_writer_count += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 30), admitted_writer_count);
+    try std.testing.expectEqual(
+        2 * bundle.components.len + part_count - admitted_writer_count,
+        missing.len,
+    );
+    try std.testing.expectEqual(
+        bundle.components.len - admitted_writer_count,
+        lowering_counts[@intFromEnum(LoweringKind.base_writer)],
+    );
     try std.testing.expectEqual(bundle.components.len, lowering_counts[@intFromEnum(LoweringKind.interaction)]);
     try std.testing.expectEqual(part_count, lowering_counts[@intFromEnum(LoweringKind.constraint_part)]);
     try std.testing.expectEqual(program.nodes.len, cuda.schedule.len);

@@ -7,6 +7,7 @@ pub const identity = @import("identity.zig");
 pub const casm_input = @import("casm_input.zig");
 pub const lowering_map = @import("lowering_map.zig");
 pub const program = @import("program.zig");
+pub const recorded_witness = @import("recorded_witness.zig");
 pub const request_compiler = @import("request_compiler.zig");
 
 test {
@@ -15,6 +16,8 @@ test {
     _ = @import("witness_multi_edge_test.zig");
     _ = lowering_map;
     _ = @import("program_test.zig");
+    _ = @import("product_registry_test.zig");
+    _ = recorded_witness;
     _ = @import("request_compiler.zig");
     @import("std").testing.refAllDeclsRecursive(@This());
 }
