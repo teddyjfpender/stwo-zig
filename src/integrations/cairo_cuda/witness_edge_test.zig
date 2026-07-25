@@ -67,15 +67,8 @@ const FakeApi = struct {
 };
 
 const FakeContext = struct {
-    stream_storage: u8 = 0,
-    stream: *anyopaque = undefined,
+    stream: *anyopaque = &fake_stream_storage,
     active_stage: telemetry.Stage = .trace_generation,
-
-    fn init() FakeContext {
-        var result = FakeContext{};
-        result.stream = &result.stream_storage;
-        return result;
-    }
 
     pub fn requireStage(
         self: *FakeContext,
@@ -100,7 +93,7 @@ const FakeContext = struct {
 };
 
 const FakeSession = struct {
-    context: FakeContext = FakeContext.init(),
+    context: FakeContext = .{},
     launches: usize = 0,
 
     pub fn recordOrdinaryKernel(
@@ -113,6 +106,8 @@ const FakeSession = struct {
         self.launches += 1;
     }
 };
+
+var fake_stream_storage: u8 = 0;
 
 fn words(values: []u32) common.Words {
     return .{

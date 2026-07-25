@@ -10,6 +10,7 @@ pub const program = @import("program.zig");
 pub const relation_adapter = @import("relation_adapter.zig");
 pub const recorded_witness = @import("recorded_witness.zig");
 pub const request_compiler = @import("request_compiler.zig");
+pub const eval_codegen = @import("eval_codegen.zig");
 
 test {
     _ = @import("casm_input_test.zig");
@@ -22,5 +23,6 @@ test {
     _ = @import("relation_adapter_layout_test.zig");
     _ = recorded_witness;
     _ = @import("request_compiler.zig");
+    _ = eval_codegen;
     @import("std").testing.refAllDeclsRecursive(@This());
 }

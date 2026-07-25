@@ -33,6 +33,7 @@ pub const staged_arena_planner = @import("staged_arena_planner.zig");
 pub const arena_lifetime = @import("arena_lifetime.zig");
 pub const witness = @import("witness/mod.zig");
 pub const conformance = @import("conformance/mod.zig");
+pub const codegen = @import("codegen/mod.zig");
 
 // Convenience re-exports.
 pub const Felt252 = common.Felt252;

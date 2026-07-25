@@ -1,15 +1,13 @@
 const std = @import("std");
 const eval = @import("../../frontends/cairo/witness/eval_program.zig");
+const shared = @import("../../frontends/cairo/codegen/eval_program.zig");
 
 pub const codegen_version: u64 = 2;
 pub const default_fused_instruction_cap: usize = 512;
 pub const max_fused_instruction_cap: usize = 4096;
 pub const hybrid_fusion_source_cap: usize = 90 * 1024;
 
-pub const FusedPart = struct {
-    program: eval.Program,
-    rc_base: u32,
-};
+pub const FusedPart = shared.FusedPart;
 
 pub const HybridFusionPolicy = struct {
     baseline_operation_cap: usize = 2048,
@@ -74,36 +72,16 @@ pub fn fusionSliceKernelName(
         fusedKernelName(allocator, group);
 }
 
-pub fn instructionCount(program: eval.Program) usize {
-    return program.base_insts.len + program.ext_insts.len;
-}
-
-pub fn fusionOperationCount(program: eval.Program) usize {
-    return instructionCount(program) + program.constraint_roots.len;
-}
+pub const instructionCount = shared.instructionCount;
+pub const fusionOperationCount = shared.fusionOperationCount;
 
 pub fn fusionGroupEnd(parts: []const FusedPart, start: usize, instruction_cap: usize) !usize {
-    if (start >= parts.len or instruction_cap == 0 or instruction_cap > max_fused_instruction_cap)
-        return error.InvalidFusionGroup;
-    var end = start;
-    var operations: usize = 0;
-    var expected_rc_base = parts[start].rc_base;
-    while (end < parts.len) : (end += 1) {
-        const part = parts[end];
-        if (part.rc_base != expected_rc_base) return error.InvalidFusionGroup;
-        expected_rc_base = std.math.add(u32, expected_rc_base, part.program.header.n_constraints) catch
-            return error.InvalidFusionGroup;
-        const next = fusionOperationCount(part.program);
-        if (next > instruction_cap) {
-            if (operations == 0) return start + 1;
-            break;
-        }
-        const total = std.math.add(usize, operations, next) catch return error.InvalidFusionGroup;
-        if (operations != 0 and total > instruction_cap) break;
-        operations = total;
-    }
-    if (end == start) return error.InvalidFusionGroup;
-    return end;
+    return shared.fusionGroupEnd(
+        parts,
+        start,
+        instruction_cap,
+        max_fused_instruction_cap,
+    );
 }
 
 /// Finds an exact-size bounded partition without changing the existing greedy
@@ -438,80 +416,70 @@ fn emitProgramBody(
     program: eval.Program,
     rc_offset: u32,
 ) !void {
-    const base_declared = try allocator.alloc(bool, program.header.max_base_regs);
-    defer allocator.free(base_declared);
-    @memset(base_declared, false);
-    for (program.base_insts) |inst| {
-        const decl = if (!base_declared[inst.dst]) "uint " else "";
-        base_declared[inst.dst] = true;
-        switch (inst.op) {
-            .trace_col, .preprocessed_col => try writer.print(
-                "    {s}b{} = trace_value(arena, args, {}u, {}u, row, {});\n",
-                .{ decl, inst.dst, inst.interaction, inst.a, inst.imm },
-            ),
-            .param => try writer.print("    {s}b{} = arena[args.base_params + {}u];\n", .{ decl, inst.dst, inst.a }),
-            .constant => try writer.print("    {s}b{} = {}u;\n", .{ decl, inst.dst, inst.a }),
-            .add => try writer.print("    {s}b{} = m31_add(b{}, b{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-            .sub => try writer.print("    {s}b{} = m31_sub(b{}, b{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-            .mul => try writer.print("    {s}b{} = m31_mul(b{}, b{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-            .neg => try writer.print("    {s}b{} = m31_neg(b{});\n", .{ decl, inst.dst, inst.a }),
-            .inv => try writer.print("    {s}b{} = m31_inv(b{});\n", .{ decl, inst.dst, inst.a }),
-        }
-    }
+    var emitter = MetalProgramEmitter(@TypeOf(writer)){ .writer = writer };
+    try shared.walk(allocator, program, rc_offset, &emitter);
+}
 
-    const ext_declared = try allocator.alloc(bool, program.header.max_ext_regs);
-    defer allocator.free(ext_declared);
-    @memset(ext_declared, false);
-    for (program.ext_insts) |inst| {
-        const decl = if (!ext_declared[inst.dst]) "Qm31 " else "";
-        ext_declared[inst.dst] = true;
-        switch (inst.op) {
-            .secure_col => try writer.print("    {s}e{} = {{ b{}, b{}, b{}, b{} }};\n", .{ decl, inst.dst, inst.a, inst.b, inst.c, inst.d }),
-            .param => try writer.print("    {s}e{} = load_qm31(arena, args.ext_params + {}u * 4u);\n", .{ decl, inst.dst, inst.a }),
-            .constant => try writer.print("    {s}e{} = {{ {}u, {}u, {}u, {}u }};\n", .{ decl, inst.dst, inst.a, inst.b, inst.c, inst.d }),
-            .add => try writer.print("    {s}e{} = qm_add(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-            .sub => try writer.print("    {s}e{} = qm_sub(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-            .mul => try writer.print("    {s}e{} = qm_mul(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-            .neg => try writer.print("    {s}e{} = qm_neg(e{});\n", .{ decl, inst.dst, inst.a }),
-        }
-    }
+fn MetalProgramEmitter(comptime Writer: type) type {
+    return struct {
+        writer: Writer,
 
-    try writer.writeAll("    Qm31 part_acc = { 0u, 0u, 0u, 0u };\n");
-    for (program.constraint_roots, 0..) |root, index| {
-        const relative = std.math.add(u32, rc_offset, @intCast(index)) catch return error.InvalidFusionGroup;
-        try writer.print(
-            "    part_acc = qm_add(part_acc, qm_mul(e{}, load_qm31(arena, args.random_coeffs + (args.rc_base + {}u) * 4u)));\n",
-            .{ root, relative },
-        );
-    }
+        pub fn base(self: *@This(), step: shared.BaseStep) !void {
+            const inst = step.instruction;
+            const decl = if (step.declare) "uint " else "";
+            switch (inst.op) {
+                .trace_col, .preprocessed_col => try self.writer.print(
+                    "    {s}b{} = trace_value(arena, args, {}u, {}u, row, {});\n",
+                    .{ decl, inst.dst, inst.interaction, inst.a, inst.imm },
+                ),
+                .param => try self.writer.print("    {s}b{} = arena[args.base_params + {}u];\n", .{ decl, inst.dst, inst.a }),
+                .constant => try self.writer.print("    {s}b{} = {}u;\n", .{ decl, inst.dst, inst.a }),
+                .add => try self.writer.print("    {s}b{} = m31_add(b{}, b{});\n", .{ decl, inst.dst, inst.a, inst.b }),
+                .sub => try self.writer.print("    {s}b{} = m31_sub(b{}, b{});\n", .{ decl, inst.dst, inst.a, inst.b }),
+                .mul => try self.writer.print("    {s}b{} = m31_mul(b{}, b{});\n", .{ decl, inst.dst, inst.a, inst.b }),
+                .neg => try self.writer.print("    {s}b{} = m31_neg(b{});\n", .{ decl, inst.dst, inst.a }),
+                .inv => try self.writer.print("    {s}b{} = m31_inv(b{});\n", .{ decl, inst.dst, inst.a }),
+            }
+        }
+
+        pub fn extended(self: *@This(), step: shared.ExtStep) !void {
+            const inst = step.instruction;
+            const decl = if (step.declare) "Qm31 " else "";
+            switch (inst.op) {
+                .secure_col => try self.writer.print("    {s}e{} = {{ b{}, b{}, b{}, b{} }};\n", .{ decl, inst.dst, inst.a, inst.b, inst.c, inst.d }),
+                .param => try self.writer.print("    {s}e{} = load_qm31(arena, args.ext_params + {}u * 4u);\n", .{ decl, inst.dst, inst.a }),
+                .constant => try self.writer.print("    {s}e{} = {{ {}u, {}u, {}u, {}u }};\n", .{ decl, inst.dst, inst.a, inst.b, inst.c, inst.d }),
+                .add => try self.writer.print("    {s}e{} = qm_add(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
+                .sub => try self.writer.print("    {s}e{} = qm_sub(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
+                .mul => try self.writer.print("    {s}e{} = qm_mul(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
+                .neg => try self.writer.print("    {s}e{} = qm_neg(e{});\n", .{ decl, inst.dst, inst.a }),
+            }
+        }
+
+        pub fn beginConstraints(self: *@This()) !void {
+            try self.writer.writeAll(
+                "    Qm31 part_acc = { 0u, 0u, 0u, 0u };\n",
+            );
+        }
+
+        pub fn constraint(
+            self: *@This(),
+            step: shared.ConstraintStep,
+        ) !void {
+            try self.writer.print(
+                "    part_acc = qm_add(part_acc, qm_mul(e{}, load_qm31(arena, args.random_coeffs + (args.rc_base + {}u) * 4u)));\n",
+                .{ step.root, step.random_coefficient_offset },
+            );
+        }
+    };
 }
 
 fn validateFusionGroup(parts: []const FusedPart) !void {
-    if (parts.len < 2) return error.InvalidFusionGroup;
-    try validatePartSequence(parts);
-    var instruction_count: usize = 0;
-    for (parts) |part| {
-        instruction_count = std.math.add(usize, instruction_count, fusionOperationCount(part.program)) catch
-            return error.InvalidFusionGroup;
-    }
-    if (instruction_count > max_fused_instruction_cap) return error.FusionGroupTooLarge;
+    return shared.validateFusionGroup(parts, max_fused_instruction_cap);
 }
 
 fn validatePartSequence(parts: []const FusedPart) !void {
-    if (parts.len == 0) return error.InvalidFusionGroup;
-    const first = parts[0];
-    var expected_rc_base = first.rc_base;
-    for (parts) |part| {
-        try part.program.validate();
-        if (part.rc_base != expected_rc_base or
-            part.program.header.n_interactions != first.program.header.n_interactions or
-            part.program.header.n_base_params != first.program.header.n_base_params or
-            part.program.header.n_ext_params != first.program.header.n_ext_params or
-            part.program.header.domain_log_size != first.program.header.domain_log_size)
-            return error.InvalidFusionGroup;
-        expected_rc_base = std.math.add(u32, expected_rc_base, part.program.header.n_constraints) catch
-            return error.InvalidFusionGroup;
-    }
+    return shared.validatePartSequence(parts);
 }
 
 fn fusedGroupHash(parts: []const FusedPart) u64 {
@@ -616,6 +584,37 @@ test "Metal evaluation codegen: emits fused arena kernel" {
     try std.testing.expect(std.mem.indexOf(u8, source, "b2 = m31_mul(b0, b1)") != null);
     try std.testing.expect(std.mem.indexOf(u8, source, "qm_mul(e0, e1)") != null);
     try std.testing.expect(std.mem.indexOf(u8, source, "args.coord_3 + row") != null);
+
+    const kernel_only = try generateKernel(
+        std.testing.allocator,
+        program,
+        false,
+    );
+    defer std.testing.allocator.free(kernel_only);
+    try std.testing.expectEqualStrings(
+        \\kernel void stwo_zig_eval_0000000000001234(
+        \\    device uint *arena [[buffer(0)]],
+        \\    constant EvalArgs &args [[buffer(1)]],
+        \\    uint row [[thread_position_in_grid]]) {
+        \\    if (row >= args.row_count) return;
+        \\    uint b0 = trace_value(arena, args, 0u, 2u, row, -1);
+        \\    uint b1 = 7u;
+        \\    uint b2 = m31_mul(b0, b1);
+        \\    Qm31 e0 = { b2, b1, b0, b1 };
+        \\    Qm31 e1 = load_qm31(arena, args.ext_params + 0u * 4u);
+        \\    Qm31 e2 = qm_mul(e0, e1);
+        \\    Qm31 part_acc = { 0u, 0u, 0u, 0u };
+        \\    part_acc = qm_add(part_acc, qm_mul(e2, load_qm31(arena, args.random_coeffs + (args.rc_base + 0u) * 4u)));
+        \\    Qm31 result = qm_mul_base(part_acc, arena[args.denom_inv + (row >> args.trace_log_size)]);
+        \\    arena[args.coord_0 + row] = m31_add(arena[args.coord_0 + row], result.a);
+        \\    arena[args.coord_1 + row] = m31_add(arena[args.coord_1 + row], result.b);
+        \\    arena[args.coord_2 + row] = m31_add(arena[args.coord_2 + row], result.c);
+        \\    arena[args.coord_3 + row] = m31_add(arena[args.coord_3 + row], result.d);
+        \\}
+        \\
+    ,
+        kernel_only,
+    );
 }
 
 test "Metal evaluation codegen: fuses adjacent parts with one accumulator store" {
