@@ -6,8 +6,13 @@ const quotient_abi = @import(
     "../../../../backends/cuda/abi/stages/quotient.zig",
 );
 const arena = @import("../../../../backends/cuda/runtime/arena.zig");
+const relation_abi = @import(
+    "../../../../backends/cuda/abi/stages/relation.zig",
+);
 const telemetry = @import("../../../../backends/cuda/runtime/telemetry.zig");
+const completion_plan = @import("completion_plan.zig");
 const geometry_mod = @import("geometry.zig");
+const interaction_plan = @import("interaction_plan.zig");
 const slots = @import("slots.zig");
 const views_mod = @import("views.zig");
 
@@ -95,6 +100,31 @@ pub const Prepared = struct {
             slots.interaction_batch_prefix,
             relation_words,
         );
+        const interaction = try interaction_plan.Plan.init(
+            self.geometry,
+            self.views,
+        );
+        const completion = try completion_plan.Plan.init(interaction);
+        try requireWords(
+            self,
+            slots.interaction_output_pointer_table,
+            geometry_mod.interaction_columns * 2,
+        );
+        try requireWords(
+            self,
+            slots.interaction_geometry,
+            geometry_mod.component_count * relation_abi.geometry_words,
+        );
+        try requireWords(
+            self,
+            slots.interaction_reduction_partials,
+            try completion.scratchWords(),
+        );
+        try requireWords(
+            self,
+            slots.interaction_scan_block_sums,
+            try completion.scratchWords(),
+        );
         try requireWords(
             self,
             slots.commitment_states,
@@ -152,6 +182,14 @@ pub fn buildRequirements(
     const relation_words = try geometry_mod.relationFractionWorkspaceWords(
         geometry.statement.log_n_rows,
     );
+    const interaction = try interaction_plan.Plan.init(
+        geometry,
+        try views_mod.TreeViews.init(geometry),
+    );
+    const completion = try completion_plan.Plan.init(interaction);
+    const pointer_words = @sizeOf(usize) / @sizeOf(u32);
+    const top_table_words = geometry_mod.component_count * pointer_words;
+    const scratch_words = try completion.scratchWords();
     try add(&result, allocator, slots.interaction_denominators, relation_words, .constraint_evaluation, .constraint_evaluation);
     try add(&result, allocator, slots.interaction_batch_prefix, relation_words, .constraint_evaluation, .constraint_evaluation);
     try addAligned(
@@ -163,6 +201,13 @@ pub fn buildRequirements(
         .trace_commit,
         .constraint_evaluation,
     );
+    try add(&result, allocator, slots.interaction_output_pointer_table, geometry_mod.interaction_columns * pointer_words, .ingress, .constraint_evaluation);
+    try add(&result, allocator, slots.interaction_output_tables, top_table_words, .ingress, .constraint_evaluation);
+    try add(&result, allocator, slots.interaction_denominator_tables, top_table_words, .ingress, .constraint_evaluation);
+    try add(&result, allocator, slots.interaction_claim_tables, top_table_words, .ingress, .constraint_evaluation);
+    try add(&result, allocator, slots.interaction_geometry, geometry_mod.component_count * relation_abi.geometry_words, .ingress, .constraint_evaluation);
+    try add(&result, allocator, slots.interaction_reduction_partials, scratch_words, .constraint_evaluation, .constraint_evaluation);
+    try add(&result, allocator, slots.interaction_scan_block_sums, scratch_words, .constraint_evaluation, .constraint_evaluation);
 
     try addTree(
         &result,

@@ -12,8 +12,15 @@ pub const statement1_claims: SlotId = 0x2112;
 pub const composition_challenge: SlotId = 0x2113;
 pub const interaction_denominators: SlotId = 0x2120;
 pub const interaction_batch_prefix: SlotId = 0x2121;
+pub const interaction_output_pointer_table: SlotId = 0x2122;
+pub const interaction_output_tables: SlotId = 0x2123;
+pub const interaction_denominator_tables: SlotId = 0x2124;
+pub const interaction_claim_tables: SlotId = 0x2125;
+pub const interaction_geometry: SlotId = 0x2126;
+pub const interaction_reduction_partials: SlotId = 0x2127;
+pub const interaction_scan_block_sums: SlotId = 0x2128;
 /// Reused across the four trace-tree commits; 24 words per lifted leaf.
-pub const commitment_states: SlotId = 0x2122;
+pub const commitment_states: SlotId = 0x2129;
 
 pub const preprocessed_evaluations: SlotId = 0x2200;
 pub const preprocessed_coefficients: SlotId = 0x2201;

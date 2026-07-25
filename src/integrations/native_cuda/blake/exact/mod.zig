@@ -6,6 +6,7 @@
 pub const activation = @import("activation.zig");
 pub const arena_plan = @import("arena_plan.zig");
 pub const commitment = @import("commitment.zig");
+pub const completion_plan = @import("completion_plan.zig");
 pub const executor = @import("executor.zig");
 pub const facades = @import("facades.zig");
 pub const geometry = @import("geometry.zig");
@@ -23,6 +24,7 @@ test {
     _ = activation;
     _ = arena_plan;
     _ = commitment;
+    _ = completion_plan;
     _ = executor;
     _ = facades;
     _ = geometry;
