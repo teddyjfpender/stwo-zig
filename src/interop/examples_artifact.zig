@@ -60,6 +60,7 @@ pub const PlonkLogupStatementWire = struct {
 
 pub const PoseidonStatementWire = struct {
     log_n_instances: u32,
+    claimed_sum: Qm31Wire = .{0} ** 4,
 };
 
 pub const BlakeStatementWire = struct {
@@ -360,12 +361,14 @@ pub fn plonkLogupStatementFromWire(
 pub fn poseidonStatementToWire(statement: poseidon.Statement) PoseidonStatementWire {
     return .{
         .log_n_instances = statement.log_n_instances,
+        .claimed_sum = qm31ToWire(statement.claimed_sum),
     };
 }
 
 pub fn poseidonStatementFromWire(wire: PoseidonStatementWire) ArtifactError!poseidon.Statement {
     return .{
         .log_n_instances = wire.log_n_instances,
+        .claimed_sum = try qm31FromWire(wire.claimed_sum),
     };
 }
 

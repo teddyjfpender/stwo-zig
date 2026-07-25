@@ -38,7 +38,7 @@ class NativeProofMatrixTests(unittest.TestCase):
 
         self.assertEqual(
             RUST_ORACLE_SHA256,
-            "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b",
+            "d4743ace9f9c9948fe4989ac54215538d83d0cd7b3a880fa8138711153dd91f9",
         )
 
     def test_library_miss_is_cold_but_hit_timing_alone_is_warm(self) -> None:
@@ -107,9 +107,9 @@ class NativeProofMatrixTests(unittest.TestCase):
             ),
             (
                 MODULE.parse_workload("poseidon:log_n_instances=13"),
-                1264,
-                1_294_336,
-                "aa292dd3fce8924260fbf1729589c9cfd93335298c7995bed4f537250527b956",
+                1296,
+                1_327_104,
+                "bb508f796006fc2b8482e04b0fc941be001c86d05be029600bc3ca8af123c7e3",
             ),
         )
         for workload, columns, cells, descriptor in vectors:
@@ -126,6 +126,7 @@ class NativeProofMatrixTests(unittest.TestCase):
                 elif workload.name == "poseidon":
                     self.assertEqual(workload.native_unit, "poseidon_instances")
                     self.assertEqual(workload.native_units, 8192)
+                    self.assertEqual(workload.report_dict()["committed_trees"], 3)
                 self.assertEqual(
                     MODULE.workload_descriptor_sha256(workload, "functional"),
                     descriptor,
@@ -156,11 +157,11 @@ class NativeProofMatrixTests(unittest.TestCase):
             ],
         )
         self.assertEqual(len(suite.rows), MODULE.MAX_MATRIX_ROWS)
-        self.assertEqual(suite.committed_trace_cells_per_lane, 16_078_848)
+        self.assertEqual(suite.committed_trace_cells_per_lane, 16_115_712)
         maximum_request_cells = suite.request_cells(
             MODULE.MAX_WARMUPS, MODULE.MAX_SAMPLES
         )
-        self.assertEqual(maximum_request_cells, 1_640_042_496)
+        self.assertEqual(maximum_request_cells, 1_643_802_624)
         self.assertLessEqual(maximum_request_cells, MODULE.MAX_TOTAL_REQUEST_CELLS)
         MODULE.validate_suite(suite)
 

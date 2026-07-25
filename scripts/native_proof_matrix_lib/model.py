@@ -20,7 +20,7 @@ INTEROP_ARTIFACT_SCHEMA_VERSION = 1
 INTEROP_UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 INTEROP_EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 RUST_ORACLE_TOOLCHAIN = "nightly-2025-07-14"
-RUST_ORACLE_SHA256 = "bca74321517d41e6c2128ab20567756ab498ef18cee3fba422a51eea74b92b2b"
+RUST_ORACLE_SHA256 = "d4743ace9f9c9948fe4989ac54215538d83d0cd7b3a880fa8138711153dd91f9"
 
 DEFAULT_WORKLOADS = (
     "wide_fibonacci:log_n_rows=10,sequence_len=8",
@@ -210,6 +210,7 @@ NATIVE_UNITS = {
 AIR_PROTOCOLS = {
     "xor": "raw-stwo-xor-lookup-v2",
     "state_machine": "raw-stwo-state-machine-v2",
+    "poseidon": "raw-stwo-poseidon-logup-split2-v1",
 }
 
 
@@ -285,7 +286,7 @@ class Workload:
         if self.name == "blake":
             return self.parameters["n_rounds"] * 96
         if self.name == "poseidon":
-            return 1264
+            return 1296
         if self.name == "wide_fibonacci":
             return self.parameters["sequence_len"]
         if self.name == "xor":
@@ -296,7 +297,7 @@ class Workload:
 
     @property
     def committed_trees(self) -> int:
-        if self.name in ("xor", "state_machine"):
+        if self.name in ("xor", "state_machine", "poseidon"):
             return 3
         return 2
 

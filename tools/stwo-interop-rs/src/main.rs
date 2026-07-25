@@ -3,6 +3,7 @@ mod commands;
 mod components;
 mod model;
 mod plonk_logup;
+mod poseidon_exact;
 mod profile;
 mod proving;
 mod state_machine;

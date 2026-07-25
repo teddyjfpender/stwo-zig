@@ -328,6 +328,7 @@ pub(crate) fn plonk_statement_from_wire(wire: &PlonkStatementWire) -> Result<Plo
 pub(crate) fn poseidon_statement_to_wire(statement: PoseidonStatement) -> PoseidonStatementWire {
     PoseidonStatementWire {
         log_n_instances: statement.log_n_instances,
+        claimed_sum: qm31_to_wire(statement.claimed_sum),
     }
 }
 
@@ -336,6 +337,7 @@ pub(crate) fn poseidon_statement_from_wire(
 ) -> Result<PoseidonStatement> {
     Ok(PoseidonStatement {
         log_n_instances: wire.log_n_instances,
+        claimed_sum: qm31_from_wire(wire.claimed_sum)?,
     })
 }
 

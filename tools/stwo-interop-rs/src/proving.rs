@@ -1,7 +1,8 @@
 use crate::model::{
     BenchProofMetrics, BlakeComponent, BlakeStatement, Cli, Example, ExampleStatement,
     PlonkComponent, PlonkStatement, PoseidonComponent, PoseidonStatement, ProveMode, StageNode,
-    WideFibonacciComponent, WideFibonacciStatement, XorStatement, POSEIDON_COLUMNS,
+    WideFibonacciStatement, XorStatement,
+    WideFibonacciComponent,
 };
 use crate::profile::time_stage;
 use crate::statements::{
@@ -64,6 +65,7 @@ where
         Example::Poseidon => {
             let statement = PoseidonStatement {
                 log_n_instances: cli.poseidon_log_n_instances,
+                claimed_sum: Default::default(),
             };
             let (statement, proof) = poseidon_prove::<B>(
                 config,
@@ -505,27 +507,12 @@ pub(crate) fn poseidon_verify(
     statement: PoseidonStatement,
     proof: StarkProof<Blake2sMerkleHasher>,
 ) -> Result<()> {
-    let log_n_rows = poseidon_log_n_rows(statement)?;
-    if proof.0.commitments.len() < 2 {
-        bail!("invalid proof shape: expected at least 2 commitments");
-    }
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let c0 = proof.0.commitments[0];
-    let c1 = proof.0.commitments[1];
-
-    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
-    commitment_scheme.commit(c0, &[], &mut channel);
-    let main_log_sizes = vec![log_n_rows; POSEIDON_COLUMNS];
-    commitment_scheme.commit(c1, &main_log_sizes, &mut channel);
-
-    mix_poseidon_statement(&mut channel, statement);
-
-    let component = PoseidonComponent { statement };
-    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
-        .map_err(|err| anyhow!("poseidon verify failed: {err}"))
+    crate::poseidon_exact::verify_exact(
+        config,
+        statement.log_n_instances,
+        statement.claimed_sum,
+        proof,
+    )
 }
 
 pub(crate) fn blake_prove<B>(

@@ -108,6 +108,7 @@ NATIVE_UNITS = {
 }
 AIR_PROTOCOLS = {
     "xor": "raw-stwo-xor-lookup-v2",
+    "poseidon": "raw-stwo-poseidon-logup-split2-v1",
 }
 
 
@@ -220,7 +221,7 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
     trace_rows = _require_int(workload["trace_rows"], f"{context}.trace_rows", minimum=1)
     if trace_rows != 1 << log_rows:
         raise ProductEvidenceError(f"{context}.trace_rows is inconsistent")
-    expected_trees = 3 if name == "xor" else 2
+    expected_trees = 3 if name in {"xor", "poseidon"} else 2
     if workload["committed_trees"] != expected_trees:
         raise ProductEvidenceError(f"{context}.committed_trees is unsupported")
     columns = _require_int(
@@ -231,7 +232,7 @@ def _validate_workload(value: Any, context: str) -> dict[str, Any]:
         if name == "wide_fibonacci"
         else parameters["n_rounds"] * 96
         if name == "blake"
-        else 1264
+        else 1296
         if name == "poseidon"
         else 15
         if name == "xor"

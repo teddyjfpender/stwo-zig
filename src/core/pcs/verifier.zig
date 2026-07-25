@@ -125,26 +125,27 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             if (std.process.hasEnvVarConstant("STWO_ZIG_SN2_LOG_VERIFIER_DECOMMIT"))
                 std.debug.print("verifier_sampled_queries={any}\n", .{query_positions});
 
-            const pp_max_log_size = if (column_log_sizes.items.len > verifier_types.PREPROCESSED_TRACE_IDX)
-                maxOrDefault(column_log_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX], 0)
-            else
-                0;
-
-            const preprocessed_query_positions = try pcs_utils.preparePreprocessedQueryPositions(
-                allocator,
-                query_positions,
-                lifting_log_size,
-                pp_max_log_size,
-            );
-            defer allocator.free(preprocessed_query_positions);
-
             const query_positions_tree = try allocator.alloc([]const usize, self.trees.items.len);
-            defer allocator.free(query_positions_tree);
+            var query_trees_initialized: usize = 0;
+            defer {
+                for (query_positions_tree[0..query_trees_initialized]) |positions| {
+                    allocator.free(positions);
+                }
+                allocator.free(query_positions_tree);
+            }
             for (query_positions_tree, 0..) |*positions, i| {
-                positions.* = if (i == verifier_types.PREPROCESSED_TRACE_IDX)
-                    preprocessed_query_positions
-                else
-                    query_positions;
+                const tree_log_size: ?u32 =
+                    if (column_log_sizes.items[i].len == 0)
+                        null
+                    else
+                        maxOrDefault(column_log_sizes.items[i], 0);
+                positions.* = try pcs_utils.prepareTreeQueryPositions(
+                    allocator,
+                    query_positions,
+                    lifting_log_size,
+                    tree_log_size,
+                );
+                query_trees_initialized += 1;
             }
 
             for (self.trees.items, 0..) |tree, i| {

@@ -215,7 +215,7 @@ pub const ParseResult = union(enum) { run: Args, help };
 const MAX_SEQUENCE_LEN: u32 = 512;
 const MAX_BLAKE_ROUNDS: u32 = 32;
 const POSEIDON_LOG_INSTANCES_PER_ROW: u32 = 3;
-const POSEIDON_COLUMNS: u64 = 1264;
+const POSEIDON_TRACE_COLUMNS: u64 = 1296;
 const MAX_XOR_OFFSET: usize = (1 << 31) - 1;
 const M31_MODULUS: u32 = 0x7fffffff;
 pub const MIN_HEADLINE_WARMUPS: usize = 10;
@@ -421,7 +421,7 @@ pub fn admitWorkload(
                 parameters.log_n_instances > resource_admission.MAX_LOG_ROWS + POSEIDON_LOG_INSTANCES_PER_ROW)
                 return error.InvalidLogNInstances;
             const log_n_rows = parameters.log_n_instances - POSEIDON_LOG_INSTANCES_PER_ROW;
-            break :blk resource_admission.admit(profile, log_n_rows, POSEIDON_COLUMNS);
+            break :blk resource_admission.admit(profile, log_n_rows, POSEIDON_TRACE_COLUMNS);
         },
     };
 }

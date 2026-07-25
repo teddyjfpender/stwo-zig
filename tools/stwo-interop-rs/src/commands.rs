@@ -149,6 +149,7 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
         Example::Poseidon => {
             let statement = PoseidonStatement {
                 log_n_instances: cli.poseidon_log_n_instances,
+                claimed_sum: Default::default(),
             };
             let (statement, proof) = selected_backend!(
                 cli,

@@ -27,11 +27,14 @@ def functional_descriptor(name: str, parameters: dict[str, int]) -> str:
         "wide_fibonacci": ("log_n_rows", "sequence_len"),
         "xor": ("log_size", "log_step", "offset"),
         "plonk": ("log_n_rows",),
+        "poseidon": ("log_n_instances",),
     }
     fields = ["native-proof-workload-v3", f"example={name}"]
     fields.extend(f"{key}={parameters[key]}" for key in parameter_order[name])
     if name == "xor":
         fields.append("air_protocol=raw-stwo-xor-lookup-v2")
+    elif name == "poseidon":
+        fields.append("air_protocol=raw-stwo-poseidon-logup-split2-v1")
     fields.extend((
         "protocol=functional",
         "pow_bits=10",
@@ -404,6 +407,43 @@ class BenchmarkProductContractTests(unittest.TestCase):
             measurement_policy=benchmark_policy(),
             host_device=host_device,
             measurements=[xor],
+            promotion_eligible=True,
+        )
+        validate_receipt(
+            receipt,
+            lane="cpu",
+            evidence_kind="benchmark",
+            expected_identity=identity,
+            expected_executable_sha256="6" * 64,
+            expected_host_device=host_device,
+        )
+
+    def test_receipt_accepts_exact_poseidon_geometry_and_identity(self) -> None:
+        poseidon = measurement()
+        parameters = {"log_n_instances": 13}
+        poseidon["workload"] = {
+            "name": "poseidon",
+            "parameters": parameters,
+            "trace_log_rows": 10,
+            "trace_rows": 1_024,
+            "committed_trees": 3,
+            "committed_columns": 1_296,
+            "committed_trace_cells": 1_327_104,
+            "native_unit": "poseidon_instances",
+            "native_units": 8_192,
+            "descriptor_sha256": functional_descriptor("poseidon", parameters),
+        }
+        poseidon["numerator"] = {"unit": "poseidon_instances", "units": 8_192}
+        identity = product_identity("cpu")
+        host_device = {"machine": "test"}
+        receipt = build_receipt(
+            lane="cpu",
+            evidence_kind="benchmark",
+            product_identity=identity,
+            executable_sha256="6" * 64,
+            measurement_policy=benchmark_policy(),
+            host_device=host_device,
+            measurements=[poseidon],
             promotion_eligible=True,
         )
         validate_receipt(

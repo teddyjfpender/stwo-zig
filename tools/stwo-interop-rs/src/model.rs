@@ -197,6 +197,8 @@ pub(crate) struct PlonkLogupStatementWire {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct PoseidonStatementWire {
     pub(crate) log_n_instances: u32,
+    #[serde(default)]
+    pub(crate) claimed_sum: Qm31Wire,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -324,6 +326,7 @@ pub(crate) struct PlonkStatement {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PoseidonStatement {
     pub(crate) log_n_instances: u32,
+    pub(crate) claimed_sum: SecureField,
 }
 
 #[derive(Debug, Clone, Copy)]

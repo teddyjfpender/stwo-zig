@@ -6,6 +6,7 @@ const prover_pcs = @import("stwo_prover_impl").pcs;
 const prover_transaction = @import("../common/prover_transaction.zig");
 
 const M31 = m31.M31;
+const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 pub const N_LOG_INSTANCES_PER_ROW: u32 = 3;
 pub const N_INSTANCES_PER_ROW: usize = 1 << N_LOG_INSTANCES_PER_ROW;
@@ -18,9 +19,33 @@ pub const N_COLUMNS: usize = N_COLUMNS_PER_REP * N_INSTANCES_PER_ROW;
 
 pub const Statement = struct {
     log_n_instances: u32,
+    claimed_sum: QM31 = QM31.zero(),
 };
 
-pub const PreparedInput = prover_transaction.PreparedInput(Statement);
+pub const LOOKUP_COLUMNS: usize = N_INSTANCES_PER_ROW * N_STATE;
+
+pub const LookupData = struct {
+    initial: [LOOKUP_COLUMNS][]M31,
+    final: [LOOKUP_COLUMNS][]M31,
+
+    pub fn deinit(self: *LookupData, allocator: std.mem.Allocator) void {
+        for (self.initial) |column| allocator.free(column);
+        for (self.final) |column| allocator.free(column);
+        self.* = undefined;
+    }
+};
+
+pub const PreparedInput = struct {
+    request: Statement,
+    trace: prover_transaction.PreparedTrace,
+    lookup_data: LookupData,
+
+    pub fn deinit(self: *PreparedInput, allocator: std.mem.Allocator) void {
+        self.trace.deinit(allocator);
+        self.lookup_data.deinit(allocator);
+        self.* = undefined;
+    }
+};
 
 pub const Error = prover_transaction.Error || error{
     InvalidLogNInstances,
@@ -74,6 +99,8 @@ pub fn prepare(
     const trace = try genTrace(allocator, statement);
     var trace_moved = false;
     defer if (!trace_moved) deinitTrace(allocator, trace);
+    var lookup_data = try cloneLookupData(allocator, trace);
+    errdefer lookup_data.deinit(allocator);
 
     const preprocessed = try allocator.alloc(prover_pcs.ColumnEvaluation, 0);
     var preprocessed_owner = prover_transaction.OwnedColumns.init(preprocessed);
@@ -95,7 +122,30 @@ pub fn prepare(
             preprocessed_owner.take(),
             main_owner.take(),
         ),
+        .lookup_data = lookup_data,
     };
+}
+
+fn cloneLookupData(allocator: std.mem.Allocator, trace: []const []const M31) !LookupData {
+    var result: LookupData = undefined;
+    var initial_count: usize = 0;
+    var final_count: usize = 0;
+    errdefer {
+        for (result.initial[0..initial_count]) |column| allocator.free(column);
+        for (result.final[0..final_count]) |column| allocator.free(column);
+    }
+    for (0..N_INSTANCES_PER_ROW) |rep| {
+        const base = rep * N_COLUMNS_PER_REP;
+        const final_base = base + N_COLUMNS_PER_REP - N_STATE;
+        for (0..N_STATE) |i| {
+            const lookup_index = rep * N_STATE + i;
+            result.initial[lookup_index] = try allocator.dupe(M31, trace[base + i]);
+            initial_count += 1;
+            result.final[lookup_index] = try allocator.dupe(M31, trace[final_base + i]);
+            final_count += 1;
+        }
+    }
+    return result;
 }
 
 fn fillRow(trace: [][]M31, row: usize) void {
@@ -104,7 +154,7 @@ fn fillRow(trace: [][]M31, row: usize) void {
         var state: [N_STATE]M31 = undefined;
         for (0..N_STATE) |state_i| {
             state[state_i] = M31.fromU64(
-                @as(u64, @intCast(row * N_STATE + state_i + rep_i)),
+                @as(u64, @intCast(row + state_i + rep_i)),
             );
             trace[column_index][row] = state[state_i];
             column_index += 1;
@@ -138,8 +188,9 @@ fn fillRow(trace: [][]M31, row: usize) void {
 }
 
 fn applyExternalRound(state: *[N_STATE]M31, round: usize) void {
+    _ = round;
     for (0..N_STATE) |state_i| {
-        state[state_i] = state[state_i].add(externalRoundConst(round, state_i));
+        state[state_i] = state[state_i].add(roundConst());
     }
     applyExternalRoundMatrix(state);
     for (0..N_STATE) |state_i| state[state_i] = pow5(state[state_i]);
@@ -156,14 +207,13 @@ fn pow5(x: M31) M31 {
     return x4.mul(x);
 }
 
-fn externalRoundConst(round: usize, state_i: usize) M31 {
-    return M31.fromU64(
-        1234 + (@as(u64, @intCast(round)) * 37) + @as(u64, @intCast(state_i)),
-    );
+fn internalRoundConst(round: usize) M31 {
+    _ = round;
+    return roundConst();
 }
 
-fn internalRoundConst(round: usize) M31 {
-    return M31.fromU64(9876 + (@as(u64, @intCast(round)) * 17));
+fn roundConst() M31 {
+    return M31.fromCanonical(1234);
 }
 
 fn applyM4(x: [4]M31) [4]M31 {
@@ -208,4 +258,23 @@ fn applyInternalRoundMatrix(state: *[N_STATE]M31) void {
         const coefficient = M31.fromU64(@as(u64, 1) << @intCast(i + 1));
         state[i] = state[i].mul(coefficient).add(sum);
     }
+}
+
+test "exact Poseidon trace follows pinned fixed round constants" {
+    const allocator = std.testing.allocator;
+    const trace = try genTrace(allocator, .{ .log_n_instances = 7 });
+    defer deinitTrace(allocator, trace);
+
+    var state: [N_STATE]M31 = undefined;
+    for (&state, 0..) |*value, i| value.* = M31.fromU64(i);
+    applyExternalRound(&state, 0);
+    for (state, 0..) |value, i| {
+        try std.testing.expect(value.eql(trace[N_STATE + i][0]));
+    }
+
+    var second = [_]M31{M31.zero()} ** N_STATE;
+    for (&second) |*value| value.* = M31.fromCanonical(1234);
+    applyExternalRoundMatrix(&second);
+    for (&second) |*value| value.* = pow5(value.*);
+    try std.testing.expect(!second[0].eql(M31.zero()));
 }

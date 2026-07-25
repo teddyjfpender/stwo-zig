@@ -15,7 +15,6 @@ const stage_profile = @import("stage_profile.zig");
 
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
-const COMPOSITION_LOG_SPLIT = verifier_types.COMPOSITION_LOG_SPLIT;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
 const TreeVec = pcs_core.TreeVec;
 
@@ -231,8 +230,11 @@ fn proveExComponentsWithRecorder(
     };
 
     const composition_log_size = component_provers.compositionLogDegreeBound();
-    if (composition_log_size <= COMPOSITION_LOG_SPLIT) return ProvingError.InvalidStructure;
-    const max_log_degree_bound = composition_log_size - COMPOSITION_LOG_SPLIT;
+    const composition_log_split = try component_provers.compositionLogSplit();
+    if (composition_log_size <= composition_log_split) {
+        return ProvingError.InvalidStructure;
+    }
+    const max_log_degree_bound = composition_log_size - composition_log_split;
 
     const random_coeff = blk: {
         var draw_random_coeff_stage = try stage_profile.StageScope.begin(
@@ -297,6 +299,12 @@ fn proveExComponentsWithRecorder(
             );
         };
         defer composition_split.deinit(allocator);
+        var composition_chunks = try splitCompositionPair(
+            allocator,
+            composition_split,
+            composition_log_split,
+        );
+        defer composition_chunks.deinit(allocator);
 
         {
             var composition_commit_stage = try stage_profile.StageScope.begin(
@@ -305,14 +313,13 @@ fn proveExComponentsWithRecorder(
                 "Composition commit",
             );
             defer composition_commit_stage.end();
-            try commitCompositionSplit(
+            try commitCompositionChunks(
                 B,
                 H,
                 MC,
                 allocator,
                 &scheme,
-                composition_split.left,
-                composition_split.right,
+                composition_chunks.chunks,
                 channel,
             );
         }
@@ -341,7 +348,12 @@ fn proveExComponentsWithRecorder(
             include_all_preprocessed_columns,
         );
         errdefer sample_points.deinitDeep(allocator);
-        try appendCompositionMaskTree(allocator, &sample_points, oods_point);
+        try appendCompositionMaskTree(
+            allocator,
+            &sample_points,
+            oods_point,
+            composition_log_split,
+        );
         break :blk OodsSampling{
             .point = oods_point,
             .sample_points = sample_points,
@@ -371,9 +383,10 @@ fn proveExComponentsWithRecorder(
         );
         defer constraint_stage.end();
 
-        const composition_oods_eval = ext_proof.proof.extractCompositionOodsEval(
+        const composition_oods_eval = ext_proof.proof.extractCompositionOodsEvalWithSplit(
             oods_sampling.point,
             composition_log_size,
+            composition_log_split,
         ) orelse return ProvingError.InvalidStructure;
 
         const expected = try core_components.evalCompositionPolynomialAtPoint(
@@ -444,28 +457,87 @@ fn provePrepared(
     };
 }
 
-fn commitCompositionSplit(
+const CompositionChunks = struct {
+    chunks: []prover_circle.SecureCirclePoly,
+    owns_polynomials: bool,
+
+    fn deinit(self: *CompositionChunks, allocator: std.mem.Allocator) void {
+        if (self.owns_polynomials) {
+            for (self.chunks) |*chunk| chunk.deinit(allocator);
+        }
+        allocator.free(self.chunks);
+        self.* = undefined;
+    }
+};
+
+fn splitCompositionPair(
+    allocator: std.mem.Allocator,
+    pair: prover_circle.SecureCirclePoly.SplitPair,
+    split_depth: u32,
+) !CompositionChunks {
+    if (split_depth == 0) return ProvingError.InvalidStructure;
+    if (split_depth == 1) {
+        return .{
+            .chunks = try allocator.dupe(
+                prover_circle.SecureCirclePoly,
+                &.{ pair.left, pair.right },
+            ),
+            .owns_polynomials = false,
+        };
+    }
+
+    var left = try pair.left.splitIntoChunks(allocator, split_depth - 1);
+    var left_moved = false;
+    defer if (left_moved)
+        allocator.free(left.chunks)
+    else
+        left.deinit(allocator);
+    var right = try pair.right.splitIntoChunks(allocator, split_depth - 1);
+    var right_moved = false;
+    defer if (right_moved)
+        allocator.free(right.chunks)
+    else
+        right.deinit(allocator);
+
+    const chunks = try allocator.alloc(
+        prover_circle.SecureCirclePoly,
+        left.chunks.len + right.chunks.len,
+    );
+    @memcpy(chunks[0..left.chunks.len], left.chunks);
+    @memcpy(chunks[left.chunks.len..], right.chunks);
+    left_moved = true;
+    right_moved = true;
+    return .{ .chunks = chunks, .owns_polynomials = true };
+}
+
+fn commitCompositionChunks(
     comptime B: type,
     comptime H: type,
     comptime MC: type,
     allocator: std.mem.Allocator,
     commitment_scheme: *pcs_prover.CommitmentSchemeProver(B, H, MC),
-    left: prover_circle.SecureCirclePoly,
-    right: prover_circle.SecureCirclePoly,
+    chunks: []const prover_circle.SecureCirclePoly,
     channel: anytype,
 ) !void {
-    const split_log_size = left.logSize();
-    if (right.logSize() != split_log_size) return ProvingError.InvalidStructure;
+    if (chunks.len == 0) return ProvingError.InvalidStructure;
+    const split_log_size = chunks[0].logSize();
+    for (chunks[1..]) |chunk| {
+        if (chunk.logSize() != split_log_size) return ProvingError.InvalidStructure;
+    }
 
-    const n_polys = 2 * qm31.SECURE_EXTENSION_DEGREE;
+    const n_polys = std.math.mul(
+        usize,
+        chunks.len,
+        qm31.SECURE_EXTENSION_DEGREE,
+    ) catch return ProvingError.InvalidStructure;
     const polys = try allocator.alloc(prover_circle.CircleCoefficients, n_polys);
     defer allocator.free(polys);
 
-    for (left.polys, 0..) |coord_poly, i| {
-        polys[i] = coord_poly;
-    }
-    for (right.polys, 0..) |coord_poly, i| {
-        polys[qm31.SECURE_EXTENSION_DEGREE + i] = coord_poly;
+    for (chunks, 0..) |chunk, chunk_index| {
+        for (chunk.polys, 0..) |coordinate, coordinate_index| {
+            polys[chunk_index * qm31.SECURE_EXTENSION_DEGREE + coordinate_index] =
+                coordinate;
+        }
     }
 
     try commitment_scheme.commitPolys(allocator, polys, channel);
@@ -475,8 +547,12 @@ fn appendCompositionMaskTree(
     allocator: std.mem.Allocator,
     sample_points: *core_air_components.MaskPoints,
     oods_point: CirclePointQM31,
+    split_depth: u32,
 ) !void {
-    const n_composition_cols = 2 * qm31.SECURE_EXTENSION_DEGREE;
+    const n_composition_cols = verifier_types.compositionColumnCount(
+        split_depth,
+        qm31.SECURE_EXTENSION_DEGREE,
+    ) orelse return ProvingError.InvalidStructure;
 
     const composition_tree = try allocator.alloc([]CirclePointQM31, n_composition_cols);
     var initialized: usize = 0;

@@ -74,6 +74,64 @@ pub const SecureCirclePoly = struct {
         }
     };
 
+    pub const SplitChunks = struct {
+        chunks: []SecureCirclePoly,
+
+        pub fn deinit(self: *SplitChunks, allocator: std.mem.Allocator) void {
+            for (self.chunks) |*chunk| chunk.deinit(allocator);
+            allocator.free(self.chunks);
+            self.* = undefined;
+        }
+    };
+
+    /// Splits each coordinate coefficient vector into `2^depth` contiguous
+    /// chunks. Chunk order is the recursive left-to-right split order used by
+    /// the composition OODS reconstruction.
+    pub fn splitIntoChunks(
+        self: SecureCirclePoly,
+        allocator: std.mem.Allocator,
+        depth: u32,
+    ) (std.mem.Allocator.Error || SecurePolyError || poly.PolyError)!SplitChunks {
+        if (depth == 0 or depth >= self.logSize()) {
+            return SecurePolyError.ShapeMismatch;
+        }
+        if (depth >= @bitSizeOf(usize)) return SecurePolyError.ShapeMismatch;
+        const chunk_count = @as(usize, 1) << @intCast(depth);
+        const coefficient_count = self.polys[0].coefficients().len;
+        const chunk_len = coefficient_count / chunk_count;
+        if (chunk_len == 0) return SecurePolyError.ShapeMismatch;
+
+        const chunks = try allocator.alloc(SecureCirclePoly, chunk_count);
+        var initialized: usize = 0;
+        errdefer {
+            for (chunks[0..initialized]) |*chunk| chunk.deinit(allocator);
+            allocator.free(chunks);
+        }
+
+        for (chunks, 0..) |*chunk, chunk_index| {
+            var coordinates: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
+            var coordinate_count: usize = 0;
+            errdefer {
+                for (coordinates[0..coordinate_count]) |*coordinate| {
+                    coordinate.deinit(allocator);
+                }
+            }
+            const start = chunk_index * chunk_len;
+            for (&coordinates, self.polys) |*coordinate, source| {
+                coordinate.* = try CircleCoefficients.initOwned(
+                    try allocator.dupe(
+                        M31,
+                        source.coefficients()[start .. start + chunk_len],
+                    ),
+                );
+                coordinate_count += 1;
+            }
+            chunk.* = try SecureCirclePoly.init(coordinates);
+            initialized += 1;
+        }
+        return .{ .chunks = chunks };
+    }
+
     pub fn splitAtMid(
         self: SecureCirclePoly,
         allocator: std.mem.Allocator,
@@ -342,6 +400,91 @@ test "prover poly circle secure poly: split-at-mid identity" {
     );
     const rhs = secure_poly.evalAtPoint(point);
     try std.testing.expect(lhs.eql(rhs));
+}
+
+test "prover poly circle secure poly: recursive chunk reconstruction matches full evaluation" {
+    const alloc = std.testing.allocator;
+    const proof_mod = @import("stwo_core").proof;
+    const log_size: u32 = 6;
+    const n = @as(usize, 1) << @intCast(log_size);
+
+    var coordinate_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
+    var initialized: usize = 0;
+    errdefer {
+        for (coordinate_polys[0..initialized]) |*coordinate| coordinate.deinit(alloc);
+    }
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+        const coefficients = try alloc.alloc(M31, n);
+        for (coefficients, 0..) |*coefficient, index| {
+            coefficient.* = M31.fromCanonical(
+                @intCast((index * 977 + coordinate * 131 + 19) % m31.Modulus),
+            );
+        }
+        coordinate_polys[coordinate] = try CircleCoefficients.initOwned(coefficients);
+        initialized += 1;
+    }
+
+    var polynomial = try SecureCirclePoly.init(coordinate_polys);
+    initialized = 0;
+    defer polynomial.deinit(alloc);
+
+    const points = [_]CirclePointQM31{
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(1),
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(123456789),
+        circle.SECURE_FIELD_CIRCLE_GEN.mul(987654321),
+    };
+    for (1..5) |depth_usize| {
+        const depth: u32 = @intCast(depth_usize);
+        var chunks = try polynomial.splitIntoChunks(alloc, depth);
+        defer chunks.deinit(alloc);
+        var chunk_evals: [16]QM31 = undefined;
+
+        for (points) |point| {
+            for (chunks.chunks, 0..) |chunk, chunk_index| {
+                chunk_evals[chunk_index] = chunk.evalAtPoint(point);
+            }
+            const reconstructed = proof_mod.reconstructCompositionChunkEvals(
+                chunk_evals[0..chunks.chunks.len],
+                point,
+                log_size,
+                depth,
+            ) orelse return error.InvalidReconstruction;
+            try std.testing.expect(reconstructed.eql(polynomial.evalAtPoint(point)));
+        }
+    }
+}
+
+fn checkSplitIntoChunksAllocationFailures(allocator: std.mem.Allocator) !void {
+    const log_size: u32 = 4;
+    const n = @as(usize, 1) << @intCast(log_size);
+    var coordinate_polys: [qm31.SECURE_EXTENSION_DEGREE]CircleCoefficients = undefined;
+    var initialized: usize = 0;
+    errdefer {
+        for (coordinate_polys[0..initialized]) |*coordinate| coordinate.deinit(allocator);
+    }
+    for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+        const coefficients = try allocator.alloc(M31, n);
+        for (coefficients, 0..) |*coefficient, index| {
+            coefficient.* = M31.fromCanonical(@intCast(index + coordinate + 1));
+        }
+        coordinate_polys[coordinate] = try CircleCoefficients.initOwned(coefficients);
+        initialized += 1;
+    }
+
+    var polynomial = try SecureCirclePoly.init(coordinate_polys);
+    initialized = 0;
+    defer polynomial.deinit(allocator);
+    var chunks = try polynomial.splitIntoChunks(allocator, 2);
+    defer chunks.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 4), chunks.chunks.len);
+}
+
+test "prover poly circle secure poly: depth-two split cleans up every allocation failure" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        checkSplitIntoChunksAllocationFailures,
+        .{},
+    );
 }
 
 test "prover poly circle secure poly: rejects mixed coordinate log sizes" {

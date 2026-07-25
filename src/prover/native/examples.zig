@@ -127,11 +127,13 @@ pub fn geometry(workload: config.Workload) !Geometry {
             });
             const rows = @as(u64, 1) << @intCast(log_n_rows);
             const native_units = @as(u64, 1) << @intCast(value.log_n_instances);
+            const columns: u64 = poseidon.N_TRACE_COLUMNS;
             break :blk .{
                 .trace_log_rows = log_n_rows,
                 .trace_rows = rows,
-                .committed_columns = poseidon.N_COLUMNS,
-                .committed_trace_cells = try std.math.mul(u64, rows, poseidon.N_COLUMNS),
+                .committed_trees = 3,
+                .committed_columns = columns,
+                .committed_trace_cells = try std.math.mul(u64, rows, columns),
                 .native_unit = "poseidon_instances",
                 .native_units = native_units,
             };
@@ -178,8 +180,8 @@ pub fn descriptorDigest(
         ) catch unreachable,
         .poseidon => |value| std.fmt.bufPrint(
             &buffer,
-            "native-proof-workload-v3|example=poseidon|log_n_instances={d}",
-            .{value.log_n_instances},
+            "native-proof-workload-v3|example=poseidon|log_n_instances={d}|air_protocol={s}",
+            .{ value.log_n_instances, poseidon.protocol_name },
         ) catch unreachable,
     };
     const description = std.fmt.bufPrint(
@@ -678,7 +680,9 @@ pub const PoseidonSpec = struct {
     }
 
     pub fn validateOutputStatement(value: Request, statement: Statement) !void {
-        if (!std.meta.eql(value, statement)) return error.ProverStatementMismatch;
+        if (value.log_n_instances != statement.log_n_instances) {
+            return error.ProverStatementMismatch;
+        }
     }
 
     pub fn verify(
@@ -740,7 +744,9 @@ test "native proof examples: geometry and descriptors are tagged" {
     try std.testing.expectEqual(@as(u64, 6_144), blake_geometry.committed_trace_cells);
     try std.testing.expectEqual(@as(u64, 64), blake_geometry.native_units);
     try std.testing.expectEqualStrings("blake_round_instances", blake_geometry.native_unit);
-    try std.testing.expectEqual(@as(u64, 40_448), poseidon_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u32, 3), poseidon_geometry.committed_trees);
+    try std.testing.expectEqual(@as(u64, 1_296), poseidon_geometry.committed_columns);
+    try std.testing.expectEqual(@as(u64, 41_472), poseidon_geometry.committed_trace_cells);
     try std.testing.expectEqual(@as(u64, 256), poseidon_geometry.native_units);
     try std.testing.expectEqualStrings("poseidon_instances", poseidon_geometry.native_unit);
     try std.testing.expect(!std.mem.eql(
@@ -792,7 +798,7 @@ test "native proof examples: descriptor digests match independent fixed vectors"
     );
     _ = try std.fmt.hexToBytes(
         &expected_poseidon,
-        "aa292dd3fce8924260fbf1729589c9cfd93335298c7995bed4f537250527b956",
+        "bb508f796006fc2b8482e04b0fc941be001c86d05be029600bc3ca8af123c7e3",
     );
     try std.testing.expectEqualSlices(u8, &expected_wide, &descriptorDigest(wide, .functional));
     try std.testing.expectEqualSlices(u8, &expected_xor, &descriptorDigest(xor_workload, .functional));
@@ -814,9 +820,13 @@ test "native proof examples: Blake output statement is bound to the request" {
     );
 }
 
-test "native proof examples: Poseidon output statement is bound to the request" {
+test "native proof examples: Poseidon output binds geometry and carries generated claim" {
     const request_value = PoseidonSpec.request(.{ .log_n_instances = 8 });
     try PoseidonSpec.validateOutputStatement(request_value, request_value);
+
+    var generated_statement = request_value;
+    generated_statement.claimed_sum = stwo.core.fields.qm31.QM31.one();
+    try PoseidonSpec.validateOutputStatement(request_value, generated_statement);
 
     var wrong_instances = request_value;
     wrong_instances.log_n_instances += 1;
