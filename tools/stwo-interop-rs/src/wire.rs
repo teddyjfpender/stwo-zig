@@ -1,10 +1,10 @@
 use crate::cli::{pcs_config_from_wire, pcs_config_to_wire};
 use crate::model::{
-    BlakeStatement, BlakeStatementWire, FriLayerWire, FriProofWire, MerkleDecommitmentWire,
-    PlonkStatement, PlonkStatementWire, PoseidonStatement, PoseidonStatementWire, ProofWire,
-    Qm31Wire, StateMachineStatement, StateMachineStatementWire, StateMachineStmt0Wire,
-    StateMachineStmt1Wire, WideFibonacciStatement, WideFibonacciStatementWire, XorStatement,
-    XorStatementWire,
+    BlakeStatement, BlakeStatement0Wire, BlakeStatement1Wire, BlakeStatementWire, FriLayerWire,
+    FriProofWire, MerkleDecommitmentWire, PlonkStatement, PlonkStatementWire, PoseidonStatement,
+    PoseidonStatementWire, ProofWire, Qm31Wire, StateMachineStatement, StateMachineStatementWire,
+    StateMachineStmt0Wire, StateMachineStmt1Wire, WideFibonacciStatement,
+    WideFibonacciStatementWire, XorStatement, XorStatementWire,
 };
 use anyhow::{anyhow, bail, Result};
 use stwo::core::fields::m31::{M31, P};
@@ -343,14 +343,36 @@ pub(crate) fn poseidon_statement_from_wire(
 
 pub(crate) fn blake_statement_to_wire(statement: BlakeStatement) -> BlakeStatementWire {
     BlakeStatementWire {
-        log_n_rows: statement.log_n_rows,
-        n_rounds: statement.n_rounds,
+        stmt0: BlakeStatement0Wire {
+            log_size: statement.log_size,
+        },
+        stmt1: BlakeStatement1Wire {
+            scheduler_claimed_sum: qm31_to_wire(statement.scheduler_claimed_sum),
+            round_claimed_sums: statement.round_claimed_sums.map(qm31_to_wire),
+            xor_claimed_sums: statement.xor_claimed_sums.map(qm31_to_wire),
+        },
     }
 }
 
 pub(crate) fn blake_statement_from_wire(wire: &BlakeStatementWire) -> Result<BlakeStatement> {
     Ok(BlakeStatement {
-        log_n_rows: wire.log_n_rows,
-        n_rounds: wire.n_rounds,
+        log_size: wire.stmt0.log_size,
+        scheduler_claimed_sum: qm31_from_wire(wire.stmt1.scheduler_claimed_sum)?,
+        round_claimed_sums: wire
+            .stmt1
+            .round_claimed_sums
+            .map(qm31_from_wire)
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?
+            .try_into()
+            .expect("two Blake round claims"),
+        xor_claimed_sums: wire
+            .stmt1
+            .xor_claimed_sums
+            .map(qm31_from_wire)
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?
+            .try_into()
+            .expect("five Blake XOR claims"),
     })
 }

@@ -55,7 +55,7 @@ CASES = (
         case_id="blake_base",
         example="blake",
         args={
-            "pow-bits": "0",
+            "pow-bits": "10",
             "fri-log-blowup": "1",
             "fri-log-last-layer": "0",
             "fri-n-queries": "3",
@@ -187,7 +187,7 @@ CASES = (
         case_id="blake_blowup2",
         example="blake",
         args={
-            "pow-bits": "0",
+            "pow-bits": "10",
             "fri-log-blowup": "2",
             "fri-log-last-layer": "0",
             "fri-n-queries": "3",

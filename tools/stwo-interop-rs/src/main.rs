@@ -1,6 +1,11 @@
+#![feature(array_chunks, iter_array_chunks, portable_simd)]
+
+#[path = "upstream_blake/mod.rs"]
+mod blake;
 mod cli;
 mod commands;
 mod components;
+mod exact_blake;
 mod model;
 mod plonk_logup;
 mod poseidon_exact;

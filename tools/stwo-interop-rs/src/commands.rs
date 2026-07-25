@@ -3,17 +3,16 @@ use crate::cli::{
     prove_mode_to_str,
 };
 use crate::model::{
-    BenchExecutionProfile, BenchReport, BenchTiming, BlakeStatement, Cli, Example, InteropArtifact,
-    PlonkStatement, PoseidonStatement, ProofWire, ProverBackend, WideFibonacciStatement,
-    XorStatement, EXCHANGE_MODE, SCHEMA_VERSION,
+    BenchExecutionProfile, BenchReport, BenchTiming, Cli, Example, ExampleStatement,
+    InteropArtifact, PlonkStatement, PoseidonStatement, ProofWire, ProverBackend,
+    WideFibonacciStatement, XorStatement, EXCHANGE_MODE, SCHEMA_VERSION,
 };
 use crate::plonk_logup::verify_exact as plonk_logup_verify;
 use crate::profile::{time_stage, write_stage_profile};
 use crate::proving::{
-    blake_prove, blake_verify, plonk_prove, plonk_verify, poseidon_prove, poseidon_verify,
-    proof_metrics_from_proof, prove_example, state_machine_prove, state_machine_verify,
-    verify_example, wide_fibonacci_prove, wide_fibonacci_prove_profiled, wide_fibonacci_verify,
-    xor_prove, xor_verify,
+    plonk_prove, plonk_verify, poseidon_prove, poseidon_verify, proof_metrics_from_proof,
+    prove_example, state_machine_prove, state_machine_verify, verify_example, wide_fibonacci_prove,
+    wide_fibonacci_prove_profiled, wide_fibonacci_verify, xor_prove, xor_verify,
 };
 use crate::wire::{
     blake_statement_from_wire, blake_statement_to_wire, checked_m31, plonk_statement_from_wire,
@@ -82,18 +81,12 @@ pub(crate) fn run_generate(cli: &Cli) -> Result<()> {
 
     let artifact = match example {
         Example::Blake => {
-            let statement = BlakeStatement {
-                log_n_rows: cli.blake_log_n_rows,
-                n_rounds: cli.blake_n_rounds,
-            };
-            let (statement, proof) = selected_backend!(
-                cli,
-                blake_prove(
-                    config,
-                    statement,
-                    cli.prove_mode,
-                    cli.include_all_preprocessed_columns,
-                )
+            let (statement, proof) = crate::exact_blake::prove(
+                config,
+                cli.blake_log_n_rows,
+                cli.blake_n_rounds,
+                cli.prove_mode,
+                cli.include_all_preprocessed_columns,
             )?;
             let proof_bytes = serde_json::to_vec(&proof_to_wire(&proof)?)?;
             InteropArtifact {
@@ -369,7 +362,7 @@ pub(crate) fn run_verify(cli: &Cli) -> Result<()> {
                 .as_ref()
                 .ok_or_else(|| anyhow!("missing blake_statement"))?;
             let statement = blake_statement_from_wire(statement_wire)?;
-            blake_verify(config, statement, proof)?;
+            crate::exact_blake::verify(config, statement, proof)?;
         }
         "plonk" => {
             let statement_wire = artifact
@@ -437,6 +430,9 @@ pub(crate) fn run_bench(cli: &Cli) -> Result<()> {
         bail!("--bench-repeats must be positive");
     }
     let config = pcs_config_from_cli(cli)?;
+    if example == Example::Blake {
+        return run_exact_blake_bench(cli, config);
+    }
     let total_runs = cli.bench_warmups + cli.bench_repeats;
 
     let mut prove_samples = Vec::with_capacity(cli.bench_repeats);
@@ -515,23 +511,87 @@ fn bench_execution_profile(
     example: Example,
     proof_backend: ProverBackend,
 ) -> Option<BenchExecutionProfile> {
-    if example != Example::Poseidon {
-        return None;
+    let simd_backend = ProverBackend::Simd.rust_type();
+    match example {
+        Example::Blake => Some(BenchExecutionProfile {
+            proof_backend_type: simd_backend.to_string(),
+            witness_generation_backend_type: simd_backend.to_string(),
+            interaction_generation_backend_type: simd_backend.to_string(),
+            backend_homogeneous: true,
+            pure_backend_promotion_eligible: true,
+            promotion_ineligibility_reason: None,
+        }),
+        Example::Poseidon => {
+            let backend_homogeneous = proof_backend == ProverBackend::Simd;
+            Some(BenchExecutionProfile {
+                proof_backend_type: proof_backend.rust_type().to_string(),
+                witness_generation_backend_type: simd_backend.to_string(),
+                interaction_generation_backend_type: simd_backend.to_string(),
+                backend_homogeneous,
+                pure_backend_promotion_eligible: backend_homogeneous,
+                promotion_ineligibility_reason: (!backend_homogeneous).then(|| {
+                    "exact Poseidon witness and interaction generation use the pinned SIMD generator"
+                        .to_string()
+                }),
+            })
+        }
+        _ => None,
+    }
+}
+
+fn run_exact_blake_bench(cli: &Cli, config: PcsConfig) -> Result<()> {
+    let total_runs = cli.bench_warmups + cli.bench_repeats;
+    let mut prove_samples = Vec::with_capacity(cli.bench_repeats);
+    for index in 0..total_runs {
+        let start = std::time::Instant::now();
+        let (_, proof) = crate::exact_blake::prove(
+            config,
+            cli.blake_log_n_rows,
+            cli.blake_n_rounds,
+            cli.prove_mode,
+            cli.include_all_preprocessed_columns,
+        )?;
+        let _encoded = serde_json::to_vec(&proof_to_wire(&proof)?)?;
+        let elapsed = start.elapsed().as_secs_f64();
+        if index >= cli.bench_warmups {
+            prove_samples.push(elapsed);
+        }
     }
 
-    let simd_backend = ProverBackend::Simd.rust_type();
-    let backend_homogeneous = proof_backend == ProverBackend::Simd;
-    Some(BenchExecutionProfile {
-        proof_backend_type: proof_backend.rust_type().to_string(),
-        witness_generation_backend_type: simd_backend.to_string(),
-        interaction_generation_backend_type: simd_backend.to_string(),
-        backend_homogeneous,
-        pure_backend_promotion_eligible: backend_homogeneous,
-        promotion_ineligibility_reason: (!backend_homogeneous).then(|| {
-            "exact Poseidon witness and interaction generation use the pinned SIMD generator"
-                .to_string()
-        }),
-    })
+    let (statement, baseline_proof) = crate::exact_blake::prove(
+        config,
+        cli.blake_log_n_rows,
+        cli.blake_n_rounds,
+        cli.prove_mode,
+        cli.include_all_preprocessed_columns,
+    )?;
+    let proof_metrics = proof_metrics_from_proof(&baseline_proof)?;
+    let baseline_wire = serde_json::to_vec(&proof_to_wire(&baseline_proof)?)?;
+    let mut verify_samples = Vec::with_capacity(cli.bench_repeats);
+    for index in 0..total_runs {
+        let start = std::time::Instant::now();
+        let decoded = wire_to_proof(serde_json::from_slice(&baseline_wire)?)?;
+        verify_example(config, ExampleStatement::Blake(statement), decoded)?;
+        let elapsed = start.elapsed().as_secs_f64();
+        if index >= cli.bench_warmups {
+            verify_samples.push(elapsed);
+        }
+    }
+
+    let report = BenchReport {
+        runtime: "rust".to_string(),
+        backend: "simd".to_string(),
+        backend_type: "stwo::prover::backend::simd::SimdBackend".to_string(),
+        execution_profile: bench_execution_profile(Example::Blake, ProverBackend::Simd),
+        example: "blake".to_string(),
+        prove_mode: prove_mode_to_str(cli.prove_mode).to_string(),
+        include_all_preprocessed_columns: cli.include_all_preprocessed_columns,
+        prove: summarize_timing(cli.bench_warmups, cli.bench_repeats, prove_samples)?,
+        verify: summarize_timing(cli.bench_warmups, cli.bench_repeats, verify_samples)?,
+        proof_metrics,
+    };
+    println!("{}", serde_json::to_string(&report)?);
+    Ok(())
 }
 
 #[cfg(test)]

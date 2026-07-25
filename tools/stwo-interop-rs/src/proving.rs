@@ -1,14 +1,11 @@
 use crate::model::{
-    BenchProofMetrics, BlakeComponent, BlakeStatement, Cli, Example, ExampleStatement,
-    PlonkComponent, PlonkStatement, PoseidonStatement, ProveMode, StageNode,
-    WideFibonacciComponent, WideFibonacciStatement, XorStatement,
+    BenchProofMetrics, Cli, Example, ExampleStatement, PlonkComponent, PlonkStatement,
+    PoseidonStatement, ProveMode, StageNode, WideFibonacciComponent, WideFibonacciStatement,
+    XorStatement,
 };
 use crate::profile::time_stage;
-use crate::statements::{mix_blake_statement, mix_plonk_statement, mix_wide_fibonacci_statement};
-use crate::traces::{
-    backend_eval, blake_n_columns, blake_validate_statement, gen_blake_trace, gen_plonk_trace,
-    gen_wide_fibonacci_trace, poseidon_log_n_rows,
-};
+use crate::statements::{mix_plonk_statement, mix_wide_fibonacci_statement};
+use crate::traces::{backend_eval, gen_plonk_trace, gen_wide_fibonacci_trace, poseidon_log_n_rows};
 use crate::wire::{checked_m31, proof_to_wire};
 use anyhow::{anyhow, bail, Result};
 use stwo::core::channel::Blake2sChannel;
@@ -35,19 +32,7 @@ where
     stwo_examples::poseidon::PoseidonComponent: stwo::prover::ComponentProver<B>,
 {
     match example {
-        Example::Blake => {
-            let statement = BlakeStatement {
-                log_n_rows: cli.blake_log_n_rows,
-                n_rounds: cli.blake_n_rounds,
-            };
-            let (statement, proof) = blake_prove::<B>(
-                config,
-                statement,
-                prove_mode,
-                include_all_preprocessed_columns,
-            )?;
-            Ok((ExampleStatement::Blake(statement), proof))
-        }
+        Example::Blake => bail!("exact Blake uses the pinned SIMD oracle route"),
         Example::Plonk => {
             let statement = PlonkStatement {
                 log_n_rows: cli.plonk_log_n_rows,
@@ -124,7 +109,7 @@ pub(crate) fn verify_example(
     proof: StarkProof<Blake2sMerkleHasher>,
 ) -> Result<()> {
     match statement {
-        ExampleStatement::Blake(s) => blake_verify(config, s, proof),
+        ExampleStatement::Blake(s) => crate::exact_blake::verify(config, s, proof),
         ExampleStatement::Plonk(s) => plonk_verify(config, s, proof),
         ExampleStatement::Poseidon(s) => poseidon_verify(config, s, proof),
         ExampleStatement::StateMachine(s) => state_machine_verify(config, s, proof),
@@ -483,89 +468,4 @@ pub(crate) fn poseidon_verify(
         statement.claimed_sum,
         proof,
     )
-}
-
-pub(crate) fn blake_prove<B>(
-    config: PcsConfig,
-    statement: BlakeStatement,
-    prove_mode: ProveMode,
-    include_all_preprocessed_columns: bool,
-) -> Result<(BlakeStatement, StarkProof<Blake2sMerkleHasher>)>
-where
-    B: Backend + BackendForChannel<Blake2sMerkleChannel>,
-{
-    blake_validate_statement(statement)?;
-    let n_columns = blake_n_columns(statement)?;
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let twiddles = B::precompute_twiddles(
-        CanonicCoset::new(statement.log_n_rows + config.fri_config.log_blowup_factor + 1)
-            .circle_domain()
-            .half_coset,
-    );
-    let mut scheme = CommitmentSchemeProver::<B, Blake2sMerkleChannel>::new(config, &twiddles);
-
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(vec![]);
-    builder.commit(&mut channel);
-
-    let trace = gen_blake_trace(statement)?;
-    let mut builder = scheme.tree_builder();
-    builder.extend_evals(
-        trace
-            .into_iter()
-            .map(|col| backend_eval::<B>(statement.log_n_rows, col))
-            .collect(),
-    );
-    builder.commit(&mut channel);
-
-    mix_blake_statement(&mut channel, statement);
-
-    let component = BlakeComponent { statement };
-    let proof = match prove_mode {
-        ProveMode::Prove => prove::<B, Blake2sMerkleChannel>(&[&component], &mut channel, scheme)?,
-        ProveMode::ProveEx => {
-            prove_ex::<B, Blake2sMerkleChannel>(
-                &[&component],
-                &mut channel,
-                scheme,
-                include_all_preprocessed_columns,
-            )?
-            .proof
-        }
-    };
-
-    let _ = n_columns;
-    Ok((statement, proof))
-}
-
-pub(crate) fn blake_verify(
-    config: PcsConfig,
-    statement: BlakeStatement,
-    proof: StarkProof<Blake2sMerkleHasher>,
-) -> Result<()> {
-    blake_validate_statement(statement)?;
-    let n_columns = blake_n_columns(statement)?;
-    if proof.0.commitments.len() < 2 {
-        bail!("invalid proof shape: expected at least 2 commitments");
-    }
-
-    let mut channel = Blake2sChannel::default();
-    config.mix_into(&mut channel);
-
-    let c0 = proof.0.commitments[0];
-    let c1 = proof.0.commitments[1];
-
-    let mut commitment_scheme = CommitmentSchemeVerifier::<Blake2sMerkleChannel>::new(config);
-    commitment_scheme.commit(c0, &[], &mut channel);
-    let main_log_sizes = vec![statement.log_n_rows; n_columns];
-    commitment_scheme.commit(c1, &main_log_sizes, &mut channel);
-
-    mix_blake_statement(&mut channel, statement);
-
-    let component = BlakeComponent { statement };
-    verify(&[&component], &mut channel, &mut commitment_scheme, proof)
-        .map_err(|err| anyhow!("blake verify failed: {err}"))
 }

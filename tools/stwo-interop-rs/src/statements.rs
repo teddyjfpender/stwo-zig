@@ -1,7 +1,4 @@
-use crate::model::{
-    BlakeStatement, PlonkStatement, WideFibonacciStatement, XorLookupElements, XorStatement,
-};
-use crate::traces::blake_n_columns;
+use crate::model::{PlonkStatement, WideFibonacciStatement, XorLookupElements, XorStatement};
 use num_traits::One;
 use stwo::core::channel::{Blake2sChannel, Channel};
 use stwo::core::fields::m31::M31;
@@ -26,19 +23,6 @@ pub(crate) fn plonk_composition_eval(statement: PlonkStatement) -> SecureField {
 
 pub(crate) fn mix_plonk_statement(channel: &mut Blake2sChannel, statement: PlonkStatement) {
     channel.mix_u32s(&[statement.log_n_rows]);
-}
-
-pub(crate) fn blake_composition_eval(statement: BlakeStatement) -> SecureField {
-    SecureField::from_m31(
-        M31::from(statement.log_n_rows),
-        M31::from(statement.n_rounds),
-        M31::from(blake_n_columns(statement).unwrap_or(0) as u32),
-        M31::one(),
-    )
-}
-
-pub(crate) fn mix_blake_statement(channel: &mut Blake2sChannel, statement: BlakeStatement) {
-    channel.mix_u32s(&[statement.log_n_rows, statement.n_rounds]);
 }
 
 pub(crate) fn xor_combine(

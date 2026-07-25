@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-blake-oracle-source-v1",
+  "repository": "https://github.com/starkware-libs/stwo",
+  "commit": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+  "source_path": "crates/examples/src/blake",
+  "source_tree_sha256": "23a89cdd06a606c905b64e4bcbf7ed9f72e2c526ffa2576a6c7c0535416e3c16",
+  "source_files": [
+    "air.rs",
+    "mod.rs",
+    "preprocessed_columns.rs",
+    "round/constraints.rs",
+    "round/gen.rs",
+    "round/mod.rs",
+    "scheduler/constraints.rs",
+    "scheduler/gen.rs",
+    "scheduler/mod.rs",
+    "xor_table/constraints.rs",
+    "xor_table/gen.rs",
+    "xor_table/mod.rs"
+  ],
+  "transport_patch": [
+    "src/blake/mod.rs: expose air module",
+    "src/blake/air.rs: declare transport child module",
+    "src/blake/air/transport.rs: move opaque proof fields without changing protocol logic"
+  ]
+}

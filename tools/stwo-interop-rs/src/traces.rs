@@ -1,10 +1,7 @@
-use crate::model::{
-    BlakeStatement, PoseidonStatement, XorStatement, BLAKE_ROUND_INPUT_FELTS,
-    POSEIDON_LOG_INSTANCES_PER_ROW,
-};
-use anyhow::{anyhow, bail, Result};
+use crate::model::{PoseidonStatement, XorStatement, POSEIDON_LOG_INSTANCES_PER_ROW};
+use anyhow::{bail, Result};
 use num_traits::{One, Zero};
-use stwo::core::fields::m31::{M31, P};
+use stwo::core::fields::m31::M31;
 use stwo::core::fields::FieldExpOps;
 use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::utils::{bit_reverse_index, coset_index_to_circle_domain_index};
@@ -188,54 +185,4 @@ pub(crate) fn poseidon_log_n_rows(statement: PoseidonStatement) -> Result<u32> {
         bail!("invalid poseidon log_n_rows");
     }
     Ok(log_n_rows)
-}
-
-pub(crate) fn blake_validate_statement(statement: BlakeStatement) -> Result<()> {
-    if statement.log_n_rows == 0 || statement.log_n_rows >= 31 {
-        bail!("invalid blake log_n_rows");
-    }
-    if statement.n_rounds == 0 {
-        bail!("invalid blake n_rounds");
-    }
-    let _ = blake_n_columns(statement)?;
-    Ok(())
-}
-
-pub(crate) fn blake_n_columns(statement: BlakeStatement) -> Result<usize> {
-    (statement.n_rounds as usize)
-        .checked_mul(BLAKE_ROUND_INPUT_FELTS)
-        .ok_or_else(|| anyhow!("blake column count overflow"))
-}
-
-pub(crate) fn blake_next_seed(seed: u64) -> u64 {
-    let mut x = seed;
-    x ^= x << 13;
-    x ^= x >> 7;
-    x ^= x << 17;
-    x
-}
-
-pub(crate) fn gen_blake_trace(statement: BlakeStatement) -> Result<Vec<Vec<M31>>> {
-    blake_validate_statement(statement)?;
-    let n = checked_pow2(statement.log_n_rows)?;
-    let n_columns = blake_n_columns(statement)?;
-    let mut trace = vec![vec![M31::zero(); n]; n_columns];
-
-    for row in 0..n {
-        let mut col_index = 0usize;
-        let mut seed = row as u64 + 1;
-        for round in 0..statement.n_rounds as usize {
-            for cell in 0..BLAKE_ROUND_INPUT_FELTS {
-                seed = blake_next_seed(seed);
-                let mixed = seed
-                    ^ ((round as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15))
-                    ^ (((cell + 1) as u64).wrapping_mul(0x517c_c1b7_2722_0a95));
-                trace[col_index][row] = M31::from((mixed % P as u64) as u32);
-                col_index += 1;
-            }
-        }
-        debug_assert_eq!(col_index, n_columns);
-    }
-
-    Ok(trace)
 }

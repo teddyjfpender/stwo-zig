@@ -5,11 +5,6 @@ use stwo::core::fields::qm31::SecureField;
 pub(crate) const SCHEMA_VERSION: u32 = 1;
 pub(crate) const EXCHANGE_MODE: &str = "proof_exchange_json_wire_v1";
 pub(crate) const POSEIDON_LOG_INSTANCES_PER_ROW: u32 = 3;
-pub(crate) const BLAKE_STATE: usize = 16;
-pub(crate) const BLAKE_MESSAGE_WORDS: usize = 16;
-pub(crate) const BLAKE_FELTS_IN_U32: usize = 2;
-pub(crate) const BLAKE_ROUND_INPUT_FELTS: usize =
-    (BLAKE_STATE + BLAKE_STATE + BLAKE_MESSAGE_WORDS) * BLAKE_FELTS_IN_U32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mode {
@@ -196,8 +191,20 @@ pub(crate) struct PoseidonStatementWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct BlakeStatementWire {
-    pub(crate) log_n_rows: u32,
-    pub(crate) n_rounds: u32,
+    pub(crate) stmt0: BlakeStatement0Wire,
+    pub(crate) stmt1: BlakeStatement1Wire,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct BlakeStatement0Wire {
+    pub(crate) log_size: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct BlakeStatement1Wire {
+    pub(crate) scheduler_claimed_sum: Qm31Wire,
+    pub(crate) round_claimed_sums: [Qm31Wire; 2],
+    pub(crate) xor_claimed_sums: [Qm31Wire; 5],
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -337,8 +344,10 @@ pub(crate) struct PoseidonStatement {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BlakeStatement {
-    pub(crate) log_n_rows: u32,
-    pub(crate) n_rounds: u32,
+    pub(crate) log_size: u32,
+    pub(crate) scheduler_claimed_sum: SecureField,
+    pub(crate) round_claimed_sums: [SecureField; 2],
+    pub(crate) xor_claimed_sums: [SecureField; 5],
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -361,9 +370,4 @@ pub(crate) struct WideFibonacciComponent {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PlonkComponent {
     pub(crate) statement: PlonkStatement,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct BlakeComponent {
-    pub(crate) statement: BlakeStatement,
 }

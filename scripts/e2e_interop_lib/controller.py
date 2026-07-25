@@ -441,9 +441,17 @@ def run_exchange_direction(
 ) -> dict[str, Any]:
     artifact = artifact_dir / f"{example}_{direction}.json"
     prepare_generated_artifact(artifact)
+    command = runtime_command(
+        generator_binary,
+        mode="generate",
+        artifact=artifact,
+        example=example,
+    )
+    if example == "blake":
+        command.extend(("--pow-bits", "10"))
     run_step(
         name=f"{example}_{generator}_generate",
-        cmd=runtime_command(generator_binary, mode="generate", artifact=artifact, example=example),
+        cmd=command,
         steps=all_steps,
     )
     assert_artifact_metadata(artifact, expected_generator=generator, example=example)
@@ -725,7 +733,8 @@ def main() -> int:
             ROOT / "src/tools/interop/artifact.zig",
             ROOT / "tools/stwo-interop-rs/Cargo.toml",
             ROOT / "tools/stwo-interop-rs/Cargo.lock",
-            *list((ROOT / "tools/stwo-interop-rs/src").glob("*.rs")),
+            *list((ROOT / "tools/stwo-interop-rs/src").rglob("*.rs")),
+            ROOT / "tools/stwo-interop-rs/upstream_blake_provenance.json",
         }
         provenance = collect_provenance(
             root=ROOT,
