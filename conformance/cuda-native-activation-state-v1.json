@@ -6,7 +6,7 @@
     "wide_fibonacci": {
       "release_ready": true,
       "gates": {
-        "exact_trace_semantics": true,
+        "exact_trace_semantics": false,
         "exact_constraint_semantics": true,
         "exact_cpu_cuda_proof_bytes": true,
         "pinned_rust_verification": true,
@@ -167,10 +167,12 @@
       },
       "evidence": {
         "exact_trace_semantics": [
-          "src/integrations/native_cuda/state_machine/trace.zig"
+          "src/integrations/native_cuda/state_machine/device_trace.zig",
+          "tests/native_cuda_state_machine.zig"
         ],
         "exact_constraint_semantics": [
-          "src/integrations/native_cuda/state_machine/constraint.zig"
+          "src/integrations/native_cuda/state_machine/constraint.zig",
+          "tests/native_cuda_state_machine_terminal.zig"
         ],
         "exact_cpu_cuda_proof_bytes": [
           "conformance/evidence/cuda/system-architecture-sm89/state-machine/README.md"
@@ -186,8 +188,8 @@
         ]
       },
       "blockers": {
-        "exact_trace_semantics": null,
-        "exact_constraint_semantics": "CUDA retains non-authoritative raw-stwo-state-machine-v1 compatibility code; Native CPU and pinned Rust require the exact raw-stwo-state-machine-v2 interaction AIR.",
+        "exact_trace_semantics": "Exact mixed-height v2 semantics are host-tested, but the two-component trace AOT entry has not been built and pinned on CUDA hardware.",
+        "exact_constraint_semantics": "Exact two-component v2 row semantics and the resident terminal schedule are host-tested, but the v2 constraint AOT entry has not been built and pinned on CUDA hardware.",
         "exact_cpu_cuda_proof_bytes": "The retained v1 CPU/CUDA byte match cannot establish parity with the exact v2 interaction protocol, so CUDA State Machine execution is fail-closed.",
         "pinned_rust_verification": "Pinned Rust accepted only the provisional v1 route; no v2 resident CUDA proof has been accepted by the final oracle.",
         "zero_fallback": "Zero fallback was observed for v1 only and must be re-established after the exact v2 interaction protocol lands.",
