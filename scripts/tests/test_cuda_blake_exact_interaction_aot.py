@@ -96,6 +96,22 @@ def xor_batches(component: int, table: int) -> list[tuple[oracle.Q, oracle.Q]]:
 
 
 class CudaBlakeExactInteractionAotTests(unittest.TestCase):
+    def test_round_path_forbids_thread_local_relation_arrays(self) -> None:
+        manifest = json.loads(
+            (NATIVE_AOT / "aot_manifest.json").read_text(encoding="utf-8")
+        )
+        entry = next(item for item in manifest if item["label"] == LABEL)
+        source = (NATIVE_AOT / str(entry["file"])).read_text(encoding="utf-8")
+        for spill_pattern in (
+            "Fu32 state[",
+            "Fu32 input_state[",
+            "Fu32 message[",
+            "Qm31 tuple[",
+            "Qm31 first_values[",
+            "Qm31 second_values[",
+        ):
+            self.assertNotIn(spill_pattern, source)
+
     def test_pair_kernel_matches_independent_exact_air(self) -> None:
         compiler = shutil.which("c++")
         if compiler is None:

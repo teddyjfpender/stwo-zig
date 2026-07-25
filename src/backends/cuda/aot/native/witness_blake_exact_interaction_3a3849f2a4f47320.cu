@@ -17,19 +17,6 @@ constexpr std::uint32_t kSecureColumns[8] = {
 };
 constexpr std::uint32_t kFixedLogs[5] = {16u, 14u, 12u, 10u, 8u};
 
-__device__ __forceinline__ Qm31 relation_value(
-    const std::uint32_t *relations, std::uint32_t relation_index,
-    const Qm31 *values, std::uint32_t count) {
-  const Qm31 z = load_qm31(relations, 2u * relation_index);
-  const Qm31 alpha = load_qm31(relations, 2u * relation_index + 1u);
-  Qm31 result = neg_qm31(z);
-  Qm31 power = one_qm31();
-  for (std::uint32_t index = 0u; index < count; ++index) {
-    relation_append(&result, &power, alpha, values[index]);
-  }
-  return result;
-}
-
 __device__ __forceinline__ void store_fraction(
     std::uint32_t *output, Qm31 *denominators, u64 stride,
     std::uint32_t batch, std::uint32_t row, RelationBatch value) {
@@ -78,50 +65,48 @@ struct InteractionRoundReader {
   std::uint32_t main_index;
   std::uint32_t batch_index;
 
-  __device__ __forceinline__ Qm31 next() {
-    return from_base(load_source(source, stride, main_index++, row));
-  }
-
   __device__ __forceinline__ Fu32 next_u32() {
-    return {next(), next()};
+    const Qm31 low =
+        from_base(load_source(source, stride, main_index++, row));
+    const Qm31 high =
+        from_base(load_source(source, stride, main_index++, row));
+    return {low, high};
   }
 
-  __device__ __forceinline__ Fu32 add2(Fu32, Fu32) {
+  __device__ __forceinline__ Fu32 add2() {
     return next_u32();
   }
 
-  __device__ __forceinline__ Fu32 add3(Fu32, Fu32, Fu32) {
+  __device__ __forceinline__ Fu32 add3() {
     return next_u32();
   }
 
   __device__ __forceinline__ void split(
       Qm31 value, std::uint32_t width, Qm31 *low, Qm31 *high) {
-    *high = next();
+    *high = from_base(load_source(source, stride, main_index++, row));
     *low = sub_qm31(value, mul_base(*high, 1u << width));
   }
 
   __device__ __forceinline__ void xor2(
       std::uint32_t width, Qm31 a0, Qm31 a1, Qm31 b0, Qm31 b1,
       Qm31 *r0, Qm31 *r1) {
-    *r0 = next();
-    *r1 = next();
+    *r0 = from_base(load_source(source, stride, main_index++, row));
+    *r1 = from_base(load_source(source, stride, main_index++, row));
     const std::uint32_t relation_index =
         width == 12u ? 2u :
         width == 9u ? 3u :
         width == 8u ? 4u :
         width == 7u ? 5u : 6u;
-    Qm31 first_values[3] = {a0, b0, *r0};
-    Qm31 second_values[3] = {a1, b1, *r1};
     store_fraction(
         output, denominators, stride, batch_index++, row,
         pair_entries(
             {
                 one_qm31(),
-                relation_value(relations, relation_index, first_values, 3u),
+                relation_three(relations, relation_index, a0, b0, *r0),
             },
             {
                 one_qm31(),
-                relation_value(relations, relation_index, second_values, 3u),
+                relation_three(relations, relation_index, a1, b1, *r1),
             }));
   }
 
@@ -159,64 +144,94 @@ struct InteractionRoundReader {
   }
 
   __device__ __forceinline__ void g(
-      Fu32 *state, std::uint32_t a, std::uint32_t b, std::uint32_t c,
-      std::uint32_t d, Fu32 message0, Fu32 message1) {
-    state[a] = add3(state[a], state[b], message0);
-    state[d] = xor_rotate16(state[a], state[d]);
-    state[c] = add2(state[c], state[d]);
-    state[b] = xor_rotate(state[b], state[c], 12u);
-    state[a] = add3(state[a], state[b], message1);
-    state[d] = xor_rotate(state[a], state[d], 8u);
-    state[c] = add2(state[c], state[d]);
-    state[b] = xor_rotate(state[b], state[c], 7u);
+      Fu32 *a, Fu32 *b, Fu32 *c, Fu32 *d) {
+    *a = add3();
+    *d = xor_rotate16(*a, *d);
+    *c = add2();
+    *b = xor_rotate(*b, *c, 12u);
+    *a = add3();
+    *d = xor_rotate(*a, *d, 8u);
+    *c = add2();
+    *b = xor_rotate(*b, *c, 7u);
   }
 };
+
+__device__ __forceinline__ Fu32 load_fu32(
+    const std::uint32_t *source, u64 stride, std::uint32_t first_column,
+    std::uint32_t row) {
+  return {
+      from_base(load_source(source, stride, first_column, row)),
+      from_base(load_source(source, stride, first_column + 1u, row)),
+  };
+}
 
 __device__ __forceinline__ void generate_round_fractions(
     const std::uint32_t *source, u64 stride, std::uint32_t row,
     const std::uint32_t *relations, std::uint32_t *output,
     Qm31 *denominators) {
   InteractionRoundReader reader = {
-      source, stride, row, relations, output, denominators, 0u, 0u,
+      source, stride, row, relations, output, denominators, 64u, 0u,
   };
-  Fu32 state[16];
-  Fu32 input_state[16];
-  Fu32 message[16];
-  for (std::uint32_t index = 0u; index < 16u; ++index) {
-    state[index] = reader.next_u32();
-    input_state[index] = state[index];
-  }
-  for (std::uint32_t index = 0u; index < 16u; ++index) {
-    message[index] = reader.next_u32();
-  }
-  reader.g(state, 0, 4, 8, 12, message[0], message[1]);
-  reader.g(state, 1, 5, 9, 13, message[2], message[3]);
-  reader.g(state, 2, 6, 10, 14, message[4], message[5]);
-  reader.g(state, 3, 7, 11, 15, message[6], message[7]);
-  reader.g(state, 0, 5, 10, 15, message[8], message[9]);
-  reader.g(state, 1, 6, 11, 12, message[10], message[11]);
-  reader.g(state, 2, 7, 8, 13, message[12], message[13]);
-  reader.g(state, 3, 4, 9, 14, message[14], message[15]);
+  Fu32 v0 = load_fu32(source, stride, 0u, row);
+  Fu32 v1 = load_fu32(source, stride, 2u, row);
+  Fu32 v2 = load_fu32(source, stride, 4u, row);
+  Fu32 v3 = load_fu32(source, stride, 6u, row);
+  Fu32 v4 = load_fu32(source, stride, 8u, row);
+  Fu32 v5 = load_fu32(source, stride, 10u, row);
+  Fu32 v6 = load_fu32(source, stride, 12u, row);
+  Fu32 v7 = load_fu32(source, stride, 14u, row);
+  Fu32 v8 = load_fu32(source, stride, 16u, row);
+  Fu32 v9 = load_fu32(source, stride, 18u, row);
+  Fu32 v10 = load_fu32(source, stride, 20u, row);
+  Fu32 v11 = load_fu32(source, stride, 22u, row);
+  Fu32 v12 = load_fu32(source, stride, 24u, row);
+  Fu32 v13 = load_fu32(source, stride, 26u, row);
+  Fu32 v14 = load_fu32(source, stride, 28u, row);
+  Fu32 v15 = load_fu32(source, stride, 30u, row);
+  reader.g(&v0, &v4, &v8, &v12);
+  reader.g(&v1, &v5, &v9, &v13);
+  reader.g(&v2, &v6, &v10, &v14);
+  reader.g(&v3, &v7, &v11, &v15);
+  reader.g(&v0, &v5, &v10, &v15);
+  reader.g(&v1, &v6, &v11, &v12);
+  reader.g(&v2, &v7, &v8, &v13);
+  reader.g(&v3, &v4, &v9, &v14);
 
-  Qm31 tuple[96];
-  std::uint32_t tuple_index = 0u;
-  for (std::uint32_t index = 0u; index < 16u; ++index) {
-    tuple[tuple_index++] = input_state[index].low;
-    tuple[tuple_index++] = input_state[index].high;
+  const Qm31 z = load_qm31(relations, 2u);
+  const Qm31 alpha = load_qm31(relations, 3u);
+  Qm31 round_relation = neg_qm31(z);
+  Qm31 power = one_qm31();
+  for (std::uint32_t column = 0u; column < 32u; ++column) {
+    relation_append(
+        &round_relation, &power, alpha,
+        from_base(load_source(source, stride, column, row)));
   }
-  for (std::uint32_t index = 0u; index < 16u; ++index) {
-    tuple[tuple_index++] = state[index].low;
-    tuple[tuple_index++] = state[index].high;
-  }
-  for (std::uint32_t index = 0u; index < 16u; ++index) {
-    tuple[tuple_index++] = message[index].low;
-    tuple[tuple_index++] = message[index].high;
+  relation_append_word(&round_relation, &power, alpha, v0);
+  relation_append_word(&round_relation, &power, alpha, v1);
+  relation_append_word(&round_relation, &power, alpha, v2);
+  relation_append_word(&round_relation, &power, alpha, v3);
+  relation_append_word(&round_relation, &power, alpha, v4);
+  relation_append_word(&round_relation, &power, alpha, v5);
+  relation_append_word(&round_relation, &power, alpha, v6);
+  relation_append_word(&round_relation, &power, alpha, v7);
+  relation_append_word(&round_relation, &power, alpha, v8);
+  relation_append_word(&round_relation, &power, alpha, v9);
+  relation_append_word(&round_relation, &power, alpha, v10);
+  relation_append_word(&round_relation, &power, alpha, v11);
+  relation_append_word(&round_relation, &power, alpha, v12);
+  relation_append_word(&round_relation, &power, alpha, v13);
+  relation_append_word(&round_relation, &power, alpha, v14);
+  relation_append_word(&round_relation, &power, alpha, v15);
+  for (std::uint32_t column = 32u; column < 64u; ++column) {
+    relation_append(
+        &round_relation, &power, alpha,
+        from_base(load_source(source, stride, column, row)));
   }
   store_fraction(
       output, denominators, stride, reader.batch_index++, row,
       single_entry({
           neg_qm31(one_qm31()),
-          relation_value(relations, 1u, tuple, tuple_index),
+          round_relation,
       }));
 }
 
@@ -237,20 +252,19 @@ __device__ __forceinline__ void generate_xor_fractions(
     const std::uint32_t ah = column >> expand;
     const std::uint32_t bh = column & ((1u << expand) - 1u);
     const std::uint32_t shift = limb_bits[table_index];
-    Qm31 tuple[3] = {
-        add_qm31(
-            from_base(load_source(preprocessed, stride, 0u, row)),
-            from_base(ah << shift)),
-        add_qm31(
-            from_base(load_source(preprocessed, stride, 1u, row)),
-            from_base(bh << shift)),
-        add_qm31(
-            from_base(load_source(preprocessed, stride, 2u, row)),
-            from_base((ah ^ bh) << shift)),
-    };
+    const Qm31 first = add_qm31(
+        from_base(load_source(preprocessed, stride, 0u, row)),
+        from_base(ah << shift));
+    const Qm31 second = add_qm31(
+        from_base(load_source(preprocessed, stride, 1u, row)),
+        from_base(bh << shift));
+    const Qm31 third = add_qm31(
+        from_base(load_source(preprocessed, stride, 2u, row)),
+        from_base((ah ^ bh) << shift));
     const RelationEntry entry = {
         neg_qm31(from_base(load_source(main, stride, column, row))),
-        relation_value(relations, 2u + table_index, tuple, 3u),
+        relation_three(
+            relations, 2u + table_index, first, second, third),
     };
     if ((column & 1u) == 0u) {
       pending = entry;
