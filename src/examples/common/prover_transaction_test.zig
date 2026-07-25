@@ -154,6 +154,59 @@ const FakeSpec = struct {
     }
 };
 
+const FakeInteractionSpec = struct {
+    pub const Statement = FakeStatement;
+    pub const PreparedInput = FakeSpec.PreparedInput;
+    pub const PreparedInteraction = struct {
+        columns: subject.OwnedColumns,
+    };
+    pub const max_components: usize = 0;
+    pub const ProverContext = FakeSpec.ProverContext;
+
+    var fail_prepare = false;
+    var interaction_deinit_calls: usize = 0;
+
+    pub fn reset() void {
+        fail_prepare = false;
+        interaction_deinit_calls = 0;
+    }
+
+    pub const validateRequest = FakeSpec.validateRequest;
+    pub const validatePrepared = FakeSpec.validatePrepared;
+    pub const compositionLog = FakeSpec.compositionLog;
+    pub const statement = FakeSpec.statement;
+    pub const proverComponents = FakeSpec.proverComponents;
+
+    pub fn prepareInteraction(
+        allocator: std.mem.Allocator,
+        _: *Blake2sChannel,
+        _: *const PreparedInput,
+    ) !PreparedInteraction {
+        if (fail_prepare) return error.InjectedInteractionPrepareFailure;
+        return .{
+            .columns = subject.OwnedColumns.init(try makeColumns(allocator, 1)),
+        };
+    }
+
+    pub fn deinitPreparedInteraction(
+        prepared: *PreparedInteraction,
+        allocator: std.mem.Allocator,
+    ) void {
+        interaction_deinit_calls += 1;
+        prepared.columns.deinit(allocator);
+        prepared.* = undefined;
+    }
+
+    pub fn initProverContext(
+        out: *ProverContext,
+        _: *Blake2sChannel,
+        _: FakeRequest,
+        _: *const PreparedInteraction,
+    ) !void {
+        out.* = .{ .statement_value = 7 };
+    }
+};
+
 fn config() !pcs_core.PcsConfig {
     return .{
         .pow_bits = 0,
@@ -223,6 +276,23 @@ fn runTransaction(allocator: std.mem.Allocator) !FakeEngine.ExtendedProof {
     return output.proof;
 }
 
+fn runInteractionTransaction(
+    allocator: std.mem.Allocator,
+) !FakeEngine.ExtendedProof {
+    const prepared = try makePrepared(allocator);
+    const output = try subject.provePreparedEx(
+        FakeEngine,
+        FakeInteractionSpec,
+        false,
+        {},
+        allocator,
+        try config(),
+        prepared,
+        .{},
+    );
+    return output.proof;
+}
+
 test "prover transaction: prepared trace cleans up every allocation failure" {
     try std.testing.checkAllAllocationFailures(
         std.testing.allocator,
@@ -272,4 +342,20 @@ test "prover transaction: success transfers every owned resource once" {
     try std.testing.expectEqual(@as(usize, 2), FakeEngine.commit_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeEngine.deinit_calls);
     try std.testing.expectEqual(@as(usize, 1), FakeEngine.prove_calls);
+}
+
+test "prover transaction: failed interaction preparation never deinitializes undefined state" {
+    FakeEngine.reset();
+    FakeInteractionSpec.reset();
+    FakeInteractionSpec.fail_prepare = true;
+    try std.testing.expectError(
+        error.InjectedInteractionPrepareFailure,
+        runInteractionTransaction(std.testing.allocator),
+    );
+    try std.testing.expectEqual(@as(usize, 2), FakeEngine.commit_calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeEngine.deinit_calls);
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        FakeInteractionSpec.interaction_deinit_calls,
+    );
 }
