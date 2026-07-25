@@ -14,7 +14,7 @@ pub const relation_element_count: usize = 14;
 pub const claimed_sum_count: usize = component_count;
 pub const constraint_count: usize = 417;
 pub const argument_count: u32 = 20;
-pub const cache_key: u64 = 0x3b9fbc925d6d3336;
+pub const cache_key: u64 = 0x7274bb2c1d464acd;
 pub const kernel_name =
     "stwo_native_constraint_blake_component_v1_64a336ee32f09d7e";
 

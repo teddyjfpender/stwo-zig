@@ -1,13 +1,13 @@
 [
   {
     "abi_schema": "native_blake_constraint_v1",
-    "cache_key": "3b9fbc925d6d3336",
-    "file": "constraint_blake_3b9fbc925d6d3336.cu",
+    "cache_key": "7274bb2c1d464acd",
+    "file": "constraint_blake_7274bb2c1d464acd.cu",
     "identity_scheme": "sha256-source-and-contract-v1",
     "kernel_name": "stwo_native_constraint_blake_component_v1_64a336ee32f09d7e",
     "kind": "constraint",
     "label": "blake",
-    "program_identity": "0c6df4e6b8d33b524539c5518aea63858632d7043811724a8f455bcbad6a85bd",
+    "program_identity": "19330048c51599f129214d3f3c794e901620d44fae835e9e5de2e4cd5ec5e419",
     "semantic_contract": "stwo-zig/native/blake-constraint/v1;field=qm31;components=scheduler@L+1,round0@L+4,round1@L+2,xor12@17,xor9@15,xor8@13,xor7@11,xor4@9;sources=component-local-preprocessed-main-interaction-lde;constraints=6+129+129+128+8+8+8+1;relations=blake,round,xor12,xor9,xor8,xor7,xor4;claims=public-statement-order(scheduler,xor12,xor9,xor8,xor7,xor4,round0,round1);working_set=streamed-relations-no-dynamic-local-arrays;scheduler=ten-round-pairs-plus-blake-zero-multiplicity;round=64-arithmetic-plus-65-paired-logup;xor=paired-multiplicity-table-logup;previous=bit-reversed-circle-offset-minus-one;coefficients=reverse-417-component-order;denominator=component-coset-vanishing-inverse-2;lift=bit-reversed-domain-bucket-to-max(L+4,17);output=4-coordinate-additive-slab;launches=8",
     "semantic_hash": "64a336ee32f09d7e"
   },
@@ -97,13 +97,13 @@
   },
   {
     "abi_schema": "native_blake_exact_interaction_v1",
-    "cache_key": "3790df091bfb99bf",
-    "file": "witness_blake_exact_interaction_3790df091bfb99bf.cu",
+    "cache_key": "acf7150636f20e67",
+    "file": "witness_blake_exact_interaction_acf7150636f20e67.cu",
     "identity_scheme": "sha256-source-closure-and-contract-v2",
     "kernel_name": "stwo_native_interaction_blake_exact_pairs_v1",
     "kind": "witness",
     "label": "blake_exact_interaction",
-    "program_identity": "b0bcfe3ab0c71d5fa0d8c7af6ad018b822de245069d06610b2d645146ad29810",
+    "program_identity": "6703346c3bd302591c88ba8ae07a462260d828bfe2f97732a435e3dae6db77e1",
     "semantic_contract": "stwo-zig/native/blake-exact-interaction/v1;field=qm31;statement=log_n_rows[4..13],rounds=10;components=scheduler[L,6],round[L+3,65],round[L+1,65],xor12[16,128],xor9[14,8],xor8[12,8],xor7[10,8],xor4[8,1];relations=blake,round,xor12,xor9,xor8,xor7,xor4;fractions=canonical-paired-numerator-and-denominator;source=immutable-preprocessed-plus-main-resident-slab;output=ragged-coordinate-major-numerators-and-qm31-denominators;completion=resident-relation-fraction-chain-and-circle-order-tail;claims=public-order-scheduler,xor12,xor9,xor8,xor7,xor4,round3,round1;host_transfer=none;fallback=none;pair_launches=8",
     "semantic_hash": "85d2ba7bfd3cc7db"
   },

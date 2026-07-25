@@ -4,7 +4,7 @@
 // The resident relation fraction-chain and circle-order tail own inversion,
 // cumulative columns, claimed sums, shifting, and the final prefix scan.
 
-#include "constraint_blake_3b9fbc925d6d3336.cu"
+#include "constraint_blake_7274bb2c1d464acd.cu"
 
 namespace {
 

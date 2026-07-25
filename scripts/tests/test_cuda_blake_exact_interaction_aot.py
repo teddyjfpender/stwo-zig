@@ -171,6 +171,7 @@ class CudaBlakeExactInteractionAotTests(unittest.TestCase):
 #include <iostream>
 #include <vector>
 #define __device__
+#define __constant__
 #define __global__
 #define __forceinline__ inline
 #define __launch_bounds__(...)

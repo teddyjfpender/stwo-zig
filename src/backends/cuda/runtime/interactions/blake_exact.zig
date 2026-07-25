@@ -13,7 +13,7 @@ const telemetry = @import("../telemetry.zig");
 pub const component_count: usize = 8;
 pub const relation_element_count: usize = 14;
 pub const argument_count: u32 = 12;
-pub const cache_key: u64 = 0x3790df091bfb99bf;
+pub const cache_key: u64 = 0xacf7150636f20e67;
 pub const kernel_name = "stwo_native_interaction_blake_exact_pairs_v1";
 pub const program_identity = [32]u8{
     0xb0, 0xbc, 0xfe, 0x3a, 0xb0, 0xc7, 0x1d, 0x5f,

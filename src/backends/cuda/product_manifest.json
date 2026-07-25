@@ -123,7 +123,7 @@
         },
         {
           "path": "relation/graph.cu",
-          "sha256": "e3c293f05a71ed56d3f492199791cc59719e1ec25fed76a545d076d88cb6e275"
+          "sha256": "f2aa9076ae28c5e654337192479477cd83ba24874742133207d9941546a03a1c"
         },
         {
           "path": "relation/layout.cuh",

@@ -171,7 +171,8 @@ __global__ void reduce_coordinates_ragged_kernel(
     const std::uint32_t last = (record[kColumns] - 1u) * 4u;
     const std::uint32_t row =
         local_block * kLaunchBlock + threadIdx.x;
-    extern __shared__ QM31 shared[];
+    extern __shared__ __align__(16) unsigned char shared_storage[];
+    auto *shared = reinterpret_cast<QM31 *>(shared_storage);
     shared[threadIdx.x] =
         row < record[kRows]
             ? QM31{
@@ -212,7 +213,8 @@ __global__ void finalize_claimed_sums_ragged_kernel(
          index += kLaunchBlock) {
         accumulated = add(accumulated, partials[first + index]);
     }
-    extern __shared__ QM31 shared[];
+    extern __shared__ __align__(16) unsigned char shared_storage[];
+    auto *shared = reinterpret_cast<QM31 *>(shared_storage);
     shared[threadIdx.x] = accumulated;
     __syncthreads();
     for (std::uint32_t stride = kLaunchBlock / 2u;
@@ -289,7 +291,8 @@ __global__ void shift_scan_tiles_ragged_kernel(
                            : sum.b.b;
     const M31 shift =
         mul(record[kInverseRows], sum_coordinate);
-    extern __shared__ M31 shared[];
+    extern __shared__ __align__(16) unsigned char shared_storage[];
+    auto *shared = reinterpret_cast<M31 *>(shared_storage);
     shared[threadIdx.x] =
         scan_index < record[kRows]
             ? sub(

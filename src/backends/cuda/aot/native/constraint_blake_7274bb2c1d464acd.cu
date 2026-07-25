@@ -12,7 +12,6 @@ constexpr std::uint32_t kConstraints = 417u;
 constexpr std::uint32_t kRelations = 14u;
 constexpr std::uint32_t kClaims = 8u;
 constexpr std::uint32_t kRounds = 10u;
-constexpr std::uint32_t kRoundSources = 644u;
 constexpr std::uint32_t kRoundMain = 384u;
 constexpr std::uint32_t kInv16 = 1u << 15u;
 
@@ -257,7 +256,7 @@ __device__ __forceinline__ Qm31 logup_constraint(
         batch.numerator);
 }
 
-constexpr std::uint8_t kSigma[kRounds][16] = {
+__device__ __constant__ std::uint8_t kSigma[kRounds][16] = {
     {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
     {14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},
     {11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4},
