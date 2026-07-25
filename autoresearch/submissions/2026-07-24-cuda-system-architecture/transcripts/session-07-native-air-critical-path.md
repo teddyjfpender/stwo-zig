@@ -162,3 +162,27 @@ proof semantics.
 6. Only after six-family correctness, run locked-host A/A, ABBA, portfolio,
    memory, and sustained-service evidence.
 7. Start profiler-directed 2-5x optimization only from that exact baseline.
+
+## 2026-07-24 Exactness Review Checkpoint
+
+The next Native AIR implementations remain unmerged while three review
+findings are closed:
+
+- State Machine must reject `log_n_rows < 5`. The pinned SIMD authority
+  requires its shorter `log_n_rows - 1` axis to contain at least one full
+  16-lane pack. Zig request validation, the Rust adapter, verifier statement
+  validation, and adversarial mutations must enforce the same boundary.
+- Poseidon must prove all 1,144 constraints and use the pinned
+  `log_n_rows + 2` composition degree. A temporary one-constraint diagnostic
+  and an incorrect `+3` degree were found before commit and are not eligible
+  evidence.
+- The resident Plonk composition kernel must be compared coordinate-for-
+  coordinate with the exact CPU/Rust AIR over multiple shapes. A hard-coded
+  CUDA smoke vector is useful lifecycle coverage, but it is not an
+  independent correctness oracle.
+
+The shared lifted PCS is also being corrected symmetrically. Query positions
+must be folded for every commitment tree according to that tree's maximum
+column degree, not only for the preprocessed tree. The acceptance gate is a
+heterogeneous-tree regression plus unchanged exact Plonk/XOR proof bytes and
+pinned-Rust acceptance.
