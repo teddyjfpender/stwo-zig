@@ -27,6 +27,10 @@ STWO_PATCH_RE = re.compile(
     r'(?ms)^\[patch\."https://github\.com/teddyjfpender/stwo"\]\s*'
     r'.*?^stwo\s*=\s*\{\s*path\s*=\s*"([^"]+)"\s*\}'
 )
+STWO_DEPENDENCY_RE = re.compile(
+    r'^stwo\s*=\s*\{[^\n]*\brev\s*=\s*"([0-9a-f]{40})"',
+    re.MULTILINE,
+)
 
 
 def parse_census(text: str) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
@@ -112,7 +116,15 @@ def authenticate_source(
         raise CoverageError("source semantic manifest source/toolchain must be objects")
     exact_keys(
         source,
-        {"repository", "revision", "stwo_revision", "tree"},
+        {
+            "repository",
+            "revision",
+            "tree",
+            "stwo_binding_kind",
+            "stwo_declared_revision",
+            "stwo_resolved_revision",
+            "stwo_resolved_tree",
+        },
         "source semantic manifest source",
     )
     exact_keys(
@@ -134,23 +146,47 @@ def authenticate_source(
             f"stwo-cairo source mismatch: expected {source['revision']}:{source['tree']}, "
             f"got {revision}:{tree}"
         )
+    repository = git_output(source_root, "remote", "get-url", "origin")
+    if repository != source["repository"]:
+        raise CoverageError(
+            "stwo-cairo repository mismatch: "
+            f"expected {source['repository']}, got {repository}"
+        )
     if git_output(source_root, "status", "--porcelain"):
         raise CoverageError("pinned stwo-cairo source worktree is dirty")
     cargo_toml = source_root / "Cargo.toml"
-    patch = STWO_PATCH_RE.search(cargo_toml.read_text(encoding="utf-8"))
-    if patch is not None:
-        stwo_crate = (source_root / patch.group(1)).resolve()
-        if not (stwo_crate / "Cargo.toml").is_file():
-            raise CoverageError(f"patched Stwo crate is missing: {stwo_crate}")
-        stwo_root = Path(git_output(stwo_crate, "rev-parse", "--show-toplevel"))
-        stwo_revision = git_output(stwo_root, "rev-parse", "HEAD")
-        if stwo_revision != source["stwo_revision"]:
-            raise CoverageError(
-                "resolved Stwo source differs from semantic manifest: "
-                f"expected {source['stwo_revision']}, got {stwo_revision}"
-            )
-        if git_output(stwo_root, "status", "--porcelain"):
-            raise CoverageError("resolved Stwo source worktree is dirty")
+    cargo_source = cargo_toml.read_text(encoding="utf-8")
+    dependency = STWO_DEPENDENCY_RE.search(cargo_source)
+    if dependency is None:
+        raise CoverageError("workspace Stwo declared revision is missing")
+    if dependency.group(1) != source["stwo_declared_revision"]:
+        raise CoverageError(
+            "declared Stwo revision differs from semantic manifest: "
+            f"expected {source['stwo_declared_revision']}, got {dependency.group(1)}"
+        )
+    if source["stwo_binding_kind"] != "clean_local_path_patch":
+        raise CoverageError("unsupported semantic Stwo binding kind")
+    patch = STWO_PATCH_RE.search(cargo_source)
+    if patch is None:
+        raise CoverageError("semantic Stwo path patch is missing")
+    stwo_crate = (source_root / patch.group(1)).resolve()
+    if not (stwo_crate / "Cargo.toml").is_file():
+        raise CoverageError(f"patched Stwo crate is missing: {stwo_crate}")
+    stwo_root = Path(git_output(stwo_crate, "rev-parse", "--show-toplevel"))
+    stwo_revision = git_output(stwo_root, "rev-parse", "HEAD")
+    stwo_tree = git_output(stwo_root, "rev-parse", "HEAD^{tree}")
+    if stwo_revision != source["stwo_resolved_revision"]:
+        raise CoverageError(
+            "resolved Stwo revision differs from semantic manifest: "
+            f"expected {source['stwo_resolved_revision']}, got {stwo_revision}"
+        )
+    if stwo_tree != source["stwo_resolved_tree"]:
+        raise CoverageError(
+            "resolved Stwo tree differs from semantic manifest: "
+            f"expected {source['stwo_resolved_tree']}, got {stwo_tree}"
+        )
+    if git_output(stwo_root, "status", "--porcelain"):
+        raise CoverageError("resolved Stwo source worktree is dirty")
     generator = source_root / "tools/witness_genericize/src/main.rs"
     cargo_lock = source_root / "Cargo.lock"
     if sha256_path(generator) != toolchain["generator_sha256"]:
@@ -194,7 +230,10 @@ def authenticate_source(
             "repository": source["repository"],
             "revision": revision,
             "tree": tree,
-            "stwo_revision": source["stwo_revision"],
+            "stwo_binding_kind": source["stwo_binding_kind"],
+            "stwo_declared_revision": source["stwo_declared_revision"],
+            "stwo_resolved_revision": source["stwo_resolved_revision"],
+            "stwo_resolved_tree": source["stwo_resolved_tree"],
             "component_count": len(source_files),
             "census": {
                 **summary,

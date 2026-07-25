@@ -167,9 +167,13 @@ class ReconciliationTests(unittest.TestCase):
                 "authenticate_source",
                 return_value=(
                     {
+                        "repository": "https://github.com/teddyjfpender/stwo-cairo.git",
                         "revision": "c" * 40,
                         "tree": "d" * 40,
-                        "stwo_revision": "e" * 40,
+                        "stwo_binding_kind": "clean_local_path_patch",
+                        "stwo_declared_revision": "2" * 40,
+                        "stwo_resolved_revision": "e" * 40,
+                        "stwo_resolved_tree": "1" * 40,
                     },
                     census_copy,
                 ),
@@ -282,6 +286,16 @@ class SourceAuthenticationTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.CoverageError, "source mismatch"):
                 MODULE.authenticate_source(Path("."), manifest, Path("missing"))
 
+    def test_rejects_legacy_ambiguous_stwo_identity_schema(self):
+        manifest = MODULE.load_json(MODULE.MANIFEST_PATH)
+        source = manifest["source"]
+        source["stwo_revision"] = source.pop("stwo_resolved_revision")
+        source.pop("stwo_binding_kind")
+        source.pop("stwo_declared_revision")
+        source.pop("stwo_resolved_tree")
+        with self.assertRaisesRegex(MODULE.CoverageError, "keys differ"):
+            MODULE.authenticate_source(Path("."), manifest, Path("missing"))
+
 
 class CheckedEvidenceTests(unittest.TestCase):
     def verify_mutation_fails(self, report: dict, pattern: str) -> None:
@@ -331,6 +345,11 @@ class CheckedEvidenceTests(unittest.TestCase):
         forged = {"name": pie["name"], "components": pie["components"]}
         pie["normalized_shape_sha256"] = MODULE.normalized_shape_sha256(forged)
         self.verify_mutation_fails(report, "normalized shape identity")
+
+    def test_altering_resolved_stwo_tree_cannot_rewrite_checked_source(self):
+        report = copy.deepcopy(MODULE.load_json(MODULE.DEFAULT_REPORT))
+        report["source"]["stwo_resolved_tree"] = "0" * 40
+        self.verify_mutation_fails(report, "source stwo_resolved_tree differs")
 
 
 if __name__ == "__main__":

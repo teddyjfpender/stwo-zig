@@ -15,7 +15,7 @@ or supply semantic programs.
 
 The Cairo source remains:
 
-- repository: `starkware-libs/stwo-cairo`
+- repository: `https://github.com/teddyjfpender/stwo-cairo.git`
 - revision: `6a9c1c895b821eb5542843e7d9398e02e8f378d0`
 - tree: `17fbbfc61fc51e0697c4e1f3cd39885784a027f2`
 
@@ -24,18 +24,24 @@ but its tracked Cargo patch overrides that declaration with a local Stwo
 workspace. The Cairo branch uses APIs absent from `1dad88f`; therefore the old
 manifest's `1dad88f` authority was not a compilable source pair.
 
-The diagnostic compatible pair is now explicit:
+The diagnostic compatible pair and dependency binding are now explicit and
+separately authenticated:
 
+- declared Stwo revision:
+  `1dad88f1c3a714ac26c8ad57812429ac58541909`
 - resolved Stwo revision:
   `1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035`
 - resolved Stwo tree:
   `55cbec6c408dfc4e81c722deca9f5526d3785536`
-- binding: clean local Cargo patch
+- binding kind: `clean_local_path_patch`
 
 The generator resolves and checks the patched workspace rather than trusting
 the overridden `rev` text. A declared/resolved mismatch requires an explicit
 `--expected-oracle-stwo-revision`; dirty or differently pinned Stwo sources fail
-closed.
+closed. The manifest and authority digest authenticate the repository, both
+revisions, the effective tree, and the binding kind as distinct fields. The
+coverage checker re-derives each field from the checkout; the old ambiguous
+single `stwo_revision` schema is rejected.
 
 This pair is diagnostic until a clean full stwo-cairo build and component
 differential suite are retained. It is not a release or performance authority.

@@ -289,7 +289,7 @@ test "Cairo production admission uses configured source authority and exact proo
         allocator,
         .{
             .path = manifest_path,
-            .sha256 = decodeDigest("d99101abb16ba11db74316fabe28ff37eb428a4736f8ab9bddbca9368d30c60a"),
+            .sha256 = decodeDigest("cfbeff3da13461d0d9cf2df2a215d951df713698db18036f4882ddf1f857bd3a"),
         },
         directory,
     );

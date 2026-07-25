@@ -96,13 +96,47 @@ pub(crate) const SUB_FEED_LAYOUT: &[(&str, usize, &str, u32, usize, usize)] = &[
             declared_revision="1" * 40,
             resolved_revision="2" * 40,
             resolved_tree="3" * 40,
-            kind="clean_local_patch",
+            kind="clean_local_path_patch",
         )
         with self.assertRaisesRegex(SystemExit, "local Stwo patch overrides"):
             MODULE.validate_stwo_binding(binding, None)
         MODULE.validate_stwo_binding(binding, "2" * 40)
         with self.assertRaisesRegex(SystemExit, "revision mismatch"):
             MODULE.validate_stwo_binding(binding, "4" * 40)
+
+    def test_identity_separately_binds_declared_resolved_and_tree(self):
+        source = {
+            "repository": MODULE.SOURCE_REPOSITORY,
+            "revision": "1" * 40,
+            "tree": "2" * 40,
+            "stwo_binding_kind": "clean_local_path_patch",
+            "stwo_declared_revision": "3" * 40,
+            "stwo_resolved_revision": "4" * 40,
+            "stwo_resolved_tree": "5" * 40,
+        }
+        toolchain = {
+            "rustc": "rustc",
+            "cargo": "cargo",
+            "rustfmt": "rustfmt",
+            "source_cargo_lock_sha256": "6" * 64,
+            "generator_cargo_lock_sha256": "7" * 64,
+            "generator_sha256": "8" * 64,
+        }
+        baseline = MODULE.identity(source, toolchain, "9" * 64)
+        for field in (
+            "repository",
+            "stwo_binding_kind",
+            "stwo_declared_revision",
+            "stwo_resolved_revision",
+            "stwo_resolved_tree",
+        ):
+            changed = dict(source)
+            changed[field] = changed[field] + "x"
+            self.assertNotEqual(
+                MODULE.identity(changed, toolchain, "9" * 64),
+                baseline,
+                field,
+            )
 
 
 if __name__ == "__main__":

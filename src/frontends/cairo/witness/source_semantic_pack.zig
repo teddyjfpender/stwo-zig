@@ -37,7 +37,10 @@ pub const SourceIdentity = struct {
     repository: []const u8,
     revision: []const u8,
     tree: []const u8,
-    stwo_revision: []const u8,
+    stwo_binding_kind: []const u8,
+    stwo_declared_revision: []const u8,
+    stwo_resolved_revision: []const u8,
+    stwo_resolved_tree: []const u8,
 };
 
 pub const ToolchainIdentity = struct {
@@ -286,7 +289,10 @@ pub fn canonicalIdentity(manifest: Manifest, registry_sha256: [32]u8) ![32]u8 {
     try hashString(&hasher, &integer, manifest.source.repository);
     try hashString(&hasher, &integer, manifest.source.revision);
     try hashString(&hasher, &integer, manifest.source.tree);
-    try hashString(&hasher, &integer, manifest.source.stwo_revision);
+    try hashString(&hasher, &integer, manifest.source.stwo_binding_kind);
+    try hashString(&hasher, &integer, manifest.source.stwo_declared_revision);
+    try hashString(&hasher, &integer, manifest.source.stwo_resolved_revision);
+    try hashString(&hasher, &integer, manifest.source.stwo_resolved_tree);
     try hashString(&hasher, &integer, manifest.toolchain.rustc);
     try hashString(&hasher, &integer, manifest.toolchain.cargo);
     try hashString(&hasher, &integer, manifest.toolchain.rustfmt);
@@ -302,12 +308,19 @@ fn validateManifest(manifest: Manifest) !void {
         return error.UnsupportedSourceSemanticPack;
     if (!std.mem.eql(u8, manifest.provenance, "source-derived"))
         return error.ProofDerivedAuthorityRejected;
-    if (manifest.source.repository.len == 0 or manifest.toolchain.rustc.len == 0 or
+    if (manifest.source.repository.len == 0 or
+        !std.mem.eql(
+            u8,
+            manifest.source.stwo_binding_kind,
+            "clean_local_path_patch",
+        ) or manifest.toolchain.rustc.len == 0 or
         manifest.toolchain.cargo.len == 0 or manifest.toolchain.rustfmt.len == 0)
         return error.InvalidSourceIdentity;
     try validateRevision(manifest.source.revision);
     try validateRevision(manifest.source.tree);
-    try validateRevision(manifest.source.stwo_revision);
+    try validateRevision(manifest.source.stwo_declared_revision);
+    try validateRevision(manifest.source.stwo_resolved_revision);
+    try validateRevision(manifest.source.stwo_resolved_tree);
     _ = try parseDigest(manifest.toolchain.source_cargo_lock_sha256);
     _ = try parseDigest(manifest.toolchain.generator_cargo_lock_sha256);
     _ = try parseDigest(manifest.toolchain.generator_sha256);
@@ -596,7 +609,7 @@ test "source-derived catalog matches Rust oracle and admits a closed active subs
         allocator,
         .{
             .path = manifest_path,
-            .sha256 = try parseDigest("d99101abb16ba11db74316fabe28ff37eb428a4736f8ab9bddbca9368d30c60a"),
+            .sha256 = try parseDigest("cfbeff3da13461d0d9cf2df2a215d951df713698db18036f4882ddf1f857bd3a"),
         },
         directory,
     );
@@ -604,7 +617,7 @@ test "source-derived catalog matches Rust oracle and admits a closed active subs
 
     try std.testing.expectEqualSlices(
         u8,
-        &(try parseDigest("4048609d5a69adbe24c05783f8ef67111e8b77f5043b79e388c876e9ad98b4bd")),
+        &(try parseDigest("f7ce36fc9540d972b5ad2e1d4572663f3d159aefdf7552c036d1cbbb6e956b61")),
         &loaded.authority_sha256,
     );
     try std.testing.expectEqual(@as(usize, 35), loaded.registry.value.components.len);
@@ -715,10 +728,13 @@ test "source-derived catalog matches Rust oracle and admits a closed active subs
 
 test "source authority rejects proof-derived provenance and dangling registry closure" {
     const source = SourceIdentity{
-        .repository = "https://github.com/starkware-libs/stwo-cairo",
+        .repository = "https://github.com/teddyjfpender/stwo-cairo.git",
         .revision = "6a9c1c895b821eb5542843e7d9398e02e8f378d0",
         .tree = "17fbbfc61fc51e0697c4e1f3cd39885784a027f2",
-        .stwo_revision = "1dad88f1c3a714ac26c8ad57812429ac58541909",
+        .stwo_binding_kind = "clean_local_path_patch",
+        .stwo_declared_revision = "1dad88f1c3a714ac26c8ad57812429ac58541909",
+        .stwo_resolved_revision = "1d1d10c31fdac45c9ecb7aee9d3e8935b5cf8035",
+        .stwo_resolved_tree = "55cbec6c408dfc4e81c722deca9f5526d3785536",
     };
     const toolchain = ToolchainIdentity{
         .rustc = "rustc pinned",

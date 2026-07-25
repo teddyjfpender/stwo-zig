@@ -114,11 +114,17 @@ def _blockers(
         ),
         "decoder_stwo_revision_mismatch": (
             []
-            if decoder["stwo_source"]["revision"] == source["stwo_revision"]
+            if (
+                decoder["stwo_source"]["revision"]
+                == source["stwo_resolved_revision"]
+                and decoder["stwo_source"]["tree"] == source["stwo_resolved_tree"]
+            )
             else [
                 {
-                    "expected": source["stwo_revision"],
-                    "actual": decoder["stwo_source"]["revision"],
+                    "expected_revision": source["stwo_resolved_revision"],
+                    "expected_tree": source["stwo_resolved_tree"],
+                    "actual_revision": decoder["stwo_source"]["revision"],
+                    "actual_tree": decoder["stwo_source"]["tree"],
                 }
             ]
         ),
@@ -329,7 +335,10 @@ def verify_record(report: dict[str, Any], report_path: Path = DEFAULT_REPORT) ->
             "repository",
             "revision",
             "tree",
-            "stwo_revision",
+            "stwo_binding_kind",
+            "stwo_declared_revision",
+            "stwo_resolved_revision",
+            "stwo_resolved_tree",
             "component_count",
             "census",
         },
@@ -348,7 +357,15 @@ def verify_record(report: dict[str, Any], report_path: Path = DEFAULT_REPORT) ->
         },
         "recorded source census",
     )
-    for field in ("repository", "revision", "tree", "stwo_revision"):
+    for field in (
+        "repository",
+        "revision",
+        "tree",
+        "stwo_binding_kind",
+        "stwo_declared_revision",
+        "stwo_resolved_revision",
+        "stwo_resolved_tree",
+    ):
         if report["source"][field] != manifest_source[field]:
             raise CoverageError(f"report source {field} differs from source manifest")
     semantic_source, semantic_registry = load_semantic_registry(manifest)

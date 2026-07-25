@@ -25,7 +25,7 @@ VERSION = 3
 REGISTRY_FORMAT = "stwo-zig-cairo-source-component-registry"
 REGISTRY_VERSION = 1
 IDENTITY_DOMAIN = b"stwo-zig/cairo/source-semantic-pack/v3\0"
-SOURCE_REPOSITORY = "https://github.com/starkware-libs/stwo-cairo"
+SOURCE_REPOSITORY = "https://github.com/teddyjfpender/stwo-cairo.git"
 NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 CLAIM_FIELD_RE = re.compile(
     r"^\s*pub ([a-z][a-z0-9_]*):\s*Option<[a-z][a-z0-9_]*::ClaimGenerator>",
@@ -68,7 +68,7 @@ class Feed:
 class StwoBinding:
     declared_revision: str
     resolved_revision: str
-    resolved_tree: str | None
+    resolved_tree: str
     kind: str
 
 
@@ -119,7 +119,10 @@ def identity(
     string(source["repository"])
     string(source["revision"])
     string(source["tree"])
-    string(source["stwo_revision"])
+    string(source["stwo_binding_kind"])
+    string(source["stwo_declared_revision"])
+    string(source["stwo_resolved_revision"])
+    string(source["stwo_resolved_tree"])
     string(toolchain["rustc"])
     string(toolchain["cargo"])
     string(toolchain["rustfmt"])
@@ -164,11 +167,9 @@ def resolve_stwo_binding(cargo_root: Path) -> StwoBinding:
         source,
     )
     if patch is None:
-        return StwoBinding(
-            declared_revision=declared,
-            resolved_revision=declared,
-            resolved_tree=None,
-            kind="declared_git_revision",
+        raise SystemExit(
+            "Stwo dependency has no local path patch from which to authenticate "
+            "the effective source tree"
         )
 
     crate_root = (cargo_root / patch.group(1)).resolve()
@@ -181,7 +182,7 @@ def resolve_stwo_binding(cargo_root: Path) -> StwoBinding:
         declared_revision=declared,
         resolved_revision=run("git", "rev-parse", "HEAD", cwd=repository_root),
         resolved_tree=run("git", "rev-parse", "HEAD^{tree}", cwd=repository_root),
-        kind="clean_local_patch",
+        kind="clean_local_path_patch",
     )
 
 
@@ -456,6 +457,12 @@ def main() -> None:
         raise SystemExit("cargo, rustc, and rustfmt are required")
     stwo_binding = resolve_stwo_binding(cargo_root)
     validate_stwo_binding(stwo_binding, args.expected_oracle_stwo_revision)
+    source_repository = run("git", "remote", "get-url", "origin", cwd=repository_root)
+    if source_repository != SOURCE_REPOSITORY:
+        raise SystemExit(
+            "stwo-cairo origin differs from the authenticated source repository: "
+            f"expected {SOURCE_REPOSITORY}, got {source_repository}"
+        )
 
     census_text = run(
         cargo,
@@ -490,10 +497,13 @@ def main() -> None:
     )
 
     source = {
-        "repository": SOURCE_REPOSITORY,
+        "repository": source_repository,
         "revision": run("git", "rev-parse", "HEAD", cwd=repository_root),
         "tree": run("git", "rev-parse", "HEAD^{tree}", cwd=repository_root),
-        "stwo_revision": stwo_binding.resolved_revision,
+        "stwo_binding_kind": stwo_binding.kind,
+        "stwo_declared_revision": stwo_binding.declared_revision,
+        "stwo_resolved_revision": stwo_binding.resolved_revision,
+        "stwo_resolved_tree": stwo_binding.resolved_tree,
     }
     toolchain = {
         "cargo": run(cargo, "--version", cwd=cargo_root),
