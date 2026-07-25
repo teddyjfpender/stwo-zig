@@ -37,6 +37,7 @@ ABI_SCHEMAS = {
     "native_blake_exact_trace_v1": 19,
     "native_blake_exact_interaction_v1": 20,
     "native_blake_exact_trace_v2": 21,
+    "cairo_eval_part_v1": 22,
 }
 DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 
@@ -79,7 +80,7 @@ stwo_cuda_aot_pack_end:
 """
     rows = "\n".join(_entry_row(entry) for entry in entries)
     if not rows:
-        rows = '    {0ULL, 0U, 0ULL, 0ULL, 0U, {}, ""},'
+        rows = '    {0ULL, 0U, 0ULL, 0ULL, 0U, 0U, {}, ""},'
     lookup_text = f"""#include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -94,6 +95,7 @@ struct Entry {{
     std::uint64_t offset;
     std::uint64_t size;
     std::uint32_t abi_schema;
+    std::uint32_t module_globals;
     std::uint8_t sha256[32];
     const char *kernel_name;
 }};
@@ -109,13 +111,16 @@ extern "C" bool stwo_aot_lookup(
     std::uint32_t sm_major,
     std::uint32_t sm_minor,
     std::uint32_t abi_schema,
+    std::uint32_t *out_module_globals,
     const char *kernel_name,
     const unsigned char **out_data,
     std::size_t *out_len,
     unsigned char out_sha256[32]) {{
-    if (out_data == nullptr || out_len == nullptr || out_sha256 == nullptr) return false;
+    if (out_data == nullptr || out_len == nullptr ||
+        out_module_globals == nullptr || out_sha256 == nullptr) return false;
     *out_data = nullptr;
     *out_len = 0;
+    *out_module_globals = 0;
     std::memset(out_sha256, 0, 32);
     if (abi_schema == 0 ||
         kernel_name == nullptr || kernel_name[0] == '\\0' || sm_minor > 9) return false;
@@ -142,6 +147,7 @@ extern "C" bool stwo_aot_lookup(
     if (entry.offset > pack_size || entry.size > pack_size - entry.offset) return false;
     *out_data = stwo_cuda_aot_pack_start + entry.offset;
     *out_len = static_cast<std::size_t>(entry.size);
+    *out_module_globals = entry.module_globals;
     std::memcpy(out_sha256, entry.sha256, 32);
     return true;
 }}
@@ -196,13 +202,14 @@ def _entry_row(entry: dict[str, object]) -> str:
     digest = bytes.fromhex(str(entry["sha256"]))
     digest_values = ", ".join(f"0x{value:02x}" for value in digest)
     return (
-        "    {0x%016xULL, %dU, %dULL, %dULL, %dU, {%s}, %s},"
+        "    {0x%016xULL, %dU, %dULL, %dULL, %dU, %dU, {%s}, %s},"
         % (
             int(entry["cache_key"]),
             int(entry["sm"]),
             int(entry["offset"]),
             int(entry["bytes"]),
             int(entry["abi_schema"]),
+            int(entry["module_globals"]),
             digest_values,
             json.dumps(str(entry["kernel_name"])),
         )

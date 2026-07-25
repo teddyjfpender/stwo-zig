@@ -12,12 +12,33 @@ const prover = @import("../../frontends/cairo/prover.zig");
 const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
 const semantic_authority = @import("../../frontends/cairo/proof_plan/semantic_authority.zig");
 const compact = @import("../../frontends/cairo/compact_verifier_interchange.zig");
-const compact_geometry = @import("../../frontends/cairo/compact_protocol_geometry.zig");
 const statement_bootstrap = @import("../../frontends/cairo/statement_bootstrap.zig");
 const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
 const feed_bundle = @import("../../frontends/cairo/witness/feed_bundle.zig");
 const subject_program = @import("program.zig");
 const subject_identity = @import("identity.zig");
+const relation_adapter = @import("relation_adapter.zig");
+const base_writer_catalog = @import("base_writer_plan/catalog.zig");
+const resident_plan = @import("executor/resident_plan.zig");
+const resident_ingress = @import(
+    "executor/resident_ingress_compiler.zig",
+);
+const resident_sn2_gate = @import("executor/resident_plan_sn2_gate.zig");
+const statement_ingress = @import("executor/statement_ingress.zig");
+const execution_schedule = @import(
+    "executor/execution_schedule.zig",
+);
+const trace_schedule = @import("executor/trace_schedule.zig");
+const admission_receipt = @import(
+    "request_compiler/admission_receipt.zig",
+);
+const constraint_admission = @import(
+    "request_compiler/constraint_admission.zig",
+);
+const interaction_admission = @import(
+    "request_compiler/interaction_admission.zig",
+);
+const sn2_test_support = @import("request_compiler/sn2_test_support.zig");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
 pub const production_ready = false;
@@ -38,19 +59,8 @@ pub const sn2_diagnostic_fixture = .{
     .adapted_input_sha256 = "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704",
 };
 
-pub const Blocker = enum(u8) {
-    proof_derived_semantic_authority,
-    component_aot_lowerings,
-    resident_stage_hooks,
-    terminal_proof_assembly,
-};
-
-pub const blockers = [_]Blocker{
-    .proof_derived_semantic_authority,
-    .component_aot_lowerings,
-    .resident_stage_hooks,
-    .terminal_proof_assembly,
-};
+pub const Blocker = admission_receipt.Blocker;
+pub const AdmissionReceipt = admission_receipt.Receipt;
 
 pub const LoweringKind = enum(u8) {
     base_writer,
@@ -67,30 +77,18 @@ pub const MissingLowering = struct {
     semantic: [32]u8,
 };
 
-pub const AdmissionReceipt = struct {
-    adapted_input_sha256: [32]u8,
-    statement: [32]u8,
-    semantic_program: [32]u8,
-    complete_program: [32]u8,
-    cuda_plan_cache_key: [32]u8,
-    missing_lowering_digest: [32]u8,
-    component_count: u32,
-    missing_lowering_count: u32,
-    blockers: [blockers.len]Blocker = blockers,
-    execution_admissible: bool = false,
-    production_eligible: bool = false,
+const LoweringAdmission = struct {
+    missing: []MissingLowering,
+    identity: [32]u8,
+    trace_dispatch: trace_schedule.Schedule,
+    relation_plan: relation_adapter.Plan,
+    resident_ingress: resident_plan.IngressGeometry,
 
-    pub fn validate(self: AdmissionReceipt) !void {
-        if (self.component_count == 0 or self.missing_lowering_count == 0 or
-            digestEmpty(self.adapted_input_sha256) or
-            digestEmpty(self.statement) or
-            digestEmpty(self.semantic_program) or
-            digestEmpty(self.complete_program) or
-            digestEmpty(self.cuda_plan_cache_key) or
-            digestEmpty(self.missing_lowering_digest) or
-            self.execution_admissible or self.production_eligible or
-            !std.meta.eql(self.blockers, blockers))
-            return error.InvalidCairoCudaAdmissionReceipt;
+    fn deinit(self: *LoweringAdmission, allocator: std.mem.Allocator) void {
+        self.relation_plan.deinit();
+        self.trace_dispatch.deinit();
+        allocator.free(self.missing);
+        self.* = undefined;
     }
 };
 
@@ -100,10 +98,19 @@ pub const PreparedRequest = struct {
     buffers: []subject_program.BufferDescription,
     proof_program: @import("stwo_backend_contracts").proof_program.ProofProgram,
     plan: cuda_plan.CudaPlan,
+    resident: resident_plan.Plan,
+    execution_schedule: execution_schedule.Schedule,
+    trace_dispatch: trace_schedule.Schedule,
+    relation_plan: relation_adapter.Plan,
+    statement_bootstrap: statement_bootstrap.OwnedStatementBootstrap,
     missing_lowerings: []MissingLowering,
     receipt: AdmissionReceipt,
 
     pub fn deinit(self: *PreparedRequest) void {
+        self.resident.deinit(self.allocator);
+        self.statement_bootstrap.deinit();
+        self.relation_plan.deinit();
+        self.trace_dispatch.deinit();
         self.allocator.free(self.missing_lowerings);
         self.plan.deinit(self.allocator);
         self.proof_program.deinit(self.allocator);
@@ -111,6 +118,27 @@ pub const PreparedRequest = struct {
         self.proof.deinit();
         self.* = undefined;
     }
+};
+
+/// Content-addressed proof-derived inputs for a diagnostic request. This
+/// bypasses only the absent semantic-pack manifest; it does not bypass any AIR,
+/// lowering, resident-plan, protocol, or CUDA admission check.
+pub const ProofDerivedDiagnosticInput = struct {
+    adapted_input: *const @import("../../frontends/cairo/adapter/mod.zig").ProverInput,
+    adapted_input_bytes: u64,
+    adapted_input_identity: [32]u8,
+    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
+    multiplicity_feeds: feed_bundle.Bundle,
+    fixed_tables: @import(
+        "../../frontends/cairo/witness/fixed_table_bundle.zig",
+    ).Bundle,
+    composition: composition.Bundle,
+    relation_templates: @import(
+        "../../frontends/cairo/witness/relation_bundle.zig",
+    ).Bundle,
+    compact_statement: []const u8,
+    preprocessed_logs: []const u32,
+    pack: subject_identity.PackIdentity,
 };
 
 pub fn compileDevelopmentRequest(
@@ -148,39 +176,174 @@ pub fn compileDevelopmentRequest(
         .buffers = buffers,
     });
     errdefer proof_program.deinit(allocator);
+    try prepared.artifacts.assertUnchanged();
+    return finishDevelopmentRequest(
+        allocator,
+        proof,
+        buffers,
+        proof_program,
+        prepared.artifacts.witness_programs,
+        prepared.artifacts.multiplicity_feeds,
+        prepared.artifacts.fixed_tables,
+        prepared.artifacts.composition,
+        prepared.artifacts.relation_templates,
+        &prepared.input,
+        prepared.input_measurement.stat.size,
+        prepared.input_sha256,
+        protocol,
+        target,
+    );
+}
+
+/// Compiles one explicitly non-production request from authenticated staged
+/// artifacts. Every supplied digest participates in the proof-program identity.
+pub fn compileProofDerivedDiagnostic(
+    allocator: std.mem.Allocator,
+    input: ProofDerivedDiagnosticInput,
+    protocol: compact.CompactProtocolV1,
+    target: cuda_plan.CompileOptions,
+) !PreparedRequest {
+    if (input.pack.provenance != .proof_derived)
+        return error.DevelopmentSemanticsRequired;
+    try protocol.validate();
+    var proof = try proof_plan.CairoProofPlan.fromSemanticArtifacts(
+        allocator,
+        input.witnesses,
+        input.multiplicity_feeds,
+        input.fixed_tables,
+        input.composition,
+        input.adapted_input,
+    );
+    errdefer proof.deinit();
+    const buffers = try buildBufferDescriptions(
+        allocator,
+        &proof,
+        input.composition,
+        input.compact_statement.len,
+    );
+    errdefer allocator.free(buffers);
+    var proof_program = try subject_program.emitProofDerivedDiagnostic(
+        allocator,
+        .{
+            .proof = &proof,
+            .pack = input.pack,
+            .composition = &input.composition,
+            .preprocessed_logs = input.preprocessed_logs,
+            .compact_statement = input.compact_statement,
+            .protocol = protocol,
+            .buffers = buffers,
+        },
+    );
+    errdefer proof_program.deinit(allocator);
+    return finishDevelopmentRequest(
+        allocator,
+        proof,
+        buffers,
+        proof_program,
+        input.witnesses,
+        input.multiplicity_feeds,
+        input.fixed_tables,
+        input.composition,
+        input.relation_templates,
+        input.adapted_input,
+        input.adapted_input_bytes,
+        input.adapted_input_identity,
+        protocol,
+        target,
+    );
+}
+
+fn finishDevelopmentRequest(
+    allocator: std.mem.Allocator,
+    proof: proof_plan.CairoProofPlan,
+    buffers: []subject_program.BufferDescription,
+    proof_program: proof_ir.ProofProgram,
+    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
+    feeds: feed_bundle.Bundle,
+    fixed_tables: @import(
+        "../../frontends/cairo/witness/fixed_table_bundle.zig",
+    ).Bundle,
+    bundle: composition.Bundle,
+    relations: @import(
+        "../../frontends/cairo/witness/relation_bundle.zig",
+    ).Bundle,
+    adapted_input: *const @import("../../frontends/cairo/adapter/mod.zig").ProverInput,
+    adapted_input_bytes: u64,
+    adapted_input_identity: [32]u8,
+    protocol: compact.CompactProtocolV1,
+    target: cuda_plan.CompileOptions,
+) !PreparedRequest {
+    const coalesced_schedule = try execution_schedule.Schedule.derive(
+        proof_program,
+    );
     var plan = try cuda_plan.CudaPlan.compile(allocator, proof_program, target);
     errdefer plan.deinit(allocator);
 
     var product_registry = try product_aot.Registry.initProduct(allocator);
     defer product_registry.deinit();
-    const missing = try missingLowerings(
+    var bootstrap = try statement_ingress.derive(
+        allocator,
+        protocol,
+        &bundle,
+        adapted_input,
+    );
+    errdefer bootstrap.deinit();
+    var lowering_admission = try compileLoweringAdmission(
         allocator,
         &proof,
-        prepared.artifacts.witness_programs,
-        prepared.artifacts.composition,
+        witnesses,
+        fixed_tables,
+        feeds,
+        bundle,
+        relations,
+        adapted_input,
         proof_program.constraints,
         product_registry,
+        adapted_input_bytes,
+        adapted_input_identity,
+        &bootstrap,
     );
-    errdefer allocator.free(missing);
+    errdefer lowering_admission.deinit(allocator);
+    var resident = try resident_plan.Plan.init(
+        allocator,
+        proof_program,
+        protocol,
+        bundle,
+        lowering_admission.resident_ingress,
+    );
+    errdefer resident.deinit(allocator);
     const receipt = AdmissionReceipt{
-        .adapted_input_sha256 = prepared.input_sha256,
+        .adapted_input_sha256 = adapted_input_identity,
         .statement = proof_program.identity.statement,
         .semantic_program = proof_program.semantic_digest,
         .complete_program = proof_program.program_digest,
         .cuda_plan_cache_key = plan.cache_key,
-        .missing_lowering_digest = loweringDigest(missing),
+        .aot_lowering_identity = lowering_admission.identity,
+        .resident_plan_identity = resident.identity,
+        .missing_lowering_digest = loweringDigest(
+            lowering_admission.missing,
+        ),
         .component_count = @intCast(proof.components.len),
-        .missing_lowering_count = @intCast(missing.len),
+        .missing_lowering_count = @intCast(
+            lowering_admission.missing.len,
+        ),
+        .blocker_mask = admission_receipt.blockerMask(
+            @intCast(lowering_admission.missing.len),
+        ),
     };
     try receipt.validate();
-    try prepared.artifacts.assertUnchanged();
     return .{
         .allocator = allocator,
         .proof = proof,
         .buffers = buffers,
         .proof_program = proof_program,
         .plan = plan,
-        .missing_lowerings = missing,
+        .resident = resident,
+        .execution_schedule = coalesced_schedule,
+        .trace_dispatch = lowering_admission.trace_dispatch,
+        .relation_plan = lowering_admission.relation_plan,
+        .statement_bootstrap = bootstrap,
+        .missing_lowerings = lowering_admission.missing,
         .receipt = receipt,
     };
 }
@@ -232,16 +395,73 @@ fn buildBufferDescriptions(
     return descriptions;
 }
 
-fn missingLowerings(
+fn compileLoweringAdmission(
     allocator: std.mem.Allocator,
     proof: *const proof_plan.CairoProofPlan,
     witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
+    fixed: @import(
+        "../../frontends/cairo/witness/fixed_table_bundle.zig",
+    ).Bundle,
+    feeds: feed_bundle.Bundle,
     bundle: composition.Bundle,
+    relations: @import(
+        "../../frontends/cairo/witness/relation_bundle.zig",
+    ).Bundle,
+    input: *const @import("../../frontends/cairo/adapter/mod.zig").ProverInput,
     constraints: []const @import("stwo_backend_contracts").proof_program.ConstraintProgram,
     product_registry: product_aot.Registry,
-) ![]MissingLowering {
+    adapted_input_bytes: u64,
+    adapted_input_identity: [32]u8,
+    bootstrap: *const statement_bootstrap.OwnedStatementBootstrap,
+) !LoweringAdmission {
     if (constraints.len != proof.components.len or constraints.len != bundle.components.len)
         return error.CairoCudaConstraintCardinalityMismatch;
+    var base_catalog = try base_writer_catalog.compile(
+        allocator,
+        proof,
+        bundle,
+        witnesses,
+        fixed,
+        input,
+        product_registry,
+    );
+    defer base_catalog.deinit();
+    var trace_dispatch = try trace_schedule.compile(
+        allocator,
+        proof,
+        base_catalog,
+    );
+    errdefer trace_dispatch.deinit();
+    var constraint_catalog = try constraint_admission.Catalog.init(
+        allocator,
+        bundle,
+    );
+    defer constraint_catalog.deinit();
+    var interaction_catalog = try interaction_admission.Catalog.init(
+        allocator,
+        proof,
+        relations,
+    );
+    var interaction_catalog_live = true;
+    defer if (interaction_catalog_live) interaction_catalog.deinit();
+    const ingress_geometry = try resident_ingress.compile(
+        allocator,
+        .{
+            .adapted_input_bytes = adapted_input_bytes,
+            .adapted_input_identity = adapted_input_identity,
+            .statement_bootstrap_words = try statement_ingress.wordCount(bootstrap),
+            .statement_bootstrap_identity = statement_ingress.identity(bootstrap),
+            .proof = proof,
+            .components = bundle,
+            .witnesses = witnesses,
+            .fixed_tables = fixed,
+            .feeds = feeds,
+            .prover_input = input,
+            .relations = &interaction_catalog.plan,
+            .writer_identity = trace_dispatch.identity,
+            .evaluation_identity = constraint_catalog.catalog_identity,
+        },
+    );
     var missing = std.ArrayList(MissingLowering).empty;
     errdefer missing.deinit(allocator);
     for (constraints, 0..) |constraint, index| {
@@ -250,25 +470,38 @@ fn missingLowerings(
         const component = bundle.components[index];
         const planned = proof.findInstance(component.label, component.instance) orelse
             return error.MissingCompositionComponent;
-        if (!baseWriterAdmitted(planned.*, witnesses, product_registry)) {
+        const base_entry = base_catalog.find(planned.name, planned.instance);
+        if (base_entry == null or
+            base_entry.?.component_index != index or
+            base_entry.?.writer != planned.writer or
+            digestEmpty(base_entry.?.identity))
+        {
             try missing.append(allocator, .{
                 .kind = .base_writer,
                 .component_index = @intCast(index),
                 .component = planned.name,
                 .component_instance = planned.instance,
                 .ordinal = 0,
-                .semantic = baseWriterIdentity(planned.*, constraint.expression),
+                .semantic = constraint.expression,
             });
         }
-        try missing.append(allocator, .{
-            .kind = .interaction,
-            .component_index = @intCast(index),
-            .component = planned.name,
-            .component_instance = planned.instance,
-            .ordinal = 0,
-            .semantic = interactionIdentity(constraint.expression),
-        });
+        if (!interaction_catalog.admits(@intCast(index), planned.*)) {
+            try missing.append(allocator, .{
+                .kind = .interaction,
+                .component_index = @intCast(index),
+                .component = planned.name,
+                .component_instance = planned.instance,
+                .ordinal = 0,
+                .semantic = interactionIdentity(constraint.expression),
+            });
+        }
         for (component.parts, 0..) |part, part_index| {
+            if (constraint_catalog.admits(
+                component,
+                @intCast(index),
+                part,
+                @intCast(part_index),
+            )) continue;
             try missing.append(allocator, .{
                 .kind = .constraint_part,
                 .component_index = @intCast(index),
@@ -283,25 +516,22 @@ fn missingLowerings(
             });
         }
     }
-    return missing.toOwnedSlice(allocator);
-}
-
-fn baseWriterAdmitted(
-    component: proof_plan.Component,
-    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
-    product_registry: product_aot.Registry,
-) bool {
-    if (component.writer != .recorded_aot) return false;
-    const witness = witnesses.find(component.name) orelse return false;
-    // The copied AOT modules for Pedersen deduction own module-local pointer
-    // globals. Packaging the cubin is not execution admission until the Zig
-    // loader authenticates and initializes those globals.
-    if (witness.program.deductionRequirements().pedersen_table) return false;
-    return product_registry.admitsRecordedWitness(.{
-        .label = witness.label,
-        .semantic_hash = witness.semantic_hash,
-        .program_identity = witness.program.semanticIdentity(),
-    });
+    const owned_missing = try missing.toOwnedSlice(allocator);
+    const relation_plan = interaction_catalog.plan;
+    interaction_catalog_live = false;
+    return .{
+        .missing = owned_missing,
+        .identity = loweringClosureIdentity(
+            base_catalog.identity,
+            trace_dispatch.identity,
+            interaction_catalog.catalog_identity,
+            constraint_catalog.catalog_identity,
+            owned_missing,
+        ),
+        .trace_dispatch = trace_dispatch,
+        .relation_plan = relation_plan,
+        .resident_ingress = ingress_geometry,
+    };
 }
 
 fn loweringDigest(missing: []const MissingLowering) [32]u8 {
@@ -320,21 +550,20 @@ fn loweringDigest(missing: []const MissingLowering) [32]u8 {
     return hash.finalResult();
 }
 
-fn baseWriterIdentity(
-    component: proof_plan.Component,
-    component_program: [32]u8,
+fn loweringClosureIdentity(
+    base_catalog_identity: [32]u8,
+    trace_schedule_identity: [32]u8,
+    interaction_catalog_identity: [32]u8,
+    constraint_catalog_identity: [32]u8,
+    missing: []const MissingLowering,
 ) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/base-writer-lowering/v2\x00");
-    hash.update(&component_program);
-    hash.update(component.name);
-    hashInt(&hash, u32, component.instance);
-    hashInt(&hash, u8, @intFromEnum(component.writer));
-    for (component.trace_parts) |part| {
-        hashInt(&hash, u8, @intFromEnum(std.meta.activeTag(part.id)));
-        hashInt(&hash, u32, part.rows.real_rows orelse std.math.maxInt(u32));
-        hashInt(&hash, u32, part.rows.padded_rows);
-    }
+    hash.update("stwo-zig/cairo/cuda/aot-lowering-closure/v1\x00");
+    hash.update(&base_catalog_identity);
+    hash.update(&trace_schedule_identity);
+    hash.update(&interaction_catalog_identity);
+    hash.update(&constraint_catalog_identity);
+    hash.update(&loweringDigest(missing));
     return hash.finalResult();
 }
 
@@ -405,196 +634,32 @@ fn digestEmpty(value: [32]u8) bool {
     return std.mem.allEqual(u8, &value, 0);
 }
 
-test "Cairo CUDA admission remains fail closed and binds every missing lowering" {
-    const receipt = AdmissionReceipt{
-        .adapted_input_sha256 = [_]u8{1} ** 32,
-        .statement = [_]u8{2} ** 32,
-        .semantic_program = [_]u8{3} ** 32,
-        .complete_program = [_]u8{4} ** 32,
-        .cuda_plan_cache_key = [_]u8{5} ** 32,
-        .missing_lowering_digest = [_]u8{6} ** 32,
-        .component_count = 58,
-        .missing_lowering_count = 174,
-    };
-    try receipt.validate();
-    var forged = receipt;
-    forged.execution_admissible = true;
-    try std.testing.expectError(error.InvalidCairoCudaAdmissionReceipt, forged.validate());
-    try std.testing.expect(!production_ready);
-}
-
-test "Cairo CUDA base-writer admission requires an exact product identity" {
-    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
-    var witnesses = try witness_bundle.Bundle.readFile(
-        std.testing.allocator,
-        "vectors/cairo/sn_pie_2_witness_programs.bin",
-    );
-    defer witnesses.deinit();
-    var registry = try product_aot.Registry.initProduct(std.testing.allocator);
-    defer registry.deinit();
-
-    const empty_parts = [_]proof_plan.TracePart{};
-    const empty_edges = [_]proof_plan.ProducerEdge{};
-    const empty_feeds = [_]proof_plan.CapacityFeed{};
-    const admitted = proof_plan.Component{
-        .name = "add_ap_opcode",
-        .canonical_ordinal = 0,
-        .writer = .recorded_aot,
-        .trace_parts = &empty_parts,
-        .producer_edges = &empty_edges,
-        .capacity_feeds = &empty_feeds,
-    };
-    try std.testing.expect(baseWriterAdmitted(admitted, witnesses, registry));
-
-    var second_admitted = admitted;
-    second_admitted.name = "add_opcode";
-    try std.testing.expect(baseWriterAdmitted(
-        second_admitted,
-        witnesses,
-        registry,
-    ));
-
-    var unbound_pedersen = admitted;
-    unbound_pedersen.name = "partial_ec_mul_window_bits_18";
-    try std.testing.expect(!baseWriterAdmitted(
-        unbound_pedersen,
-        witnesses,
-        registry,
-    ));
-    unbound_pedersen.name = "pedersen_aggregator_window_bits_18";
-    try std.testing.expect(!baseWriterAdmitted(
-        unbound_pedersen,
-        witnesses,
-        registry,
-    ));
-
-    var embedded_poseidon = admitted;
-    embedded_poseidon.name = "poseidon_aggregator";
-    try std.testing.expect(baseWriterAdmitted(
-        embedded_poseidon,
-        witnesses,
-        registry,
-    ));
-
-    var wrong_family = admitted;
-    wrong_family.name = "partial_ec_mul_generic";
-    wrong_family.writer = .native_backend;
-    try std.testing.expect(!baseWriterAdmitted(
-        wrong_family,
-        witnesses,
-        registry,
-    ));
-}
-
-test "Cairo CUDA proof plans preserve distinct memory instances" {
-    const rows = [_]proof_plan.TracePart{.{ .id = .main, .rows = .{
-        .real_rows = 16,
-        .padded_rows = 16,
-    } }};
-    var components = [_]proof_plan.Component{
-        .{
-            .name = "memory_id_to_big",
-            .instance = 0,
-            .canonical_ordinal = 0,
-            .writer = .memory_trace,
-            .trace_parts = &rows,
-            .producer_edges = &.{},
-            .capacity_feeds = &.{},
-        },
-        .{
-            .name = "memory_id_to_big",
-            .instance = 1,
-            .canonical_ordinal = 1,
-            .writer = .memory_trace,
-            .trace_parts = &rows,
-            .producer_edges = &.{},
-            .capacity_feeds = &.{},
-        },
-    };
-    var plan = try proof_plan.CairoProofPlan.init(std.testing.allocator, &components);
-    defer plan.deinit();
-    try std.testing.expect(plan.findInstance("memory_id_to_big", 0) != null);
-    try std.testing.expect(plan.findInstance("memory_id_to_big", 1) != null);
-
-    components[1].instance = 0;
-    try std.testing.expectError(
-        proof_plan.Error.DuplicateComponent,
-        proof_plan.CairoProofPlan.init(std.testing.allocator, &components),
-    );
+test {
+    _ = @import("request_compiler/proof_plan_test.zig");
 }
 
 test "Cairo CUDA request buffers preserve component-local mixed heights" {
-    const allocator = std.testing.allocator;
-    const adapter = @import("../../frontends/cairo/adapter/mod.zig");
-    const fixed_table_bundle = @import("../../frontends/cairo/witness/fixed_table_bundle.zig");
-    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
-    const adapted_path = std.process.getEnvVarOwned(
-        allocator,
-        "STWO_ZIG_TEST_SN2_ADAPTED_INPUT",
-    ) catch return error.SkipZigTest;
-    defer allocator.free(adapted_path);
-    var input = try adapter.adapted_input.readFile(allocator, adapted_path);
-    defer input.deinit(allocator);
-    var witnesses = try witness_bundle.Bundle.readFile(
-        allocator,
-        "vectors/cairo/sn_pie_2_witness_programs.bin",
+    try sn2_test_support.expectMixedHeightBuffers(
+        buildBufferDescriptions,
+        findComponent,
+        traceBytes,
     );
-    defer witnesses.deinit();
-    var feeds = try feed_bundle.Bundle.readFile(
-        allocator,
-        "vectors/cairo/sn_pie_2_multiplicity_feeds.bin",
-    );
-    defer feeds.deinit();
-    var bundle = try composition.Bundle.readFile(
-        allocator,
-        "vectors/cairo/sn_pie_2_composition.bin",
-    );
-    defer bundle.deinit();
-    var fixed_tables = try fixed_table_bundle.Bundle.readFile(
-        allocator,
-        "vectors/cairo/cairo_fixed_tables.bin",
-    );
-    defer fixed_tables.deinit();
-    var proof = try proof_plan.CairoProofPlan.fromSemanticArtifacts(
-        allocator,
-        witnesses,
-        feeds,
-        fixed_tables,
-        bundle,
-        &input,
-    );
-    defer proof.deinit();
-    const descriptions = try buildBufferDescriptions(allocator, &proof, bundle, 4097);
-    defer allocator.free(descriptions);
-
-    try std.testing.expectEqual(1 + proof.components.len * 2, descriptions.len);
-    try std.testing.expectEqual(@as(u64, 4352), descriptions[0].staged.size_bytes);
-    for (proof.components, 0..) |component, index| {
-        const captured = findComponent(bundle, component.name, component.instance) orelse
-            return error.TestUnexpectedResult;
-        const rows = @as(u64, 1) << @intCast(captured.trace_log_size);
-        try std.testing.expectEqual(
-            try traceBytes(captured.*, 1, rows),
-            descriptions[1 + index * 2].staged.size_bytes,
-        );
-        try std.testing.expectEqual(
-            try traceBytes(captured.*, 2, rows),
-            descriptions[2 + index * 2].staged.size_bytes,
-        );
-    }
 }
 
 test "Cairo CUDA compiles the complete authenticated SN2 structure and only reports AOT gaps" {
     const allocator = std.testing.allocator;
     const adapter = @import("../../frontends/cairo/adapter/mod.zig");
     const fixed_table_bundle = @import("../../frontends/cairo/witness/fixed_table_bundle.zig");
+    const relation_bundle = @import(
+        "../../frontends/cairo/witness/relation_bundle.zig",
+    );
     const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
     const adapted_path = std.process.getEnvVarOwned(
         allocator,
         "STWO_ZIG_TEST_SN2_ADAPTED_INPUT",
     ) catch return error.SkipZigTest;
     defer allocator.free(adapted_path);
-    const adapted_digest = try sha256File(adapted_path);
+    const adapted_digest = try sn2_test_support.sha256File(adapted_path);
     const adapted_file = try std.fs.cwd().openFile(adapted_path, .{});
     defer adapted_file.close();
     try std.testing.expectEqual(
@@ -622,6 +687,11 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
         "vectors/cairo/sn_pie_2_composition.bin",
     );
     defer bundle.deinit();
+    var relations = try relation_bundle.Bundle.readFile(
+        allocator,
+        "vectors/cairo/cairo_relation_templates.bin",
+    );
+    defer relations.deinit();
     var fixed_tables = try fixed_table_bundle.Bundle.readFile(
         allocator,
         "vectors/cairo/cairo_fixed_tables.bin",
@@ -642,7 +712,10 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
         &input,
     );
     defer allocator.free(statement);
-    const protocol = try sn2Protocol(&bundle, fixed_tables.preprocessed_identities.len);
+    const protocol = try sn2_test_support.protocol(
+        &bundle,
+        fixed_tables.preprocessed_identities.len,
+    );
     const buffers = try buildBufferDescriptions(allocator, &proof, bundle, statement.len);
     defer allocator.free(buffers);
     const preprocessed_logs = try semantic_authority.preprocessedLogs(
@@ -653,7 +726,7 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
     const verifier_log = try bundle.verifierMaxLogDegreeBound();
     var program = try subject_program.testing.emit(allocator, .{
         .proof = &proof,
-        .pack = testPack(bundle, verifier_log),
+        .pack = sn2_test_support.pack(bundle, verifier_log),
         .composition = &bundle,
         .preprocessed_logs = preprocessed_logs,
         .compact_statement = statement,
@@ -661,22 +734,48 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
         .buffers = buffers,
     });
     defer program.deinit(allocator);
-    var cuda = try cuda_plan.CudaPlan.compile(allocator, program, testTarget());
+    var cuda = try cuda_plan.CudaPlan.compile(
+        allocator,
+        program,
+        sn2_test_support.target(),
+    );
     defer cuda.deinit(allocator);
     var product_registry = try product_aot.Registry.initProduct(allocator);
     defer product_registry.deinit();
-    const missing = try missingLowerings(
+    var bootstrap = try statement_ingress.derive(
+        allocator,
+        protocol,
+        &bundle,
+        &input,
+    );
+    defer bootstrap.deinit();
+    var lowering_admission = try compileLoweringAdmission(
         allocator,
         &proof,
         witnesses,
+        fixed_tables,
         bundle,
+        relations,
+        &input,
         program.constraints,
         product_registry,
+        (try adapted_file.stat()).size,
+        adapted_digest,
+        &bootstrap,
     );
-    defer allocator.free(missing);
+    defer lowering_admission.deinit(allocator);
+    const missing = lowering_admission.missing;
+    var resident = try resident_plan.Plan.init(
+        allocator,
+        program,
+        protocol,
+        bundle,
+        lowering_admission.resident_ingress,
+    );
+    defer resident.deinit(allocator);
+    const ingress = lowering_admission.resident_ingress;
+    try resident_sn2_gate.assert(resident, ingress);
 
-    var part_count: usize = 0;
-    for (bundle.components) |component| part_count += component.parts.len;
     var writer_counts = [_]usize{0} ** std.meta.fields(proof_plan.WriterKind).len;
     for (proof.components) |component|
         writer_counts[@intFromEnum(component.writer)] += 1;
@@ -702,33 +801,33 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
     try std.testing.expectEqual(@as(usize, 58), proof.components.len);
     try std.testing.expectEqual(bundle.components.len, program.constraints.len);
     try std.testing.expectEqual(1 + 2 * bundle.components.len, program.buffers.len);
-    var admitted_writer_count: usize = 0;
-    for (proof.components) |component| {
-        if (baseWriterAdmitted(component, witnesses, product_registry))
-            admitted_writer_count += 1;
-    }
-    try std.testing.expectEqual(@as(usize, 30), admitted_writer_count);
+    try std.testing.expectEqual(@as(usize, 0), missing.len);
+    try std.testing.expect(!digestEmpty(lowering_admission.identity));
     try std.testing.expectEqual(
-        2 * bundle.components.len + part_count - admitted_writer_count,
-        missing.len,
+        @as(usize, trace_schedule.expected_entry_count),
+        lowering_admission.trace_dispatch.entries.len,
     );
     try std.testing.expectEqual(
-        bundle.components.len - admitted_writer_count,
+        @as(usize, trace_schedule.expected_launch_count),
+        lowering_admission.trace_dispatch.launch_order.len,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 0),
         lowering_counts[@intFromEnum(LoweringKind.base_writer)],
     );
-    try std.testing.expectEqual(bundle.components.len, lowering_counts[@intFromEnum(LoweringKind.interaction)]);
-    try std.testing.expectEqual(part_count, lowering_counts[@intFromEnum(LoweringKind.constraint_part)]);
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        lowering_counts[@intFromEnum(LoweringKind.interaction)],
+    );
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        lowering_counts[@intFromEnum(LoweringKind.constraint_part)],
+    );
     try std.testing.expectEqual(program.nodes.len, cuda.schedule.len);
     try std.testing.expect(cuda.prediction.request_bytes > 0);
 
     var mutated_program = program.constraints[0].expression;
     mutated_program[0] ^= 1;
-    const first = proof.components[0];
-    try std.testing.expect(!std.mem.eql(
-        u8,
-        &baseWriterIdentity(first, program.constraints[0].expression),
-        &baseWriterIdentity(first, mutated_program),
-    ));
     try std.testing.expect(!std.mem.eql(
         u8,
         &interactionIdentity(program.constraints[0].expression),
@@ -747,87 +846,4 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
             bundle.components[0].parts[0],
         ),
     ));
-}
-
-fn sn2Protocol(
-    bundle: *const composition.Bundle,
-    preprocessed_columns: usize,
-) !compact.CompactProtocolV1 {
-    const verifier_log = try bundle.verifierMaxLogDegreeBound();
-    var geometry = compact_geometry.RuntimeProtocolGeometryV1.sn2();
-    geometry.max_log_degree_bound = verifier_log;
-    geometry.fri_tree_count = 1 + (verifier_log - 1) / geometry.fri_fold_step;
-    geometry.decommitment_record_count =
-        geometry.commitment_count + geometry.fri_tree_count;
-    const capacity = try compact_geometry.minimumDecommitmentWords(
-        geometry.decommitment_record_count,
-        geometry.query_count,
-    );
-    return (compact.CompactProofLayoutV1{
-        .interaction_claim_words = @intCast(bundle.components.len * 4),
-        .sampled_value_words = 4,
-        .decommitment_capacity_words = capacity,
-    }).protocolRuntime(7, geometry, .{
-        @intCast(preprocessed_columns),
-        finalSpanEnd(bundle, 1),
-        finalSpanEnd(bundle, 2),
-        8,
-    });
-}
-
-fn finalSpanEnd(bundle: *const composition.Bundle, tree: u32) u32 {
-    var end: u32 = 0;
-    for (bundle.components) |component| {
-        for (component.trace_spans) |span| if (span.tree == tree) {
-            end = @max(end, span.end);
-        };
-    }
-    return end;
-}
-
-fn testPack(
-    bundle: composition.Bundle,
-    verifier_log: u32,
-) subject_identity.PackIdentity {
-    return .{
-        .provenance = .proof_derived,
-        .manifest = [_]u8{1} ** 32,
-        .composition_projection = [_]u8{2} ** 32,
-        .composition = [_]u8{3} ** 32,
-        .witness_programs = [_]u8{4} ** 32,
-        .multiplicity_feeds = [_]u8{5} ** 32,
-        .relation_templates = [_]u8{6} ** 32,
-        .fixed_tables = [_]u8{7} ** 32,
-        .preprocessed_coefficients = [_]u8{8} ** 32,
-        .verifier_max_log_degree_bound = verifier_log,
-        .composition_plan_hash = bundle.plan_hash,
-    };
-}
-
-fn testTarget() cuda_plan.CompileOptions {
-    return .{
-        .sm = 90,
-        .device_uuid = [_]u8{0x42} ** 16,
-        .driver_version = 12080,
-        .runtime_version = 12080,
-        .toolkit_version = 12080,
-        .runtime_build_identity = proof_ir.identityDigest("cairo-cuda-runtime"),
-        .host_toolchain_identity = proof_ir.identityDigest("zig-0.15.2"),
-        .kernel_pack_identity = proof_ir.identityDigest("cairo-cuda-aot"),
-        .lane_streams = 0,
-        .enable_graphs = true,
-    };
-}
-
-fn sha256File(path: []const u8) ![32]u8 {
-    const file = try std.fs.cwd().openFile(path, .{});
-    defer file.close();
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    var buffer: [1 << 20]u8 = undefined;
-    while (true) {
-        const count = try file.read(&buffer);
-        if (count == 0) break;
-        hash.update(buffer[0..count]);
-    }
-    return hash.finalResult();
 }

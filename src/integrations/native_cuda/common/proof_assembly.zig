@@ -103,6 +103,23 @@ pub fn capturePowNonce(
     );
 }
 
+pub fn captureDecommitment(
+    session: anytype,
+    views: anytype,
+    source: common.Words,
+) runtime_error.Error!void {
+    const destination = views.proof.decommitment;
+    if (source.len == 0 or source.len != destination.len)
+        return error.InvalidKernelDescriptor;
+    if (source.address == destination.address and
+        source.owner == destination.owner and
+        source.generation == destination.generation)
+    {
+        return;
+    }
+    try copyWords(session, destination, source);
+}
+
 pub fn validateLayout(
     prepared: anytype,
     views: anytype,

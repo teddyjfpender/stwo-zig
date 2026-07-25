@@ -17,19 +17,25 @@ test "deferred compositions are named, reasoned, and non-installable" {
     }
 }
 
-test "Cairo products remain disabled and RISC-V accelerators unavailable" {
+test "only Cairo CUDA is staged and RISC-V accelerators unavailable" {
     for (matrix.descriptors) |descriptor| {
-        if (descriptor.product.frontend == .cairo)
-            try std.testing.expectEqual(product_policy.State.disabled, descriptor.state);
+        if (descriptor.product.frontend == .cairo) {
+            if (descriptor.product.backend == .cuda)
+                try std.testing.expectEqual(product_policy.State.staged, descriptor.state)
+            else
+                try std.testing.expectEqual(product_policy.State.disabled, descriptor.state);
+        }
         if (descriptor.product.frontend == .riscv and descriptor.product.backend != .cpu)
             try std.testing.expectEqual(product_policy.State.unavailable, descriptor.state);
     }
 }
 
-test "only Native CUDA is constructible and it cannot inherit toolchain defaults" {
+test "CUDA products are explicit Linux constructions without toolchain defaults" {
     for (matrix.descriptors) |descriptor| {
         if (descriptor.product.backend != .cuda) continue;
-        if (descriptor.product.frontend == .native) {
+        if (descriptor.product.frontend == .native or
+            descriptor.product.frontend == .cairo)
+        {
             try std.testing.expect(descriptor.isConstructible());
             try std.testing.expect(descriptor.isAvailableOn(.linux));
             try std.testing.expect(!descriptor.isAvailableOn(.macos));

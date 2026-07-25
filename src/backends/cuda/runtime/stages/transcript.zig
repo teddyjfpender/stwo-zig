@@ -111,7 +111,28 @@ pub fn OpsFor(comptime Api: type) type {
             pow_bits: u32,
             input_snapshot: common.Words,
         ) runtime_error.Error!void {
-            const stage = telemetry.Stage.pow;
+            return absorbPowAtStage(
+                session,
+                .pow,
+                state,
+                boundary,
+                nonce_words,
+                pow_bits,
+                input_snapshot,
+            );
+        }
+
+        pub fn absorbPowAtStage(
+            session: anytype,
+            stage: telemetry.Stage,
+            state: common.Words,
+            boundary: Boundary,
+            nonce_words: common.Words,
+            pow_bits: u32,
+            input_snapshot: common.Words,
+        ) runtime_error.Error!void {
+            if (stage != .trace_commit and stage != .pow)
+                return error.InvalidKernelDescriptor;
             try requireTranscriptStage(session, stage);
             const status = Api.stwo_blake2s_transcript_absorb_pow_on(
                 try common.words(session, state, 16),

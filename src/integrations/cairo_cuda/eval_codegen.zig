@@ -1,7 +1,7 @@
-//! CUDA C emission for one unfused Cairo evaluation-program part.
+//! CUDA C emission for one unfused Cairo evaluation-program body.
 //!
-//! This source-only slice deliberately has no runtime or AOT registration.
-//! It consumes the same resident word-arena layout as Cairo Metal while the
+//! The product AOT catalog owns placement-specific identities. This emitter
+//! remains body-only so identical programs can share one cubin while the
 //! shared frontend walker owns semantic instruction and coefficient order.
 
 const std = @import("std");
@@ -9,6 +9,8 @@ const eval = @import("../../frontends/cairo/witness/eval_program.zig");
 const shared = @import("../../frontends/cairo/codegen/eval_program.zig");
 
 pub const codegen_version: u64 = 1;
+pub const product_identity_domain =
+    "stwo-zig/cairo-cuda-eval-product/v1\x00";
 
 pub fn cacheKey(semantic_hash: u64) u64 {
     var hash: u64 = 0xcbf29ce484222325;
@@ -32,6 +34,77 @@ pub fn sourceIdentity(source: []const u8) [32]u8 {
     var identity: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(source, &identity, .{});
     return identity;
+}
+
+/// SHA-256 over the exact backend-neutral program semantics. This is stronger
+/// than the compact FNV semantic hash used in imported program headers.
+pub fn programIdentity(program: eval.Program) [32]u8 {
+    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    hasher.update("stwo-zig/cairo-eval-program/v1\x00");
+    hashUnsigned(&hasher, u64, codegen_version);
+    hashUnsigned(&hasher, u32, program.header.flags);
+    hashUnsigned(&hasher, u64, program.header.semantic_hash);
+    hashUnsigned(&hasher, u64, program.header.capability_bits);
+    hashUnsigned(&hasher, u32, program.header.n_interactions);
+    hashUnsigned(&hasher, u32, program.header.n_base_params);
+    hashUnsigned(&hasher, u32, program.header.n_ext_params);
+    hashUnsigned(&hasher, u32, program.header.n_constraints);
+    hashUnsigned(&hasher, u32, program.header.max_base_regs);
+    hashUnsigned(&hasher, u32, program.header.max_ext_regs);
+    hashUnsigned(&hasher, u32, program.header.domain_log_size);
+
+    hashLength(&hasher, program.base_consts.len);
+    for (program.base_consts) |value| hashUnsigned(&hasher, u32, value);
+    hashLength(&hasher, program.ext_consts.len);
+    for (program.ext_consts) |value| {
+        for (value) |coordinate| hashUnsigned(&hasher, u32, coordinate);
+    }
+    hashLength(&hasher, program.base_insts.len);
+    for (program.base_insts) |instruction| {
+        hashUnsigned(&hasher, u8, @intFromEnum(instruction.op));
+        hashUnsigned(&hasher, u8, instruction.interaction);
+        hashUnsigned(&hasher, u16, instruction.dst);
+        hashUnsigned(&hasher, u32, instruction.a);
+        hashUnsigned(&hasher, u32, instruction.b);
+        hashUnsigned(
+            &hasher,
+            u32,
+            @bitCast(instruction.imm),
+        );
+    }
+    hashLength(&hasher, program.ext_insts.len);
+    for (program.ext_insts) |instruction| {
+        hashUnsigned(&hasher, u8, @intFromEnum(instruction.op));
+        hashUnsigned(&hasher, u16, instruction.dst);
+        hashUnsigned(&hasher, u32, instruction.a);
+        hashUnsigned(&hasher, u32, instruction.b);
+        hashUnsigned(&hasher, u32, instruction.c);
+        hashUnsigned(&hasher, u32, instruction.d);
+    }
+    hashLength(&hasher, program.constraint_roots.len);
+    for (program.constraint_roots) |root| hashUnsigned(&hasher, u32, root);
+
+    var identity: [32]u8 = undefined;
+    hasher.final(&identity);
+    return identity;
+}
+
+/// Lookup identity for one authenticated body plus every SN2 placement that
+/// is permitted to invoke it. The kernel symbol remains body-derived.
+pub fn productCacheKey(
+    program_identity: [32]u8,
+    source_identity: [32]u8,
+    catalog_identity: [32]u8,
+) u64 {
+    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    hasher.update(product_identity_domain);
+    hasher.update(&program_identity);
+    hasher.update(&source_identity);
+    hasher.update(&catalog_identity);
+    hashUnsigned(&hasher, u64, codegen_version);
+    var digest: [32]u8 = undefined;
+    hasher.final(&digest);
+    return std.mem.readInt(u64, digest[0..8], .big);
 }
 
 pub fn generate(
@@ -212,6 +285,23 @@ fn hashInt(hash: *u64, value: u64) void {
         hash.* ^= @as(u8, @truncate(value >> @intCast(index * 8)));
         hash.* *%= 0x100000001b3;
     }
+}
+
+fn hashLength(
+    hasher: *std.crypto.hash.sha2.Sha256,
+    value: usize,
+) void {
+    hashUnsigned(hasher, u64, @intCast(value));
+}
+
+fn hashUnsigned(
+    hasher: *std.crypto.hash.sha2.Sha256,
+    comptime T: type,
+    value: T,
+) void {
+    var encoded: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &encoded, value, .little);
+    hasher.update(&encoded);
 }
 
 const preamble =

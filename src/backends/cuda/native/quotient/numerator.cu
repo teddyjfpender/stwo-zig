@@ -196,6 +196,97 @@ __global__ void accumulate_compact_kernel(
     output_3[output_offset] = numerator.b.b;
 }
 
+__global__ void accumulate_addressed_kernel(
+    const std::uint32_t *group_offsets,
+    const BatchTermDescriptor *term_descriptors,
+    std::uint32_t term_count,
+    std::uint32_t group_count,
+    std::uint32_t max_output_size,
+    const AddressedSourceDescriptor *source_descriptors,
+    std::uint32_t source_count,
+    const QM31 *line_coefficients,
+    std::uint32_t line_term_count,
+    const std::uint32_t *group_log_sizes,
+    const std::uint64_t *output_offsets,
+    std::size_t output_word_count,
+    std::uint32_t *output_0,
+    std::uint32_t *output_1,
+    std::uint32_t *output_2,
+    std::uint32_t *output_3) {
+    const std::uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+    const std::uint32_t group = blockIdx.y;
+    if (group >= group_count || row >= max_output_size ||
+        group_offsets[0] != 0 ||
+        group_offsets[group_count] != term_count ||
+        output_offsets[0] != 0) {
+        return;
+    }
+    const std::uint32_t group_log_size = group_log_sizes[group];
+    if (group_log_size == 0 || group_log_size > kMaximumLogSize ||
+        (1u << group_log_size) > max_output_size ||
+        row >= (1u << group_log_size)) {
+        return;
+    }
+    const std::uint32_t begin = group_offsets[group];
+    const std::uint32_t end = group_offsets[group + 1];
+    const std::uint64_t output_begin = output_offsets[group];
+    const std::uint64_t output_end = output_offsets[group + 1];
+    const std::uint64_t group_size =
+        std::uint64_t{1} << group_log_size;
+    if (begin >= end || end > term_count ||
+        output_end < output_begin ||
+        output_end - output_begin != group_size ||
+        output_end > output_word_count) {
+        return;
+    }
+
+    QM31 numerator = zero();
+    for (std::uint32_t index = begin; index < end; ++index) {
+        const BatchTermDescriptor term = term_descriptors[index];
+        if (term.source_index >= source_count ||
+            term.term_index >= line_term_count) {
+            return;
+        }
+        const AddressedSourceDescriptor source =
+            source_descriptors[term.source_index];
+        if (source.address == 0 ||
+            (source.address & (alignof(std::uint32_t) - 1u)) != 0 ||
+            source.log_size == 0 ||
+            source.log_size > group_log_size ||
+            source.log_size > kMaximumLogSize ||
+            term.source_log_size != source.log_size ||
+            source.stride_words < (1u << source.log_size)) {
+            return;
+        }
+        const std::uint32_t log_ratio =
+            group_log_size - source.log_size;
+        const std::uint32_t source_row =
+            (row >> (log_ratio + 1u) << 1u) + (row & 1u);
+        if (source_row >= (1u << source.log_size) ||
+            source_row >= source.stride_words) {
+            return;
+        }
+        const auto *source_column = reinterpret_cast<const std::uint32_t *>(
+            static_cast<std::uintptr_t>(source.address));
+        const std::size_t line_offset =
+            static_cast<std::size_t>(term.term_index) * 3;
+        numerator = add(
+            numerator,
+            sub(
+                mul_scalar(
+                    line_coefficients[line_offset + 2],
+                    source_column[source_row]),
+                line_coefficients[line_offset + 1]));
+    }
+
+    const std::size_t output_offset =
+        static_cast<std::size_t>(output_begin + row);
+    output_0[output_offset] = numerator.a.a;
+    output_1[output_offset] = numerator.a.b;
+    output_2[output_offset] = numerator.b.a;
+    output_3[output_offset] = numerator.b.b;
+}
+
 bool output_ranges(
     std::uint32_t *output_0,
     std::uint32_t *output_1,
@@ -462,5 +553,101 @@ extern "C" int stwo_accumulate_quotient_numerator_compact_on(
             output_2,
             output_3,
             output_stride_words);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_accumulate_quotient_numerator_addressed_on(
+    const std::uint32_t *group_offsets,
+    const stwo::cuda::quotient::BatchTermDescriptor *term_descriptors,
+    std::uint32_t term_count,
+    std::uint32_t group_count,
+    std::uint32_t max_output_size,
+    const stwo::cuda::quotient::AddressedSourceDescriptor *source_descriptors,
+    std::uint32_t source_count,
+    const stwo::cuda::quotient::QM31 *line_coefficients,
+    std::uint32_t line_term_count,
+    const std::uint32_t *group_log_sizes,
+    const std::uint64_t *output_offsets,
+    std::size_t output_word_count,
+    std::uint32_t *output_0,
+    std::uint32_t *output_1,
+    std::uint32_t *output_2,
+    std::uint32_t *output_3,
+    void *stream) {
+    using namespace stwo::cuda::quotient;
+    if (group_offsets == nullptr || term_descriptors == nullptr ||
+        term_count == 0 || group_count == 0 ||
+        group_count > kMaximumGroups ||
+        !is_power_of_two(max_output_size) ||
+        max_output_size > (1u << kMaximumLogSize) ||
+        source_descriptors == nullptr || source_count == 0 ||
+        line_coefficients == nullptr || line_term_count == 0 ||
+        group_log_sizes == nullptr || output_offsets == nullptr ||
+        output_word_count == 0 || stream == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    std::size_t offset_count;
+    std::size_t line_count;
+    ByteRange offset_range;
+    ByteRange term_range;
+    ByteRange source_descriptor_range;
+    ByteRange line_range;
+    ByteRange log_range;
+    ByteRange output_offset_range;
+    ByteRange writes[4];
+    if (!stwo::cuda::oods::checked_sum(group_count, 1, &offset_count) ||
+        !checked_product(line_term_count, 3, &line_count) ||
+        !element_range(group_offsets, offset_count, &offset_range) ||
+        !element_range(term_descriptors, term_count, &term_range) ||
+        !element_range(
+            source_descriptors,
+            source_count,
+            &source_descriptor_range) ||
+        !element_range(line_coefficients, line_count, &line_range) ||
+        !element_range(group_log_sizes, group_count, &log_range) ||
+        !element_range(
+            output_offsets,
+            offset_count,
+            &output_offset_range) ||
+        !element_range(output_0, output_word_count, &writes[0]) ||
+        !element_range(output_1, output_word_count, &writes[1]) ||
+        !element_range(output_2, output_word_count, &writes[2]) ||
+        !element_range(output_3, output_word_count, &writes[3])) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const ByteRange reads[]{
+        offset_range,
+        term_range,
+        source_descriptor_range,
+        line_range,
+        log_range,
+        output_offset_range,
+    };
+    if (!ranges_disjoint(writes, 4, reads, 6)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    accumulate_addressed_kernel<<<
+        dim3(
+            (max_output_size + kBlockSize - 1) / kBlockSize,
+            group_count),
+        kBlockSize,
+        0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(
+            group_offsets,
+            term_descriptors,
+            term_count,
+            group_count,
+            max_output_size,
+            source_descriptors,
+            source_count,
+            line_coefficients,
+            line_term_count,
+            group_log_sizes,
+            output_offsets,
+            output_word_count,
+            output_0,
+            output_1,
+            output_2,
+            output_3);
     return static_cast<int>(cudaPeekAtLastError());
 }

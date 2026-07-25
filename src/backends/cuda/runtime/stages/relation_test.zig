@@ -243,6 +243,32 @@ test "resident relation graph binds one stream and records exact launches" {
     try std.testing.expectEqual(@as(u64, relation.launch_count), session.launches);
 }
 
+test "relation transcript binding seals challenges and canonical claims" {
+    const instances = [_]relation.InstanceBinding{instance()};
+    const prepared = try relation.prepare(std.testing.allocator, .{
+        .topology = topology,
+        .buffers = buffers(),
+        .instances = &instances,
+    });
+    defer relation.deinit(std.testing.allocator, prepared);
+
+    try relation.validateTranscriptChallenge(
+        prepared,
+        buffers().drawn_z_alpha,
+    );
+    try std.testing.expectEqual(
+        slice(u32, 0x40_5000, 4),
+        try relation.transcriptClaims(prepared),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        relation.validateTranscriptChallenge(
+            prepared,
+            slice(field.SecureField, 0x10_1000, 2),
+        ),
+    );
+}
+
 test "resident relation graph rejects alias and stage drift before launch" {
     TestApi.calls = 0;
     var session = TestSession{};

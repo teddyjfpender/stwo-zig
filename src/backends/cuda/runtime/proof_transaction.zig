@@ -208,6 +208,21 @@ pub fn TransactionFor(comptime Session: type) type {
             return self.arena.sliceAs(F, id);
         }
 
+        /// Borrows the exact transaction arena for authenticated
+        /// offset-addressed kernels. The arena remains the sole authority for
+        /// its base address, extent, owner, and allocation generation.
+        pub fn residentArenaWords(
+            self: *const Self,
+        ) runtime_error.Error!column.DeviceSlice(u32) {
+            if (!self.arena_live or
+                self.state == .finished or
+                self.state == .aborted)
+            {
+                return error.InvalidState;
+            }
+            return self.arena.words();
+        }
+
         pub fn upload(
             self: *Self,
             comptime F: type,

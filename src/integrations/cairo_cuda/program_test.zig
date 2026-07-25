@@ -8,6 +8,7 @@ const composition = @import("../../frontends/cairo/witness/composition_bundle.zi
 const source_semantic_pack = @import("../../frontends/cairo/witness/source_semantic_pack.zig");
 const subject = @import("program.zig");
 const identities = @import("identity.zig");
+const execution_schedule = @import("executor/execution_schedule.zig");
 
 test {
     std.testing.refAllDecls(source_semantic_pack);
@@ -193,6 +194,22 @@ test "Cairo development emitter describes the complete heterogeneous proof progr
     }
     try std.testing.expectEqual(@as(usize, 1), dependent_trace_nodes);
     for (first.nodes) |node| try std.testing.expect(!node.graph_candidate);
+    const coalesced = try execution_schedule.Schedule.derive(first);
+    try coalesced.validate(first);
+    try std.testing.expectEqual(
+        @as(usize, execution_schedule.phase_count),
+        coalesced.scheduledNodes().len,
+    );
+    try std.testing.expectEqual(
+        @as(u32, @intCast(bundle.components.len)),
+        coalesced.source_spans[
+            @intFromEnum(execution_schedule.Phase.trace_generation)
+        ].count,
+    );
+    var accounted_nodes: usize = 0;
+    for (coalesced.source_spans) |span|
+        accounted_nodes += span.count;
+    try std.testing.expectEqual(first.nodes.len, accounted_nodes);
     var pow_barriers: usize = 0;
     for (first.transcript) |barrier| if (barrier.kind == .pow) {
         pow_barriers += 1;

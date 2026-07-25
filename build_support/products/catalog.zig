@@ -8,6 +8,7 @@ pub const Scope = enum {
     architecture,
     compatibility_tools,
     core,
+    cairo_cuda,
     cuda_tools,
     deferred,
     metal_tools,

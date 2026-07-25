@@ -19,6 +19,7 @@ from .aot_pack import ABI_SCHEMAS, AotPackError, write_aot_carriers, write_aot_p
 from .errors import BuildError
 from .native_closure import load_native_closure
 from .product_selection import (
+    MODULE_GLOBAL_REQUIREMENTS,
     ProductSelection,
     load_product_selection,
     validate_aot_manifest,
@@ -485,11 +486,15 @@ def compile_aot(
     plan: dict[str, object],
     output: Path,
 ) -> list[dict[str, object]]:
-    source_by_name = {path.name: path for path in product.aot_sources}
+    if len(product.aot_sources) != len(product.aot_manifest):
+        raise BuildError("CUDA AOT product sources lost manifest order")
     jobs: list[tuple[list[str], Path]] = []
     entries: list[dict[str, object]] = []
-    for metadata in product.aot_manifest:
-        source = source_by_name[str(metadata["file"])]
+    for metadata, source in zip(
+        product.aot_manifest,
+        product.aot_sources,
+        strict=True,
+    ):
         for sm in config.toolchain.sms:
             key = hashlib.sha256(
                 (
@@ -506,6 +511,9 @@ def compile_aot(
                     "cache_key": int(str(metadata["cache_key"]), 16),
                     "sm": sm,
                     "kernel_name": str(metadata["kernel_name"]),
+                    "module_globals": MODULE_GLOBAL_REQUIREMENTS[
+                        str(metadata["module_globals"])
+                    ],
                     "abi_schema": ABI_SCHEMAS[str(metadata["abi_schema"])],
                     "source": source.name,
                     "cubin": destination,

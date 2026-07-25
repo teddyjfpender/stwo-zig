@@ -5,6 +5,10 @@ work is recorded in
 [`transcripts/session-02-system-extraction.md`](transcripts/session-02-system-extraction.md);
 exact Native AIR closure continues in
 [`transcripts/session-03-exact-air-coverage.md`](transcripts/session-03-exact-air-coverage.md).
+The paused SN PIE 2 H100 bring-up, exact last execution boundary, defects
+closed, unvalidated alignment repair, and remaining acceptance gates are
+recorded in
+[`transcripts/session-19-sn2-h100-pause-handover.md`](transcripts/session-19-sn2-h100-pause-handover.md).
 New diagnostics do not retroactively change the qualified verdict.
 
 ## Verdict

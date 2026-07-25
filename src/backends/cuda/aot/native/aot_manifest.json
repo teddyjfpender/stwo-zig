@@ -7,6 +7,7 @@
     "kernel_name": "stwo_native_constraint_blake_component_v1_64a336ee32f09d7e",
     "kind": "constraint",
     "label": "blake",
+    "module_globals": "none",
     "program_identity": "19330048c51599f129214d3f3c794e901620d44fae835e9e5de2e4cd5ec5e419",
     "semantic_contract": "stwo-zig/native/blake-constraint/v1;field=qm31;components=scheduler@L+1,round0@L+4,round1@L+2,xor12@17,xor9@15,xor8@13,xor7@11,xor4@9;sources=component-local-preprocessed-main-interaction-lde;constraints=6+129+129+128+8+8+8+1;relations=blake,round,xor12,xor9,xor8,xor7,xor4;claims=public-statement-order(scheduler,xor12,xor9,xor8,xor7,xor4,round0,round1);working_set=streamed-relations-no-dynamic-local-arrays;scheduler=ten-round-pairs-plus-blake-zero-multiplicity;round=64-arithmetic-plus-65-paired-logup;xor=paired-multiplicity-table-logup;previous=bit-reversed-circle-offset-minus-one;coefficients=reverse-417-component-order;denominator=component-coset-vanishing-inverse-2;lift=bit-reversed-domain-bucket-to-max(L+4,17);output=4-coordinate-additive-slab;launches=8",
     "semantic_hash": "64a336ee32f09d7e"
@@ -19,6 +20,7 @@
     "kernel_name": "stwo_native_constraint_constant_qm31_slab_v1_578d333ea30082f5",
     "kind": "constraint",
     "label": "constant_qm31",
+    "module_globals": "none",
     "program_identity": "4827d1c480fb662cf213928efad46c05fad69b994b405646b94a3424e0a9a7ed",
     "semantic_contract": "stwo-zig/native/constant-qm31-composition/v1;geometry=component_index,component_count,evaluation_log_size,trace_log_size,preprocessed_columns,main_columns;parameters=resident_statement_words,resident_challenge_words;value=canonical_qm31;rows=2^evaluation_log_size;output=coordinate_slab[coordinate*stride+row]=value[coordinate];launches=1",
     "semantic_hash": "578d333ea30082f5"
@@ -31,6 +33,7 @@
     "kernel_name": "stwo_native_constraint_plonk_logup_slab_v1_1aeccc54c43f17c3",
     "kind": "constraint",
     "label": "plonk_logup",
+    "module_globals": "none",
     "program_identity": "2f3b7526733402d8643ee767fb0f29eb0e98fa20022460a8d5352e7b83a0da23",
     "semantic_contract": "stwo-zig/native/plonk-logup/constraint/v1;field=qm31;rows=2^(log_n_rows+1);sources=preprocessed4,main4,interaction8;lookup=z,alpha;claimed_sum=resident;constraints=algebraic,first_logup,cumulative_logup;previous=bit_reversed_circle_offset_minus_one;coefficients=alpha^2,alpha^1,alpha^0;denominator=coset_vanishing_inverse[row>>log_n_rows];output=coordinate_slab;launches=1",
     "semantic_hash": "1aeccc54c43f17c3"
@@ -43,6 +46,7 @@
     "kernel_name": "stwo_native_constraint_poseidon_slab_v1_2e0242737cfd5d1c",
     "kind": "constraint",
     "label": "poseidon",
+    "module_globals": "none",
     "program_identity": "41966be89044bcbcc3b641b39ab7bf86997c7b92b07dbe0ba10dc3fdfbcc7cc8",
     "semantic_contract": "stwo-zig/native/poseidon-constraint/v1;field=qm31;source=1264-main+32-interaction;constraints=1136-transition+8-logup;rounds=4-full,14-partial,4-full;round_constant=1234;matrix=poseidon2-m4-external-and-pow2-diagonal-internal;lookup=8-paired-16-tuples;interaction=seven-current+final-current-previous+claim/rows;weights=reverse-1144;denominator=trace-coset-vanishing-inverse-4;output=4-coordinate-additive-slab;evaluation_log=trace_log+2;launches=1",
     "semantic_hash": "2e0242737cfd5d1c"
@@ -55,6 +59,7 @@
     "kernel_name": "stwo_native_constraint_state_machine_slab_v1_199a83f08c52455b",
     "kind": "constraint",
     "label": "state_machine",
+    "module_globals": "none",
     "program_identity": "745dadfa866da3b5d3d7e2d52830bbc48765427a4a0c2e4fab974088580f538b",
     "semantic_contract": "stwo-zig/native/state-machine/constraint/v1;field=qm31;rows=2^(log_n_rows+1);statement=14_resident_words;composition=x_axis_claimed_sum+y_axis_claimed_sum;output=coordinate_slab[coordinate*stride+row];launches=1",
     "semantic_hash": "9c16d18fc33c541d"
@@ -67,6 +72,7 @@
     "kernel_name": "stwo_native_statement_state_machine_v1_6324a81f31d00d9e",
     "kind": "constraint",
     "label": "state_machine_statement",
+    "module_globals": "none",
     "program_identity": "7e7f0bf52e90cf640a84027c79f704ae1f5a660ec0735080b078f464a1a8ce4c",
     "semantic_contract": "stwo-zig/native/state-machine/statement/v1;transcript=resident-blake2s;statement0=log_n_rows,log_n_rows_minus_one;draws=z_then_alpha_as_two_independent_secure_felts;public_input=initial_x,initial_y,final_x,final_y;claims=telescoping_inverse_endpoints;mix=statement0,draws,public_input,claims;output=resident_statement_14_words;launches=1",
     "semantic_hash": "f8c07cd18bc98ffa"
@@ -79,6 +85,7 @@
     "kernel_name": "stwo_native_constraint_wide_fibonacci_slab_v1_6f60dbf6e15716eb",
     "kind": "constraint",
     "label": "wide_fibonacci",
+    "module_globals": "none",
     "program_identity": "ef9f12d696c42b8f37120d2f876f1459872f171a6212d5b2b4f181c031267467",
     "semantic_contract": "stwo-zig/native/wide-fibonacci/constraint/v1;field=m31;rows=2^(log_n_rows+1);constraint[col]=trace[col]-trace[col-2]^2-trace[col-1]^2;coeff=qm31[random_coefficient_base+sequence_len-1-col];denom=denom[row>>log_n_rows];accumulate=coordinates+denom*sum(coeff*constraint)",
     "semantic_hash": "6f60dbf6e15716eb"
@@ -91,6 +98,7 @@
     "kernel_name": "stwo_native_constraint_xor_logup_slab_v1_74e91bf393755b46",
     "kind": "constraint",
     "label": "xor_logup",
+    "module_globals": "none",
     "program_identity": "9231bb00187754da34c0038b1c1909c57584a3b60d0cf6de8ff3b1c6c9ec667b",
     "semantic_contract": "stwo-zig/native/xor-logup/constraint/v1;field=qm31;rows=2^(log_size+1);sources=preprocessed7,main4,interaction4;lookup=z,alpha;claimed_sum=resident;constraints=boolean_is_first,boolean_abc,xor_abc,a_row_bit,b_is_step,boolean_table_selector,boolean_table_abc,xor_table_abc,multiplicity_tail_zero,cumulative_logup;previous=bit_reversed_circle_offset_minus_one;coefficients=alpha^13...alpha^0;denominator=coset_vanishing_inverse[row>>log_size];output=coordinate_slab;launches=1",
     "semantic_hash": "74e91bf393755b46"
@@ -103,6 +111,7 @@
     "kernel_name": "stwo_jit_witness_d94540f2fd219001",
     "kind": "witness",
     "label": "add_ap_opcode",
+    "module_globals": "none",
     "program_identity": "1c87a53a6c6ded98045fb88728f9cbd14f79ad8471cff7a16416139a64737da5",
     "semantic_hash": "d94540f2fd219001",
     "source_sha256": "c825274c6a62716dfc427e006adccc5e0961ddfa7f8abc35ea04a83e630aab88"
@@ -115,6 +124,7 @@
     "kernel_name": "stwo_jit_witness_1535458b582bc8dc",
     "kind": "witness",
     "label": "add_opcode",
+    "module_globals": "none",
     "program_identity": "b7502c44324eed1c09fd0bdce51a67dbb3a625244ea98c690c390a48dc206d2b",
     "semantic_hash": "1535458b582bc8dc",
     "source_sha256": "10a8ad6ec84cb68883cb2df08a4a9db373d463fd4a461fd29ed8b98848e10714"
@@ -127,6 +137,7 @@
     "kernel_name": "stwo_jit_witness_643d6ea7402e00f9",
     "kind": "witness",
     "label": "add_opcode_small",
+    "module_globals": "none",
     "program_identity": "eaed63097e7c9a378f2b4a091aa43f0c24f1a12802f75bcdd7cc907c76c0fe7b",
     "semantic_hash": "643d6ea7402e00f9",
     "source_sha256": "b3c39aae460061e415c052d77260da880a588660ca9432983ec234453f199197"
@@ -139,6 +150,7 @@
     "kernel_name": "stwo_jit_witness_c4b01b327c2ce2a3",
     "kind": "witness",
     "label": "assert_eq_opcode",
+    "module_globals": "none",
     "program_identity": "8005399c8a3b00480863e8eca74bd78ac177a9a3ca0935e332b3f8c724f78f66",
     "semantic_hash": "c4b01b327c2ce2a3",
     "source_sha256": "c3c189ca7606c67aabd34452cb3fbca18053895385032fd1fcd6e0c00fc1377c"
@@ -151,6 +163,7 @@
     "kernel_name": "stwo_jit_witness_06f670fcbec124d8",
     "kind": "witness",
     "label": "assert_eq_opcode_double_deref",
+    "module_globals": "none",
     "program_identity": "cc0d5f7839579b222b3f4d8eb5a7e7a0bc57e10d916c1b9f5f80959d2f2f7728",
     "semantic_hash": "06f670fcbec124d8",
     "source_sha256": "5fe07feda80d2793e19a742e85722b9c12c2a99592c6a9b7ab88b65db598c0d0"
@@ -163,6 +176,7 @@
     "kernel_name": "stwo_jit_witness_e17e872ded26ebd1",
     "kind": "witness",
     "label": "assert_eq_opcode_imm",
+    "module_globals": "none",
     "program_identity": "5679f6fc98669d725754b15d10ee00c2aacde7485c12baef090f8a65b39c69c9",
     "semantic_hash": "e17e872ded26ebd1",
     "source_sha256": "d3cfa698a33ff0534c4768922294751127690fe03f84e92a7aed688811136e18"
@@ -175,6 +189,7 @@
     "kernel_name": "stwo_jit_witness_154882da03f89342",
     "kind": "witness",
     "label": "bitwise_builtin",
+    "module_globals": "none",
     "program_identity": "c8f66affeedc484a5e887917a8b29fdd083d637e2597fd66b78ffd4e388a7bad",
     "semantic_hash": "154882da03f89342",
     "source_sha256": "92b9b93b0887cd3fc41cd9a11fda8d46b75e59ff2148c007e973f9ac1a981c61"
@@ -187,6 +202,7 @@
     "kernel_name": "stwo_jit_witness_b2fee5fd862cd589",
     "kind": "witness",
     "label": "blake_compress_opcode",
+    "module_globals": "none",
     "program_identity": "f459829608d1295f96f43fb4c00ac854e19d2e1ed2a0ced0e6ad913cad2f98da",
     "semantic_hash": "b2fee5fd862cd589",
     "source_sha256": "163c1b4271f8191aec477457cd111bc04657a672b7be54b9eb563a6ad8da427a"
@@ -199,6 +215,7 @@
     "kernel_name": "stwo_native_interaction_blake_exact_pairs_v1",
     "kind": "witness",
     "label": "blake_exact_interaction",
+    "module_globals": "none",
     "program_identity": "5900ac2a9ea9b3274bb955d1504d624147bfecc3e4eb3f0ebad8713a6dd38a6e",
     "semantic_contract": "stwo-zig/native/blake-exact-interaction/v1;field=qm31;statement=log_n_rows[4..13],rounds=10;components=scheduler[L,6],round[L+3,65],round[L+1,65],xor12[16,128],xor9[14,8],xor8[12,8],xor7[10,8],xor4[8,1];relations=blake,round,xor12,xor9,xor8,xor7,xor4;fractions=canonical-paired-numerator-and-denominator;source=immutable-preprocessed-plus-main-resident-slab;output=ragged-coordinate-major-numerators-and-qm31-denominators;completion=resident-relation-fraction-chain-and-circle-order-tail;claims=public-order-scheduler,xor12,xor9,xor8,xor7,xor4,round3,round1;host_transfer=none;fallback=none;pair_launches=8",
     "semantic_hash": "85d2ba7bfd3cc7db"
@@ -211,6 +228,7 @@
     "kernel_name": "stwo_native_trace_blake_exact_mixed_v2_b8a99643ffc4a29b",
     "kind": "witness",
     "label": "blake_exact_trace",
+    "module_globals": "none",
     "program_identity": "294a6264a11c1efb77ae3f3106a1b4293bdca2af753e1573f4548895a541316c",
     "semantic_contract": "stwo-zig/native/blake-exact-trace/v2;field=m31;statement=log_n_rows[4..13],n_rounds=10;groups=scheduler[L,384],round[L+3,384],round[L+1,384],xor12[16,256],xor9[14,16],xor8[12,16],xor7[10,16],xor4[8,1];preprocessed=xor12..xor4[a,b,a_xor_b];scheduler=pinned-packed-lane-input-and-ten-round-state-sequence;round=pinned-sigma-input-and-eight-G-row;xor_multiplicity=prezeroed-u32-atomic-unit-increments,bound=1280*2^L<=10485760;interaction_sources=direct-preprocessed-and-main-evaluation-slabs;layout=compact-component-column-major;host_transfer=none;fallback=none;launches=1",
     "semantic_hash": "b8a99643ffc4a29b"
@@ -223,6 +241,7 @@
     "kernel_name": "stwo_jit_witness_8eec56c36f57b843",
     "kind": "witness",
     "label": "blake_g",
+    "module_globals": "none",
     "program_identity": "aaf9afa6c30d514b412d651f915d3b9056ac079fe686d8bac596e99b26247163",
     "semantic_hash": "8eec56c36f57b843",
     "source_sha256": "28d08317ee4133c849744591e231a237dbdada06f3b71039a1f5f10f2dc6a723"
@@ -235,6 +254,7 @@
     "kernel_name": "stwo_jit_witness_f18358c8a451335f",
     "kind": "witness",
     "label": "blake_round",
+    "module_globals": "none",
     "program_identity": "15a0251773dc348db2f534c185e2ea355ba6156b7208fad192e1d5007ce33f3d",
     "semantic_hash": "f18358c8a451335f",
     "source_sha256": "1f04822d0cd2c6c85fd7a5d1eada934b43f6dd4b454b0925e3e1c7af0f764203"
@@ -247,6 +267,7 @@
     "kernel_name": "stwo_jit_witness_3343f9826788070c",
     "kind": "witness",
     "label": "call_opcode_abs",
+    "module_globals": "none",
     "program_identity": "be0ddbbfedf11d89a95d40bac8e55c5d500d8869cc8e1728331dc0b39f933b62",
     "semantic_hash": "3343f9826788070c",
     "source_sha256": "9f8fe6f43d161be992e789c8d9a62bd8f28edd6482ab6dd70204cf4e0a3e02b7"
@@ -259,6 +280,7 @@
     "kernel_name": "stwo_jit_witness_ce0ddfc37a60580e",
     "kind": "witness",
     "label": "call_opcode_rel_imm",
+    "module_globals": "none",
     "program_identity": "6376a6c6e00acbec5e0548bde6a033156f51e622331e4325716bd801f2ce2807",
     "semantic_hash": "ce0ddfc37a60580e",
     "source_sha256": "bb8a44dd872bd9d05fabbfef7da67256818423c15c1f7f5bfa124678c0ebedf2"
@@ -271,6 +293,7 @@
     "kernel_name": "stwo_native_trace_circle_affine_state_slabs_v1_09db5e660658cf5e",
     "kind": "witness",
     "label": "circle_affine_state_trace",
+    "module_globals": "none",
     "program_identity": "7f374b3b382b1b482b76c7b70895da24cd9df6b22932c7d157f1e10f4afde742",
     "semantic_contract": "stwo-zig/native/circle-affine-state-trace/v1;field=m31;geometry=row_count=2^log_n_rows,preprocessed_columns=1,main_columns=2;storage_row=circle_bit_reverse(coset_to_circle(logical_row));inverse=circle_to_coset(bit_reverse(storage_row));preprocessed=first_value iff storage_row=0 else default_value;main[state]=initial[state]+(state==increment_coordinate?logical_row*increment_value:0);layout=two_column_major_slabs[column*stride+row];launches=1",
     "semantic_hash": "09db5e660658cf5e"
@@ -283,9 +306,10 @@
     "kernel_name": "stwo_jit_witness_22ad07ddaf1c1605",
     "kind": "witness",
     "label": "cube_252",
+    "module_globals": "none",
     "program_identity": "038c6bb411e7f26d98fc9c1448a0727139f9b4c5f767751ac6884c7dbd120ce1",
     "semantic_hash": "22ad07ddaf1c1605",
-    "source_sha256": "e8fb7ac0cd6fbc853af7dd4e4b4f97c42936a18c53014eb09b82513e398db9f3"
+    "source_sha256": "f81c001a5e0d5ddceaa40c3fe5539acbab9e2bb53825cf81e254e211b13674f4"
   },
   {
     "abi_schema": "native_indexed_recurrence_trace_v1",
@@ -295,6 +319,7 @@
     "kernel_name": "stwo_native_trace_indexed_recurrence_slabs_v1_ad484862f20d700c",
     "kind": "witness",
     "label": "indexed_recurrence_trace",
+    "module_globals": "none",
     "program_identity": "476ceee95e6cc201404b671b99af24e4875a7a3fcd2138039eb293b65c65687e",
     "semantic_contract": "stwo-zig/native/indexed-order2-recurrence-trace/v1;field=m31;geometry=row_count=2^log_n_rows,preprocessed_columns=4,main_columns=4;preprocessed=[index_base+row*index_step,index+step,index+2step,constant];main=[selector,recurrence[row],recurrence[row+1],recurrence[row+2]];recurrence[0]=seed0,recurrence[1]=seed1,recurrence[n+2]=recurrence[n+1]+recurrence[n];evaluation=fast_doubling;selector=default,last,penultimate;layout=two_column_major_slabs[column*stride+row];launches=1",
     "semantic_hash": "ad484862f20d700c"
@@ -307,6 +332,7 @@
     "kernel_name": "stwo_jit_witness_1ab1e90dff938797",
     "kind": "witness",
     "label": "jnz_opcode_non_taken",
+    "module_globals": "none",
     "program_identity": "83c3506801e390abb81e7fca228f45b1b3f059b6f5af4e2cc6fca8f838397f79",
     "semantic_hash": "1ab1e90dff938797",
     "source_sha256": "495a7a957265e50cdd9ace0bb60988c883f4d42b32c5e2443aae5d807d22f10c"
@@ -319,6 +345,7 @@
     "kernel_name": "stwo_jit_witness_b37424b6011f268e",
     "kind": "witness",
     "label": "jnz_opcode_taken",
+    "module_globals": "none",
     "program_identity": "9a9861ee4c7a882b39bf7853143cc867b6dff264369162ba0f4e0cdbf2871d0a",
     "semantic_hash": "b37424b6011f268e",
     "source_sha256": "b155ea4f43a039cd8dacfae7947f2da1b33d7b05526b0de8815309a64964f194"
@@ -331,6 +358,7 @@
     "kernel_name": "stwo_jit_witness_a2cb569f891013bf",
     "kind": "witness",
     "label": "jump_opcode_double_deref",
+    "module_globals": "none",
     "program_identity": "e59ca0e31cba4dd6f8f29c1ae11ca053e7a3472a8cfbbd88ce047128e42d4b2f",
     "semantic_hash": "a2cb569f891013bf",
     "source_sha256": "fc67d92afb616c3cdccd3024f79b2e511abd0c592a16e8b7313f1ebc953c81a2"
@@ -343,6 +371,7 @@
     "kernel_name": "stwo_jit_witness_c7457acb39874135",
     "kind": "witness",
     "label": "jump_opcode_rel",
+    "module_globals": "none",
     "program_identity": "387f3fb43e011ead14149344c3d009275b0a7c88f72bc6fc7a09f3bc32a78ebc",
     "semantic_hash": "c7457acb39874135",
     "source_sha256": "f84adabb23b9a1ee8f230c8eeaa3574b21b6a8f4c81cd734e81153a2a0f2d06f"
@@ -355,6 +384,7 @@
     "kernel_name": "stwo_jit_witness_7db50b96e3fbaedb",
     "kind": "witness",
     "label": "jump_opcode_rel_imm",
+    "module_globals": "none",
     "program_identity": "745557175fe9d8ece42bbe4a9d6c31f1e8898a0009a9e33aac54f4fe60965550",
     "semantic_hash": "7db50b96e3fbaedb",
     "source_sha256": "5284377a74059ed7db3df738852a2bfe51072cfbc89e9dba7622be2cc564cb8d"
@@ -367,6 +397,7 @@
     "kernel_name": "stwo_native_trace_m31_permutation_slab_v3_5c1cfb67d2fc10b4",
     "kind": "witness",
     "label": "m31_permutation_trace",
+    "module_globals": "none",
     "program_identity": "5c58180cd2175142ae9c7f5fde1e1b7a01b198a63e44ceff83143deeb1d25fa1",
     "semantic_contract": "stwo-zig/native/m31-permutation-trace/v3;field=m31;state_width=16;geometry=row_count=2^log_n_rows,column_count=replication_count*(16*(1+2*half_full_rounds)+partial_rounds);initial=from_u64(row*initial_row_stride+state+rep*initial_rep_stride);external=add(base+round*round_stride+state*lane_stride),m4x4,interblock_sum,pow5,store16;partial=state0+base+round*stride,internal_diag_pow2_plus_sum,pow5_state0,store1;trace_layout=column_major_slab[column*trace_stride+row];relation_snapshot=per_rep[initial16,final16],column_major[(rep*32+phase*16+lane)*relation_stride+row];launches=1",
     "semantic_hash": "5c1cfb67d2fc10b4"
@@ -379,6 +410,7 @@
     "kernel_name": "stwo_jit_witness_e1a1073e17a88ffa",
     "kind": "witness",
     "label": "mul_opcode",
+    "module_globals": "none",
     "program_identity": "2d8ad382b46e53934f970898f4a0f0fb632157b7407fcb460da6311c36a9d0fd",
     "semantic_hash": "e1a1073e17a88ffa",
     "source_sha256": "d256a568e4318302769cbb36ad828c0528197d3c6b3780491cfab32f971a27bd"
@@ -391,6 +423,7 @@
     "kernel_name": "stwo_jit_witness_d467876d34b895c1",
     "kind": "witness",
     "label": "mul_opcode_small",
+    "module_globals": "none",
     "program_identity": "020ff474c69beb6d6557925ecde442511b910274198505b72fc0324f8c4649fa",
     "semantic_hash": "d467876d34b895c1",
     "source_sha256": "f7295f2a337d697f0554a7587a87e739ddb565da36f0416f5ca1e93b3adb6b5a"
@@ -403,9 +436,10 @@
     "kernel_name": "stwo_jit_witness_945de91f8879d0ac",
     "kind": "witness",
     "label": "partial_ec_mul_generic",
+    "module_globals": "none",
     "program_identity": "9d9ebcfa917a1b1a7ee966be247b58cfcc663f7df267880099d527eda88a6d03",
     "semantic_hash": "945de91f8879d0ac",
-    "source_sha256": "b7b25005bff2e8b6bf59793366a17daf4d84c0c4293d1a25f011125edaaf8f7e"
+    "source_sha256": "48345960c70951f32c5c0c49d16a03c0daab9d4c8a404f5e9bebbe7502a17c61"
   },
   {
     "abi_schema": "recorded_witness_v1",
@@ -415,9 +449,10 @@
     "kernel_name": "stwo_jit_witness_d14e690e89d48795",
     "kind": "witness",
     "label": "partial_ec_mul_window_bits_18",
+    "module_globals": "pedersen_w18_columns_rows_v1",
     "program_identity": "300d646591856be0f8bcc6c4c4f3920c5b150a1bb379f90f8ace9b553c1fbade",
     "semantic_hash": "d14e690e89d48795",
-    "source_sha256": "36eb5426b0edc4806c1ff5823285a2b2e67a5ac1ae5be6fe0f8f723a79a1d58e"
+    "source_sha256": "8b0871582f1fed2ff3b8d1aa9bf2feaff411d0d818e6f192a3197ffa44990749"
   },
   {
     "abi_schema": "recorded_witness_v1",
@@ -427,9 +462,10 @@
     "kernel_name": "stwo_jit_witness_b0eb28f739a39f20",
     "kind": "witness",
     "label": "pedersen_aggregator_window_bits_18",
+    "module_globals": "pedersen_w18_columns_rows_v1",
     "program_identity": "657413cfcee5df0a953c8252b0bb3ae66e9d29cb51ca3d5943fa8c1e1a6d3498",
     "semantic_hash": "b0eb28f739a39f20",
-    "source_sha256": "e1722c7b38b843ae7601d12f697a7f187fa3b8bc5f48e45f8c1217012c4e21e7"
+    "source_sha256": "e4352ae90781b11d96e162eb8e3bc56b86b1f561df9300bceab541f4bd7538fe"
   },
   {
     "abi_schema": "recorded_witness_v1",
@@ -439,6 +475,7 @@
     "kernel_name": "stwo_jit_witness_da729390f0d884f9",
     "kind": "witness",
     "label": "pedersen_builtin",
+    "module_globals": "none",
     "program_identity": "c4a3fc4e86714a78a8eb63ae20013510c2e54213ab00d4c265a675455bfde574",
     "semantic_hash": "da729390f0d884f9",
     "source_sha256": "44a4f955ae56b4812f072f26f19fa7a77653239bf070f70ca8cfc6fe3ad85119"
@@ -451,9 +488,10 @@
     "kernel_name": "stwo_jit_witness_d6df0fe1ca333aac",
     "kind": "witness",
     "label": "poseidon_3_partial_rounds_chain",
+    "module_globals": "none",
     "program_identity": "49603d05a314377e6fd21d8f7c81b53610ff8678dea7c8a798fba174939d9b4f",
     "semantic_hash": "d6df0fe1ca333aac",
-    "source_sha256": "c29e695f1f251c460bb06731552dc6f7b5cdfb9edd3a9d481e956e69044b70ec"
+    "source_sha256": "d3aed7d19437fab9ccd607a3fd07035c6f98b787e13c792f77f4689a4e578a40"
   },
   {
     "abi_schema": "recorded_witness_v1",
@@ -463,9 +501,10 @@
     "kernel_name": "stwo_jit_witness_eebaf3650dcb7ba3",
     "kind": "witness",
     "label": "poseidon_aggregator",
+    "module_globals": "none",
     "program_identity": "932ce4c718474cbee4a1483155e647e2728c5753548708435602cec3268a0ad6",
     "semantic_hash": "eebaf3650dcb7ba3",
-    "source_sha256": "741c1c289e0a430c8457342ed2a86cffa1093f1a527ba9d4781da9ace65a6106"
+    "source_sha256": "95f2a8901e37950a49a30742aa4de83f86ddfffc0b71fc6499d789c39e1b5709"
   },
   {
     "abi_schema": "recorded_witness_v1",
@@ -475,6 +514,7 @@
     "kernel_name": "stwo_jit_witness_58a69689aa366788",
     "kind": "witness",
     "label": "poseidon_builtin",
+    "module_globals": "none",
     "program_identity": "f149f93a5acdc97f65ba047c6734804218d45e71e6d9bbf7298ec11b3531adae",
     "semantic_hash": "58a69689aa366788",
     "source_sha256": "83fb5e1d994549f4767dbe5988c299182bf3d4dbf34a1defd9ffe5e06701dd75"
@@ -487,9 +527,10 @@
     "kernel_name": "stwo_jit_witness_752513a1a2621451",
     "kind": "witness",
     "label": "poseidon_full_round_chain",
+    "module_globals": "none",
     "program_identity": "3c4253dc7fa0b80f8919ce62a6eeb8b05b46a1dd6b01f700a005c9872cd99ba6",
     "semantic_hash": "752513a1a2621451",
-    "source_sha256": "41e6a957f194f89c723c1628be28a6b93aab949700841c2c23580136d1e79aae"
+    "source_sha256": "c992f5ea9cb9a76bbf7b5b06cc0dc6ac9e5b13bf128aee47ef75abf585b6c310"
   },
   {
     "abi_schema": "recorded_witness_v1",
@@ -499,6 +540,7 @@
     "kernel_name": "stwo_jit_witness_ad984cdbe607f973",
     "kind": "witness",
     "label": "range_check_252_width_27",
+    "module_globals": "none",
     "program_identity": "483bc07d5618c9d30a34991729cc29f023f41a9452d905c3e91726b1e57d4ece",
     "semantic_hash": "ad984cdbe607f973",
     "source_sha256": "6f544a9ba4294d8cd0f071fb23cf41b297f83a80e8a901c12f2a0ff1276c97e1"
@@ -511,6 +553,7 @@
     "kernel_name": "stwo_jit_witness_57e09935feaee102",
     "kind": "witness",
     "label": "range_check_builtin",
+    "module_globals": "none",
     "program_identity": "a2399ca60ab66a10be4d28e3691de09b407a3acadf33c92b888d321a8d79caef",
     "semantic_hash": "57e09935feaee102",
     "source_sha256": "c9560235371c151e8d8edb538f0b770839910332e2bbef5978be5562fe4f97a8"
@@ -523,6 +566,7 @@
     "kernel_name": "stwo_jit_witness_a290ddc144ee416a",
     "kind": "witness",
     "label": "ret_opcode",
+    "module_globals": "none",
     "program_identity": "985f15f891d8504b6fb6c7e00498ee5b87c723e3f0b338af7f4475d6a828b1df",
     "semantic_hash": "a290ddc144ee416a",
     "source_sha256": "27a61b307347873946901857a548f2f7c282386f1a46dee98473f764720efd88"
@@ -535,6 +579,7 @@
     "kernel_name": "stwo_native_trace_seeded_xorshift_slab_v1_21cc1d6d9728809e",
     "kind": "witness",
     "label": "seeded_xorshift_trace",
+    "module_globals": "none",
     "program_identity": "b25a80d447eac9f1d9c86b3e567781489067d99b1c0a8cb20b8466c9576c928c",
     "semantic_contract": "stwo-zig/native/seeded-xorshift-columns/v1;geometry=row_count=2^log_n_rows,column_count=group_count*columns_per_group;seed=row+seed_offset;x1=seed^(seed<<left_shift);x2=x1^(x1>>right_shift);next=x2^(x2<<final_left_shift);value=m31(next^(group*group_mix)^((item+1)*item_mix));layout=column_major_slab[column*stride+row];launches=1",
     "semantic_hash": "21cc1d6d9728809e"
@@ -547,6 +592,7 @@
     "kernel_name": "stwo_jit_witness_3d32279c16a57ca9",
     "kind": "witness",
     "label": "triple_xor_32",
+    "module_globals": "none",
     "program_identity": "79fa89d50a5384c27a46e38bf1c65f16cec46939689d182e689467ef90ec06e2",
     "semantic_hash": "3d32279c16a57ca9",
     "source_sha256": "3d22c52abca5ccc3c6d679d36733170de22fd8b6c380a074c55d4b1de4abd894"
@@ -559,6 +605,7 @@
     "kernel_name": "stwo_jit_witness_17255b30022f129d",
     "kind": "witness",
     "label": "verify_instruction",
+    "module_globals": "none",
     "program_identity": "581ae02bbc52f42da4ad177bbe770460cfd08f36510572f41d1651c1994de5cb",
     "semantic_hash": "17255b30022f129d",
     "source_sha256": "0211a68e0d03e14b29606045b370b1e009456c26290941f4eaa0fff7096da2e9"
@@ -571,6 +618,7 @@
     "kernel_name": "stwo_native_trace_xor_logup_slabs_v1_77dc01e39a2d5eb5",
     "kind": "witness",
     "label": "xor_logup_trace",
+    "module_globals": "none",
     "program_identity": "d3871d6a09e4f76e559302cc23de947ffcd3d9e9683fe87ca1a7e36b0138067e",
     "semantic_contract": "stwo-zig/native/xor-logup/trace/v1;rows=2^log_size;storage=circle-domain-bit-reversed;preprocessed=is_first,is_step,row_bit,table_selector,table_a,table_b,table_c;main=a,b,c,multiplicity;step=2^log_step;offset=offset_mod_step;multiplicity=closed_form_truth_table_counts;output=preprocessed7+main4+relation_sources[table_a,table_b,table_c,multiplicity,a,b,c];relation_sources=immutable_pre_ifft_values;launches=1",
     "semantic_hash": "77dc01e39a2d5eb5"

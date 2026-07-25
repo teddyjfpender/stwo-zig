@@ -28,8 +28,15 @@ struct BatchTermDescriptor {
     std::uint32_t source_log_size;
 };
 
+struct AddressedSourceDescriptor {
+    std::uint64_t address;
+    std::uint32_t stride_words;
+    std::uint32_t log_size;
+};
+
 static_assert(sizeof(PreparedTermDescriptor) == 20);
 static_assert(sizeof(BatchTermDescriptor) == 12);
+static_assert(sizeof(AddressedSourceDescriptor) == 16);
 
 extern "C" int stwo_exec_context_create(void **out_handle);
 extern "C" int stwo_exec_context_destroy(void *handle);
@@ -102,6 +109,24 @@ extern "C" int stwo_accumulate_quotient_numerator_single_write_on(
     std::uint32_t *output_3,
     std::size_t output_stride_words,
     void *stream);
+extern "C" int stwo_accumulate_quotient_numerator_addressed_on(
+    const std::uint32_t *group_offsets,
+    const BatchTermDescriptor *term_descriptors,
+    std::uint32_t term_count,
+    std::uint32_t group_count,
+    std::uint32_t max_output_size,
+    const AddressedSourceDescriptor *source_descriptors,
+    std::uint32_t source_count,
+    const QM31 *line_coefficients,
+    std::uint32_t line_term_count,
+    const std::uint32_t *group_log_sizes,
+    const std::uint64_t *output_offsets,
+    std::size_t output_word_count,
+    std::uint32_t *output_0,
+    std::uint32_t *output_1,
+    std::uint32_t *output_2,
+    std::uint32_t *output_3,
+    void *stream);
 extern "C" int stwo_combine_quotients_from_numerators_on(
     std::uint32_t half_coset_initial_index,
     std::uint32_t half_coset_step_size,
@@ -116,6 +141,26 @@ extern "C" int stwo_combine_quotients_from_numerators_on(
     const std::uint32_t *partial_2,
     const std::uint32_t *partial_3,
     std::size_t partial_stride_words,
+    std::uint32_t *result_0,
+    std::uint32_t *result_1,
+    std::uint32_t *result_2,
+    std::uint32_t *result_3,
+    void *stream);
+extern "C" int stwo_combine_quotients_from_compact_numerators_on(
+    std::uint32_t half_coset_initial_index,
+    std::uint32_t half_coset_step_size,
+    std::uint32_t domain_size,
+    std::uint32_t domain_log_size,
+    const SecureCirclePoint *sample_points,
+    std::uint32_t sample_count,
+    const QM31 *first_linear_terms,
+    const std::uint32_t *partial_log_sizes,
+    const std::uint64_t *partial_offsets,
+    std::size_t partial_word_count,
+    const std::uint32_t *partial_0,
+    const std::uint32_t *partial_1,
+    const std::uint32_t *partial_2,
+    const std::uint32_t *partial_3,
     std::uint32_t *result_0,
     std::uint32_t *result_1,
     std::uint32_t *result_2,
@@ -579,6 +624,98 @@ bool test_zero_and_accumulate(DeviceArena &arena) {
             }
         }
     }
+
+    const std::vector<std::uint32_t> source_a(
+        source.begin(),
+        source.begin() + 8);
+    const std::vector<std::uint32_t> source_b(
+        source.begin() + source_stride,
+        source.begin() + source_stride + 4);
+    auto *device_source_a =
+        arena.allocate<std::uint32_t>(source_a.size());
+    auto *device_source_b =
+        arena.allocate<std::uint32_t>(source_b.size());
+    if (device_source_a == nullptr || device_source_b == nullptr ||
+        !arena.upload(device_source_a, source_a) ||
+        !arena.upload(device_source_b, source_b)) {
+        return false;
+    }
+    const std::vector<AddressedSourceDescriptor> addressed{
+        {
+            reinterpret_cast<std::uintptr_t>(device_source_a),
+            static_cast<std::uint32_t>(source_a.size()),
+            3u,
+        },
+        {
+            reinterpret_cast<std::uintptr_t>(device_source_b),
+            static_cast<std::uint32_t>(source_b.size()),
+            2u,
+        },
+    };
+    auto *device_addressed =
+        arena.allocate<AddressedSourceDescriptor>(addressed.size());
+    const std::vector<std::uint64_t> addressed_offsets{0u, 8u, 24u};
+    auto *device_addressed_offsets =
+        arena.allocate<std::uint64_t>(addressed_offsets.size());
+    std::uint32_t *addressed_outputs[4];
+    if (device_addressed == nullptr || device_addressed_offsets == nullptr ||
+        !arena.upload(device_addressed, addressed) ||
+        !arena.upload(device_addressed_offsets, addressed_offsets)) {
+        return false;
+    }
+    for (auto &output : addressed_outputs) {
+        output = arena.allocate<std::uint32_t>(addressed_offsets.back());
+        if (output == nullptr) return false;
+    }
+    if (!check(
+            stwo_accumulate_quotient_numerator_addressed_on(
+                device_offsets,
+                device_descriptors,
+                descriptors.size(),
+                group_count,
+                max_output,
+                device_addressed,
+                addressed.size(),
+                device_lines,
+                3,
+                device_logs,
+                device_addressed_offsets,
+                addressed_offsets.back(),
+                addressed_outputs[0],
+                addressed_outputs[1],
+                addressed_outputs[2],
+                addressed_outputs[3],
+                arena.stream),
+            "accumulate addressed quotient numerators")) {
+        return false;
+    }
+    std::vector<std::uint32_t> actual_addressed[4];
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        actual_addressed[coordinate].resize(addressed_offsets.back());
+        if (!arena.read(
+                &actual_addressed[coordinate],
+                addressed_outputs[coordinate])) {
+            return false;
+        }
+    }
+    if (!arena.sync()) return false;
+    for (std::uint32_t group = 0; group < group_count; ++group) {
+        for (std::uint32_t row = 0; row < (1u << logs[group]); ++row) {
+            for (int coordinate = 0; coordinate < 4; ++coordinate) {
+                const std::size_t packed =
+                    addressed_offsets[group] + row;
+                const std::size_t uniform = group * output_stride + row;
+                if (actual_addressed[coordinate][packed] !=
+                    actual[coordinate][uniform]) {
+                    std::fprintf(
+                        stderr,
+                        "addressed numerator coordinate %d mismatch\n",
+                        coordinate);
+                    return false;
+                }
+            }
+        }
+    }
     return expect_invalid(
                stwo_zero_quotient_numerator_outputs_on(
                    device_logs,
@@ -767,7 +904,92 @@ bool test_combine(DeviceArena &arena) {
             return false;
         }
     }
-    return expect_invalid(
+    const std::vector<std::uint64_t> compact_offsets{0u, 8u, 24u};
+    auto *device_offsets =
+        arena.allocate<std::uint64_t>(compact_offsets.size());
+    std::uint32_t *device_compact[4];
+    std::vector<std::uint32_t> compact[4];
+    if (device_offsets == nullptr ||
+        !arena.upload(device_offsets, compact_offsets)) {
+        return false;
+    }
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        compact[coordinate].insert(
+            compact[coordinate].end(),
+            partials[coordinate].begin(),
+            partials[coordinate].begin() + 8);
+        compact[coordinate].insert(
+            compact[coordinate].end(),
+            partials[coordinate].begin() + partial_stride,
+            partials[coordinate].begin() + partial_stride + 16);
+        device_compact[coordinate] =
+            arena.allocate<std::uint32_t>(compact[coordinate].size());
+        if (device_compact[coordinate] == nullptr ||
+            !arena.upload(device_compact[coordinate], compact[coordinate])) {
+            return false;
+        }
+    }
+    if (!check(
+            stwo_combine_quotients_from_compact_numerators_on(
+                3u,
+                7u,
+                domain_size,
+                domain_log,
+                device_samples,
+                samples.size(),
+                device_first,
+                device_logs,
+                device_offsets,
+                compact_offsets.back(),
+                device_compact[0],
+                device_compact[1],
+                device_compact[2],
+                device_compact[3],
+                device_results[0],
+                device_results[1],
+                device_results[2],
+                device_results[3],
+                arena.stream),
+            "combine compact quotients")) {
+        return false;
+    }
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        if (!arena.read(&actual[coordinate], device_results[coordinate]))
+            return false;
+    }
+    if (!arena.sync()) return false;
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        if (actual[coordinate] != expected[coordinate]) {
+            std::fprintf(
+                stderr,
+                "compact combined coordinate %d mismatch\n",
+                coordinate);
+            return false;
+        }
+    }
+    const bool compact_bound_rejected = expect_invalid(
+        stwo_combine_quotients_from_compact_numerators_on(
+            3u,
+            7u,
+            domain_size,
+            domain_log,
+            device_samples,
+            samples.size(),
+            device_first,
+            device_logs,
+            device_offsets,
+            0,
+            device_compact[0],
+            device_compact[1],
+            device_compact[2],
+            device_compact[3],
+            device_results[0],
+            device_results[1],
+            device_results[2],
+            device_results[3],
+            arena.stream),
+        "combine compact bound");
+    return compact_bound_rejected && expect_invalid(
                stwo_combine_quotients_from_numerators_on(
                    3u,
                    7u,
@@ -822,7 +1044,7 @@ int main() {
         test_combine(arena);
     if (!arena.close() || !passed) return 1;
     std::puts(
-        "Native CUDA quotient smoke passed: five resident stages match "
-        "independent CPU references and reject invalid ranges");
+        "Native CUDA quotient smoke passed: six resident paths, including "
+        "multi-arena sources, match independent CPU references");
     return 0;
 }

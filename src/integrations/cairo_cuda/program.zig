@@ -100,6 +100,23 @@ const Authority = struct {
     buffers: []const BufferDescription,
 };
 
+/// Fully resolved proof-derived authority used by diagnostic product routes
+/// that authenticate each staged artifact directly instead of loading a
+/// production semantic-pack manifest.
+pub const ProofDerivedAuthority = Authority;
+
+/// Emits the same generic proof program as `emitDevelopmentOnly`, but from
+/// caller-resolved, content-addressed artifacts. This route is deliberately
+/// proof-derived and can never satisfy production admission.
+pub fn emitProofDerivedDiagnostic(
+    allocator: std.mem.Allocator,
+    authority: ProofDerivedAuthority,
+) !ir.ProofProgram {
+    if (authority.pack.provenance != .proof_derived)
+        return Error.DevelopmentSemanticsRequired;
+    return emitAuthenticated(allocator, authority);
+}
+
 fn emitAuthenticated(allocator: std.mem.Allocator, authority: Authority) !ir.ProofProgram {
     try validateAuthority(allocator, authority);
     const pack_digest = authority.pack.digest();

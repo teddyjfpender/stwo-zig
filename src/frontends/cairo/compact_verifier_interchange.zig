@@ -10,6 +10,17 @@ pub const protocol_version: u16 = 1;
 pub const protocol_header_bytes: usize = 112;
 pub const component_enable_count: u32 = 83;
 pub const trace_tree_column_counts = [4]u32{ 161, 3449, 2268, 8 };
+pub const sn2_interaction_claim_words: u32 = 58 * 4;
+pub const sn2_sampled_value_words: u32 = 24_440;
+pub const sn2_decommitment_capacity_words: u32 = 2_077_800;
+
+pub fn sn2ProofLayout() CompactProofLayoutV1 {
+    return .{
+        .interaction_claim_words = sn2_interaction_claim_words,
+        .sampled_value_words = sn2_sampled_value_words,
+        .decommitment_capacity_words = sn2_decommitment_capacity_words,
+    };
+}
 
 pub const PreprocessedTraceVariantV1 = enum(u32) {
     canonical = 1,
@@ -325,11 +336,7 @@ fn digestFromHex(encoded: []const u8) ![32]u8 {
 }
 
 test "compact protocol matches the Rust-accepted SN2 golden bytes" {
-    const protocol = try (CompactProofLayoutV1{
-        .interaction_claim_words = 58 * 4,
-        .sampled_value_words = 24_440,
-        .decommitment_capacity_words = 2_077_800,
-    }).protocol(0);
+    const protocol = try sn2ProofLayout().protocol(0);
     const encoded = try protocol.encode();
     const encoded_hex = std.fmt.bytesToHex(encoded, .lower);
     try std.testing.expectEqualStrings(

@@ -13,11 +13,17 @@ test "product registry admits all exact canonical recorded witnesses" {
 
     try std.testing.expectEqual(@as(usize, 33), witnesses.entries.len);
     for (witnesses.entries) |witness| {
-        try std.testing.expect(registry.admitsRecordedWitness(.{
+        const resolved = registry.resolveRecordedWitness(.{
             .label = witness.label,
             .semantic_hash = witness.semantic_hash,
             .program_identity = witness.program.semanticIdentity(),
-        }));
+        }) orelse return error.MissingCanonicalWitness;
+        const expected: product_aot.ModuleGlobals =
+            if (witness.program.deductionRequirements().pedersen_table)
+                .pedersen_w18_columns_rows_v1
+            else
+                .none;
+        try std.testing.expectEqual(expected, resolved.module_globals);
     }
 
     const admitted = witnesses.find("add_ap_opcode") orelse

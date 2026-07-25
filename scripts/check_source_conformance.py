@@ -58,6 +58,7 @@ EXCLUDED_DIRECTORY_NAMES = frozenset({
 MANUAL_SOURCE_CEILING = 850
 OWNER_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 ROOT_ALLOWLIST = frozenset({
+    "cairo_cuda.zig",
     "metal_arena_plan_cli.zig",
     "riscv_bench_cli.zig",
     "riscv_metal_bench_cli.zig",

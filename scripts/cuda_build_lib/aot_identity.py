@@ -37,6 +37,13 @@ NATIVE_CLOSURE_IDENTITY_SCHEME = (
 RECORDED_WITNESS_IDENTITY_SCHEME = "sha256-source-and-blake3-program-v1"
 RECORDED_WITNESS_SCHEMA = "recorded_witness_v1"
 WITNESS_CODEGEN_VERSION = 12
+CAIRO_EVAL_SCHEMA = "cairo_eval_part_v1"
+CAIRO_EVAL_IDENTITY_SCHEME = (
+    "sha256-canonical-cairo-eval-program-source-catalog-v1"
+)
+CAIRO_EVAL_CODEGEN_VERSION = 1
+CAIRO_EVAL_PRODUCT_DOMAIN = b"stwo-zig/cairo-cuda-eval-product/v1\x00"
+CAIRO_EVAL_PROGRAM_SET_DOMAIN = b"stwo-zig/cairo-eval-program-set/v1\x00"
 LOCAL_INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"]+)"', re.MULTILINE)
 
 
@@ -46,6 +53,14 @@ def validate_native_aot_identity(
     base_fields: set[str],
     index: int,
 ) -> None:
+    if entry["abi_schema"] == CAIRO_EVAL_SCHEMA:
+        validate_cairo_eval_identity(
+            generated_dir,
+            entry,
+            base_fields,
+            index,
+        )
+        return
     if entry["abi_schema"] == RECORDED_WITNESS_SCHEMA:
         if (
             "identity_scheme" not in entry
@@ -142,6 +157,133 @@ def validate_recorded_witness_identity(
         raise BuildError(
             f"AOT manifest entry {index} has stale recorded-witness identities"
         )
+
+
+def validate_cairo_eval_identity(
+    generated_dir: Path,
+    entry: dict[str, object],
+    base_fields: set[str],
+    index: int,
+) -> None:
+    required = base_fields | {
+        "catalog_identity",
+        "codegen_version",
+        "identity_scheme",
+        "occurrences",
+        "source_sha256",
+    }
+    if set(entry) != required:
+        raise BuildError(
+            f"AOT manifest entry {index} has a non-canonical Cairo eval identity"
+        )
+    if (
+        entry["identity_scheme"] != CAIRO_EVAL_IDENTITY_SCHEME
+        or entry["codegen_version"] != CAIRO_EVAL_CODEGEN_VERSION
+        or entry["kind"] != "constraint"
+    ):
+        raise BuildError(
+            f"AOT manifest entry {index} has an unknown Cairo eval identity scheme"
+        )
+    occurrences = entry["occurrences"]
+    if not isinstance(occurrences, list) or not occurrences:
+        raise BuildError(
+            f"AOT manifest entry {index} has no Cairo eval placements"
+        )
+    occurrence_fields = {
+        "component_index",
+        "component_label",
+        "component_source_identity",
+        "domain_log_size",
+        "evaluation_log_size",
+        "global_rc_base",
+        "instance",
+        "part_index",
+        "program_identity",
+        "rc_base",
+        "rc_count",
+        "trace_log_size",
+    }
+    exact_programs: list[bytes] = []
+    for occurrence in occurrences:
+        if not isinstance(occurrence, dict) or set(occurrence) != occurrence_fields:
+            raise BuildError(
+                f"AOT manifest entry {index} has a malformed Cairo eval placement"
+            )
+        label = occurrence["component_label"]
+        source_identity = str(occurrence["component_source_identity"])
+        exact_program = str(occurrence["program_identity"])
+        integers = [
+            occurrence[field]
+            for field in occurrence_fields
+            if field not in {
+                "component_label",
+                "component_source_identity",
+                "program_identity",
+            }
+        ]
+        if (
+            not isinstance(label, str)
+            or re.fullmatch(r"[A-Za-z0-9_]+", label) is None
+            or re.fullmatch(r"[0-9a-f]{64}", source_identity) is None
+            or re.fullmatch(r"[0-9a-f]{64}", exact_program) is None
+            or any(not isinstance(value, int) or value < 0 for value in integers)
+            or occurrence["rc_count"] == 0
+            or occurrence["domain_log_size"] != occurrence["trace_log_size"]
+            or occurrence["trace_log_size"] > occurrence["evaluation_log_size"]
+        ):
+            raise BuildError(
+                f"AOT manifest entry {index} has invalid Cairo eval placement semantics"
+            )
+        exact_programs.append(bytes.fromhex(exact_program))
+
+    canonical_occurrences = json.dumps(
+        occurrences,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    expected_catalog = hashlib.sha256(canonical_occurrences).hexdigest()
+    program_set = hashlib.sha256()
+    program_set.update(CAIRO_EVAL_PROGRAM_SET_DOMAIN)
+    program_set.update(len(exact_programs).to_bytes(8, "little"))
+    for identity in exact_programs:
+        program_set.update(identity)
+    expected_program = program_set.hexdigest()
+    source = generated_dir / str(entry["file"])
+    expected_source = hashlib.sha256(source.read_bytes()).hexdigest()
+    semantic_hash = int(str(entry["semantic_hash"]), 16)
+    expected_kernel = (
+        f"stwo_cairo_cuda_eval_v1_{cairo_eval_body_key(semantic_hash):016x}"
+    )
+    cache = hashlib.sha256()
+    cache.update(CAIRO_EVAL_PRODUCT_DOMAIN)
+    cache.update(bytes.fromhex(expected_program))
+    cache.update(bytes.fromhex(expected_source))
+    cache.update(bytes.fromhex(expected_catalog))
+    cache.update(CAIRO_EVAL_CODEGEN_VERSION.to_bytes(8, "little"))
+    expected_cache_key = cache.hexdigest()[:16]
+    if (
+        entry["catalog_identity"] != expected_catalog
+        or entry["program_identity"] != expected_program
+        or entry["source_sha256"] != expected_source
+        or entry["kernel_name"] != expected_kernel
+        or entry["cache_key"] != expected_cache_key
+        or entry["label"] != f"cairo_eval_{semantic_hash:016x}"
+    ):
+        raise BuildError(
+            f"AOT manifest entry {index} has stale Cairo eval identities"
+        )
+
+
+def cairo_eval_body_key(semantic_hash: int) -> int:
+    value = 0xCBF29CE484222325
+    payload = semantic_hash.to_bytes(
+        8,
+        "little",
+    ) + CAIRO_EVAL_CODEGEN_VERSION.to_bytes(8, "little")
+    for byte in payload:
+        value ^= byte
+        value = (value * 0x100000001B3) & ((1 << 64) - 1)
+    return value
 
 
 def witness_cache_key(semantic_hash: int) -> int:

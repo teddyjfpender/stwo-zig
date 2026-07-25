@@ -9,6 +9,10 @@ extern "C" {
 #endif
 
 #define STWO_NATIVE_AOT_FUNCTION_RECEIPT_ABI_VERSION 3u
+#define STWO_NATIVE_AOT_MODULE_GLOBALS_NONE 0u
+#define STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1 1u
+#define STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT 56u
+#define STWO_NATIVE_PEDERSEN_W18_ROW_COUNT (1u << 23)
 
 typedef struct {
     uint64_t aot_loads;
@@ -49,6 +53,20 @@ typedef struct {
     StwoNativeAotVerificationReceipt verification;
 } StwoNativeAotFunctionReceipt;
 
+typedef struct {
+    uint32_t abi_version;
+    uint32_t verified;
+    uint32_t module_globals;
+    uint32_t column_count;
+    uint32_t row_count;
+    uint32_t reserved;
+    uint64_t columns_symbol_bytes;
+    uint64_t row_count_symbol_bytes;
+    uint64_t module_token;
+    uint64_t stream_token;
+    uint8_t table_identity[32];
+} StwoNativeAotModuleGlobalsReceipt;
+
 #ifdef __cplusplus
 static_assert(sizeof(StwoNativeAotStats) == 40, "AOT stats ABI size");
 static_assert(sizeof(StwoNativeAotVerificationReceipt) == 80,
@@ -70,6 +88,14 @@ static_assert(offsetof(StwoNativeAotFunctionReceipt, cache_key) == 80,
               "AOT receipt cache-key offset");
 static_assert(offsetof(StwoNativeAotFunctionReceipt, verification) == 120,
               "AOT receipt verification offset");
+static_assert(sizeof(StwoNativeAotModuleGlobalsReceipt) == 88,
+              "AOT module-global receipt ABI size");
+static_assert(offsetof(
+                  StwoNativeAotModuleGlobalsReceipt, columns_symbol_bytes) == 24,
+              "AOT module-global columns byte-count offset");
+static_assert(offsetof(
+                  StwoNativeAotModuleGlobalsReceipt, table_identity) == 56,
+              "AOT module-global table-identity offset");
 #endif
 
 int stwo_native_aot_loader_create(void *exec_context, void **out_loader);
@@ -86,6 +112,26 @@ int stwo_native_aot_function_bind(
     uint32_t argument_count,
     void **out_function,
     StwoNativeAotFunctionReceipt *out_receipt);
+
+int stwo_native_aot_function_bind_with_globals(
+    void *loader,
+    uint64_t cache_key,
+    uint32_t abi_schema,
+    uint32_t expected_module_globals,
+    const char *kernel_name,
+    const uint32_t grid[3],
+    const uint32_t block[3],
+    uint32_t dynamic_shared_bytes,
+    uint32_t argument_count,
+    void **out_function,
+    StwoNativeAotFunctionReceipt *out_receipt);
+
+int stwo_native_aot_function_publish_pedersen_w18(
+    void *function,
+    const uint64_t columns[STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT],
+    uint32_t row_count,
+    const uint8_t table_identity[32],
+    StwoNativeAotModuleGlobalsReceipt *out_receipt);
 
 int stwo_native_aot_function_launch(
     void *function,

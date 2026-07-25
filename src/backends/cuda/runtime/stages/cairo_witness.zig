@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const abi = @import("../../abi/stages/cairo_witness.zig");
+const compact_runtime = @import("cairo_witness_compact.zig");
 const common = @import("common.zig");
 const layout = @import("resident_layout.zig");
 const runtime_error = @import("../error.zig");
@@ -9,6 +10,8 @@ const telemetry = @import("../telemetry.zig");
 const witness_plan = @import("cairo_witness_plan.zig");
 
 pub const Native = OpsFor(abi);
+pub const Compact = compact_runtime.Binding;
+pub const CompactTempBytes = compact_runtime.TempBytes;
 
 pub const Geometry = struct {
     real_rows: u32,
@@ -91,6 +94,19 @@ pub const EdgeGeometry = struct {
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        pub fn compactTempBytes(
+            sort_rows: u32,
+        ) runtime_error.Error!CompactTempBytes {
+            return compact_runtime.OpsFor(Api).tempBytes(sort_rows);
+        }
+
+        pub fn compact(
+            session: anytype,
+            binding: Compact,
+        ) runtime_error.Error!void {
+            return compact_runtime.OpsFor(Api).compact(session, binding);
+        }
+
         pub fn scatter(
             session: anytype,
             geometry: Geometry,

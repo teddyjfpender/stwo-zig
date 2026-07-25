@@ -1,0 +1,50 @@
+{
+  "schema": "stwo-zig-sn2-constraint-cumulative-parity-sm89-v1",
+  "date": "2026-07-25",
+  "device": {
+    "name": "NVIDIA GeForce RTX 4090",
+    "uuid": "GPU-3dabce32-b71d-9cdf-6392-026267492cb6",
+    "compute_capability": "8.9",
+    "driver": "580.126.09",
+    "cuda": "12.8",
+    "nvcc_build": "cuda_12.8.r12.8/compiler.35583870_0"
+  },
+  "inventory": {
+    "components": 58,
+    "placements": 279,
+    "constraints": 1325,
+    "authenticated_aot_entries": 319,
+    "native_aot_entries": 48,
+    "cairo_constraint_aot_entries": 271,
+    "fixture_rows": 4
+  },
+  "telemetry": {
+    "aot_loads": 271,
+    "aot_cache_hits": 8,
+    "aot_misses": 0,
+    "launches": 279,
+    "launch_failures": 0,
+    "runtime_compiles": 0,
+    "cpu_fallbacks": 0
+  },
+  "result": {
+    "status": "pass",
+    "stdout": "SN2 constraint parity passed: components=58 placements=279 aot_loads=271 cache_hits=8 missing=0 runtime_compiles=0 cpu_fallbacks=0"
+  },
+  "released_product": {
+    "archive_sha256": "bbf7426d3e988dbc35a1e777e9d1855c607936e1ab8a8b490da5c773d49a08c2",
+    "build_identity": "72a2dee34a879e6ca76d206b372912a488a0540daef4d34aefd077791fe4f66c",
+    "mutated": false
+  },
+  "isolated_product": {
+    "aot_pack_sha256": "4ec38eeb4dafd3a1da349e0b016434a5c30e96a6313a5e9cabaf09b929105f29",
+    "executable_sha256": "07b14b85182ce52efb630b74325ec96881648df95e1613801c1ba82c5701ec94"
+  },
+  "sources": {
+    "aot_manifest_sha256": "06c0d3adb44e015bcd1e2ff62e5e54f82c13d8cee5f6dc3e2db5cd8ab782c916",
+    "fixture_header_sha256": "7e535000e96a896469755761dd48d5692423429fe8f01ecf044d1bb1bbef816a",
+    "smoke_sha256": "920696c5379e5735e0766f807bb120919b04bd84a41100952efeb36254113d48",
+    "simd_oracle_sha256": "902f46c8331f3aa33f0b53269f216df6f8fd7108ccbaed66cdd5b89705f8c097",
+    "fixture_generator_sha256": "ac523c8daa366e84c9d20f93a483a3487671cbd74e8b41571d7224f0eb11e636"
+  }
+}

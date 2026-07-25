@@ -45,8 +45,14 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "kernels/xor_trace.cu",
     },
     "cairo": {
-        "cairo/casm_input.cu", "cairo/witness_edge.cu",
-        "cairo/witness_multi_edge.cu", "cairo/witness_seed.cu",
+        "cairo/casm_input.cu",
+        "cairo/eval_params.cu",
+        "cairo/memory_base.cu",
+        "cairo/memory_execution.cu",
+        "cairo/witness_edge.cu",
+        "cairo/witness_compact_v2.cu",
+        "cairo/witness_multi_edge.cu",
+        "cairo/witness_seed.cu",
     },
     "commitment": {
         "commitment/merkle.cu",
@@ -133,9 +139,9 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual([86, 90], plan["target_sms"])
         self.assertEqual(59, plan["authority_ordinary_source_count"])
         self.assertEqual(340, plan["authority_aot_source_count"])
-        self.assertEqual(0, plan["ordinary_source_count"])
-        self.assertEqual(48, plan["aot_source_count"])
-        self.assertEqual(96, plan["aot_cubin_count"])
+        self.assertEqual(6, plan["ordinary_source_count"])
+        self.assertEqual(319, plan["aot_source_count"])
+        self.assertEqual(638, plan["aot_cubin_count"])
         self.assertEqual(expected_sources, actual_sources)
         self.assertEqual(len(native["sources"]), plan["native_runtime_source_count"])
         self.assertEqual(len(native["host_sources"]), plan["native_host_source_count"])
@@ -173,6 +179,7 @@ class CudaBuildTests(unittest.TestCase):
             manifest = [{
                 "kind": "constraint",
                 "label": "test",
+                "module_globals": "none",
                 "abi_schema": "ordinary_constraint_v1",
                 "kernel_name": "test",
                 "cache_key": "0000000000000005",
@@ -278,7 +285,7 @@ class CudaBuildTests(unittest.TestCase):
             "wide_fibonacci",
             (schedules + b2n + n2b + composition).lower(),
         )
-        self.assertEqual(5, abi.count("launches_out: *u32"))
+        self.assertEqual(6, abi.count("launches_out: *u32"))
         self.assertEqual(2, composition_abi.count("launches_out: *u32"))
         self.assertIn("CompactDepth", composition)
         self.assertIn("stwo_ntt_b2n_composition_split_depth_two_on", composition)
@@ -334,6 +341,7 @@ class CudaBuildTests(unittest.TestCase):
                 "bytes": 4,
                 "sha256": hashlib.sha256(b"cbin").hexdigest(),
                 "abi_schema": 1,
+                "module_globals": 0,
                 "kernel_name": "test_kernel",
             }
         ]

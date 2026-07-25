@@ -12,6 +12,7 @@ const common = @import("../../backends/cuda/runtime/stages/common.zig");
 const layout = @import("../../backends/cuda/runtime/stages/resident_layout.zig");
 const telemetry = @import("../../backends/cuda/runtime/telemetry.zig");
 const witness_program = @import("../../frontends/cairo/witness/program.zig");
+const binding = @import("recorded_binding.zig");
 
 pub const argument_count: u32 = 8;
 pub const execution_table_count: u32 = 37;
@@ -37,13 +38,25 @@ pub const Buffers = struct {
     /// Auxiliary outputs use CUDA's word-major [word][row] layout.
     lookup_words_word_major: common.Words,
     sub_words_word_major: common.Words,
+    pedersen_w18: ?PedersenW18Table = null,
 };
+
+pub const PedersenW18Table = struct {
+    columns: [product_aot_module_globals.pedersen_w18_column_count]common.Words,
+    identity: [32]u8,
+};
+
+pub const ComponentGeometry = binding.ComponentGeometry;
+pub const catalogIdentity = binding.catalogIdentity;
 
 pub const PreparedLaunch = struct {
     allocator: std.mem.Allocator,
     kernel_name: [:0]u8,
     kernel: kernel_module.Kernel,
     arguments: Arguments,
+    pedersen_w18: ?kernel_module.PedersenW18Publication,
+    catalog_identity: [32]u8,
+    binding_identity: [32]u8,
 
     pub fn deinit(self: *PreparedLaunch) void {
         self.allocator.free(self.kernel_name);
@@ -55,7 +68,15 @@ pub const PreparedLaunch = struct {
         session: anytype,
     ) runtime_error.Error!void {
         var pointers = self.arguments.pointers();
-        try session.launchKernel(self.kernel, &pointers);
+        if (self.pedersen_w18) |publication| {
+            try session.launchKernelWithPedersenW18(
+                self.kernel,
+                &pointers,
+                publication,
+            );
+        } else {
+            try session.launchKernel(self.kernel, &pointers);
+        }
     }
 };
 
@@ -90,19 +111,77 @@ pub fn prepare(
     label: []const u8,
     semantic_hash: u64,
     program: witness_program.Program,
+    component: ComponentGeometry,
     row_count: u32,
     buffers: Buffers,
 ) !PreparedLaunch {
-    try common.requireStage(session, .trace_generation);
+    return prepareImpl(
+        allocator,
+        session,
+        registry,
+        label,
+        semantic_hash,
+        program,
+        component,
+        row_count,
+        buffers,
+        false,
+    );
+}
+
+/// The native EC-op graph is the sole producer authorized to feed this
+/// composite consumer. Keeping the label out of this API prevents callers from
+/// turning other provenance-only entries into standalone recorded launches.
+pub fn prepareNativeEcConsumer(
+    allocator: std.mem.Allocator,
+    session: anytype,
+    registry: product_aot.Registry,
+    semantic_hash: u64,
+    program: witness_program.Program,
+    component: ComponentGeometry,
+    row_count: u32,
+    buffers: Buffers,
+) !PreparedLaunch {
+    return prepareImpl(
+        allocator,
+        session,
+        registry,
+        native_composite_label,
+        semantic_hash,
+        program,
+        component,
+        row_count,
+        buffers,
+        true,
+    );
+}
+
+fn prepareImpl(
+    allocator: std.mem.Allocator,
+    session: anytype,
+    registry: product_aot.Registry,
+    label: []const u8,
+    semantic_hash: u64,
+    program: witness_program.Program,
+    component: ComponentGeometry,
+    row_count: u32,
+    buffers: Buffers,
+    allow_native_composite: bool,
+) !PreparedLaunch {
+    try common.requireStage(session, .ingress);
     try program.validate();
+    try component.validateRows(row_count);
     if (row_count == 0 or semantic_hash == 0)
         return error.InvalidKernelDescriptor;
     // This label is packaged for provenance only. Production EC-op execution
     // is a native multi-kernel graph with a dedicated workspace, not a
     // standalone recorded-witness launch.
-    if (std.mem.eql(u8, label, native_composite_label))
-        return error.StrictAotViolation;
-    if (program.deductionRequirements().pedersen_table)
+    const is_native_composite = std.mem.eql(
+        u8,
+        label,
+        native_composite_label,
+    );
+    if (is_native_composite != allow_native_composite)
         return error.StrictAotViolation;
     const admitted = registry.resolveRecordedWitness(.{
         .label = label,
@@ -111,6 +190,19 @@ pub fn prepare(
     }) orelse return error.StrictAotViolation;
     if (admitted.semantic_hash != semantic_hash)
         return error.StrictAotViolation;
+    const expected_globals: product_aot.ModuleGlobals =
+        if (program.deductionRequirements().pedersen_table)
+            .pedersen_w18_columns_rows_v1
+        else
+            .none;
+    if (admitted.module_globals != expected_globals)
+        return error.StrictAotViolation;
+    const catalog_identity = catalogIdentity(
+        component,
+        label,
+        admitted,
+        allow_native_composite,
+    );
 
     const input_count = try common.count(buffers.input_columns.len);
     const output_count = try common.count(buffers.output_columns.len);
@@ -188,6 +280,33 @@ pub fn prepare(
         const resident = try layout.resident(session, u32, table, table.len);
         try reads.append(allocator, resident.range);
     }
+    var pedersen_publication: ?kernel_module.PedersenW18Publication = null;
+    if (buffers.pedersen_w18) |table| {
+        if (expected_globals != .pedersen_w18_columns_rows_v1 or
+            std.mem.allEqual(u8, &table.identity, 0))
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        var publication = kernel_module.PedersenW18Publication{
+            .columns = undefined,
+            .row_count = product_aot_module_globals.pedersen_w18_row_count,
+            .table_identity = table.identity,
+        };
+        for (table.columns, 0..) |column, index| {
+            const resident = try exactResident(
+                session,
+                column,
+                product_aot_module_globals.pedersen_w18_row_count,
+                @alignOf(u32),
+            );
+            publication.columns[index] = @intFromPtr(resident.pointer);
+            try reads.append(allocator, resident.range);
+        }
+        try publication.validate();
+        pedersen_publication = publication;
+    } else if (expected_globals != .none) {
+        return error.StrictAotViolation;
+    }
     for (buffers.output_columns) |column| {
         const resident = try exactResident(
             session,
@@ -204,7 +323,17 @@ pub fn prepare(
     }
     try writes.appendSlice(allocator, &.{ lookup.range, sub.range });
     try layout.requireDisjoint(writes.items, reads.items);
-    try layout.requireDisjoint(writes.items, &.{});
+    try binding.uploadCanonical(
+        allocator,
+        &session.context,
+        buffers,
+    );
+    const binding_identity = binding.bindingIdentity(
+        catalog_identity,
+        buffers,
+    );
+    if (std.mem.allEqual(u8, &binding_identity, 0))
+        return error.InvalidKernelDescriptor;
 
     const owned_name = try allocator.dupeZ(u8, admitted.kernel_name);
     errdefer allocator.free(owned_name);
@@ -216,12 +345,16 @@ pub fn prepare(
         .grid = .{ 1 + (row_count - 1) / launch_block, 1, 1 },
         .block = .{ launch_block, 1, 1 },
         .argument_count = argument_count,
+        .module_globals = admitted.module_globals,
     };
     try kernel.validate();
     return .{
         .allocator = allocator,
         .kernel_name = owned_name,
         .kernel = kernel,
+        .pedersen_w18 = pedersen_publication,
+        .catalog_identity = catalog_identity,
+        .binding_identity = binding_identity,
         .arguments = .{
             .input_columns = input_pointers.pointer,
             .execution_tables = execution_pointers.pointer,
@@ -234,6 +367,9 @@ pub fn prepare(
         },
     };
 }
+
+const product_aot_module_globals =
+    @import("../../backends/cuda/aot/module_globals.zig");
 
 fn exactResident(
     session: anytype,
@@ -292,6 +428,7 @@ test "recorded witness binding resolves exact product identity and owns name" {
         witness.label,
         witness.semantic_hash,
         witness.program,
+        testComponent(3),
         8,
         fixture.buffers(),
     );
@@ -306,6 +443,19 @@ test "recorded witness binding resolves exact product identity and owns name" {
         "stwo_jit_witness_d94540f2fd219001",
         prepared.kernel.name,
     );
+    const original_binding = prepared.binding_identity;
+    fixture.input_columns[0].generation += 1;
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &original_binding,
+        &binding.bindingIdentity(
+            prepared.catalog_identity,
+            fixture.buffers(),
+        ),
+    ));
+    fixture.input_columns[0].generation -= 1;
+    try std.testing.expectEqual(@as(u64, 5), session.context.uploads);
+    session.context.active_stage = .trace_generation;
     try prepared.launch(&session);
     try std.testing.expectEqual(@as(u64, 1), session.launches);
 }
@@ -340,6 +490,7 @@ test "recorded witness binding rejects identity and alias drift" {
             witness.label,
             witness.semantic_hash ^ 1,
             witness.program,
+            testComponent(3),
             8,
             fixture.buffers(),
         ),
@@ -350,6 +501,12 @@ test "recorded witness binding rejects identity and alias drift" {
     try std.testing.expect(
         pedersen.program.deductionRequirements().pedersen_table,
     );
+    var pedersen_fixture = try TestBuffers.init(
+        std.testing.allocator,
+        pedersen.program,
+        8,
+    );
+    defer pedersen_fixture.deinit();
     try std.testing.expectError(
         error.StrictAotViolation,
         prepare(
@@ -359,8 +516,9 @@ test "recorded witness binding rejects identity and alias drift" {
             pedersen.label,
             pedersen.semantic_hash,
             pedersen.program,
+            testComponent(3),
             8,
-            fixture.buffers(),
+            pedersen_fixture.buffers(),
         ),
     );
     const composite = witnesses.find(native_composite_label) orelse
@@ -374,6 +532,7 @@ test "recorded witness binding rejects identity and alias drift" {
             composite.label,
             composite.semantic_hash,
             composite.program,
+            testComponent(3),
             8,
             fixture.buffers(),
         ),
@@ -389,10 +548,57 @@ test "recorded witness binding rejects identity and alias drift" {
             witness.label,
             witness.semantic_hash,
             witness.program,
+            testComponent(3),
             8,
             fixture.buffers(),
         ),
     );
+}
+
+test "native EC composite is the only admitted partial-EC launch path" {
+    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+    var witnesses = try witness_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/sn_pie_2_witness_programs.bin",
+    );
+    defer witnesses.deinit();
+    const composite = witnesses.find(native_composite_label) orelse
+        return error.MissingCanonicalWitness;
+    try std.testing.expect(
+        !composite.program.deductionRequirements().pedersen_table,
+    );
+    var registry = try product_aot.Registry.initProduct(
+        std.testing.allocator,
+    );
+    defer registry.deinit();
+    var session = TestSession{};
+    const partial_rows: u32 = 16 * 256;
+    var fixture = try TestBuffers.init(
+        std.testing.allocator,
+        composite.program,
+        partial_rows,
+    );
+    defer fixture.deinit();
+
+    const buffers = fixture.buffers();
+    var prepared = try prepareNativeEcConsumer(
+        std.testing.allocator,
+        &session,
+        registry,
+        composite.semantic_hash,
+        composite.program,
+        testComponent(12),
+        partial_rows,
+        buffers,
+    );
+    defer prepared.deinit();
+    try std.testing.expectEqual(
+        product_aot.ModuleGlobals.none,
+        prepared.kernel.module_globals,
+    );
+    session.context.active_stage = .trace_generation;
+    try prepared.launch(&session);
+    try std.testing.expectEqual(@as(u64, 1), session.launches);
 }
 
 const TestBuffers = struct {
@@ -509,10 +715,23 @@ const TestSession = struct {
             return error.ArgumentCountMismatch;
         self.launches += 1;
     }
+
+    pub fn launchKernelWithPedersenW18(
+        self: *TestSession,
+        kernel: kernel_module.Kernel,
+        arguments: []const ?*anyopaque,
+        publication: kernel_module.PedersenW18Publication,
+    ) runtime_error.Error!void {
+        try publication.validate();
+        if (kernel.module_globals != .pedersen_w18_columns_rows_v1)
+            return error.InvalidKernelDescriptor;
+        try self.launchKernel(kernel, arguments);
+    }
 };
 
 const TestContext = struct {
-    active_stage: telemetry.Stage = .trace_generation,
+    active_stage: telemetry.Stage = .ingress,
+    uploads: u64 = 0,
 
     pub fn requireStage(
         self: *TestContext,
@@ -535,7 +754,30 @@ const TestContext = struct {
         }
         return @ptrFromInt(slice.address);
     }
+
+    pub fn uploadSlice(
+        self: *TestContext,
+        comptime F: type,
+        destination: anytype,
+        source: []const F,
+    ) runtime_error.Error!void {
+        if (self.active_stage != .ingress or
+            destination.len != source.len or source.len == 0)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        _ = try self.deviceSlicePointer(F, destination, source.len);
+        self.uploads += 1;
+    }
 };
+
+fn testComponent(trace_log_size: u32) ComponentGeometry {
+    return .{
+        .canonical_ordinal = 0,
+        .instance = 0,
+        .trace_log_size = trace_log_size,
+    };
+}
 
 fn fillSlices(
     slices: []common.Words,

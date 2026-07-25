@@ -262,3 +262,138 @@ test "compact and retained B2N select distinct compatibility ABIs" {
     );
     try std.testing.expectEqual(@as(usize, 2), session.launches);
 }
+
+const CaptureAddressedApi = struct {
+    var calls: u32 = 0;
+    var tile_offset: usize = 0;
+    var include_circle: u32 = 0;
+
+    pub fn stwo_lde_n2b_addressed_on(
+        arena: [*]u32,
+        arena_words: usize,
+        descriptors: [*]const transform_module.AddressedLdeDescriptor,
+        descriptor_count: u32,
+        evaluation_tile_offset_words: usize,
+        log_n: u32,
+        twiddles: [*]const u32,
+        twiddle_words: u32,
+        domain_size: u32,
+        _: *anyopaque,
+        include: u32,
+        launches_out: *u32,
+    ) c_int {
+        if (@intFromPtr(arena) != 0x100000 or
+            arena_words != 4096 or
+            @intFromPtr(descriptors) != 0x100100 or
+            descriptor_count != 2 or
+            evaluation_tile_offset_words != 2048 or
+            log_n != 8 or
+            @intFromPtr(twiddles) != 0x100400 or
+            twiddle_words != 128 or
+            domain_size != 128)
+        {
+            return 1;
+        }
+        calls += 1;
+        tile_offset = evaluation_tile_offset_words;
+        include_circle = include;
+        launches_out.* = 4;
+        return 0;
+    }
+};
+
+fn descriptorSlice(
+    address: usize,
+    len: usize,
+) transform_module.AddressedLdeDescriptors {
+    return .{ .address = address, .len = len, .owner = owner };
+}
+
+test "addressed LDE validates the sealed plan before ingress" {
+    const Descriptor = transform_module.AddressedLdeDescriptor;
+    const descriptors = [_]Descriptor{
+        Descriptor.init(0, 2048, 6),
+        Descriptor.init(64, 2304, 6),
+    };
+    try transform_module.validateAddressedPlan(
+        &descriptors,
+        4096,
+        2048,
+        8,
+    );
+
+    var wrong_destination = descriptors;
+    wrong_destination[1].evaluation_offset_words += 1;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        transform_module.validateAddressedPlan(
+            &wrong_destination,
+            4096,
+            2048,
+            8,
+        ),
+    );
+
+    var aliases_tile = descriptors;
+    aliases_tile[0].coefficient_offset_words = 2304;
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        transform_module.validateAddressedPlan(
+            &aliases_tile,
+            4096,
+            2048,
+            8,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        transform_module.validateAddressedPlan(&.{}, 4096, 2048, 8),
+    );
+}
+
+test "addressed LDE dispatch remains inside one resident arena" {
+    CaptureAddressedApi.calls = 0;
+    var session = FakeSession.init(.constraint_evaluation);
+    const captured = transform_module.OpsFor(CaptureAddressedApi);
+    try captured.extendAddressed(
+        &session,
+        .constraint_evaluation,
+        wordsAt(0x100000, 4096),
+        descriptorSlice(0x100100, 2),
+        2048,
+        8,
+        wordsAt(0x100400, 128),
+        false,
+    );
+    try std.testing.expectEqual(@as(u32, 1), CaptureAddressedApi.calls);
+    try std.testing.expectEqual(@as(usize, 2048), CaptureAddressedApi.tile_offset);
+    try std.testing.expectEqual(@as(u32, 1), CaptureAddressedApi.include_circle);
+    try std.testing.expectEqual(@as(usize, 4), session.launches);
+
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        captured.extendAddressed(
+            &session,
+            .constraint_evaluation,
+            wordsAt(0x100000, 4096),
+            descriptorSlice(0x200000, 2),
+            2048,
+            8,
+            wordsAt(0x100400, 128),
+            false,
+        ),
+    );
+    try std.testing.expectError(
+        error.OverlappingDeviceRange,
+        captured.extendAddressed(
+            &session,
+            .constraint_evaluation,
+            wordsAt(0x100000, 4096),
+            descriptorSlice(0x100100, 2),
+            2048,
+            8,
+            wordsAt(0x102000, 128),
+            false,
+        ),
+    );
+}

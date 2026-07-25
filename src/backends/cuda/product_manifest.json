@@ -3,7 +3,14 @@
   "product": "stwo-native-cuda",
   "source_authority_sha256": "63c7503f83ed467fdcf010be867b0f395ace8a4a0d1d11572112ce7405cbbe2b",
   "ordinary": {
-    "product_sources": [],
+    "product_sources": [
+      "composition.cu",
+      "ec_op_witness.cu",
+      "fields.cu",
+      "fixed_table_materializer.cu",
+      "witness_edge_gather.cu",
+      "witness_feed_counts.cu"
+    ],
     "resident_candidates": [
       "accumulate.cu",
       "barycentric.cu",
@@ -16,6 +23,7 @@
       "cuda_exec_context.cu",
       "decommit.cu",
       "device_transcript.cu",
+      "ec_op_witness.cu",
       "eval_at_point.cu",
       "fields.cu",
       "fixed_table_materializer.cu",
@@ -41,7 +49,9 @@
       "relation_scan.cu",
       "resident_pow.cu",
       "rfft.cu",
-      "twiddles.cu"
+      "twiddles.cu",
+      "witness_edge_gather.cu",
+      "witness_feed_counts.cu"
     ],
     "quarantined_migration": [
       "cuda_mem_pool.cu",
@@ -53,16 +63,13 @@
     ],
     "deferred_cairo": [
       "blake_witness.cu",
-      "ec_op_witness.cu",
       "memory_witness.cu",
       "pedersen_table_init.cu",
       "pedersen_witness.cu",
       "poseidon252_starknet.cu",
       "relation_blake_g_inputs.cu",
       "stwo_wit_deduce_oracle.cu",
-      "witness_casm_input.cu",
-      "witness_edge_gather.cu",
-      "witness_feed_counts.cu"
+      "witness_casm_input.cu"
     ],
     "deferred_features": [
       "cuda_ipc_exchange.cu",
@@ -135,8 +142,10 @@
   "generated_aot": {
     "copied_entry_count": 340,
     "copied_disposition": "cairo_reference_only",
+    "cairo_eval_entry_count": 271,
+    "cairo_eval_occurrence_count": 279,
     "native_entry_count": 48,
-    "product_policy": "native_generated_identity_only"
+    "product_policy": "authenticated_zig_generated_identity_only"
   },
   "abi": {
     "rust_authority": "crates/backend-cuda-kernels/src/raw.rs",
@@ -145,6 +154,7 @@
       "stwo_zig_cuda_aot_entry_count"
     ],
     "zig_owned_symbols": [
+      "stwo_accumulate_quotient_numerator_addressed_on",
       "stwo_accumulate_quotient_numerator_compact_on",
       "stwo_accumulate_quotient_numerator_single_write_on",
       "stwo_blake2s_contiguous_leaf_on",
@@ -164,6 +174,13 @@
       "stwo_blake2s_transcript_init_on",
       "stwo_blake2s_transcript_mix_words_on",
       "stwo_blake2s_transcript_mix_words_pair_on",
+      "stwo_cairo_eval_materialize_params_on",
+      "stwo_cairo_memory_address_base_on",
+      "stwo_cairo_memory_range_check_9_9_on",
+      "stwo_cairo_memory_split_big_on",
+      "stwo_cairo_memory_split_small_on",
+      "stwo_cairo_memory_value_base_on",
+      "stwo_combine_quotients_from_compact_numerators_on",
       "stwo_combine_quotients_from_numerators_on",
       "stwo_constraint_expand_powers_on",
       "stwo_cuda_device_snapshot",
@@ -193,9 +210,11 @@
       "stwo_exec_context_pool_current",
       "stwo_exec_context_stream",
       "stwo_exec_context_sync",
+      "stwo_exec_context_validate_allocation",
       "stwo_finalize_quotient_numerator_groups_on",
       "stwo_fold_circle_into_line_on",
       "stwo_fold_line_on",
+      "stwo_fri_fold_fused2_on",
       "stwo_fri_fold_fused3_on",
       "stwo_fri_last_layer_on",
       "stwo_graph_capture_abort",
@@ -203,11 +222,14 @@
       "stwo_graph_capture_end",
       "stwo_graph_destroy",
       "stwo_graph_launch",
+      "stwo_lde_n2b_addressed_on",
       "stwo_lde_n2b_columns_before_circle_on",
       "stwo_lde_n2b_columns_on",
       "stwo_native_aot_function_bind",
+      "stwo_native_aot_function_bind_with_globals",
       "stwo_native_aot_function_destroy",
       "stwo_native_aot_function_launch",
+      "stwo_native_aot_function_publish_pedersen_w18",
       "stwo_native_aot_loader_create",
       "stwo_native_aot_loader_destroy",
       "stwo_native_aot_loader_stats",
@@ -231,6 +253,7 @@
       "stwo_relation_tail_global_on",
       "stwo_witness_casm_input_scatter_on",
       "stwo_witness_edge_gather_contiguous_on",
+      "stwo_witness_input_compact_v2_on",
       "stwo_witness_input_seed_contiguous_on",
       "stwo_witness_multi_edge_gather_contiguous_on",
       "stwo_zero_quotient_numerator_outputs_on"

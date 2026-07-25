@@ -13,12 +13,19 @@ pub const Native = OpsFor(abi);
 pub const PreparedGroups = plan.PreparedGroups;
 pub const NumeratorTopology = plan.NumeratorTopology;
 pub const CompactNumeratorTopology = plan.CompactNumeratorTopology;
+pub const AddressedNumeratorTopology = plan.AddressedNumeratorTopology;
 pub const CombineTopology = plan.CombineTopology;
+pub const CompactCombineTopology = plan.CompactCombineTopology;
 pub const prepareGroups = plan.prepareGroups;
 pub const prepareNumeratorTopology = plan.prepareNumeratorTopology;
 pub const prepareCompactNumeratorTopology =
     plan.prepareCompactNumeratorTopology;
+pub const prepareAddressedNumeratorTopology =
+    plan.prepareAddressedNumeratorTopology;
+pub const addressed = @import("quotient_addressed.zig");
 pub const prepareCombineTopology = plan.prepareCombineTopology;
+pub const prepareCompactCombineTopology =
+    plan.prepareCompactCombineTopology;
 const stage = telemetry.Stage.quotient;
 
 pub const CoordinateSlabs = struct {
@@ -612,6 +619,143 @@ pub fn OpsFor(comptime Api: type) type {
                 result_3.pointer,
                 session.context.stream,
             );
+            try common.record(session, stage, status);
+        }
+
+        pub fn combineCompact(
+            session: anytype,
+            half_coset_initial_index: u32,
+            half_coset_step_size: u32,
+            topology: CompactCombineTopology,
+            sample_points: common.SecureCirclePoints,
+            first_linear_terms: common.SecureFields,
+            partials: CoordinateColumns,
+            result: CoordinateColumns,
+        ) runtime_error.Error!void {
+            try common.requireStage(session, stage);
+            const domain_size = try domainSize(topology.domain_log_size);
+            const sample_count = topology.sample_count;
+            if (half_coset_step_size == 0 or sample_count == 0 or
+                sample_points.len != sample_count or
+                first_linear_terms.len != sample_count or
+                topology.partial_log_sizes.len != sample_count or
+                topology.partial_offsets.len != sample_count + 1)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const samples = try layout.resident(
+                session,
+                field.SecureCirclePoint,
+                sample_points,
+                sample_count,
+            );
+            const first = try layout.resident(
+                session,
+                field.SecureField,
+                first_linear_terms,
+                sample_count,
+            );
+            const logs = try layout.resident(
+                session,
+                u32,
+                topology.partial_log_sizes,
+                sample_count,
+            );
+            const offsets = try layout.resident(
+                session,
+                u64,
+                topology.partial_offsets,
+                sample_count + 1,
+            );
+            const partial_0 = try layout.resident(
+                session,
+                u32,
+                partials.c0,
+                topology.partial_word_count,
+            );
+            const partial_1 = try layout.resident(
+                session,
+                u32,
+                partials.c1,
+                topology.partial_word_count,
+            );
+            const partial_2 = try layout.resident(
+                session,
+                u32,
+                partials.c2,
+                topology.partial_word_count,
+            );
+            const partial_3 = try layout.resident(
+                session,
+                u32,
+                partials.c3,
+                topology.partial_word_count,
+            );
+            const result_0 = try layout.resident(
+                session,
+                u32,
+                result.c0,
+                domain_size,
+            );
+            const result_1 = try layout.resident(
+                session,
+                u32,
+                result.c1,
+                domain_size,
+            );
+            const result_2 = try layout.resident(
+                session,
+                u32,
+                result.c2,
+                domain_size,
+            );
+            const result_3 = try layout.resident(
+                session,
+                u32,
+                result.c3,
+                domain_size,
+            );
+            const output_ranges = [_]layout.DeviceRange{
+                result_0.range,
+                result_1.range,
+                result_2.range,
+                result_3.range,
+            };
+            try layout.requireDisjoint(
+                &output_ranges,
+                &.{
+                    samples.range,
+                    first.range,
+                    logs.range,
+                    offsets.range,
+                    partial_0.range,
+                    partial_1.range,
+                    partial_2.range,
+                    partial_3.range,
+                },
+            );
+            const status =
+                Api.stwo_combine_quotients_from_compact_numerators_on(
+                    half_coset_initial_index,
+                    half_coset_step_size,
+                    domain_size,
+                    topology.domain_log_size,
+                    samples.pointer,
+                    sample_count,
+                    first.pointer,
+                    logs.pointer,
+                    offsets.pointer,
+                    topology.partial_word_count,
+                    partial_0.pointer,
+                    partial_1.pointer,
+                    partial_2.pointer,
+                    partial_3.pointer,
+                    result_0.pointer,
+                    result_1.pointer,
+                    result_2.pointer,
+                    result_3.pointer,
+                    session.context.stream,
+                );
             try common.record(session, stage, status);
         }
     };

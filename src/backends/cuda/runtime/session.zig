@@ -267,6 +267,31 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             kernel: kernel_module.Kernel,
             arguments: []const ?*anyopaque,
         ) runtime_error.Error!void {
+            return self.launchKernelWithGlobals(kernel, arguments, null);
+        }
+
+        pub fn launchKernelWithPedersenW18(
+            self: *Self,
+            kernel: kernel_module.Kernel,
+            arguments: []const ?*anyopaque,
+            publication: kernel_module.PedersenW18Publication,
+        ) runtime_error.Error!void {
+            try publication.validate();
+            if (kernel.module_globals != .pedersen_w18_columns_rows_v1)
+                return error.InvalidKernelDescriptor;
+            return self.launchKernelWithGlobals(
+                kernel,
+                arguments,
+                publication,
+            );
+        }
+
+        fn launchKernelWithGlobals(
+            self: *Self,
+            kernel: kernel_module.Kernel,
+            arguments: []const ?*anyopaque,
+            publication: ?kernel_module.PedersenW18Publication,
+        ) runtime_error.Error!void {
             try self.requireOwner();
             if (self.state != .open) return error.InvalidState;
             if (self.context.active_stage != kernel.stage)
@@ -288,6 +313,11 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
                     self.function_cache_hits,
                     1,
                 ) catch return error.InvalidState;
+                try self.publishModuleGlobals(
+                    kernel,
+                    cached.*,
+                    publication,
+                );
                 try runtime_error.check(AotApi.stwo_native_aot_function_launch(
                     cached.handle,
                     arguments.ptr,
@@ -299,10 +329,11 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
 
             var raw_function: ?*anyopaque = null;
             var receipt = types.NativeAotFunctionReceipt{};
-            try runtime_error.check(AotApi.stwo_native_aot_function_bind(
+            try runtime_error.check(AotApi.stwo_native_aot_function_bind_with_globals(
                 loader,
                 kernel.cache_key,
                 @intFromEnum(kernel.abi_schema),
+                @intFromEnum(kernel.module_globals),
                 kernel.name.ptr,
                 &kernel.grid,
                 &kernel.block,
@@ -336,6 +367,7 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
                 .block = lookup_key.block,
                 .dynamic_shared_bytes = lookup_key.dynamic_shared_bytes,
                 .argument_count = lookup_key.argument_count,
+                .module_globals = lookup_key.module_globals,
             };
             self.function_cache.putNoClobber(
                 function_cache_allocator,
@@ -345,12 +377,68 @@ pub fn SessionFor(comptime Api: type, comptime AotApi: type) type {
             name_owned = false;
             function_owned = false;
 
+            try self.publishModuleGlobals(
+                kernel,
+                .{ .handle = function, .receipt = receipt },
+                publication,
+            );
             try runtime_error.check(AotApi.stwo_native_aot_function_launch(
                 function,
                 arguments.ptr,
                 @intCast(arguments.len),
             ));
             try self.context.recordKernels(1);
+        }
+
+        fn publishModuleGlobals(
+            self: *Self,
+            kernel: kernel_module.Kernel,
+            function: function_cache_module.Value,
+            publication: ?kernel_module.PedersenW18Publication,
+        ) runtime_error.Error!void {
+            switch (kernel.module_globals) {
+                .none => {
+                    if (publication != null)
+                        return error.InvalidKernelDescriptor;
+                },
+                .pedersen_w18_columns_rows_v1 => {
+                    const pedersen = publication orelse
+                        return error.StrictAotViolation;
+                    var receipt = types.NativeAotModuleGlobalsReceipt{};
+                    try runtime_error.check(
+                        AotApi.stwo_native_aot_function_publish_pedersen_w18(
+                            function.handle,
+                            &pedersen.columns,
+                            pedersen.row_count,
+                            &pedersen.table_identity,
+                            &receipt,
+                        ),
+                    );
+                    if (receipt.abi_version !=
+                        types.aot_module_globals_receipt_abi_version or
+                        receipt.verified != 1 or
+                        receipt.module_globals !=
+                            @intFromEnum(kernel.module_globals) or
+                        receipt.column_count != pedersen.columns.len or
+                        receipt.row_count != pedersen.row_count or
+                        receipt.reserved != 0 or
+                        receipt.columns_symbol_bytes !=
+                            pedersen.columns.len * @sizeOf(u64) or
+                        receipt.row_count_symbol_bytes != @sizeOf(u32) or
+                        receipt.module_token !=
+                            function.receipt.module_token or
+                        receipt.stream_token !=
+                            @intFromPtr(self.context.stream) or
+                        !std.mem.eql(
+                            u8,
+                            &receipt.table_identity,
+                            &pedersen.table_identity,
+                        ))
+                    {
+                        return error.AotReceiptMismatch;
+                    }
+                },
+            }
         }
 
         fn collectVerdict(self: *Self) runtime_error.Error!Verdict {

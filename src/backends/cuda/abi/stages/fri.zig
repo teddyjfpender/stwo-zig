@@ -52,6 +52,23 @@ pub extern "c" fn stwo_fri_fold_fused3_on(
     stream: *anyopaque,
 ) c_int;
 
+pub extern "c" fn stwo_fri_fold_fused2_on(
+    domain: [*]const u32,
+    domain_words: usize,
+    twiddle_offset_0: u32,
+    twiddle_offset_1: u32,
+    size: u32,
+    first_fold_is_circle: u32,
+    evaluation_values: [*]const u32,
+    evaluation_words: usize,
+    evaluation_stride: u32,
+    alpha: *const field.SecureField,
+    folded_values: [*]u32,
+    folded_words: usize,
+    folded_stride: u32,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_fri_last_layer_on(
     evaluation: [*]const u32,
     evaluation_words: usize,

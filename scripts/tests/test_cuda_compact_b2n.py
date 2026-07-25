@@ -27,7 +27,7 @@ class CudaCompactB2nTests(unittest.TestCase):
         abi = ABI.read_text(encoding="utf-8")
         self.assertIn("stwo_ntt_b2n_columns_compact_on", abi)
         self.assertIn("stwo_ntt_b2n_columns_to_retained_on", abi)
-        self.assertEqual(5, abi.count("launches_out: *u32"))
+        self.assertEqual(6, abi.count("launches_out: *u32"))
 
     def test_device_smoke_pins_first_n_and_write_extent(self) -> None:
         smoke = SMOKE.read_text(encoding="utf-8")

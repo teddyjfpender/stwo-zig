@@ -1,6 +1,9 @@
 //! Immutable product-AOT identities used before CUDA execution.
 
 const std = @import("std");
+const module_globals = @import("module_globals.zig");
+
+pub const ModuleGlobals = module_globals.Requirement;
 
 pub const recorded_witness_identity_scheme =
     "sha256-source-and-blake3-program-v1";
@@ -20,6 +23,7 @@ const WireEntry = struct {
     kernel_name: []const u8,
     kind: []const u8,
     label: []const u8,
+    module_globals: []const u8,
     program_identity: []const u8,
     semantic_contract: ?[]const u8 = null,
     semantic_hash: []const u8,
@@ -35,8 +39,10 @@ pub const CanonicalWitness = struct {
 pub const RecordedWitness = struct {
     cache_key: u64,
     kernel_name: []const u8,
+    module_globals: ModuleGlobals,
     semantic_hash: u64,
     program_identity: [32]u8,
+    source_identity: [32]u8,
 };
 
 pub const Registry = struct {
@@ -86,6 +92,11 @@ pub const Registry = struct {
                 continue;
             const program_identity = decodeDigest(entry.program_identity) orelse
                 continue;
+            const source_identity = decodeDigest(
+                entry.source_sha256 orelse continue,
+            ) orelse continue;
+            const globals = module_globals.parse(entry.module_globals) orelse
+                continue;
             if (semantic_hash == canonical.semantic_hash and
                 std.mem.eql(
                     u8,
@@ -99,8 +110,10 @@ pub const Registry = struct {
                         entry.cache_key,
                     ) orelse continue,
                     .kernel_name = entry.kernel_name,
+                    .module_globals = globals,
                     .semantic_hash = semantic_hash,
                     .program_identity = program_identity,
+                    .source_identity = source_identity,
                 };
             }
         }
@@ -144,6 +157,7 @@ fn isProductRecordedWitness(entry: WireEntry) bool {
         entry.label.len == 0 or
         decodeHexInt(u64, entry.cache_key) == null or
         decodeHexInt(u64, entry.semantic_hash) == null or
+        module_globals.parse(entry.module_globals) == null or
         decodeDigest(entry.program_identity) == null or
         decodeDigest(entry.source_sha256 orelse return false) == null)
     {
@@ -190,6 +204,7 @@ test "authenticated registry admits only exact synthetic identity" {
         \\  "kernel_name": "stwo_jit_witness_d94540f2fd219001",
         \\  "kind": "witness",
         \\  "label": "add_ap_opcode",
+        \\  "module_globals": "none",
         \\  "program_identity": "1c87a53a6c6ded98045fb88728f9cbd14f79ad8471cff7a16416139a64737da5",
         \\  "semantic_hash": "d94540f2fd219001",
         \\  "source_sha256": "5d29e553bbb897538c3d9f8f6f94b88b27121877238736dcd7d2c6cfca603ce6"
@@ -218,9 +233,17 @@ test "authenticated registry admits only exact synthetic identity" {
         "stwo_jit_witness_d94540f2fd219001",
         resolved.kernel_name,
     );
+    try std.testing.expectEqual(ModuleGlobals.none, resolved.module_globals);
     try std.testing.expectEqual(
         canonical.semantic_hash,
         resolved.semantic_hash,
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &decodeDigest(
+            "5d29e553bbb897538c3d9f8f6f94b88b27121877238736dcd7d2c6cfca603ce6",
+        ).?,
+        &resolved.source_identity,
     );
     try std.testing.expectEqualSlices(
         u8,
@@ -251,6 +274,7 @@ test "copied-reference origin cannot authorize a matching witness" {
         \\  "kernel_name": "stwo_jit_witness_d94540f2fd219001",
         \\  "kind": "witness",
         \\  "label": "add_ap_opcode",
+        \\  "module_globals": "none",
         \\  "program_identity": "1c87a53a6c6ded98045fb88728f9cbd14f79ad8471cff7a16416139a64737da5",
         \\  "semantic_hash": "d94540f2fd219001"
         \\}]

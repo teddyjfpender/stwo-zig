@@ -97,6 +97,22 @@ pub const NativeAotFunctionReceipt = extern struct {
     verification: NativeAotVerificationReceipt = .{},
 };
 
+pub const aot_module_globals_receipt_abi_version: u32 = 1;
+
+pub const NativeAotModuleGlobalsReceipt = extern struct {
+    abi_version: u32 = 0,
+    verified: u32 = 0,
+    module_globals: u32 = 0,
+    column_count: u32 = 0,
+    row_count: u32 = 0,
+    reserved: u32 = 0,
+    columns_symbol_bytes: u64 = 0,
+    row_count_symbol_bytes: u64 = 0,
+    module_token: u64 = 0,
+    stream_token: u64 = 0,
+    table_identity: [32]u8 = [_]u8{0} ** 32,
+};
+
 const std = @import("std");
 
 comptime {
@@ -117,6 +133,14 @@ comptime {
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "local_bytes") == 64);
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "cache_key") == 80);
     std.debug.assert(@offsetOf(NativeAotFunctionReceipt, "verification") == 120);
+    std.debug.assert(@sizeOf(NativeAotModuleGlobalsReceipt) == 88);
+    std.debug.assert(@alignOf(NativeAotModuleGlobalsReceipt) == 8);
+    std.debug.assert(
+        @offsetOf(NativeAotModuleGlobalsReceipt, "columns_symbol_bytes") == 24,
+    );
+    std.debug.assert(
+        @offsetOf(NativeAotModuleGlobalsReceipt, "table_identity") == 56,
+    );
 }
 
 test "platform snapshot rejects incomplete provenance" {

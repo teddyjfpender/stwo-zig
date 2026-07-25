@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const abi = @import("../../abi/stages/transform.zig");
+const column = @import("../column.zig");
 const common = @import("common.zig");
 const layout = @import("resident_layout.zig");
 const runtime_error = @import("../error.zig");
@@ -13,9 +14,149 @@ pub const Native = OpsFor(abi);
 /// is derived from the extent, so no pointer table or duplicate count can
 /// disagree with the checked descriptor.
 pub const WordMatrix = common.WordMatrix;
+pub const AddressedLdeDescriptor = abi.AddressedLdeDescriptor;
+pub const AddressedLdeDescriptors = column.DeviceSlice(AddressedLdeDescriptor);
+
+/// Validates the immutable descriptor bytes before ingress. Execution consumes
+/// only their sealed resident image.
+pub fn validateAddressedPlan(
+    descriptors: []const AddressedLdeDescriptor,
+    arena_words: usize,
+    evaluation_tile_offset_words: usize,
+    evaluation_log_size: u32,
+) runtime_error.Error!void {
+    if (descriptors.len == 0 or
+        descriptors.len > std.math.maxInt(u32) or
+        arena_words > std.math.maxInt(u64))
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    const shape = try transformShape(evaluation_log_size);
+    const tile_words = std.math.mul(
+        usize,
+        descriptors.len,
+        shape.values,
+    ) catch return error.SizeOverflow;
+    const tile_end = std.math.add(
+        usize,
+        evaluation_tile_offset_words,
+        tile_words,
+    ) catch return error.SizeOverflow;
+    if (tile_end > arena_words) return error.InvalidKernelDescriptor;
+
+    for (descriptors, 0..) |descriptor, index| {
+        const destination_delta = std.math.mul(
+            usize,
+            index,
+            shape.values,
+        ) catch return error.SizeOverflow;
+        const expected_destination = std.math.add(
+            usize,
+            evaluation_tile_offset_words,
+            destination_delta,
+        ) catch return error.SizeOverflow;
+        descriptor.validate(
+            @intCast(arena_words),
+            @intCast(expected_destination),
+            evaluation_log_size,
+        ) catch return error.InvalidKernelDescriptor;
+        const coefficient_words =
+            @as(u64, 1) << @intCast(descriptor.coefficient_log_size);
+        const coefficient_end = std.math.add(
+            u64,
+            descriptor.coefficient_offset_words,
+            coefficient_words,
+        ) catch return error.SizeOverflow;
+        if (rangesOverlapWords(
+            descriptor.coefficient_offset_words,
+            coefficient_end,
+            @intCast(evaluation_tile_offset_words),
+            @intCast(tile_end),
+        )) return error.OverlappingDeviceRange;
+    }
+}
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        /// Extends an authenticated heterogeneous coefficient batch into one
+        /// reusable contiguous evaluation tile in the same proof arena.
+        pub fn extendAddressed(
+            session: anytype,
+            stage: telemetry.Stage,
+            arena: common.Words,
+            descriptors: AddressedLdeDescriptors,
+            evaluation_tile_offset_words: usize,
+            log_n: u32,
+            twiddles: common.Words,
+            before_final_circle: bool,
+        ) runtime_error.Error!void {
+            try requireTransformStage(stage);
+            try common.requireStage(session, stage);
+            if (descriptors.len == 0 or
+                descriptors.len > std.math.maxInt(u32))
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const shape = try transformShape(log_n);
+            const arena_values = try layout.resident(
+                session,
+                u32,
+                arena,
+                arena.len,
+            );
+            const descriptor_values = try layout.resident(
+                session,
+                AddressedLdeDescriptor,
+                descriptors,
+                descriptors.len,
+            );
+            const twiddle_values = try layout.resident(
+                session,
+                u32,
+                twiddles,
+                twiddles.len,
+            );
+            if (twiddles.len < shape.domain)
+                return error.InvalidKernelDescriptor;
+            if (!contains(arena_values.range, descriptor_values.range) or
+                !contains(arena_values.range, twiddle_values.range))
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const tile_words = std.math.mul(
+                usize,
+                descriptors.len,
+                shape.values,
+            ) catch return error.SizeOverflow;
+            const tile_range = try offsetWordRange(
+                arena_values.range,
+                evaluation_tile_offset_words,
+                tile_words,
+            );
+            if (layout.overlap(tile_range, descriptor_values.range) or
+                layout.overlap(tile_range, twiddle_values.range))
+            {
+                return error.OverlappingDeviceRange;
+            }
+
+            var launches: u32 = 0;
+            const status = Api.stwo_lde_n2b_addressed_on(
+                arena_values.pointer,
+                arena.len,
+                descriptor_values.pointer,
+                @intCast(descriptors.len),
+                evaluation_tile_offset_words,
+                log_n,
+                twiddle_values.pointer,
+                try common.count(twiddles.len),
+                try common.count(shape.domain),
+                session.context.stream,
+                @intFromBool(!before_final_circle),
+                &launches,
+            );
+            try common.recordMany(session, stage, status, launches);
+        }
+
         /// Writes one normalized N-word coefficient image per column.
         pub fn inverseCompact(
             session: anytype,
@@ -285,6 +426,7 @@ fn transformShape(log_n: u32) runtime_error.Error!TransformShape {
 
 fn requireTransformStage(stage: telemetry.Stage) runtime_error.Error!void {
     switch (stage) {
+        .ingress,
         .trace_commit,
         .constraint_evaluation,
         .oods,
@@ -295,10 +437,40 @@ fn requireTransformStage(stage: telemetry.Stage) runtime_error.Error!void {
     }
 }
 
+fn contains(outer: layout.DeviceRange, inner: layout.DeviceRange) bool {
+    return outer.start <= inner.start and inner.end <= outer.end;
+}
+
+fn offsetWordRange(
+    arena: layout.DeviceRange,
+    offset_words: usize,
+    word_count: usize,
+) runtime_error.Error!layout.DeviceRange {
+    const offset_bytes = std.math.mul(
+        usize,
+        offset_words,
+        @sizeOf(u32),
+    ) catch return error.SizeOverflow;
+    const start = std.math.add(
+        usize,
+        arena.start,
+        offset_bytes,
+    ) catch return error.SizeOverflow;
+    const result = try layout.elementRange(start, word_count, @sizeOf(u32));
+    if (!contains(arena, result)) return error.InvalidKernelDescriptor;
+    return result;
+}
+
+fn rangesOverlapWords(
+    left_start: u64,
+    left_end: u64,
+    right_start: u64,
+    right_end: u64,
+) bool {
+    return left_start < right_end and right_start < left_end;
+}
+
 test "composition extension is an admitted transform stage" {
     try requireTransformStage(.constraint_evaluation);
-    try std.testing.expectError(
-        error.StageOrderViolation,
-        requireTransformStage(.ingress),
-    );
+    try requireTransformStage(.ingress);
 }

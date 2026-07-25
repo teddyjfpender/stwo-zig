@@ -1,0 +1,46 @@
+{
+  "aot": {
+    "abi_schema": 2,
+    "cache_key": "d6628b6f40a95659",
+    "cubin_sha256": "67650777f2037f1fd9b100bc5f727991de94dbba124557a2cffe9a2584d2629d",
+    "kernel": "stwo_jit_witness_945de91f8879d0ac",
+    "module_globals": "none",
+    "source_sha256": "48345960c70951f32c5c0c49d16a03c0daab9d4c8a404f5e9bebbe7502a17c61"
+  },
+  "authority": {
+    "ec_fixture_sha256": "dd3e2354adee6779e68b19cd46314e9da54f53ec5ad232948623add38282e53b",
+    "ec_writer_sha256": "992f03a616c843f1b180adc397216635c2debb65b3fb4ccbbf9da2ae989a16bc",
+    "hardware_harness_sha256": "02105b3c6bfc6acb93aaa636dad7fcd66adbfc11b6892bf9ac2b5a69e983b66a",
+    "zig_oracle_sha256": "ae486a89316091af5d6061daae19f0f92ae6cfb8f47352247a7bf91e9cbbcf51"
+  },
+  "base_writer": {
+    "lookup_words": 31232,
+    "multiplicity_words": 11462,
+    "partial_input_words": 2080768,
+    "partial_rows": 16384,
+    "rows": 64,
+    "trace_words": 17472
+  },
+  "generic_consumer": {
+    "input_columns": 126,
+    "lookup_sha256": "946e0c8bd1cca02686ac24d55a06568e317abcda7f20cc0d0ea8f2ffc6d36387",
+    "lookup_words": 16220160,
+    "output_columns": 624,
+    "outputs_sha256": "64a9134cc28a5dd353a86434660c5dfbe8bb7dceb9e510a35a2ed4ce593b4edb",
+    "output_words": 10223616,
+    "sub_sha256": "1ae0d9fa6a593c19a1e3e83c33fe3a02c0cf7dc1a2d581f0bab905adfef3fe79",
+    "sub_words": 6946816
+  },
+  "hardware": {
+    "device": "NVIDIA GeForce RTX 4090",
+    "device_ms": 5.474,
+    "fallbacks": 0,
+    "hot_allocations": 0,
+    "hot_copies": 0,
+    "hot_syncs": 0,
+    "jit_compilations": 0,
+    "launches": 4
+  },
+  "schema": "stwo-zig-cuda-native-ec-composite-receipt-v1",
+  "status": "exact"
+}

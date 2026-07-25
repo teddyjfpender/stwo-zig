@@ -2,8 +2,6 @@
 
 const std = @import("std");
 const field = @import("../../abi/field.zig");
-const column = @import("../column.zig");
-const telemetry = @import("../telemetry.zig");
 const commitment = @import("commitment.zig").Native;
 const decommit = @import("decommit.zig");
 const fri = @import("fri.zig").Native;
@@ -15,129 +13,17 @@ const trace = @import("trace.zig").Native;
 const transcript = @import("transcript.zig");
 const transform_module = @import("transform.zig");
 const transform = transform_module.Native;
-
-const owner: usize = 7;
-
-const FakeContext = struct {
-    stream_storage: u8 = 0,
-    stream: *anyopaque = undefined,
-    active_stage: ?telemetry.Stage = null,
-
-    fn init(stage: telemetry.Stage) FakeContext {
-        var result = FakeContext{};
-        result.stream = &result.stream_storage;
-        result.active_stage = stage;
-        return result;
-    }
-
-    pub fn deviceSlicePointer(
-        self: *@This(),
-        comptime F: type,
-        slice: anytype,
-        minimum: usize,
-    ) ![*]F {
-        _ = self;
-        if (slice.owner != owner or slice.len < minimum or
-            slice.address == 0 or slice.address % @alignOf(F) != 0)
-        {
-            return error.InvalidDeviceAddress;
-        }
-        return @ptrFromInt(slice.address);
-    }
-
-    pub fn requireStage(self: *@This(), expected: telemetry.Stage) !void {
-        if (self.active_stage != expected) return error.StageOrderViolation;
-    }
-
-    pub fn uploadSlice(
-        self: *@This(),
-        comptime F: type,
-        destination: anytype,
-        source: []const F,
-    ) !void {
-        try self.requireStage(.ingress);
-        _ = try self.deviceSlicePointer(F, destination, source.len);
-    }
-};
-
-const FakeSession = struct {
-    context: FakeContext,
-    launches: usize = 0,
-
-    fn init(stage: telemetry.Stage) FakeSession {
-        return .{ .context = FakeContext.init(stage) };
-    }
-
-    pub fn recordOrdinaryKernel(
-        self: *@This(),
-        stage: telemetry.Stage,
-        status: c_int,
-    ) !void {
-        try self.recordOrdinaryKernels(stage, status, 1);
-    }
-
-    pub fn recordOrdinaryKernels(
-        self: *@This(),
-        stage: telemetry.Stage,
-        status: c_int,
-        count: u64,
-    ) !void {
-        if (status != 0) return error.CudaFailure;
-        try self.context.requireStage(stage);
-        self.launches += @intCast(count);
-    }
-};
-
-fn view(comptime F: type, len: usize) column.DeviceSlice(F) {
-    return .{ .address = 0x1000, .len = len, .owner = owner };
-}
-
-fn viewAt(
-    comptime F: type,
-    address: usize,
-    len: usize,
-) column.DeviceSlice(F) {
-    return .{ .address = address, .len = len, .owner = owner };
-}
-
-fn words(len: usize) column.DeviceSlice(u32) {
-    return view(u32, len);
-}
-
-fn wordMatrix(
-    address: usize,
-    column_count: usize,
-    stride_words: usize,
-) transform_module.WordMatrix {
-    return .{
-        .storage = .{
-            .address = address,
-            .len = column_count * stride_words,
-            .owner = owner,
-        },
-        .column_stride_words = stride_words,
-    };
-}
-
-fn secure(len: usize) column.DeviceSlice(field.SecureField) {
-    return view(field.SecureField, len);
-}
-
-fn circles(len: usize) column.DeviceSlice(field.CirclePointBaseField) {
-    return view(field.CirclePointBaseField, len);
-}
-
-fn secureCircles(len: usize) column.DeviceSlice(field.SecureCirclePoint) {
-    return view(field.SecureCirclePoint, len);
-}
-
-fn hashes(len: usize) column.DeviceSlice(field.Blake2sHash) {
-    return view(field.Blake2sHash, len);
-}
-
-fn states(len: usize) column.DeviceSlice(field.ProgressiveBlake2sState) {
-    return view(field.ProgressiveBlake2sState, len);
-}
+const support = @import("contract_test_support.zig");
+const FakeSession = support.FakeSession;
+const view = support.view;
+const viewAt = support.viewAt;
+const words = support.words;
+const wordMatrix = support.wordMatrix;
+const secure = support.secure;
+const circles = support.circles;
+const secureCircles = support.secureCircles;
+const hashes = support.hashes;
+const states = support.states;
 
 test "Native trace construction is exact, resident, and stage bound" {
     var session = FakeSession.init(.trace_generation);
@@ -274,6 +160,32 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         viewAt(field.Blake2sHash, 0xa2000, 16),
         true,
     );
+    const interaction_boundary = transcript.Boundary{
+        .expected_step = 4,
+        .expected_chain = 5,
+        .next_chain = 6,
+        .snapshot = words(16),
+    };
+    try fri.grindPowAtStage(
+        &session,
+        .trace_commit,
+        words(16),
+        24,
+        1 << 16,
+        words(8),
+        view(u64, 1),
+        words(1),
+        words(2),
+    );
+    try transcript.Native.absorbPowAtStage(
+        &session,
+        .trace_commit,
+        words(16),
+        interaction_boundary,
+        words(2),
+        24,
+        words(2),
+    );
 
     session.context.active_stage = .fri_commit;
     try commitment.friLeaves(
@@ -361,7 +273,7 @@ test "transform, commitment, and transcript wrappers bind the session stream" {
         words(16),
         words(16),
     );
-    try std.testing.expectEqual(@as(usize, 46), session.launches);
+    try std.testing.expectEqual(@as(usize, 50), session.launches);
 }
 
 test "transform rejects unsafe ranges before launching CUDA" {
@@ -694,6 +606,22 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
             .column_stride_words = 32,
         },
     );
+    try fri.foldTwo(
+        &session,
+        words(256),
+        .{ 0, 1 },
+        256,
+        true,
+        .{
+            .storage = words(1024),
+            .column_stride_words = 256,
+        },
+        secure(1),
+        .{
+            .storage = words(256),
+            .column_stride_words = 64,
+        },
+    );
     try fri.lastLayer(
         &session,
         words(1024),
@@ -828,7 +756,7 @@ test "FRI, PoW, and decommit wrappers type-check every copied resident ABI" {
         },
         .assembly = words(256),
     });
-    try std.testing.expectEqual(@as(usize, 26), session.launches);
+    try std.testing.expectEqual(@as(usize, 27), session.launches);
 }
 
 test "decommit query planning rejects work outside the protocol bound" {

@@ -14,6 +14,7 @@ pub const Key = struct {
     block: [3]u32,
     dynamic_shared_bytes: u32,
     argument_count: u32,
+    module_globals: kernel_module.ModuleGlobals,
 
     pub fn fromKernel(kernel: kernel_module.Kernel) Key {
         return .{
@@ -24,6 +25,7 @@ pub const Key = struct {
             .block = kernel.block,
             .dynamic_shared_bytes = kernel.dynamic_shared_bytes,
             .argument_count = kernel.argument_count,
+            .module_globals = kernel.module_globals,
         };
     }
 };
@@ -38,6 +40,7 @@ const KeyContext = struct {
         hasher.update(std.mem.asBytes(&key.block));
         hasher.update(std.mem.asBytes(&key.dynamic_shared_bytes));
         hasher.update(std.mem.asBytes(&key.argument_count));
+        hasher.update(std.mem.asBytes(&key.module_globals));
         return hasher.final();
     }
 
@@ -48,7 +51,8 @@ const KeyContext = struct {
             std.mem.eql(u32, &left.grid, &right.grid) and
             std.mem.eql(u32, &left.block, &right.block) and
             left.dynamic_shared_bytes == right.dynamic_shared_bytes and
-            left.argument_count == right.argument_count;
+            left.argument_count == right.argument_count and
+            left.module_globals == right.module_globals;
     }
 };
 

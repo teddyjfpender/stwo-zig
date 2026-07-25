@@ -88,6 +88,17 @@ fn outputAt(address: usize) quotient.CoordinateSlabs {
     };
 }
 
+fn addressedOutputAt(
+    address: usize,
+) quotient.addressed.CoordinateColumns {
+    return .{
+        .c0 = viewAt(u32, address, 512),
+        .c1 = viewAt(u32, address + 0x10000, 512),
+        .c2 = viewAt(u32, address + 0x20000, 512),
+        .c3 = viewAt(u32, address + 0x30000, 512),
+    };
+}
+
 fn matrixAt(
     address: usize,
     columns: usize,
@@ -229,6 +240,90 @@ test "compact quotient rejects mismatched logs and extent overflow" {
             256,
             320,
             1,
+        ),
+    );
+}
+
+test "addressed quotient preserves two resident arenas without repacking" {
+    var session = FakeSession.init(.ingress);
+    const offsets = [_]u32{ 0, 1, 2 };
+    const group_logs = [_]u32{ 8, 8 };
+    const output_offsets = [_]u64{ 0, 256, 512 };
+    const terms = [_]quotient_abi.BatchTermDescriptor{
+        .{ .source_index = 0, .term_index = 0, .source_log_size = 8 },
+        .{ .source_index = 1, .term_index = 1, .source_log_size = 7 },
+    };
+    const resident_sources = [_]common.Words{
+        .{
+            .address = 0x1_0000_0000,
+            .len = 256,
+            .owner = owner,
+            .generation = 7,
+        },
+        .{
+            .address = 0x2_0000_0000,
+            .len = 128,
+            .owner = owner,
+            .generation = 11,
+        },
+    };
+    const sources = [_]quotient_abi.AddressedSourceDescriptor{
+        .{
+            .address = resident_sources[0].address,
+            .stride_words = 256,
+            .log_size = 8,
+        },
+        .{
+            .address = resident_sources[1].address,
+            .stride_words = 128,
+            .log_size = 7,
+        },
+    };
+    const topology = try quotient.prepareAddressedNumeratorTopology(
+        &session,
+        &offsets,
+        &terms,
+        &sources,
+        &resident_sources,
+        &group_logs,
+        &output_offsets,
+        viewAt(u32, 0x10000, 3),
+        viewAt(quotient_abi.BatchTermDescriptor, 0x11000, 2),
+        viewAt(quotient_abi.AddressedSourceDescriptor, 0x12000, 2),
+        viewAt(u32, 0x13000, 2),
+        viewAt(u64, 0x14000, 3),
+        256,
+        2,
+    );
+    session.context.active_stage = .quotient;
+    try quotient.addressed.Native.accumulate(
+        &session,
+        topology,
+        viewAt(field.SecureField, 0x30000, 6),
+        addressedOutputAt(0x40000),
+    );
+    try std.testing.expectEqual(@as(usize, 1), session.launches);
+
+    var drifted = sources;
+    drifted[1].address += 4;
+    session.context.active_stage = .ingress;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        quotient.prepareAddressedNumeratorTopology(
+            &session,
+            &offsets,
+            &terms,
+            &drifted,
+            &resident_sources,
+            &group_logs,
+            &output_offsets,
+            viewAt(u32, 0x10000, 3),
+            viewAt(quotient_abi.BatchTermDescriptor, 0x11000, 2),
+            viewAt(quotient_abi.AddressedSourceDescriptor, 0x12000, 2),
+            viewAt(u32, 0x13000, 2),
+            viewAt(u64, 0x14000, 3),
+            256,
+            2,
         ),
     );
 }

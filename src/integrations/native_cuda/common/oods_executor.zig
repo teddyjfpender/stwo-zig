@@ -365,7 +365,7 @@ fn buildBatches(
     return storage[0..batch_count];
 }
 
-fn evaluateBatch(
+pub fn evaluateBatch(
     comptime OodsOps: type,
     session: anytype,
     batch: Batch,
@@ -447,7 +447,7 @@ fn evaluateBatch(
     );
 }
 
-fn deriveBatch(
+pub fn deriveBatch(
     comptime OodsOps: type,
     session: anytype,
     batch: Batch,

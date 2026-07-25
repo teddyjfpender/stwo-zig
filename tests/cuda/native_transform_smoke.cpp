@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 
 extern "C" int stwo_exec_context_create(void **out_handle);
@@ -91,6 +92,29 @@ extern "C" int stwo_lde_n2b_columns_before_circle_on(
     std::uint32_t twiddle_words,
     std::uint32_t evaluation_domain_size,
     void *stream,
+    std::uint32_t *launches_out);
+
+struct alignas(8) AddressedLdeDescriptor {
+    std::uint64_t coefficient_offset_words;
+    std::uint64_t evaluation_offset_words;
+    std::uint32_t coefficient_log_size;
+    std::uint32_t reserved;
+};
+
+static_assert(sizeof(AddressedLdeDescriptor) == 24);
+
+extern "C" int stwo_lde_n2b_addressed_on(
+    std::uint32_t *arena,
+    std::size_t arena_words,
+    const AddressedLdeDescriptor *descriptors,
+    std::uint32_t descriptor_count,
+    std::size_t evaluation_tile_offset_words,
+    std::uint32_t log_n,
+    const std::uint32_t *twiddles,
+    std::uint32_t twiddle_words,
+    std::uint32_t evaluation_domain_size,
+    void *stream,
+    std::uint32_t include_circle,
     std::uint32_t *launches_out);
 
 namespace {
@@ -922,6 +946,135 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
                 pre_circle_expected,
                 before_circle_actual,
                 "pre-circle LDE",
+                log_n,
+                column)) {
+            return false;
+        }
+    }
+
+    std::vector<AddressedLdeDescriptor> addressed_descriptors(width);
+    std::size_t source_cursor = 0;
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const std::size_t coefficient_count =
+            static_cast<std::size_t>(1)
+            << coefficient_log_sizes[column];
+        addressed_descriptors[column] = {
+            source_cursor,
+            0,
+            coefficient_log_sizes[column],
+            0,
+        };
+        source_cursor += coefficient_count;
+    }
+    const std::size_t descriptor_offset = (source_cursor + 1u) & ~1u;
+    const std::size_t descriptor_words =
+        width * sizeof(AddressedLdeDescriptor) / sizeof(std::uint32_t);
+    const std::size_t twiddle_offset =
+        descriptor_offset + descriptor_words;
+    const std::size_t tile_offset = twiddle_offset + domain_size;
+    const std::size_t tile_words =
+        static_cast<std::size_t>(width) * size;
+    std::vector<std::uint32_t> addressed_host(
+        tile_offset + tile_words,
+        0);
+    source_cursor = 0;
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const std::size_t coefficient_count =
+            static_cast<std::size_t>(1)
+            << coefficient_log_sizes[column];
+        std::copy_n(
+            coefficients[column].begin(),
+            coefficient_count,
+            addressed_host.begin() + source_cursor);
+        addressed_descriptors[column].evaluation_offset_words =
+            tile_offset + static_cast<std::size_t>(column) * size;
+        source_cursor += coefficient_count;
+    }
+    std::memcpy(
+        addressed_host.data() + descriptor_offset,
+        addressed_descriptors.data(),
+        width * sizeof(AddressedLdeDescriptor));
+    std::copy(
+        twiddles.begin(),
+        twiddles.end(),
+        addressed_host.begin() + twiddle_offset);
+    auto *device_addressed = session.allocate(addressed_host.size());
+    std::uint32_t addressed_launches = 0;
+    if (device_addressed == nullptr ||
+        !session.upload(
+            device_addressed,
+            addressed_host.data(),
+            addressed_host.size() * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_lde_n2b_addressed_on(
+                device_addressed,
+                addressed_host.size(),
+                reinterpret_cast<const AddressedLdeDescriptor *>(
+                    device_addressed + descriptor_offset),
+                width,
+                tile_offset,
+                log_n,
+                device_addressed + twiddle_offset,
+                domain_size,
+                domain_size,
+                session.stream,
+                1,
+                &addressed_launches),
+            "launch addressed LDE") ||
+        !check_launches(
+            addressed_launches,
+            1u + n2b_launches(log_n, true),
+            "addressed LDE")) {
+        return false;
+    }
+    rejected_launches = 17;
+    if (!expect_invalid(
+            stwo_lde_n2b_addressed_on(
+                device_addressed,
+                addressed_host.size(),
+                reinterpret_cast<const AddressedLdeDescriptor *>(
+                    device_addressed + descriptor_offset),
+                width,
+                descriptor_offset,
+                log_n,
+                device_addressed + twiddle_offset,
+                domain_size,
+                domain_size,
+                session.stream,
+                1,
+                &rejected_launches),
+            "reject addressed LDE tile over descriptor table") ||
+        !check_launches(
+            rejected_launches,
+            0,
+            "rejected addressed LDE")) {
+        return false;
+    }
+    std::vector<std::uint32_t> addressed_actual(tile_words);
+    if (!session.download(
+            addressed_actual.data(),
+            device_addressed + tile_offset,
+            tile_words * sizeof(std::uint32_t)) ||
+        !check_status(
+            stwo_exec_context_sync(session.context),
+            "wait for addressed LDE")) {
+        return false;
+    }
+    for (std::uint32_t column = 0; column < width; ++column) {
+        const auto expected_first = lde_actual.begin() +
+            static_cast<std::size_t>(column) * evaluation_stride;
+        const std::vector<std::uint32_t> expected(
+            expected_first,
+            expected_first + size);
+        const auto actual_first = addressed_actual.begin() +
+            static_cast<std::size_t>(column) * size;
+        const std::vector<std::uint32_t> actual(
+            actual_first,
+            actual_first + size);
+        if (!compare(
+                expected,
+                actual,
+                "addressed LDE",
                 log_n,
                 column)) {
             return false;

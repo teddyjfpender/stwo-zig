@@ -160,6 +160,22 @@ pub fn addProducts(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    const ec_oracle_root = b.createModule(.{
+        .root_source_file = b.path(
+            "src/tools/cuda_native_ec_composite_oracle/main.zig",
+        ),
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+    ec_oracle_root.addImport("stwo_under_test", stwo);
+    const ec_oracle = b.addExecutable(.{
+        .name = "cuda-native-ec-composite-oracle",
+        .root_module = ec_oracle_root,
+    });
+    b.step(
+        "cuda-native-ec-composite-oracle",
+        "Emit the canonical Zig SIMD receipt for the native EC consumer",
+    ).dependOn(&b.addRunArtifact(ec_oracle).step);
     const plonk_logup_root = b.createModule(.{
         .root_source_file = b.path("tests/native_cuda_plonk_logup.zig"),
         .target = target,

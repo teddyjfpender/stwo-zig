@@ -78,6 +78,11 @@ pub extern "c" fn stwo_exec_context_free_u32(
     handle: *anyopaque,
     ptr: [*]u32,
 ) c_int;
+pub extern "c" fn stwo_exec_context_validate_allocation(
+    handle: *anyopaque,
+    pointer: *const anyopaque,
+    required_bytes: usize,
+) c_int;
 pub extern "c" fn stwo_exec_context_memset_async(
     handle: *anyopaque,
     dst: *anyopaque,

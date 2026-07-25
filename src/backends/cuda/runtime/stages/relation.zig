@@ -7,9 +7,11 @@ const common = @import("common.zig");
 const field = @import("../../abi/field.zig");
 const layout = @import("resident_layout.zig");
 const runtime_error = @import("../error.zig");
+const residency = @import("relation/residency.zig");
 const telemetry = @import("../telemetry.zig");
 
 pub const Native = OpsFor(abi);
+pub const TraceCommitNative = OpsForAt(abi, .trace_commit);
 pub const ColumnDescriptor = abi.ColumnDescriptor;
 pub const Geometry = abi.Geometry;
 pub const MultiplicityKind = abi.MultiplicityKind;
@@ -19,7 +21,7 @@ pub const Geometries = column.DeviceSlice(Geometry);
 
 pub const launch_count = 9;
 const pointer_words = @sizeOf(usize) / @sizeOf(u32);
-const stage = telemetry.Stage.constraint_evaluation;
+const default_stage = telemetry.Stage.constraint_evaluation;
 
 comptime {
     // The imported CUDA pointer-table ABI stores each 64-bit device address
@@ -231,7 +233,80 @@ pub fn topologyIdentity(prepared: *const PreparedPlan) [32]u8 {
     return planStateConst(prepared).topology.topology_identity;
 }
 
+/// Proves that the Fiat-Shamir relation elements are written into the exact
+/// destination consumed by this opaque relation plan.
+pub fn validateTranscriptChallenge(
+    prepared: *const PreparedPlan,
+    drawn_z_alpha: common.SecureFields,
+) runtime_error.Error!void {
+    const state = planStateConst(prepared);
+    if (!sameView(
+        try state.buffers.drawn_z_alpha.cast(u32),
+        try drawn_z_alpha.cast(u32),
+    )) return error.InvalidKernelDescriptor;
+}
+
+/// Read-only canonical relation claims produced by this plan. The returned
+/// span is suitable for one device-to-device copy into the transcript/proof
+/// claim slot; callers cannot substitute a host claim.
+pub fn transcriptClaims(
+    prepared: *const PreparedPlan,
+) runtime_error.Error!common.Words {
+    const state = planStateConst(prepared);
+    if (state.instances.len == 0) return error.InvalidKernelDescriptor;
+    const first = try state.instances[0].claimed_sum.cast(u32);
+    const claim_words = try checkedMul(
+        @intCast(state.instances.len),
+        4,
+    );
+    for (state.instances, 0..) |instance, index| {
+        if (instance.claimed_sum.len != 1)
+            return error.InvalidKernelDescriptor;
+        const words = try instance.claimed_sum.cast(u32);
+        const expected_address = std.math.add(
+            usize,
+            first.address,
+            std.math.mul(
+                usize,
+                index,
+                4 * @sizeOf(u32),
+            ) catch return error.SizeOverflow,
+        ) catch return error.SizeOverflow;
+        if (words.address != expected_address or
+            words.len != 4 or
+            words.owner != first.owner or
+            words.generation != first.generation)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+    }
+    return .{
+        .address = first.address,
+        .len = claim_words,
+        .owner = first.owner,
+        .generation = first.generation,
+    };
+}
+
 pub fn OpsFor(comptime Api: type) type {
+    return OpsForAt(Api, default_stage);
+}
+
+fn sameView(left: common.Words, right: common.Words) bool {
+    return left.address == right.address and
+        left.len == right.len and
+        left.owner == right.owner and
+        left.generation == right.generation;
+}
+
+/// Cairo draws relation challenges and commits the interaction tree inside
+/// `trace_commit`; native AIRs historically run their relation stage during
+/// `constraint_evaluation`. The launch body is identical, but stage ownership
+/// must remain explicit for transcript ordering and telemetry.
+pub fn OpsForAt(
+    comptime Api: type,
+    comptime stage: telemetry.Stage,
+) type {
     return struct {
         pub fn execute(
             session: anytype,
@@ -387,11 +462,13 @@ fn validatePreparedInput(
 ) PrepareError!void {
     try options.topology.validate();
     try validateBufferLengths(options.topology, options.buffers);
-    try validatePointerTableAlignment(options.buffers);
+    try residency.validatePointerTableAlignment(options.buffers);
     if (options.instances.len != options.topology.geometry.len)
         return error.InvalidKernelDescriptor;
 
-    const identity = DeviceIdentity.from(options.buffers.drawn_z_alpha);
+    const identity = residency.DeviceIdentity.from(
+        options.buffers.drawn_z_alpha,
+    );
     var reads: std.ArrayList(layout.DeviceRange) = .empty;
     defer reads.deinit(allocator);
     var writes: std.ArrayList(layout.DeviceRange) = .empty;
@@ -426,7 +503,7 @@ fn retainTopLevelRanges(
     allocator: std.mem.Allocator,
     reads: *std.ArrayList(layout.DeviceRange),
     writes: *std.ArrayList(layout.DeviceRange),
-    identity: DeviceIdentity,
+    identity: residency.DeviceIdentity,
     topology: Topology,
     buffers: DeviceBuffers,
 ) PrepareError!void {
@@ -444,7 +521,7 @@ fn retainTopLevelRanges(
     }) |entry| {
         try reads.append(
             allocator,
-            try checkedRange(
+            try residency.checkedRange(
                 entry[0],
                 entry[1],
                 entry[2],
@@ -466,7 +543,7 @@ fn retainTopLevelRanges(
     }) |entry| {
         try writes.append(
             allocator,
-            try checkedRange(
+            try residency.checkedRange(
                 entry[0],
                 entry[1],
                 entry[2],
@@ -481,7 +558,7 @@ fn retainInstanceRanges(
     allocator: std.mem.Allocator,
     reads: *std.ArrayList(layout.DeviceRange),
     writes: *std.ArrayList(layout.DeviceRange),
-    identity: DeviceIdentity,
+    identity: residency.DeviceIdentity,
     geometry: Geometry,
     alpha_powers: u32,
     instance: InstanceBinding,
@@ -526,7 +603,7 @@ fn retainInstanceRanges(
     }) |table| {
         try reads.append(
             allocator,
-            try checkedRange(
+            try residency.checkedRange(
                 u32,
                 table,
                 table.len,
@@ -537,7 +614,7 @@ fn retainInstanceRanges(
     }
     try reads.append(
         allocator,
-        try checkedRange(
+        try residency.checkedRange(
             u32,
             instance.descriptor_storage,
             descriptor_words,
@@ -553,7 +630,7 @@ fn retainInstanceRanges(
         );
         try reads.append(
             allocator,
-            try checkedRange(
+            try residency.checkedRange(
                 u32,
                 source,
                 extent,
@@ -565,7 +642,7 @@ fn retainInstanceRanges(
     for (instance.output_coordinates) |output| {
         try writes.append(
             allocator,
-            try checkedRange(
+            try residency.checkedRange(
                 u32,
                 output,
                 geometry.rows,
@@ -576,7 +653,7 @@ fn retainInstanceRanges(
     }
     try writes.append(
         allocator,
-        try checkedRange(
+        try residency.checkedRange(
             field.SecureField,
             instance.denominator_slab,
             denominator_values,
@@ -586,7 +663,7 @@ fn retainInstanceRanges(
     );
     try writes.append(
         allocator,
-        try checkedRange(
+        try residency.checkedRange(
             field.SecureField,
             instance.claimed_sum,
             1,
@@ -650,34 +727,6 @@ fn validateResidentPlan(
             1,
         );
     }
-}
-
-const DeviceIdentity = struct {
-    owner: usize,
-    generation: u64,
-
-    fn from(slice: anytype) DeviceIdentity {
-        return .{
-            .owner = slice.owner,
-            .generation = slice.generation,
-        };
-    }
-};
-
-fn checkedRange(
-    comptime F: type,
-    slice: column.DeviceSlice(F),
-    minimum: usize,
-    alignment: usize,
-    identity: DeviceIdentity,
-) runtime_error.Error!layout.DeviceRange {
-    if (slice.address == 0 or slice.address % alignment != 0 or
-        slice.len < minimum or slice.owner != identity.owner or
-        slice.generation != identity.generation)
-    {
-        return error.InvalidDeviceAddress;
-    }
-    return layout.elementRange(slice.address, minimum, @sizeOf(F));
 }
 
 fn copyInstance(
@@ -755,22 +804,6 @@ fn validateBufferLengths(
         buffers.scan_block_sums.len < try topology.scratchWords())
     {
         return error.InvalidKernelDescriptor;
-    }
-}
-
-fn validatePointerTableAlignment(
-    buffers: DeviceBuffers,
-) runtime_error.Error!void {
-    const pointer_tables = [_]usize{
-        buffers.source_tables.address,
-        buffers.descriptors.address,
-        buffers.output_tables.address,
-        buffers.denominator_slabs.address,
-        buffers.claimed_sums.address,
-    };
-    for (pointer_tables) |address| {
-        if (address % @alignOf(usize) != 0)
-            return error.InvalidDeviceAddress;
     }
 }
 

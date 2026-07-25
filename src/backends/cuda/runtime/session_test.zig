@@ -132,6 +132,42 @@ test "strict session returns a resident verdict and never exposes fallback" {
             }
             return 0;
         }
+        pub fn stwo_native_aot_function_bind_with_globals(
+            loader: *anyopaque,
+            cache_key: u64,
+            abi_schema: u32,
+            expected_module_globals: u32,
+            name: [*:0]const u8,
+            grid: *const [3]u32,
+            block: *const [3]u32,
+            dynamic_shared_bytes: u32,
+            argument_count: u32,
+            out: *?*anyopaque,
+            receipt: *types.NativeAotFunctionReceipt,
+        ) c_int {
+            if (expected_module_globals != 0) return 1;
+            return stwo_native_aot_function_bind(
+                loader,
+                cache_key,
+                abi_schema,
+                name,
+                grid,
+                block,
+                dynamic_shared_bytes,
+                argument_count,
+                out,
+                receipt,
+            );
+        }
+        pub fn stwo_native_aot_function_publish_pedersen_w18(
+            _: *anyopaque,
+            _: *const [56]u64,
+            _: u32,
+            _: *const [32]u8,
+            _: *types.NativeAotModuleGlobalsReceipt,
+        ) c_int {
+            return 1;
+        }
         pub fn stwo_native_aot_function_launch(
             _: *anyopaque,
             _: [*]const ?*anyopaque,

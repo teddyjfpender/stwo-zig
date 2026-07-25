@@ -34,6 +34,7 @@ class CudaAotAuthenticationTests(unittest.TestCase):
                 "cache_key": 5,
                 "sm": 90,
                 "abi_schema": 1,
+                "module_globals": 0,
                 "kernel_name": "test_kernel",
                 "cubin": cubin,
             }
@@ -153,22 +154,34 @@ static unsigned char kContext = 0;
 static unsigned char kStream = 0;
 static unsigned char kModule = 0;
 static unsigned char kFunction = 0;
+static CUdeviceptr kPedersenColumns[STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT] = {{}};
+static std::uint32_t kPedersenRows = 0;
+static bool kBadSymbolSize = false;
+static int kStreamSynchronizes = 0;
 
 extern "C" bool stwo_aot_lookup(
     std::uint64_t cache_key,
     std::uint32_t sm_major,
     std::uint32_t sm_minor,
     std::uint32_t abi_schema,
+    std::uint32_t *out_module_globals,
     const char *kernel_name,
     const unsigned char **out_data,
     std::size_t *out_len,
     unsigned char out_sha256[32]) {{
-    if (cache_key != 5 || sm_major != 9 || sm_minor != 0 ||
-        abi_schema != 1 || std::strcmp(kernel_name, "test_kernel") != 0) {{
+    const bool ordinary =
+        cache_key == 5 && std::strcmp(kernel_name, "test_kernel") == 0;
+    const bool pedersen =
+        cache_key == 6 && std::strcmp(kernel_name, "pedersen_kernel") == 0;
+    if ((!ordinary && !pedersen) || sm_major != 9 || sm_minor != 0 ||
+        abi_schema != 1) {{
         return false;
     }}
     *out_data = kImage;
     *out_len = sizeof(kImage);
+    *out_module_globals = ordinary
+        ? STWO_NATIVE_AOT_MODULE_GLOBALS_NONE
+        : STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1;
     std::memcpy(out_sha256, kExpected, sizeof(kExpected));
     return true;
 }}
@@ -180,6 +193,14 @@ extern "C" int stwo_exec_context_stream(void *, void **out) {{
 extern "C" int stwo_exec_context_device(void *, int *out) {{
     *out = 0;
     return CUDA_SUCCESS;
+}}
+extern "C" int stwo_exec_context_validate_allocation(
+    void *, const void *pointer, std::size_t required_bytes) {{
+    return pointer != nullptr && required_bytes == (
+        static_cast<std::size_t>(STWO_NATIVE_PEDERSEN_W18_ROW_COUNT) *
+        sizeof(std::uint32_t))
+        ? CUDA_SUCCESS
+        : CUDA_ERROR_INVALID_VALUE;
 }}
 extern "C" CUresult cuCtxGetCurrent(CUcontext *out) {{
     *out = &kContext;
@@ -203,6 +224,47 @@ extern "C" CUresult cuModuleGetFunction(
     CUmodule,
     const char *) {{
     *out = &kFunction;
+    return CUDA_SUCCESS;
+}}
+extern "C" CUresult cuModuleGetGlobal(
+    CUdeviceptr *address, std::size_t *bytes, CUmodule, const char *name) {{
+    if (std::strcmp(name, "g_stwo_wit_pedersen_cols") == 0) {{
+        *address = reinterpret_cast<CUdeviceptr>(kPedersenColumns);
+        *bytes = sizeof(kPedersenColumns) - (kBadSymbolSize ? 1 : 0);
+        return CUDA_SUCCESS;
+    }}
+    if (std::strcmp(name, "g_stwo_wit_pedersen_n_rows") == 0) {{
+        *address = reinterpret_cast<CUdeviceptr>(&kPedersenRows);
+        *bytes = sizeof(kPedersenRows);
+        return CUDA_SUCCESS;
+    }}
+    return CUDA_ERROR_NOT_FOUND;
+}}
+extern "C" CUresult cuPointerGetAttribute(
+    void *out, CUpointer_attribute attribute, CUdeviceptr) {{
+    if (attribute != CU_POINTER_ATTRIBUTE_CONTEXT) return CUDA_ERROR_INVALID_VALUE;
+    *static_cast<CUcontext *>(out) = &kContext;
+    return CUDA_SUCCESS;
+}}
+extern "C" CUresult cuMemGetAddressRange(
+    CUdeviceptr *base, std::size_t *bytes, CUdeviceptr pointer) {{
+    *base = pointer;
+    *bytes = static_cast<std::size_t>(STWO_NATIVE_PEDERSEN_W18_ROW_COUNT) *
+        sizeof(std::uint32_t);
+    return CUDA_SUCCESS;
+}}
+extern "C" CUresult cuMemcpyHtoDAsync(
+    CUdeviceptr destination, const void *source, std::size_t bytes, CUstream) {{
+    std::memcpy(reinterpret_cast<void *>(destination), source, bytes);
+    return CUDA_SUCCESS;
+}}
+extern "C" CUresult cuMemcpyDtoHAsync(
+    void *destination, CUdeviceptr source, std::size_t bytes, CUstream) {{
+    std::memcpy(destination, reinterpret_cast<const void *>(source), bytes);
+    return CUDA_SUCCESS;
+}}
+extern "C" CUresult cuStreamSynchronize(CUstream) {{
+    ++kStreamSynchronizes;
     return CUDA_SUCCESS;
 }}
 extern "C" CUresult cuModuleUnload(CUmodule) {{ return CUDA_SUCCESS; }}
@@ -266,6 +328,69 @@ int main() {{
     assert(stwo_native_aot_function_destroy(function) == CUDA_SUCCESS);
     assert(stwo_native_aot_loader_destroy(loader) == CUDA_SUCCESS);
 
+    loader = nullptr;
+    function = nullptr;
+    assert(stwo_native_aot_loader_create(&exec_context, &loader) == CUDA_SUCCESS);
+    assert(stwo_native_aot_function_bind(
+        loader, 6, 1, "pedersen_kernel", grid, block, 0, 1,
+        &function, &receipt) == CUDA_ERROR_NOT_FOUND);
+    assert(function == nullptr);
+    assert(stwo_native_aot_function_bind_with_globals(
+        loader, 6, 1,
+        STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1,
+        "pedersen_kernel", grid, block, 0, 1,
+        &function, &receipt) == CUDA_SUCCESS);
+    assert(kModuleLoads == 2);
+    std::uint64_t columns[STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT] = {{}};
+    constexpr std::uint64_t column_bytes =
+        static_cast<std::uint64_t>(STWO_NATIVE_PEDERSEN_W18_ROW_COUNT) *
+        sizeof(std::uint32_t);
+    for (std::uint32_t index = 0;
+         index < STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT;
+         ++index) {{
+        columns[index] = 0x100000000ull + index * column_bytes;
+    }}
+    std::uint8_t table_identity[32] = {{}};
+    table_identity[0] = 7;
+    StwoNativeAotModuleGlobalsReceipt globals_receipt{{}};
+    assert(stwo_native_aot_function_publish_pedersen_w18(
+        function, columns, STWO_NATIVE_PEDERSEN_W18_ROW_COUNT,
+        table_identity, &globals_receipt) == CUDA_SUCCESS);
+    assert(kStreamSynchronizes == 1);
+    assert(globals_receipt.abi_version == 1);
+    assert(globals_receipt.verified == 1);
+    assert(globals_receipt.module_globals ==
+        STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1);
+    assert(globals_receipt.column_count ==
+        STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT);
+    assert(globals_receipt.row_count == STWO_NATIVE_PEDERSEN_W18_ROW_COUNT);
+    assert(globals_receipt.columns_symbol_bytes == sizeof(kPedersenColumns));
+    assert(globals_receipt.row_count_symbol_bytes == sizeof(kPedersenRows));
+    assert(std::memcmp(kPedersenColumns, columns, sizeof(columns)) == 0);
+    assert(kPedersenRows == STWO_NATIVE_PEDERSEN_W18_ROW_COUNT);
+    assert(stwo_native_aot_function_publish_pedersen_w18(
+        function, columns, STWO_NATIVE_PEDERSEN_W18_ROW_COUNT,
+        table_identity, &globals_receipt) == CUDA_SUCCESS);
+    assert(kStreamSynchronizes == 1);
+    assert(stwo_native_aot_function_publish_pedersen_w18(
+        function, columns, STWO_NATIVE_PEDERSEN_W18_ROW_COUNT - 1,
+        table_identity, &globals_receipt) == CUDA_ERROR_INVALID_VALUE);
+    assert(stwo_native_aot_function_destroy(function) == CUDA_SUCCESS);
+    assert(stwo_native_aot_loader_destroy(loader) == CUDA_SUCCESS);
+
+    kBadSymbolSize = true;
+    loader = nullptr;
+    function = nullptr;
+    assert(stwo_native_aot_loader_create(&exec_context, &loader) == CUDA_SUCCESS);
+    assert(stwo_native_aot_function_bind_with_globals(
+        loader, 6, 1,
+        STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1,
+        "pedersen_kernel", grid, block, 0, 1,
+        &function, &receipt) == CUDA_ERROR_INVALID_IMAGE);
+    assert(function == nullptr);
+    assert(stwo_native_aot_loader_destroy(loader) == CUDA_SUCCESS);
+    kBadSymbolSize = false;
+
     kImage[0] ^= 0xff;
     loader = nullptr;
     function = nullptr;
@@ -274,7 +399,7 @@ int main() {{
         loader, 5, 1, "test_kernel", grid, block, 0, 1,
         &function, &receipt) == CUDA_ERROR_INVALID_IMAGE);
     assert(function == nullptr);
-    assert(kModuleLoads == 1);
+    assert(kModuleLoads == 3);
     assert(stwo_native_aot_loader_destroy(loader) == CUDA_SUCCESS);
 }}
 """
@@ -282,12 +407,16 @@ int main() {{
 #ifndef CUDA_H
 #define CUDA_H
 
+#include <stddef.h>
+
 typedef void *CUcontext;
 typedef void *CUstream;
 typedef void *CUmodule;
 typedef void *CUfunction;
+typedef unsigned long long CUdeviceptr;
 typedef int CUdevice;
 typedef int CUresult;
+typedef int CUpointer_attribute;
 
 enum {
     CUDA_SUCCESS = 0,
@@ -305,6 +434,7 @@ enum {
     CU_FUNC_ATTRIBUTE_NUM_REGS = 4,
     CU_FUNC_ATTRIBUTE_BINARY_VERSION = 6,
     CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES = 8,
+    CU_POINTER_ATTRIBUTE_CONTEXT = 1,
 };
 
 #ifdef __cplusplus
@@ -315,7 +445,13 @@ CUresult cuCtxGetDevice(CUdevice *);
 CUresult cuDeviceGetAttribute(int *, int, CUdevice);
 CUresult cuModuleLoadData(CUmodule *, const void *);
 CUresult cuModuleGetFunction(CUfunction *, CUmodule, const char *);
+CUresult cuModuleGetGlobal(CUdeviceptr *, size_t *, CUmodule, const char *);
 CUresult cuModuleUnload(CUmodule);
+CUresult cuPointerGetAttribute(void *, CUpointer_attribute, CUdeviceptr);
+CUresult cuMemGetAddressRange(CUdeviceptr *, size_t *, CUdeviceptr);
+CUresult cuMemcpyHtoDAsync(CUdeviceptr, const void *, size_t, CUstream);
+CUresult cuMemcpyDtoHAsync(void *, CUdeviceptr, size_t, CUstream);
+CUresult cuStreamSynchronize(CUstream);
 CUresult cuFuncGetAttribute(int *, int, CUfunction);
 CUresult cuLaunchKernel(
     CUfunction,

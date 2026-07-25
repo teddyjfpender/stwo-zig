@@ -1,12 +1,32 @@
 //! Validated description and receipt for one strict-AOT CUDA launch.
 
 const std = @import("std");
+const module_globals = @import("../aot/module_globals.zig");
 const schema = @import("../abi/schema.zig");
 const types = @import("../abi/types.zig");
 const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
 pub const receipt_abi_version: u32 = 3;
+pub const ModuleGlobals = module_globals.Requirement;
+
+pub const PedersenW18Publication = struct {
+    columns: [module_globals.pedersen_w18_column_count]u64,
+    row_count: u32,
+    table_identity: [32]u8,
+
+    pub fn validate(self: PedersenW18Publication) runtime_error.Error!void {
+        if (self.row_count != module_globals.pedersen_w18_row_count or
+            std.mem.allEqual(u8, &self.table_identity, 0))
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        for (self.columns) |column| {
+            if (column == 0 or column % @alignOf(u32) != 0)
+                return error.InvalidKernelDescriptor;
+        }
+    }
+};
 
 pub const Kernel = struct {
     stage: telemetry.Stage,
@@ -17,6 +37,7 @@ pub const Kernel = struct {
     block: [3]u32,
     dynamic_shared_bytes: u32 = 0,
     argument_count: u32,
+    module_globals: ModuleGlobals = .none,
     max_registers_per_thread: ?u32 = null,
     max_local_bytes: ?u64 = null,
 

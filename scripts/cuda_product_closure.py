@@ -287,7 +287,7 @@ def validate_abi(
     stage_symbols = symbols(sorted((ABI / "stages").glob("*.zig")), ZIG_EXTERN_RE)
     wrapper_payload = "\n".join(
         path.read_text(encoding="utf-8", errors="strict")
-        for path in sorted(RUNTIME_STAGES.glob("*.zig"))
+        for path in sorted(RUNTIME_STAGES.rglob("*.zig"))
     )
     missing_wrappers = sorted(
         symbol for symbol in stage_symbols if symbol not in wrapper_payload
@@ -375,6 +375,30 @@ def validate() -> dict[str, object]:
     native_labels = {str(entry.get("label", "")) for entry in native_aot}
     if not native_labels or any("cairo" in label for label in native_labels):
         raise ProductClosureError("Native AOT manifest contains a foreign frontend")
+    cairo_eval_aot = read_json(
+        NATIVE_AOT / "cairo_eval/aot_manifest.json"
+    )
+    if not isinstance(cairo_eval_aot, list) or len(
+        cairo_eval_aot
+    ) != generated.get("cairo_eval_entry_count"):
+        raise ProductClosureError("Cairo eval AOT disposition count is stale")
+    cairo_eval_occurrences = sum(
+        len(entry.get("occurrences", []))
+        for entry in cairo_eval_aot
+        if isinstance(entry, dict)
+    )
+    if cairo_eval_occurrences != generated.get(
+        "cairo_eval_occurrence_count"
+    ):
+        raise ProductClosureError("Cairo eval AOT placement count is stale")
+    if any(
+        entry.get("abi_schema") != "cairo_eval_part_v1"
+        or entry.get("module_globals") != "none"
+        or not str(entry.get("label", "")).startswith("cairo_eval_")
+        for entry in cairo_eval_aot
+        if isinstance(entry, dict)
+    ):
+        raise ProductClosureError("Cairo eval AOT product identity is invalid")
 
     product_names = ordinary.get("product_sources")
     if not isinstance(product_names, list):
@@ -402,6 +426,8 @@ def validate() -> dict[str, object]:
         - len(ordinary["resident_candidates"]),
         "copied_aot_reference_entries": len(copied_aot),
         "native_aot_entries": len(native_aot),
+        "cairo_eval_aot_entries": len(cairo_eval_aot),
+        "cairo_eval_occurrences": cairo_eval_occurrences,
         "resident_authority_derivations": derivation_count,
         "native_runtime_sha256": digest.hexdigest(),
         **abi,
@@ -418,6 +444,8 @@ def main() -> int:
         f"{result['quarantined_or_deferred']} quarantined/deferred, "
         f"{result['copied_aot_reference_entries']} copied AOT entries excluded, "
         f"{result['native_aot_entries']} Native AOT entry admitted, "
+        f"{result['cairo_eval_aot_entries']} Cairo eval bodies covering "
+        f"{result['cairo_eval_occurrences']} placements admitted, "
         f"{result['resident_authority_derivations']} resident derivation verified, "
         f"{result['active_symbols']} active and "
         f"{result['staged_symbols']} staged ABI symbols verified"

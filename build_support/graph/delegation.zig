@@ -121,7 +121,9 @@ fn commandFor(
         command.addArg(b.fmt("-Driscv-release-phase={s}", .{options.riscv_release_phase}));
         command.addArg(b.fmt("-Driscv-evidence-dir={s}", .{options.riscv_evidence_dir}));
     }
-    if (std.mem.eql(u8, scope, "cuda_tools") or std.mem.eql(u8, scope, "native_cuda"))
+    if (std.mem.eql(u8, scope, "cuda_tools") or
+        std.mem.eql(u8, scope, "native_cuda") or
+        std.mem.eql(u8, scope, "cairo_cuda"))
         addCudaArguments(b, command, options);
     if (b.user_input_options.get("target") != null or b.user_input_options.get("cpu") != null)
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));

@@ -16,6 +16,12 @@ namespace {
 
 constexpr uint32_t kProofStageCount = 10;
 constexpr uint32_t kTimingMarkerCount = kProofStageCount + 1;
+constexpr size_t kInitialAllocationCapacity = 256;
+
+struct StwoNativeCudaAllocation {
+    uintptr_t address;
+    size_t bytes;
+};
 
 struct StwoNativeCudaContext {
     int device;
@@ -24,6 +30,9 @@ struct StwoNativeCudaContext {
     cudaEvent_t timing_events[kTimingMarkerCount];
     uint32_t timing_marker_count;
     uint32_t nvtx_depth;
+    StwoNativeCudaAllocation *allocations;
+    size_t allocation_count;
+    size_t allocation_capacity;
 };
 
 struct alignas(8) StwoCudaPlatformSnapshot {
@@ -56,6 +65,33 @@ cudaError_t require_context(
     if (status != cudaSuccess) return status;
     if (current != context->device) return cudaErrorInvalidDevice;
     *out_context = context;
+    return cudaSuccess;
+}
+
+cudaError_t ensure_allocation_capacity(StwoNativeCudaContext *context) {
+    if (context->allocation_count < context->allocation_capacity) {
+        return cudaSuccess;
+    }
+    const size_t next_capacity = context->allocation_capacity == 0
+        ? kInitialAllocationCapacity
+        : context->allocation_capacity * 2;
+    if (next_capacity < context->allocation_capacity ||
+        next_capacity > std::numeric_limits<size_t>::max() /
+            sizeof(StwoNativeCudaAllocation)) {
+        return cudaErrorMemoryAllocation;
+    }
+    auto *next = new (std::nothrow)
+        StwoNativeCudaAllocation[next_capacity];
+    if (next == nullptr) return cudaErrorMemoryAllocation;
+    if (context->allocation_count != 0) {
+        std::memcpy(
+            next,
+            context->allocations,
+            context->allocation_count * sizeof(StwoNativeCudaAllocation));
+    }
+    delete[] context->allocations;
+    context->allocations = next;
+    context->allocation_capacity = next_capacity;
     return cudaSuccess;
 }
 
@@ -184,6 +220,9 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->allocation_count != 0) {
+        return static_cast<int>(cudaErrorInvalidResourceHandle);
+    }
     cudaError_t event_status = cudaSuccess;
     if (context->nvtx_depth != 0) nvtxRangePop();
     for (uint32_t marker = 0; marker < kTimingMarkerCount; ++marker) {
@@ -194,6 +233,7 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     }
     const cudaError_t stream_status = cudaStreamDestroy(context->stream);
     const cudaError_t pool_status = cudaMemPoolDestroy(context->pool);
+    delete[] context->allocations;
     delete context;
     if (event_status != cudaSuccess) return static_cast<int>(event_status);
     if (stream_status != cudaSuccess) return static_cast<int>(stream_status);
@@ -520,12 +560,19 @@ extern "C" int stwo_exec_context_alloc_u32(
     *out_pointer = nullptr;
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+    if (status == cudaSuccess) status = ensure_allocation_capacity(context);
     if (status == cudaSuccess) {
         status = cudaMallocFromPoolAsync(
             reinterpret_cast<void **>(out_pointer),
             count * sizeof(uint32_t),
             context->pool,
             context->stream);
+    }
+    if (status == cudaSuccess) {
+        context->allocations[context->allocation_count++] = {
+            reinterpret_cast<uintptr_t>(*out_pointer),
+            count * sizeof(uint32_t),
+        };
     }
     return static_cast<int>(status);
 }
@@ -536,10 +583,56 @@ extern "C" int stwo_exec_context_free_u32(
     if (pointer == nullptr) return static_cast<int>(cudaErrorInvalidValue);
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+    size_t allocation_index = 0;
+    if (status == cudaSuccess) {
+        const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+        while (allocation_index < context->allocation_count &&
+               context->allocations[allocation_index].address != address) {
+            ++allocation_index;
+        }
+        if (allocation_index == context->allocation_count) {
+            status = cudaErrorInvalidDevicePointer;
+        }
+    }
     if (status == cudaSuccess) {
         status = cudaFreeAsync(pointer, context->stream);
     }
+    if (status == cudaSuccess) {
+        --context->allocation_count;
+        context->allocations[allocation_index] =
+            context->allocations[context->allocation_count];
+        context->allocations[context->allocation_count] = {};
+    }
     return static_cast<int>(status);
+}
+
+// Authenticate one exact resident range against this proof context's own
+// allocation ledger. CUDA pointer-context metadata is not an ownership proof
+// for cudaMallocFromPoolAsync allocations and differs across driver/runtime
+// allocation classes on real hardware.
+extern "C" int stwo_exec_context_validate_allocation(
+    void *handle,
+    const void *pointer,
+    size_t required_bytes) {
+    if (pointer == nullptr || required_bytes == 0) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+    for (size_t index = 0; index < context->allocation_count; ++index) {
+        const StwoNativeCudaAllocation allocation =
+            context->allocations[index];
+        if (address < allocation.address) continue;
+        const size_t offset = static_cast<size_t>(
+            address - allocation.address);
+        if (offset <= allocation.bytes &&
+            required_bytes <= allocation.bytes - offset) {
+            return 0;
+        }
+    }
+    return static_cast<int>(cudaErrorInvalidDevicePointer);
 }
 
 extern "C" int stwo_exec_context_memset_async(

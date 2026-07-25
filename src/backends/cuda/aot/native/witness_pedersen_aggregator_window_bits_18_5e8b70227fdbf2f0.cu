@@ -2102,7 +2102,7 @@ static __device__ __forceinline__ void stwo_wit_deduce_felt_sub(
     felt252_to_m31_limbs(r, out);
 }
 
-static __device__ __forceinline__ void stwo_wit_deduce_felt_mul(
+static __device__ __noinline__ void stwo_wit_deduce_felt_mul(
     const unsigned* in, unsigned* out) {
     felt252 a, b;
     felt252_from_m31_limbs(a, in);

@@ -10,6 +10,8 @@ const PreparedTermDescriptors = column.DeviceSlice(abi.PreparedTermDescriptor);
 const BatchTermDescriptors = column.DeviceSlice(abi.BatchTermDescriptor);
 const CompactSourceDescriptors =
     column.DeviceSlice(abi.CompactSourceDescriptor);
+const AddressedSourceDescriptors =
+    column.DeviceSlice(abi.AddressedSourceDescriptor);
 
 pub const PreparedGroups = struct {
     descriptors: PreparedTermDescriptors,
@@ -42,11 +44,33 @@ pub const CompactNumeratorTopology = struct {
     line_term_count: u32,
 };
 
+pub const AddressedNumeratorTopology = struct {
+    offsets: common.Words,
+    terms: BatchTermDescriptors,
+    sources: AddressedSourceDescriptors,
+    resident_sources: []const common.Words,
+    group_log_sizes: common.Words,
+    output_offsets: column.DeviceSlice(u64),
+    group_count: u32,
+    max_output_size: u32,
+    output_word_count: usize,
+    source_count: u32,
+    line_term_count: u32,
+};
+
 pub const CombineTopology = struct {
     partial_log_sizes: common.Words,
     sample_count: u32,
     domain_log_size: u32,
     partial_stride_words: usize,
+};
+
+pub const CompactCombineTopology = struct {
+    partial_log_sizes: common.Words,
+    partial_offsets: column.DeviceSlice(u64),
+    sample_count: u32,
+    domain_log_size: u32,
+    partial_word_count: usize,
 };
 
 pub fn prepareGroups(
@@ -93,19 +117,16 @@ pub fn prepareGroups(
     var seen = try allocator.alloc(bool, term_count);
     defer allocator.free(seen);
     @memset(seen, false);
+    // Equivalent circle points may use different sample indices plus periodic
+    // shifts. Ingress authenticates the grouping and this layer validates its
+    // exact partition rather than comparing descriptor representations.
     for (0..group_count) |group| {
         const begin = host_offsets[group];
         const end = host_offsets[group + 1];
         if (begin >= end or end > term_count)
             return error.InvalidKernelDescriptor;
-        const representative = host_term_indices[begin];
-        if (representative >= term_count)
-            return error.InvalidKernelDescriptor;
-        const shape = structuralPoint(host_terms[representative]);
         for (host_term_indices[begin..end]) |term| {
-            if (term >= term_count or seen[term] or
-                !sameStructuralPoint(shape, structuralPoint(host_terms[term])))
-            {
+            if (term >= term_count or seen[term]) {
                 return error.InvalidKernelDescriptor;
             }
             seen[term] = true;
@@ -325,6 +346,148 @@ pub fn prepareCompactNumeratorTopology(
     };
 }
 
+/// Publishes an exact multi-arena source graph at ingress. The descriptor
+/// addresses must match the resident slices retained by the caller for the
+/// whole proof epoch; execution never reconstructs or repacks this graph.
+pub fn prepareAddressedNumeratorTopology(
+    session: anytype,
+    host_offsets: []const u32,
+    host_terms: []const abi.BatchTermDescriptor,
+    host_sources: []const abi.AddressedSourceDescriptor,
+    resident_sources: []const common.Words,
+    host_group_log_sizes: []const u32,
+    host_output_offsets: []const u64,
+    device_offsets: common.Words,
+    device_terms: BatchTermDescriptors,
+    device_sources: AddressedSourceDescriptors,
+    device_group_log_sizes: common.Words,
+    device_output_offsets: column.DeviceSlice(u64),
+    max_output_size: u32,
+    line_term_count: usize,
+) runtime_error.Error!AddressedNumeratorTopology {
+    try common.requireStage(session, .ingress);
+    const group_count = try common.count(host_group_log_sizes.len);
+    const term_count = try common.count(host_terms.len);
+    const source_count = try common.count(host_sources.len);
+    const line_count = try common.count(line_term_count);
+    if (group_count == 0 or group_count > 65_535 or term_count == 0 or
+        source_count == 0 or line_count == 0 or
+        resident_sources.len != host_sources.len or
+        !std.math.isPowerOfTwo(max_output_size) or
+        host_offsets.len != host_group_log_sizes.len + 1 or
+        host_output_offsets.len != host_group_log_sizes.len + 1 or
+        host_offsets[0] != 0 or
+        host_offsets[host_offsets.len - 1] != term_count or
+        host_output_offsets[0] != 0)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    for (host_sources, resident_sources) |source, resident| {
+        if (source.address == 0 or
+            source.address != resident.address or
+            source.log_size == 0 or source.log_size > 30 or
+            source.stride_words == 0 or
+            source.stride_words != resident.len or
+            resident.owner == 0 or resident.generation == 0)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        const logical_words = @as(usize, 1) <<
+            @intCast(source.log_size);
+        if (logical_words > source.stride_words)
+            return error.InvalidKernelDescriptor;
+    }
+
+    var largest_size: u32 = 0;
+    for (host_group_log_sizes, 0..) |group_log, group| {
+        if (group_log == 0 or group_log > 30)
+            return error.InvalidKernelDescriptor;
+        largest_size = @max(
+            largest_size,
+            @as(u32, 1) << @intCast(group_log),
+        );
+        const begin = host_offsets[group];
+        const end = host_offsets[group + 1];
+        if (begin >= end or end > term_count)
+            return error.InvalidKernelDescriptor;
+        for (host_terms[begin..end]) |term| {
+            if (term.source_index >= source_count or
+                term.term_index >= line_count)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const descriptor = host_sources[term.source_index];
+            if (term.source_log_size != descriptor.log_size or
+                descriptor.log_size > group_log)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+        }
+        const output_begin = host_output_offsets[group];
+        const output_end = host_output_offsets[group + 1];
+        const output_words = @as(u64, 1) << @intCast(group_log);
+        if (output_end < output_begin or
+            output_end - output_begin != output_words)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+    }
+    if (largest_size != max_output_size)
+        return error.InvalidKernelDescriptor;
+
+    const exact_offsets = try device_offsets.sub(0, host_offsets.len);
+    const exact_terms = try device_terms.sub(0, host_terms.len);
+    const exact_sources = try device_sources.sub(0, host_sources.len);
+    const exact_logs = try device_group_log_sizes.sub(
+        0,
+        host_group_log_sizes.len,
+    );
+    const exact_output_offsets = try device_output_offsets.sub(
+        0,
+        host_output_offsets.len,
+    );
+    try session.context.uploadSlice(u32, exact_offsets, host_offsets);
+    try session.context.uploadSlice(
+        abi.BatchTermDescriptor,
+        exact_terms,
+        host_terms,
+    );
+    try session.context.uploadSlice(
+        abi.AddressedSourceDescriptor,
+        exact_sources,
+        host_sources,
+    );
+    try session.context.uploadSlice(
+        u32,
+        exact_logs,
+        host_group_log_sizes,
+    );
+    try session.context.uploadSlice(
+        u64,
+        exact_output_offsets,
+        host_output_offsets,
+    );
+    const output_word_count = std.math.cast(
+        usize,
+        host_output_offsets[host_output_offsets.len - 1],
+    ) orelse return error.SizeOverflow;
+    if (output_word_count == 0)
+        return error.InvalidKernelDescriptor;
+    return .{
+        .offsets = exact_offsets,
+        .terms = exact_terms,
+        .sources = exact_sources,
+        .resident_sources = resident_sources,
+        .group_log_sizes = exact_logs,
+        .output_offsets = exact_output_offsets,
+        .group_count = group_count,
+        .max_output_size = max_output_size,
+        .output_word_count = output_word_count,
+        .source_count = source_count,
+        .line_term_count = line_count,
+    };
+}
+
 pub fn prepareCombineTopology(
     session: anytype,
     host_partial_log_sizes: []const u32,
@@ -360,24 +523,82 @@ pub fn prepareCombineTopology(
     };
 }
 
-const StructuralPoint = struct {
-    sample_index: u32,
-    periodic: u32,
-    period_x: u32,
-    period_y: u32,
-};
+pub fn prepareCompactCombineTopology(
+    session: anytype,
+    host_partial_log_sizes: []const u32,
+    host_partial_offsets: []const u64,
+    device_partial_log_sizes: common.Words,
+    device_partial_offsets: column.DeviceSlice(u64),
+    domain_log_size: u32,
+    partial_word_count: usize,
+) runtime_error.Error!CompactCombineTopology {
+    try common.requireStage(session, .ingress);
+    const sample_count = try validateCompactCombineGeometry(
+        host_partial_log_sizes,
+        host_partial_offsets,
+        domain_log_size,
+        partial_word_count,
+    );
 
-fn structuralPoint(descriptor: abi.PreparedTermDescriptor) StructuralPoint {
+    const exact_logs = try device_partial_log_sizes.sub(
+        0,
+        host_partial_log_sizes.len,
+    );
+    const exact_offsets = try device_partial_offsets.sub(
+        0,
+        host_partial_offsets.len,
+    );
+    try session.context.uploadSlice(
+        u32,
+        exact_logs,
+        host_partial_log_sizes,
+    );
+    try session.context.uploadSlice(
+        u64,
+        exact_offsets,
+        host_partial_offsets,
+    );
     return .{
-        .sample_index = descriptor.sample_index,
-        .periodic = descriptor.periodic,
-        .period_x = descriptor.period_x,
-        .period_y = descriptor.period_y,
+        .partial_log_sizes = exact_logs,
+        .partial_offsets = exact_offsets,
+        .sample_count = sample_count,
+        .domain_log_size = domain_log_size,
+        .partial_word_count = partial_word_count,
     };
 }
 
-fn sameStructuralPoint(left: StructuralPoint, right: StructuralPoint) bool {
-    return std.meta.eql(left, right);
+fn validateCompactCombineGeometry(
+    partial_log_sizes: []const u32,
+    partial_offsets: []const u64,
+    domain_log_size: u32,
+    partial_word_count: usize,
+) runtime_error.Error!u32 {
+    const sample_count = try common.count(partial_log_sizes.len);
+    if (sample_count == 0 or domain_log_size == 0 or
+        domain_log_size > 30 or partial_word_count == 0 or
+        partial_offsets.len != partial_log_sizes.len + 1 or
+        partial_offsets[0] != 0)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    var expected_offset: u64 = 0;
+    for (partial_log_sizes, partial_offsets[1..]) |partial_log, end| {
+        if (partial_log == 0 or partial_log > domain_log_size or
+            partial_log > 30)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        expected_offset = std.math.add(
+            u64,
+            expected_offset,
+            @as(u64, 1) << @intCast(partial_log),
+        ) catch return error.SizeOverflow;
+        if (end != expected_offset)
+            return error.InvalidKernelDescriptor;
+    }
+    if (expected_offset != partial_word_count)
+        return error.InvalidKernelDescriptor;
+    return sample_count;
 }
 
 fn validCirclePoint(x: u32, y: u32) bool {
@@ -509,4 +730,28 @@ test "compact mixed-height addressing matches a dense CPU oracle" {
         }
     }
     try std.testing.expectEqualDeep(dense_result, compact_result);
+}
+
+test "compact quotient combine admits exact mixed-height offsets" {
+    const logs = [_]u32{ 4, 7, 9 };
+    const offsets = [_]u64{ 0, 16, 144, 656 };
+    try std.testing.expectEqual(
+        @as(u32, 3),
+        try validateCompactCombineGeometry(
+            &logs,
+            &offsets,
+            10,
+            656,
+        ),
+    );
+    var mutated = offsets;
+    mutated[2] += 1;
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        validateCompactCombineGeometry(&logs, &mutated, 10, 657),
+    );
+    try std.testing.expectError(
+        error.InvalidKernelDescriptor,
+        validateCompactCombineGeometry(&logs, &offsets, 8, 656),
+    );
 }

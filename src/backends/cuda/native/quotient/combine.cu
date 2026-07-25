@@ -136,6 +136,90 @@ __global__ void combine_kernel(
     result_3[row] = quotient.b.b;
 }
 
+__global__ void combine_compact_kernel(
+    std::uint32_t half_coset_initial_index,
+    std::uint32_t half_coset_step_size,
+    std::uint32_t domain_size,
+    std::uint32_t domain_log_size,
+    const SecureCirclePoint *sample_points,
+    std::uint32_t sample_count,
+    const QM31 *first_linear_terms,
+    const std::uint32_t *partial_log_sizes,
+    const std::uint64_t *partial_offsets,
+    std::size_t partial_word_count,
+    const std::uint32_t *partial_0,
+    const std::uint32_t *partial_1,
+    const std::uint32_t *partial_2,
+    const std::uint32_t *partial_3,
+    std::uint32_t *result_0,
+    std::uint32_t *result_1,
+    std::uint32_t *result_2,
+    std::uint32_t *result_3) {
+    const std::uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= domain_size) return;
+    const CirclePoint domain_point = domain_at_index(
+        half_coset_initial_index,
+        half_coset_step_size,
+        bit_reverse(row, domain_log_size),
+        domain_size);
+
+    QM31 quotient = zero();
+    for (std::uint32_t start = 0; start < sample_count;
+         start += kInverseChunk) {
+        const std::uint32_t remaining = sample_count - start;
+        const std::uint32_t count =
+            remaining < kInverseChunk ? remaining : kInverseChunk;
+        CM31 inverses[kInverseChunk];
+        denominator_inverse_chunk<kInverseChunk>(
+            sample_points,
+            start,
+            count,
+            domain_point,
+            inverses);
+#pragma unroll
+        for (std::uint32_t offset = 0; offset < kInverseChunk; ++offset) {
+            if (offset >= count) continue;
+            const std::uint32_t sample = start + offset;
+            const std::uint32_t partial_log_size =
+                partial_log_sizes[sample];
+            if (partial_log_size == 0 ||
+                partial_log_size > domain_log_size ||
+                partial_log_size > kMaximumLogSize) {
+                return;
+            }
+            const std::uint64_t begin = partial_offsets[sample];
+            const std::uint64_t end = partial_offsets[sample + 1];
+            const std::uint64_t partial_size =
+                std::uint64_t{1} << partial_log_size;
+            if (end < begin || end - begin != partial_size ||
+                end > partial_word_count) {
+                return;
+            }
+            const std::uint32_t log_ratio =
+                domain_log_size - partial_log_size;
+            const std::uint32_t lifted =
+                (row >> (log_ratio + 1u) << 1u) + (row & 1u);
+            if (lifted >= partial_size) return;
+            const std::size_t index =
+                static_cast<std::size_t>(begin + lifted);
+            const QM31 partial{
+                CM31{partial_0[index], partial_1[index]},
+                CM31{partial_2[index], partial_3[index]},
+            };
+            const QM31 full_numerator = sub(
+                partial,
+                mul_scalar(first_linear_terms[sample], domain_point.y));
+            quotient = add(
+                quotient,
+                mul(full_numerator, QM31{inverses[offset], CM31{0u, 0u}}));
+        }
+    }
+    result_0[row] = quotient.a.a;
+    result_1[row] = quotient.a.b;
+    result_2[row] = quotient.b.a;
+    result_3[row] = quotient.b.b;
+}
+
 }  // namespace stwo::cuda::quotient
 
 extern "C" int stwo_combine_quotients_from_numerators_on(
@@ -236,6 +320,101 @@ extern "C" int stwo_combine_quotients_from_numerators_on(
             partial_2,
             partial_3,
             partial_stride_words,
+            result_0,
+            result_1,
+            result_2,
+            result_3);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_combine_quotients_from_compact_numerators_on(
+    std::uint32_t half_coset_initial_index,
+    std::uint32_t half_coset_step_size,
+    std::uint32_t domain_size,
+    std::uint32_t domain_log_size,
+    const stwo::cuda::quotient::SecureCirclePoint *sample_points,
+    std::uint32_t sample_count,
+    const stwo::cuda::quotient::QM31 *first_linear_terms,
+    const std::uint32_t *partial_log_sizes,
+    const std::uint64_t *partial_offsets,
+    std::size_t partial_word_count,
+    const std::uint32_t *partial_0,
+    const std::uint32_t *partial_1,
+    const std::uint32_t *partial_2,
+    const std::uint32_t *partial_3,
+    std::uint32_t *result_0,
+    std::uint32_t *result_1,
+    std::uint32_t *result_2,
+    std::uint32_t *result_3,
+    void *stream) {
+    using namespace stwo::cuda::quotient;
+    if (half_coset_step_size == 0 || domain_size == 0 ||
+        domain_log_size == 0 || domain_log_size > kMaximumLogSize ||
+        domain_size != (1u << domain_log_size) ||
+        sample_points == nullptr || sample_count == 0 ||
+        first_linear_terms == nullptr || partial_log_sizes == nullptr ||
+        partial_offsets == nullptr || partial_word_count == 0 ||
+        partial_0 == nullptr || partial_1 == nullptr ||
+        partial_2 == nullptr || partial_3 == nullptr ||
+        result_0 == nullptr || result_1 == nullptr ||
+        result_2 == nullptr || result_3 == nullptr || stream == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    ByteRange sample_range;
+    ByteRange first_range;
+    ByteRange log_range;
+    ByteRange offset_range;
+    ByteRange partial_ranges[4];
+    ByteRange result_ranges[4];
+    if (!element_range(sample_points, sample_count, &sample_range) ||
+        !element_range(first_linear_terms, sample_count, &first_range) ||
+        !element_range(partial_log_sizes, sample_count, &log_range) ||
+        !element_range(
+            partial_offsets,
+            static_cast<std::size_t>(sample_count) + 1,
+            &offset_range) ||
+        !element_range(partial_0, partial_word_count, &partial_ranges[0]) ||
+        !element_range(partial_1, partial_word_count, &partial_ranges[1]) ||
+        !element_range(partial_2, partial_word_count, &partial_ranges[2]) ||
+        !element_range(partial_3, partial_word_count, &partial_ranges[3]) ||
+        !element_range(result_0, domain_size, &result_ranges[0]) ||
+        !element_range(result_1, domain_size, &result_ranges[1]) ||
+        !element_range(result_2, domain_size, &result_ranges[2]) ||
+        !element_range(result_3, domain_size, &result_ranges[3])) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const ByteRange reads[]{
+        sample_range,
+        first_range,
+        log_range,
+        offset_range,
+        partial_ranges[0],
+        partial_ranges[1],
+        partial_ranges[2],
+        partial_ranges[3],
+    };
+    if (!ranges_disjoint(result_ranges, 4, reads, 8)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    combine_compact_kernel<<<
+        (domain_size + kBlockSize - 1) / kBlockSize,
+        kBlockSize,
+        0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(
+            half_coset_initial_index,
+            half_coset_step_size,
+            domain_size,
+            domain_log_size,
+            sample_points,
+            sample_count,
+            first_linear_terms,
+            partial_log_sizes,
+            partial_offsets,
+            partial_word_count,
+            partial_0,
+            partial_1,
+            partial_2,
+            partial_3,
             result_0,
             result_1,
             result_2,

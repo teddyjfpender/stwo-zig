@@ -22,6 +22,10 @@ IDENTITY_64_RE = re.compile(r"^[0-9a-f]{16}$")
 IDENTITY_256_RE = re.compile(r"^[0-9a-f]{64}$")
 KERNEL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 LABEL_RE = re.compile(r"^[a-z0-9_]+$")
+MODULE_GLOBAL_REQUIREMENTS = {
+    "none": 0,
+    "pedersen_w18_columns_rows_v1": 1,
+}
 
 
 @dataclass(frozen=True)
@@ -74,40 +78,102 @@ def load_product_selection(
         raise BuildError("CUDA resident source selection names an absent authority file")
 
     aot_root = config.native_aot_root.resolve()
-    aot_manifest_path = aot_root / "aot_manifest.json"
-    try:
-        aot_manifest = json.loads(aot_manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise BuildError(f"cannot read Native AOT manifest: {error}") from error
-    validate_aot_manifest(aot_root, aot_manifest, allow_empty=True)
-    for index, entry in enumerate(aot_manifest):
-        if (
-            entry["abi_schema"] == RECORDED_WITNESS_SCHEMA
-            and entry.get("identity_scheme")
-            != RECORDED_WITNESS_IDENTITY_SCHEME
-        ):
-            raise BuildError(
-                f"Native AOT manifest entry {index} is an unauthenticated recorded witness"
-            )
-    aot_sources = tuple(aot_root / str(entry["file"]) for entry in aot_manifest)
+    declaration, product_sets = _load_aot_product_sets(aot_root)
+    aot_manifest: list[dict[str, object]] = []
+    aot_sources: list[Path] = []
+    seen_cache_keys: set[str] = set()
     aot_closure = hashlib.sha256()
-    manifest_payload = _canonical_json_bytes(aot_manifest)
-    aot_closure.update(len(manifest_payload).to_bytes(8, "little"))
-    aot_closure.update(manifest_payload)
-    for source in aot_sources:
-        relative = source.relative_to(aot_root).as_posix().encode("utf-8")
-        source_payload = source.read_bytes()
-        aot_closure.update(len(relative).to_bytes(8, "little"))
-        aot_closure.update(relative)
-        aot_closure.update(len(source_payload).to_bytes(8, "little"))
-        aot_closure.update(source_payload)
+    declaration_payload = _canonical_json_bytes(declaration)
+    aot_closure.update(len(declaration_payload).to_bytes(8, "little"))
+    aot_closure.update(declaration_payload)
+    for relative_set in product_sets:
+        set_root = (aot_root / relative_set).resolve()
+        if not set_root.is_relative_to(aot_root):
+            raise BuildError("CUDA AOT product set escapes its root")
+        try:
+            manifest = json.loads(
+                (set_root / "aot_manifest.json").read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as error:
+            raise BuildError(
+                f"cannot read CUDA AOT product-set manifest: {error}"
+            ) from error
+        validate_aot_manifest(set_root, manifest, allow_empty=True)
+        set_name = relative_set.encode("utf-8")
+        manifest_payload = _canonical_json_bytes(manifest)
+        aot_closure.update(len(set_name).to_bytes(8, "little"))
+        aot_closure.update(set_name)
+        aot_closure.update(len(manifest_payload).to_bytes(8, "little"))
+        aot_closure.update(manifest_payload)
+        for index, entry in enumerate(manifest):
+            if "module_globals" not in entry:
+                raise BuildError(
+                    f"CUDA AOT product-set entry {index} has no module-global requirement"
+                )
+            if (
+                entry["abi_schema"] == RECORDED_WITNESS_SCHEMA
+                and entry.get("identity_scheme")
+                != RECORDED_WITNESS_IDENTITY_SCHEME
+            ):
+                raise BuildError(
+                    f"CUDA AOT product-set entry {index} is an unauthenticated recorded witness"
+                )
+            cache_key = str(entry["cache_key"])
+            if cache_key in seen_cache_keys:
+                raise BuildError("CUDA AOT product sets have duplicate cache keys")
+            seen_cache_keys.add(cache_key)
+            source = set_root / str(entry["file"])
+            relative = source.relative_to(aot_root).as_posix().encode("utf-8")
+            source_payload = source.read_bytes()
+            aot_closure.update(len(relative).to_bytes(8, "little"))
+            aot_closure.update(relative)
+            aot_closure.update(len(source_payload).to_bytes(8, "little"))
+            aot_closure.update(source_payload)
+            aot_manifest.append(entry)
+            aot_sources.append(source)
     return ProductSelection(
         manifest_sha256=hashlib.sha256(payload).hexdigest(),
         ordinary_sources=ordinary_sources,
-        aot_sources=aot_sources,
+        aot_sources=tuple(aot_sources),
         aot_manifest=tuple(aot_manifest),
         aot_closure_sha256=aot_closure.hexdigest(),
     )
+
+
+def _load_aot_product_sets(aot_root: Path) -> tuple[dict[str, object], list[str]]:
+    declaration_path = aot_root / "product_sets.json"
+    if not declaration_path.is_file():
+        declaration = {
+            "schema": "stwo-zig-cuda-aot-product-sets-v1",
+            "sets": ["."],
+        }
+        return declaration, ["."]
+    try:
+        declaration = json.loads(declaration_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise BuildError(f"cannot read CUDA AOT product sets: {error}") from error
+    if (
+        not isinstance(declaration, dict)
+        or set(declaration) != {"schema", "sets"}
+        or declaration.get("schema") != "stwo-zig-cuda-aot-product-sets-v1"
+    ):
+        raise BuildError("unsupported CUDA AOT product-set declaration")
+    sets = declaration.get("sets")
+    if (
+        not isinstance(sets, list)
+        or not sets
+        or sets != sorted(set(sets))
+        or sets[0] != "."
+        or any(
+            not isinstance(value, str)
+            or value == ""
+            or Path(value).is_absolute()
+            or ".." in Path(value).parts
+            for value in sets
+        )
+    ):
+        raise BuildError("CUDA AOT product sets are not canonical")
+    return declaration, sets
 
 
 def validate_aot_manifest(
@@ -135,6 +201,7 @@ def validate_aot_manifest(
             raise BuildError(f"AOT manifest entry {index} is incomplete")
         kind = str(raw["kind"])
         label = str(raw["label"])
+        module_globals = str(raw.get("module_globals", "none"))
         abi_schema = str(raw["abi_schema"])
         kernel_name = str(raw["kernel_name"])
         cache_key_hex = str(raw["cache_key"])
@@ -143,6 +210,10 @@ def validate_aot_manifest(
         file_name = str(raw["file"])
         if kind not in {"constraint", "witness"}:
             raise BuildError(f"AOT manifest entry {index} has invalid kind")
+        if module_globals not in MODULE_GLOBAL_REQUIREMENTS:
+            raise BuildError(
+                f"AOT manifest entry {index} has invalid module-global requirement"
+            )
         if abi_schema not in ABI_SCHEMAS:
             raise BuildError(f"AOT manifest entry {index} has invalid ABI schema")
         if (
@@ -173,7 +244,15 @@ def validate_aot_manifest(
             raise BuildError("AOT manifest order is not canonical")
         if not (generated_dir / file_name).is_file():
             raise BuildError(f"copied AOT source is absent: {file_name}")
-        validate_native_aot_identity(generated_dir, raw, required, index)
+        identity_fields = required | (
+            {"module_globals"} if "module_globals" in raw else set()
+        )
+        validate_native_aot_identity(
+            generated_dir,
+            raw,
+            identity_fields,
+            index,
+        )
         previous = order
         seen_files.add(file_name)
         seen_keys.add(cache_key)

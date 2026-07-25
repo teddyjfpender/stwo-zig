@@ -164,6 +164,20 @@ pub fn ArenaFor(comptime Context: type) type {
             return (try self.slice(id)).cast(F);
         }
 
+        /// Returns the exact allocation owned by this arena. Offset-addressed
+        /// product kernels need the allocation base, but must not reconstruct
+        /// it from an arbitrary slot or bypass context ownership checks.
+        pub fn words(
+            self: *const Self,
+        ) column.DeviceSlice(u32) {
+            return .{
+                .address = @intFromPtr(self.backing.pointer),
+                .len = self.plan.total_words,
+                .owner = self.backing.owner,
+                .generation = self.backing.generation,
+            };
+        }
+
         pub fn deinit(
             self: *Self,
             context: *Context,
@@ -377,9 +391,20 @@ test "arena materializes every slot from one context allocation" {
     var context = FakeContext{};
     const FakeArena = ArenaFor(FakeContext);
     var arena = try FakeArena.init(&context, &plan);
+    const whole = arena.words();
     const trace = try arena.slice(1);
     const scratch = try arena.slice(2);
     try std.testing.expectEqual(@as(usize, 1), context.allocations);
+    try std.testing.expectEqual(plan.total_words, whole.len);
+    try std.testing.expectEqual(
+        @intFromPtr(arena.backing.pointer),
+        whole.address,
+    );
+    try std.testing.expectEqual(arena.backing.owner, whole.owner);
+    try std.testing.expectEqual(
+        arena.backing.generation,
+        whole.generation,
+    );
     try std.testing.expectEqual(@as(usize, 16), trace.len);
     try std.testing.expectEqual(@as(usize, 8), scratch.len);
     try std.testing.expect(trace.owner == scratch.owner);
