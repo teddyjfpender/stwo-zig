@@ -38,9 +38,7 @@ NATIVE = ROOT / "src/backends/cuda/native"
 NATIVE_AOT = ROOT / "src/backends/cuda/aot/native"
 
 EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
-    "host": {
-        "aot_loader.cpp",
-    },
+    "host": {"aot_loader.cpp"},
     "runtime": {
         "runtime/context.cu",
     },
@@ -48,6 +46,7 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "kernels/wide_fibonacci_trace.cu",
         "kernels/xor_trace.cu",
     },
+    "cairo": {"cairo/casm_input.cu"},
     "commitment": {
         "commitment/merkle.cu",
         "commitment/progressive.cu",
