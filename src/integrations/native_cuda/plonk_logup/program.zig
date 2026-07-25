@@ -178,7 +178,7 @@ fn nativeContract(geometry: geometry_mod.Geometry) ir.NativeAirContract {
         .statement = .{
             .transcript_recipe_identity = identities.transcript_recipe,
             .public_input_abi_identity = identities.public_input_abi,
-            .public_input_words = geometry_mod.statement_word_count,
+            .public_input_words = geometry_mod.public_statement_word_count,
         },
         .sampling = .{
             .recipe_identity = identities.sampling_recipe,
@@ -537,6 +537,10 @@ test "Plonk emits exact generic Native AIR geometry and proof semantics" {
     try std.testing.expectEqual(@as(u32, 4), contract.geometry.preprocessed_columns);
     try std.testing.expectEqual(@as(u32, 4), contract.geometry.main_columns);
     try std.testing.expectEqual(@as(u32, 8), contract.geometry.interaction_columns);
+    try std.testing.expectEqual(
+        @as(u32, geometry_mod.public_statement_word_count),
+        contract.statement.public_input_words,
+    );
     try std.testing.expectEqual(@as(u64, 16 * (1 << 7)), contract.ingress.element_count);
     try std.testing.expectEqual(@as(usize, 24), program.trace_columns.len);
     try std.testing.expectEqual(@as(usize, 4), program.commitments.len);

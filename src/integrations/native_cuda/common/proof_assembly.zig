@@ -54,6 +54,14 @@ pub fn captureSampledValues(
     );
 }
 
+pub fn captureStatement(
+    session: anytype,
+    views: anytype,
+    source: common.Words,
+) runtime_error.Error!void {
+    try copyWords(session, views.proof.statement, source);
+}
+
 pub fn captureFriRoot(
     session: anytype,
     views: anytype,
@@ -100,7 +108,9 @@ pub fn validateLayout(
     views: anytype,
 ) runtime_error.Error!void {
     const proof = views.proof;
-    if (proof.bundle.len != prepared.proof.total_words or
+    if (proof.terminal.len !=
+        proof.statement.len + proof.bundle.len or
+        proof.bundle.len != prepared.proof.total_words or
         proof.degree_verdict.len != 1 or
         proof.trace_commitments.len !=
             prepared.proof.section(.trace_commitments).words or
@@ -291,6 +301,8 @@ fn testViews() resident_views.Views {
         },
         .decommit = undefined,
         .proof = .{
+            .terminal = words(0x1000, 512),
+            .statement = words(0x1000, 0),
             .bundle = words(0x1000, 512),
             .degree_verdict = words(0x4010, 1),
             .trace_commitments = words(0x2000, 24),

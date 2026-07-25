@@ -28,6 +28,11 @@ pub fn build(
     const rows = try geometry.traceRowCount();
     const committed_rows = geometry.commitment_rows;
     const sample_count: usize = geometry_mod.sampled_mask_points;
+    const terminal_words = std.math.add(
+        usize,
+        proof.total_words,
+        geometry_mod.terminal_statement_words,
+    ) catch return error.GeometryOverflow;
     const trace_hashes = try sub(try mul(committed_rows, 2), 1);
     const trace_layers = @as(usize, geometry.commitment_log_rows) + 1;
     const relation_plan = try relation_mod.Plan.init(
@@ -218,7 +223,14 @@ pub fn build(
     try add(&output, allocator, slots.decommit_counts, decommit.count_words, .decommit, .decommit);
     try add(&output, allocator, slots.decommit_sparse_level_offsets, 1, .ingress, .decommit);
     try add(&output, allocator, slots.decommit_sparse_level_counts, 1, .decommit, .decommit);
-    try add(&output, allocator, slots.proof_bundle, proof.total_words, .ingress, .proof_assembly);
+    try add(
+        &output,
+        allocator,
+        slots.proof_bundle,
+        terminal_words,
+        .ingress,
+        .proof_assembly,
+    );
 
     return output.toOwnedSlice(allocator);
 }

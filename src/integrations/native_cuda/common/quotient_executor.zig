@@ -22,9 +22,25 @@ pub fn run(
     ingress: anytype,
     views: anytype,
 ) !void {
+    return runWith(
+        NativeQuotient,
+        transaction,
+        prepared,
+        ingress,
+        views,
+    );
+}
+
+pub fn runWith(
+    comptime Ops: type,
+    transaction: anytype,
+    prepared: anytype,
+    ingress: anytype,
+    views: anytype,
+) !void {
     try validate(prepared, ingress, views);
     try executeWithOps(
-        NativeQuotient,
+        Ops,
         transaction.proofSession(),
         ingress.circle,
         views.oods.sample_points,

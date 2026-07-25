@@ -302,6 +302,8 @@ pub const Decommit = struct {
 pub const Proof = struct {
     // SWPC is word-packed: its header deliberately does not promise the
     // 32-byte alignment of standalone Blake2sHash slots.
+    terminal: common.Words,
+    statement: common.Words,
     bundle: common.Words,
     degree_verdict: common.Words,
     trace_commitments: common.Words,

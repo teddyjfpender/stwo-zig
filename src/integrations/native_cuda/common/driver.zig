@@ -12,6 +12,10 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
         const Self = @This();
         pub const PreparedProof = Executor.PreparedPlan;
         pub const Request = Executor.Request;
+        pub const Output = if (@hasDecl(Executor, "OutputFor"))
+            Executor.OutputFor(Transaction)
+        else
+            Transaction.StarkBundleOutput;
 
         allocator: std.mem.Allocator,
 
@@ -41,7 +45,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             self: Self,
             runtime: anytype,
             request: Request,
-        ) !Transaction.StarkBundleOutput {
+        ) !Output {
             var prepared = try self.prepare(runtime, request);
             defer prepared.deinit(self.allocator);
             return self.runPreparedRetained(runtime, request, &prepared);
@@ -52,7 +56,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             runtime: anytype,
             request: Request,
             prepared: *PreparedProof,
-        ) !Transaction.StarkBundleOutput {
+        ) !Output {
             return self.runPrepared(runtime, request, prepared, .graphs);
         }
 
@@ -63,7 +67,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             runtime: anytype,
             request: Request,
             prepared: *PreparedProof,
-        ) !Transaction.StarkBundleOutput {
+        ) !Output {
             return self.runPrepared(runtime, request, prepared, .direct);
         }
 
@@ -75,7 +79,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             request: Request,
             prepared: *PreparedProof,
             mode: ExecutionMode,
-        ) !Transaction.StarkBundleOutput {
+        ) !Output {
             const geometry = try Executor.admit(request);
             try Executor.validatePrepared(prepared, geometry);
             const session = try runtime.beginProof();
@@ -97,7 +101,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
             prepared: *PreparedProof,
             geometry: Executor.Geometry,
             mode: ExecutionMode,
-        ) !Transaction.StarkBundleOutput {
+        ) !Output {
             var transaction_live = true;
             errdefer if (transaction_live) transaction.abort() catch {};
 
@@ -149,11 +153,18 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
                 try transaction.endStage(scheduled.stage);
             }
 
-            const output = try transaction.assembleStarkBundleAndFinishWith(
-                Executor.BundleDescriptor,
-                self.allocator,
-                prepared.proofSlot(),
-            );
+            const output = if (@hasDecl(Executor, "finish"))
+                try Executor.finish(
+                    transaction,
+                    self.allocator,
+                    prepared,
+                )
+            else
+                try transaction.assembleStarkBundleAndFinishWith(
+                    Executor.BundleDescriptor,
+                    self.allocator,
+                    prepared.proofSlot(),
+                );
             transaction_live = false;
             return output;
         }
@@ -175,6 +186,13 @@ fn assertExecutor(comptime Executor: type) void {
     }) |name| {
         if (!@hasDecl(Executor, name))
             @compileError("Native CUDA executor is missing " ++ name);
+    }
+    if (@hasDecl(Executor, "finish") !=
+        @hasDecl(Executor, "OutputFor"))
+    {
+        @compileError(
+            "custom CUDA finish requires both finish and OutputFor",
+        );
     }
     const Prepared = Executor.PreparedPlan;
     inline for (&.{

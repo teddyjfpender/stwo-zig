@@ -20,7 +20,28 @@ pub fn executePow(
     prepared: anytype,
     views: anytype,
 ) !void {
-    return executePowWith(NativeOps, transaction, prepared, views);
+    return executePowWithAt(
+        NativeOps,
+        transaction,
+        prepared,
+        views,
+        default_fri_step,
+    );
+}
+
+pub fn executePowAt(
+    transaction: anytype,
+    prepared: anytype,
+    views: anytype,
+    first_fri_step: u32,
+) !void {
+    return executePowWithAt(
+        NativeOps,
+        transaction,
+        prepared,
+        views,
+        first_fri_step,
+    );
 }
 
 pub fn executeDecommit(
@@ -28,7 +49,28 @@ pub fn executeDecommit(
     prepared: anytype,
     views: anytype,
 ) !void {
-    return executeDecommitWith(NativeOps, transaction, prepared, views);
+    return executeDecommitWithAt(
+        NativeOps,
+        transaction,
+        prepared,
+        views,
+        default_fri_step,
+    );
+}
+
+pub fn executeDecommitAt(
+    transaction: anytype,
+    prepared: anytype,
+    views: anytype,
+    first_fri_step: u32,
+) !void {
+    return executeDecommitWithAt(
+        NativeOps,
+        transaction,
+        prepared,
+        views,
+        first_fri_step,
+    );
 }
 
 pub fn executePowWith(
@@ -36,6 +78,22 @@ pub fn executePowWith(
     transaction: anytype,
     prepared: anytype,
     views: anytype,
+) !void {
+    return executePowWithAt(
+        Ops,
+        transaction,
+        prepared,
+        views,
+        default_fri_step,
+    );
+}
+
+pub fn executePowWithAt(
+    comptime Ops: type,
+    transaction: anytype,
+    prepared: anytype,
+    views: anytype,
+    first_fri_step: u32,
 ) !void {
     const session = transaction.proofSession();
     try Ops.Fri.grindPow(
@@ -50,7 +108,10 @@ pub fn executePowWith(
     );
     try Ops.Capture.capturePowNonce(session, views);
 
-    const step = try powStep(prepared.fri.layers.len);
+    const step = try powStepAt(
+        first_fri_step,
+        prepared.fri.layers.len,
+    );
     switch (try prepared.transcript.operation(step)) {
         .absorb_pow => {},
         else => return error.InvalidKernelDescriptor,
@@ -71,6 +132,22 @@ pub fn executeDecommitWith(
     prepared: anytype,
     views: anytype,
 ) !void {
+    return executeDecommitWithAt(
+        Ops,
+        transaction,
+        prepared,
+        views,
+        default_fri_step,
+    );
+}
+
+pub fn executeDecommitWithAt(
+    comptime Ops: type,
+    transaction: anytype,
+    prepared: anytype,
+    views: anytype,
+    first_fri_step: u32,
+) !void {
     const geometry = prepared.logical.geometry;
     const topology = prepared.decommit;
     if (views.decommit.raw_queries.len != topology.query_count or
@@ -82,7 +159,10 @@ pub fn executeDecommitWith(
     }
 
     const session = transaction.proofSession();
-    const query_step = try queryStep(prepared.fri.layers.len);
+    const query_step = try queryStepAt(
+        first_fri_step,
+        prepared.fri.layers.len,
+    );
     switch (try prepared.transcript.operation(query_step)) {
         .draw_queries => {},
         else => return error.InvalidKernelDescriptor,
@@ -239,14 +319,29 @@ fn boundary(
 }
 
 pub fn powStep(layer_count: usize) runtime_error.Error!u32 {
-    return tailStep(layer_count, 1);
+    return powStepAt(default_fri_step, layer_count);
 }
 
 pub fn queryStep(layer_count: usize) runtime_error.Error!u32 {
-    return tailStep(layer_count, 2);
+    return queryStepAt(default_fri_step, layer_count);
+}
+
+pub fn powStepAt(
+    first_fri_step: u32,
+    layer_count: usize,
+) runtime_error.Error!u32 {
+    return tailStep(first_fri_step, layer_count, 1);
+}
+
+pub fn queryStepAt(
+    first_fri_step: u32,
+    layer_count: usize,
+) runtime_error.Error!u32 {
+    return tailStep(first_fri_step, layer_count, 2);
 }
 
 fn tailStep(
+    first_fri_step: u32,
     layer_count: usize,
     tail_offset: usize,
 ) runtime_error.Error!u32 {
@@ -255,10 +350,16 @@ fn tailStep(
         layer_count,
         2,
     ) catch return error.SizeOverflow;
-    return std.math.cast(
+    const offset = std.math.add(
+        usize,
+        fri_operations,
+        tail_offset,
+    ) catch return error.SizeOverflow;
+    return std.math.add(
         u32,
-        9 + fri_operations + tail_offset,
-    ) orelse error.SizeOverflow;
+        first_fri_step,
+        std.math.cast(u32, offset) orelse return error.SizeOverflow,
+    ) catch return error.SizeOverflow;
 }
 
 fn count(value: usize) runtime_error.Error!u32 {
@@ -290,3 +391,5 @@ test "PoW bound covers the imported monotone SIMD nonce lattice" {
     );
     try std.testing.expect(pow_search_end > std.math.maxInt(u32));
 }
+
+pub const default_fri_step: u32 = 9;

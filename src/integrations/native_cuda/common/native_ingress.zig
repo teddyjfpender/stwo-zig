@@ -24,12 +24,12 @@ pub fn ExecutorFor(
                 .ingress,
                 slots.proof_bundle,
                 0,
-                views.proof.bundle.len,
+                views.proof.terminal.len,
             );
             try transaction.uploadResidentSlice(
                 u32,
                 slots.proof_bundle,
-                0,
+                views.proof.statement.len,
                 prepared.proof.static_header,
             );
             try transaction.upload(

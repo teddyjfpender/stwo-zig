@@ -23,12 +23,31 @@ const Descriptor = struct {
             },
         );
     }
+
+    pub fn sampleCount(
+        tree: @import("../common/uniform_layout.zig").TraceTree,
+        column_index: usize,
+    ) !usize {
+        return sampleCountFor(tree, column_index);
+    }
 };
 
 const Decoder = shared.DecoderFor(layout.Layout, Descriptor);
 
 pub const OwnedProofWire = Decoder.OwnedProofWire;
 pub const decodeProof = Decoder.decodeProof;
+
+pub fn sampleCountFor(
+    tree: @import("../common/uniform_layout.zig").TraceTree,
+    column_index: usize,
+) !usize {
+    if (column_index >= tree.column_count)
+        return error.InvalidSampleLayout;
+    return if (tree.role == .interaction and column_index >= 4)
+        2
+    else
+        1;
+}
 
 test "Plonk decoder descriptor admits the canonical protocol" {
     const protocol = @import("../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig").Protocol{

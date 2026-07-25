@@ -20,9 +20,17 @@ const NativeTranscript = transcript_stage.Native;
 const NativeOods = oods_stage.Native;
 
 pub const max_rejection_rounds: u32 = 64;
-const draw_oods_step: u32 = 6;
-const mix_samples_step: u32 = 7;
-const draw_quotient_step: u32 = 8;
+pub const Steps = struct {
+    draw_oods: u32,
+    mix_samples: u32,
+    draw_quotient: u32,
+};
+
+pub const default_steps = Steps{
+    .draw_oods = 6,
+    .mix_samples = 7,
+    .draw_quotient = 8,
+};
 
 pub const Batch = oods_batches.Batch;
 pub const ExplicitBatch = oods_batches.Descriptor;
@@ -52,6 +60,53 @@ pub fn run(
     );
 }
 
+pub fn runBatchesAt(
+    transaction: anytype,
+    prepared: anytype,
+    views: anytype,
+    batches: []const Batch,
+    steps: Steps,
+) !void {
+    const Ops = struct {
+        const Transcript = NativeTranscript;
+        const Oods = NativeOods;
+        const Capture = proof_assembly;
+    };
+    return runBatchesWithAt(
+        Ops,
+        transaction,
+        prepared,
+        views,
+        batches,
+        steps,
+    );
+}
+
+pub fn runBatchesWithAt(
+    comptime Ops: type,
+    transaction: anytype,
+    prepared: anytype,
+    views: anytype,
+    batches: []const Batch,
+    steps: Steps,
+) !void {
+    try executeWithOpsAt(
+        Ops.Transcript,
+        Ops.Oods,
+        transaction.proofSession(),
+        prepared.transcript,
+        views.transcript,
+        views.oods,
+        views.quotient.challenge,
+        batches,
+        steps,
+    );
+    try Ops.Capture.captureSampledValues(
+        transaction.proofSession(),
+        views,
+    );
+}
+
 pub fn executeWithOps(
     comptime TranscriptOps: type,
     comptime OodsOps: type,
@@ -62,6 +117,30 @@ pub fn executeWithOps(
     quotient_challenge: common.SecureFields,
     batches: []const Batch,
 ) !void {
+    return executeWithOpsAt(
+        TranscriptOps,
+        OodsOps,
+        session,
+        schedule,
+        transcript,
+        oods,
+        quotient_challenge,
+        batches,
+        default_steps,
+    );
+}
+
+pub fn executeWithOpsAt(
+    comptime TranscriptOps: type,
+    comptime OodsOps: type,
+    session: anytype,
+    schedule: anytype,
+    transcript: anytype,
+    oods: resident_views.Oods,
+    quotient_challenge: common.SecureFields,
+    batches: []const Batch,
+    steps: Steps,
+) !void {
     if (batches.len == 0) return error.InvalidKernelDescriptor;
     const log_size = batches[0].coefficient_log_size;
     const output_snapshot = try firstSecureSnapshot(
@@ -69,7 +148,7 @@ pub fn executeWithOps(
     );
     try requireOperation(
         schedule,
-        draw_oods_step,
+        steps.draw_oods,
         .draw_oods_point,
     );
     try TranscriptOps.drawSecure(
@@ -78,7 +157,7 @@ pub fn executeWithOps(
         transcript.state,
         try boundary(
             schedule,
-            draw_oods_step,
+            steps.draw_oods,
             transcript.boundary_snapshot,
         ),
         1,
@@ -104,7 +183,7 @@ pub fn executeWithOps(
     const sampled_words = try oods.sampled_values.cast(u32);
     try requireOperation(
         schedule,
-        mix_samples_step,
+        steps.mix_samples,
         .mix_sampled_values,
     );
     try TranscriptOps.mixWords(
@@ -113,7 +192,7 @@ pub fn executeWithOps(
         transcript.state,
         try boundary(
             schedule,
-            mix_samples_step,
+            steps.mix_samples,
             transcript.boundary_snapshot,
         ),
         sampled_words,
@@ -122,7 +201,7 @@ pub fn executeWithOps(
     );
     try requireOperation(
         schedule,
-        draw_quotient_step,
+        steps.draw_quotient,
         .draw_quotient_alpha,
     );
     try TranscriptOps.drawSecure(
@@ -131,7 +210,7 @@ pub fn executeWithOps(
         transcript.state,
         try boundary(
             schedule,
-            draw_quotient_step,
+            steps.draw_quotient,
             transcript.boundary_snapshot,
         ),
         1,

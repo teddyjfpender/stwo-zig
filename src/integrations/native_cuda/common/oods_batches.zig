@@ -58,7 +58,7 @@ pub fn buildExplicit(
     var sample_cursor: usize = 0;
     var common_log_size: ?u32 = null;
     var common_rows: ?usize = null;
-    for (descriptors, storage) |descriptor, *batch| {
+    for (descriptors, storage[0..descriptors.len]) |descriptor, *batch| {
         if (descriptor.column_count == 0 or
             descriptor.first_execution_sample != sample_cursor)
         {

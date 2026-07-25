@@ -5,9 +5,11 @@ const exact = @import("stwo_under_test")
     .plonk_logup;
 const RuntimeError = @import("stwo_under_test")
     .backends.cuda.runtime.runtime_error.Error;
+const terminal_tests = @import("native_cuda_plonk_logup_terminal.zig");
 
 test {
     std.testing.refAllDecls(exact);
+    _ = terminal_tests;
 }
 
 test "exact CUDA Plonk LogUp resident binding is a four-tree relation graph" {
@@ -33,6 +35,19 @@ test "exact CUDA Plonk LogUp resident binding is a four-tree relation graph" {
         @as(usize, 16),
         bound.constraint_buffers.source_evaluations.storage.len /
             bound.constraint_buffers.source_evaluations.column_stride_words,
+    );
+    try std.testing.expectEqual(
+        exact.geometry.terminal_statement_words,
+        bound.base.proof.statement.len,
+    );
+    try std.testing.expectEqual(
+        bound.base.proof.terminal.len,
+        bound.base.proof.statement.len + bound.base.proof.bundle.len,
+    );
+    try std.testing.expectEqual(
+        bound.base.proof.terminal.address +
+            exact.geometry.terminal_statement_words * @sizeOf(u32),
+        bound.base.proof.bundle.address,
     );
     const relation_plan = try exact.relation.Plan.init(
         geometry.statement.log_n_rows,
@@ -84,7 +99,7 @@ test "exact interaction and composition execute in transcript order" {
     try std.testing.expectEqual(@as(usize, 1), Calls.splits);
     try std.testing.expectEqual(@as(usize, 2), Calls.leaf_hashes);
     try std.testing.expectEqual(@as(usize, 2), Calls.tail_hashes);
-    try std.testing.expectEqual(@as(usize, 2), Calls.device_copies);
+    try std.testing.expectEqual(@as(usize, 3), Calls.device_copies);
     try std.testing.expectEqual(@as(usize, 1), Calls.zeroes);
 }
 
@@ -464,8 +479,13 @@ const IngressTransaction = struct {
             .arena_plan
             .placement(id);
         const words = values.len * (@sizeOf(F) / @sizeOf(u32));
-        if (first != 0 or placement.requirement.words < words)
+        if (first + words > placement.requirement.words or
+            (id == exact.slots.proof_bundle and
+                first != exact.geometry.terminal_statement_words) or
+            (id != exact.slots.proof_bundle and first != 0))
+        {
             return error.InvalidKernelDescriptor;
+        }
         try self.record(id);
     }
 

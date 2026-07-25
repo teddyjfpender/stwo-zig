@@ -89,14 +89,15 @@ pub fn DecoderFor(
                 logical.trace_trees.len,
             );
             const samples = try decodeSamples(
+                Descriptor,
                 allocator,
                 bundle.sampledValues(),
-                logical.trace_trees,
+                &logical.trace_trees,
             );
             const trace = try decodeTraceOpenings(
                 allocator,
                 bundle.decommitment,
-                logical.trace_trees,
+                &logical.trace_trees,
                 logical.fri_trees.len,
             );
             const fri_proof = try decodeFri(
@@ -133,17 +134,19 @@ const TraceProof = struct {
 };
 
 fn decodeSamples(
+    comptime Descriptor: type,
     allocator: std.mem.Allocator,
     words: []const u32,
-    trace_trees: [3]uniform_layout.TraceTree,
+    trace_trees: []const uniform_layout.TraceTree,
 ) ![][][]proof_wire.Qm31Wire {
     var sampled_value_count: usize = 0;
     for (trace_trees) |tree| {
-        if (tree.sampled) {
+        if (!tree.sampled) continue;
+        for (0..tree.column_count) |column_index| {
             sampled_value_count = std.math.add(
                 usize,
                 sampled_value_count,
-                tree.column_count,
+                try sampleCount(Descriptor, tree, column_index),
             ) catch return error.SizeOverflow;
         }
     }
@@ -154,62 +157,63 @@ fn decodeSamples(
     ) catch return error.SizeOverflow;
     if (words.len != sampled_words)
         return error.InvalidSampleLayout;
-    const values = try decodeSecureValues(
-        allocator,
-        words,
-        sampled_value_count,
+    const trees = try allocator.alloc(
+        [][]proof_wire.Qm31Wire,
+        trace_trees.len,
     );
-    const trees = try allocator.alloc([][]proof_wire.Qm31Wire, 3);
-    var cursor: usize = 0;
     for (trace_trees, 0..) |tree, index| {
-        if (!tree.sampled) {
-            trees[index] = try emptyColumns(
-                allocator,
-                tree.column_count,
-            );
-            continue;
-        }
-        const end = std.math.add(
-            usize,
-            cursor,
+        trees[index] = try allocator.alloc(
+            []proof_wire.Qm31Wire,
             tree.column_count,
-        ) catch return error.SizeOverflow;
-        trees[index] = try singletonColumns(
-            allocator,
-            values[cursor..end],
         );
-        cursor = end;
     }
-    if (cursor != values.len) return error.InvalidSampleLayout;
+    var word_cursor: usize = 0;
+    for (trace_trees, trees) |tree, columns| {
+        for (columns, 0..) |*column, column_index| {
+            const count = if (tree.sampled)
+                try sampleCount(Descriptor, tree, column_index)
+            else
+                0;
+            const word_count = std.math.mul(
+                usize,
+                count,
+                stark_bundle.secure_words,
+            ) catch return error.SizeOverflow;
+            const end = std.math.add(
+                usize,
+                word_cursor,
+                word_count,
+            ) catch return error.SizeOverflow;
+            if (end > words.len) return error.InvalidSampleLayout;
+            column.* = try decodeSecureValues(
+                allocator,
+                words[word_cursor..end],
+                count,
+            );
+            word_cursor = end;
+        }
+    }
+    if (word_cursor != words.len) return error.InvalidSampleLayout;
     return trees;
 }
 
-fn emptyColumns(
-    allocator: std.mem.Allocator,
-    count: usize,
-) ![][]proof_wire.Qm31Wire {
-    const columns = try allocator.alloc([]proof_wire.Qm31Wire, count);
-    for (columns) |*column| {
-        column.* = try allocator.alloc(proof_wire.Qm31Wire, 0);
-    }
-    return columns;
-}
-
-fn singletonColumns(
-    allocator: std.mem.Allocator,
-    values: []const proof_wire.Qm31Wire,
-) ![][]proof_wire.Qm31Wire {
-    const columns = try allocator.alloc([]proof_wire.Qm31Wire, values.len);
-    for (columns, values) |*column, value| {
-        column.* = try allocator.dupe(proof_wire.Qm31Wire, &.{value});
-    }
-    return columns;
+fn sampleCount(
+    comptime Descriptor: type,
+    tree: uniform_layout.TraceTree,
+    column_index: usize,
+) !usize {
+    const count = if (@hasDecl(Descriptor, "sampleCount"))
+        try Descriptor.sampleCount(tree, column_index)
+    else
+        1;
+    if (count == 0) return error.InvalidSampleLayout;
+    return count;
 }
 
 fn decodeTraceOpenings(
     allocator: std.mem.Allocator,
     bundle: decommit_bundle.Bundle,
-    trace_trees: [3]uniform_layout.TraceTree,
+    trace_trees: []const uniform_layout.TraceTree,
     fri_tree_count: usize,
 ) !TraceProof {
     var opened_tree_count: usize = 0;
@@ -220,9 +224,12 @@ fn decodeTraceOpenings(
         return error.InvalidTraceOpening;
     const decommitments = try allocator.alloc(
         proof_wire.MerkleDecommitmentWire,
-        3,
+        trace_trees.len,
     );
-    const queried_values = try allocator.alloc([][]u32, 3);
+    const queried_values = try allocator.alloc(
+        [][]u32,
+        trace_trees.len,
+    );
     for (trace_trees, 0..) |_, role_index| {
         decommitments[role_index] = .{
             .hash_witness = try allocator.alloc(proof_wire.HashWire, 0),

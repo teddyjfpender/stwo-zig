@@ -9,6 +9,9 @@ pub const main_columns: u32 = 4;
 pub const interaction_columns: u32 = 8;
 pub const composition_columns: u32 = 8;
 pub const statement_word_count: usize = 1;
+pub const terminal_statement_words: usize = 4;
+pub const public_statement_word_count: usize =
+    statement_word_count + terminal_statement_words;
 pub const source_columns: u32 = preprocessed_columns +
     main_columns + interaction_columns + composition_columns;
 pub const resident_evaluation_columns: u32 = source_columns;

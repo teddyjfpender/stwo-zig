@@ -48,6 +48,21 @@ pub fn TransactionFor(comptime Session: type) type {
             }
         };
 
+        pub const StarkStatementBundleOutput = struct {
+            statement_words: []u32,
+            bundle: stark_bundle.Bundle,
+            verdict: Session.FinishVerdict,
+
+            pub fn deinit(
+                self: *@This(),
+                allocator: std.mem.Allocator,
+            ) void {
+                allocator.free(self.statement_words);
+                self.bundle.deinit(allocator);
+                self.* = undefined;
+            }
+        };
+
         allocator: std.mem.Allocator,
         plan: arena_module.Plan,
         session_owner: SessionOwner,
@@ -397,6 +412,53 @@ pub fn TransactionFor(comptime Session: type) type {
                     Descriptor,
                     allocator,
                     storage,
+                ),
+                .verdict = verdict,
+            };
+        }
+
+        /// Downloads one statement-prefixed proof envelope exactly once, then
+        /// separates the public statement from the unchanged SWPC proof.
+        pub fn assembleStarkBundleAndStatementFinishWith(
+            self: *Self,
+            comptime Descriptor: type,
+            allocator: std.mem.Allocator,
+            proof_slot: arena_module.SlotId,
+            statement_word_count: usize,
+        ) !StarkStatementBundleOutput {
+            const source = try self.slot(proof_slot);
+            if (statement_word_count == 0 or
+                statement_word_count >= source.len)
+            {
+                return error.SizeOverflow;
+            }
+            const envelope = try allocator.alloc(u32, source.len);
+            const verdict = self.assembleAndFinish(
+                envelope,
+                proof_slot,
+            ) catch |err| {
+                allocator.free(envelope);
+                return err;
+            };
+            defer allocator.free(envelope);
+
+            const statement_words = try allocator.dupe(
+                u32,
+                envelope[0..statement_word_count],
+            );
+            errdefer allocator.free(statement_words);
+            const proof_storage = try allocator.dupe(
+                u32,
+                envelope[statement_word_count..],
+            );
+            errdefer allocator.free(proof_storage);
+            return .{
+                .statement_words = statement_words,
+                .bundle = try stark_bundle.Bundle
+                    .decodeOwnedCallerGuardedWith(
+                    Descriptor,
+                    allocator,
+                    proof_storage,
                 ),
                 .verdict = verdict,
             };

@@ -6,6 +6,7 @@ const canonical = @import("../canonical_ingress.zig");
 const frontend_hooks = @import("frontend_hooks.zig");
 const geometry_mod = @import("../geometry.zig");
 const plan_mod = @import("../plan.zig");
+const terminal_output = @import("../terminal_output.zig");
 
 const Pipeline = common_pipeline.PipelineFor(
     geometry_mod.Request,
@@ -25,6 +26,29 @@ pub const planTarget = Pipeline.planTarget;
 pub const validatePrepared = Pipeline.validatePrepared;
 pub const ingress = Pipeline.ingress;
 pub const executeNode = Pipeline.executeNode;
+
+pub fn OutputFor(comptime Transaction: type) type {
+    return terminal_output.OutputFor(Transaction);
+}
+
+pub fn finish(
+    transaction: anytype,
+    allocator: std.mem.Allocator,
+    prepared: anytype,
+) !OutputFor(@TypeOf(transaction.*)) {
+    const raw = try transaction.assembleStarkBundleAndStatementFinishWith(
+        BundleDescriptor,
+        allocator,
+        prepared.proofSlot(),
+        geometry_mod.terminal_statement_words,
+    );
+    return terminal_output.fromRaw(
+        @TypeOf(transaction.*),
+        allocator,
+        prepared.structural.logical.geometry.statement.log_n_rows,
+        raw,
+    );
+}
 
 test "Plonk pipeline owns canonical inputs and one compiled arena plan" {
     const allocator = std.testing.allocator;

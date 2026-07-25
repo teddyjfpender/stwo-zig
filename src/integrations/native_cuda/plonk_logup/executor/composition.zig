@@ -70,6 +70,11 @@ pub fn runWith(
     );
     defer relation_stage.deinit(transaction.allocator, relation_plan);
     try Ops.Relation.execute(session, relation_plan);
+    try proof_assembly.captureStatement(
+        session,
+        &views.base,
+        try views.relation.claimed_sum.cast(u32),
+    );
 
     try commitInteraction(
         Ops,

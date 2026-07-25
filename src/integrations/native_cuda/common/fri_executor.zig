@@ -21,7 +21,31 @@ pub fn run(
     pack: anytype,
     views: anytype,
 ) !void {
-    return runWith(NativeOps, transaction, prepared, pack, views);
+    return runWithAt(
+        NativeOps,
+        transaction,
+        prepared,
+        pack,
+        views,
+        default_fri_step,
+    );
+}
+
+pub fn runAt(
+    transaction: anytype,
+    prepared: anytype,
+    pack: anytype,
+    views: anytype,
+    first_fri_step: u32,
+) !void {
+    return runWithAt(
+        NativeOps,
+        transaction,
+        prepared,
+        pack,
+        views,
+        first_fri_step,
+    );
 }
 
 pub fn runWith(
@@ -31,6 +55,24 @@ pub fn runWith(
     pack: anytype,
     views: anytype,
 ) !void {
+    return runWithAt(
+        Ops,
+        transaction,
+        prepared,
+        pack,
+        views,
+        default_fri_step,
+    );
+}
+
+pub fn runWithAt(
+    comptime Ops: type,
+    transaction: anytype,
+    prepared: anytype,
+    pack: anytype,
+    views: anytype,
+    first_fri_step: u32,
+) !void {
     const topology = prepared.fri.layers;
     if (topology.len == 0 or
         topology.len != views.fri.layer_count or
@@ -39,7 +81,7 @@ pub fn runWith(
     {
         return error.InvalidKernelDescriptor;
     }
-    try proof_assembly.validateLayout(prepared, views);
+    try Ops.Capture.validateLayout(prepared, views);
 
     const session = transaction.proofSession();
     const Builder = commit_tree.BuilderFor(Ops.Commitment);
@@ -71,6 +113,7 @@ pub fn runWith(
             views,
             layer_index,
             try root.cast(u32),
+            first_fri_step,
         );
         try drawAlpha(
             Ops.Transcript,
@@ -78,6 +121,7 @@ pub fn runWith(
             prepared,
             views,
             layer_index,
+            first_fri_step,
         );
 
         const destination = if (layer_index + 1 < topology.len)
@@ -130,6 +174,7 @@ pub fn runWith(
         session,
         prepared,
         views,
+        first_fri_step,
     );
 }
 
@@ -140,8 +185,9 @@ fn mixRoot(
     views: anytype,
     layer_index: usize,
     root: stages.common.Words,
+    first_fri_step: u32,
 ) !void {
-    const step = try friStep(layer_index, false);
+    const step = try friStepAt(first_fri_step, layer_index, false);
     switch (try prepared.transcript.operation(step)) {
         .mix_fri_root => |scheduled| {
             if (scheduled != layer_index)
@@ -166,8 +212,9 @@ fn drawAlpha(
     prepared: anytype,
     views: anytype,
     layer_index: usize,
+    first_fri_step: u32,
 ) !void {
-    const step = try friStep(layer_index, true);
+    const step = try friStepAt(first_fri_step, layer_index, true);
     switch (try prepared.transcript.operation(step)) {
         .draw_fri_alpha => |scheduled| {
             if (scheduled != layer_index)
@@ -194,8 +241,13 @@ fn mixLastLayer(
     session: anytype,
     prepared: anytype,
     views: anytype,
+    first_fri_step: u32,
 ) !void {
-    const step = try friStep(prepared.fri.layers.len, false);
+    const step = try friStepAt(
+        first_fri_step,
+        prepared.fri.layers.len,
+        false,
+    );
     switch (try prepared.transcript.operation(step)) {
         .mix_last_layer => {},
         else => return error.InvalidKernelDescriptor,
@@ -230,12 +282,26 @@ pub fn friStep(
     layer_index: usize,
     draw: bool,
 ) runtime_error.Error!u32 {
+    return friStepAt(default_fri_step, layer_index, draw);
+}
+
+pub fn friStepAt(
+    first_fri_step: u32,
+    layer_index: usize,
+    draw: bool,
+) runtime_error.Error!u32 {
     const doubled = std.math.mul(usize, layer_index, 2) catch
         return error.SizeOverflow;
-    return std.math.cast(
+    const offset = std.math.add(
+        usize,
+        doubled,
+        @as(usize, @intFromBool(draw)),
+    ) catch return error.SizeOverflow;
+    return std.math.add(
         u32,
-        9 + doubled + @as(usize, @intFromBool(draw)),
-    ) orelse error.SizeOverflow;
+        first_fri_step,
+        std.math.cast(u32, offset) orelse return error.SizeOverflow,
+    ) catch return error.SizeOverflow;
 }
 
 fn pow2Count(log_size: u32) runtime_error.Error!u32 {
@@ -248,6 +314,7 @@ fn count(value: usize) runtime_error.Error!u32 {
 }
 
 const max_rejection_rounds: u32 = 64;
+pub const default_fri_step: u32 = 9;
 
 test "shared FRI schedule maps one challenge to every folded tree" {
     const schedule = try transcript_schedule.Schedule.init(0x1234, 5);
