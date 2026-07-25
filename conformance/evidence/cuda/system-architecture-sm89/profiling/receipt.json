@@ -23,9 +23,10 @@
   "nsight_systems": {
     "version": "2024.6.2.225-246235244400v0",
     "trace": {
-      "path": "log20x100.nsys-rep",
-      "bytes": 147011,
-      "sha256": "fb30e4e9e91fa6053e08a9f0f944d606be72e09d45ca5f1a6a27587ef3cacab4"
+      "retention": "omitted_from_repository",
+      "reason": "Raw profiler captures may contain environment metadata or credentials; retain them only in access-controlled artifact storage.",
+      "original_bytes": 147011,
+      "original_sha256": "fb30e4e9e91fa6053e08a9f0f944d606be72e09d45ca5f1a6a27587ef3cacab4"
     },
     "kernel_summary": {
       "path": "log20x100-kernels.csv",
