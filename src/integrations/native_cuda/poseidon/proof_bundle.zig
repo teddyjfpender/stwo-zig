@@ -94,11 +94,11 @@ test "Poseidon bundle preserves exact CPU proof cardinalities" {
     try bundle.validate(openings.assembly_words);
 
     try std.testing.expectEqual(
-        @as(usize, 3 * 8),
+        @as(usize, 4 * 8),
         bundle.section(.trace_commitments).words,
     );
     try std.testing.expectEqual(
-        @as(usize, 1272 * 4),
+        @as(usize, 1316 * 4),
         bundle.section(.sampled_values).words,
     );
     try std.testing.expectEqual(
@@ -111,6 +111,6 @@ test "Poseidon bundle preserves exact CPU proof cardinalities" {
     );
     try std.testing.expectEqual(@as(u32, 10), bundle.static_header[4]);
     try std.testing.expectEqual(@as(u32, 13), bundle.static_header[5]);
-    try std.testing.expectEqual(@as(u32, 3), bundle.static_header[12]);
-    try std.testing.expectEqual(@as(u32, 12), bundle.static_header[14]);
+    try std.testing.expectEqual(@as(u32, 4), bundle.static_header[12]);
+    try std.testing.expectEqual(@as(u32, 13), bundle.static_header[14]);
 }

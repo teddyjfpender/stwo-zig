@@ -12,6 +12,10 @@ const native_cuda_poseidon_ingress =
     @import("integrations/native_cuda/poseidon/canonical_ingress.zig");
 const native_cuda_poseidon_program =
     @import("integrations/native_cuda/poseidon/program.zig");
+const native_cuda_poseidon_proof_bundle =
+    @import("integrations/native_cuda/poseidon/proof_bundle.zig");
+const native_cuda_poseidon_terminal_bundle =
+    @import("integrations/native_cuda/poseidon/terminal_bundle.zig");
 const native_cuda_poseidon_transcript =
     @import("integrations/native_cuda/poseidon/transcript_schedule.zig");
 
@@ -44,5 +48,7 @@ test {
     std.testing.refAllDeclsRecursive(native_cuda_poseidon_oods);
     std.testing.refAllDeclsRecursive(native_cuda_poseidon_ingress);
     std.testing.refAllDeclsRecursive(native_cuda_poseidon_program);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_proof_bundle);
+    std.testing.refAllDeclsRecursive(native_cuda_poseidon_terminal_bundle);
     std.testing.refAllDeclsRecursive(native_cuda_poseidon_transcript);
 }

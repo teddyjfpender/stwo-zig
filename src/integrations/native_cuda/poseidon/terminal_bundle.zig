@@ -11,7 +11,7 @@ pub const Descriptor = struct {
         const expected_decommit = std.math.add(
             u32,
             protocol.log_n_rows,
-            2,
+            3,
         ) catch return error.SizeOverflow;
         if (protocol.log_n_rows == 0 or
             protocol.log_n_rows > geometry_mod.max_log_n_rows or
@@ -22,7 +22,7 @@ pub const Descriptor = struct {
             protocol.n_queries != 3 or
             protocol.fold_step != 1 or
             protocol.lifting_log_size != null or
-            protocol.commitment_root_count != 3 or
+            protocol.commitment_root_count != 4 or
             protocol.fri_root_count != protocol.log_n_rows or
             protocol.decommit_tree_count != expected_decommit)
         {
@@ -33,11 +33,7 @@ pub const Descriptor = struct {
     pub fn sampledValueCount(
         _: stark.Protocol,
     ) stark.Error!usize {
-        return std.math.add(
-            usize,
-            1264,
-            geometry_mod.composition_columns,
-        ) catch return error.SizeOverflow;
+        return geometry_mod.sampled_mask_points;
     }
 };
 
@@ -51,13 +47,13 @@ test "Poseidon terminal policy binds instance and trace logs" {
         .n_queries = 3,
         .fold_step = 1,
         .lifting_log_size = null,
-        .commitment_root_count = 3,
+        .commitment_root_count = 4,
         .fri_root_count = 10,
-        .decommit_tree_count = 12,
+        .decommit_tree_count = 13,
     };
     try Descriptor.validateProtocol(protocol);
     try std.testing.expectEqual(
-        @as(usize, 1272),
+        @as(usize, 1316),
         try Descriptor.sampledValueCount(protocol),
     );
 }

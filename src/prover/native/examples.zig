@@ -137,7 +137,7 @@ pub fn geometry(workload: config.Workload) !Geometry {
             break :blk .{
                 .trace_log_rows = log_n_rows,
                 .trace_rows = rows,
-                .committed_trees = 3,
+                .committed_trees = 4,
                 .committed_columns = columns,
                 .committed_trace_cells = try std.math.mul(u64, rows, columns),
                 .native_unit = "poseidon_instances",
@@ -753,7 +753,7 @@ test "native proof examples: geometry and descriptors are tagged" {
     try std.testing.expectEqual(@as(u64, 51_846_144), blake_geometry.committed_trace_cells);
     try std.testing.expectEqual(@as(u64, 320), blake_geometry.native_units);
     try std.testing.expectEqualStrings("blake_round_instances", blake_geometry.native_unit);
-    try std.testing.expectEqual(@as(u32, 3), poseidon_geometry.committed_trees);
+    try std.testing.expectEqual(@as(u32, 4), poseidon_geometry.committed_trees);
     try std.testing.expectEqual(@as(u64, 1_296), poseidon_geometry.committed_columns);
     try std.testing.expectEqual(@as(u64, 41_472), poseidon_geometry.committed_trace_cells);
     const blake_admission = try config.admitWorkload(blake_workload, .large);
