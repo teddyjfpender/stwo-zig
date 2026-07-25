@@ -13,6 +13,7 @@ pub const slots = @import("slots.zig");
 pub const terminal = @import("terminal.zig");
 pub const topology = @import("topology.zig");
 pub const transcript = @import("transcript.zig");
+pub const trace_binding = @import("trace_binding.zig");
 pub const views = @import("views.zig");
 
 test {
@@ -26,5 +27,6 @@ test {
     _ = terminal;
     _ = topology;
     _ = transcript;
+    _ = trace_binding;
     _ = views;
 }

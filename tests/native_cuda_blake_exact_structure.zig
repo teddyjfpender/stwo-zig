@@ -72,6 +72,164 @@ test "exact Blake route prerequisites reject missing kernel authorities" {
     );
 }
 
+test "exact Blake witness binding is fixed to authenticated AOT authority" {
+    const geometry = try exact.geometry.admit(.{
+        .statement = .{ .log_n_rows = 4 },
+        .protocol = stwo.core.pcs.PcsConfig.default(),
+    });
+    const views = try exact.views.TreeViews.init(geometry);
+    const shape = try exact.trace_binding.validate(
+        exact.facades.invocation(geometry, views),
+    );
+    try std.testing.expectEqual(
+        geometry.main_words,
+        shape.main_words,
+    );
+    try std.testing.expectEqual(
+        geometry.treeWords(.preprocessed) + geometry.main_words,
+        shape.relation_words,
+    );
+    try std.testing.expectEqual(
+        stwo.backends.cuda.runtime.traces.blake_exact.cache_key,
+        exact.trace_binding.cache_key,
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &stwo.backends.cuda.runtime.traces.blake_exact.program_identity,
+        &exact.trace_binding.program_identity,
+    );
+
+    var prepared = try exact.arena_plan.Prepared.init(
+        std.testing.allocator,
+        geometry,
+    );
+    defer prepared.deinit(std.testing.allocator);
+    var transaction = TraceTransaction{ .prepared = &prepared };
+    try exact.trace_binding.generate(
+        &transaction,
+        exact.facades.invocation(geometry, prepared.views),
+    );
+    try std.testing.expectEqual(@as(usize, 2), transaction.zero_count);
+    try std.testing.expectEqual(@as(u64, 1), transaction.session.launches);
+    try std.testing.expectEqual(
+        exact.trace_binding.abi_schema,
+        transaction.session.schema,
+    );
+}
+
+const TraceZero = struct {
+    id: stwo.backends.cuda.runtime.arena.SlotId = 0,
+    first: usize = 0,
+    count: usize = 0,
+};
+
+const TraceTransaction = struct {
+    prepared: *const exact.arena_plan.Prepared,
+    session: TraceSession = .{},
+    zeros: [2]TraceZero = .{ .{}, .{} },
+    zero_count: usize = 0,
+
+    pub fn slot(
+        self: *const TraceTransaction,
+        id: stwo.backends.cuda.runtime.arena.SlotId,
+    ) !stwo.backends.cuda.runtime.column.DeviceSlice(u32) {
+        const placement = try self.prepared.placement(id);
+        return .{
+            .address = 0x4000_0000 +
+                placement.offset_words * @sizeOf(u32),
+            .len = placement.requirement.words,
+            .owner = 7,
+            .generation = 11,
+        };
+    }
+
+    pub fn zeroResidentSlice(
+        self: *TraceTransaction,
+        comptime F: type,
+        stage: stwo.backends.cuda.runtime.telemetry.Stage,
+        id: stwo.backends.cuda.runtime.arena.SlotId,
+        first: usize,
+        count: usize,
+    ) !void {
+        if (F != u32 or stage != .trace_generation or
+            self.zero_count == self.zeros.len)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        const destination = try self.slot(id);
+        if (count == 0 or first > destination.len or
+            count > destination.len - first)
+        {
+            return error.SizeOverflow;
+        }
+        self.zeros[self.zero_count] = .{
+            .id = id,
+            .first = first,
+            .count = count,
+        };
+        self.zero_count += 1;
+    }
+
+    pub fn proofSession(self: *TraceTransaction) *TraceSession {
+        return &self.session;
+    }
+};
+
+const TraceSession = struct {
+    context: TraceContext = .{},
+    launches: u64 = 0,
+    schema: stwo.backends.cuda.abi.schema.KernelSchema =
+        .ordinary_constraint_v1,
+
+    pub fn launchKernel(
+        self: *TraceSession,
+        kernel: stwo.backends.cuda.runtime.kernel.Kernel,
+        arguments: []const ?*anyopaque,
+    ) !void {
+        try kernel.validate();
+        if (kernel.cache_key != exact.trace_binding.cache_key or
+            !std.mem.eql(
+                u8,
+                kernel.name,
+                exact.trace_binding.kernel_name,
+            ) or
+            arguments.len !=
+                stwo.backends.cuda.runtime.traces.blake_exact.argument_count)
+        {
+            return error.InvalidKernelDescriptor;
+        }
+        self.schema = kernel.abi_schema;
+        self.launches += 1;
+    }
+};
+
+const TraceContext = struct {
+    active_stage: stwo.backends.cuda.runtime.telemetry.Stage =
+        .trace_generation,
+
+    pub fn requireStage(
+        self: *TraceContext,
+        expected: stwo.backends.cuda.runtime.telemetry.Stage,
+    ) !void {
+        if (self.active_stage != expected)
+            return error.StageOrderViolation;
+    }
+
+    pub fn deviceSlicePointer(
+        _: *TraceContext,
+        comptime F: type,
+        slice: anytype,
+        minimum: usize,
+    ) ![*]F {
+        if (minimum == 0 or slice.len < minimum or
+            slice.owner != 7 or slice.generation != 11)
+        {
+            return error.InvalidDeviceAddress;
+        }
+        return @ptrFromInt(slice.address);
+    }
+};
+
 test "exact Blake executor exposes every Fiat-Shamir root and alpha barrier" {
     const allocator = std.testing.allocator;
     const geometry = try exact.geometry.admit(.{
