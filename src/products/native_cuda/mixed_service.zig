@@ -425,7 +425,7 @@ fn prepareRequest(
                 proveShape(family),
                 wide_route.protocol(),
             );
-            const proof_request = wide_route.proofRequest(geometry);
+            const proof_request = try wide_route.proofRequest(geometry);
             const driver = wide_route.cuda.NativeDriver{
                 .allocator = allocator,
             };
@@ -441,7 +441,7 @@ fn prepareRequest(
                 proveShape(family),
                 poseidon_route.protocol(),
             );
-            const proof_request = poseidon_route.proofRequest(geometry);
+            const proof_request = try poseidon_route.proofRequest(geometry);
             const driver = poseidon_route.cuda.NativeDriver{
                 .allocator = allocator,
             };
@@ -457,7 +457,7 @@ fn prepareRequest(
                 proveShape(family),
                 state_machine_route.protocol(),
             );
-            const proof_request = state_machine_route.proofRequest(geometry);
+            const proof_request = try state_machine_route.proofRequest(geometry);
             const driver = state_machine_route.cuda.NativeDriver{
                 .allocator = allocator,
             };

@@ -54,7 +54,8 @@ pub fn admit(
 
 pub fn proofRequest(
     geometry: cuda.geometry.Geometry,
-) cuda.geometry.Request {
+) !cuda.geometry.Request {
+    try cuda.requireExactProtocol();
     return .{
         .statement = geometry.statement,
         .protocol = geometry.protocol,
@@ -67,6 +68,7 @@ pub fn verify(
     geometry: cuda.geometry.Geometry,
     proof: anytype,
 ) !void {
+    try cuda.requireExactProtocol();
     const statement = try deriveStatement(
         allocator,
         pcs_config,
@@ -88,6 +90,7 @@ pub fn writeArtifact(
     geometry: cuda.geometry.Geometry,
     canonical: []const u8,
 ) !void {
+    try cuda.requireExactProtocol();
     var proof = try stwo.interop.proof_wire.decodeProofBytes(
         allocator,
         canonical,
@@ -135,6 +138,7 @@ fn deriveStatement(
     geometry: cuda.geometry.Geometry,
     proof: anytype,
 ) !stwo.examples.state_machine.PreparedStatement {
+    try cuda.requireExactProtocol();
     if (proof.commitment_scheme_proof.commitments.items.len < 2)
         return error.InvalidProofShape;
     var channel = stwo.examples.state_machine.Channel{};
@@ -187,5 +191,9 @@ test "state-machine route blocks its legacy protocol" {
             .repeat = 1,
             .execution_mode = .graphs,
         }, protocol()),
+    );
+    try std.testing.expectError(
+        error.StateMachineExactProtocolUnavailable,
+        proofRequest(undefined),
     );
 }

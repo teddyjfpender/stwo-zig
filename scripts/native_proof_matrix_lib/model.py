@@ -209,6 +209,7 @@ NATIVE_UNITS = {
 }
 AIR_PROTOCOLS = {
     "xor": "raw-stwo-xor-lookup-v2",
+    "state_machine": "raw-stwo-state-machine-v2",
 }
 
 
@@ -290,17 +291,19 @@ class Workload:
         if self.name == "xor":
             return 15
         if self.name == "state_machine":
-            return 3
+            return 12
         return 8
 
     @property
     def committed_trees(self) -> int:
-        if self.name == "xor":
+        if self.name in ("xor", "state_machine"):
             return 3
         return 2
 
     @property
     def committed_trace_cells(self) -> int:
+        if self.name == "state_machine":
+            return self.trace_rows * 9
         return self.trace_rows * self.committed_columns
 
     @property
@@ -317,6 +320,8 @@ class Workload:
             return self.trace_rows * self.parameters["n_rounds"]
         if self.name == "poseidon":
             return 1 << self.parameters["log_n_instances"]
+        if self.name == "state_machine":
+            return self.trace_rows + self.trace_rows // 2
         return self.trace_rows
 
     @property
@@ -492,8 +497,8 @@ HOLISTIC_SUITE = WorkloadSuite(
         SuiteRow("xor_log16", Workload.xor(16, 2, 3)),
         SuiteRow("plonk_log14", Workload.plonk(14)),
         SuiteRow("plonk_log16", Workload.plonk(16)),
-        SuiteRow("sm_log14", Workload.state_machine(14, 9, 3)),
-        SuiteRow("sm_log16", Workload.state_machine(16, 9, 3)),
+        SuiteRow("sm_v2_log14", Workload.state_machine(14, 9, 3)),
+        SuiteRow("sm_v2_log16", Workload.state_machine(16, 9, 3)),
         SuiteRow("blake_log10x10", Workload.blake(10, 10)),
         SuiteRow("blake_log12x16", Workload.blake(12, 16)),
         SuiteRow("poseidon_log10", Workload.poseidon(10)),

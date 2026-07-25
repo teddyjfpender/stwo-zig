@@ -830,11 +830,11 @@
           "args": "--example plonk --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
           "native_unit": "plonk_rows"
         },
-        "guard_sm_14": {
+        "guard_sm_v2_14": {
           "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 14 --warmups {warmups} --samples {samples} --protocol functional",
           "native_unit": "state_transitions"
         },
-        "guard_sm_16": {
+        "guard_sm_v2_16": {
           "args": "--example state_machine --initial-x 9 --initial-y 3 --log-n-rows 16 --warmups {warmups} --samples {samples} --protocol functional",
           "native_unit": "state_transitions"
         },

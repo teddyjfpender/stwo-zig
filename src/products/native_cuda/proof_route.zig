@@ -40,7 +40,7 @@ pub fn prove(
     const driver = cuda.NativeDriver{
         .allocator = allocator,
     };
-    const proof_request = Route.proofRequest(admitted);
+    const proof_request = try Route.proofRequest(admitted);
     var shape_prepare_timer = try std.time.Timer.start();
     var prepared = try driver.prepare(&runtime, proof_request);
     const shape_prepare_ns = shape_prepare_timer.read();

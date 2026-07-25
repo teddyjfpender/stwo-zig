@@ -34,7 +34,7 @@ pub fn admit(
 
 pub fn proofRequest(
     geometry: cuda.request.Geometry,
-) cuda.request.Request {
+) !cuda.request.Request {
     return .{
         .statement = geometry.statement,
         .protocol = geometry.protocol,

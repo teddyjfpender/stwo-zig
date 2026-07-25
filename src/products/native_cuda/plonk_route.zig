@@ -24,7 +24,7 @@ pub fn admit(
 
 pub fn proofRequest(
     geometry: cuda.geometry.Geometry,
-) cuda.geometry.Request {
+) !cuda.geometry.Request {
     return .{
         .statement = geometry.statement,
         .protocol = geometry.protocol,

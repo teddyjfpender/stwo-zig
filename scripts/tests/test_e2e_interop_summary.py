@@ -128,6 +128,24 @@ class ComputeSummaryTests(unittest.TestCase):
         )
         self.assertEqual(zig_claim, self.mod.REJECTION_CLASS_VERIFIER)
         self.assertEqual(rust_claim, self.mod.REJECTION_CLASS_VERIFIER)
+        invalid_log_size = self.mod.classify_rejection(
+            "",
+            "error: InvalidLogSize",
+            return_code=1,
+        )
+        self.assertEqual(
+            invalid_log_size,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
+        rust_state_statement = self.mod.classify_rejection(
+            "",
+            "Error: invalid state_machine statement m",
+            return_code=1,
+        )
+        self.assertEqual(
+            rust_state_statement,
+            self.mod.REJECTION_CLASS_VERIFIER,
+        )
 
     def test_run_step_refuses_to_accept_a_verifier_panic(self) -> None:
         steps = []

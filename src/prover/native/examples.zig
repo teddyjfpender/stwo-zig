@@ -102,10 +102,11 @@ pub fn geometry(workload: config.Workload) !Geometry {
             break :blk .{
                 .trace_log_rows = value.log_n_rows,
                 .trace_rows = rows,
-                .committed_columns = 3,
-                .committed_trace_cells = try std.math.mul(u64, rows, 3),
+                .committed_trees = 3,
+                .committed_columns = 12,
+                .committed_trace_cells = try std.math.mul(u64, rows, 9),
                 .native_unit = "state_transitions",
-                .native_units = rows,
+                .native_units = try std.math.add(u64, rows, rows / 2),
             };
         },
         .blake => |value| blk: {
@@ -167,7 +168,7 @@ pub fn descriptorDigest(
         ) catch unreachable,
         .state_machine => |value| std.fmt.bufPrint(
             &buffer,
-            "native-proof-workload-v3|example=state_machine|log_n_rows={d}|initial_x={d}|initial_y={d}",
+            "native-proof-workload-v3|example=state_machine|log_n_rows={d}|initial_x={d}|initial_y={d}|air_protocol=raw-stwo-state-machine-v2",
             .{ value.log_n_rows, value.initial_x, value.initial_y },
         ) catch unreachable,
         .blake => |value| std.fmt.bufPrint(
@@ -732,7 +733,10 @@ test "native proof examples: geometry and descriptors are tagged" {
     try std.testing.expectEqual(@as(u32, 3), xor_geometry.committed_trees);
     try std.testing.expectEqual(@as(u64, 15), xor_geometry.committed_columns);
     try std.testing.expectEqual(@as(u64, 256), plonk_geometry.committed_trace_cells);
-    try std.testing.expectEqual(@as(u64, 96), state_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u32, 3), state_geometry.committed_trees);
+    try std.testing.expectEqual(@as(u64, 12), state_geometry.committed_columns);
+    try std.testing.expectEqual(@as(u64, 288), state_geometry.committed_trace_cells);
+    try std.testing.expectEqual(@as(u64, 48), state_geometry.native_units);
     try std.testing.expectEqual(@as(u64, 6_144), blake_geometry.committed_trace_cells);
     try std.testing.expectEqual(@as(u64, 64), blake_geometry.native_units);
     try std.testing.expectEqualStrings("blake_round_instances", blake_geometry.native_unit);
@@ -780,7 +784,7 @@ test "native proof examples: descriptor digests match independent fixed vectors"
     );
     _ = try std.fmt.hexToBytes(
         &expected_state,
-        "2aef739c7447cb192da8648b7a4b539ccb86c1f532de7de986287cb89844b8a7",
+        "90501fb81745fd984bd8186e5750f9b7ff6bf2017b0df4df869f313299b771e9",
     );
     _ = try std.fmt.hexToBytes(
         &expected_blake,

@@ -64,7 +64,9 @@ pub const Admission = struct {
 pub const Error = error{
     InvalidLogRows,
     InvalidCommittedColumnCount,
+    InvalidCommittedCellCount,
     CommittedCellCountOverflow,
+    CommittedCellCountExceedsLogicalGeometry,
     AccountedByteCountOverflow,
     CommittedCellBudgetExceeded,
     AccountedMemoryBudgetExceeded,
@@ -88,12 +90,62 @@ pub fn admitWithLimits(
     return .{ .profile = profile, .geometry = geometry, .limits = limits };
 }
 
+pub fn admitExact(
+    profile: Profile,
+    log_rows: u32,
+    committed_columns: u64,
+    committed_cells: u64,
+) Error!Admission {
+    return admitExactWithLimits(
+        profile,
+        log_rows,
+        committed_columns,
+        committed_cells,
+        profile.limits(),
+    );
+}
+
+pub fn admitExactWithLimits(
+    profile: Profile,
+    log_rows: u32,
+    committed_columns: u64,
+    committed_cells: u64,
+    limits: Limits,
+) Error!Admission {
+    const geometry = try measureExact(
+        log_rows,
+        committed_columns,
+        committed_cells,
+    );
+    if (geometry.committed_cells > limits.max_committed_cells)
+        return error.CommittedCellBudgetExceeded;
+    if (geometry.accounted_bytes > limits.max_accounted_bytes)
+        return error.AccountedMemoryBudgetExceeded;
+    return .{ .profile = profile, .geometry = geometry, .limits = limits };
+}
+
 pub fn measure(log_rows: u32, committed_columns: u64) Error!Geometry {
     if (log_rows == 0 or log_rows > MAX_LOG_ROWS) return error.InvalidLogRows;
     if (committed_columns == 0) return error.InvalidCommittedColumnCount;
     const rows = @as(u64, 1) << @intCast(log_rows);
     const committed_cells = std.math.mul(u64, rows, committed_columns) catch
         return error.CommittedCellCountOverflow;
+    return measureExact(log_rows, committed_columns, committed_cells);
+}
+
+pub fn measureExact(
+    log_rows: u32,
+    committed_columns: u64,
+    committed_cells: u64,
+) Error!Geometry {
+    if (log_rows == 0 or log_rows > MAX_LOG_ROWS) return error.InvalidLogRows;
+    if (committed_columns == 0) return error.InvalidCommittedColumnCount;
+    if (committed_cells == 0) return error.InvalidCommittedCellCount;
+    const rows = @as(u64, 1) << @intCast(log_rows);
+    const maximum_cells = std.math.mul(u64, rows, committed_columns) catch
+        return error.CommittedCellCountOverflow;
+    if (committed_cells > maximum_cells)
+        return error.CommittedCellCountExceedsLogicalGeometry;
     const accounted_bytes = std.math.mul(
         u64,
         committed_cells,
@@ -106,6 +158,17 @@ pub fn measure(log_rows: u32, committed_columns: u64) Error!Geometry {
         .committed_cells = committed_cells,
         .accounted_bytes = accounted_bytes,
     };
+}
+
+test "resource admission: mixed-height geometry retains logical width" {
+    const rows: u64 = 1 << 10;
+    const admission = try admitExact(.standard, 10, 12, 9 * rows);
+    try std.testing.expectEqual(@as(u64, 12), admission.geometry.committed_columns);
+    try std.testing.expectEqual(9 * rows, admission.geometry.committed_cells);
+    try std.testing.expectError(
+        error.CommittedCellCountExceedsLogicalGeometry,
+        admitExact(.standard, 10, 12, 13 * rows),
+    );
 }
 
 test "resource admission: standard cell boundary is inclusive and fail closed" {

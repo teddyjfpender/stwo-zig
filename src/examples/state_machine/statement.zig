@@ -178,15 +178,6 @@ pub fn mixStatement0(channel: *Channel, statement: Statement0) void {
     channel.mixU64(statement.m);
 }
 
-pub fn mixPublicInput(channel: *Channel, public_input: [2]State) void {
-    channel.mixU32s(&[_]u32{
-        public_input[0][0].toU32(),
-        public_input[0][1].toU32(),
-        public_input[1][0].toU32(),
-        public_input[1][1].toU32(),
-    });
-}
-
 pub fn mixStatement1(channel: *Channel, statement: Statement1) void {
     channel.mixFelts(&[_]QM31{
         statement.x_axis_claimed_sum,

@@ -401,7 +401,14 @@ pub fn admitWorkload(
         .state_machine => |parameters| blk: {
             if (parameters.initial_x >= M31_MODULUS or parameters.initial_y >= M31_MODULUS)
                 return error.InvalidInitialState;
-            break :blk resource_admission.admit(profile, parameters.log_n_rows, 3);
+            const rows = @as(u64, 1) << @intCast(parameters.log_n_rows);
+            const committed_cells = try std.math.mul(u64, rows, 9);
+            break :blk resource_admission.admitExact(
+                profile,
+                parameters.log_n_rows,
+                12,
+                committed_cells,
+            );
         },
         .blake => |parameters| blk: {
             if (parameters.n_rounds == 0 or parameters.n_rounds > MAX_BLAKE_ROUNDS)

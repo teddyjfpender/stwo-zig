@@ -66,7 +66,6 @@ pub const claimsSatisfyStatement = statement_impl.claimsSatisfyStatement;
 pub const prepareStatement = statement_impl.prepare;
 pub const verifyStatement = statement_impl.verify;
 const mixStatement0 = statement_impl.mixStatement0;
-const mixPublicInput = statement_impl.mixPublicInput;
 const mixStatement1 = statement_impl.mixStatement1;
 
 pub const ProveOutput = struct {
