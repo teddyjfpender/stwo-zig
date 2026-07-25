@@ -253,7 +253,7 @@ const FakeOps = struct {
     };
 
     pub const Transform = struct {
-        pub fn inverseToRetained(
+        pub fn inverseCompact(
             _: anytype,
             _: anytype,
             inputs: anytype,
@@ -267,7 +267,7 @@ const FakeOps = struct {
             );
             try std.testing.expect(
                 outputs.column_stride_words >=
-                    @as(usize, 1) << @intCast(log_rows + 1),
+                    @as(usize, 1) << @intCast(log_rows),
             );
             Calls.inverse_transforms += 1;
         }

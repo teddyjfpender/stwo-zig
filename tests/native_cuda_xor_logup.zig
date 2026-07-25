@@ -27,12 +27,12 @@ test "exact CUDA XOR is a four-tree resident relation graph" {
     );
     const interaction = try bound.base.trees.require(.interaction);
     try std.testing.expectEqual(
-        geometry.commitment_rows,
+        try geometry.traceRowCount(),
         interaction.coefficients.column_stride_words,
     );
     try std.testing.expectEqual(
         @as(usize, exact.geometry.interaction_columns) *
-            geometry.commitment_rows,
+            try geometry.traceRowCount(),
         interaction.coefficients.storage.len,
     );
     try std.testing.expectEqual(

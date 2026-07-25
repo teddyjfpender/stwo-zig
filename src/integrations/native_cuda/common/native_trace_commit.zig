@@ -165,7 +165,7 @@ pub fn ExecutorForWithStatement(
         ) !void {
             const geometry = prepared.logical.geometry;
             const tree = try views.trees.require(role);
-            try Ops.Transform.inverseToRetained(
+            try Ops.Transform.inverseCompact(
                 session,
                 .trace_commit,
                 tree.coefficients,

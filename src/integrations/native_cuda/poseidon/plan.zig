@@ -186,7 +186,7 @@ test "prepared plans seal small standard and large admitted geometry" {
             slots.main_coefficients,
         );
         try std.testing.expectEqual(
-            geometry.main_columns * geometry.commitment_rows,
+            geometry.main_columns * try geometry.traceRowCount(),
             main_coefficients.requirement.words,
         );
         try std.testing.expectEqual(
@@ -215,7 +215,7 @@ test "prepared plans seal small standard and large admitted geometry" {
             );
         try std.testing.expectEqual(
             @as(usize, geometry_mod.interaction_columns) *
-                geometry.commitment_rows,
+                try geometry.traceRowCount(),
             interaction_coefficients.requirement.words,
         );
         const composition_coefficients =

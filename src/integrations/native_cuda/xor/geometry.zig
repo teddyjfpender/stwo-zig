@@ -80,10 +80,9 @@ pub const Geometry = struct {
     }
 };
 
-/// The in-place circle inverse writes retained transform outputs into the
-/// second half of every interaction column.
+/// Interaction coefficients share one uniform compact N-word stride.
 pub fn interactionCoefficientStride(geometry: Geometry) usize {
-    return geometry.commitment_rows;
+    return @intCast(geometry.trace_rows);
 }
 
 pub fn admit(
@@ -192,6 +191,10 @@ test "XOR geometry preserves exact four-tree CPU shape" {
     try std.testing.expectEqual(@as(usize, 2), shape.last_layer_domain_rows);
     try std.testing.expectEqual(@as(u32, 27), sampled_mask_points);
     try std.testing.expectEqual(@as(u32, 23), source_columns);
+    try std.testing.expectEqual(
+        try shape.traceRowCount(),
+        interactionCoefficientStride(shape),
+    );
 }
 
 test "XOR geometry rejects statements and protocols outside parity" {

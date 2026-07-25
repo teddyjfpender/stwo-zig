@@ -91,7 +91,7 @@ fn commitWith(
         try ingress.emptyRootSource(views),
     );
 
-    try Ops.Transform.inverseToRetained(
+    try Ops.Transform.inverseCompact(
         session,
         .trace_commit,
         views.trace.main_coefficients,
@@ -252,7 +252,7 @@ test "trace executor follows raw upstream prefix without host escape" {
                 log_n_rows: u32,
             ) !void {
                 try std.testing.expectEqual(
-                    @as(usize, rows) * 2,
+                    @as(usize, rows),
                     matrix.column_stride_words,
                 );
                 try std.testing.expectEqual(
@@ -263,7 +263,7 @@ test "trace executor follows raw upstream prefix without host escape" {
             }
         };
         const Transform = struct {
-            pub fn inverseToRetained(
+            pub fn inverseCompact(
                 _: anytype,
                 stage: anytype,
                 input: stages.common.WordMatrix,

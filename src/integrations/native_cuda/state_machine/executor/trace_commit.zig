@@ -156,7 +156,7 @@ fn inverseMixed(
 ) !void {
     const full = try matrixColumns(matrix, 0, 2);
     const half = try matrixColumns(matrix, 2, 2);
-    try Transform.inverseToRetained(
+    try Transform.inverseCompact(
         session,
         .trace_commit,
         full,
@@ -164,7 +164,7 @@ fn inverseMixed(
         max_log_rows,
         inverse_twiddles,
     );
-    try Transform.inverseToRetained(
+    try Transform.inverseCompact(
         session,
         .trace_commit,
         half,

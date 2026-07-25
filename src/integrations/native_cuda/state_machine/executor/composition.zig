@@ -262,7 +262,7 @@ fn inverseMixed(
         full_columns,
         half_columns,
     );
-    try Transform.inverseToRetained(
+    try Transform.inverseCompact(
         session,
         stage,
         full,
@@ -270,7 +270,7 @@ fn inverseMixed(
         max_log_rows,
         inverse_twiddles,
     );
-    try Transform.inverseToRetained(
+    try Transform.inverseCompact(
         session,
         stage,
         half,

@@ -43,8 +43,8 @@ pub fn build(
         .constraint_evaluation,
     );
 
-    try add(&output, allocator, slots.preprocessed_coefficients, try mul(geometry_mod.preprocessed_columns, committed_rows), .trace_generation, .oods);
-    try add(&output, allocator, slots.main_coefficients, try mul(geometry_mod.main_columns, committed_rows), .trace_generation, .oods);
+    try add(&output, allocator, slots.preprocessed_coefficients, try mul(geometry_mod.preprocessed_columns, rows), .trace_generation, .oods);
+    try add(&output, allocator, slots.main_coefficients, try mul(geometry_mod.main_columns, rows), .trace_generation, .oods);
     try add(&output, allocator, slots.composition_coefficients, try mul(geometry_mod.composition_columns, rows), .constraint_evaluation, .oods);
     try add(
         &output,
@@ -251,5 +251,21 @@ test "Plonk requirements retain all three trees through opening" {
     }) |id| {
         _ = try plan.placement(id);
     }
+    const rows = try geometry.traceRowCount();
+    try std.testing.expectEqual(
+        @as(usize, geometry_mod.preprocessed_columns) * rows,
+        (try plan.placement(
+            slots.preprocessed_coefficients,
+        )).requirement.words,
+    );
+    try std.testing.expectEqual(
+        @as(usize, geometry_mod.main_columns) * rows,
+        (try plan.placement(slots.main_coefficients)).requirement.words,
+    );
+    try std.testing.expectEqual(
+        @as(usize, geometry_mod.sampled_mask_points) *
+            geometry.commitment_rows,
+        (try plan.placement(slots.source_evaluations)).requirement.words,
+    );
     try std.testing.expect(plan.total_words <= max_total_words);
 }

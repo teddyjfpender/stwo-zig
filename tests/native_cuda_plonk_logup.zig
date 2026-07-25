@@ -258,7 +258,7 @@ const FakeOps = struct {
     };
 
     pub const Transform = struct {
-        pub fn inverseToRetained(
+        pub fn inverseCompact(
             _: anytype,
             _: anytype,
             inputs: anytype,

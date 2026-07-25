@@ -64,10 +64,7 @@ pub fn build(
         .constraint_evaluation,
     );
 
-    const main_retained_words = try mul(
-        geometry.main_columns,
-        try mul(rows, 2),
-    );
+    const main_coefficient_words = try mul(geometry.main_columns, rows);
     const composition_coefficient_words = try mul(
         geometry_mod.composition_columns,
         rows,
@@ -76,7 +73,7 @@ pub fn build(
         &output,
         allocator,
         slots.coefficient_slab,
-        try sum(main_retained_words, composition_coefficient_words),
+        try sum(main_coefficient_words, composition_coefficient_words),
         .trace_generation,
         .oods,
     );

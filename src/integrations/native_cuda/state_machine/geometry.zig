@@ -83,10 +83,10 @@ pub const Geometry = struct {
     }
 };
 
-/// Interaction values are generated at their logical heights, then the circle
-/// inverse uses the second half of each padded column as retained workspace.
+/// Mixed-height interaction columns share one uniform compact max-N stride;
+/// half-height columns use only their logical N/2 prefix.
 pub fn interactionCoefficientStride(geometry: Geometry) usize {
-    return geometry.commitment_rows;
+    return @intCast(geometry.trace_rows);
 }
 
 pub fn admit(
@@ -232,6 +232,10 @@ test "State Machine v2 geometry preserves exact mixed-height cells" {
     try std.testing.expectEqual(@as(u32, 20), resident_evaluation_columns);
     try std.testing.expectEqual(@as(u32, 17), shape.commitment_log_rows);
     try std.testing.expectEqual(@as(usize, 19), shape.decommit_tree_count);
+    try std.testing.expectEqual(
+        try shape.traceRowCount(),
+        interactionCoefficientStride(shape),
+    );
 }
 
 test "state-machine geometry rejects unsupported protocol and row bounds" {

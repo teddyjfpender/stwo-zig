@@ -186,7 +186,7 @@ test "prepared plans seal small standard and large admitted geometry" {
             slots.coefficient_slab,
         );
         try std.testing.expectEqual(
-            geometry.main_columns * (2 * geometry.trace_rows) +
+            geometry.main_columns * geometry.trace_rows +
                 geometry_mod.composition_columns * geometry.trace_rows,
             coefficient_slab.requirement.words,
         );

@@ -76,7 +76,7 @@ pub fn commit(
         empty_root,
     );
 
-    try NativeOps.Transform.inverseToRetained(
+    try NativeOps.Transform.inverseCompact(
         session,
         .trace_commit,
         main.coefficients,

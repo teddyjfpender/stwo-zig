@@ -100,7 +100,7 @@ fn commitInteraction(
 ) !void {
     const geometry = prepared.logical.geometry;
     const interaction = try views.trace.trees.require(.interaction);
-    try Ops.Transform.inverseToRetained(
+    try Ops.Transform.inverseCompact(
         session,
         .constraint_evaluation,
         interaction.coefficients,

@@ -60,7 +60,11 @@ pub fn bind(
 fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
     const rows = geometry.trace_rows;
     const committed_rows = geometry.commitment_rows;
-    const main_words = try mul(geometry.main_columns, committed_rows);
+    const main_coefficient_words = try mul(geometry.main_columns, rows);
+    const main_evaluation_words = try mul(
+        geometry.main_columns,
+        committed_rows,
+    );
     const composition_coefficient_words = try mul(
         request.composition_column_count,
         rows,
@@ -68,15 +72,15 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
     const coefficient_slab = try exactWords(
         provider,
         slots.coefficient_slab,
-        try add(main_words, composition_coefficient_words),
+        try add(main_coefficient_words, composition_coefficient_words),
     );
     const main_coefficients = common.WordMatrix{
-        .storage = try coefficient_slab.sub(0, main_words),
-        .column_stride_words = committed_rows,
+        .storage = try coefficient_slab.sub(0, main_coefficient_words),
+        .column_stride_words = rows,
     };
     const composition_coefficients = common.WordMatrix{
         .storage = try coefficient_slab.sub(
-            main_words,
+            main_coefficient_words,
             composition_coefficient_words,
         ),
         .column_stride_words = rows,
@@ -93,12 +97,15 @@ fn bindTrace(provider: anytype, geometry: request.Geometry) !types.Trace {
         evaluation_words,
     );
     const main_evaluations = common.WordMatrix{
-        .storage = try committed_evaluation_slab.sub(0, main_words),
+        .storage = try committed_evaluation_slab.sub(
+            0,
+            main_evaluation_words,
+        ),
         .column_stride_words = committed_rows,
     };
     const composition_evaluations = common.WordMatrix{
         .storage = try committed_evaluation_slab.sub(
-            main_words,
+            main_evaluation_words,
             try mul(request.composition_column_count, committed_rows),
         ),
         .column_stride_words = committed_rows,

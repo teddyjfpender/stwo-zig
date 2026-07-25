@@ -94,7 +94,7 @@ pub fn build(
         &output,
         allocator,
         slots.main_coefficients,
-        try mul(geometry.main_columns, commitment_rows),
+        try mul(geometry.main_columns, rows),
         .trace_generation,
         .oods,
     );
@@ -102,7 +102,7 @@ pub fn build(
         &output,
         allocator,
         slots.interaction_coefficients,
-        try mul(geometry_mod.interaction_columns, commitment_rows),
+        try mul(geometry_mod.interaction_columns, rows),
         .constraint_evaluation,
         .oods,
     );

@@ -18,8 +18,16 @@ pub fn bind(
 ) !types.Trace {
     const rows = try geometry.traceRowCount();
     const committed_rows = geometry.commitment_rows;
-    const main_words = try mul(geometry.main_columns, committed_rows);
-    const interaction_words = try mul(
+    const main_coefficient_words = try mul(geometry.main_columns, rows);
+    const interaction_coefficient_words = try mul(
+        geometry_mod.interaction_columns,
+        rows,
+    );
+    const main_evaluation_words = try mul(
+        geometry.main_columns,
+        committed_rows,
+    );
+    const interaction_evaluation_words = try mul(
         geometry_mod.interaction_columns,
         committed_rows,
     );
@@ -31,17 +39,17 @@ pub fn bind(
         .storage = try exactWords(
             provider,
             slots.main_coefficients,
-            main_words,
+            main_coefficient_words,
         ),
-        .column_stride_words = committed_rows,
+        .column_stride_words = rows,
     };
     const interaction_coefficients = common.WordMatrix{
         .storage = try exactWords(
             provider,
             slots.interaction_coefficients,
-            interaction_words,
+            interaction_coefficient_words,
         ),
-        .column_stride_words = committed_rows,
+        .column_stride_words = rows,
     };
     const composition_coefficients = common.WordMatrix{
         .storage = try exactWords(
@@ -58,16 +66,22 @@ pub fn bind(
         try mul(geometry_mod.source_columns, committed_rows),
     );
     const main_evaluations = common.WordMatrix{
-        .storage = try source_words.sub(0, main_words),
+        .storage = try source_words.sub(0, main_evaluation_words),
         .column_stride_words = committed_rows,
     };
     const interaction_evaluations = common.WordMatrix{
-        .storage = try source_words.sub(main_words, interaction_words),
+        .storage = try source_words.sub(
+            main_evaluation_words,
+            interaction_evaluation_words,
+        ),
         .column_stride_words = committed_rows,
     };
     const composition_evaluations = common.WordMatrix{
         .storage = try source_words.sub(
-            try add(main_words, interaction_words),
+            try add(
+                main_evaluation_words,
+                interaction_evaluation_words,
+            ),
             try mul(
                 geometry_mod.composition_columns,
                 committed_rows,

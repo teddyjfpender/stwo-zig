@@ -59,8 +59,8 @@ pub fn build(
         .constraint_evaluation,
     );
 
-    try add(&output, allocator, slots.preprocessed_coefficients, try mul(geometry_mod.preprocessed_columns, committed_rows), .trace_generation, .oods);
-    try add(&output, allocator, slots.main_coefficients, try mul(geometry_mod.main_columns, committed_rows), .trace_generation, .oods);
+    try add(&output, allocator, slots.preprocessed_coefficients, try mul(geometry_mod.preprocessed_columns, rows), .trace_generation, .oods);
+    try add(&output, allocator, slots.main_coefficients, try mul(geometry_mod.main_columns, rows), .trace_generation, .oods);
     try add(
         &output,
         allocator,
@@ -377,5 +377,21 @@ test "XOR LogUp requirements retain all four trees through opening" {
     }) |id| {
         _ = try plan.placement(id);
     }
+    const rows = try geometry.traceRowCount();
+    inline for (.{
+        .{ slots.preprocessed_coefficients, geometry_mod.preprocessed_columns },
+        .{ slots.main_coefficients, geometry_mod.main_columns },
+        .{ slots.interaction_coefficients, geometry_mod.interaction_columns },
+        .{ slots.composition_coefficients, geometry_mod.composition_columns },
+    }) |expected| {
+        try std.testing.expectEqual(
+            @as(usize, expected[1]) * rows,
+            (try plan.placement(expected[0])).requirement.words,
+        );
+    }
+    try std.testing.expectEqual(
+        @as(usize, geometry_mod.source_columns) * geometry.commitment_rows,
+        (try plan.placement(slots.source_evaluations)).requirement.words,
+    );
     try std.testing.expect(plan.total_words <= max_total_words);
 }

@@ -67,6 +67,8 @@ pub fn BindingFor(
             const geometry = prepared.logical.geometry;
             const rows = try geometry.traceRowCount();
             const committed_rows = geometry.commitment_rows;
+            // Coefficients own normalized N-word images. Commitment-domain
+            // evaluations remain separate 2N-word LDE columns.
             const hash_count = try sub(try mul(committed_rows, 2), 1);
             const layer_count = @as(usize, geometry.commitment_log_rows) + 1;
             const resident_column_count = if (@hasDecl(
@@ -159,7 +161,7 @@ pub fn BindingFor(
                     slots.preprocessed_merkle_hashes,
                     slots.preprocessed_merkle_layers,
                     geometry_mod.preprocessed_columns,
-                    committed_rows,
+                    rows,
                     hash_count,
                     layer_count,
                 )
@@ -174,7 +176,7 @@ pub fn BindingFor(
                 slots.main_merkle_hashes,
                 slots.main_merkle_layers,
                 geometry_mod.main_columns,
-                committed_rows,
+                rows,
                 hash_count,
                 layer_count,
             );
