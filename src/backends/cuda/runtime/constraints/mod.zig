@@ -2,6 +2,7 @@
 
 pub const constant_qm31 = @import("constant_qm31.zig");
 pub const plonk_logup = @import("plonk_logup.zig");
+pub const poseidon = @import("poseidon.zig");
 pub const wide_fibonacci = @import("wide_fibonacci.zig");
 
 test {

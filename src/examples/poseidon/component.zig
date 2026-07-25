@@ -29,6 +29,70 @@ const RowEvaluation = struct {
     denominators: [N_LOGUP_CONSTRAINTS]QM31,
 };
 
+/// Complete expanded-domain row consumed by the exact composition kernel.
+/// `interaction_previous_last` is the previous-circle-row value of the final
+/// secure interaction column; the other seven columns have no row offset.
+pub const DomainRowInput = struct {
+    log_n_rows: u32,
+    main: [input.N_COLUMNS]M31,
+    interaction_current: [N_LOGUP_CONSTRAINTS]QM31,
+    interaction_previous_last: QM31,
+    lookup_elements: interaction.LookupElements,
+    claimed_sum: QM31,
+    random_powers: [N_CONSTRAINTS]QM31,
+    denominator_inverse: M31,
+};
+
+/// Scalar oracle for one exact expanded-domain composition row.
+pub fn evaluateDomainRow(row: DomainRowInput) !QM31 {
+    if (row.log_n_rows >= 31) return error.InvalidProofShape;
+    const component = Component{
+        .log_n_rows = row.log_n_rows,
+        .lookup_elements = row.lookup_elements,
+        .claimed_sum = row.claimed_sum,
+    };
+    var main: [input.N_COLUMNS]QM31 = undefined;
+    for (&main, row.main) |*out, value| out.* = QM31.fromBase(value);
+    const evaluated = evaluateRow(&component, main);
+
+    var combined = QM31.zero();
+    var constraint_index: usize = 0;
+    for (evaluated.transitions) |constraint| {
+        combined = combined.add(
+            row.random_powers[N_CONSTRAINTS - 1 - constraint_index]
+                .mul(constraint),
+        );
+        constraint_index += 1;
+    }
+
+    const inverse_rows = if (row.log_n_rows == 0)
+        M31.one()
+    else
+        M31.fromCanonical(
+            @as(u32, 1) << @intCast(31 - row.log_n_rows),
+        );
+    const shift = row.claimed_sum.mulM31(inverse_rows);
+    var previous_column = QM31.zero();
+    for (0..N_LOGUP_CONSTRAINTS) |rep| {
+        const current = row.interaction_current[rep];
+        const diff = if (rep + 1 == N_LOGUP_CONSTRAINTS)
+            current.sub(row.interaction_previous_last)
+                .sub(previous_column).add(shift)
+        else
+            current.sub(previous_column);
+        const constraint = diff.mul(evaluated.denominators[rep])
+            .sub(evaluated.numerators[rep]);
+        combined = combined.add(
+            row.random_powers[N_CONSTRAINTS - 1 - constraint_index]
+                .mul(constraint),
+        );
+        constraint_index += 1;
+        previous_column = current;
+    }
+    std.debug.assert(constraint_index == N_CONSTRAINTS);
+    return combined.mulM31(row.denominator_inverse);
+}
+
 pub const Component = struct {
     log_n_rows: u32,
     lookup_elements: interaction.LookupElements,

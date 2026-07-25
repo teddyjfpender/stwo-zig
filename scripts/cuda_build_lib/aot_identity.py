@@ -20,6 +20,7 @@ NATIVE_AUTHENTICATED_SCHEMAS = {
     "native_indexed_recurrence_trace_v1",
     "native_m31_permutation_trace_v1",
     "native_m31_permutation_trace_v2",
+    "native_poseidon_constraint_v1",
     "native_seeded_xorshift_trace_v1",
 }
 NATIVE_IDENTITY_SCHEME = "sha256-source-and-contract-v1"

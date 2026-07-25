@@ -24,6 +24,18 @@
     "semantic_hash": "1aeccc54c43f17c3"
   },
   {
+    "abi_schema": "native_poseidon_constraint_v1",
+    "cache_key": "fab354a9f2437fcb",
+    "file": "constraint_poseidon_fab354a9f2437fcb.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_constraint_poseidon_slab_v1_2e0242737cfd5d1c",
+    "kind": "constraint",
+    "label": "poseidon",
+    "program_identity": "41966be89044bcbcc3b641b39ab7bf86997c7b92b07dbe0ba10dc3fdfbcc7cc8",
+    "semantic_contract": "stwo-zig/native/poseidon-constraint/v1;field=qm31;source=1264-main+32-interaction;constraints=1136-transition+8-logup;rounds=4-full,14-partial,4-full;round_constant=1234;matrix=poseidon2-m4-external-and-pow2-diagonal-internal;lookup=8-paired-16-tuples;interaction=seven-current+final-current-previous+claim/rows;weights=reverse-1144;denominator=trace-coset-vanishing-inverse-4;output=4-coordinate-additive-slab;evaluation_log=trace_log+2;launches=1",
+    "semantic_hash": "2e0242737cfd5d1c"
+  },
+  {
     "abi_schema": "native_state_machine_constraint_v1",
     "cache_key": "be136f524ac0d95c",
     "file": "constraint_state_machine_be136f524ac0d95c.cu",
