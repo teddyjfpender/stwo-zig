@@ -63,9 +63,19 @@ pub const PoseidonStatementWire = struct {
     claimed_sum: Qm31Wire = .{0} ** 4,
 };
 
+pub const BlakeStatement0Wire = struct {
+    log_size: u32,
+};
+
+pub const BlakeStatement1Wire = struct {
+    scheduler_claimed_sum: Qm31Wire,
+    round_claimed_sums: [2]Qm31Wire,
+    xor_claimed_sums: [5]Qm31Wire,
+};
+
 pub const BlakeStatementWire = struct {
-    log_n_rows: u32,
-    n_rounds: u32,
+    stmt0: BlakeStatement0Wire,
+    stmt1: BlakeStatement1Wire,
 };
 
 pub const InteropArtifact = struct {
@@ -374,15 +384,45 @@ pub fn poseidonStatementFromWire(wire: PoseidonStatementWire) ArtifactError!pose
 
 pub fn blakeStatementToWire(statement: blake.Statement) BlakeStatementWire {
     return .{
-        .log_n_rows = statement.log_n_rows,
-        .n_rounds = statement.n_rounds,
+        .stmt0 = .{ .log_size = statement.stmt0.log_size },
+        .stmt1 = .{
+            .scheduler_claimed_sum = qm31ToWire(
+                statement.stmt1.scheduler_claimed_sum,
+            ),
+            .round_claimed_sums = .{
+                qm31ToWire(statement.stmt1.round_claimed_sums[0]),
+                qm31ToWire(statement.stmt1.round_claimed_sums[1]),
+            },
+            .xor_claimed_sums = .{
+                qm31ToWire(statement.stmt1.xor_claimed_sums[0]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[1]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[2]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[3]),
+                qm31ToWire(statement.stmt1.xor_claimed_sums[4]),
+            },
+        },
     };
 }
 
 pub fn blakeStatementFromWire(wire: BlakeStatementWire) ArtifactError!blake.Statement {
     return .{
-        .log_n_rows = wire.log_n_rows,
-        .n_rounds = wire.n_rounds,
+        .stmt0 = .{ .log_size = wire.stmt0.log_size },
+        .stmt1 = .{
+            .scheduler_claimed_sum = try qm31FromWire(
+                wire.stmt1.scheduler_claimed_sum,
+            ),
+            .round_claimed_sums = .{
+                try qm31FromWire(wire.stmt1.round_claimed_sums[0]),
+                try qm31FromWire(wire.stmt1.round_claimed_sums[1]),
+            },
+            .xor_claimed_sums = .{
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[0]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[1]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[2]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[3]),
+                try qm31FromWire(wire.stmt1.xor_claimed_sums[4]),
+            },
+        },
     };
 }
 
@@ -518,11 +558,23 @@ test "interop artifact: poseidon statement wire roundtrip" {
 
 test "interop artifact: blake statement wire roundtrip" {
     const statement: blake.Statement = .{
-        .log_n_rows = 5,
-        .n_rounds = 10,
+        .stmt0 = .{ .log_size = 5 },
+        .stmt1 = .{
+            .scheduler_claimed_sum = QM31.fromU32Unchecked(1, 2, 3, 4),
+            .round_claimed_sums = .{
+                QM31.fromU32Unchecked(5, 6, 7, 8),
+                QM31.fromU32Unchecked(9, 10, 11, 12),
+            },
+            .xor_claimed_sums = .{
+                QM31.fromU32Unchecked(13, 14, 15, 16),
+                QM31.fromU32Unchecked(17, 18, 19, 20),
+                QM31.fromU32Unchecked(21, 22, 23, 24),
+                QM31.fromU32Unchecked(25, 26, 27, 28),
+                QM31.fromU32Unchecked(29, 30, 31, 32),
+            },
+        },
     };
     const wire = blakeStatementToWire(statement);
     const decoded = try blakeStatementFromWire(wire);
-    try std.testing.expectEqual(statement.log_n_rows, decoded.log_n_rows);
-    try std.testing.expectEqual(statement.n_rounds, decoded.n_rounds);
+    try std.testing.expect(std.meta.eql(statement, decoded));
 }

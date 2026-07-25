@@ -15,12 +15,18 @@ pub const Statement = struct {
     n_rounds: u32 = constants.N_ROUNDS,
 };
 
+/// Reviewed upper bound for the exact mixed-height witness. The fixed XOR
+/// tables make even the minimum request large, so reject oversized requests
+/// before allocating any trace column.
+pub const MAX_COMMITTED_CELLS: u64 = 134_217_728;
+
 pub const PreparedInput = prover_transaction.PreparedInput(Statement);
 
 pub const Error = prover_transaction.Error || error{
     InvalidLogNRows,
     InvalidNRounds,
     ColumnCountOverflow,
+    ResourceLimitExceeded,
 };
 
 pub fn validate(statement: Statement) Error!void {
@@ -33,6 +39,17 @@ pub fn validate(statement: Statement) Error!void {
         _ = std.math.add(u32, statement.log_n_rows, split) catch
             return error.InvalidLogNRows;
     }
+    const committed_cells = geometry.committedCells(statement.log_n_rows) catch
+        return error.ColumnCountOverflow;
+    if (committed_cells > MAX_COMMITTED_CELLS)
+        return error.ResourceLimitExceeded;
+}
+
+test "exact Blake rejects oversized requests before witness allocation" {
+    try std.testing.expectError(
+        error.ResourceLimitExceeded,
+        validate(.{ .log_n_rows = 20 }),
+    );
 }
 
 pub fn prepare(
@@ -130,7 +147,7 @@ fn allocateGroup(
             .log_size = log_size,
             .values = try allocator.alloc(M31, row_count),
         };
-        @memset(columns[initialized.*].values, M31.zero());
+        @memset(@constCast(columns[initialized.*].values), M31.zero());
         initialized.* += 1;
     }
 }
@@ -144,8 +161,8 @@ fn fillScheduler(
         const input = scheduler_trace.inputForPackedLane(storage / 16, storage % 16);
         const output = scheduler_trace.generate(input);
         for (output.row, 0..) |value, column| {
-            columns[geometry.SCHEDULER_MAIN_OFFSET + column]
-                .values[storage] = M31.fromCanonical(value);
+            @constCast(columns[geometry.SCHEDULER_MAIN_OFFSET + column]
+                .values)[storage] = M31.fromCanonical(value);
         }
     }
 }
@@ -176,8 +193,8 @@ fn fillRoundComponents(
                 xor_accumulator,
             );
             for (output.row, 0..) |value, column| {
-                columns[column_offset + column]
-                    .values[storage] = M31.fromCanonical(value);
+                @constCast(columns[column_offset + column]
+                    .values)[storage] = M31.fromCanonical(value);
             }
         }
         packed_input_offset += scheduler_pack_count *

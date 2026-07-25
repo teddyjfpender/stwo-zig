@@ -136,6 +136,7 @@ pub const Component = struct {
         );
         const denominator_inverse = try support.pointDenominatorInverse(
             point,
+            table.logSize(),
             max_log_degree_bound,
         );
         for (constraints[0..secure_count]) |constraint| {

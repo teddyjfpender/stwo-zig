@@ -69,7 +69,7 @@ pub fn build(
             cumulative = cumulative.add(fraction.numerator);
             const coordinates = cumulative.toM31Array();
             for (coordinates, 0..) |coordinate, index| {
-                columns[4 * batch + index].values[row] = coordinate;
+                @constCast(columns[4 * batch + index].values)[row] = coordinate;
             }
         }
         claimed_sum = claimed_sum.add(cumulative);
@@ -79,7 +79,7 @@ pub fn build(
     const shift_coordinates = shift.toM31Array();
     const last_base = 4 * (secure_columns - 1);
     for (0..4) |coordinate| {
-        const values = columns[last_base + coordinate].values;
+        const values = @constCast(columns[last_base + coordinate].values);
         for (values) |*value| value.* = value.sub(shift_coordinates[coordinate]);
         try inclusivePrefixSum(allocator, values);
     }

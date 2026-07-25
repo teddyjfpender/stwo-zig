@@ -13,8 +13,8 @@ fn testConfig() !pcs.PcsConfig {
     };
 }
 
-fn testStatement() subject.Statement {
-    return .{ .log_n_rows = 5, .n_rounds = 1 };
+fn testStatement() subject.Request {
+    return .{ .log_n_rows = 4, .n_rounds = 10 };
 }
 
 test "Blake session: compatibility, prepared, and sequential proofs match exactly" {

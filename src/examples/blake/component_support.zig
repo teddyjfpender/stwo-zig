@@ -74,12 +74,15 @@ pub fn maskPoints(
 
 pub fn pointDenominatorInverse(
     point: CirclePointQM31,
+    log_size: u32,
     max_log_degree_bound: u32,
 ) !QM31 {
+    if (log_size > max_log_degree_bound) return error.InvalidProofShape;
+    const fold = max_log_degree_bound - log_size;
     return (try core_constraints.cosetVanishing(
         QM31,
-        canonic.CanonicCoset.new(max_log_degree_bound).coset(),
-        point,
+        canonic.CanonicCoset.new(log_size).coset(),
+        point.repeatedDouble(fold),
     ).inv());
 }
 

@@ -573,7 +573,7 @@ pub const StateMachineSpec = struct {
 };
 
 pub const BlakeSpec = struct {
-    pub const Request = blake.Statement;
+    pub const Request = blake.Request;
     pub const PreparedInput = blake.PreparedInput;
     pub const Statement = blake.Statement;
     pub const Proof = blake.Proof;
@@ -611,7 +611,10 @@ pub const BlakeSpec = struct {
     }
 
     pub fn validateOutputStatement(value: Request, statement: Statement) !void {
-        if (!std.meta.eql(value, statement)) return error.ProverStatementMismatch;
+        try blake.exact_input.validate(value);
+        try blake.exact_statement.verify(statement);
+        if (value.log_n_rows != statement.stmt0.log_size)
+            return error.ProverStatementMismatch;
     }
 
     pub fn verify(
@@ -809,14 +812,23 @@ test "native proof examples: descriptor digests match independent fixed vectors"
 }
 
 test "native proof examples: Blake output statement is bound to the request" {
-    const request_value = BlakeSpec.request(.{ .log_n_rows = 8, .n_rounds = 2 });
-    try BlakeSpec.validateOutputStatement(request_value, request_value);
+    const request_value = BlakeSpec.request(.{ .log_n_rows = 8, .n_rounds = 10 });
+    const zero = stwo.core.fields.qm31.QM31.zero();
+    const statement: BlakeSpec.Statement = .{
+        .stmt0 = .{ .log_size = request_value.log_n_rows },
+        .stmt1 = .{
+            .scheduler_claimed_sum = zero,
+            .round_claimed_sums = .{ zero, zero },
+            .xor_claimed_sums = .{ zero, zero, zero, zero, zero },
+        },
+    };
+    try BlakeSpec.validateOutputStatement(request_value, statement);
 
-    var wrong_rounds = request_value;
-    wrong_rounds.n_rounds += 1;
+    var wrong_log = statement;
+    wrong_log.stmt0.log_size += 1;
     try std.testing.expectError(
         error.ProverStatementMismatch,
-        BlakeSpec.validateOutputStatement(request_value, wrong_rounds),
+        BlakeSpec.validateOutputStatement(request_value, wrong_log),
     );
 }
 

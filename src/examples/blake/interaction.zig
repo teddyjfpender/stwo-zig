@@ -188,7 +188,7 @@ const LookupObserver = struct {
     lookups: *[128]XorLookup,
     count: usize = 0,
 
-    fn record(self: *@This(), width: u5, a: u32, b: u32, c: u32) void {
+    pub fn record(self: *@This(), width: u5, a: u32, b: u32, c: u32) void {
         self.lookups[self.count] = .{ .width = width, .a = a, .b = b, .c = c };
         self.count += 1;
     }
