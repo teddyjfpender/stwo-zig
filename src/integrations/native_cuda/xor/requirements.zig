@@ -61,7 +61,17 @@ pub fn build(
 
     try add(&output, allocator, slots.preprocessed_coefficients, try mul(geometry_mod.preprocessed_columns, committed_rows), .trace_generation, .oods);
     try add(&output, allocator, slots.main_coefficients, try mul(geometry_mod.main_columns, committed_rows), .trace_generation, .oods);
-    try add(&output, allocator, slots.interaction_coefficients, try mul(geometry_mod.interaction_columns, rows), .constraint_evaluation, .oods);
+    try add(
+        &output,
+        allocator,
+        slots.interaction_coefficients,
+        try mul(
+            geometry_mod.interaction_columns,
+            geometry_mod.interactionCoefficientStride(geometry),
+        ),
+        .constraint_evaluation,
+        .oods,
+    );
     try add(&output, allocator, slots.composition_coefficients, try mul(geometry_mod.composition_columns, rows), .constraint_evaluation, .oods);
     try add(
         &output,

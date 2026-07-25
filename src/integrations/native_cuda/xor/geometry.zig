@@ -80,6 +80,12 @@ pub const Geometry = struct {
     }
 };
 
+/// The in-place circle inverse writes retained transform outputs into the
+/// second half of every interaction column.
+pub fn interactionCoefficientStride(geometry: Geometry) usize {
+    return geometry.commitment_rows;
+}
+
 pub fn admit(
     statement: cpu_xor.Statement,
     protocol: pcs.PcsConfig,
