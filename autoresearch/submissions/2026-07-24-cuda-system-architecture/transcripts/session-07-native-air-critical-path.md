@@ -196,8 +196,8 @@ the pinned Rust oracle:
   interaction tree;
 - two components use different trace heights, with the shorter component at
   `log_n_rows - 1`;
-- the interaction contains eight secure columns, represented by 32 M31
-  coordinate columns across the two heights;
+- the interaction contains two secure cumulative columns, represented by eight
+  M31 coordinate columns across the two heights;
 - both components consume their own random-coefficient powers and claimed
   sums;
 - `log_n_rows < 5` is rejected at request, statement, Zig verifier, and Rust
@@ -259,11 +259,13 @@ composition constant, and transcript branch were deleted.
 At `log_n_instances = 8`, both Zig and Rust emit a 112,247-byte proof with
 SHA-256
 `21a22831010da14e3a8d3b097184e2def2751d4f665756cc2a3d25f7287ff115`.
-The sampled tree widths are exactly `0 / 1264 / 32 / 16`. The final M5 Rust
-oracle binary is pinned at
+The sampled tree widths are exactly `0 / 1264 / 32 / 16`. The M5 Rust oracle
+binary used for that exchange was pinned at
 `99143abcb2847bcf3fd3e085c5f8f3c1ed18b943ba5810f32340eea6418a4aa1`.
-Its capability manifest binds exact Poseidon, State Machine, and XOR protocol
-identities to pinned Stwo commit `a8fcf4bd`.
+That executable pin is now superseded by source-level audit hardening and will
+be rebuilt once exact Blake is integrated. Its capability manifest binds exact
+Poseidon, State Machine, and XOR protocol identities to pinned Stwo commit
+`a8fcf4bd`.
 
 The host-executed Plonk/LogUp resident transaction is also terminal-complete:
 it constructs the exact interaction and composition trees, derives all OODS
@@ -288,13 +290,35 @@ The content-addressed combined receipt is
 `e3a79bb02a564f8ba1d4b0fc2da70af1630ee741967b427db7f4a1365f949f61`.
 This is CPU/oracle correctness evidence, not CUDA-hardware release evidence.
 
+## Deep Gate And Oracle Audit Closure
+
+The combined branch now passes all 382 ReleaseSafe deep-gate tests. Three
+defects were resolved:
+
+- equal trace/evaluation-log circle offsets no longer underflow and are
+  exhaustively checked against wrapped coset order;
+- Plonk and State component geometry tests release their owned nested slices;
+- the State lookup parity generator now performs one batched two-secure-field
+  transcript draw, matching both the Zig protocol and pinned Rust channel
+  schedule.
+
+Independent review of the split-depth-two Poseidon derivative found no
+proof-correctness defect. Log 7, 8, and 9 scalar/SIMD proofs are byte-identical,
+and both Zig and Rust accept them. The review did identify two evidence
+boundaries which are now explicit:
+
+- scalar Poseidon uses the pinned SIMD witness/interaction generator before
+  scalar proof arithmetic, so reports mark it mixed, non-homogeneous, and
+  ineligible for pure-backend promotion;
+- exact Poseidon proving admits at most 33,554,432 trace cells and rejects
+  larger requests before calling the upstream infallible SIMD allocators.
+
 The immediate critical path is now:
 
 1. integrate the exact multi-component Blake AIR and its bidirectional oracle;
-2. finish the deep-suite allocation and equal-log indexing regressions;
-3. replace provisional CUDA XOR, State Machine, Poseidon, and Blake constraint
+2. replace provisional CUDA XOR, State Machine, Poseidon, and Blake constraint
    routes with their exact AIR-owned relation and composition programs;
-4. obtain locked-CUDA byte parity, oracle acceptance, zero-fallback, and full
+3. obtain locked-CUDA byte parity, oracle acceptance, zero-fallback, and full
    telemetry receipts for every family;
-5. profile the exact six-family portfolio and remove representation
+4. profile the exact six-family portfolio and remove representation
    transforms and redundant N2B/B2N passes before accepting any 2-5x claim.
