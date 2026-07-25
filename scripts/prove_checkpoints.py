@@ -343,9 +343,13 @@ def tamper_statement(artifact_path: Path, out_path: Path, example: str) -> None:
     artifact = parse_artifact(artifact_path)
     if example == "blake":
         stmt = artifact.get("blake_statement")
-        if not isinstance(stmt, dict) or "n_rounds" not in stmt:
-            raise ValueError("missing blake_statement.n_rounds")
-        stmt["n_rounds"] = int(stmt["n_rounds"]) + 1
+        stmt1 = stmt.get("stmt1") if isinstance(stmt, dict) else None
+        claim = stmt1.get("scheduler_claimed_sum") if isinstance(stmt1, dict) else None
+        if not (isinstance(claim, list) and len(claim) == 4):
+            raise ValueError(
+                "missing blake_statement.stmt1.scheduler_claimed_sum"
+            )
+        claim[0] = (int(claim[0]) + 1) % M31_MODULUS
     elif example == "plonk":
         stmt = artifact.get("plonk_statement")
         if not isinstance(stmt, dict) or "log_n_rows" not in stmt:

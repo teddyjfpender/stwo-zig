@@ -62,7 +62,17 @@ def artifact(example: str) -> dict[str, Any]:
         "xor_statement": None,
     }
     values = {
-        "blake": ("blake_statement", {"log_n_rows": 8, "n_rounds": 1}),
+        "blake": (
+            "blake_statement",
+            {
+                "stmt0": {"log_size": 8},
+                "stmt1": {
+                    "scheduler_claimed_sum": [1, 2, 3, 4],
+                    "round_claimed_sums": [[1, 2, 3, 4], [5, 6, 7, 8]],
+                    "xor_claimed_sums": [[1, 2, 3, 4]] * 5,
+                },
+            },
+        ),
         "plonk": ("plonk_statement", {"log_n_rows": 8}),
         "plonk_logup": (
             "plonk_logup_statement",

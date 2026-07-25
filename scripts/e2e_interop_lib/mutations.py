@@ -84,12 +84,19 @@ def _mutate_qm31(value: Any, label: str) -> None:
 
 def _statement(artifact: dict[str, Any], example: str) -> None:
     statements = {
-        "blake": ("blake_statement", "n_rounds"),
         "plonk": ("plonk_statement", "log_n_rows"),
         "poseidon": ("poseidon_statement", "log_n_instances"),
         "xor": ("xor_statement", "offset"),
         "wide_fibonacci": ("wide_fibonacci_statement", "sequence_len"),
     }
+    if example == "blake":
+        statement = _object(artifact.get("blake_statement"), "blake_statement")
+        stmt1 = _object(statement.get("stmt1"), "blake_statement.stmt1")
+        _mutate_qm31(
+            stmt1.get("scheduler_claimed_sum"),
+            "blake_statement.stmt1.scheduler_claimed_sum",
+        )
+        return
     if example == "state_machine":
         statement = _object(artifact.get("state_machine_statement"), "state_machine_statement")
         public_input = _list(statement.get("public_input"), "state_machine_statement.public_input")

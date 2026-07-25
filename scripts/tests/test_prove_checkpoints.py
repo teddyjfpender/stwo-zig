@@ -77,6 +77,38 @@ class GeneratedArtifactLifecycleTests(unittest.TestCase):
             self.assertFalse(generated.exists())
             self.assertEqual(sibling.read_text(encoding="utf-8"), "preserve")
 
+    def test_exact_blake_statement_mutation_changes_logup_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "proof.json"
+            mutated = root / "mutated.json"
+            source.write_text(
+                json.dumps(
+                    {
+                        "blake_statement": {
+                            "stmt0": {"log_size": 4},
+                            "stmt1": {
+                                "scheduler_claimed_sum": [1, 2, 3, 4],
+                                "round_claimed_sums": [],
+                                "xor_claimed_sums": [],
+                            },
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            prove_checkpoints.tamper_statement(source, mutated, "blake")
+
+            statement = json.loads(mutated.read_text(encoding="utf-8"))[
+                "blake_statement"
+            ]
+            self.assertEqual(statement["stmt0"]["log_size"], 4)
+            self.assertEqual(
+                statement["stmt1"]["scheduler_claimed_sum"],
+                [2, 2, 3, 4],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
