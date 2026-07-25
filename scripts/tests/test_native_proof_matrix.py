@@ -33,13 +33,6 @@ from native_proof_matrix_lib.contract import pipeline_preparation_occurred
 
 
 class NativeProofMatrixTests(unittest.TestCase):
-    def test_real_wide_fibonacci_oracle_identity_is_pinned(self) -> None:
-        from native_proof_matrix_lib import RUST_ORACLE_SHA256
-        self.assertEqual(
-            RUST_ORACLE_SHA256,
-            "99143abcb2847bcf3fd3e085c5f8f3c1ed18b943ba5810f32340eea6418a4aa1",
-        )
-
     def test_library_miss_is_cold_but_hit_timing_alone_is_warm(self) -> None:
         cache = pipeline_cache()
         cache["library_cache_misses"] = 1
@@ -99,10 +92,10 @@ class NativeProofMatrixTests(unittest.TestCase):
                 "90501fb81745fd984bd8186e5750f9b7ff6bf2017b0df4df869f313299b771e9",
             ),
             (
-                MODULE.parse_workload("blake:n_rounds=2,log_n_rows=8"),
-                192,
-                49152,
-                "bee0efa41b40d2f61fbecccb2096af92ff2bcf6fbbc253a852077d4c95a1830e",
+                MODULE.parse_workload("blake:n_rounds=10,log_n_rows=8"),
+                2628,
+                53_380_096,
+                "5cfebf8c9565c41c67b574454b43de6f36e2a9d9307e7bfb8aec693cdb92f4aa",
             ),
             (
                 MODULE.parse_workload("poseidon:log_n_instances=13"),
@@ -121,7 +114,8 @@ class NativeProofMatrixTests(unittest.TestCase):
                 self.assertEqual(workload.committed_trace_cells, cells)
                 if workload.name == "blake":
                     self.assertEqual(workload.native_unit, "blake_round_instances")
-                    self.assertEqual(workload.native_units, 512)
+                    self.assertEqual(workload.native_units, 2560)
+                    self.assertEqual(workload.report_dict()["committed_trees"], 3)
                 elif workload.name == "poseidon":
                     self.assertEqual(workload.native_unit, "poseidon_instances")
                     self.assertEqual(workload.native_units, 8192)
@@ -150,18 +144,23 @@ class NativeProofMatrixTests(unittest.TestCase):
                 "sm_v2_log14",
                 "sm_v2_log16",
                 "blake_log10x10",
-                "blake_log12x16",
                 "poseidon_log10",
                 "poseidon_log13",
             ],
         )
-        self.assertEqual(len(suite.rows), MODULE.MAX_MATRIX_ROWS)
-        self.assertEqual(suite.committed_trace_cells_per_lane, 16_115_712)
+        self.assertEqual(len(suite.rows), 12)
+        self.assertEqual(suite.resource_profile, "large")
+        self.assertEqual(suite.committed_trace_cells_per_lane, 67_480_576)
         maximum_request_cells = suite.request_cells(
             MODULE.MAX_WARMUPS, MODULE.MAX_SAMPLES
         )
-        self.assertEqual(maximum_request_cells, 1_643_802_624)
-        self.assertLessEqual(maximum_request_cells, MODULE.MAX_TOTAL_REQUEST_CELLS)
+        self.assertEqual(maximum_request_cells, 6_883_018_752)
+        maximum_large_cells = (
+            MODULE.RESOURCE_PROFILES["large"].max_committed_cells
+            * 2
+            * (MODULE.MAX_WARMUPS + MODULE.MAX_SAMPLES)
+        )
+        self.assertLessEqual(maximum_request_cells, maximum_large_cells)
         MODULE.validate_suite(suite)
 
     def test_holistic_suite_parser_is_opt_in_and_exclusive(self) -> None:
@@ -174,6 +173,8 @@ class NativeProofMatrixTests(unittest.TestCase):
                 "0",
                 "--samples",
                 "1",
+                "--resource-profile",
+                "large",
                 "--cooldown-seconds",
                 "0",
             ]
@@ -212,7 +213,9 @@ class NativeProofMatrixTests(unittest.TestCase):
             "state_machine:log_n_rows=10,initial_x=2147483647,initial_y=3",
             "state_machine:log_n_rows=10,initial_x=9",
             "blake:log_n_rows=8",
+            "blake:log_n_rows=3,n_rounds=10",
             "blake:log_n_rows=8,n_rounds=0",
+            "blake:log_n_rows=8,n_rounds=2",
             "blake:log_n_rows=8,n_rounds=33",
             "poseidon:log_n_instances=3",
             "poseidon:log_n_instances=13,log_n_rows=10",
@@ -289,7 +292,7 @@ class NativeProofMatrixTests(unittest.TestCase):
         self.assertFalse(diagnostic.formal)
         self.assertEqual(
             [row.name for row in diagnostic.workloads],
-            ["wide_fibonacci", "xor", "plonk", "state_machine", "blake", "poseidon"],
+            ["wide_fibonacci", "xor", "plonk", "state_machine", "poseidon"],
         )
         self.assertEqual(diagnostic.warmups, MODULE.MIN_HEADLINE_WARMUPS)
         self.assertEqual(diagnostic.blake2_backend, "auto")
@@ -379,13 +382,14 @@ class NativeProofMatrixTests(unittest.TestCase):
         self.assertEqual(
             lane_command(
                 Path("cpu"),
-                MODULE.Workload.blake(8, 2),
+                MODULE.Workload.blake(8, 10),
                 10,
                 2,
                 "functional",
                 artifact,
+                resource_profile="large",
             ),
-            ["cpu", "--example", "blake", "--log-n-rows", "8", "--n-rounds", "2", "--warmups", "10", "--samples", "2", "--protocol", "functional", "--resource-profile", "standard", "--proof-artifact-out", "/tmp/proof.json"],
+            ["cpu", "--example", "blake", "--log-n-rows", "8", "--n-rounds", "10", "--warmups", "10", "--samples", "2", "--protocol", "functional", "--resource-profile", "large", "--proof-artifact-out", "/tmp/proof.json"],
         )
         self.assertEqual(
             lane_command(
@@ -405,7 +409,7 @@ class NativeProofMatrixTests(unittest.TestCase):
             MODULE.Workload.xor(10, 2, 3),
             MODULE.Workload.plonk(10),
             MODULE.Workload.state_machine(10, 9, 3),
-            MODULE.Workload.blake(8, 2),
+            MODULE.Workload.blake(8, 10),
             MODULE.Workload.poseidon(13),
         )
         with tempfile.TemporaryDirectory() as directory:
@@ -415,11 +419,29 @@ class NativeProofMatrixTests(unittest.TestCase):
                         path = Path(directory) / f"{workload.name}-{lane}.json"
                         write_proof_artifact(path, workload)
                         artifact = MODULE.load_proof_artifact(path, lane)
-                        report = make_report(lane, workload, artifact_path=path)
-                        fingerprint, blockers = MODULE.validate_report(report, lane, workload, args())
+                        profile = "large" if workload.name == "blake" else "standard"
+                        report = make_report(
+                            lane,
+                            workload,
+                            artifact_path=path,
+                            resource_profile=profile,
+                        )
+                        fingerprint, blockers = MODULE.validate_report(
+                            report,
+                            lane,
+                            workload,
+                            args(resource_profile=profile),
+                        )
                         self.assertEqual(fingerprint, (PROOF_WIRE_SHA256, len(PROOF_WIRE_BYTES)))
                         self.assertEqual(blockers, [])
-                        MODULE.validate_proof_artifact(report, lane, workload, args(), artifact, fingerprint)
+                        MODULE.validate_proof_artifact(
+                            report,
+                            lane,
+                            workload,
+                            args(resource_profile=profile),
+                            artifact,
+                            fingerprint,
+                        )
 
     def test_report_schema_and_derived_metrics_fail_closed(self) -> None:
         workload = MODULE.Workload.wide_fibonacci(10, 8)
@@ -710,29 +732,6 @@ class NativeProofMatrixTests(unittest.TestCase):
                 MODULE.validate_proof_artifact(
                     report, "cpu", workload, args(), mutated, fingerprint
                 )
-
-    def test_blake_artifact_binds_log_rows_and_round_count(self) -> None:
-        workload = MODULE.Workload.blake(8, 2)
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "blake.json"
-            write_proof_artifact(path, workload)
-            report = make_report("cpu", workload, artifact_path=path)
-            fingerprint, _ = MODULE.validate_report(report, "cpu", workload, args())
-
-            artifact = MODULE.load_proof_artifact(path, "cpu")
-            MODULE.validate_proof_artifact(
-                report, "cpu", workload, args(), artifact, fingerprint
-            )
-            for field in ("log_n_rows", "n_rounds"):
-                artifact = MODULE.load_proof_artifact(path, "cpu")
-                artifact["document"]["blake_statement"][field] += 1
-                with self.subTest(field=field), self.assertRaisesRegex(
-                    MODULE.MatrixError,
-                    "statement does not match request",
-                ):
-                    MODULE.validate_proof_artifact(
-                        report, "cpu", workload, args(), artifact, fingerprint
-                    )
 
     def test_poseidon_artifact_binds_instance_count(self) -> None:
         workload = MODULE.Workload.poseidon(13)

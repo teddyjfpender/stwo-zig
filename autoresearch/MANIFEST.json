@@ -839,11 +839,7 @@
           "native_unit": "state_transitions"
         },
         "guard_blake_10x10": {
-          "args": "--example blake --log-n-rows 10 --n-rounds 10 --warmups {warmups} --samples {samples} --protocol functional",
-          "native_unit": "blake_round_instances"
-        },
-        "guard_blake_12x16": {
-          "args": "--example blake --log-n-rows 12 --n-rounds 16 --warmups {warmups} --samples {samples} --protocol functional",
+          "args": "--example blake --log-n-rows 10 --n-rounds 10 --warmups {warmups} --samples {samples} --protocol functional --resource-profile large",
           "native_unit": "blake_round_instances"
         },
         "guard_poseidon_10": {
@@ -890,7 +886,6 @@
             ],
             "guards": [
               "guard_blake_10x10",
-              "guard_blake_12x16",
               "guard_poseidon_10",
               "guard_poseidon_13",
               "guard_wf_10x8",

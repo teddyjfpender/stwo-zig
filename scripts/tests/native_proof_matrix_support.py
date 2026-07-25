@@ -197,7 +197,22 @@ def write_proof_artifact(
         "wide_fibonacci_statement": None,
         "xor_statement": None,
     }
-    if workload.name == "state_machine":
+    if workload.name == "blake":
+        statements["blake_statement"] = {
+            "stmt0": {"log_size": workload.parameters["log_n_rows"]},
+            "stmt1": {
+                "scheduler_claimed_sum": [1, 2, 3, 4],
+                "round_claimed_sums": [[5, 6, 7, 8], [9, 10, 11, 12]],
+                "xor_claimed_sums": [
+                    [13, 14, 15, 16],
+                    [17, 18, 19, 20],
+                    [21, 22, 23, 24],
+                    [25, 26, 27, 28],
+                    [29, 30, 31, 32],
+                ],
+            },
+        }
+    elif workload.name == "state_machine":
         parameters = workload.parameters
         log_n_rows = parameters["log_n_rows"]
         initial = [parameters["initial_x"], parameters["initial_y"]]

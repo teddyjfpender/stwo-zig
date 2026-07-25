@@ -654,6 +654,27 @@ mod tests {
     }
 
     #[test]
+    fn exact_blake_benchmark_reports_the_pinned_simd_backend() {
+        let profile = bench_execution_profile(Example::Blake, ProverBackend::Scalar).unwrap();
+
+        assert_eq!(
+            profile.proof_backend_type,
+            "stwo::prover::backend::simd::SimdBackend"
+        );
+        assert_eq!(
+            profile.witness_generation_backend_type,
+            profile.proof_backend_type,
+        );
+        assert_eq!(
+            profile.interaction_generation_backend_type,
+            profile.proof_backend_type,
+        );
+        assert!(profile.backend_homogeneous);
+        assert!(profile.pure_backend_promotion_eligible);
+        assert!(profile.promotion_ineligibility_reason.is_none());
+    }
+
+    #[test]
     fn unrelated_benchmarks_do_not_claim_an_unclassified_execution_profile() {
         assert!(bench_execution_profile(Example::WideFibonacci, ProverBackend::Scalar).is_none());
     }

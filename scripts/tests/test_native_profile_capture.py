@@ -57,7 +57,13 @@ CORE_IDS = (
 
 
 def profile_report(lane, workload):
-    report = support.make_report(lane, workload, samples=1, warmups=1)
+    report = support.make_report(
+        lane,
+        workload,
+        samples=1,
+        warmups=1,
+        resource_profile="large",
+    )
     report["profiled"] = True
     report["evidence_class"] = "profiled_diagnostic"
     report["timing"]["stage_profiles"] = [{
@@ -146,7 +152,7 @@ class NativeProfileCaptureTest(unittest.TestCase):
             ])
 
     def test_all_six_examples_satisfy_cpu_and_metal_stage_contract(self):
-        args = support.args(samples=1, warmups=1)
+        args = support.args(samples=1, warmups=1, resource_profile="large")
         for workload in PROFILE_WORKLOADS:
             for lane in ("cpu", "metal"):
                 fingerprint, coverage = validate_profile_report(
@@ -160,7 +166,7 @@ class NativeProfileCaptureTest(unittest.TestCase):
 
     def test_stage_and_telemetry_drift_fail_closed(self):
         workload = PROFILE_WORKLOADS[0]
-        args = support.args(samples=1, warmups=1)
+        args = support.args(samples=1, warmups=1, resource_profile="large")
         report = profile_report("cpu", workload)
         report["timing"]["stage_profiles"][0]["stages"].pop()
         with self.assertRaisesRegex(CaptureError, "stable root stage IDs changed"):
@@ -249,6 +255,7 @@ class NativeProfileCaptureTest(unittest.TestCase):
             protocol="functional",
             warmups=1,
             samples=1,
+            resource_profile="large",
             metal_runtime="source-jit",
         )
         binary_hashes = {"cpu": "6" * 64, "metal": "7" * 64}

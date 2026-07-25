@@ -233,6 +233,58 @@ def validate_state_machine_statement(
                 )
 
 
+def validate_blake_statement(
+    value: Any, workload: Workload, context: str
+) -> None:
+    if not isinstance(value, dict):
+        raise MatrixError(f"{context} must be an object")
+    require_exact_keys(value, {"stmt0", "stmt1"}, context)
+
+    stmt0 = value["stmt0"]
+    if not isinstance(stmt0, dict):
+        raise MatrixError(f"{context}.stmt0 must be an object")
+    require_exact_keys(stmt0, {"log_size"}, f"{context}.stmt0")
+    if stmt0["log_size"] != workload.parameters["log_n_rows"]:
+        raise MatrixError(f"{context}.stmt0 does not match the request")
+
+    stmt1 = value["stmt1"]
+    if not isinstance(stmt1, dict):
+        raise MatrixError(f"{context}.stmt1 must be an object")
+    require_exact_keys(
+        stmt1,
+        {"scheduler_claimed_sum", "round_claimed_sums", "xor_claimed_sums"},
+        f"{context}.stmt1",
+    )
+    claims = (
+        ("scheduler_claimed_sum", [stmt1["scheduler_claimed_sum"]], 1),
+        ("round_claimed_sums", stmt1["round_claimed_sums"], 2),
+        ("xor_claimed_sums", stmt1["xor_claimed_sums"], 5),
+    )
+    for name, values, expected_count in claims:
+        if not isinstance(values, list) or len(values) != expected_count:
+            raise MatrixError(
+                f"{context}.stmt1.{name} must contain {expected_count} claimed sums"
+            )
+        for claim_index, coordinates in enumerate(values):
+            if not isinstance(coordinates, list) or len(coordinates) != 4:
+                raise MatrixError(
+                    f"{context}.stmt1.{name}[{claim_index}] must have four coordinates"
+                )
+            for coordinate_index, coordinate in enumerate(coordinates):
+                canonical = require_int(
+                    coordinate,
+                    (
+                        f"{context}.stmt1.{name}[{claim_index}]"
+                        f"[{coordinate_index}]"
+                    ),
+                )
+                if canonical >= M31_MODULUS:
+                    raise MatrixError(
+                        f"{context}.stmt1.{name}[{claim_index}]"
+                        f"[{coordinate_index}] is not canonical M31"
+                    )
+
+
 def validate_proof_artifact(
     report: dict[str, Any],
     lane: str,
@@ -283,7 +335,13 @@ def validate_proof_artifact(
     if document["pcs_config"] != expected_pcs:
         raise MatrixError(f"{lane} proof artifact PCS config does not match request")
     statement_key = f"{workload.name}_statement"
-    if workload.name == "state_machine":
+    if workload.name == "blake":
+        validate_blake_statement(
+            document[statement_key],
+            workload,
+            f"{lane}.proof_artifact.{statement_key}",
+        )
+    elif workload.name == "state_machine":
         validate_state_machine_statement(
             document[statement_key],
             workload,

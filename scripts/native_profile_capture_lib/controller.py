@@ -338,6 +338,7 @@ def _capture_locked(
             "controller_command": settings.controller_command,
             "working_directory": str(Path.cwd().resolve()),
             "protocol": settings.protocol,
+            "resource_profile": settings.resource_profile,
             "warmups": settings.warmups,
             "samples": settings.samples,
             "sample_duration_seconds": settings.sample_duration_seconds,
