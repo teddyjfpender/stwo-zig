@@ -695,7 +695,7 @@ test "source-derived catalog matches Rust oracle and admits a closed active subs
     const wrong_components = [_]proof_plan.Component{.{
         .name = "add_opcode_small",
         .canonical_ordinal = 0,
-        .writer = .native_metal,
+        .writer = .native_backend,
         .trace_parts = &parts,
         .producer_edges = &.{},
         .capacity_feeds = &.{},

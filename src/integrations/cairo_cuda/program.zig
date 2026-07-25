@@ -10,6 +10,7 @@ const core = @import("stwo_core");
 const adapter = @import("../../frontends/cairo/adapter/mod.zig");
 const compact = @import("../../frontends/cairo/compact_verifier_interchange.zig");
 const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
+const semantic_authority = @import("../../frontends/cairo/proof_plan/semantic_authority.zig");
 const staged = @import("../../frontends/cairo/staged_arena_planner.zig");
 const statement = @import("../../frontends/cairo/statement_bootstrap.zig");
 const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
@@ -71,6 +72,12 @@ pub fn emitDevelopmentOnly(
         input.semantics.fixed_tables.preprocessed_identities,
     );
     defer allocator.free(preprocessed_logs);
+    const authority_logs = try semantic_authority.preprocessedLogs(
+        allocator,
+        input.semantics.fixed_tables,
+    );
+    defer allocator.free(authority_logs);
+    try validatePreprocessedAuthority(authority_logs, preprocessed_logs);
     try input.semantics.assertUnchanged();
     return emitAuthenticated(allocator, .{
         .proof = input.proof,
@@ -160,7 +167,10 @@ fn validateAuthority(allocator: std.mem.Allocator, authority: Authority) !void {
     var max_evaluation_log: u32 = 0;
     var cursors = [3]u32{ 0, 0, 0 };
     for (bundle.components) |component| {
-        const planned = authority.proof.find(component.label) orelse return Error.InvalidProofPlan;
+        const planned = authority.proof.findInstance(
+            component.label,
+            component.instance,
+        ) orelse return Error.InvalidProofPlan;
         if (!componentMatchesPlan(component, planned)) return Error.InvalidProofPlan;
         const degree_log = std.math.sub(
             u32,
@@ -208,7 +218,11 @@ fn validateAuthority(allocator: std.mem.Allocator, authority: Authority) !void {
         cursors[2] != authority.protocol.trace_columns[2])
         return Error.InvalidCompositionGeometry;
     for (authority.preprocessed_logs) |log_rows| {
-        if (log_rows == 0 or log_rows > authority.protocol.max_log_degree_bound)
+        // Fixed columns may have a larger committed domain than the active
+        // composition degree bound (canonical Cairo includes `seq_25` while
+        // the verifier bound is 24). Their individual tree domains remain
+        // explicit in `TraceColumn.log_rows`.
+        if (log_rows == 0 or log_rows > 31)
             return Error.InvalidPreprocessedGeometry;
     }
 }
@@ -408,7 +422,11 @@ const Graph = struct {
                 &dependencies,
                 &dependency_count,
             );
-            const captured = findComponent(authority.composition, component.name) orelse
+            const captured = findComponent(
+                authority.composition,
+                component.name,
+                component.instance,
+            ) orelse
                 return Error.InvalidProofPlan;
             trace_nodes[component_index] = try graph.addNode(
                 .trace_generation,
@@ -725,9 +743,32 @@ fn componentCells(component: composition.Component, tree: u32) !u64 {
     return std.math.mul(u64, width, try pow2(component.trace_log_size)) catch Error.GeometryOverflow;
 }
 
-fn findComponent(bundle: *const composition.Bundle, label: []const u8) ?*const composition.Component {
-    for (bundle.components) |*component| if (std.mem.eql(u8, component.label, label)) return component;
+fn findComponent(
+    bundle: *const composition.Bundle,
+    label: []const u8,
+    instance: u32,
+) ?*const composition.Component {
+    for (bundle.components) |*component| {
+        if (component.instance == instance and std.mem.eql(u8, component.label, label))
+            return component;
+    }
     return null;
+}
+
+fn validatePreprocessedAuthority(authority: []const u32, coefficients: []const u32) !void {
+    if (!std.mem.eql(u32, authority, coefficients))
+        return Error.InvalidPreprocessedGeometry;
+}
+
+test "Cairo CUDA preprocessed domains must match fixed-table authority exactly" {
+    const expected = [_]u32{ 8, 20, 25 };
+    try validatePreprocessedAuthority(&expected, &expected);
+    var drifted = expected;
+    drifted[1] = 19;
+    try std.testing.expectError(
+        Error.InvalidPreprocessedGeometry,
+        validatePreprocessedAuthority(&expected, &drifted),
+    );
 }
 
 fn findSpan(component: composition.Component, tree: u32) ?composition.TraceSpan {

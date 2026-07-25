@@ -26,6 +26,7 @@ pub const BackendKind = enum {
     cpu_scalar,
     simd,
     metal,
+    cuda,
 };
 
 pub const BackendIdentity = struct {
