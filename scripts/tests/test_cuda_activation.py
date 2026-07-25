@@ -36,10 +36,14 @@ class CudaActivationTests(unittest.TestCase):
         self.assertTrue(
             state["families"]["wide_fibonacci"]["release_ready"]
         )
+        self.assertTrue(
+            state["families"]["plonk_logup"]["gates"][
+                "exact_constraint_semantics"
+            ]
+        )
         for family in (
             "blake",
             "poseidon",
-            "plonk_logup",
             "state_machine",
             "xor_lookup",
         ):
