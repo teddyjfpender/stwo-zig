@@ -2328,8 +2328,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2652,8 +2652,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -2840,8 +2840,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3058,8 +3058,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3453,8 +3453,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -3641,6 +3641,259 @@
     "method": "metrics_v2_scored_class_geomean_v2",
     "ratio_geomean": 0.7142431428904034,
     "speedup": 1.400083444908122
+   }
+  },
+  "core_cuda": {
+   "entries": [],
+   "frontier_by_class": {
+    "deep": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 714,
+       "seconds": 368274
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "huge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 714,
+       "seconds": 368274
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "small": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 714,
+       "seconds": 368274
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "wide": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 714,
+       "seconds": 368274
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    },
+    "xlarge": {
+     "audit": {
+      "audit_age": {
+       "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
+       "commits": 714,
+       "seconds": 368274
+      },
+      "audited_score": 1.0,
+      "audited_through": null,
+      "due": {
+       "direct": false,
+       "span": false,
+       "span_reasons": []
+      },
+      "effective_score": 1.0,
+      "evidence_share": {
+       "claimed": 0,
+       "claimed_share": null,
+       "judged": 0,
+       "judged_share": null
+      },
+      "overdue": {
+       "direct": false,
+       "direct_by_observations": 0,
+       "span": false,
+       "span_by_observations": 0
+      },
+      "span_coverage": {
+       "consumed": 0,
+       "eligible": 0,
+       "pending": 0,
+       "share": null
+      },
+      "unaudited_tail": {
+       "count": 0,
+       "observation_ids": []
+      }
+     },
+     "frontier": [],
+     "head": null
+    }
+   },
+   "scored_classes": [
+    "small",
+    "wide",
+    "deep",
+    "xlarge",
+    "huge"
+   ],
+   "suite_score": {
+    "active_credit_events": {
+     "deep": 0,
+     "huge": 0,
+     "small": 0,
+     "wide": 0,
+     "xlarge": 0
+    },
+    "audited_class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "audited_ratio_geomean": 1.0,
+    "class_ratios": {
+     "deep": 1.0,
+     "huge": 1.0,
+     "small": 1.0,
+     "wide": 1.0,
+     "xlarge": 1.0
+    },
+    "classes": [
+     "small",
+     "wide",
+     "deep",
+     "xlarge",
+     "huge"
+    ],
+    "epoch": 2,
+    "index": 100.0,
+    "method": "metrics_v2_scored_class_geomean_v2",
+    "ratio_geomean": 1.0,
+    "speedup": 1.0
    }
   },
   "core_hybrid": {
@@ -6037,8 +6290,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6500,8 +6753,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6620,8 +6873,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -6906,8 +7159,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -7441,8 +7694,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8077,8 +8330,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8268,8 +8521,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -8384,8 +8637,8 @@
      "audit": {
       "audit_age": {
        "base_commit": "8e58d7015e28a312eddc6f1eacc10e0c08ea85cc",
-       "commits": 358,
-       "seconds": 186614
+       "commits": 714,
+       "seconds": 368274
       },
       "audited_score": 1.0,
       "audited_through": null,
@@ -9454,7 +9707,7 @@
   "rows_total": 13,
   "rows_with_zero_fallbacks": 13
  },
- "notes_count": 5,
+ "notes_count": 6,
  "project": {
   "contract": "stwo-zig-og-docs archive: 2026-07-17-performance-extraction-playbook.md, Part F",
   "harness": "stwo-perf",
@@ -9541,12 +9794,62 @@
    }
   },
   "future_boards": [
+   "core_cuda",
    "core_hybrid",
    "heavy_cairo",
    "heavy_native",
    "stream"
   ],
   "groups": {
+   "cuda": {
+    "board": "core_cuda",
+    "disabled_reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated.",
+    "enabled": false,
+    "promotion_eligible": false,
+    "report_schema": "native_cuda_product_v6",
+    "workloads": {
+     "cuda_poseidon_log10": {
+      "class": "small",
+      "native_unit": "committed cells"
+     },
+     "cuda_poseidon_log13": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log14x32": {
+      "class": "small",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log18x100": {
+      "class": "xlarge",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log18x128": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log18x37": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log18x73": {
+      "class": "wide",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log20x100": {
+      "class": "huge",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log22x100": {
+      "class": "extreme",
+      "native_unit": "committed cells"
+     },
+     "cuda_wf_log22x3": {
+      "class": "deep",
+      "native_unit": "committed cells"
+     }
+    }
+   },
    "metal": {
     "board": "core_metal",
     "disabled_reason": null,
@@ -9782,6 +10085,7 @@
    "riscv"
   ],
   "staged_boards": [
+   "core_cuda",
    "pr6_supremacy"
   ]
  },
@@ -9789,7 +10093,7 @@
   "determinism": "pure function of the named inputs; a committed feed names the commit it was generated FROM (one-commit lag by construction) \u2014 verify via inputs_sha256, not commit equality",
   "dirty_inputs": [],
   "inputs_sha256": {
-   "autoresearch/MANIFEST.json": "26e28b839215051110d6c42e1a11a609752cc1bed8a15032461b3a6f31825b66",
+   "autoresearch/MANIFEST.json": "f71d509c3b4ab0bc00bcd586c4b9849a9015f510b8611f494cd5c5687a67846e",
    "autoresearch/ledger/epochs.json": "60162d440a812415d2943b1c1a2317b70be5fda727fae7eaa5c75ff408c4f7f5",
    "autoresearch/ledger/promotions.tsv": "65ebaae10a028ea4dc7267a9cc8dc68b0c5bfc713218103047cb99054d64d676",
    "autoresearch/reference/metal-calibration-epoch-2.json": "e1a733f19dfe552389e25ff71d487cb889a3117b7fd71ea47c28cbc9000147df",
@@ -9945,8 +10249,8 @@
    "vectors/reports/benchmark_history/index.json": "2df531dbefbd60f078b4c4a0b1c10c00a577832cd35520e065b430c61e6903f0",
    "vectors/reports/benchmark_history/runs/2026-07-23-110359-matrix-v6-e58b4d1e/report.json": "e772acbf9f58ff3916f2ffe91016ebc28bc6aadc75c6e68d5fd43ef3023d7be3"
   },
-  "repo_commit": "0fc7db7a064e",
-  "repo_commit_time": "2026-07-23T20:37:41Z"
+  "repo_commit": "185456cc47cd",
+  "repo_commit_time": "2026-07-26T00:05:21+01:00"
  },
  "references": {
   "metal_calibration_epoch_2": {
@@ -17438,6 +17742,106 @@
        "measurement_wall_hours": 0.01886922541669466,
        "median_gradient_snr": 31.94053852615983,
        "points": 2
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     }
+    }
+   },
+   "core_cuda": {
+    "classes": {
+     "deep": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "extreme": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "huge": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "small": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "wide": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
+      },
+      "trailing_window": 8,
+      "unavailable_points": 0
+     },
+     "xlarge": {
+      "available": false,
+      "available_points": 0,
+      "decay": [],
+      "latest": null,
+      "time_series": [],
+      "trailing": {
+       "credited_ln_improvement": null,
+       "credited_ln_improvement_per_measurement_hour": null,
+       "measurement_wall_hours": null,
+       "median_gradient_snr": null,
+       "points": 0
       },
       "trailing_window": 8,
       "unavailable_points": 0
