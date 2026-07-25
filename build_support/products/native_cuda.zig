@@ -67,6 +67,7 @@ pub const descriptor = policy.Descriptor{
         "test-cuda-state-machine-contract",
         "test-cuda-poseidon-arena-contract",
         "test-cuda-blake-exact-structure",
+        "upstream-pins",
         "test-cuda-adapter",
         "run-native-cuda-smoke",
     },

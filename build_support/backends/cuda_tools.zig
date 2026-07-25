@@ -224,10 +224,24 @@ pub fn addProducts(
     const blake_exact_tests = b.addTest(.{
         .root_module = blake_exact_root,
     });
-    b.step(
+    const blake_exact_step = b.step(
         "test-cuda-blake-exact-structure",
         "Test exact mixed-height Blake CUDA contracts without a GPU",
-    ).dependOn(&b.addRunArtifact(blake_exact_tests).step);
+    );
+    blake_exact_step.dependOn(&b.addRunArtifact(blake_exact_tests).step);
+
+    const blake_route_root = b.createModule(.{
+        .root_source_file = b.path(
+            "src/products/native_cuda/blake_route.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    blake_route_root.addImport("stwo_native_cuda", stwo);
+    const blake_route_tests = b.addTest(.{
+        .root_module = blake_route_root,
+    });
+    blake_exact_step.dependOn(&b.addRunArtifact(blake_route_tests).step);
 
     const adapter_tests = b.addSystemCommand(&.{
         "cargo",

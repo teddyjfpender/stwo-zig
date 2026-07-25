@@ -12,6 +12,7 @@ pub const Invocation = struct {
     views: views.TreeViews,
     preprocessed_slot: slots.SlotId,
     main_slot: slots.SlotId,
+    relation_sources_slot: slots.SlotId,
     interaction_slot: slots.SlotId,
     composition_slot: slots.SlotId,
 };
@@ -51,15 +52,36 @@ pub const Set = struct {
     trace: ?Trace = null,
     constraint: ?Constraint = null,
 
-    pub fn requireReady(self: Set) !Ready {
+    pub fn requireReady(self: Set, authority: Authority) !Ready {
         const trace = self.trace orelse
             return error.UnavailableExactBlakeTraceFacade;
         const constraint = self.constraint orelse
             return error.UnavailableExactBlakeConstraintFacade;
         try trace.validate();
         try constraint.validate();
+        if (!std.mem.eql(
+            u8,
+            &trace.identity,
+            &authority.trace_identity,
+        )) {
+            return error.UnauthenticatedExactBlakeTraceFacade;
+        }
+        if (!std.mem.eql(
+            u8,
+            &constraint.identity,
+            &authority.constraint_identity,
+        )) {
+            return error.UnauthenticatedExactBlakeConstraintFacade;
+        }
         return .{ .trace = trace, .constraint = constraint };
     }
+};
+
+/// Expected digests come from the authenticated AOT pack, never from a prove
+/// request or caller-selected frontend configuration.
+pub const Authority = struct {
+    trace_identity: [32]u8,
+    constraint_identity: [32]u8,
 };
 
 pub const Ready = struct {
@@ -76,6 +98,7 @@ pub fn invocation(
         .views = tree_views,
         .preprocessed_slot = slots.preprocessed_evaluations,
         .main_slot = slots.main_evaluations,
+        .relation_sources_slot = slots.relation_sources,
         .interaction_slot = slots.interaction_evaluations,
         .composition_slot = slots.composition_evaluations,
     };
@@ -88,7 +111,10 @@ fn isZero(identity: [32]u8) bool {
 test "exact Blake kernel facades fail closed without both identities" {
     try std.testing.expectError(
         error.UnavailableExactBlakeTraceFacade,
-        (Set{}).requireReady(),
+        (Set{}).requireReady(.{
+            .trace_identity = [_]u8{1} ** 32,
+            .constraint_identity = [_]u8{2} ** 32,
+        }),
     );
     const callback = struct {
         fn call(_: *anyopaque, _: Invocation) anyerror!void {}
@@ -103,6 +129,9 @@ test "exact Blake kernel facades fail closed without both identities" {
     };
     try std.testing.expectError(
         error.UnavailableExactBlakeConstraintFacade,
-        (Set{ .trace = trace }).requireReady(),
+        (Set{ .trace = trace }).requireReady(.{
+            .trace_identity = [_]u8{1} ** 32,
+            .constraint_identity = [_]u8{2} ** 32,
+        }),
     );
 }

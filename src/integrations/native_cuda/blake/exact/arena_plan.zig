@@ -74,6 +74,12 @@ pub const Prepared = struct {
         );
         try requireWords(
             self,
+            slots.relation_sources,
+            self.geometry.treeWords(.preprocessed) +
+                self.geometry.main_words,
+        );
+        try requireWords(
+            self,
             slots.sampled_values,
             geometry_mod.sampled_value_count * 4,
         );
@@ -107,6 +113,17 @@ pub fn buildRequirements(
         geometry,
         .trace_generation,
         .trace_commit,
+        .constraint_evaluation,
+    );
+    const relation_source_words = geometry.treeWords(.preprocessed) +
+        geometry.main_words;
+    try add(
+        &result,
+        allocator,
+        slots.relation_sources,
+        relation_source_words,
+        .trace_generation,
+        .constraint_evaluation,
     );
     try addTree(
         &result,
@@ -120,6 +137,7 @@ pub fn buildRequirements(
         geometry,
         .trace_generation,
         .trace_commit,
+        .constraint_evaluation,
     );
     try addTree(
         &result,
@@ -133,6 +151,7 @@ pub fn buildRequirements(
         geometry,
         .constraint_evaluation,
         .constraint_evaluation,
+        .constraint_evaluation,
     );
     try addTree(
         &result,
@@ -144,6 +163,7 @@ pub fn buildRequirements(
         slots.composition_hashes,
         slots.composition_layers,
         geometry,
+        .constraint_evaluation,
         .constraint_evaluation,
         .constraint_evaluation,
     );
@@ -219,12 +239,13 @@ fn addTree(
     geometry: geometry_mod.Geometry,
     generate_stage: telemetry.Stage,
     commit_stage: telemetry.Stage,
+    evaluation_live_through: telemetry.Stage,
 ) !void {
     const source_words = geometry.treeWords(tree);
     const commitment_rows = try rowsAtLog(
         geometry.treeCommitmentLog(tree),
     );
-    try add(result, allocator, evaluation_slot, source_words, generate_stage, commit_stage);
+    try add(result, allocator, evaluation_slot, source_words, generate_stage, evaluation_live_through);
     try add(result, allocator, coefficient_slot, source_words, commit_stage, .oods);
     try add(result, allocator, lde_slot, source_words * 2, commit_stage, .decommit);
     try addAligned(result, allocator, hash_slot, try hashWords(commitment_rows), 8, commit_stage, .decommit);

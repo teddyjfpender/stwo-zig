@@ -22,6 +22,8 @@ pub const main_coefficients: SlotId = 0x2211;
 pub const main_lde: SlotId = 0x2212;
 pub const main_hashes: SlotId = 0x2213;
 pub const main_layers: SlotId = 0x2214;
+/// Immutable preprocessed+main witness emitted by the exact witness AOT.
+pub const relation_sources: SlotId = 0x2215;
 
 pub const interaction_evaluations: SlotId = 0x2220;
 pub const interaction_coefficients: SlotId = 0x2221;

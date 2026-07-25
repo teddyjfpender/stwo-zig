@@ -478,7 +478,7 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             workload = document["workloads"][0]
             self.assertEqual(shape.statement(), workload["statement"])
             command = workload["sessions"][0]["raw"]["command"]
-            self.assertIn("raw-stwo-blake-v1", command)
+            self.assertIn("raw-stwo-blake-logup-v2", command)
             self.assertIn("--n-rounds", command)
             self.assertEqual(
                 "blake",

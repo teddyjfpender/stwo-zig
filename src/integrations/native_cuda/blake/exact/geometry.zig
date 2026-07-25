@@ -140,8 +140,11 @@ pub fn admit(request: Request) Error!Geometry {
     );
     const composition_column_log = composition_log - composition_split;
     const query_log = composition_log;
-    if (query_log <= 2) return error.GeometryOverflow;
-    const fri_tree_count = query_log - 2;
+    if (query_log <= 1) return error.GeometryOverflow;
+    // The first FRI root commits the circle quotient at `query_log`; inner
+    // line roots then cover every log through 2 before the size-two last
+    // layer is interpolated and mixed separately.
+    const fri_tree_count = query_log - 1;
 
     const main_words = try groupWords(logs, mainWidths());
     const interaction_words = try groupWords(logs, interactionWidths());
@@ -272,8 +275,8 @@ test "exact CUDA Blake geometry has four trees and eight mixed-height components
     try std.testing.expectEqual(@as(u32, 17), geometry.composition_log);
     try std.testing.expectEqual(@as(u32, 16), geometry.composition_column_log);
     try std.testing.expectEqual(@as(u32, 17), geometry.query_log);
-    try std.testing.expectEqual(@as(u32, 15), geometry.fri_tree_count);
-    try std.testing.expectEqual(@as(usize, 19), geometry.decommit_tree_count);
+    try std.testing.expectEqual(@as(u32, 16), geometry.fri_tree_count);
+    try std.testing.expectEqual(@as(usize, 20), geometry.decommit_tree_count);
     try std.testing.expectEqual(
         @as(usize, 51_736_576),
         geometry.trace_words,

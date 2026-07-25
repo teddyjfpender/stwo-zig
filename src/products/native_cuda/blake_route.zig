@@ -5,6 +5,7 @@ const stwo = @import("stwo_native_cuda");
 const cli = @import("cli.zig");
 
 pub const cuda = stwo.integrations.native_cuda.blake;
+pub const exact_cuda = cuda.exact;
 pub const application = "blake";
 pub const protocol_name = cli.blake_protocol_name;
 
@@ -13,10 +14,18 @@ pub fn protocol() stwo.core.pcs.PcsConfig {
 }
 
 pub fn admit(
-    _: cli.Prove,
-    _: stwo.core.pcs.PcsConfig,
+    request: cli.Prove,
+    protocol_value: stwo.core.pcs.PcsConfig,
 ) !cuda.geometry.Geometry {
-    return error.UnsupportedExactBlakeProtocol;
+    _ = try exact_cuda.geometry.admit(.{
+        .statement = .{
+            .log_n_rows = request.log_n_rows.?,
+            .n_rounds = request.n_rounds.?,
+        },
+        .protocol = protocol_value,
+    });
+    try exact_cuda.activation.requireProductReady();
+    unreachable;
 }
 
 pub fn proofRequest(
@@ -74,9 +83,9 @@ pub fn reportStatement(
     };
 }
 
-test "Blake route rejects provisional CUDA v1 as exact Blake" {
+test "Blake route admits exact geometry then fails closed on kernel authority" {
     try std.testing.expectError(
-        error.UnsupportedExactBlakeProtocol,
+        error.ExactBlakeCudaAotBindingsUnavailable,
         admit(.{
             .air = .blake,
             .log_n_rows = 10,
