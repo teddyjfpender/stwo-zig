@@ -265,7 +265,7 @@ def classify_rejection(
         "lastlayerdegreeinvalid",
         "lastlayerevaluationsinvalid",
         "witnesstoolong",
-        "rootmismatch",
+        "rootmismatch", "root mismatch",
         "invalidqueryshape",
         "duplicatequerymismatch",
         "proofconfigmismatch",
