@@ -413,7 +413,7 @@ fn previousRowPoint(log_size: u32, point: CirclePointQM31) CirclePointQM31 {
     return point.sub(lifted);
 }
 
-test "exact Plonk component exposes the pinned three-tree geometry" {
+test "exact Plonk component owns and releases the pinned three-tree geometry" {
     const component = Component{
         .log_n_rows = 4,
         .lookup_elements = .{
@@ -424,7 +424,7 @@ test "exact Plonk component exposes the pinned three-tree geometry" {
     };
     try std.testing.expectEqual(@as(usize, 3), component.nConstraints());
     var bounds = try component.traceLogDegreeBounds(std.testing.allocator);
-    defer bounds.deinit(std.testing.allocator);
+    defer bounds.deinitDeep(std.testing.allocator);
     try std.testing.expectEqual(@as(usize, 3), bounds.items.len);
     try std.testing.expectEqual(@as(usize, 8), bounds.items[2].len);
 }
