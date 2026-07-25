@@ -21,7 +21,10 @@ BLAKE_PROTOCOL = "raw-stwo-blake-v1"
 POSEIDON_APPLICATION = "poseidon"
 POSEIDON_PROTOCOL = "raw-stwo-poseidon-v1"
 STATE_MACHINE_APPLICATION = "state_machine"
-STATE_MACHINE_PROTOCOL = "raw-stwo-state-machine-v1"
+LEGACY_STATE_MACHINE_PROTOCOL = "raw-stwo-state-machine-v1"
+EXACT_STATE_MACHINE_PROTOCOL = "raw-stwo-state-machine-v2"
+STATE_MACHINE_PROTOCOL = LEGACY_STATE_MACHINE_PROTOCOL
+STATE_MACHINE_EXACT_PROTOCOL_AVAILABLE = False
 EXCHANGE_MODE = "proof_exchange_json_wire_v1"
 UPSTREAM_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 
@@ -387,6 +390,12 @@ class StateMachineShape:
         ]
 
     def validate(self) -> None:
+        if not STATE_MACHINE_EXACT_PROTOCOL_AVAILABLE:
+            raise DiagnosticError(
+                "State Machine CUDA diagnostics are blocked: the product "
+                f"implements legacy {LEGACY_STATE_MACHINE_PROTOCOL}, while "
+                f"the correctness oracle requires {EXACT_STATE_MACHINE_PROTOCOL}"
+            )
         if not 1 <= self.log_n_rows <= 29:
             raise DiagnosticError(
                 f"unsupported state-machine log size: {self.log_n_rows}"

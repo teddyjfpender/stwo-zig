@@ -569,37 +569,12 @@ class NativeCudaDiagnosticTests(unittest.TestCase):
             self.assertEqual(2, aot["launches"])
             self.assertEqual(0, aot["cache_hits"])
 
-    def test_state_machine_preserves_dynamic_claims_and_public_input(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            settings = Settings(
-                **{
-                    **self.settings(
-                        root,
-                        self.make_product(root),
-                        samples=1,
-                    ).__dict__,
-                    "shapes": (StateMachineShape(14, 9, 3),),
-                }
-            )
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_CUDA_AOT_LOADS": "3"},
-            ):
-                document, _ = run_diagnostic(settings)
-
-            workload = document["workloads"][0]
-            self.assertEqual(
-                StateMachineShape(14, 9, 3).statement(),
-                workload["statement"],
-            )
-            proof_statement = workload["samples"][0]["proof"]["statement"]
-            self.assertEqual(
-                [[9, 3], [9 + (1 << 14), 3 + (1 << 13)]],
-                proof_statement["public_input"],
-            )
-            self.assertIn("stmt1", proof_statement)
-            self.assertEqual(3, workload["samples"][0]["aot"]["loads"])
+    def test_state_machine_rejects_legacy_cuda_protocol(self) -> None:
+        with self.assertRaisesRegex(
+            DiagnosticError,
+            "legacy raw-stwo-state-machine-v1.*raw-stwo-state-machine-v2",
+        ):
+            StateMachineShape(14, 9, 3).validate()
 
     def test_invalid_multi_function_aot_lifecycle_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

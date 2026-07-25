@@ -181,11 +181,11 @@
       },
       "blockers": {
         "exact_trace_semantics": null,
-        "exact_constraint_semantics": "The CUDA constraint kernel is an ABI-placeholder claimed-sum composition, not the complete state-machine interaction AIR.",
-        "exact_cpu_cuda_proof_bytes": "The retained CPU/CUDA byte match covers the provisional placeholder-composition route, not the complete interaction AIR.",
-        "pinned_rust_verification": "Pinned Rust accepted the provisional route; it is not release evidence for the missing exact state-machine interaction semantics.",
-        "zero_fallback": "Zero fallback was observed for the provisional route only and must be re-established after exact interaction constraints land.",
-        "complete_stage_telemetry": "Stage telemetry covers the provisional route only and must be re-established after exact interaction constraints land."
+        "exact_constraint_semantics": "CUDA retains non-authoritative raw-stwo-state-machine-v1 compatibility code; Native CPU and pinned Rust require the exact raw-stwo-state-machine-v2 interaction AIR.",
+        "exact_cpu_cuda_proof_bytes": "The retained v1 CPU/CUDA byte match cannot establish parity with the exact v2 interaction protocol, so CUDA State Machine execution is fail-closed.",
+        "pinned_rust_verification": "Pinned Rust accepted only the provisional v1 route; no v2 resident CUDA proof has been accepted by the final oracle.",
+        "zero_fallback": "Zero fallback was observed for v1 only and must be re-established after the exact v2 interaction protocol lands.",
+        "complete_stage_telemetry": "Stage telemetry covers v1 only and must be re-established after the exact v2 interaction protocol lands."
       }
     },
     "xor_lookup": {

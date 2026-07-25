@@ -107,60 +107,10 @@ def challenge_from_args(args: argparse.Namespace) -> Challenge:
             aot_loads=2,
         )
     if args.air == "state_machine":
-        modulus = (1 << 31) - 1
-        if (
-            args.log_n_rows is None
-            or not 1 <= args.log_n_rows <= 29
-            or args.initial_x is None
-            or not 0 <= args.initial_x < modulus
-            or args.initial_y is None
-            or not 0 <= args.initial_y < modulus
-            or args.sequence_len is not None
-            or args.log_n_instances is not None
-        ):
-            raise GateError("invalid state_machine challenge shape")
-        rows = 1 << args.log_n_rows
-        if (
-            args.initial_x + rows >= modulus
-            or args.initial_y + rows // 2 >= modulus
-        ):
-            raise GateError("invalid state_machine challenge shape")
-        artifact_statement = {
-            "public_input": [
-                [args.initial_x, args.initial_y],
-                [args.initial_x + rows, args.initial_y + rows // 2],
-            ],
-            "stmt0": {
-                "m": args.log_n_rows - 1,
-                "n": args.log_n_rows,
-            },
-        }
-        return Challenge(
-            air=args.air,
-            protocol="raw-stwo-state-machine-v1",
-            artifact_statement_key="state_machine_statement",
-            artifact_statement=artifact_statement,
-            challenge_statement={
-                "log_n_rows": args.log_n_rows,
-                "initial_x": args.initial_x,
-                "initial_y": args.initial_y,
-            },
-            report_statement={
-                "log_n_rows": args.log_n_rows,
-                "initial_x": args.initial_x,
-                "initial_y": args.initial_y,
-                "trace_rows": rows,
-                "trace_cells": rows * 3,
-            },
-            cli_shape_args=(
-                "--log-n-rows",
-                str(args.log_n_rows),
-                "--initial-x",
-                str(args.initial_x),
-                "--initial-y",
-                str(args.initial_y),
-            ),
-            aot_loads=3,
+        raise GateError(
+            "State Machine CUDA parity is blocked: the product implements "
+            "legacy raw-stwo-state-machine-v1, while Native CPU and pinned "
+            "Rust require exact raw-stwo-state-machine-v2"
         )
     raise GateError(f"unsupported CUDA parity AIR: {args.air}")
 

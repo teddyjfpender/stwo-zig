@@ -7,8 +7,12 @@ pub const xor_protocol_name = "raw-stwo-xor-v1";
 pub const plonk_protocol_name = "raw-stwo-plonk-v1";
 pub const blake_protocol_name = "raw-stwo-blake-v1";
 pub const poseidon_protocol_name = "raw-stwo-poseidon-v1";
-pub const state_machine_protocol_name =
+pub const legacy_state_machine_protocol_name =
     "raw-stwo-state-machine-v1";
+pub const state_machine_protocol_name = legacy_state_machine_protocol_name;
+pub const exact_state_machine_protocol_name =
+    "raw-stwo-state-machine-v2";
+pub const state_machine_exact_protocol_available = false;
 pub const protocol_name = wide_protocol_name;
 pub const air_name = "wide_fibonacci";
 pub const backend_name = "cuda";
@@ -187,6 +191,10 @@ fn parseSustain(argv: []const []const u8) !Sustain {
     if (std.mem.eql(u8, output, report)) return error.OutputPathCollision;
     if (cycles == 0 or cycles > max_sustained_cycles)
         return error.InvalidCycleCount;
+    // The sustained queue includes State Machine. Keep it closed until the
+    // CUDA route implements the exact v2 interaction protocol.
+    if (!state_machine_exact_protocol_available)
+        return error.StateMachineExactProtocolUnavailable;
     return .{
         .output_dir = output,
         .report_out = report,
@@ -219,6 +227,8 @@ fn finish(scratch: Scratch) !Prove {
         scratch.backend orelse return error.MissingBackend,
         backend_name,
     )) return error.UnsupportedBackend;
+    if (air == .state_machine and !state_machine_exact_protocol_available)
+        return error.StateMachineExactProtocolUnavailable;
     if (!std.mem.eql(
         u8,
         scratch.protocol orelse return error.MissingProtocol,
@@ -416,28 +426,22 @@ pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
         \\Usage:
         \\  stwo-zig-native-cuda prove [options]
-        \\  stwo-zig-native-cuda sustain [options]
         \\
-        \\  --air wide_fibonacci | xor | plonk | blake | poseidon | state_machine
+        \\  --air wide_fibonacci | xor | plonk | blake | poseidon
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1 | raw-stwo-blake-v1 | raw-stwo-poseidon-v1 | raw-stwo-state-machine-v1
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1 | raw-stwo-blake-v1 | raw-stwo-poseidon-v1
         \\  wide_fibonacci: --log-n-rows N --sequence-len N
         \\  xor:            --log-size N --log-step N --offset N
         \\  plonk:          --log-n-rows N
         \\  blake:          --log-n-rows N --n-rounds N
         \\  poseidon:       --log-n-instances N
-        \\  state_machine:  --log-n-rows N --initial-x N --initial-y N
         \\  --output PATH
         \\  --report-out PATH     Persist the machine-readable residency report
         \\  --repeat N            Same-process CUDA repetitions (1-16; default 1)
         \\  --execution-mode MODE Graphs (default) or forced direct execution
         \\
-        \\Sustained mixed-family service:
-        \\  --backend cuda
-        \\  --output-dir PATH      Exclusive proof artifact directory
-        \\  --report-out PATH     Machine-readable service report
-        \\  --cycles N            wide/Poseidon/state-machine cycles (1-4)
-        \\  --execution-mode MODE Graphs (default) or forced direct execution
+        \\State Machine and the mixed-family sustained service are unavailable
+        \\until CUDA implements exact raw-stwo-state-machine-v2.
         \\
         \\The v1 product is strict-AOT and rejects CPU fallback, unsealed
         \\protocols, unsupported trace topology, and nonterminal device reads.
@@ -445,28 +449,22 @@ pub fn writeUsage(writer: anytype) !void {
     );
 }
 
-test "parser admits the deterministic mixed-family sustained service" {
-    const request = (try parse(&.{
-        "sustain",
-        "--backend",
-        backend_name,
-        "--output-dir",
-        "mixed-artifacts",
-        "--report-out",
-        "mixed-report.json",
-        "--cycles",
-        "3",
-        "--execution-mode",
-        "direct",
-    })).sustain;
-    try std.testing.expectEqual(@as(u32, 3), request.cycles);
-    try std.testing.expectEqualStrings(
-        "mixed-artifacts",
-        request.output_dir,
-    );
-    try std.testing.expectEqual(
-        ExecutionMode.direct,
-        request.execution_mode,
+test "parser blocks the legacy mixed-family sustained service" {
+    try std.testing.expectError(
+        error.StateMachineExactProtocolUnavailable,
+        parse(&.{
+            "sustain",
+            "--backend",
+            backend_name,
+            "--output-dir",
+            "mixed-artifacts",
+            "--report-out",
+            "mixed-report.json",
+            "--cycles",
+            "3",
+            "--execution-mode",
+            "direct",
+        }),
     );
 }
 
@@ -657,8 +655,8 @@ test "parser admits only the exact Plonk shape and protocol" {
     try std.testing.expect(request.sequence_len == null);
 }
 
-test "parser admits the exact State Machine shape and protocol" {
-    const request = (try parse(&.{
+test "parser rejects the legacy State Machine CUDA protocol" {
+    try std.testing.expectError(error.StateMachineExactProtocolUnavailable, parse(&.{
         "prove",
         "--air",
         "state_machine",
@@ -674,11 +672,7 @@ test "parser admits the exact State Machine shape and protocol" {
         "3",
         "--output",
         "proof.json",
-    })).prove;
-    try std.testing.expectEqual(Air.state_machine, request.air);
-    try std.testing.expectEqual(@as(u32, 16), request.log_n_rows.?);
-    try std.testing.expectEqual(@as(u32, 9), request.initial_x.?);
-    try std.testing.expectEqual(@as(u32, 3), request.initial_y.?);
+    }));
 }
 
 test "parser admits explicit direct execution and rejects ambiguous modes" {

@@ -26,6 +26,11 @@ from .model import BenchmarkError
 SCHEMA = "native_cuda_mixed_service_v1"
 WORKLOAD_ID = "mixed_native_wide_poseidon_state_machine_v1"
 FAMILIES = ("wide_fibonacci", "poseidon", "state_machine")
+EXACT_PROTOCOL_AVAILABLE = False
+UNAVAILABLE_REASON = (
+    "mixed CUDA service includes legacy raw-stwo-state-machine-v1; "
+    "exact raw-stwo-state-machine-v2 is not implemented"
+)
 SHAPES: dict[str, ProductShape] = {
     "wide_fibonacci": Shape(18, 37),
     "poseidon": PoseidonShape(13),
@@ -140,6 +145,8 @@ def command(
     report_path: Path,
     cycles: int,
 ) -> list[str]:
+    if not EXACT_PROTOCOL_AVAILABLE:
+        raise BenchmarkError(UNAVAILABLE_REASON)
     return [
         str(binary),
         "sustain",

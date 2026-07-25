@@ -54,28 +54,30 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
             ):
                 sustained.validate_invocation_cycles(cycles)
 
-    def test_mixed_service_is_executable_but_not_headline_scored(self) -> None:
+    def test_mixed_service_is_blocked_by_state_protocol_mismatch(self) -> None:
         workload = next(
             item
             for item in COVERAGE_MATRIX
             if item.workload_id == "mixed_shape_queue"
         )
-        self.assertTrue(workload.enabled)
+        self.assertFalse(workload.enabled)
         self.assertFalse(workload.headline_scored)
-        self.assertEqual(SustainedShape(4), workload.shape)
+        self.assertIsNone(workload.shape)
+        self.assertIn("legacy State Machine v1", workload.unavailable_reason)
         workload.validate()
 
     def test_sustained_command_names_distinct_product_path(self) -> None:
-        command = sustained.command(
-            Path("/product"),
-            Path("/artifacts"),
-            Path("/report.json"),
-            4,
-        )
-        self.assertEqual("/product", command[0])
-        self.assertEqual("sustain", command[1])
-        self.assertNotIn("prove", command)
-        self.assertEqual("4", command[command.index("--cycles") + 1])
+        with self.assertRaisesRegex(
+            BenchmarkError,
+            "legacy raw-stwo-state-machine-v1.*exact "
+            "raw-stwo-state-machine-v2",
+        ):
+            sustained.command(
+                Path("/product"),
+                Path("/artifacts"),
+                Path("/report.json"),
+                4,
+            )
         self.assertEqual(
             sustained.queue_digest(4),
             sustained.queue_digest(4),
@@ -361,47 +363,23 @@ class NativeCudaBenchmarkTests(unittest.TestCase):
         self.assertEqual("hash_heavy", workload.structural_class)
         self.assertEqual(PoseidonShape(13), workload.shape)
 
-    def test_state_machine_is_a_real_irregular_structural_row(self) -> None:
+    def test_state_machine_row_is_blocked_by_protocol_mismatch(self) -> None:
         workload = next(
             item
             for item in COVERAGE_MATRIX
             if item.workload_id == "irregular_state_machine_log16"
         )
-        self.assertTrue(workload.enabled)
+        self.assertFalse(workload.enabled)
         self.assertEqual("irregular", workload.structural_class)
-        self.assertEqual(StateMachineShape(16, 9, 3), workload.shape)
+        self.assertIsNone(workload.shape)
+        self.assertIn("legacy v1", workload.unavailable_reason)
 
-    def test_state_machine_shape_binds_public_input_and_protocol(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            shape = StateMachineShape(14, 9, 3)
-            settings = self.settings(
-                root,
-                self.make_product(root, "candidate-product"),
-                workload=Workload(
-                    "fake_state_machine",
-                    "irregular",
-                    shape,
-                    True,
-                ),
-            )
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_CUDA_AOT_LOADS": "3"},
-            ):
-                document, _ = run_benchmark(settings)
-
-            workload = document["workloads"][0]
-            self.assertEqual(shape.statement(), workload["statement"])
-            session = workload["sessions"][0]
-            command = session["raw"]["command"]
-            self.assertIn("raw-stwo-state-machine-v1", command)
-            self.assertIn("--initial-x", command)
-            self.assertIn("--initial-y", command)
-            self.assertEqual(
-                "state_machine",
-                session["raw"]["proof"]["example"],
-            )
+    def test_state_machine_shape_rejects_legacy_cuda_protocol(self) -> None:
+        with self.assertRaisesRegex(
+            DiagnosticError,
+            "legacy raw-stwo-state-machine-v1.*raw-stwo-state-machine-v2",
+        ):
+            StateMachineShape(14, 9, 3).validate()
 
     def test_xor_workload_uses_its_own_protocol_shape_and_throughput(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

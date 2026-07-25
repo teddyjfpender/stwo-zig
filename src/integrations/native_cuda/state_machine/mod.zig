@@ -1,4 +1,19 @@
-//! Resident Native CUDA adapter for the simplified state-machine AIR.
+//! Legacy resident CUDA adapter for the simplified State Machine v1 AIR.
+//!
+//! Native CPU and pinned Rust now use the exact v2 interaction protocol. This
+//! module remains compiled as compatibility code, but no product, benchmark,
+//! or parity gate may present it as an exact State Machine backend.
+
+const exact_state_machine = @import("../../../examples/state_machine.zig");
+
+pub const legacy_protocol_name = "raw-stwo-state-machine-v1";
+pub const exact_protocol_name = exact_state_machine.protocol_name;
+pub const exact_protocol_available = false;
+
+pub fn requireExactProtocol() !void {
+    if (!exact_protocol_available)
+        return error.StateMachineExactProtocolUnavailable;
+}
 
 pub const canonical_input = @import("canonical_input.zig");
 pub const canonical_ingress = @import("canonical_ingress.zig");
@@ -50,4 +65,17 @@ test {
     _ = topology;
     _ = trace;
     _ = transcript_schedule;
+}
+
+test "legacy CUDA State Machine cannot satisfy the exact CPU protocol" {
+    try @import("std").testing.expect(!exact_protocol_available);
+    try @import("std").testing.expect(!@import("std").mem.eql(
+        u8,
+        legacy_protocol_name,
+        exact_protocol_name,
+    ));
+    try @import("std").testing.expectError(
+        error.StateMachineExactProtocolUnavailable,
+        requireExactProtocol(),
+    );
 }

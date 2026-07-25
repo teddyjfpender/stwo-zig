@@ -140,32 +140,6 @@ pub fn addProduct(context: Context) void {
         "Run repeated Native CUDA resident proof smokes",
     );
     test_step.dependOn(&run.step);
-    const state_machine_run = context.b.addRunArtifact(installed.executable);
-    state_machine_run.addArgs(&.{
-        "prove",
-        "--air",
-        "state_machine",
-        "--backend",
-        "cuda",
-        "--protocol",
-        "raw-stwo-state-machine-v1",
-        "--log-n-rows",
-        "8",
-        "--initial-x",
-        "9",
-        "--initial-y",
-        "3",
-        "--output",
-    });
-    _ = state_machine_run.addOutputFileArg(
-        "native-cuda-state-machine-smoke-proof.json",
-    );
-    state_machine_run.addArg("--report-out");
-    _ = state_machine_run.addOutputFileArg(
-        "native-cuda-state-machine-smoke-report.json",
-    );
-    state_machine_run.addArgs(&.{ "--repeat", "3" });
-    test_step.dependOn(&state_machine_run.step);
     const test_stwo = createStwoModule(context, .@"test");
     const tests = context.b.addTest(.{
         .root_module = createProductModule(

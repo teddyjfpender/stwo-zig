@@ -153,8 +153,10 @@ COVERAGE_MATRIX = (
     Workload(
         "irregular_state_machine_log16",
         "irregular",
-        StateMachineShape(16, 9, 3),
-        True,
+        None,
+        False,
+        "CUDA State Machine implements legacy v1; exact CPU/Rust parity "
+        "requires the v2 interaction protocol",
     ),
     Workload(
         "vm_portfolio",
@@ -167,9 +169,10 @@ COVERAGE_MATRIX = (
     Workload(
         "mixed_shape_queue",
         "sustained",
-        SustainedShape(),
-        True,
         None,
+        False,
+        "Mixed CUDA queue includes legacy State Machine v1 and remains "
+        "blocked until the exact v2 interaction protocol is resident",
         False,
     ),
 )
@@ -191,9 +194,7 @@ PROFILES = {
             "lookup_xor_log14_step2",
             "seeded_blake_log10x10",
             "poseidon_log10_instances",
-            "irregular_state_machine_log16",
             "wide_wf_log18x37",
-            "mixed_shape_queue",
         ),
         warmups=1,
         samples=2,

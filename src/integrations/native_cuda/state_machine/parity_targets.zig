@@ -10,6 +10,8 @@ pub const Target = struct {
     request: state_machine.Request,
 };
 
+pub const cuda_exact_protocol_available = false;
+
 pub const functional = [_]Target{
     .{ .request = .{
         .log_n_rows = 14,
@@ -52,6 +54,7 @@ pub fn checkCpuOracle(
 }
 
 test "state-machine parity targets cover increasing trace sizes" {
+    try std.testing.expect(!cuda_exact_protocol_available);
     try std.testing.expectEqual(@as(usize, 2), functional.len);
     try std.testing.expect(
         functional[0].request.log_n_rows <

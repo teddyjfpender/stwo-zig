@@ -297,22 +297,18 @@ class CudaProofParityGateTests(unittest.TestCase):
             receipt["cuda_residency"]["aot_build_sha256"],
         )
 
-    def test_state_machine_binds_public_input_and_three_aot_libraries(self):
+    def test_state_machine_is_blocked_on_exact_protocol_mismatch(self):
         args = self.arguments("state-machine")
         args.air = "state_machine"
         args.sequence_len = None
         args.initial_x = 9
         args.initial_y = 3
-        receipt = json.loads(gate.gate(args).read_text())
-
-        self.assertEqual("state_machine", receipt["challenge"]["air"])
-        self.assertEqual(9, receipt["challenge"]["initial_x"])
-        self.assertEqual(3, receipt["challenge"]["initial_y"])
-        self.assertTrue(receipt["proofs"]["canonical_byte_parity"])
-        self.assertEqual(4, len(receipt["verifications"]))
-        cuda_command = receipt["commands"][0]["argv"]
-        self.assertIn("--initial-x", cuda_command)
-        self.assertNotIn("--sequence-len", cuda_command)
+        with self.assertRaisesRegex(
+            gate.GateError,
+            "legacy raw-stwo-state-machine-v1.*exact "
+            "raw-stwo-state-machine-v2",
+        ):
+            gate.gate(args)
 
     def test_rejects_incomplete_aot_kernel_activation(self):
         with mock.patch.dict(os.environ, {"BAD_AOT_LOADS": "1"}):
