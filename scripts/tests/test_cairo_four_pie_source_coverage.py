@@ -135,7 +135,7 @@ class ReconciliationTests(unittest.TestCase):
         for entry in census_copy.values():
             entry.setdefault("source_sha256", "a" * 64)
         semantic = {
-            name: {"artifact_sha256": "b" * 64} for name in semantic_names
+            name: {"artifact_sha256": "a" * 64} for name in semantic_names
         }
         decoder = {
             "cairo_source": {

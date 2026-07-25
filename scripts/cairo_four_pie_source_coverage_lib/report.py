@@ -193,6 +193,13 @@ def build_report(
     for name in active:
         census_entry = census[name]
         semantic = semantic_registry.get(name)
+        if (
+            semantic is not None
+            and semantic["artifact_sha256"] != census_entry["source_sha256"]
+        ):
+            raise CoverageError(
+                f"{name} semantic artifact differs from pinned source"
+            )
         census_oracle = (
             {
                 "trace_columns": census_entry["trace_columns"],

@@ -275,33 +275,24 @@ test "Cairo emitter fails closed on geometry drift and remains development only"
 
 test "Cairo production admission uses configured source authority and exact proof plan" {
     const allocator = std.testing.allocator;
+    const directory = try std.fs.cwd().realpathAlloc(
+        allocator,
+        "vectors/cairo/source_semantics/v3",
+    );
+    defer allocator.free(directory);
     const manifest_path = try std.fs.cwd().realpathAlloc(
         allocator,
         "vectors/cairo/source_semantics/v3/manifest.json",
     );
     defer allocator.free(manifest_path);
-    const registry_path = try std.fs.cwd().realpathAlloc(
+    var source_pack = try source_semantic_pack.loadDirectory(
         allocator,
-        "vectors/cairo/source_semantics/v3/registry.json",
-    );
-    defer allocator.free(registry_path);
-    const component_path = try std.fs.cwd().realpathAlloc(
-        allocator,
-        "vectors/cairo/source_semantics/v3/components/add_opcode_small.rs",
-    );
-    defer allocator.free(component_path);
-    const component_files = [_]source_semantic_pack.ComponentFile{.{
-        .name = "add_opcode_small",
-        .path = component_path,
-    }};
-    var source_pack = try source_semantic_pack.load(allocator, .{
-        .manifest = .{
+        .{
             .path = manifest_path,
-            .sha256 = decodeDigest("a2502558ac2ebeffaa957059635da2025d555df4d34406d671fa15fd15f9cac5"),
+            .sha256 = decodeDigest("d99101abb16ba11db74316fabe28ff37eb428a4736f8ab9bddbca9368d30c60a"),
         },
-        .registry = registry_path,
-        .components = &component_files,
-    });
+        directory,
+    );
     defer source_pack.deinit();
 
     const parts = [_]proof_plan.TracePart{.{

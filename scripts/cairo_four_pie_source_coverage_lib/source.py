@@ -23,6 +23,10 @@ CENSUS_ROW_RE = re.compile(
     r"^  ([a-z][a-z0-9_]*)\s+cols=(\d+)\s+lookup_words=(\d+)\s+sub_words=(\d+)"
 )
 CENSUS_SKIP_RE = re.compile(r"^  ([a-z][a-z0-9_]*)\s+")
+STWO_PATCH_RE = re.compile(
+    r'(?ms)^\[patch\."https://github\.com/teddyjfpender/stwo"\]\s*'
+    r'.*?^stwo\s*=\s*\{\s*path\s*=\s*"([^"]+)"\s*\}'
+)
 
 
 def parse_census(text: str) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
@@ -132,6 +136,21 @@ def authenticate_source(
         )
     if git_output(source_root, "status", "--porcelain"):
         raise CoverageError("pinned stwo-cairo source worktree is dirty")
+    cargo_toml = source_root / "Cargo.toml"
+    patch = STWO_PATCH_RE.search(cargo_toml.read_text(encoding="utf-8"))
+    if patch is not None:
+        stwo_crate = (source_root / patch.group(1)).resolve()
+        if not (stwo_crate / "Cargo.toml").is_file():
+            raise CoverageError(f"patched Stwo crate is missing: {stwo_crate}")
+        stwo_root = Path(git_output(stwo_crate, "rev-parse", "--show-toplevel"))
+        stwo_revision = git_output(stwo_root, "rev-parse", "HEAD")
+        if stwo_revision != source["stwo_revision"]:
+            raise CoverageError(
+                "resolved Stwo source differs from semantic manifest: "
+                f"expected {source['stwo_revision']}, got {stwo_revision}"
+            )
+        if git_output(stwo_root, "status", "--porcelain"):
+            raise CoverageError("resolved Stwo source worktree is dirty")
     generator = source_root / "tools/witness_genericize/src/main.rs"
     cargo_lock = source_root / "Cargo.lock"
     if sha256_path(generator) != toolchain["generator_sha256"]:

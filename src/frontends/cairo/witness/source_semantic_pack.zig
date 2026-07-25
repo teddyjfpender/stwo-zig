@@ -1,8 +1,9 @@
 //! Versioned, proof-independent Cairo source semantic authority.
 //!
 //! V3 authenticates source emitted by stwo-cairo's witness_genericize tool and
-//! admits only a proof plan whose complete component graph exactly matches the
-//! configured registry. It does not claim to be a full Cairo AIR/PIE program.
+//! admits only proof-plan components present in the configured source catalog.
+//! Dependencies are filtered to the plan's active component set. It does not
+//! claim to be a full Cairo AIR/PIE program until the catalog covers that plan.
 
 const std = @import("std");
 const proof_plan = @import("../proof_plan.zig");
@@ -130,21 +131,20 @@ pub const Loaded = struct {
             try assertMeasurement(file.path, expected);
     }
 
-    /// Requires exact, closed component authority. Row counts remain runtime
-    /// execution geometry and are deliberately not selected by this registry.
+    /// Requires source authority for every active component and its closed
+    /// active dependency graph. Row counts remain runtime execution geometry
+    /// and are deliberately not selected by this registry.
     pub fn admitProofPlan(self: *const Loaded, plan: *const proof_plan.CairoProofPlan) !void {
         try self.assertUnchanged();
-        const components = self.registry.value.components;
-        if (components.len != plan.components.len) return error.ComponentSetMismatch;
-        for (components, 0..) |expected, ordinal| {
-            if (expected.canonical_ordinal != ordinal) return error.NonCanonicalRegistry;
-            const actual = plan.components[plan.canonical_order[ordinal]];
-            if (!std.mem.eql(u8, expected.name, actual.name) or
-                expected.canonical_ordinal != actual.canonical_ordinal or
+        for (plan.canonical_order, 0..) |component_index, ordinal| {
+            const actual = plan.components[component_index];
+            const expected = findRegistryComponent(self.registry.value, actual.name) orelse
+                return error.ComponentSetMismatch;
+            if (actual.canonical_ordinal != ordinal or
                 !writerMatches(expected.writer, actual.writer) or
                 !tracePartsMatch(expected.trace_parts, actual.trace_parts) or
-                !producerEdgesMatch(expected.producer_edges, actual.producer_edges) or
-                !capacityFeedsMatch(expected.capacity_feeds, actual.capacity_feeds))
+                !producerEdgesMatch(expected.producer_edges, actual.producer_edges, plan) or
+                !capacityFeedsMatch(expected.capacity_feeds, actual.capacity_feeds, plan))
                 return error.ComponentAuthorityMismatch;
         }
         try self.assertUnchanged();
@@ -202,6 +202,81 @@ pub fn load(allocator: std.mem.Allocator, files: Files) !Loaded {
     return loaded;
 }
 
+/// Loads a configured source catalog without requiring callers to duplicate its
+/// authenticated component list. Registry bytes select only paths below the
+/// supplied absolute directory; `load` re-authenticates the complete closure.
+pub fn loadDirectory(
+    allocator: std.mem.Allocator,
+    manifest_file: AuthenticatedFile,
+    directory: []const u8,
+) !Loaded {
+    if (!std.fs.path.isAbsolute(directory) or
+        !std.fs.path.isAbsolute(manifest_file.path))
+        return error.ArtifactPathNotAbsolute;
+    const expected_manifest = try std.fs.path.join(allocator, &.{ directory, "manifest.json" });
+    defer allocator.free(expected_manifest);
+    if (!std.mem.eql(u8, expected_manifest, manifest_file.path))
+        return error.ArtifactPathOutsideDirectory;
+
+    _ = try authenticateFile(manifest_file.path, manifest_file.sha256);
+    const manifest_bytes = try readSmallFile(allocator, manifest_file.path);
+    defer allocator.free(manifest_bytes);
+    var manifest = try std.json.parseFromSlice(Manifest, allocator, manifest_bytes, .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = false,
+    });
+    defer manifest.deinit();
+    try validateManifest(manifest.value);
+
+    const registry_path = try std.fs.path.join(allocator, &.{ directory, "registry.json" });
+    defer allocator.free(registry_path);
+    _ = try authenticateFile(
+        registry_path,
+        try parseDigest(manifest.value.registry_sha256),
+    );
+    const registry_bytes = try readSmallFile(allocator, registry_path);
+    defer allocator.free(registry_bytes);
+    var registry = try std.json.parseFromSlice(Registry, allocator, registry_bytes, .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = false,
+    });
+    defer registry.deinit();
+    if (!std.mem.eql(u8, registry.value.format, registry_format) or
+        registry.value.version != registry_version)
+        return error.UnsupportedSourceRegistry;
+    if (registry.value.components.len == 0 or
+        registry.value.components.len > max_components)
+        return error.ComponentSetMismatch;
+
+    const component_files = try allocator.alloc(
+        ComponentFile,
+        registry.value.components.len,
+    );
+    var initialized: usize = 0;
+    defer {
+        for (component_files[0..initialized]) |component| allocator.free(component.path);
+        allocator.free(component_files);
+    }
+    while (initialized < component_files.len) : (initialized += 1) {
+        const component = registry.value.components[initialized];
+        try validateComponentName(component.name);
+        const filename = try std.fmt.allocPrint(allocator, "{s}.rs", .{component.name});
+        defer allocator.free(filename);
+        component_files[initialized] = .{
+            .name = component.name,
+            .path = try std.fs.path.join(
+                allocator,
+                &.{ directory, "components", filename },
+            ),
+        };
+    }
+    return load(allocator, .{
+        .manifest = manifest_file,
+        .registry = registry_path,
+        .components = component_files,
+    });
+}
+
 pub fn canonicalIdentity(manifest: Manifest, registry_sha256: [32]u8) ![32]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     hasher.update(identity_domain);
@@ -247,7 +322,8 @@ fn validateRegistry(allocator: std.mem.Allocator, registry: Registry, files: Fil
         registry.components.len != files.components.len)
         return error.ComponentSetMismatch;
     for (registry.components, 0..) |component, ordinal| {
-        if (component.name.len == 0 or component.canonical_ordinal != ordinal or
+        validateComponentName(component.name) catch return error.NonCanonicalRegistry;
+        if (component.canonical_ordinal != ordinal or
             !std.mem.eql(u8, component.name, files.components[ordinal].name))
             return error.NonCanonicalRegistry;
         if (component.trace_parts.len == 0 or component.oracle.trace_columns == 0)
@@ -332,22 +408,46 @@ fn tracePartsMatch(expected: []const TracePartSpec, actual: []const proof_plan.T
     return true;
 }
 
-fn producerEdgesMatch(expected: []const ProducerEdgeSpec, actual: []const proof_plan.ProducerEdge) bool {
-    if (expected.len != actual.len) return false;
-    for (expected, actual) |left, right|
+fn findRegistryComponent(registry: Registry, name: []const u8) ?Component {
+    for (registry.components) |component|
+        if (std.mem.eql(u8, component.name, name)) return component;
+    return null;
+}
+
+fn producerEdgesMatch(
+    expected: []const ProducerEdgeSpec,
+    actual: []const proof_plan.ProducerEdge,
+    plan: *const proof_plan.CairoProofPlan,
+) bool {
+    var actual_index: usize = 0;
+    for (expected) |left| {
+        if (plan.find(left.producer) == null) continue;
+        if (actual_index == actual.len) return false;
+        const right = actual[actual_index];
         if (!std.mem.eql(u8, left.producer, right.producer) or
             left.word_base != right.word_base or
             left.words_per_instance != right.words_per_instance or
             left.instances != right.instances) return false;
-    return true;
+        actual_index += 1;
+    }
+    return actual_index == actual.len;
 }
 
-fn capacityFeedsMatch(expected: []const CapacityFeedSpec, actual: []const proof_plan.CapacityFeed) bool {
-    if (expected.len != actual.len) return false;
-    for (expected, actual) |left, right|
+fn capacityFeedsMatch(
+    expected: []const CapacityFeedSpec,
+    actual: []const proof_plan.CapacityFeed,
+    plan: *const proof_plan.CairoProofPlan,
+) bool {
+    var actual_index: usize = 0;
+    for (expected) |left| {
+        if (plan.find(left.producer) == null) continue;
+        if (actual_index == actual.len) return false;
+        const right = actual[actual_index];
         if (!std.mem.eql(u8, left.producer, right.producer) or
             left.instances != right.instances) return false;
-    return true;
+        actual_index += 1;
+    }
+    return actual_index == actual.len;
 }
 
 fn validateFiles(files: Files) !void {
@@ -402,6 +502,15 @@ fn validateRevision(value: []const u8) !void {
     for (value) |byte| switch (byte) {
         '0'...'9', 'a'...'f' => {},
         else => return error.InvalidSourceIdentity,
+    };
+}
+
+fn validateComponentName(value: []const u8) !void {
+    if (value.len == 0) return error.InvalidComponentName;
+    for (value, 0..) |byte, index| switch (byte) {
+        'a'...'z' => {},
+        '0'...'9', '_' => if (index == 0) return error.InvalidComponentName,
+        else => return error.InvalidComponentName,
     };
 }
 
@@ -471,44 +580,39 @@ fn sameFile(left: std.fs.File.Stat, right: std.fs.File.Stat) bool {
         left.mtime == right.mtime and left.ctime == right.ctime;
 }
 
-test "source-derived add opcode fixture matches Rust oracle and admits exact plan" {
+test "source-derived catalog matches Rust oracle and admits a closed active subset" {
     const allocator = std.testing.allocator;
+    const directory = try std.fs.cwd().realpathAlloc(
+        allocator,
+        "vectors/cairo/source_semantics/v3",
+    );
+    defer allocator.free(directory);
     const manifest_path = try std.fs.cwd().realpathAlloc(
         allocator,
         "vectors/cairo/source_semantics/v3/manifest.json",
     );
     defer allocator.free(manifest_path);
-    const registry_path = try std.fs.cwd().realpathAlloc(
+    var loaded = try loadDirectory(
         allocator,
-        "vectors/cairo/source_semantics/v3/registry.json",
-    );
-    defer allocator.free(registry_path);
-    const component_path = try std.fs.cwd().realpathAlloc(
-        allocator,
-        "vectors/cairo/source_semantics/v3/components/add_opcode_small.rs",
-    );
-    defer allocator.free(component_path);
-
-    const component_files = [_]ComponentFile{.{
-        .name = "add_opcode_small",
-        .path = component_path,
-    }};
-    var loaded = try load(allocator, .{
-        .manifest = .{
+        .{
             .path = manifest_path,
-            .sha256 = try parseDigest("a2502558ac2ebeffaa957059635da2025d555df4d34406d671fa15fd15f9cac5"),
+            .sha256 = try parseDigest("d99101abb16ba11db74316fabe28ff37eb428a4736f8ab9bddbca9368d30c60a"),
         },
-        .registry = registry_path,
-        .components = &component_files,
-    });
+        directory,
+    );
     defer loaded.deinit();
 
     try std.testing.expectEqualSlices(
         u8,
-        &(try parseDigest("3f56921f75e4d16387b1a8747a231464b02e057f70cc156878098daf16714ed8")),
+        &(try parseDigest("4048609d5a69adbe24c05783f8ef67111e8b77f5043b79e388c876e9ad98b4bd")),
         &loaded.authority_sha256,
     );
-    const oracle = loaded.registry.value.components[0].oracle;
+    try std.testing.expectEqual(@as(usize, 35), loaded.registry.value.components.len);
+    const add_opcode_small = findRegistryComponent(
+        loaded.registry.value,
+        "add_opcode_small",
+    ).?;
+    const oracle = add_opcode_small.oracle;
     try std.testing.expectEqual(@as(u32, 39), oracle.trace_columns);
     try std.testing.expectEqual(@as(u32, 117), oracle.lookup_words);
     try std.testing.expectEqual(@as(u32, 13), oracle.sub_input_words);
@@ -517,7 +621,7 @@ test "source-derived add opcode fixture matches Rust oracle and admits exact pla
         "memory_address_to_id",
         "memory_id_to_big",
     };
-    const actual_outputs = loaded.registry.value.components[0].relation_outputs;
+    const actual_outputs = add_opcode_small.relation_outputs;
     try std.testing.expectEqual(expected_outputs.len, actual_outputs.len);
     for (expected_outputs, actual_outputs) |expected, actual|
         try std.testing.expectEqualStrings(expected, actual);
@@ -537,6 +641,43 @@ test "source-derived add opcode fixture matches Rust oracle and admits exact pla
     var plan = try proof_plan.CairoProofPlan.init(allocator, &components);
     defer plan.deinit();
     try loaded.admitProofPlan(&plan);
+
+    const verify_edges = [_]proof_plan.ProducerEdge{.{
+        .producer = "add_opcode_small",
+        .word_base = 0,
+        .words_per_instance = 7,
+        .instances = 1,
+    }};
+    const verify_feeds = [_]proof_plan.CapacityFeed{.{
+        .producer = "add_opcode_small",
+        .instances = 1,
+    }};
+    const closed_components = [_]proof_plan.Component{
+        components[0],
+        .{
+            .name = "verify_instruction",
+            .canonical_ordinal = 1,
+            .writer = .recorded_aot,
+            .trace_parts = &parts,
+            .producer_edges = &verify_edges,
+            .capacity_feeds = &verify_feeds,
+        },
+    };
+    var closed_plan = try proof_plan.CairoProofPlan.init(allocator, &closed_components);
+    defer closed_plan.deinit();
+    try loaded.admitProofPlan(&closed_plan);
+
+    var missing_edge_components = closed_components;
+    missing_edge_components[1].producer_edges = &.{};
+    var missing_edge_plan = try proof_plan.CairoProofPlan.init(
+        allocator,
+        &missing_edge_components,
+    );
+    defer missing_edge_plan.deinit();
+    try std.testing.expectError(
+        error.ComponentAuthorityMismatch,
+        loaded.admitProofPlan(&missing_edge_plan),
+    );
 
     const wrong_components = [_]proof_plan.Component{.{
         .name = "add_opcode_small",
