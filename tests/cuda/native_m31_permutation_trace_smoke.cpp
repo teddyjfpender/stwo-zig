@@ -35,11 +35,11 @@ extern "C" int stwo_exec_context_pool_current(
 
 namespace {
 
-constexpr std::uint64_t kCacheKey = 0x1e2a6a8f48d78fa3ull;
-constexpr std::uint32_t kTraceSchema = 7;
-constexpr std::uint32_t kArgumentCount = 14;
+constexpr std::uint64_t kCacheKey = 0x0ce5a65a150f8601ull;
+constexpr std::uint32_t kTraceSchema = 18;
+constexpr std::uint32_t kArgumentCount = 18;
 constexpr const char *kKernelName =
-    "stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799";
+    "stwo_native_trace_m31_permutation_slab_v3_5c1cfb67d2fc10b4";
 constexpr std::uint32_t kInstancesPerRow = 8;
 constexpr std::uint32_t kStateWidth = 16;
 constexpr std::uint32_t kHalfFullRounds = 4;
@@ -52,10 +52,12 @@ constexpr std::uint64_t kInitialRowStride = 16;
 constexpr std::uint64_t kInitialRepStride = 1;
 constexpr std::uint64_t kExternalConstantBase = 1234;
 constexpr std::uint64_t kExternalRoundStride = 37;
+constexpr std::uint64_t kExternalLaneStride = 1;
 constexpr std::uint64_t kInternalConstantBase = 9876;
 constexpr std::uint64_t kInternalRoundStride = 17;
 constexpr std::uint64_t kM31Prime = 2147483647ull;
-constexpr std::uint32_t kSentinel = 0xa5a5a5a5u;
+constexpr std::uint32_t kTraceSentinel = 0xa5a5a5a5u;
+constexpr std::uint32_t kRelationSentinel = 0x5a5a5a5au;
 
 struct Case {
     const char *name;
@@ -144,16 +146,24 @@ void apply_internal_matrix(std::uint32_t *state) {
 }
 
 void fill_oracle_row(
-    std::vector<std::uint32_t> *oracle,
-    std::uint64_t stride,
+    std::vector<std::uint32_t> *trace,
+    std::uint64_t trace_stride,
+    std::vector<std::uint32_t> *relation,
+    std::uint64_t relation_stride,
     std::uint32_t row) {
     std::uint64_t column = 0;
     for (std::uint32_t rep = 0; rep < kInstancesPerRow; ++rep) {
         std::uint32_t state[kStateWidth];
         for (std::uint32_t lane = 0; lane < kStateWidth; ++lane) {
             state[lane] = m31_from_u64(
-                static_cast<std::uint64_t>(row) * kStateWidth + lane + rep);
-            (*oracle)[column++ * stride + row] = state[lane];
+                static_cast<std::uint64_t>(row) * kInitialRowStride +
+                static_cast<std::uint64_t>(rep) * kInitialRepStride +
+                lane);
+            (*trace)[column++ * trace_stride + row] = state[lane];
+            (*relation)[
+                (static_cast<std::uint64_t>(rep) * 2 * kStateWidth + lane) *
+                    relation_stride +
+                row] = state[lane];
         }
 
         for (std::uint32_t round = 0; round < kHalfFullRounds; ++round) {
@@ -164,12 +174,13 @@ void fill_oracle_row(
                         kExternalConstantBase +
                         static_cast<std::uint64_t>(round) *
                             kExternalRoundStride +
-                        lane));
+                        static_cast<std::uint64_t>(lane) *
+                            kExternalLaneStride));
             }
             apply_external_matrix(state);
             for (std::uint32_t lane = 0; lane < kStateWidth; ++lane) {
                 state[lane] = m31_pow5(state[lane]);
-                (*oracle)[column++ * stride + row] = state[lane];
+                (*trace)[column++ * trace_stride + row] = state[lane];
             }
         }
 
@@ -182,7 +193,7 @@ void fill_oracle_row(
                         kInternalRoundStride));
             apply_internal_matrix(state);
             state[0] = m31_pow5(state[0]);
-            (*oracle)[column++ * stride + row] = state[0];
+            (*trace)[column++ * trace_stride + row] = state[0];
         }
 
         for (std::uint32_t offset = 0; offset < kHalfFullRounds; ++offset) {
@@ -194,13 +205,21 @@ void fill_oracle_row(
                         kExternalConstantBase +
                         static_cast<std::uint64_t>(round) *
                             kExternalRoundStride +
-                        lane));
+                        static_cast<std::uint64_t>(lane) *
+                            kExternalLaneStride));
             }
             apply_external_matrix(state);
             for (std::uint32_t lane = 0; lane < kStateWidth; ++lane) {
                 state[lane] = m31_pow5(state[lane]);
-                (*oracle)[column++ * stride + row] = state[lane];
+                (*trace)[column++ * trace_stride + row] = state[lane];
             }
+        }
+        for (std::uint32_t lane = 0; lane < kStateWidth; ++lane) {
+            (*relation)[
+                (static_cast<std::uint64_t>(rep) * 2 * kStateWidth +
+                 kStateWidth + lane) *
+                    relation_stride +
+                row] = state[lane];
         }
     }
 }
@@ -214,9 +233,15 @@ bool run_case(
     if (test_case.log_n_instances < 3) return false;
     std::uint32_t log_n_rows = test_case.log_n_instances - 3;
     const std::uint32_t row_count = 1u << log_n_rows;
-    const std::uint64_t stride = row_count + 3u;
-    const std::uint64_t trace_words = stride * kColumnCount;
+    const std::uint64_t trace_stride = row_count + 3u;
+    const std::uint64_t trace_words = trace_stride * kColumnCount;
+    const std::uint64_t relation_column_count =
+        static_cast<std::uint64_t>(kInstancesPerRow) * 2 * kStateWidth;
+    const std::uint64_t relation_stride = row_count + 5u;
+    const std::uint64_t relation_words =
+        relation_stride * relation_column_count;
     std::uint32_t *device_trace = nullptr;
+    std::uint32_t *device_relation = nullptr;
     if (!check_status(
             stwo_exec_context_alloc_u32(
                 context,
@@ -227,9 +252,22 @@ bool run_case(
             stwo_exec_context_fill_u32_async(
                 context,
                 device_trace,
-                kSentinel,
+                kTraceSentinel,
                 trace_words),
-            "poison M31 permutation trace")) {
+            "poison M31 permutation trace") ||
+        !check_status(
+            stwo_exec_context_alloc_u32(
+                context,
+                relation_words,
+                &device_relation),
+            "allocate M31 permutation relation snapshot") ||
+        !check_status(
+            stwo_exec_context_fill_u32_async(
+                context,
+                device_relation,
+                kRelationSentinel,
+                relation_words),
+            "poison M31 permutation relation snapshot")) {
         return false;
     }
 
@@ -267,7 +305,7 @@ bool run_case(
                 &function,
                 &receipt),
             "bind M31 permutation trace") ||
-        receipt.abi_version != 1 ||
+        receipt.abi_version != STWO_NATIVE_AOT_FUNCTION_RECEIPT_ABI_VERSION ||
         receipt.abi_schema != kTraceSchema ||
         receipt.cache_key != kCacheKey ||
         receipt.argument_count != kArgumentCount) {
@@ -276,7 +314,9 @@ bool run_case(
     }
 
     std::uint64_t capacity = trace_words;
-    std::uint64_t column_stride = stride;
+    std::uint64_t column_stride = trace_stride;
+    std::uint64_t relation_capacity = relation_words;
+    std::uint64_t relation_column_stride = relation_stride;
     std::uint32_t rows = row_count;
     std::uint32_t reps = kInstancesPerRow;
     std::uint32_t half_rounds = kHalfFullRounds;
@@ -285,12 +325,16 @@ bool run_case(
     std::uint64_t rep_stride = kInitialRepStride;
     std::uint64_t external_base = kExternalConstantBase;
     std::uint64_t external_stride = kExternalRoundStride;
+    std::uint64_t external_lane_stride = kExternalLaneStride;
     std::uint64_t internal_base = kInternalConstantBase;
     std::uint64_t internal_stride = kInternalRoundStride;
     void *arguments[kArgumentCount] = {
         &device_trace,
         &capacity,
         &column_stride,
+        &device_relation,
+        &relation_capacity,
+        &relation_column_stride,
         &rows,
         &log_n_rows,
         &reps,
@@ -300,6 +344,7 @@ bool run_case(
         &rep_stride,
         &external_base,
         &external_stride,
+        &external_lane_stride,
         &internal_base,
         &internal_stride,
     };
@@ -315,35 +360,70 @@ bool run_case(
         return false;
     }
 
-    std::vector<std::uint32_t> actual(trace_words);
-    std::vector<std::uint32_t> oracle(trace_words, kSentinel);
+    std::vector<std::uint32_t> actual_trace(trace_words);
+    std::vector<std::uint32_t> oracle_trace(
+        trace_words,
+        kTraceSentinel);
+    std::vector<std::uint32_t> actual_relation(relation_words);
+    std::vector<std::uint32_t> oracle_relation(
+        relation_words,
+        kRelationSentinel);
     if (!check_status(
             stwo_exec_context_memcpy_d2h_async(
                 context,
-                actual.data(),
+                actual_trace.data(),
                 device_trace,
                 trace_words * sizeof(std::uint32_t)),
             "read M31 permutation trace") ||
         !check_status(
+            stwo_exec_context_memcpy_d2h_async(
+                context,
+                actual_relation.data(),
+                device_relation,
+                relation_words * sizeof(std::uint32_t)),
+            "read M31 permutation relation snapshot") ||
+        !check_status(
             stwo_exec_context_sync(context),
-            "wait for M31 permutation read")) {
+            "wait for M31 permutation reads")) {
         return false;
     }
     for (std::uint32_t row = 0; row < row_count; ++row) {
-        fill_oracle_row(&oracle, stride, row);
+        fill_oracle_row(
+            &oracle_trace,
+            trace_stride,
+            &oracle_relation,
+            relation_stride,
+            row);
     }
     for (std::uint64_t index = 0; index < trace_words; ++index) {
-        if (actual[index] != oracle[index]) {
-            const std::uint64_t column = index / stride;
-            const std::uint64_t row = index % stride;
+        if (actual_trace[index] != oracle_trace[index]) {
+            const std::uint64_t column = index / trace_stride;
+            const std::uint64_t row = index % trace_stride;
             std::fprintf(
                 stderr,
-                "%s mismatch row=%llu column=%llu expected=%u actual=%u\n",
+                "%s trace mismatch row=%llu column=%llu "
+                "expected=%u actual=%u\n",
                 test_case.name,
                 static_cast<unsigned long long>(row),
                 static_cast<unsigned long long>(column),
-                oracle[index],
-                actual[index]);
+                oracle_trace[index],
+                actual_trace[index]);
+            return false;
+        }
+    }
+    for (std::uint64_t index = 0; index < relation_words; ++index) {
+        if (actual_relation[index] != oracle_relation[index]) {
+            const std::uint64_t column = index / relation_stride;
+            const std::uint64_t row = index % relation_stride;
+            std::fprintf(
+                stderr,
+                "%s relation mismatch row=%llu column=%llu "
+                "expected=%u actual=%u\n",
+                test_case.name,
+                static_cast<unsigned long long>(row),
+                static_cast<unsigned long long>(column),
+                oracle_relation[index],
+                actual_relation[index]);
             return false;
         }
     }
@@ -355,8 +435,11 @@ bool run_case(
             stwo_exec_context_free_u32(context, device_trace),
             "free M31 permutation trace") ||
         !check_status(
+            stwo_exec_context_free_u32(context, device_relation),
+            "free M31 permutation relation snapshot") ||
+        !check_status(
             stwo_exec_context_sync(context),
-            "wait for M31 permutation free")) {
+            "wait for M31 permutation frees")) {
         return false;
     }
     used_bytes = 1;

@@ -233,7 +233,7 @@ int main() {
                 &function,
                 &receipt),
             "bind constant-QM31 AOT constraint") ||
-        receipt.abi_version != 1 ||
+        receipt.abi_version != STWO_NATIVE_AOT_FUNCTION_RECEIPT_ABI_VERSION ||
         receipt.abi_schema != kConstraintSchema ||
         receipt.cache_key != kCacheKey ||
         receipt.argument_count != kArgumentCount ||

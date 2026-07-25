@@ -144,7 +144,7 @@ bool run_case(
                 &function,
                 &receipt),
             "bind seeded-xorshift trace") ||
-        receipt.abi_version != 1 ||
+        receipt.abi_version != STWO_NATIVE_AOT_FUNCTION_RECEIPT_ABI_VERSION ||
         receipt.abi_schema != kTraceSchema ||
         receipt.cache_key != kCacheKey ||
         receipt.argument_count != kArgumentCount) {

@@ -31,7 +31,8 @@ extern "C" int stwo_exec_context_device(void *handle, int *out_device);
 
 namespace {
 
-constexpr uint32_t kReceiptAbiVersion = 3;
+constexpr uint32_t kReceiptAbiVersion =
+    STWO_NATIVE_AOT_FUNCTION_RECEIPT_ABI_VERSION;
 constexpr uint32_t kVerificationAbiVersion = 1;
 constexpr uint32_t kVerificationVerified = 1;
 

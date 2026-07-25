@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+#define STWO_NATIVE_AOT_FUNCTION_RECEIPT_ABI_VERSION 3u
+
 typedef struct {
     uint64_t aot_loads;
     uint64_t aot_cache_hits;
