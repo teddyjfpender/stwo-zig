@@ -24,3 +24,19 @@ pub extern "c" fn stwo_witness_input_seed_contiguous_on(
     include_iota: u32,
     stream: *anyopaque,
 ) c_int;
+
+pub extern "c" fn stwo_witness_edge_gather_contiguous_on(
+    producer: [*]const u32,
+    producer_capacity_words: usize,
+    producer_rows: u32,
+    word_base: u32,
+    words_per_instance: u32,
+    instance_count: u32,
+    consumer_rows: u32,
+    outputs: [*]u32,
+    output_stride_words: usize,
+    output_capacity_words: usize,
+    include_enabler: u32,
+    include_iota: u32,
+    stream: *anyopaque,
+) c_int;

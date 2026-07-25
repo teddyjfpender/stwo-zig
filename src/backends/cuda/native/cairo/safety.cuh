@@ -23,6 +23,18 @@ inline bool checked_product(
     return true;
 }
 
+inline bool checked_sum(
+    std::size_t left,
+    std::size_t right,
+    std::size_t *result) {
+    if (result == nullptr ||
+        right > std::numeric_limits<std::size_t>::max() - left) {
+        return false;
+    }
+    *result = left + right;
+    return true;
+}
+
 template <typename Element>
 inline bool element_range(
     const Element *pointer,

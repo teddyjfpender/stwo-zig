@@ -55,6 +55,17 @@ pub const entries = [_]Entry{
     .{
         .kind = .trace_generation,
         .stage = .trace_generation,
+        .label = "single-edge contiguous witness gather",
+        .symbol = "stwo_witness_edge_gather_contiguous_on",
+        .source = "src/backends/cuda/native/cairo/witness_edge.cu",
+        .metal_reference = "src/integrations/cairo_metal/resident/witness/inputs.zig",
+        .authority = .zig_owned,
+        .admission = .admitted_development,
+        .blocker = null,
+    },
+    .{
+        .kind = .trace_generation,
+        .stage = .trace_generation,
         .label = "Cairo component witness writers",
         .symbol = null,
         .source = "src/backends/cuda/vendor/upstream/generated",
@@ -173,5 +184,5 @@ test "lowering map is complete and fails closed" {
         if (entry.authority == .copied_reference)
             try std.testing.expect(entry.admission == .blocked);
     }
-    try std.testing.expectEqual(@as(usize, 2), admitted);
+    try std.testing.expectEqual(@as(usize, 3), admitted);
 }

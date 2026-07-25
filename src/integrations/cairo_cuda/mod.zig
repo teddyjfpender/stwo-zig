@@ -10,6 +10,7 @@ pub const program = @import("program.zig");
 
 test {
     _ = @import("casm_input_test.zig");
+    _ = @import("witness_edge_test.zig");
     _ = lowering_map;
     _ = @import("program_test.zig");
 }

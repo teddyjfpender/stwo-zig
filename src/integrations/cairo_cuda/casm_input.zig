@@ -7,4 +7,5 @@ pub const Native = implementation.Native;
 pub const Geometry = implementation.Geometry;
 pub const Columns = implementation.Columns;
 pub const SeedGeometry = implementation.SeedGeometry;
+pub const EdgeGeometry = implementation.EdgeGeometry;
 pub const OpsFor = implementation.OpsFor;

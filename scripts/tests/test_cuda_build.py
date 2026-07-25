@@ -46,7 +46,7 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "kernels/wide_fibonacci_trace.cu",
         "kernels/xor_trace.cu",
     },
-    "cairo": {"cairo/casm_input.cu", "cairo/witness_seed.cu"},
+    "cairo": {"cairo/casm_input.cu", "cairo/witness_edge.cu", "cairo/witness_seed.cu"},
     "commitment": {
         "commitment/merkle.cu",
         "commitment/progressive.cu",
