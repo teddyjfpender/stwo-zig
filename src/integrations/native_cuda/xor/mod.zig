@@ -18,6 +18,7 @@ pub const plan = @import("plan.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
 pub const proof_decode = @import("proof_decode.zig");
 pub const program = @import("program.zig");
+pub const relation = @import("relation.zig");
 pub const requirements = @import("requirements.zig");
 pub const resident_bindings = @import("resident_bindings.zig");
 pub const slots = @import("slots.zig");
@@ -47,6 +48,7 @@ test {
     _ = proof_bundle;
     _ = proof_decode;
     _ = program;
+    _ = relation;
     _ = requirements;
     _ = resident_bindings;
     _ = slots;

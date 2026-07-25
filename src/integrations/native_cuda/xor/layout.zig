@@ -1,4 +1,4 @@
-//! XOR policy for the shared uniform three-tree proof layout.
+//! Four-tree exact XOR/LogUp resident proof layout.
 
 const common = @import("../common/uniform_layout.zig");
 const geometry_mod = @import("geometry.zig");
@@ -11,7 +11,7 @@ pub const Quotient = common.Quotient;
 const Descriptor = struct {
     pub fn describe(
         geometry: geometry_mod.Geometry,
-    ) geometry_mod.Error!common.Description {
+    ) geometry_mod.Error!common.DescriptionFor(4) {
         return .{
             .trace_trees = .{
                 .{
@@ -25,6 +25,14 @@ const Descriptor = struct {
                 .{
                     .role = .main,
                     .column_count = geometry_mod.main_columns,
+                    .column_log_size = geometry.statement.log_size,
+                    .commitment_log_size = geometry.commitment_log_rows,
+                    .sampled = true,
+                    .decommitted = true,
+                },
+                .{
+                    .role = .interaction,
+                    .column_count = geometry_mod.interaction_columns,
                     .column_log_size = geometry.statement.log_size,
                     .commitment_log_size = geometry.commitment_log_rows,
                     .sampled = true,
@@ -49,7 +57,7 @@ const Descriptor = struct {
                 .sample_count = geometry_mod.sampled_mask_points,
                 .term_count = geometry_mod.sampled_mask_points,
                 .structural_group_count = 1,
-                .source_column_count = geometry_mod.sampled_mask_points,
+                .source_column_count = geometry_mod.source_columns,
                 .source_stride_words = geometry.commitment_rows,
                 .output_rows = geometry.commitment_rows,
             },
@@ -57,7 +65,11 @@ const Descriptor = struct {
     }
 };
 
-pub const Layout = common.LayoutFor(geometry_mod.Geometry, Descriptor);
+pub const Layout = common.LayoutForTreeCount(
+    geometry_mod.Geometry,
+    Descriptor,
+    4,
+);
 
 test "XOR layout retains every CPU proof tree and sampled column" {
     const std = @import("std");
@@ -71,16 +83,18 @@ test "XOR layout retains every CPU proof tree and sampled column" {
     defer logical.deinit(allocator);
     try logical.validate();
 
-    try std.testing.expectEqual(@as(usize, 2), logical.trace_trees[0].column_count);
-    try std.testing.expectEqual(@as(usize, 1), logical.trace_trees[1].column_count);
-    try std.testing.expectEqual(@as(usize, 8), logical.trace_trees[2].column_count);
+    try std.testing.expectEqual(@as(usize, 7), logical.trace_trees[0].column_count);
+    try std.testing.expectEqual(@as(usize, 4), logical.trace_trees[1].column_count);
+    try std.testing.expectEqual(@as(usize, 4), logical.trace_trees[2].column_count);
+    try std.testing.expectEqual(@as(usize, 8), logical.trace_trees[3].column_count);
     for (logical.trace_trees) |tree| {
         try std.testing.expect(tree.sampled);
         try std.testing.expect(tree.decommitted);
     }
     try std.testing.expectEqual(@as(usize, 16), logical.fri_trees.len);
-    try std.testing.expectEqual(@as(usize, 3), logical.fri_trees[0].tree_index);
+    try std.testing.expectEqual(@as(usize, 4), logical.fri_trees[0].tree_index);
     try std.testing.expectEqual(@as(u32, 17), logical.fri_trees[0].evaluation_log_size);
     try std.testing.expectEqual(@as(u32, 2), logical.fri_trees[15].evaluation_log_size);
-    try std.testing.expectEqual(@as(usize, 11), logical.quotient.term_count);
+    try std.testing.expectEqual(@as(usize, 27), logical.quotient.term_count);
+    try std.testing.expectEqual(@as(usize, 23), logical.quotient.source_column_count);
 }

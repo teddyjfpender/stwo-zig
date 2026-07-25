@@ -72,6 +72,18 @@
     "semantic_hash": "6f60dbf6e15716eb"
   },
   {
+    "abi_schema": "native_xor_logup_constraint_v1",
+    "cache_key": "6361f95717acc1a8",
+    "file": "constraint_xor_logup_6361f95717acc1a8.cu",
+    "identity_scheme": "sha256-source-and-contract-v1",
+    "kernel_name": "stwo_native_constraint_xor_logup_slab_v1_74e91bf393755b46",
+    "kind": "constraint",
+    "label": "xor_logup",
+    "program_identity": "9231bb00187754da34c0038b1c1909c57584a3b60d0cf6de8ff3b1c6c9ec667b",
+    "semantic_contract": "stwo-zig/native/xor-logup/constraint/v1;field=qm31;rows=2^(log_size+1);sources=preprocessed7,main4,interaction4;lookup=z,alpha;claimed_sum=resident;constraints=boolean_is_first,boolean_abc,xor_abc,a_row_bit,b_is_step,boolean_table_selector,boolean_table_abc,xor_table_abc,multiplicity_tail_zero,cumulative_logup;previous=bit_reversed_circle_offset_minus_one;coefficients=alpha^13...alpha^0;denominator=coset_vanishing_inverse[row>>log_size];output=coordinate_slab;launches=1",
+    "semantic_hash": "74e91bf393755b46"
+  },
+  {
     "abi_schema": "native_circle_affine_state_trace_v1",
     "cache_key": "17c0a4c208b9f08a",
     "file": "witness_circle_affine_state_trace_17c0a4c208b9f08a.cu",

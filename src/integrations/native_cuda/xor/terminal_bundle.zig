@@ -10,18 +10,18 @@ pub const Descriptor = struct {
         const expected_decommit = std.math.add(
             u32,
             protocol.log_n_rows,
-            3,
+            4,
         ) catch return error.SizeOverflow;
         if (protocol.log_n_rows == 0 or
             protocol.log_n_rows > 29 or
-            protocol.sequence_len > protocol.log_n_rows or
+            protocol.sequence_len != 0 or
             protocol.pow_bits != 10 or
             protocol.log_blowup_factor != 1 or
             protocol.log_last_layer_degree_bound != 0 or
             protocol.n_queries != 3 or
             protocol.fold_step != 1 or
             protocol.lifting_log_size != null or
-            protocol.commitment_root_count != 3 or
+            protocol.commitment_root_count != 4 or
             protocol.fri_root_count != protocol.log_n_rows or
             protocol.decommit_tree_count != expected_decommit)
         {
@@ -30,7 +30,7 @@ pub const Descriptor = struct {
     }
 
     pub fn sampledValueCount(_: stark.Protocol) stark.Error!usize {
-        return 11;
+        return 27;
     }
 };
 
@@ -44,13 +44,13 @@ test "XOR terminal policy admits step zero and exact tree counts" {
         .n_queries = 3,
         .fold_step = 1,
         .lifting_log_size = null,
-        .commitment_root_count = 3,
+        .commitment_root_count = 4,
         .fri_root_count = 14,
-        .decommit_tree_count = 17,
+        .decommit_tree_count = 18,
     };
     try Descriptor.validateProtocol(protocol);
     try std.testing.expectEqual(
-        @as(usize, 11),
+        @as(usize, 27),
         try Descriptor.sampledValueCount(protocol),
     );
 }

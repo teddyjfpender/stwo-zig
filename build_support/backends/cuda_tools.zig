@@ -107,6 +107,7 @@ pub fn addProducts(
         "scripts.tests.test_cuda_aot_authentication",
         "scripts.tests.test_cuda_plonk_logup_aot",
         "scripts.tests.test_cuda_poseidon_aot",
+        "scripts.tests.test_cuda_xor_logup_aot",
         "scripts.tests.test_cuda_proof_parity_gate",
         "scripts.tests.test_cuda_activation",
     });

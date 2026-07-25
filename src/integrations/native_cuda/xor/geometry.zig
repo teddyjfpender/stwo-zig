@@ -1,23 +1,33 @@
-//! Fail-closed structural geometry for Native XOR proof-program emission.
+//! Fail-closed geometry for the exact Native XOR truth-table LogUp protocol.
 
 const std = @import("std");
 const cpu_xor = @import("../../../examples/xor.zig");
 const pcs = @import("stwo_core").pcs;
 
-pub const preprocessed_columns: u32 = 2;
-pub const main_columns: u32 = 1;
-pub const interaction_columns: u32 = 0;
+pub const preprocessed_columns: u32 = 7;
+pub const main_columns: u32 = 4;
+pub const interaction_columns: u32 = 4;
 pub const composition_columns: u32 = 8;
 pub const statement_word_count: usize = 4;
-pub const statement_first_segment_words: usize = 2;
-pub const sampled_mask_points: u32 =
-    preprocessed_columns + main_columns + composition_columns;
+pub const terminal_statement_words: usize = 4;
+pub const public_statement_word_count: usize =
+    statement_word_count + terminal_statement_words;
+pub const source_columns: u32 = preprocessed_columns +
+    main_columns + interaction_columns + composition_columns;
+pub const resident_evaluation_columns: u32 = source_columns;
+pub const sampled_source_column_offset: u32 = 0;
+pub const sampled_source_column_count: u32 = source_columns;
+// Current-only preprocessed/main and composition samples, plus current/previous
+// samples for each of the four interaction coordinates.
+pub const sampled_mask_points: u32 = preprocessed_columns +
+    main_columns + 2 * interaction_columns + composition_columns;
 // The quotient/commitment domain is one bit larger and the current resident
 // CUDA proof kernels represent row counts as u32.
 pub const max_log_size: u32 = 29;
 
 pub const Error = error{
     GeometryOverflow,
+    InvalidClaimedSum,
     InvalidLogSize,
     InvalidStep,
     UnsupportedProtocol,
@@ -33,6 +43,10 @@ pub const Geometry = struct {
     protocol: pcs.PcsConfig,
     trace_rows: u64,
     trace_elements: u64,
+    preprocessed_cells: u64,
+    main_cells: u64,
+    interaction_cells: u64,
+    committed_cells: u64,
     commitment_log_rows: u32,
     composition_log_rows: u32,
     fri_tree_count: u32,
@@ -72,16 +86,19 @@ pub fn admit(
     statement: cpu_xor.Statement,
     protocol: pcs.PcsConfig,
 ) Error!Geometry {
-    if (statement.log_size == 0 or statement.log_size > max_log_size)
-        return error.InvalidLogSize;
-    if (statement.log_step > statement.log_size) return error.InvalidStep;
+    try cpu_xor.validateStatement(statement);
+    if (statement.log_size > max_log_size) return error.InvalidLogSize;
     if (!supportedProtocol(protocol)) return error.UnsupportedProtocol;
 
     const trace_rows = @as(u64, 1) << @intCast(statement.log_size);
-    const trace_elements = std.math.mul(
+    const preprocessed_cells = try cells(trace_rows, preprocessed_columns);
+    const main_cells = try cells(trace_rows, main_columns);
+    const interaction_cells = try cells(trace_rows, interaction_columns);
+    const trace_elements = std.math.add(
         u64,
-        trace_rows,
-        preprocessed_columns + main_columns + interaction_columns,
+        std.math.add(u64, preprocessed_cells, main_cells) catch
+            return error.GeometryOverflow,
+        interaction_cells,
     ) catch return error.GeometryOverflow;
     const commitment_log_rows = std.math.add(
         u32,
@@ -99,8 +116,8 @@ pub fn admit(
         usize,
         commitment_rows_u64,
     ) orelse return error.GeometryOverflow;
-    const committed_tree_count: usize = 3;
-    const decommitted_trace_tree_count: usize = 3;
+    const committed_tree_count: usize = 4;
+    const decommitted_trace_tree_count: usize = 4;
     const fri_tree_count: u32 = statement.log_size;
     const decommit_tree_count = std.math.add(
         usize,
@@ -113,6 +130,10 @@ pub fn admit(
         .protocol = protocol,
         .trace_rows = trace_rows,
         .trace_elements = trace_elements,
+        .preprocessed_cells = preprocessed_cells,
+        .main_cells = main_cells,
+        .interaction_cells = interaction_cells,
+        .committed_cells = trace_elements,
         .commitment_log_rows = commitment_log_rows,
         .composition_log_rows = composition_log_rows,
         .fri_tree_count = fri_tree_count,
@@ -122,6 +143,11 @@ pub fn admit(
         .decommit_tree_count = decommit_tree_count,
         .last_layer_domain_rows = 2,
     };
+}
+
+fn cells(rows: u64, columns: u32) Error!u64 {
+    return std.math.mul(u64, rows, columns) catch
+        error.GeometryOverflow;
 }
 
 pub fn admitRequest(request: Request) Error!Geometry {
@@ -138,31 +164,33 @@ fn supportedProtocol(value: pcs.PcsConfig) bool {
         value.lifting_log_size == null;
 }
 
-test "XOR geometry preserves exact CPU tree shape" {
+test "XOR geometry preserves exact four-tree CPU shape" {
     const shape = try admit(
         .{ .log_size = 16, .log_step = 3, .offset = 5 },
         pcs.PcsConfig.default(),
     );
     try std.testing.expectEqual(@as(u64, 1 << 16), shape.trace_rows);
-    try std.testing.expectEqual(@as(u64, 3 * (1 << 16)), shape.trace_elements);
-    try std.testing.expectEqual(@as(u32, 3), shape.traceColumnCount());
+    try std.testing.expectEqual(@as(u64, 15 * (1 << 16)), shape.trace_elements);
+    try std.testing.expectEqual(@as(u32, 15), shape.traceColumnCount());
     try std.testing.expectEqual(@as(u32, 17), shape.commitment_log_rows);
     try std.testing.expectEqual(@as(u32, 16), shape.fri_tree_count);
     try std.testing.expectEqual(@as(usize, 1 << 17), shape.commitment_rows);
-    try std.testing.expectEqual(@as(usize, 3), shape.committed_tree_count);
+    try std.testing.expectEqual(@as(usize, 4), shape.committed_tree_count);
     try std.testing.expectEqual(
-        @as(usize, 3),
+        @as(usize, 4),
         shape.decommitted_trace_tree_count,
     );
-    try std.testing.expectEqual(@as(usize, 19), shape.decommit_tree_count);
+    try std.testing.expectEqual(@as(usize, 20), shape.decommit_tree_count);
     try std.testing.expectEqual(@as(usize, 2), shape.last_layer_domain_rows);
+    try std.testing.expectEqual(@as(u32, 27), sampled_mask_points);
+    try std.testing.expectEqual(@as(u32, 23), source_columns);
 }
 
 test "XOR geometry rejects statements and protocols outside parity" {
     const protocol = pcs.PcsConfig.default();
     try std.testing.expectError(
         error.InvalidLogSize,
-        admit(.{ .log_size = 0, .log_step = 0, .offset = 0 }, protocol),
+        admit(.{ .log_size = 1, .log_step = 0, .offset = 0 }, protocol),
     );
     try std.testing.expectError(
         error.InvalidLogSize,

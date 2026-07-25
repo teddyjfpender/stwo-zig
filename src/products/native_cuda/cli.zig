@@ -3,7 +3,7 @@
 const std = @import("std");
 
 pub const wide_protocol_name = "raw-stwo-wide-v1";
-pub const xor_protocol_name = "raw-stwo-xor-v1";
+pub const xor_protocol_name = "raw-stwo-xor-lookup-v2";
 pub const plonk_protocol_name = "raw-stwo-plonk-v1";
 pub const blake_protocol_name = "raw-stwo-blake-v1";
 pub const poseidon_protocol_name = "raw-stwo-poseidon-v1";
@@ -429,7 +429,7 @@ pub fn writeUsage(writer: anytype) !void {
         \\
         \\  --air wide_fibonacci | xor | plonk | blake | poseidon
         \\  --backend cuda
-        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-v1 | raw-stwo-plonk-v1 | raw-stwo-blake-v1 | raw-stwo-poseidon-v1
+        \\  --protocol raw-stwo-wide-v1 | raw-stwo-xor-lookup-v2 | raw-stwo-plonk-v1 | raw-stwo-blake-v1 | raw-stwo-poseidon-v1
         \\  wide_fibonacci: --log-n-rows N --sequence-len N
         \\  xor:            --log-size N --log-step N --offset N
         \\  plonk:          --log-n-rows N

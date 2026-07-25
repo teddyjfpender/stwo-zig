@@ -15,6 +15,7 @@ pub const KernelSchema = enum(u32) {
     native_plonk_logup_constraint_v1 = 12,
     native_m31_permutation_trace_v2 = 13,
     native_poseidon_constraint_v1 = 14,
+    native_xor_logup_constraint_v1 = 15,
 };
 
 test "CUDA AOT schema identities are explicit and nonzero" {

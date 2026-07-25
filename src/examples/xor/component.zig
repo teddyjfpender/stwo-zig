@@ -20,6 +20,18 @@ const interaction = @import("interaction.zig");
 const CirclePointQM31 = circle.CirclePointQM31;
 pub const N_CONSTRAINTS: usize = 14;
 
+pub const DomainRowInput = struct {
+    log_size: u32,
+    preprocessed: [input.PREPROCESSED_COLUMNS]M31,
+    main: [input.MAIN_COLUMNS]M31,
+    current: QM31,
+    previous: QM31,
+    lookup_elements: interaction.LookupElements,
+    claimed_sum: QM31,
+    random_powers: [N_CONSTRAINTS]QM31,
+    denominator_inverse: M31,
+};
+
 pub const Component = struct {
     log_size: u32,
     lookup_elements: interaction.LookupElements,
@@ -317,6 +329,36 @@ pub const Component = struct {
         };
     }
 };
+
+pub fn evaluateDomainRow(domain: DomainRowInput) QM31 {
+    var preprocessed: [input.PREPROCESSED_COLUMNS]QM31 = undefined;
+    for (&preprocessed, domain.preprocessed) |*out, value| {
+        out.* = QM31.fromBase(value);
+    }
+    var main: [input.MAIN_COLUMNS]QM31 = undefined;
+    for (&main, domain.main) |*out, value| {
+        out.* = QM31.fromBase(value);
+    }
+    const component = Component{
+        .log_size = domain.log_size,
+        .lookup_elements = domain.lookup_elements,
+        .claimed_sum = domain.claimed_sum,
+    };
+    const constraints = component.evaluateRow(
+        preprocessed,
+        main,
+        domain.current,
+        domain.previous,
+    );
+    var combined = QM31.zero();
+    for (constraints, 0..) |constraint, constraint_index| {
+        const power_index = N_CONSTRAINTS - 1 - constraint_index;
+        combined = combined.add(
+            domain.random_powers[power_index].mul(constraint),
+        );
+    }
+    return combined.mulM31(domain.denominator_inverse);
+}
 
 fn booleanConstraint(value: QM31) QM31 {
     return value.mul(value.sub(QM31.one()));

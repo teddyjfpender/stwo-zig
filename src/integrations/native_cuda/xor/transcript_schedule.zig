@@ -1,5 +1,6 @@
-//! XOR statement policy for the shared transcript schedule.
+//! Fail-closed Fiat-Shamir order for exact four-tree XOR/LogUp.
 
+const std = @import("std");
 const shared = @import("../common/transcript_schedule.zig");
 const geometry_mod = @import("geometry.zig");
 
@@ -7,10 +8,12 @@ pub const Operation = shared.Operation;
 pub const Boundary = shared.Boundary;
 
 pub const Schedule = struct {
-    structural: shared.Schedule,
+    seed_chain: u64,
+    fri_tree_count: u32,
+    operation_count: u32,
 
     pub fn init(geometry: geometry_mod.Geometry) !Schedule {
-        var seed = shared.SeedBuilder.init(0x5354_574f_4355_4441);
+        var seed = shared.SeedBuilder.init(0x584f_525f_4c4f_4755);
         try seed.mix(geometry.statement.log_size);
         try seed.mix(geometry.statement.log_step);
         try seed.mix(geometry.statement.offset);
@@ -28,37 +31,101 @@ pub const Schedule = struct {
                 0,
         );
         try seed.mix(geometry.fri_tree_count);
+        const fri_count = std.math.cast(
+            u32,
+            geometry.fri_tree_count,
+        ) orelse return error.GeometryOverflow;
+        const operation_count = std.math.add(
+            u32,
+            13,
+            std.math.mul(u32, fri_count, 2) catch
+                return error.GeometryOverflow,
+        ) catch return error.GeometryOverflow;
         return .{
-            .structural = try shared.Schedule.init(
-                seed.finish(),
-                geometry.fri_tree_count,
-            ),
+            .seed_chain = seed.finish(),
+            .fri_tree_count = fri_count,
+            .operation_count = operation_count,
         };
     }
 
     pub fn initialChain(self: Schedule) u64 {
-        return self.structural.initialChain();
+        return chainAt(self.seed_chain, 0);
     }
 
     pub fn operation(self: Schedule, step: u32) !Operation {
-        return self.structural.operation(step);
+        if (step >= self.operation_count)
+            return error.GeometryOverflow;
+        return switch (step) {
+            0 => .mix_pcs_config,
+            1 => .mix_preprocessed_root,
+            2 => .mix_main_root,
+            3 => .draw_lookup_elements,
+            4 => .mix_interaction_root,
+            5 => .draw_composition_alpha,
+            6 => .mix_composition_root,
+            7 => .draw_oods_point,
+            8 => .mix_sampled_values,
+            9 => .draw_quotient_alpha,
+            else => self.operationAfterQuotient(step),
+        };
     }
 
     pub fn boundary(self: Schedule, step: u32) !Boundary {
-        return self.structural.boundary(step);
+        _ = try self.operation(step);
+        return .{
+            .expected_step = step,
+            .expected_chain = chainAt(self.seed_chain, step),
+            .next_chain = chainAt(self.seed_chain, step + 1),
+        };
     }
 
     pub fn friTreeCount(self: Schedule) u32 {
-        return self.structural.fri_tree_count;
+        return self.fri_tree_count;
     }
 
     pub fn operationCount(self: Schedule) u32 {
-        return self.structural.operation_count;
+        return self.operation_count;
+    }
+
+    fn operationAfterQuotient(
+        self: Schedule,
+        step: u32,
+    ) Operation {
+        const fri_offset = step - 10;
+        const fri_operations = self.fri_tree_count * 2;
+        if (fri_offset < fri_operations) {
+            const tree_index = fri_offset / 2;
+            return if (fri_offset % 2 == 0)
+                .{ .mix_fri_root = tree_index }
+            else
+                .{ .draw_fri_alpha = tree_index };
+        }
+        return switch (fri_offset - fri_operations) {
+            0 => .mix_last_layer,
+            1 => .absorb_pow,
+            2 => .draw_queries,
+            else => unreachable,
+        };
     }
 };
 
+fn chainAt(seed: u64, step: u32) u64 {
+    return avalanche(
+        seed ^ (@as(u64, step) *% 0x9e37_79b9_7f4a_7c15),
+    );
+}
+
+fn avalanche(input: u64) u64 {
+    var value = input;
+    value ^= value >> 30;
+    value *%= 0xbf58_476d_1ce4_e5b9;
+    value ^= value >> 27;
+    value *%= 0x94d0_49bb_1331_11eb;
+    value ^= value >> 31;
+    return value;
+}
+
 test "XOR schedule binds the complete public statement" {
-    const std = @import("std");
     const pcs = @import("stwo_core").pcs;
     const first = try Schedule.init(try geometry_mod.admit(
         .{ .log_size = 7, .log_step = 3, .offset = 5 },
@@ -68,10 +135,18 @@ test "XOR schedule binds the complete public statement" {
         .{ .log_size = 7, .log_step = 3, .offset = 6 },
         pcs.PcsConfig.default(),
     ));
-    try std.testing.expectEqual(@as(u32, 26), first.operationCount());
+    try std.testing.expectEqual(@as(u32, 27), first.operationCount());
     try std.testing.expectEqual(
         Operation.mix_preprocessed_root,
         try first.operation(1),
+    );
+    try std.testing.expectEqual(
+        Operation.draw_lookup_elements,
+        try first.operation(3),
+    );
+    try std.testing.expectEqual(
+        Operation.mix_interaction_root,
+        try first.operation(4),
     );
     try std.testing.expect(first.initialChain() != second.initialChain());
 }

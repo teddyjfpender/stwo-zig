@@ -19,19 +19,19 @@ pub const Artifact = struct {
 
 pub const zig_artifact = Artifact{
     .authority = "stwo-zig repository source closure",
-    .revision = "src/examples/xor.zig+src/examples/xor/input.zig",
-    .trace_recipe = digest("stwo-zig/src/examples/xor/input.zig:prepare:v1"),
-    .air_recipe = digest("stwo-zig/src/examples/xor.zig:XorExampleComponent:v1"),
+    .revision = "src/examples/xor/{input,interaction,component}.zig",
+    .trace_recipe = digest("stwo-zig/native-xor:preprocessed7+main4:v2"),
+    .air_recipe = digest("stwo-zig/native-xor:truth-table-logup14:v2"),
 };
 
 pub const rust_artifact = Artifact{
     .authority = rust_oracle_repository,
     .revision = rust_oracle_commit,
     .trace_recipe = digest(
-        "stwo-rust:a8fcf4bd:examples-xor:gen-is-first+is-step+gen-xor-main:v1",
+        "stwo-rust:a8fcf4bd+repo-oracle:native-xor:preprocessed7+main4:v2",
     ),
     .air_recipe = digest(
-        "stwo-rust:a8fcf4bd:examples-xor:XorComponent:v1",
+        "stwo-rust:a8fcf4bd+repo-oracle:native-xor:truth-table-logup14:v2",
     ),
 };
 
@@ -49,22 +49,22 @@ pub const ingress_layout = digest(
     "stwo/native/xor/trace-layout:m31-column-major:bit-reversed-circle:v1",
 );
 pub const transcript_recipe = digest(
-    "stwo/native/xor/transcript:pcs-config,preprocessed,main,statement:u32,u32,u64:v1",
+    "stwo/native/xor/transcript:pcs,pre,main,lookup,interaction,statement,composition:v2",
 );
 pub const public_input_abi = digest(
-    "stwo/native/xor/public-input:u32-log-size,u32-log-step,u64le-offset:v1",
+    "stwo/native/xor/public-input:u32-log,u32-step,u64le-offset,qm31-sum:v2",
 );
 pub const sampling_recipe = digest(
-    "stwo/native/xor/oods:referenced-preprocessed-points,main-point,composition-split-points:v1",
+    "stwo/native/xor/oods:pre7-current,main4-current,interaction4-current-previous,composition8:v2",
 );
 pub const mask_layout = digest(
-    "stwo/native/xor/mask:preprocessed[[0],[0]],main[[0]],interaction[],composition[8x[0]]:v1",
+    "stwo/native/xor/mask:pre7x[0],main4x[0],interaction4x[-1,0],composition8x[0]:v2",
 );
 pub const constraint_parameter_abi = digest(
-    "stwo/native/xor/constraint-abi:statement[4xu32le],alpha[4xm31],total[8xu32]:v1",
+    "stwo/native/xor/constraint-abi:lookup[2xqm31],claimed[1xqm31],powers[14xqm31]:v2",
 );
 pub const constraint_expression = pairDigest(
-    "stwo/native/xor/constraint:constant-qm31(log_size,log_step,offset,1):v1",
+    "stwo/native/xor/constraint:truth-table-logup14:previous-circle-row:v2",
     zig_artifact.air_recipe,
     rust_artifact.air_recipe,
 );
@@ -75,6 +75,9 @@ pub fn statement(value: cpu_xor.Statement) ir.Digest {
     hashInt(&hash, u32, value.log_size);
     hashInt(&hash, u32, value.log_step);
     hashInt(&hash, u64, @intCast(value.offset));
+    for (value.claimed_sum.toM31Array()) |coordinate| {
+        hashInt(&hash, u32, coordinate.toU32());
+    }
     var result: ir.Digest = undefined;
     hash.final(&result);
     return result;

@@ -65,6 +65,7 @@ pub const genIsStepWithOffsetColumn = trace_input.genIsStepWithOffsetColumn;
 pub const Statement = trace_input.Statement;
 pub const PreparedInput = trace_input.PreparedInput;
 pub const prepareInput = trace_input.prepare;
+pub const validateStatement = trace_input.validate;
 
 pub const ProveOutput = struct {
     statement: Statement,
