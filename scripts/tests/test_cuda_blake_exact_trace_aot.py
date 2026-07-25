@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -11,6 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 NATIVE_AOT = ROOT / "src/backends/cuda/aot/native"
+RUNTIME_BINDING = (
+    ROOT / "src/backends/cuda/runtime/traces/blake_exact.zig"
+)
 CPU_PREPROCESSED_SHA256 = (
     "80ce951a14d3a4fd55cbafe281d3da5b1017d1da3acbdfdb91fab3d4e0f3cefe"
 )
@@ -40,6 +44,23 @@ class CudaBlakeExactTraceAotTests(unittest.TestCase):
         self.assertEqual(
             hashlib.sha256(source.read_bytes()).hexdigest(),
             entry["program_identity"],
+        )
+        runtime_source = RUNTIME_BINDING.read_text(encoding="utf-8")
+        identity = re.search(
+            r"pub const program_identity = \[32\]u8\{([^}]*)\};",
+            runtime_source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(identity)
+        assert identity is not None
+        identity_bytes = bytes(
+            int(value, 16)
+            for value in re.findall(r"0x([0-9a-f]{2})", identity.group(1))
+        )
+        self.assertEqual(32, len(identity_bytes))
+        self.assertEqual(
+            entry["program_identity"],
+            identity_bytes.hex(),
         )
 
         with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
