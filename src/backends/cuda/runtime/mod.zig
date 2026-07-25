@@ -9,6 +9,7 @@ pub const execution_plan = @import("execution_plan.zig");
 pub const execution_cache = @import("execution_cache.zig");
 pub const function_cache = @import("function_cache.zig");
 pub const graph_execution = @import("graph_execution.zig");
+pub const interactions = @import("interactions/mod.zig");
 pub const kernel = @import("kernel.zig");
 pub const persistent_allocation = @import("persistent_allocation.zig");
 pub const proof_transaction = @import("proof_transaction.zig");
@@ -36,6 +37,7 @@ test {
     _ = execution_cache;
     _ = function_cache;
     _ = graph_execution;
+    _ = interactions;
     _ = kernel;
     _ = persistent_allocation;
     _ = proof_transaction;
