@@ -218,14 +218,6 @@ test "prepared plans seal small standard and large admitted geometry" {
                 geometry.commitment_rows,
             interaction_coefficients.requirement.words,
         );
-        const split_coefficients =
-            try prepared.cuda_plan.arena_plan.placement(
-                slots.composition_split_coefficients,
-            );
-        try std.testing.expectEqual(
-            8 * geometry.commitment_rows,
-            split_coefficients.requirement.words,
-        );
         const composition_coefficients =
             try prepared.cuda_plan.arena_plan.placement(
                 slots.composition_coefficients,
@@ -242,6 +234,7 @@ test "prepared plans seal small standard and large admitted geometry" {
         for ([_]arena.SlotId{
             0x0102,
             0x0111,
+            0x0207,
             0x0210,
             0x0211,
             0x0504,

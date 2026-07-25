@@ -22,8 +22,6 @@ pub const source_evaluations: SlotId = 0x0204;
 /// The independent 4N source domain consumed by the exact AIR kernel.
 pub const constraint_source_evaluations: SlotId = 0x0205;
 pub const coefficient_log_sizes: SlotId = 0x0206;
-/// First depth split: eight degree-<2N columns before canonical depth two.
-pub const composition_split_coefficients: SlotId = 0x0207;
 pub const main_merkle_hashes: SlotId = 0x0220;
 pub const interaction_merkle_hashes: SlotId = 0x0221;
 pub const composition_merkle_hashes: SlotId = 0x0222;

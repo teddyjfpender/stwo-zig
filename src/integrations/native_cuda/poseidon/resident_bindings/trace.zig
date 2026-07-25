@@ -43,14 +43,6 @@ pub fn bind(
         ),
         .column_stride_words = committed_rows,
     };
-    const composition_split_coefficients = common.WordMatrix{
-        .storage = try exactWords(
-            provider,
-            slots.composition_split_coefficients,
-            try mul(8, committed_rows),
-        ),
-        .column_stride_words = committed_rows,
-    };
     const composition_coefficients = common.WordMatrix{
         .storage = try exactWords(
             provider,
@@ -103,7 +95,6 @@ pub fn bind(
         ),
         .main_coefficients = main_coefficients,
         .interaction_coefficients = interaction_coefficients,
-        .composition_split_coefficients = composition_split_coefficients,
         .composition_coefficients = composition_coefficients,
         .committed_evaluation_slab = source_words,
         .main_evaluations = main_evaluations,

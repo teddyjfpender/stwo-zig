@@ -185,14 +185,13 @@ fn evaluateAndCommitComposition(
         geometry,
     );
 
-    try Ops.Split.interpolateAndSplit(
+    try Ops.Split.interpolateAndSplitDepthTwo(
         session,
         views.constraint.composition_coordinates,
-        views.trace.composition_split_coefficients,
+        composition.coefficients,
         geometry.composition_log_rows,
         views.trace.twiddles_inverse,
     );
-    try orderDepthTwoChunks(transaction, geometry);
     try Ops.Transform.extend(
         session,
         .constraint_evaluation,
@@ -263,33 +262,6 @@ fn extendConstraintSources(
         views.trace.twiddles_forward,
         false,
     );
-}
-
-fn orderDepthTwoChunks(
-    transaction: anytype,
-    geometry: geometry_mod.Geometry,
-) !void {
-    const rows = try geometry.traceRowCount();
-    const split_stride = rows * 2;
-    for (0..2) |outer_chunk| {
-        for (0..2) |inner_chunk| {
-            for (0..4) |coordinate| {
-                const source_column = outer_chunk * 4 + coordinate;
-                const destination_column =
-                    (outer_chunk * 2 + inner_chunk) * 4 +
-                    coordinate;
-                try transaction.copyResidentSlice(
-                    u32,
-                    slots.composition_coefficients,
-                    destination_column * rows,
-                    slots.composition_split_coefficients,
-                    source_column * split_stride +
-                        inner_chunk * rows,
-                    rows,
-                );
-            }
-        }
-    }
 }
 
 fn matrixColumns(

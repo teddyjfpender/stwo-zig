@@ -279,7 +279,9 @@ class CudaBuildTests(unittest.TestCase):
             (schedules + b2n + n2b + composition).lower(),
         )
         self.assertEqual(4, abi.count("launches_out: *u32"))
-        self.assertEqual(1, composition_abi.count("launches_out: *u32"))
+        self.assertEqual(2, composition_abi.count("launches_out: *u32"))
+        self.assertIn("CompactDepth", composition)
+        self.assertIn("stwo_ntt_b2n_composition_split_depth_two_on", composition)
 
     def test_device_header_definitions_have_internal_or_inline_linkage(self) -> None:
         violations: list[str] = []

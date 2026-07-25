@@ -36,7 +36,6 @@ pub const Trace = struct {
     twiddles_inverse: common.Words,
     main_coefficients: common.WordMatrix,
     interaction_coefficients: common.WordMatrix,
-    composition_split_coefficients: common.WordMatrix,
     composition_coefficients: common.WordMatrix,
     committed_evaluation_slab: common.Words,
     main_evaluations: common.WordMatrix,

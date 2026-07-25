@@ -117,16 +117,6 @@ pub fn build(
     try add(
         &output,
         allocator,
-        slots.composition_split_coefficients,
-        // First split is 8 x 2N; the executor then reorders its halves into
-        // the canonical 16 x N depth-two composition tree.
-        try mul(8, commitment_rows),
-        .constraint_evaluation,
-        .constraint_evaluation,
-    );
-    try add(
-        &output,
-        allocator,
         slots.source_evaluations,
         try mul(geometry_mod.source_columns, commitment_rows),
         .trace_commit,

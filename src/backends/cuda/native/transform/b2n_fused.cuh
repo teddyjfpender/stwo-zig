@@ -227,7 +227,7 @@ __global__ void b2n_init_block(
     }
 }
 
-template <uint32_t LogValues, bool Duplicate, bool Compact>
+template <uint32_t LogValues, bool Duplicate, uint32_t CompactDepth>
 __global__ void b2n_continue(
     ColumnSlab<M31> columns,
     ColumnSlab<M31> compact_outputs,
@@ -238,8 +238,9 @@ __global__ void b2n_continue(
     const M31 *twiddles,
     M31 scale) {
     static_assert(
-        !(Duplicate && Compact),
+        !(Duplicate && CompactDepth != 0u),
         "a B2N continuation cannot duplicate and compact its output");
+    static_assert(CompactDepth <= 2u, "unsupported compact split depth");
     constexpr uint32_t stage_count = 2u * LogValues;
     const uint32_t column_index = blockIdx.z;
     const uint32_t block_start =
@@ -338,12 +339,15 @@ __global__ void b2n_continue(
     for (uint32_t i = 0; i < 1u << LogValues; ++i) {
         const uint32_t output_index =
             block_start + i * next_stride + next_offset;
-        if constexpr (Compact) {
-            const uint32_t half_values = 1u << (log_n - 1u);
-            const uint32_t side = output_index >= half_values ? 1u : 0u;
+        if constexpr (CompactDepth != 0u) {
+            // Chunk-major, coordinate-minor is the canonical Stwo
+            // split-polynomial order. Depth two therefore writes
+            // [LL c0..c3, LR c0..c3, RL c0..c3, RR c0..c3] directly.
+            const uint32_t chunk_values = 1u << (log_n - CompactDepth);
+            const uint32_t chunk = output_index >> (log_n - CompactDepth);
             compact_outputs
-                .column(column_index + side * compact_column_offset)
-                [output_index - side * half_values] = values[i];
+                .column(column_index + chunk * compact_column_offset)
+                [output_index & (chunk_values - 1u)] = values[i];
         } else {
             column[output_index] = values[i];
             if constexpr (Duplicate) {
@@ -428,7 +432,7 @@ inline cudaError_t launch_b2n_continue(
     };
     const M31 scale = m31_inverse_power_of_two(log_n);
     if (stages == 6) {
-        b2n_continue<3, Duplicate, false><<<
+        b2n_continue<3, Duplicate, 0u><<<
             grid,
             dim3(32, 8),
             0,
@@ -442,7 +446,7 @@ inline cudaError_t launch_b2n_continue(
                 twiddles,
                 scale);
     } else if (stages == 8) {
-        b2n_continue<4, Duplicate, false><<<
+        b2n_continue<4, Duplicate, 0u><<<
             grid,
             dim3(32, 16),
             0,
@@ -461,6 +465,7 @@ inline cudaError_t launch_b2n_continue(
     return cudaPeekAtLastError();
 }
 
+template <uint32_t CompactDepth>
 inline cudaError_t launch_b2n_continue_compact(
     ColumnSlab<M31> columns,
     ColumnSlab<M31> compact_outputs,
@@ -470,8 +475,12 @@ inline cudaError_t launch_b2n_continue_compact(
     uint32_t stages,
     const M31 *twiddles,
     cudaStream_t stream) {
+    static_assert(
+        CompactDepth == 1u || CompactDepth == 2u,
+        "compact B2N supports depth one or two");
     if (columns.base == nullptr || compact_outputs.base == nullptr ||
-        compact_outputs.stride_words != (1u << (log_n - 1u)) ||
+        log_n < CompactDepth ||
+        compact_outputs.stride_words != (1u << (log_n - CompactDepth)) ||
         column_count == 0 || start_stage == 0 ||
         start_stage + stages - 1u != log_n) {
         return cudaErrorInvalidConfiguration;
@@ -485,7 +494,7 @@ inline cudaError_t launch_b2n_continue_compact(
     };
     const M31 scale = m31_inverse_power_of_two(log_n);
     if (stages == 6) {
-        b2n_continue<3, false, true><<<
+        b2n_continue<3, false, CompactDepth><<<
             grid,
             dim3(32, 8),
             0,
@@ -499,7 +508,7 @@ inline cudaError_t launch_b2n_continue_compact(
                 twiddles,
                 scale);
     } else if (stages == 8) {
-        b2n_continue<4, false, true><<<
+        b2n_continue<4, false, CompactDepth><<<
             grid,
             dim3(32, 16),
             0,

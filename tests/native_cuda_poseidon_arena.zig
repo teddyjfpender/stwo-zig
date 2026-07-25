@@ -132,10 +132,6 @@ test "exact Poseidon composition executes the four-tree transcript" {
     try std.testing.expectEqual(@as(usize, 1), Calls.splits);
     try std.testing.expectEqual(@as(usize, 2), Calls.leaf_hashes);
     try std.testing.expectEqual(@as(usize, 2), Calls.tail_hashes);
-    try std.testing.expectEqual(
-        @as(usize, 16),
-        Calls.chunk_copies,
-    );
     try std.testing.expectEqual(@as(usize, 3), Calls.capture_copies);
     try std.testing.expectEqual(@as(usize, 1), Calls.zeroes);
 }
@@ -192,7 +188,6 @@ const Calls = struct {
     var splits: usize = 0;
     var leaf_hashes: usize = 0;
     var tail_hashes: usize = 0;
-    var chunk_copies: usize = 0;
     var capture_copies: usize = 0;
     var zeroes: usize = 0;
 
@@ -206,7 +201,6 @@ const Calls = struct {
         splits = 0;
         leaf_hashes = 0;
         tail_hashes = 0;
-        chunk_copies = 0;
         capture_copies = 0;
         zeroes = 0;
     }
@@ -362,7 +356,7 @@ const FakeOps = struct {
     };
 
     pub const Split = struct {
-        pub fn interpolateAndSplit(
+        pub fn interpolateAndSplitDepthTwo(
             _: anytype,
             coordinates: anytype,
             coefficients: anytype,
@@ -375,7 +369,7 @@ const FakeOps = struct {
                     coordinates.column_stride_words,
             );
             try std.testing.expectEqual(
-                @as(usize, 8),
+                @as(usize, 16),
                 coefficients.storage.len /
                     coefficients.column_stride_words,
             );
@@ -462,40 +456,6 @@ const FakeTransaction = struct {
             return error.InvalidKernelDescriptor;
         }
         Calls.zeroes += 1;
-    }
-
-    pub fn copyResidentSlice(
-        self: *FakeTransaction,
-        comptime F: type,
-        destination_id: exact.slots.SlotId,
-        destination_first: usize,
-        source_id: exact.slots.SlotId,
-        source_first: usize,
-        count: usize,
-    ) !void {
-        if (F != u32 or
-            destination_id != exact.slots.composition_coefficients or
-            source_id !=
-                exact.slots.composition_split_coefficients or
-            count != self.rows)
-        {
-            return error.InvalidKernelDescriptor;
-        }
-        const ordinal = Calls.chunk_copies;
-        const outer = ordinal / 8;
-        const inner = (ordinal / 4) % 2;
-        const coordinate = ordinal % 4;
-        const expected_destination =
-            ((outer * 2 + inner) * 4 + coordinate) * self.rows;
-        const expected_source =
-            (outer * 4 + coordinate) * (2 * self.rows) +
-            inner * self.rows;
-        try std.testing.expectEqual(
-            expected_destination,
-            destination_first,
-        );
-        try std.testing.expectEqual(expected_source, source_first);
-        Calls.chunk_copies += 1;
     }
 };
 
