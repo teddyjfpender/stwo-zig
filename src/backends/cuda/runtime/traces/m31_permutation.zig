@@ -7,10 +7,10 @@ const common = @import("../stages/common.zig");
 const layout = @import("../stages/resident_layout.zig");
 const telemetry = @import("../telemetry.zig");
 
-pub const argument_count: u32 = 14;
-pub const cache_key: u64 = 0x1e2a6a8f48d78fa3;
+pub const argument_count: u32 = 15;
+pub const cache_key: u64 = 0xd5701a3db042081d;
 pub const kernel_name =
-    "stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799";
+    "stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782";
 
 pub const state_width: u32 = 16;
 
@@ -26,6 +26,7 @@ pub const Recipe = struct {
     initial_rep_stride: u64,
     external_constant_base: u64,
     external_round_stride: u64,
+    external_lane_stride: u64,
     internal_constant_base: u64,
     internal_round_stride: u64,
 };
@@ -53,6 +54,7 @@ const Arguments = struct {
     initial_rep_stride: u64,
     external_constant_base: u64,
     external_round_stride: u64,
+    external_lane_stride: u64,
     internal_constant_base: u64,
     internal_round_stride: u64,
 
@@ -70,6 +72,7 @@ const Arguments = struct {
             @ptrCast(&self.initial_rep_stride),
             @ptrCast(&self.external_constant_base),
             @ptrCast(&self.external_round_stride),
+            @ptrCast(&self.external_lane_stride),
             @ptrCast(&self.internal_constant_base),
             @ptrCast(&self.internal_round_stride),
         };
@@ -113,6 +116,7 @@ pub fn prepare(
             .initial_rep_stride = recipe.initial_rep_stride,
             .external_constant_base = recipe.external_constant_base,
             .external_round_stride = recipe.external_round_stride,
+            .external_lane_stride = recipe.external_lane_stride,
             .internal_constant_base = recipe.internal_constant_base,
             .internal_round_stride = recipe.internal_round_stride,
         },
@@ -123,7 +127,7 @@ pub fn descriptor(log_n_rows: u32) runtime_error.Error!kernel_module.Kernel {
     const rows = try rowCount(log_n_rows);
     return .{
         .stage = .trace_generation,
-        .abi_schema = .native_m31_permutation_trace_v1,
+        .abi_schema = .native_m31_permutation_trace_v2,
         .cache_key = cache_key,
         .name = kernel_name,
         .grid = .{ 1 + (rows - 1) / 256, 1, 1 },
@@ -211,15 +215,19 @@ fn validateRecipe(
         full_round_count - 1,
         recipe.external_round_stride,
     ) catch return error.SizeOverflow;
-    const maximum_external = std.math.add(
+    const maximum_external_round_and_lane = std.math.add(
         u64,
-        recipe.external_constant_base,
         maximum_external_round,
+        std.math.mul(
+            u64,
+            state_width - 1,
+            recipe.external_lane_stride,
+        ) catch return error.SizeOverflow,
     ) catch return error.SizeOverflow;
     _ = std.math.add(
         u64,
-        maximum_external,
-        state_width - 1,
+        recipe.external_constant_base,
+        maximum_external_round_and_lane,
     ) catch return error.SizeOverflow;
 
     const maximum_internal_round = std.math.mul(
@@ -377,6 +385,7 @@ fn testRecipe() Recipe {
         .initial_rep_stride = 1,
         .external_constant_base = 1234,
         .external_round_stride = 37,
+        .external_lane_stride = 1,
         .internal_constant_base = 9876,
         .internal_round_stride = 17,
     };

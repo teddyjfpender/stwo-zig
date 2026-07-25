@@ -7,12 +7,13 @@ const m31_permutation =
     @import("../../../backends/cuda/runtime/traces/m31_permutation.zig");
 
 pub const recipe = m31_permutation.Recipe{
-    .initial_row_stride = cpu_poseidon.N_STATE,
+    .initial_row_stride = 1,
     .initial_rep_stride = 1,
     .external_constant_base = 1234,
-    .external_round_stride = 37,
-    .internal_constant_base = 9876,
-    .internal_round_stride = 17,
+    .external_round_stride = 0,
+    .external_lane_stride = 0,
+    .internal_constant_base = 1234,
+    .internal_round_stride = 0,
 };
 
 pub fn prepare(
@@ -60,6 +61,13 @@ test "Poseidon binding contributes only statement geometry and AIR recipe" {
         .{ .log_n_instances = 6 },
     );
     try std.testing.expectEqual(@as(u64, 1), session.launches);
+    try std.testing.expectEqual(@as(u64, 1), recipe.initial_row_stride);
+    try std.testing.expectEqual(@as(u64, 0), recipe.external_round_stride);
+    try std.testing.expectEqual(@as(u64, 0), recipe.external_lane_stride);
+    try std.testing.expectEqual(
+        recipe.external_constant_base,
+        recipe.internal_constant_base,
+    );
 }
 
 const TestSession = struct {

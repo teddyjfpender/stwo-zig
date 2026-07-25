@@ -25,7 +25,7 @@ class CudaM31PermutationTraceTests(unittest.TestCase):
             item for item in manifest if item["label"] == "m31_permutation_trace"
         )
         self.assertEqual(
-            "native_m31_permutation_trace_v1",
+            "native_m31_permutation_trace_v2",
             entry["abi_schema"],
         )
         source = NATIVE_AOT / entry["file"]
@@ -146,14 +146,14 @@ void row(
         unsigned state[16];
         for (unsigned lane = 0; lane < 16; ++lane) {{
             state[lane] = from_u64(
-                static_cast<std::uint64_t>(row_index) * 16 + lane + rep);
+                static_cast<std::uint64_t>(row_index) + lane + rep);
             trace[column++ * stride + row_index] = state[lane];
         }}
         for (unsigned round = 0; round < half_rounds; ++round) {{
             for (unsigned lane = 0; lane < 16; ++lane) {{
                 state[lane] = add(
                     state[lane],
-                    from_u64(1234 + static_cast<std::uint64_t>(round) * 37 + lane));
+                    from_u64(1234));
             }}
             external_matrix(state);
             for (unsigned lane = 0; lane < 16; ++lane) {{
@@ -162,7 +162,7 @@ void row(
             }}
         }}
         for (unsigned round = 0; round < partial_rounds; ++round) {{
-            state[0] = add(state[0], from_u64(9876 + round * 17));
+            state[0] = add(state[0], from_u64(1234));
             internal_matrix(state);
             state[0] = pow5(state[0]);
             trace[column++ * stride + row_index] = state[0];
@@ -172,7 +172,7 @@ void row(
             for (unsigned lane = 0; lane < 16; ++lane) {{
                 state[lane] = add(
                     state[lane],
-                    from_u64(1234 + static_cast<std::uint64_t>(round) * 37 + lane));
+                    from_u64(1234));
             }}
             external_matrix(state);
             for (unsigned lane = 0; lane < 16; ++lane) {{
@@ -200,7 +200,7 @@ void run_case(
         threadIdx.x = row;
         {kernel_name}(
             actual.data(), actual.size(), stride, rows, log_rows, reps,
-            half_rounds, partial_rounds, 16, 1, 1234, 37, 9876, 17);
+            half_rounds, partial_rounds, 1, 1, 1234, 0, 0, 1234, 0);
         expected::row(
             oracle.data(), stride, row, reps, half_rounds, partial_rounds);
     }}
@@ -208,6 +208,9 @@ void run_case(
 }}
 
 int main() {{
+    // Exact Native Poseidon geometry: all eight packed instances and rounds.
+    run_case(3, 8, 4, 14);
+    // Non-target shapes keep the generic recipe honest.
     run_case(3, 2, 2, 3);
     run_case(1, 1, 1, 1);
 }}

@@ -87,7 +87,7 @@ __device__ __forceinline__ void stwo_m31_internal_matrix(
 }
 
 extern "C" __global__ void __launch_bounds__(256)
-stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799(
+stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782(
     unsigned *trace_slab,
     u64 trace_slab_words,
     u64 column_stride_words,
@@ -100,6 +100,7 @@ stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799(
     u64 initial_rep_stride,
     u64 external_constant_base,
     u64 external_round_stride,
+    u64 external_lane_stride,
     u64 internal_constant_base,
     u64 internal_round_stride) {
     const unsigned row = blockIdx.x * blockDim.x + threadIdx.x;
@@ -148,7 +149,7 @@ stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799(
                 const u64 round_constant =
                     external_constant_base +
                     (u64)round * external_round_stride +
-                    lane;
+                    (u64)lane * external_lane_stride;
                 state[lane] =
                     stwo_m31_add(state[lane], stwo_m31_from_u64(round_constant));
             }
@@ -179,7 +180,7 @@ stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799(
                 const u64 round_constant =
                     external_constant_base +
                     (u64)round * external_round_stride +
-                    lane;
+                    (u64)lane * external_lane_stride;
                 state[lane] =
                     stwo_m31_add(state[lane], stwo_m31_from_u64(round_constant));
             }

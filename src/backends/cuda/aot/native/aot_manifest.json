@@ -84,16 +84,16 @@
     "semantic_hash": "ad484862f20d700c"
   },
   {
-    "abi_schema": "native_m31_permutation_trace_v1",
-    "cache_key": "1e2a6a8f48d78fa3",
-    "file": "witness_m31_permutation_trace_1e2a6a8f48d78fa3.cu",
+    "abi_schema": "native_m31_permutation_trace_v2",
+    "cache_key": "d5701a3db042081d",
+    "file": "witness_m31_permutation_trace_d5701a3db042081d.cu",
     "identity_scheme": "sha256-source-and-contract-v1",
-    "kernel_name": "stwo_native_trace_m31_permutation_slab_v1_81b27c7c25216799",
+    "kernel_name": "stwo_native_trace_m31_permutation_slab_v2_92bacae40f1ca782",
     "kind": "witness",
     "label": "m31_permutation_trace",
-    "program_identity": "682f7ebf78af303433d7796b0a4d8fb9ae8930779bdc466c418683a27721426d",
-    "semantic_contract": "stwo-zig/native/m31-permutation-trace/v1;field=m31;state_width=16;geometry=row_count=2^log_n_rows,column_count=replication_count*(16*(1+2*half_full_rounds)+partial_rounds);initial=from_u64(row*initial_row_stride+state+rep*initial_rep_stride);external=add(base+round*round_stride+state),m4x4,interblock_sum,pow5,store16;partial=state0+base+round*stride,internal_diag_pow2_plus_sum,pow5_state0,store1;layout=column_major_slab[column*stride+row];launches=1",
-    "semantic_hash": "81b27c7c25216799"
+    "program_identity": "102ef585ed348ab618d1c157a77117cac2eabf390f16e1c822a8c835ca4cd68a",
+    "semantic_contract": "stwo-zig/native/m31-permutation-trace/v2;field=m31;state_width=16;geometry=row_count=2^log_n_rows,column_count=replication_count*(16*(1+2*half_full_rounds)+partial_rounds);initial=from_u64(row*initial_row_stride+state+rep*initial_rep_stride);external=add(base+round*round_stride+state*lane_stride),m4x4,interblock_sum,pow5,store16;partial=state0+base+round*stride,internal_diag_pow2_plus_sum,pow5_state0,store1;layout=column_major_slab[column*stride+row];launches=1",
+    "semantic_hash": "92bacae40f1ca782"
   },
   {
     "abi_schema": "native_seeded_xorshift_trace_v1",
