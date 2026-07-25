@@ -9,13 +9,59 @@
 namespace {
 
 constexpr std::uint32_t kInteractionBlock = 128u;
-constexpr std::uint32_t kMainColumns[8] = {
-    384u, 384u, 384u, 256u, 16u, 16u, 16u, 1u,
-};
-constexpr std::uint32_t kSecureColumns[8] = {
-    6u, 65u, 65u, 128u, 8u, 8u, 8u, 1u,
-};
-constexpr std::uint32_t kFixedLogs[5] = {16u, 14u, 12u, 10u, 8u};
+
+__device__ __forceinline__ std::uint32_t main_columns(
+    std::uint32_t component_index) {
+  switch (component_index) {
+    case 0u:
+    case 1u:
+    case 2u:
+      return 384u;
+    case 3u:
+      return 256u;
+    case 4u:
+    case 5u:
+    case 6u:
+      return 16u;
+    default:
+      return 1u;
+  }
+}
+
+__device__ __forceinline__ std::uint32_t secure_columns(
+    std::uint32_t component_index) {
+  switch (component_index) {
+    case 0u:
+      return 6u;
+    case 1u:
+    case 2u:
+      return 65u;
+    case 3u:
+      return 128u;
+    case 4u:
+    case 5u:
+    case 6u:
+      return 8u;
+    default:
+      return 1u;
+  }
+}
+
+__device__ __forceinline__ std::uint32_t fixed_log(
+    std::uint32_t component_index) {
+  switch (component_index) {
+    case 3u:
+      return 16u;
+    case 4u:
+      return 14u;
+    case 5u:
+      return 12u;
+    case 6u:
+      return 10u;
+    default:
+      return 8u;
+  }
+}
 
 struct BaseFu32 {
   std::uint32_t low;
@@ -341,7 +387,9 @@ __device__ __forceinline__ void generate_xor_fractions(
   }
 }
 
-__global__ void __launch_bounds__(kInteractionBlock)
+}  // namespace
+
+extern "C" __global__ void __launch_bounds__(kInteractionBlock)
 stwo_native_interaction_blake_exact_pairs_v1(
     const std::uint32_t *main_source, u64 main_words,
     const std::uint32_t *preprocessed_source, u64 preprocessed_words,
@@ -358,13 +406,17 @@ stwo_native_interaction_blake_exact_pairs_v1(
       component_index == 0u ? log_n_rows :
       component_index == 1u ? log_n_rows + 3u :
       component_index == 2u ? log_n_rows + 1u :
-      kFixedLogs[component_index - 3u];
+      fixed_log(component_index);
   const u64 rows = 1ull << component_log;
   const bool is_xor = component_index >= 3u;
-  if (main_words != rows * kMainColumns[component_index] ||
-      output_words != rows * 4ull * kSecureColumns[component_index] ||
+  const std::uint32_t component_main_columns =
+      main_columns(component_index);
+  const std::uint32_t component_secure_columns =
+      secure_columns(component_index);
+  if (main_words != rows * component_main_columns ||
+      output_words != rows * 4ull * component_secure_columns ||
       denominator_word_count !=
-          rows * 4ull * kSecureColumns[component_index] ||
+          rows * 4ull * component_secure_columns ||
       (is_xor && (preprocessed_source == nullptr ||
                   preprocessed_words != rows * 3ull)) ||
       (!is_xor && preprocessed_words != 0ull)) {
@@ -386,5 +438,3 @@ stwo_native_interaction_blake_exact_pairs_v1(
         denominators, component_index - 3u);
   }
 }
-
-}  // namespace
