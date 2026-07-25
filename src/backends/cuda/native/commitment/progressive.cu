@@ -129,6 +129,61 @@ __global__ void progressive_absorb_kernel(
     STWO_STORE_PROGRESSIVE(state);
 }
 
+__device__ __forceinline__ uint32_t lifted_column_index(
+    uint32_t lifted_index,
+    uint32_t log_ratio) {
+    if (log_ratio == 0) return lifted_index;
+    return ((lifted_index >> (log_ratio + 1u)) << 1u) |
+        (lifted_index & 1u);
+}
+
+__global__ void progressive_absorb_lifted_kernel(
+    uint32_t size,
+    uint32_t column_count,
+    uint32_t absorbed_before,
+    uint32_t log_ratio,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    ProgressiveState *states) {
+    const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= size) return;
+
+    ProgressiveState &state = states[row];
+    STWO_LOAD_PROGRESSIVE(state);
+    uint32_t pending = pending_words(absorbed_before);
+    uint64_t compressed_bytes = kDomainPrefixBytes +
+        static_cast<uint64_t>(absorbed_before - pending) * sizeof(uint32_t);
+    const uint32_t source_row = lifted_column_index(row, log_ratio);
+    for (uint32_t column = 0; column < column_count; ++column) {
+        if (pending == 16) {
+            compressed_bytes += 64;
+            STWO_COMPRESS_PROGRESSIVE(compressed_bytes, 0);
+            pending = 0;
+        }
+        const uint32_t word = columns[
+            static_cast<size_t>(column) * column_stride_words + source_row];
+        switch (pending++) {
+            case 0: p0 = word; break;
+            case 1: p1 = word; break;
+            case 2: p2 = word; break;
+            case 3: p3 = word; break;
+            case 4: p4 = word; break;
+            case 5: p5 = word; break;
+            case 6: p6 = word; break;
+            case 7: p7 = word; break;
+            case 8: p8 = word; break;
+            case 9: p9 = word; break;
+            case 10: p10 = word; break;
+            case 11: p11 = word; break;
+            case 12: p12 = word; break;
+            case 13: p13 = word; break;
+            case 14: p14 = word; break;
+            default: p15 = word; break;
+        }
+    }
+    STWO_STORE_PROGRESSIVE(state);
+}
+
 __global__ void progressive_finalize_kernel(
     uint32_t size,
     uint32_t absorbed_columns,
@@ -354,6 +409,55 @@ extern "C" int stwo_blake2s_progressive_absorb_on(
             size,
             column_count,
             absorbed_before,
+            columns,
+            column_stride_words,
+            states);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_blake2s_progressive_absorb_lifted_on(
+    uint32_t size,
+    uint32_t source_size,
+    uint32_t absorbed_before,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
+    stwo::cuda::blake2s::ProgressiveState *states,
+    void *stream) {
+    using namespace stwo::cuda::blake2s;
+    DeviceRange column_range{};
+    DeviceRange state_range{};
+    uint32_t column_count = 0;
+    if (stream == nullptr ||
+        source_size < 2 ||
+        (source_size & (source_size - 1u)) != 0 ||
+        (size & (size - 1u)) != 0 ||
+        source_size > size ||
+        !exact_word_slab_range(
+            columns,
+            column_capacity_words,
+            column_stride_words,
+            source_size,
+            &column_count,
+            &column_range) ||
+        !element_range(states, size, &state_range) ||
+        absorbed_before > UINT32_MAX - column_count ||
+        ranges_overlap(column_range, state_range)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    uint32_t log_ratio = 0;
+    for (uint32_t ratio = size / source_size; ratio > 1; ratio >>= 1) {
+        ++log_ratio;
+    }
+    progressive_absorb_lifted_kernel<<<
+        blocks_for(size),
+        kBlockSize,
+        0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(
+            size,
+            column_count,
+            absorbed_before,
+            log_ratio,
             columns,
             column_stride_words,
             states);

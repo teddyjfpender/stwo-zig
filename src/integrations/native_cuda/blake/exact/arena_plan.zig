@@ -1,6 +1,10 @@
 //! Lifetime-sealed proof arena for exact mixed-height CUDA Blake.
 
 const std = @import("std");
+const field = @import("../../../../backends/cuda/abi/field.zig");
+const quotient_abi = @import(
+    "../../../../backends/cuda/abi/stages/quotient.zig",
+);
 const arena = @import("../../../../backends/cuda/runtime/arena.zig");
 const telemetry = @import("../../../../backends/cuda/runtime/telemetry.zig");
 const geometry_mod = @import("geometry.zig");
@@ -93,8 +97,40 @@ pub const Prepared = struct {
         );
         try requireWords(
             self,
+            slots.commitment_states,
+            try progressiveStateWords(self.geometry.query_log),
+        );
+        try requireWords(
+            self,
             slots.sampled_values,
-            geometry_mod.sampled_value_count * 4,
+            try typedWords(
+                field.SecureField,
+                geometry_mod.sampled_value_count,
+            ),
+        );
+        try requireWords(
+            self,
+            slots.oods_points,
+            try typedWords(
+                field.SecureCirclePoint,
+                geometry_mod.sampled_value_count,
+            ),
+        );
+        try requireWords(
+            self,
+            slots.quotient_descriptors,
+            try typedWords(
+                quotient_abi.PreparedTermDescriptor,
+                geometry_mod.sampled_value_count,
+            ),
+        );
+        try requireWords(
+            self,
+            slots.quotient_term_points,
+            try typedWords(
+                field.SecureCirclePoint,
+                geometry_mod.sampled_value_count,
+            ),
         );
     }
 };
@@ -118,6 +154,15 @@ pub fn buildRequirements(
     );
     try add(&result, allocator, slots.interaction_denominators, relation_words, .constraint_evaluation, .constraint_evaluation);
     try add(&result, allocator, slots.interaction_batch_prefix, relation_words, .constraint_evaluation, .constraint_evaluation);
+    try addAligned(
+        &result,
+        allocator,
+        slots.commitment_states,
+        try progressiveStateWords(geometry.query_log),
+        8,
+        .trace_commit,
+        .constraint_evaluation,
+    );
 
     try addTree(
         &result,
@@ -186,25 +231,28 @@ pub fn buildRequirements(
         .constraint_evaluation,
     );
 
-    try add(&result, allocator, slots.constraint_random_powers, geometry_mod.constraint_count * 4, .constraint_evaluation, .constraint_evaluation);
+    try add(&result, allocator, slots.constraint_random_powers, try typedWords(field.SecureField, geometry_mod.constraint_count), .constraint_evaluation, .constraint_evaluation);
     try add(&result, allocator, slots.constraint_denominator_inverses, geometry_mod.component_count * 2, .constraint_evaluation, .constraint_evaluation);
-    try add(&result, allocator, slots.constraint_component_partials, geometry_mod.component_count * query_rows * 4, .constraint_evaluation, .constraint_evaluation);
+    try add(&result, allocator, slots.constraint_component_partials, try typedWords(field.SecureField, try checkedMul(geometry_mod.component_count, query_rows)), .constraint_evaluation, .constraint_evaluation);
 
-    const sample_words = geometry_mod.sampled_value_count * 4;
-    try add(&result, allocator, slots.oods_parameter, 4, .oods, .quotient);
-    try add(&result, allocator, slots.oods_points, geometry_mod.sampled_value_count * 4, .oods, .quotient);
+    const sample_words = try typedWords(
+        field.SecureField,
+        geometry_mod.sampled_value_count,
+    );
+    try add(&result, allocator, slots.oods_parameter, try typedWords(field.SecureField, 1), .oods, .quotient);
+    try add(&result, allocator, slots.oods_points, try typedWords(field.SecureCirclePoint, geometry_mod.sampled_value_count), .oods, .quotient);
     try add(&result, allocator, slots.oods_fold_counts, geometry_mod.sampled_value_count, .ingress, .oods);
     try add(&result, allocator, slots.oods_output_indices, geometry_mod.sampled_value_count, .ingress, .oods);
     try add(&result, allocator, slots.oods_scratch_a, sample_words, .oods, .oods);
     try add(&result, allocator, slots.oods_scratch_b, sample_words, .oods, .oods);
     try add(&result, allocator, slots.sampled_values, sample_words, .oods, .proof_assembly);
 
-    try add(&result, allocator, slots.quotient_challenge, 4, .oods, .quotient);
-    try add(&result, allocator, slots.quotient_descriptors, geometry_mod.sampled_value_count * 8, .ingress, .quotient);
-    try add(&result, allocator, slots.quotient_term_points, geometry_mod.sampled_value_count * 4, .quotient, .quotient);
-    try add(&result, allocator, slots.quotient_line_coefficients, geometry_mod.sampled_value_count * 12, .quotient, .quotient);
-    try add(&result, allocator, slots.quotient_partials, query_rows * 4, .quotient, .quotient);
-    try add(&result, allocator, slots.quotient_coordinates, query_rows * 4, .quotient, .decommit);
+    try add(&result, allocator, slots.quotient_challenge, try typedWords(field.SecureField, 1), .oods, .quotient);
+    try add(&result, allocator, slots.quotient_descriptors, try typedWords(quotient_abi.PreparedTermDescriptor, geometry_mod.sampled_value_count), .ingress, .quotient);
+    try add(&result, allocator, slots.quotient_term_points, try typedWords(field.SecureCirclePoint, geometry_mod.sampled_value_count), .quotient, .quotient);
+    try add(&result, allocator, slots.quotient_line_coefficients, try typedWords(field.SecureField, try checkedMul(geometry_mod.sampled_value_count, 3)), .quotient, .quotient);
+    try add(&result, allocator, slots.quotient_partials, try typedWords(field.SecureField, query_rows), .quotient, .quotient);
+    try add(&result, allocator, slots.quotient_coordinates, try typedWords(field.SecureField, query_rows), .quotient, .decommit);
 
     var layer_log = geometry.query_log;
     for (0..geometry.fri_tree_count) |index| {
@@ -213,7 +261,7 @@ pub fn buildRequirements(
             &result,
             allocator,
             slots.friCoordinates(index),
-            layer_rows * 4,
+            try typedWords(field.SecureField, layer_rows),
             if (index == 0) .quotient else .fri_commit,
             .decommit,
         );
@@ -230,7 +278,7 @@ pub fn buildRequirements(
             &result,
             allocator,
             slots.friLayers(index),
-            (layer_log + 1) * 2,
+            try merkleLayerWords(layer_log),
             2,
             .fri_commit,
             .decommit,
@@ -267,7 +315,15 @@ fn addTree(
     try add(result, allocator, coefficient_slot, source_words, commit_stage, .oods);
     try add(result, allocator, lde_slot, source_words * 2, commit_stage, .decommit);
     try addAligned(result, allocator, hash_slot, try hashWords(commitment_rows), 8, commit_stage, .decommit);
-    try addAligned(result, allocator, layer_slot, (geometry.treeCommitmentLog(tree) + 1) * 2, 2, commit_stage, .decommit);
+    try addAligned(
+        result,
+        allocator,
+        layer_slot,
+        try merkleLayerWords(geometry.treeCommitmentLog(tree)),
+        2,
+        commit_stage,
+        .decommit,
+    );
 }
 
 fn terminalBundleCapacity(geometry: geometry_mod.Geometry) !usize {
@@ -313,7 +369,37 @@ fn hashWords(rows: usize) !usize {
             return error.GeometryOverflow,
         1,
     ) catch return error.GeometryOverflow;
-    return std.math.mul(usize, hashes, 8) catch error.GeometryOverflow;
+    return typedWords(field.Blake2sHash, hashes);
+}
+
+fn progressiveStateWords(log_rows: u32) !usize {
+    return typedWords(
+        field.ProgressiveBlake2sState,
+        try rowsAtLog(log_rows),
+    );
+}
+
+fn merkleLayerWords(log_rows: u32) !usize {
+    const descriptors = std.math.add(
+        usize,
+        std.math.cast(usize, log_rows) orelse
+            return error.GeometryOverflow,
+        1,
+    ) catch return error.GeometryOverflow;
+    return typedWords(field.MerkleLayerDescriptor, descriptors);
+}
+
+fn typedWords(comptime F: type, count: usize) !usize {
+    comptime std.debug.assert(@sizeOf(F) % @sizeOf(u32) == 0);
+    return std.math.mul(
+        usize,
+        count,
+        @sizeOf(F) / @sizeOf(u32),
+    ) catch error.GeometryOverflow;
+}
+
+fn checkedMul(left: usize, right: usize) !usize {
+    return std.math.mul(usize, left, right) catch error.GeometryOverflow;
 }
 
 fn rowsAtLog(log_rows: u32) !usize {
@@ -406,6 +492,38 @@ test "exact Blake arena seals all mixed-height trees and terminal read" {
         telemetry.Stage.proof_assembly,
         (try prepared.placement(slots.proof_bundle))
             .requirement.live_from,
+    );
+    try std.testing.expectEqual(
+        (@as(usize, geometry.treeCommitmentLog(.main)) + 1) * 4,
+        (try prepared.placement(slots.main_layers)).requirement.words,
+    );
+    const commitment_states =
+        (try prepared.placement(slots.commitment_states)).requirement;
+    try std.testing.expectEqual(
+        (@as(usize, 1) << @intCast(geometry.query_log)) * 24,
+        commitment_states.words,
+    );
+    try std.testing.expectEqual(
+        telemetry.Stage.trace_commit,
+        commitment_states.live_from,
+    );
+    try std.testing.expectEqual(
+        telemetry.Stage.constraint_evaluation,
+        commitment_states.live_through,
+    );
+    try std.testing.expectEqual(
+        geometry_mod.sampled_value_count * 8,
+        (try prepared.placement(slots.oods_points)).requirement.words,
+    );
+    try std.testing.expectEqual(
+        geometry_mod.sampled_value_count * 5,
+        (try prepared.placement(slots.quotient_descriptors))
+            .requirement.words,
+    );
+    try std.testing.expectEqual(
+        geometry_mod.sampled_value_count * 8,
+        (try prepared.placement(slots.quotient_term_points))
+            .requirement.words,
     );
 }
 

@@ -7,6 +7,10 @@ const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
 
 pub const Error = runtime_error.Error || error{InvalidMerkleLayout};
+pub const LiftedSegment = struct {
+    columns: common.WordMatrix,
+    source_size: u32,
+};
 // One cooperative block wins only after the remaining tree fits this range.
 const upper_tail_max_input_hashes: usize = 512;
 const upper_tail_min_levels: usize = 2;
@@ -64,6 +68,65 @@ pub fn BuilderFor(comptime Ops: type) type {
                 );
                 absorbed_before += @intCast(
                     segment.storage.len / segment.column_stride_words,
+                );
+            }
+            try Ops.progressiveFinalize(
+                session,
+                stage,
+                absorbed,
+                states,
+                leaves,
+            );
+            return reduce(session, stage, hashes, layers);
+        }
+
+        /// Commit packed mixed-height groups without materializing max-height
+        /// columns. Segment order is the exact leaf message order.
+        pub fn baseFieldLiftedSegmented(
+            session: anytype,
+            stage: telemetry.Stage,
+            size: u32,
+            segments: []const LiftedSegment,
+            states: common.ProgressiveStates,
+            hashes: common.Hashes,
+            layers: []const field.MerkleLayerDescriptor,
+        ) Error!common.Hashes {
+            if (segments.len == 0 or states.len != size)
+                return error.InvalidMerkleLayout;
+            try validateLayout(size, hashes.len, layers);
+            var absorbed: u32 = 0;
+            for (segments) |segment| {
+                if (!std.math.isPowerOfTwo(segment.source_size) or
+                    segment.source_size < 2 or
+                    segment.source_size > size)
+                {
+                    return error.InvalidMerkleLayout;
+                }
+                try validateMatrix(segment.source_size, segment.columns);
+                const columns = std.math.cast(
+                    u32,
+                    segment.columns.storage.len /
+                        segment.columns.column_stride_words,
+                ) orelse return error.InvalidMerkleLayout;
+                absorbed = std.math.add(u32, absorbed, columns) catch
+                    return error.InvalidMerkleLayout;
+            }
+            const leaves = try layerSlice(hashes, layers[0]);
+            try Ops.progressiveInit(session, stage, states);
+            var absorbed_before: u32 = 0;
+            for (segments) |segment| {
+                try Ops.progressiveAbsorbLifted(
+                    session,
+                    stage,
+                    size,
+                    segment.source_size,
+                    absorbed_before,
+                    segment.columns,
+                    states,
+                );
+                absorbed_before += @intCast(
+                    segment.columns.storage.len /
+                        segment.columns.column_stride_words,
                 );
             }
             try Ops.progressiveFinalize(
@@ -264,6 +327,25 @@ test "resident builder uses one sealed layout for base and FRI trees" {
             finalize_calls += 1;
         }
 
+        pub fn progressiveAbsorbLifted(
+            _: anytype,
+            _: telemetry.Stage,
+            size: u32,
+            source_size: u32,
+            absorbed: u32,
+            columns: common.WordMatrix,
+            _: common.ProgressiveStates,
+        ) !void {
+            try std.testing.expectEqual(@as(u32, 8), size);
+            try std.testing.expect(
+                (source_size == 2 and absorbed == 0 and
+                    columns.storage.len == 2) or
+                    (source_size == 4 and absorbed == 1 and
+                        columns.storage.len == 8),
+            );
+            absorb_calls += 1;
+        }
+
         pub fn friLeaves(
             _: anytype,
             _: common.WordMatrix,
@@ -341,6 +423,38 @@ test "resident builder uses one sealed layout for base and FRI trees" {
     try std.testing.expectEqual(@as(usize, 0), FakeOps.absorb_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeOps.finalize_calls);
     try std.testing.expectEqual(@as(usize, 0), FakeOps.layer_calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeOps.tail_calls);
+
+    FakeOps.reset();
+    const lifted_segments = [_]LiftedSegment{
+        .{
+            .columns = .{
+                .storage = .{ .address = 0x6000, .len = 2, .owner = 1 },
+                .column_stride_words = 2,
+            },
+            .source_size = 2,
+        },
+        .{
+            .columns = .{
+                .storage = .{ .address = 0x7000, .len = 8, .owner = 1 },
+                .column_stride_words = 4,
+            },
+            .source_size = 4,
+        },
+    };
+    const lifted_root = try Builder.baseFieldLiftedSegmented(
+        &session,
+        .trace_commit,
+        8,
+        &lifted_segments,
+        states,
+        hashes,
+        &layers,
+    );
+    try std.testing.expectEqual(@as(usize, 1), lifted_root.len);
+    try std.testing.expectEqual(@as(usize, 1), FakeOps.init_calls);
+    try std.testing.expectEqual(@as(usize, 2), FakeOps.absorb_calls);
+    try std.testing.expectEqual(@as(usize, 1), FakeOps.finalize_calls);
     try std.testing.expectEqual(@as(usize, 1), FakeOps.tail_calls);
 
     FakeOps.reset();

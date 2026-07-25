@@ -152,6 +152,7 @@
       "stwo_blake2s_interior4_on",
       "stwo_blake2s_layer_on",
       "stwo_blake2s_pow_persistent_on",
+      "stwo_blake2s_progressive_absorb_lifted_on",
       "stwo_blake2s_progressive_absorb_on",
       "stwo_blake2s_progressive_finalize_on",
       "stwo_blake2s_progressive_init_on",

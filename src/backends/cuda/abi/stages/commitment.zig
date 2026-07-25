@@ -36,6 +36,17 @@ pub extern "c" fn stwo_blake2s_progressive_absorb_on(
     stream: *anyopaque,
 ) c_int;
 
+pub extern "c" fn stwo_blake2s_progressive_absorb_lifted_on(
+    size: u32,
+    source_size: u32,
+    absorbed_columns_before: u32,
+    columns: [*]const u32,
+    column_stride_words: usize,
+    column_capacity_words: usize,
+    states: [*]field.ProgressiveBlake2sState,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_blake2s_progressive_finalize_on(
     size: u32,
     absorbed_columns: u32,

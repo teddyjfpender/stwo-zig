@@ -101,6 +101,64 @@ pub fn OpsFor(comptime Api: type) type {
             try common.record(session, stage, status);
         }
 
+        /// Absorb one contiguous variable-height group into a lifted leaf
+        /// domain. `columns` remains packed at `source_size`; no expanded
+        /// pointer table or padded max-height matrix is admitted.
+        pub fn progressiveAbsorbLifted(
+            session: anytype,
+            stage: telemetry.Stage,
+            size: u32,
+            source_size: u32,
+            absorbed_columns_before: u32,
+            columns: common.WordMatrix,
+            states: common.ProgressiveStates,
+        ) runtime_error.Error!void {
+            try requireCommitStage(stage);
+            try common.requireStage(session, stage);
+            if (!std.math.isPowerOfTwo(size) or
+                !std.math.isPowerOfTwo(source_size) or
+                source_size < 2 or
+                source_size > size)
+            {
+                return error.InvalidKernelDescriptor;
+            }
+            const source = try layout.wordMatrix(
+                session,
+                columns,
+                source_size,
+            );
+            _ = std.math.add(
+                u32,
+                absorbed_columns_before,
+                source.column_count,
+            ) catch return error.SizeOverflow;
+            const state_values = try layout.resident(
+                session,
+                field.ProgressiveBlake2sState,
+                states,
+                size,
+            );
+            const source_capacity = try layout.elementRange(
+                columns.storage.address,
+                columns.storage.len,
+                @sizeOf(u32),
+            );
+            if (layout.overlap(source_capacity, state_values.range))
+                return error.OverlappingDeviceRange;
+            const status =
+                Api.stwo_blake2s_progressive_absorb_lifted_on(
+                    size,
+                    source_size,
+                    absorbed_columns_before,
+                    source.pointer,
+                    source.stride_words,
+                    columns.storage.len,
+                    state_values.pointer,
+                    session.context.stream,
+                );
+            try common.record(session, stage, status);
+        }
+
         pub fn progressiveFinalize(
             session: anytype,
             stage: telemetry.Stage,
