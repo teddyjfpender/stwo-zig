@@ -360,7 +360,7 @@ fn previousRowPoint(log_size: u32, point: CirclePointQM31) CirclePointQM31 {
     });
 }
 
-test "State Machine component exposes one exact transition constraint" {
+test "State Machine component owns and releases its exact trace geometry" {
     const component = Component{
         .log_size = 5,
         .coordinate = 0,
@@ -371,7 +371,7 @@ test "State Machine component exposes one exact transition constraint" {
     };
     try std.testing.expectEqual(@as(usize, 1), component.nConstraints());
     var bounds = try component.traceLogDegreeBounds(std.testing.allocator);
-    defer bounds.deinit(std.testing.allocator);
+    defer bounds.deinitDeep(std.testing.allocator);
     try std.testing.expectEqual(@as(usize, 2), bounds.items[1].len);
     try std.testing.expectEqual(@as(usize, 4), bounds.items[2].len);
 }
