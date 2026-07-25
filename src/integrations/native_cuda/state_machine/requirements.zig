@@ -92,6 +92,14 @@ pub fn build(
     try add(
         &output,
         allocator,
+        slots.relation_source_values,
+        try mul(geometry_mod.relation_source_columns, rows),
+        .trace_generation,
+        .constraint_evaluation,
+    );
+    try add(
+        &output,
+        allocator,
         slots.source_evaluations,
         try mul(geometry_mod.source_columns, committed_rows),
         .trace_commit,

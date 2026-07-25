@@ -55,6 +55,20 @@ test "exact CUDA State Machine v2 resident binding is a four-tree relation graph
             bound.constraint_buffers.source_evaluations.column_stride_words,
     );
     try std.testing.expectEqual(
+        @as(usize, exact.geometry.relation_source_columns),
+        bound.relation.source_values.storage.len /
+            bound.relation.source_values.column_stride_words,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 1 << 8),
+        bound.relation.source_values.column_stride_words,
+    );
+    try std.testing.expect(
+        bound.relation.source_values.storage.address !=
+            (try bound.base.trees.require(.main))
+                .coefficients.storage.address,
+    );
+    try std.testing.expectEqual(
         exact.geometry.terminal_statement_words,
         bound.base.proof.statement.len,
     );

@@ -8,6 +8,7 @@ pub const preprocessed_columns: u32 = 0;
 pub const main_columns: u32 = 4;
 pub const interaction_columns: u32 = 8;
 pub const composition_columns: u32 = 8;
+pub const relation_source_columns: u32 = 4;
 pub const source_columns: u32 =
     preprocessed_columns + main_columns +
     interaction_columns + composition_columns;

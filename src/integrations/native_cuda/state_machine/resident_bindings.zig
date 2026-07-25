@@ -57,6 +57,7 @@ pub const RelationInstance = struct {
 pub const Relation = struct {
     buffers: relation_stage.DeviceBuffers,
     instances: [relation_mod.instance_count]RelationInstance,
+    source_values: common.WordMatrix,
     claimed_sums: common.SecureFields,
 
     pub fn bindings(
@@ -84,8 +85,15 @@ pub fn bind(
     const base = try SharedBinding.bind(provider, prepared);
     const geometry = prepared.logical.geometry;
     const rows = try geometry.traceRowCount();
-    const main = try base.trees.require(.main);
     const interaction = try base.trees.require(.interaction);
+    const source_values = common.WordMatrix{
+        .storage = try exactWords(
+            provider,
+            slots.relation_source_values,
+            geometry_mod.relation_source_columns * rows,
+        ),
+        .column_stride_words = rows,
+    };
     const lookup_elements = try exactAs(
         provider,
         field.SecureField,
@@ -123,7 +131,7 @@ pub fn bind(
     );
 
     const x_instance = try relationInstance(
-        main,
+        source_values,
         interaction,
         0,
         0,
@@ -136,7 +144,7 @@ pub fn bind(
         try claimed_sums.sub(0, 1),
     );
     const y_instance = try relationInstance(
-        main,
+        source_values,
         interaction,
         2,
         4,
@@ -223,6 +231,7 @@ pub fn bind(
                 ),
             },
             .instances = .{ x_instance, y_instance },
+            .source_values = source_values,
             .claimed_sums = claimed_sums,
         },
         .constraint_buffers = .{
@@ -252,7 +261,7 @@ pub fn bind(
 }
 
 fn relationInstance(
-    main: @import("../common/resident_views.zig").TraceTree,
+    source_values: common.WordMatrix,
     interaction: @import("../common/resident_views.zig").TraceTree,
     main_first: usize,
     interaction_first: usize,
@@ -275,8 +284,8 @@ fn relationInstance(
     }
     return .{
         .source_columns = .{
-            try coefficientColumn(main, main_first, rows),
-            try coefficientColumn(main, main_first + 1, rows),
+            try matrixColumn(source_values, main_first, rows),
+            try matrixColumn(source_values, main_first + 1, rows),
         },
         .output_coordinates = outputs,
         .source_pointer_table = try source_pointer_storage.sub(
@@ -298,6 +307,23 @@ fn relationInstance(
         ),
         .claimed_sum = claimed_sum,
     };
+}
+
+fn matrixColumn(
+    matrix: common.WordMatrix,
+    index: usize,
+    rows: usize,
+) !Words {
+    if (matrix.column_stride_words < rows or
+        matrix.storage.len % matrix.column_stride_words != 0 or
+        index >= matrix.storage.len / matrix.column_stride_words)
+    {
+        return error.InvalidKernelDescriptor;
+    }
+    return matrix.storage.sub(
+        index * matrix.column_stride_words,
+        rows,
+    );
 }
 
 fn coefficientColumn(

@@ -5,7 +5,10 @@ const common = @import(
 );
 const geometry_mod = @import("geometry.zig");
 
-pub const Buffers = common.WordMatrix;
+pub const Buffers = struct {
+    main: common.WordMatrix,
+    relation_sources: common.WordMatrix,
+};
 
 /// The legacy affine kernel emits one uniform component plus an indicator
 /// column. State v2 requires two differently sized components and no
@@ -23,12 +26,22 @@ pub fn generate(
 test "State v2 trace generation does not reuse the legacy AOT recipe" {
     const std = @import("std");
     const empty = Buffers{
-        .storage = .{
-            .address = 0,
-            .len = 0,
-            .owner = 0,
+        .main = .{
+            .storage = .{
+                .address = 0,
+                .len = 0,
+                .owner = 0,
+            },
+            .column_stride_words = 0,
         },
-        .column_stride_words = 0,
+        .relation_sources = .{
+            .storage = .{
+                .address = 0,
+                .len = 0,
+                .owner = 0,
+            },
+            .column_stride_words = 0,
+        },
     };
     try std.testing.expectError(
         error.StateMachineV2AotUnavailable,

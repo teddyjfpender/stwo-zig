@@ -9,6 +9,7 @@ pub const application = "state_machine";
 pub const legacy_protocol_name = cuda.legacy_protocol_name;
 pub const exact_protocol_name = cuda.exact_protocol_name;
 pub const exact_protocol_available = cuda.exact_protocol_available;
+pub const protocol_name = exact_protocol_name;
 
 comptime {
     if (!std.mem.eql(
@@ -153,16 +154,17 @@ fn deriveStatement(
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[0],
-        &.{log_rows},
+        &.{},
         &channel,
     );
+    channel.mixU64(log_rows);
+    channel.mixU64(log_rows - 1);
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[1],
-        &.{ log_rows, log_rows },
+        &.{ log_rows, log_rows, log_rows - 1, log_rows - 1 },
         &channel,
     );
-    channel.mixU32s(&.{ log_rows, log_rows - 1 });
     const elements = try stwo.examples.state_machine.Elements.draw(allocator, &channel);
     return stwo.examples.state_machine.prepareStatement(
         log_rows,

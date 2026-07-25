@@ -22,7 +22,10 @@ pub fn generate(
 ) !void {
     try device_trace.generate(
         transaction.proofSession(),
-        (try views.base.trees.require(.main)).coefficients,
+        .{
+            .main = (try views.base.trees.require(.main)).coefficients,
+            .relation_sources = views.relation.source_values,
+        },
         prepared.logical.geometry,
     );
 }
