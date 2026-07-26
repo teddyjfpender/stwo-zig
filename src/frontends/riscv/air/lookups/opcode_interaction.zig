@@ -556,12 +556,10 @@ test "opcode interaction rejects malformed committed geometry" {
 test "opcode interaction matches scalar prefixes for every family" {
     const allocator = std.testing.allocator;
     const relations = relations_mod.Relations.dummy();
-    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 6, 6, 4, 8, 16, 22, 22, 2 };
-    const expected_batch_sizes = [_]usize{ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2 };
+    // The batch geometry itself is pinned once, by `opcode_entries.zig`. This
+    // test owns scalar parity of the generated interaction columns.
     for (0..trace.N_FAMILIES) |index| {
         const family: trace.OpcodeFamily = @enumFromInt(index);
-        try std.testing.expectEqual(expected_batches[index], opcode_entries.batchCount(family));
-        try std.testing.expectEqual(expected_batch_sizes[index], opcode_entries.batchSize(family));
         try expectScalarParity(
             allocator,
             family,

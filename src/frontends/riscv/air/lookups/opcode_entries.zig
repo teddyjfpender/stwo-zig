@@ -21,7 +21,9 @@ pub fn entryCount(family: trace.OpcodeFamily) usize {
         .branch_lt => 11,
         .lui => 7,
         .auipc => 12,
-        .jalr => 12,
+        // 12 pinned Stark-V entries plus the rs1 middle-byte range check, an
+        // intentional soundness divergence (see semantics/jalr.zig).
+        .jalr => 13,
         .jal => 8,
         .load_store => 16,
         .mul => 16,
@@ -283,6 +285,9 @@ fn jalr(columns: []const QM31) !List {
     var list = List{};
     addProgram(&list, requests.program);
     entry.access(&list, requests.rs1);
+    // Soundness addition over the pinned vector: without this range_check_8_8
+    // the composed rs1 word (hence the jump target) is a free field element.
+    entry.range88(&list, requests.rs1_middle_bytes.numerator, requests.rs1_middle_bytes.tuple.values());
     entry.rangeM31(&list, requests.rs1_m31.numerator, requests.rs1_m31.tuple.values());
     addState(&list, requests.state);
     entry.range88(&list, requests.rd_middle_bytes.numerator, requests.rd_middle_bytes.tuple.values());
@@ -395,8 +400,10 @@ fn fence(columns: []const QM31) !List {
 }
 
 test "opcode lookup matrix preserves legacy counts and appends FENCE" {
-    const expected_entries = [_]usize{ 18, 16, 18, 14, 14, 11, 9, 11, 7, 12, 12, 8, 16, 16, 22, 22, 3 };
-    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 6, 6, 4, 8, 16, 22, 22, 2 };
+    // jalr is 13/7, not the legacy 12/6: the rs1 middle-byte range check is an
+    // intentional divergence from the pinned Stark-V vector.
+    const expected_entries = [_]usize{ 18, 16, 18, 14, 14, 11, 9, 11, 7, 12, 13, 8, 16, 16, 22, 22, 3 };
+    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 6, 7, 4, 8, 16, 22, 22, 2 };
     for (0..trace.N_FAMILIES) |index| {
         const family: trace.OpcodeFamily = @enumFromInt(index);
         try std.testing.expectEqual(expected_entries[index], entryCount(family));
@@ -427,8 +434,9 @@ test "opcode lookup vectors preserve exact domain order and batching" {
         &.{ .program_access, .registers_state, .registers_state, .range_check_8_8_4, .memory_access, .memory_access, .range_check_20 },
         // auipc
         &.{ .program_access, .registers_state, .registers_state, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_m31, .range_check_8_8, .range_check_m31, .memory_access, .memory_access, .range_check_20 },
-        // jalr
-        &.{ .program_access, .memory_access, .memory_access, .range_check_20, .range_check_m31, .registers_state, .registers_state, .range_check_8_8, .range_check_m31, .memory_access, .memory_access, .range_check_20 },
+        // jalr (12 pinned entries plus the rs1 middle-byte range_check_8_8
+        // soundness addition before rs1's range_check_m31)
+        &.{ .program_access, .memory_access, .memory_access, .range_check_20, .range_check_8_8, .range_check_m31, .registers_state, .registers_state, .range_check_8_8, .range_check_m31, .memory_access, .memory_access, .range_check_20 },
         // jal
         &.{ .program_access, .registers_state, .registers_state, .range_check_8_8, .range_check_m31, .memory_access, .memory_access, .range_check_20 },
         // load_store
