@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import subprocess
@@ -10,102 +9,29 @@ from unittest import mock
 
 from scripts.riscv_release_gate_lib.contract import (
     BOUNDARIES,
-    ELF_CORPUS_BOUNDARIES,
-    GENERATED_CORPUS_KEYS,
-    IMPLEMENTATION_REPOSITORY,
-    ORACLE_REPOSITORY,
     PINNED_ORACLE,
-    NONEMPTY_RELATION_CASE,
     core_purity_errors,
     divergence_errors,
     divergence_ledger_errors,
     frontend_layering_errors,
     receipt_errors,
-    expected_case_result_keys,
     _relation_case_errors,
 )
 from scripts.riscv_release_gate_lib import controller
 from scripts.riscv_release_gate_lib.controller import command_plan
 from scripts.riscv_release_evidence import _strict_object
-from scripts.tests.riscv_release_receipt_fixture import nonempty_relation_case
+from scripts.tests.riscv_release_receipt_fixture import (
+    TEST_COMMIT as COMMIT,
+    TEST_DIGEST as DIGEST,
+    air_divergence,
+    valid_receipt,
+)
 
 
-COMMIT = "a" * 40
-DIGEST = "b" * 64
-
-def valid_receipt(now: int) -> dict[str, object]:
-    boundaries = {
-        name: {
-            "status": "pass",
-            **({"corpus": [{"name": "alu", "agree": True}]}
-               if name in ELF_CORPUS_BOUNDARIES else {}),
-        }
-        for name in BOUNDARIES
-    }
-    for name in ("relation_tuples", "relation_sums"):
-        boundaries[name]["corpus"][0].update({
-            "proof_admission": {"status": "supported"},
-            "proof_admitted": True,
-            "evidence_mode": "balanced_full",
-        })
-        boundaries[name]["nonempty_public_input"] = nonempty_relation_case(name)
-    keys = expected_case_result_keys(("alu",))
-    digests = {key: DIGEST for key in keys}
-    for boundary in BOUNDARIES:
-        encoded = json.dumps(
-            boundaries[boundary], sort_keys=True, separators=(",", ":")
-        ).encode()
-        digests[f"{boundary}/aggregate"] = hashlib.sha256(encoded).hexdigest()
-        if boundary in ELF_CORPUS_BOUNDARIES:
-            case = boundaries[boundary]["corpus"][0]
-            digests[f"{boundary}/alu"] = hashlib.sha256(
-                json.dumps(case, sort_keys=True, separators=(",", ":")).encode()
-            ).hexdigest()
-            if boundary in {"relation_tuples", "relation_sums"}:
-                special = boundaries[boundary]["nonempty_public_input"]
-                digests[f"{boundary}/{NONEMPTY_RELATION_CASE}"] = hashlib.sha256(
-                    json.dumps(special, sort_keys=True, separators=(",", ":")).encode()
-                ).hexdigest()
-        if boundary in GENERATED_CORPUS_KEYS:
-            digests[GENERATED_CORPUS_KEYS[boundary]] = digests[f"{boundary}/aggregate"]
-    return {
-        "schema": "riscv-oracle-receipt-v2",
-        "candidate_commit": COMMIT,
-        "created_at_unix": now,
-        "witness_layout_digest_sha256": DIGEST,
-        "corpus_digest_sha256": DIGEST,
-        "expected_case_result_keys": keys,
-        "case_result_digests": digests,
-        "verdict": "PASS",
-        "oracle": {
-            "repository": ORACLE_REPOSITORY,
-            "commit": PINNED_ORACLE,
-            "clean": True,
-            "tree_digest_sha256": DIGEST,
-            "lockfile_sha256": DIGEST,
-            "executable_sha256": DIGEST,
-            "toolchain": "rustc 1.90",
-            "build_command": "cargo build --locked --release -p prover",
-            "build_mode": "release",
-            "host_arch": "aarch64",
-            "host_os": "macOS",
-            "submodule_status": [],
-            "adapter_overlay": {
-                "path": "crates/prover/src/bin/cp11_dump.rs",
-                "sha256": DIGEST,
-            },
-        },
-        "implementation": {
-            "repository": IMPLEMENTATION_REPOSITORY,
-            "commit": COMMIT,
-            "clean": True,
-            "executables": {
-                "riscv-trace-dump": DIGEST,
-                "stwo-zig": DIGEST,
-            },
-        },
-        "boundaries": boundaries,
-    }
+AIR_ROW = (
+    f"| {air_divergence.LEDGER_LANE} | {air_divergence.LEDGER_BOUNDARY} | zig | rust "
+    "| Allowed only with the pinned divergence shape. |"
+)
 
 
 class DivergenceContractTests(unittest.TestCase):
@@ -127,6 +53,7 @@ class DivergenceContractTests(unittest.TestCase):
         ledger = self.ledger(
             "| RISC-V | PCS geometry | zig | rust | Allowed only with the self-check. |",
             "| RISC-V | Interaction transcript | zig | rust | Allowed only with the transcript receipt. |",
+            AIR_ROW,
         )
         self.assertEqual([], divergence_ledger_errors(ledger, pinned_oracle="f" * 40))
 
@@ -141,11 +68,27 @@ class DivergenceContractTests(unittest.TestCase):
     def test_architectural_divergences_cannot_be_hidden(self) -> None:
         ledger = self.ledger(
             "| RISC-V | PCS geometry | zig | rust | Allowed only with the self-check. |",
+            AIR_ROW,
         )
         self.assertIn(
             "required architectural divergence is missing: RISC-V / Interaction transcript",
             divergence_ledger_errors(ledger, pinned_oracle="f" * 40),
         )
+
+    def test_air_soundness_row_is_required_not_merely_permitted(self) -> None:
+        """Deleting the row would hide the under-constraints the oracle admits."""
+        ledger = self.ledger(
+            "| RISC-V | PCS geometry | zig | rust | Allowed only with the self-check. |",
+            "| RISC-V | Interaction transcript | zig | rust | Allowed only with the transcript receipt. |",
+        )
+        self.assertIn(
+            "required architectural divergence is missing: "
+            f"{air_divergence.LEDGER_REFERENCE}",
+            divergence_ledger_errors(ledger, pinned_oracle="f" * 40),
+        )
+
+    def test_live_ledger_satisfies_the_machine_read_policy(self) -> None:
+        self.assertEqual([], divergence_errors(Path(__file__).resolve().parents[2]))
 
 
 class LayeringContractTests(unittest.TestCase):

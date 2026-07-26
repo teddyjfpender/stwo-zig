@@ -644,15 +644,12 @@ def build_and_compare(args) -> int:
     compare_execution(oracle_exe, receipt)
     compare_per_family_witness_rows(oracle_exe, receipt, ROOT, PINNED)
     compare_ordered_accesses(oracle_exe, receipt, ROOT, PINNED)
-    cli_admission = compare_public_values(oracle_exe, receipt)
+    compare_public_values(oracle_exe, receipt)
     compare_decode(oracle_exe, receipt)
     compare_program_tuples(oracle_exe, receipt)
     compare_memory_roots(oracle_exe, receipt)
     compare_poseidon2(oracle_exe, receipt)
-    compare_relation_boundaries(
-        oracle_exe, receipt, ROOT, PINNED,
-        admission_arguments=cli_admission.arguments,
-    )
+    compare_relation_boundaries(oracle_exe, receipt, ROOT, PINNED)
     compare_shared_transcript_prefix(oracle_exe, receipt)
     finalize_case_result_digests(receipt)
     require_clean_candidate(ROOT, args.candidate)

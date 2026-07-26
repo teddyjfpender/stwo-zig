@@ -14,6 +14,15 @@
 //! `log_size = ceil(log2(count))`. This gives smaller FFTs per-component and
 //! better cache behavior.
 //!
+//! ## Storage
+//!
+//! Every protocol-capacity-sized value -- statement, opcode column buffers,
+//! interaction scratch, prover components borrowed by `core` -- lives in one
+//! heap `ProofWorkspace` per proof (see `proof_workspace.zig`). `proveStages`
+//! returns `!void` and publishes through an out-pointer so the large proof
+//! output costs one frame slot at the boundary instead of one per
+//! error-propagation site inside the stages.
+//!
 //! ## Usage
 //! ```zig
 //! const result = try proveRiscVWithEngine(
@@ -31,7 +40,6 @@ const stage_profile = @import("stwo_prover_impl").stage_profile;
 const trace_mod = @import("../runner/trace.zig");
 const component_order = @import("../air/component_order.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
-const interaction_gen = @import("../air/interaction_gen.zig");
 const opcode_entries = @import("../air/lookups/opcode_entries.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
@@ -50,8 +58,8 @@ const statement_mod = @import("../air/statement.zig");
 const infra = @import("../infra_trace.zig");
 const proof_transcript = @import("../proof_transcript.zig");
 const lookup_sources = @import("lookup_sources.zig");
-const opcode_trace = @import("opcode_trace.zig");
 const preprocessed_trace = @import("preprocessed.zig");
+const proof_workspace = @import("proof_workspace.zig");
 const relation_diagnostic = @import("relation_diagnostic.zig");
 const proof_finalize = @import("proof_finalize.zig");
 const statement_validation = @import("statement_validation.zig");
@@ -61,6 +69,7 @@ const state_chain = @import("../runner/state_chain.zig");
 const memory_state = @import("../runner/memory_state.zig");
 
 const M31 = m31.M31;
+const ProofWorkspace = proof_workspace.ProofWorkspace;
 const PublicData = types.PublicData;
 const ProveOutput = types.ProveOutput;
 const ProverError = types.ProverError;
@@ -108,6 +117,10 @@ pub fn runRiscVWithEngineAndPublicData(
 /// The ordinary entrypoint above instantiates `Engine.Channel` directly. This
 /// substitution point lets conformance tests observe the exact production
 /// transcript without replaying statement or commitment events.
+///
+/// Owns the per-proof workspace: one allocation, released on every exit path.
+/// The returned output copies workspace-resident results so it outlives
+/// `destroy`; the boxed interaction claim is **transferred** to the caller.
 pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     comptime Engine: type,
     comptime mode: RunMode,
@@ -122,6 +135,45 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     test_mutation: ?TestWitnessMutation,
 ) !RunOutput(mode) {
     comptime prover_engine.assertProverEngine(Engine);
+    const workspace = try ProofWorkspace.create(allocator);
+    defer workspace.destroy(allocator);
+
+    var output: RunOutput(mode) = undefined;
+    try proveStages(
+        Engine,
+        mode,
+        workspace,
+        &output,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        channel,
+        test_mutation,
+    );
+    return output;
+}
+
+/// Executes every proving stage against workspace-resident storage. `!void` and
+/// the out-pointer are deliberate: see the module note on frame slots.
+fn proveStages(
+    comptime Engine: type,
+    comptime mode: RunMode,
+    workspace: *ProofWorkspace,
+    output: *RunOutput(mode),
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    channel: *Engine.Channel,
+    test_mutation: ?TestWitnessMutation,
+) !void {
     if (exec_trace.step_count == 0) return ProverError.EmptyTrace;
 
     var bound_public_data = public_data;
@@ -209,14 +261,14 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     const counts = try exec_trace.groupByOpcodeFamily(allocator);
 
     // -- Step 2: Build statement with per-family descriptors. --
-    var statement: RiscVStatement = .{
-        .n_components = 0,
-        .component_descs = undefined,
-        .initial_pc = exec_trace.initial_pc,
-        .final_pc = exec_trace.final_pc,
-        .total_steps = @intCast(exec_trace.step_count),
-        .public_data = bound_public_data,
-    };
+    // The statement is workspace-resident: every stage below reads and mutates
+    // this one authoritative copy through the pointer.
+    const statement = &workspace.statement;
+    statement.n_components = 0;
+    statement.initial_pc = exec_trace.initial_pc;
+    statement.final_pc = exec_trace.final_pc;
+    statement.total_steps = @intCast(exec_trace.step_count);
+    statement.public_data = bound_public_data;
 
     for (component_order.opcodeFamilies()) |family| {
         const count = counts.get(family);
@@ -255,8 +307,6 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
 
     // Ordinary RW-memory boundary rows, sharded without changing relation
     // placement. Opcode-side accesses close this bus in a later soundness slice.
-    var memory_shard_count: usize = 0;
-    var memory_shard_lengths: [MAX_INFRA_COMPONENTS]usize = undefined;
     if (boundary_claims) |claims| {
         var remaining = claims.rows.len;
         while (remaining > 0) {
@@ -271,8 +321,8 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
                 .n_columns = memory_trace.N_COLUMNS,
             };
             statement.n_infra += 1;
-            memory_shard_lengths[memory_shard_count] = shard_len;
-            memory_shard_count += 1;
+            workspace.memory_shard_lengths[workspace.memory_shard_count] = shard_len;
+            workspace.memory_shard_count += 1;
             remaining -= shard_len;
         }
     }
@@ -357,7 +407,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         };
         statement.n_infra += 1;
     }
-    try statement_validation.validate(statement, switch (mode) {
+    try workspace.validateStatement(switch (mode) {
         .prove => .proof,
         .relation_diagnostic => .relation_diagnostic,
     });
@@ -387,7 +437,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     {
         var stage = try stage_profile.StageScope.begin(recorder, "riscv_preprocessed_commit", "RISC-V preprocessed trace commit");
         defer stage.end();
-        const preprocessed = try preprocessed_trace.generate(allocator, statement);
+        const preprocessed = try preprocessed_trace.generate(allocator, statement.*);
         var moved = false;
         errdefer if (!moved) {
             for (preprocessed) |column| allocator.free(@constCast(column.values));
@@ -398,7 +448,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             retained_tree0_initialized = true;
         }
         if (test_mutation) |mutation|
-            try test_witness_hook.applyPreprocessed(allocator, statement, preprocessed, mutation);
+            try test_witness_hook.applyPreprocessed(allocator, statement.*, preprocessed, mutation);
         moved = true;
         try Engine.commit(&scheme, allocator, preprocessed, recorder, channel);
     }
@@ -421,33 +471,16 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         }
         allocator.free(main_columns);
     };
-    const OpcodeGenerationWork = struct {
-        allocator: std.mem.Allocator,
-        exec_trace: *const trace_mod.Trace,
-        statement: RiscVStatement,
-        result: opcode_trace.Columns = undefined,
-        err: ?anyerror = null,
 
-        fn run(work: *@This()) void {
-            work.result = opcode_trace.generate(
-                work.allocator,
-                work.exec_trace,
-                work.statement,
-            ) catch |err| {
-                work.err = err;
-                return;
-            };
-        }
-    };
-    const opcode_work = try allocator.create(OpcodeGenerationWork);
-    defer allocator.destroy(opcode_work);
-    opcode_work.* = OpcodeGenerationWork{
-        .allocator = allocator,
-        .exec_trace = exec_trace,
-        .statement = statement,
-    };
+    // Opcode columns are generated into workspace storage, overlapped with
+    // infrastructure generation below. The workspace outlives both the helper
+    // thread and every borrow taken from the generated buffers.
     var opcode_stage = try stage_profile.StageScope.begin(recorder, "riscv_opcode_trace_generation", "RISC-V opcode trace generation (overlapped)");
-    const opcode_thread = std.Thread.spawn(.{}, OpcodeGenerationWork.run, .{opcode_work}) catch null;
+    const opcode_thread = std.Thread.spawn(
+        .{},
+        ProofWorkspace.generateOpcodeColumns,
+        .{ workspace, allocator, exec_trace },
+    ) catch null;
     var opcode_joined = false;
     var opcode_cleanup_on_error = true;
     defer if (opcode_thread) |thread| {
@@ -460,11 +493,11 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
                 opcode_joined = true;
             }
         }
-        if (opcode_cleanup_on_error and opcode_work.err == null) {
-            opcode_work.result.deinit(allocator, statement);
+        if (opcode_cleanup_on_error and workspace.opcode_error == null) {
+            workspace.releaseOpcodeColumns(allocator);
         }
     }
-    if (opcode_thread == null) OpcodeGenerationWork.run(opcode_work);
+    if (opcode_thread == null) workspace.generateOpcodeColumns(allocator, exec_trace);
 
     var col_offset: usize = n_opcode_main;
 
@@ -486,7 +519,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     // Exact ordinary RW-memory boundary table.
     if (boundary_claims) |claims| {
         var row_start: usize = 0;
-        for (memory_shard_lengths[0..memory_shard_count]) |shard_len| {
+        for (workspace.memory_shard_lengths[0..workspace.memory_shard_count]) |shard_len| {
             const log_size = @max(computeLogSize(shard_len), 4);
             const generated = try memory_trace.generate(
                 allocator,
@@ -528,23 +561,18 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         col_offset += poseidon2_air.N_MAIN_COLUMNS;
     }
 
-    var clock_main: [clock_update_interaction.N_MAIN_COLUMNS][]M31 =
-        .{&.{}} ** clock_update_interaction.N_MAIN_COLUMNS;
-    var clock_main_initialized = false;
-    defer if (clock_main_initialized) {
-        for (clock_main) |column| allocator.free(column);
-    };
+    // Workspace-owned clock columns; freeing an unwritten set is a no-op.
+    defer workspace.releaseClockMain(allocator);
 
     // Unified register + memory clock update (8 cols).
     {
         const chain_ptr = opt_chain orelse &empty_chain;
         const cu_cols = try infra.genClockUpdateColumns(allocator, chain_ptr, clock_update_log);
-        clock_main = cu_cols.columns;
-        clock_main_initialized = true;
+        workspace.clock_main = cu_cols.columns;
         for (0..infra.CLOCK_UPDATE_COLS) |c| {
             main_columns[col_offset + c] = .{
                 .log_size = clock_update_log,
-                .values = try allocator.dupe(M31, clock_main[c]),
+                .values = try allocator.dupe(M31, workspace.clock_main[c]),
             };
             main_initialized[col_offset + c] = true;
         }
@@ -557,14 +585,14 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         opcode_joined = true;
     }
     opcode_stage.end();
-    if (opcode_work.err) |err| return err;
+    if (workspace.opcode_error) |err| return err;
     opcode_cleanup_on_error = false;
-    defer opcode_work.result.deinit(allocator, statement);
+    defer workspace.releaseOpcodeColumns(allocator);
 
     // Derive table multiplicities from the exact family buffers that will be
     // committed below. This keeps both the lookup source and its commitment on
     // one witness path, including any future pre-commit mutation hook.
-    var lookup_source = try lookup_sources.ingest(allocator, statement, &opcode_work.result);
+    var lookup_source = try lookup_sources.ingest(allocator, statement.*, &workspace.opcode_columns);
     defer lookup_source.deinit(allocator);
     try lookup_sources.registerProgram(&lookup_source.counters, program.rows);
     if (boundary_claims) |claims| {
@@ -586,7 +614,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     var opcode_col_offset: usize = 0;
     for (0..statement.n_components) |comp_idx| {
         const desc = statement.component_descs[comp_idx];
-        const generated = &opcode_work.result.components[comp_idx];
+        const generated = &workspace.opcode_columns.components[comp_idx];
         if (generated.n_columns != desc.n_columns) return ProverError.InvalidStatement;
         for (generated.columns[0..generated.n_columns], 0..) |values, column| {
             main_columns[opcode_col_offset + column] = .{
@@ -601,7 +629,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     std.debug.assert(col_offset == n_main);
 
     if (test_mutation) |mutation|
-        try test_witness_hook.applyMain(allocator, statement, main_columns, mutation);
+        try test_witness_hook.applyMain(allocator, statement.*, main_columns, mutation);
 
     if (comptime mode == .relation_diagnostic) {
         retained_tree1 = try relation_diagnostic.RetainedTree.capture(allocator, main_columns);
@@ -636,7 +664,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
 
     // -- Step 5: LogUp interaction tree (tree 2). --
     const transcript_prefix: proof_transcript.ProverRelations = if (comptime mode == .prove)
-        try proof_transcript.proveToRelations(allocator, channel, &statement)
+        try proof_transcript.proveToRelations(allocator, channel, statement)
     else blk: {
         var diagnostic_channel = Engine.Channel{};
         break :blk .{
@@ -659,36 +687,10 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
 
     // Shifted cumulative columns remain alive through composition evaluation.
     // Opcode interactions consume the exact values retained by Tree 1.
-    const opcode_results = try allocator.alloc(
-        opcode_interaction.Result,
-        statement.n_components,
-    );
-    defer allocator.free(opcode_results);
-    var n_opcode_results: usize = 0;
-    defer for (opcode_results[0..n_opcode_results]) |*result| result.deinit(allocator);
-    var table_results: [component_order.LOOKUP_TABLE_COUNT]lookup_table_interaction.Result = undefined;
-    var n_table_results: usize = 0;
-    defer for (table_results[0..n_table_results]) |*result| result.deinit(allocator);
-    var clock_result: ?clock_update_interaction.InteractionTrace = null;
-    defer if (clock_result) |*result| result.deinit(allocator);
-    var program_prev: program_interaction.Previous =
-        .{.{ &.{}, &.{}, &.{}, &.{} }} ** program_interaction.N_SUMS;
-    var merkle_prev: merkle_node.Previous =
-        .{.{ &.{}, &.{}, &.{}, &.{} }} ** merkle_node.N_SUMS;
-    var poseidon_prev: poseidon2_air.Previous =
-        .{.{ &.{}, &.{}, &.{}, &.{} }} ** poseidon2_air.N_SUMS;
-    const memory_prev = try allocator.alloc(memory_interaction.Previous, statement.n_infra);
-    for (memory_prev) |*prev| prev.* = .{.{ &.{}, &.{}, &.{}, &.{} }} ** memory_interaction.N_SUMS;
-    defer {
-        for (&program_prev) |*set| interaction_gen.freeColumns(allocator, set);
-        for (&merkle_prev) |*set| interaction_gen.freeColumns(allocator, set);
-        for (&poseidon_prev) |*set| interaction_gen.freeColumns(allocator, set);
-        for (0..statement.n_infra) |i| {
-            if (statement.infra_descs[i].kind != .memory) continue;
-            for (&memory_prev[i]) |*set| interaction_gen.freeColumns(allocator, set);
-        }
-        allocator.free(memory_prev);
+    for (workspace.memory_prev[0..statement.n_infra]) |*prev| {
+        prev.* = .{.{ &.{}, &.{}, &.{}, &.{} }} ** memory_interaction.N_SUMS;
     }
+    defer workspace.releaseInteractionScratch(allocator);
 
     {
         var stage = try stage_profile.StageScope.begin(recorder, "riscv_interaction_commit", "RISC-V interaction trace generation and commit");
@@ -712,18 +714,18 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             const n_family_columns: usize = @intCast(desc.n_columns);
             var family_columns: [trace_mod.MAX_FAMILY_COLUMNS][]const M31 = undefined;
             for (
-                opcode_work.result.components[i].columns[0..n_family_columns],
+                workspace.opcode_columns.components[i].columns[0..n_family_columns],
                 family_columns[0..n_family_columns],
             ) |column, *values| values.* = column;
-            opcode_results[n_opcode_results] = try opcode_interaction.generate(
+            workspace.opcode_results[workspace.n_opcode_results] = try opcode_interaction.generate(
                 allocator,
                 desc.family,
                 family_columns[0..n_family_columns],
                 desc.log_size,
                 &relations,
             );
-            const generated = &opcode_results[n_opcode_results];
-            n_opcode_results += 1;
+            const generated = &workspace.opcode_results[workspace.n_opcode_results];
+            workspace.n_opcode_results += 1;
             @memcpy(
                 interaction_claim.opcode_claims[i][0..generated.n_batches],
                 generated.claims[0..generated.n_batches],
@@ -744,7 +746,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             &relations,
         );
         interaction_claim.program_claims[0] = rom.claims.sums;
-        program_prev = rom.previous;
+        workspace.program_prev = rom.previous;
         for (rom.columns) |values| {
             interaction_columns[inter_col_idx] = .{ .log_size = program_log_size, .values = values };
             inter_col_idx += 1;
@@ -763,7 +765,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
                     &relations,
                 );
                 interaction_claim.memory_claims[infra_index] = generated.claims.sums;
-                memory_prev[infra_index] = generated.previous;
+                workspace.memory_prev[infra_index] = generated.previous;
                 for (generated.columns) |values| {
                     interaction_columns[inter_col_idx] = .{ .log_size = desc.log_size, .values = values };
                     inter_col_idx += 1;
@@ -780,7 +782,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             &relations,
         );
         interaction_claim.merkle_claims[merkle_infra_index] = merkle_interaction.claims.sums;
-        merkle_prev = merkle_interaction.previous;
+        workspace.merkle_prev = merkle_interaction.previous;
         for (merkle_interaction.columns) |values| {
             interaction_columns[inter_col_idx] = .{ .log_size = merkle_log_size, .values = values };
             inter_col_idx += 1;
@@ -793,22 +795,22 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             &relations,
         );
         interaction_claim.poseidon_claims[poseidon_infra_index] = poseidon_interaction.claims.sums;
-        poseidon_prev = poseidon_interaction.previous;
+        workspace.poseidon_prev = poseidon_interaction.previous;
         for (poseidon_interaction.columns) |values| {
             interaction_columns[inter_col_idx] = .{ .log_size = poseidon_log_size, .values = values };
             inter_col_idx += 1;
         }
 
         var clock_views: [clock_update_interaction.N_MAIN_COLUMNS][]const M31 = undefined;
-        for (&clock_views, clock_main) |*view, column| view.* = column;
-        clock_result = try clock_update_interaction.generate(
+        for (&clock_views, workspace.clock_main) |*view, column| view.* = column;
+        workspace.clock_result = try clock_update_interaction.generate(
             allocator,
             &clock_views,
             clock_update_log,
             &relations,
         );
-        interaction_claim.clock_claims[clock_infra_index] = clock_result.?.claim;
-        const clock_columns = clock_result.?.takeColumns();
+        interaction_claim.clock_claims[clock_infra_index] = workspace.clock_result.?.claim;
+        const clock_columns = workspace.clock_result.?.takeColumns();
         for (clock_columns) |values| {
             interaction_columns[inter_col_idx] = .{
                 .log_size = clock_update_log,
@@ -820,13 +822,13 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         const table_infra_start = statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
         for (component_order.lookupTables(), 0..) |kind, table_index| {
             const infra_index = table_infra_start + table_index;
-            table_results[n_table_results] = try lookup_table_interaction.generate(
+            workspace.table_results[workspace.n_table_results] = try lookup_table_interaction.generate(
                 allocator,
                 &lookup_source.counters.counters[@intFromEnum(kind)],
                 &relations,
             );
-            const generated = &table_results[n_table_results];
-            n_table_results += 1;
+            const generated = &workspace.table_results[workspace.n_table_results];
+            workspace.n_table_results += 1;
             interaction_claim.lookup_claims[infra_index] = generated.claim;
             const columns = generated.takeColumns();
             for (columns) |values| {
@@ -839,16 +841,16 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         }
         std.debug.assert(inter_col_idx == n_interaction);
 
-        try proof_transcript.mixInteractionClaim(channel, &statement, interaction_claim);
+        try proof_transcript.mixInteractionClaim(channel, statement, interaction_claim);
         interaction_columns_moved = true;
         try Engine.commit(&scheme, allocator, interaction_columns, recorder, channel);
     }
 
     if (comptime mode == .relation_diagnostic) {
         if (scheme.trees.items.len != 3) return error.InvalidTreeShape;
-        return relation_diagnostic.build(
+        output.* = try relation_diagnostic.build(
             allocator,
-            &statement,
+            statement,
             &retained_tree0,
             &retained_tree1,
             .{
@@ -859,6 +861,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             relations,
             interaction_claim,
         );
+        return;
     }
 
     scheme_owned = false;
@@ -868,21 +871,18 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         recorder,
         scheme,
         channel,
-        statement,
+        workspace,
         &relations,
         interaction_claim,
-        opcode_results[0..n_opcode_results],
-        table_results[0..n_table_results],
-        &clock_result.?,
-        program_prev,
-        merkle_prev,
-        poseidon_prev,
-        memory_prev,
         n_main,
         n_interaction,
     );
     interaction_claim_owned = false;
-    return .{ .statement = statement, .proof = proof, .interaction_claim = interaction_claim };
+    output.* = .{
+        .statement = statement.*,
+        .proof = proof,
+        .interaction_claim = interaction_claim,
+    };
 }
 
 fn validateCompletionWitness(

@@ -1,7 +1,13 @@
 //! RISC-V proof transcript reconstruction and verification.
+//!
+//! Verifier component values and the canonical interaction claim live in a
+//! heap `VerificationWorkspace`: `core_verifier.verify` borrows a
+//! `[]const Component` of fat pointers into the component values, and the
+//! canonical claim carries a fixed-capacity log-size table that must not sit in
+//! a stack frame. The workspace is one allocation per verification, released by
+//! `defer`. See `proof_workspace.zig`.
 
 const std = @import("std");
-const core_air_components = @import("stwo_core").air.components;
 const pcs_core = @import("stwo_core").pcs;
 const pcs_verifier = @import("stwo_core").pcs.verifier;
 const core_verifier = @import("stwo_core").verifier;
@@ -9,7 +15,6 @@ const prover_engine = @import("stwo_prover_impl").engine;
 const component_order = @import("../air/component_order.zig");
 const clock_update_component = @import("../air/clock_update_component.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
-const hash_component = @import("../air/memory_commitment/hash_component.zig");
 const opcode_component = @import("../air/lookups/opcode_component.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const lookup_table_component = @import("../air/lookups/tables/component.zig");
@@ -22,8 +27,11 @@ const semantic_component = @import("../air/semantic_component.zig");
 const statement_mod = @import("../air/statement.zig");
 const proof_transcript = @import("../proof_transcript.zig");
 const preprocessed_trace = @import("preprocessed.zig");
+const proof_workspace = @import("proof_workspace.zig");
 const statement_validation = @import("statement_validation.zig");
 const types = @import("types.zig");
+
+const VerificationWorkspace = proof_workspace.VerificationWorkspace;
 
 /// Verify a RISC-V STARK proof with per-opcode-family components.
 /// Consumes `proof_in` on both success and failure.
@@ -153,52 +161,29 @@ pub fn verifyRiscVWithEngineUsingChannel(
         channel,
     );
 
-    const canonical = try claim.canonical(&statement);
-    const canonical_view = canonical.view();
+    const workspace = try VerificationWorkspace.create(allocator);
+    defer workspace.destroy(allocator);
+    const components = &workspace.components;
+
+    try workspace.canonicalize(claim, &statement);
+    const canonical_view = workspace.canonical.view();
     try logup.verifyGlobalCancellation(
         &.{canonical_view.total()},
         try public_logup.sum(&statement.public_data, &relations),
     );
 
-    const semantic_storage = try allocator.alloc(
-        semantic_component.SemanticComponent,
-        statement.n_components,
-    );
-    defer allocator.free(semantic_storage);
-    const opcode_lookup_storage = try allocator.alloc(
-        opcode_component.OpcodeLookupComponent,
-        statement.n_components,
-    );
-    defer allocator.free(opcode_lookup_storage);
-    const infra_storage = try allocator.alloc(
-        riscv_component.RiscVTraceComponent,
-        statement.n_infra,
-    );
-    defer allocator.free(infra_storage);
-    var hash_storage: [2]hash_component.HashComponent = undefined;
-    var n_hash_components: usize = 0;
-    var clock_storage: clock_update_component.ClockUpdateComponent = undefined;
-    var table_storage: [component_order.LOOKUP_TABLE_COUNT]lookup_table_component.LookupTableComponent = undefined;
-    const verifier_components = try allocator.alloc(
-        core_air_components.Component,
-        2 * statement.n_components + statement.n_infra,
-    );
-    defer allocator.free(verifier_components);
-    var total_components: usize = 0;
-
     var main_offset: usize = 0;
     var interaction_offset: usize = 0;
     for (0..statement.n_components) |i| {
         const desc = statement.component_descs[i];
-        semantic_storage[i] = try semantic_component.SemanticComponent.init(
+        components.semantic[i] = try semantic_component.SemanticComponent.init(
             desc.family,
             desc.log_size,
             2 * i + 1,
             main_offset,
         );
-        verifier_components[total_components] = semantic_storage[i].asVerifierComponent();
-        total_components += 1;
-        opcode_lookup_storage[i] = try opcode_component.OpcodeLookupComponent.initVerifier(
+        components.push(components.semantic[i].asVerifierComponent());
+        components.opcode_lookup[i] = try opcode_component.OpcodeLookupComponent.initVerifier(
             desc.family,
             desc.log_size,
             2 * i,
@@ -207,8 +192,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
             &relations,
             try claim.opcodeClaims(desc.family, i),
         );
-        verifier_components[total_components] = opcode_lookup_storage[i].asVerifierComponent();
-        total_components += 1;
+        components.push(components.opcode_lookup[i].asVerifierComponent());
         main_offset += desc.n_columns;
         interaction_offset += opcode_interaction.nColumns(desc.family);
     }
@@ -216,7 +200,8 @@ pub fn verifyRiscVWithEngineUsingChannel(
         const desc = statement.infra_descs[i];
         const preprocessed_base = statement.preprocessedOffsetForInfra(i);
         if (desc.kind == .poseidon2 or desc.kind == .merkle) {
-            hash_storage[n_hash_components] = .{
+            const hash = components.nextHash();
+            hash.* = .{
                 .kind = if (desc.kind == .poseidon2) .poseidon2 else .merkle,
                 .log_size = desc.log_size,
                 .n_rows = desc.n_rows,
@@ -228,9 +213,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
                 .merkle_claims = claim.merkle_claims[i],
                 .poseidon_claims = claim.poseidon_claims[i],
             };
-            verifier_components[total_components] = hash_storage[n_hash_components].asVerifierComponent();
-            total_components += 1;
-            n_hash_components += 1;
+            components.push(hash.asVerifierComponent());
             main_offset += desc.n_columns;
             interaction_offset += statement_mod.nInteractionColsForInfra(desc.kind);
             continue;
@@ -241,7 +224,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
             for (tuple_indices[0..lookup_table_schema.arity(table_kind)], 0..) |*index, offset| {
                 index.* = preprocessed_base + 1 + offset;
             }
-            table_storage[table_index] = try lookup_table_component.LookupTableComponent.initVerifier(
+            components.table[table_index] = try lookup_table_component.LookupTableComponent.initVerifier(
                 table_kind,
                 preprocessed_base,
                 tuple_indices[0..lookup_table_schema.arity(table_kind)],
@@ -250,14 +233,13 @@ pub fn verifyRiscVWithEngineUsingChannel(
                 &relations,
                 claim.lookup_claims[i],
             );
-            verifier_components[total_components] = table_storage[table_index].asVerifierComponent();
-            total_components += 1;
+            components.push(components.table[table_index].asVerifierComponent());
             main_offset += desc.n_columns;
             interaction_offset += lookup_table_interaction.N_COLUMNS;
             continue;
         }
         if (desc.kind == .clock_update) {
-            clock_storage = clock_update_component.ClockUpdateComponent.initVerifier(
+            components.clock = clock_update_component.ClockUpdateComponent.initVerifier(
                 desc.log_size,
                 preprocessed_base,
                 preprocessed_base + 1,
@@ -266,8 +248,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
                 &relations,
                 claim.clock_claims[i],
             );
-            verifier_components[total_components] = clock_storage.asVerifierComponent();
-            total_components += 1;
+            components.push(components.clock.asVerifierComponent());
             main_offset += desc.n_columns;
             interaction_offset += clock_update_interaction.N_INTERACTION_COLUMNS;
             continue;
@@ -277,7 +258,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
             .memory => .memory,
             else => return types.ProverError.InvalidStatement,
         };
-        infra_storage[i] = .{
+        components.infra[i] = .{
             .desc = .{
                 .family = .base_alu_reg,
                 .log_size = desc.log_size,
@@ -295,8 +276,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
             .program_claims = claim.program_claims[i],
             .memory_claims = claim.memory_claims[i],
         };
-        verifier_components[total_components] = infra_storage[i].asVerifierComponent();
-        total_components += 1;
+        components.push(components.infra[i].asVerifierComponent());
         main_offset += desc.n_columns;
         interaction_offset += statement_mod.nInteractionColsForInfra(desc.kind);
     }
@@ -308,7 +288,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
         types.Hasher,
         Engine.MerkleChannel,
         allocator,
-        verifier_components[0..total_components],
+        components.active(),
         channel,
         &commitment_scheme,
         proof,

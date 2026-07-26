@@ -36,17 +36,53 @@ behavior is not attributed to an unversioned toolchain.
 The normative environment and refinement boundary are
 `conformance/2026-07-26-riscv-sail-contract.md` and
 `conformance/riscv/rv32im-sail-profile.json`. A semantic disagreement is resolved in favor of the
-pinned Sail model under those exact configuration overrides.
+pinned Sail model under those exact configuration overrides. Sail is the only RV32IM semantic
+authority in this repository; the legacy lane below cannot override it, and neither lane arbitrates
+AIR soundness, which is proved by the constraint- and lookup-level tests in the frontend.
 
 ## RISC-V Legacy Protocol Layout Lane
 
-Stark-V is retained only as the source of legacy opcode IDs, witness column ordering, relation
-ordering, and proof-transcript compatibility. It is not an ISA semantic oracle and cannot override
-Sail decode or retirement behavior.
+Stark-V is retained as a layout-lineage reference. It remains pinned and authoritative for exactly
+two things:
+
+1. the shared transcript prefix, up to the documented shard-manifest extension recorded in
+   `conformance/divergence-log.md`;
+2. legacy layout lineage — protocol and opcode identity, witness column identity and ordering,
+   relation identity and ordering, and the resulting proof-transcript compatibility surface.
+
+It is **not** a semantic oracle. It cannot override Sail decode or retirement behavior, and as of
+this branch it is no longer the correctness oracle for opcode AIR constraints or activated lookup
+tuples. The pinned revision admits the under-constraints enumerated in the
+`Opcode AIR constraint and lookup layout` row of `conformance/divergence-log.md`, which is the
+authoritative disclosure: a source register access may emit a value it did not consume (which also
+leaves any witness derived from that value, including the `LB`/`LH` and `SRL`/`SRA` sign witnesses,
+a free prover choice); `SB`/`SH` leave every unmarked destination byte free; the `AUIPC` immediate
+admits a second byte decomposition offset by `p + 2`; and `composeU32(rs1.next)` is unbounded in
+`JALR`. An oracle that accepts an unsound AIR cannot arbitrate AIR soundness, so agreement with it
+is no longer evidence of correctness on those surfaces and disagreement with it is no longer
+evidence of a defect.
+
+Consequences for evidence:
+
+- The CP-11 boundaries whose comparison *is* an AIR comparison — `per_family_witness_rows`,
+  `relation_tuples`, `relation_sums`, and the JALR interaction geometry — are demoted in
+  `scripts/riscv_release_gate_lib/air_divergence.py`. They are not waived: each must publish the
+  complete enumerated set of structural paths at which the two dumps differ, and only the digests
+  authorized in that module are accepted, so an unintended difference still fails the gate.
+- Every other CP-11 boundary, including `shared_transcript_prefix`, remains a strict parity
+  boundary against this pin.
+- Layout lineage still gates the demoted boundaries: family identity, column identity, column
+  order and relation order must agree, because none of the closed constraints adds or reorders a
+  column.
+- Stark-V is never an acceptance authority for RV32IM semantics. `scripts/riscv_stark_v_benchmark.py`
+  remains a legacy performance and layout comparison only.
+
+Pins:
 
 - Legacy Stark-V repository: `https://github.com/ClementWalter/stark-v`
 - Pinned legacy Stark-V commit: `d478f783055aa0d73a93768a433a3c6c31c91d1c`
 - Legacy Stark-V pin date: `2026-06-12`
+- Legacy Stark-V AIR-oracle demotion date: `2026-07-26`
 
 ## Cairo Lane
 

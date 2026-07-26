@@ -9,4 +9,5 @@ test {
     _ = @import("prover_test.zig");
     _ = @import("public_relation_binding_test.zig");
     _ = @import("transcript_path_test.zig");
+    _ = @import("witness_rigidity_test.zig");
 }

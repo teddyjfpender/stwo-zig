@@ -14,10 +14,19 @@ try:
 except ModuleNotFoundError:  # Imported as scripts.riscv_release_gate_lib in tests.
     from scripts.riscv_trace_vectors_lib import admission as admission_policy
 
+try:
+    from riscv_release_gate_lib import air_divergence
+except ModuleNotFoundError:  # Imported as scripts.riscv_release_gate_lib in tests.
+    from scripts.riscv_release_gate_lib import air_divergence
+
 
 PINNED_ORACLE = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
 ORACLE_REPOSITORY = "https://github.com/riscv/sail-riscv"
 IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig"
+# Every boundary a CP-11 receipt must still report, in producer order.  The set
+# is unchanged by the Stark-V demotion: a demoted boundary keeps its evidence,
+# its per-case digests, and its place in the key manifest.  What changed is the
+# verdict it is held to -- see PARITY_BOUNDARIES below.
 BOUNDARIES = (
     "decode",
     "execution",
@@ -31,6 +40,14 @@ BOUNDARIES = (
     "relation_sums",
     "shared_transcript_prefix",
 )
+# Boundaries for which pinned-oracle agreement is still the acceptance verdict.
+# The complement is air_divergence.SUPERSEDED_BOUNDARIES, which may instead
+# report a pinned divergence shape; see that module for why and for how a real
+# regression stays distinguishable from the intended divergence.
+PARITY_BOUNDARIES = tuple(
+    name for name in BOUNDARIES if name not in air_divergence.SUPERSEDED_BOUNDARIES
+)
+NONEMPTY_RELATION_KEY = "nonempty_public_input"
 ELF_CORPUS_BOUNDARIES = frozenset({
     "execution",
     "per_family_witness_rows",
@@ -76,10 +93,17 @@ ALLOWED_ACTIVE_DIVERGENCES = frozenset({
     ("RISC-V", "PCS geometry"),
     ("RISC-V", "Interaction transcript"),
     ("RISC-V", "RV32IM decode boundary"),
+    air_divergence.LEDGER_ROW,
 })
+# Rows whose absence is itself a failure. The AIR-soundness row is required, not
+# merely allowed: deleting it would hide the fact that the pinned legacy oracle
+# admits the under-constraints this branch closed, and re-matching that oracle
+# would reintroduce them. A demoted CP-11 boundary may only cite a row present
+# here.
 REQUIRED_ARCHITECTURAL_DIVERGENCES = frozenset({
     ("RISC-V", "PCS geometry"),
     ("RISC-V", "Interaction transcript"),
+    air_divergence.LEDGER_ROW,
 })
 KNOWN_PIN_DOCUMENTED_LIMITATIONS: dict[str, frozenset[tuple[str, str]]] = {}
 
@@ -419,7 +443,17 @@ def _nonempty_relation_errors(
     boundary: str,
     candidate: str,
     witness_digest: object,
+    *,
+    superseded: bool = False,
 ) -> list[str]:
+    """Validate the nonempty-public-input relation case.
+
+    ``superseded`` relaxes exactly two obligations -- pinned-oracle agreement and
+    the absence of a localized difference -- because this case runs the same AIR
+    comparison as the boundary that carries it. Every self-consistency
+    obligation (balance to zero, public-data agreement, candidate binding,
+    corpus binding) is unaffected: those do not depend on the legacy oracle.
+    """
     label = f"boundary {boundary}/{NONEMPTY_RELATION_CASE}"
     if not isinstance(case, dict):
         return [f"{label} is missing"]
@@ -432,14 +466,17 @@ def _nonempty_relation_errors(
         "input_len": 9,
         "proof_admitted": True,
         "evidence_mode": NONEMPTY_RELATION_MODE,
-        "agree": True,
         "component_count": 27,
         "relation_count": 12,
     }
+    if not superseded:
+        expected["agree"] = True
     for field, value in expected.items():
         if case.get(field) != value or type(case.get(field)) is not type(value):
             errors.append(f"{label} has invalid {field}")
-    if "evidence_error" in case or case.get("first_divergence") is not None:
+    if not superseded and (
+        "evidence_error" in case or case.get("first_divergence") is not None
+    ):
         errors.append(f"{label} records disagreement")
     for field in ("rust_sha256", "zig_sha256"):
         _sha(case.get(field), f"{label} {field}", errors)
@@ -493,7 +530,15 @@ def _relation_case_errors(
     case: dict,
     boundary: str,
     admission: dict[str, str],
+    *,
+    superseded: bool = False,
 ) -> list[str]:
+    """Validate one relation-boundary corpus case.
+
+    ``superseded`` drops only the pinned-oracle agreement claim; the divergence
+    it is allowed to report is bounded separately by
+    ``air_divergence.coverage_errors``.
+    """
     label = f"boundary case {boundary}/{case.get('name')}"
     errors: list[str] = []
     if case.get("proof_admission") != admission:
@@ -504,7 +549,7 @@ def _relation_case_errors(
         errors.append(f"{label} is not a full balanced relation comparison")
     if case.get("proof_admitted") is not True:
         errors.append(f"{label} has an invalid proof-admission verdict")
-    if case.get("agree") is not True:
+    if not superseded and case.get("agree") is not True:
         errors.append(f"{label} does not attest balanced agreement")
     if "limitation_evidence" in case or "comparison_outcome" in case:
         errors.append(f"{label} contains obsolete Stark-V limitation evidence")
@@ -603,16 +648,17 @@ def receipt_errors(
     if not isinstance(boundaries, dict):
         errors.append("boundary results are missing")
         boundaries = {}
-    for name in BOUNDARIES:
-        boundary = boundaries.get(name)
-        if not isinstance(boundary, dict) or boundary.get("status") != "pass":
-            status = boundary.get("status") if isinstance(boundary, dict) else "missing"
-            errors.append(f"boundary {name} is {status}")
+    status_errors, superseded = air_divergence.status_errors(boundaries, BOUNDARIES)
+    errors.extend(status_errors)
+    errors.extend(air_divergence.coverage_errors(
+        boundaries, superseded, NONEMPTY_RELATION_KEY
+    ))
     for name in ("relation_tuples", "relation_sums"):
         boundary = boundaries.get(name)
-        case = boundary.get("nonempty_public_input") if isinstance(boundary, dict) else None
+        case = boundary.get(NONEMPTY_RELATION_KEY) if isinstance(boundary, dict) else None
         errors.extend(_nonempty_relation_errors(
-            case, name, candidate, receipt.get("witness_layout_digest_sha256")
+            case, name, candidate, receipt.get("witness_layout_digest_sha256"),
+            superseded=name in superseded,
         ))
 
     expected_keys = expected_case_result_keys(names)
@@ -658,7 +704,11 @@ def receipt_errors(
                     errors.append(f"boundary case {key} is not bound to the live ELF digest")
                 if digests.get(key) != _canonical_digest(case):
                     errors.append(f"case-result digest does not bind {key}")
-                if boundary_name in ELF_AGREEMENT_BOUNDARIES and case.get("agree") is not True:
+                if (
+                    boundary_name in ELF_AGREEMENT_BOUNDARIES
+                    and boundary_name not in superseded
+                    and case.get("agree") is not True
+                ):
                     errors.append(f"boundary case {key} does not attest agreement")
                 if boundary_name in {"relation_tuples", "relation_sums"}:
                     expected_admission = admissions.get(case["name"])
@@ -666,10 +716,11 @@ def receipt_errors(
                         errors.append(f"boundary case {key} has no live admission policy")
                     else:
                         errors.extend(_relation_case_errors(
-                            case, boundary_name, expected_admission
+                            case, boundary_name, expected_admission,
+                            superseded=boundary_name in superseded,
                         ))
             if boundary_name in {"relation_tuples", "relation_sums"}:
-                special = boundary.get("nonempty_public_input")
+                special = boundary.get(NONEMPTY_RELATION_KEY)
                 key = f"{boundary_name}/{NONEMPTY_RELATION_CASE}"
                 if isinstance(special, dict) and digests.get(key) != _canonical_digest(special):
                     errors.append(f"case-result digest does not bind {key}")
