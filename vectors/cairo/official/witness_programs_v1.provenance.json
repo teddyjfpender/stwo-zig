@@ -2,7 +2,7 @@
   "schema": "stwo_cairo_official_witness_program_bundle_v1",
   "release_eligible": false,
   "release_blockers": [
-    "the bundle covers 60 of 64 generated base-trace writers",
+    "the bundle covers 61 of 64 generated base-trace writers",
     "helper and builtin input-edge reconstruction is not complete",
     "the complete SIMD and Metal proofs have not yet passed the official verifier"
   ],
@@ -23,12 +23,12 @@
     "path": "tools/cairo-witness-compiler",
     "receipt": {
       "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
-      "bytes": 2334,
-      "sha256": "bf8d344922011f5d8598eb1c0f4e2c9e42155552ee7682286bf77fb867e389b3"
+      "bytes": 2356,
+      "sha256": "fea2a19a4287bc6e95af7c3c290ef1a22ca44513734e4d7d49568a038323dbc1"
     },
-    "orchestrator_sha256": "f77371beba7be2f0a929b43023a6bd55ea1cfa404a8e6caf5f81dd21b44d93bf",
-    "rewriter_closure_sha256": "119382555cf58a9973ec411f9f4af3a0ced6c3ebc50da56aecb2a85ccace6c6e",
-    "support_closure_sha256": "beb018f3b1d12d890beedcc8cb98b38b5b1e09431cc055a7e77b31284fbaa992",
+    "orchestrator_sha256": "6ce9aeeb5f29fb6cd62c861b4bb1fb14b44e005e306564e2e288a57c6c442f82",
+    "rewriter_closure_sha256": "0e8b4b95a7bea0fc2df06bb5fca4a38e9b21feb35c989ad1823311b2abd8b899",
+    "support_closure_sha256": "fee9b90edff2b07fe74466c3b2627f159815e94e4a511f998420a951d13d1d22",
     "rustc": "rustc 1.94.0-nightly (86a49fd71 2026-01-14)",
     "cargo": "cargo 1.94.0-nightly (6d1bd93c4 2026-01-10)",
     "migration_equivalence": {
@@ -67,6 +67,7 @@
         "verify_bitwise_xor_8",
         "verify_bitwise_xor_9",
         "bitwise_builtin",
+        "ec_op_builtin",
         "pedersen_builtin",
         "pedersen_builtin_narrow_windows",
         "poseidon_3_partial_rounds_chain",
@@ -81,10 +82,10 @@
   "artifact": {
     "path": "vectors/cairo/official/witness_programs_v1.bin",
     "format": "STWZWIT/1",
-    "bytes": 1314135,
-    "sha256": "b15081bf5d8d69d3d1bdb4cefcdb9abc8b6708abf0f23e41f9ee1e84fef8b160",
-    "component_count": 60,
-    "instruction_count": 81912,
+    "bytes": 2347388,
+    "sha256": "bad91018e189640cc8d31f40de9e18a7e3acac2921bb63fa395a599fcb893d23",
+    "component_count": 61,
+    "instruction_count": 146487,
     "components": [
       "add_opcode",
       "add_opcode_small",
@@ -145,7 +146,8 @@
       "poseidon_builtin",
       "poseidon_full_round_chain",
       "range_check96_builtin",
-      "range_check_builtin"
+      "range_check_builtin",
+      "ec_op_builtin"
     ]
   },
   "parity": {
@@ -160,8 +162,8 @@
     "all_builtins": {
       "input_sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
       "checkpoint_sha256": "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
-      "active_recordings": 42,
-      "executed_recordings": 15,
+      "active_recordings": 43,
+      "executed_recordings": 16,
       "deferred_input_edges": 27,
       "column_mismatches": 0
     }

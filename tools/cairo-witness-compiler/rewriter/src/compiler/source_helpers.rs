@@ -160,7 +160,7 @@ fn known_deduce_output_ty(path: &str) -> Option<Ty> {
         "PackedPartialEcMulGeneric :: deduce_output" => Some(Ty::Tuple(vec![
             Ty::M31,
             Ty::M31,
-            Ty::Tuple(vec![Ty::FeltW27, felt2(), felt2(), Ty::M31]),
+            Ty::Tuple(vec![w27(), felt2(), felt2(), Ty::M31]),
         ])),
         "PackedPedersenPointsTableWindowBits18 :: deduce_output"
         | "PackedPedersenPointsTableWindowBits9 :: deduce_output" => Some(felt2()),
@@ -298,6 +298,14 @@ fn tok_str_op(op: &BinOp) -> String {
 
 fn rustfmt_block(block: &str) -> String {
     // The block is a set of top-level items; rustfmt formats it as a standalone file.
+    // Some official writers expand into multi-megabyte straight-line programs. rustfmt
+    // recursively visits their expression trees and can exhaust the process stack. The
+    // proc-macro token stream is deterministic already, so formatting is presentation
+    // only and must not make artifact generation dependent on host stack limits.
+    const RUSTFMT_MAX_BLOCK_BYTES: usize = 1_000_000;
+    if block.len() > RUSTFMT_MAX_BLOCK_BYTES {
+        return block.to_string();
+    }
     let dir = std::env::temp_dir();
     let tmp = dir.join(format!("wg_block_{}.rs", std::process::id()));
     if std::fs::write(&tmp, block).is_err() {

@@ -20,16 +20,17 @@ use stwo_cairo_common::prover_types::simd::SIMD_ENUMERATION_0;
 
 use crate::witness::components::{memory_address_to_id, memory_id_to_big};
 use crate::witness::fast_deduction::blake::{PackedBlakeG, PackedBlakeRoundSigma};
+use crate::witness::fast_deduction::ec_op::PackedPartialEcMulGeneric;
 use crate::witness::fast_deduction::pedersen::{
-    PackedPartialEcMulWindowBits9, PackedPartialEcMulWindowBits18,
-    PackedPedersenPointsTableWindowBits9, PackedPedersenPointsTableWindowBits18,
+    PackedPartialEcMulWindowBits18, PackedPartialEcMulWindowBits9,
+    PackedPedersenPointsTableWindowBits18, PackedPedersenPointsTableWindowBits9,
 };
 use crate::witness::fast_deduction::poseidon::{
     PackedCube252, PackedPoseidon3PartialRoundsChain, PackedPoseidonFullRoundChain,
     PackedPoseidonRoundKeys,
 };
 use crate::witness::prelude::*;
-use crate::witness::witness_eval::{FELT_N_LIMBS, SLOT_AP, SLOT_FP, SLOT_PC, WitnessEval};
+use crate::witness::witness_eval::{WitnessEval, FELT_N_LIMBS, SLOT_AP, SLOT_FP, SLOT_PC};
 
 /// This packed row's `input()` source: the opcode `PackedCasmState` (slots
 /// `SLOT_PC/AP/FP`), or a BUILTIN's flattened input words (slot `k` = the k-th M31
@@ -398,6 +399,38 @@ impl<const N: usize> WitnessEval for SimdWitnessEval<'_, '_, N> {
     #[inline(always)]
     fn deduce_pedersen_points_table_w9(&mut self, index: PackedM31) -> [PackedFelt252; 2] {
         PackedPedersenPointsTableWindowBits9::deduce_output([index])
+    }
+
+    #[inline(always)]
+    fn deduce_partial_ec_mul_generic(
+        &mut self,
+        chain: PackedM31,
+        round: PackedM31,
+        scalar: [PackedM31; 10],
+        point: [PackedFelt252; 2],
+        accumulator: [PackedFelt252; 2],
+        counter: PackedM31,
+    ) -> (
+        PackedM31,
+        PackedM31,
+        (
+            [PackedM31; 10],
+            [PackedFelt252; 2],
+            [PackedFelt252; 2],
+            PackedM31,
+        ),
+    ) {
+        let (chain, round, (scalar, point, accumulator, counter)) =
+            *PackedPartialEcMulGeneric::deduce_output((
+                chain,
+                round,
+                (w27_from_words(scalar), point, accumulator, counter),
+            ));
+        (
+            chain,
+            round,
+            (w27_to_words(scalar), point, accumulator, counter),
+        )
     }
 
     #[inline(always)]

@@ -358,7 +358,7 @@ As of the starting commit `cfd47be9`:
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
-| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing 60 official-source programs and 81,912 SSA instructions; 20 active all-opcodes and 15 active all-builtins components match every Rust base column exactly | partial; explicitly non-release pending four generated writers, helper/component input edges, and complete verifier-accepted proofs |
+| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing 61 official-source programs and 146,487 SSA instructions; 20 active all-opcodes and 16 active all-builtins components match every Rust base column exactly | partial; explicitly non-release pending three generated writers, helper/component input edges, and complete verifier-accepted proofs |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
@@ -402,23 +402,26 @@ for all-builtins. A checkpoint is diagnostic evidence; only a complete proof
 accepted by the official verifier satisfies RF-09.
 
 The current official-source recording checkpoint is
-`vectors/cairo/official/witness_programs_v1.bin` (1,314,135 bytes,
-SHA-256 `b15081bf5d8d69d3d1bdb4cefcdb9abc8b6708abf0f23e41f9ee1e84fef8b160`).
-It contains 60 complete, poison-free programs. On all-opcodes, 41 recordings
+`vectors/cairo/official/witness_programs_v1.bin` (2,347,388 bytes,
+SHA-256 `bad91018e189640cc8d31f40de9e18a7e3acac2921bb63fa395a599fcb893d23`).
+It contains 61 complete, poison-free programs. On all-opcodes, 41 recordings
 are active: 20 execute through the current Zig input bindings with zero column
 mismatches and 21 helper/fixed-table programs await input-edge reconstruction.
-On all-builtins, 42 are active: 15 execute exactly and 27 await those edges.
+On all-builtins, 43 are active: 16 execute exactly and 27 await those edges.
 This comparison also corrected a Zig semantic defect: official
 `verify_instruction` multiplicities include only producer `n_active_rows`, not
 the producer's padded rows. The companion provenance is intentionally marked
-non-release because four official generated writers remain outside the bundle,
+non-release because three official generated writers remain outside the bundle,
 helper and builtin input edges are incomplete, and the complete SIMD and Metal
 proofs have not yet passed the official verifier. The repository-owned compiler
 at `tools/cairo-witness-compiler` now authenticates the clean official checkout,
 applies its finite AST lowering in an isolated overlay, records and validates
 the bundle, and reproduces the historical checkpoint byte-for-byte. Its stable,
-content-addressed Cargo cache reduced consecutive complete reproductions on the
-development host from 110.6 seconds to 2.34 and 2.37 seconds.
+content-addressed Cargo cache reduces an identical-closure complete reproduction
+to 3.97 seconds on the development host. The large generated EC recorder also
+exposed an inappropriate `-O3` artifact-export build: the dedicated exporter
+profile now compiles the changed local prover closure unoptimized in about
+39 seconds instead of exceeding 16 minutes and 5.7 GB RSS.
 
 ## Delivery Order
 

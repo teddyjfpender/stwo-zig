@@ -76,7 +76,7 @@ test "official Cairo witness recordings match every covered all-opcodes column" 
 }
 
 test "official Cairo witness recordings match every covered all-builtins column" {
-    try expectWitnessMatches(cases[1], 42, 15, 27);
+    try expectWitnessMatches(cases[1], 43, 16, 27);
 }
 
 fn expectWitnessMatches(

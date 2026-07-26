@@ -263,6 +263,24 @@ pub trait WitnessEval {
     /// Nine-bit Pedersen points-table row `[x, y]`.
     fn deduce_pedersen_points_table_w9(&mut self, index: Self::M31) -> [Self::Felt; 2];
 
+    /// `PackedPartialEcMulGeneric::deduce_output` (fast_deduction/ec_op.rs):
+    /// one bit-at-a-time EC-mul round. The width-27 scalar is represented by its ten
+    /// canonical M31 words so the recording and device lanes share an explicit ABI.
+    #[allow(clippy::type_complexity)]
+    fn deduce_partial_ec_mul_generic(
+        &mut self,
+        chain: Self::M31,
+        round: Self::M31,
+        scalar: [Self::M31; 10],
+        point: [Self::Felt; 2],
+        accumulator: [Self::Felt; 2],
+        counter: Self::M31,
+    ) -> (
+        Self::M31,
+        Self::M31,
+        ([Self::M31; 10], [Self::Felt; 2], [Self::Felt; 2], Self::M31),
+    );
+
     /// `PackedBlakeG::deduce_output` (fast_deduction/blake.rs): the blake g-function,
     /// `[a, b, c, d, m0, m1] -> [a', b', c', d']` on full 32-bit words.
     fn deduce_blake_g(&mut self, input: [Self::U32; 6]) -> [Self::U32; 4];

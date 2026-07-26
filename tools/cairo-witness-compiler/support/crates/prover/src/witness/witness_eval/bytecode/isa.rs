@@ -147,6 +147,9 @@ pub enum DeduceKind {
     PartialEcMulW9 = 12,
     /// Nine-bit Pedersen points table: one index to two 28-limb felts.
     PedersenPointsTableW9 = 13,
+    /// Generic Cairo EC-mul step: chain, round, ten width-27 scalar words, two point
+    /// felts, two accumulator felts, and counter (2 + 10 + 56 + 56 + 1 = 125).
+    PartialEcMulGeneric = 14,
 }
 
 impl DeduceKind {
@@ -166,6 +169,7 @@ impl DeduceKind {
             11 => Self::Poseidon3PartialRoundsChain,
             12 => Self::PartialEcMulW9,
             13 => Self::PedersenPointsTableW9,
+            14 => Self::PartialEcMulGeneric,
             _ => return None,
         })
     }
@@ -183,6 +187,7 @@ impl DeduceKind {
             Self::Poseidon3PartialRoundsChain => (42, 42),
             Self::PartialEcMulW9 => (86, 86),
             Self::PedersenPointsTableW9 => (1, 56),
+            Self::PartialEcMulGeneric => (125, 125),
         }
     }
 }
@@ -369,20 +374,13 @@ mod tests {
     }
 
     #[test]
-    fn deduce_selector_roundtrip_preserves_reserved_poseidon_range() {
-        for raw in 0..=7 {
-            let kind = DeduceKind::from_raw(raw).expect("known original selector");
+    fn deduce_selector_roundtrip_is_total() {
+        for raw in 0..=14 {
+            let kind = DeduceKind::from_raw(raw).expect("known selector");
             assert_eq!(kind as u32, raw);
         }
-        for raw in 8..=11 {
-            assert!(DeduceKind::from_raw(raw).is_none());
-        }
-        assert_eq!(DeduceKind::from_raw(12), Some(DeduceKind::PartialEcMulW9));
-        assert_eq!(
-            DeduceKind::from_raw(13),
-            Some(DeduceKind::PedersenPointsTableW9)
-        );
-        assert!(DeduceKind::from_raw(14).is_none());
+        assert!(DeduceKind::from_raw(15).is_none());
+        assert_eq!(DeduceKind::PartialEcMulGeneric.shape(), (125, 125));
     }
 
     #[test]

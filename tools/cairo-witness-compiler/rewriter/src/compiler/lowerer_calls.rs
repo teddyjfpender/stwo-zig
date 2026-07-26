@@ -243,6 +243,14 @@ impl Lowerer {
                     }
                     return self.deduce_site(known_deduce_output_ty(p).expect("in table"));
                 }
+                if p == "PackedPartialEcMulGeneric :: deduce_output" {
+                    if let Some(result) = self.lower_generic_ec_deduce(call, target) {
+                        return result;
+                    }
+                    return self.deduce_site(
+                        known_deduce_output_ty(p).expect("generic EC is in the table"),
+                    );
+                }
                 if p == "PackedPedersenPointsTableWindowBits18 :: deduce_output" {
                     if let Some(tok) = self.lower_points_table_deduce(call, target, 18) {
                         return (
@@ -375,6 +383,69 @@ impl Lowerer {
         };
         let value = self.bind(target, expression);
         Some((output_ty, value))
+    }
+
+    fn lower_generic_ec_deduce(
+        &mut self,
+        call: &ExprCall,
+        target: Target,
+    ) -> Option<(Ty, TokenStream)> {
+        if call.args.len() != 1 {
+            return None;
+        }
+        let (input_ty, input) = self.lower_aggregate(call.args.first()?);
+        if !Self::is_generic_ec_input(&input_ty) {
+            self.skip(
+                "deduce_shape",
+                format!(
+                    "PackedPartialEcMulGeneric :: deduce_output input has unsupported type \
+                     {input_ty:?}"
+                ),
+            );
+            return None;
+        }
+        let value = self.bind(
+            target,
+            quote! {
+                eval.deduce_partial_ec_mul_generic(
+                    #input.0,
+                    #input.1,
+                    #input.2.0,
+                    #input.2.1,
+                    #input.2.2,
+                    #input.2.3,
+                )
+            },
+        );
+        Some((
+            known_deduce_output_ty("PackedPartialEcMulGeneric :: deduce_output")
+                .expect("generic EC is in the table"),
+            value,
+        ))
+    }
+
+    fn is_generic_ec_input(ty: &Ty) -> bool {
+        let Ty::Tuple(fields) = ty else {
+            return false;
+        };
+        let [chain, round, state] = fields.as_slice() else {
+            return false;
+        };
+        let Ty::Tuple(state) = state else {
+            return false;
+        };
+        let [scalar, point, accumulator, counter] = state.as_slice() else {
+            return false;
+        };
+        let felt_pair = |ty: &Ty| {
+            matches!(ty, Ty::Array(element, 2) if element.is_feltish())
+        };
+        chain.is_m31()
+            && round.is_m31()
+            && *scalar == Ty::FeltW27Limbs
+            && felt_pair(point)
+            && felt_pair(accumulator)
+            && counter.is_m31()
     }
 
     fn is_poseidon_chain_input(ty: &Ty, state_width: usize) -> bool {

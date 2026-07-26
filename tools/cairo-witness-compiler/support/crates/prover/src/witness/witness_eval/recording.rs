@@ -17,7 +17,7 @@ use super::bytecode::isa::{DeduceKind, WitnessProgram};
 use super::bytecode::recording::{Val, WitnessRecorder};
 
 use crate::witness::witness_eval::{
-    FELT_N_LIMBS, SLOT_ENABLER, TABLE_ADDR_TO_ID, TABLE_ID_TO_BIG, WitnessEval,
+    WitnessEval, FELT_N_LIMBS, SLOT_ENABLER, TABLE_ADDR_TO_ID, TABLE_ID_TO_BIG,
 };
 
 /// An SSA-register handle, or a poison marker for an op the 32-bit ISA cannot express.
@@ -415,6 +415,67 @@ impl WitnessEval for RecordingWitnessEval {
             "deduce_pedersen_points_table_w9",
             DeduceKind::PedersenPointsTableW9,
             index,
+        )
+    }
+
+    fn deduce_partial_ec_mul_generic(
+        &mut self,
+        chain: RecVal,
+        round: RecVal,
+        scalar: [RecVal; 10],
+        point: [RecFelt; 2],
+        accumulator: [RecFelt; 2],
+        counter: RecVal,
+    ) -> (
+        RecVal,
+        RecVal,
+        ([RecVal; 10], [RecFelt; 2], [RecFelt; 2], RecVal),
+    ) {
+        let args = (|| {
+            let mut args = Self::plain_args(&[chain, round])?;
+            args.extend(Self::plain_args(&scalar)?);
+            args.extend(self.felt_arg_limbs(&point[0])?);
+            args.extend(self.felt_arg_limbs(&point[1])?);
+            args.extend(self.felt_arg_limbs(&accumulator[0])?);
+            args.extend(self.felt_arg_limbs(&accumulator[1])?);
+            args.extend(Self::plain_args(&[counter])?);
+            Some(args)
+        })();
+        let Some(args) = args else {
+            let poison = self.poison("deduce_partial_ec_mul_generic");
+            let poison_felt = || RecFelt::Limbs(vec![poison; FELT_N_LIMBS]);
+            return (
+                poison,
+                poison,
+                (
+                    [poison; 10],
+                    [poison_felt(), poison_felt()],
+                    [poison_felt(), poison_felt()],
+                    poison,
+                ),
+            );
+        };
+
+        let outputs = self.recorder.deduce(DeduceKind::PartialEcMulGeneric, &args);
+        let ok = |index: usize| RecVal::Ok(outputs[index]);
+        let scalar_base = 2;
+        let point_base = scalar_base + 10;
+        let accumulator_base = point_base + 2 * FELT_N_LIMBS;
+        let counter_index = accumulator_base + 2 * FELT_N_LIMBS;
+        let felt_at =
+            |base: usize| RecFelt::Limbs((0..FELT_N_LIMBS).map(|index| ok(base + index)).collect());
+        (
+            ok(0),
+            ok(1),
+            (
+                std::array::from_fn(|index| ok(scalar_base + index)),
+                [felt_at(point_base), felt_at(point_base + FELT_N_LIMBS)],
+                [
+                    felt_at(accumulator_base),
+                    felt_at(accumulator_base + FELT_N_LIMBS),
+                ],
+                ok(counter_index),
+            ),
         )
     }
 

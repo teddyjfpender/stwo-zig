@@ -23,10 +23,10 @@ OFFICIAL_WITNESS_MOD_SHA256 = (
     "e0113af8099143ea2770312bff24bc1e2fa5329933b272bac0fdae815b0de448"
 )
 EXPECTED_BUNDLE_SHA256 = (
-    "b15081bf5d8d69d3d1bdb4cefcdb9abc8b6708abf0f23e41f9ee1e84fef8b160"
+    "bad91018e189640cc8d31f40de9e18a7e3acac2921bb63fa395a599fcb893d23"
 )
-EXPECTED_BUNDLE_BYTES = 1_314_135
-EXPECTED_PROGRAM_COUNT = 60
+EXPECTED_BUNDLE_BYTES = 2_347_388
+EXPECTED_PROGRAM_COUNT = 61
 
 COMPONENTS = (
     "add_ap_opcode",
@@ -42,6 +42,7 @@ COMPONENTS = (
     "call_opcode_abs",
     "call_opcode_rel_imm",
     "cube_252",
+    "ec_op_builtin",
     "generic_opcode",
     "jnz_opcode_non_taken",
     "jnz_opcode_taken",
@@ -371,6 +372,8 @@ def _compile_bundle(staged: Path, artifact: Path) -> None:
     _run(
         [
             "cargo",
+            "--config",
+            "profile.release.package.stwo-cairo-prover.opt-level=0",
             "run",
             "--release",
             "--locked",
