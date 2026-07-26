@@ -6,8 +6,8 @@ use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
 use syn::{
     BinOp, Expr, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprIndex, ExprMethodCall,
-    ExprParen, ExprPath, ExprTuple, ExprUnary, Fields, FnArg, Ident, Item, ItemFn, Lit, Local,
-    Member, Pat, Stmt, Type, UnOp,
+    ExprParen, ExprPath, ExprStruct, ExprTuple, ExprUnary, Fields, FnArg, Ident, Item, ItemFn, Lit,
+    Local, Member, Pat, Stmt, Type, UnOp,
 };
 
 /// Marker delimiting the generated block inside a component file (for idempotent re-run).
@@ -52,6 +52,10 @@ enum Ty {
     /// Hoisted `PackedFelt252::broadcast(Felt252::from([A,B,C,D]))` constant, decomposed
     /// at transform time into its 28 canonical 9-bit limbs (G3).
     ConstFelt252([u32; FELT252_LIMBS]),
+    /// The opcode writer's next-state aggregate. The emitted representation is the
+    /// `(pc, ap, fp)` tuple so the generic row body stays independent of the concrete
+    /// `PackedCasmState` type while preserving named-field projections.
+    CasmState,
     Tuple(Vec<Ty>),
     Array(Box<Ty>, usize),
     /// A (projection of the) builtin input binder, carrying the FLAT SLOT BASE of this
@@ -86,6 +90,7 @@ impl std::fmt::Debug for Ty {
             Ty::ConstU32(v) => write!(f, "ConstU32({v})"),
             // Payload elided: 28 limb values would flood the skip census keys.
             Ty::ConstFelt252(_) => write!(f, "ConstFelt252"),
+            Ty::CasmState => write!(f, "CasmState"),
             Ty::Tuple(v) => f.debug_tuple("Tuple").field(v).finish(),
             Ty::Array(e, n) => write!(f, "Array({e:?}, {n})"),
             Ty::InputAt(e, base) => write!(f, "InputAt({e:?}, {base})"),
@@ -120,6 +125,7 @@ impl Ty {
     /// — all three MUST agree or `input(slot)` reads the wrong word.
     fn flat_width(&self) -> usize {
         match self {
+            Ty::CasmState => 3,
             Ty::Tuple(v) => v.iter().map(Ty::flat_width).sum(),
             Ty::Array(e, n) => e.flat_width() * n,
             Ty::Felt252 | Ty::ConstFelt252(_) => FELT252_LIMBS,

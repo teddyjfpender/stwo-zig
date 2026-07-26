@@ -160,6 +160,52 @@ mod tests {
     }
 
     #[test]
+    fn casm_state_struct_is_typed_and_projectable() {
+        let lw = lower_snippet(
+            &[],
+            "let state = PackedCasmState { \
+                 fp: add_opcode_input.fp, pc: add_opcode_input.pc, ap: add_opcode_input.ap, \
+             }; \
+             let next = state.pc + state.ap + state.fp;",
+        );
+        assert_eq!(lw.env["state"], Ty::CasmState);
+        assert_eq!(lw.env["next"], Ty::M31);
+        assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+        let body = lw.out.iter().map(|t| t.to_string()).collect::<String>();
+        assert!(body.contains("let state = ("), "body: {body}");
+        assert!(body.contains("state . 0"), "body: {body}");
+        assert!(body.contains("state . 1"), "body: {body}");
+        assert!(body.contains("state . 2"), "body: {body}");
+    }
+
+    #[test]
+    fn malformed_casm_state_struct_fails_closed() {
+        for body in [
+            "let state = PackedCasmState { pc: add_opcode_input.pc, ap: add_opcode_input.ap };",
+            "let state = PackedCasmState { pc: add_opcode_input.pc, ap: add_opcode_input.ap, fp: add_opcode_input.fp, extra: add_opcode_input.pc };",
+            "let state = OtherState { pc: add_opcode_input.pc, ap: add_opcode_input.ap, fp: add_opcode_input.fp };",
+        ] {
+            let lw = lower_snippet(&[], body);
+            assert!(!lw.skips.is_empty(), "malformed struct was admitted: {body}");
+        }
+    }
+
+    #[test]
+    fn felt_from_m31_is_a_real_trait_op() {
+        let lw = lower_snippet(
+            &[],
+            "let value = PackedFelt252::from_m31(add_opcode_input.ap); \
+             let high = value.get_m31(3);",
+        );
+        assert_eq!(lw.env["value"], Ty::Felt252);
+        assert_eq!(lw.env["high"], Ty::M31);
+        assert_eq!(lw.u32_sites, 0);
+        assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+        let body = lw.out.iter().map(|t| t.to_string()).collect::<String>();
+        assert!(body.contains("eval . felt_from_m31 ("), "body: {body}");
+    }
+
+    #[test]
     fn unknown_deduce_is_skip() {
         // A deduce whose signature is NOT in `known_deduce_output_ty` must stay a loud
         // skip (the fictional name keeps this test valid as the table grows).
@@ -215,10 +261,8 @@ mod tests {
         );
     }
 
-    /// An UNHOOKED known-signature deduce (W9) stays census-only: result typed (so
-    /// projections resolve skip-free) but `deduce_sites` counts it and blocks emission.
     #[test]
-    fn unhooked_known_deduce_is_census_only() {
+    fn window_bits_9_deduces_are_real_trait_ops() {
         let p = "add_opcode_input.pc";
         let windows = vec![p; 28].join(", ");
         let body = format!(
@@ -226,11 +270,22 @@ mod tests {
                  memory_address_to_id_state.deduce_output(add_opcode_input.pc)); \
              let out = PackedPartialEcMulWindowBits9::deduce_output((add_opcode_input.pc, \
              add_opcode_input.ap, ([{windows}], [f, f]))); \
-             let chain = out.0;",
+             let chain = out.0; \
+             let point = PackedPedersenPointsTableWindowBits9::deduce_output([chain]); \
+             let limb = point[1].get_m31(27);",
         );
         let lw = lower_snippet(&[], &body);
-        assert_eq!(lw.deduce_sites, 1, "skips: {:?}", lw.skips);
+        assert_eq!(lw.deduce_sites, 0, "skips: {:?}", lw.skips);
         assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+        let body = lw.out.iter().map(|t| t.to_string()).collect::<String>();
+        assert!(
+            body.contains("eval . deduce_partial_ec_mul_w9 ("),
+            "body: {body}"
+        );
+        assert!(
+            body.contains("eval . deduce_pedersen_points_table_w9 ("),
+            "body: {body}"
+        );
     }
 
     #[test]

@@ -5,9 +5,10 @@ use std::path::Path;
 use super::components::{
     add_ap_opcode, add_opcode, add_opcode_small, assert_eq_opcode, assert_eq_opcode_double_deref,
     assert_eq_opcode_imm, blake_g, blake_round, call_opcode_abs, call_opcode_rel_imm, cube_252,
-    jnz_opcode_non_taken, jnz_opcode_taken, jump_opcode_abs, jump_opcode_double_deref,
-    jump_opcode_rel, jump_opcode_rel_imm, mul_opcode, mul_opcode_small, partial_ec_mul_generic,
-    partial_ec_mul_window_bits_18, pedersen_aggregator_window_bits_18, qm_31_add_mul_opcode,
+    generic_opcode, jnz_opcode_non_taken, jnz_opcode_taken, jump_opcode_abs,
+    jump_opcode_double_deref, jump_opcode_rel, jump_opcode_rel_imm, mul_opcode, mul_opcode_small,
+    partial_ec_mul_generic, partial_ec_mul_window_bits_9, partial_ec_mul_window_bits_18,
+    pedersen_aggregator_window_bits_9, pedersen_aggregator_window_bits_18, qm_31_add_mul_opcode,
     range_check_252_width_27, ret_opcode, triple_xor_32, verify_instruction,
 };
 use super::witness_eval::bytecode::isa::{WitnessInst, WitnessProgram};
@@ -41,6 +42,7 @@ fn recordings() -> Vec<(&'static str, RecordingOutput)> {
             "call_opcode_rel_imm",
             call_opcode_rel_imm::record_call_opcode_rel_imm(),
         ),
+        ("generic_opcode", generic_opcode::record_generic_opcode()),
         (
             "jnz_opcode_non_taken",
             jnz_opcode_non_taken::record_jnz_opcode_non_taken(),
@@ -87,6 +89,14 @@ fn recordings() -> Vec<(&'static str, RecordingOutput)> {
         (
             "partial_ec_mul_window_bits_18",
             partial_ec_mul_window_bits_18::record_partial_ec_mul_window_bits_18(),
+        ),
+        (
+            "pedersen_aggregator_window_bits_9",
+            pedersen_aggregator_window_bits_9::record_pedersen_aggregator_window_bits_9(),
+        ),
+        (
+            "partial_ec_mul_window_bits_9",
+            partial_ec_mul_window_bits_9::record_partial_ec_mul_window_bits_9(),
         ),
         ("cube_252", cube_252::record_cube_252()),
         (

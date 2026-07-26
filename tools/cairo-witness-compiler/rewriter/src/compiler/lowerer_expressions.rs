@@ -29,6 +29,7 @@ impl Lowerer {
             Expr::MethodCall(mc) => self.lower_method(mc, target),
             Expr::Call(call) => self.lower_call(call, target),
             Expr::Binary(b) => self.lower_binary(b, target),
+            Expr::Struct(st) => self.lower_struct(st, target),
             other => {
                 self.skip(
                     "expr",
@@ -110,6 +111,23 @@ impl Lowerer {
                     let slot_id = Ident::new(slot, Span::call_site());
                     return self.emit_op(target, Ty::M31, quote! { eval.input(#slot_id) });
                 }
+                let (bt, btok) = self.lower_node(&f.base, Target::Temp);
+                if bt == Ty::CasmState {
+                    let index = match m.to_string().as_str() {
+                        "pc" => 0,
+                        "ap" => 1,
+                        "fp" => 2,
+                        other => {
+                            self.skip(
+                                "expr",
+                                format!("unknown PackedCasmState field `.{other}`"),
+                            );
+                            return (Ty::Unknown, quote! { WG_SKIP });
+                        }
+                    };
+                    let index = Literal::usize_unsuffixed(index);
+                    return self.leaf(target, Ty::M31, quote! { #btok.#index });
+                }
                 self.skip(
                     "expr",
                     format!(
@@ -158,6 +176,68 @@ impl Lowerer {
                 self.leaf(target, elem_ty, quote! { #btok.#lit })
             }
         }
+    }
+
+    /// Lower the one named aggregate generated in witness bodies without coupling
+    /// emitted code to its concrete Rust type. Field names, completeness, and value
+    /// types are checked explicitly; source drift therefore fails closed.
+    fn lower_struct(&mut self, st: &ExprStruct, target: Target) -> (Ty, TokenStream) {
+        if tok_str(&st.path) != "PackedCasmState" {
+            self.skip(
+                "expr",
+                format!("unsupported struct expression `{}`", tok_str(&st.path)),
+            );
+            return (Ty::Unknown, quote! { WG_SKIP });
+        }
+        if st.rest.is_some() {
+            self.skip(
+                "expr",
+                "PackedCasmState update syntax is unsupported".to_string(),
+            );
+            return (Ty::Unknown, quote! { WG_SKIP });
+        }
+
+        let mut fields = BTreeMap::new();
+        for field in &st.fields {
+            let Member::Named(name) = &field.member else {
+                self.skip(
+                    "expr",
+                    "PackedCasmState has an unnamed field".to_string(),
+                );
+                return (Ty::Unknown, quote! { WG_SKIP });
+            };
+            let name = name.to_string();
+            if !matches!(name.as_str(), "pc" | "ap" | "fp") {
+                self.skip(
+                    "expr",
+                    format!("unknown PackedCasmState field `{name}`"),
+                );
+                return (Ty::Unknown, quote! { WG_SKIP });
+            }
+            if fields.insert(name.clone(), &field.expr).is_some() {
+                self.skip(
+                    "expr",
+                    format!("duplicate PackedCasmState field `{name}`"),
+                );
+                return (Ty::Unknown, quote! { WG_SKIP });
+            }
+        }
+
+        let mut values = Vec::with_capacity(3);
+        for name in ["pc", "ap", "fp"] {
+            let Some(expr) = fields.get(name) else {
+                self.skip(
+                    "expr",
+                    format!("missing PackedCasmState field `{name}`"),
+                );
+                return (Ty::Unknown, quote! { WG_SKIP });
+            };
+            let (ty, tok) = self.lower_node(strip_parens(expr), Target::Temp);
+            self.require_m31(&ty, &format!("PackedCasmState.{name}"), expr);
+            values.push(tok);
+        }
+        let tok = self.bind(target, quote! { ( #(#values),* ) });
+        (Ty::CasmState, tok)
     }
 
     fn lower_index(&mut self, ix: &ExprIndex, target: Target) -> (Ty, TokenStream) {

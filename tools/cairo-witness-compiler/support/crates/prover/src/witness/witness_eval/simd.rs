@@ -21,7 +21,8 @@ use stwo_cairo_common::prover_types::simd::SIMD_ENUMERATION_0;
 use crate::witness::components::{memory_address_to_id, memory_id_to_big};
 use crate::witness::fast_deduction::blake::{PackedBlakeG, PackedBlakeRoundSigma};
 use crate::witness::fast_deduction::pedersen::{
-    PackedPartialEcMulWindowBits18, PackedPedersenPointsTableWindowBits18,
+    PackedPartialEcMulWindowBits9, PackedPartialEcMulWindowBits18,
+    PackedPedersenPointsTableWindowBits9, PackedPedersenPointsTableWindowBits18,
 };
 use crate::witness::prelude::*;
 use crate::witness::witness_eval::{FELT_N_LIMBS, SLOT_AP, SLOT_FP, SLOT_PC, WitnessEval};
@@ -250,6 +251,10 @@ impl<const N: usize> WitnessEval for SimdWitnessEval<'_, '_, N> {
     fn felt_get_m31(&mut self, felt: &PackedFelt252, i: usize) -> PackedM31 {
         felt.get_m31(i)
     }
+    #[inline(always)]
+    fn felt_from_m31(&mut self, value: PackedM31) -> PackedFelt252 {
+        PackedFelt252::from_m31(value)
+    }
 
     fn felt_from_w27_words(&mut self, words: [PackedM31; 10]) -> PackedFelt252 {
         PackedFelt252::from_packed_felt252width27(PackedFelt252Width27::from_limbs(words))
@@ -363,6 +368,22 @@ impl<const N: usize> WitnessEval for SimdWitnessEval<'_, '_, N> {
     #[inline(always)]
     fn deduce_pedersen_points_table_w18(&mut self, index: PackedM31) -> [PackedFelt252; 2] {
         PackedPedersenPointsTableWindowBits18::deduce_output([index])
+    }
+
+    #[inline(always)]
+    fn deduce_partial_ec_mul_w9(
+        &mut self,
+        chain: PackedM31,
+        round: PackedM31,
+        windows: [PackedM31; 28],
+        acc: [PackedFelt252; 2],
+    ) -> (PackedM31, PackedM31, ([PackedM31; 28], [PackedFelt252; 2])) {
+        PackedPartialEcMulWindowBits9::deduce_output((chain, round, (windows, acc)))
+    }
+
+    #[inline(always)]
+    fn deduce_pedersen_points_table_w9(&mut self, index: PackedM31) -> [PackedFelt252; 2] {
+        PackedPedersenPointsTableWindowBits9::deduce_output([index])
     }
 
     #[inline(always)]

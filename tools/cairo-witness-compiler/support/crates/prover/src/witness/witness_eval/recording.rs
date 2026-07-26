@@ -159,6 +159,87 @@ impl RecordingWitnessEval {
         RecFelt::Limbs(outs.into_iter().map(RecVal::Ok).collect())
     }
 
+    fn windowed_ec_deduce<const N: usize>(
+        &mut self,
+        op: &'static str,
+        kind: DeduceKind,
+        chain: RecVal,
+        round: RecVal,
+        windows: [RecVal; N],
+        acc: [RecFelt; 2],
+    ) -> (RecVal, RecVal, ([RecVal; N], [RecFelt; 2])) {
+        let args = (|| {
+            let mut args = Self::plain_args(&[chain, round])?;
+            args.extend(Self::plain_args(&windows)?);
+            args.extend(self.felt_arg_limbs(&acc[0])?);
+            args.extend(self.felt_arg_limbs(&acc[1])?);
+            Some(args)
+        })();
+        let Some(args) = args else {
+            let p = self.poison(op);
+            return (
+                p,
+                p,
+                (
+                    [p; N],
+                    [
+                        RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
+                        RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
+                    ],
+                ),
+            );
+        };
+
+        let outs = self.recorder.deduce(kind, &args);
+        let ok = |i: usize| RecVal::Ok(outs[i]);
+        let felt_base = 2 + N;
+        (
+            ok(0),
+            ok(1),
+            (
+                std::array::from_fn(|i| ok(2 + i)),
+                [
+                    RecFelt::Limbs(
+                        (0..FELT_N_LIMBS).map(|i| ok(felt_base + i)).collect(),
+                    ),
+                    RecFelt::Limbs(
+                        (0..FELT_N_LIMBS)
+                            .map(|i| ok(felt_base + FELT_N_LIMBS + i))
+                            .collect(),
+                    ),
+                ],
+            ),
+        )
+    }
+
+    fn points_table_deduce(
+        &mut self,
+        op: &'static str,
+        kind: DeduceKind,
+        index: RecVal,
+    ) -> [RecFelt; 2] {
+        let RecVal::Ok(index) = index else {
+            let p = self.poison(op);
+            return [
+                RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
+                RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
+            ];
+        };
+        let outs = self.recorder.deduce(kind, &[index]);
+        [
+            RecFelt::Limbs(
+                (0..FELT_N_LIMBS)
+                    .map(|i| RecVal::Ok(outs[i]))
+                    .collect(),
+            ),
+            RecFelt::Limbs(
+                (0..FELT_N_LIMBS)
+                    .map(|i| RecVal::Ok(outs[FELT_N_LIMBS + i]))
+                    .collect(),
+            ),
+        ]
+    }
+
     /// Unwrap plain deduce args; `None` on any poison (the caller falls back to the
     /// poisoned result, keeping poison-propagation semantics).
     fn plain_args(args: &[RecVal]) -> Option<Vec<Val>> {
@@ -281,61 +362,47 @@ impl WitnessEval for RecordingWitnessEval {
         windows: [RecVal; 14],
         acc: [RecFelt; 2],
     ) -> (RecVal, RecVal, ([RecVal; 14], [RecFelt; 2])) {
-        let args = (|| {
-            let mut args = Self::plain_args(&[chain, round])?;
-            args.extend(Self::plain_args(&windows)?);
-            args.extend(self.felt_arg_limbs(&acc[0])?);
-            args.extend(self.felt_arg_limbs(&acc[1])?);
-            Some(args)
-        })();
-        let Some(args) = args else {
-            let p = self.poison("deduce_partial_ec_mul_w18");
-            return (
-                p,
-                p,
-                (
-                    [p; 14],
-                    [
-                        RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
-                        RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
-                    ],
-                ),
-            );
-        };
-        let outs = self.recorder.deduce(DeduceKind::PartialEcMulW18, &args);
-        let ok = |i: usize| RecVal::Ok(outs[i]);
-        (
-            ok(0),
-            ok(1),
-            (
-                std::array::from_fn(|i| ok(2 + i)),
-                [
-                    RecFelt::Limbs((0..FELT_N_LIMBS).map(|i| ok(16 + i)).collect()),
-                    RecFelt::Limbs((0..FELT_N_LIMBS).map(|i| ok(44 + i)).collect()),
-                ],
-            ),
+        self.windowed_ec_deduce(
+            "deduce_partial_ec_mul_w18",
+            DeduceKind::PartialEcMulW18,
+            chain,
+            round,
+            windows,
+            acc,
         )
     }
 
     fn deduce_pedersen_points_table_w18(&mut self, index: RecVal) -> [RecFelt; 2] {
-        let RecVal::Ok(idx) = index else {
-            let p = self.poison("deduce_pedersen_points_table_w18");
-            return [
-                RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
-                RecFelt::Limbs(vec![p; FELT_N_LIMBS]),
-            ];
-        };
-        let outs = self
-            .recorder
-            .deduce(DeduceKind::PedersenPointsTableW18, &[idx]);
-        [
-            RecFelt::Limbs((0..FELT_N_LIMBS).map(|i| RecVal::Ok(outs[i])).collect()),
-            RecFelt::Limbs(
-                (0..FELT_N_LIMBS)
-                    .map(|i| RecVal::Ok(outs[FELT_N_LIMBS + i]))
-                    .collect(),
-            ),
-        ]
+        self.points_table_deduce(
+            "deduce_pedersen_points_table_w18",
+            DeduceKind::PedersenPointsTableW18,
+            index,
+        )
+    }
+
+    fn deduce_partial_ec_mul_w9(
+        &mut self,
+        chain: RecVal,
+        round: RecVal,
+        windows: [RecVal; 28],
+        acc: [RecFelt; 2],
+    ) -> (RecVal, RecVal, ([RecVal; 28], [RecFelt; 2])) {
+        self.windowed_ec_deduce(
+            "deduce_partial_ec_mul_w9",
+            DeduceKind::PartialEcMulW9,
+            chain,
+            round,
+            windows,
+            acc,
+        )
+    }
+
+    fn deduce_pedersen_points_table_w9(&mut self, index: RecVal) -> [RecFelt; 2] {
+        self.points_table_deduce(
+            "deduce_pedersen_points_table_w9",
+            DeduceKind::PedersenPointsTableW9,
+            index,
+        )
     }
 
     fn deduce_blake_g(&mut self, input: [RecVal; 6]) -> [RecVal; 4] {
@@ -457,6 +524,26 @@ impl WitnessEval for RecordingWitnessEval {
         }
     }
 
+    fn felt_from_m31(&mut self, value: RecVal) -> RecFelt {
+        let RecVal::Ok(value) = value else {
+            let p = self.poison("felt_from_m31");
+            return RecFelt::Limbs(vec![p; FELT_N_LIMBS]);
+        };
+
+        let mut limbs = Vec::with_capacity(FELT_N_LIMBS);
+        for i in 0..4u32 {
+            let shifted = if i == 0 {
+                value
+            } else {
+                self.recorder.u32_shr(value, 9 * i)
+            };
+            limbs.push(RecVal::Ok(self.recorder.u32_and(shifted, 0x1FF)));
+        }
+        let zero = RecVal::Ok(self.recorder.constant(0));
+        limbs.resize(FELT_N_LIMBS, zero);
+        RecFelt::Limbs(limbs)
+    }
+
     fn felt_from_w27_words(&mut self, words: [RecVal; 10]) -> RecFelt {
         // Exact 27->9 regroup on raw registers: limb 3j+t = (w[j] >> 9t) & 0x1FF
         // (j < 9); limb 27 = w[9] & 0x1FF (top word is 9 bits — mask is identity,
@@ -473,12 +560,12 @@ impl WitnessEval for RecordingWitnessEval {
             return RecFelt::Limbs(vec![p; FELT_N_LIMBS]);
         };
         let mut limbs = Vec::with_capacity(FELT_N_LIMBS);
-        for j in 0..9 {
+        for word in w.iter().take(9).copied() {
             for t in 0..3u32 {
                 let shifted = if t == 0 {
-                    w[j]
+                    word
                 } else {
-                    self.recorder.u32_shr(w[j], 9 * t)
+                    self.recorder.u32_shr(word, 9 * t)
                 };
                 limbs.push(RecVal::Ok(self.recorder.u32_and(shifted, 0x1FF)));
             }

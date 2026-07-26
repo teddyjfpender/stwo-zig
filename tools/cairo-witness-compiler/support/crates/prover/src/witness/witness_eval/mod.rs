@@ -147,6 +147,10 @@ pub trait WitnessEval {
 
     fn felt_from_limbs(&mut self, limbs: [Self::M31; FELT_N_LIMBS]) -> Self::Felt;
     fn felt_get_m31(&mut self, felt: &Self::Felt, i: usize) -> Self::M31;
+    /// Embed the canonical 31-bit M31 integer into Felt252. This is an integer
+    /// embedding, not an M31-field conversion: limbs 0..3 hold consecutive 9-bit
+    /// windows and limbs 4..27 are zero.
+    fn felt_from_m31(&mut self, value: Self::M31) -> Self::Felt;
 
     /// Reassemble a `Felt252` from the 10 words of a `Felt252Width27` input —
     /// an EXACT regroup (27 = 3x9): 9-bit limb `3j+t` = `(w[j] >> 9t) & 0x1FF`
@@ -245,6 +249,19 @@ pub trait WitnessEval {
     /// `PackedPedersenPointsTableWindowBits18::deduce_output` (fast_deduction/
     /// pedersen.rs): the pedersen points-table row `[x, y]` for a window index.
     fn deduce_pedersen_points_table_w18(&mut self, index: Self::M31) -> [Self::Felt; 2];
+
+    /// Nine-bit-window variant: 28 shifted windows and the same two-felt accumulator.
+    #[allow(clippy::type_complexity)]
+    fn deduce_partial_ec_mul_w9(
+        &mut self,
+        chain: Self::M31,
+        round: Self::M31,
+        windows: [Self::M31; 28],
+        acc: [Self::Felt; 2],
+    ) -> (Self::M31, Self::M31, ([Self::M31; 28], [Self::Felt; 2]));
+
+    /// Nine-bit Pedersen points-table row `[x, y]`.
+    fn deduce_pedersen_points_table_w9(&mut self, index: Self::M31) -> [Self::Felt; 2];
 
     /// `PackedBlakeG::deduce_output` (fast_deduction/blake.rs): the blake g-function,
     /// `[a, b, c, d, m0, m1] -> [a', b', c', d']` on full 32-bit words.

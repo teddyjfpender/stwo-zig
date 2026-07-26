@@ -62,10 +62,10 @@ source checkout.
 
 At official Stwo-Cairo revision
 `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`, the rewriter scans 67 component
-files, finds 64 generated writers, emits 27 exactly, identifies two requiring
-known evaluator extensions, and rejects 38 with explicit reasons. Its census
-and all emitted files are byte-identical to the migration transformer recorded
-by `vectors/cairo/official/witness_programs_v1.provenance.json`.
+files, finds 64 generated writers, emits 30 exactly with no census-only sites
+inside that supported cohort, and rejects 37 with explicit reasons. The emitted
+artifact and its compiler closure are authenticated by
+`vectors/cairo/official/witness_programs_v1.provenance.json`.
 
 This establishes compiler ownership, not product release completion. The
 binary bundle remains non-release evidence until all official witness writers

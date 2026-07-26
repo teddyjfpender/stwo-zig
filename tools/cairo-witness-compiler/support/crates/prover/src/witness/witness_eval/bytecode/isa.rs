@@ -135,6 +135,12 @@ pub enum DeduceKind {
     /// Division by zero panics on the host; the writers only divide by EC slope
     /// denominators, never zero on valid traces.
     FeltDiv = 7,
+    /// Selectors 8..11 are reserved for the Poseidon family already implemented by
+    /// the production Metal witness library.
+    /// Nine-bit Pedersen EC-mul: 2 + 28 + 56 = 86 arguments and outputs.
+    PartialEcMulW9 = 12,
+    /// Nine-bit Pedersen points table: one index to two 28-limb felts.
+    PedersenPointsTableW9 = 13,
 }
 
 impl DeduceKind {
@@ -148,6 +154,8 @@ impl DeduceKind {
             5 => Self::FeltSub,
             6 => Self::FeltMul,
             7 => Self::FeltDiv,
+            12 => Self::PartialEcMulW9,
+            13 => Self::PedersenPointsTableW9,
             _ => return None,
         })
     }
@@ -159,6 +167,8 @@ impl DeduceKind {
             Self::PartialEcMulW18 => (72, 72),
             Self::PedersenPointsTableW18 => (1, 56),
             Self::FeltAdd | Self::FeltSub | Self::FeltMul | Self::FeltDiv => (56, 28),
+            Self::PartialEcMulW9 => (86, 86),
+            Self::PedersenPointsTableW9 => (1, 56),
         }
     }
 }
@@ -342,6 +352,26 @@ mod tests {
             assert_eq!(op as u8, raw);
         }
         assert!(WitnessOp::from_raw(28).is_none());
+    }
+
+    #[test]
+    fn deduce_selector_roundtrip_preserves_reserved_poseidon_range() {
+        for raw in 0..=7 {
+            let kind = DeduceKind::from_raw(raw).expect("known original selector");
+            assert_eq!(kind as u32, raw);
+        }
+        for raw in 8..=11 {
+            assert!(DeduceKind::from_raw(raw).is_none());
+        }
+        assert_eq!(
+            DeduceKind::from_raw(12),
+            Some(DeduceKind::PartialEcMulW9)
+        );
+        assert_eq!(
+            DeduceKind::from_raw(13),
+            Some(DeduceKind::PedersenPointsTableW9)
+        );
+        assert!(DeduceKind::from_raw(14).is_none());
     }
 
     #[test]

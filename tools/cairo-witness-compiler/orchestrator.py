@@ -23,10 +23,10 @@ OFFICIAL_WITNESS_MOD_SHA256 = (
     "e0113af8099143ea2770312bff24bc1e2fa5329933b272bac0fdae815b0de448"
 )
 EXPECTED_BUNDLE_SHA256 = (
-    "2dfaf806c506aad7aa6292783c7026405abb71d87e8e40e0dcf16df25edf2698"
+    "d807737856a1d58a199ece892e41580f1e2f2bf6d72e3636cbe7bdcd440e044f"
 )
-EXPECTED_BUNDLE_BYTES = 685_149
-EXPECTED_PROGRAM_COUNT = 27
+EXPECTED_BUNDLE_BYTES = 1_022_640
+EXPECTED_PROGRAM_COUNT = 30
 
 COMPONENTS = (
     "add_ap_opcode",
@@ -40,6 +40,7 @@ COMPONENTS = (
     "call_opcode_abs",
     "call_opcode_rel_imm",
     "cube_252",
+    "generic_opcode",
     "jnz_opcode_non_taken",
     "jnz_opcode_taken",
     "jump_opcode_abs",
@@ -50,7 +51,9 @@ COMPONENTS = (
     "mul_opcode_small",
     "partial_ec_mul_generic",
     "partial_ec_mul_window_bits_18",
+    "partial_ec_mul_window_bits_9",
     "pedersen_aggregator_window_bits_18",
+    "pedersen_aggregator_window_bits_9",
     "qm_31_add_mul_opcode",
     "range_check_252_width_27",
     "ret_opcode",

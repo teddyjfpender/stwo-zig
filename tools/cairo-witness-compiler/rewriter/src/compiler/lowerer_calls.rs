@@ -157,12 +157,9 @@ impl Lowerer {
                 }
             }
             "PackedFelt252 :: from_m31" => {
-                // Felt252 whose VALUE is the (31-bit) M31: limbs 0..3 are 9-bit windows
-                // of the value (limbs 4..28 zero) — needs `U32Shr`/`U32And`; census-only
-                // under the u32 trait extension, typed Felt252.
-                let (at, _a) = self.lower_arg(call.args.first());
-                if at.is_m31() || at == Ty::Unknown {
-                    self.u32_site(Ty::Felt252)
+                let (at, a) = self.lower_arg(call.args.first());
+                if at.is_m31() {
+                    self.emit_op(target, Ty::Felt252, quote! { eval.felt_from_m31(#a) })
                 } else {
                     self.skip("call", format!("PackedFelt252::from_m31 on {at:?}"));
                     (Ty::Unknown, quote! { WG_SKIP })
@@ -208,7 +205,7 @@ impl Lowerer {
                 // natively on both evaluators. Falls back to the census-only site if
                 // the call's argument does not match the generated literal shape.
                 if p == "PackedPartialEcMulWindowBits18 :: deduce_output" {
-                    if let Some(tok) = self.lower_w18_deduce(call, target) {
+                    if let Some(tok) = self.lower_windowed_ec_deduce(call, target, 18, 14) {
                         return (known_deduce_output_ty(p).expect("W18 is in the table"), tok);
                     }
                     for a in &call.args {
@@ -216,10 +213,31 @@ impl Lowerer {
                     }
                     return self.deduce_site(known_deduce_output_ty(p).expect("in table"));
                 }
+                if p == "PackedPartialEcMulWindowBits9 :: deduce_output" {
+                    if let Some(tok) = self.lower_windowed_ec_deduce(call, target, 9, 28) {
+                        return (known_deduce_output_ty(p).expect("W9 is in the table"), tok);
+                    }
+                    for a in &call.args {
+                        let _ = self.lower_aggregate(a);
+                    }
+                    return self.deduce_site(known_deduce_output_ty(p).expect("in table"));
+                }
                 if p == "PackedPedersenPointsTableWindowBits18 :: deduce_output" {
-                    if let Some(tok) = self.lower_points_table_deduce(call, target) {
+                    if let Some(tok) = self.lower_points_table_deduce(call, target, 18) {
                         return (
                             known_deduce_output_ty(p).expect("PT18 is in the table"),
+                            tok,
+                        );
+                    }
+                    for a in &call.args {
+                        let _ = self.lower_aggregate(a);
+                    }
+                    return self.deduce_site(known_deduce_output_ty(p).expect("in table"));
+                }
+                if p == "PackedPedersenPointsTableWindowBits9 :: deduce_output" {
+                    if let Some(tok) = self.lower_points_table_deduce(call, target, 9) {
+                        return (
+                            known_deduce_output_ty(p).expect("PT9 is in the table"),
                             tok,
                         );
                     }

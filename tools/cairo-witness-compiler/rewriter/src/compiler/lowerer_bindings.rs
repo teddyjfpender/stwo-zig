@@ -117,12 +117,18 @@ impl Lowerer {
         }
     }
 
-    /// `PackedPartialEcMulWindowBits18::deduce_output((chain, round, ([w; 14],
-    /// [acc; 2])))` — the generated literal shape — as a REAL
-    /// `eval.deduce_partial_ec_mul_w18(chain, round, [w; 14], [acc0, acc1])` call.
+    /// A `PackedPartialEcMulWindowBits{18,9}::deduce_output((chain, round,
+    /// ([window; N], [acc; 2])))` generated literal as the corresponding real
+    /// `WitnessEval` call.
     /// `None` when the argument is not the literal tuple shape (caller falls back to
     /// the census-only site; nothing is emitted before the shape checks pass).
-    fn lower_w18_deduce(&mut self, call: &syn::ExprCall, target: Target) -> Option<TokenStream> {
+    fn lower_windowed_ec_deduce(
+        &mut self,
+        call: &syn::ExprCall,
+        target: Target,
+        window_bits: u32,
+        window_count: usize,
+    ) -> Option<TokenStream> {
         let arg = strip_parens(call.args.first()?);
         let Expr::Tuple(ExprTuple { elems, .. }) = arg else {
             return None;
@@ -142,7 +148,7 @@ impl Lowerer {
         let Expr::Array(ExprArray { elems: accs, .. }) = strip_parens(acc_e) else {
             return None;
         };
-        if wins.len() != 14 || accs.len() != 2 {
+        if wins.len() != window_count || accs.len() != 2 {
             return None;
         }
         // Shape checks passed — lower the pieces (any inner mismatch is a loud skip
@@ -150,19 +156,19 @@ impl Lowerer {
         // with the source, and the skip blocks emission).
         let chain = {
             let (ty, tok) = self.lower_node(strip_parens(chain_e), Target::Temp);
-            self.require_m31(&ty, "w18 deduce chain", chain_e);
+            self.require_m31(&ty, "windowed EC deduce chain", chain_e);
             tok
         };
         let round = {
             let (ty, tok) = self.lower_node(strip_parens(round_e), Target::Temp);
-            self.require_m31(&ty, "w18 deduce round", round_e);
+            self.require_m31(&ty, "windowed EC deduce round", round_e);
             tok
         };
         let win_toks: Vec<TokenStream> = wins
             .iter()
             .map(|w| {
                 let (ty, tok) = self.lower_node(strip_parens(w), Target::Temp);
-                self.require_m31(&ty, "w18 deduce window", w);
+                self.require_m31(&ty, "windowed EC deduce window", w);
                 tok
             })
             .collect();
@@ -173,16 +179,22 @@ impl Lowerer {
                 None => {
                     self.skip(
                         "deduce_output",
-                        format!("w18 deduce accumulator is not a felt: `{}`", tok_str(a)),
+                        format!(
+                            "window-bits-{window_bits} deduce accumulator is not a felt: `{}`",
+                            tok_str(a)
+                        ),
                     );
                     quote! { WG_SKIP }
                 }
             })
             .collect();
-        Some(self.bind(
-            target,
-            quote! { eval.deduce_partial_ec_mul_w18(#chain, #round, [ #(#win_toks),* ], [ #(#acc_toks),* ]) },
-        ))
+        let method = Ident::new(
+            &format!("deduce_partial_ec_mul_w{window_bits}"),
+            Span::call_site(),
+        );
+        Some(self.bind(target, quote! {
+            eval.#method(#chain, #round, [ #(#win_toks),* ], [ #(#acc_toks),* ])
+        }))
     }
 
     /// `PackedBlakeG::deduce_output([a, b, c, d, m0, m1])` (6 full-32-bit words) as a
@@ -216,12 +228,12 @@ impl Lowerer {
         Some(self.bind(target, quote! { eval.deduce_blake_g([ #(#toks),* ]) }))
     }
 
-    /// `PackedPedersenPointsTableWindowBits18::deduce_output([index])` as a REAL
-    /// `eval.deduce_pedersen_points_table_w18(index)` call.
+    /// A `PackedPedersenPointsTableWindowBits{18,9}::deduce_output([index])` call.
     fn lower_points_table_deduce(
         &mut self,
         call: &syn::ExprCall,
         target: Target,
+        window_bits: u32,
     ) -> Option<TokenStream> {
         let arg = strip_parens(call.args.first()?);
         let Expr::Array(ExprArray { elems, .. }) = arg else {
@@ -232,10 +244,11 @@ impl Lowerer {
         }
         let (ty, idx) = self.lower_node(strip_parens(&elems[0]), Target::Temp);
         self.require_m31(&ty, "points-table deduce index", &elems[0]);
-        Some(self.bind(
-            target,
-            quote! { eval.deduce_pedersen_points_table_w18(#idx) },
-        ))
+        let method = Ident::new(
+            &format!("deduce_pedersen_points_table_w{window_bits}"),
+            Span::call_site(),
+        );
+        Some(self.bind(target, quote! { eval.#method(#idx) }))
     }
 
     /// A hoisted felt broadcast constant used as a bare VALUE (not via `.get_m31(i)`,
