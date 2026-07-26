@@ -7,6 +7,7 @@ use serde::Serialize;
 use stwo_cairo_official_verifier::{
     ADAPTER_VERSION, Channel, ProofFormat, STWO_CAIRO_REVISION, STWO_REVISION, identity,
     input::inspect_input, inspect_blake2s_proof_claim, proof_sha256, verify_proof, write_json_new,
+    write_json_pretty_new,
 };
 
 enum Command {
@@ -16,6 +17,11 @@ enum Command {
         result: PathBuf,
     },
     InspectBlake2sProof {
+        proof: PathBuf,
+        format: ProofFormat,
+        result: PathBuf,
+    },
+    SerializeCairo {
         proof: PathBuf,
         format: ProofFormat,
         result: PathBuf,
@@ -75,6 +81,19 @@ fn run() -> anyhow::Result<ExitCode> {
             result,
         } => {
             write_json_new(&result, &inspect_blake2s_proof_claim(&proof, format)?)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::SerializeCairo {
+            proof,
+            format,
+            result,
+        } => {
+            write_json_pretty_new(
+                &result,
+                &stwo_cairo_official_verifier::cairo_serde::serialize_blake2s_proof(
+                    &proof, format,
+                )?,
+            )?;
             Ok(ExitCode::SUCCESS)
         }
         Command::Verify {
@@ -189,6 +208,14 @@ where
                 result: result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
             })
         }
+        "serialize-cairo" => {
+            let (proof, format, result) = parse_proof_transform_args(args)?;
+            Ok(Command::SerializeCairo {
+                proof,
+                format,
+                result,
+            })
+        }
         "verify" => {
             let mut proof = None;
             let mut channel = None;
@@ -225,6 +252,39 @@ where
         }
         _ => anyhow::bail!("unknown command {command}"),
     }
+}
+
+fn parse_proof_transform_args<I>(mut args: I) -> anyhow::Result<(PathBuf, ProofFormat, PathBuf)>
+where
+    I: Iterator<Item = OsString>,
+{
+    let mut proof = None;
+    let mut format = None;
+    let mut result = None;
+    while let Some(flag) = args.next() {
+        let flag = flag
+            .into_string()
+            .map_err(|_| anyhow::anyhow!("option is not valid UTF-8"))?;
+        let value = args
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("missing value for {flag}"))?;
+        match flag.as_str() {
+            "--proof" if proof.is_none() => proof = Some(PathBuf::from(value)),
+            "--proof-format" if format.is_none() => {
+                format = Some(ProofFormat::parse(&utf8(Some(value), "missing format")?)?)
+            }
+            "--result" if result.is_none() => result = Some(PathBuf::from(value)),
+            "--proof" | "--proof-format" | "--result" => {
+                anyhow::bail!("duplicate option {flag}")
+            }
+            _ => anyhow::bail!("unknown option {flag}"),
+        }
+    }
+    Ok((
+        proof.ok_or_else(|| anyhow::anyhow!("missing --proof"))?,
+        format.unwrap_or(ProofFormat::Json),
+        result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
+    ))
 }
 
 fn utf8(value: Option<OsString>, error: &str) -> anyhow::Result<String> {

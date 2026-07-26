@@ -370,10 +370,10 @@ The table started at commit `cfd47be9` and is updated as evidence lands on
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
-| CPU product | focused `stwo-cairo-cpu` product, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, and a serial two-fixture official Rust oracle gate | staged with all-family AIR admission; formats, execution adapter, and broader release corpus remain |
+| CPU product | focused `stwo-cairo-cpu` product, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON and Cairo-serde transports, and a serial two-fixture official Rust oracle gate | staged with all-family AIR admission; binary, execution adapter, and broader release corpus remain |
 | Metal product | disabled descriptor, no executable or product test | incomplete |
-| Rust oracle | isolated official verifier accepts the deterministic Zig all-opcodes and all-builtins proofs and rejects mutation | complete for both frozen JSON proof fixtures |
-| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON, derives its live schedule from the input, publishes exact JSON transactionally, emits an identity-bound report, and optionally verifies in Zig before publication | complete for two oracle-accepted inputs; binary, Cairo-serde, run-and-prove, and broader corpus admission remain |
+| Rust oracle | isolated official verifier accepts the deterministic Zig all-opcodes and all-builtins proofs, rejects mutation, and independently derives the canonical Cairo-serde felt sequence | complete for both frozen JSON proof fixtures and the Cairo-serde transport |
+| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON, derives its live schedule from the input, publishes exact JSON or Cairo-serde transactionally, emits a format-bound identity report, and optionally verifies in Zig before publication | complete for two oracle-accepted inputs and two proof transports; binary, run-and-prove, and broader corpus admission remain |
 | Metal execution | substantial SN2-specific resident machinery | not release evidence |
 | Repository structure | several Cairo files exceed size policy | incomplete |
 
@@ -542,6 +542,18 @@ unsampled high-domain preprocessed column must not raise the FRI lifting domain
 above the final split-composition tree. A focused PCS roundtrip now covers that
 heterogeneous-tree case. RF-09 is complete for both frozen profiles and remains
 open for the broader release corpus and remaining proof transports.
+
+The CPU product also streams the official Cairo-verifier transport without
+building a second in-memory felt document. For the canonical all-builtins
+proof, Zig emits 553,541 field elements in a 7,965,969-byte pretty-JSON array
+with SHA-256
+`895b577dfe8512dec3b667fbd7f452f42d56c29034aa158d15105861a3a217e7`.
+The pinned Rust adapter independently deserializes the accepted JSON proof,
+applies the official fixed-claim omission, interaction-claim flattening,
+stable trace-log sort, and row-major query transpose, and emits identical
+bytes. The release gate repeats the comparison on the all-opcodes CLI path.
+RF-12 is complete for the two frozen profiles; RF-11 binary transport remains
+open.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The

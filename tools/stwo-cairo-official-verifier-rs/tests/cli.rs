@@ -73,16 +73,34 @@ fn inspect_proof_publishes_the_canonical_claim_geometry() {
         .unwrap();
     assert!(status.success());
     let summary: Value = serde_json::from_slice(&std::fs::read(&result).unwrap()).unwrap();
-    assert_eq!(
-        summary["schema"],
-        "stwo_cairo_official_claim_summary_v1"
-    );
+    assert_eq!(summary["schema"], "stwo_cairo_official_claim_summary_v1");
     assert_eq!(
         summary["flat_claim"]["component_enable_bits"]
             .as_array()
             .unwrap()
             .len(),
         83
+    );
+}
+
+#[test]
+fn cairo_serde_transport_is_pinned_to_the_official_vector() {
+    let directory = tempdir().unwrap();
+    let result = directory.path().join("proof.cairo-serde.json");
+    let status = Command::new(binary())
+        .args(["serialize-cairo", "--proof"])
+        .arg(proof_vector())
+        .args(["--proof-format", "binary", "--result"])
+        .arg(&result)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let encoded = std::fs::read(&result).unwrap();
+    let values: Value = serde_json::from_slice(&encoded).unwrap();
+    assert_eq!(values.as_array().unwrap().len(), 301_739);
+    assert_eq!(
+        stwo_cairo_official_verifier::proof_sha256(&result).unwrap(),
+        "0d05742cceafef88e3b44d933e8e301d2c68f05c1a864026e00f4dae5861f454"
     );
 }
 

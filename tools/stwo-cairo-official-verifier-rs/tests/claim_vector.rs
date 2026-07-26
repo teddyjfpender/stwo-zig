@@ -12,10 +12,7 @@ fn official_claim_has_stable_flat_and_interaction_geometry() {
     let summary =
         serde_json::to_value(inspect_blake2s_proof_claim(&vector(), ProofFormat::Binary).unwrap())
             .unwrap();
-    assert_eq!(
-        summary["schema"],
-        "stwo_cairo_official_claim_summary_v1"
-    );
+    assert_eq!(summary["schema"], "stwo_cairo_official_claim_summary_v1");
     assert_eq!(summary["preprocessed_trace_variant"], "canonical");
     assert_eq!(
         summary["flat_claim"]["component_enable_bits"]

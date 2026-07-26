@@ -12,6 +12,14 @@ pub const ProofFormat = enum {
     json,
     binary,
     cairo_serde,
+
+    pub fn name(self: ProofFormat) []const u8 {
+        return switch (self) {
+            .json => "json",
+            .binary => "binary",
+            .cairo_serde => "cairo-serde",
+        };
+    }
 };
 
 pub const Prove = struct {
@@ -165,7 +173,7 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
         .prove => try writer.writeAll(
             \\Usage: stwo-cairo-cpu prove --prover-input PATH --proof PATH [options]
             \\  --params PATH          Authenticated proving-profile manifest
-            \\  --proof-format FORMAT  json (binary and cairo-serde are gated)
+            \\  --proof-format FORMAT  json or cairo-serde (binary is gated)
             \\  --report-out PATH      Write the machine-readable proving report
             \\  --verify               Verify before publishing the proof
             \\
@@ -198,6 +206,26 @@ test "Cairo CPU prove command is explicit and strict" {
     );
     try std.testing.expect(parsed.prove.verify);
     try std.testing.expectEqual(ProofFormat.json, parsed.prove.proof_format);
+}
+
+test "Cairo CPU CLI admits the released Cairo-serde spelling" {
+    const parsed = try parse(&.{
+        "prove",
+        "--prover-input",
+        "program.json",
+        "--proof",
+        "proof.json",
+        "--proof-format",
+        "cairo-serde",
+    });
+    try std.testing.expectEqual(
+        ProofFormat.cairo_serde,
+        parsed.prove.proof_format,
+    );
+    try std.testing.expectEqualStrings(
+        "cairo-serde",
+        parsed.prove.proof_format.name(),
+    );
 }
 
 test "Cairo CPU CLI rejects unsupported and duplicate arguments" {

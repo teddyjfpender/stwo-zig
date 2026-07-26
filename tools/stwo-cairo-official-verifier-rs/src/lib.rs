@@ -17,6 +17,7 @@ use stwo::core::vcs_lifted::poseidon252_merkle::{
     Poseidon252MerkleChannel, Poseidon252MerkleHasher,
 };
 
+pub mod cairo_serde;
 pub mod claim;
 pub mod input;
 
@@ -74,7 +75,7 @@ impl ProofFormat {
         }
     }
 
-    fn upstream(self) -> UpstreamProofFormat {
+    pub(crate) fn upstream(self) -> UpstreamProofFormat {
         match self {
             Self::Json => UpstreamProofFormat::Json,
             Self::Binary => UpstreamProofFormat::Binary,
@@ -188,6 +189,19 @@ pub fn inspect_blake2s_proof_claim(
 }
 
 pub fn write_json_new(path: &Path, value: &impl Serialize) -> Result<()> {
+    write_json_new_with(path, value, false, true)
+}
+
+pub fn write_json_pretty_new(path: &Path, value: &impl Serialize) -> Result<()> {
+    write_json_new_with(path, value, true, false)
+}
+
+fn write_json_new_with(
+    path: &Path,
+    value: &impl Serialize,
+    pretty: bool,
+    terminate: bool,
+) -> Result<()> {
     let parent = path
         .parent()
         .filter(|path| !path.as_os_str().is_empty())
@@ -210,9 +224,16 @@ pub fn write_json_new(path: &Path, value: &impl Serialize) -> Result<()> {
             Err(error) => return Err(error).context("failed to create result temporary file"),
         };
         let publish = (|| -> Result<()> {
-            serde_json::to_writer(&mut file, value).context("failed to serialize result")?;
-            file.write_all(b"\n")
-                .context("failed to terminate result")?;
+            if pretty {
+                serde_json::to_writer_pretty(&mut file, value)
+                    .context("failed to serialize result")?;
+            } else {
+                serde_json::to_writer(&mut file, value).context("failed to serialize result")?;
+            }
+            if terminate {
+                file.write_all(b"\n")
+                    .context("failed to terminate result")?;
+            }
             file.sync_all().context("failed to sync result")?;
             std::fs::hard_link(&temporary, path)
                 .with_context(|| format!("refusing to replace {}", path.display()))

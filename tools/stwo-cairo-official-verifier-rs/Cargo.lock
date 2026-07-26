@@ -2393,9 +2393,11 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "starknet-ff",
  "stwo",
  "stwo-cairo-adapter",
  "stwo-cairo-common",
+ "stwo-cairo-serialize",
  "tempfile",
 ]
 

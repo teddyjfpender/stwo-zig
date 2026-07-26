@@ -32,8 +32,7 @@ pub fn main() !void {
 }
 
 fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
-    if (request.proof_format != .json)
-        return error.UnsupportedProofFormat;
+    if (request.proof_format == .binary) return error.UnsupportedProofFormat;
     try output_transaction.prepare(request.proof, request.report_out);
 
     const owned_manifest = if (request.params == null)
@@ -51,6 +50,8 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         request.prover_input,
     );
     defer input.deinit(allocator);
+    if (request.proof_format == .cairo_serde)
+        try cairo.proof.cairo_serde.validateInput(&input);
     var programs = try cairo.witness.bundle.Bundle.readFile(
         allocator,
         paths.witness_programs,
@@ -101,9 +102,11 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     defer allocator.free(temporary);
     defer std.fs.cwd().deleteFile(temporary) catch {};
     try writeProof(
+        allocator,
         temporary,
         &input,
         &result,
+        request.proof_format,
     );
     const verification_started = std.time.Instant.now() catch
         return error.ClockUnavailable;
@@ -125,6 +128,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         proving_ns,
         request.verify,
         verification_ns,
+        request.proof_format,
     );
     defer allocator.free(report);
     try output_transaction.publishResult(
@@ -139,9 +143,11 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
 }
 
 fn writeProof(
+    allocator: std.mem.Allocator,
     path: []const u8,
     input: *const cairo.adapter.ProverInput,
     result: *const cairo_cpu.prover.transaction.Result,
+    proof_format: cli.ProofFormat,
 ) !void {
     const file = try std.fs.cwd().createFile(path, .{
         .exclusive = true,
@@ -150,20 +156,35 @@ fn writeProof(
     defer file.close();
     var buffer: [64 * 1024]u8 = undefined;
     var file_writer = file.writer(&buffer);
-    try std.json.Stringify.value(
-        cairo.proof.json.Document(@TypeOf(result.proof.proof)){
-            .input = input,
-            .composition = &result.composition,
-            .claimed_sums = result.claimed_sums,
-            .interaction_pow = result.interaction_pow,
-            .channel_salt = 0,
-            .preprocessed_variant = result.preprocessed_variant,
-            .stark_proof = &result.proof.proof,
+    switch (proof_format) {
+        .json => {
+            try std.json.Stringify.value(
+                cairo.proof.json.Document(@TypeOf(result.proof.proof)){
+                    .input = input,
+                    .composition = &result.composition,
+                    .claimed_sums = result.claimed_sums,
+                    .interaction_pow = result.interaction_pow,
+                    .channel_salt = 0,
+                    .preprocessed_variant = result.preprocessed_variant,
+                    .stark_proof = &result.proof.proof,
+                },
+                .{},
+                &file_writer.interface,
+            );
+            try file_writer.interface.writeByte('\n');
         },
-        .{},
-        &file_writer.interface,
-    );
-    try file_writer.interface.writeByte('\n');
+        .cairo_serde => try cairo.proof.cairo_serde.writeDocument(
+            allocator,
+            &file_writer.interface,
+            input,
+            &result.composition,
+            result.claimed_sums,
+            result.interaction_pow,
+            0,
+            &result.proof.proof,
+        ),
+        .binary => return error.UnsupportedProofFormat,
+    }
     try file_writer.interface.flush();
     try file.sync();
 }
@@ -177,6 +198,7 @@ fn renderReport(
     proving_ns: u64,
     verification_requested: bool,
     verification_ns: u64,
+    proof_format: cli.ProofFormat,
 ) ![]u8 {
     const input_hex = std.fmt.bytesToHex(input_sha256, .lower);
     const proof_hex = std.fmt.bytesToHex(proof_sha256, .lower);
@@ -188,7 +210,7 @@ fn renderReport(
         .profile = profile_name,
         .input = .{ .sha256 = &input_hex },
         .proof = .{
-            .format = "json",
+            .format = proof_format.name(),
             .bytes = proof_bytes,
             .sha256 = &proof_hex,
         },
@@ -234,6 +256,7 @@ test "Cairo CPU report binds input, proof, profile, and product" {
         5678,
         false,
         0,
+        .json,
     );
     defer std.testing.allocator.free(encoded);
     var parsed = try std.json.parseFromSlice(

@@ -9,7 +9,7 @@ const graph = @import("../graph/modules.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
-    "stwo-cairo-v1.2.2+official-json-v1+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
+    "stwo-cairo-v1.2.2+official-json-v1+cairo-serde-v1+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
 
 const OracleCase = struct {
     name: []const u8,
@@ -18,6 +18,11 @@ const OracleCase = struct {
     proof: []const u8,
     report: []const u8,
     verdict: []const u8,
+};
+
+const OracleResult = struct {
+    step: *std.Build.Step,
+    proof: std.Build.LazyPath,
 };
 
 const source_closure = policy.SourceClosure{
@@ -242,6 +247,7 @@ fn addOracleGate(
         "Prove the official Cairo corpus and require Rust acceptance",
     );
     var previous: ?*std.Build.Step = null;
+    var transport_source: ?std.Build.LazyPath = null;
     for ([_]OracleCase{
         .{
             .name = "all-opcodes",
@@ -260,15 +266,25 @@ fn addOracleGate(
             .verdict = "all-builtins-rust-verdict.json",
         },
     }) |case| {
-        previous = addOracleCase(
+        const result = addOracleCase(
             context,
             executable,
             cargo,
             case,
             previous,
         );
+        previous = result.step;
+        if (std.mem.eql(u8, case.name, "all-opcodes"))
+            transport_source = result.proof;
     }
-    gate.dependOn(previous.?);
+    const transport = addCairoSerdeGate(
+        context,
+        executable,
+        cargo,
+        transport_source.?,
+        previous.?,
+    );
+    gate.dependOn(transport);
 }
 
 fn addOracleCase(
@@ -277,7 +293,7 @@ fn addOracleCase(
     cargo: *std.Build.Step.Run,
     case: OracleCase,
     previous: ?*std.Build.Step,
-) *std.Build.Step {
+) OracleResult {
     const prove = context.b.addRunArtifact(executable);
     if (previous) |dependency| prove.step.dependOn(dependency);
     prove.addArgs(&.{ "prove", "--prover-input" });
@@ -312,7 +328,52 @@ fn addOracleCase(
         "verify official Cairo {s} proof",
         .{case.name},
     ));
-    return &verify.step;
+    return .{ .step = &verify.step, .proof = proof };
+}
+
+fn addCairoSerdeGate(
+    context: Context,
+    executable: *std.Build.Step.Compile,
+    cargo: *std.Build.Step.Run,
+    json_proof: std.Build.LazyPath,
+    previous: *std.Build.Step,
+) *std.Build.Step {
+    const serialize_oracle = context.b.addSystemCommand(&.{
+        context.b.pathFromRoot(
+            "tools/stwo-cairo-official-verifier-rs/target/debug/" ++
+                "stwo-cairo-official-verifier",
+        ),
+        "serialize-cairo",
+        "--proof",
+    });
+    serialize_oracle.step.dependOn(&cargo.step);
+    serialize_oracle.addFileArg(json_proof);
+    serialize_oracle.addArgs(&.{ "--proof-format", "json", "--result" });
+    const expected = serialize_oracle.addOutputFileArg(
+        "all-opcodes-proof.cairo-serde.oracle.json",
+    );
+
+    const prove = context.b.addRunArtifact(executable);
+    prove.step.dependOn(previous);
+    prove.addArgs(&.{ "prove", "--prover-input" });
+    prove.addFileArg(context.b.path(
+        "vectors/cairo/official/all_opcodes.prover_input.json",
+    ));
+    prove.addArg("--params");
+    prove.addFileArg(context.b.path(
+        "vectors/cairo/official/all_opcodes.params.json",
+    ));
+    prove.addArg("--proof");
+    const actual = prove.addOutputFileArg(
+        "all-opcodes-proof.cairo-serde.json",
+    );
+    prove.addArgs(&.{ "--proof-format", "cairo-serde", "--verify" });
+
+    const compare = context.b.addSystemCommand(&.{"cmp"});
+    compare.addFileArg(expected);
+    compare.addFileArg(actual);
+    compare.setName("compare Zig and official Cairo-serde proof bytes");
+    return &compare.step;
 }
 
 fn product(role: graph.Role) graph.Product {

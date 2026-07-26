@@ -7,23 +7,10 @@ const registry = @import("../air/official_claim_registry.zig");
 const public_data = @import("../statement/public_data.zig");
 const preprocessed = @import("../preprocessed/trace.zig");
 const composition_bundle = @import("../witness/composition_bundle.zig");
+const layout = @import("layout.zig");
 const stwo_json = core.proof_json;
 
 const QM31 = core.fields.qm31.QM31;
-
-const segment_names = [_][]const u8{
-    "output",
-    "pedersen",
-    "range_check_128",
-    "ecdsa",
-    "bitwise",
-    "ec_op",
-    "keccak",
-    "poseidon",
-    "range_check_96",
-    "add_mod",
-    "mul_mod",
-};
 
 pub fn Document(comptime StarkProof: type) type {
     return struct {
@@ -62,7 +49,7 @@ pub fn writeDocument(
 ) !void {
     if (composition.components.len != claimed_sums.len)
         return error.InvalidInteractionClaimGeometry;
-    try validateComponents(composition);
+    try layout.validateComponents(composition);
 
     try writer.beginObject();
     try writer.objectField("claim");
@@ -89,7 +76,7 @@ fn writeClaim(
     try writer.objectField("public_data");
     try writePublicData(writer, input);
     for (registry.claim_fields) |field| {
-        const span = componentSpan(composition, field.name);
+        const span = layout.componentSpan(composition, field.name);
         try writer.objectField(field.name);
         if (span.len == 0) {
             try writer.write(null);
@@ -119,7 +106,7 @@ fn writeInteractionClaim(
 ) !void {
     try writer.beginObject();
     for (registry.claim_fields) |field| {
-        const span = componentSpan(composition, field.name);
+        const span = layout.componentSpan(composition, field.name);
         try writer.objectField(field.name);
         if (span.len == 0) {
             try writer.write(null);
@@ -171,7 +158,7 @@ fn writePublicData(writer: anytype, input: *const adapter.ProverInput) !void {
     try writeMemorySection(writer, input, initial_pc, initial_ap - 2);
     try writer.objectField("public_segments");
     try writer.beginObject();
-    for (segment_names, segments) |name, segment| {
+    for (layout.segment_names, segments) |name, segment| {
         try writer.objectField(name);
         if (segment) |range| try writeSegment(writer, range) else try writer.write(null);
     }
@@ -238,59 +225,7 @@ fn writeState(writer: anytype, state: anytype) !void {
     try writer.endObject();
 }
 
-const ComponentSpan = struct {
-    start: usize = 0,
-    len: usize = 0,
-};
-
-fn componentSpan(
-    composition: *const composition_bundle.Bundle,
-    field_name: []const u8,
-) ComponentSpan {
-    var result = ComponentSpan{};
-    for (composition.components, 0..) |component, index| {
-        if (!std.mem.eql(u8, canonicalName(component.label), field_name)) continue;
-        if (result.len == 0) result.start = index;
-        result.len += 1;
-    }
-    return result;
-}
-
-fn validateComponents(composition: *const composition_bundle.Bundle) !void {
-    var seen = [_]bool{false} ** registry.claim_field_count;
-    var last_field: ?usize = null;
-    var last_instance: u32 = 0;
-    for (composition.components) |component| {
-        const field_index = fieldIndex(canonicalName(component.label)) orelse
-            return error.UnknownClaimComponent;
-        if (last_field == field_index) {
-            if (component.instance != last_instance + 1)
-                return error.InvalidClaimGeometry;
-        } else {
-            if (seen[field_index] or component.instance != 0)
-                return error.InvalidClaimGeometry;
-            seen[field_index] = true;
-        }
-        last_field = field_index;
-        last_instance = component.instance;
-    }
-}
-
-fn fieldIndex(name: []const u8) ?usize {
-    for (registry.claim_fields, 0..) |field, index|
-        if (std.mem.eql(u8, field.name, name)) return index;
-    return null;
-}
-
-fn canonicalName(label: []const u8) []const u8 {
-    return if (std.mem.startsWith(u8, label, "memory_id_to_big["))
-        "memory_id_to_big"
-    else
-        label;
-}
-
 test "Cairo proof JSON: official field registry remains schema-complete" {
     try std.testing.expectEqual(@as(usize, 68), registry.claim_fields.len);
-    try std.testing.expectEqual(@as(usize, 11), segment_names.len);
-    try std.testing.expectEqualStrings("memory_id_to_big", canonicalName("memory_id_to_big[15]"));
+    try std.testing.expectEqual(@as(usize, 11), layout.segment_names.len);
 }
