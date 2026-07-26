@@ -125,8 +125,8 @@ def _check_witness_bundle(
         "all_opcodes": (
             "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
             "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
-            41,
-            20,
+            42,
+            21,
             21,
         ),
         "all_builtins": (
@@ -257,6 +257,7 @@ def _check_witness_compiler(
             != sorted(
                 [
                     "add_mod_builtin",
+                    "blake_compress_opcode",
                     "blake_round_sigma",
                     "bitwise_builtin",
                     "ec_op_builtin",
