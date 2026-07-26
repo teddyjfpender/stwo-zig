@@ -3,6 +3,7 @@
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const cairo_oracle_gate = @import("cairo_cpu/oracle_gate.zig");
+const cairo_vm_adapter = @import("cairo_cpu/vm_adapter.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph_install = @import("../graph/install.zig");
@@ -10,7 +11,7 @@ const graph = @import("../graph/modules.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
-    "stwo-cairo-v1.2.2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
+    "stwo-cairo-v1.2.2+official-vm-adapter-v1+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -56,6 +57,7 @@ pub const descriptor = policy.Descriptor{
     .executable = "stwo-cairo-cpu",
     .installed_artifacts = &.{
         "stwo-cairo-cpu",
+        "stwo-cairo-vm-adapter",
         "share/stwo-zig/cairo/official/all_opcodes.params.json",
         "share/stwo-zig/cairo/official/all_builtins.params.json",
     },
@@ -90,6 +92,7 @@ pub fn addProduct(context: Context) void {
         "Build the focused official Cairo CPU/SIMD proof CLI",
     );
     linkBzip2(context.b, installed.executable);
+    installed.build_step.dependOn(cairo_vm_adapter.addInstall(context.b));
     installProfile(context, installed.build_step);
 
     const test_root = createProductModule(

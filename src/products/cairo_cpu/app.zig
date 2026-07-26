@@ -4,6 +4,7 @@ const std = @import("std");
 const stwo = @import("stwo_cairo_cpu");
 const capabilities = @import("capabilities.zig");
 const cli = @import("cli.zig");
+const execution_adapter = @import("execution_adapter.zig");
 const identity = @import("identity.zig");
 const profile = @import("profile.zig");
 
@@ -29,12 +30,48 @@ pub fn main() !void {
         .capabilities => try writeJsonLine(capabilities.write),
         .identity => try writeJsonLine(identity.write),
         .prove => |request| try prove(allocator, request),
+        .run_and_prove => |request| try runAndProve(allocator, request),
     }
 }
 
 fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     try output_transaction.prepare(request.proof, request.report_out);
+    try proveFile(allocator, request, null);
+}
 
+fn runAndProve(
+    allocator: std.mem.Allocator,
+    request: cli.RunAndProve,
+) !void {
+    try output_transaction.prepare(request.proof, request.report_out);
+    const prover_input = try atomic_file.temporaryPathAlloc(
+        allocator,
+        request.proof,
+        "prover-input",
+    );
+    defer allocator.free(prover_input);
+    defer std.fs.cwd().deleteFile(prover_input) catch {};
+    const execution = try execution_adapter.run(allocator, .{
+        .program = request.program,
+        .program_type = request.program_type.name(),
+        .arguments = request.arguments,
+        .prover_input_out = prover_input,
+    });
+    try proveFile(allocator, .{
+        .prover_input = prover_input,
+        .proof = request.proof,
+        .params = request.params,
+        .report_out = request.report_out,
+        .proof_format = request.proof_format,
+        .verify = request.verify,
+    }, execution);
+}
+
+fn proveFile(
+    allocator: std.mem.Allocator,
+    request: cli.Prove,
+    execution: ?execution_adapter.Receipt,
+) !void {
     const owned_manifest = if (request.params == null)
         try profile.defaultManifestPath(allocator)
     else
@@ -44,7 +81,9 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     var paths = try profile.load(allocator, manifest);
     defer paths.deinit();
 
-    const input_sha256 = try fileSha256(request.prover_input);
+    const input_sha256 = try execution_adapter.fileSha256(
+        request.prover_input,
+    );
     var input = try cairo.adapter.official_input.readFile(
         allocator,
         request.prover_input,
@@ -117,7 +156,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
             return error.ClockUnavailable).since(verification_started)
     else
         0;
-    const proof_sha256 = try fileSha256(temporary);
+    const proof_sha256 = try execution_adapter.fileSha256(temporary);
     const proof_bytes = (try std.fs.cwd().statFile(temporary)).size;
     const report = try renderReport(
         allocator,
@@ -129,6 +168,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         request.verify,
         verification_ns,
         request.proof_format,
+        execution,
     );
     defer allocator.free(report);
     try output_transaction.publishResult(
@@ -215,15 +255,42 @@ fn renderReport(
     verification_requested: bool,
     verification_ns: u64,
     proof_format: cli.ProofFormat,
+    execution: ?execution_adapter.Receipt,
 ) ![]u8 {
     const input_hex = std.fmt.bytesToHex(input_sha256, .lower);
     const proof_hex = std.fmt.bytesToHex(proof_sha256, .lower);
+    const ExecutionJson = struct {
+        program_type: []const u8,
+        program_sha256: []const u8,
+        arguments_sha256: ?[]const u8,
+        adapter_sha256: []const u8,
+        wall_ns: u64,
+    };
+    var program_hex: [64]u8 = undefined;
+    var arguments_hex: [64]u8 = undefined;
+    var adapter_hex: [64]u8 = undefined;
+    const execution_json: ?ExecutionJson = if (execution) |receipt| blk: {
+        program_hex = std.fmt.bytesToHex(receipt.program_sha256, .lower);
+        adapter_hex = std.fmt.bytesToHex(receipt.adapter_sha256, .lower);
+        const arguments_sha256: ?[]const u8 = if (receipt.arguments_sha256) |digest| args: {
+            arguments_hex = std.fmt.bytesToHex(digest, .lower);
+            break :args &arguments_hex;
+        } else null;
+        break :blk .{
+            .program_type = receipt.program_type,
+            .program_sha256 = &program_hex,
+            .arguments_sha256 = arguments_sha256,
+            .adapter_sha256 = &adapter_hex,
+            .wall_ns = receipt.execution_ns,
+        };
+    } else null;
     return std.json.Stringify.valueAlloc(allocator, .{
-        .schema_version = @as(u32, 1),
+        .schema_version = @as(u32, 2),
         .product = identity.value(),
         .frontend = "cairo",
         .backend = "cpu",
         .profile = profile_name,
+        .execution = execution_json,
         .input = .{ .sha256 = &input_hex },
         .proof = .{
             .format = proof_format.name(),
@@ -231,6 +298,10 @@ fn renderReport(
             .sha256 = &proof_hex,
         },
         .timing = .{
+            .execute_ns = if (execution) |receipt|
+                receipt.execution_ns
+            else
+                0,
             .prove_ns = proving_ns,
             .verify_ns = verification_ns,
         },
@@ -239,19 +310,6 @@ fn renderReport(
             .zig = verification_requested,
         },
     }, .{});
-}
-
-fn fileSha256(path: []const u8) ![32]u8 {
-    const file = try std.fs.cwd().openFile(path, .{});
-    defer file.close();
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    var storage: [256 * 1024]u8 = undefined;
-    while (true) {
-        const count = try file.read(&storage);
-        if (count == 0) break;
-        hasher.update(storage[0..count]);
-    }
-    return hasher.finalResult();
 }
 
 fn writeJsonLine(comptime render: anytype) !void {
@@ -273,6 +331,7 @@ test "Cairo CPU report binds input, proof, profile, and product" {
         false,
         0,
         .json,
+        null,
     );
     defer std.testing.allocator.free(encoded);
     var parsed = try std.json.parseFromSlice(

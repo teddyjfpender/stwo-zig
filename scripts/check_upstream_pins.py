@@ -17,6 +17,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from upstream_pins_lib.official_cairo_vectors import check as check_official_cairo_vectors
+from upstream_pins_lib.cairo_vm_adapter import check as check_cairo_vm_adapter
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -558,6 +559,18 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
             ledger.official_cairo_stwo_revision,
         ),
         TextPin(
+            "tools/stwo-cairo-vm-adapter-rs/src/main.rs",
+            "official execution-adapter Stwo-Cairo revision",
+            rf'^const STWO_CAIRO_REVISION: &str = "({REVISION_RE})";$',
+            ledger.official_cairo_revision,
+        ),
+        TextPin(
+            "tools/stwo-cairo-vm-adapter-rs/src/main.rs",
+            "official execution-adapter Stwo revision",
+            rf'^const STWO_REVISION: &str = "({REVISION_RE})";$',
+            ledger.official_cairo_stwo_revision,
+        ),
+        TextPin(
             "src/frontends/cairo/air/official_claim_registry.zig",
             "official generated claim-registry Stwo-Cairo revision",
             rf'^    \.stwo_cairo = "({REVISION_RE})",$',
@@ -659,6 +672,15 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
     errors.extend(_check_blake_oracle_source(root, ledger))
     errors.extend(_check_official_cairo_manifest(root, ledger))
     errors.extend(
+        check_cairo_vm_adapter(
+            root,
+            cairo_repository=ledger.official_cairo_repository,
+            cairo_revision=ledger.official_cairo_revision,
+            stwo_repository=ledger.official_cairo_stwo_repository,
+            stwo_revision=ledger.official_cairo_stwo_revision,
+        )
+    )
+    errors.extend(
         check_official_cairo_vectors(
             root,
             cairo_repository=ledger.official_cairo_repository,
@@ -675,6 +697,25 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
             ledger.official_cairo_repository,
             ledger.official_cairo_revision,
             ledger.official_cairo_revision,
+        )
+    )
+    vm_adapter_lock = "tools/stwo-cairo-vm-adapter-rs/Cargo.lock"
+    errors.extend(
+        _check_lock_source(
+            root,
+            vm_adapter_lock,
+            ledger.official_cairo_repository,
+            ledger.official_cairo_revision,
+            ledger.official_cairo_revision,
+        )
+    )
+    errors.extend(
+        _check_lock_source(
+            root,
+            vm_adapter_lock,
+            ledger.official_cairo_stwo_repository,
+            ledger.official_cairo_stwo_revision[:8],
+            ledger.official_cairo_stwo_revision,
         )
     )
     errors.extend(

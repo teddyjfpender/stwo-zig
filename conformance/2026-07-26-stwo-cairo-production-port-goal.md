@@ -370,10 +370,11 @@ The table started at commit `cfd47be9` and is updated as evidence lands on
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
-| CPU product | focused `stwo-cairo-cpu` product, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON, Cairo-serde, and compressed-binary transports, and a serial two-fixture official Rust oracle gate | staged with all-family AIR admission; execution adapter and broader release corpus remain |
+| CPU product | focused `stwo-cairo-cpu` product, adjacent pinned Cairo VM sidecar, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON, Cairo-serde, and compressed-binary transports, and a serial official Rust oracle gate | staged with all-family AIR admission; executable-format programs and broader release corpus remain |
 | Metal product | disabled descriptor, no executable or product test | incomplete |
 | Rust oracle | isolated official verifier accepts the deterministic Zig all-opcodes and all-builtins proofs, rejects mutation, and independently derives canonical Cairo-serde and raw-bincode transports | complete for both frozen JSON proof fixtures and all three released proof transports |
-| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON, derives its live schedule from the input, publishes exact JSON, Cairo-serde, or compressed binary transactionally, emits a format-bound identity report, and optionally verifies in Zig before publication | complete for two oracle-accepted inputs and three proof transports; run-and-prove and broader corpus admission remain |
+| Cairo VM execution | isolated `stwo-cairo-vm-adapter` runs compiled Cairo JSON under Cairo VM 3.2.0 with `all_cairo_stwo`, sorts public-memory addresses, and reproduces the 181,534-byte official all-opcodes `ProverInput` byte-for-byte | complete for compiled JSON all-opcodes; executable format, arguments corpus, and broader programs remain |
+| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON; `run-and-prove` invokes the adjacent identity-bound VM adapter; both derive the live proof schedule, publish all three transports transactionally, emit format/execution-bound reports, and optionally verify in Zig before publication | complete for direct all-opcodes/all-builtins inputs and compiled-JSON all-opcodes; executable format and broader corpus remain |
 | Metal execution | substantial SN2-specific resident machinery | not release evidence |
 | Repository structure | several Cairo files exceed size policy | incomplete |
 
@@ -566,6 +567,22 @@ then requires `verify_cairo` to accept the 881,489-byte Zig proof. Compression
 bytes are deliberately not an equality target because Rust and Zig use
 different conforming bzip2 implementations. RF-11 is complete for the released
 Blake2s transport.
+
+The CPU installation now includes `stwo-cairo-vm-adapter` as a separate
+execution boundary. It is pinned to Cairo VM 3.2.0 and the same official
+Stwo-Cairo/Stwo source pair, and does not contain proof-generation or
+verification authority. Its all-opcodes execution produces byte-identical
+`ProverInput` with SHA-256
+`7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6`.
+The installed `run-and-prove` path executes that 3,347,296-byte compiled
+program, records the program and adapter hashes in report schema v2, then
+publishes the same 881,489-byte binary proof with SHA-256
+`c85871be873122a30a4c6e9c553a368281d206bc55d78c0a40ea16d819474740`
+as direct `prove`. On the development host, a functional cold run spent
+368.5 milliseconds in execution and 5.70 seconds in proving; the independent
+official Rust verifier accepted the result. The release gate repeats execution
+parity and proof acceptance. RF-03 and RF-14 remain open for executable-format
+Cairo programs and the broader program/argument corpus.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The

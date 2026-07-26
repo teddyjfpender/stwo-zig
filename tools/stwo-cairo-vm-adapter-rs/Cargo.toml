@@ -1,0 +1,32 @@
+[package]
+name = "stwo-cairo-vm-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[package.metadata.official-execution-adapter]
+stwo-cairo-repository = "https://github.com/starkware-libs/stwo-cairo"
+stwo-cairo-revision = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78"
+stwo-repository = "https://github.com/starkware-libs/stwo"
+stwo-revision = "7b211edde786775016ef3eecb837a6240d8fe792"
+cairo-vm-version = "3.2.0"
+
+[dependencies]
+anyhow = "1.0"
+cairo-vm = { version = "=3.2.0", features = ["extensive_hints", "mod_builtin"], default-features = false }
+serde = "1.0"
+serde_json = "1.0"
+sha2 = "0.10"
+stwo-cairo-adapter = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
+
+[dev-dependencies]
+tempfile = "3.8"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+strip = "symbols"
+
+[workspace]

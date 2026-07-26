@@ -29,6 +29,16 @@ pub fn add(
             "tools/stwo-cairo-official-verifier-rs/Cargo.toml",
         ),
     });
+    const adapter_tests = b.addSystemCommand(&.{
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        b.pathFromRoot(
+            "tools/stwo-cairo-vm-adapter-rs/Cargo.toml",
+        ),
+    });
     const gate = b.step(
         "test-cairo-cpu-oracle",
         "Prove the official Cairo corpus and require Rust acceptance",
@@ -71,12 +81,19 @@ pub fn add(
         transport_source.?,
         previous.?,
     );
-    gate.dependOn(addBinaryGate(
+    const binary_transport = addBinaryGate(
         b,
         executable,
         cargo,
         transport_source.?,
         transport,
+    );
+    gate.dependOn(addRunAndProveGate(
+        b,
+        executable,
+        cargo,
+        adapter_tests,
+        binary_transport,
     ));
 }
 
@@ -218,6 +235,62 @@ fn addBinaryGate(
     });
     _ = verify.addOutputFileArg("all-opcodes-binary-rust-verdict.json");
     verify.setName("verify official Cairo compressed binary proof");
+    return &verify.step;
+}
+
+fn addRunAndProveGate(
+    b: *std.Build,
+    executable: *std.Build.Step.Compile,
+    verifier_cargo: *std.Build.Step.Run,
+    adapter_tests: *std.Build.Step.Run,
+    previous: *std.Build.Step,
+) *std.Build.Step {
+    const prove = b.addRunArtifact(executable);
+    prove.step.dependOn(previous);
+    prove.step.dependOn(&adapter_tests.step);
+    prove.setEnvironmentVariable(
+        "STWO_CAIRO_VM_ADAPTER",
+        b.pathFromRoot(
+            "tools/stwo-cairo-vm-adapter-rs/target/debug/" ++
+                "stwo-cairo-vm-adapter",
+        ),
+    );
+    prove.addArgs(&.{ "run-and-prove", "--program" });
+    prove.addFileArg(b.path(
+        "vectors/cairo/programs/all_opcodes.compiled.json",
+    ));
+    prove.addArgs(&.{ "--program-type", "json", "--params" });
+    prove.addFileArg(b.path(
+        "vectors/cairo/official/all_opcodes.params.json",
+    ));
+    prove.addArg("--proof");
+    const proof = prove.addOutputFileArg(
+        "all-opcodes-run-and-prove.binary.bz2",
+    );
+    prove.addArg("--report-out");
+    _ = prove.addOutputFileArg(
+        "all-opcodes-run-and-prove.report.json",
+    );
+    prove.addArgs(&.{ "--proof-format", "binary", "--verify" });
+
+    const verify = b.addSystemCommand(&.{
+        oraclePath(b),
+        "verify",
+        "--proof",
+    });
+    verify.step.dependOn(&verifier_cargo.step);
+    verify.addFileArg(proof);
+    verify.addArgs(&.{
+        "--channel",
+        "blake2s",
+        "--proof-format",
+        "binary",
+        "--result",
+    });
+    _ = verify.addOutputFileArg(
+        "all-opcodes-run-and-prove-rust-verdict.json",
+    );
+    verify.setName("verify official Cairo run-and-prove proof");
     return &verify.step;
 }
 
