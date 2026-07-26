@@ -6,7 +6,7 @@ const common = @import("common.zig");
 const shift = @import("shift_common.zig");
 
 pub const N_ORACLE_COLUMNS: usize = 60;
-pub const N_CONSTRAINTS: usize = shift.N_CONSTRAINTS;
+pub const N_CONSTRAINTS: usize = shift.N_CONSTRAINTS + 4;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
 pub const Row = struct {
@@ -44,10 +44,18 @@ pub const Row = struct {
     }
 };
 
-pub const Constraints = shift.Constraints;
+pub const Constraints = common.ConstraintSet(N_CONSTRAINTS);
 
 pub fn evaluate(row: Row) Constraints {
-    return shift.evaluate(row.semantic);
+    var out: [N_CONSTRAINTS]QM31 = undefined;
+    const core = shift.evaluate(row.semantic);
+    @memcpy(out[0..shift.N_CONSTRAINTS], &core.values);
+    // rs2 is read-only: it must emit exactly the value it consumed.
+    @memcpy(
+        out[shift.N_CONSTRAINTS..],
+        &common.readOnlyAccessConstraints(row.rs2, row.semantic.active()),
+    );
+    return .{ .values = out };
 }
 
 pub fn placementConstraint(row: Row, is_active: QM31) QM31 {
@@ -112,9 +120,11 @@ fn sllByOneRow() Row {
     var rs1 = zeroAccess();
     rs1.addr = common.q(2);
     rs1.next[0] = QM31.one();
+    rs1.previous = rs1.next;
     var rs2 = zeroAccess();
     rs2.addr = common.q(3);
     rs2.next[0] = QM31.one();
+    rs2.previous = rs2.next;
     return .{
         .clk = common.q(1),
         .pc = common.q(0x1000),
@@ -155,6 +165,18 @@ test "shifts reg: forged output and non-hot markers are rejected" {
     try std.testing.expect(!evaluate(row).allZero());
 }
 
+test "shifts reg: read-only sources must emit the value they consumed" {
+    // The shift computes on `next`; a diverging `previous` would let the
+    // instruction double as an arbitrary register write.
+    var row = sllByOneRow();
+    row.semantic.rs1.previous[0] = common.q(0xde);
+    try std.testing.expect(!evaluate(row).allZero());
+
+    row = sllByOneRow();
+    row.rs2.previous[0] = common.q(0xad);
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
 test "shifts reg: arithmetic right shift binds sign extension" {
     var row = sllByOneRow();
     row.semantic.is_sll = QM31.zero();
@@ -163,6 +185,7 @@ test "shifts reg: arithmetic right shift binds sign extension" {
     row.semantic.bit_multiplier_left = QM31.zero();
     row.semantic.bit_multiplier_right = common.q(2);
     row.semantic.rs1.next = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(128) };
+    row.semantic.rs1.previous = row.semantic.rs1.next;
     row.semantic.rd.next = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(192) };
     row.semantic.result = row.semantic.rd.next;
     try std.testing.expect(evaluate(row).allZero());

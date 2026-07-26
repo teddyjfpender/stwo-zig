@@ -9,7 +9,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
 pub const N_ORACLE_COLUMNS: usize = 43;
-pub const N_CONSTRAINTS: usize = 21;
+pub const N_CONSTRAINTS: usize = 29;
 
 pub const Row = struct {
     clk: QM31,
@@ -84,6 +84,16 @@ pub fn evaluate(row: Row) Constraints {
         i += 1;
     }
     for (common.destinationResultConstraints(row.rd, row.result, row.destination)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+    // Sources are read-only: they must emit exactly the value they consumed.
+    const enabler = row.active();
+    for (common.readOnlyAccessConstraints(row.rs1, enabler)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+    for (common.readOnlyAccessConstraints(row.rs2, enabler)) |constraint| {
         out[i] = constraint;
         i += 1;
     }
@@ -189,10 +199,36 @@ test "base alu reg semantics: ADD accepts byte carry chain" {
     row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_add = QM31.one();
     row.rs1.next = .{ common.q(255), common.q(255), common.q(0), common.q(0) };
+    row.rs1.previous = row.rs1.next;
     row.rs2.next = .{ common.q(1), common.q(0), common.q(0), common.q(0) };
+    row.rs2.previous = row.rs2.next;
     row.rd.next = .{ common.q(0), common.q(0), common.q(1), common.q(0) };
     row.result = row.rd.next;
     try std.testing.expect(evaluate(row).allZero());
+}
+
+test "base alu reg semantics: sources must emit the value they consumed" {
+    var row = zeroRow();
+    row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
+    row.is_add = QM31.one();
+    row.rs1.next[0] = common.q(7);
+    row.rs1.previous = row.rs1.next;
+    row.rs2.next[0] = common.q(9);
+    row.rs2.previous = row.rs2.next;
+    row.rd.next[0] = common.q(16);
+    row.result = row.rd.next;
+    try std.testing.expect(evaluate(row).allZero());
+
+    // The arithmetic runs on `next`; forging `previous` turns a read into an
+    // arbitrary register write and must be rejected.
+    row.rs1.previous[0] = common.q(0xde);
+    try std.testing.expect(!evaluate(row).allZero());
+
+    row.rs1.previous = row.rs1.next;
+    row.rs2.previous[2] = common.q(0xad);
+    try std.testing.expect(!evaluate(row).allZero());
 }
 
 test "base alu reg semantics: ADD rejects a forged result" {
@@ -213,7 +249,9 @@ test "base alu reg semantics: x0 discards arithmetic and bitwise results" {
     row.pc = common.q(0x1000);
     row.is_add = QM31.one();
     row.rs1.next[0] = common.q(7);
+    row.rs1.previous = row.rs1.next;
     row.rs2.next[0] = common.q(9);
+    row.rs2.previous = row.rs2.next;
     row.result[0] = common.q(16);
     try std.testing.expect(evaluate(row).allZero());
 
@@ -230,6 +268,7 @@ test "base alu reg semantics: SUB accepts unsigned wraparound" {
     row.is_sub = QM31.one();
     row.rs1.next = .{QM31.zero()} ** 4;
     row.rs2.next[0] = common.q(1);
+    row.rs2.previous = row.rs2.next;
     row.rd.next = .{ common.q(255), common.q(255), common.q(255), common.q(255) };
     row.result = row.rd.next;
     try std.testing.expect(evaluate(row).allZero());

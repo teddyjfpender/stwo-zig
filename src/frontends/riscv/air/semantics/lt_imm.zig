@@ -5,7 +5,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
 pub const N_ORACLE_COLUMNS: usize = 37;
-pub const N_CONSTRAINTS: usize = 28;
+pub const N_CONSTRAINTS: usize = 32;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
 pub const Row = struct {
@@ -140,6 +140,12 @@ pub fn evaluate(row: Row) Constraints {
         out[n] = constraint;
         n += 1;
     }
+    // The source register is read-only: its emitted `next` limbs must equal
+    // the consumed `previous` limbs. `rd` is pinned by the result link above.
+    for (common.readOnlyAccessConstraints(row.rs1, row.active())) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
     std.debug.assert(n == out.len);
     return .{ .values = out };
 }
@@ -199,6 +205,7 @@ fn honestUnsignedRow() Row {
     var rs1 = zeroAccess();
     rs1.addr = common.q(2);
     rs1.next[0] = QM31.one();
+    rs1.previous[0] = QM31.one();
     return .{
         .clk = QM31.one(),
         .pc = common.q(0x1000),
@@ -235,6 +242,20 @@ test "lt imm: forged result and malformed immediate are rejected" {
     row = honestUnsignedRow();
     row.imm_msl_felt = QM31.one();
     try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "lt imm: read-only source access must emit the value it consumed" {
+    var row = honestUnsignedRow();
+    // The comparison runs over `next`, so swapping the consumed value is only
+    // caught by the read-only binding.
+    row.rs1.previous = .{ common.q(0xef), common.q(0xbe), common.q(0xad), common.q(0xde) };
+    try std.testing.expect(!evaluate(row).allZero());
+
+    // The destination write stays unbound to `previous`: rd.next is pinned by
+    // the result link instead, so an honest changed rd value still accepts.
+    row = honestUnsignedRow();
+    row.rd.previous = .{ common.q(9), common.q(9), common.q(9), common.q(9) };
+    try std.testing.expect(evaluate(row).allZero());
 }
 
 test "lt imm: adapter preserves exact immediate decomposition" {

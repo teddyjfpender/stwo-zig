@@ -8,7 +8,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
 pub const N_ORACLE_COLUMNS: usize = 35;
-pub const N_CONSTRAINTS: usize = 17;
+pub const N_CONSTRAINTS: usize = 21;
 
 pub const Row = struct {
     clk: QM31,
@@ -92,6 +92,11 @@ pub fn evaluate(row: Row) Constraints {
         i += 1;
     }
     for (common.destinationResultConstraints(row.rd, row.result, row.destination)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+    // rs1 is read-only: it must emit exactly the value it consumed.
+    for (common.readOnlyAccessConstraints(row.rs1, row.active())) |constraint| {
         out[i] = constraint;
         i += 1;
     }
@@ -197,6 +202,25 @@ test "base alu imm semantics: exact ADDI accepts an honest row" {
     row.rd.next[0] = common.q(1);
     row.result[0] = common.q(1);
     try std.testing.expect(evaluate(row).allZero());
+}
+
+test "base alu imm semantics: rs1 must emit the value it consumed" {
+    var row = zeroRow();
+    row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
+    row.is_addi = QM31.one();
+    row.imm_0 = common.q(1);
+    row.rs1.next[0] = common.q(41);
+    row.rs1.previous = row.rs1.next;
+    row.rd.next[0] = common.q(42);
+    row.result[0] = common.q(42);
+    try std.testing.expect(evaluate(row).allZero());
+
+    // The addition runs on `next`; forging `previous` turns the source read
+    // into an arbitrary register write and must be rejected.
+    row.rs1.previous[0] = common.q(0xbe);
+    try std.testing.expect(!evaluate(row).allZero());
 }
 
 test "base alu imm semantics: exact ADDI rejects known impossible witness" {

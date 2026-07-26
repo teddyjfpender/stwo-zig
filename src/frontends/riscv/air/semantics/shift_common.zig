@@ -7,7 +7,7 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
-pub const N_CONSTRAINTS: usize = 61;
+pub const N_CONSTRAINTS: usize = 65;
 
 pub const Row = struct {
     rd: common.Access,
@@ -159,6 +159,11 @@ pub fn evaluate(row: Row) Constraints {
         out[n] = constraint;
         n += 1;
     }
+    // rs1 is read-only: it must emit exactly the value it consumed.
+    for (common.readOnlyAccessConstraints(row.rs1, enabler)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
     std.debug.assert(n == out.len);
     return .{ .values = out };
 }
@@ -230,7 +235,7 @@ test "shift common: arithmetic sign range binds operand bit 31" {
         },
         .rs1 = .{
             .addr = QM31.one(),
-            .previous = .{QM31.zero()} ** 4,
+            .previous = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(0x44) },
             .previous_clock = QM31.zero(),
             .next = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(0x44) },
         },
@@ -257,4 +262,9 @@ test "shift common: arithmetic sign range binds operand bit 31" {
         error.ValueOutOfRange,
         table.indexSecure(.range_check_m31, &signRangeLookup(row)),
     );
+
+    // rs1 is read-only: the shift computes on `next`, so a diverging
+    // `previous` is an arbitrary register write and must be rejected.
+    row.rs1.previous[3] = common.q(0x99);
+    try std.testing.expect(!evaluate(row).allZero());
 }

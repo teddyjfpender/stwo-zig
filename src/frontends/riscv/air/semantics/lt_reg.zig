@@ -5,7 +5,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
 pub const N_ORACLE_COLUMNS: usize = 44;
-pub const N_CONSTRAINTS: usize = 27;
+pub const N_CONSTRAINTS: usize = 35;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
 pub const Row = struct {
@@ -124,6 +124,16 @@ pub fn evaluate(row: Row) Constraints {
         out[n] = constraint;
         n += 1;
     }
+    // Source registers are read-only: their emitted `next` limbs must equal
+    // the consumed `previous` limbs. `rd` is pinned by the result link above.
+    for (common.readOnlyAccessConstraints(row.rs1, row.active())) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    for (common.readOnlyAccessConstraints(row.rs2, row.active())) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
     std.debug.assert(n == out.len);
     return .{ .values = out };
 }
@@ -187,9 +197,11 @@ fn honestUnsignedRow() Row {
     var rs1 = zeroAccess();
     rs1.addr = common.q(2);
     rs1.next[0] = QM31.one();
+    rs1.previous[0] = QM31.one();
     var rs2 = zeroAccess();
     rs2.addr = common.q(3);
     rs2.next[0] = common.q(2);
+    rs2.previous[0] = common.q(2);
     return .{
         .clk = QM31.one(),
         .pc = common.q(0x1000),
@@ -224,12 +236,32 @@ test "lt reg: forged result and multiple diff markers are rejected" {
     try std.testing.expect(!evaluate(row).allZero());
 }
 
+test "lt reg: read-only source access must emit the value it consumed" {
+    var row = honestUnsignedRow();
+    // The comparison runs over `next`, so swapping the consumed value is only
+    // caught by the read-only binding.
+    row.rs1.previous = .{ common.q(0xef), common.q(0xbe), common.q(0xad), common.q(0xde) };
+    try std.testing.expect(!evaluate(row).allZero());
+
+    row = honestUnsignedRow();
+    row.rs2.previous[2] = common.q(0x7f);
+    try std.testing.expect(!evaluate(row).allZero());
+
+    // The destination write stays unbound to `previous`: rd.next is pinned by
+    // the result link instead, so an honest changed rd value still accepts.
+    row = honestUnsignedRow();
+    row.rd.previous = .{ common.q(9), common.q(9), common.q(9), common.q(9) };
+    try std.testing.expect(evaluate(row).allZero());
+}
+
 test "lt reg: signed negative-to-zero comparison uses M31 limbs" {
     var row = honestUnsignedRow();
     row.is_slt = QM31.one();
     row.is_sltu = QM31.zero();
     row.rs1.next = .{ common.q(255), common.q(255), common.q(255), common.q(255) };
+    row.rs1.previous = row.rs1.next;
     row.rs2.next = .{QM31.zero()} ** 4;
+    row.rs2.previous = row.rs2.next;
     row.rs1_msl_felt = QM31.zero().sub(QM31.one());
     row.rs2_msl_felt = QM31.zero();
     row.diff_markers = .{ QM31.zero(), QM31.zero(), QM31.zero(), QM31.one() };

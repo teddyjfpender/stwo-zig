@@ -13,7 +13,7 @@ const Opcode = @import("../program/opcode.zig").Opcode;
 
 /// Exact generated `MulColumns` order at the pinned Stark-V revision.
 pub const N_ORACLE_COLUMNS: usize = 39;
-pub const N_CONSTRAINTS: usize = 8;
+pub const N_CONSTRAINTS: usize = 16;
 pub const LOOKUP_BATCH_SIZE: usize = 1;
 pub const BITWISE_LOOKUP_COUNT: usize = 0;
 pub const CURRENT_TRACE_COMPATIBLE = true;
@@ -75,6 +75,11 @@ pub fn evaluate(row: Row) Constraints {
         out[4..8],
         &common.destinationResultConstraints(row.rd, row.result, row.destination),
     );
+    // Source registers are read-only: the emitted `next` limbs must equal the
+    // consumed `previous` limbs, otherwise the operand is a free prover choice
+    // that is also written back onto the register bus.
+    @memcpy(out[8..12], &common.readOnlyAccessConstraints(row.rs1, row.enabler));
+    @memcpy(out[12..16], &common.readOnlyAccessConstraints(row.rs2, row.enabler));
     return .{ .values = out };
 }
 
@@ -140,9 +145,11 @@ fn honestRow() Row {
     var rs1 = zeroAccess();
     rs1.addr = common.q(1);
     rs1.next = .{common.q(255)} ** 4;
+    rs1.previous = rs1.next;
     var rs2 = zeroAccess();
     rs2.addr = common.q(2);
     rs2.next = .{common.q(255)} ** 4;
+    rs2.previous = rs2.next;
     return .{
         .enabler = QM31.one(),
         .clock = common.q(9),
@@ -180,6 +187,16 @@ test "mul: forged low product is rejected by exact range request" {
     row.result[0] = common.q(2);
     const forged_carry = try derive(row).carries[0].tryIntoM31();
     try std.testing.expect(forged_carry.toU32() >= 2048);
+}
+
+test "mul: source register write-back forgery is rejected" {
+    var forged_rs1 = honestRow();
+    forged_rs1.rs1.previous = .{ common.q(5), QM31.zero(), QM31.zero(), QM31.zero() };
+    try std.testing.expect(!evaluate(forged_rs1).allZero());
+
+    var forged_rs2 = honestRow();
+    forged_rs2.rs2.previous[3] = common.q(7);
+    try std.testing.expect(!evaluate(forged_rs2).allZero());
 }
 
 test "mul: adapter starts with the generated enabler column" {

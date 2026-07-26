@@ -10,7 +10,7 @@ const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
 pub const N_MAIN_COLUMNS: usize = 37;
-pub const N_CONSTRAINTS: usize = 24;
+pub const N_CONSTRAINTS: usize = 32;
 
 pub const Row = struct {
     clock: QM31,
@@ -143,6 +143,17 @@ pub fn evaluate(row: Row) Constraints {
     out[i] = row.cmp_lt.sub(expected_cmp_lt);
     i += 1;
 
+    // Branches write no register: both accesses are read-only, so their
+    // emitted `next` limbs must equal the consumed `previous` limbs.
+    for (common.readOnlyAccessConstraints(row.rs1, enabler)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+    for (common.readOnlyAccessConstraints(row.rs2, enabler)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+
     std.debug.assert(i == out.len);
     return .{ .values = out };
 }
@@ -240,7 +251,9 @@ test "branch lt: honest BLTU row accepts and emits exact lookups" {
     row.rs1.addr = common.q(1);
     row.rs2.addr = common.q(2);
     row.rs1.next[0] = common.q(1);
+    row.rs1.previous[0] = common.q(1);
     row.rs2.next[0] = common.q(2);
+    row.rs2.previous[0] = common.q(2);
     row.cmp_result = QM31.one();
     row.cmp_lt = QM31.one();
     row.diff_markers[0] = QM31.one();
@@ -260,6 +273,7 @@ test "branch lt: signed BGE correctly does not take negative-one versus zero" {
     var row = zeroRow();
     row.pc = common.q(0x2000);
     row.rs1.next = .{ common.q(255), common.q(255), common.q(255), common.q(255) };
+    row.rs1.previous = row.rs1.next;
     row.rs1_msl_felt = QM31.one().neg();
     row.rs2_msl_felt = QM31.zero();
     row.cmp_result = QM31.zero();
@@ -280,7 +294,9 @@ test "branch lt: forged comparison and branch target are rejected" {
     row.pc = common.q(100);
     row.imm_felt = common.q(20);
     row.rs1.next[0] = common.q(1);
+    row.rs1.previous[0] = common.q(1);
     row.rs2.next[0] = common.q(2);
+    row.rs2.previous[0] = common.q(2);
     row.cmp_result = QM31.one();
     row.cmp_lt = QM31.one();
     row.diff_markers[0] = QM31.one();
@@ -291,6 +307,32 @@ test "branch lt: forged comparison and branch target are rejected" {
 
     row.branch_target = common.q(120);
     row.cmp_lt = QM31.zero();
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "branch lt: read-only source access must emit the value it consumed" {
+    var row = zeroRow();
+    row.pc = common.q(0x1000);
+    row.imm_felt = common.q(16);
+    row.rs1.next[0] = common.q(1);
+    row.rs1.previous[0] = common.q(1);
+    row.rs2.next[0] = common.q(2);
+    row.rs2.previous[0] = common.q(2);
+    row.cmp_result = QM31.one();
+    row.cmp_lt = QM31.one();
+    row.diff_markers[0] = QM31.one();
+    row.diff_val = QM31.one();
+    row.branch_target = common.q(0x1010);
+    row.opcode_bltu_flag = QM31.one();
+    try std.testing.expect(evaluate(row).allZero());
+
+    // The comparison runs over `next`, so swapping the consumed value is only
+    // caught by the read-only binding.
+    row.rs1.previous = .{ common.q(0xef), common.q(0xbe), common.q(0xad), common.q(0xde) };
+    try std.testing.expect(!evaluate(row).allZero());
+
+    row.rs1.previous = row.rs1.next;
+    row.rs2.previous[3] = common.q(0x99);
     try std.testing.expect(!evaluate(row).allZero());
 }
 

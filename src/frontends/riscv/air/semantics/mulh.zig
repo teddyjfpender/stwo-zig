@@ -12,7 +12,7 @@ const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
 pub const N_ORACLE_COLUMNS: usize = 47;
-pub const N_CONSTRAINTS: usize = 15;
+pub const N_CONSTRAINTS: usize = 23;
 pub const LOOKUP_BATCH_SIZE: usize = 1;
 pub const BITWISE_LOOKUP_COUNT: usize = 0;
 pub const CURRENT_TRACE_COMPATIBLE = true;
@@ -115,6 +115,11 @@ pub fn evaluate(row: Row) Constraints {
         out[11..15],
         &common.destinationResultConstraints(row.rd, row.result, row.destination),
     );
+    // Source registers are read-only: the emitted `next` limbs must equal the
+    // consumed `previous` limbs, otherwise the operand is a free prover choice
+    // that is also written back onto the register bus.
+    @memcpy(out[15..19], &common.readOnlyAccessConstraints(row.rs1, active));
+    @memcpy(out[19..23], &common.readOnlyAccessConstraints(row.rs2, active));
     return .{ .values = out };
 }
 
@@ -197,9 +202,11 @@ fn honestUnsignedMaxRow() Row {
     var rs1 = zeroAccess();
     rs1.addr = common.q(1);
     rs1.next = .{common.q(255)} ** 4;
+    rs1.previous = rs1.next;
     var rs2 = zeroAccess();
     rs2.addr = common.q(2);
     rs2.next = .{common.q(255)} ** 4;
+    rs2.previous = rs2.next;
     return .{
         .clock = common.q(9),
         .pc = common.q(0x1000),
@@ -268,6 +275,16 @@ test "mulh: forged high product escapes constraints but fails range table" {
     try std.testing.expect(evaluate(row).allZero());
     const forged_carry = try derive(row).carries[4].tryIntoM31();
     try std.testing.expect(forged_carry.toU32() >= 2048);
+}
+
+test "mulh: source register write-back forgery is rejected" {
+    var forged_rs1 = honestUnsignedMaxRow();
+    forged_rs1.rs1.previous[0] = common.q(9);
+    try std.testing.expect(!evaluate(forged_rs1).allZero());
+
+    var forged_rs2 = honestUnsignedMaxRow();
+    forged_rs2.rs2.previous[2] = common.q(11);
+    try std.testing.expect(!evaluate(forged_rs2).allZero());
 }
 
 test "mulh: adapter follows access then witness then flag order" {

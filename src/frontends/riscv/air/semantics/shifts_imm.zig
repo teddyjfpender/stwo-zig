@@ -97,7 +97,7 @@ fn slliByOneRow() Row {
     };
     const rs1 = common.Access{
         .addr = common.q(2),
-        .previous = .{QM31.zero()} ** 4,
+        .previous = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero() },
         .previous_clock = QM31.zero(),
         .next = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero() },
     };
@@ -137,6 +137,14 @@ test "shifts imm: immediate and carry forgeries are rejected" {
 
     row = slliByOneRow();
     row.semantic.carries[0] = QM31.one();
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "shifts imm: rs1 must emit the value it consumed" {
+    // The shift computes on `next`; a diverging `previous` would let the
+    // instruction double as an arbitrary register write.
+    var row = slliByOneRow();
+    row.semantic.rs1.previous[0] = common.q(0xef);
     try std.testing.expect(!evaluate(row).allZero());
 }
 

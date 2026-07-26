@@ -14,7 +14,7 @@ const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
 pub const N_ORACLE_COLUMNS: usize = 67;
-pub const N_CONSTRAINTS: usize = 69;
+pub const N_CONSTRAINTS: usize = 77;
 pub const LOOKUP_BATCH_SIZE: usize = 1;
 pub const BITWISE_LOOKUP_COUNT: usize = 0;
 pub const CURRENT_TRACE_COMPATIBLE = true;
@@ -293,6 +293,21 @@ pub fn evaluate(row: Row) Constraints {
         out[n] = constraint;
         n += 1;
     }
+    // Source registers are read-only: the emitted `next` limbs must equal the
+    // consumed `previous` limbs, otherwise the operand is a free prover choice
+    // that is also written back onto the register bus.  For the divisor this
+    // additionally routes byte-ness through the global memory argument: every
+    // register write is byte-range-checked by its producing family, so a bus
+    // read that must re-emit its `previous` limbs unchanged cannot introduce
+    // a non-byte limb such as rs2 = [0, 0, 0, 256].
+    for (common.readOnlyAccessConstraints(row.rs1, d.active)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    for (common.readOnlyAccessConstraints(row.rs2, d.active)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
     std.debug.assert(n == out.len);
     return .{ .values = out };
 }
@@ -402,8 +417,10 @@ fn honestUnsignedRow() Row {
     row.rd.next[0] = common.q(2);
     row.rs1.addr = common.q(1);
     row.rs1.next[0] = common.q(7);
+    row.rs1.previous = row.rs1.next;
     row.rs2.addr = common.q(2);
     row.rs2.next[0] = common.q(3);
+    row.rs2.previous = row.rs2.next;
     row.q[0] = common.q(2);
     row.r[0] = QM31.one();
     row.r_abs[0] = QM31.one();
@@ -458,6 +475,7 @@ test "div: zero divisor requires all-one quotient" {
     row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.zero_divisor = QM31.one();
     row.rs1.next[0] = common.q(7);
+    row.rs1.previous = row.rs1.next;
     row.q = .{common.q(255)} ** 4;
     row.r[0] = common.q(7);
     row.r_abs[0] = common.q(7);
@@ -474,7 +492,9 @@ test "div: signed negative quotient and remainder satisfy sign extension" {
     row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.rd.next = .{ common.q(254), common.q(255), common.q(255), common.q(255) };
     row.rs1.next = .{ common.q(249), common.q(255), common.q(255), common.q(255) };
+    row.rs1.previous = row.rs1.next;
     row.rs2.next[0] = common.q(3);
+    row.rs2.previous = row.rs2.next;
     row.q = row.rd.next;
     row.r = .{common.q(255)} ** 4;
     row.b_sign = QM31.one();
@@ -492,6 +512,16 @@ test "div: signed negative quotient and remainder satisfy sign extension" {
         const carry = try request.tuple.limb_1.tryIntoM31();
         try std.testing.expect(carry.toU32() < 2048);
     }
+}
+
+test "div: source register write-back forgery is rejected" {
+    var forged_rs1 = honestUnsignedRow();
+    forged_rs1.rs1.previous[0] = common.q(200);
+    try std.testing.expect(!evaluate(forged_rs1).allZero());
+
+    var forged_rs2 = honestUnsignedRow();
+    forged_rs2.rs2.previous[0] = common.q(200);
+    try std.testing.expect(!evaluate(forged_rs2).allZero());
 }
 
 test "div: adapter preserves the 65-column oracle order" {

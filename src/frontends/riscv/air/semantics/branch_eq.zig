@@ -10,7 +10,7 @@ const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
 pub const N_MAIN_COLUMNS: usize = 30;
-pub const N_CONSTRAINTS: usize = 9;
+pub const N_CONSTRAINTS: usize = 17;
 
 pub const Row = struct {
     clock: QM31,
@@ -78,6 +78,17 @@ pub fn evaluate(row: Row) Constraints {
     }
     out[i] = enabler.mul(QM31.one().sub(diff_inv_sum));
     i += 1;
+
+    // Branches write no register: both accesses are read-only, so their
+    // emitted `next` limbs must equal the consumed `previous` limbs.
+    for (common.readOnlyAccessConstraints(row.rs1, enabler)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+    for (common.readOnlyAccessConstraints(row.rs2, enabler)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
 
     std.debug.assert(i == out.len);
     return .{ .values = out };
@@ -154,7 +165,9 @@ test "branch eq: BEQ equality accepts and binds decoded program tuple" {
     row.rs1.addr = common.q(3);
     row.rs2.addr = common.q(4);
     row.rs1.next = .{ common.q(7), common.q(8), common.q(9), common.q(10) };
+    row.rs1.previous = row.rs1.next;
     row.rs2.next = row.rs1.next;
+    row.rs2.previous = row.rs2.next;
 
     try std.testing.expect(evaluate(row).allZero());
     const requests = lookups(row);
@@ -179,11 +192,39 @@ test "branch eq: BNE inequality requires a valid inverse marker" {
     row.opcode_bne_flag = QM31.one();
     row.cmp_result = QM31.one();
     row.rs1.next[0] = common.q(9);
+    row.rs1.previous[0] = common.q(9);
     row.rs2.next[0] = common.q(6);
+    row.rs2.previous[0] = common.q(6);
     row.diff_inv_markers[0] = try common.q(3).inv();
     try std.testing.expect(evaluate(row).allZero());
 
     row.diff_inv_markers[0] = QM31.zero();
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "branch eq: read-only source access must emit the value it consumed" {
+    var row = zeroRow();
+    row.clock = common.q(9);
+    row.pc = common.q(0x1000);
+    row.imm_felt = common.q(12);
+    row.cmp_result = QM31.one();
+    row.opcode_beq_flag = QM31.one();
+    row.rs1.addr = common.q(3);
+    row.rs2.addr = common.q(4);
+    // Consumed 0xdeadbeef limbs but emits 0x7f7f7f7f limbs on both sources:
+    // the comparison over `next` passes, so only the read-only binding rejects.
+    row.rs1.previous = .{ common.q(0xef), common.q(0xbe), common.q(0xad), common.q(0xde) };
+    row.rs1.next = .{ common.q(0x7f), common.q(0x7f), common.q(0x7f), common.q(0x7f) };
+    row.rs2.previous = row.rs1.next;
+    row.rs2.next = row.rs1.next;
+    try std.testing.expect(!evaluate(row).allZero());
+
+    row.rs1.previous = row.rs1.next;
+    try std.testing.expect(evaluate(row).allZero());
+
+    row.rs2.next[1] = common.q(0x11);
+    row.rs1.next[1] = common.q(0x11);
+    row.rs1.previous[1] = common.q(0x11);
     try std.testing.expect(!evaluate(row).allZero());
 }
 

@@ -65,6 +65,22 @@ pub const Access = struct {
     next: [4]QM31,
 };
 
+/// Residuals forcing a read-only access to emit the value it consumed.
+///
+/// The access chain consumes `previous` and emits `next` as two distinct
+/// committed column groups, and the opcode semantics compute on `next`. Without
+/// these residuals a source operand is a free prover choice that is also
+/// written back to the register or memory cell, so any register-reading
+/// instruction doubles as an arbitrary write. Destination accesses must not use
+/// this: their `next` is pinned by `destinationResultConstraints` instead.
+pub fn readOnlyAccessConstraints(access: Access, enabler: QM31) [4]QM31 {
+    var constraints: [4]QM31 = undefined;
+    for (&constraints, access.next, access.previous) |*constraint, next, previous| {
+        constraint.* = enabler.mul(next.sub(previous));
+    }
+    return constraints;
+}
+
 /// Witness that turns a five-bit architectural destination address into an
 /// exact write-enable without increasing result constraints above degree two.
 ///
