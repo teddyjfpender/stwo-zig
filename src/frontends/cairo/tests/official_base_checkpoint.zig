@@ -3,6 +3,7 @@
 const std = @import("std");
 const cairo = @import("cairo_frontend");
 const direct_trace = cairo.conformance.direct_trace;
+const recorded_trace = cairo.conformance.recorded_trace;
 const receipt = cairo.conformance.receipt;
 const registry = cairo.claim_registry;
 const witness_bundle = cairo.witness.bundle;
@@ -77,6 +78,42 @@ test "official Cairo witness recordings match every covered all-opcodes column" 
 
 test "official Cairo witness recordings match every covered all-builtins column" {
     try expectWitnessMatches(cases[1], 45, 18, 27);
+}
+
+test "official Cairo recorded graph matches the complete all-opcodes Blake chain" {
+    const case = cases[0];
+    var input = try cairo.adapter.official_input.readFile(std.testing.allocator, case.input_path);
+    defer input.deinit(std.testing.allocator);
+    var bundle = try witness_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer bundle.deinit();
+    var expected = try receipt.readFile(std.testing.allocator, case.checkpoint_path, .{
+        .input_sha256 = try inputDigest(std.testing.allocator, case.input_path),
+        .authority = .{
+            .stwo_cairo_revision = registry.source_revision.stwo_cairo,
+            .stwo_revision = registry.source_revision.stwo,
+        },
+    });
+    defer expected.deinit();
+
+    var report = try recorded_trace.compare(
+        std.testing.allocator,
+        &input,
+        &bundle,
+        expected.components,
+    );
+    defer report.deinit();
+    if (report.mismatch) |mismatch| {
+        std.debug.print(
+            "recorded graph mismatch component={s} ordinal={} column={?}\n",
+            .{ mismatch.component_label, mismatch.component_ordinal, mismatch.column_ordinal },
+        );
+    }
+    try std.testing.expect(report.mismatch == null);
+    try std.testing.expectEqual(@as(usize, 24), report.matches.len);
+    try std.testing.expectEqual(@as(usize, 22), report.skipped_components);
 }
 
 fn expectWitnessMatches(

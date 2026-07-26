@@ -48,6 +48,10 @@ pub const CompactInput = struct {
             return Error.CountOverflow, 16);
     }
 
+    pub fn realRowCount(self: CompactInput) usize {
+        return self.rows.len;
+    }
+
     pub fn validateRowCount(self: CompactInput, row_count: usize) Error!void {
         if (row_count != try self.paddedRowCount()) return Error.InvalidRowCount;
     }

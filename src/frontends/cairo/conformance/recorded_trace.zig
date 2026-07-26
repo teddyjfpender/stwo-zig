@@ -1,0 +1,191 @@
+//! CPU oracle runner for the dependency-ordered recorded witness graph.
+
+const std = @import("std");
+const adapter = @import("../adapter/mod.zig");
+const proof_plan = @import("../proof_plan.zig");
+const component_executor = @import("../witness/component_executor.zig");
+const direct_inputs = @import("../witness/direct_inputs.zig");
+const gathered_inputs = @import("../witness/gathered_inputs.zig");
+const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
+const witness_bundle = @import("../witness/bundle.zig");
+const checkpoint = @import("checkpoint.zig");
+
+pub const Match = struct {
+    ordinal: u32,
+    label: []const u8,
+    row_count: u64,
+    column_count: u32,
+};
+
+pub const Mismatch = component_executor.Mismatch;
+
+pub const Report = struct {
+    allocator: std.mem.Allocator,
+    matches: []Match,
+    skipped_components: usize,
+    mismatch: ?Mismatch,
+
+    pub fn deinit(self: *Report) void {
+        self.allocator.free(self.matches);
+        self.* = undefined;
+    }
+};
+
+pub const Error = error{
+    InvalidReceiptGeometry,
+    MissingWitnessProgram,
+};
+
+const Retained = struct {
+    label: []const u8,
+    row_count: u32,
+    active_rows: u32,
+    words_per_row: u32,
+    words: []u32,
+};
+
+const ComponentResult = struct {
+    mismatch: ?Mismatch,
+    retained: ?Retained,
+};
+
+/// Executes every directly seeded or producer-gathered recorded component.
+/// Receipt order is authoritative and is required to respect the source DAG.
+pub fn compare(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    bundle: *const witness_bundle.Bundle,
+    expected_components: []const checkpoint.Component,
+) !Report {
+    var matches = std.ArrayList(Match).empty;
+    errdefer matches.deinit(allocator);
+    var retained = std.ArrayList(Retained).empty;
+    defer {
+        for (retained.items) |entry| allocator.free(entry.words);
+        retained.deinit(allocator);
+    }
+    var skipped_components: usize = 0;
+
+    for (expected_components) |expected| {
+        const entry = bundle.find(expected.label) orelse {
+            skipped_components += 1;
+            continue;
+        };
+        const result = if (std.mem.eql(u8, expected.label, "verify_instruction")) blk: {
+            var compact = try verify_instruction_inputs.gather(allocator, input);
+            defer compact.deinit();
+            break :blk try executeComponent(
+                allocator,
+                input,
+                entry.program,
+                compact,
+                expected,
+            );
+        } else if (try direct_inputs.resolve(input, expected.label)) |direct| try executeComponent(
+            allocator,
+            input,
+            entry.program,
+            direct,
+            expected,
+        ) else if (proof_plan.gatheredProducerEdges(expected.label)) |edges| blk: {
+            const producers = try allocator.alloc(gathered_inputs.Producer, edges.len);
+            defer allocator.free(producers);
+            for (edges, producers) |edge, *producer| {
+                const source = findRetained(retained.items, edge.producer) orelse {
+                    skipped_components += 1;
+                    break :blk null;
+                };
+                producer.* = .{
+                    .label = source.label,
+                    .row_count = source.row_count,
+                    .active_rows = source.active_rows,
+                    .words_per_row = source.words_per_row,
+                    .words = source.words,
+                };
+            }
+            const rows = try componentRows(expected);
+            var gathered = try gathered_inputs.materialize(
+                allocator,
+                edges,
+                producers,
+                rows,
+            );
+            defer gathered.deinit();
+            break :blk try executeComponent(
+                allocator,
+                input,
+                entry.program,
+                gathered,
+                expected,
+            );
+        } else blk: {
+            skipped_components += 1;
+            break :blk null;
+        };
+        const component = result orelse continue;
+        if (component.mismatch) |mismatch| {
+            if (component.retained) |producer| allocator.free(producer.words);
+            return .{
+                .allocator = allocator,
+                .matches = try matches.toOwnedSlice(allocator),
+                .skipped_components = skipped_components,
+                .mismatch = mismatch,
+            };
+        }
+        if (component.retained) |producer| try retained.append(allocator, producer);
+        try matches.append(allocator, .{
+            .ordinal = expected.ordinal,
+            .label = expected.label,
+            .row_count = expected.columns[0].row_count,
+            .column_count = @intCast(expected.columns.len),
+        });
+    }
+    return .{
+        .allocator = allocator,
+        .matches = try matches.toOwnedSlice(allocator),
+        .skipped_components = skipped_components,
+        .mismatch = null,
+    };
+}
+
+fn executeComponent(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    witness_program: @import("../witness/program.zig").Program,
+    source: anytype,
+    expected: checkpoint.Component,
+) !ComponentResult {
+    var execution = try component_executor.execute(
+        allocator,
+        input,
+        witness_program,
+        source,
+        expected,
+    );
+    defer execution.deinit();
+    const mismatch = try execution.compare(expected);
+    const retained = if (witness_program.n_sub_words == 0)
+        null
+    else
+        Retained{
+            .label = expected.label,
+            .row_count = @intCast(execution.row_count),
+            .active_rows = @intCast(source.realRowCount()),
+            .words_per_row = witness_program.n_sub_words,
+            .words = try allocator.dupe(u32, execution.sub_words),
+        };
+    return .{ .mismatch = mismatch, .retained = retained };
+}
+
+fn componentRows(component: checkpoint.Component) Error!u32 {
+    if (component.columns.len == 0) return Error.InvalidReceiptGeometry;
+    return std.math.cast(u32, component.columns[0].row_count) orelse
+        Error.InvalidReceiptGeometry;
+}
+
+fn findRetained(entries: []const Retained, label: []const u8) ?Retained {
+    for (entries) |entry| {
+        if (std.mem.eql(u8, entry.label, label)) return entry;
+    }
+    return null;
+}

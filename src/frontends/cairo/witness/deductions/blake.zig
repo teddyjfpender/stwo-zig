@@ -37,6 +37,18 @@ pub fn applyTripleXor(args: []const u32, outputs: []u32) !void {
     outputs[0] = args[0] ^ args[1] ^ args[2];
 }
 
+pub fn applyG(args: []const u32, outputs: []u32) !void {
+    if (args.len != 6 or outputs.len != 4) return error.InvalidDeductionShape;
+    const mixed = mix(args[0], args[1], args[2], args[3], args[4], args[5]);
+    @memcpy(outputs, &mixed);
+}
+
+pub fn applyRoundSigma(args: []const u32, outputs: []u32) !void {
+    if (args.len != 1 or outputs.len != 16) return error.InvalidDeductionShape;
+    if (args[0] >= sigma.len) return error.InvalidBlakeRound;
+    for (outputs, sigma[args[0]]) |*output, value| output.* = value;
+}
+
 pub fn applyRound(
     args: []const u32,
     outputs: []u32,
@@ -103,4 +115,20 @@ test "Blake triple xor uses full-width words" {
     var output: [1]u32 = undefined;
     try applyTripleXor(&.{ 0xffff_0000, 0x0f0f_0f0f, 0x1234_5678 }, &output);
     try std.testing.expectEqual(@as(u32, 0xe2c4_5967), output[0]);
+}
+
+test "Blake G and sigma match the official scalar semantics" {
+    var g: [4]u32 = undefined;
+    try applyG(
+        &.{ 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x01234567, 0x89abcdef },
+        &g,
+    );
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 0x4ccdb43f, 0xf3996220, 0x503c1b84, 0xe463a437 },
+        &g,
+    );
+    var selected: [16]u32 = undefined;
+    try applyRoundSigma(&.{1}, &selected);
+    for (selected, sigma[1]) |actual, expected| try std.testing.expectEqual(expected, actual);
 }

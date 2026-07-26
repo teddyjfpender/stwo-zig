@@ -51,6 +51,8 @@ fn callWithTables(
     const selector = std.meta.intToEnum(Selector, raw_selector) catch
         return error.UnsupportedDeduction;
     switch (selector) {
+        .blake_g => try blake.applyG(args, outputs),
+        .blake_round_sigma => try blake.applyRoundSigma(args, outputs),
         .felt_add => try felt252.apply(.add, args, outputs),
         .felt_sub => try felt252.apply(.sub, args, outputs),
         .felt_mul => try felt252.apply(.mul, args, outputs),

@@ -27,12 +27,17 @@ const OpcodeInput = struct {
     includes_iota: bool,
 };
 
+const BuiltinInput = struct {
+    begin_addr: u32,
+    instances: u32,
+};
+
 /// One source-derived input slab that can be materialized into any backend's
 /// storage. Opcode rows have an exact padded size; builtin rows inherit their
 /// authenticated component size and require power-of-two geometry.
 pub const DirectInput = union(enum) {
     opcode: OpcodeInput,
-    builtin: u32,
+    builtin: BuiltinInput,
 
     pub fn columnCount(self: DirectInput) usize {
         return switch (self) {
@@ -58,6 +63,13 @@ pub const DirectInput = union(enum) {
         }
     }
 
+    pub fn realRowCount(self: DirectInput) usize {
+        return switch (self) {
+            .opcode => |opcode| opcode.states.len,
+            .builtin => |builtin| builtin.instances,
+        };
+    }
+
     pub fn writeColumn(self: DirectInput, column: usize, destination: []u32) Error!void {
         try self.validateRowCount(destination.len);
         if (column >= self.columnCount()) return Error.InvalidCardinality;
@@ -75,9 +87,9 @@ pub const DirectInput = union(enum) {
                     };
                 }
             },
-            .builtin => |begin_addr| {
+            .builtin => |builtin| {
                 for (destination, 0..) |*value, row| value.* = switch (column) {
-                    0 => begin_addr,
+                    0 => builtin.begin_addr,
                     1 => 1,
                     2 => @intCast(row),
                     else => unreachable,
@@ -97,27 +109,41 @@ pub fn resolve(input: *const cairo_adapter.ProverInput, component: []const u8) E
         return .{ .opcode = .{ .states = states, .includes_iota = lane.includes_iota } };
     }
 
+    const Segment = struct {
+        addresses: ?cairo_adapter.MemorySegmentAddresses,
+        cells_per_instance: u32,
+    };
     const segment = if (std.mem.eql(u8, component, "add_mod_builtin"))
-        input.builtin_segments.add_mod_builtin
+        Segment{ .addresses = input.builtin_segments.add_mod_builtin, .cells_per_instance = 7 }
     else if (std.mem.eql(u8, component, "bitwise_builtin"))
-        input.builtin_segments.bitwise_builtin
+        Segment{ .addresses = input.builtin_segments.bitwise_builtin, .cells_per_instance = 5 }
     else if (std.mem.eql(u8, component, "ec_op_builtin"))
-        input.builtin_segments.ec_op_builtin
+        Segment{ .addresses = input.builtin_segments.ec_op_builtin, .cells_per_instance = 7 }
     else if (std.mem.eql(u8, component, "mul_mod_builtin"))
-        input.builtin_segments.mul_mod_builtin
+        Segment{ .addresses = input.builtin_segments.mul_mod_builtin, .cells_per_instance = 7 }
     else if (std.mem.eql(u8, component, "range_check96_builtin"))
-        input.builtin_segments.range_check96_builtin
+        Segment{ .addresses = input.builtin_segments.range_check96_builtin, .cells_per_instance = 1 }
     else if (std.mem.eql(u8, component, "range_check_builtin"))
-        input.builtin_segments.range_check_builtin
+        Segment{ .addresses = input.builtin_segments.range_check_builtin, .cells_per_instance = 1 }
     else if (std.mem.eql(u8, component, "pedersen_builtin"))
-        input.builtin_segments.pedersen_builtin
+        Segment{ .addresses = input.builtin_segments.pedersen_builtin, .cells_per_instance = 3 }
     else if (std.mem.eql(u8, component, "poseidon_builtin"))
-        input.builtin_segments.poseidon_builtin
+        Segment{ .addresses = input.builtin_segments.poseidon_builtin, .cells_per_instance = 6 }
     else
         return null;
-    const addresses = segment orelse return Error.MissingBinding;
-    if (addresses.begin_addr > std.math.maxInt(u32)) return Error.InvalidCardinality;
-    return .{ .builtin = @intCast(addresses.begin_addr) };
+    const addresses = segment.addresses orelse return Error.MissingBinding;
+    if (addresses.begin_addr > std.math.maxInt(u32) or
+        addresses.stop_ptr < addresses.begin_addr or
+        (addresses.stop_ptr - addresses.begin_addr) % segment.cells_per_instance != 0)
+        return Error.InvalidCardinality;
+    const instances = (addresses.stop_ptr - addresses.begin_addr) /
+        segment.cells_per_instance;
+    if (instances == 0 or instances > std.math.maxInt(u32))
+        return Error.InvalidCardinality;
+    return .{ .builtin = .{
+        .begin_addr = @intCast(addresses.begin_addr),
+        .instances = @intCast(instances),
+    } };
 }
 
 test "Cairo direct inputs: opcode rows preserve padding active flag and iota" {
@@ -153,9 +179,10 @@ test "Cairo direct inputs: opcode rows preserve padding active flag and iota" {
 
 test "Cairo direct inputs: builtin seeds use authenticated component geometry" {
     var input: cairo_adapter.ProverInput = undefined;
-    input.builtin_segments = .{ .poseidon_builtin = .{ .begin_addr = 4096, .stop_ptr = 4128 } };
+    input.builtin_segments = .{ .poseidon_builtin = .{ .begin_addr = 4096, .stop_ptr = 4126 } };
     const direct = (try resolve(&input, "poseidon_builtin")) orelse return error.MissingInput;
     try std.testing.expectEqual(@as(usize, 3), direct.columnCount());
+    try std.testing.expectEqual(@as(usize, 32 / 6), direct.realRowCount());
 
     var column: [32]u32 = undefined;
     try direct.writeColumn(0, &column);
@@ -172,7 +199,7 @@ test "Cairo direct inputs: invalid geometry and absent inputs fail closed" {
     try std.testing.expectError(Error.MissingBinding, resolve(&input, "bitwise_builtin"));
     try std.testing.expect((try resolve(&input, "memory_address_to_id")) == null);
 
-    const direct = DirectInput{ .builtin = 7 };
+    const direct = DirectInput{ .builtin = .{ .begin_addr = 7, .instances = 1 } };
     var invalid_rows: [17]u32 = undefined;
     try std.testing.expectError(Error.InvalidBindingSize, direct.writeColumn(0, &invalid_rows));
     var valid_rows: [16]u32 = undefined;
