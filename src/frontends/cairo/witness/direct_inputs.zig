@@ -29,7 +29,6 @@ const OpcodeInput = struct {
 
 const BuiltinInput = struct {
     begin_addr: u32,
-    instances: u32,
 };
 
 /// One source-derived input slab that can be materialized into any backend's
@@ -63,10 +62,10 @@ pub const DirectInput = union(enum) {
         }
     }
 
-    pub fn realRowCount(self: DirectInput) usize {
+    pub fn realRowCount(self: DirectInput, padded_rows: usize) !usize {
         return switch (self) {
             .opcode => |opcode| opcode.states.len,
-            .builtin => |builtin| builtin.instances,
+            .builtin => padded_rows,
         };
     }
 
@@ -142,7 +141,6 @@ pub fn resolve(input: *const cairo_adapter.ProverInput, component: []const u8) E
         return Error.InvalidCardinality;
     return .{ .builtin = .{
         .begin_addr = @intCast(addresses.begin_addr),
-        .instances = @intCast(instances),
     } };
 }
 
@@ -182,7 +180,7 @@ test "Cairo direct inputs: builtin seeds use authenticated component geometry" {
     input.builtin_segments = .{ .poseidon_builtin = .{ .begin_addr = 4096, .stop_ptr = 4126 } };
     const direct = (try resolve(&input, "poseidon_builtin")) orelse return error.MissingInput;
     try std.testing.expectEqual(@as(usize, 3), direct.columnCount());
-    try std.testing.expectEqual(@as(usize, 32 / 6), direct.realRowCount());
+    try std.testing.expectEqual(@as(usize, 32), try direct.realRowCount(32));
 
     var column: [32]u32 = undefined;
     try direct.writeColumn(0, &column);
@@ -199,7 +197,7 @@ test "Cairo direct inputs: invalid geometry and absent inputs fail closed" {
     try std.testing.expectError(Error.MissingBinding, resolve(&input, "bitwise_builtin"));
     try std.testing.expect((try resolve(&input, "memory_address_to_id")) == null);
 
-    const direct = DirectInput{ .builtin = .{ .begin_addr = 7, .instances = 1 } };
+    const direct = DirectInput{ .builtin = .{ .begin_addr = 7 } };
     var invalid_rows: [17]u32 = undefined;
     try std.testing.expectError(Error.InvalidBindingSize, direct.writeColumn(0, &invalid_rows));
     var valid_rows: [16]u32 = undefined;

@@ -408,7 +408,12 @@ It contains all 64 generated official writers as complete, poison-free
 programs. On all-opcodes, 42 recordings are active: 24 execute through the
 current Zig input bindings with zero column mismatches and 18 helper/fixed-table
 programs await input-edge reconstruction. On all-builtins, 45 are active:
-18 execute exactly and 27 await those edges.
+18 execute exactly and 27 await those edges. Compact claim inputs now use one
+backend-neutral implementation of the official key sort, tuple
+multiplicity merge, first-row padding, enabler, and iota laws. The recorded
+graph also rejects programs whose host deduction selectors are not implemented,
+so deferred Pedersen and Poseidon helpers cannot be counted through a partial
+or approximate execution.
 This comparison also corrected a Zig semantic defect: official
 `verify_instruction` multiplicities include only producer `n_active_rows`, not
 the producer's padded rows. The companion provenance is intentionally marked

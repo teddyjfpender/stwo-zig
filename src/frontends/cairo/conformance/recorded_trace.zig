@@ -3,10 +3,11 @@
 const std = @import("std");
 const adapter = @import("../adapter/mod.zig");
 const proof_plan = @import("../proof_plan.zig");
+const compact_inputs = @import("../witness/compact_inputs.zig");
 const component_executor = @import("../witness/component_executor.zig");
+const deductions = @import("../witness/deductions/mod.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
 const gathered_inputs = @import("../witness/gathered_inputs.zig");
-const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const checkpoint = @import("checkpoint.zig");
 
@@ -71,8 +72,37 @@ pub fn compare(
             skipped_components += 1;
             continue;
         };
-        const result = if (std.mem.eql(u8, expected.label, "verify_instruction")) blk: {
-            var compact = try verify_instruction_inputs.gather(allocator, input);
+        if (!deductions.supportsProgram(entry.program)) {
+            skipped_components += 1;
+            continue;
+        }
+        const result = if (proof_plan.compactGeometry(expected.label)) |geometry| blk: {
+            var active_edges = std.ArrayList(proof_plan.ProducerEdge).empty;
+            defer active_edges.deinit(allocator);
+            var producers = std.ArrayList(gathered_inputs.Producer).empty;
+            defer producers.deinit(allocator);
+            for (geometry.edges) |edge| {
+                const source = findRetained(retained.items, edge.producer) orelse continue;
+                try active_edges.append(allocator, edge);
+                try producers.append(allocator, .{
+                    .label = source.label,
+                    .row_count = source.row_count,
+                    .active_rows = source.active_rows,
+                    .words_per_row = source.words_per_row,
+                    .words = source.words,
+                });
+            }
+            if (active_edges.items.len == 0) {
+                skipped_components += 1;
+                break :blk null;
+            }
+            var compact = try compact_inputs.materialize(
+                allocator,
+                geometry,
+                active_edges.items,
+                producers.items,
+                try componentRows(expected),
+            );
             defer compact.deinit();
             break :blk try executeComponent(
                 allocator,
@@ -170,7 +200,7 @@ fn executeComponent(
         Retained{
             .label = expected.label,
             .row_count = @intCast(execution.row_count),
-            .active_rows = @intCast(source.realRowCount()),
+            .active_rows = @intCast(try source.realRowCount(execution.row_count)),
             .words_per_row = witness_program.n_sub_words,
             .words = try allocator.dupe(u32, execution.sub_words),
         };

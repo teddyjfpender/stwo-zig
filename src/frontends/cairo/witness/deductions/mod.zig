@@ -37,6 +37,33 @@ pub fn context() program.DeduceContext {
     };
 }
 
+pub fn supportsProgram(witness_program: program.Program) bool {
+    for (witness_program.insts) |inst| {
+        const op = std.meta.intToEnum(program.Op, inst.op) catch return false;
+        if (op == .deduce_call and !supports(inst.imm)) return false;
+    }
+    return true;
+}
+
+pub fn supports(raw_selector: u32) bool {
+    const selector = std.meta.intToEnum(Selector, raw_selector) catch return false;
+    return switch (selector) {
+        .blake_g,
+        .blake_round_sigma,
+        .felt_add,
+        .felt_sub,
+        .felt_mul,
+        .felt_div,
+        .partial_ec_mul_generic,
+        .add_mod_is_zero,
+        .mul_mod_quotient,
+        .triple_xor_32,
+        .blake_round,
+        => true,
+        else => false,
+    };
+}
+
 fn call(_: *anyopaque, raw_selector: u32, args: []const u32, outputs: []u32) !void {
     return callWithTables(undefined, raw_selector, args, outputs, .zero());
 }
@@ -71,4 +98,11 @@ test {
     _ = blake;
     _ = mod_biguint;
     _ = partial_ec_mul_generic;
+}
+
+test "Cairo deductions report only executable selectors" {
+    try std.testing.expect(supports(@intFromEnum(Selector.blake_g)));
+    try std.testing.expect(supports(@intFromEnum(Selector.partial_ec_mul_generic)));
+    try std.testing.expect(!supports(@intFromEnum(Selector.partial_ec_mul_w18)));
+    try std.testing.expect(!supports(std.math.maxInt(u32)));
 }

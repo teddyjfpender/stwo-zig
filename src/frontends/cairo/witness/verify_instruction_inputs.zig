@@ -48,7 +48,7 @@ pub const CompactInput = struct {
             return Error.CountOverflow, 16);
     }
 
-    pub fn realRowCount(self: CompactInput) usize {
+    pub fn realRowCount(self: CompactInput, _: usize) !usize {
         return self.rows.len;
     }
 

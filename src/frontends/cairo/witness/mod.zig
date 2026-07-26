@@ -3,6 +3,7 @@ pub const execution_tables = @import("execution_tables.zig");
 pub const verify_instruction_inputs = @import("verify_instruction_inputs.zig");
 pub const direct_inputs = @import("direct_inputs.zig");
 pub const gathered_inputs = @import("gathered_inputs.zig");
+pub const compact_inputs = @import("compact_inputs.zig");
 pub const component_executor = @import("component_executor.zig");
 pub const deductions = @import("deductions/mod.zig");
 pub const recovery = @import("recovery.zig");
@@ -29,6 +30,7 @@ test {
     _ = verify_instruction_inputs;
     _ = direct_inputs;
     _ = gathered_inputs;
+    _ = compact_inputs;
     _ = component_executor;
     _ = deductions;
     _ = interaction_trace;

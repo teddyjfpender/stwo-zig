@@ -38,7 +38,7 @@ pub const GatheredInput = struct {
         if (row_count != self.rows) return Error.InvalidRowCount;
     }
 
-    pub fn realRowCount(self: GatheredInput) usize {
+    pub fn realRowCount(self: GatheredInput, _: usize) !usize {
         return self.active_rows;
     }
 

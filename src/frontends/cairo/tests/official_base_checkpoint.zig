@@ -81,7 +81,18 @@ test "official Cairo witness recordings match every covered all-builtins column"
 }
 
 test "official Cairo recorded graph matches the complete all-opcodes Blake chain" {
-    const case = cases[0];
+    try expectRecordedGraphMatches(cases[0], 24, 22);
+}
+
+test "official Cairo recorded graph defers unsupported builtin deductions" {
+    try expectRecordedGraphMatches(cases[1], 18, 30);
+}
+
+fn expectRecordedGraphMatches(
+    case: Case,
+    expected_matches: usize,
+    expected_skipped: usize,
+) !void {
     var input = try cairo.adapter.official_input.readFile(std.testing.allocator, case.input_path);
     defer input.deinit(std.testing.allocator);
     var bundle = try witness_bundle.Bundle.readFile(
@@ -112,8 +123,13 @@ test "official Cairo recorded graph matches the complete all-opcodes Blake chain
         );
     }
     try std.testing.expect(report.mismatch == null);
-    try std.testing.expectEqual(@as(usize, 24), report.matches.len);
-    try std.testing.expectEqual(@as(usize, 22), report.skipped_components);
+    if (report.matches.len != expected_matches) {
+        std.debug.print("recorded graph matched:", .{});
+        for (report.matches) |match| std.debug.print(" {s}", .{match.label});
+        std.debug.print("\n", .{});
+    }
+    try std.testing.expectEqual(expected_matches, report.matches.len);
+    try std.testing.expectEqual(expected_skipped, report.skipped_components);
 }
 
 fn expectWitnessMatches(
