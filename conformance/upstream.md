@@ -64,6 +64,11 @@ authoritative only for their explicitly labelled legacy comparison and only
 when generated from the fork Stwo-Cairo and prover-Stwo pair, without path
 dependencies or dirty source.
 
+The corresponding historical generated claim registry is retained at
+`archive/cairo/legacy_claim_registry.zig`. Production code must not import it;
+the active registry is the official generated registry under
+`src/frontends/cairo/air/`.
+
 The pinned Stwo-Cairo manifest itself contains a `LOCAL-ONLY` absolute-path patch and does not
 compile its full prover against its declared verifier Stwo revision. Repository-owned Rust prover
 tools must therefore isolate the crate in their own workspace and replace every affected Stwo

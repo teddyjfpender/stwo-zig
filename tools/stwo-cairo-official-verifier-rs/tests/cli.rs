@@ -13,6 +13,11 @@ fn input_vector() -> PathBuf {
         .join("../../vectors/cairo/official/all_opcodes.prover_input.json")
 }
 
+fn proof_vector() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../vectors/cairo/official/all_opcodes_blake2s.proof.bz2")
+}
+
 #[test]
 fn identity_names_exact_official_sources() {
     let output = Command::new(binary()).arg("identity").output().unwrap();
@@ -32,6 +37,10 @@ fn identity_names_exact_official_sources() {
         identity["prover_input_schema"],
         "stwo_cairo_adapter::ProverInput@1.2.2"
     );
+    assert_eq!(
+        identity["claim_summary_schema"],
+        "stwo_cairo_official_claim_summary_v1"
+    );
 }
 
 #[test]
@@ -49,6 +58,32 @@ fn inspect_input_publishes_an_immutable_semantic_summary() {
     let summary: Value = serde_json::from_slice(&std::fs::read(&result).unwrap()).unwrap();
     assert_eq!(summary["schema"], "stwo_cairo_official_input_summary_v2");
     assert_eq!(summary["pc_count"], 778);
+}
+
+#[test]
+fn inspect_proof_publishes_the_canonical_claim_geometry() {
+    let directory = tempdir().unwrap();
+    let result = directory.path().join("claim.json");
+    let status = Command::new(binary())
+        .args(["inspect-blake2s-proof", "--proof"])
+        .arg(proof_vector())
+        .args(["--proof-format", "binary", "--result"])
+        .arg(&result)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let summary: Value = serde_json::from_slice(&std::fs::read(&result).unwrap()).unwrap();
+    assert_eq!(
+        summary["schema"],
+        "stwo_cairo_official_claim_summary_v1"
+    );
+    assert_eq!(
+        summary["flat_claim"]["component_enable_bits"]
+            .as_array()
+            .unwrap()
+            .len(),
+        83
+    );
 }
 
 #[test]

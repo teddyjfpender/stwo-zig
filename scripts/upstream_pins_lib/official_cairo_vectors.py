@@ -66,10 +66,15 @@ def _check_record(
     ]
     if requires_proof:
         proof = record.get("proof")
+        claim_summary = record.get("claim_summary")
         if not isinstance(proof, dict):
             errors.append(f"{relative_path}: proof object is required")
         else:
             errors.extend(_check_proof(root, relative_path, proof))
+        if not isinstance(claim_summary, dict):
+            errors.append(f"{relative_path}: claim_summary object is required")
+        else:
+            errors.extend(_check_claim_summary(root, relative_path, claim_summary))
     errors.extend(_check_input(root, relative_path, source, prover_input))
     return errors
 
@@ -93,6 +98,60 @@ def _check_proof(
         errors.append(f"{relative_path}: proof digest drifted")
     if proof.get("channel") != "blake2s" or proof.get("format") != "binary":
         errors.append(f"{relative_path}: proof transport identity drifted")
+    return errors
+
+
+def _check_claim_summary(
+    root: Path,
+    relative_path: str,
+    summary: dict[str, object],
+) -> list[str]:
+    path = summary.get("path")
+    if not isinstance(path, str) or Path(path).is_absolute():
+        return [f"{relative_path}: claim summary path is invalid"]
+    try:
+        encoded = (root / path).read_bytes()
+        document = json.loads(encoded)
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative_path}: invalid claim summary: {error}"]
+
+    errors: list[str] = []
+    schema = "stwo_cairo_official_claim_summary_v1"
+    if summary.get("bytes") != len(encoded):
+        errors.append(f"{relative_path}: claim summary byte count drifted")
+    if summary.get("sha256") != hashlib.sha256(encoded).hexdigest():
+        errors.append(f"{relative_path}: claim summary digest drifted")
+    if (
+        summary.get("schema") != schema
+        or not isinstance(document, dict)
+        or document.get("schema") != schema
+    ):
+        return errors + [f"{relative_path}: claim summary schema drifted"]
+
+    flat = document.get("flat_claim")
+    interaction = document.get("interaction")
+    if not isinstance(flat, dict) or not isinstance(interaction, dict):
+        return errors + [f"{relative_path}: claim summary sections are required"]
+    enable_bits = flat.get("component_enable_bits")
+    log_sizes = flat.get("component_log_sizes")
+    claimed_sums = interaction.get("claimed_sums_m31")
+    if not isinstance(enable_bits, list) or len(enable_bits) != 83:
+        errors.append(f"{relative_path}: claim enable-slot cardinality drifted")
+    active = (
+        sum(value is True for value in enable_bits)
+        if isinstance(enable_bits, list)
+        else -1
+    )
+    if not isinstance(log_sizes, list) or len(log_sizes) != active:
+        errors.append(f"{relative_path}: active claim log cardinality drifted")
+    if not isinstance(claimed_sums, list) or len(claimed_sums) != active:
+        errors.append(f"{relative_path}: interaction claim cardinality drifted")
+    if document.get("preprocessed_trace_variant") not in {
+        "canonical",
+        "canonical_without_pedersen",
+        "canonical_small",
+    }:
+        errors.append(f"{relative_path}: preprocessed trace variant drifted")
     return errors
 
 

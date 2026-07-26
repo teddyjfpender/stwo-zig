@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const adapter = @import("adapter/mod.zig");
-const claim_registry = @import("claim_registry.zig");
+const claim_registry = @import("air/official_claim_registry.zig");
 const public_data = @import("statement/public_data.zig");
 const composition_bundle = @import("witness/composition_bundle.zig");
 

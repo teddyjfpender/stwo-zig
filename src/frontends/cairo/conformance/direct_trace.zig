@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const adapter = @import("../adapter/mod.zig");
-const claim_registry = @import("../claim_registry.zig");
+const claim_registry = @import("../air/official_claim_registry.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
 const execution_tables = @import("../witness/execution_tables.zig");

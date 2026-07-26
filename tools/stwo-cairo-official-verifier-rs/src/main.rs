@@ -6,13 +6,18 @@ use std::time::Instant;
 use serde::Serialize;
 use stwo_cairo_official_verifier::{
     ADAPTER_VERSION, Channel, ProofFormat, STWO_CAIRO_REVISION, STWO_REVISION, identity,
-    input::inspect_input, proof_sha256, verify_proof, write_json_new,
+    input::inspect_input, inspect_blake2s_proof_claim, proof_sha256, verify_proof, write_json_new,
 };
 
 enum Command {
     Identity,
     InspectInput {
         prover_input: PathBuf,
+        result: PathBuf,
+    },
+    InspectBlake2sProof {
+        proof: PathBuf,
+        format: ProofFormat,
         result: PathBuf,
     },
     Verify {
@@ -62,6 +67,14 @@ fn run() -> anyhow::Result<ExitCode> {
             result,
         } => {
             write_json_new(&result, &inspect_input(&prover_input)?)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::InspectBlake2sProof {
+            proof,
+            format,
+            result,
+        } => {
+            write_json_new(&result, &inspect_blake2s_proof_claim(&proof, format)?)?;
             Ok(ExitCode::SUCCESS)
         }
         Command::Verify {
@@ -144,6 +157,35 @@ where
             Ok(Command::InspectInput {
                 prover_input: prover_input
                     .ok_or_else(|| anyhow::anyhow!("missing --prover-input"))?,
+                result: result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
+            })
+        }
+        "inspect-blake2s-proof" => {
+            let mut proof = None;
+            let mut format = None;
+            let mut result = None;
+            while let Some(flag) = args.next() {
+                let flag = flag
+                    .into_string()
+                    .map_err(|_| anyhow::anyhow!("option is not valid UTF-8"))?;
+                let value = args
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("missing value for {flag}"))?;
+                match flag.as_str() {
+                    "--proof" if proof.is_none() => proof = Some(PathBuf::from(value)),
+                    "--proof-format" if format.is_none() => {
+                        format = Some(ProofFormat::parse(&utf8(Some(value), "missing format")?)?)
+                    }
+                    "--result" if result.is_none() => result = Some(PathBuf::from(value)),
+                    "--proof" | "--proof-format" | "--result" => {
+                        anyhow::bail!("duplicate option {flag}")
+                    }
+                    _ => anyhow::bail!("unknown option {flag}"),
+                }
+            }
+            Ok(Command::InspectBlake2sProof {
+                proof: proof.ok_or_else(|| anyhow::anyhow!("missing --proof"))?,
+                format: format.unwrap_or(ProofFormat::Json),
                 result: result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
             })
         }

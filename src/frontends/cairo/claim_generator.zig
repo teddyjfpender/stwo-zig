@@ -8,7 +8,7 @@
 const std = @import("std");
 const adapter = @import("adapter/mod.zig");
 const opcodes = @import("adapter/opcodes.zig");
-const claim_registry = @import("claim_registry.zig");
+const claim_registry = @import("air/official_claim_registry.zig");
 
 pub const simd_log_lanes: u32 = 4;
 pub const max_sequence_log_size: u32 = 25;

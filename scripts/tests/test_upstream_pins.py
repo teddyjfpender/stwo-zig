@@ -35,7 +35,7 @@ class UpstreamPinTests(unittest.TestCase):
             ".github/workflows/ci.yml",
             "src/tools/metal_prover_session/state.zig",
             "src/frontends/cairo/prover.zig",
-            "src/frontends/cairo/claim_registry.zig",
+            "archive/cairo/legacy_claim_registry.zig",
         ):
             self.assertIn(carrier, joined)
 

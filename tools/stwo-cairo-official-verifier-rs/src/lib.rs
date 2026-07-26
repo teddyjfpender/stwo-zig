@@ -17,6 +17,7 @@ use stwo::core::vcs_lifted::poseidon252_merkle::{
     Poseidon252MerkleChannel, Poseidon252MerkleHasher,
 };
 
+pub mod claim;
 pub mod input;
 
 pub const ADAPTER_VERSION: &str = "stwo-cairo-official-verifier/1";
@@ -100,6 +101,7 @@ pub struct Identity {
     pub proof_formats: [ProofFormat; 3],
     pub max_proof_bytes: u64,
     pub prover_input_schema: &'static str,
+    pub claim_summary_schema: &'static str,
     pub max_input_bytes: u64,
 }
 
@@ -121,6 +123,7 @@ pub fn identity(executable: Option<&Path>) -> Result<Identity> {
         proof_formats: ProofFormat::ALL,
         max_proof_bytes: MAX_PROOF_BYTES,
         prover_input_schema: "stwo_cairo_adapter::ProverInput@1.2.2",
+        claim_summary_schema: claim::SUMMARY_SCHEMA,
         max_input_bytes: input::MAX_INPUT_BYTES,
     })
 }
@@ -166,6 +169,22 @@ pub fn inspect_blake2s_proof_public_statement(
         deserialize_proof_from_file(path, format.upstream())
             .context("failed to deserialize Blake2s Cairo proof")?;
     Ok(input::public_statement::summarize(&proof.claim.public_data))
+}
+
+pub fn inspect_blake2s_proof_claim(
+    path: &Path,
+    format: ProofFormat,
+) -> Result<claim::ProofClaimSummary> {
+    validate_proof_file(path)?;
+    let proof: CairoProofForRustVerifier<Blake2sMerkleHasher> =
+        deserialize_proof_from_file(path, format.upstream())
+            .context("failed to deserialize Blake2s Cairo proof")?;
+    Ok(claim::summarize(
+        &proof.claim,
+        proof.interaction_pow,
+        &proof.interaction_claim,
+        proof.preprocessed_trace_variant,
+    ))
 }
 
 pub fn write_json_new(path: &Path, value: &impl Serialize) -> Result<()> {

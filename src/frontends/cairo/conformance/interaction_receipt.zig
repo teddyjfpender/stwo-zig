@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const checkpoint = @import("interaction_checkpoint.zig");
-const claim_registry = @import("../claim_registry.zig");
+const claim_registry = @import("../air/official_claim_registry.zig");
 
 pub const schema = "stwo-cairo-interaction-trace-checkpoint-v1";
 pub const stwo_cairo_revision = "dcd5834565b7a26a27a614e353c9c60109ebc1d9";

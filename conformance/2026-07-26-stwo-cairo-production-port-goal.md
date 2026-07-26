@@ -356,7 +356,7 @@ As of the starting commit `cfd47be9`:
 | Official source identity | clean-source generated registry and pin-ledger gate | complete for frozen pin |
 | Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
-| Claim shape | 68 fields and 83 slots match official source | shape only |
+| Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
@@ -385,8 +385,12 @@ resource. Their `PublicData` is also compared for unpadded and transcript-padded
 public claims, output and program value splits, and Blake2s roots. The
 all-opcodes statement is independently recovered from the committed official
 proof and required to equal the input-derived Rust statement. RF-02 still
-requires the broader execution corpus, the remaining CP-02 claim and mix-order
-work remains open, and RF-03 remains open; these vectors do not establish
+requires the broader execution corpus. The same proof now pins the exact flat
+claim, interaction-claim values, trace log-size matrix, and claim mix digest.
+Zig derives its activation closure from the admitted input, resolves only
+witness-fed log sizes from the oracle vector, and reproduces the exact claim
+mix. Independent live-witness derivation of those deferred logs and the
+interaction mix remain open, as does RF-03; these vectors do not establish
 witness or proof parity.
 
 ## Delivery Order

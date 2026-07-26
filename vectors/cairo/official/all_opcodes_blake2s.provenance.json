@@ -16,6 +16,13 @@
     "bytes": 875491,
     "sha256": "2d7acaabc6ac00afd1a840aaa1527c4a73a4807a9153dc3fe1d4fdefa86104f1"
   },
+  "claim_summary": {
+    "path": "vectors/cairo/official/all_opcodes.claim_summary.json",
+    "schema": "stwo_cairo_official_claim_summary_v1",
+    "bytes": 8315,
+    "sha256": "ea73df8c55e7b25067a262a59f2f500d319756ffa230121c89c95d86602bc391",
+    "generator": "stwo-cairo-official-verifier inspect-blake2s-proof"
+  },
   "prover_input": {
     "path": "vectors/cairo/official/all_opcodes.prover_input.json",
     "format": "official_json",
