@@ -11,6 +11,15 @@ const policy = @import("../graph/product.zig");
 const protocol_features =
     "stwo-cairo-v1.2.2+official-json-v1+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
 
+const OracleCase = struct {
+    name: []const u8,
+    input: []const u8,
+    params: []const u8,
+    proof: []const u8,
+    report: []const u8,
+    verdict: []const u8,
+};
+
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
         "src/products/cairo_cpu/main.zig",
@@ -55,6 +64,7 @@ pub const descriptor = policy.Descriptor{
     .installed_artifacts = &.{
         "stwo-cairo-cpu",
         "share/stwo-zig/cairo/official/all_opcodes.params.json",
+        "share/stwo-zig/cairo/official/all_builtins.params.json",
     },
     .release_gates = &.{
         "test-cairo-cpu-product",
@@ -170,6 +180,10 @@ fn installProfile(context: Context, step: *std.Build.Step) void {
             .destination = "share/stwo-zig/cairo/official/all_opcodes.params.json",
         },
         .{
+            .source = "vectors/cairo/official/all_builtins.params.json",
+            .destination = "share/stwo-zig/cairo/official/all_builtins.params.json",
+        },
+        .{
             .source = "vectors/cairo/official/witness_programs_v1.bin",
             .destination = "share/stwo-zig/cairo/official/witness_programs_v1.bin",
         },
@@ -214,21 +228,6 @@ fn addOracleGate(
     context: Context,
     executable: *std.Build.Step.Compile,
 ) void {
-    const prove = context.b.addRunArtifact(executable);
-    prove.addArgs(&.{ "prove", "--prover-input" });
-    prove.addFileArg(context.b.path(
-        "vectors/cairo/official/all_opcodes.prover_input.json",
-    ));
-    prove.addArg("--params");
-    prove.addFileArg(context.b.path(
-        "vectors/cairo/official/all_opcodes.params.json",
-    ));
-    prove.addArg("--proof");
-    const proof = prove.addOutputFileArg("official-cairo-proof.json");
-    prove.addArg("--report-out");
-    _ = prove.addOutputFileArg("official-cairo-report.json");
-    prove.addArg("--verify");
-
     const cargo = context.b.addSystemCommand(&.{
         "cargo",
         "build",
@@ -238,6 +237,59 @@ fn addOracleGate(
             "tools/stwo-cairo-official-verifier-rs/Cargo.toml",
         ),
     });
+    const gate = context.b.step(
+        "test-cairo-cpu-oracle",
+        "Prove the official Cairo corpus and require Rust acceptance",
+    );
+    var previous: ?*std.Build.Step = null;
+    for ([_]OracleCase{
+        .{
+            .name = "all-opcodes",
+            .input = "vectors/cairo/official/all_opcodes.prover_input.json",
+            .params = "vectors/cairo/official/all_opcodes.params.json",
+            .proof = "all-opcodes-proof.json",
+            .report = "all-opcodes-report.json",
+            .verdict = "all-opcodes-rust-verdict.json",
+        },
+        .{
+            .name = "all-builtins",
+            .input = "vectors/cairo/official/all_builtins.prover_input.json",
+            .params = "vectors/cairo/official/all_builtins.params.json",
+            .proof = "all-builtins-proof.json",
+            .report = "all-builtins-report.json",
+            .verdict = "all-builtins-rust-verdict.json",
+        },
+    }) |case| {
+        previous = addOracleCase(
+            context,
+            executable,
+            cargo,
+            case,
+            previous,
+        );
+    }
+    gate.dependOn(previous.?);
+}
+
+fn addOracleCase(
+    context: Context,
+    executable: *std.Build.Step.Compile,
+    cargo: *std.Build.Step.Run,
+    case: OracleCase,
+    previous: ?*std.Build.Step,
+) *std.Build.Step {
+    const prove = context.b.addRunArtifact(executable);
+    if (previous) |dependency| prove.step.dependOn(dependency);
+    prove.addArgs(&.{ "prove", "--prover-input" });
+    prove.addFileArg(context.b.path(case.input));
+    prove.addArg("--params");
+    prove.addFileArg(context.b.path(case.params));
+    prove.addArg("--proof");
+    const proof = prove.addOutputFileArg(case.proof);
+    prove.addArg("--report-out");
+    _ = prove.addOutputFileArg(case.report);
+    prove.addArg("--verify");
+
     const verify = context.b.addSystemCommand(&.{
         context.b.pathFromRoot(
             "tools/stwo-cairo-official-verifier-rs/target/debug/" ++
@@ -255,11 +307,12 @@ fn addOracleGate(
         "json",
         "--result",
     });
-    _ = verify.addOutputFileArg("official-rust-verdict.json");
-    context.b.step(
-        "test-cairo-cpu-oracle",
-        "Prove through the CPU CLI and require official Rust acceptance",
-    ).dependOn(&verify.step);
+    _ = verify.addOutputFileArg(case.verdict);
+    verify.setName(context.b.fmt(
+        "verify official Cairo {s} proof",
+        .{case.name},
+    ));
+    return &verify.step;
 }
 
 fn product(role: graph.Role) graph.Product {

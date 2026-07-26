@@ -7,7 +7,13 @@ const cairo = stwo.frontends.cairo;
 
 pub const schema = "stwo-zig-cairo-proving-profile-v3";
 pub const version: u32 = 3;
-pub const default_profile = "official-live-cairo-canonical-small";
+pub const canonical_profile = "official-live-cairo-canonical";
+pub const canonical_small_profile = "official-live-cairo-canonical-small";
+pub const default_profile = canonical_small_profile;
+pub const supported_profiles = [_][]const u8{
+    canonical_profile,
+    canonical_small_profile,
+};
 const max_manifest_bytes: usize = 64 * 1024;
 const max_asset_bytes: usize = 512 * 1024 * 1024;
 
@@ -69,12 +75,13 @@ pub fn load(allocator: std.mem.Allocator, manifest_path: []const u8) !Paths {
     if (!std.mem.eql(u8, document.schema, schema) or
         document.version != version)
         return error.UnsupportedProfileSchema;
-    if (!std.mem.eql(u8, document.profile, default_profile))
-        return error.UnsupportedProfile;
     const variant = std.meta.stringToEnum(
         cairo.preprocessed.trace.Variant,
         document.preprocessed_variant,
     ) orelse return error.UnsupportedPreprocessedVariant;
+    const profile_variant = variantForProfile(document.profile) orelse
+        return error.UnsupportedProfile;
+    if (variant != profile_variant) return error.ProfileVariantMismatch;
 
     const directory = std.fs.path.dirname(manifest_path) orelse ".";
     var paths = Paths{
@@ -120,6 +127,16 @@ pub fn load(allocator: std.mem.Allocator, manifest_path: []const u8) !Paths {
     );
     errdefer allocator.free(paths.air_template_library);
     return paths;
+}
+
+fn variantForProfile(
+    profile_name: []const u8,
+) ?cairo.preprocessed.trace.Variant {
+    if (std.mem.eql(u8, profile_name, canonical_profile))
+        return .canonical;
+    if (std.mem.eql(u8, profile_name, canonical_small_profile))
+        return .canonical_small;
+    return null;
 }
 
 pub fn defaultManifestPath(allocator: std.mem.Allocator) ![]u8 {
@@ -177,14 +194,25 @@ fn parseSha256(encoded: []const u8) ![32]u8 {
 }
 
 test "official Cairo CPU proving profile authenticates every asset" {
-    var paths = try load(
+    var small = try load(
         std.testing.allocator,
         "vectors/cairo/official/all_opcodes.params.json",
     );
-    defer paths.deinit();
-    try std.testing.expectEqualStrings(default_profile, paths.profile);
+    defer small.deinit();
+    try std.testing.expectEqualStrings(canonical_small_profile, small.profile);
     try std.testing.expectEqual(
         cairo.preprocessed.trace.Variant.canonical_small,
-        paths.variant,
+        small.variant,
+    );
+
+    var canonical = try load(
+        std.testing.allocator,
+        "vectors/cairo/official/all_builtins.params.json",
+    );
+    defer canonical.deinit();
+    try std.testing.expectEqualStrings(canonical_profile, canonical.profile);
+    try std.testing.expectEqual(
+        cairo.preprocessed.trace.Variant.canonical,
+        canonical.variant,
     );
 }

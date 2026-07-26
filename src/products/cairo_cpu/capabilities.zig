@@ -19,7 +19,7 @@ pub fn write(writer: anytype) !void {
         },
         .channels = &[_][]const u8{"blake2s"},
         .proof_formats = &[_][]const u8{"json"},
-        .profiles = &[_][]const u8{profile.default_profile},
+        .profiles = profile.supported_profiles[0..],
         .verification = .{
             .zig = true,
             .official_rust_release_gate = true,
