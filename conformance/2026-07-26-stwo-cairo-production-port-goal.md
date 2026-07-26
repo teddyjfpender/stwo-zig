@@ -361,6 +361,8 @@ As of the starting commit `cfd47be9`:
 | Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
 | Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for both frozen fixtures; broader execution corpus remains |
 | Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component | complete for both frozen fixtures under the explicitly diagnostic challenge; proof-transcript challenges remain |
+| Official preprocessed trace | backend-neutral registry constructs canonical (161 columns), canonical-without-Pedersen (105 columns), and canonical-small (156 columns) in exact stable identity order; canonical AIR indices project to canonical-small identities and reject absent columns | commitment-root parity and process-owned cache reuse remain |
+| Official base commitment input | all-opcodes executes the authenticated witness graph and materializes all 1,464 columns and 28,690,992 M31 cells in Rust commitment order; every value vector is re-digested against the cumulative Rust checkpoint before admission | commitment root and live-input geometry derivation remain |
 | Official AIR compiler | authenticated exact-source overlay lowers the 46 active all-opcodes component evaluators into one backend-neutral bundle containing 678 constraints, 9,689 base instructions, and 14,797 extension instructions | complete for the frozen all-opcodes proof; all-family coverage and quotient execution remain |
 | Native Zig AIR | executes authenticated captured programs through the generic CPU/SIMD domain accumulator; a focused functional gate covers trace indexing, extension arithmetic, coefficient order, and coset-denominator placement | evaluator complete; official trace/proof integration incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
@@ -452,6 +454,17 @@ inverse without a Cairo-specific prover fork. The focused
 black-box. This establishes native quotient execution as an implementation
 boundary; it is not proof evidence until the official trace commitments and
 Fiat-Shamir transcript pass the Rust verifier.
+
+The backend-neutral proof-input boundary now constructs all three official
+preprocessed variants without backend imports. Stable public identities project
+the canonical AIR indices onto canonical-small for the first proof campaign and
+fail closed when a required column is absent. The all-opcodes conformance path
+also converts the authenticated witness, fixed-table, and memory sources into
+the exact 1,464-column, 28,690,992-cell M31 base commitment input. Every column
+is checked against the Rust checkpoint before ownership crosses into PCS. This
+is commitment-ready value parity, not a commitment-root or complete-proof
+claim; production admission must additionally derive component geometry from
+the live input instead of accepting fixture checkpoint geometry.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The

@@ -12,6 +12,68 @@ const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const Poly = prover.air.component_prover.Poly;
 
+test "Cairo proof-input construction compiles recursively" {
+    std.testing.refAllDeclsRecursive(cairo.proving);
+}
+
+test "official Cairo all-opcodes base commitment trace matches Rust" {
+    const allocator = std.testing.allocator;
+    const input_path = "vectors/cairo/official/all_opcodes.prover_input.json";
+
+    var input = try cairo.adapter.official_input.readFile(allocator, input_path);
+    defer input.deinit(allocator);
+    var programs = try cairo.witness.bundle.Bundle.readFile(
+        allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer programs.deinit();
+    var topology = try cairo.witness.feed_topology.readOfficial(
+        allocator,
+        "vectors/cairo/official/witness_feed_topology_v1.json",
+    );
+    defer topology.deinit();
+    var fixed = try cairo.witness.fixed_table_bundle.Bundle.readFile(
+        allocator,
+        "vectors/cairo/cairo_fixed_tables.bin",
+    );
+    defer fixed.deinit();
+
+    const encoded = try std.fs.cwd().readFileAlloc(allocator, input_path, 2 * 1024 * 1024);
+    defer allocator.free(encoded);
+    var input_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(encoded, &input_digest, .{});
+    var expected = try cairo.conformance.receipt.readFile(
+        allocator,
+        "vectors/cairo/official/all_opcodes.base_trace_checkpoint.json",
+        .{
+            .input_sha256 = input_digest,
+            .authority = .{
+                .stwo_cairo_revision = cairo.claim_registry.source_revision.stwo_cairo,
+                .stwo_revision = cairo.claim_registry.source_revision.stwo,
+            },
+        },
+    );
+    defer expected.deinit();
+
+    var trace = try cairo.proving.base_trace.build(
+        allocator,
+        &input,
+        &programs,
+        topology,
+        &fixed,
+        expected.components,
+    );
+    defer trace.deinit();
+
+    try std.testing.expectEqual(@as(usize, 1464), trace.columns.len);
+    var cells: usize = 0;
+    for (trace.columns) |column| {
+        cells = try std.math.add(usize, cells, column.values.len);
+    }
+    try std.testing.expectEqual(@as(usize, 28_690_992), cells);
+    try std.testing.expectEqual(@as(usize, 24), trace.execution.producers.len);
+}
+
 test "Cairo CPU AIR evaluates coefficients and denominators on domain" {
     const allocator = std.testing.allocator;
 

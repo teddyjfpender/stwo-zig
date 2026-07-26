@@ -77,6 +77,20 @@ pub const Error = error{
     MissingWitnessProgram,
 };
 
+/// Scoped access to one exact generated base component.
+///
+/// The execution remains owned by the witness runner and is valid only for the
+/// duration of `visit`. Consumers that retain values must copy or transform
+/// them before returning.
+pub const ComponentObserver = struct {
+    context: *anyopaque,
+    visit: *const fn (
+        context: *anyopaque,
+        expected: checkpoint.Component,
+        execution: *const component_executor.Execution,
+    ) anyerror!void,
+};
+
 const ComponentResult = struct {
     mismatch: ?Mismatch,
     producer: ?ProducerOutput,
@@ -107,6 +121,24 @@ pub fn execute(
     input: *const adapter.ProverInput,
     bundle: *const witness_bundle.Bundle,
     expected_components: []const checkpoint.Component,
+) !Execution {
+    return executeObserved(
+        allocator,
+        input,
+        bundle,
+        expected_components,
+        null,
+    );
+}
+
+/// Executes the same authenticated witness graph while exposing each exact
+/// generated base component to a scoped consumer.
+pub fn executeObserved(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    bundle: *const witness_bundle.Bundle,
+    expected_components: []const checkpoint.Component,
+    observer: ?ComponentObserver,
 ) !Execution {
     var matches = std.ArrayList(Match).empty;
     errdefer matches.deinit(allocator);
@@ -160,6 +192,7 @@ pub fn execute(
                 entry.program,
                 compact,
                 expected,
+                observer,
             );
         } else if (try direct_inputs.resolve(input, expected.label)) |direct| try executeComponent(
             allocator,
@@ -167,6 +200,7 @@ pub fn execute(
             entry.program,
             direct,
             expected,
+            observer,
         ) else if (proof_plan.gatheredProducerEdges(expected.label)) |edges| blk: {
             const gathered_producers = try allocator.alloc(gathered_inputs.Producer, edges.len);
             defer allocator.free(gathered_producers);
@@ -197,6 +231,7 @@ pub fn execute(
                 entry.program,
                 gathered,
                 expected,
+                observer,
             );
         } else blk: {
             skipped_components += 1;
@@ -236,6 +271,7 @@ fn executeComponent(
     witness_program: @import("../witness/program.zig").Program,
     source: anytype,
     expected: checkpoint.Component,
+    observer: ?ComponentObserver,
 ) !ComponentResult {
     var execution = try component_executor.execute(
         allocator,
@@ -246,6 +282,11 @@ fn executeComponent(
     );
     defer execution.deinit();
     const mismatch = try execution.compare(expected);
+    if (mismatch == null) {
+        if (observer) |active| {
+            try active.visit(active.context, expected, &execution);
+        }
+    }
     const producer = if (witness_program.n_sub_words == 0 and
         witness_program.n_lookup_words == 0)
         null
