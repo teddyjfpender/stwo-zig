@@ -85,7 +85,7 @@ test "official Cairo recorded graph matches the complete all-opcodes Blake chain
 }
 
 test "official Cairo recorded graph matches supported builtin dependencies" {
-    try expectRecordedGraphMatches(cases[1], 23, 25);
+    try expectRecordedGraphMatches(cases[1], 25, 23);
 }
 
 fn expectRecordedGraphMatches(

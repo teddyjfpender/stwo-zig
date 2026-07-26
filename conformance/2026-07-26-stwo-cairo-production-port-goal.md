@@ -358,7 +358,7 @@ As of the starting commit `cfd47be9`:
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
-| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; the backend-neutral graph runner matches 24 active all-opcodes components, including the complete Blake helper chain, and 23 active all-builtins components, including the complete Poseidon arithmetic chain, against every Rust base column exactly | partial; generated-writer coverage is complete, but remaining helper/fixed/component input edges and complete verifier-accepted proofs remain |
+| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; the backend-neutral graph runner matches 24 active all-opcodes components, including the complete Blake helper chain, and 25 active all-builtins components, including the Poseidon arithmetic chain and window-18 Pedersen execution chain, against every Rust base column exactly | partial; generated-writer coverage is complete, but remaining helper/fixed/component input edges and complete verifier-accepted proofs remain |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
@@ -408,14 +408,17 @@ It contains all 64 generated official writers as complete, poison-free
 programs. On all-opcodes, 42 recordings are active: 24 execute through the
 current Zig input bindings with zero column mismatches and 18 helper/fixed-table
 programs await input-edge reconstruction. On all-builtins, 45 are active:
-23 execute exactly and 22 await those edges. Compact claim inputs now use one
+25 execute exactly and 20 await those edges. Compact claim inputs now use one
 backend-neutral implementation of the official key sort, tuple
 multiplicity merge, first-row padding, enabler, and iota laws. The recorded
 graph also rejects programs whose host deduction selectors are not implemented,
 so deferred Pedersen helpers cannot be counted through a partial or approximate
 execution. The complete Poseidon deduction family, mechanically bound to the
 pinned official round keys, now carries the all-builtins graph through the
-aggregator, both round-chain components, cube, and width-27 range check.
+aggregator, both round-chain components, cube, and width-27 range check. The
+window-18 Pedersen aggregator and partial-EC chain use exact on-demand
+Stark-curve table semantics, avoiding a 1.8 GB host-table dependency while
+remaining column-identical to the Rust oracle.
 This comparison also corrected a Zig semantic defect: official
 `verify_instruction` multiplicities include only producer `n_active_rows`, not
 the producer's padded rows. The companion provenance is intentionally marked

@@ -5,7 +5,9 @@ const blake = @import("blake.zig");
 const felt252 = @import("felt252.zig");
 const mod_biguint = @import("mod_biguint.zig");
 const partial_ec_mul_generic = @import("partial_ec_mul_generic.zig");
+const pedersen = @import("pedersen.zig");
 const poseidon = @import("poseidon.zig");
+const stark_curve = @import("stark_curve.zig");
 const program = @import("../program.zig");
 
 pub const Selector = enum(u32) {
@@ -51,6 +53,8 @@ pub fn supports(raw_selector: u32) bool {
     return switch (selector) {
         .blake_g,
         .blake_round_sigma,
+        .partial_ec_mul_w18,
+        .pedersen_points_table_w18,
         .felt_add,
         .felt_sub,
         .felt_mul,
@@ -85,6 +89,8 @@ fn callWithTables(
     switch (selector) {
         .blake_g => try blake.applyG(args, outputs),
         .blake_round_sigma => try blake.applyRoundSigma(args, outputs),
+        .partial_ec_mul_w18 => try pedersen.applyPartialEcMul(args, outputs),
+        .pedersen_points_table_w18 => try pedersen.applyPointsTable(args, outputs),
         .felt_add => try felt252.apply(.add, args, outputs),
         .felt_sub => try felt252.apply(.sub, args, outputs),
         .felt_mul => try felt252.apply(.mul, args, outputs),
@@ -107,7 +113,9 @@ test {
     _ = blake;
     _ = mod_biguint;
     _ = partial_ec_mul_generic;
+    _ = pedersen;
     _ = poseidon;
+    _ = stark_curve;
 }
 
 test "Cairo deductions report only executable selectors" {

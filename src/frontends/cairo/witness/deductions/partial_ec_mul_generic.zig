@@ -2,17 +2,13 @@
 
 const std = @import("std");
 const felt252 = @import("felt252.zig");
+const stark_curve = @import("stark_curve.zig");
 
 pub const scalar_word_count: usize = 10;
 pub const felt_word_count: usize = felt252.word_count;
 pub const io_word_count: usize = 2 + scalar_word_count + 4 * felt_word_count + 1;
 
-const Point = struct {
-    x: u256,
-    y: u256,
-};
-
-pub const Error = felt252.Error || error{
+pub const Error = felt252.Error || stark_curve.Error || error{
     InvalidWordCount,
     InvalidWidth27Word,
 };
@@ -35,10 +31,10 @@ pub fn apply(args: []const u32, outputs: []u32) Error!void {
     outputs[1] = incrementM31(args[1]);
     shiftScalar(scalar, args[counter_index], outputs[scalar_start..point_start]);
 
-    const doubled = try doublePoint(point);
+    const doubled = try stark_curve.doubleAffine(point);
     encodePoint(doubled, outputs[point_start..accumulator_start]);
     const next_accumulator = if (scalar[0] & 1 == 1)
-        try addPoints(accumulator, point)
+        try stark_curve.addAffine(accumulator, point)
     else
         accumulator;
     encodePoint(next_accumulator, outputs[accumulator_start..counter_index]);
@@ -68,7 +64,7 @@ fn shiftScalar(input: []const u32, counter: u32, output: []u32) void {
     @memcpy(output[1..], input[1..]);
 }
 
-fn decodePoint(words: []const u32) felt252.Error!Point {
+fn decodePoint(words: []const u32) felt252.Error!stark_curve.AffinePoint {
     std.debug.assert(words.len == 2 * felt_word_count);
     return .{
         .x = try felt252.decode(words[0..felt_word_count]),
@@ -76,38 +72,10 @@ fn decodePoint(words: []const u32) felt252.Error!Point {
     };
 }
 
-fn encodePoint(point: Point, words: []u32) void {
+fn encodePoint(point: stark_curve.AffinePoint, words: []u32) void {
     std.debug.assert(words.len == 2 * felt_word_count);
     felt252.encode(point.x, words[0..felt_word_count]);
     felt252.encode(point.y, words[felt_word_count..]);
-}
-
-fn addPoints(lhs: Point, rhs: Point) felt252.Error!Point {
-    const slope = try felt252.div(
-        felt252.sub(rhs.y, lhs.y),
-        felt252.sub(rhs.x, lhs.x),
-    );
-    const x = felt252.sub(
-        felt252.sub(felt252.mul(slope, slope), lhs.x),
-        rhs.x,
-    );
-    return .{
-        .x = x,
-        .y = felt252.sub(felt252.mul(slope, felt252.sub(lhs.x, x)), lhs.y),
-    };
-}
-
-fn doublePoint(point: Point) felt252.Error!Point {
-    const three_x_squared = felt252.mul(3, felt252.mul(point.x, point.x));
-    const slope = try felt252.div(
-        felt252.add(three_x_squared, 1),
-        felt252.add(point.y, point.y),
-    );
-    const x = felt252.sub(felt252.mul(slope, slope), felt252.add(point.x, point.x));
-    return .{
-        .x = x,
-        .y = felt252.sub(felt252.mul(slope, felt252.sub(point.x, x)), point.y),
-    };
 }
 
 fn incrementM31(value: u32) u32 {
