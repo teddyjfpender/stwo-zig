@@ -84,8 +84,8 @@ test "official Cairo recorded graph matches the complete all-opcodes Blake chain
     try expectRecordedGraphMatches(cases[0], 24, 22);
 }
 
-test "official Cairo recorded graph defers unsupported builtin deductions" {
-    try expectRecordedGraphMatches(cases[1], 18, 30);
+test "official Cairo recorded graph matches supported builtin dependencies" {
+    try expectRecordedGraphMatches(cases[1], 23, 25);
 }
 
 fn expectRecordedGraphMatches(

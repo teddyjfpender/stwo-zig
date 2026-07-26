@@ -37,8 +37,9 @@ pub const CompactInput = struct {
         return self.geometry.multiplicity_slot + 1;
     }
 
-    pub fn realRowCount(self: CompactInput, _: usize) !usize {
-        return self.rows.len;
+    pub fn realRowCount(self: CompactInput, padded_rows: usize) !usize {
+        try self.validateRowCount(padded_rows);
+        return padded_rows;
     }
 
     pub fn validateRowCount(self: CompactInput, row_count: usize) Error!void {
@@ -193,6 +194,7 @@ test "Cairo compact inputs merge tuples, sort by key, and pad with the first row
     );
     defer compact.deinit();
     try std.testing.expectEqual(@as(usize, 2), compact.rows.len);
+    try std.testing.expectEqual(@as(usize, 16), try compact.realRowCount(16));
 
     var column: [16]u32 = undefined;
     try compact.writeColumn(0, &column);

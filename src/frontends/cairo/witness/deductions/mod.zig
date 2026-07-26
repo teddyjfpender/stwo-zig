@@ -5,6 +5,7 @@ const blake = @import("blake.zig");
 const felt252 = @import("felt252.zig");
 const mod_biguint = @import("mod_biguint.zig");
 const partial_ec_mul_generic = @import("partial_ec_mul_generic.zig");
+const poseidon = @import("poseidon.zig");
 const program = @import("../program.zig");
 
 pub const Selector = enum(u32) {
@@ -54,6 +55,10 @@ pub fn supports(raw_selector: u32) bool {
         .felt_sub,
         .felt_mul,
         .felt_div,
+        .poseidon_round_keys,
+        .poseidon_cube,
+        .poseidon_full_round_chain,
+        .poseidon_3_partial_rounds_chain,
         .partial_ec_mul_generic,
         .add_mod_is_zero,
         .mul_mod_quotient,
@@ -84,6 +89,10 @@ fn callWithTables(
         .felt_sub => try felt252.apply(.sub, args, outputs),
         .felt_mul => try felt252.apply(.mul, args, outputs),
         .felt_div => try felt252.apply(.div, args, outputs),
+        .poseidon_round_keys => try poseidon.applyRoundKeys(args, outputs),
+        .poseidon_cube => try poseidon.applyCube(args, outputs),
+        .poseidon_full_round_chain => try poseidon.applyFullRound(args, outputs),
+        .poseidon_3_partial_rounds_chain => try poseidon.applyThreePartialRounds(args, outputs),
         .partial_ec_mul_generic => try partial_ec_mul_generic.apply(args, outputs),
         .add_mod_is_zero => try mod_biguint.applyAddIsZero(args, outputs),
         .mul_mod_quotient => try mod_biguint.applyMulQuotient(args, outputs),
@@ -98,6 +107,7 @@ test {
     _ = blake;
     _ = mod_biguint;
     _ = partial_ec_mul_generic;
+    _ = poseidon;
 }
 
 test "Cairo deductions report only executable selectors" {
