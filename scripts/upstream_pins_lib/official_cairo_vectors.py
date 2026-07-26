@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import struct
 from pathlib import Path
 
@@ -39,6 +40,143 @@ def check(
         )
     )
     errors.extend(_check_witness_bundle(root, authority))
+    errors.extend(_check_witness_topology(root, authority))
+    return errors
+
+
+def _check_witness_topology(
+    root: Path,
+    authority: dict[str, str],
+) -> list[str]:
+    relative_path = "vectors/cairo/official/witness_feed_topology_v1.json"
+    try:
+        encoded = (root / relative_path).read_bytes()
+        document = json.loads(encoded)
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative_path}: invalid topology: {error}"]
+    if (
+        not isinstance(document, dict)
+        or document.get("schema") != "stwo-zig-cairo-witness-feed-topology-v1"
+        or document.get("version") != 1
+    ):
+        return [f"{relative_path}: invalid schema"]
+
+    errors: list[str] = []
+    source = document.get("source")
+    generator = document.get("generator")
+    components = document.get("components")
+    if (
+        not isinstance(source, dict)
+        or not isinstance(generator, dict)
+        or not isinstance(components, list)
+    ):
+        return [f"{relative_path}: source, generator, and components are required"]
+    if source.get("revision") != authority["revision"]:
+        errors.append(f"{relative_path}: source revision drifted")
+    source_tree = source.get("tree")
+    if (
+        not isinstance(source_tree, str)
+        or re.fullmatch(r"[0-9a-f]{40}", source_tree) is None
+        or not isinstance(source.get("commit_timestamp"), int)
+    ):
+        errors.append(f"{relative_path}: source identity is invalid")
+
+    generator_path = generator.get("path")
+    if generator_path != "scripts/generate_cairo_witness_topology.py":
+        errors.append(f"{relative_path}: generator path drifted")
+    else:
+        try:
+            generator_digest = hashlib.sha256((root / generator_path).read_bytes()).hexdigest()
+        except OSError as error:
+            errors.append(f"{relative_path}: unable to hash generator: {error}")
+        else:
+            if generator.get("sha256") != generator_digest:
+                errors.append(f"{relative_path}: generator digest drifted")
+    try:
+        rewriter_digest = _closure_sha256(root / "tools/cairo-witness-compiler/rewriter")
+    except OSError as error:
+        errors.append(f"{relative_path}: unable to hash rewriter closure: {error}")
+    else:
+        if generator.get("rewriter_closure_sha256") != rewriter_digest:
+            errors.append(f"{relative_path}: rewriter closure digest drifted")
+
+    names: list[str] = []
+    feed_count = 0
+    for index, component in enumerate(components):
+        if not isinstance(component, dict):
+            errors.append(f"{relative_path}: component {index} is invalid")
+            continue
+        producer = component.get("producer")
+        sub_words = component.get("sub_words_per_row")
+        feeds = component.get("feeds")
+        if (
+            not isinstance(producer, str)
+            or re.fullmatch(r"[a-z][a-z0-9_]*", producer) is None
+            or not isinstance(sub_words, int)
+            or sub_words < 0
+            or not isinstance(feeds, list)
+        ):
+            errors.append(f"{relative_path}: component {index} geometry is invalid")
+            continue
+        names.append(producer)
+        seen: set[tuple[str, int]] = set()
+        for feed_index, feed in enumerate(feeds):
+            if not isinstance(feed, dict):
+                errors.append(
+                    f"{relative_path}: {producer} feed {feed_index} is invalid"
+                )
+                continue
+            field = feed.get("field")
+            target = feed.get("target")
+            instance = feed.get("instance")
+            relation = feed.get("relation")
+            word_base = feed.get("word_base")
+            width = feed.get("words_per_instance")
+            if (
+                not isinstance(field, str)
+                or re.fullmatch(r"[a-z][a-z0-9_]*", field) is None
+                or not isinstance(target, str)
+                or re.fullmatch(r"[a-z][a-z0-9_]*", target) is None
+                or not all(
+                    isinstance(value, int) and value >= 0
+                    for value in (instance, relation, word_base)
+                )
+                or not isinstance(width, int)
+                or width <= 0
+                or word_base + width > sub_words
+                or (field, instance) in seen
+            ):
+                errors.append(
+                    f"{relative_path}: {producer} feed {feed_index} geometry is invalid"
+                )
+                continue
+            seen.add((field, instance))
+            feed_count += 1
+    if names != sorted(set(names)) or len(names) != 64:
+        errors.append(f"{relative_path}: component order or count drifted")
+    if feed_count != 1_780:
+        errors.append(f"{relative_path}: feed count drifted")
+
+    loader_path = root / "src/frontends/cairo/witness/feed_topology.zig"
+    try:
+        loader = loader_path.read_text(encoding="utf-8")
+    except OSError as error:
+        errors.append(f"{relative_path}: unable to read Zig topology pin: {error}")
+    else:
+        digest_pins = re.findall(
+            r'^pub const expected_sha256 = "([0-9a-f]{64})";$',
+            loader,
+            flags=re.MULTILINE,
+        )
+        tree_pins = re.findall(
+            r'^pub const expected_source_tree = "([0-9a-f]{40})";$',
+            loader,
+            flags=re.MULTILINE,
+        )
+        if digest_pins != [hashlib.sha256(encoded).hexdigest()]:
+            errors.append(f"{relative_path}: Zig artifact digest pin drifted")
+        if tree_pins != [source_tree]:
+            errors.append(f"{relative_path}: Zig source-tree pin drifted")
     return errors
 
 

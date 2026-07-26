@@ -153,8 +153,8 @@ class UpstreamPinTests(unittest.TestCase):
         )
         self.assertEqual([], errors)
         self.assertIsNotNone(parsed)
-        self.assertEqual(61, len(parsed[0]))
-        self.assertEqual(146_487, parsed[1])
+        self.assertEqual(64, len(parsed[0]))
+        self.assertEqual(157_733, parsed[1])
 
         mutated = bytearray(encoded)
         first_instruction = 16 + 4 + 28 + 8 + len("add_opcode")

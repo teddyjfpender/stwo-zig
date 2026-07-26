@@ -3,9 +3,13 @@
 const std = @import("std");
 const cairo = @import("cairo_frontend");
 const direct_trace = cairo.conformance.direct_trace;
+const fixed_trace = cairo.conformance.fixed_trace;
+const memory_trace = cairo.conformance.memory_trace;
 const recorded_trace = cairo.conformance.recorded_trace;
 const receipt = cairo.conformance.receipt;
 const registry = cairo.claim_registry;
+const feed_topology = cairo.witness.feed_topology;
+const fixed_table_bundle = cairo.witness.fixed_table_bundle;
 const witness_bundle = cairo.witness.bundle;
 
 const Case = struct {
@@ -85,7 +89,125 @@ test "official Cairo recorded graph matches the complete all-opcodes Blake chain
 }
 
 test "official Cairo recorded graph matches supported builtin dependencies" {
-    try expectRecordedGraphMatches(cases[1], 25, 23);
+    try expectRecordedGraphMatches(cases[1], 26, 22);
+}
+
+test "official Cairo source topology matches every all-opcodes fixed table" {
+    try expectFixedTopologyMatches(cases[0], 19);
+}
+
+test "official Cairo source topology matches every all-opcodes memory table" {
+    try expectMemoryTopologyMatches(cases[0]);
+}
+
+test "official Cairo source topology matches every all-builtins fixed table" {
+    try expectFixedTopologyMatches(cases[1], 19);
+}
+
+test "official Cairo source topology matches every all-builtins memory table" {
+    try expectMemoryTopologyMatches(cases[1]);
+}
+
+fn expectMemoryTopologyMatches(case: Case) !void {
+    var input = try cairo.adapter.official_input.readFile(std.testing.allocator, case.input_path);
+    defer input.deinit(std.testing.allocator);
+    var bundle = try witness_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer bundle.deinit();
+    var topology = try feed_topology.readOfficial(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_feed_topology_v1.json",
+    );
+    defer topology.deinit();
+    var expected = try receipt.readFile(std.testing.allocator, case.checkpoint_path, .{
+        .input_sha256 = try inputDigest(std.testing.allocator, case.input_path),
+        .authority = .{
+            .stwo_cairo_revision = registry.source_revision.stwo_cairo,
+            .stwo_revision = registry.source_revision.stwo,
+        },
+    });
+    defer expected.deinit();
+    var execution = try recorded_trace.execute(
+        std.testing.allocator,
+        &input,
+        &bundle,
+        expected.components,
+    );
+    defer execution.deinit();
+    try std.testing.expect(execution.mismatch == null);
+
+    const report = try memory_trace.compareTopology(
+        std.testing.allocator,
+        &input,
+        topology,
+        execution.producers,
+        expected.components,
+    );
+    if (report.mismatch) |mismatch| {
+        std.debug.print(
+            "memory topology mismatch component={s} ordinal={} column={?}\n",
+            .{ mismatch.component_label, mismatch.component_ordinal, mismatch.column_ordinal },
+        );
+    }
+    try std.testing.expect(report.mismatch == null);
+    try std.testing.expectEqual(@as(usize, 3), report.match_count);
+}
+
+fn expectFixedTopologyMatches(case: Case, expected_matches: usize) !void {
+    var input = try cairo.adapter.official_input.readFile(std.testing.allocator, case.input_path);
+    defer input.deinit(std.testing.allocator);
+    var bundle = try witness_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer bundle.deinit();
+    var topology = try feed_topology.readOfficial(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_feed_topology_v1.json",
+    );
+    defer topology.deinit();
+    var fixed = try fixed_table_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/cairo_fixed_tables.bin",
+    );
+    defer fixed.deinit();
+    var expected = try receipt.readFile(std.testing.allocator, case.checkpoint_path, .{
+        .input_sha256 = try inputDigest(std.testing.allocator, case.input_path),
+        .authority = .{
+            .stwo_cairo_revision = registry.source_revision.stwo_cairo,
+            .stwo_revision = registry.source_revision.stwo,
+        },
+    });
+    defer expected.deinit();
+
+    var execution = try recorded_trace.execute(
+        std.testing.allocator,
+        &input,
+        &bundle,
+        expected.components,
+    );
+    defer execution.deinit();
+    try std.testing.expect(execution.mismatch == null);
+
+    var report = try fixed_trace.compareTopology(
+        std.testing.allocator,
+        &input,
+        topology,
+        execution.producers,
+        &fixed,
+        expected.components,
+    );
+    defer report.deinit();
+    if (report.mismatch) |mismatch| {
+        std.debug.print(
+            "fixed topology mismatch component={s} ordinal={} column={}\n",
+            .{ mismatch.component_label, mismatch.component_ordinal, mismatch.column_ordinal },
+        );
+    }
+    try std.testing.expect(report.mismatch == null);
+    try std.testing.expectEqual(expected_matches, report.matches.len);
 }
 
 fn expectRecordedGraphMatches(

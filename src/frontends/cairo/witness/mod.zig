@@ -9,6 +9,7 @@ pub const deductions = @import("deductions/mod.zig");
 pub const recovery = @import("recovery.zig");
 pub const bundle = @import("bundle.zig");
 pub const feed_bundle = @import("feed_bundle.zig");
+pub const feed_topology = @import("feed_topology.zig");
 pub const relation_bundle = @import("relation_bundle.zig");
 pub const interaction_trace = @import("interaction_trace.zig");
 pub const fixed_table_bundle = @import("fixed_table_bundle.zig");
@@ -33,6 +34,7 @@ test {
     _ = compact_inputs;
     _ = component_executor;
     _ = deductions;
+    _ = feed_topology;
     _ = interaction_trace;
     _ = semantic_pack;
     _ = source_semantic_pack;

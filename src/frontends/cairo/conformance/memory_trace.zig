@@ -5,9 +5,11 @@ const adapter = @import("../adapter/mod.zig");
 const memory = @import("../common/memory.zig");
 const cpu_multiplicity = @import("../witness/cpu_memory_multiplicity.zig");
 const feed_bundle = @import("../witness/feed_bundle.zig");
+const feed_topology = @import("../witness/feed_topology.zig");
 const memory_tables = @import("../witness/memory_tables.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const checkpoint = @import("checkpoint.zig");
+const recorded_trace = @import("recorded_trace.zig");
 
 const target_labels = [_][]const u8{
     "memory_address_to_id",
@@ -65,7 +67,32 @@ pub fn compare(
         expected_components,
     );
     defer counts.deinit();
+    return compareCounts(allocator, input, &counts, expected_components);
+}
 
+pub fn compareTopology(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    topology: feed_topology.Loaded,
+    producers: []const recorded_trace.ProducerOutput,
+    expected_components: []const checkpoint.Component,
+) !Report {
+    var counts = try cpu_multiplicity.collectTopology(
+        allocator,
+        input,
+        topology,
+        producers,
+    );
+    defer counts.deinit();
+    return compareCounts(allocator, input, &counts, expected_components);
+}
+
+fn compareCounts(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    counts: *const cpu_multiplicity.Counts,
+    expected_components: []const checkpoint.Component,
+) !Report {
     var report = Report{};
     var accumulator: ?checkpoint.Digest = null;
     for (target_labels, 0..) |label, target_index| {
@@ -77,7 +104,7 @@ pub fn compare(
         } else if (expected.ordinal != report.matches[target_index - 1].ordinal + 1) {
             return Error.NonCanonicalComponentOrder;
         }
-        if (try compareComponent(allocator, input, &counts, expected, accumulator.?)) |mismatch| {
+        if (try compareComponent(allocator, input, counts, expected, accumulator.?)) |mismatch| {
             report.mismatch = mismatch;
             return report;
         }
@@ -192,17 +219,17 @@ fn writeColumn(
                 }
             }
         },
-        .big => if (column < memory_tables.big_limb_count) {
-            try memory_tables.writeBigValueColumn(input, 0, column, destination);
-        } else {
+        .big => if (column == 0) {
             for (destination, 0..) |*value, row|
                 value.* = if (row < counts.big.len) counts.big[row] else 0;
-        },
-        .small => if (column < memory_tables.small_limb_count) {
-            try memory_tables.writeSmallValueColumn(input, column, destination);
         } else {
+            try memory_tables.writeBigValueColumn(input, 0, column - 1, destination);
+        },
+        .small => if (column == 0) {
             for (destination, 0..) |*value, row|
                 value.* = if (row < counts.small.len) counts.small[row] else 0;
+        } else {
+            try memory_tables.writeSmallValueColumn(input, column - 1, destination);
         },
     }
 }
@@ -244,10 +271,10 @@ test "Cairo memory trace: address split and value-table padding are exact" {
     try std.testing.expectEqualSlices(u32, &.{ 0, memory.LARGE_MEMORY_VALUE_ID_BASE }, column[0..2]);
     try writeColumn(&input, &counts, .address, 1, &column);
     try std.testing.expectEqualSlices(u32, &.{ 7, 11 }, column[0..2]);
-    try writeColumn(&input, &counts, .big, 1, &column);
+    try writeColumn(&input, &counts, .big, 2, &column);
     try std.testing.expectEqual(@as(u32, 511), column[0]);
-    try writeColumn(&input, &counts, .big, memory_tables.big_limb_count, &column);
+    try writeColumn(&input, &counts, .big, 0, &column);
     try std.testing.expectEqual(@as(u32, 13), column[0]);
-    try writeColumn(&input, &counts, .small, memory_tables.small_limb_count, &column);
+    try writeColumn(&input, &counts, .small, 0, &column);
     try std.testing.expectEqual(@as(u32, 17), column[0]);
 }

@@ -11,15 +11,17 @@ const witness_bundle = @import("../witness/bundle.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
 const execution_tables = @import("../witness/execution_tables.zig");
 const feed_bundle = @import("../witness/feed_bundle.zig");
+const feed_topology = @import("../witness/feed_topology.zig");
 const fixed_table_bundle = @import("../witness/fixed_table_bundle.zig");
 const memory_tables = @import("../witness/memory_tables.zig");
 const program = @import("../witness/program.zig");
 const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
 const checkpoint = @import("checkpoint.zig");
+const multiplicity_tables = @import("multiplicity_tables.zig");
+const recorded_trace = @import("recorded_trace.zig");
 
 const none = std.math.maxInt(u32);
-const max_fixed_rows: u32 = 1 << 24;
-const max_dense_words: usize = 1 << 27;
+const Tables = multiplicity_tables.Tables;
 
 pub const Match = struct {
     ordinal: u32,
@@ -70,78 +72,6 @@ pub const Error = error{
     WitnessInputCountMismatch,
 };
 
-const Table = struct {
-    entry: *const fixed_table_bundle.Entry,
-    dense: ?[]u32 = null,
-};
-
-const Tables = struct {
-    allocator: std.mem.Allocator,
-    items: []Table,
-    dense_words: usize = 0,
-
-    fn init(allocator: std.mem.Allocator, fixed: *const fixed_table_bundle.Bundle) !Tables {
-        const items = try allocator.alloc(Table, fixed.entries.len);
-        errdefer allocator.free(items);
-        for (fixed.entries, items, 0..) |*entry, *item, index| {
-            if (entry.row_count == 0 or entry.row_count > max_fixed_rows or
-                entry.multiplicity_columns == 0)
-                return Error.GeometryTooLarge;
-            for (fixed.entries[0..index]) |previous| {
-                if (std.mem.eql(u8, previous.component, entry.component))
-                    return Error.DuplicateFixedTable;
-            }
-            item.* = .{ .entry = entry };
-        }
-        return .{ .allocator = allocator, .items = items };
-    }
-
-    fn deinit(self: *Tables) void {
-        for (self.items) |item| if (item.dense) |dense| self.allocator.free(dense);
-        self.allocator.free(self.items);
-        self.* = undefined;
-    }
-
-    fn find(self: *Tables, label: []const u8) ?*Table {
-        for (self.items) |*item| {
-            if (std.mem.eql(u8, item.entry.component, label)) return item;
-        }
-        return null;
-    }
-
-    fn increment(self: *Tables, label: []const u8, relation: u32, row: u32) !void {
-        const table = self.find(label) orelse return Error.MissingFixedTable;
-        if (relation >= table.entry.multiplicity_columns or row >= table.entry.row_count)
-            return Error.InvalidMultiplicityKey;
-        if (table.dense == null) {
-            const words = std.math.mul(
-                usize,
-                table.entry.multiplicity_columns,
-                table.entry.row_count,
-            ) catch return Error.AllocationSizeOverflow;
-            if (words > max_dense_words or self.dense_words > max_dense_words - words)
-                return Error.GeometryTooLarge;
-            table.dense = try self.allocator.alloc(u32, words);
-            @memset(table.dense.?, 0);
-            self.dense_words += words;
-        }
-        const index = @as(usize, relation) * table.entry.row_count + row;
-        table.dense.?[index] = std.math.add(u32, table.dense.?[index], 1) catch
-            return Error.MultiplicityOverflow;
-    }
-
-    fn column(self: *Tables, label: []const u8, relation: u32, zeros: []const u32) ![]const u32 {
-        const table = self.find(label) orelse return Error.MissingFixedTable;
-        if (relation >= table.entry.multiplicity_columns or zeros.len < table.entry.row_count)
-            return Error.FixedGeometryMismatch;
-        if (table.dense) |dense| {
-            const start = @as(usize, relation) * table.entry.row_count;
-            return dense[start .. start + table.entry.row_count];
-        }
-        return zeros[0..table.entry.row_count];
-    }
-};
-
 const SubWords = struct {
     allocator: std.mem.Allocator,
     row_count: u32,
@@ -176,7 +106,38 @@ pub fn compare(
 
     try executeFixedFeeds(allocator, input, witnesses, feeds, expected_components, &tables);
     try addMemoryRangeChecks(input, expected_components, &tables);
+    const report = try comparePopulated(allocator, fixed, &tables, expected_components);
+    if (report.matches.len != fixed.entries.len) {
+        var mutable = report;
+        mutable.deinit();
+        return Error.MissingFixedTable;
+    }
+    return report;
+}
 
+/// Compares fixture-independent fixed tables using the source-derived feed
+/// topology and the outputs retained by the official recorded graph.
+pub fn compareTopology(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    topology: feed_topology.Loaded,
+    producers: []const recorded_trace.ProducerOutput,
+    fixed: *const fixed_table_bundle.Bundle,
+    expected_components: []const checkpoint.Component,
+) !Report {
+    var tables = try Tables.init(allocator, fixed);
+    defer tables.deinit();
+    try tables.route(topology, producers);
+    try addMemoryRangeChecks(input, expected_components, &tables);
+    return comparePopulated(allocator, fixed, &tables, expected_components);
+}
+
+fn comparePopulated(
+    allocator: std.mem.Allocator,
+    fixed: *const fixed_table_bundle.Bundle,
+    tables: *Tables,
+    expected_components: []const checkpoint.Component,
+) !Report {
     var max_rows: usize = 0;
     for (fixed.entries) |entry| max_rows = @max(max_rows, entry.row_count);
     const zeros = try allocator.alloc(u32, max_rows);
@@ -216,7 +177,6 @@ pub fn compare(
             .column_count = @intCast(expected.columns.len),
         });
     }
-    if (matches.items.len != fixed.entries.len) return Error.MissingFixedTable;
     return .{
         .allocator = allocator,
         .matches = try matches.toOwnedSlice(allocator),

@@ -2,7 +2,7 @@
   "schema": "stwo_cairo_official_witness_program_bundle_v1",
   "release_eligible": false,
   "release_blockers": [
-    "helper and builtin input-edge reconstruction is not complete",
+    "complete interaction-trace and AIR parity is not yet established",
     "the complete SIMD proof has not yet passed the official verifier",
     "the complete resident Metal proof has not yet passed the official verifier"
   ],

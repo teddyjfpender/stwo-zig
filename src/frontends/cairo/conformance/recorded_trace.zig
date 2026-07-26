@@ -32,12 +32,12 @@ pub const Report = struct {
     }
 };
 
-pub const Error = error{
-    InvalidReceiptGeometry,
-    MissingWitnessProgram,
-};
-
-const Retained = struct {
+/// Flattened subcomponent inputs retained from one exact witness execution.
+///
+/// `row_count` is the padded trace extent. `active_rows` is the exact extent
+/// fed to downstream claim generators; compact consumers deliberately feed
+/// their padded rows, matching Stwo-Cairo's ClaimGenerator implementations.
+pub const ProducerOutput = struct {
     label: []const u8,
     row_count: u32,
     active_rows: u32,
@@ -45,9 +45,33 @@ const Retained = struct {
     words: []u32,
 };
 
+pub const Execution = struct {
+    allocator: std.mem.Allocator,
+    matches: []Match,
+    skipped_components: usize,
+    mismatch: ?Mismatch,
+    producers: []ProducerOutput,
+
+    pub fn deinit(self: *Execution) void {
+        self.allocator.free(self.matches);
+        self.deinitProducers();
+        self.* = undefined;
+    }
+
+    fn deinitProducers(self: *Execution) void {
+        for (self.producers) |producer| self.allocator.free(producer.words);
+        self.allocator.free(self.producers);
+    }
+};
+
+pub const Error = error{
+    InvalidReceiptGeometry,
+    MissingWitnessProgram,
+};
+
 const ComponentResult = struct {
     mismatch: ?Mismatch,
-    retained: ?Retained,
+    producer: ?ProducerOutput,
 };
 
 /// Executes every directly seeded or producer-gathered recorded component.
@@ -58,12 +82,30 @@ pub fn compare(
     bundle: *const witness_bundle.Bundle,
     expected_components: []const checkpoint.Component,
 ) !Report {
+    var execution = try execute(allocator, input, bundle, expected_components);
+    defer execution.deinitProducers();
+    return .{
+        .allocator = allocator,
+        .matches = execution.matches,
+        .skipped_components = execution.skipped_components,
+        .mismatch = execution.mismatch,
+    };
+}
+
+/// Executes the recorded graph once and retains its flattened feed outputs.
+/// The caller owns the returned execution and must call `deinit`.
+pub fn execute(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    bundle: *const witness_bundle.Bundle,
+    expected_components: []const checkpoint.Component,
+) !Execution {
     var matches = std.ArrayList(Match).empty;
     errdefer matches.deinit(allocator);
-    var retained = std.ArrayList(Retained).empty;
-    defer {
-        for (retained.items) |entry| allocator.free(entry.words);
-        retained.deinit(allocator);
+    var producers = std.ArrayList(ProducerOutput).empty;
+    errdefer {
+        for (producers.items) |producer| allocator.free(producer.words);
+        producers.deinit(allocator);
     }
     var skipped_components: usize = 0;
 
@@ -79,12 +121,12 @@ pub fn compare(
         const result = if (proof_plan.compactGeometry(expected.label)) |geometry| blk: {
             var active_edges = std.ArrayList(proof_plan.ProducerEdge).empty;
             defer active_edges.deinit(allocator);
-            var producers = std.ArrayList(gathered_inputs.Producer).empty;
-            defer producers.deinit(allocator);
+            var gathered_producers = std.ArrayList(gathered_inputs.Producer).empty;
+            defer gathered_producers.deinit(allocator);
             for (geometry.edges) |edge| {
-                const source = findRetained(retained.items, edge.producer) orelse continue;
+                const source = findProducer(producers.items, edge.producer) orelse continue;
                 try active_edges.append(allocator, edge);
-                try producers.append(allocator, .{
+                try gathered_producers.append(allocator, .{
                     .label = source.label,
                     .row_count = source.row_count,
                     .active_rows = source.active_rows,
@@ -100,7 +142,7 @@ pub fn compare(
                 allocator,
                 geometry,
                 active_edges.items,
-                producers.items,
+                gathered_producers.items,
                 try componentRows(expected),
             );
             defer compact.deinit();
@@ -118,10 +160,10 @@ pub fn compare(
             direct,
             expected,
         ) else if (proof_plan.gatheredProducerEdges(expected.label)) |edges| blk: {
-            const producers = try allocator.alloc(gathered_inputs.Producer, edges.len);
-            defer allocator.free(producers);
-            for (edges, producers) |edge, *producer| {
-                const source = findRetained(retained.items, edge.producer) orelse {
+            const gathered_producers = try allocator.alloc(gathered_inputs.Producer, edges.len);
+            defer allocator.free(gathered_producers);
+            for (edges, gathered_producers) |edge, *producer| {
+                const source = findProducer(producers.items, edge.producer) orelse {
                     skipped_components += 1;
                     break :blk null;
                 };
@@ -137,7 +179,7 @@ pub fn compare(
             var gathered = try gathered_inputs.materialize(
                 allocator,
                 edges,
-                producers,
+                gathered_producers,
                 rows,
             );
             defer gathered.deinit();
@@ -154,15 +196,16 @@ pub fn compare(
         };
         const component = result orelse continue;
         if (component.mismatch) |mismatch| {
-            if (component.retained) |producer| allocator.free(producer.words);
+            if (component.producer) |producer| allocator.free(producer.words);
             return .{
                 .allocator = allocator,
                 .matches = try matches.toOwnedSlice(allocator),
                 .skipped_components = skipped_components,
                 .mismatch = mismatch,
+                .producers = try producers.toOwnedSlice(allocator),
             };
         }
-        if (component.retained) |producer| try retained.append(allocator, producer);
+        if (component.producer) |producer| try producers.append(allocator, producer);
         try matches.append(allocator, .{
             .ordinal = expected.ordinal,
             .label = expected.label,
@@ -175,6 +218,7 @@ pub fn compare(
         .matches = try matches.toOwnedSlice(allocator),
         .skipped_components = skipped_components,
         .mismatch = null,
+        .producers = try producers.toOwnedSlice(allocator),
     };
 }
 
@@ -194,17 +238,17 @@ fn executeComponent(
     );
     defer execution.deinit();
     const mismatch = try execution.compare(expected);
-    const retained = if (witness_program.n_sub_words == 0)
+    const producer = if (witness_program.n_sub_words == 0)
         null
     else
-        Retained{
+        ProducerOutput{
             .label = expected.label,
             .row_count = @intCast(execution.row_count),
             .active_rows = @intCast(try source.realRowCount(execution.row_count)),
             .words_per_row = witness_program.n_sub_words,
             .words = try allocator.dupe(u32, execution.sub_words),
         };
-    return .{ .mismatch = mismatch, .retained = retained };
+    return .{ .mismatch = mismatch, .producer = producer };
 }
 
 fn componentRows(component: checkpoint.Component) Error!u32 {
@@ -213,7 +257,7 @@ fn componentRows(component: checkpoint.Component) Error!u32 {
         Error.InvalidReceiptGeometry;
 }
 
-fn findRetained(entries: []const Retained, label: []const u8) ?Retained {
+fn findProducer(entries: []const ProducerOutput, label: []const u8) ?ProducerOutput {
     for (entries) |entry| {
         if (std.mem.eql(u8, entry.label, label)) return entry;
     }

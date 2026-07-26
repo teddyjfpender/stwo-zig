@@ -9,6 +9,7 @@ pub const direct_trace = @import("direct_trace.zig");
 pub const recorded_trace = @import("recorded_trace.zig");
 pub const memory_trace = @import("memory_trace.zig");
 pub const fixed_trace = @import("fixed_trace.zig");
+pub const multiplicity_tables = @import("multiplicity_tables.zig");
 pub const base_trace_suite = @import("base_trace_suite.zig");
 
 test {
@@ -21,5 +22,6 @@ test {
     _ = recorded_trace;
     _ = memory_trace;
     _ = fixed_trace;
+    _ = multiplicity_tables;
     _ = base_trace_suite;
 }

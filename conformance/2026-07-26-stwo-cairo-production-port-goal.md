@@ -358,7 +358,8 @@ As of the starting commit `cfd47be9`:
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
-| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; the backend-neutral graph runner matches 24 active all-opcodes components, including the complete Blake helper chain, and 25 active all-builtins components, including the Poseidon arithmetic chain and window-18 Pedersen execution chain, against every Rust base column exactly | partial; generated-writer coverage is complete, but remaining helper/fixed/component input edges and complete verifier-accepted proofs remain |
+| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
+| Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for both frozen fixtures; broader execution corpus remains |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
@@ -405,25 +406,28 @@ The current official-source recording checkpoint is
 `vectors/cairo/official/witness_programs_v1.bin` (2,527,495 bytes,
 SHA-256 `b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6`).
 It contains all 64 generated official writers as complete, poison-free
-programs. On all-opcodes, 42 recordings are active: 24 execute through the
-current Zig input bindings with zero column mismatches and 18 helper/fixed-table
-programs await input-edge reconstruction. On all-builtins, 45 are active:
-25 execute exactly and 20 await those edges. Compact claim inputs now use one
-backend-neutral implementation of the official key sort, tuple
-multiplicity merge, first-row padding, enabler, and iota laws. The recorded
-graph also rejects programs whose host deduction selectors are not implemented,
-so deferred Pedersen helpers cannot be counted through a partial or approximate
-execution. The complete Poseidon deduction family, mechanically bound to the
-pinned official round keys, now carries the all-builtins graph through the
-aggregator, both round-chain components, cube, and width-27 range check. The
-window-18 Pedersen aggregator and partial-EC chain use exact on-demand
-Stark-curve table semantics, avoiding a 1.8 GB host-table dependency while
-remaining column-identical to the Rust oracle.
+programs. The source-derived feed topology at
+`vectors/cairo/official/witness_feed_topology_v1.json` authenticates 1,780
+producer edges from the same clean source and compiler-rewriter closure. The
+backend-neutral graph executes 24 generated all-opcodes components and 26
+generated all-builtins components exactly. Generic topology routers then
+construct all 19 fixed multiplicity tables and all 3 memory tables for each
+fixture. Together these paths reproduce every base column and cumulative
+component accumulator: 46/46 components for all-opcodes and 48/48 for
+all-builtins. The latter includes the 16,128 active rows, padded to 16,384, and
+all 624 columns of `partial_ec_mul_generic`.
+
+Compact claim inputs use one backend-neutral implementation of the official key
+sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The
+complete Poseidon deduction family is mechanically bound to the pinned official
+round keys. The window-18 Pedersen aggregator and partial-EC chain use exact
+on-demand Stark-curve table semantics, avoiding a 1.8 GB host-table dependency
+while remaining column-identical to the Rust oracle.
 This comparison also corrected a Zig semantic defect: official
 `verify_instruction` multiplicities include only producer `n_active_rows`, not
 the producer's padded rows. The companion provenance is intentionally marked
-non-release because helper and builtin input edges are incomplete, and the complete SIMD and Metal
-proofs have not yet passed the official verifier. The repository-owned compiler
+non-release because interaction/AIR parity and complete SIMD and Metal proofs
+have not yet passed the official verifier. The repository-owned compiler
 at `tools/cairo-witness-compiler` now authenticates the clean official checkout,
 applies its finite AST lowering in an isolated overlay, records and validates
 the bundle, and reproduces the historical checkpoint byte-for-byte. Its stable,
