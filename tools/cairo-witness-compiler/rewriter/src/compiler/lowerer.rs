@@ -35,6 +35,10 @@ struct Lowerer {
     /// Named preprocessed columns in source declaration order. Their input slots
     /// follow the enabler and iota slots and precede multiplicity columns.
     preprocessed_slots: BTreeMap<String, usize>,
+    /// Uniform M31 inputs in writer-signature order. These scalar statement
+    /// parameters are broadcast across every packed row. Their slots follow
+    /// flattened row inputs and precede enabler/iota.
+    uniform_slots: BTreeMap<String, usize>,
     addr_state: Option<String>,
     big_state: Option<String>,
     input_name: String,

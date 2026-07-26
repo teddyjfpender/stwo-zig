@@ -18,10 +18,7 @@ impl Lowerer {
                 return (Ty::Unknown, quote! { WG_SKIP });
             }
             self.mults_reads.insert(k);
-            let slot = u32_lit(
-                (self.input_ty.flat_width() + 2 + self.preprocessed_slots.len() + k)
-                    as u32,
-            );
+            let slot = u32_lit(self.multiplicity_slot(k) as u32);
             return self.emit_op(target, Ty::M31, quote! { eval.input(#slot) });
         }
         match expr {
@@ -469,9 +466,7 @@ impl Lowerer {
                         .map(|arg| is_path_named(arg, &self.row_index_name))
                         .unwrap_or(false)
                 {
-                    let slot = u32_lit(
-                        (self.input_ty.flat_width() + 2 + *ordinal) as u32,
-                    );
+                    let slot = u32_lit(self.preprocessed_slot(*ordinal) as u32);
                     self.emit_op(target, Ty::M31, quote! { eval.input(#slot) })
                 } else {
                     // preprocessed column .packed_at(row_index) etc.

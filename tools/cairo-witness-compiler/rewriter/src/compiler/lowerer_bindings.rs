@@ -5,6 +5,7 @@ impl Lowerer {
         felt_consts: BTreeMap<String, [u32; FELT252_LIMBS]>,
         seq_idents: BTreeSet<String>,
         preprocessed_slots: BTreeMap<String, usize>,
+        uniform_slots: BTreeMap<String, usize>,
         addr_state: Option<String>,
         big_state: Option<String>,
         input_name: String,
@@ -26,6 +27,7 @@ impl Lowerer {
             felt_consts,
             seq_idents,
             preprocessed_slots,
+            uniform_slots,
             addr_state,
             big_state,
             input_name,
@@ -52,6 +54,22 @@ impl Lowerer {
             counter: 0,
             max_col: None,
         }
+    }
+
+    fn enabler_slot(&self) -> usize {
+        self.input_ty.flat_width() + self.uniform_slots.len()
+    }
+
+    fn iota_slot(&self) -> usize {
+        self.enabler_slot() + 1
+    }
+
+    fn preprocessed_slot(&self, ordinal: usize) -> usize {
+        self.iota_slot() + 1 + ordinal
+    }
+
+    fn multiplicity_slot(&self, index: usize) -> usize {
+        self.iota_slot() + 1 + self.preprocessed_slots.len() + index
     }
 
     fn skip(&mut self, category: &'static str, detail: String) {

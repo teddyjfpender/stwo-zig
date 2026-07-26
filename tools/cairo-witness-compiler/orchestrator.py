@@ -23,10 +23,10 @@ OFFICIAL_WITNESS_MOD_SHA256 = (
     "e0113af8099143ea2770312bff24bc1e2fa5329933b272bac0fdae815b0de448"
 )
 EXPECTED_BUNDLE_SHA256 = (
-    "e143821a21e75609960f4ab54b4de61c2c6b9aee09a93c9ec603a67df1ee9fae"
+    "b15081bf5d8d69d3d1bdb4cefcdb9abc8b6708abf0f23e41f9ee1e84fef8b160"
 )
-EXPECTED_BUNDLE_BYTES = 1_033_694
-EXPECTED_PROGRAM_COUNT = 51
+EXPECTED_BUNDLE_BYTES = 1_314_135
+EXPECTED_PROGRAM_COUNT = 60
 
 COMPONENTS = (
     "add_ap_opcode",
@@ -35,6 +35,7 @@ COMPONENTS = (
     "assert_eq_opcode",
     "assert_eq_opcode_double_deref",
     "assert_eq_opcode_imm",
+    "bitwise_builtin",
     "blake_g",
     "blake_round",
     "blake_round_sigma",
@@ -55,8 +56,14 @@ COMPONENTS = (
     "partial_ec_mul_window_bits_9",
     "pedersen_aggregator_window_bits_18",
     "pedersen_aggregator_window_bits_9",
+    "pedersen_builtin",
+    "pedersen_builtin_narrow_windows",
     "pedersen_points_table_window_bits_18",
     "pedersen_points_table_window_bits_9",
+    "poseidon_3_partial_rounds_chain",
+    "poseidon_aggregator",
+    "poseidon_builtin",
+    "poseidon_full_round_chain",
     "poseidon_round_keys",
     "qm_31_add_mul_opcode",
     "range_check_252_width_27",
@@ -73,6 +80,8 @@ COMPONENTS = (
     "range_check_7_2_5",
     "range_check_8",
     "range_check_9_9",
+    "range_check96_builtin",
+    "range_check_builtin",
     "ret_opcode",
     "triple_xor_32",
     "verify_bitwise_xor_4",

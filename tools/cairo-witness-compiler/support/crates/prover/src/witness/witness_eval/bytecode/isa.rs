@@ -135,8 +135,14 @@ pub enum DeduceKind {
     /// Division by zero panics on the host; the writers only divide by EC slope
     /// denominators, never zero on valid traces.
     FeltDiv = 7,
-    /// Selectors 8..11 are reserved for the Poseidon family already implemented by
-    /// the production Metal witness library.
+    /// Poseidon round keys: round -> three 10-word Felt252Width27 values.
+    PoseidonRoundKeys = 8,
+    /// Poseidon field cube in the 10-word Felt252Width27 representation.
+    PoseidonCube = 9,
+    /// Full-round chain: chain, round, and three 10-word state values.
+    PoseidonFullRoundChain = 10,
+    /// Three-partial-round chain: chain, round, and four 10-word state values.
+    Poseidon3PartialRoundsChain = 11,
     /// Nine-bit Pedersen EC-mul: 2 + 28 + 56 = 86 arguments and outputs.
     PartialEcMulW9 = 12,
     /// Nine-bit Pedersen points table: one index to two 28-limb felts.
@@ -154,6 +160,10 @@ impl DeduceKind {
             5 => Self::FeltSub,
             6 => Self::FeltMul,
             7 => Self::FeltDiv,
+            8 => Self::PoseidonRoundKeys,
+            9 => Self::PoseidonCube,
+            10 => Self::PoseidonFullRoundChain,
+            11 => Self::Poseidon3PartialRoundsChain,
             12 => Self::PartialEcMulW9,
             13 => Self::PedersenPointsTableW9,
             _ => return None,
@@ -167,6 +177,10 @@ impl DeduceKind {
             Self::PartialEcMulW18 => (72, 72),
             Self::PedersenPointsTableW18 => (1, 56),
             Self::FeltAdd | Self::FeltSub | Self::FeltMul | Self::FeltDiv => (56, 28),
+            Self::PoseidonRoundKeys => (1, 30),
+            Self::PoseidonCube => (10, 10),
+            Self::PoseidonFullRoundChain => (32, 32),
+            Self::Poseidon3PartialRoundsChain => (42, 42),
             Self::PartialEcMulW9 => (86, 86),
             Self::PedersenPointsTableW9 => (1, 56),
         }
@@ -363,10 +377,7 @@ mod tests {
         for raw in 8..=11 {
             assert!(DeduceKind::from_raw(raw).is_none());
         }
-        assert_eq!(
-            DeduceKind::from_raw(12),
-            Some(DeduceKind::PartialEcMulW9)
-        );
+        assert_eq!(DeduceKind::from_raw(12), Some(DeduceKind::PartialEcMulW9));
         assert_eq!(
             DeduceKind::from_raw(13),
             Some(DeduceKind::PedersenPointsTableW9)

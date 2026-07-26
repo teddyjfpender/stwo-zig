@@ -58,8 +58,8 @@ class OrchestratorTests(unittest.TestCase):
         )
         data = vector.read_bytes()
         programs, instructions = orchestrator.inspect_bundle(data)
-        self.assertEqual(programs, 51)
-        self.assertEqual(instructions, 64_419)
+        self.assertEqual(programs, 60)
+        self.assertEqual(instructions, 81_912)
         self.assertEqual(
             hashlib.sha256(data).hexdigest(),
             orchestrator.EXPECTED_BUNDLE_SHA256,

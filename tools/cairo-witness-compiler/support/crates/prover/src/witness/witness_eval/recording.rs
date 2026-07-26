@@ -199,9 +199,7 @@ impl RecordingWitnessEval {
             (
                 std::array::from_fn(|i| ok(2 + i)),
                 [
-                    RecFelt::Limbs(
-                        (0..FELT_N_LIMBS).map(|i| ok(felt_base + i)).collect(),
-                    ),
+                    RecFelt::Limbs((0..FELT_N_LIMBS).map(|i| ok(felt_base + i)).collect()),
                     RecFelt::Limbs(
                         (0..FELT_N_LIMBS)
                             .map(|i| ok(felt_base + FELT_N_LIMBS + i))
@@ -227,17 +225,32 @@ impl RecordingWitnessEval {
         };
         let outs = self.recorder.deduce(kind, &[index]);
         [
-            RecFelt::Limbs(
-                (0..FELT_N_LIMBS)
-                    .map(|i| RecVal::Ok(outs[i]))
-                    .collect(),
-            ),
+            RecFelt::Limbs((0..FELT_N_LIMBS).map(|i| RecVal::Ok(outs[i])).collect()),
             RecFelt::Limbs(
                 (0..FELT_N_LIMBS)
                     .map(|i| RecVal::Ok(outs[FELT_N_LIMBS + i]))
                     .collect(),
             ),
         ]
+    }
+
+    fn poseidon_deduce(
+        &mut self,
+        kind: DeduceKind,
+        head: &[RecVal],
+        state: &[[RecVal; 10]],
+    ) -> Option<Vec<RecVal>> {
+        let mut args = Self::plain_args(head)?;
+        for value in state {
+            args.extend(Self::plain_args(value)?);
+        }
+        Some(
+            self.recorder
+                .deduce(kind, &args)
+                .into_iter()
+                .map(RecVal::Ok)
+                .collect(),
+        )
     }
 
     /// Unwrap plain deduce args; `None` on any poison (the caller falls back to the
@@ -421,6 +434,63 @@ impl WitnessEval for RecordingWitnessEval {
         };
         let outs = self.recorder.deduce(DeduceKind::BlakeRoundSigma, &[r]);
         std::array::from_fn(|i| RecVal::Ok(outs[i]))
+    }
+
+    fn deduce_poseidon_round_keys(&mut self, round: RecVal) -> [[RecVal; 10]; 3] {
+        let Some(outputs) = self.poseidon_deduce(DeduceKind::PoseidonRoundKeys, &[round], &[])
+        else {
+            let poison = self.poison("deduce_poseidon_round_keys");
+            return [[poison; 10]; 3];
+        };
+        std::array::from_fn(|value| std::array::from_fn(|word| outputs[value * 10 + word]))
+    }
+
+    fn deduce_poseidon_cube(&mut self, value: [RecVal; 10]) -> [RecVal; 10] {
+        let Some(outputs) = self.poseidon_deduce(DeduceKind::PoseidonCube, &[], &[value]) else {
+            let poison = self.poison("deduce_poseidon_cube");
+            return [poison; 10];
+        };
+        std::array::from_fn(|word| outputs[word])
+    }
+
+    fn deduce_poseidon_full_round_chain(
+        &mut self,
+        chain: RecVal,
+        round: RecVal,
+        state: [[RecVal; 10]; 3],
+    ) -> (RecVal, RecVal, [[RecVal; 10]; 3]) {
+        let Some(outputs) =
+            self.poseidon_deduce(DeduceKind::PoseidonFullRoundChain, &[chain, round], &state)
+        else {
+            let poison = self.poison("deduce_poseidon_full_round_chain");
+            return (poison, poison, [[poison; 10]; 3]);
+        };
+        (
+            outputs[0],
+            outputs[1],
+            std::array::from_fn(|value| std::array::from_fn(|word| outputs[2 + value * 10 + word])),
+        )
+    }
+
+    fn deduce_poseidon_3_partial_rounds_chain(
+        &mut self,
+        chain: RecVal,
+        round: RecVal,
+        state: [[RecVal; 10]; 4],
+    ) -> (RecVal, RecVal, [[RecVal; 10]; 4]) {
+        let Some(outputs) = self.poseidon_deduce(
+            DeduceKind::Poseidon3PartialRoundsChain,
+            &[chain, round],
+            &state,
+        ) else {
+            let poison = self.poison("deduce_poseidon_3_partial_rounds_chain");
+            return (poison, poison, [[poison; 10]; 4]);
+        };
+        (
+            outputs[0],
+            outputs[1],
+            std::array::from_fn(|value| std::array::from_fn(|word| outputs[2 + value * 10 + word])),
+        )
     }
 
     // ---- M31 field ops (ISA-core) ----------------------------------------------

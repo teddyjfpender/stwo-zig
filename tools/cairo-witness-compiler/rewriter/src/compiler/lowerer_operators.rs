@@ -292,6 +292,12 @@ impl Lowerer {
                             m31(tok)
                         })
                         .collect(),
+                    Ty::FeltW27Limbs => (0..FELTW27_LIMBS)
+                        .map(|j| {
+                            let index = usize_lit(j);
+                            m31(quote! { #tok[#index] })
+                        })
+                        .collect(),
                     _ => {
                         self.require_m31(&ty, "sub-input word", other);
                         vec![m31(tok)]

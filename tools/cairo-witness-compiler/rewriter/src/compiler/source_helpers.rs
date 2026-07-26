@@ -138,6 +138,14 @@ fn felt252_const_limbs(words: [u64; 4]) -> [u32; FELT252_LIMBS] {
 ///     (blake.rs; `N_BLAKE_SIGMA_COLS = 16`).
 fn known_deduce_output_ty(path: &str) -> Option<Ty> {
     let felt2 = || Ty::Array(Box::new(Ty::Felt252), 2);
+    let w27 = || Ty::FeltW27Limbs;
+    let poseidon_chain = |width| {
+        Ty::Tuple(vec![
+            Ty::M31,
+            Ty::M31,
+            Ty::Array(Box::new(w27()), width),
+        ])
+    };
     match path {
         "PackedPartialEcMulWindowBits18 :: deduce_output" => Some(Ty::Tuple(vec![
             Ty::M31,
@@ -158,6 +166,12 @@ fn known_deduce_output_ty(path: &str) -> Option<Ty> {
         | "PackedPedersenPointsTableWindowBits9 :: deduce_output" => Some(felt2()),
         "PackedBlakeG :: deduce_output" => Some(Ty::Array(Box::new(Ty::U32), 4)),
         "PackedBlakeRoundSigma :: deduce_output" => Some(Ty::Array(Box::new(Ty::M31), 16)),
+        "PackedPoseidonRoundKeys :: deduce_output" => {
+            Some(Ty::Array(Box::new(w27()), 3))
+        }
+        "PackedCube252 :: deduce_output" => Some(w27()),
+        "PackedPoseidonFullRoundChain :: deduce_output" => Some(poseidon_chain(3)),
+        "PackedPoseidon3PartialRoundsChain :: deduce_output" => Some(poseidon_chain(4)),
         _ => None,
     }
 }
@@ -196,6 +210,57 @@ fn local_preprocessed_column_ident(local: &Local) -> Option<String> {
     } else {
         None
     }
+}
+
+/// Uniform per-statement M31 values accepted by the generated row program.
+///
+/// Official builtin writers expose these as scalar `u32` segment-start parameters,
+/// then broadcast them with the exact expression recognized by
+/// [`m31_broadcast_input_ident`]. Restricting admission to that generated naming and
+/// type convention keeps unrelated scalar configuration out of the witness ABI.
+fn writer_uniform_m31_inputs(writer: &ItemFn) -> BTreeMap<String, usize> {
+    let mut inputs = BTreeMap::new();
+    for argument in &writer.sig.inputs {
+        let FnArg::Typed(argument) = argument else {
+            continue;
+        };
+        let Pat::Ident(pattern) = &*argument.pat else {
+            continue;
+        };
+        let name = pattern.ident.to_string();
+        if !name.ends_with("_segment_start")
+            || !matches!(&*argument.ty, Type::Path(path) if path.path.is_ident("u32"))
+        {
+            continue;
+        }
+        inputs.insert(name, inputs.len());
+    }
+    inputs
+}
+
+/// Match exactly `PackedM31::broadcast(M31::from(<uniform-ident>))`.
+fn m31_broadcast_input_ident(call: &ExprCall) -> Option<String> {
+    let outer_path = match &*call.func {
+        Expr::Path(path) => tok_str(&path.path),
+        _ => return None,
+    };
+    if outer_path != "PackedM31 :: broadcast" || call.args.len() != 1 {
+        return None;
+    }
+    let Expr::Call(inner) = call.args.first().map(strip_parens)? else {
+        return None;
+    };
+    let inner_path = match &*inner.func {
+        Expr::Path(path) => tok_str(&path.path),
+        _ => return None,
+    };
+    if inner_path != "M31 :: from" || inner.args.len() != 1 {
+        return None;
+    }
+    let Expr::Path(input) = inner.args.first().map(strip_parens)? else {
+        return None;
+    };
+    input.path.get_ident().map(ToString::to_string)
 }
 
 fn is_path_named(e: &Expr, name: &str) -> bool {

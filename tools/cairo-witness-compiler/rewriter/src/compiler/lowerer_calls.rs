@@ -8,6 +8,27 @@ impl Lowerer {
             }
         };
         match path.as_str() {
+            "PackedM31 :: broadcast" => {
+                let Some(name) = m31_broadcast_input_ident(call) else {
+                    for argument in &call.args {
+                        let _ = self.lower_aggregate(argument);
+                    }
+                    self.skip(
+                        "call",
+                        format!("non-uniform PackedM31::broadcast `{}`", tok_str(call)),
+                    );
+                    return (Ty::Unknown, quote! { WG_SKIP });
+                };
+                let Some(ordinal) = self.uniform_slots.get(&name).copied() else {
+                    self.skip(
+                        "call",
+                        format!("unregistered uniform M31 input `{name}`"),
+                    );
+                    return (Ty::Unknown, quote! { WG_SKIP });
+                };
+                let slot = u32_lit((self.input_ty.flat_width() + ordinal) as u32);
+                self.emit_op(target, Ty::M31, quote! { eval.input(#slot) })
+            }
             "PackedUInt16 :: from_m31" => {
                 let (_t, a) = self.lower_arg(call.args.first());
                 self.emit_op(target, Ty::U16, quote! { eval.u16_from_m31(#a) })
@@ -264,6 +285,20 @@ impl Lowerer {
                     let tok = self.bind(target, quote! { eval.deduce_blake_round_sigma(#rtok) });
                     return (known_deduce_output_ty(p).expect("Sigma in table"), tok);
                 }
+                if matches!(
+                    p,
+                    "PackedPoseidonRoundKeys :: deduce_output"
+                        | "PackedCube252 :: deduce_output"
+                        | "PackedPoseidonFullRoundChain :: deduce_output"
+                        | "PackedPoseidon3PartialRoundsChain :: deduce_output"
+                ) {
+                    if let Some(result) = self.lower_poseidon_deduce(p, call, target) {
+                        return result;
+                    }
+                    return self.deduce_site(
+                        known_deduce_output_ty(p).expect("Poseidon deduce is in the table"),
+                    );
+                }
                 // Census-only / unknown deduces: lower the args for REAL first
                 // (tuple/array shapes route through lower_aggregate, so their
                 // M31/felt leaves record cleanly).
@@ -293,4 +328,66 @@ impl Lowerer {
         }
     }
 
+    fn lower_poseidon_deduce(
+        &mut self,
+        path: &str,
+        call: &ExprCall,
+        target: Target,
+    ) -> Option<(Ty, TokenStream)> {
+        let argument = call.args.first()?;
+        if call.args.len() != 1 {
+            return None;
+        }
+        let (input_ty, input) = self.lower_aggregate(argument);
+        let output_ty = known_deduce_output_ty(path)?;
+        let expression = match path {
+            "PackedPoseidonRoundKeys :: deduce_output"
+                if matches!(&input_ty, Ty::Array(element, 1) if element.is_m31()) =>
+            {
+                quote! { eval.deduce_poseidon_round_keys(#input[0]) }
+            }
+            "PackedCube252 :: deduce_output" if input_ty == Ty::FeltW27Limbs => {
+                quote! { eval.deduce_poseidon_cube(#input) }
+            }
+            "PackedPoseidonFullRoundChain :: deduce_output"
+                if Self::is_poseidon_chain_input(&input_ty, 3) =>
+            {
+                quote! { eval.deduce_poseidon_full_round_chain(#input.0, #input.1, #input.2) }
+            }
+            "PackedPoseidon3PartialRoundsChain :: deduce_output"
+                if Self::is_poseidon_chain_input(&input_ty, 4) =>
+            {
+                quote! {
+                    eval.deduce_poseidon_3_partial_rounds_chain(
+                        #input.0,
+                        #input.1,
+                        #input.2,
+                    )
+                }
+            }
+            _ => {
+                self.skip(
+                    "deduce_shape",
+                    format!("{path} input has unsupported type {input_ty:?}"),
+                );
+                return None;
+            }
+        };
+        let value = self.bind(target, expression);
+        Some((output_ty, value))
+    }
+
+    fn is_poseidon_chain_input(ty: &Ty, state_width: usize) -> bool {
+        let Ty::Tuple(fields) = ty else {
+            return false;
+        };
+        fields.len() == 3
+            && fields[0].is_m31()
+            && fields[1].is_m31()
+            && matches!(
+                &fields[2],
+                Ty::Array(element, width)
+                    if **element == Ty::FeltW27Limbs && *width == state_width
+            )
+    }
 }

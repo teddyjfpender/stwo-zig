@@ -111,6 +111,7 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
     let mut felt_consts: BTreeMap<String, [u32; FELT252_LIMBS]> = BTreeMap::new();
     let mut seq_idents: BTreeSet<String> = BTreeSet::new();
     let mut preprocessed_slots: BTreeMap<String, usize> = BTreeMap::new();
+    let uniform_slots = writer_uniform_m31_inputs(writer);
     for st in &writer.block.stmts {
         if let Stmt::Local(local) = st {
             if let (Some(name), Some(cv)) = (local_ident(local), local_const(local)) {
@@ -240,6 +241,7 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
         felt_consts,
         seq_idents,
         preprocessed_slots,
+        uniform_slots,
         addr_state,
         big_state,
         input_name.clone(),

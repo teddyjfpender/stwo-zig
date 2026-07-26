@@ -162,6 +162,8 @@ enum Shape {
     /// reconstructs it with `PackedFelt252::from_limbs` — the exact inverse for
     /// canonical limbs, so the receiving component sees the identical felt value.
     Felt,
+    /// A `PackedFelt252Width27` element: 10 canonical 27-bit M31 words.
+    FeltW27,
     Tuple(Vec<Shape>),
     Array(Vec<Shape>),
 }
@@ -171,6 +173,7 @@ impl Shape {
         match self {
             Shape::Scalar | Shape::U32 => 1,
             Shape::Felt => FELT252_LIMBS,
+            Shape::FeltW27 => FELTW27_LIMBS,
             Shape::Tuple(v) | Shape::Array(v) => v.iter().map(Shape::scalar_count).sum(),
         }
     }

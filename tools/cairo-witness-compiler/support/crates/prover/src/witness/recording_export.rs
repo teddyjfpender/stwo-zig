@@ -4,19 +4,20 @@ use std::path::Path;
 
 use super::components::{
     add_ap_opcode, add_opcode, add_opcode_small, assert_eq_opcode, assert_eq_opcode_double_deref,
-    assert_eq_opcode_imm, blake_g, blake_round, blake_round_sigma, call_opcode_abs,
-    call_opcode_rel_imm, cube_252, generic_opcode, jnz_opcode_non_taken, jnz_opcode_taken,
-    jump_opcode_abs,
-    jump_opcode_double_deref, jump_opcode_rel, jump_opcode_rel_imm, mul_opcode, mul_opcode_small,
-    partial_ec_mul_generic, partial_ec_mul_window_bits_9, partial_ec_mul_window_bits_18,
-    pedersen_aggregator_window_bits_9, pedersen_aggregator_window_bits_18,
+    assert_eq_opcode_imm, bitwise_builtin, blake_g, blake_round, blake_round_sigma,
+    call_opcode_abs, call_opcode_rel_imm, cube_252, generic_opcode, jnz_opcode_non_taken,
+    jnz_opcode_taken, jump_opcode_abs, jump_opcode_double_deref, jump_opcode_rel,
+    jump_opcode_rel_imm, mul_opcode, mul_opcode_small, partial_ec_mul_generic,
+    partial_ec_mul_window_bits_9, partial_ec_mul_window_bits_18, pedersen_aggregator_window_bits_9,
+    pedersen_aggregator_window_bits_18, pedersen_builtin, pedersen_builtin_narrow_windows,
     pedersen_points_table_window_bits_9, pedersen_points_table_window_bits_18,
-    poseidon_round_keys, qm_31_add_mul_opcode, range_check_3_3_3_3_3, range_check_3_6_6_3,
-    range_check_4_3, range_check_4_4, range_check_4_4_4_4, range_check_6, range_check_7_2_5,
-    range_check_8, range_check_9_9, range_check_11, range_check_12, range_check_18,
-    range_check_20, range_check_252_width_27, ret_opcode, triple_xor_32,
-    verify_bitwise_xor_4, verify_bitwise_xor_7, verify_bitwise_xor_8, verify_bitwise_xor_9,
-    verify_instruction,
+    poseidon_3_partial_rounds_chain, poseidon_aggregator, poseidon_builtin,
+    poseidon_full_round_chain, poseidon_round_keys, qm_31_add_mul_opcode, range_check_3_3_3_3_3,
+    range_check_3_6_6_3, range_check_4_3, range_check_4_4, range_check_4_4_4_4, range_check_6,
+    range_check_7_2_5, range_check_8, range_check_9_9, range_check_11, range_check_12,
+    range_check_18, range_check_20, range_check_252_width_27, range_check_builtin,
+    range_check96_builtin, ret_opcode, triple_xor_32, verify_bitwise_xor_4, verify_bitwise_xor_7,
+    verify_bitwise_xor_8, verify_bitwise_xor_9, verify_instruction,
 };
 use super::witness_eval::bytecode::isa::{WitnessInst, WitnessProgram};
 use super::witness_eval::recording::RecordingOutput;
@@ -166,6 +167,39 @@ fn recordings() -> Vec<(&'static str, RecordingOutput)> {
         (
             "verify_bitwise_xor_9",
             verify_bitwise_xor_9::record_verify_bitwise_xor_9(),
+        ),
+        ("bitwise_builtin", bitwise_builtin::record_bitwise_builtin()),
+        (
+            "pedersen_builtin",
+            pedersen_builtin::record_pedersen_builtin(),
+        ),
+        (
+            "pedersen_builtin_narrow_windows",
+            pedersen_builtin_narrow_windows::record_pedersen_builtin_narrow_windows(),
+        ),
+        (
+            "poseidon_3_partial_rounds_chain",
+            poseidon_3_partial_rounds_chain::record_poseidon_3_partial_rounds_chain(),
+        ),
+        (
+            "poseidon_aggregator",
+            poseidon_aggregator::record_poseidon_aggregator(),
+        ),
+        (
+            "poseidon_builtin",
+            poseidon_builtin::record_poseidon_builtin(),
+        ),
+        (
+            "poseidon_full_round_chain",
+            poseidon_full_round_chain::record_poseidon_full_round_chain(),
+        ),
+        (
+            "range_check96_builtin",
+            range_check96_builtin::record_range_check96_builtin(),
+        ),
+        (
+            "range_check_builtin",
+            range_check_builtin::record_range_check_builtin(),
         ),
     ]
 }

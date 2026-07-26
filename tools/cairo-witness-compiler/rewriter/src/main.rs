@@ -18,6 +18,7 @@ mod compiler {
     include!("compiler/lowerer_calls.rs");
     include!("compiler/lowerer_operators.rs");
     include!("compiler/emission.rs");
+    include!("compiler/emission_differential.rs");
     include!("compiler/source_helpers.rs");
     include!("compiler/commands.rs");
     include!("compiler/tests.rs");

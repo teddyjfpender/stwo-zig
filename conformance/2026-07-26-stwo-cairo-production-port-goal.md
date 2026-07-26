@@ -358,7 +358,7 @@ As of the starting commit `cfd47be9`:
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
-| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing 30 official-source programs and 63,805 SSA instructions in a 2.9-second warm loop; 20 active all-opcodes and 10 active all-builtins components match every Rust base column exactly | partial; explicitly non-release pending remaining writers, helper/builtin input edges, and complete verifier-accepted proofs |
+| Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing 60 official-source programs and 81,912 SSA instructions; 20 active all-opcodes and 15 active all-builtins components match every Rust base column exactly | partial; explicitly non-release pending four generated writers, helper/component input edges, and complete verifier-accepted proofs |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
@@ -402,16 +402,16 @@ for all-builtins. A checkpoint is diagnostic evidence; only a complete proof
 accepted by the official verifier satisfies RF-09.
 
 The current official-source recording checkpoint is
-`vectors/cairo/official/witness_programs_v1.bin` (1,033,694 bytes,
-SHA-256 `e143821a21e75609960f4ab54b4de61c2c6b9aee09a93c9ec603a67df1ee9fae`).
-It contains 51 complete, poison-free programs. On all-opcodes, 41 recordings
+`vectors/cairo/official/witness_programs_v1.bin` (1,314,135 bytes,
+SHA-256 `b15081bf5d8d69d3d1bdb4cefcdb9abc8b6708abf0f23e41f9ee1e84fef8b160`).
+It contains 60 complete, poison-free programs. On all-opcodes, 41 recordings
 are active: 20 execute through the current Zig input bindings with zero column
 mismatches and 21 helper/fixed-table programs await input-edge reconstruction.
-On all-builtins, 34 are active: 10 execute exactly and 24 await those edges.
+On all-builtins, 42 are active: 15 execute exactly and 27 await those edges.
 This comparison also corrected a Zig semantic defect: official
 `verify_instruction` multiplicities include only producer `n_active_rows`, not
 the producer's padded rows. The companion provenance is intentionally marked
-non-release because 13 official generated writers remain outside the bundle,
+non-release because four official generated writers remain outside the bundle,
 helper and builtin input edges are incomplete, and the complete SIMD and Metal
 proofs have not yet passed the official verifier. The repository-owned compiler
 at `tools/cairo-witness-compiler` now authenticates the clean official checkout,

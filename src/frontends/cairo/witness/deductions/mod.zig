@@ -13,6 +13,10 @@ pub const Selector = enum(u32) {
     felt_sub = 5,
     felt_mul = 6,
     felt_div = 7,
+    poseidon_round_keys = 8,
+    poseidon_cube = 9,
+    poseidon_full_round_chain = 10,
+    poseidon_3_partial_rounds_chain = 11,
     partial_ec_mul_w9 = 12,
     pedersen_points_table_w9 = 13,
 };

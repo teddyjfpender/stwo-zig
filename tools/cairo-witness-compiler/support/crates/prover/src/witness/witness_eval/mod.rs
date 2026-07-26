@@ -271,6 +271,21 @@ pub trait WitnessEval {
     /// permutation row for a round index (`[M31; 16]`).
     fn deduce_blake_round_sigma(&mut self, round: Self::M31) -> [Self::M31; 16];
 
+    fn deduce_poseidon_round_keys(&mut self, round: Self::M31) -> [[Self::M31; 10]; 3];
+    fn deduce_poseidon_cube(&mut self, value: [Self::M31; 10]) -> [Self::M31; 10];
+    fn deduce_poseidon_full_round_chain(
+        &mut self,
+        chain: Self::M31,
+        round: Self::M31,
+        state: [[Self::M31; 10]; 3],
+    ) -> (Self::M31, Self::M31, [[Self::M31; 10]; 3]);
+    fn deduce_poseidon_3_partial_rounds_chain(
+        &mut self,
+        chain: Self::M31,
+        round: Self::M31,
+        state: [[Self::M31; 10]; 4],
+    ) -> (Self::M31, Self::M31, [[Self::M31; 10]; 4]);
+
     // ---- Effects (flat-indexed) ------------------------------------------------
 
     /// Commit `value` to trace column `col`.

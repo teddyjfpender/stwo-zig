@@ -129,6 +129,10 @@ fn parse_logup_descs(file: &syn::File) -> Option<Vec<LogupDescFact>> {
                     fields[0].clone(), fields[1].clone(), true,
                     String::new(), String::new(), false,
                 ),
+                ("(mult).into()", 2) => (
+                    fields[0].clone(), fields[1].clone(), false,
+                    String::new(), String::new(), false,
+                ),
                 ("-PackedQM31::one()*enabler_col.packed_at(i)", 1) => (
                     fields[0].clone(), "enabler".into(), true,
                     String::new(), String::new(), false,

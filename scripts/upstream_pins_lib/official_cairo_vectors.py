@@ -132,9 +132,9 @@ def _check_witness_bundle(
         "all_builtins": (
             "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
             "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
-            34,
-            10,
-            24,
+            42,
+            15,
+            27,
         ),
     }
     for case, expected in expected_parity.items():
@@ -257,12 +257,20 @@ def _check_witness_compiler(
             != sorted(
                 [
                     "blake_round_sigma",
+                    "bitwise_builtin",
                     "generic_opcode",
                     "partial_ec_mul_window_bits_9",
                     "pedersen_aggregator_window_bits_9",
+                    "pedersen_builtin",
+                    "pedersen_builtin_narrow_windows",
                     "pedersen_points_table_window_bits_18",
                     "pedersen_points_table_window_bits_9",
+                    "poseidon_3_partial_rounds_chain",
+                    "poseidon_aggregator",
+                    "poseidon_builtin",
+                    "poseidon_full_round_chain",
                     "poseidon_round_keys",
+                    "range_check96_builtin",
                     "range_check_11",
                     "range_check_12",
                     "range_check_18",
@@ -276,6 +284,7 @@ def _check_witness_compiler(
                     "range_check_7_2_5",
                     "range_check_8",
                     "range_check_9_9",
+                    "range_check_builtin",
                     "verify_bitwise_xor_4",
                     "verify_bitwise_xor_7",
                     "verify_bitwise_xor_8",

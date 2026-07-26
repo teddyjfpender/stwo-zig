@@ -13,6 +13,7 @@ pub const Error = error{
 
 pub const builtin_components = [_][]const u8{
     "bitwise_builtin",
+    "range_check96_builtin",
     "range_check_builtin",
     "pedersen_builtin",
     "poseidon_builtin",
@@ -95,6 +96,8 @@ pub fn resolve(input: *const cairo_adapter.ProverInput, component: []const u8) E
 
     const segment = if (std.mem.eql(u8, component, "bitwise_builtin"))
         input.builtin_segments.bitwise_builtin
+    else if (std.mem.eql(u8, component, "range_check96_builtin"))
+        input.builtin_segments.range_check96_builtin
     else if (std.mem.eql(u8, component, "range_check_builtin"))
         input.builtin_segments.range_check_builtin
     else if (std.mem.eql(u8, component, "pedersen_builtin"))

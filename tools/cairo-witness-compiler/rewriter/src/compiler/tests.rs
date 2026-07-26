@@ -28,6 +28,7 @@ mod tests {
             felt_consts,
             ["seq".to_string()].into_iter().collect(),
             BTreeMap::new(),
+            BTreeMap::new(),
             Some("memory_address_to_id_state".to_string()),
             Some("memory_id_to_big_state".to_string()),
             "add_opcode_input".to_string(),
@@ -68,6 +69,7 @@ mod tests {
             ]
             .into_iter()
             .collect(),
+            BTreeMap::new(),
             None,
             None,
             "__no_row_input".to_string(),
@@ -131,6 +133,101 @@ mod tests {
             Some("canonical".to_string())
         );
         assert_eq!(local_preprocessed_column_ident(unrelated), None);
+    }
+
+    #[test]
+    fn uniform_segment_input_has_a_stable_slot() {
+        let writer: ItemFn = syn::parse_str(
+            "fn write_trace_simd(
+                log_size: u32,
+                poseidon_builtin_segment_start: u32,
+                unrelated: u32,
+            ) {}",
+        )
+        .unwrap();
+        let slots = writer_uniform_m31_inputs(&writer);
+        assert_eq!(
+            slots,
+            [("poseidon_builtin_segment_start".to_string(), 0)]
+                .into_iter()
+                .collect()
+        );
+
+        let expression: Expr =
+            syn::parse_str("PackedM31::broadcast(M31::from(poseidon_builtin_segment_start))")
+                .unwrap();
+        let Expr::Call(call) = expression else {
+            panic!("broadcast must parse as a call");
+        };
+        assert_eq!(
+            m31_broadcast_input_ident(&call),
+            Some("poseidon_builtin_segment_start".to_string())
+        );
+
+        let mut lw = Lowerer::new(
+            BTreeMap::new(),
+            BTreeMap::new(),
+            BTreeSet::new(),
+            BTreeMap::new(),
+            slots,
+            None,
+            None,
+            "__no_row_input".to_string(),
+            Ty::Tuple(Vec::new()),
+            "row_index".to_string(),
+            "row".to_string(),
+            "lookup_data".to_string(),
+            "sub_component_inputs".to_string(),
+            WriterShape::LookupSub,
+            Vec::new(),
+            Vec::new(),
+        );
+        let block: syn::Block = syn::parse_str(
+            "{ let address =
+                PackedM31::broadcast(M31::from(poseidon_builtin_segment_start)); }",
+        )
+        .unwrap();
+        lw.lower_body(&block.stmts);
+        assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+        assert_eq!(lw.env["address"], Ty::M31);
+        assert_eq!(lw.enabler_slot(), 1);
+        assert_eq!(lw.iota_slot(), 2);
+        let body = lw.out.iter().map(ToString::to_string).collect::<String>();
+        assert!(body.contains("eval . input (0)"), "body: {body}");
+    }
+
+    #[test]
+    fn positive_single_logup_fraction_is_admitted_exactly() {
+        let file: syn::File = syn::parse_str(
+            "impl InteractionClaimGenerator {
+                fn write_interaction_trace(&self) {
+                    let mut col_gen = logup_gen.new_col();
+                    (
+                        col_gen.par_iter_mut(),
+                        &self.lookup_data.poseidon_aggregator_6,
+                        self.lookup_data.mults_0,
+                    )
+                        .into_par_iter()
+                        .for_each(|(writer, values, mult)| {
+                            let denom = common_lookup_elements.combine(values);
+                            writer.write_frac((mult).into(), denom);
+                        });
+                    col_gen.finalize_col();
+                }
+            }",
+        )
+        .unwrap();
+        assert_eq!(
+            parse_logup_descs(&file),
+            Some(vec![(
+                "poseidon_aggregator_6".to_string(),
+                "mults_0".to_string(),
+                false,
+                String::new(),
+                String::new(),
+                false,
+            )])
+        );
     }
 
     #[test]
@@ -367,6 +464,35 @@ mod tests {
     }
 
     #[test]
+    fn poseidon_deduces_use_fixed_w27_word_shapes() {
+        let lw = lower_snippet(
+            &[],
+            "let f = memory_id_to_big_state.deduce_output(\
+                 memory_address_to_id_state.deduce_output(add_opcode_input.pc)); \
+             let w = PackedFelt252Width27::from_packed_felt252(f); \
+             let keys = PackedPoseidonRoundKeys::deduce_output([add_opcode_input.ap]); \
+             let cube = PackedCube252::deduce_output(w); \
+             let full = PackedPoseidonFullRoundChain::deduce_output((\
+                 add_opcode_input.pc, add_opcode_input.ap, [cube, keys[1], keys[2]])); \
+             let partial = PackedPoseidon3PartialRoundsChain::deduce_output((\
+                 full.0, full.1, [full.2[0], full.2[1], full.2[2], cube])); \
+             let output = partial.2[3].get_m31(9);",
+        );
+        assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+        assert_eq!(lw.deduce_sites, 0);
+        assert_eq!(lw.env["output"], Ty::M31);
+        let body = lw.out.iter().map(|token| token.to_string()).collect::<String>();
+        for operation in [
+            "deduce_poseidon_round_keys",
+            "deduce_poseidon_cube",
+            "deduce_poseidon_full_round_chain",
+            "deduce_poseidon_3_partial_rounds_chain",
+        ] {
+            assert!(body.contains(operation), "missing {operation}: {body}");
+        }
+    }
+
+    #[test]
     fn u32_family_lowers_to_real_trait_ops() {
         let lw = lower_snippet(
             &[
@@ -405,8 +531,9 @@ mod tests {
             Shape::Array(vec![Shape::Scalar, Shape::Scalar, Shape::Scalar]),
             Shape::Array(vec![Shape::Scalar, Shape::Scalar]),
             Shape::Scalar,
+            Shape::FeltW27,
         ]);
-        assert_eq!(s.scalar_count(), 7);
+        assert_eq!(s.scalar_count(), 17);
     }
 
     #[test]
@@ -712,19 +839,5 @@ mod tests {
         );
     }
 
-    #[test]
-    fn idempotent_block_generation() {
-        // Emitting from the same AST twice yields byte-identical output.
-        let path = PathBuf::from(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../crates/prover/src/witness/components/assert_eq_opcode.rs"
-        ));
-        if !path.exists() {
-            return; // skip if run outside the repo layout
-        }
-        let a1 = analyze_file(&path, true);
-        let a2 = analyze_file(&path, true);
-        assert!(a1.matched, "assert_eq_opcode should match");
-        assert_eq!(a1.block, a2.block, "block generation must be deterministic");
-    }
+    include!("tests_emission.rs");
 }

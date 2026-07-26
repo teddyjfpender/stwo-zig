@@ -77,15 +77,11 @@ fn build_marked_block(
     let record_ctor: TokenStream = if matches!(lw.input_ty, Ty::Unknown) {
         quote! { RecordingWitnessEval::new(#component) }
     } else {
-        // Builtin slot layout: flat input words 0..K, enabler = K, iota = K+1 (when
-        // the body reads it). The device lane MUST feed its input columns in this
-        // exact order.
-        // Slot layout (uniform for every builtin): flat inputs 0..K, enabler K,
-        // iota K+1 (reserved even when unused — no Input op records for it then),
-        // multiplicity columns K+2+k. The device lane MUST feed its input columns in
-        // this exact order.
-        let k = u32_lit(lw.input_ty.flat_width() as u32);
-        let ki = u32_lit(lw.input_ty.flat_width() as u32 + 1);
+        // Slot layout: flat row inputs, uniform statement inputs, enabler, iota,
+        // preprocessed columns, then multiplicity columns. Enabler/iota stay
+        // reserved even when unused so every evaluator shares one stable ABI.
+        let k = u32_lit(lw.enabler_slot() as u32);
+        let ki = u32_lit(lw.iota_slot() as u32);
         quote! { RecordingWitnessEval::with_slots(#component, #k, Some(#ki)) }
     };
     seg.push(render(&quote! {
@@ -242,6 +238,21 @@ fn header_comment(component: &str, fa: &FileAnalysis, lw: &Lowerer) -> String {
         }
     }
     lines.push(format!("//     ({} words)", fa.n_lookup_words));
+    lines.push("//   INPUT words:".to_string());
+    lines.push(format!(
+        "//     row inputs 0..{}",
+        lw.input_ty.flat_width()
+    ));
+    let mut uniforms = lw.uniform_slots.iter().collect::<Vec<_>>();
+    uniforms.sort_by_key(|(_, ordinal)| **ordinal);
+    for (name, ordinal) in uniforms {
+        lines.push(format!(
+            "//     {name} {}",
+            lw.input_ty.flat_width() + ordinal
+        ));
+    }
+    lines.push(format!("//     enabler {}", lw.enabler_slot()));
+    lines.push(format!("//     iota {}", lw.iota_slot()));
     lines.push("//   SUB-INPUT words:".to_string());
     for s in &lw.sub_slots {
         let count = s.shape.scalar_count();
@@ -328,12 +339,18 @@ fn generic_simd_tokens(component: &str, lw: &Lowerer, writer: &ItemFn) -> TokenS
     let eval_input: TokenStream = if matches!(lw.input_ty, Ty::Unknown) {
         quote! { #input_id }
     } else {
-        // Builtin flat input words, IN SLOT ORDER: [flattened inputs (0..K), a zero
-        // placeholder at the enabler slot (K) and the iota slot (K+1) — `enabler()` /
-        // `iota()` never route through `input()` on the SIMD side, but keeping the
-        // positions makes the slot arithmetic identical to the recording/device
-        // layout — then the multiplicity columns (K+2+k).]
+        // Builtin words, IN SLOT ORDER: flattened row inputs, uniform statement
+        // inputs, zero placeholders for enabler/iota when later slots exist, named
+        // preprocessed columns, then multiplicity columns.
         let mut words = input_flatten_tokens(&lw.input_ty, quote! { #input_id });
+        let mut uniforms = lw.uniform_slots.iter().collect::<Vec<_>>();
+        uniforms.sort_by_key(|(_, ordinal)| **ordinal);
+        for (name, _) in uniforms {
+            let ident = Ident::new(name, Span::call_site());
+            words.push(quote! {
+                PackedM31::broadcast(M31::from(#ident)).into_simd()
+            });
+        }
         if !lw.preprocessed_slots.is_empty() || !lw.mults_reads.is_empty() {
             words.push(quote! { Simd::splat(0) });
             words.push(quote! { Simd::splat(0) });
@@ -563,6 +580,16 @@ fn rebuild_shape(shape: &Shape, idx: &mut usize) -> TokenStream {
                 .collect();
             quote! { PackedFelt252::from_limbs([ #(#limbs),* ]) }
         }
+        Shape::FeltW27 => {
+            let limbs: Vec<TokenStream> = (0..FELTW27_LIMBS)
+                .map(|_| {
+                    let i = usize_lit(*idx);
+                    *idx += 1;
+                    quote! { unsafe { PackedM31::from_simd_unchecked(sw[#i]) } }
+                })
+                .collect();
+            quote! { PackedFelt252Width27::from_limbs([ #(#limbs),* ]) }
+        }
         Shape::Tuple(v) => {
             let parts: Vec<TokenStream> = v.iter().map(|s| rebuild_shape(s, idx)).collect();
             quote! { ( #(#parts),* ) }
@@ -668,6 +695,12 @@ fn shape_projection(shape: &Shape, base: TokenStream) -> Vec<TokenStream> {
                 quote! { #base.get_m31(#lit).into_simd() }
             })
             .collect(),
+        Shape::FeltW27 => (0..FELTW27_LIMBS)
+            .map(|j| {
+                let lit = usize_lit(j);
+                quote! { #base.get_m31(#lit).into_simd() }
+            })
+            .collect(),
         Shape::Tuple(v) => {
             let mut out = Vec::new();
             for (i, s) in v.iter().enumerate() {
@@ -683,145 +716,6 @@ fn shape_projection(shape: &Shape, base: TokenStream) -> Vec<TokenStream> {
                 out.extend(shape_projection(s, quote! { #base[#lit] }));
             }
             out
-        }
-    }
-}
-
-/// The component-independent compare bundle (verbatim from the shape-spec).
-fn generic_simd_diff_struct_tokens() -> TokenStream {
-    quote! {
-        #[cfg(test)]
-        pub(crate) struct GenericSimdDiff {
-            pub log_size: u32,
-            pub orig_rows: Vec<[M31; N_TRACE_COLUMNS]>,
-            pub gen_rows: Vec<[M31; N_TRACE_COLUMNS]>,
-            pub orig_lookup: Vec<Vec<PackedM31>>,
-            pub gen_lookup: Vec<Vec<PackedM31>>,
-            pub orig_sub: Vec<Vec<Simd<u32, N_LANES>>>,
-            pub gen_sub: Vec<Vec<Simd<u32, N_LANES>>>,
-            pub orig_interaction_cols: Vec<Vec<M31>>,
-            pub gen_interaction_cols: Vec<Vec<M31>>,
-            pub orig_claimed_sum: SecureField,
-            pub gen_claimed_sum: SecureField,
-        }
-    }
-}
-
-/// `generic_simd_diff(...)`: same params as `write_trace_simd`; runs both writers and
-/// packages the compare bundle (verbatim body from the shape-spec).
-fn generic_simd_diff_fn_tokens(
-    writer: &ItemFn,
-    file: &syn::File,
-    lw: &Lowerer,
-) -> TokenStream {
-    // Some components' `InteractionClaimGenerator` carries an extra `n_rows` field
-    // (e.g. blake_round); include it in the literal when declared (`n_rows` is a
-    // writer param, in scope in the harness).
-    let ig_has_n_rows = file.items.iter().any(|it| match it {
-        Item::Struct(st) if st.ident == "InteractionClaimGenerator" => match &st.fields {
-            Fields::Named(n) => n
-                .named
-                .iter()
-                .any(|f| f.ident.as_ref().is_some_and(|i| i == "n_rows")),
-            _ => false,
-        },
-        _ => false,
-    });
-    let ig_extra: TokenStream = if ig_has_n_rows {
-        quote! { n_rows, }
-    } else {
-        quote! {}
-    };
-    let ig_log_size: TokenStream = if igen_has_log_size(file) {
-        quote! { log_size, }
-    } else {
-        quote! {}
-    };
-    let inputs = &writer.sig.inputs;
-    // Argument names in order. BY-VALUE params are cloned into the first call so the
-    // generic call retains ownership; references pass through twice.
-    let mut names: Vec<Ident> = Vec::new();
-    let mut by_value: Vec<bool> = Vec::new();
-    for arg in inputs {
-        if let FnArg::Typed(pt) = arg
-            && let Pat::Ident(pi) = &*pt.pat {
-                names.push(pi.ident.clone());
-                by_value.push(!matches!(&*pt.ty, Type::Reference(_)));
-            }
-    }
-    let first_args: Vec<TokenStream> = names
-        .iter()
-        .zip(&by_value)
-        .map(|(n, bv)| {
-            if *bv {
-                quote! { #n.clone() }
-            } else {
-                quote! { #n }
-            }
-        })
-        .collect();
-    let second_args = &names;
-    let calls = match lw.writer_shape {
-        WriterShape::Lookup => quote! {
-            let (trace_o, ld_o) = write_trace_simd(#(#first_args),*);
-            let (trace_g, ld_g) = write_trace_generic_simd(#(#second_args),*);
-            let orig_sub = sub_inputs_flat();
-            let gen_sub = sub_inputs_flat();
-        },
-        WriterShape::LookupSub | WriterShape::LookupSubInput => quote! {
-            let (trace_o, ld_o, sci_o) = write_trace_simd(#(#first_args),*);
-            let (trace_g, ld_g, sci_g) = write_trace_generic_simd(#(#second_args),*);
-            let orig_sub = sub_inputs_flat(&sci_o);
-            let gen_sub = sub_inputs_flat(&sci_g);
-        },
-    };
-    quote! {
-        #[cfg(test)]
-        pub(crate) fn generic_simd_diff(#inputs) -> GenericSimdDiff {
-            #calls
-
-            let log_size = trace_o.log_size();
-            let orig_rows = (0..(1usize << log_size))
-                .map(|r| trace_o.row_at(r))
-                .collect();
-            let gen_rows = (0..(1usize << log_size))
-                .map(|r| trace_g.row_at(r))
-                .collect();
-
-            let orig_lookup = lookup_data_flat(&ld_o);
-            let gen_lookup = lookup_data_flat(&ld_g);
-
-            let common = relations::CommonLookupElements::dummy();
-            let (raw_o, _) = InteractionClaimGenerator {
-                #ig_log_size
-                #ig_extra
-                lookup_data: ld_o,
-            }
-            .write_interaction_trace(&common);
-            let (raw_g, _) = InteractionClaimGenerator {
-                #ig_log_size
-                #ig_extra
-                lookup_data: ld_g,
-            }
-            .write_interaction_trace(&common);
-            let (cols_o, orig_claimed_sum) = raw_o.finalize_on_simd();
-            let (cols_g, gen_claimed_sum) = raw_g.finalize_on_simd();
-            let orig_interaction_cols = cols_o.iter().map(|c| c.values.to_cpu()).collect();
-            let gen_interaction_cols = cols_g.iter().map(|c| c.values.to_cpu()).collect();
-
-            GenericSimdDiff {
-                log_size,
-                orig_rows,
-                gen_rows,
-                orig_lookup,
-                gen_lookup,
-                orig_sub,
-                gen_sub,
-                orig_interaction_cols,
-                gen_interaction_cols,
-                orig_claimed_sum,
-                gen_claimed_sum,
-            }
         }
     }
 }

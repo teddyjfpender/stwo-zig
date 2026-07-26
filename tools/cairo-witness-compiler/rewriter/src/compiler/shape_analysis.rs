@@ -134,6 +134,7 @@ fn shape_from_syn_type(ty: &Type, dir: Option<&Path>) -> Option<Shape> {
                 "PackedM31" => Some(Shape::Scalar),
                 "PackedUInt32" => Some(Shape::U32),
                 "PackedFelt252" => Some(Shape::Felt),
+                "PackedFelt252Width27" => Some(Shape::FeltW27),
                 // `<component>::PackedInputType` — resolve by parsing the SIBLING
                 // component file's alias (the transformer runs over the components
                 // dir, so the sibling is on disk next to the current file).
@@ -176,6 +177,7 @@ fn ty_to_shape(ty: &Ty) -> Option<Shape> {
         Ty::M31 => Some(Shape::Scalar),
         Ty::U32 => Some(Shape::U32),
         Ty::Felt252 => Some(Shape::Felt),
+        Ty::FeltW27 | Ty::FeltW27Limbs => Some(Shape::FeltW27),
         Ty::Tuple(v) => Some(Shape::Tuple(
             v.iter().map(ty_to_shape).collect::<Option<Vec<_>>>()?,
         )),
