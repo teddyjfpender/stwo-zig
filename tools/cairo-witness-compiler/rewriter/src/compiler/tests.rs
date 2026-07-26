@@ -27,6 +27,7 @@ mod tests {
             cmap,
             felt_consts,
             ["seq".to_string()].into_iter().collect(),
+            BTreeMap::new(),
             Some("memory_address_to_id_state".to_string()),
             Some("memory_id_to_big_state".to_string()),
             "add_opcode_input".to_string(),
@@ -35,6 +36,7 @@ mod tests {
             "row".to_string(),
             "lookup_data".to_string(),
             "sub_component_inputs".to_string(),
+            WriterShape::LookupSubInput,
             vec![],
             sub_slots,
         );
@@ -53,6 +55,82 @@ mod tests {
 
     fn lower_snippet(consts: &[(&str, ConstKind, u32)], body: &str) -> Lowerer {
         lower_snippet_with_slots(consts, body, vec![])
+    }
+
+    fn lower_preprocessed_snippet(body: &str) -> Lowerer {
+        let mut lw = Lowerer::new(
+            BTreeMap::new(),
+            BTreeMap::new(),
+            BTreeSet::new(),
+            [
+                ("first_table".to_string(), 0),
+                ("second_table".to_string(), 1),
+            ]
+            .into_iter()
+            .collect(),
+            None,
+            None,
+            "__no_row_input".to_string(),
+            Ty::Tuple(Vec::new()),
+            "row_index".to_string(),
+            "row".to_string(),
+            "lookup_data".to_string(),
+            "__no_sub_component_inputs".to_string(),
+            WriterShape::Lookup,
+            Vec::new(),
+            Vec::new(),
+        );
+        let block: syn::Block = syn::parse_str(&format!("{{ {body} }}")).unwrap();
+        lw.lower_body(&block.stmts);
+        lw
+    }
+
+    #[test]
+    fn writer_shapes_expose_only_owned_row_inputs() {
+        assert!(!WriterShape::Lookup.has_sub_inputs());
+        assert!(!WriterShape::Lookup.has_row_input());
+        assert!(WriterShape::LookupSub.has_sub_inputs());
+        assert!(!WriterShape::LookupSub.has_row_input());
+        assert!(WriterShape::LookupSubInput.has_sub_inputs());
+        assert!(WriterShape::LookupSubInput.has_row_input());
+    }
+
+    #[test]
+    fn preprocessed_columns_use_declaration_order_slots() {
+        let lw = lower_preprocessed_snippet(
+            "let a = first_table.packed_at(row_index); \
+             let b = second_table.packed_at(row_index); \
+             let c = a + b;",
+        );
+        assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+        assert_eq!(lw.env["a"], Ty::M31);
+        assert_eq!(lw.env["b"], Ty::M31);
+        assert_eq!(lw.env["c"], Ty::M31);
+        let body = lw.out.iter().map(|token| token.to_string()).collect::<String>();
+        assert!(body.contains("eval . input (2)"), "body: {body}");
+        assert!(body.contains("eval . input (3)"), "body: {body}");
+    }
+
+    #[test]
+    fn preprocessed_column_binding_is_narrow() {
+        let block: syn::Block = syn::parse_str(
+            "{ \
+                let canonical = preprocessed_trace.get_column(&column_id); \
+                let unrelated = another_trace.get_column(&column_id); \
+             }",
+        )
+        .unwrap();
+        let Stmt::Local(canonical) = &block.stmts[0] else {
+            panic!("canonical binding must parse as a local");
+        };
+        let Stmt::Local(unrelated) = &block.stmts[1] else {
+            panic!("unrelated binding must parse as a local");
+        };
+        assert_eq!(
+            local_preprocessed_column_ident(canonical),
+            Some("canonical".to_string())
+        );
+        assert_eq!(local_preprocessed_column_ident(unrelated), None);
     }
 
     #[test]

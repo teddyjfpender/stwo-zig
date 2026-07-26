@@ -7,9 +7,8 @@ impl Lowerer {
         let expr = strip_parens(expr);
         // Multiplicity-column read (`*mults[k].get(row_index).unwrap_or(&zero)`): a
         // REAL per-row input read — the builtin lane feeds `mults[k]` as the input
-        // column at slot K + 2 + k (after the flat inputs, the enabler and the iota;
-        // the SIMD driver appends the same reads to its flat words, with placeholders
-        // in the enabler/iota positions so the slot arithmetic is uniform).
+        // column after the flat inputs, enabler, iota, and named preprocessed
+        // columns. The SIMD driver appends the same reads in the same order.
         if let Some(k) = match_mults_read(expr, &self.row_index_name) {
             if matches!(self.input_ty, Ty::Unknown) {
                 self.skip(
@@ -19,7 +18,10 @@ impl Lowerer {
                 return (Ty::Unknown, quote! { WG_SKIP });
             }
             self.mults_reads.insert(k);
-            let slot = u32_lit((self.input_ty.flat_width() + 2 + k) as u32);
+            let slot = u32_lit(
+                (self.input_ty.flat_width() + 2 + self.preprocessed_slots.len() + k)
+                    as u32,
+            );
             return self.emit_op(target, Ty::M31, quote! { eval.input(#slot) });
         }
         match expr {
@@ -456,6 +458,21 @@ impl Lowerer {
                     // the recording lane reads the designated iota input slot (G4).
                     self.uses_iota = true;
                     self.emit_op(target, Ty::M31, quote! { eval.iota() })
+                } else if let Expr::Path(path) = strip_parens(&mc.receiver)
+                    && let Some(ordinal) = path
+                        .path
+                        .get_ident()
+                        .and_then(|ident| self.preprocessed_slots.get(&ident.to_string()))
+                    && mc
+                        .args
+                        .first()
+                        .map(|arg| is_path_named(arg, &self.row_index_name))
+                        .unwrap_or(false)
+                {
+                    let slot = u32_lit(
+                        (self.input_ty.flat_width() + 2 + *ordinal) as u32,
+                    );
+                    self.emit_op(target, Ty::M31, quote! { eval.input(#slot) })
                 } else {
                     // preprocessed column .packed_at(row_index) etc.
                     self.skip(

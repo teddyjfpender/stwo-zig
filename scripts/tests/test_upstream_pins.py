@@ -153,8 +153,8 @@ class UpstreamPinTests(unittest.TestCase):
         )
         self.assertEqual([], errors)
         self.assertIsNotNone(parsed)
-        self.assertEqual(30, len(parsed[0]))
-        self.assertEqual(63_805, parsed[1])
+        self.assertEqual(51, len(parsed[0]))
+        self.assertEqual(64_419, parsed[1])
 
         mutated = bytearray(encoded)
         first_instruction = 16 + 4 + 28 + 8 + len("add_opcode")
@@ -187,8 +187,8 @@ class UpstreamPinTests(unittest.TestCase):
         receipt_relative = provenance["compiler"]["receipt"]["path"]
         receipt = (ROOT / receipt_relative).read_text(encoding="utf-8")
         mutated = receipt.replace(
-            '"artifact_bytes": 1022640',
-            '"artifact_bytes": 1022641',
+            '"artifact_bytes": 1033694',
+            '"artifact_bytes": 1033695',
         )
         self.assertNotEqual(receipt, mutated)
         with tempfile.TemporaryDirectory() as directory:

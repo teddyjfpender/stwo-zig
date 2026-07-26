@@ -179,6 +179,25 @@ fn local_seq_ident(local: &Local) -> Option<String> {
     }
 }
 
+/// If `local` binds a canonical preprocessed column, return its local name. Source
+/// declaration order becomes the witness-program input-slot order.
+fn local_preprocessed_column_ident(local: &Local) -> Option<String> {
+    let name = local_ident(local)?;
+    let init = local.init.as_ref()?;
+    let call = match strip_parens(&init.expr) {
+        Expr::MethodCall(call) => call,
+        _ => return None,
+    };
+    if call.method == "get_column"
+        && is_path_named(&call.receiver, "preprocessed_trace")
+        && call.args.len() == 1
+    {
+        Some(name)
+    } else {
+        None
+    }
+}
+
 fn is_path_named(e: &Expr, name: &str) -> bool {
     matches!(strip_parens(e), Expr::Path(p) if p.path.is_ident(name))
 }

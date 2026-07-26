@@ -23,10 +23,10 @@ OFFICIAL_WITNESS_MOD_SHA256 = (
     "e0113af8099143ea2770312bff24bc1e2fa5329933b272bac0fdae815b0de448"
 )
 EXPECTED_BUNDLE_SHA256 = (
-    "d807737856a1d58a199ece892e41580f1e2f2bf6d72e3636cbe7bdcd440e044f"
+    "e143821a21e75609960f4ab54b4de61c2c6b9aee09a93c9ec603a67df1ee9fae"
 )
-EXPECTED_BUNDLE_BYTES = 1_022_640
-EXPECTED_PROGRAM_COUNT = 30
+EXPECTED_BUNDLE_BYTES = 1_033_694
+EXPECTED_PROGRAM_COUNT = 51
 
 COMPONENTS = (
     "add_ap_opcode",
@@ -37,6 +37,7 @@ COMPONENTS = (
     "assert_eq_opcode_imm",
     "blake_g",
     "blake_round",
+    "blake_round_sigma",
     "call_opcode_abs",
     "call_opcode_rel_imm",
     "cube_252",
@@ -54,10 +55,30 @@ COMPONENTS = (
     "partial_ec_mul_window_bits_9",
     "pedersen_aggregator_window_bits_18",
     "pedersen_aggregator_window_bits_9",
+    "pedersen_points_table_window_bits_18",
+    "pedersen_points_table_window_bits_9",
+    "poseidon_round_keys",
     "qm_31_add_mul_opcode",
     "range_check_252_width_27",
+    "range_check_11",
+    "range_check_12",
+    "range_check_18",
+    "range_check_20",
+    "range_check_3_3_3_3_3",
+    "range_check_3_6_6_3",
+    "range_check_4_3",
+    "range_check_4_4",
+    "range_check_4_4_4_4",
+    "range_check_6",
+    "range_check_7_2_5",
+    "range_check_8",
+    "range_check_9_9",
     "ret_opcode",
     "triple_xor_32",
+    "verify_bitwise_xor_4",
+    "verify_bitwise_xor_7",
+    "verify_bitwise_xor_8",
+    "verify_bitwise_xor_9",
     "verify_instruction",
 )
 
@@ -186,14 +207,20 @@ def _compiler_lock() -> Iterable[None]:
         yield
 
 
-def _build_identity_timestamp() -> int:
+def _build_identity() -> str:
     digest = hashlib.sha256()
     digest.update(OFFICIAL_TREE.encode("ascii"))
+    digest.update(Path(__file__).read_bytes())
     digest.update(closure_sha256(REWRITER).encode("ascii"))
     digest.update(closure_sha256(SUPPORT).encode("ascii"))
+    return digest.hexdigest()
+
+
+def _build_identity_timestamp() -> int:
+    digest = bytes.fromhex(_build_identity())
     # Keep the synthetic time in a range accepted by common filesystems. Its only
     # purpose is Cargo invalidation: equal closures get equal mtimes.
-    return 1_600_000_000 + int.from_bytes(digest.digest()[:4], "little") % 300_000_000
+    return 1_600_000_000 + int.from_bytes(digest[:4], "little") % 300_000_000
 
 
 def _normalize_mtimes(root: Path, timestamp: int) -> None:
@@ -292,8 +319,46 @@ def _install_support(staged: Path) -> None:
 
 def _compile_bundle(staged: Path, artifact: Path) -> None:
     env = os.environ.copy()
-    env["CARGO_TARGET_DIR"] = os.fspath(ROOT / "target" / "official-source")
+    cargo_target = ROOT / "target" / "official-source"
+    env["CARGO_TARGET_DIR"] = os.fspath(cargo_target)
     env["RUST_MIN_STACK"] = "67108864"
+    identity = _build_identity()
+    identity_path = cargo_target / "stwo-cairo-compiler-identity"
+    cached_identity = (
+        identity_path.read_text(encoding="ascii").strip()
+        if identity_path.is_file()
+        else None
+    )
+    if cached_identity != identity:
+        _run(
+            [
+                "cargo",
+                "clean",
+                "--target-dir",
+                cargo_target,
+                "-p",
+                "stwo-cairo-prover",
+                "-p",
+                "stwo-cairo-common",
+                "-p",
+                "cairo-air",
+                "-p",
+                "stwo-cairo-adapter",
+                "-p",
+                "stwo-cairo-serialize",
+            ],
+            cwd=staged,
+            env=env,
+        )
+        # Cargo's fast freshness path is mtime-based. The content-derived
+        # normalized timestamp can move backward across compiler identities, so
+        # advance one installed support source only when the identity changes.
+        # This forces the local prover crate to rebuild once without sacrificing
+        # the identical-closure warm path.
+        os.utime(
+            staged / "crates/prover/src/witness/recording_export.rs",
+            None,
+        )
     _run(
         [
             "cargo",
@@ -310,6 +375,7 @@ def _compile_bundle(staged: Path, artifact: Path) -> None:
         cwd=staged,
         env=env,
     )
+    identity_path.write_text(identity + "\n", encoding="ascii")
 
 
 def inspect_bundle(data: bytes) -> tuple[int, int]:

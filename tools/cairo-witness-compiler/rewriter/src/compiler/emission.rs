@@ -107,6 +107,8 @@ fn build_marked_block(
         inv.push_str("crate::jit_lookup_accessor! {\n");
         if igen_has_n_rows(file) {
             inv.push_str(&format!("    with_n_rows {};\n", fa.n_lookup_words));
+        } else if !igen_has_log_size(file) {
+            inv.push_str(&format!("    fixed {};\n", fa.n_lookup_words));
         } else {
             inv.push_str(&format!("    {};\n", fa.n_lookup_words));
         }
@@ -197,7 +199,7 @@ fn build_marked_block(
         "/// Run BOTH SIMD writers on the same (pure-read) states and return public compare data."
             .to_string(),
     );
-    seg.push(render(&generic_simd_diff_fn_tokens(writer, file)));
+    seg.push(render(&generic_simd_diff_fn_tokens(writer, file, lw)));
     seg.push(END_MARKER.to_string());
 
     seg.join("\n")
@@ -332,9 +334,17 @@ fn generic_simd_tokens(component: &str, lw: &Lowerer, writer: &ItemFn) -> TokenS
         // positions makes the slot arithmetic identical to the recording/device
         // layout — then the multiplicity columns (K+2+k).]
         let mut words = input_flatten_tokens(&lw.input_ty, quote! { #input_id });
+        if !lw.preprocessed_slots.is_empty() || !lw.mults_reads.is_empty() {
+            words.push(quote! { Simd::splat(0) });
+            words.push(quote! { Simd::splat(0) });
+            let mut preprocessed = lw.preprocessed_slots.iter().collect::<Vec<_>>();
+            preprocessed.sort_by_key(|(_, ordinal)| **ordinal);
+            for (name, _) in preprocessed {
+                let ident = Ident::new(name, Span::call_site());
+                words.push(quote! { #ident.packed_at(row_index).into_simd() });
+            }
+        }
         if !lw.mults_reads.is_empty() {
-            words.push(quote! { Simd::splat(0) });
-            words.push(quote! { Simd::splat(0) });
             let max_k = *lw.mults_reads.iter().max().unwrap();
             for k in 0..=max_k {
                 if lw.mults_reads.contains(&k) {
@@ -376,15 +386,47 @@ fn generic_simd_tokens(component: &str, lw: &Lowerer, writer: &ItemFn) -> TokenS
         quote! { let enabler_col = Enabler::new(0); }
     };
 
-    quote! {
-        #[allow(clippy::type_complexity)]
-        #[allow(unused_variables)]
-        #[allow(dead_code)]
-        #[allow(non_snake_case)]
-        fn write_trace_generic_simd(#inputs) #output {
-            #(#preamble)*
-            #enabler_fallback
+    let row_step = quote! {
+        let mut eval = SimdWitnessEval::new(
+            #row_id,
+            #addr_id,
+            #big_id,
+            #eval_input,
+            row_index,
+            &enabler_col,
+            N_LOOKUP_WORDS,
+            N_SUB_INPUT_WORDS,
+        );
+        #row_body_fn(&mut eval);
 
+        let lw = eval.lookup_scratch();
+        #(#reconstruct_lookup)*
+
+        let sw = eval.sub_scratch();
+        #(#reconstruct_sub)*
+    };
+    let row_loop = match lw.writer_shape {
+        WriterShape::Lookup => quote! {
+            (trace.par_iter_mut(), #lookup_id.par_iter_mut())
+                .into_par_iter()
+                .enumerate()
+                .for_each(|(row_index, (#row_id, #lookup_id))| {
+                    #row_step
+                });
+        },
+        WriterShape::LookupSub => quote! {
+            (
+                trace.par_iter_mut(),
+                #lookup_id.par_iter_mut(),
+                #sub_id.par_iter_mut(),
+            )
+                .into_par_iter()
+                .enumerate()
+                .for_each(|(row_index, (#row_id, #lookup_id, #sub_id))| {
+                    #row_step
+                });
+        },
+        WriterShape::LookupSubInput => quote! {
             (
                 trace.par_iter_mut(),
                 #lookup_id.par_iter_mut(),
@@ -394,26 +436,28 @@ fn generic_simd_tokens(component: &str, lw: &Lowerer, writer: &ItemFn) -> TokenS
                 .into_par_iter()
                 .enumerate()
                 .for_each(|(row_index, (#row_id, #lookup_id, #sub_id, #input_id))| {
-                    let mut eval = SimdWitnessEval::new(
-                        #row_id,
-                        #addr_id,
-                        #big_id,
-                        #eval_input,
-                        row_index,
-                        &enabler_col,
-                        N_LOOKUP_WORDS,
-                        N_SUB_INPUT_WORDS,
-                    );
-                    #row_body_fn(&mut eval);
-
-                    let lw = eval.lookup_scratch();
-                    #(#reconstruct_lookup)*
-
-                    let sw = eval.sub_scratch();
-                    #(#reconstruct_sub)*
+                    #row_step
                 });
+        },
+    };
+    let result = match lw.writer_shape {
+        WriterShape::Lookup => quote! { (trace, #lookup_id) },
+        WriterShape::LookupSub | WriterShape::LookupSubInput => {
+            quote! { (trace, #lookup_id, #sub_id) }
+        }
+    };
 
-            (trace, #lookup_id, #sub_id)
+    quote! {
+        #[allow(clippy::type_complexity)]
+        #[allow(unused_variables)]
+        #[allow(dead_code)]
+        #[allow(non_snake_case)]
+        fn write_trace_generic_simd(#inputs) #output {
+            #(#preamble)*
+            #enabler_fallback
+
+            #row_loop
+            #result
         }
     }
 }
@@ -576,6 +620,14 @@ fn lookup_flat_tokens(lw: &Lowerer) -> TokenStream {
 }
 
 fn sub_flat_tokens(lw: &Lowerer) -> TokenStream {
+    if !lw.writer_shape.has_sub_inputs() {
+        return quote! {
+            #[cfg(test)]
+            fn sub_inputs_flat() -> Vec<Vec<Simd<u32, N_LANES>>> {
+                Vec::new()
+            }
+        };
+    }
     let mut parts: Vec<TokenStream> = Vec::new();
     for sa in &lw.sub_slots {
         let field = Ident::new(&sa.field, Span::call_site());
@@ -657,7 +709,11 @@ fn generic_simd_diff_struct_tokens() -> TokenStream {
 
 /// `generic_simd_diff(...)`: same params as `write_trace_simd`; runs both writers and
 /// packages the compare bundle (verbatim body from the shape-spec).
-fn generic_simd_diff_fn_tokens(writer: &ItemFn, file: &syn::File) -> TokenStream {
+fn generic_simd_diff_fn_tokens(
+    writer: &ItemFn,
+    file: &syn::File,
+    lw: &Lowerer,
+) -> TokenStream {
     // Some components' `InteractionClaimGenerator` carries an extra `n_rows` field
     // (e.g. blake_round); include it in the literal when declared (`n_rows` is a
     // writer param, in scope in the harness).
@@ -676,10 +732,14 @@ fn generic_simd_diff_fn_tokens(writer: &ItemFn, file: &syn::File) -> TokenStream
     } else {
         quote! {}
     };
+    let ig_log_size: TokenStream = if igen_has_log_size(file) {
+        quote! { log_size, }
+    } else {
+        quote! {}
+    };
     let inputs = &writer.sig.inputs;
-    // Argument names in order; the first must be `inputs`. BY-VALUE params (no `&` in
-    // the type — e.g. the aggregator's `mults: Vec<Vec<PackedM31>>`) are cloned into
-    // the FIRST call so the second still owns them; references pass through twice.
+    // Argument names in order. BY-VALUE params are cloned into the first call so the
+    // generic call retains ownership; references pass through twice.
     let mut names: Vec<Ident> = Vec::new();
     let mut by_value: Vec<bool> = Vec::new();
     for arg in inputs {
@@ -689,10 +749,9 @@ fn generic_simd_diff_fn_tokens(writer: &ItemFn, file: &syn::File) -> TokenStream
                 by_value.push(!matches!(&*pt.ty, Type::Reference(_)));
             }
     }
-    let rest = &names[1..];
-    let rest_first: Vec<TokenStream> = names[1..]
+    let first_args: Vec<TokenStream> = names
         .iter()
-        .zip(&by_value[1..])
+        .zip(&by_value)
         .map(|(n, bv)| {
             if *bv {
                 quote! { #n.clone() }
@@ -701,11 +760,25 @@ fn generic_simd_diff_fn_tokens(writer: &ItemFn, file: &syn::File) -> TokenStream
             }
         })
         .collect();
+    let second_args = &names;
+    let calls = match lw.writer_shape {
+        WriterShape::Lookup => quote! {
+            let (trace_o, ld_o) = write_trace_simd(#(#first_args),*);
+            let (trace_g, ld_g) = write_trace_generic_simd(#(#second_args),*);
+            let orig_sub = sub_inputs_flat();
+            let gen_sub = sub_inputs_flat();
+        },
+        WriterShape::LookupSub | WriterShape::LookupSubInput => quote! {
+            let (trace_o, ld_o, sci_o) = write_trace_simd(#(#first_args),*);
+            let (trace_g, ld_g, sci_g) = write_trace_generic_simd(#(#second_args),*);
+            let orig_sub = sub_inputs_flat(&sci_o);
+            let gen_sub = sub_inputs_flat(&sci_g);
+        },
+    };
     quote! {
         #[cfg(test)]
         pub(crate) fn generic_simd_diff(#inputs) -> GenericSimdDiff {
-            let (trace_o, ld_o, sci_o) = write_trace_simd(inputs.clone(), #(#rest_first),*);
-            let (trace_g, ld_g, sci_g) = write_trace_generic_simd(inputs, #(#rest),*);
+            #calls
 
             let log_size = trace_o.log_size();
             let orig_rows = (0..(1usize << log_size))
@@ -717,18 +790,16 @@ fn generic_simd_diff_fn_tokens(writer: &ItemFn, file: &syn::File) -> TokenStream
 
             let orig_lookup = lookup_data_flat(&ld_o);
             let gen_lookup = lookup_data_flat(&ld_g);
-            let orig_sub = sub_inputs_flat(&sci_o);
-            let gen_sub = sub_inputs_flat(&sci_g);
 
             let common = relations::CommonLookupElements::dummy();
             let (raw_o, _) = InteractionClaimGenerator {
-                log_size,
+                #ig_log_size
                 #ig_extra
                 lookup_data: ld_o,
             }
             .write_interaction_trace(&common);
             let (raw_g, _) = InteractionClaimGenerator {
-                log_size,
+                #ig_log_size
                 #ig_extra
                 lookup_data: ld_g,
             }

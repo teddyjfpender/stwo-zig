@@ -50,8 +50,9 @@ python3 tools/cairo-witness-compiler/generate.py \
 The first run populates `tools/cairo-witness-compiler/target/`, which is ignored
 by Git. Later runs use a process lock, a stable official-overlay path, and
 content-derived mtimes so Cargo can reuse the exact compiler closure. A change
-to the official tree, rewriter, or support sources changes that identity and
-invalidates the affected build.
+to the official tree, orchestrator, rewriter, or support sources changes that
+identity and forces the staged prover crate to rebuild once; identical-closure
+runs retain Cargo's warm path.
 
 The compiler is not part of proof generation. `stwo-cairo-cpu` and
 `stwo-cairo-metal` read only authenticated artifacts already present in the
@@ -62,8 +63,8 @@ source checkout.
 
 At official Stwo-Cairo revision
 `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`, the rewriter scans 67 component
-files, finds 64 generated writers, emits 30 exactly with no census-only sites
-inside that supported cohort, and rejects 37 with explicit reasons. The emitted
+files, finds 64 generated writers, emits 51 exactly with no census-only sites
+inside that supported cohort, and rejects 16 with explicit reasons. The emitted
 artifact and its compiler closure are authenticated by
 `vectors/cairo/official/witness_programs_v1.provenance.json`.
 

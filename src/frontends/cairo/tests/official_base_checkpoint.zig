@@ -72,11 +72,11 @@ test "official Cairo base checkpoints authenticate the complete fixture layouts"
 }
 
 test "official Cairo witness recordings match every covered all-opcodes column" {
-    try expectWitnessMatches(cases[0], 23, 20, 3);
+    try expectWitnessMatches(cases[0], 41, 20, 21);
 }
 
 test "official Cairo witness recordings match every covered all-builtins column" {
-    try expectWitnessMatches(cases[1], 15, 10, 5);
+    try expectWitnessMatches(cases[1], 34, 10, 24);
 }
 
 fn expectWitnessMatches(

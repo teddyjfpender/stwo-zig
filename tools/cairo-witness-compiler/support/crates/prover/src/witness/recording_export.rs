@@ -4,12 +4,19 @@ use std::path::Path;
 
 use super::components::{
     add_ap_opcode, add_opcode, add_opcode_small, assert_eq_opcode, assert_eq_opcode_double_deref,
-    assert_eq_opcode_imm, blake_g, blake_round, call_opcode_abs, call_opcode_rel_imm, cube_252,
-    generic_opcode, jnz_opcode_non_taken, jnz_opcode_taken, jump_opcode_abs,
+    assert_eq_opcode_imm, blake_g, blake_round, blake_round_sigma, call_opcode_abs,
+    call_opcode_rel_imm, cube_252, generic_opcode, jnz_opcode_non_taken, jnz_opcode_taken,
+    jump_opcode_abs,
     jump_opcode_double_deref, jump_opcode_rel, jump_opcode_rel_imm, mul_opcode, mul_opcode_small,
     partial_ec_mul_generic, partial_ec_mul_window_bits_9, partial_ec_mul_window_bits_18,
-    pedersen_aggregator_window_bits_9, pedersen_aggregator_window_bits_18, qm_31_add_mul_opcode,
-    range_check_252_width_27, ret_opcode, triple_xor_32, verify_instruction,
+    pedersen_aggregator_window_bits_9, pedersen_aggregator_window_bits_18,
+    pedersen_points_table_window_bits_9, pedersen_points_table_window_bits_18,
+    poseidon_round_keys, qm_31_add_mul_opcode, range_check_3_3_3_3_3, range_check_3_6_6_3,
+    range_check_4_3, range_check_4_4, range_check_4_4_4_4, range_check_6, range_check_7_2_5,
+    range_check_8, range_check_9_9, range_check_11, range_check_12, range_check_18,
+    range_check_20, range_check_252_width_27, ret_opcode, triple_xor_32,
+    verify_bitwise_xor_4, verify_bitwise_xor_7, verify_bitwise_xor_8, verify_bitwise_xor_9,
+    verify_instruction,
 };
 use super::witness_eval::bytecode::isa::{WitnessInst, WitnessProgram};
 use super::witness_eval::recording::RecordingOutput;
@@ -102,6 +109,63 @@ fn recordings() -> Vec<(&'static str, RecordingOutput)> {
         (
             "range_check_252_width_27",
             range_check_252_width_27::record_range_check_252_width_27(),
+        ),
+        (
+            "blake_round_sigma",
+            blake_round_sigma::record_blake_round_sigma(),
+        ),
+        (
+            "pedersen_points_table_window_bits_18",
+            pedersen_points_table_window_bits_18::record_pedersen_points_table_window_bits_18(),
+        ),
+        (
+            "pedersen_points_table_window_bits_9",
+            pedersen_points_table_window_bits_9::record_pedersen_points_table_window_bits_9(),
+        ),
+        (
+            "poseidon_round_keys",
+            poseidon_round_keys::record_poseidon_round_keys(),
+        ),
+        ("range_check_11", range_check_11::record_range_check_11()),
+        ("range_check_12", range_check_12::record_range_check_12()),
+        ("range_check_18", range_check_18::record_range_check_18()),
+        ("range_check_20", range_check_20::record_range_check_20()),
+        (
+            "range_check_3_3_3_3_3",
+            range_check_3_3_3_3_3::record_range_check_3_3_3_3_3(),
+        ),
+        (
+            "range_check_3_6_6_3",
+            range_check_3_6_6_3::record_range_check_3_6_6_3(),
+        ),
+        ("range_check_4_3", range_check_4_3::record_range_check_4_3()),
+        ("range_check_4_4", range_check_4_4::record_range_check_4_4()),
+        (
+            "range_check_4_4_4_4",
+            range_check_4_4_4_4::record_range_check_4_4_4_4(),
+        ),
+        ("range_check_6", range_check_6::record_range_check_6()),
+        (
+            "range_check_7_2_5",
+            range_check_7_2_5::record_range_check_7_2_5(),
+        ),
+        ("range_check_8", range_check_8::record_range_check_8()),
+        ("range_check_9_9", range_check_9_9::record_range_check_9_9()),
+        (
+            "verify_bitwise_xor_4",
+            verify_bitwise_xor_4::record_verify_bitwise_xor_4(),
+        ),
+        (
+            "verify_bitwise_xor_7",
+            verify_bitwise_xor_7::record_verify_bitwise_xor_7(),
+        ),
+        (
+            "verify_bitwise_xor_8",
+            verify_bitwise_xor_8::record_verify_bitwise_xor_8(),
+        ),
+        (
+            "verify_bitwise_xor_9",
+            verify_bitwise_xor_9::record_verify_bitwise_xor_9(),
         ),
     ]
 }

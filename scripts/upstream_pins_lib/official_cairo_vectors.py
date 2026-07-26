@@ -125,16 +125,16 @@ def _check_witness_bundle(
         "all_opcodes": (
             "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
             "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
-            23,
+            41,
             20,
-            3,
+            21,
         ),
         "all_builtins": (
             "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
             "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
-            15,
+            34,
             10,
-            5,
+            24,
         ),
     }
     for case, expected in expected_parity.items():
@@ -254,11 +254,34 @@ def _check_witness_compiler(
             or any(not isinstance(label, str) for label in added)
             or preserved_count + len(added) != len(labels)
             or sorted(added)
-            != [
-                "generic_opcode",
-                "partial_ec_mul_window_bits_9",
-                "pedersen_aggregator_window_bits_9",
-            ]
+            != sorted(
+                [
+                    "blake_round_sigma",
+                    "generic_opcode",
+                    "partial_ec_mul_window_bits_9",
+                    "pedersen_aggregator_window_bits_9",
+                    "pedersen_points_table_window_bits_18",
+                    "pedersen_points_table_window_bits_9",
+                    "poseidon_round_keys",
+                    "range_check_11",
+                    "range_check_12",
+                    "range_check_18",
+                    "range_check_20",
+                    "range_check_3_3_3_3_3",
+                    "range_check_3_6_6_3",
+                    "range_check_4_3",
+                    "range_check_4_4",
+                    "range_check_4_4_4_4",
+                    "range_check_6",
+                    "range_check_7_2_5",
+                    "range_check_8",
+                    "range_check_9_9",
+                    "verify_bitwise_xor_4",
+                    "verify_bitwise_xor_7",
+                    "verify_bitwise_xor_8",
+                    "verify_bitwise_xor_9",
+                ]
+            )
             or not set(added).issubset(labels)
         ):
             errors.append(f"{relative_path}: migration extension evidence drifted")

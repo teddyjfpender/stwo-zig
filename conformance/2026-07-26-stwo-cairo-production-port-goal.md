@@ -402,16 +402,16 @@ for all-builtins. A checkpoint is diagnostic evidence; only a complete proof
 accepted by the official verifier satisfies RF-09.
 
 The current official-source recording checkpoint is
-`vectors/cairo/official/witness_programs_v1.bin` (1,022,640 bytes,
-SHA-256 `d807737856a1d58a199ece892e41580f1e2f2bf6d72e3636cbe7bdcd440e044f`).
-It contains 30 complete, poison-free programs. On all-opcodes, 23 recordings
+`vectors/cairo/official/witness_programs_v1.bin` (1,033,694 bytes,
+SHA-256 `e143821a21e75609960f4ab54b4de61c2c6b9aee09a93c9ec603a67df1ee9fae`).
+It contains 51 complete, poison-free programs. On all-opcodes, 41 recordings
 are active: 20 execute through the current Zig input bindings with zero column
-mismatches and three helper programs await input-edge reconstruction. On
-all-builtins, 15 are active: 10 execute exactly and five await those edges.
+mismatches and 21 helper/fixed-table programs await input-edge reconstruction.
+On all-builtins, 34 are active: 10 execute exactly and 24 await those edges.
 This comparison also corrected a Zig semantic defect: official
 `verify_instruction` multiplicities include only producer `n_active_rows`, not
 the producer's padded rows. The companion provenance is intentionally marked
-non-release because 34 official generated writers remain outside the bundle,
+non-release because 13 official generated writers remain outside the bundle,
 helper and builtin input edges are incomplete, and the complete SIMD and Metal
 proofs have not yet passed the official verifier. The repository-owned compiler
 at `tools/cairo-witness-compiler` now authenticates the clean official checkout,

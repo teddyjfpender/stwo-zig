@@ -105,6 +105,10 @@ fn parse_logup_descs(file: &syn::File) -> Option<Vec<LogupDescFact>> {
                     fields[0].clone(), fields[2].clone(), false,
                     fields[1].clone(), fields[3].clone(), false,
                 ),
+                ("-(denom0**mult1+denom1**mult0)", 4) => (
+                    fields[0].clone(), fields[2].clone(), true,
+                    fields[1].clone(), fields[3].clone(), true,
+                ),
                 ("denom0+denom1", 2) => (
                     fields[0].clone(), "1".into(), false,
                     fields[1].clone(), "1".into(), false,

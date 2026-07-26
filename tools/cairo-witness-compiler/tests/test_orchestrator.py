@@ -33,6 +33,16 @@ class OrchestratorTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "module hash"):
                 orchestrator.patch_module_registry(path)
 
+    def test_build_identity_binds_entire_compiler_closure(self) -> None:
+        identity = orchestrator._build_identity()
+        self.assertEqual(64, len(identity))
+        int(identity, 16)
+        self.assertEqual(
+            orchestrator._build_identity_timestamp(),
+            1_600_000_000
+            + int.from_bytes(bytes.fromhex(identity)[:4], "little") % 300_000_000,
+        )
+
     def test_publish_is_atomic_and_never_replaces(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             path = Path(raw) / "artifact.bin"
@@ -48,8 +58,8 @@ class OrchestratorTests(unittest.TestCase):
         )
         data = vector.read_bytes()
         programs, instructions = orchestrator.inspect_bundle(data)
-        self.assertEqual(programs, 30)
-        self.assertEqual(instructions, 63_805)
+        self.assertEqual(programs, 51)
+        self.assertEqual(instructions, 64_419)
         self.assertEqual(
             hashlib.sha256(data).hexdigest(),
             orchestrator.EXPECTED_BUNDLE_SHA256,

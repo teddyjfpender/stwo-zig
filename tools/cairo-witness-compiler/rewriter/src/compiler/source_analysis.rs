@@ -110,6 +110,7 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
     let mut consts: BTreeMap<String, ConstVal> = BTreeMap::new();
     let mut felt_consts: BTreeMap<String, [u32; FELT252_LIMBS]> = BTreeMap::new();
     let mut seq_idents: BTreeSet<String> = BTreeSet::new();
+    let mut preprocessed_slots: BTreeMap<String, usize> = BTreeMap::new();
     for st in &writer.block.stmts {
         if let Stmt::Local(local) = st {
             if let (Some(name), Some(cv)) = (local_ident(local), local_const(local)) {
@@ -119,6 +120,9 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
                 felt_consts.insert(name, felt252_const_limbs(words));
             } else if let Some(name) = local_seq_ident(local) {
                 seq_idents.insert(name);
+            } else if let Some(name) = local_preprocessed_column_ident(local) {
+                let ordinal = preprocessed_slots.len();
+                preprocessed_slots.insert(name, ordinal);
             }
         }
     }
@@ -143,23 +147,35 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
             return fa;
         }
     };
-    if binders.len() != 4 {
-        fa.file_skip = Some(Skip {
-            category: "skeleton",
-            detail: format!(
-                "unsupported skeleton: {}-tuple closure `({})` (preprocessed/table \
-                 iterate or no per-row input)",
-                binders.len(),
-                binders.join(", ")
-            ),
-        });
-        return fa;
-    }
+    let writer_shape = match binders.len() {
+        2 => WriterShape::Lookup,
+        3 => WriterShape::LookupSub,
+        4 => WriterShape::LookupSubInput,
+        _ => {
+            fa.file_skip = Some(Skip {
+                category: "skeleton",
+                detail: format!(
+                    "unsupported skeleton: {}-tuple closure `({})`",
+                    binders.len(),
+                    binders.join(", ")
+                ),
+            });
+            return fa;
+        }
+    };
     let row_name = binders[0].clone();
     let lookup_name = binders[1].clone();
-    let sub_name = binders[2].clone();
-    let input_name = binders[3].clone();
-    if !input_name.ends_with("_input") {
+    let sub_name = if writer_shape.has_sub_inputs() {
+        binders[2].clone()
+    } else {
+        "__no_sub_component_inputs".to_string()
+    };
+    let input_name = if writer_shape.has_row_input() {
+        binders[3].clone()
+    } else {
+        "__no_row_input".to_string()
+    };
+    if writer_shape.has_row_input() && !input_name.ends_with("_input") {
         fa.file_skip = Some(Skip {
             category: "skeleton",
             detail: format!("4th closure binder `{input_name}` is not `<name>_input`"),
@@ -198,23 +214,32 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
     // this recognizer only sets the flat WIDTH layout, never semantics.
     // Derive the SubComponentInputs DECLARATION-ORDER flat layout: struct fields ×
     // array lengths × the DECLARED element shapes (the host-typed ground truth).
-    let sub_slots = match build_sub_layout(&file, body_stmts, &sub_name, path.parent()) {
-        Ok(l) => l,
-        Err(s) => {
-            fa.file_skip = Some(s);
-            return fa;
+    let sub_slots = if writer_shape.has_sub_inputs() {
+        match build_sub_layout(&file, body_stmts, &sub_name, path.parent()) {
+            Ok(l) => l,
+            Err(s) => {
+                fa.file_skip = Some(s);
+                return fa;
+            }
         }
+    } else {
+        Vec::new()
     };
     fa.n_sub_words = sub_slots.iter().map(|s| s.shape.scalar_count()).sum();
 
     // Parse the packed-input type alias so the input binder's projections can be typed.
-    let input_ty = parse_input_type(&file);
+    let input_ty = if writer_shape.has_row_input() {
+        parse_input_type(&file)
+    } else {
+        Ty::Tuple(Vec::new())
+    };
 
     // Run the lowering (collects skips + builds SSA).
     let mut lw = Lowerer::new(
         consts,
         felt_consts,
         seq_idents,
+        preprocessed_slots,
         addr_state,
         big_state,
         input_name.clone(),
@@ -223,6 +248,7 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
         row_name,
         lookup_name,
         sub_name,
+        writer_shape,
         lookup_fields.clone(),
         sub_slots,
     );
@@ -341,11 +367,19 @@ fn closure_binders(
 /// (`n_rows`) alongside `log_size` + `lookup_data` — selects the accessor
 /// macro's ctor variant.
 fn igen_has_n_rows(file: &syn::File) -> bool {
+    igen_has_field(file, "n_rows")
+}
+
+fn igen_has_log_size(file: &syn::File) -> bool {
+    igen_has_field(file, "log_size")
+}
+
+fn igen_has_field(file: &syn::File, field: &str) -> bool {
     file.items.iter().any(|it| {
         matches!(it,
             Item::Struct(s) if s.ident == "InteractionClaimGenerator"
                 && matches!(&s.fields, syn::Fields::Named(f)
-                    if f.named.iter().any(|fld| fld.ident.as_ref().is_some_and(|i| i == "n_rows"))))
+                    if f.named.iter().any(|fld| fld.ident.as_ref().is_some_and(|i| i == field))))
     })
 }
 

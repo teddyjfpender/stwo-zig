@@ -2,7 +2,7 @@
   "schema": "stwo_cairo_official_witness_program_bundle_v1",
   "release_eligible": false,
   "release_blockers": [
-    "the bundle covers 30 of 64 generated base-trace writers",
+    "the bundle covers 51 of 64 generated base-trace writers",
     "helper and builtin input-edge reconstruction is not complete",
     "the complete SIMD and Metal proofs have not yet passed the official verifier"
   ],
@@ -23,12 +23,12 @@
     "path": "tools/cairo-witness-compiler",
     "receipt": {
       "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
-      "bytes": 1511,
-      "sha256": "237e862d2a334b99e00d6aefa5bbf8eb5edf26eb26e6c21540ea0805e0f97588"
+      "bytes": 2069,
+      "sha256": "227a4afb366f17ff2276926d5ae304758431b6807b9955784fb01927f5304c43"
     },
-    "orchestrator_sha256": "c8314ddeecc86b19e80f44d5f82363a0e9726dee9b6fc793bc7055aa3b627c80",
-    "rewriter_closure_sha256": "9e3ad4fb978bca2c02eb7cc6a2b459d1da86e215cca6551a490c3aec141e79f3",
-    "support_closure_sha256": "b8ab874425b59f7aff17ff158a8ebbe73b1dfdb60bf7496ef5ff20735f9d0f45",
+    "orchestrator_sha256": "423e7e7ee617c18dcbbe70097ffbe8ceff7c69160b84bb1b8887922122dd92ff",
+    "rewriter_closure_sha256": "33bf6e6236d7b9a52c9b94488bbe65d7e366dca1a4ec2c5307011f4840bc8670",
+    "support_closure_sha256": "31b7e1fbacf9a6849f3fcb712c65d745ad51a5d49c3a0b37395be12daac7cdac",
     "rustc": "rustc 1.94.0-nightly (86a49fd71 2026-01-14)",
     "cargo": "cargo 1.94.0-nightly (6d1bd93c4 2026-01-10)",
     "migration_equivalence": {
@@ -44,17 +44,38 @@
       "added_components": [
         "generic_opcode",
         "partial_ec_mul_window_bits_9",
-        "pedersen_aggregator_window_bits_9"
+        "pedersen_aggregator_window_bits_9",
+        "blake_round_sigma",
+        "pedersen_points_table_window_bits_18",
+        "pedersen_points_table_window_bits_9",
+        "poseidon_round_keys",
+        "range_check_11",
+        "range_check_12",
+        "range_check_18",
+        "range_check_20",
+        "range_check_3_3_3_3_3",
+        "range_check_3_6_6_3",
+        "range_check_4_3",
+        "range_check_4_4",
+        "range_check_4_4_4_4",
+        "range_check_6",
+        "range_check_7_2_5",
+        "range_check_8",
+        "range_check_9_9",
+        "verify_bitwise_xor_4",
+        "verify_bitwise_xor_7",
+        "verify_bitwise_xor_8",
+        "verify_bitwise_xor_9"
       ]
     }
   },
   "artifact": {
     "path": "vectors/cairo/official/witness_programs_v1.bin",
     "format": "STWZWIT/1",
-    "bytes": 1022640,
-    "sha256": "d807737856a1d58a199ece892e41580f1e2f2bf6d72e3636cbe7bdcd440e044f",
-    "component_count": 30,
-    "instruction_count": 63805,
+    "bytes": 1033694,
+    "sha256": "e143821a21e75609960f4ab54b4de61c2c6b9aee09a93c9ec603a67df1ee9fae",
+    "component_count": 51,
+    "instruction_count": 64419,
     "components": [
       "add_opcode",
       "add_opcode_small",
@@ -85,24 +106,45 @@
       "pedersen_aggregator_window_bits_9",
       "partial_ec_mul_window_bits_9",
       "cube_252",
-      "range_check_252_width_27"
+      "range_check_252_width_27",
+      "blake_round_sigma",
+      "pedersen_points_table_window_bits_18",
+      "pedersen_points_table_window_bits_9",
+      "poseidon_round_keys",
+      "range_check_11",
+      "range_check_12",
+      "range_check_18",
+      "range_check_20",
+      "range_check_3_3_3_3_3",
+      "range_check_3_6_6_3",
+      "range_check_4_3",
+      "range_check_4_4",
+      "range_check_4_4_4_4",
+      "range_check_6",
+      "range_check_7_2_5",
+      "range_check_8",
+      "range_check_9_9",
+      "verify_bitwise_xor_4",
+      "verify_bitwise_xor_7",
+      "verify_bitwise_xor_8",
+      "verify_bitwise_xor_9"
     ]
   },
   "parity": {
     "all_opcodes": {
       "input_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
       "checkpoint_sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
-      "active_recordings": 23,
+      "active_recordings": 41,
       "executed_recordings": 20,
-      "deferred_input_edges": 3,
+      "deferred_input_edges": 21,
       "column_mismatches": 0
     },
     "all_builtins": {
       "input_sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
       "checkpoint_sha256": "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
-      "active_recordings": 15,
+      "active_recordings": 34,
       "executed_recordings": 10,
-      "deferred_input_edges": 5,
+      "deferred_input_edges": 24,
       "column_mismatches": 0
     }
   }

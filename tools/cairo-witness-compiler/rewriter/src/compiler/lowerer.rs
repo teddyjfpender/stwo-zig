@@ -6,6 +6,24 @@ enum Target {
     Temp,
     Named(Ident),
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WriterShape {
+    Lookup,
+    LookupSub,
+    LookupSubInput,
+}
+
+impl WriterShape {
+    fn has_sub_inputs(self) -> bool {
+        matches!(self, Self::LookupSub | Self::LookupSubInput)
+    }
+
+    fn has_row_input(self) -> bool {
+        matches!(self, Self::LookupSubInput)
+    }
+}
+
 struct Lowerer {
     consts: BTreeMap<String, ConstVal>,
     /// Hoisted felt broadcast constants (G3), pre-decomposed into 28 canonical 9-bit
@@ -14,6 +32,9 @@ struct Lowerer {
     /// Preamble `let <name> = Seq::new(..)` idents; `<name>.packed_at(row_index)` is the
     /// packed row index (census-only until the lane feeds it as an input word, G4).
     seq_idents: BTreeSet<String>,
+    /// Named preprocessed columns in source declaration order. Their input slots
+    /// follow the enabler and iota slots and precede multiplicity columns.
+    preprocessed_slots: BTreeMap<String, usize>,
     addr_state: Option<String>,
     big_state: Option<String>,
     input_name: String,
@@ -25,6 +46,7 @@ struct Lowerer {
     row_name: String,
     lookup_name: String,
     sub_name: String,
+    writer_shape: WriterShape,
     lookup_fields: Vec<LookupField>,
     /// Declaration-order sub-input slots ((field, k) → flat base).
     sub_slots: Vec<SubSlot>,
