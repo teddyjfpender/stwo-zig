@@ -148,6 +148,20 @@ test "official Cairo all-opcodes commitment traces match Rust" {
         }
     }
     try std.testing.expectEqual(interaction.columns.len, column_cursor);
+    const public_sum = try cairo.statement.public_logup.sum(
+        allocator,
+        &input,
+        QM31.fromU32Unchecked(z_limbs[0], z_limbs[1], z_limbs[2], z_limbs[3]),
+        QM31.fromU32Unchecked(
+            alpha_limbs[0],
+            alpha_limbs[1],
+            alpha_limbs[2],
+            alpha_limbs[3],
+        ),
+    );
+    try std.testing.expect(
+        public_sum.add(interaction.component_sum).eql(QM31.zero()),
+    );
 }
 
 test "Cairo CPU AIR evaluates coefficients and denominators on domain" {

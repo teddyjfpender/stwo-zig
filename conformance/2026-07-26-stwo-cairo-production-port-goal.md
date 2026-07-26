@@ -356,6 +356,7 @@ As of the starting commit `cfd47be9`:
 | Official source identity | clean-source generated registry and pin-ledger gate | complete for frozen pin |
 | Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
+| Public lookup boundary | public program, output, safe-call, segment-pointer, and initial/final state relations are derived in official order; the resulting public LogUp term cancels all 46 all-opcodes component claims under the diagnostic challenge | complete for the frozen all-opcodes interaction checkpoint; transcript-derived challenge remains |
 | Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
 | Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
@@ -475,6 +476,14 @@ the diagnostic challenge it reproduces all 46 all-opcodes claimed sums and all
 official `public_data.logup_sum + component_sum == 0` statement check; component
 sums alone are intentionally not required to be zero. Real transcript-derived
 challenges and the interaction commitment root remain open.
+
+The statement layer now implements that public-data term independently. It
+enumerates program, safe-call, public segment pointer, and output memory in
+official order; contributes both address-to-ID and ID-to-big relations; and
+adds the signed final and initial opcode-state boundaries before one batch
+inverse. The diagnostic all-opcodes gate proves that this value plus the 46
+materialized component claims is exactly zero. This establishes the lookup
+statement law, not Fiat-Shamir placement.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The
