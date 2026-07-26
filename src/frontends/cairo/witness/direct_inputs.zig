@@ -12,8 +12,10 @@ pub const Error = error{
 };
 
 pub const builtin_components = [_][]const u8{
+    "add_mod_builtin",
     "bitwise_builtin",
     "ec_op_builtin",
+    "mul_mod_builtin",
     "range_check96_builtin",
     "range_check_builtin",
     "pedersen_builtin",
@@ -95,10 +97,14 @@ pub fn resolve(input: *const cairo_adapter.ProverInput, component: []const u8) E
         return .{ .opcode = .{ .states = states, .includes_iota = lane.includes_iota } };
     }
 
-    const segment = if (std.mem.eql(u8, component, "bitwise_builtin"))
+    const segment = if (std.mem.eql(u8, component, "add_mod_builtin"))
+        input.builtin_segments.add_mod_builtin
+    else if (std.mem.eql(u8, component, "bitwise_builtin"))
         input.builtin_segments.bitwise_builtin
     else if (std.mem.eql(u8, component, "ec_op_builtin"))
         input.builtin_segments.ec_op_builtin
+    else if (std.mem.eql(u8, component, "mul_mod_builtin"))
+        input.builtin_segments.mul_mod_builtin
     else if (std.mem.eql(u8, component, "range_check96_builtin"))
         input.builtin_segments.range_check96_builtin
     else if (std.mem.eql(u8, component, "range_check_builtin"))

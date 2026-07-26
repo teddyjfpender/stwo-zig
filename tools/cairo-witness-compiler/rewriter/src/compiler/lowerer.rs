@@ -2,6 +2,7 @@
 // Lowerer — the finite rewrite table (SSA flattening + type inference + effects)
 // ======================================================================================
 
+#[derive(Clone)]
 enum Target {
     Temp,
     Named(Ident),

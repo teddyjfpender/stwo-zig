@@ -310,6 +310,16 @@ impl Lowerer {
                 // receiver must never route through it, and out-of-range indices are
                 // SOURCE bugs that must skip loudly, not wrap.
                 match rt {
+                    Ty::Array(element, len) if element.is_m31() && i < len => {
+                        self.leaf(target, Ty::M31, quote! { #rtok[#lit] })
+                    }
+                    Ty::Array(element, len) if element.is_m31() => {
+                        self.skip(
+                            "expr",
+                            format!("get_m31({i}) out of range for M31 array ({len} words)"),
+                        );
+                        (Ty::Unknown, quote! { WG_SKIP })
+                    }
                     Ty::Felt252 if i < FELT252_LIMBS => {
                         self.emit_op(target, Ty::M31, quote! { eval.felt_get_m31(&#rtok, #lit) })
                     }
@@ -400,6 +410,13 @@ impl Lowerer {
             }
             "eq" => {
                 let (rt, rtok) = self.lower_node(&mc.receiver, Target::Temp);
+                if rt == Ty::BigUInt384DiffZeroMask
+                    && mc.args.len() == 1
+                    && tok_str(strip_parens(mc.args.first().expect("length checked")))
+                        == "BigUInt_384_6_32_0_0_0_0_0_0"
+                {
+                    return self.leaf(target, Ty::Mask, quote! { #rtok });
+                }
                 let (_at, atok) = self.lower_arg(mc.args.first());
                 if !rt.is_m31() {
                     self.skip("expr", format!("eq on non-M31 `{}`", tok_str(&mc.receiver)));

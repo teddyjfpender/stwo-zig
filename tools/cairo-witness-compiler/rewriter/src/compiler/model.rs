@@ -42,6 +42,14 @@ enum Ty {
     Mask,
     /// felt252, 28 x 9-bit limbs (the recording layer's `Felt`).
     Felt252,
+    /// Four low-96-bit felt words assembled as the official modulo builtin's
+    /// `PackedBigUInt<384, 6, 32>`. The token is `[E::Felt; 4]`; arithmetic remains
+    /// deliberately finite and only the exact add-mod equality idiom is admitted.
+    BigUInt384,
+    /// The unevaluated pair `(a, b)` in the official `BigUInt384(a) + BigUInt384(b)`.
+    BigUInt384Sum,
+    /// Mask token produced by the exact `(a + b - c) == 0` semantic hook.
+    BigUInt384DiffZeroMask,
     /// `Felt252Width27`, 10 x 27-bit limbs — OPAQUE (from input / deduce); census-only.
     FeltW27,
     /// `Felt252Width27` whose 10 M31 limb values are transformer-known SSA tokens.
@@ -83,6 +91,9 @@ impl std::fmt::Debug for Ty {
             Ty::U32 => write!(f, "U32"),
             Ty::Mask => write!(f, "Mask"),
             Ty::Felt252 => write!(f, "Felt252"),
+            Ty::BigUInt384 => write!(f, "BigUInt384"),
+            Ty::BigUInt384Sum => write!(f, "BigUInt384Sum"),
+            Ty::BigUInt384DiffZeroMask => write!(f, "BigUInt384DiffZeroMask"),
             Ty::FeltW27 => write!(f, "FeltW27"),
             Ty::FeltW27Limbs => write!(f, "FeltW27Limbs"),
             Ty::ConstM31(v) => write!(f, "ConstM31({v})"),

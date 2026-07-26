@@ -132,7 +132,10 @@ impl Lowerer {
             BinOp::Add(_) => {
                 let (lt, ltok) = self.lower_node(&b.left, Target::Temp);
                 let (rt, rtok) = self.lower_node(&b.right, Target::Temp);
-                if lt.is_m31() && rt.is_m31() {
+                if lt == Ty::BigUInt384 && rt == Ty::BigUInt384 {
+                    let token = self.bind(target, quote! { (#ltok, #rtok) });
+                    (Ty::BigUInt384Sum, token)
+                } else if lt.is_m31() && rt.is_m31() {
                     self.emit_op(target, Ty::M31, quote! { eval.m31_add(#ltok, #rtok) })
                 } else if lt.is_u16() && rt.is_u16() {
                     self.emit_op(target, Ty::U16, quote! { eval.u16_add(#ltok, #rtok) })
@@ -172,7 +175,13 @@ impl Lowerer {
             BinOp::Sub(_) => {
                 let (lt, ltok) = self.lower_node(&b.left, Target::Temp);
                 let (rt, rtok) = self.lower_node(&b.right, Target::Temp);
-                if lt.is_m31() && rt.is_m31() {
+                if lt == Ty::BigUInt384Sum && rt == Ty::BigUInt384 {
+                    let token = self.bind(
+                        target,
+                        quote! { eval.deduce_add_mod_is_zero(#ltok.0, #ltok.1, #rtok) },
+                    );
+                    (Ty::BigUInt384DiffZeroMask, token)
+                } else if lt.is_m31() && rt.is_m31() {
                     self.emit_op(target, Ty::M31, quote! { eval.m31_sub(#ltok, #rtok) })
                 } else if lt.is_u32() && rt.is_u32() {
                     let l = self.u32ish_value(lt, ltok);

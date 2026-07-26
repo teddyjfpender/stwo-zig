@@ -3,12 +3,13 @@ use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
 use super::components::{
-    add_ap_opcode, add_opcode, add_opcode_small, assert_eq_opcode, assert_eq_opcode_double_deref,
-    assert_eq_opcode_imm, bitwise_builtin, blake_g, blake_round, blake_round_sigma,
-    call_opcode_abs, call_opcode_rel_imm, cube_252, ec_op_builtin, generic_opcode,
-    jnz_opcode_non_taken, jnz_opcode_taken, jump_opcode_abs, jump_opcode_double_deref,
-    jump_opcode_rel, jump_opcode_rel_imm, mul_opcode, mul_opcode_small, partial_ec_mul_generic,
-    partial_ec_mul_window_bits_18, partial_ec_mul_window_bits_9,
+    add_ap_opcode, add_mod_builtin, add_opcode, add_opcode_small, assert_eq_opcode,
+    assert_eq_opcode_double_deref, assert_eq_opcode_imm, bitwise_builtin, blake_g, blake_round,
+    blake_round_sigma, call_opcode_abs, call_opcode_rel_imm, cube_252, ec_op_builtin,
+    generic_opcode, jnz_opcode_non_taken, jnz_opcode_taken, jump_opcode_abs,
+    jump_opcode_double_deref, jump_opcode_rel, jump_opcode_rel_imm, mul_mod_builtin, mul_opcode,
+    mul_opcode_small, partial_ec_mul_generic, partial_ec_mul_window_bits_18,
+    partial_ec_mul_window_bits_9,
     pedersen_aggregator_window_bits_18, pedersen_aggregator_window_bits_9, pedersen_builtin,
     pedersen_builtin_narrow_windows, pedersen_points_table_window_bits_18,
     pedersen_points_table_window_bits_9, poseidon_3_partial_rounds_chain, poseidon_aggregator,
@@ -201,6 +202,8 @@ fn recordings() -> Vec<(&'static str, RecordingOutput)> {
             "range_check_builtin",
             range_check_builtin::record_range_check_builtin(),
         ),
+        ("add_mod_builtin", add_mod_builtin::record_add_mod_builtin()),
+        ("mul_mod_builtin", mul_mod_builtin::record_mul_mod_builtin()),
         ("ec_op_builtin", ec_op_builtin::record_ec_op_builtin()),
     ]
 }

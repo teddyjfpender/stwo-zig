@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const felt252 = @import("felt252.zig");
+const mod_biguint = @import("mod_biguint.zig");
 const partial_ec_mul_generic = @import("partial_ec_mul_generic.zig");
 const program = @import("../program.zig");
 
@@ -21,6 +22,8 @@ pub const Selector = enum(u32) {
     partial_ec_mul_w9 = 12,
     pedersen_points_table_w9 = 13,
     partial_ec_mul_generic = 14,
+    add_mod_is_zero = 15,
+    mul_mod_quotient = 16,
 };
 
 pub fn context() program.DeduceContext {
@@ -36,11 +39,14 @@ fn call(_: *anyopaque, raw_selector: u32, args: []const u32, outputs: []u32) !vo
         .felt_mul => try felt252.apply(.mul, args, outputs),
         .felt_div => try felt252.apply(.div, args, outputs),
         .partial_ec_mul_generic => try partial_ec_mul_generic.apply(args, outputs),
+        .add_mod_is_zero => try mod_biguint.applyAddIsZero(args, outputs),
+        .mul_mod_quotient => try mod_biguint.applyMulQuotient(args, outputs),
         else => return error.UnsupportedDeduction,
     }
 }
 
 test {
     _ = felt252;
+    _ = mod_biguint;
     _ = partial_ec_mul_generic;
 }

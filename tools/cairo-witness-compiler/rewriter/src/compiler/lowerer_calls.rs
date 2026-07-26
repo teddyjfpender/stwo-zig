@@ -1,5 +1,11 @@
 impl Lowerer {
     fn lower_call(&mut self, call: &ExprCall, target: Target) -> (Ty, TokenStream) {
+        if let Some(lowered) = self.lower_mul_mod_quotient(call, target.clone()) {
+            return lowered;
+        }
+        if let Some(lowered) = self.lower_biguint384_felt4(call, target.clone()) {
+            return lowered;
+        }
         let path = match &*call.func {
             Expr::Path(p) => tok_str(&p.path),
             other => {

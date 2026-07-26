@@ -150,6 +150,10 @@ pub enum DeduceKind {
     /// Generic Cairo EC-mul step: chain, round, ten width-27 scalar words, two point
     /// felts, two accumulator felts, and counter (2 + 10 + 56 + 56 + 1 = 125).
     PartialEcMulGeneric = 14,
+    /// Add-mod zero test: three arrays of four felt252 values (3 * 4 * 28 words).
+    AddModIsZero = 15,
+    /// Mul-mod quotient: four arrays of four felt252 values to 32 12-bit words.
+    MulModQuotient = 16,
 }
 
 impl DeduceKind {
@@ -170,6 +174,8 @@ impl DeduceKind {
             12 => Self::PartialEcMulW9,
             13 => Self::PedersenPointsTableW9,
             14 => Self::PartialEcMulGeneric,
+            15 => Self::AddModIsZero,
+            16 => Self::MulModQuotient,
             _ => return None,
         })
     }
@@ -188,6 +194,8 @@ impl DeduceKind {
             Self::PartialEcMulW9 => (86, 86),
             Self::PedersenPointsTableW9 => (1, 56),
             Self::PartialEcMulGeneric => (125, 125),
+            Self::AddModIsZero => (336, 1),
+            Self::MulModQuotient => (448, 32),
         }
     }
 }
@@ -375,12 +383,14 @@ mod tests {
 
     #[test]
     fn deduce_selector_roundtrip_is_total() {
-        for raw in 0..=14 {
+        for raw in 0..=16 {
             let kind = DeduceKind::from_raw(raw).expect("known selector");
             assert_eq!(kind as u32, raw);
         }
-        assert!(DeduceKind::from_raw(15).is_none());
+        assert!(DeduceKind::from_raw(17).is_none());
         assert_eq!(DeduceKind::PartialEcMulGeneric.shape(), (125, 125));
+        assert_eq!(DeduceKind::AddModIsZero.shape(), (336, 1));
+        assert_eq!(DeduceKind::MulModQuotient.shape(), (448, 32));
     }
 
     #[test]

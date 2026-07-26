@@ -14,6 +14,7 @@ mod compiler {
     include!("compiler/deduce_analysis.rs");
     include!("compiler/lowerer.rs");
     include!("compiler/lowerer_bindings.rs");
+    include!("compiler/lowerer_mod_builtin.rs");
     include!("compiler/lowerer_expressions.rs");
     include!("compiler/lowerer_calls.rs");
     include!("compiler/lowerer_operators.rs");

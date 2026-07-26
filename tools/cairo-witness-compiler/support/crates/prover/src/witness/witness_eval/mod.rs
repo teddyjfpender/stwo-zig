@@ -281,6 +281,24 @@ pub trait WitnessEval {
         ([Self::M31; 10], [Self::Felt; 2], [Self::Felt; 2], Self::M31),
     );
 
+    /// Official add-mod boundary over four 96-bit felt words per operand:
+    /// lane-wise `(a + b - c) == 0` in `BigUInt<384, 6, 32>`.
+    fn deduce_add_mod_is_zero(
+        &mut self,
+        a: [Self::Felt; 4],
+        b: [Self::Felt; 4],
+        c: [Self::Felt; 4],
+    ) -> Self::Mask;
+
+    /// Official mul-mod quotient boundary, returned as 32 little-endian 12-bit words.
+    fn deduce_mul_mod_quotient(
+        &mut self,
+        p: [Self::Felt; 4],
+        a: [Self::Felt; 4],
+        b: [Self::Felt; 4],
+        c: [Self::Felt; 4],
+    ) -> [Self::M31; 32];
+
     /// `PackedBlakeG::deduce_output` (fast_deduction/blake.rs): the blake g-function,
     /// `[a, b, c, d, m0, m1] -> [a', b', c', d']` on full 32-bit words.
     fn deduce_blake_g(&mut self, input: [Self::U32; 6]) -> [Self::U32; 4];

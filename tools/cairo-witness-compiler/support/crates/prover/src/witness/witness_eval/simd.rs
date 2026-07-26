@@ -434,6 +434,42 @@ impl<const N: usize> WitnessEval for SimdWitnessEval<'_, '_, N> {
     }
 
     #[inline(always)]
+    fn deduce_add_mod_is_zero(
+        &mut self,
+        a: [PackedFelt252; 4],
+        b: [PackedFelt252; 4],
+        c: [PackedFelt252; 4],
+    ) -> PackedBool {
+        let difference = (PackedBigUInt::<384, 6, 32>::from_packed_felt252_array(&a)
+            + PackedBigUInt::<384, 6, 32>::from_packed_felt252_array(&b))
+            - PackedBigUInt::<384, 6, 32>::from_packed_felt252_array(&c);
+        difference.eq(PackedBigUInt::<384, 6, 32>::broadcast(BigUInt::default()))
+    }
+
+    #[inline(always)]
+    fn deduce_mul_mod_quotient(
+        &mut self,
+        p: [PackedFelt252; 4],
+        a: [PackedFelt252; 4],
+        b: [PackedFelt252; 4],
+        c: [PackedFelt252; 4],
+    ) -> [PackedM31; 32] {
+        let product = PackedBigUInt::<384, 6, 32>::from_packed_felt252_array(&a)
+            .widening_mul::<768, 12, 64>(
+                PackedBigUInt::<384, 6, 32>::from_packed_felt252_array(&b),
+            );
+        let c = PackedBigUInt::<768, 12, 64>::from_packed_biguint(
+            PackedBigUInt::<384, 6, 32>::from_packed_felt252_array(&c),
+        );
+        let p = PackedBigUInt::<768, 12, 64>::from_packed_biguint(
+            PackedBigUInt::<384, 6, 32>::from_packed_felt252_array(&p),
+        );
+        let quotient =
+            PackedBigUInt::<384, 6, 32>::from_packed_biguint((product - c) / p);
+        std::array::from_fn(|index| quotient.get_m31(index))
+    }
+
+    #[inline(always)]
     fn deduce_blake_g(&mut self, input: [PackedUInt32; 6]) -> [PackedUInt32; 4] {
         PackedBlakeG::deduce_output(input)
     }

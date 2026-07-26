@@ -479,6 +479,47 @@ impl WitnessEval for RecordingWitnessEval {
         )
     }
 
+    fn deduce_add_mod_is_zero(
+        &mut self,
+        a: [RecFelt; 4],
+        b: [RecFelt; 4],
+        c: [RecFelt; 4],
+    ) -> RecVal {
+        let args = (|| {
+            let mut args = Vec::with_capacity(3 * 4 * FELT_N_LIMBS);
+            for felt in a.iter().chain(&b).chain(&c) {
+                args.extend(self.felt_arg_limbs(felt)?);
+            }
+            Some(args)
+        })();
+        let Some(args) = args else {
+            return self.poison("deduce_add_mod_is_zero");
+        };
+        RecVal::Ok(self.recorder.deduce(DeduceKind::AddModIsZero, &args)[0])
+    }
+
+    fn deduce_mul_mod_quotient(
+        &mut self,
+        p: [RecFelt; 4],
+        a: [RecFelt; 4],
+        b: [RecFelt; 4],
+        c: [RecFelt; 4],
+    ) -> [RecVal; 32] {
+        let args = (|| {
+            let mut args = Vec::with_capacity(4 * 4 * FELT_N_LIMBS);
+            for felt in p.iter().chain(&a).chain(&b).chain(&c) {
+                args.extend(self.felt_arg_limbs(felt)?);
+            }
+            Some(args)
+        })();
+        let Some(args) = args else {
+            let poison = self.poison("deduce_mul_mod_quotient");
+            return [poison; 32];
+        };
+        let outputs = self.recorder.deduce(DeduceKind::MulModQuotient, &args);
+        std::array::from_fn(|index| RecVal::Ok(outputs[index]))
+    }
+
     fn deduce_blake_g(&mut self, input: [RecVal; 6]) -> [RecVal; 4] {
         let Some(args) = Self::plain_args(&input) else {
             let p = self.poison("deduce_blake_g");

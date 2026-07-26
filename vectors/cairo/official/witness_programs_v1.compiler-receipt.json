@@ -1,8 +1,9 @@
 {
-  "artifact_bytes": 2347388,
-  "artifact_sha256": "bad91018e189640cc8d31f40de9e18a7e3acac2921bb63fa395a599fcb893d23",
+  "artifact_bytes": 2486826,
+  "artifact_sha256": "d119a31ecf07c0e4d97ad5884384d99150517ffddfb4515ebbe5c626ce28094f",
   "emitted_components": [
     "add_ap_opcode",
+    "add_mod_builtin",
     "add_opcode",
     "add_opcode_small",
     "assert_eq_opcode",
@@ -23,6 +24,7 @@
     "jump_opcode_double_deref",
     "jump_opcode_rel",
     "jump_opcode_rel_imm",
+    "mul_mod_builtin",
     "mul_opcode",
     "mul_opcode_small",
     "partial_ec_mul_generic",
@@ -64,15 +66,15 @@
     "verify_bitwise_xor_9",
     "verify_instruction"
   ],
-  "instruction_count": 146487,
+  "instruction_count": 155195,
   "official_source": {
     "commit_timestamp": 1784709583,
     "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
     "tree": "2b06286971d87c6d3e834de622d3777f1ff9f41f"
   },
-  "orchestrator_sha256": "6ce9aeeb5f29fb6cd62c861b4bb1fb14b44e005e306564e2e288a57c6c442f82",
-  "program_count": 61,
-  "rewriter_closure_sha256": "0e8b4b95a7bea0fc2df06bb5fca4a38e9b21feb35c989ad1823311b2abd8b899",
+  "orchestrator_sha256": "9225890c389f7046d7260cb5e937db29eff4cb64cf9526679736a924784dc669",
+  "program_count": 63,
+  "rewriter_closure_sha256": "928574841411d08ffc0d934c6deba8ecb2b8ba75a741b8a1b0679390c475afa1",
   "schema": "stwo_zig_cairo_witness_compiler_receipt_v1",
-  "support_closure_sha256": "fee9b90edff2b07fe74466c3b2627f159815e94e4a511f998420a951d13d1d22"
+  "support_closure_sha256": "617c949b0609e2ccd86462f56c0cbc3861d9a445942a588c965dba0475b9c98e"
 }

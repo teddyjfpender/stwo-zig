@@ -23,13 +23,14 @@ OFFICIAL_WITNESS_MOD_SHA256 = (
     "e0113af8099143ea2770312bff24bc1e2fa5329933b272bac0fdae815b0de448"
 )
 EXPECTED_BUNDLE_SHA256 = (
-    "bad91018e189640cc8d31f40de9e18a7e3acac2921bb63fa395a599fcb893d23"
+    "d119a31ecf07c0e4d97ad5884384d99150517ffddfb4515ebbe5c626ce28094f"
 )
-EXPECTED_BUNDLE_BYTES = 2_347_388
-EXPECTED_PROGRAM_COUNT = 61
+EXPECTED_BUNDLE_BYTES = 2_486_826
+EXPECTED_PROGRAM_COUNT = 63
 
 COMPONENTS = (
     "add_ap_opcode",
+    "add_mod_builtin",
     "add_opcode",
     "add_opcode_small",
     "assert_eq_opcode",
@@ -50,6 +51,7 @@ COMPONENTS = (
     "jump_opcode_double_deref",
     "jump_opcode_rel",
     "jump_opcode_rel_imm",
+    "mul_mod_builtin",
     "mul_opcode",
     "mul_opcode_small",
     "partial_ec_mul_generic",
