@@ -19,6 +19,7 @@ pub const integrations = struct {
 
 pub const interop = struct {
     pub const atomic_file = @import("interop/atomic_file.zig");
+    pub const bzip2 = @import("interop/bzip2.zig");
     pub const output_transaction = @import("interop/output_transaction.zig");
 };
 

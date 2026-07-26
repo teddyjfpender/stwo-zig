@@ -2389,6 +2389,8 @@ name = "stwo-cairo-official-verifier"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
+ "bzip2",
  "cairo-air",
  "serde",
  "serde_json",

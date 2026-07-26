@@ -6,8 +6,8 @@ use std::time::Instant;
 use serde::Serialize;
 use stwo_cairo_official_verifier::{
     ADAPTER_VERSION, Channel, ProofFormat, STWO_CAIRO_REVISION, STWO_REVISION, identity,
-    input::inspect_input, inspect_blake2s_proof_claim, proof_sha256, verify_proof, write_json_new,
-    write_json_pretty_new,
+    input::inspect_input, inspect_blake2s_proof_claim, proof_sha256, verify_proof, write_bytes_new,
+    write_json_new, write_json_pretty_new,
 };
 
 enum Command {
@@ -24,6 +24,15 @@ enum Command {
     SerializeCairo {
         proof: PathBuf,
         format: ProofFormat,
+        result: PathBuf,
+    },
+    SerializeBinaryRaw {
+        proof: PathBuf,
+        format: ProofFormat,
+        result: PathBuf,
+    },
+    DecompressBinary {
+        proof: PathBuf,
         result: PathBuf,
     },
     Verify {
@@ -93,6 +102,24 @@ fn run() -> anyhow::Result<ExitCode> {
                 &stwo_cairo_official_verifier::cairo_serde::serialize_blake2s_proof(
                     &proof, format,
                 )?,
+            )?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::SerializeBinaryRaw {
+            proof,
+            format,
+            result,
+        } => {
+            write_bytes_new(
+                &result,
+                &stwo_cairo_official_verifier::binary::serialize_blake2s_proof(&proof, format)?,
+            )?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::DecompressBinary { proof, result } => {
+            write_bytes_new(
+                &result,
+                &stwo_cairo_official_verifier::binary::decompress(&proof)?,
             )?;
             Ok(ExitCode::SUCCESS)
         }
@@ -216,6 +243,18 @@ where
                 result,
             })
         }
+        "serialize-binary-raw" => {
+            let (proof, format, result) = parse_proof_transform_args(args)?;
+            Ok(Command::SerializeBinaryRaw {
+                proof,
+                format,
+                result,
+            })
+        }
+        "decompress-binary" => {
+            let (proof, result) = parse_path_result_args(args)?;
+            Ok(Command::DecompressBinary { proof, result })
+        }
         "verify" => {
             let mut proof = None;
             let mut channel = None;
@@ -252,6 +291,32 @@ where
         }
         _ => anyhow::bail!("unknown command {command}"),
     }
+}
+
+fn parse_path_result_args<I>(mut args: I) -> anyhow::Result<(PathBuf, PathBuf)>
+where
+    I: Iterator<Item = OsString>,
+{
+    let mut proof = None;
+    let mut result = None;
+    while let Some(flag) = args.next() {
+        let flag = flag
+            .into_string()
+            .map_err(|_| anyhow::anyhow!("option is not valid UTF-8"))?;
+        let value = args
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("missing value for {flag}"))?;
+        match flag.as_str() {
+            "--proof" if proof.is_none() => proof = Some(PathBuf::from(value)),
+            "--result" if result.is_none() => result = Some(PathBuf::from(value)),
+            "--proof" | "--result" => anyhow::bail!("duplicate option {flag}"),
+            _ => anyhow::bail!("unknown option {flag}"),
+        }
+    }
+    Ok((
+        proof.ok_or_else(|| anyhow::anyhow!("missing --proof"))?,
+        result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
+    ))
 }
 
 fn parse_proof_transform_args<I>(mut args: I) -> anyhow::Result<(PathBuf, ProofFormat, PathBuf)>

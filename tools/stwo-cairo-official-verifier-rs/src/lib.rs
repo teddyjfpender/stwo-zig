@@ -17,6 +17,7 @@ use stwo::core::vcs_lifted::poseidon252_merkle::{
     Poseidon252MerkleChannel, Poseidon252MerkleHasher,
 };
 
+pub mod binary;
 pub mod cairo_serde;
 pub mod claim;
 pub mod input;
@@ -194,6 +195,41 @@ pub fn write_json_new(path: &Path, value: &impl Serialize) -> Result<()> {
 
 pub fn write_json_pretty_new(path: &Path, value: &impl Serialize) -> Result<()> {
     write_json_new_with(path, value, true, false)
+}
+
+pub fn write_bytes_new(path: &Path, bytes: &[u8]) -> Result<()> {
+    let parent = path
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let name = path.file_name().context("result path has no file name")?;
+    for sequence in 0..1_000_u32 {
+        let temporary = parent.join(format!(
+            ".{}.{}.{}.tmp",
+            name.to_string_lossy(),
+            std::process::id(),
+            sequence
+        ));
+        let mut file = match File::options()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+        {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error).context("failed to create result temporary file"),
+        };
+        let publish = (|| -> Result<()> {
+            file.write_all(bytes).context("failed to write result")?;
+            file.sync_all().context("failed to sync result")?;
+            std::fs::hard_link(&temporary, path)
+                .with_context(|| format!("refusing to replace {}", path.display()))
+        })();
+        drop(file);
+        std::fs::remove_file(&temporary).ok();
+        return publish;
+    }
+    bail!("unable to allocate a unique result temporary file")
 }
 
 fn write_json_new_with(

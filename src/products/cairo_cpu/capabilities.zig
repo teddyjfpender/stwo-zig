@@ -18,7 +18,7 @@ pub fn write(writer: anytype) !void {
             .commands = &[_][]const u8{"prove"},
         },
         .channels = &[_][]const u8{"blake2s"},
-        .proof_formats = &[_][]const u8{ "json", "cairo-serde" },
+        .proof_formats = &[_][]const u8{ "json", "cairo-serde", "binary" },
         .profiles = profile.supported_profiles[0..],
         .verification = .{
             .zig = true,

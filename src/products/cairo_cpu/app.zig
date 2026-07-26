@@ -10,6 +10,7 @@ const profile = @import("profile.zig");
 const cairo = stwo.frontends.cairo;
 const cairo_cpu = stwo.integrations.cairo_cpu;
 const atomic_file = stwo.interop.atomic_file;
+const bzip2 = stwo.interop.bzip2;
 const output_transaction = stwo.interop.output_transaction;
 
 pub fn main() !void {
@@ -32,7 +33,6 @@ pub fn main() !void {
 }
 
 fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
-    if (request.proof_format == .binary) return error.UnsupportedProofFormat;
     try output_transaction.prepare(request.proof, request.report_out);
 
     const owned_manifest = if (request.params == null)
@@ -50,7 +50,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         request.prover_input,
     );
     defer input.deinit(allocator);
-    if (request.proof_format == .cairo_serde)
+    if (request.proof_format != .json)
         try cairo.proof.cairo_serde.validateInput(&input);
     var programs = try cairo.witness.bundle.Bundle.readFile(
         allocator,
@@ -183,7 +183,23 @@ fn writeProof(
             0,
             &result.proof.proof,
         ),
-        .binary => return error.UnsupportedProofFormat,
+        .binary => {
+            var raw = std.ArrayList(u8).empty;
+            defer raw.deinit(allocator);
+            try cairo.proof.binary.writeDocument(
+                raw.writer(allocator),
+                input,
+                &result.composition,
+                result.claimed_sums,
+                result.interaction_pow,
+                0,
+                result.preprocessed_variant,
+                &result.proof.proof,
+            );
+            const compressed = try bzip2.compressAlloc(allocator, raw.items);
+            defer allocator.free(compressed);
+            try file_writer.interface.writeAll(compressed);
+        },
     }
     try file_writer.interface.flush();
     try file.sync();

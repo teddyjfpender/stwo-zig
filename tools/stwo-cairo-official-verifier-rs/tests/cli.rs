@@ -105,6 +105,36 @@ fn cairo_serde_transport_is_pinned_to_the_official_vector() {
 }
 
 #[test]
+fn binary_transport_is_pinned_to_the_official_vector() {
+    let directory = tempdir().unwrap();
+    let serialized = directory.path().join("proof.serialized.raw");
+    let decompressed = directory.path().join("proof.decompressed.raw");
+    let serialize_status = Command::new(binary())
+        .args(["serialize-binary-raw", "--proof"])
+        .arg(proof_vector())
+        .args(["--proof-format", "binary", "--result"])
+        .arg(&serialized)
+        .status()
+        .unwrap();
+    assert!(serialize_status.success());
+    let decompress_status = Command::new(binary())
+        .args(["decompress-binary", "--proof"])
+        .arg(proof_vector())
+        .args(["--result"])
+        .arg(&decompressed)
+        .status()
+        .unwrap();
+    assert!(decompress_status.success());
+    let encoded = std::fs::read(&serialized).unwrap();
+    assert_eq!(encoded.len(), 1_239_094);
+    assert_eq!(encoded, std::fs::read(&decompressed).unwrap());
+    assert_eq!(
+        stwo_cairo_official_verifier::proof_sha256(&serialized).unwrap(),
+        "1fa7771df466fbea74870ca14d6905ead968b70b1b0156e8caa6b7512e8f8b4c"
+    );
+}
+
+#[test]
 fn invalid_proof_publishes_a_rejection_without_replacing_results() {
     let directory = tempdir().unwrap();
     let proof = directory.path().join("proof.json");

@@ -173,7 +173,7 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
         .prove => try writer.writeAll(
             \\Usage: stwo-cairo-cpu prove --prover-input PATH --proof PATH [options]
             \\  --params PATH          Authenticated proving-profile manifest
-            \\  --proof-format FORMAT  json or cairo-serde (binary is gated)
+            \\  --proof-format FORMAT  json, cairo-serde, or binary
             \\  --report-out PATH      Write the machine-readable proving report
             \\  --verify               Verify before publishing the proof
             \\
@@ -224,6 +224,23 @@ test "Cairo CPU CLI admits the released Cairo-serde spelling" {
     );
     try std.testing.expectEqualStrings(
         "cairo-serde",
+        parsed.prove.proof_format.name(),
+    );
+}
+
+test "Cairo CPU CLI admits the official compressed binary format" {
+    const parsed = try parse(&.{
+        "prove",
+        "--prover-input",
+        "program.json",
+        "--proof",
+        "proof.bin",
+        "--proof-format",
+        "binary",
+    });
+    try std.testing.expectEqual(ProofFormat.binary, parsed.prove.proof_format);
+    try std.testing.expectEqualStrings(
+        "binary",
         parsed.prove.proof_format.name(),
     );
 }
