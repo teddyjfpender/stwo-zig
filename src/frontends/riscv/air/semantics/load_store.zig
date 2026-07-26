@@ -5,7 +5,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
 pub const N_ORACLE_COLUMNS: usize = 56;
-pub const N_CONSTRAINTS: usize = 57;
+pub const N_CONSTRAINTS: usize = 69;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
 pub const Row = struct {
@@ -199,6 +199,37 @@ pub fn evaluate(row: Row) Constraints {
             .add(row.is_sw.mul(row.dst.next[limb].sub(row.src.next[limb])));
         n += 1;
     }
+    // Read-only accesses must emit exactly the value they consumed. The
+    // access chain commits `previous` and `next` as distinct column groups
+    // and the semantics above compute on `next`, so without these residuals
+    // both source operands are free prover choices that are also written back
+    // to the register file or memory. `rs1` is always read-only; `src` is
+    // read-only in both directions (the loaded memory word or the stored data
+    // register). `dst` is the written access — its `next` is pinned by the
+    // load result link and the store constraints instead.
+    const enabler = row.active();
+    for (common.readOnlyAccessConstraints(row.rs1, enabler)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    for (common.readOnlyAccessConstraints(row.src, enabler)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    // A byte or halfword store overwrites only its marked bytes; every
+    // unmarked byte of the target memory word must survive unchanged. The
+    // marker set is already pinned by the marker-sum and shift-id constraints
+    // (exactly {offset} for SB and exactly {0,1} or {2,3} for SH), so this
+    // closes the otherwise-free unmarked limbs of `dst.next`. SW stays a
+    // full-word overwrite through the word constraints above and loads are
+    // unaffected.
+    const partial_store = row.is_sb.add(row.is_sh);
+    for (0..4) |limb| {
+        out[n] = partial_store
+            .mul(QM31.one().sub(row.markers[limb]))
+            .mul(row.dst.next[limb].sub(row.dst.previous[limb]));
+        n += 1;
+    }
     for (common.destinationConstraints(row.r2_idx, row.destination)) |constraint| {
         out[n] = constraint;
         n += 1;
@@ -290,7 +321,8 @@ fn honestSignedByteLoad() Row {
     dst.next = .{ common.q(128), common.q(255), common.q(255), common.q(255) };
     var src = zeroAccess();
     src.addr = QM31.zero();
-    src.next = .{ common.q(7), common.q(128), common.q(9), common.q(10) };
+    src.previous = .{ common.q(7), common.q(128), common.q(9), common.q(10) };
+    src.next = src.previous;
     return .{
         .clk = QM31.one(),
         .pc = common.q(0x1000),
@@ -345,6 +377,45 @@ test "load store: forged selected byte and unaligned selector are rejected" {
     try std.testing.expect(!evaluate(row).allZero());
 }
 
+test "load store: read-only accesses must emit the value they consumed" {
+    var row = honestSignedByteLoad();
+    row.rs1.previous[0] = common.q(7);
+    try std.testing.expect(!evaluate(row).allZero());
+
+    row = honestSignedByteLoad();
+    row.src.previous[1] = common.q(64);
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
+fn honestByteStore() Row {
+    var row = honestSignedByteLoad();
+    row.is_lb = QM31.zero();
+    row.is_sb = QM31.one();
+    row.src_msb = QM31.zero();
+    row.r2_idx = common.q(3);
+    row.destination = .{
+        .nonzero = QM31.one(),
+        .inverse = common.q(3).inv() catch unreachable,
+    };
+    row.src.addr = common.q(3);
+    row.src.previous = .{ common.q(0xab), QM31.zero(), QM31.zero(), QM31.zero() };
+    row.src.next = row.src.previous;
+    row.dst.addr = QM31.zero();
+    row.dst.previous = .{ common.q(1), common.q(2), common.q(3), common.q(4) };
+    row.dst.next = .{ common.q(1), common.q(0xab), common.q(3), common.q(4) };
+    row.result = .{QM31.zero()} ** 4;
+    row.src_addr_selector = common.q(3);
+    row.dst_addr_selector = QM31.zero();
+    return row;
+}
+
+test "load store: byte store preserves the unmarked bytes of the word" {
+    var row = honestByteStore();
+    try std.testing.expect(evaluate(row).allZero());
+    row.dst.next[3] = common.q(0xee);
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
 test "load store: signed-load range requests bind the selected sign byte" {
     const table = @import("../lookups/tables/schema.zig");
 
@@ -390,7 +461,8 @@ test "load store: word store reverses register and memory roles" {
         .inverse = common.q(3).inv() catch unreachable,
     };
     row.src.addr = common.q(3);
-    row.src.next = .{ common.q(1), common.q(2), common.q(3), common.q(4) };
+    row.src.previous = .{ common.q(1), common.q(2), common.q(3), common.q(4) };
+    row.src.next = row.src.previous;
     row.dst.next = row.src.next;
     row.result = .{QM31.zero()} ** 4;
     row.src_addr_selector = common.q(3);
