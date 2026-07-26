@@ -32,6 +32,24 @@ pub const LookupSource = struct {
     column_major_words: []const u32,
 };
 
+pub const MaterializedTrace = struct {
+    allocator: std.mem.Allocator,
+    values: []QM31,
+    row_count: usize,
+    column_count: usize,
+    claimed_sum: QM31,
+
+    pub fn deinit(self: *MaterializedTrace) void {
+        self.allocator.free(self.values);
+        self.* = undefined;
+    }
+
+    pub fn column(self: MaterializedTrace, index: usize) []const QM31 {
+        std.debug.assert(index < self.column_count);
+        return self.values[index * self.row_count ..][0..self.row_count];
+    }
+};
+
 /// Compares one generated component against an official interaction receipt.
 ///
 /// Secure columns are materialized one component at a time. Coordinate hashes
@@ -107,52 +125,27 @@ pub fn compareTrace(
     z: interaction_checkpoint.SecureLimbs,
     alpha_powers: []const interaction_checkpoint.SecureLimbs,
 ) !?Mismatch {
-    const descriptor_count = descriptors.len / interaction_trace.descriptor_words;
-    if (descriptors.len == 0 or
-        descriptors.len % interaction_trace.descriptor_words != 0 or
-        expected.columns.len != descriptor_count * 4)
-        return mismatch(.interaction_geometry, expected);
-
     const powers = try secureFields(allocator, alpha_powers);
     defer allocator.free(powers);
-    var reference = try interaction_trace.Reference.init(
+    var materialized = try materializeTrace(
         allocator,
         descriptors,
         source,
         secureField(z),
         powers,
     );
-    defer reference.deinit();
+    defer materialized.deinit();
 
-    const value_count = std.math.mul(
-        usize,
-        reference.columnCount(),
-        source.rows(),
-    ) catch return error.AllocationSizeOverflow;
-    const values = try allocator.alloc(QM31, value_count);
-    defer allocator.free(values);
-    var claimed_sum = QM31.zero();
-    const batch_rows: usize = 1 << 15;
-    var first_row: usize = 0;
-    while (first_row < source.rows()) : (first_row += batch_rows) {
-        const rows = @min(batch_rows, source.rows() - first_row);
-        claimed_sum = claimed_sum.add(try reference.evaluateRange(
-            first_row,
-            rows,
-            values,
-        ));
-    }
-    if (!claimed_sum.eql(secureField(expected.claimed_sum_m31)))
+    const descriptor_count = descriptors.len / interaction_trace.descriptor_words;
+    if (descriptors.len == 0 or
+        descriptors.len % interaction_trace.descriptor_words != 0 or
+        expected.columns.len != descriptor_count * 4)
+        return mismatch(.interaction_geometry, expected);
+    if (!materialized.claimed_sum.eql(secureField(expected.claimed_sum_m31)))
         return mismatch(.claimed_sum, expected);
-    const final_column = values[(reference.columnCount() - 1) * source.rows() ..][0..source.rows()];
-    const final_prefix = try interaction_trace.scanLastColumnInPlace(
-        final_column,
-        claimed_sum,
-    );
-    if (!final_prefix.eql(QM31.zero())) return mismatch(.claimed_sum, expected);
 
-    for (0..reference.columnCount()) |secure_column| {
-        const secure_values = values[secure_column * source.rows() ..][0..source.rows()];
+    for (0..materialized.column_count) |secure_column| {
+        const secure_values = materialized.column(secure_column);
         for (0..4) |coordinate| {
             const column_ordinal: u32 = @intCast(secure_column * 4 + coordinate);
             const actual = try interaction_checkpoint.digestSecureCoordinate(
@@ -163,7 +156,7 @@ pub fn compareTrace(
                 @intCast(coordinate),
             );
             const expected_column = expected.columns[column_ordinal];
-            if (expected_column.row_count != source.rows())
+            if (expected_column.row_count != materialized.row_count)
                 return mismatch(.interaction_geometry, expected);
             if (!std.mem.eql(u8, &actual, &expected_column.sha256)) return .{
                 .kind = .column_digest,
@@ -176,6 +169,56 @@ pub fn compareTrace(
         }
     }
     return null;
+}
+
+pub fn materializeTrace(
+    allocator: std.mem.Allocator,
+    descriptors: []const u32,
+    source: interaction_trace.SourceView,
+    z: QM31,
+    alpha_powers: []const QM31,
+) !MaterializedTrace {
+    var reference = try interaction_trace.Reference.init(
+        allocator,
+        descriptors,
+        source,
+        z,
+        alpha_powers,
+    );
+    defer reference.deinit();
+
+    const value_count = std.math.mul(
+        usize,
+        reference.columnCount(),
+        source.rows(),
+    ) catch return error.AllocationSizeOverflow;
+    const values = try allocator.alloc(QM31, value_count);
+    errdefer allocator.free(values);
+    var claimed_sum = QM31.zero();
+    const batch_rows: usize = 1 << 15;
+    var first_row: usize = 0;
+    while (first_row < source.rows()) : (first_row += batch_rows) {
+        const rows = @min(batch_rows, source.rows() - first_row);
+        claimed_sum = claimed_sum.add(try reference.evaluateRange(
+            first_row,
+            rows,
+            values,
+        ));
+    }
+    const final_column =
+        values[(reference.columnCount() - 1) * source.rows() ..][0..source.rows()];
+    const final_prefix = try interaction_trace.scanLastColumnInPlace(
+        final_column,
+        claimed_sum,
+    );
+    if (!final_prefix.eql(QM31.zero())) return error.InvalidInteractionSum;
+    return .{
+        .allocator = allocator,
+        .values = values,
+        .row_count = source.rows(),
+        .column_count = reference.columnCount(),
+        .claimed_sum = claimed_sum,
+    };
 }
 
 fn secureFields(

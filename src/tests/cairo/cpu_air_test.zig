@@ -16,7 +16,7 @@ test "Cairo proof-input construction compiles recursively" {
     std.testing.refAllDeclsRecursive(cairo.proving);
 }
 
-test "official Cairo all-opcodes base commitment trace matches Rust" {
+test "official Cairo all-opcodes commitment traces match Rust" {
     const allocator = std.testing.allocator;
     const input_path = "vectors/cairo/official/all_opcodes.prover_input.json";
 
@@ -72,6 +72,82 @@ test "official Cairo all-opcodes base commitment trace matches Rust" {
     }
     try std.testing.expectEqual(@as(usize, 28_690_992), cells);
     try std.testing.expectEqual(@as(usize, 24), trace.execution.producers.len);
+
+    var relations = try cairo.witness.relation_bundle.Bundle.readFile(
+        allocator,
+        "vectors/cairo/cairo_relation_templates.bin",
+    );
+    defer relations.deinit();
+    var interaction_expected = try cairo.conformance.interaction_receipt.readFile(
+        allocator,
+        "vectors/cairo/official/all_opcodes.interaction_trace_checkpoint.json",
+        .{
+            .input_sha256 = input_digest,
+            .authority = cairo.conformance.interaction_receipt.official_authority,
+            .challenge_derivation = cairo.conformance.interaction_receipt.official_challenge_derivation,
+        },
+    );
+    defer interaction_expected.deinit();
+    const z_limbs = interaction_expected.challenge.z_m31;
+    const alpha_limbs = interaction_expected.challenge.alpha_m31;
+    var interaction = try cairo.proving.interaction_trace.build(
+        allocator,
+        &input,
+        topology,
+        &fixed,
+        &relations,
+        &trace,
+        expected.components,
+        QM31.fromU32Unchecked(z_limbs[0], z_limbs[1], z_limbs[2], z_limbs[3]),
+        QM31.fromU32Unchecked(
+            alpha_limbs[0],
+            alpha_limbs[1],
+            alpha_limbs[2],
+            alpha_limbs[3],
+        ),
+        null,
+    );
+    defer interaction.deinit();
+
+    try std.testing.expectEqual(@as(usize, 1032), interaction.columns.len);
+    try std.testing.expectEqual(
+        interaction_expected.components.len,
+        interaction.claimed_sums.len,
+    );
+    var max_rows: usize = 0;
+    for (interaction.columns) |column| max_rows = @max(max_rows, column.values.len);
+    const raw_values = try allocator.alloc(u32, max_rows);
+    defer allocator.free(raw_values);
+    var column_cursor: usize = 0;
+    for (interaction_expected.components, 0..) |component, component_index| {
+        const claimed_limbs = component.claimed_sum_m31;
+        try std.testing.expect(interaction.claimed_sums[component_index].eql(
+            QM31.fromU32Unchecked(
+                claimed_limbs[0],
+                claimed_limbs[1],
+                claimed_limbs[2],
+                claimed_limbs[3],
+            ),
+        ));
+        for (component.columns) |expected_column| {
+            const actual = interaction.columns[column_cursor];
+            try std.testing.expectEqual(
+                expected_column.row_count,
+                actual.values.len,
+            );
+            for (actual.values, raw_values[0..actual.values.len]) |value, *raw|
+                raw.* = value.v;
+            const digest = try cairo.conformance.interaction_checkpoint.digestColumn(
+                component.ordinal,
+                component.label,
+                expected_column.ordinal,
+                raw_values[0..actual.values.len],
+            );
+            try std.testing.expectEqualSlices(u8, &expected_column.sha256, &digest);
+            column_cursor += 1;
+        }
+    }
+    try std.testing.expectEqual(interaction.columns.len, column_cursor);
 }
 
 test "Cairo CPU AIR evaluates coefficients and denominators on domain" {

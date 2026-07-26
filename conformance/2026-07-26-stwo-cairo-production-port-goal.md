@@ -360,7 +360,7 @@ As of the starting commit `cfd47be9`:
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
 | Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
 | Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for both frozen fixtures; broader execution corpus remains |
-| Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component | complete for both frozen fixtures under the explicitly diagnostic challenge; proof-transcript challenges remain |
+| Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component; the all-opcodes proof-input path lowers the same secure columns into exact M31 commitment order | complete for both frozen fixtures under the explicitly diagnostic challenge; proof-transcript challenges remain |
 | Official preprocessed trace | backend-neutral registry constructs canonical (161 columns), canonical-without-Pedersen (105 columns), and canonical-small (156 columns) in exact stable identity order; canonical AIR indices project to canonical-small identities and reject absent columns | commitment-root parity and process-owned cache reuse remain |
 | Official base commitment input | all-opcodes executes the authenticated witness graph and materializes all 1,464 columns and 28,690,992 M31 cells in Rust commitment order; every value vector is re-digested against the cumulative Rust checkpoint before admission | commitment root and live-input geometry derivation remain |
 | Official AIR compiler | authenticated exact-source overlay lowers the 46 active all-opcodes component evaluators into one backend-neutral bundle containing 678 constraints, 9,689 base instructions, and 14,797 extension instructions | complete for the frozen all-opcodes proof; all-family coverage and quotient execution remain |
@@ -465,6 +465,16 @@ is checked against the Rust checkpoint before ownership crosses into PCS. This
 is commitment-ready value parity, not a commitment-root or complete-proof
 claim; production admission must additionally derive component geometry from
 the live input instead of accepting fixture checkpoint geometry.
+
+The same proof-input boundary now derives all 128 relation powers from an
+arbitrary lookup alpha, evaluates generated, fixed, XOR, and memory LogUp
+sources through the shared checkpoint evaluator, scans each final secure
+column, and lowers the result to the exact four-coordinate PCS order. Under
+the diagnostic challenge it reproduces all 46 all-opcodes claimed sums and all
+1,032 Rust interaction columns. It retains the aggregate component sum for the
+official `public_data.logup_sum + component_sum == 0` statement check; component
+sums alone are intentionally not required to be zero. Real transcript-derived
+challenges and the interaction commitment root remain open.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The
