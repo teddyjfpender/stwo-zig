@@ -2,7 +2,7 @@
   "schema": "stwo_cairo_official_witness_program_bundle_v1",
   "release_eligible": false,
   "release_blockers": [
-    "the bundle covers 27 of 64 generated base-trace writers",
+    "the bundle covers 30 of 64 generated base-trace writers",
     "helper and builtin input-edge reconstruction is not complete",
     "the complete SIMD and Metal proofs have not yet passed the official verifier"
   ],
@@ -18,17 +18,17 @@
   "compiler": {
     "classification": "repository_owned_source_compiler",
     "repository": "https://github.com/teddyjfpender/stwo-zig",
-    "revision": "3a19cf515d7ed708d29a00be886fc48be2b9570e",
-    "tree": "2caacc72060bd31db12277943abd9dab323afa64",
+    "revision": "7987a36a2e0b9a436dba1aedb70d94b4a691ea25",
+    "tree": "01d5c169f4a82b7af9a38781a717f97668cc8568",
     "path": "tools/cairo-witness-compiler",
     "receipt": {
       "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
-      "bytes": 1411,
-      "sha256": "2b5ce460498d9570404d2aae04a583a17da6942c29126a2f41fd052d61d7cc7d"
+      "bytes": 1511,
+      "sha256": "237e862d2a334b99e00d6aefa5bbf8eb5edf26eb26e6c21540ea0805e0f97588"
     },
-    "orchestrator_sha256": "f0208d395b9622ab6f04c6bade90a9c5b10029aeb41805fceae73057a481431b",
-    "rewriter_closure_sha256": "0b1b4e0e2e91bc284450862430dc117a849ebc7216ab8101161860da5b23a6db",
-    "support_closure_sha256": "7441b3c96994076647bc898a3f15fb935e991a694cd152dec178b127a2815c78",
+    "orchestrator_sha256": "c8314ddeecc86b19e80f44d5f82363a0e9726dee9b6fc793bc7055aa3b627c80",
+    "rewriter_closure_sha256": "9e3ad4fb978bca2c02eb7cc6a2b459d1da86e215cca6551a490c3aec141e79f3",
+    "support_closure_sha256": "b8ab874425b59f7aff17ff158a8ebbe73b1dfdb60bf7496ef5ff20735f9d0f45",
     "rustc": "rustc 1.94.0-nightly (86a49fd71 2026-01-14)",
     "cargo": "cargo 1.94.0-nightly (6d1bd93c4 2026-01-10)",
     "migration_equivalence": {
@@ -37,16 +37,24 @@
       "tree": "003238195888bf0bcc3b12c39ee446bf121e3af7",
       "transformer_source_sha256": "75d2e6f6d8a9de9357ed456bb22e88ac44a5316fea320c4c4848d9cda62ed7e6",
       "overlay_closure_sha256": "3722b974b60ae7400430bd32a25fdd68a973d29142f234c5fc0976cf0f388877",
-      "artifact_byte_identical": true
+      "baseline_artifact_byte_identical": false,
+      "preserved_programs_byte_identical": true,
+      "preserved_component_count": 27,
+      "preserved_entry_stream_sha256": "7a5ef4e010f25fe6c8dc91acb0ab09e7f240b8ebf7925b1a49ab5be5856ebf8a",
+      "added_components": [
+        "generic_opcode",
+        "partial_ec_mul_window_bits_9",
+        "pedersen_aggregator_window_bits_9"
+      ]
     }
   },
   "artifact": {
     "path": "vectors/cairo/official/witness_programs_v1.bin",
     "format": "STWZWIT/1",
-    "bytes": 685149,
-    "sha256": "2dfaf806c506aad7aa6292783c7026405abb71d87e8e40e0dcf16df25edf2698",
-    "component_count": 27,
-    "instruction_count": 42724,
+    "bytes": 1022640,
+    "sha256": "d807737856a1d58a199ece892e41580f1e2f2bf6d72e3636cbe7bdcd440e044f",
+    "component_count": 30,
+    "instruction_count": 63805,
     "components": [
       "add_opcode",
       "add_opcode_small",
@@ -56,6 +64,7 @@
       "assert_eq_opcode_double_deref",
       "call_opcode_abs",
       "call_opcode_rel_imm",
+      "generic_opcode",
       "jnz_opcode_non_taken",
       "jnz_opcode_taken",
       "jump_opcode_abs",
@@ -73,6 +82,8 @@
       "partial_ec_mul_generic",
       "pedersen_aggregator_window_bits_18",
       "partial_ec_mul_window_bits_18",
+      "pedersen_aggregator_window_bits_9",
+      "partial_ec_mul_window_bits_9",
       "cube_252",
       "range_check_252_width_27"
     ]
@@ -81,8 +92,8 @@
     "all_opcodes": {
       "input_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
       "checkpoint_sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
-      "active_recordings": 22,
-      "executed_recordings": 19,
+      "active_recordings": 23,
+      "executed_recordings": 20,
       "deferred_input_edges": 3,
       "column_mismatches": 0
     },

@@ -72,7 +72,7 @@ test "official Cairo base checkpoints authenticate the complete fixture layouts"
 }
 
 test "official Cairo witness recordings match every covered all-opcodes column" {
-    try expectWitnessMatches(cases[0], 22, 19, 3);
+    try expectWitnessMatches(cases[0], 23, 20, 3);
 }
 
 test "official Cairo witness recordings match every covered all-builtins column" {

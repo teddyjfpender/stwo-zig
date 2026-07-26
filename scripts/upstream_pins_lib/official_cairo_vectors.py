@@ -117,6 +117,7 @@ def _check_witness_bundle(
             artifact,
             labels,
             instruction_count,
+            encoded,
         )
     )
 
@@ -124,8 +125,8 @@ def _check_witness_bundle(
         "all_opcodes": (
             "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
             "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
-            22,
-            19,
+            23,
+            20,
             3,
         ),
         "all_builtins": (
@@ -161,6 +162,7 @@ def _check_witness_compiler(
     artifact: dict[str, object],
     labels: list[str],
     instruction_count: int,
+    encoded: bytes,
 ) -> list[str]:
     errors: list[str] = []
     receipt_metadata = compiler.get("receipt")
@@ -236,9 +238,51 @@ def _check_witness_compiler(
             errors.append(f"{relative_path}: compiler {key} drifted")
 
     migration = compiler.get("migration_equivalence")
-    if not isinstance(migration, dict) or migration.get("artifact_byte_identical") is not True:
+    if not isinstance(migration, dict):
         errors.append(f"{relative_path}: migration equivalence is not explicit")
+    else:
+        added = migration.get("added_components")
+        preserved_count = migration.get("preserved_component_count")
+        if (
+            migration.get("baseline_artifact_byte_identical") is not False
+            or migration.get("preserved_programs_byte_identical") is not True
+            or not isinstance(preserved_count, int)
+            or preserved_count <= 0
+            or migration.get("preserved_entry_stream_sha256")
+            != _witness_entry_stream_sha256(encoded, set(added or []))
+            or not isinstance(added, list)
+            or any(not isinstance(label, str) for label in added)
+            or preserved_count + len(added) != len(labels)
+            or sorted(added)
+            != [
+                "generic_opcode",
+                "partial_ec_mul_window_bits_9",
+                "pedersen_aggregator_window_bits_9",
+            ]
+            or not set(added).issubset(labels)
+        ):
+            errors.append(f"{relative_path}: migration extension evidence drifted")
     return errors
+
+
+def _witness_entry_stream_sha256(
+    encoded: bytes,
+    excluded_labels: set[str],
+) -> str:
+    """Hash canonical serialized entries while excluding an explicit extension."""
+    digest = hashlib.sha256()
+    offset = 16
+    count = struct.unpack_from("<I", encoded, 12)[0]
+    for _ in range(count):
+        start = offset
+        label_len = struct.unpack_from("<H", encoded, offset)[0]
+        counts = struct.unpack_from("<7I", encoded, offset + 4)
+        label_start = offset + 40
+        label = encoded[label_start : label_start + label_len].decode("ascii")
+        offset = label_start + label_len + counts[-1] * 16
+        if label not in excluded_labels:
+            digest.update(encoded[start:offset])
+    return digest.hexdigest()
 
 
 def _closure_sha256(root: Path) -> str:

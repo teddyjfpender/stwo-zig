@@ -5,6 +5,7 @@ const adapter = @import("../adapter/mod.zig");
 const claim_registry = @import("../air/official_claim_registry.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
+const deductions = @import("../witness/deductions/mod.zig");
 const execution_tables = @import("../witness/execution_tables.zig");
 const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
 const program = @import("../witness/program.zig");
@@ -187,7 +188,7 @@ fn compareComponent(
         registers,
         deduce_args,
         execution_tables.fromInput(input),
-        .unsupported(),
+        deductions.context(),
     );
     for (expected.columns, output_columns) |expected_column, values| {
         const actual_digest = try checkpoint.digestColumn(

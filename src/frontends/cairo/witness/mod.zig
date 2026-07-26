@@ -2,6 +2,7 @@ pub const program = @import("program.zig");
 pub const execution_tables = @import("execution_tables.zig");
 pub const verify_instruction_inputs = @import("verify_instruction_inputs.zig");
 pub const direct_inputs = @import("direct_inputs.zig");
+pub const deductions = @import("deductions/mod.zig");
 pub const recovery = @import("recovery.zig");
 pub const bundle = @import("bundle.zig");
 pub const feed_bundle = @import("feed_bundle.zig");
@@ -25,6 +26,7 @@ test {
     _ = execution_tables;
     _ = verify_instruction_inputs;
     _ = direct_inputs;
+    _ = deductions;
     _ = interaction_trace;
     _ = semantic_pack;
     _ = source_semantic_pack;

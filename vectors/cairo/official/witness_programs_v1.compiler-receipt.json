@@ -1,6 +1,6 @@
 {
-  "artifact_bytes": 685149,
-  "artifact_sha256": "2dfaf806c506aad7aa6292783c7026405abb71d87e8e40e0dcf16df25edf2698",
+  "artifact_bytes": 1022640,
+  "artifact_sha256": "d807737856a1d58a199ece892e41580f1e2f2bf6d72e3636cbe7bdcd440e044f",
   "emitted_components": [
     "add_ap_opcode",
     "add_opcode",
@@ -13,6 +13,7 @@
     "call_opcode_abs",
     "call_opcode_rel_imm",
     "cube_252",
+    "generic_opcode",
     "jnz_opcode_non_taken",
     "jnz_opcode_taken",
     "jump_opcode_abs",
@@ -23,22 +24,24 @@
     "mul_opcode_small",
     "partial_ec_mul_generic",
     "partial_ec_mul_window_bits_18",
+    "partial_ec_mul_window_bits_9",
     "pedersen_aggregator_window_bits_18",
+    "pedersen_aggregator_window_bits_9",
     "qm_31_add_mul_opcode",
     "range_check_252_width_27",
     "ret_opcode",
     "triple_xor_32",
     "verify_instruction"
   ],
-  "instruction_count": 42724,
+  "instruction_count": 63805,
   "official_source": {
     "commit_timestamp": 1784709583,
     "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
     "tree": "2b06286971d87c6d3e834de622d3777f1ff9f41f"
   },
-  "orchestrator_sha256": "f0208d395b9622ab6f04c6bade90a9c5b10029aeb41805fceae73057a481431b",
-  "program_count": 27,
-  "rewriter_closure_sha256": "0b1b4e0e2e91bc284450862430dc117a849ebc7216ab8101161860da5b23a6db",
+  "orchestrator_sha256": "c8314ddeecc86b19e80f44d5f82363a0e9726dee9b6fc793bc7055aa3b627c80",
+  "program_count": 30,
+  "rewriter_closure_sha256": "9e3ad4fb978bca2c02eb7cc6a2b459d1da86e215cca6551a490c3aec141e79f3",
   "schema": "stwo_zig_cairo_witness_compiler_receipt_v1",
-  "support_closure_sha256": "7441b3c96994076647bc898a3f15fb935e991a694cd152dec178b127a2815c78"
+  "support_closure_sha256": "b8ab874425b59f7aff17ff158a8ebbe73b1dfdb60bf7496ef5ff20735f9d0f45"
 }
