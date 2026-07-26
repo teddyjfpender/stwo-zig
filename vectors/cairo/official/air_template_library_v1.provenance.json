@@ -1,0 +1,81 @@
+{
+  "schema": "stwo_zig_cairo_air_template_library_v1",
+  "source": {
+    "repository": "https://github.com/starkware-libs/stwo-cairo",
+    "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "stwo_repository": "https://github.com/starkware-libs/stwo",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+  },
+  "generator": {
+    "path": "tools/stwo-cairo-air-compiler",
+    "closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+  },
+  "library": {
+    "path": "vectors/cairo/official/air_template_library_v1.json",
+    "bytes": 2028,
+    "sha256": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "claim_field_count": 68
+  },
+  "sources": [
+    {
+      "role": "opcodes",
+      "preprocessed_variant": "canonical",
+      "input": {
+        "path": "vectors/cairo/official/all_opcodes.prover_input.json",
+        "sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6"
+      },
+      "bundle": {
+        "path": "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
+        "format": "STWZEVA/1",
+        "bytes": 490417,
+        "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c",
+        "component_count": 46,
+        "constraint_count": 678,
+        "max_evaluation_log": 21,
+        "plan_hash": "a3611657b6f2c65f",
+        "generator": "tools/stwo-cairo-air-compiler",
+        "generator_closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+      }
+    },
+    {
+      "role": "canonical",
+      "preprocessed_variant": "canonical",
+      "input": {
+        "path": "vectors/cairo/official/all_builtins.prover_input.json",
+        "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+      },
+      "bundle": {
+        "path": "vectors/cairo/official/all_builtins_canonical.air_programs_v1.bin",
+        "format": "STWZEVA/1",
+        "bytes": 1176050,
+        "sha256": "2572dea6e6d3faf6dc91931f298116e3dc33a0cdda68d013913e0790f22f3b66",
+        "component_count": 48,
+        "constraint_count": 1337,
+        "max_evaluation_log": 24,
+        "plan_hash": "14e5e4baf0058e43",
+        "generator": "tools/stwo-cairo-air-compiler",
+        "generator_closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+      }
+    },
+    {
+      "role": "canonical_small",
+      "preprocessed_variant": "canonical_small",
+      "input": {
+        "path": "vectors/cairo/official/all_builtins.prover_input.json",
+        "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+      },
+      "bundle": {
+        "path": "vectors/cairo/official/all_builtins_canonical_small.air_programs_v1.bin",
+        "format": "STWZEVA/1",
+        "bytes": 1183006,
+        "sha256": "55a0e17c348e5a3d92fad35cd4d80260927ed73ab556a87b02085f562886d026",
+        "component_count": 48,
+        "constraint_count": 1337,
+        "max_evaluation_log": 21,
+        "plan_hash": "d9f0a4feaa846596",
+        "generator": "tools/stwo-cairo-air-compiler",
+        "generator_closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+      }
+    }
+  ]
+}

@@ -5,9 +5,9 @@ const stwo = @import("stwo_cairo_cpu");
 
 const cairo = stwo.frontends.cairo;
 
-pub const schema = "stwo-zig-cairo-proving-profile-v2";
-pub const version: u32 = 2;
-pub const default_profile = "official-all-opcodes-canonical-small";
+pub const schema = "stwo-zig-cairo-proving-profile-v3";
+pub const version: u32 = 3;
+pub const default_profile = "official-live-cairo-canonical-small";
 const max_manifest_bytes: usize = 64 * 1024;
 const max_asset_bytes: usize = 512 * 1024 * 1024;
 
@@ -21,7 +21,7 @@ const Assets = struct {
     witness_topology: Asset,
     fixed_tables: Asset,
     relation_templates: Asset,
-    air_programs: Asset,
+    air_template_library: Asset,
 };
 
 const Document = struct {
@@ -40,7 +40,7 @@ pub const Paths = struct {
     witness_topology: []u8,
     fixed_tables: []u8,
     relation_templates: []u8,
-    air_programs: []u8,
+    air_template_library: []u8,
 
     pub fn deinit(self: *Paths) void {
         self.allocator.free(self.profile);
@@ -48,7 +48,7 @@ pub const Paths = struct {
         self.allocator.free(self.witness_topology);
         self.allocator.free(self.fixed_tables);
         self.allocator.free(self.relation_templates);
-        self.allocator.free(self.air_programs);
+        self.allocator.free(self.air_template_library);
         self.* = undefined;
     }
 };
@@ -89,7 +89,7 @@ pub fn load(allocator: std.mem.Allocator, manifest_path: []const u8) !Paths {
         .witness_topology = undefined,
         .fixed_tables = undefined,
         .relation_templates = undefined,
-        .air_programs = undefined,
+        .air_template_library = undefined,
     };
     errdefer {
         allocator.free(paths.profile);
@@ -113,12 +113,12 @@ pub fn load(allocator: std.mem.Allocator, manifest_path: []const u8) !Paths {
         document.assets.relation_templates,
     );
     errdefer allocator.free(paths.relation_templates);
-    paths.air_programs = try resolveAsset(
+    paths.air_template_library = try resolveAsset(
         allocator,
         directory,
-        document.assets.air_programs,
+        document.assets.air_template_library,
     );
-    errdefer allocator.free(paths.air_programs);
+    errdefer allocator.free(paths.air_template_library);
     return paths;
 }
 

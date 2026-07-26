@@ -51,6 +51,8 @@ test {
     _ = source_semantic_pack;
     _ = eval_program;
     _ = composition_bundle;
+    _ = @import("../air/template_library.zig");
+    _ = @import("../air/template_binding.zig");
     _ = quotient_geometry;
     _ = resident_verifier;
     _ = proof_plan;

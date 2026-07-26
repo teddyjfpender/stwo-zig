@@ -71,11 +71,11 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         paths.relation_templates,
     );
     defer relations.deinit();
-    var composition = try cairo.witness.composition_bundle.Bundle.readFile(
+    var air_templates = try cairo.air.template_library.Library.readFile(
         allocator,
-        paths.air_programs,
+        paths.air_template_library,
     );
-    defer composition.deinit();
+    defer air_templates.deinit();
     const started = std.time.Instant.now() catch return error.ClockUnavailable;
     var result = try cairo_cpu.prover.transaction.proveFixture(
         allocator,
@@ -85,7 +85,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,
-            .composition = &composition,
+            .air_templates = &air_templates,
         },
         paths.variant,
     );
@@ -103,17 +103,12 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     try writeProof(
         temporary,
         &input,
-        &composition,
         &result,
     );
     const verification_started = std.time.Instant.now() catch
         return error.ClockUnavailable;
     if (request.verify)
-        try cairo_cpu.prover.transaction.verifyAndConsume(
-            &input,
-            &composition,
-            &result,
-        );
+        try cairo_cpu.prover.transaction.verifyAndConsume(&input, &result);
     const verification_ns = if (request.verify)
         (std.time.Instant.now() catch
             return error.ClockUnavailable).since(verification_started)
@@ -146,7 +141,6 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
 fn writeProof(
     path: []const u8,
     input: *const cairo.adapter.ProverInput,
-    composition: *const cairo.witness.composition_bundle.Bundle,
     result: *const cairo_cpu.prover.transaction.Result,
 ) !void {
     const file = try std.fs.cwd().createFile(path, .{
@@ -159,7 +153,7 @@ fn writeProof(
     try std.json.Stringify.value(
         cairo.proof.json.Document(@TypeOf(result.proof.proof)){
             .input = input,
-            .composition = composition,
+            .composition = &result.composition,
             .claimed_sums = result.claimed_sums,
             .interaction_pow = result.interaction_pow,
             .channel_salt = 0,

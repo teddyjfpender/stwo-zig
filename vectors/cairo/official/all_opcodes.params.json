@@ -1,7 +1,7 @@
 {
-  "schema": "stwo-zig-cairo-proving-profile-v2",
-  "version": 2,
-  "profile": "official-all-opcodes-canonical-small",
+  "schema": "stwo-zig-cairo-proving-profile-v3",
+  "version": 3,
+  "profile": "official-live-cairo-canonical-small",
   "preprocessed_variant": "canonical_small",
   "assets": {
     "witness_programs": {
@@ -20,9 +20,9 @@
       "path": "../cairo_relation_templates.bin",
       "sha256": "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f"
     },
-    "air_programs": {
-      "path": "all_opcodes.air_programs_v1.bin",
-      "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c"
+    "air_template_library": {
+      "path": "air_template_library_v1.json",
+      "sha256": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec"
     }
   }
 }

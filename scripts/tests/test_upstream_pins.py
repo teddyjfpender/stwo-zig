@@ -7,7 +7,11 @@ import unittest
 from pathlib import Path
 
 from scripts.check_upstream_pins import PinLedgerError, parse_ledger, validate_repository
-from scripts.upstream_pins_lib import official_cairo_air, official_cairo_vectors
+from scripts.upstream_pins_lib import (
+    official_cairo_air,
+    official_cairo_air_templates,
+    official_cairo_vectors,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -204,6 +208,48 @@ class UpstreamPinTests(unittest.TestCase):
 
         self.assertIn("AIR program digest drifted", "\n".join(errors))
         self.assertIn("AIR program plan hash drifted", "\n".join(errors))
+
+    def test_official_air_template_library_mutation_is_rejected(self) -> None:
+        provenance_path = Path(
+            "vectors/cairo/official/air_template_library_v1.provenance.json"
+        )
+        provenance = json.loads((ROOT / provenance_path).read_text())
+        canonical = provenance["sources"][1]["bundle"]["path"]
+        required = [
+            provenance_path.as_posix(),
+            provenance["library"]["path"],
+            *[
+                source["input"]["path"]
+                for source in provenance["sources"]
+            ],
+            *[
+                source["bundle"]["path"]
+                for source in provenance["sources"]
+            ],
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            for relative in set(required):
+                destination = temporary_root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, destination)
+            shutil.copytree(
+                ROOT / "tools/stwo-cairo-air-compiler",
+                temporary_root / "tools/stwo-cairo-air-compiler",
+                ignore=shutil.ignore_patterns("target", "__pycache__", "*.pyc"),
+            )
+            mutated = bytearray((temporary_root / canonical).read_bytes())
+            mutated[-1] ^= 1
+            (temporary_root / canonical).write_bytes(mutated)
+            errors = official_cairo_air_templates.check(
+                temporary_root,
+                provenance["source"],
+                closure_sha256=official_cairo_vectors._closure_sha256,
+            )
+
+        joined = "\n".join(errors)
+        self.assertIn("AIR program digest drifted", joined)
+        self.assertIn("AIR program plan hash drifted", joined)
 
     def test_official_witness_compiler_receipt_mutation_is_rejected(self) -> None:
         provenance = json.loads(

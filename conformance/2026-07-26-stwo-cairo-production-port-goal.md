@@ -349,7 +349,8 @@ Large performance cases are valuable only after the same semantic gates pass.
 
 ## Current Evidence and Gaps
 
-As of the starting commit `cfd47be9`:
+The table started at commit `cfd47be9` and is updated as evidence lands on
+`feature/cairo-frontend-completion`:
 
 | Area | Evidence | Status |
 | --- | --- | --- |
@@ -364,15 +365,15 @@ As of the starting commit `cfd47be9`:
 | Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component; the all-opcodes proof-input path lowers the same secure columns into exact M31 commitment order | complete for both frozen diagnostic fixtures and for the all-opcodes proof-transcript challenge |
 | Official preprocessed trace | backend-neutral registry constructs canonical (161 columns), canonical-without-Pedersen (105 columns), and canonical-small (156 columns) in exact stable identity order; canonical AIR indices project to canonical-small identities and reject absent columns | canonical-small is committed in the accepted all-opcodes proof; process-owned cache reuse remains |
 | Official base commitment input | live all-opcodes execution resolves claim geometry, routes fixed and memory multiplicities, and materializes all 1,464 columns and 28,690,992 M31 cells in canonical commitment order without a checkpoint parameter | committed in the accepted all-opcodes proof; broader corpus remains |
-| Official AIR compiler | authenticated exact-source overlay lowers the 46 active all-opcodes component evaluators into one backend-neutral bundle containing 678 constraints, 9,689 base instructions, and 14,797 extension instructions | complete through quotient execution and verification for the frozen all-opcodes proof; all-family coverage remains |
-| Native Zig AIR | executes authenticated captured programs through the generic CPU/SIMD domain accumulator; a focused functional gate covers trace indexing, extension arithmetic, coefficient order, and coset-denominator placement; the complete all-opcodes canonical-small transaction returns a four-commitment proof with clean teardown | complete for the frozen all-opcodes proof; Zig and official Rust verification pass |
+| Official AIR compiler | authenticated exact-source overlay lowers official evaluators from either a proof or a live `ProverInput`; three source bundles cover all 68 claim fields across canonical and canonical-small preprocessing | complete as an authenticated template authority; full-proof release evidence remains input-specific |
+| Native Zig AIR | authenticates the template library, selects each live component by official claim identity, binds live domains, memory strides, builtin segment starts, preprocessed identities, and coefficient offsets, then executes through the generic CPU/SIMD domain accumulator | complete for the frozen all-opcodes proof; Zig and official Rust verification pass; all-builtins full proof remains |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
-| CPU product | focused `stwo-cairo-cpu` product, checkpoint-free authenticated profile, strict CLI, product closure, Zig verification, and official Rust oracle gate | staged for the all-opcodes AIR profile; all-family AIR admission and the release corpus remain |
+| CPU product | focused `stwo-cairo-cpu` product, checkpoint-free authenticated template-library profile, strict CLI, product closure, Zig verification, and official Rust oracle gate | staged with all-family AIR admission; all-builtins proof, formats, execution adapter, and release corpus remain |
 | Metal product | disabled descriptor, no executable or product test | incomplete |
 | Rust oracle | isolated official verifier accepts the deterministic Zig all-opcodes proof and rejects mutation | complete for the frozen JSON proof |
-| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON, publishes exact JSON transactionally, emits an identity-bound report, and optionally verifies in Zig before publication | complete for one authenticated profile; binary, Cairo-serde, run-and-prove, and general admission remain |
+| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON, derives its live schedule from the input, publishes exact JSON transactionally, emits an identity-bound report, and optionally verifies in Zig before publication | complete for one oracle-accepted input; binary, Cairo-serde, run-and-prove, and corpus admission remain |
 | Metal execution | substantial SN2-specific resident machinery | not release evidence |
 | Repository structure | several Cairo files exceed size policy | incomplete |
 
@@ -451,17 +452,25 @@ green after the ordering change.
 The authenticated AIR source compiler at
 `tools/stwo-cairo-air-compiler` archives the exact official Stwo Git tree,
 applies one exact-context evaluator accessor in an ignored overlay, and lowers
-the official typed constraint tree without patching proof semantics. For the
-committed all-opcodes proof it records all 46 active components, 678
-constraints, 9,689 base instructions, 14,797 extension instructions, and 655
-deduplicated runtime extension parameters. Two independent warm generations
-produce the same 490,417-byte bundle with SHA-256
-`73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c`.
-The Zig inspector reports 46 components, 678 constraints, maximum evaluation
-log 21, and plan hash `a3611657b6f2c65f`. The CPU prover now executes this
-bundle and produces a proof accepted by both the native Zig verifier and the
-pinned official Rust verifier. Broader component-family and input coverage
-remain required.
+the official typed constraint tree without patching proof semantics. It can
+recover the frozen all-opcodes claim from the official proof or derive claims
+and interaction claims directly from an official `ProverInput`. The
+authenticated template library combines three sources: the all-opcodes
+canonical bundle and all-builtins canonical and canonical-small bundles.
+Together they cover all 68 official claim fields. Their respective bundle
+digests are
+`73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c`,
+`2572dea6e6d3faf6dc91931f298116e3dc33a0cdda68d013913e0790f22f3b66`,
+and
+`55a0e17c348e5a3d92fad35cd4d80260927ed73ab556a87b02085f562886d026`.
+The product authenticates the manifest and every source bundle before
+admission, selects templates by official claim identity, and retargets only
+live statement parameters: component domains, memory strides, builtin segment
+starts, preprocessed identities, tree spans, and random-coefficient offsets.
+The resulting all-opcodes proof is byte-identical to the frozen reference and
+is accepted by both the native Zig verifier and the pinned official Rust
+verifier. A complete all-builtins proof and the broader execution corpus remain
+required release evidence.
 
 The CPU integration at `src/integrations/cairo_cpu/air` now adapts those same
 captured programs to the generic prover component contract. Its fixed-width

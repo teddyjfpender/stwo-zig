@@ -8,6 +8,7 @@ import struct
 from pathlib import Path
 
 from .official_cairo_air import check as check_air_programs
+from .official_cairo_air_templates import check as check_air_templates
 from .official_cairo_topology import check as check_topology
 
 
@@ -42,6 +43,13 @@ def check(
         )
     )
     errors.extend(_check_witness_bundle(root, authority))
+    errors.extend(
+        check_air_templates(
+            root,
+            authority,
+            closure_sha256=_closure_sha256,
+        )
+    )
     errors.extend(
         check_topology(
             root,

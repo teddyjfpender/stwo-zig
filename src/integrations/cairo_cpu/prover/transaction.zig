@@ -44,13 +44,14 @@ pub const Fixture = struct {
     topology: cairo.witness.feed_topology.Loaded,
     fixed: *const cairo.witness.fixed_table_bundle.Bundle,
     relations: *const cairo.witness.relation_bundle.Bundle,
-    composition: *cairo.witness.composition_bundle.Bundle,
+    air_templates: *const cairo.air.template_library.Library,
 };
 
 pub const Result = struct {
     allocator: std.mem.Allocator,
     proof: ExtendedProof,
     statement: cairo.statement_bootstrap.OwnedStatementBootstrap,
+    composition: cairo.witness.composition_bundle.Bundle,
     claimed_sums: []QM31,
     interaction_pow: u64,
     preprocessed_variant: cairo.preprocessed.trace.Variant,
@@ -59,6 +60,7 @@ pub const Result = struct {
     pub fn deinit(self: *Result) void {
         if (self.proof_owned) self.proof.deinit(self.allocator);
         self.statement.deinit();
+        self.composition.deinit();
         self.allocator.free(self.claimed_sums);
         self.* = undefined;
     }
@@ -69,14 +71,8 @@ pub fn proveFixture(
     fixture: Fixture,
     variant: cairo.preprocessed.trace.Variant,
 ) !Result {
-    var canonical = try cairo.preprocessed.trace.Spec.init(
-        allocator,
-        .canonical,
-    );
-    defer canonical.deinit();
     var target = try cairo.preprocessed.trace.Spec.init(allocator, variant);
     defer target.deinit();
-    try projectPreprocessedIndices(allocator, fixture.composition, canonical, target);
     const preprocessed_logs = try target.logs(allocator);
     defer allocator.free(preprocessed_logs);
 
@@ -89,7 +85,14 @@ pub fn proveFixture(
         claimVariant(variant),
     );
     defer base.deinit();
-    try validateComposition(fixture.composition, base.geometry);
+    var composition = try fixture.air_templates.instantiate(
+        allocator,
+        &base.geometry,
+        variant,
+        fixture.input.builtin_segments,
+    );
+    errdefer composition.deinit();
+    try validateComposition(&composition, base.geometry);
 
     var flat = try base.geometry.flatten();
     defer flat.deinit();
@@ -177,7 +180,7 @@ pub fn proveFixture(
 
     const runtime_components = try allocator.alloc(
         cpu_air.component.Component,
-        fixture.composition.components.len,
+        composition.components.len,
     );
     defer allocator.free(runtime_components);
     const components = try allocator.alloc(
@@ -186,7 +189,7 @@ pub fn proveFixture(
     );
     defer allocator.free(components);
     for (
-        fixture.composition.components,
+        composition.components,
         runtime_components,
         components,
         interaction.claimed_sums,
@@ -195,7 +198,7 @@ pub fn proveFixture(
             allocator,
             captured,
             preprocessed_logs,
-            fixture.composition.max_evaluation_log_size,
+            composition.max_evaluation_log_size,
             lookup.z,
             lookup.alpha,
             claimed_sum,
@@ -218,6 +221,7 @@ pub fn proveFixture(
         .allocator = allocator,
         .proof = proof,
         .statement = statement,
+        .composition = composition,
         .claimed_sums = interaction.takeClaimedSums(),
         .interaction_pow = interaction_pow,
         .preprocessed_variant = variant,
@@ -231,11 +235,11 @@ pub fn proveFixture(
 /// statement have all accepted the proof.
 pub fn verifyAndConsume(
     input: *const cairo.adapter.ProverInput,
-    composition: *const cairo.witness.composition_bundle.Bundle,
     result: *Result,
 ) !void {
     if (!result.proof_owned) return error.ProofAlreadyConsumed;
     const allocator = result.allocator;
+    const composition = &result.composition;
     const stark_proof = &result.proof.proof;
     if (stark_proof.commitment_scheme_proof.commitments.items.len != 4)
         return error.InvalidProofShape;
@@ -414,23 +418,6 @@ fn claimVariant(
         .canonical_without_pedersen => .canonical_without_pedersen,
         .canonical_small => .canonical_small,
     };
-}
-
-fn projectPreprocessedIndices(
-    allocator: std.mem.Allocator,
-    composition: *cairo.witness.composition_bundle.Bundle,
-    canonical: cairo.preprocessed.trace.Spec,
-    target: cairo.preprocessed.trace.Spec,
-) !void {
-    for (composition.components) |*component| {
-        const projected = try canonical.projectIndices(
-            allocator,
-            target,
-            component.preprocessed_indices,
-        );
-        allocator.free(component.preprocessed_indices);
-        component.preprocessed_indices = projected;
-    }
 }
 
 test "official Cairo CPU transaction configuration is upstream-compatible" {

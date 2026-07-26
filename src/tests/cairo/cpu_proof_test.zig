@@ -32,11 +32,11 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
         "vectors/cairo/cairo_relation_templates.bin",
     );
     defer relations.deinit();
-    var composition = try cairo.witness.composition_bundle.Bundle.readFile(
+    var air_templates = try cairo.air.template_library.Library.readFile(
         allocator,
-        "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
+        "vectors/cairo/official/air_template_library_v1.json",
     );
-    defer composition.deinit();
+    defer air_templates.deinit();
 
     var result = cairo_cpu.prover.transaction.proveFixture(
         allocator,
@@ -46,7 +46,7 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,
-            .composition = &composition,
+            .air_templates = &air_templates,
         },
         .canonical_small,
     ) catch |err| {
@@ -63,14 +63,13 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
     try std.testing.expect(
         result.preprocessed_variant == .canonical_small,
     );
-    try emitProofIfRequested(&input, &composition, &result);
+    try emitProofIfRequested(&input, &result);
 
     result.interaction_pow ^= 1;
     try std.testing.expectError(
         error.ProofOfWork,
         cairo_cpu.prover.transaction.verifyAndConsume(
             &input,
-            &composition,
             &result,
         ),
     );
@@ -84,7 +83,6 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
         error.InvalidGlobalLookupSum,
         cairo_cpu.prover.transaction.verifyAndConsume(
             &input,
-            &composition,
             &result,
         ),
     );
@@ -93,17 +91,12 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
     );
     try std.testing.expect(result.proof_owned);
 
-    try cairo_cpu.prover.transaction.verifyAndConsume(
-        &input,
-        &composition,
-        &result,
-    );
+    try cairo_cpu.prover.transaction.verifyAndConsume(&input, &result);
     try std.testing.expect(!result.proof_owned);
 }
 
 fn emitProofIfRequested(
     input: *const cairo.adapter.ProverInput,
-    composition: *const cairo.witness.composition_bundle.Bundle,
     result: *const cairo_cpu.prover.transaction.Result,
 ) !void {
     const output_path = std.process.getEnvVarOwned(
@@ -125,7 +118,7 @@ fn emitProofIfRequested(
             @TypeOf(result.proof.proof),
         ){
             .input = input,
-            .composition = composition,
+            .composition = &result.composition,
             .claimed_sums = result.claimed_sums,
             .interaction_pow = result.interaction_pow,
             .channel_salt = 0,
