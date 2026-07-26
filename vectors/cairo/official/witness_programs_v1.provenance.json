@@ -18,8 +18,8 @@
   "compiler": {
     "classification": "repository_owned_source_compiler",
     "repository": "https://github.com/teddyjfpender/stwo-zig",
-    "revision": "fa4816b7ffc27123b6cb765ea55508d47526df9b",
-    "tree": "1a011c403b6533a81a7bb418def8f1ebfaae3b7c",
+    "revision": "d198668b2e7b749fcb1a80510b4de63373a8ab0b",
+    "tree": "295710d0c60fcf70d505f86a1e578910f745dcb2",
     "path": "tools/cairo-witness-compiler",
     "receipt": {
       "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
