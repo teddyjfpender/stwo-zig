@@ -322,8 +322,11 @@ test "witness rows satisfy upper jump and memory semantic evaluators" {
     try std.testing.expect(semantics.lui.evaluate(lui).allZero());
 
     row = testRow(.AUIPC);
-    row.imm = 20;
-    row.rd_val = 120;
+    // U-type immediates are 4096-aligned; the decoder can never emit 20.
+    // The AIR now pins imm_limbs[0] == 0 (anti-aliasing), so the fixture must
+    // use an architecturally reachable immediate.
+    row.imm = @bitCast(@as(u32, 0x5000));
+    row.rd_val = 100 + 0x5000;
     var auipc_columns = filledRow(semantics.auipc.N_MAIN_COLUMNS, row, .auipc);
     const auipc = try semantics.auipc.Row.fromMainColumns(&auipc_columns);
     try std.testing.expect(semantics.auipc.evaluate(auipc).allZero());

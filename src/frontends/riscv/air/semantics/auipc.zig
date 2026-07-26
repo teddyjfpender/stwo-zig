@@ -7,7 +7,7 @@ const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
 pub const N_MAIN_COLUMNS: usize = 29;
-pub const N_CONSTRAINTS: usize = 15;
+pub const N_CONSTRAINTS: usize = 16;
 
 pub const Row = struct {
     enabler: QM31,
@@ -54,6 +54,15 @@ pub fn evaluate(row: Row) Constraints {
         .sub(row.imm_sign.mul(common.q(2)));
     n += 1;
     out[n] = common.bit(row.imm_sign);
+    n += 1;
+    // U-type immediates hardwire their low 12 bits to zero, so an honest row
+    // always commits imm_limbs[0] == 0. This also makes the decomposition
+    // injective: 2^32 == 2p + 2 in M31, so each residue has a second u32
+    // preimage offset by +-(p + 2) = +-0x80000001 whose low byte becomes 0x01
+    // or 0xff, and the residual word == p candidate has low byte 0xff. Pinning
+    // the low byte to zero (with the sibling byte/sign range lookups) leaves
+    // exactly one accepted (imm_limbs, imm_sign) witness per ROM `imm_felt`.
+    out[n] = common.selected(row.enabler, row.imm_limbs[0]);
     n += 1;
     var carry = QM31.zero();
     for (0..4) |limb| {
@@ -193,6 +202,36 @@ test "auipc: forged destination is rejected" {
     row.imm_limbs[0] = common.q(20);
     row.rd.next[0] = common.q(121);
     try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "auipc: p + 2 aliased immediate decomposition is rejected" {
+    // Same ROM word (imm_felt = 0x2000) but the limbs decompose
+    // 0x2000 + p + 2 = 0x80002001 with imm_sign = 1. The compose/sign/adder
+    // equations all hold, so only the low-limb pin rejects the forgery.
+    var row = zeroRow();
+    row.enabler = QM31.one();
+    row.clock = common.q(4);
+    row.pc = common.q(0x1000);
+    row.pc_limbs = .{ QM31.zero(), common.q(0x10), QM31.zero(), QM31.zero() };
+    row.imm_felt = common.q(0x2000);
+    row.imm_limbs = .{ common.q(0x01), common.q(0x20), QM31.zero(), common.q(0x80) };
+    row.imm_sign = QM31.one();
+    row.rd.addr = common.q(8);
+    row.destination = .{
+        .nonzero = QM31.one(),
+        .inverse = common.q(8).inv() catch unreachable,
+    };
+    // rd would receive 0x80003001 instead of 0x3000.
+    row.rd.next = .{ common.q(0x01), common.q(0x30), common.q(0), common.q(0x80) };
+    row.result = row.rd.next;
+    try std.testing.expect(!evaluate(row).allZero());
+
+    // Restoring the honest decomposition re-accepts the row.
+    row.imm_limbs = .{ QM31.zero(), common.q(0x20), QM31.zero(), QM31.zero() };
+    row.imm_sign = QM31.zero();
+    row.rd.next = .{ common.q(0), common.q(0x30), common.q(0), common.q(0) };
+    row.result = row.rd.next;
+    try std.testing.expect(evaluate(row).allZero());
 }
 
 test "auipc: exact adapter has upstream enabler first" {
