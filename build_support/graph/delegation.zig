@@ -16,6 +16,7 @@ pub const Options = struct {
     cuda_library_dir: ?[]const u8,
     cuda_architectures: ?[]const u8,
     cuda_build_jobs: ?u16,
+    cairo_test_filter: ?[]const u8,
     identity: ?build_identity.Identity,
 
     pub fn read(b: *std.Build) Options {
@@ -52,6 +53,11 @@ pub const Options = struct {
             .cuda_library_dir = b.option([]const u8, "cuda-library-dir", "Explicit CUDA library directory"),
             .cuda_architectures = b.option([]const u8, "cuda-arch", "Comma-separated numeric CUDA SM targets"),
             .cuda_build_jobs = b.option(u16, "cuda-build-jobs", "Maximum parallel nvcc processes"),
+            .cairo_test_filter = b.option(
+                []const u8,
+                "cairo-test-filter",
+                "Compile and run Cairo tests whose names contain this text",
+            ),
             .identity = resolveIdentity(b, .{
                 .commit = implementation_commit,
                 .dirty = implementation_dirty,
@@ -125,6 +131,12 @@ fn commandFor(
         std.mem.eql(u8, scope, "native_cuda") or
         std.mem.eql(u8, scope, "cairo_cuda"))
         addCudaArguments(b, command, options);
+    if (std.mem.eql(u8, scope, "compatibility_tools")) {
+        if (options.cairo_test_filter) |filter| command.addArg(b.fmt(
+            "-Dcairo-test-filter={s}",
+            .{filter},
+        ));
+    }
     if (b.user_input_options.get("target") != null or b.user_input_options.get("cpu") != null)
         command.addArg(b.fmt("-Dtarget={s}", .{triple}));
     if (options.identity) |identity| addIdentityArguments(b, command, identity);

@@ -43,6 +43,14 @@ pub const ProducerOutput = struct {
     active_rows: u32,
     words_per_row: u32,
     words: []u32,
+    lookup_words_per_row: u32,
+    /// Column-major lookup words, ready for interaction-trace evaluation.
+    lookup_words: []u32,
+
+    fn deinit(self: ProducerOutput, allocator: std.mem.Allocator) void {
+        allocator.free(self.lookup_words);
+        allocator.free(self.words);
+    }
 };
 
 pub const Execution = struct {
@@ -59,7 +67,7 @@ pub const Execution = struct {
     }
 
     fn deinitProducers(self: *Execution) void {
-        for (self.producers) |producer| self.allocator.free(producer.words);
+        for (self.producers) |producer| producer.deinit(self.allocator);
         self.allocator.free(self.producers);
     }
 };
@@ -104,7 +112,7 @@ pub fn execute(
     errdefer matches.deinit(allocator);
     var producers = std.ArrayList(ProducerOutput).empty;
     errdefer {
-        for (producers.items) |producer| allocator.free(producer.words);
+        for (producers.items) |producer| producer.deinit(allocator);
         producers.deinit(allocator);
     }
     var skipped_components: usize = 0;
@@ -196,7 +204,7 @@ pub fn execute(
         };
         const component = result orelse continue;
         if (component.mismatch) |mismatch| {
-            if (component.producer) |producer| allocator.free(producer.words);
+            if (component.producer) |producer| producer.deinit(allocator);
             return .{
                 .allocator = allocator,
                 .matches = try matches.toOwnedSlice(allocator),
@@ -238,17 +246,49 @@ fn executeComponent(
     );
     defer execution.deinit();
     const mismatch = try execution.compare(expected);
-    const producer = if (witness_program.n_sub_words == 0)
+    const producer = if (witness_program.n_sub_words == 0 and
+        witness_program.n_lookup_words == 0)
         null
-    else
-        ProducerOutput{
+    else blk: {
+        const sub_words = try allocator.dupe(u32, execution.sub_words);
+        errdefer allocator.free(sub_words);
+        const lookup_words = try transposeLookupWords(
+            allocator,
+            execution.lookup_words,
+            execution.row_count,
+            witness_program.n_lookup_words,
+        );
+        break :blk ProducerOutput{
             .label = expected.label,
             .row_count = @intCast(execution.row_count),
             .active_rows = @intCast(try source.realRowCount(execution.row_count)),
             .words_per_row = witness_program.n_sub_words,
-            .words = try allocator.dupe(u32, execution.sub_words),
+            .words = sub_words,
+            .lookup_words_per_row = witness_program.n_lookup_words,
+            .lookup_words = lookup_words,
         };
+    };
     return .{ .mismatch = mismatch, .producer = producer };
+}
+
+fn transposeLookupWords(
+    allocator: std.mem.Allocator,
+    row_major: []const u32,
+    rows: usize,
+    columns: u32,
+) ![]u32 {
+    const expected = std.math.mul(usize, rows, columns) catch
+        return error.AllocationSizeOverflow;
+    if (row_major.len != expected) return error.InvalidReceiptGeometry;
+    const column_major = try allocator.alloc(u32, expected);
+    errdefer allocator.free(column_major);
+    for (0..rows) |row| {
+        for (0..columns) |column| {
+            column_major[column * rows + row] =
+                row_major[row * @as(usize, columns) + column];
+        }
+    }
+    return column_major;
 }
 
 fn componentRows(component: checkpoint.Component) Error!u32 {
@@ -262,4 +302,15 @@ fn findProducer(entries: []const ProducerOutput, label: []const u8) ?ProducerOut
         if (std.mem.eql(u8, entry.label, label)) return entry;
     }
     return null;
+}
+
+test "recorded Cairo lookup words transpose into interaction layout" {
+    const transposed = try transposeLookupWords(
+        std.testing.allocator,
+        &.{ 1, 2, 3, 4, 5, 6 },
+        2,
+        3,
+    );
+    defer std.testing.allocator.free(transposed);
+    try std.testing.expectEqualSlices(u32, &.{ 1, 4, 2, 5, 3, 6 }, transposed);
 }

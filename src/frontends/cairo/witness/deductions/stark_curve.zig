@@ -15,7 +15,7 @@ pub const AffinePoint = struct {
     y: u256,
 };
 
-const ProjectivePoint = struct {
+pub const ProjectivePoint = struct {
     x: u256,
     y: u256,
     z: u256,
@@ -41,9 +41,60 @@ pub fn addAffine(lhs: AffinePoint, rhs: AffinePoint) Error!AffinePoint {
 }
 
 pub fn doubleAffine(point: AffinePoint) Error!AffinePoint {
-    var projective = fromAffine(point);
-    try doubleProjective(&projective);
-    return toAffine(projective);
+    var projective = projectiveFromAffine(point);
+    try double(&projective);
+    return projectiveToAffine(projective);
+}
+
+pub fn projectiveFromAffine(point: AffinePoint) ProjectivePoint {
+    return .{ .x = point.x, .y = point.y, .z = 1 };
+}
+
+pub fn add(point: *ProjectivePoint, rhs: AffinePoint) Error!void {
+    return addMixed(point, rhs);
+}
+
+pub fn double(point: *ProjectivePoint) Error!void {
+    return doubleProjective(point);
+}
+
+pub fn projectiveToAffine(point: ProjectivePoint) Error!AffinePoint {
+    return toAffine(point);
+}
+
+pub fn scaleByPowerOfTwo(point: AffinePoint, doublings: usize) Error!AffinePoint {
+    var result = projectiveFromAffine(point);
+    for (0..doublings) |_| try double(&result);
+    return projectiveToAffine(result);
+}
+
+/// Converts homogeneous projective points with one field inversion.
+pub fn batchToAffine(
+    points: []const ProjectivePoint,
+    prefixes: []u256,
+    destination: []AffinePoint,
+) Error!void {
+    if (points.len == 0 or prefixes.len != points.len or destination.len != points.len)
+        return error.PointAtInfinity;
+
+    var product: u256 = 1;
+    for (points, prefixes) |point, *prefix| {
+        if (isInfinity(point)) return error.PointAtInfinity;
+        prefix.* = product;
+        product = felt252.mul(product, point.z);
+    }
+
+    var inverse_product = try felt252.div(1, product);
+    var index = points.len;
+    while (index != 0) {
+        index -= 1;
+        const inverse_z = felt252.mul(inverse_product, prefixes[index]);
+        destination[index] = .{
+            .x = felt252.mul(points[index].x, inverse_z),
+            .y = felt252.mul(points[index].y, inverse_z),
+        };
+        inverse_product = felt252.mul(inverse_product, points[index].z);
+    }
 }
 
 pub fn tableCombination(
@@ -85,10 +136,6 @@ fn scalarMul(point: AffinePoint, scalar: u256) Error!ProjectivePoint {
     return result;
 }
 
-fn fromAffine(point: AffinePoint) ProjectivePoint {
-    return .{ .x = point.x, .y = point.y, .z = 1 };
-}
-
 fn infinity() ProjectivePoint {
     return .{ .x = 0, .y = 1, .z = 0 };
 }
@@ -108,7 +155,7 @@ fn toAffine(point: ProjectivePoint) Error!AffinePoint {
 
 fn addMixed(point: *ProjectivePoint, affine: AffinePoint) Error!void {
     if (isInfinity(point.*)) {
-        point.* = fromAffine(affine);
+        point.* = projectiveFromAffine(affine);
         return;
     }
     const u = felt252.sub(felt252.mul(affine.y, point.z), point.y);
@@ -176,4 +223,22 @@ test "Stark curve projective doubling agrees with affine addition" {
     };
     try std.testing.expect(isOnCurve(point));
     try std.testing.expectEqual(try addAffine(point, point), try doubleAffine(point));
+}
+
+test "Stark curve batch affine conversion agrees with individual conversion" {
+    const point = AffinePoint{
+        .x = 0x0234287dcbaffe7f969c748655fca9e58fa8120b6d56eb0c1080d17957ebe47b,
+        .y = 0x03b056f100f96fb21e889527d41f4e39940135dd7a6c94cc6ed0268ee89e5615,
+    };
+    var points: [4]ProjectivePoint = undefined;
+    var current = projectiveFromAffine(point);
+    for (&points) |*destination| {
+        destination.* = current;
+        try add(&current, point);
+    }
+    var prefixes: [points.len]u256 = undefined;
+    var actual: [points.len]AffinePoint = undefined;
+    try batchToAffine(&points, &prefixes, &actual);
+    for (points, actual) |projective, got|
+        try std.testing.expectEqual(try projectiveToAffine(projective), got);
 }

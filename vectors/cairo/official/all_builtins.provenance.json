@@ -19,6 +19,16 @@
     "final_accumulator_sha256": "d7a654ae5c3017c1c742fe9186a38f625722adf22ce47896840c83817e1818f8",
     "generator": "stwo-cairo-trace-oracle"
   },
+  "interaction_trace_checkpoint": {
+    "path": "vectors/cairo/official/all_builtins.interaction_trace_checkpoint.json",
+    "schema": "stwo-cairo-interaction-trace-checkpoint-v1",
+    "bytes": 387115,
+    "sha256": "8c3cc3b600968e2d8142ed0ad5b07624d7b4d430f01440dbf34e9e018b928839",
+    "component_count": 48,
+    "column_count": 2220,
+    "final_accumulator_sha256": "c62b56454feb25f110bb16dcebe583aa0adfa42e042cfefcea0827192fc1f37e",
+    "generator": "stwo-cairo-trace-oracle"
+  },
   "prover_input": {
     "path": "vectors/cairo/official/all_builtins.prover_input.json",
     "format": "official_json",

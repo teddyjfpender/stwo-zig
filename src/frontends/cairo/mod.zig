@@ -20,6 +20,7 @@
 pub const adapter = @import("adapter/mod.zig");
 pub const air = @import("air/mod.zig");
 pub const common = @import("common/mod.zig");
+pub const preprocessed = @import("preprocessed/mod.zig");
 pub const prover = @import("prover.zig");
 pub const rust_oracle = @import("rust_oracle.zig");
 pub const prove_trace = @import("prove_trace.zig");

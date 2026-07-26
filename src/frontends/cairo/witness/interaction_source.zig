@@ -18,19 +18,57 @@ pub const Error = error{
 
 /// Column-major lookup words stored in one contiguous allocation.
 pub const LookupColumns = struct {
-    words: []const u32,
+    const ReadFn = *const fn (
+        context: *const anyopaque,
+        column: usize,
+        row: usize,
+    ) Error!u32;
+
+    const Virtual = struct {
+        context: *const anyopaque,
+        read: ReadFn,
+    };
+
+    const LookupStorage = union(enum) {
+        dense: []const u32,
+        virtual: Virtual,
+    };
+
+    storage: LookupStorage,
     rows: usize,
     columns: usize,
 
     pub fn init(words: []const u32, rows: usize) Error!LookupColumns {
         if (rows == 0 or words.len == 0 or words.len % rows != 0)
             return Error.InvalidSourceShape;
-        return .{ .words = words, .rows = rows, .columns = words.len / rows };
+        return .{
+            .storage = .{ .dense = words },
+            .rows = rows,
+            .columns = words.len / rows,
+        };
+    }
+
+    pub fn virtual(
+        rows: usize,
+        columns: usize,
+        context: *const anyopaque,
+        read: ReadFn,
+    ) Error!LookupColumns {
+        if (rows == 0 or columns == 0) return Error.InvalidSourceShape;
+        return .{
+            .storage = .{ .virtual = .{ .context = context, .read = read } },
+            .rows = rows,
+            .columns = columns,
+        };
     }
 
     fn value(self: LookupColumns, column: usize, row: usize) Error!M31 {
         if (column >= self.columns or row >= self.rows) return Error.InvalidSourceShape;
-        return canonical(self.words[column * self.rows + row]);
+        const raw = switch (self.storage) {
+            .dense => |words| words[column * self.rows + row],
+            .virtual => |source| try source.read(source.context, column, row),
+        };
+        return canonical(raw);
     }
 };
 
@@ -344,6 +382,18 @@ test "Cairo interaction sources address lookup words and row enablers" {
     try std.testing.expectEqual(@as(u32, 20), (try source.multiplicity(2, 1, 0)).v);
     try std.testing.expectEqual(@as(u32, 1), (try source.multiplicity(1, 0, 0)).v);
     try std.testing.expectEqual(@as(u32, 0), (try source.multiplicity(1, 0, 1)).v);
+}
+
+test "Cairo interaction sources support lazy lookup columns" {
+    const Context = struct {
+        fn read(_: *const anyopaque, column: usize, row: usize) Error!u32 {
+            return @intCast(column * 10 + row);
+        }
+    };
+    const context: u8 = 0;
+    const columns = try LookupColumns.virtual(2, 3, &context, Context.read);
+    const source = try SourceView.lookupWords(columns, 2);
+    try std.testing.expectEqual(@as(u32, 21), (try source.relationWord(0, 1, 1, 1)).v);
 }
 
 test "Cairo interaction sources address memory relations" {

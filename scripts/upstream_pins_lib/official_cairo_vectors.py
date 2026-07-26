@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import struct
 from pathlib import Path
+
+from .official_cairo_topology import check as check_topology
 
 
 def check(
@@ -40,143 +41,12 @@ def check(
         )
     )
     errors.extend(_check_witness_bundle(root, authority))
-    errors.extend(_check_witness_topology(root, authority))
-    return errors
-
-
-def _check_witness_topology(
-    root: Path,
-    authority: dict[str, str],
-) -> list[str]:
-    relative_path = "vectors/cairo/official/witness_feed_topology_v1.json"
-    try:
-        encoded = (root / relative_path).read_bytes()
-        document = json.loads(encoded)
-    except (OSError, json.JSONDecodeError) as error:
-        return [f"{relative_path}: invalid topology: {error}"]
-    if (
-        not isinstance(document, dict)
-        or document.get("schema") != "stwo-zig-cairo-witness-feed-topology-v1"
-        or document.get("version") != 1
-    ):
-        return [f"{relative_path}: invalid schema"]
-
-    errors: list[str] = []
-    source = document.get("source")
-    generator = document.get("generator")
-    components = document.get("components")
-    if (
-        not isinstance(source, dict)
-        or not isinstance(generator, dict)
-        or not isinstance(components, list)
-    ):
-        return [f"{relative_path}: source, generator, and components are required"]
-    if source.get("revision") != authority["revision"]:
-        errors.append(f"{relative_path}: source revision drifted")
-    source_tree = source.get("tree")
-    if (
-        not isinstance(source_tree, str)
-        or re.fullmatch(r"[0-9a-f]{40}", source_tree) is None
-        or not isinstance(source.get("commit_timestamp"), int)
-    ):
-        errors.append(f"{relative_path}: source identity is invalid")
-
-    generator_path = generator.get("path")
-    if generator_path != "scripts/generate_cairo_witness_topology.py":
-        errors.append(f"{relative_path}: generator path drifted")
-    else:
-        try:
-            generator_digest = hashlib.sha256((root / generator_path).read_bytes()).hexdigest()
-        except OSError as error:
-            errors.append(f"{relative_path}: unable to hash generator: {error}")
-        else:
-            if generator.get("sha256") != generator_digest:
-                errors.append(f"{relative_path}: generator digest drifted")
-    try:
-        rewriter_digest = _closure_sha256(root / "tools/cairo-witness-compiler/rewriter")
-    except OSError as error:
-        errors.append(f"{relative_path}: unable to hash rewriter closure: {error}")
-    else:
-        if generator.get("rewriter_closure_sha256") != rewriter_digest:
-            errors.append(f"{relative_path}: rewriter closure digest drifted")
-
-    names: list[str] = []
-    feed_count = 0
-    for index, component in enumerate(components):
-        if not isinstance(component, dict):
-            errors.append(f"{relative_path}: component {index} is invalid")
-            continue
-        producer = component.get("producer")
-        sub_words = component.get("sub_words_per_row")
-        feeds = component.get("feeds")
-        if (
-            not isinstance(producer, str)
-            or re.fullmatch(r"[a-z][a-z0-9_]*", producer) is None
-            or not isinstance(sub_words, int)
-            or sub_words < 0
-            or not isinstance(feeds, list)
-        ):
-            errors.append(f"{relative_path}: component {index} geometry is invalid")
-            continue
-        names.append(producer)
-        seen: set[tuple[str, int]] = set()
-        for feed_index, feed in enumerate(feeds):
-            if not isinstance(feed, dict):
-                errors.append(
-                    f"{relative_path}: {producer} feed {feed_index} is invalid"
-                )
-                continue
-            field = feed.get("field")
-            target = feed.get("target")
-            instance = feed.get("instance")
-            relation = feed.get("relation")
-            word_base = feed.get("word_base")
-            width = feed.get("words_per_instance")
-            if (
-                not isinstance(field, str)
-                or re.fullmatch(r"[a-z][a-z0-9_]*", field) is None
-                or not isinstance(target, str)
-                or re.fullmatch(r"[a-z][a-z0-9_]*", target) is None
-                or not all(
-                    isinstance(value, int) and value >= 0
-                    for value in (instance, relation, word_base)
-                )
-                or not isinstance(width, int)
-                or width <= 0
-                or word_base + width > sub_words
-                or (field, instance) in seen
-            ):
-                errors.append(
-                    f"{relative_path}: {producer} feed {feed_index} geometry is invalid"
-                )
-                continue
-            seen.add((field, instance))
-            feed_count += 1
-    if names != sorted(set(names)) or len(names) != 64:
-        errors.append(f"{relative_path}: component order or count drifted")
-    if feed_count != 1_780:
-        errors.append(f"{relative_path}: feed count drifted")
-
-    loader_path = root / "src/frontends/cairo/witness/feed_topology.zig"
-    try:
-        loader = loader_path.read_text(encoding="utf-8")
-    except OSError as error:
-        errors.append(f"{relative_path}: unable to read Zig topology pin: {error}")
-    else:
-        digest_pins = re.findall(
-            r'^pub const expected_sha256 = "([0-9a-f]{64})";$',
-            loader,
-            flags=re.MULTILINE,
+    errors.extend(
+        check_topology(
+            root,
+            cairo_revision=cairo_revision,
         )
-        tree_pins = re.findall(
-            r'^pub const expected_source_tree = "([0-9a-f]{40})";$',
-            loader,
-            flags=re.MULTILINE,
-        )
-        if digest_pins != [hashlib.sha256(encoded).hexdigest()]:
-            errors.append(f"{relative_path}: Zig artifact digest pin drifted")
-        if tree_pins != [source_tree]:
-            errors.append(f"{relative_path}: Zig source-tree pin drifted")
+    )
     return errors
 
 
@@ -592,6 +462,19 @@ def _check_record(
                 source.get("prover_input_sha256"),
             )
         )
+    interaction_checkpoint = record.get("interaction_trace_checkpoint")
+    if not isinstance(interaction_checkpoint, dict):
+        errors.append(f"{relative_path}: interaction_trace_checkpoint object is required")
+    else:
+        errors.extend(
+            _check_interaction_trace_checkpoint(
+                root,
+                relative_path,
+                interaction_checkpoint,
+                authority,
+                source.get("prover_input_sha256"),
+            )
+        )
     errors.extend(_check_input(root, relative_path, source, prover_input))
     return errors
 
@@ -746,6 +629,101 @@ def _check_base_trace_checkpoint(
         or components[-1].get("accumulator_sha256") != final_accumulator
     ):
         errors.append(f"{relative_path}: base checkpoint final accumulator drifted")
+    return errors
+
+
+def _check_interaction_trace_checkpoint(
+    root: Path,
+    relative_path: str,
+    checkpoint: dict[str, object],
+    authority: dict[str, str],
+    input_digest: object,
+) -> list[str]:
+    path = checkpoint.get("path")
+    if not isinstance(path, str) or Path(path).is_absolute():
+        return [f"{relative_path}: interaction checkpoint path is invalid"]
+    try:
+        encoded = (root / path).read_bytes()
+        document = json.loads(encoded)
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative_path}: invalid interaction checkpoint: {error}"]
+
+    errors: list[str] = []
+    schema = "stwo-cairo-interaction-trace-checkpoint-v1"
+    if checkpoint.get("bytes") != len(encoded):
+        errors.append(f"{relative_path}: interaction checkpoint byte count drifted")
+    if checkpoint.get("sha256") != hashlib.sha256(encoded).hexdigest():
+        errors.append(f"{relative_path}: interaction checkpoint digest drifted")
+    if (
+        checkpoint.get("schema") != schema
+        or not isinstance(document, dict)
+        or document.get("schema") != schema
+    ):
+        return errors + [f"{relative_path}: interaction checkpoint schema drifted"]
+    if document.get("input_sha256") != input_digest:
+        errors.append(f"{relative_path}: interaction checkpoint input authority drifted")
+    expected_authority = {
+        "stwo_cairo_revision": authority["revision"],
+        "stwo_revision": authority["stwo_revision"],
+    }
+    if document.get("authority") != expected_authority:
+        errors.append(f"{path}: interaction checkpoint source authority drifted")
+
+    challenge = document.get("challenge")
+    if (
+        not isinstance(challenge, dict)
+        or challenge.get("purpose")
+        != "deterministic_cross_backend_interaction_trace_diagnostics"
+        or challenge.get("is_proof_transcript") is not False
+        or not isinstance(challenge.get("derivation"), str)
+        or not isinstance(challenge.get("z_m31"), list)
+        or not isinstance(challenge.get("alpha_powers_m31"), list)
+    ):
+        errors.append(f"{relative_path}: interaction diagnostic challenge drifted")
+
+    components = document.get("components")
+    if not isinstance(components, list) or not components:
+        return errors + [f"{relative_path}: interaction checkpoint has no components"]
+    if checkpoint.get("component_count") != len(components):
+        errors.append(f"{relative_path}: interaction component count drifted")
+    column_count = 0
+    for component_ordinal, component in enumerate(components):
+        if not isinstance(component, dict):
+            errors.append(f"{relative_path}: invalid interaction component")
+            continue
+        if component.get("ordinal") != component_ordinal:
+            errors.append(f"{relative_path}: interaction component ordinal drifted")
+        claimed_sum = component.get("claimed_sum_m31")
+        if (
+            not isinstance(claimed_sum, list)
+            or len(claimed_sum) != 4
+            or any(not isinstance(value, int) or value < 0 or value >= (1 << 31) - 1 for value in claimed_sum)
+        ):
+            errors.append(f"{relative_path}: interaction claimed sum drifted")
+        columns = component.get("columns")
+        if not isinstance(columns, list) or not columns:
+            errors.append(f"{relative_path}: interaction component has no columns")
+            continue
+        column_count += len(columns)
+        for column_ordinal, column in enumerate(columns):
+            if not isinstance(column, dict) or column.get("ordinal") != column_ordinal:
+                errors.append(f"{relative_path}: interaction column ordinal drifted")
+                continue
+            rows = column.get("row_count")
+            digest = column.get("sha256")
+            if not isinstance(rows, int) or rows <= 0 or rows & (rows - 1):
+                errors.append(f"{relative_path}: interaction column domain is not a power of two")
+            if (
+                not isinstance(digest, str)
+                or len(digest) != 64
+                or any(character not in "0123456789abcdef" for character in digest)
+            ):
+                errors.append(f"{relative_path}: interaction column digest is invalid")
+    if checkpoint.get("column_count") != column_count:
+        errors.append(f"{relative_path}: interaction column count drifted")
+    final_accumulator = document.get("final_accumulator_sha256")
+    if checkpoint.get("final_accumulator_sha256") != final_accumulator:
+        errors.append(f"{relative_path}: interaction final accumulator drifted")
     return errors
 
 

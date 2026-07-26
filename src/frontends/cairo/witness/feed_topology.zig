@@ -6,7 +6,7 @@ const claim_registry = @import("../air/official_claim_registry.zig");
 pub const schema = "stwo-zig-cairo-witness-feed-topology-v1";
 pub const version: u32 = 1;
 pub const expected_source_tree = "2b06286971d87c6d3e834de622d3777f1ff9f41f";
-pub const expected_sha256 = "2721d22a1c2aa7b069bebd08d0e73d346c579f5c93e276c30c4d56b985b1e00c";
+pub const expected_sha256 = "366c12c942d267940e3b85376873fc3624684be4416d98c244ddcfc25ce1af63";
 pub const expected_component_count: usize = 64;
 pub const max_document_bytes: usize = 1024 * 1024;
 pub const max_feeds_per_component: usize = 4096;
@@ -32,10 +32,30 @@ pub const Feed = struct {
     words_per_instance: u32,
 };
 
+pub const LookupField = struct {
+    name: []const u8,
+    word_base: u32,
+    words: u32,
+};
+
+pub const LogupUse = struct {
+    field: []const u8,
+    multiplicity: []const u8,
+    negative: bool,
+};
+
+pub const LogupColumn = struct {
+    a: LogupUse,
+    b: ?LogupUse,
+};
+
 pub const Component = struct {
     producer: []const u8,
     sub_words_per_row: u32,
     feeds: []const Feed,
+    lookup_words_per_row: u32,
+    lookup_fields: []const LookupField,
+    logup_columns: []const LogupColumn,
 };
 
 pub const Document = struct {
@@ -117,7 +137,48 @@ fn validate(document: Document) !void {
                     return error.DuplicateFeed;
             }
         }
+        if (component.lookup_words_per_row == 0 or component.lookup_fields.len == 0 or
+            component.logup_columns.len == 0)
+            return error.InvalidInteractionTopology;
+        var next_lookup_word: u32 = 0;
+        for (component.lookup_fields, 0..) |field, field_index| {
+            try validateName(field.name);
+            if (field.word_base != next_lookup_word or field.words == 0 or
+                field.words > component.lookup_words_per_row -| field.word_base)
+                return error.InvalidLookupFieldGeometry;
+            next_lookup_word = std.math.add(u32, next_lookup_word, field.words) catch
+                return error.InvalidLookupFieldGeometry;
+            for (component.lookup_fields[0..field_index]) |prior| {
+                if (std.mem.eql(u8, prior.name, field.name))
+                    return error.DuplicateLookupField;
+            }
+        }
+        if (next_lookup_word != component.lookup_words_per_row)
+            return error.InvalidLookupFieldGeometry;
+        for (component.logup_columns) |column| {
+            try validateLogupUse(component.lookup_fields, column.a);
+            if (column.b) |use| try validateLogupUse(component.lookup_fields, use);
+        }
     }
+}
+
+fn validateLogupUse(fields: []const LookupField, use: LogupUse) !void {
+    try validateName(use.field);
+    _ = findLookupField(fields, use.field) orelse return error.UnknownLookupField;
+    if (std.mem.eql(u8, use.multiplicity, "1") or
+        std.mem.eql(u8, use.multiplicity, "enabler"))
+        return;
+    try validateName(use.multiplicity);
+    const multiplicity = findLookupField(fields, use.multiplicity) orelse
+        return error.UnknownMultiplicityField;
+    if (multiplicity.words != 1) return error.InvalidMultiplicityField;
+}
+
+fn findLookupField(fields: []const LookupField, name: []const u8) ?LookupField {
+    for (fields) |field| {
+        if (std.mem.eql(u8, field.name, name)) return field;
+    }
+    return null;
 }
 
 fn validateName(value: []const u8) !void {
@@ -145,8 +206,16 @@ test "official Cairo feed topology authenticates every generated component" {
 
     try std.testing.expectEqual(expected_component_count, loaded.parsed.value.components.len);
     var feed_count: usize = 0;
-    for (loaded.parsed.value.components) |component| feed_count += component.feeds.len;
+    var lookup_field_count: usize = 0;
+    var logup_column_count: usize = 0;
+    for (loaded.parsed.value.components) |component| {
+        feed_count += component.feeds.len;
+        lookup_field_count += component.lookup_fields.len;
+        logup_column_count += component.logup_columns.len;
+    }
     try std.testing.expectEqual(@as(usize, 1780), feed_count);
+    try std.testing.expectEqual(@as(usize, 1598), lookup_field_count);
+    try std.testing.expectEqual(@as(usize, 780), logup_column_count);
 
     const ec_op = loaded.find("ec_op_builtin") orelse return error.MissingComponent;
     try std.testing.expectEqual(@as(u32, 31_516), ec_op.sub_words_per_row);

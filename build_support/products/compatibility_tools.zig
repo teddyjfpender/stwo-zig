@@ -43,7 +43,18 @@ pub fn addProducts(context: Context) void {
     const cairo_frontend = consumer(context, protocol, "src/frontends/cairo/mod.zig");
     const cairo_test_root = consumer(context, protocol, "src/frontends/cairo/tests/mod.zig");
     cairo_test_root.addImport("cairo_frontend", cairo_frontend);
-    const cairo_tests = context.b.addTest(.{ .root_module = cairo_test_root });
+    const cairo_filters: []const []const u8 = if (b.option(
+        []const u8,
+        "cairo-test-filter",
+        "Compile and run Cairo tests whose names contain this text",
+    )) |filter|
+        b.allocator.dupe([]const u8, &.{filter}) catch @panic("out of memory")
+    else
+        &.{};
+    const cairo_tests = context.b.addTest(.{
+        .root_module = cairo_test_root,
+        .filters = cairo_filters,
+    });
     const run_cairo_tests = context.b.addRunArtifact(cairo_tests);
     context.b.step(
         "test-cairo-frontend",

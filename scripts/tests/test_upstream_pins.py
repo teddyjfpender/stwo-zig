@@ -77,6 +77,14 @@ class UpstreamPinTests(unittest.TestCase):
             joined,
         )
         self.assertIn(
+            "vectors/cairo/official/all_opcodes.interaction_trace_checkpoint.json",
+            joined,
+        )
+        self.assertIn(
+            "vectors/cairo/official/all_builtins.interaction_trace_checkpoint.json",
+            joined,
+        )
+        self.assertIn(
             "vectors/cairo/official/witness_programs_v1.provenance.json",
             joined,
         )

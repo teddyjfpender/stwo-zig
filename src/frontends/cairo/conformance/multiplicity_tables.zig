@@ -89,6 +89,20 @@ pub const Tables = struct {
         return zeros[0..table.entry.row_count];
     }
 
+    pub fn value(
+        self: *Tables,
+        label: []const u8,
+        relation: u32,
+        row: usize,
+    ) !u32 {
+        const table = self.find(label) orelse return error.MissingFixedTable;
+        if (relation >= table.entry.multiplicity_columns or row >= table.entry.row_count)
+            return error.FixedGeometryMismatch;
+        if (table.dense) |dense|
+            return dense[@as(usize, relation) * table.entry.row_count + row];
+        return 0;
+    }
+
     /// Routes every exact generated producer through the compiler-derived
     /// topology. Non-fixed destinations are owned by the memory/dynamic lanes.
     pub fn route(

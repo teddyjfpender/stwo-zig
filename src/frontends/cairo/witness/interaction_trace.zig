@@ -5,6 +5,7 @@
 //! rows into checkpoint digests without materializing the complete trace.
 
 const std = @import("std");
+const fields = @import("stwo_core").fields;
 const m31_mod = @import("stwo_core").fields.m31;
 const M31 = m31_mod.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
@@ -14,8 +15,8 @@ pub const LookupColumns = interaction_source.LookupColumns;
 pub const SparseColumns = interaction_source.SparseColumns;
 pub const SourceView = interaction_source.SourceView;
 
-const descriptor_words = 16;
-const use_words = 7;
+pub const descriptor_words = 16;
+pub const use_words = 7;
 
 pub const Error = interaction_source.Error || error{
     DivisionByZero,
@@ -125,6 +126,81 @@ pub const Reference = struct {
             sum.* = total;
         }
         return total;
+    }
+
+    /// Evaluates a contiguous row range with one batch inversion across every
+    /// relation fraction in that range. Results are written into the complete
+    /// column-major trace allocation.
+    pub fn evaluateRange(
+        self: *Reference,
+        first_row: usize,
+        row_count: usize,
+        destination: []QM31,
+    ) Error!QM31 {
+        const source_rows = self.source.rows();
+        const range_end = std.math.add(usize, first_row, row_count) catch
+            return Error.InvalidRowCount;
+        const output_count = std.math.mul(usize, self.columnCount(), source_rows) catch
+            return Error.InvalidTraceShape;
+        if (row_count == 0 or range_end > source_rows or destination.len != output_count)
+            return Error.InvalidTraceShape;
+
+        const uses_per_row = self.useCount();
+        const fraction_count = std.math.mul(usize, uses_per_row, row_count) catch
+            return Error.InvalidTraceShape;
+        const denominators = try self.allocator.alloc(QM31, fraction_count);
+        defer self.allocator.free(denominators);
+        const inverses = try self.allocator.alloc(QM31, fraction_count);
+        defer self.allocator.free(inverses);
+        const multiplicities = try self.allocator.alloc(M31, fraction_count);
+        defer self.allocator.free(multiplicities);
+
+        for (first_row..range_end, 0..) |row, local_row| {
+            var use_ordinal: usize = local_row * uses_per_row;
+            var descriptor_index: usize = 0;
+            while (descriptor_index < self.descriptors.len) : (descriptor_index += descriptor_words) {
+                const descriptor = self.descriptors[descriptor_index..][0..descriptor_words];
+                for (0..descriptor[0]) |use_index| {
+                    const use = descriptor[1 + use_index * use_words ..][0..use_words];
+                    denominators[use_ordinal] = try self.combine(row, use);
+                    multiplicities[use_ordinal] = try self.multiplicity(row, use);
+                    use_ordinal += 1;
+                }
+            }
+        }
+        fields.batchInverseInPlace(QM31, denominators, inverses) catch
+            return Error.DivisionByZero;
+
+        var claimed_sum = QM31.zero();
+        for (first_row..range_end, 0..) |row, local_row| {
+            var use_ordinal: usize = local_row * uses_per_row;
+            var cumulative = QM31.zero();
+            var descriptor_index: usize = 0;
+            while (descriptor_index < self.descriptors.len) : (descriptor_index += descriptor_words) {
+                const descriptor = self.descriptors[descriptor_index..][0..descriptor_words];
+                var fraction = inverses[use_ordinal].mulM31(multiplicities[use_ordinal]);
+                use_ordinal += 1;
+                if (descriptor[0] == 2) {
+                    fraction = fraction.add(
+                        inverses[use_ordinal].mulM31(multiplicities[use_ordinal]),
+                    );
+                    use_ordinal += 1;
+                }
+                cumulative = cumulative.add(fraction);
+                const column = descriptor_index / descriptor_words;
+                destination[column * source_rows + row] = cumulative;
+            }
+            claimed_sum = claimed_sum.add(cumulative);
+        }
+        return claimed_sum;
+    }
+
+    fn useCount(self: Reference) usize {
+        var result: usize = 0;
+        var descriptor_index: usize = 0;
+        while (descriptor_index < self.descriptors.len) : (descriptor_index += descriptor_words)
+            result += self.descriptors[descriptor_index];
+        return result;
     }
 
     fn combine(self: Reference, row: usize, use: []const u32) Error!QM31 {
@@ -290,6 +366,16 @@ test "Cairo interaction reference batches paired fractions and cumulative column
     try std.testing.expect(QM31.eql(fraction0, cumulative[0]));
     try std.testing.expect(QM31.eql(fraction0.add(fraction1), cumulative[1]));
     try std.testing.expect(QM31.eql(cumulative[1], actual));
+
+    var range_values: [4]QM31 = undefined;
+    const range_sum = try reference.evaluateRange(0, 2, &range_values);
+    var second_row: [2]QM31 = undefined;
+    const expected_second = try reference.evaluateRow(1, &second_row);
+    try std.testing.expect(QM31.eql(actual.add(expected_second), range_sum));
+    try std.testing.expect(QM31.eql(cumulative[0], range_values[0]));
+    try std.testing.expect(QM31.eql(second_row[0], range_values[1]));
+    try std.testing.expect(QM31.eql(cumulative[1], range_values[2]));
+    try std.testing.expect(QM31.eql(second_row[1], range_values[3]));
 }
 
 test "Cairo interaction reference scans the final column in circle order" {

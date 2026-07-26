@@ -125,11 +125,26 @@ pub fn compareTopology(
     fixed: *const fixed_table_bundle.Bundle,
     expected_components: []const checkpoint.Component,
 ) !Report {
-    var tables = try Tables.init(allocator, fixed);
+    var tables = try populateTopology(allocator, input, topology, producers, fixed, expected_components);
     defer tables.deinit();
+    return comparePopulated(allocator, fixed, &tables, expected_components);
+}
+
+/// Populates every fixed-table multiplicity from the source-derived producer
+/// graph and the memory value tables.
+pub fn populateTopology(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    topology: feed_topology.Loaded,
+    producers: []const recorded_trace.ProducerOutput,
+    fixed: *const fixed_table_bundle.Bundle,
+    expected_components: []const checkpoint.Component,
+) !Tables {
+    var tables = try Tables.init(allocator, fixed);
+    errdefer tables.deinit();
     try tables.route(topology, producers);
     try addMemoryRangeChecks(input, expected_components, &tables);
-    return comparePopulated(allocator, fixed, &tables, expected_components);
+    return tables;
 }
 
 fn comparePopulated(

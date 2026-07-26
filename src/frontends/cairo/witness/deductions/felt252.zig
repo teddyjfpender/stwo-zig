@@ -57,6 +57,12 @@ pub fn encode(value: u256, words: []u32) void {
     }
 }
 
+pub fn wordAt(value: u256, index: usize) Error!u32 {
+    if (value >= prime) return error.NonCanonicalFelt;
+    if (index >= word_count) return error.InvalidFeltWord;
+    return @intCast((value >> @intCast(index * bits_per_word)) & word_mask);
+}
+
 pub fn add(lhs: u256, rhs: u256) u256 {
     const sum = @as(u257, lhs) + rhs;
     return @intCast(sum % @as(u257, prime));
@@ -92,6 +98,8 @@ test "Cairo deductions: felt words roundtrip canonical boundary values" {
     try std.testing.expectEqual(prime - 1, try decode(&words));
     words[word_count - 1] = 512;
     try std.testing.expectError(error.InvalidFeltWord, decode(&words));
+    try std.testing.expectEqual(@as(u32, 511), try wordAt(511, 0));
+    try std.testing.expectError(error.InvalidFeltWord, wordAt(0, word_count));
 }
 
 test "Cairo deductions: felt arithmetic is canonical" {

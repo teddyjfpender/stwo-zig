@@ -1,5 +1,6 @@
 //! Exact host implementation of Stwo-Cairo's window-18 Pedersen deductions.
 
+const std = @import("std");
 const felt252 = @import("felt252.zig");
 const stark_curve = @import("stark_curve.zig");
 
@@ -14,23 +15,23 @@ const padded_table_rows: u32 = 1 << 23;
 const point_words: usize = 2 * felt252.word_count;
 const partial_words: usize = 2 + window_count + point_words;
 
-const p0 = stark_curve.AffinePoint{
+pub const p0 = stark_curve.AffinePoint{
     .x = 0x0234287dcbaffe7f969c748655fca9e58fa8120b6d56eb0c1080d17957ebe47b,
     .y = 0x03b056f100f96fb21e889527d41f4e39940135dd7a6c94cc6ed0268ee89e5615,
 };
-const p1 = stark_curve.AffinePoint{
+pub const p1 = stark_curve.AffinePoint{
     .x = 0x04fa56f376c83db33f9dab2656558f3399099ec1de5e3018b7a6932dba8aa378,
     .y = 0x03fa0984c931c9e38113e0c0e47e4401562761f92a7a23b45168f4e80ff5b54d,
 };
-const p2 = stark_curve.AffinePoint{
+pub const p2 = stark_curve.AffinePoint{
     .x = 0x04ba4cc166be8dec764910f75b45f74b40c690c74709e90f3aa372f0bd2d6997,
     .y = 0x0040301cf5c1751f4b971e46c4ede85fcac5c59a5ce5ae7c48151f27b24b219c,
 };
-const p3 = stark_curve.AffinePoint{
+pub const p3 = stark_curve.AffinePoint{
     .x = 0x054302dcb0e6cc1c6e44cca8f61a63bb2ca65048d53fb325d36ff12c49a58202,
     .y = 0x01b77b3e37d13504b348046268d8ae25ce98ad783c25561a879dcc77e99c2426,
 };
-const negative_shift = stark_curve.AffinePoint{
+pub const negative_shift = stark_curve.AffinePoint{
     .x = 0x049ee3eba8c1600700ee1b87eb599f16716b0b1022947733551fde4050ca6804,
     .y = felt252.prime -
         0x03ca0cfe4b3bc6ddf346d49d06ea0ed34e621062c0e056c1d0405d266e10268a,
@@ -76,25 +77,49 @@ pub fn applyPartialEcMul(args: []const u32, outputs: []u32) Error!void {
     );
 }
 
-fn tablePoint(raw_index: u32) Error!stark_curve.AffinePoint {
-    if (raw_index >= padded_table_rows) return error.InvalidTableIndex;
-    if (raw_index >= real_table_rows) return negative_shift;
+pub fn tablePoint(raw_index: u32) Error!stark_curve.AffinePoint {
+    return tablePointForWindow(raw_index, window_bits);
+}
 
-    const second_value = raw_index >= section_rows;
-    const local_index = if (second_value) raw_index - section_rows else raw_index;
+pub fn tablePointForWindow(
+    raw_index: u32,
+    requested_window_bits: u5,
+) Error!stark_curve.AffinePoint {
+    if ((requested_window_bits != 9 and requested_window_bits != 18) or
+        @as(u32, 252) % requested_window_bits != 0)
+        return error.InvalidWindow;
+    const requested_window_count = 252 / @as(u32, requested_window_bits);
+    const requested_rows_per_window = @as(u32, 1) << requested_window_bits;
+    const requested_low_window_count = requested_window_count - 1;
+    const requested_high_rows_per_block =
+        @as(u32, 1) << @intCast(requested_window_bits - 4);
+    const requested_section_rows = requested_window_count * requested_rows_per_window;
+    const requested_real_rows = 2 * requested_section_rows;
+    const requested_padded_rows = std.math.ceilPowerOfTwo(
+        u32,
+        requested_real_rows,
+    ) catch unreachable;
+    if (raw_index >= requested_padded_rows) return error.InvalidTableIndex;
+    if (raw_index >= requested_real_rows) return negative_shift;
+
+    const second_value = raw_index >= requested_section_rows;
+    const local_index = if (second_value)
+        raw_index - requested_section_rows
+    else
+        raw_index;
     const low_point = if (second_value) p2 else p0;
     const high_point = if (second_value) p3 else p1;
-    const low_section_rows = low_window_count * rows_per_window;
+    const low_section_rows = requested_low_window_count * requested_rows_per_window;
     if (local_index < low_section_rows) {
-        const window = local_index / rows_per_window;
-        const scalar = @as(u256, local_index % rows_per_window) <<
-            @intCast(window_bits * window);
+        const window = local_index / requested_rows_per_window;
+        const scalar = @as(u256, local_index % requested_rows_per_window) <<
+            @intCast(@as(u32, requested_window_bits) * window);
         return stark_curve.tableCombination(low_point, scalar, null, 0, negative_shift);
     }
     const high_index = local_index - low_section_rows;
-    const high_scalar = high_index / high_rows_per_block;
-    const low_scalar = @as(u256, high_index % high_rows_per_block) <<
-        @intCast(window_bits * low_window_count);
+    const high_scalar = high_index / requested_high_rows_per_block;
+    const low_scalar = @as(u256, high_index % requested_high_rows_per_block) <<
+        @intCast(@as(u32, requested_window_bits) * requested_low_window_count);
     return stark_curve.tableCombination(
         low_point,
         low_scalar,
