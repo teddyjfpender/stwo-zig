@@ -84,7 +84,7 @@ test "all 46 proof opcodes reach witness, semantic, lookup, and component author
         for (requests.entries[0..requests.len]) |request| {
             try request.validate();
             domains[@intFromEnum(request.domain)] = true;
-            domain_bits |= @as(u16, 1) << @intFromEnum(request.domain);
+            domain_bits |= @as(u16, 1) << @intCast(@intFromEnum(request.domain));
         }
         try std.testing.expectEqual(manifest_entry.relation_domains.bits, domain_bits);
         try std.testing.expect(domains[@intFromEnum(lookup_entry.Domain.program_access)]);
