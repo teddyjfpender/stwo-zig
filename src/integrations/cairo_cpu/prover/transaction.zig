@@ -34,6 +34,7 @@ pub const official_pcs_config = core.pcs.PcsConfig{
         .n_queries = 70,
         .fold_step = 1,
     },
+    .lifting_log_size = 0,
 };
 
 pub const Fixture = struct {
@@ -125,7 +126,10 @@ pub fn proveFixture(
 
     const interaction_pow =
         cairo.proving.transcript.grindInteraction(&channel);
-    const lookup = cairo.proving.transcript.drawLookupElements(&channel);
+    const lookup = try cairo.proving.transcript.drawLookupElements(
+        allocator,
+        &channel,
+    );
 
     var pedersen: cairo.preprocessed.pedersen_table.Table = undefined;
     var pedersen_initialized = false;
@@ -269,4 +273,5 @@ test "official Cairo CPU transaction configuration is upstream-compatible" {
         @as(u32, 24),
         cairo.proving.transcript.interaction_pow_bits,
     );
+    try std.testing.expectEqual(@as(?u32, 0), official_pcs_config.lifting_log_size);
 }

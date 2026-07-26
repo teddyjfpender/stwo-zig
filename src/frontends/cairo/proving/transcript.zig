@@ -44,10 +44,15 @@ pub fn grindInteraction(channel: anytype) u64 {
     return nonce;
 }
 
-pub fn drawLookupElements(channel: anytype) LookupElements {
+pub fn drawLookupElements(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+) !LookupElements {
+    const values = try channel.drawSecureFelts(allocator, 2);
+    defer allocator.free(values);
     return .{
-        .z = channel.drawSecureFelt(),
-        .alpha = channel.drawSecureFelt(),
+        .z = values[0],
+        .alpha = values[1],
     };
 }
 

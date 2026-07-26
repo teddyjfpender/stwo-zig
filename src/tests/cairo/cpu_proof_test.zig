@@ -77,6 +77,46 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
     try std.testing.expect(
         result.preprocessed_variant == .canonical_small,
     );
+    try emitProofIfRequested(&input, &composition, &result);
+}
+
+fn emitProofIfRequested(
+    input: *const cairo.adapter.ProverInput,
+    composition: *const cairo.witness.composition_bundle.Bundle,
+    result: *const cairo_cpu.prover.transaction.Result,
+) !void {
+    const output_path = std.process.getEnvVarOwned(
+        std.testing.allocator,
+        "STWO_CAIRO_PROOF_OUTPUT",
+    ) catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return,
+        else => return err,
+    };
+    defer std.testing.allocator.free(output_path);
+    if (!std.fs.path.isAbsolute(output_path)) return error.OutputPathNotAbsolute;
+
+    const file = try std.fs.createFileAbsolute(output_path, .{ .truncate = true });
+    defer file.close();
+    var buffer: [64 * 1024]u8 = undefined;
+    var file_writer = file.writer(&buffer);
+    try std.json.Stringify.value(
+        cairo.proof.json.Document(
+            @TypeOf(result.proof.proof),
+        ){
+            .input = input,
+            .composition = composition,
+            .claimed_sums = result.claimed_sums,
+            .interaction_pow = result.interaction_pow,
+            .channel_salt = 0,
+            .preprocessed_variant = result.preprocessed_variant,
+            .stark_proof = &result.proof.proof,
+        },
+        .{},
+        &file_writer.interface,
+    );
+    try file_writer.interface.writeByte('\n');
+    try file_writer.interface.flush();
+    try file.sync();
 }
 
 fn inputDigest(
