@@ -362,7 +362,7 @@ As of the starting commit `cfd47be9`:
 | Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for both frozen fixtures; broader execution corpus remains |
 | Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component | complete for both frozen fixtures under the explicitly diagnostic challenge; proof-transcript challenges remain |
 | Official AIR compiler | authenticated exact-source overlay lowers the 46 active all-opcodes component evaluators into one backend-neutral bundle containing 678 constraints, 9,689 base instructions, and 14,797 extension instructions | complete for the frozen all-opcodes proof; all-family coverage and quotient execution remain |
-| Native Zig AIR | consumes and validates the official AIR bundle shape, but does not yet execute it through the generic prover | incomplete |
+| Native Zig AIR | executes authenticated captured programs through the generic CPU/SIMD domain accumulator; a focused functional gate covers trace indexing, extension arithmetic, coefficient order, and coset-denominator placement | evaluator complete; official trace/proof integration incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
@@ -441,6 +441,17 @@ The Zig inspector reports 46 components, 678 constraints, maximum evaluation
 log 21, and plan hash `a3611657b6f2c65f`. This is exact CP-06 source
 extraction evidence only: the Zig quotient evaluator and a Rust-accepted Zig
 proof are still required.
+
+The CPU integration at `src/integrations/cairo_cpu/air` now adapts those same
+captured programs to the generic prover component contract. Its fixed-width
+SIMD interpreter evaluates base and extension instructions directly on the
+composition domain, consumes the generic accumulator's random coefficients in
+the verifier's recurrence order, and applies the recorded coset-vanishing
+inverse without a Cairo-specific prover fork. The focused
+`zig build test-cairo-cpu-air -Doptimize=Debug` gate verifies that boundary
+black-box. This establishes native quotient execution as an implementation
+boundary; it is not proof evidence until the official trace commitments and
+Fiat-Shamir transcript pass the Rust verifier.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The

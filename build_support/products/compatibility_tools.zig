@@ -78,6 +78,21 @@ pub fn addProducts(context: Context) void {
         "Run focused backend-neutral Cairo conformance tests",
     ).dependOn(&run_cairo_tests.step);
 
+    const cairo_cpu_air_test_root = consumer(
+        context,
+        protocol,
+        "src/tests/cairo/cpu_air_test.zig",
+    );
+    cairo_cpu_air_test_root.addImport("stwo", stwo);
+    const cairo_cpu_air_tests = context.b.addTest(.{
+        .root_module = cairo_cpu_air_test_root,
+    });
+    const run_cairo_cpu_air_tests = context.b.addRunArtifact(cairo_cpu_air_tests);
+    context.b.step(
+        "test-cairo-cpu-air",
+        "Run Cairo CPU AIR integration tests",
+    ).dependOn(&run_cairo_cpu_air_tests.step);
+
     const opcode = consumer(context, protocol, "src/tools/riscv_opcode_manifest/main.zig");
     opcode.addImport("stwo", stwo);
     const opcode_cli = b.addExecutable(.{ .name = "riscv-opcode-manifest", .root_module = opcode });

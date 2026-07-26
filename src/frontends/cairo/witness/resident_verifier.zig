@@ -370,7 +370,7 @@ pub const RuntimeComponent = struct {
         const self = cast(ctx);
         try validateMaximumDegreeLog(self.lifting_log_size, max_log_degree_bound);
         const component = self.captured;
-        const ext_params = try self.extParams();
+        const ext_params = try self.extensionParameters();
         defer self.allocator.free(ext_params);
         const base_offsets = try componentOffsets(self.allocator, component.*, 1);
         defer freeOffsetLists(self.allocator, base_offsets);
@@ -408,7 +408,9 @@ pub const RuntimeComponent = struct {
         }
     }
 
-    fn extParams(self: RuntimeComponent) ![]QM31 {
+    /// Resolves the proof-transcript parameters consumed by the captured AIR.
+    /// The caller owns the returned slice.
+    pub fn extensionParameters(self: RuntimeComponent) ![]QM31 {
         const sources = self.captured.ext_sources;
         const out = try self.allocator.alloc(QM31, sources.len);
         const claimed_scale = try M31.fromCanonical(
