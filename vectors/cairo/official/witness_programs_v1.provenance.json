@@ -1,0 +1,86 @@
+{
+  "schema": "stwo_cairo_official_witness_program_bundle_v1",
+  "release_eligible": false,
+  "release_blockers": [
+    "the repository-owned component rewriter has not replaced the authenticated migration rewriter",
+    "the bundle covers 27 of 64 generated base-trace writers",
+    "helper and builtin input-edge reconstruction is not complete"
+  ],
+  "source": {
+    "repository": "https://github.com/starkware-libs/stwo-cairo",
+    "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "tree": "2b06286971d87c6d3e834de622d3777f1ff9f41f",
+    "component_path": "crates/prover/src/witness/components",
+    "stwo_repository": "https://github.com/starkware-libs/stwo",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+    "stwo_tree": "8ee4fc2b8c8a819e85308c494e7114ab7ab4936b"
+  },
+  "compiler": {
+    "classification": "authenticated_migration_checkpoint",
+    "transformer_repository": "https://github.com/teddyjfpender/stwo-cairo",
+    "transformer_revision": "dcd5834565b7a26a27a614e353c9c60109ebc1d9",
+    "transformer_tree": "003238195888bf0bcc3b12c39ee446bf121e3af7",
+    "transformer_path": "stwo_cairo_prover/tools/witness_genericize",
+    "transformer_source_sha256": "75d2e6f6d8a9de9357ed456bb22e88ac44a5316fea320c4c4848d9cda62ed7e6",
+    "transformer_manifest_sha256": "181b80ab3575d7e7d4360376d128ea47502276cfab35fc8dbdb26963c34dde3d",
+    "transformer_lock_sha256": "afc4f3bcf0bafd10c09b5dffc003cfd39d01d08441c3bc8e834d9a3e3f7f6ab3",
+    "overlay_closure_sha256": "3722b974b60ae7400430bd32a25fdd68a973d29142f234c5fc0976cf0f388877",
+    "rustc": "rustc 1.94.0-nightly (86a49fd71 2026-01-14)",
+    "cargo": "cargo 1.94.0-nightly (6d1bd93c4 2026-01-10)"
+  },
+  "artifact": {
+    "path": "vectors/cairo/official/witness_programs_v1.bin",
+    "format": "STWZWIT/1",
+    "bytes": 685149,
+    "sha256": "2dfaf806c506aad7aa6292783c7026405abb71d87e8e40e0dcf16df25edf2698",
+    "component_count": 27,
+    "instruction_count": 42724,
+    "components": [
+      "add_opcode",
+      "add_opcode_small",
+      "add_ap_opcode",
+      "assert_eq_opcode",
+      "assert_eq_opcode_imm",
+      "assert_eq_opcode_double_deref",
+      "call_opcode_abs",
+      "call_opcode_rel_imm",
+      "jnz_opcode_non_taken",
+      "jnz_opcode_taken",
+      "jump_opcode_abs",
+      "jump_opcode_double_deref",
+      "jump_opcode_rel",
+      "jump_opcode_rel_imm",
+      "mul_opcode",
+      "mul_opcode_small",
+      "qm_31_add_mul_opcode",
+      "ret_opcode",
+      "verify_instruction",
+      "blake_g",
+      "blake_round",
+      "triple_xor_32",
+      "partial_ec_mul_generic",
+      "pedersen_aggregator_window_bits_18",
+      "partial_ec_mul_window_bits_18",
+      "cube_252",
+      "range_check_252_width_27"
+    ]
+  },
+  "parity": {
+    "all_opcodes": {
+      "input_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+      "checkpoint_sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
+      "active_recordings": 22,
+      "executed_recordings": 19,
+      "deferred_input_edges": 3,
+      "column_mismatches": 0
+    },
+    "all_builtins": {
+      "input_sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+      "checkpoint_sha256": "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
+      "active_recordings": 15,
+      "executed_recordings": 10,
+      "deferred_input_edges": 5,
+      "column_mismatches": 0
+    }
+  }
+}

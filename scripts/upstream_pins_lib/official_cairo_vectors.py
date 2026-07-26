@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import struct
 from pathlib import Path
 
 
@@ -37,7 +38,168 @@ def check(
             requires_proof=False,
         )
     )
+    errors.extend(_check_witness_bundle(root, authority))
     return errors
+
+
+def _check_witness_bundle(
+    root: Path,
+    authority: dict[str, str],
+) -> list[str]:
+    relative_path = "vectors/cairo/official/witness_programs_v1.provenance.json"
+    try:
+        record = json.loads((root / relative_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative_path}: invalid provenance: {error}"]
+    if (
+        not isinstance(record, dict)
+        or record.get("schema") != "stwo_cairo_official_witness_program_bundle_v1"
+    ):
+        return [f"{relative_path}: invalid schema"]
+
+    errors: list[str] = []
+    source = record.get("source")
+    artifact = record.get("artifact")
+    compiler = record.get("compiler")
+    parity = record.get("parity")
+    if not all(isinstance(value, dict) for value in (source, artifact, compiler, parity)):
+        return [f"{relative_path}: source, compiler, artifact, and parity are required"]
+    for key, expected in authority.items():
+        if key == "repository":
+            actual = source.get("repository")
+        elif key == "revision":
+            actual = source.get("revision")
+        else:
+            actual = source.get(key)
+        if actual != expected:
+            errors.append(
+                f"{relative_path}: source {key!r} is {actual!r}, expected {expected!r}"
+            )
+    if record.get("release_eligible") is not False:
+        errors.append(f"{relative_path}: incomplete bundle must not be release eligible")
+    blockers = record.get("release_blockers")
+    if not isinstance(blockers, list) or len(blockers) < 3:
+        errors.append(f"{relative_path}: explicit release blockers are required")
+    if compiler.get("classification") != "authenticated_migration_checkpoint":
+        errors.append(f"{relative_path}: compiler classification drifted")
+
+    path = artifact.get("path")
+    if not isinstance(path, str) or Path(path).is_absolute():
+        return errors + [f"{relative_path}: witness bundle path is invalid"]
+    try:
+        encoded = (root / path).read_bytes()
+    except OSError as error:
+        return errors + [f"{relative_path}: unable to read witness bundle: {error}"]
+    if artifact.get("bytes") != len(encoded):
+        errors.append(f"{relative_path}: witness bundle byte count drifted")
+    if artifact.get("sha256") != hashlib.sha256(encoded).hexdigest():
+        errors.append(f"{relative_path}: witness bundle digest drifted")
+    if artifact.get("format") != "STWZWIT/1":
+        errors.append(f"{relative_path}: witness bundle format drifted")
+
+    parsed, parse_errors = _parse_witness_bundle(encoded, relative_path)
+    errors.extend(parse_errors)
+    if parsed is None:
+        return errors
+    labels, instruction_count = parsed
+    if artifact.get("component_count") != len(labels):
+        errors.append(f"{relative_path}: witness component count drifted")
+    if artifact.get("instruction_count") != instruction_count:
+        errors.append(f"{relative_path}: witness instruction count drifted")
+    if artifact.get("components") != labels:
+        errors.append(f"{relative_path}: witness component order drifted")
+
+    expected_parity = {
+        "all_opcodes": (
+            "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+            "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
+            22,
+            19,
+            3,
+        ),
+        "all_builtins": (
+            "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+            "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
+            15,
+            10,
+            5,
+        ),
+    }
+    for case, expected in expected_parity.items():
+        value = parity.get(case)
+        if not isinstance(value, dict):
+            errors.append(f"{relative_path}: parity case {case!r} is missing")
+            continue
+        actual = (
+            value.get("input_sha256"),
+            value.get("checkpoint_sha256"),
+            value.get("active_recordings"),
+            value.get("executed_recordings"),
+            value.get("deferred_input_edges"),
+        )
+        if actual != expected or value.get("column_mismatches") != 0:
+            errors.append(f"{relative_path}: parity case {case!r} drifted")
+    return errors
+
+
+def _parse_witness_bundle(
+    encoded: bytes,
+    relative_path: str,
+) -> tuple[tuple[list[str], int] | None, list[str]]:
+    errors: list[str] = []
+    if len(encoded) < 16 or encoded[:8] != b"STWZWIT\0":
+        return None, [f"{relative_path}: invalid witness bundle magic"]
+    version, count = struct.unpack_from("<II", encoded, 8)
+    if version != 1 or count == 0 or count > 256:
+        return None, [f"{relative_path}: invalid witness bundle header"]
+
+    labels: list[str] = []
+    instruction_count = 0
+    offset = 16
+    try:
+        for _ in range(count):
+            label_len, reserved = struct.unpack_from("<HH", encoded, offset)
+            offset += 4
+            counts = struct.unpack_from("<7I", encoded, offset)
+            offset += 28
+            semantic_hash = struct.unpack_from("<Q", encoded, offset)[0]
+            offset += 8
+            if reserved != 0 or label_len == 0 or label_len > 256:
+                raise ValueError("invalid entry header")
+            n_regs, _n_inputs, n_cols, _n_mult, _n_lookup, _n_sub, n_insts = counts
+            if n_regs == 0 or n_cols == 0 or n_insts == 0 or n_insts > 1_000_000:
+                raise ValueError("invalid entry geometry")
+            label = encoded[offset : offset + label_len].decode("ascii")
+            offset += label_len
+            instruction_bytes = encoded[offset : offset + n_insts * 16]
+            if len(instruction_bytes) != n_insts * 16:
+                raise ValueError("truncated instruction stream")
+            offset += len(instruction_bytes)
+            if label in labels:
+                raise ValueError("duplicate component label")
+            if any(instruction_bytes[index + 1] != 0 for index in range(0, len(instruction_bytes), 16)):
+                raise ValueError("nonzero instruction padding")
+            if any(instruction_bytes[index] > 27 for index in range(0, len(instruction_bytes), 16)):
+                raise ValueError("unknown witness opcode")
+            if _witness_semantic_hash(instruction_bytes, counts[:6]) != semantic_hash:
+                raise ValueError(f"semantic hash mismatch for {label}")
+            labels.append(label)
+            instruction_count += n_insts
+    except (UnicodeDecodeError, ValueError, struct.error) as error:
+        errors.append(f"{relative_path}: invalid witness bundle: {error}")
+        return None, errors
+    if offset != len(encoded):
+        errors.append(f"{relative_path}: witness bundle has trailing data")
+        return None, errors
+    return (labels, instruction_count), errors
+
+
+def _witness_semantic_hash(instructions: bytes, counts: tuple[int, ...]) -> int:
+    value = 0xCBF29CE484222325
+    for byte in instructions + b"".join(count.to_bytes(4, "little") for count in counts):
+        value ^= byte
+        value = (value * 0x100000001B3) & ((1 << 64) - 1)
+    return value
 
 
 def _check_record(

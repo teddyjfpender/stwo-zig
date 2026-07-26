@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from scripts.check_upstream_pins import PinLedgerError, parse_ledger, validate_repository
+from scripts.upstream_pins_lib import official_cairo_vectors
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -73,6 +74,10 @@ class UpstreamPinTests(unittest.TestCase):
             "vectors/cairo/official/all_builtins.provenance.json",
             joined,
         )
+        self.assertIn(
+            "vectors/cairo/official/witness_programs_v1.provenance.json",
+            joined,
+        )
         self.assertIn("tools/stwo-cairo-trace-oracle/Cargo.toml", joined)
         self.assertIn("tools/stwo-cairo-trace-oracle/Cargo.lock", joined)
 
@@ -136,6 +141,28 @@ class UpstreamPinTests(unittest.TestCase):
             release.index('"scripts/check_upstream_pins.py"'),
             release.index('"scripts/check_source_conformance.py"'),
         )
+
+    def test_official_witness_bundle_parser_rejects_instruction_mutation(self) -> None:
+        path = ROOT / "vectors/cairo/official/witness_programs_v1.bin"
+        encoded = path.read_bytes()
+        parsed, errors = official_cairo_vectors._parse_witness_bundle(
+            encoded,
+            str(path.relative_to(ROOT)),
+        )
+        self.assertEqual([], errors)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(27, len(parsed[0]))
+        self.assertEqual(42_724, parsed[1])
+
+        mutated = bytearray(encoded)
+        first_instruction = 16 + 4 + 28 + 8 + len("add_opcode")
+        mutated[first_instruction + 12] ^= 1
+        parsed, errors = official_cairo_vectors._parse_witness_bundle(
+            bytes(mutated),
+            str(path.relative_to(ROOT)),
+        )
+        self.assertIsNone(parsed)
+        self.assertIn("semantic hash mismatch", "\n".join(errors))
 
     def test_ledger_rejects_ambiguous_native_pin(self) -> None:
         text = LEDGER.read_text(encoding="utf-8")

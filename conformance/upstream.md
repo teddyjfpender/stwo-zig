@@ -42,6 +42,16 @@ trace oracle, and final Rust `verify_cairo` adapter. The completion
 requirements are recorded in
 `conformance/2026-07-26-stwo-cairo-production-port-goal.md`.
 
+The official-source witness migration checkpoint is
+`vectors/cairo/official/witness_programs_v1.bin`, authenticated by its adjacent
+provenance record. Its 27 programs are derived from the official source pair
+above and contain no proof-selected semantics. The current transformation
+compiler is itself pinned to the historical fork revision below, so this
+artifact is deliberately `release_eligible: false` until the compiler is
+repository-owned and the complete official writer surface is covered. The pin
+gate validates its binary grammar, semantic hashes, component order, and exact
+column-parity evidence; it cannot promote the artifact.
+
 ### Legacy SN2 evidence
 
 Historical SN2 tooling was built from Stwo-Cairo commit `dcd58345`, which has

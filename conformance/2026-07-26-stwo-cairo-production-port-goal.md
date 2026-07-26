@@ -358,6 +358,7 @@ As of the starting commit `cfd47be9`:
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
+| Official witness recordings | authenticated `STWZWIT/1` checkpoint contains 27 official-source programs and 42,724 SSA instructions; 19 active all-opcodes and 10 active all-builtins components match every Rust base column exactly | partial; explicitly non-release pending repository-owned compiler, remaining writers, and helper/builtin input edges |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
@@ -399,6 +400,19 @@ for all-opcodes and
 `d7a654ae5c3017c1c742fe9186a38f625722adf22ce47896840c83817e1818f8`
 for all-builtins. A checkpoint is diagnostic evidence; only a complete proof
 accepted by the official verifier satisfies RF-09.
+
+The first official-source recording checkpoint is
+`vectors/cairo/official/witness_programs_v1.bin` (685,149 bytes,
+SHA-256 `2dfaf806c506aad7aa6292783c7026405abb71d87e8e40e0dcf16df25edf2698`).
+It contains 27 complete, poison-free programs. On all-opcodes, 22 recordings
+are active: 19 execute through the current Zig input bindings with zero column
+mismatches and three helper programs await input-edge reconstruction. On
+all-builtins, 15 are active: 10 execute exactly and five await those edges.
+This comparison also corrected a Zig semantic defect: official
+`verify_instruction` multiplicities include only producer `n_active_rows`, not
+the producer's padded rows. The companion provenance is intentionally marked
+non-release because the migration rewriter is not yet repository-owned and 37
+official generated writers remain outside the bundle.
 
 ## Delivery Order
 

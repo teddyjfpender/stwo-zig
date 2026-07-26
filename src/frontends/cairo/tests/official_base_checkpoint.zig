@@ -2,8 +2,10 @@
 
 const std = @import("std");
 const cairo = @import("cairo_frontend");
+const direct_trace = cairo.conformance.direct_trace;
 const receipt = cairo.conformance.receipt;
 const registry = cairo.claim_registry;
+const witness_bundle = cairo.witness.bundle;
 
 const Case = struct {
     input_path: []const u8,
@@ -67,4 +69,53 @@ test "official Cairo base checkpoints authenticate the complete fixture layouts"
         const final_hex = std.fmt.bytesToHex(loaded.final_accumulator, .lower);
         try std.testing.expectEqualStrings(case.final_accumulator_hex, &final_hex);
     }
+}
+
+test "official Cairo witness recordings match every covered all-opcodes column" {
+    try expectWitnessMatches(cases[0], 22, 19, 3);
+}
+
+test "official Cairo witness recordings match every covered all-builtins column" {
+    try expectWitnessMatches(cases[1], 15, 10, 5);
+}
+
+fn expectWitnessMatches(
+    case: Case,
+    expected_covered: usize,
+    expected_matches: usize,
+    expected_skipped: usize,
+) !void {
+    var input = try cairo.adapter.official_input.readFile(std.testing.allocator, case.input_path);
+    defer input.deinit(std.testing.allocator);
+    var bundle = try witness_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer bundle.deinit();
+    var expected = try receipt.readFile(std.testing.allocator, case.checkpoint_path, .{
+        .input_sha256 = try inputDigest(std.testing.allocator, case.input_path),
+        .authority = .{
+            .stwo_cairo_revision = registry.source_revision.stwo_cairo,
+            .stwo_revision = registry.source_revision.stwo,
+        },
+    });
+    defer expected.deinit();
+
+    var covered = std.ArrayList(cairo.conformance.checkpoint.Component).empty;
+    defer covered.deinit(std.testing.allocator);
+    for (expected.components) |component| {
+        if (bundle.find(component.label) != null)
+            try covered.append(std.testing.allocator, component);
+    }
+    var report = try direct_trace.compare(
+        std.testing.allocator,
+        &input,
+        &bundle,
+        covered.items,
+    );
+    defer report.deinit();
+    try std.testing.expect(report.mismatch == null);
+    try std.testing.expectEqual(expected_covered, covered.items.len);
+    try std.testing.expectEqual(expected_skipped, report.skipped_components);
+    try std.testing.expectEqual(expected_matches, report.matches.len);
 }
