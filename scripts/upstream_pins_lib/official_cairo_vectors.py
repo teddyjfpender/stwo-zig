@@ -75,6 +75,19 @@ def _check_record(
             errors.append(f"{relative_path}: claim_summary object is required")
         else:
             errors.extend(_check_claim_summary(root, relative_path, claim_summary))
+    checkpoint = record.get("base_trace_checkpoint")
+    if not isinstance(checkpoint, dict):
+        errors.append(f"{relative_path}: base_trace_checkpoint object is required")
+    else:
+        errors.extend(
+            _check_base_trace_checkpoint(
+                root,
+                relative_path,
+                checkpoint,
+                authority,
+                source.get("prover_input_sha256"),
+            )
+        )
     errors.extend(_check_input(root, relative_path, source, prover_input))
     return errors
 
@@ -152,6 +165,83 @@ def _check_claim_summary(
         "canonical_small",
     }:
         errors.append(f"{relative_path}: preprocessed trace variant drifted")
+    return errors
+
+
+def _check_base_trace_checkpoint(
+    root: Path,
+    relative_path: str,
+    checkpoint: dict[str, object],
+    authority: dict[str, str],
+    input_digest: object,
+) -> list[str]:
+    path = checkpoint.get("path")
+    if not isinstance(path, str) or Path(path).is_absolute():
+        return [f"{relative_path}: base checkpoint path is invalid"]
+    try:
+        encoded = (root / path).read_bytes()
+        document = json.loads(encoded)
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative_path}: invalid base checkpoint: {error}"]
+
+    errors: list[str] = []
+    schema = "stwo-cairo-base-trace-checkpoint-v1"
+    if checkpoint.get("bytes") != len(encoded):
+        errors.append(f"{relative_path}: base checkpoint byte count drifted")
+    if checkpoint.get("sha256") != hashlib.sha256(encoded).hexdigest():
+        errors.append(f"{relative_path}: base checkpoint digest drifted")
+    if (
+        checkpoint.get("schema") != schema
+        or not isinstance(document, dict)
+        or document.get("schema") != schema
+    ):
+        return errors + [f"{relative_path}: base checkpoint schema drifted"]
+    if document.get("input_sha256") != input_digest:
+        errors.append(f"{relative_path}: base checkpoint input authority drifted")
+
+    expected_authority = {
+        "stwo_cairo_revision": authority["revision"],
+        "stwo_revision": authority["stwo_revision"],
+    }
+    if document.get("authority") != expected_authority:
+        errors.append(f"{relative_path}: base checkpoint source authority drifted")
+
+    components = document.get("components")
+    if not isinstance(components, list) or not components:
+        return errors + [f"{relative_path}: base checkpoint has no components"]
+    if checkpoint.get("component_count") != len(components):
+        errors.append(f"{relative_path}: base checkpoint component count drifted")
+
+    column_count = 0
+    for component_ordinal, component in enumerate(components):
+        if not isinstance(component, dict):
+            errors.append(f"{relative_path}: invalid base checkpoint component")
+            continue
+        if component.get("ordinal") != component_ordinal:
+            errors.append(f"{relative_path}: base component ordinal drifted")
+        columns = component.get("columns")
+        if not isinstance(columns, list) or not columns:
+            errors.append(f"{relative_path}: base component has no columns")
+            continue
+        column_count += len(columns)
+        for column_ordinal, column in enumerate(columns):
+            if not isinstance(column, dict) or column.get("ordinal") != column_ordinal:
+                errors.append(f"{relative_path}: base column ordinal drifted")
+                continue
+            rows = column.get("row_count")
+            if not isinstance(rows, int) or rows <= 0 or rows & (rows - 1):
+                errors.append(f"{relative_path}: base column domain is not a power of two")
+        if not isinstance(component.get("accumulator_sha256"), str):
+            errors.append(f"{relative_path}: base component accumulator is missing")
+
+    if checkpoint.get("column_count") != column_count:
+        errors.append(f"{relative_path}: base checkpoint column count drifted")
+    final_accumulator = document.get("final_accumulator_sha256")
+    if (
+        checkpoint.get("final_accumulator_sha256") != final_accumulator
+        or components[-1].get("accumulator_sha256") != final_accumulator
+    ):
+        errors.append(f"{relative_path}: base checkpoint final accumulator drifted")
     return errors
 
 

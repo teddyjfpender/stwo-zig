@@ -37,8 +37,9 @@ acceptance. The production port targets the current official StarkWare source pa
 - Official Cairo Stwo repository: `https://github.com/starkware-libs/stwo`
 - Pinned official Cairo Stwo commit: `7b211edde786775016ef3eecb837a6240d8fe792`
 
-These revisions govern the production AIR registry and will govern the final
-Rust `verify_cairo` adapter. The completion requirements are recorded in
+These revisions govern the production AIR registry, isolated base/interaction
+trace oracle, and final Rust `verify_cairo` adapter. The completion
+requirements are recorded in
 `conformance/2026-07-26-stwo-cairo-production-port-goal.md`.
 
 ### Legacy SN2 evidence
@@ -59,7 +60,8 @@ products:
 The official Cairo lane is accepted only by the canonical Rust `verify_cairo`
 implementation built from the official Stwo-Cairo and Stwo pair. Zig scalar,
 SIMD, Metal, trace-oracle, legacy-fork, or Zig-verifier agreement cannot
-override its rejection. Legacy base-trace and witness receipts are
+override its rejection. The official trace oracle supplies component
+checkpoints, not proof acceptance. Legacy base-trace and witness receipts are
 authoritative only for their explicitly labelled legacy comparison and only
 when generated from the fork Stwo-Cairo and prover-Stwo pair, without path
 dependencies or dirty source.

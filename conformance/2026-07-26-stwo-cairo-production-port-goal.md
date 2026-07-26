@@ -357,6 +357,7 @@ As of the starting commit `cfd47be9`:
 | Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
+| Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
@@ -391,7 +392,13 @@ Zig derives its activation closure from the admitted input, resolves only
 witness-fed log sizes from the oracle vector, and reproduces the exact claim
 mix. Independent live-witness derivation of those deferred logs and the
 interaction mix remain open, as does RF-03; these vectors do not establish
-witness or proof parity.
+witness or proof parity. The official base checkpoints now define the exact
+CP-04 target after every component: final accumulators are
+`45acd12a96745ee0e9fbc32b5509de84c65676eb4d2a9d2bdb5822b696fd38d6`
+for all-opcodes and
+`d7a654ae5c3017c1c742fe9186a38f625722adf22ce47896840c83817e1818f8`
+for all-builtins. A checkpoint is diagnostic evidence; only a complete proof
+accepted by the official verifier satisfies RF-09.
 
 ## Delivery Order
 

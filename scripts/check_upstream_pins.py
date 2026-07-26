@@ -274,10 +274,10 @@ def _check_cairo_trace_oracle_manifest(root: Path, ledger: PinLedger) -> list[st
 
     metadata = manifest.get("package", {}).get("metadata", {}).get("canonical-oracle", {})
     expected_metadata = {
-        "stwo-cairo-repository": ledger.cairo_repository,
-        "stwo-cairo-revision": ledger.cairo_revision,
-        "stwo-repository": ledger.cairo_stwo_repository,
-        "stwo-revision": ledger.cairo_prover_stwo_revision,
+        "stwo-cairo-repository": ledger.official_cairo_repository,
+        "stwo-cairo-revision": ledger.official_cairo_revision,
+        "stwo-repository": ledger.official_cairo_stwo_repository,
+        "stwo-revision": ledger.official_cairo_stwo_revision,
     }
     errors = [
         f"{relative_path}: metadata {key!r} is {metadata.get(key)!r}, expected {expected!r}"
@@ -295,92 +295,27 @@ def _check_cairo_trace_oracle_manifest(root: Path, ledger: PinLedger) -> list[st
                 root,
                 relative_path,
                 dependency,
-                ledger.cairo_repository,
-                ledger.cairo_revision,
+                ledger.official_cairo_repository,
+                ledger.official_cairo_revision,
             )
         )
 
-    # The pinned Stwo-Cairo manifest names the verifier revision. Source-qualified
-    # replacements are required to substitute its complete prover dependency graph.
     errors.extend(
         _check_manifest_dependency(
             root,
             relative_path,
             "stwo",
-            ledger.cairo_stwo_repository,
-            ledger.cairo_stwo_revision,
+            ledger.official_cairo_stwo_repository,
+            ledger.official_cairo_stwo_revision[:8],
         )
     )
-    replacements = manifest.get("replace", {})
-    required_packages = {
-        "stwo@2.2.0",
-        "stwo-backend-cuda@2.2.0",
-        "stwo-backend-cuda-kernels@0.1.0",
-        "stwo-constraint-framework@2.2.0",
-        "stwo-air-utils@2.2.0",
-        "stwo-air-utils-derive@2.2.0",
-    }
-    found_packages: set[str] = set()
-    for source_id, replacement in replacements.items():
-        package = source_id.rsplit("#", 1)[-1]
-        if package not in required_packages:
-            errors.append(f"{relative_path}: unexpected Stwo replacement {source_id!r}")
-            continue
-        found_packages.add(package)
-        if not isinstance(replacement, dict) or replacement.get("git") != ledger.cairo_stwo_repository or replacement.get("rev") != ledger.cairo_prover_stwo_revision:
-            errors.append(
-                f"{relative_path}: replacement {source_id!r} must target "
-                f"{ledger.cairo_stwo_repository}@{ledger.cairo_prover_stwo_revision}"
-            )
-    missing = sorted(required_packages - found_packages)
-    if missing:
-        errors.append(f"{relative_path}: missing Stwo replacements {missing!r}")
-    return errors
-
-
-def _check_replaced_lock_sources(root: Path, relative_path: str, ledger: PinLedger) -> list[str]:
-    try:
-        lock = _load_toml(root / relative_path)
-    except (OSError, tomllib.TOMLDecodeError) as error:
-        return [f"{relative_path}: unable to parse lockfile: {error}"]
-    old_source = (
-        f"git+{ledger.cairo_stwo_repository}?rev={ledger.cairo_stwo_revision}"
-        f"#{ledger.cairo_stwo_revision}"
-    )
-    new_source = (
-        f"git+{ledger.cairo_stwo_repository}?rev={ledger.cairo_prover_stwo_revision}"
-        f"#{ledger.cairo_prover_stwo_revision}"
-    )
-    packages = [
-        package
-        for package in lock.get("package", [])
-        if isinstance(package, dict)
-        and isinstance(package.get("source"), str)
-        and package["source"].startswith(f"git+{ledger.cairo_stwo_repository}?")
-    ]
-    sources = {package["source"] for package in packages}
-    errors: list[str] = []
-    if sources != {old_source, new_source}:
-        errors.append(
-            f"{relative_path}: Cairo prover Stwo sources are {sorted(sources)!r}, "
-            f"expected only declared {old_source!r} and replacement {new_source!r}"
-        )
-    old_packages = {package["name"] for package in packages if package["source"] == old_source}
-    new_packages = {package["name"] for package in packages if package["source"] == new_source}
-    if old_packages != new_packages:
-        errors.append(
-            f"{relative_path}: replacement package names differ: "
-            f"declared={sorted(old_packages)!r}, replacements={sorted(new_packages)!r}"
-        )
-    for package in packages:
-        if package["source"] != old_source:
-            continue
-        replace = package.get("replace")
-        if not isinstance(replace, str) or ledger.cairo_prover_stwo_revision not in replace:
-            errors.append(
-                f"{relative_path}: {package['name']}@{package['version']} is not locked to "
-                f"the prover replacement {ledger.cairo_prover_stwo_revision}"
-            )
+    dependencies = manifest.get("dependencies", {})
+    for name, value in dependencies.items():
+        if isinstance(value, dict) and "path" in value:
+            errors.append(f"{relative_path}: path dependency {name!r} is forbidden")
+    for key in ("patch", "replace"):
+        if key in manifest:
+            errors.append(f"{relative_path}: [{key}] is forbidden in the official trace oracle")
     return errors
 
 
@@ -767,9 +702,23 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
     errors.extend(_check_cairo_trace_oracle_manifest(root, ledger))
     trace_lock = "tools/stwo-cairo-trace-oracle/Cargo.lock"
     errors.extend(
-        _check_lock_sources(root, trace_lock, ledger.cairo_repository, ledger.cairo_revision)
+        _check_lock_source(
+            root,
+            trace_lock,
+            ledger.official_cairo_repository,
+            ledger.official_cairo_revision,
+            ledger.official_cairo_revision,
+        )
     )
-    errors.extend(_check_replaced_lock_sources(root, trace_lock, ledger))
+    errors.extend(
+        _check_lock_source(
+            root,
+            trace_lock,
+            ledger.official_cairo_stwo_repository,
+            ledger.official_cairo_stwo_revision[:8],
+            ledger.official_cairo_stwo_revision,
+        )
+    )
     return errors
 
 

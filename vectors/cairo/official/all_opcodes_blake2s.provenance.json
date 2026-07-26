@@ -23,6 +23,16 @@
     "sha256": "ea73df8c55e7b25067a262a59f2f500d319756ffa230121c89c95d86602bc391",
     "generator": "stwo-cairo-official-verifier inspect-blake2s-proof"
   },
+  "base_trace_checkpoint": {
+    "path": "vectors/cairo/official/all_opcodes.base_trace_checkpoint.json",
+    "schema": "stwo-cairo-base-trace-checkpoint-v1",
+    "bytes": 243996,
+    "sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
+    "component_count": 46,
+    "column_count": 1464,
+    "final_accumulator_sha256": "45acd12a96745ee0e9fbc32b5509de84c65676eb4d2a9d2bdb5822b696fd38d6",
+    "generator": "stwo-cairo-trace-oracle"
+  },
   "prover_input": {
     "path": "vectors/cairo/official/all_opcodes.prover_input.json",
     "format": "official_json",

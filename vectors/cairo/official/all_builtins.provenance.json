@@ -9,6 +9,16 @@
     "stwo_repository": "https://github.com/starkware-libs/stwo",
     "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
   },
+  "base_trace_checkpoint": {
+    "path": "vectors/cairo/official/all_builtins.base_trace_checkpoint.json",
+    "schema": "stwo-cairo-base-trace-checkpoint-v1",
+    "bytes": 547663,
+    "sha256": "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
+    "component_count": 48,
+    "column_count": 3332,
+    "final_accumulator_sha256": "d7a654ae5c3017c1c742fe9186a38f625722adf22ce47896840c83817e1818f8",
+    "generator": "stwo-cairo-trace-oracle"
+  },
   "prover_input": {
     "path": "vectors/cairo/official/all_builtins.prover_input.json",
     "format": "official_json",

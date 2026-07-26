@@ -30,8 +30,6 @@ class UpstreamPinTests(unittest.TestCase):
             "tools/stwo-cairo-verifier-rs/src/lib.rs",
             "tools/stwo-cairo-verifier-rs/Cargo.toml",
             "tools/stwo-cairo-verifier-rs/Cargo.lock",
-            "tools/stwo-cairo-trace-oracle/Cargo.toml",
-            "tools/stwo-cairo-trace-oracle/Cargo.lock",
             ".github/workflows/ci.yml",
             "src/tools/metal_prover_session/state.zig",
             "src/frontends/cairo/prover.zig",
@@ -75,8 +73,10 @@ class UpstreamPinTests(unittest.TestCase):
             "vectors/cairo/official/all_builtins.provenance.json",
             joined,
         )
+        self.assertIn("tools/stwo-cairo-trace-oracle/Cargo.toml", joined)
+        self.assertIn("tools/stwo-cairo-trace-oracle/Cargo.lock", joined)
 
-    def test_cairo_prover_stwo_drift_reaches_trace_manifest_and_lock(self) -> None:
+    def test_legacy_cairo_prover_stwo_drift_excludes_official_trace_oracle(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(
             "3fe684648ff31e55b71525ad689fab7dfbd88880",
             "2" * 40,
@@ -87,8 +87,8 @@ class UpstreamPinTests(unittest.TestCase):
             errors = validate_repository(ROOT, path)
 
         joined = "\n".join(errors)
-        self.assertIn("tools/stwo-cairo-trace-oracle/Cargo.toml", joined)
-        self.assertIn("tools/stwo-cairo-trace-oracle/Cargo.lock", joined)
+        self.assertNotIn("tools/stwo-cairo-trace-oracle/Cargo.toml", joined)
+        self.assertNotIn("tools/stwo-cairo-trace-oracle/Cargo.lock", joined)
 
     def test_native_ledger_drift_reaches_source_manifests_and_locks(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(
