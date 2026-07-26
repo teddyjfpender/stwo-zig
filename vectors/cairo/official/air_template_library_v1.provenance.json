@@ -8,7 +8,7 @@
   },
   "generator": {
     "path": "tools/stwo-cairo-air-compiler",
-    "closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+    "closure_sha256": "2e8bcbcb1827689ae04cb725a624bc4d90a54481cb5a507762b4585f4ebc3eea"
   },
   "library": {
     "path": "vectors/cairo/official/air_template_library_v1.json",
@@ -34,7 +34,7 @@
         "max_evaluation_log": 21,
         "plan_hash": "a3611657b6f2c65f",
         "generator": "tools/stwo-cairo-air-compiler",
-        "generator_closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+        "generator_closure_sha256": "2e8bcbcb1827689ae04cb725a624bc4d90a54481cb5a507762b4585f4ebc3eea"
       }
     },
     {
@@ -54,7 +54,7 @@
         "max_evaluation_log": 24,
         "plan_hash": "14e5e4baf0058e43",
         "generator": "tools/stwo-cairo-air-compiler",
-        "generator_closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+        "generator_closure_sha256": "2e8bcbcb1827689ae04cb725a624bc4d90a54481cb5a507762b4585f4ebc3eea"
       }
     },
     {
@@ -74,7 +74,7 @@
         "max_evaluation_log": 21,
         "plan_hash": "d9f0a4feaa846596",
         "generator": "tools/stwo-cairo-air-compiler",
-        "generator_closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
+        "generator_closure_sha256": "2e8bcbcb1827689ae04cb725a624bc4d90a54481cb5a507762b4585f4ebc3eea"
       }
     }
   ]
