@@ -193,17 +193,24 @@ pub const Library = struct {
     pub fn sourceFor(
         self: Library,
         label: []const u8,
+        trace_log: u32,
         target_variant: preprocessed.Variant,
     ) !*const Source {
-        const opcode_source = self.sourceByRole(.opcodes);
-        if (opcode_source.find(label) != null) return opcode_source;
         const source_role: Role = switch (target_variant) {
             .canonical, .canonical_without_pedersen => .canonical,
             .canonical_small => .canonical_small,
         };
-        const source = self.sourceByRole(source_role);
-        if (source.find(label) == null) return error.MissingAirTemplate;
-        return source;
+        const variant_source = self.sourceByRole(source_role);
+        const opcode_source = self.sourceByRole(.opcodes);
+        if (variant_source.find(label)) |component| {
+            if (component.trace_log_size == trace_log) return variant_source;
+        }
+        if (opcode_source.find(label)) |component| {
+            if (component.trace_log_size == trace_log) return opcode_source;
+        }
+        if (variant_source.find(label) != null) return variant_source;
+        if (opcode_source.find(label) != null) return opcode_source;
+        return error.MissingAirTemplate;
     }
 
     fn sourceByRole(self: Library, wanted: Role) *const Source {
@@ -262,4 +269,24 @@ test "official Cairo AIR template library covers all claim fields" {
     );
     defer library.deinit();
     try std.testing.expectEqual(@as(usize, 3), library.sources.len);
+    const canonical = library.sourceByRole(.canonical);
+    const add_small = canonical.find("add_opcode_small").?;
+    try std.testing.expectEqual(
+        Role.canonical,
+        (try library.sourceFor(
+            "add_opcode_small",
+            add_small.trace_log_size,
+            .canonical,
+        )).role,
+    );
+    const opcodes = library.sourceByRole(.opcodes);
+    const blake_compress = opcodes.find("blake_compress_opcode").?;
+    try std.testing.expectEqual(
+        Role.opcodes,
+        (try library.sourceFor(
+            "blake_compress_opcode",
+            blake_compress.trace_log_size,
+            .canonical,
+        )).role,
+    );
 }

@@ -19,6 +19,7 @@ mod encoding;
 mod parameters;
 mod program;
 mod recording;
+mod semantic;
 
 use program::lower_framework_eval_to_v1_with_logup;
 
@@ -50,6 +51,12 @@ fn lower_component<E: FrameworkEval>(
         component.evaluator().log_size(),
     )
     .map_err(|error| anyhow!("{name}: {error:?}"))?;
+    semantic::validate(
+        name,
+        component.evaluator(),
+        component.claimed_sum(),
+        &concrete_program,
+    )?;
     let probe = lower_framework_eval_to_v1_with_logup(
         probe_component.evaluator(),
         probe_component.trace_locations().len() as u32,

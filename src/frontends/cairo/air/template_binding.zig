@@ -1,12 +1,15 @@
 //! Instantiates authenticated Cairo AIR templates for one live claim schedule.
 
 const std = @import("std");
+const core = @import("stwo_core");
 const adapter = @import("../adapter/mod.zig");
 const claim_generator = @import("../claim_generator.zig");
 const preprocessed = @import("../preprocessed/trace.zig");
 const composition = @import("../witness/composition_bundle.zig");
 const eval_program = @import("../witness/eval_program.zig");
 const template_library = @import("template_library.zig");
+
+const M31 = core.fields.m31.M31;
 
 pub fn instantiate(
     allocator: std.mem.Allocator,
@@ -34,7 +37,15 @@ pub fn instantiate(
     var constraint_cursor: u32 = 0;
     var maximum_evaluation_log: u32 = 0;
     for (geometry.components, components) |live, *component| {
-        const source = try library.sourceFor(live.name, target_variant);
+        const trace_log = switch (live.log_size) {
+            .known => |value| value,
+            .deferred => return error.IncompleteClaimGeometry,
+        };
+        const source = try library.sourceFor(
+            live.name,
+            trace_log,
+            target_variant,
+        );
         const template = source.find(live.name) orelse
             return error.MissingAirTemplate;
         const source_spec = switch (source.variant) {
@@ -136,9 +147,10 @@ fn instantiateComponent(
         template.preprocessed_indices,
     );
     errdefer allocator.free(projected);
-    const denominators = try allocator.dupe(
-        u32,
-        template.denominator_inverses,
+    const denominators = try denominatorInverses(
+        allocator,
+        trace_log,
+        evaluation_log,
     );
     errdefer allocator.free(denominators);
     const extension_sources = try allocator.dupe(
@@ -186,6 +198,34 @@ fn instantiateComponent(
         .ext_sources = extension_sources,
         .parts = parts,
     };
+}
+
+fn denominatorInverses(
+    allocator: std.mem.Allocator,
+    trace_log: u32,
+    evaluation_log: u32,
+) ![]u32 {
+    const delta = std.math.sub(
+        u32,
+        evaluation_log,
+        trace_log,
+    ) catch return error.InvalidTemplateGeometry;
+    if (delta >= @bitSizeOf(usize)) return error.InvalidTemplateGeometry;
+
+    const values = try allocator.alloc(u32, @as(usize, 1) << @intCast(delta));
+    errdefer allocator.free(values);
+    const trace_coset = core.poly.circle.canonic.CanonicCoset.new(trace_log).coset();
+    const evaluation_domain =
+        core.poly.circle.canonic.CanonicCoset.new(evaluation_log).circleDomain();
+    for (values, 0..) |*value, index| {
+        value.* = (try core.constraints.cosetVanishing(
+            M31,
+            trace_coset,
+            evaluation_domain.at(index),
+        ).inv()).toU32();
+    }
+    core.utils.bitReverse(u32, values);
+    return values;
 }
 
 fn rebindDomainConstants(
@@ -321,4 +361,29 @@ test "official Cairo AIR templates instantiate live logs and segment starts" {
         bundle.components[0].n_constraints,
         bundle.components[1].random_coefficient_offset,
     );
+}
+
+test "official Cairo AIR templates derive vanishing inverses from live geometry" {
+    const allocator = std.testing.allocator;
+    const source = try denominatorInverses(allocator, 8, 9);
+    defer allocator.free(source);
+    const rebound = try denominatorInverses(allocator, 9, 10);
+    defer allocator.free(rebound);
+
+    try std.testing.expectEqual(@as(usize, 2), source.len);
+    try std.testing.expectEqual(@as(usize, 2), rebound.len);
+    try std.testing.expect(!std.mem.eql(u32, source, rebound));
+    for (source, 0..) |inverse, index| {
+        const trace_coset =
+            core.poly.circle.canonic.CanonicCoset.new(8).coset();
+        const evaluation_domain =
+            core.poly.circle.canonic.CanonicCoset.new(9).circleDomain();
+        const point_index = core.utils.bitReverseIndex(index, 1);
+        const vanishing = core.constraints.cosetVanishing(
+            M31,
+            trace_coset,
+            evaluation_domain.at(point_index),
+        );
+        try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
+    }
 }
