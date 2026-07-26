@@ -16,6 +16,8 @@ use stwo_cairo_common::prover_types::cpu::CasmState;
 
 use crate::sha256_file;
 
+pub mod public_statement;
+
 pub const MAX_INPUT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 #[derive(Debug, Serialize)]
@@ -110,6 +112,13 @@ pub struct InputSummary {
     builtin_segments: BuiltinSegments,
     public_segment_context: [bool; 11],
     execution_resources: ResourceSummary,
+    public_statement: public_statement::PublicStatementSummary,
+}
+
+impl InputSummary {
+    pub fn public_statement(&self) -> &public_statement::PublicStatementSummary {
+        &self.public_statement
+    }
 }
 
 pub fn inspect_input(path: &Path) -> Result<InputSummary> {
@@ -126,14 +135,15 @@ pub fn inspect_input(path: &Path) -> Result<InputSummary> {
         File::open(path).with_context(|| format!("failed to open {}", path.display()))?,
     ))
     .context("failed to decode official ProverInput JSON")?;
-    Ok(summarize(input, sha256_file(path)?))
+    summarize(input, sha256_file(path)?)
 }
 
-fn summarize(input: ProverInput, input_sha256: String) -> InputSummary {
+fn summarize(input: ProverInput, input_sha256: String) -> Result<InputSummary> {
     let states = &input.state_transitions.casm_states_by_opcode;
     let resources = ExecutionResources::from_prover_input(&input);
-    InputSummary {
-        schema: "stwo_cairo_official_input_summary_v1",
+    let (_, public_statement) = public_statement::derive(&input)?;
+    Ok(InputSummary {
+        schema: "stwo_cairo_official_input_summary_v2",
         input_sha256,
         initial_state: state(input.state_transitions.initial_state),
         final_state: state(input.state_transitions.final_state),
@@ -180,7 +190,8 @@ fn summarize(input: ProverInput, input_sha256: String) -> InputSummary {
             },
             verify_instruction: resources.verify_instruction,
         },
-    }
+        public_statement,
+    })
 }
 
 fn state(value: CasmState) -> [u32; 3] {

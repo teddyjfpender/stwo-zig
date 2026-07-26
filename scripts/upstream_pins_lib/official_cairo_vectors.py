@@ -147,7 +147,7 @@ def _check_summary(
         errors.append(f"{relative_path}: prover input summary byte count drifted")
     if summary.get("sha256") != hashlib.sha256(encoded).hexdigest():
         errors.append(f"{relative_path}: prover input summary digest drifted")
-    schema = "stwo_cairo_official_input_summary_v1"
+    schema = "stwo_cairo_official_input_summary_v2"
     if (
         summary.get("schema") != schema
         or not isinstance(document, dict)

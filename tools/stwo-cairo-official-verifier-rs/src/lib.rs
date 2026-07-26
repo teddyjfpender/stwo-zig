@@ -157,6 +157,17 @@ pub fn verify_proof(path: &Path, channel: Channel, format: ProofFormat) -> Resul
     }
 }
 
+pub fn inspect_blake2s_proof_public_statement(
+    path: &Path,
+    format: ProofFormat,
+) -> Result<input::public_statement::PublicStatementSummary> {
+    validate_proof_file(path)?;
+    let proof: CairoProofForRustVerifier<Blake2sMerkleHasher> =
+        deserialize_proof_from_file(path, format.upstream())
+            .context("failed to deserialize Blake2s Cairo proof")?;
+    Ok(input::public_statement::summarize(&proof.claim.public_data))
+}
+
 pub fn write_json_new(path: &Path, value: &impl Serialize) -> Result<()> {
     let parent = path
         .parent()

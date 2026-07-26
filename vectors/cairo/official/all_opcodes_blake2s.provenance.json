@@ -23,9 +23,9 @@
     "sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
     "summary": {
       "path": "vectors/cairo/official/all_opcodes.input_summary.json",
-      "schema": "stwo_cairo_official_input_summary_v1",
-      "bytes": 4170,
-      "sha256": "4a3b1bde3b4e631e386a284e19a712fca8949c6f0f70c1d6dea15203ead52967",
+      "schema": "stwo_cairo_official_input_summary_v2",
+      "bytes": 4871,
+      "sha256": "e07ea85938c5c67ead38b97982f72dd3e7f069a0992f8104c9fe185fa112a464",
       "generator": "stwo-cairo-official-verifier inspect-input"
     }
   },

@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 use stwo_cairo_official_verifier::input::inspect_input;
+use stwo_cairo_official_verifier::{ProofFormat, inspect_blake2s_proof_public_statement};
 
 fn vector() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -11,6 +12,11 @@ fn vector() -> PathBuf {
 fn builtin_vector() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../vectors/cairo/official/all_builtins.prover_input.json")
+}
+
+fn all_opcodes_proof() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../vectors/cairo/official/all_opcodes_blake2s.proof.bz2")
 }
 
 #[test]
@@ -35,6 +41,8 @@ fn official_all_opcodes_input_has_stable_semantics() {
         summary["execution_resources"]["verify_instruction"],
         Value::from(778)
     );
+    assert_eq!(summary["public_statement"]["program_len"], 1340);
+    assert_eq!(summary["public_statement"]["output_len"], 2);
 }
 
 #[test]
@@ -77,4 +85,12 @@ fn official_all_builtins_input_has_complete_segment_resources() {
         summary["execution_resources"]["builtin_instance_counter"]["output_builtin"],
         50
     );
+}
+
+#[test]
+fn input_statement_matches_the_public_data_in_the_official_proof() {
+    let input = inspect_input(&vector()).unwrap();
+    let proof =
+        inspect_blake2s_proof_public_statement(&all_opcodes_proof(), ProofFormat::Binary).unwrap();
+    assert_eq!(input.public_statement(), &proof);
 }

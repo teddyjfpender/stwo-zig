@@ -47,7 +47,7 @@ fn inspect_input_publishes_an_immutable_semantic_summary() {
         .unwrap();
     assert!(status.success());
     let summary: Value = serde_json::from_slice(&std::fs::read(&result).unwrap()).unwrap();
-    assert_eq!(summary["schema"], "stwo_cairo_official_input_summary_v1");
+    assert_eq!(summary["schema"], "stwo_cairo_official_input_summary_v2");
     assert_eq!(summary["pc_count"], 778);
 }
 

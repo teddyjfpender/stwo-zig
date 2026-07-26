@@ -1,5 +1,6 @@
 const std = @import("std");
 const adapter = @import("cairo_frontend").adapter;
+const public_data = @import("cairo_frontend").statement.public_data;
 
 const fixture_path = "vectors/cairo/official/all_opcodes.prover_input.json";
 const summary_path = "vectors/cairo/official/all_opcodes.input_summary.json";
@@ -193,7 +194,7 @@ fn expectRustSummary(
     defer parsed.deinit();
     const root = parsed.value.object;
     try std.testing.expectEqualStrings(
-        "stwo_cairo_official_input_summary_v1",
+        "stwo_cairo_official_input_summary_v2",
         root.get("schema").?.string,
     );
 
@@ -234,6 +235,7 @@ fn expectRustSummary(
     try expectSegments(root.get("builtin_segments").?, actual.builtin_segments);
     try expectContext(root.get("public_segment_context").?, actual.public_segment_context);
     try expectResources(root.get("execution_resources").?, actual.execution_resources);
+    try expectPublicStatement(root.get("public_statement").?, input);
 }
 
 fn expectState(expected: std.json.Value, actual: [3]u32) !void {
@@ -304,4 +306,54 @@ fn expectResources(
             @field(actual.builtin_counts, field.name),
         );
     }
+}
+
+fn expectPublicStatement(expected_value: std.json.Value, input: *const adapter.ProverInput) !void {
+    const expected = expected_value.object;
+    const actual = try public_data.derive(std.testing.allocator, input);
+    defer std.testing.allocator.free(actual.public_claim);
+
+    try expectNumber(u32, expected.get("program_len").?, actual.program_len);
+    try expectNumber(u32, expected.get("output_len").?, actual.output_len);
+    try expectWordDigest(
+        expected.get("public_claim_words").?,
+        actual.public_claim_word_count,
+        actual.public_claim_sha256,
+    );
+    try expectWordDigest(
+        expected.get("public_claim_padded_words").?,
+        actual.public_claim.len,
+        actual.public_claim_padded_sha256,
+    );
+    try expectWordDigest(
+        expected.get("output_claim_words").?,
+        actual.output_claim_word_count,
+        actual.output_claim_sha256,
+    );
+    try expectWordDigest(
+        expected.get("program_claim_words").?,
+        actual.program_claim_word_count,
+        actual.program_claim_sha256,
+    );
+    try expectRoot(expected.get("output_root_blake2s").?, actual.output_root);
+    try expectRoot(expected.get("program_root_blake2s").?, actual.program_root);
+}
+
+fn expectWordDigest(
+    expected_value: std.json.Value,
+    count: usize,
+    digest: public_data.Digest,
+) !void {
+    const expected = expected_value.object;
+    try expectNumber(usize, expected.get("count").?, count);
+    try expectDigest(expected.get("sha256_le").?, digest);
+}
+
+fn expectRoot(expected: std.json.Value, words: [8]u32) !void {
+    var bytes: [32]u8 = undefined;
+    for (words, 0..) |word, index| {
+        std.mem.writeInt(u32, bytes[index * 4 ..][0..4], word, .little);
+    }
+    const encoded = std.fmt.bytesToHex(bytes, .lower);
+    try std.testing.expectEqualStrings(expected.string, &encoded);
 }

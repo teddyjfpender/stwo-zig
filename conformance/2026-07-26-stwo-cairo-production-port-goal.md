@@ -355,6 +355,7 @@ As of the starting commit `cfd47be9`:
 | --- | --- | --- |
 | Official source identity | clean-source generated registry and pin-ledger gate | complete for frozen pin |
 | Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
+| Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Claim shape | 68 fields and 83 slots match official source | shape only |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
@@ -380,8 +381,13 @@ It does not configure CPU proving, Metal, or CUDA. The two committed official
 inputs are hashed byte-for-byte, independently decoded by the pinned Rust
 adapter, and compared against Zig for every opcode-state sequence, memory
 table, public address, builtin segment, public-context bit, and execution
-resource. RF-02 still requires the broader execution corpus and RF-03 remains
-open; these input vectors do not establish witness or proof parity.
+resource. Their `PublicData` is also compared for unpadded and transcript-padded
+public claims, output and program value splits, and Blake2s roots. The
+all-opcodes statement is independently recovered from the committed official
+proof and required to equal the input-derived Rust statement. RF-02 still
+requires the broader execution corpus, the remaining CP-02 claim and mix-order
+work remains open, and RF-03 remains open; these vectors do not establish
+witness or proof parity.
 
 ## Delivery Order
 
