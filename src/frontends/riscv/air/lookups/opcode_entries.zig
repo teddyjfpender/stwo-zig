@@ -28,7 +28,9 @@ pub fn entryCount(family: trace.OpcodeFamily) usize {
         .load_store => 16,
         .mul => 16,
         .mulh => 22,
-        .div => 22,
+        // 22 pinned Stark-V entries plus two divisor-byte checks and one
+        // quotient-sign check.
+        .div => 25,
         .fence => 3,
     };
 }
@@ -376,9 +378,17 @@ fn div(columns: []const QM31) !List {
     addState(&list, requests.state);
     entry.access(&list, requests.rs1);
     entry.access(&list, requests.rs2);
+    for (requests.divisor_ranges) |request| {
+        entry.range88(&list, request.numerator, request.tuple.values());
+    }
     for (requests.quotient_remainder_ranges) |request| {
         entry.range811(&list, request.numerator, request.tuple.values());
     }
+    entry.rangeM31(
+        &list,
+        requests.quotient_sign_range.numerator,
+        requests.quotient_sign_range.tuple.values(),
+    );
     entry.range88(&list, requests.sign_range.numerator, requests.sign_range.tuple.values());
     entry.range20(
         &list,
@@ -402,8 +412,8 @@ fn fence(columns: []const QM31) !List {
 test "opcode lookup matrix preserves legacy counts and appends FENCE" {
     // jalr is 13/7, not the legacy 12/6: the rs1 middle-byte range check is an
     // intentional divergence from the pinned Stark-V vector.
-    const expected_entries = [_]usize{ 18, 16, 18, 14, 14, 11, 9, 11, 7, 12, 13, 8, 16, 16, 22, 22, 3 };
-    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 6, 7, 4, 8, 16, 22, 22, 2 };
+    const expected_entries = [_]usize{ 18, 16, 18, 14, 14, 11, 9, 11, 7, 12, 13, 8, 16, 16, 22, 25, 3 };
+    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 6, 7, 4, 8, 16, 22, 25, 2 };
     for (0..trace.N_FAMILIES) |index| {
         const family: trace.OpcodeFamily = @enumFromInt(index);
         try std.testing.expectEqual(expected_entries[index], entryCount(family));
@@ -446,7 +456,7 @@ test "opcode lookup vectors preserve exact domain order and batching" {
         // mulh
         &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_m31, .range_check_m31, .memory_access, .memory_access, .range_check_20 },
         // div
-        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_8, .range_check_20, .memory_access, .memory_access, .range_check_20 },
+        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_8_8, .range_check_8_8, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_m31, .range_check_8_8, .range_check_20, .memory_access, .memory_access, .range_check_20 },
         // fence
         &.{ .program_access, .registers_state, .registers_state },
     };

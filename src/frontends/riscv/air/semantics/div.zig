@@ -1,6 +1,7 @@
-//! Exact pinned Stark-V `DIV`, `DIVU`, `REM`, and `REMU` semantics.
+//! Stark-V-derived `DIV`, `DIVU`, `REM`, and `REMU` semantics, tightened with
+//! local divisor-byte and quotient-sign bindings.
 //!
-//! The 65-column oracle witness proves `rs1 = rs2 * q + r` over eight
+//! The 67-column oracle witness proves `rs1 = rs2 * q + r` over eight
 //! sign-extended limbs, handles RISC-V's zero-divisor and signed-overflow
 //! rules, and proves the regular-case remainder bound with a high-to-low scan.
 //! Oracle: pinned `crates/air/src/schema.rs` and `runner/src/ops/muldiv.rs`.
@@ -14,7 +15,7 @@ const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
 pub const N_ORACLE_COLUMNS: usize = 67;
-pub const N_CONSTRAINTS: usize = 77;
+pub const N_CONSTRAINTS: usize = 78;
 pub const LOOKUP_BATCH_SIZE: usize = 1;
 pub const BITWISE_LOOKUP_COUNT: usize = 0;
 pub const CURRENT_TRACE_COMPATIBLE = true;
@@ -256,6 +257,10 @@ pub fn evaluate(row: Row) Constraints {
     out[n] = QM31.one().sub(row.zero_divisor).mul(row.q_sign.sub(row.sign_xor))
         .mul(row.q_sign);
     n += 1;
+    // The runner defines the zero-divisor quotient as all ones. Pin its sign
+    // witness explicitly instead of relying on the product carry chain.
+    out[n] = row.zero_divisor.mul(row.q_sign.sub(d.is_signed));
+    n += 1;
 
     for (0..4) |limb| {
         const previous = if (limb == 0) QM31.zero() else d.negation_carries[limb - 1];
@@ -295,11 +300,7 @@ pub fn evaluate(row: Row) Constraints {
     }
     // Source registers are read-only: the emitted `next` limbs must equal the
     // consumed `previous` limbs, otherwise the operand is a free prover choice
-    // that is also written back onto the register bus.  For the divisor this
-    // additionally routes byte-ness through the global memory argument: every
-    // register write is byte-range-checked by its producing family, so a bus
-    // read that must re-emit its `previous` limbs unchanged cannot introduce
-    // a non-byte limb such as rs2 = [0, 0, 0, 256].
+    // that is also written back onto the register bus.
     for (common.readOnlyAccessConstraints(row.rs1, d.active)) |constraint| {
         out[n] = constraint;
         n += 1;
@@ -336,7 +337,9 @@ pub const Lookups = struct {
     state: control.StateLookups,
     rs1: control.RegisterAccessLookups,
     rs2: control.RegisterAccessLookups,
+    divisor_ranges: [2]control.Request(control.RangePairTuple),
     quotient_remainder_ranges: [8]control.Request(control.RangePairTuple),
+    quotient_sign_range: control.Request(control.RangePairTuple),
     sign_range: control.Request(control.RangePairTuple),
     positive_remainder_diff: control.Request(control.Range20Tuple),
     rd: control.RegisterAccessLookups,
@@ -354,7 +357,18 @@ pub fn lookups(row: Row) Lookups {
         .state = control.stateLookups(row.pc, row.clock, row.pc.add(common.q(4)), d.active),
         .rs1 = control.registerAccessLookups(row.rs1, row.clock, d.active),
         .rs2 = control.registerAccessLookups(row.rs2, row.clock, d.active),
+        .divisor_ranges = .{
+            control.rangePairRequest(d.active, row.rs2.next[0], row.rs2.next[1]),
+            control.rangePairRequest(d.active, row.rs2.next[2], row.rs2.next[3]),
+        },
         .quotient_remainder_ranges = ranges,
+        // q[3] is byte-ranged above. Requiring q[3] - 128*q_sign to fit seven
+        // bits binds q_sign to bit 31, including the q == 0 signed case.
+        .quotient_sign_range = control.rangePairRequest(
+            d.valid_not_zero_divisor,
+            QM31.zero(),
+            row.q[3].sub(row.q_sign.mul(common.q(128))),
+        ),
         .sign_range = control.rangePairRequest(d.active, d.sign_checks[0], d.sign_checks[1]),
         .positive_remainder_diff = .{
             .numerator = d.valid_not_special.neg(),
@@ -448,6 +462,28 @@ test "div: regular unsigned row satisfies exact constraints and requests" {
     }
 }
 
+// TODO(soundness): promote the `[0, 0, 0, 256]` DIVU divisor forgery into the
+// end-to-end malicious-witness suite. The two `divisor_ranges` requests above
+// are the row-local fix; the deferred test should mutate the committed trace.
+
+test "div: quotient sign range binds the zero quotient" {
+    const table = @import("../lookups/tables/schema.zig");
+    var row = baseRow();
+    row.is_div = QM31.one();
+
+    var request = lookups(row).quotient_sign_range;
+    var tuple = request.tuple.values();
+    _ = try table.indexSecure(.range_check_m31, &tuple);
+
+    row.q_sign = QM31.one();
+    request = lookups(row).quotient_sign_range;
+    tuple = request.tuple.values();
+    try std.testing.expectError(
+        error.ValueOutOfRange,
+        table.indexSecure(.range_check_m31, &tuple),
+    );
+}
+
 test "div: forged quotient fails the carry range oracle" {
     var row = honestUnsignedRow();
     row.q[0] = common.q(3);
@@ -481,6 +517,11 @@ test "div: zero divisor requires all-one quotient" {
     row.r_abs[0] = common.q(7);
     row.rd.next = row.q;
     try std.testing.expect(evaluate(row).allZero());
+
+    row.q_sign = QM31.one();
+    try std.testing.expect(!evaluate(row).allZero());
+    row.q_sign = QM31.zero();
+
     row.q[3] = common.q(254);
     try std.testing.expect(!evaluate(row).allZero());
 }
@@ -524,7 +565,7 @@ test "div: source register write-back forgery is rejected" {
     try std.testing.expect(!evaluate(forged_rs2).allZero());
 }
 
-test "div: adapter preserves the 65-column oracle order" {
+test "div: adapter preserves the 67-column oracle order" {
     var columns = [_]QM31{QM31.zero()} ** N_ORACLE_COLUMNS;
     columns[2] = common.q(1);
     columns[12] = common.q(2);

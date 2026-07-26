@@ -7,8 +7,8 @@ const common = @import("../semantics/common.zig");
 const control = @import("../semantics/control_common.zig");
 
 pub const MAX_ARITY: usize = 32;
-pub const MAX_ENTRIES: usize = 22;
-pub const MAX_BATCHES: usize = 22;
+pub const MAX_ENTRIES: usize = 25;
+pub const MAX_BATCHES: usize = 25;
 
 /// Relation order is transcript order and must stay aligned with
 /// `relation_challenges.Relations.fromDraws`.

@@ -44,10 +44,11 @@ The reproducible commands and evidence schemas live in
 
 ## Closed under-constraints — 2026-07-26
 
-Five demonstrated under-constraints in the opcode AIR were found by adversarial
+Six demonstrated under-constraints in the opcode AIR were found by adversarial
 review and closed. Each was inherited from the pinned Stark-V layout, so the
 fixes are an intentional divergence recorded in `conformance/divergence-log.md`.
-Each has an executable rejection test in its owning module.
+Each has a focused executable check in its owning module, except for the
+deferred end-to-end DIV committed-trace mutation called out below.
 
 - [x] Read-only accesses bind `next == previous`. Previously a source register's
       emitted bus value was a free prover choice that was also the operand the
@@ -58,13 +59,15 @@ Each has an executable rejection test in its owning module.
       previously admitted a second byte decomposition offset by `p + 2`.
 - [x] `JALR` range-checks the `rs1` middle bytes, bounding the composed jump
       target.
+- [x] `DIV`/`DIVU`/`REM`/`REMU` byte-range every divisor limb locally, bind the
+      quotient sign to its top byte, and pin the zero-divisor sign convention.
+      The proven-sufficient `lt_diff` RC_20 bound is unchanged.
 - [x] `LB`/`LH` sign extension and `SRL`/`SRA` sign fill bind their sign
       witnesses to the operand bit they claim to represent.
 
-Two residual obligations remain global rather than row-local and are documented
-at their site: DIV divisor-limb byte-ness and the `JALR` `to_pc_lsb` flip. Both
-rest on bus closure and ROM fetch alignment, neither of which this AIR enforces
-locally.
+One residual obligation remains global rather than row-local and is documented
+at its site: the `JALR` `to_pc_lsb` flip rests on ROM fetch alignment, which the
+opcode row does not yet enforce locally.
 
 The review that found these is the reason the first item below is now the
 highest-priority soundness task rather than one of five parallel ones: every one
@@ -76,11 +79,13 @@ contains the same omissions).
 
 - [ ] Expand committed-witness mutation coverage from the highest-risk MULH and
       program/memory boundaries to every opcode family.
-- [ ] Commit a generic witness-rigidity suite over all seventeen families: every
+- [x] Commit a generic witness-rigidity suite over all seventeen families: every
       committed column must be observable through a constraint or a lookup, no
       opcode selector may be interchangeable with another whose semantics differ,
       and every access must emit a value determined by constrained inputs. The
-      third property is what the five closed items above all violated.
+      third property is what the six closed items above all violated.
+- [ ] Promote the non-byte DIVU divisor mutation (`[0, 0, 0, 256]`) into the
+      end-to-end malicious-witness suite.
 - [ ] Add a deliberately malicious prover harness for skipped instructions,
       stale reads, forged outputs, and altered completion.
 - [ ] Exhaustively check small-limb component domains where enumeration is

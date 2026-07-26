@@ -323,7 +323,7 @@ test "workspace capacities are comptime-fixed and independent of the witness" {
     // Declared per-proof memory budget. Both sizes are comptime constants, so a
     // component type that grows past the budget fails here rather than silently
     // raising the prover's high-water mark. Measured on this revision:
-    // 2,320,528 B proving, 1,177,976 B verification.
+    // 2,492,560 B proving, 1,251,704 B verification.
     try std.testing.expect(ProofWorkspace.byteSize() <= 4 << 20);
     try std.testing.expect(VerificationWorkspace.byteSize() <= 2 << 20);
 }
