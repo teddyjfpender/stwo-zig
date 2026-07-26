@@ -132,8 +132,8 @@ def _check_witness_bundle(
         "all_builtins": (
             "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
             "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
-            43,
-            16,
+            45,
+            18,
             27,
         ),
     }
@@ -256,10 +256,12 @@ def _check_witness_compiler(
             or sorted(added)
             != sorted(
                 [
+                    "add_mod_builtin",
                     "blake_round_sigma",
                     "bitwise_builtin",
                     "ec_op_builtin",
                     "generic_opcode",
+                    "mul_mod_builtin",
                     "partial_ec_mul_window_bits_9",
                     "pedersen_aggregator_window_bits_9",
                     "pedersen_builtin",

@@ -2,7 +2,7 @@
   "schema": "stwo_cairo_official_witness_program_bundle_v1",
   "release_eligible": false,
   "release_blockers": [
-    "the bundle covers 61 of 64 generated base-trace writers",
+    "the bundle covers 63 of 64 generated base-trace writers",
     "helper and builtin input-edge reconstruction is not complete",
     "the complete SIMD and Metal proofs have not yet passed the official verifier"
   ],
@@ -18,17 +18,17 @@
   "compiler": {
     "classification": "repository_owned_source_compiler",
     "repository": "https://github.com/teddyjfpender/stwo-zig",
-    "revision": "d198668b2e7b749fcb1a80510b4de63373a8ab0b",
-    "tree": "295710d0c60fcf70d505f86a1e578910f745dcb2",
+    "revision": "2ec8e52e2a496039ba857d81db53d7735784c813",
+    "tree": "bb8cd1bf0bb7999d5fdc2882b9d07d8c32a621de",
     "path": "tools/cairo-witness-compiler",
     "receipt": {
       "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
-      "bytes": 2356,
-      "sha256": "fea2a19a4287bc6e95af7c3c290ef1a22ca44513734e4d7d49568a038323dbc1"
+      "bytes": 2402,
+      "sha256": "c187a1190bb37a81888f391e5e9fe261a3ab262833c73f54b443030965b5c108"
     },
-    "orchestrator_sha256": "6ce9aeeb5f29fb6cd62c861b4bb1fb14b44e005e306564e2e288a57c6c442f82",
-    "rewriter_closure_sha256": "0e8b4b95a7bea0fc2df06bb5fca4a38e9b21feb35c989ad1823311b2abd8b899",
-    "support_closure_sha256": "fee9b90edff2b07fe74466c3b2627f159815e94e4a511f998420a951d13d1d22",
+    "orchestrator_sha256": "9225890c389f7046d7260cb5e937db29eff4cb64cf9526679736a924784dc669",
+    "rewriter_closure_sha256": "f04554e1dc03ab9a936e8ca6f0405f0eeffc3ab17740095820f144c9b5bac2eb",
+    "support_closure_sha256": "617c949b0609e2ccd86462f56c0cbc3861d9a445942a588c965dba0475b9c98e",
     "rustc": "rustc 1.94.0-nightly (86a49fd71 2026-01-14)",
     "cargo": "cargo 1.94.0-nightly (6d1bd93c4 2026-01-10)",
     "migration_equivalence": {
@@ -67,7 +67,9 @@
         "verify_bitwise_xor_8",
         "verify_bitwise_xor_9",
         "bitwise_builtin",
+        "add_mod_builtin",
         "ec_op_builtin",
+        "mul_mod_builtin",
         "pedersen_builtin",
         "pedersen_builtin_narrow_windows",
         "poseidon_3_partial_rounds_chain",
@@ -82,10 +84,10 @@
   "artifact": {
     "path": "vectors/cairo/official/witness_programs_v1.bin",
     "format": "STWZWIT/1",
-    "bytes": 2347388,
-    "sha256": "bad91018e189640cc8d31f40de9e18a7e3acac2921bb63fa395a599fcb893d23",
-    "component_count": 61,
-    "instruction_count": 146487,
+    "bytes": 2486826,
+    "sha256": "d119a31ecf07c0e4d97ad5884384d99150517ffddfb4515ebbe5c626ce28094f",
+    "component_count": 63,
+    "instruction_count": 155195,
     "components": [
       "add_opcode",
       "add_opcode_small",
@@ -147,6 +149,8 @@
       "poseidon_full_round_chain",
       "range_check96_builtin",
       "range_check_builtin",
+      "add_mod_builtin",
+      "mul_mod_builtin",
       "ec_op_builtin"
     ]
   },
@@ -162,8 +166,8 @@
     "all_builtins": {
       "input_sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
       "checkpoint_sha256": "ef50c874b8160ed3d3a41cdbb2c03bed813e2bdf6195c7bbb18e1b8fd38bdd44",
-      "active_recordings": 43,
-      "executed_recordings": 16,
+      "active_recordings": 45,
+      "executed_recordings": 18,
       "deferred_input_edges": 27,
       "column_mismatches": 0
     }
