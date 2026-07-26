@@ -354,6 +354,7 @@ As of the starting commit `cfd47be9`:
 | Area | Evidence | Status |
 | --- | --- | --- |
 | Official source identity | clean-source generated registry and pin-ledger gate | complete for frozen pin |
+| Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
 | Claim shape | 68 fields and 83 slots match official source | shape only |
 | Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
@@ -368,6 +369,19 @@ As of the starting commit `cfd47be9`:
 
 No existing benchmark, SN PIE receipt, compact envelope, or raw-trace test
 proves this goal complete.
+
+The focused backend-neutral admission gate is:
+
+```text
+zig build test-cairo-frontend -Doptimize=Debug
+```
+
+It does not configure CPU proving, Metal, or CUDA. The two committed official
+inputs are hashed byte-for-byte, independently decoded by the pinned Rust
+adapter, and compared against Zig for every opcode-state sequence, memory
+table, public address, builtin segment, public-context bit, and execution
+resource. RF-02 still requires the broader execution corpus and RF-03 remains
+open; these input vectors do not establish witness or proof parity.
 
 ## Delivery Order
 

@@ -12,6 +12,12 @@ import sys
 import tomllib
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from upstream_pins_lib.official_cairo_vectors import check as check_official_cairo_vectors
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LEDGER = ROOT / "conformance" / "upstream.md"
@@ -224,6 +230,14 @@ def _check_official_cairo_manifest(root: Path, ledger: PinLedger) -> list[str]:
             ledger.official_cairo_repository,
             ledger.official_cairo_revision,
         ),
+        "stwo-cairo-adapter": (
+            ledger.official_cairo_repository,
+            ledger.official_cairo_revision,
+        ),
+        "stwo-cairo-common": (
+            ledger.official_cairo_repository,
+            ledger.official_cairo_revision,
+        ),
         # Stwo-Cairo uses this short rev spelling. Matching it prevents Cargo
         # from creating two incompatible identities for the same Stwo commit.
         "stwo": (
@@ -248,46 +262,6 @@ def _check_official_cairo_manifest(root: Path, ledger: PinLedger) -> list[str]:
     for key in ("patch", "replace"):
         if key in manifest:
             errors.append(f"{relative_path}: [{key}] is forbidden in the official oracle")
-    return errors
-
-
-def _check_official_cairo_vector(root: Path, ledger: PinLedger) -> list[str]:
-    relative_path = "vectors/cairo/official/all_opcodes_blake2s.provenance.json"
-    try:
-        record = json.loads((root / relative_path).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        return [f"{relative_path}: invalid provenance: {error}"]
-    if not isinstance(record, dict) or record.get("schema") != "stwo_cairo_official_oracle_vector_v1":
-        return [f"{relative_path}: invalid schema"]
-
-    source = record.get("source")
-    proof = record.get("proof")
-    if not isinstance(source, dict) or not isinstance(proof, dict):
-        return [f"{relative_path}: source and proof objects are required"]
-    expected_source = {
-        "repository": ledger.official_cairo_repository,
-        "revision": ledger.official_cairo_revision,
-        "stwo_repository": ledger.official_cairo_stwo_repository,
-        "stwo_revision": ledger.official_cairo_stwo_revision,
-    }
-    errors = [
-        f"{relative_path}: source {key!r} is {source.get(key)!r}, expected {expected!r}"
-        for key, expected in expected_source.items()
-        if source.get(key) != expected
-    ]
-    vector_path = proof.get("path")
-    if not isinstance(vector_path, str) or Path(vector_path).is_absolute():
-        return errors + [f"{relative_path}: proof path is invalid"]
-    try:
-        vector = (root / vector_path).read_bytes()
-    except OSError as error:
-        return errors + [f"{relative_path}: unable to read proof vector: {error}"]
-    if proof.get("bytes") != len(vector):
-        errors.append(f"{relative_path}: proof byte count drifted")
-    if proof.get("sha256") != hashlib.sha256(vector).hexdigest():
-        errors.append(f"{relative_path}: proof digest drifted")
-    if proof.get("channel") != "blake2s" or proof.get("format") != "binary":
-        errors.append(f"{relative_path}: proof transport identity drifted")
     return errors
 
 
@@ -749,7 +723,15 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
 
     errors.extend(_check_blake_oracle_source(root, ledger))
     errors.extend(_check_official_cairo_manifest(root, ledger))
-    errors.extend(_check_official_cairo_vector(root, ledger))
+    errors.extend(
+        check_official_cairo_vectors(
+            root,
+            cairo_repository=ledger.official_cairo_repository,
+            cairo_revision=ledger.official_cairo_revision,
+            stwo_repository=ledger.official_cairo_stwo_repository,
+            stwo_revision=ledger.official_cairo_stwo_revision,
+        )
+    )
     official_lock = "tools/stwo-cairo-official-verifier-rs/Cargo.lock"
     errors.extend(
         _check_lock_source(

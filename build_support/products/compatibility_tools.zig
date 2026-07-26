@@ -40,6 +40,16 @@ pub fn addProducts(context: Context) void {
     cairo_input.addImport("stwo", stwo);
     addExecutable(context, cairo_input, "cairo-input", "cairo-input", "Build adapted Cairo input inspector", false);
 
+    const cairo_frontend = consumer(context, protocol, "src/frontends/cairo/mod.zig");
+    const cairo_test_root = consumer(context, protocol, "src/frontends/cairo/tests/mod.zig");
+    cairo_test_root.addImport("cairo_frontend", cairo_frontend);
+    const cairo_tests = context.b.addTest(.{ .root_module = cairo_test_root });
+    const run_cairo_tests = context.b.addRunArtifact(cairo_tests);
+    context.b.step(
+        "test-cairo-frontend",
+        "Run focused backend-neutral Cairo conformance tests",
+    ).dependOn(&run_cairo_tests.step);
+
     const opcode = consumer(context, protocol, "src/tools/riscv_opcode_manifest/main.zig");
     opcode.addImport("stwo", stwo);
     const opcode_cli = b.addExecutable(.{ .name = "riscv-opcode-manifest", .root_module = opcode });

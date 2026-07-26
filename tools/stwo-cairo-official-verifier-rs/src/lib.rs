@@ -17,6 +17,8 @@ use stwo::core::vcs_lifted::poseidon252_merkle::{
     Poseidon252MerkleChannel, Poseidon252MerkleHasher,
 };
 
+pub mod input;
+
 pub const ADAPTER_VERSION: &str = "stwo-cairo-official-verifier/1";
 pub const STWO_CAIRO_REPOSITORY: &str = "https://github.com/starkware-libs/stwo-cairo";
 pub const STWO_CAIRO_REVISION: &str = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78";
@@ -97,6 +99,8 @@ pub struct Identity {
     pub channels: [Channel; 3],
     pub proof_formats: [ProofFormat; 3],
     pub max_proof_bytes: u64,
+    pub prover_input_schema: &'static str,
+    pub max_input_bytes: u64,
 }
 
 pub fn identity(executable: Option<&Path>) -> Result<Identity> {
@@ -116,6 +120,8 @@ pub fn identity(executable: Option<&Path>) -> Result<Identity> {
         channels: Channel::ALL,
         proof_formats: ProofFormat::ALL,
         max_proof_bytes: MAX_PROOF_BYTES,
+        prover_input_schema: "stwo_cairo_adapter::ProverInput@1.2.2",
+        max_input_bytes: input::MAX_INPUT_BYTES,
     })
 }
 
@@ -201,7 +207,7 @@ fn validate_proof_file(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn sha256_file(path: &Path) -> Result<String> {
+pub(crate) fn sha256_file(path: &Path) -> Result<String> {
     let mut file = File::open(path)
         .with_context(|| format!("failed to open {} for hashing", path.display()))?;
     let mut hasher = Sha256::new();

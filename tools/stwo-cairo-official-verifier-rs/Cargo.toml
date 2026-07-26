@@ -17,6 +17,8 @@ cairo-air = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
+stwo-cairo-adapter = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
+stwo-cairo-common = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 # Match the exact rev spelling in the pinned Stwo-Cairo workspace so Cargo
 # resolves one Stwo package identity. Cargo.lock binds it to the full commit.
 stwo = { git = "https://github.com/starkware-libs/stwo", rev = "7b211edd" }

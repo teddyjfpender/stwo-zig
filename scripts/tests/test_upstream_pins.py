@@ -71,6 +71,10 @@ class UpstreamPinTests(unittest.TestCase):
             "vectors/cairo/official/all_opcodes_blake2s.provenance.json",
             joined,
         )
+        self.assertIn(
+            "vectors/cairo/official/all_builtins.provenance.json",
+            joined,
+        )
 
     def test_cairo_prover_stwo_drift_reaches_trace_manifest_and_lock(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(

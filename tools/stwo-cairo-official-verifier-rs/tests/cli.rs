@@ -1,10 +1,16 @@
 use std::process::Command;
+use std::{path::Path, path::PathBuf};
 
 use serde_json::Value;
 use tempfile::tempdir;
 
 fn binary() -> &'static str {
     env!("CARGO_BIN_EXE_stwo-cairo-official-verifier")
+}
+
+fn input_vector() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../vectors/cairo/official/all_opcodes.prover_input.json")
 }
 
 #[test]
@@ -22,6 +28,27 @@ fn identity_names_exact_official_sources() {
     );
     assert_eq!(identity["channels"].as_array().unwrap().len(), 3);
     assert_eq!(identity["proof_formats"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        identity["prover_input_schema"],
+        "stwo_cairo_adapter::ProverInput@1.2.2"
+    );
+}
+
+#[test]
+fn inspect_input_publishes_an_immutable_semantic_summary() {
+    let directory = tempdir().unwrap();
+    let result = directory.path().join("summary.json");
+    let status = Command::new(binary())
+        .args(["inspect-input", "--prover-input"])
+        .arg(input_vector())
+        .args(["--result"])
+        .arg(&result)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let summary: Value = serde_json::from_slice(&std::fs::read(&result).unwrap()).unwrap();
+    assert_eq!(summary["schema"], "stwo_cairo_official_input_summary_v1");
+    assert_eq!(summary["pc_count"], 778);
 }
 
 #[test]

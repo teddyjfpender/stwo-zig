@@ -1,0 +1,25 @@
+{
+  "schema": "stwo_cairo_official_input_vector_v1",
+  "case": "test_prove_verify_all_builtins",
+  "source": {
+    "repository": "https://github.com/starkware-libs/stwo-cairo",
+    "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "prover_input_path": "test_data/test_prove_verify_all_builtins/prover_input.json",
+    "prover_input_sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+    "stwo_repository": "https://github.com/starkware-libs/stwo",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+  },
+  "prover_input": {
+    "path": "vectors/cairo/official/all_builtins.prover_input.json",
+    "format": "official_json",
+    "bytes": 921299,
+    "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+    "summary": {
+      "path": "vectors/cairo/official/all_builtins.input_summary.json",
+      "schema": "stwo_cairo_official_input_summary_v1",
+      "bytes": 4429,
+      "sha256": "9743faae1099c6f6219920708b46e3116da4a579c6021da1d719d1231f2242a5",
+      "generator": "stwo-cairo-official-verifier inspect-input"
+    }
+  }
+}

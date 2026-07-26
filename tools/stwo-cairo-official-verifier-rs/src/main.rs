@@ -6,11 +6,15 @@ use std::time::Instant;
 use serde::Serialize;
 use stwo_cairo_official_verifier::{
     ADAPTER_VERSION, Channel, ProofFormat, STWO_CAIRO_REVISION, STWO_REVISION, identity,
-    proof_sha256, verify_proof, write_json_new,
+    input::inspect_input, proof_sha256, verify_proof, write_json_new,
 };
 
 enum Command {
     Identity,
+    InspectInput {
+        prover_input: PathBuf,
+        result: PathBuf,
+    },
     Verify {
         proof: PathBuf,
         channel: Channel,
@@ -51,6 +55,13 @@ fn run() -> anyhow::Result<ExitCode> {
                 &identity(std::env::current_exe().ok().as_deref())?,
             )?;
             println!();
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::InspectInput {
+            prover_input,
+            result,
+        } => {
+            write_json_new(&result, &inspect_input(&prover_input)?)?;
             Ok(ExitCode::SUCCESS)
         }
         Command::Verify {
@@ -110,6 +121,31 @@ where
         "identity" => {
             anyhow::ensure!(args.next().is_none(), "identity accepts no arguments");
             Ok(Command::Identity)
+        }
+        "inspect-input" => {
+            let mut prover_input = None;
+            let mut result = None;
+            while let Some(flag) = args.next() {
+                let flag = flag
+                    .into_string()
+                    .map_err(|_| anyhow::anyhow!("option is not valid UTF-8"))?;
+                let value = args
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("missing value for {flag}"))?;
+                match flag.as_str() {
+                    "--prover-input" if prover_input.is_none() => {
+                        prover_input = Some(PathBuf::from(value))
+                    }
+                    "--result" if result.is_none() => result = Some(PathBuf::from(value)),
+                    "--prover-input" | "--result" => anyhow::bail!("duplicate option {flag}"),
+                    _ => anyhow::bail!("unknown option {flag}"),
+                }
+            }
+            Ok(Command::InspectInput {
+                prover_input: prover_input
+                    .ok_or_else(|| anyhow::anyhow!("missing --prover-input"))?,
+                result: result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
+            })
         }
         "verify" => {
             let mut proof = None;

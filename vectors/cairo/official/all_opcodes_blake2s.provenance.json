@@ -16,6 +16,19 @@
     "bytes": 875491,
     "sha256": "2d7acaabc6ac00afd1a840aaa1527c4a73a4807a9153dc3fe1d4fdefa86104f1"
   },
+  "prover_input": {
+    "path": "vectors/cairo/official/all_opcodes.prover_input.json",
+    "format": "official_json",
+    "bytes": 181534,
+    "sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+    "summary": {
+      "path": "vectors/cairo/official/all_opcodes.input_summary.json",
+      "schema": "stwo_cairo_official_input_summary_v1",
+      "bytes": 4170,
+      "sha256": "4a3b1bde3b4e631e386a284e19a712fca8949c6f0f70c1d6dea15203ead52967",
+      "generator": "stwo-cairo-official-verifier inspect-input"
+    }
+  },
   "generation": {
     "proof_command": "cargo run --profile witness-opt-1 --bin prove -- --prover_input_path INPUT --proof_path PROOF --proof-format json --verify",
     "transcode_command": "cargo run --example compact_blake2s_fixture -- PROOF VECTOR",
