@@ -42,10 +42,45 @@ The reproducible commands and evidence schemas live in
 `scripts/riscv_formal_tools.py`, `scripts/riscv_trace_vectors.py`,
 `scripts/riscv_arch_tests.py`, and `conformance/riscv/`.
 
+## Closed under-constraints — 2026-07-26
+
+Five demonstrated under-constraints in the opcode AIR were found by adversarial
+review and closed. Each was inherited from the pinned Stark-V layout, so the
+fixes are an intentional divergence recorded in `conformance/divergence-log.md`.
+Each has an executable rejection test in its owning module.
+
+- [x] Read-only accesses bind `next == previous`. Previously a source register's
+      emitted bus value was a free prover choice that was also the operand the
+      AIR computed on, so any register-reading instruction — a branch included —
+      could rewrite the register file with an arbitrary word.
+- [x] `SB`/`SH` preserve the unmarked bytes of the destination word.
+- [x] `AUIPC` pins `imm_limbs[0] == 0`. Because `2^32 = 2p + 2`, every immediate
+      previously admitted a second byte decomposition offset by `p + 2`.
+- [x] `JALR` range-checks the `rs1` middle bytes, bounding the composed jump
+      target.
+- [x] `LB`/`LH` sign extension and `SRL`/`SRA` sign fill bind their sign
+      witnesses to the operand bit they claim to represent.
+
+Two residual obligations remain global rather than row-local and are documented
+at their site: DIV divisor-limb byte-ness and the `JALR` `to_pc_lsb` flip. Both
+rest on bus closure and ROM fetch alignment, neither of which this AIR enforces
+locally.
+
+The review that found these is the reason the first item below is now the
+highest-priority soundness task rather than one of five parallel ones: every one
+of the five was invisible to the Sail differential (which validates the runner,
+not the AIR) and to the CP-11 oracle (which compares against the layout that
+contains the same omissions).
+
 ## Continuing adversarial work
 
 - [ ] Expand committed-witness mutation coverage from the highest-risk MULH and
       program/memory boundaries to every opcode family.
+- [ ] Commit a generic witness-rigidity suite over all seventeen families: every
+      committed column must be observable through a constraint or a lookup, no
+      opcode selector may be interchangeable with another whose semantics differ,
+      and every access must emit a value determined by constrained inputs. The
+      third property is what the five closed items above all violated.
 - [ ] Add a deliberately malicious prover harness for skipped instructions,
       stale reads, forged outputs, and altered completion.
 - [ ] Exhaustively check small-limb component domains where enumeration is
