@@ -32,6 +32,12 @@ pub const BaseTrace = struct {
         self.execution.deinit();
         self.* = undefined;
     }
+
+    pub fn takeColumns(self: *BaseTrace) []ColumnEvaluation {
+        const columns = self.columns;
+        self.columns = &.{};
+        return columns;
+    }
 };
 
 pub fn build(
@@ -259,6 +265,7 @@ fn deinitColumns(
     allocator: std.mem.Allocator,
     columns: []ColumnEvaluation,
 ) void {
+    if (columns.len == 0) return;
     for (columns) |column| allocator.free(column.values);
     allocator.free(columns);
 }

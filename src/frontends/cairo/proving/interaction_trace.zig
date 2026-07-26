@@ -34,8 +34,20 @@ pub const InteractionTrace = struct {
 
     pub fn deinit(self: *InteractionTrace) void {
         deinitColumns(self.allocator, self.columns);
-        self.allocator.free(self.claimed_sums);
+        if (self.claimed_sums.len != 0) self.allocator.free(self.claimed_sums);
         self.* = undefined;
+    }
+
+    pub fn takeColumns(self: *InteractionTrace) []ColumnEvaluation {
+        const columns = self.columns;
+        self.columns = &.{};
+        return columns;
+    }
+
+    pub fn takeClaimedSums(self: *InteractionTrace) []QM31 {
+        const claimed_sums = self.claimed_sums;
+        self.claimed_sums = &.{};
+        return claimed_sums;
     }
 };
 
@@ -422,6 +434,7 @@ fn deinitColumns(
     allocator: std.mem.Allocator,
     columns: []ColumnEvaluation,
 ) void {
+    if (columns.len == 0) return;
     for (columns) |column| allocator.free(column.values);
     allocator.free(columns);
 }

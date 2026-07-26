@@ -358,12 +358,19 @@ pub fn deriveFlatClaimGeometry(
     defer allocator.free(components);
     for (bundle.components, components) |component, *canonical| {
         canonical.* = .{
-            .name = component.label,
+            .name = canonicalClaimName(component.label),
             .instance = component.instance,
             .log_size = component.trace_log_size,
         };
     }
     return deriveFlatClaimGeometryFromCanonical(allocator, components);
+}
+
+fn canonicalClaimName(label: []const u8) []const u8 {
+    return if (std.mem.startsWith(u8, label, "memory_id_to_big["))
+        "memory_id_to_big"
+    else
+        label;
 }
 
 const MemoryEntry = public_data.MemoryEntry;

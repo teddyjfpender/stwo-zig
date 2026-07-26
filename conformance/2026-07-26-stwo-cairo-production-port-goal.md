@@ -365,7 +365,7 @@ As of the starting commit `cfd47be9`:
 | Official preprocessed trace | backend-neutral registry constructs canonical (161 columns), canonical-without-Pedersen (105 columns), and canonical-small (156 columns) in exact stable identity order; canonical AIR indices project to canonical-small identities and reject absent columns | commitment-root parity and process-owned cache reuse remain |
 | Official base commitment input | all-opcodes executes the authenticated witness graph and materializes all 1,464 columns and 28,690,992 M31 cells in Rust commitment order; every value vector is re-digested against the cumulative Rust checkpoint before admission | commitment root and live-input geometry derivation remain |
 | Official AIR compiler | authenticated exact-source overlay lowers the 46 active all-opcodes component evaluators into one backend-neutral bundle containing 678 constraints, 9,689 base instructions, and 14,797 extension instructions | complete for the frozen all-opcodes proof; all-family coverage and quotient execution remain |
-| Native Zig AIR | executes authenticated captured programs through the generic CPU/SIMD domain accumulator; a focused functional gate covers trace indexing, extension arithmetic, coefficient order, and coset-denominator placement | evaluator complete; official trace/proof integration incomplete |
+| Native Zig AIR | executes authenticated captured programs through the generic CPU/SIMD domain accumulator; a focused functional gate covers trace indexing, extension arithmetic, coefficient order, and coset-denominator placement; the complete all-opcodes canonical-small transaction returns a four-commitment proof with clean teardown | first complete Zig proof achieved; official Rust acceptance remains |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
@@ -484,6 +484,18 @@ adds the signed final and initial opcode-state boundaries before one batch
 inverse. The diagnostic all-opcodes gate proves that this value plus the 46
 materialized component claims is exactly zero. This establishes the lookup
 statement law, not Fiat-Shamir placement.
+
+The focused `test-cairo-cpu-proof` gate now executes the complete official
+all-opcodes transaction using canonical-small preprocessed columns: channel
+salt and PCS configuration, preprocessed and base commitments, interaction
+PoW-24, transcript-derived lookup elements, interaction claim and commitment,
+all 46 generic Cairo component provers, composition, FRI, and decommitments. It
+returns the expected four commitment roots and tears down cleanly under both
+`ReleaseSafe` and `ReleaseFast`. On the development host the first guarded runs
+took 60.13 seconds and 52.80 seconds, respectively, with about 1.91 GB peak
+RSS. These are functional measurements, not promoted performance evidence.
+RF-09 remains open until the exact outer Cairo proof is serialized and accepted
+by the pinned Rust verifier.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The

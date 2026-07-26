@@ -85,6 +85,7 @@ pub const steps = [_]Step{
     .{ .name = "cairo-air-bundle-inspector", .description = "Build official Cairo AIR bundle inspector", .scope = .compatibility_tools },
     .{ .name = "test-cairo-frontend", .description = "Run focused backend-neutral Cairo conformance tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-air", .description = "Run Cairo CPU AIR integration tests", .scope = .compatibility_tools },
+    .{ .name = "test-cairo-cpu-proof", .description = "Run the complete official Cairo CPU proof gate", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest", .description = "Dump the canonical Stark-V opcode and proof-family policy as JSON", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest-check", .description = "Validate exact Stark-V opcode IDs and execution-only classifications", .scope = .compatibility_tools },
     .{ .name = "test-riscv", .description = "Run RISC-V runner tests (trace_dump)", .scope = .riscv_cpu_compat },

@@ -75,7 +75,6 @@ pub const Table = struct {
     }
 };
 
-const max_blocks = 64;
 const max_workers = 8;
 
 const BlockPlan = struct {
@@ -135,8 +134,9 @@ fn fill(
     worker_count: u8,
 ) Error!void {
     std.debug.assert(destination.len == window.rowCount());
-    var plans: [max_blocks]BlockPlan = undefined;
-    const block_count = try planBlocks(window, &plans);
+    const plans = try allocator.alloc(BlockPlan, blockPlanCount(window));
+    defer allocator.free(plans);
+    const block_count = try planBlocks(window, plans);
     const requested_workers = @max(@as(usize, 1), worker_count);
     const active_workers = @min(@min(requested_workers, max_workers), block_count);
     const workspace_rows = @as(usize, 1) << window.bits();
@@ -202,7 +202,12 @@ const Worker = struct {
     }
 };
 
-fn planBlocks(window: Window, plans: *[max_blocks]BlockPlan) Error!usize {
+fn blockPlanCount(window: Window) usize {
+    const windows = 252 / @as(usize, window.bits());
+    return 2 * (windows - 1 + 16);
+}
+
+fn planBlocks(window: Window, plans: []BlockPlan) Error!usize {
     const bits: usize = window.bits();
     const windows = 252 / bits;
     const rows_per_window: usize = @as(usize, 1) << @intCast(bits);
@@ -246,7 +251,7 @@ fn planBlocks(window: Window, plans: *[max_blocks]BlockPlan) Error!usize {
             cursor += high_rows;
         }
     }
-    std.debug.assert(block_count <= plans.len);
+    std.debug.assert(block_count == plans.len);
     return block_count;
 }
 
@@ -265,6 +270,8 @@ test "Pedersen block generation agrees with exact window-18 deductions" {
 test "Pedersen table geometry covers official window variants" {
     try std.testing.expectEqual(@as(u32, 1 << 15), Window.small.rowCount());
     try std.testing.expectEqual(@as(u32, 1 << 23), Window.standard.rowCount());
+    try std.testing.expectEqual(@as(usize, 86), blockPlanCount(.small));
+    try std.testing.expectEqual(@as(usize, 58), blockPlanCount(.standard));
 }
 
 test "complete window-9 Pedersen table agrees at section boundaries and padding" {
