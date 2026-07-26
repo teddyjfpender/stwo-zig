@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const recorded_trace = @import("recorded_trace.zig");
+const producer_output = @import("../witness/producer_output.zig");
 const interaction_checkpoint = @import("interaction_checkpoint.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 const interaction_topology = @import("../witness/interaction_topology.zig");
@@ -58,7 +58,7 @@ pub const MaterializedTrace = struct {
 pub fn compareComponent(
     allocator: std.mem.Allocator,
     component: feed_topology.Component,
-    producer: recorded_trace.ProducerOutput,
+    producer: producer_output.ProducerOutput,
     expected: interaction_checkpoint.Component,
     z: interaction_checkpoint.SecureLimbs,
     alpha_powers: []const interaction_checkpoint.SecureLimbs,

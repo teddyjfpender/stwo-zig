@@ -9,7 +9,7 @@ const feed_topology = @import("../witness/feed_topology.zig");
 const memory_tables = @import("../witness/memory_tables.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const checkpoint = @import("checkpoint.zig");
-const recorded_trace = @import("recorded_trace.zig");
+const producer_output = @import("../witness/producer_output.zig");
 
 const target_labels = [_][]const u8{
     "memory_address_to_id",
@@ -74,7 +74,7 @@ pub fn compareTopology(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     topology: feed_topology.Loaded,
-    producers: []const recorded_trace.ProducerOutput,
+    producers: []const producer_output.ProducerOutput,
     expected_components: []const checkpoint.Component,
 ) !Report {
     var counts = try cpu_multiplicity.collectTopology(

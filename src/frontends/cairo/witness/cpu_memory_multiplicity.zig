@@ -16,7 +16,7 @@ const memory_tables = @import("memory_tables.zig");
 const program = @import("program.zig");
 const verify_inputs = @import("verify_instruction_inputs.zig");
 const witness_bundle = @import("bundle.zig");
-const recorded_trace = @import("../conformance/recorded_trace.zig");
+const producer_output = @import("producer_output.zig");
 
 const none = std.math.maxInt(u32);
 
@@ -100,7 +100,7 @@ pub fn collectTopology(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     topology: feed_topology.Loaded,
-    producers: []const recorded_trace.ProducerOutput,
+    producers: []const producer_output.ProducerOutput,
 ) !Counts {
     const address_values = input.memory.address_to_id.len -| 1;
     var counts = Counts{

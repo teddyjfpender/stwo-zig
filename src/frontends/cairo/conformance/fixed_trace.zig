@@ -18,7 +18,7 @@ const program = @import("../witness/program.zig");
 const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
 const checkpoint = @import("checkpoint.zig");
 const multiplicity_tables = @import("multiplicity_tables.zig");
-const recorded_trace = @import("recorded_trace.zig");
+const producer_output = @import("../witness/producer_output.zig");
 
 const none = std.math.maxInt(u32);
 const Tables = multiplicity_tables.Tables;
@@ -121,7 +121,7 @@ pub fn compareTopology(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     topology: feed_topology.Loaded,
-    producers: []const recorded_trace.ProducerOutput,
+    producers: []const producer_output.ProducerOutput,
     fixed: *const fixed_table_bundle.Bundle,
     expected_components: []const checkpoint.Component,
 ) !Report {
@@ -136,14 +136,31 @@ pub fn populateTopology(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     topology: feed_topology.Loaded,
-    producers: []const recorded_trace.ProducerOutput,
+    producers: []const producer_output.ProducerOutput,
     fixed: *const fixed_table_bundle.Bundle,
     expected_components: []const checkpoint.Component,
 ) !Tables {
     var tables = try Tables.init(allocator, fixed);
     errdefer tables.deinit();
     try tables.route(topology, producers);
-    try addMemoryRangeChecks(input, expected_components, &tables);
+    try validateMemoryGeometry(input, expected_components);
+    try addMemoryRangeChecksLive(input, &tables);
+    return tables;
+}
+
+/// Production population path. Memory table dimensions come from the admitted
+/// input; no Rust receipt participates in routing or sizing.
+pub fn populateLiveTopology(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    topology: feed_topology.Loaded,
+    producers: []const producer_output.ProducerOutput,
+    fixed: *const fixed_table_bundle.Bundle,
+) !Tables {
+    var tables = try Tables.init(allocator, fixed);
+    errdefer tables.deinit();
+    try tables.route(topology, producers);
+    try addMemoryRangeChecksLive(input, &tables);
     return tables;
 }
 
@@ -399,6 +416,14 @@ fn addMemoryRangeChecks(
     expected: []const checkpoint.Component,
     tables: *Tables,
 ) !void {
+    try validateMemoryGeometry(input, expected);
+    try addMemoryRangeChecksLive(input, tables);
+}
+
+fn validateMemoryGeometry(
+    input: *const adapter.ProverInput,
+    expected: []const checkpoint.Component,
+) !void {
     const component_count = try memory_tables.bigComponentCount(input);
     for (0..component_count) |component_index| {
         var label_buffer: [64]u8 = undefined;
@@ -408,6 +433,22 @@ fn addMemoryRangeChecks(
         const row_count = componentRowCount(component) catch return Error.FixedGeometryMismatch;
         if (row_count != try memory_tables.bigRowCount(input, component_index))
             return Error.FixedGeometryMismatch;
+    }
+    const small_component = findComponent(expected, "memory_id_to_small") orelse
+        return Error.MissingProducerReceipt;
+    const small_rows = componentRowCount(small_component) catch
+        return Error.FixedGeometryMismatch;
+    if (small_rows != try memory_tables.smallRowCount(input))
+        return Error.FixedGeometryMismatch;
+}
+
+fn addMemoryRangeChecksLive(
+    input: *const adapter.ProverInput,
+    tables: *Tables,
+) !void {
+    const component_count = try memory_tables.bigComponentCount(input);
+    for (0..component_count) |component_index| {
+        const row_count = try memory_tables.bigRowCount(input, component_index);
         const first = try tables.allocator.alloc(u32, row_count);
         defer tables.allocator.free(first);
         const second = try tables.allocator.alloc(u32, row_count);
@@ -423,10 +464,7 @@ fn addMemoryRangeChecks(
         }
     }
 
-    const small_component = findComponent(expected, "memory_id_to_small") orelse
-        return Error.MissingProducerReceipt;
-    const small_rows = componentRowCount(small_component) catch return Error.FixedGeometryMismatch;
-    if (small_rows != try memory_tables.smallRowCount(input)) return Error.FixedGeometryMismatch;
+    const small_rows = try memory_tables.smallRowCount(input);
     const first = try tables.allocator.alloc(u32, small_rows);
     defer tables.allocator.free(first);
     const second = try tables.allocator.alloc(u32, small_rows);

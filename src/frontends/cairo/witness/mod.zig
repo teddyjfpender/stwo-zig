@@ -7,6 +7,7 @@ pub const compact_inputs = @import("compact_inputs.zig");
 pub const component_executor = @import("component_executor.zig");
 pub const component_layout = @import("component_layout.zig");
 pub const live_graph = @import("live_graph.zig");
+pub const producer_output = @import("producer_output.zig");
 pub const cpu_memory_multiplicity = @import("cpu_memory_multiplicity.zig");
 pub const deductions = @import("deductions/mod.zig");
 pub const recovery = @import("recovery.zig");

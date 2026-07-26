@@ -1,8 +1,7 @@
 //! Complete official Cairo proving transaction through the CPU/SIMD backend.
 //!
-//! The current entrypoint is deliberately fixture-gated by an authenticated
-//! Rust base checkpoint. It must not be exposed as production admission until
-//! live claim geometry replaces that authority.
+//! The current entrypoint remains profile-gated by an authenticated AIR bundle.
+//! Component presence and row geometry are derived from the live input.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -71,8 +70,6 @@ pub fn proveFixture(
     fixture: Fixture,
     variant: cairo.preprocessed.trace.Variant,
 ) !Result {
-    try validateComposition(fixture.composition, fixture.expected_base);
-
     var canonical = try cairo.preprocessed.trace.Spec.init(
         allocator,
         .canonical,
@@ -84,10 +81,18 @@ pub fn proveFixture(
     const preprocessed_logs = try target.logs(allocator);
     defer allocator.free(preprocessed_logs);
 
-    var flat = try cairo.statement_bootstrap.deriveFlatClaimGeometry(
+    var base = try cairo.proving.base_trace.build(
         allocator,
-        fixture.composition,
+        fixture.input,
+        fixture.programs,
+        fixture.topology,
+        fixture.fixed,
+        claimVariant(variant),
     );
+    defer base.deinit();
+    try validateComposition(fixture.composition, base.geometry);
+
+    var flat = try base.geometry.flatten();
     defer flat.deinit();
     var statement = try cairo.statement_bootstrap.init(allocator, .{
         .channel_salt = 0,
@@ -116,15 +121,6 @@ pub fn proveFixture(
     try scheme.commitOwned(allocator, preprocessed_columns, &channel);
     try cairo.proving.transcript.mixClaim(allocator, &channel, &statement);
 
-    var base = try cairo.proving.base_trace.build(
-        allocator,
-        fixture.input,
-        fixture.programs,
-        fixture.topology,
-        fixture.fixed,
-        fixture.expected_base,
-    );
-    defer base.deinit();
     try scheme.commitOwned(allocator, base.takeColumns(), &channel);
 
     const interaction_pow =
@@ -381,17 +377,45 @@ fn componentTreeLogs(
 
 fn validateComposition(
     composition: *const cairo.witness.composition_bundle.Bundle,
-    expected: []const cairo.conformance.checkpoint.Component,
+    live: cairo.claim_generator.OwnedClaimGeometry,
 ) !void {
-    if (composition.components.len != expected.len)
+    if (composition.components.len != live.components.len)
         return error.InvalidCompositionGeometry;
-    for (composition.components, expected) |component, oracle| {
-        if (!std.mem.eql(u8, component.label, oracle.label) or
-            oracle.columns.len == 0 or
-            oracle.columns[0].row_count !=
-                @as(u64, 1) << @intCast(component.trace_log_size))
+    for (composition.components, live.components) |component, actual| {
+        const log_size = switch (actual.log_size) {
+            .known => |value| value,
+            .deferred => return error.InvalidCompositionGeometry,
+        };
+        if (component.instance != actual.instance or
+            !compositionLabelMatches(component.label, actual) or
+            component.trace_log_size != log_size)
             return error.InvalidCompositionGeometry;
     }
+}
+
+fn compositionLabelMatches(
+    label: []const u8,
+    component: cairo.claim_generator.ComponentGeometry,
+) bool {
+    if (!std.mem.eql(u8, component.name, "memory_id_to_big"))
+        return std.mem.eql(u8, label, component.name);
+    var buffer: [64]u8 = undefined;
+    const expected = std.fmt.bufPrint(
+        &buffer,
+        "memory_id_to_big[{}]",
+        .{component.instance},
+    ) catch return false;
+    return std.mem.eql(u8, label, expected);
+}
+
+fn claimVariant(
+    variant: cairo.preprocessed.trace.Variant,
+) cairo.claim_generator.PreprocessedVariant {
+    return switch (variant) {
+        .canonical => .canonical,
+        .canonical_without_pedersen => .canonical_without_pedersen,
+        .canonical_small => .canonical_small,
+    };
 }
 
 fn projectPreprocessedIndices(

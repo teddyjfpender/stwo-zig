@@ -15,6 +15,7 @@ const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const direct_inputs = @import("direct_inputs.zig");
 const gathered_inputs = @import("gathered_inputs.zig");
+const producer_output = @import("producer_output.zig");
 const witness_bundle = @import("bundle.zig");
 
 pub const Error = error{
@@ -30,20 +31,7 @@ pub const Component = struct {
     active_rows: u32,
 };
 
-pub const ProducerOutput = struct {
-    label: []const u8,
-    row_count: u32,
-    active_rows: u32,
-    words_per_row: u32,
-    words: []u32,
-    lookup_words_per_row: u32,
-    lookup_words: []u32,
-
-    fn deinit(self: ProducerOutput, allocator: std.mem.Allocator) void {
-        allocator.free(self.lookup_words);
-        allocator.free(self.words);
-    }
-};
+pub const ProducerOutput = producer_output.ProducerOutput;
 
 pub const Execution = struct {
     allocator: std.mem.Allocator,

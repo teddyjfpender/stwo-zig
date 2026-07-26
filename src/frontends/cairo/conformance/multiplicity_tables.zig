@@ -1,7 +1,7 @@
 //! Fixture-independent accumulation for Cairo fixed-table multiplicities.
 
 const std = @import("std");
-const recorded_trace = @import("recorded_trace.zig");
+const producer_output = @import("../witness/producer_output.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 const fixed_table_bundle = @import("../witness/fixed_table_bundle.zig");
 
@@ -108,7 +108,7 @@ pub const Tables = struct {
     pub fn route(
         self: *Tables,
         topology: feed_topology.Loaded,
-        producers: []const recorded_trace.ProducerOutput,
+        producers: []const producer_output.ProducerOutput,
     ) !void {
         for (producers) |producer| {
             const component = topology.find(producer.label) orelse

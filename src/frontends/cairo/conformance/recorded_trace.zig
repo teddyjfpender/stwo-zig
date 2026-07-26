@@ -8,6 +8,7 @@ const component_executor = @import("../witness/component_executor.zig");
 const deductions = @import("../witness/deductions/mod.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
 const gathered_inputs = @import("../witness/gathered_inputs.zig");
+const producer_output = @import("../witness/producer_output.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const base_execution = @import("base_execution.zig");
 const checkpoint = @import("checkpoint.zig");
@@ -38,21 +39,7 @@ pub const Report = struct {
 /// `row_count` is the padded trace extent. `active_rows` is the exact extent
 /// fed to downstream claim generators; compact consumers deliberately feed
 /// their padded rows, matching Stwo-Cairo's ClaimGenerator implementations.
-pub const ProducerOutput = struct {
-    label: []const u8,
-    row_count: u32,
-    active_rows: u32,
-    words_per_row: u32,
-    words: []u32,
-    lookup_words_per_row: u32,
-    /// Column-major lookup words, ready for interaction-trace evaluation.
-    lookup_words: []u32,
-
-    fn deinit(self: ProducerOutput, allocator: std.mem.Allocator) void {
-        allocator.free(self.lookup_words);
-        allocator.free(self.words);
-    }
-};
+pub const ProducerOutput = producer_output.ProducerOutput;
 
 pub const Execution = struct {
     allocator: std.mem.Allocator,
