@@ -355,6 +355,11 @@ fn findField(name: []const u8) ?claim_registry.ClaimField {
     return null;
 }
 
+pub fn isFixedComponent(name: []const u8) bool {
+    const field = findField(name) orelse return false;
+    return field.fixed_log_size != null;
+}
+
 fn paddedLog(count: usize) u32 {
     const padded = @max(count, @as(usize, 1) << simd_log_lanes);
     return std.math.log2_int_ceil(usize, padded);

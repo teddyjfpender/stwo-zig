@@ -1,6 +1,7 @@
 //! Rust-oracle Cairo conformance contracts and differential runners.
 
 pub const checkpoint = @import("checkpoint.zig");
+pub const base_execution = @import("base_execution.zig");
 pub const receipt = @import("receipt.zig");
 pub const interaction_checkpoint = @import("interaction_checkpoint.zig");
 pub const interaction_receipt = @import("interaction_receipt.zig");
@@ -15,6 +16,7 @@ pub const base_trace_suite = @import("base_trace_suite.zig");
 
 test {
     _ = checkpoint;
+    _ = base_execution;
     _ = receipt;
     _ = interaction_checkpoint;
     _ = interaction_receipt;

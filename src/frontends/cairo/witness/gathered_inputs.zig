@@ -18,6 +18,12 @@ pub const Producer = struct {
     words: []const u32,
 };
 
+pub const Geometry = struct {
+    input_width: u32,
+    active_rows: u32,
+    padded_rows: u32,
+};
+
 pub const GatheredInput = struct {
     allocator: std.mem.Allocator,
     storage: []u32,
@@ -42,6 +48,10 @@ pub const GatheredInput = struct {
         return self.active_rows;
     }
 
+    pub fn paddedRowCount(self: GatheredInput) Error!usize {
+        return self.rows;
+    }
+
     pub fn writeColumn(
         self: GatheredInput,
         column: usize,
@@ -62,10 +72,66 @@ pub fn materialize(
     producers: []const Producer,
     consumer_rows: u32,
 ) !GatheredInput {
-    if (edges.len == 0 or consumer_rows < 16 or !std.math.isPowerOfTwo(consumer_rows))
-        return Error.InvalidEdge;
+    const geometry = try deriveGeometry(edges, producers);
+    if (consumer_rows != geometry.padded_rows) return Error.InvalidRowCount;
+    return materializeGeometry(allocator, edges, producers, geometry);
+}
+
+pub fn materializeDerived(
+    allocator: std.mem.Allocator,
+    edges: []const proof_plan.ProducerEdge,
+    producers: []const Producer,
+) !GatheredInput {
+    return materializeGeometry(
+        allocator,
+        edges,
+        producers,
+        try deriveGeometry(edges, producers),
+    );
+}
+
+/// Derives the exact gathered domain from live producer cardinalities.
+pub fn deriveGeometry(
+    edges: []const proof_plan.ProducerEdge,
+    producers: []const Producer,
+) Error!Geometry {
+    if (edges.len == 0) return Error.InvalidEdge;
     const input_width = edges[0].words_per_instance;
     if (input_width == 0) return Error.InvalidEdge;
+    var total_real_rows: u32 = 0;
+    for (edges) |edge| {
+        if (edge.words_per_instance != input_width or edge.instances == 0)
+            return Error.InvalidEdge;
+        const producer_index = findProducerIndex(producers, edge.producer) orelse
+            return Error.MissingProducer;
+        const producer = producers[producer_index];
+        try validateProducer(edge, producer, input_width);
+        const edge_rows = std.math.mul(u32, producer.active_rows, edge.instances) catch
+            return Error.InvalidRowCount;
+        total_real_rows = std.math.add(u32, total_real_rows, edge_rows) catch
+            return Error.InvalidRowCount;
+    }
+    if (total_real_rows == 0) return Error.InvalidRowCount;
+    const padded_rows = @max(
+        std.math.ceilPowerOfTwo(u32, total_real_rows) catch
+            return Error.AllocationSizeOverflow,
+        16,
+    );
+    return .{
+        .input_width = input_width,
+        .active_rows = total_real_rows,
+        .padded_rows = padded_rows,
+    };
+}
+
+fn materializeGeometry(
+    allocator: std.mem.Allocator,
+    edges: []const proof_plan.ProducerEdge,
+    producers: []const Producer,
+    geometry: Geometry,
+) !GatheredInput {
+    const input_width = geometry.input_width;
+    const consumer_rows = geometry.padded_rows;
     const columns = std.math.add(usize, input_width, 1) catch
         return Error.AllocationSizeOverflow;
     const storage_words = std.math.mul(usize, columns, consumer_rows) catch
@@ -84,25 +150,10 @@ pub fn materialize(
     defer full.deinit(allocator);
     var remainder = std.ArrayList(Location).empty;
     defer remainder.deinit(allocator);
-    var total_real_rows: u32 = 0;
     for (edges, 0..) |edge, edge_index| {
-        if (edge.words_per_instance != input_width or edge.instances == 0)
-            return Error.InvalidEdge;
         const producer_index = findProducerIndex(producers, edge.producer) orelse
             return Error.MissingProducer;
         const producer = producers[producer_index];
-        if (producer.row_count == 0 or producer.active_rows == 0 or
-            producer.active_rows > producer.row_count or producer.words_per_row == 0 or
-            producer.words.len != @as(usize, producer.row_count) * producer.words_per_row)
-            return Error.InvalidEdge;
-        const final_word = @as(u64, edge.word_base) +
-            @as(u64, edge.instances - 1) * edge.words_per_instance +
-            input_width;
-        if (final_word > producer.words_per_row) return Error.InvalidEdge;
-        const edge_rows = std.math.mul(u32, producer.active_rows, edge.instances) catch
-            return Error.InvalidRowCount;
-        total_real_rows = std.math.add(u32, total_real_rows, edge_rows) catch
-            return Error.InvalidRowCount;
         const full_rows = producer.active_rows & ~@as(u32, 15);
         for (0..edge.instances) |instance| {
             for (0..full_rows) |row| try full.append(allocator, .{
@@ -121,8 +172,6 @@ pub fn materialize(
             });
         }
     }
-    if (total_real_rows == 0 or total_real_rows > consumer_rows)
-        return Error.InvalidRowCount;
     var locations = std.ArrayList(Location).empty;
     defer locations.deinit(allocator);
     try locations.ensureTotalCapacity(allocator, consumer_rows);
@@ -151,15 +200,30 @@ pub fn materialize(
                 producer.words[@as(usize, location.row) * producer.words_per_row + source_word];
         }
         storage[@as(usize, input_width) * consumer_rows + row] =
-            @intFromBool(row < total_real_rows);
+            @intFromBool(row < geometry.active_rows);
     }
     return .{
         .allocator = allocator,
         .storage = storage,
         .columns = columns,
         .rows = consumer_rows,
-        .active_rows = total_real_rows,
+        .active_rows = geometry.active_rows,
     };
+}
+
+fn validateProducer(
+    edge: proof_plan.ProducerEdge,
+    producer: Producer,
+    input_width: u32,
+) Error!void {
+    if (producer.row_count == 0 or producer.active_rows == 0 or
+        producer.active_rows > producer.row_count or producer.words_per_row == 0 or
+        producer.words.len != @as(usize, producer.row_count) * producer.words_per_row)
+        return Error.InvalidEdge;
+    const final_word = @as(u64, edge.word_base) +
+        @as(u64, edge.instances - 1) * edge.words_per_instance +
+        input_width;
+    if (final_word > producer.words_per_row) return Error.InvalidEdge;
 }
 
 fn findProducerIndex(producers: []const Producer, label: []const u8) ?usize {
@@ -197,6 +261,30 @@ test "Cairo gathered inputs mirror resident gather padding and instance order" {
     try std.testing.expectEqualSlices(u32, &.{ 12, 22, 14, 24, 12 }, column[0..5]);
     try gathered.writeColumn(2, &column);
     try std.testing.expectEqualSlices(u32, &.{ 1, 1, 1, 1, 0 }, column[0..5]);
+}
+
+test "Cairo gathered inputs derive exact live geometry" {
+    const words = [_]u32{ 1, 2, 3, 4, 5, 6 };
+    const edges = [_]proof_plan.ProducerEdge{.{
+        .producer = "source",
+        .word_base = 0,
+        .words_per_instance = 1,
+        .instances = 3,
+    }};
+    const producers = [_]Producer{.{
+        .label = "source",
+        .row_count = 6,
+        .active_rows = 6,
+        .words_per_row = 1,
+        .words = &words,
+    }};
+    const geometry = try deriveGeometry(&edges, &producers);
+    try std.testing.expectEqual(@as(u32, 18), geometry.active_rows);
+    try std.testing.expectEqual(@as(u32, 32), geometry.padded_rows);
+    var gathered = try materializeDerived(std.testing.allocator, &edges, &producers);
+    defer gathered.deinit();
+    try std.testing.expectEqual(@as(usize, 32), gathered.rows);
+    try std.testing.expectEqual(@as(usize, 18), gathered.active_rows);
 }
 
 test "Cairo gathered inputs place full SIMD packs before cross-instance remainders" {

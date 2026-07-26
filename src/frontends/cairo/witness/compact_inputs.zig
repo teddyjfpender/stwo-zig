@@ -42,6 +42,10 @@ pub const CompactInput = struct {
         return padded_rows;
     }
 
+    pub fn paddedRowCount(self: CompactInput) Error!usize {
+        return self.padded_rows;
+    }
+
     pub fn validateRowCount(self: CompactInput, row_count: usize) Error!void {
         if (row_count != self.padded_rows) return Error.InvalidRowCount;
     }
@@ -77,13 +81,38 @@ pub fn materialize(
     producers: []const gathered_inputs.Producer,
     consumer_rows: u32,
 ) !CompactInput {
+    return materializeInternal(
+        allocator,
+        geometry,
+        edges,
+        producers,
+        consumer_rows,
+    );
+}
+
+/// Materializes and sizes a compact consumer from its live unique key set.
+pub fn materializeDerived(
+    allocator: std.mem.Allocator,
+    geometry: proof_plan.CompactGeometry,
+    edges: []const proof_plan.ProducerEdge,
+    producers: []const gathered_inputs.Producer,
+) !CompactInput {
+    return materializeInternal(allocator, geometry, edges, producers, null);
+}
+
+fn materializeInternal(
+    allocator: std.mem.Allocator,
+    geometry: proof_plan.CompactGeometry,
+    edges: []const proof_plan.ProducerEdge,
+    producers: []const gathered_inputs.Producer,
+    expected_rows: ?u32,
+) !CompactInput {
     if (edges.len == 0 or edges.len != producers.len or geometry.tuple_words == 0 or
         geometry.tuple_words > max_tuple_words or geometry.key_words == 0 or
         geometry.key_words > geometry.tuple_words or
         geometry.multiplicity_slot + 1 != geometry.tuple_words + 3 or
         geometry.enabler_slot != geometry.tuple_words or
-        geometry.iota_slot != geometry.tuple_words + 1 or
-        consumer_rows < 16 or !std.math.isPowerOfTwo(consumer_rows))
+        geometry.iota_slot != geometry.tuple_words + 1)
         return Error.InvalidGeometry;
 
     var multiplicities = std.AutoHashMap(Key, u32).init(allocator);
@@ -131,16 +160,20 @@ pub fn materialize(
             !std.mem.eql(u32, &current.tuple, &previous.tuple))
             return Error.ConflictingKey;
     }
-    const expected_rows = @max(
+    const padded_rows = @max(
         std.math.ceilPowerOfTwo(usize, rows.len) catch
             return Error.AllocationSizeOverflow,
         16,
     );
-    if (expected_rows != consumer_rows) return Error.InvalidRowCount;
+    if (expected_rows) |expected| {
+        if (expected < 16 or !std.math.isPowerOfTwo(expected))
+            return Error.InvalidGeometry;
+        if (padded_rows != expected) return Error.InvalidRowCount;
+    }
     return .{
         .allocator = allocator,
         .rows = rows,
-        .padded_rows = consumer_rows,
+        .padded_rows = padded_rows,
         .geometry = geometry,
     };
 }
@@ -201,4 +234,14 @@ test "Cairo compact inputs merge tuples, sort by key, and pad with the first row
     try std.testing.expectEqualSlices(u32, &.{ 1, 2, 1 }, column[0..3]);
     try compact.writeColumn(5, &column);
     try std.testing.expectEqualSlices(u32, &.{ 2, 2, 0 }, column[0..3]);
+
+    var derived = try materializeDerived(
+        std.testing.allocator,
+        geometry,
+        &edges,
+        &producers,
+    );
+    defer derived.deinit();
+    try std.testing.expectEqual(@as(usize, 16), derived.padded_rows);
+    try std.testing.expectEqual(@as(usize, 2), derived.rows.len);
 }

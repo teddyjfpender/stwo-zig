@@ -7,7 +7,7 @@ const registry = @import("../air/official_claim_registry.zig");
 const public_data = @import("../statement/public_data.zig");
 const preprocessed = @import("../preprocessed/trace.zig");
 const composition_bundle = @import("../witness/composition_bundle.zig");
-const stwo_json = @import("../../../interop/stwo_json.zig");
+const stwo_json = core.proof_json;
 
 const QM31 = core.fields.qm31.QM31;
 

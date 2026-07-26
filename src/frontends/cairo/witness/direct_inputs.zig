@@ -29,6 +29,7 @@ const OpcodeInput = struct {
 
 const BuiltinInput = struct {
     begin_addr: u32,
+    padded_rows: u32,
 };
 
 /// One source-derived input slab that can be materialized into any backend's
@@ -46,20 +47,18 @@ pub const DirectInput = union(enum) {
     }
 
     pub fn validateRowCount(self: DirectInput, row_count: usize) Error!void {
-        switch (self) {
-            .opcode => |opcode| {
-                const expected = @max(
-                    std.math.ceilPowerOfTwo(usize, opcode.states.len) catch
-                        return Error.InvalidBindingSize,
-                    16,
-                );
-                if (row_count != expected) return Error.InvalidBindingSize;
-            },
-            .builtin => {
-                if (row_count < 16 or !std.math.isPowerOfTwo(row_count))
-                    return Error.InvalidBindingSize;
-            },
-        }
+        if (row_count != try self.paddedRowCount()) return Error.InvalidBindingSize;
+    }
+
+    pub fn paddedRowCount(self: DirectInput) Error!usize {
+        return switch (self) {
+            .opcode => |opcode| @max(
+                std.math.ceilPowerOfTwo(usize, opcode.states.len) catch
+                    return Error.InvalidBindingSize,
+                16,
+            ),
+            .builtin => |builtin| builtin.padded_rows,
+        };
     }
 
     pub fn realRowCount(self: DirectInput, padded_rows: usize) !usize {
@@ -139,8 +138,14 @@ pub fn resolve(input: *const cairo_adapter.ProverInput, component: []const u8) E
         segment.cells_per_instance;
     if (instances == 0 or instances > std.math.maxInt(u32))
         return Error.InvalidCardinality;
+    const padded_rows = @max(
+        std.math.ceilPowerOfTwo(usize, @intCast(instances)) catch
+            return Error.InvalidBindingSize,
+        16,
+    );
     return .{ .builtin = .{
         .begin_addr = @intCast(addresses.begin_addr),
+        .padded_rows = @intCast(padded_rows),
     } };
 }
 
@@ -180,9 +185,10 @@ test "Cairo direct inputs: builtin seeds use authenticated component geometry" {
     input.builtin_segments = .{ .poseidon_builtin = .{ .begin_addr = 4096, .stop_ptr = 4126 } };
     const direct = (try resolve(&input, "poseidon_builtin")) orelse return error.MissingInput;
     try std.testing.expectEqual(@as(usize, 3), direct.columnCount());
-    try std.testing.expectEqual(@as(usize, 32), try direct.realRowCount(32));
+    try std.testing.expectEqual(@as(usize, 16), try direct.paddedRowCount());
+    try std.testing.expectEqual(@as(usize, 16), try direct.realRowCount(16));
 
-    var column: [32]u32 = undefined;
+    var column: [16]u32 = undefined;
     try direct.writeColumn(0, &column);
     for (column) |value| try std.testing.expectEqual(@as(u32, 4096), value);
     try direct.writeColumn(1, &column);
@@ -197,7 +203,7 @@ test "Cairo direct inputs: invalid geometry and absent inputs fail closed" {
     try std.testing.expectError(Error.MissingBinding, resolve(&input, "bitwise_builtin"));
     try std.testing.expect((try resolve(&input, "memory_address_to_id")) == null);
 
-    const direct = DirectInput{ .builtin = .{ .begin_addr = 7 } };
+    const direct = DirectInput{ .builtin = .{ .begin_addr = 7, .padded_rows = 16 } };
     var invalid_rows: [17]u32 = undefined;
     try std.testing.expectError(Error.InvalidBindingSize, direct.writeColumn(0, &invalid_rows));
     var valid_rows: [16]u32 = undefined;

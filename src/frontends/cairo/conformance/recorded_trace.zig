@@ -9,6 +9,7 @@ const deductions = @import("../witness/deductions/mod.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
 const gathered_inputs = @import("../witness/gathered_inputs.zig");
 const witness_bundle = @import("../witness/bundle.zig");
+const base_execution = @import("base_execution.zig");
 const checkpoint = @import("checkpoint.zig");
 
 pub const Match = struct {
@@ -18,7 +19,7 @@ pub const Match = struct {
     column_count: u32,
 };
 
-pub const Mismatch = component_executor.Mismatch;
+pub const Mismatch = base_execution.Mismatch;
 
 pub const Report = struct {
     allocator: std.mem.Allocator,
@@ -278,10 +279,10 @@ fn executeComponent(
         input,
         witness_program,
         source,
-        expected,
+        try base_execution.layout(expected),
     );
     defer execution.deinit();
-    const mismatch = try execution.compare(expected);
+    const mismatch = try base_execution.compare(expected, execution);
     if (mismatch == null) {
         if (observer) |active| {
             try active.visit(active.context, expected, &execution);

@@ -27,7 +27,6 @@ const source_closure = policy.SourceClosure{
         "src/stwo_cairo_cpu.zig",
         "src/interop/atomic_file.zig",
         "src/interop/output_transaction.zig",
-        "src/interop/stwo_json.zig",
     },
     .allowed_prefixes = &.{
         "src/backend",

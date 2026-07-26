@@ -6,6 +6,7 @@ const claim_registry = @import("../air/official_claim_registry.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
 const component_executor = @import("../witness/component_executor.zig");
+const base_execution = @import("base_execution.zig");
 const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
 const program = @import("../witness/program.zig");
 const checkpoint = @import("checkpoint.zig");
@@ -26,8 +27,8 @@ pub const Match = struct {
     column_count: u32,
 };
 
-pub const MismatchKind = component_executor.MismatchKind;
-pub const Mismatch = component_executor.Mismatch;
+pub const MismatchKind = base_execution.MismatchKind;
+pub const Mismatch = base_execution.Mismatch;
 
 pub const Report = struct {
     allocator: std.mem.Allocator,
@@ -120,22 +121,15 @@ fn compareComponent(
     source: anytype,
     expected: checkpoint.Component,
 ) !?Mismatch {
-    if (expected.columns.len != witness_program.n_cols) return .{
-        .kind = .column_count,
-        .component_ordinal = expected.ordinal,
-        .component_label = expected.label,
-        .expected_count = expected.columns.len,
-        .actual_count = witness_program.n_cols,
-    };
     var execution = try component_executor.execute(
         allocator,
         input,
         witness_program,
         source,
-        expected,
+        try base_execution.layout(expected),
     );
     defer execution.deinit();
-    return execution.compare(expected);
+    return base_execution.compare(expected, execution);
 }
 
 fn testInput(

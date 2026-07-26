@@ -357,13 +357,13 @@ As of the starting commit `cfd47be9`:
 | Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Public lookup boundary | public program, output, safe-call, segment-pointer, and initial/final state relations are derived in official order; the resulting public LogUp term cancels all 46 all-opcodes component claims under both diagnostic and proof-transcript challenges | complete for the frozen all-opcodes proof |
-| Claim geometry | active generator imports only the official 68-field/83-slot registry; all-opcodes enable bits, live-input known logs, resolved flat logs, and Blake2s claim mix match the official proof | complete for one frozen proof |
+| Claim geometry | active generator imports only the official 68-field/83-slot registry; direct, gathered, compact, fixed, and memory domains are derived from live input and the authenticated witness graph for both official fixtures | complete for all-opcodes and all-builtins; broader corpus remains |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
 | Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
 | Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for both frozen fixtures; broader execution corpus remains |
 | Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component; the all-opcodes proof-input path lowers the same secure columns into exact M31 commitment order | complete for both frozen diagnostic fixtures and for the all-opcodes proof-transcript challenge |
 | Official preprocessed trace | backend-neutral registry constructs canonical (161 columns), canonical-without-Pedersen (105 columns), and canonical-small (156 columns) in exact stable identity order; canonical AIR indices project to canonical-small identities and reject absent columns | canonical-small is committed in the accepted all-opcodes proof; process-owned cache reuse remains |
-| Official base commitment input | all-opcodes executes the authenticated witness graph and materializes all 1,464 columns and 28,690,992 M31 cells in Rust commitment order; every value vector is re-digested against the cumulative Rust checkpoint before admission | committed in the accepted all-opcodes proof; live-input geometry derivation remains |
+| Official base commitment input | all-opcodes executes the authenticated witness graph and materializes all 1,464 columns and 28,690,992 M31 cells in Rust commitment order; every value vector is re-digested against the cumulative Rust checkpoint before admission | committed in the accepted all-opcodes proof; the commitment collector still needs to consume the new live layout |
 | Official AIR compiler | authenticated exact-source overlay lowers the 46 active all-opcodes component evaluators into one backend-neutral bundle containing 678 constraints, 9,689 base instructions, and 14,797 extension instructions | complete through quotient execution and verification for the frozen all-opcodes proof; all-family coverage remains |
 | Native Zig AIR | executes authenticated captured programs through the generic CPU/SIMD domain accumulator; a focused functional gate covers trace indexing, extension arithmetic, coefficient order, and coset-denominator placement; the complete all-opcodes canonical-small transaction returns a four-commitment proof with clean teardown | complete for the frozen all-opcodes proof; Zig and official Rust verification pass |
 | Raw trace prover | proves three register columns | diagnostic only |
@@ -430,6 +430,16 @@ for all-opcodes and
 `c62b56454feb25f110bb16dcebe583aa0adfa42e042cfefcea0827192fc1f37e`
 for all-builtins. These checkpoints cover 46/46 and 48/48 components,
 respectively, but deliberately do not claim the Fiat-Shamir proof transcript.
+
+The production-side live graph no longer accepts component row counts from a
+checkpoint. Direct roots derive their exact padded domains from opcode states
+or builtin segments, gathered consumers derive them from producer
+cardinalities, and compact consumers derive them from the actual unique tuple
+set. The all-opcodes and all-builtins gates independently derive all 46 and 48
+component logs, execute 24 and 26 generated writers, and only then compare
+their rows, columns, and digests with Rust. Generic Stwo proof JSON encoding now
+lives under `stwo_core`; the focused Cairo frontend no longer escapes its Zig
+module to import an interop implementation file.
 
 The authenticated AIR source compiler at
 `tools/stwo-cairo-air-compiler` archives the exact official Stwo Git tree,

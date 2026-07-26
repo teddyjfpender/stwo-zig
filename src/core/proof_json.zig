@@ -4,10 +4,9 @@
 //! proofs do not require a second, equally large in-memory wire model.
 
 const std = @import("std");
-const core = @import("stwo_core");
 
-const M31 = core.fields.m31.M31;
-const QM31 = core.fields.qm31.QM31;
+const M31 = @import("fields/m31.zig").M31;
+const QM31 = @import("fields/qm31.zig").QM31;
 
 pub fn ProofView(comptime Proof: type) type {
     return struct {
