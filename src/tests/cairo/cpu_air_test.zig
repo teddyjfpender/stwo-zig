@@ -42,19 +42,6 @@ test "official Cairo all-opcodes commitment traces match Rust" {
     defer allocator.free(encoded);
     var input_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(encoded, &input_digest, .{});
-    var expected = try cairo.conformance.receipt.readFile(
-        allocator,
-        "vectors/cairo/official/all_opcodes.base_trace_checkpoint.json",
-        .{
-            .input_sha256 = input_digest,
-            .authority = .{
-                .stwo_cairo_revision = cairo.claim_registry.source_revision.stwo_cairo,
-                .stwo_revision = cairo.claim_registry.source_revision.stwo,
-            },
-        },
-    );
-    defer expected.deinit();
-
     var trace = try cairo.proving.base_trace.build(
         allocator,
         &input,
@@ -97,7 +84,6 @@ test "official Cairo all-opcodes commitment traces match Rust" {
         &fixed,
         &relations,
         &trace,
-        expected.components,
         QM31.fromU32Unchecked(z_limbs[0], z_limbs[1], z_limbs[2], z_limbs[3]),
         QM31.fromU32Unchecked(
             alpha_limbs[0],

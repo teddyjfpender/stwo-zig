@@ -369,7 +369,7 @@ As of the starting commit `cfd47be9`:
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
-| CPU product | focused `stwo-cairo-cpu` product, authenticated installed profile, strict CLI, product closure, Zig verification, and official Rust oracle gate | staged for the frozen all-opcodes profile; arbitrary live geometry and the release corpus remain |
+| CPU product | focused `stwo-cairo-cpu` product, checkpoint-free authenticated profile, strict CLI, product closure, Zig verification, and official Rust oracle gate | staged for the all-opcodes AIR profile; all-family AIR admission and the release corpus remain |
 | Metal product | disabled descriptor, no executable or product test | incomplete |
 | Rust oracle | isolated official verifier accepts the deterministic Zig all-opcodes proof and rejects mutation | complete for the frozen JSON proof |
 | CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON, publishes exact JSON transactionally, emits an identity-bound report, and optionally verifies in Zig before publication | complete for one authenticated profile; binary, Cairo-serde, run-and-prove, and general admission remain |
@@ -480,20 +480,21 @@ the canonical AIR indices onto canonical-small for the first proof campaign and
 fail closed when a required column is absent. The all-opcodes conformance path
 also converts the authenticated witness, fixed-table, and memory sources into
 the exact 1,464-column, 28,690,992-cell M31 base commitment input. Every column
-is checked against the Rust checkpoint before ownership crosses into PCS. The
-frozen all-opcodes profile now commits those values into a complete verified
-proof. Production admission must additionally derive component geometry from
-the live input instead of accepting fixture checkpoint geometry.
+is checked against the Rust checkpoint in the differential corpus. The
+production profile commits the same values from its live schedule without
+installing or reading that checkpoint.
 
 The same proof-input boundary now derives all 128 relation powers from an
 arbitrary lookup alpha, evaluates generated, fixed, XOR, and memory LogUp
-sources through the shared checkpoint evaluator, scans each final secure
+sources through the shared relation evaluator, scans each final secure
 column, and lowers the result to the exact four-coordinate PCS order. Under
 the diagnostic challenge it reproduces all 46 all-opcodes claimed sums and all
 1,032 Rust interaction columns. It retains the aggregate component sum for the
 official `public_data.logup_sum + component_sum == 0` statement check; component
-sums alone are intentionally not required to be zero. Real transcript-derived
-challenges and the interaction commitment root remain open.
+sums alone are intentionally not required to be zero. The production builder
+orders and sizes those interaction columns from the resolved live geometry;
+transcript-derived challenges and the resulting commitment remain accepted by
+both Zig and the official Rust verifier.
 
 The statement layer now implements that public-data term independently. It
 enumerates program, safe-call, public segment pointer, and output memory in

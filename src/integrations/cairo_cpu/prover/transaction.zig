@@ -44,7 +44,6 @@ pub const Fixture = struct {
     topology: cairo.witness.feed_topology.Loaded,
     fixed: *const cairo.witness.fixed_table_bundle.Bundle,
     relations: *const cairo.witness.relation_bundle.Bundle,
-    expected_base: []const cairo.conformance.checkpoint.Component,
     composition: *cairo.witness.composition_bundle.Bundle,
 };
 
@@ -157,7 +156,6 @@ pub fn proveFixture(
         fixture.fixed,
         fixture.relations,
         &base,
-        fixture.expected_base,
         lookup.z,
         lookup.alpha,
         if (pedersen_initialized) &pedersen else null,

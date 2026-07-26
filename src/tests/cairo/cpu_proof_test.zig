@@ -38,19 +38,6 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
     );
     defer composition.deinit();
 
-    var expected = try cairo.conformance.receipt.readFile(
-        allocator,
-        "vectors/cairo/official/all_opcodes.base_trace_checkpoint.json",
-        .{
-            .input_sha256 = try inputDigest(allocator, input_path),
-            .authority = .{
-                .stwo_cairo_revision = cairo.claim_registry.source_revision.stwo_cairo,
-                .stwo_revision = cairo.claim_registry.source_revision.stwo,
-            },
-        },
-    );
-    defer expected.deinit();
-
     var result = cairo_cpu.prover.transaction.proveFixture(
         allocator,
         .{
@@ -59,7 +46,6 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,
-            .expected_base = expected.components,
             .composition = &composition,
         },
         .canonical_small,
@@ -152,19 +138,4 @@ fn emitProofIfRequested(
     try file_writer.interface.writeByte('\n');
     try file_writer.interface.flush();
     try file.sync();
-}
-
-fn inputDigest(
-    allocator: std.mem.Allocator,
-    path: []const u8,
-) ![32]u8 {
-    const encoded = try std.fs.cwd().readFileAlloc(
-        allocator,
-        path,
-        2 * 1024 * 1024,
-    );
-    defer allocator.free(encoded);
-    var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
-    return digest;
 }

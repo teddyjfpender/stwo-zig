@@ -4,10 +4,9 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_impl");
 const adapter = @import("../adapter/mod.zig");
-const checkpoint = @import("../conformance/checkpoint.zig");
+const claim_generator = @import("../claim_generator.zig");
 const fixed_trace = @import("../conformance/fixed_trace.zig");
 const recorded_interaction = @import("../conformance/recorded_interaction.zig");
-const recorded_trace = @import("../conformance/recorded_trace.zig");
 const pedersen_table = @import("../preprocessed/pedersen_table.zig");
 const cpu_memory = @import("../witness/cpu_memory_multiplicity.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
@@ -58,13 +57,12 @@ pub fn build(
     fixed: *const fixed_tables.Bundle,
     relations: *const relation_bundle.Bundle,
     base: *const base_trace.BaseTrace,
-    expected: []const checkpoint.Component,
     lookup_z: QM31,
     lookup_alpha: QM31,
     pedersen: ?*const pedersen_table.Table,
 ) !InteractionTrace {
     const alpha_powers = deriveAlphaPowers(lookup_alpha);
-    var collector = try Collector.init(allocator, expected);
+    var collector = try Collector.init(allocator, &base.geometry);
     defer collector.deinit();
 
     for (base.execution.producers) |producer| {
@@ -93,17 +91,16 @@ pub fn build(
         );
     }
 
-    var multiplicities = try fixed_trace.populateTopology(
+    var multiplicities = try fixed_trace.populateLiveTopology(
         allocator,
         input,
         topology,
         base.execution.producers,
         fixed,
-        expected,
     );
     defer multiplicities.deinit();
     for (fixed.entries) |entry| {
-        if (findExpectedIndex(expected, entry.component) == null) continue;
+        if (collector.componentIndex(entry.component) == null) continue;
         const relation = relations.find(entry.component) orelse
             return error.MissingRelationTemplate;
         const trace = componentTrace(relation.traces) orelse
@@ -166,7 +163,6 @@ pub fn build(
         input,
         &counts,
         relations,
-        expected,
         &collector,
         lookup_z,
         &alpha_powers,
@@ -209,7 +205,6 @@ fn captureMemoryBig(
     input: *const adapter.ProverInput,
     counts: *const cpu_memory.Counts,
     relations: *const relation_bundle.Bundle,
-    expected: []const checkpoint.Component,
     collector: *Collector,
     lookup_z: QM31,
     alpha_powers: []const QM31,
@@ -218,16 +213,18 @@ fn captureMemoryBig(
         return error.MissingRelationTemplate;
     const trace = findTrace(relation.traces, .each_memory_big) orelse
         return error.MissingRelationTrace;
-    for (expected) |component| {
-        const index = memoryBigIndex(component.label) orelse continue;
+    for (collector.geometry.components) |component| {
+        if (!std.mem.eql(u8, component.name, "memory_id_to_big")) continue;
+        const index: usize = component.instance;
         var columns = try implicit.memoryBig(allocator, input, counts, index);
         defer columns.deinit();
         const offset = std.math.mul(usize, index, memory_tables.max_big_rows) catch
             return error.AllocationSizeOverflow;
         const source = try columns.bigView(@intCast(offset));
         try source.validateDeclaration(trace.layout, trace.layout_arg);
-        try collector.capture(
-            component.label,
+        try collector.captureIdentity(
+            component.name,
+            component.instance,
             trace.descriptors,
             source,
             lookup_z,
@@ -265,18 +262,18 @@ const ComponentColumns = struct {
 
 const Collector = struct {
     allocator: std.mem.Allocator,
-    expected: []const checkpoint.Component,
+    geometry: *const claim_generator.OwnedClaimGeometry,
     components: []?ComponentColumns,
 
     fn init(
         allocator: std.mem.Allocator,
-        expected: []const checkpoint.Component,
+        geometry: *const claim_generator.OwnedClaimGeometry,
     ) !Collector {
-        const components = try allocator.alloc(?ComponentColumns, expected.len);
+        const components = try allocator.alloc(?ComponentColumns, geometry.components.len);
         @memset(components, null);
         return .{
             .allocator = allocator,
-            .expected = expected,
+            .geometry = geometry,
             .components = components,
         };
     }
@@ -291,7 +288,23 @@ const Collector = struct {
     }
 
     fn componentIndex(self: Collector, label: []const u8) ?usize {
-        return findExpectedIndex(self.expected, label);
+        for (self.geometry.components, 0..) |component, index| {
+            if (component.instance == 0 and std.mem.eql(u8, component.name, label))
+                return index;
+        }
+        return null;
+    }
+
+    fn componentIdentityIndex(
+        self: Collector,
+        name: []const u8,
+        instance: u32,
+    ) ?usize {
+        for (self.geometry.components, 0..) |component, index| {
+            if (component.instance == instance and std.mem.eql(u8, component.name, name))
+                return index;
+        }
+        return null;
     }
 
     fn capture(
@@ -304,6 +317,43 @@ const Collector = struct {
     ) !void {
         const component_index = self.componentIndex(label) orelse
             return error.UnknownInteractionComponent;
+        try self.captureAt(
+            component_index,
+            descriptors,
+            source,
+            lookup_z,
+            alpha_powers,
+        );
+    }
+
+    fn captureIdentity(
+        self: *Collector,
+        name: []const u8,
+        instance: u32,
+        descriptors: []const u32,
+        source: interaction_trace.SourceView,
+        lookup_z: QM31,
+        alpha_powers: []const QM31,
+    ) !void {
+        const component_index = self.componentIdentityIndex(name, instance) orelse
+            return error.UnknownInteractionComponent;
+        try self.captureAt(
+            component_index,
+            descriptors,
+            source,
+            lookup_z,
+            alpha_powers,
+        );
+    }
+
+    fn captureAt(
+        self: *Collector,
+        component_index: usize,
+        descriptors: []const u32,
+        source: interaction_trace.SourceView,
+        lookup_z: QM31,
+        alpha_powers: []const QM31,
+    ) !void {
         if (self.components[component_index] != null)
             return error.DuplicateInteractionComponent;
         var materialized = try recorded_interaction.materializeTrace(
@@ -314,7 +364,12 @@ const Collector = struct {
             alpha_powers,
         );
         defer materialized.deinit();
-        if (materialized.row_count != self.expected[component_index].columns[0].row_count)
+        const component = self.geometry.components[component_index];
+        const log_size = switch (component.log_size) {
+            .known => |value| value,
+            .deferred => return error.InvalidInteractionGeometry,
+        };
+        if (materialized.row_count != @as(usize, 1) << @intCast(log_size))
             return error.InvalidInteractionGeometry;
         self.components[component_index] = .{
             .columns = try lowerCoordinates(self.allocator, materialized),
@@ -410,23 +465,6 @@ fn findTrace(
     part: relation_bundle.TracePart,
 ) ?relation_bundle.Trace {
     for (traces) |trace| if (trace.part == part) return trace;
-    return null;
-}
-
-fn memoryBigIndex(label: []const u8) ?usize {
-    const prefix = "memory_id_to_big[";
-    if (!std.mem.startsWith(u8, label, prefix) or label[label.len - 1] != ']')
-        return null;
-    return std.fmt.parseUnsigned(usize, label[prefix.len .. label.len - 1], 10) catch null;
-}
-
-fn findExpectedIndex(
-    components: []const checkpoint.Component,
-    label: []const u8,
-) ?usize {
-    for (components, 0..) |component, index| {
-        if (std.mem.eql(u8, component.label, label)) return index;
-    }
     return null;
 }
 

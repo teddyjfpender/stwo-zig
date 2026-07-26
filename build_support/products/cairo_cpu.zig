@@ -9,7 +9,7 @@ const graph = @import("../graph/modules.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
-    "stwo-cairo-v1.2.2+official-json-v1+lifted-pcs-v2+blake2s";
+    "stwo-cairo-v1.2.2+official-json-v1+live-geometry-v1+lifted-pcs-v2+blake2s";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -180,10 +180,6 @@ fn installProfile(context: Context, step: *std.Build.Step) void {
         .{
             .source = "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
             .destination = "share/stwo-zig/cairo/official/all_opcodes.air_programs_v1.bin",
-        },
-        .{
-            .source = "vectors/cairo/official/all_opcodes.base_trace_checkpoint.json",
-            .destination = "share/stwo-zig/cairo/official/all_opcodes.base_trace_checkpoint.json",
         },
         .{
             .source = "vectors/cairo/cairo_fixed_tables.bin",

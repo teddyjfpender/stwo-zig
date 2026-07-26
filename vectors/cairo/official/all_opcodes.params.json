@@ -1,6 +1,6 @@
 {
-  "schema": "stwo-zig-cairo-proving-profile-v1",
-  "version": 1,
+  "schema": "stwo-zig-cairo-proving-profile-v2",
+  "version": 2,
   "profile": "official-all-opcodes-canonical-small",
   "preprocessed_variant": "canonical_small",
   "assets": {
@@ -23,10 +23,6 @@
     "air_programs": {
       "path": "all_opcodes.air_programs_v1.bin",
       "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c"
-    },
-    "base_checkpoint": {
-      "path": "all_opcodes.base_trace_checkpoint.json",
-      "sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7"
     }
   }
 }

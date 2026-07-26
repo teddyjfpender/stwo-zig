@@ -76,19 +76,6 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
         paths.air_programs,
     );
     defer composition.deinit();
-    var expected = try cairo.conformance.receipt.readFile(
-        allocator,
-        paths.base_checkpoint,
-        .{
-            .input_sha256 = input_sha256,
-            .authority = .{
-                .stwo_cairo_revision = cairo.claim_registry.source_revision.stwo_cairo,
-                .stwo_revision = cairo.claim_registry.source_revision.stwo,
-            },
-        },
-    );
-    defer expected.deinit();
-
     const started = std.time.Instant.now() catch return error.ClockUnavailable;
     var result = try cairo_cpu.prover.transaction.proveFixture(
         allocator,
@@ -98,7 +85,6 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,
-            .expected_base = expected.components,
             .composition = &composition,
         },
         paths.variant,

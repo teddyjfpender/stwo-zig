@@ -5,8 +5,8 @@ const stwo = @import("stwo_cairo_cpu");
 
 const cairo = stwo.frontends.cairo;
 
-pub const schema = "stwo-zig-cairo-proving-profile-v1";
-pub const version: u32 = 1;
+pub const schema = "stwo-zig-cairo-proving-profile-v2";
+pub const version: u32 = 2;
 pub const default_profile = "official-all-opcodes-canonical-small";
 const max_manifest_bytes: usize = 64 * 1024;
 const max_asset_bytes: usize = 512 * 1024 * 1024;
@@ -22,7 +22,6 @@ const Assets = struct {
     fixed_tables: Asset,
     relation_templates: Asset,
     air_programs: Asset,
-    base_checkpoint: Asset,
 };
 
 const Document = struct {
@@ -42,7 +41,6 @@ pub const Paths = struct {
     fixed_tables: []u8,
     relation_templates: []u8,
     air_programs: []u8,
-    base_checkpoint: []u8,
 
     pub fn deinit(self: *Paths) void {
         self.allocator.free(self.profile);
@@ -51,7 +49,6 @@ pub const Paths = struct {
         self.allocator.free(self.fixed_tables);
         self.allocator.free(self.relation_templates);
         self.allocator.free(self.air_programs);
-        self.allocator.free(self.base_checkpoint);
         self.* = undefined;
     }
 };
@@ -93,7 +90,6 @@ pub fn load(allocator: std.mem.Allocator, manifest_path: []const u8) !Paths {
         .fixed_tables = undefined,
         .relation_templates = undefined,
         .air_programs = undefined,
-        .base_checkpoint = undefined,
     };
     errdefer {
         allocator.free(paths.profile);
@@ -123,11 +119,6 @@ pub fn load(allocator: std.mem.Allocator, manifest_path: []const u8) !Paths {
         document.assets.air_programs,
     );
     errdefer allocator.free(paths.air_programs);
-    paths.base_checkpoint = try resolveAsset(
-        allocator,
-        directory,
-        document.assets.base_checkpoint,
-    );
     return paths;
 }
 
