@@ -134,8 +134,19 @@ fn felt252_const_limbs(words: [u64; 4]) -> [u32; FELT252_LIMBS] {
 ///     (Felt252Width27, [Felt252; 2], [Felt252; 2], M31)` (ec_op.rs) — typed as the inner tuple;
 ///     source projections auto-deref through the `Box`.
 ///   * points tables: `([M31; 1]) -> [Felt252; 2]` (pedersen.rs).
-///   * `PackedBlakeG: ([U32; 6]) -> [U32; 4]`; `PackedBlakeRoundSigma: (M31) -> [M31; 16]`
-///     (blake.rs; `N_BLAKE_SIGMA_COLS = 16`).
+///   * `PackedBlakeG: ([U32; 6]) -> [U32; 4]`; `PackedTripleXor32: [U32; 3] -> U32`;
+///     `PackedBlakeRoundSigma: (M31) -> [M31; 16]` (blake.rs).
+fn blake_round_io_ty() -> Ty {
+    Ty::Tuple(vec![
+        Ty::M31,
+        Ty::M31,
+        Ty::Tuple(vec![
+            Ty::Array(Box::new(Ty::U32), 16),
+            Ty::M31,
+        ]),
+    ])
+}
+
 fn known_deduce_output_ty(path: &str) -> Option<Ty> {
     let felt2 = || Ty::Array(Box::new(Ty::Felt252), 2);
     let w27 = || Ty::FeltW27Limbs;
@@ -165,6 +176,7 @@ fn known_deduce_output_ty(path: &str) -> Option<Ty> {
         "PackedPedersenPointsTableWindowBits18 :: deduce_output"
         | "PackedPedersenPointsTableWindowBits9 :: deduce_output" => Some(felt2()),
         "PackedBlakeG :: deduce_output" => Some(Ty::Array(Box::new(Ty::U32), 4)),
+        "PackedTripleXor32 :: deduce_output" => Some(Ty::U32),
         "PackedBlakeRoundSigma :: deduce_output" => Some(Ty::Array(Box::new(Ty::M31), 16)),
         "PackedPoseidonRoundKeys :: deduce_output" => {
             Some(Ty::Array(Box::new(w27()), 3))

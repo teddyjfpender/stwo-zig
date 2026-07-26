@@ -18,8 +18,10 @@
 
 use stwo_cairo_common::prover_types::simd::SIMD_ENUMERATION_0;
 
-use crate::witness::components::{memory_address_to_id, memory_id_to_big};
-use crate::witness::fast_deduction::blake::{PackedBlakeG, PackedBlakeRoundSigma};
+use crate::witness::components::{blake_round, memory_address_to_id, memory_id_to_big};
+use crate::witness::fast_deduction::blake::{
+    PackedBlakeG, PackedBlakeRoundSigma, PackedTripleXor32,
+};
 use crate::witness::fast_deduction::ec_op::PackedPartialEcMulGeneric;
 use crate::witness::fast_deduction::pedersen::{
     PackedPartialEcMulWindowBits18, PackedPartialEcMulWindowBits9,
@@ -85,6 +87,8 @@ pub struct SimdWitnessEval<'a, 'trace, const N: usize> {
     mem_addr_state: Option<&'a memory_address_to_id::ClaimGenerator>,
     /// `memory_id_to_big.deduce_output` device/host table (`None` when absent).
     mem_big_state: Option<&'a memory_id_to_big::ClaimGenerator>,
+    /// Stateful Blake-round memory oracle (`None` outside the compress opcode).
+    blake_round_state: Option<&'a blake_round::ClaimGenerator>,
     /// This packed row's `input()` source (opcode CasmState or builtin flat words).
     input: SimdInputs,
     /// This packed row's index (for the enabler column).
@@ -109,6 +113,7 @@ impl<'a, 'trace, const N: usize> SimdWitnessEval<'a, 'trace, N> {
         row: Box<[&'trace mut PackedM31; N]>,
         mem_addr_state: impl Into<Option<&'a memory_address_to_id::ClaimGenerator>>,
         mem_big_state: impl Into<Option<&'a memory_id_to_big::ClaimGenerator>>,
+        blake_round_state: impl Into<Option<&'a blake_round::ClaimGenerator>>,
         input: impl Into<SimdInputs>,
         row_index: usize,
         enabler: &'a Enabler,
@@ -119,6 +124,7 @@ impl<'a, 'trace, const N: usize> SimdWitnessEval<'a, 'trace, N> {
             row,
             mem_addr_state: mem_addr_state.into(),
             mem_big_state: mem_big_state.into(),
+            blake_round_state: blake_round_state.into(),
             input: input.into(),
             row_index,
             enabler,
@@ -475,8 +481,26 @@ impl<const N: usize> WitnessEval for SimdWitnessEval<'_, '_, N> {
     }
 
     #[inline(always)]
+    fn deduce_triple_xor_32(&mut self, input: [PackedUInt32; 3]) -> PackedUInt32 {
+        PackedTripleXor32::deduce_output(input)
+    }
+
+    #[inline(always)]
     fn deduce_blake_round_sigma(&mut self, round: PackedM31) -> [PackedM31; 16] {
         PackedBlakeRoundSigma::deduce_output(round)
+    }
+
+    #[inline(always)]
+    fn deduce_blake_round(
+        &mut self,
+        chain: PackedM31,
+        round: PackedM31,
+        state: [PackedUInt32; 16],
+        message_pointer: PackedM31,
+    ) -> (PackedM31, PackedM31, ([PackedUInt32; 16], PackedM31)) {
+        self.blake_round_state
+            .expect("Blake round state required by generated writer")
+            .deduce_output((chain, round, (state, message_pointer)))
     }
 
     #[inline(always)]

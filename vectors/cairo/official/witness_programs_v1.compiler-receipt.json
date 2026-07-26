@@ -1,6 +1,6 @@
 {
-  "artifact_bytes": 2486826,
-  "artifact_sha256": "d119a31ecf07c0e4d97ad5884384d99150517ffddfb4515ebbe5c626ce28094f",
+  "artifact_bytes": 2527495,
+  "artifact_sha256": "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6",
   "emitted_components": [
     "add_ap_opcode",
     "add_mod_builtin",
@@ -10,6 +10,7 @@
     "assert_eq_opcode_double_deref",
     "assert_eq_opcode_imm",
     "bitwise_builtin",
+    "blake_compress_opcode",
     "blake_g",
     "blake_round",
     "blake_round_sigma",
@@ -66,15 +67,15 @@
     "verify_bitwise_xor_9",
     "verify_instruction"
   ],
-  "instruction_count": 155195,
+  "instruction_count": 157733,
   "official_source": {
     "commit_timestamp": 1784709583,
     "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
     "tree": "2b06286971d87c6d3e834de622d3777f1ff9f41f"
   },
-  "orchestrator_sha256": "9225890c389f7046d7260cb5e937db29eff4cb64cf9526679736a924784dc669",
-  "program_count": 63,
-  "rewriter_closure_sha256": "f04554e1dc03ab9a936e8ca6f0405f0eeffc3ab17740095820f144c9b5bac2eb",
+  "orchestrator_sha256": "0cd8def1afd45353fe4a7051113665275f3c30f166acc99c62fb85184dacbdb2",
+  "program_count": 64,
+  "rewriter_closure_sha256": "df7e29795fcc4f44492cbdc026306f4b83ac7c1789a71acb8f762d53017dee18",
   "schema": "stwo_zig_cairo_witness_compiler_receipt_v1",
-  "support_closure_sha256": "617c949b0609e2ccd86462f56c0cbc3861d9a445942a588c965dba0475b9c98e"
+  "support_closure_sha256": "f6084fac1a9c0add5b026672d30793e61ec4c31cf8065c7a2d74784418aa58cd"
 }

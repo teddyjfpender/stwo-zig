@@ -210,8 +210,18 @@ pub const TableContext = struct {
 pub const DeduceContext = struct {
     context: *anyopaque,
     call_fn: *const fn (*anyopaque, u32, []const u32, []u32) anyerror!void,
+    table_call_fn: ?*const fn (*anyopaque, u32, []const u32, []u32, TableContext) anyerror!void = null,
 
-    pub fn call(self: DeduceContext, selector: u32, args: []const u32, outputs: []u32) !void {
+    pub fn call(
+        self: DeduceContext,
+        selector: u32,
+        args: []const u32,
+        outputs: []u32,
+        tables: TableContext,
+    ) !void {
+        if (self.table_call_fn) |table_call| {
+            return table_call(self.context, selector, args, outputs, tables);
+        }
         try self.call_fn(self.context, selector, args, outputs);
     }
 
@@ -373,7 +383,12 @@ fn executeRow(
             .deduce_call => {
                 const output_count: usize = inst.b;
                 if (inst.dst + output_count > registers.len) return error.InvalidDeduce;
-                try deduce.call(inst.imm, deduce_args[0..pending_args], registers[inst.dst .. inst.dst + output_count]);
+                try deduce.call(
+                    inst.imm,
+                    deduce_args[0..pending_args],
+                    registers[inst.dst .. inst.dst + output_count],
+                    tables,
+                );
                 pending_args = 0;
                 continue;
             },

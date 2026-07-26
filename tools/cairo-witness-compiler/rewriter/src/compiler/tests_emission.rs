@@ -83,3 +83,42 @@ fn mul_mod_biguint_boundary_lowers_to_one_semantic_hook() {
     let emitted = lw.out.iter().map(|token| token.to_string()).collect::<String>();
     assert_eq!(emitted.matches("deduce_mul_mod_quotient").count(), 1);
 }
+
+#[test]
+fn blake_deductions_lower_to_fixed_semantic_hooks() {
+    let state = (0..16).map(|_| "word").collect::<Vec<_>>().join(", ");
+    let body = format!(
+        "let word = PackedUInt32::from_m31(add_opcode_input.pc); \
+         let xor = PackedTripleXor32::deduce_output([word, UInt32_7, word]); \
+         let round = blake_round_state.deduce_output((\
+             add_opcode_input.pc, M31_0, ([{state}], add_opcode_input.ap))); \
+         let output = xor.low().as_m31() + round.2.0[15].high().as_m31();"
+    );
+    let lw = lower_snippet(
+        &[
+            ("M31_0", ConstKind::M31, 0),
+            ("UInt32_7", ConstKind::U32, 7),
+        ],
+        &body,
+    );
+    assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+    assert_eq!(lw.deduce_sites, 0);
+    assert_eq!(lw.env["output"], Ty::M31);
+    let emitted = lw.out.iter().map(|token| token.to_string()).collect::<String>();
+    assert_eq!(emitted.matches("deduce_triple_xor_32").count(), 1);
+    assert_eq!(emitted.matches("deduce_blake_round").count(), 1);
+}
+
+#[test]
+fn u16_xor_materializes_generated_constants() {
+    let lw = lower_snippet(
+        &[("UInt16_127", ConstKind::U16, 127)],
+        "let word = PackedUInt16::from_m31(add_opcode_input.pc); \
+         let xor = word ^ UInt16_127; \
+         let output = xor.as_m31();",
+    );
+    assert!(lw.skips.is_empty(), "skips: {:?}", lw.skips);
+    let emitted = lw.out.iter().map(|token| token.to_string()).collect::<String>();
+    assert_eq!(emitted.matches("u16_xor").count(), 1);
+    assert_eq!(emitted.matches("u16_from_m31").count(), 2);
+}

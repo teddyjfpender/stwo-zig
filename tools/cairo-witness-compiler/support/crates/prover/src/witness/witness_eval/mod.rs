@@ -303,9 +303,21 @@ pub trait WitnessEval {
     /// `[a, b, c, d, m0, m1] -> [a', b', c', d']` on full 32-bit words.
     fn deduce_blake_g(&mut self, input: [Self::U32; 6]) -> [Self::U32; 4];
 
+    /// `PackedTripleXor32::deduce_output`.
+    fn deduce_triple_xor_32(&mut self, input: [Self::U32; 3]) -> Self::U32;
+
     /// `PackedBlakeRoundSigma::deduce_output` (fast_deduction/blake.rs): the sigma
     /// permutation row for a round index (`[M31; 16]`).
     fn deduce_blake_round_sigma(&mut self, round: Self::M31) -> [Self::M31; 16];
+
+    /// One official table-backed Blake compression round.
+    fn deduce_blake_round(
+        &mut self,
+        chain: Self::M31,
+        round: Self::M31,
+        state: [Self::U32; 16],
+        message_pointer: Self::M31,
+    ) -> (Self::M31, Self::M31, ([Self::U32; 16], Self::M31));
 
     fn deduce_poseidon_round_keys(&mut self, round: Self::M31) -> [[Self::M31; 10]; 3];
     fn deduce_poseidon_cube(&mut self, value: [Self::M31; 10]) -> [Self::M31; 10];

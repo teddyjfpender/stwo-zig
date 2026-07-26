@@ -63,8 +63,9 @@ source checkout.
 
 At official Stwo-Cairo revision
 `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`, the rewriter scans 67 component
-files, finds 64 generated writers, emits 63 exactly with no census-only sites
-inside that supported cohort, and rejects four with explicit reasons. The emitted
+files, finds and emits all 64 generated writers exactly with no census-only sites
+inside that supported cohort, and rejects three hand-written components with explicit
+reasons. The emitted
 artifact and its compiler closure are authenticated by
 `vectors/cairo/official/witness_programs_v1.provenance.json`.
 

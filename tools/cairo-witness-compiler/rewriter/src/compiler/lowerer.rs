@@ -42,6 +42,7 @@ struct Lowerer {
     uniform_slots: BTreeMap<String, usize>,
     addr_state: Option<String>,
     big_state: Option<String>,
+    blake_round_state: Option<String>,
     input_name: String,
     /// Type of the 4th closure binder (`<comp>_input`), parsed from `PackedInputType`.
     /// Seeds input-projection typing (`.N` / `[i]` / `.get_m31(i)`).

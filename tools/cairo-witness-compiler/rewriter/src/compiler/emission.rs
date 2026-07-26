@@ -74,7 +74,11 @@ fn build_marked_block(
          /// (statement-independent — recorded once). EXTENDED ops (if any) surface in\n\
          /// `RecordingOutput::poison_ops` — the honest ISA-V2 census, not a failure."
     ));
-    let record_ctor: TokenStream = if matches!(lw.input_ty, Ty::Unknown) {
+    let record_ctor: TokenStream = if matches!(lw.input_ty, Ty::Unknown) && lw.uses_iota {
+        // Opcode ABI: pc, ap, fp, enabler, then iota. Blake compression is the
+        // official generated opcode that consumes the row-index column.
+        quote! { RecordingWitnessEval::with_slots(#component, 3, Some(4)) }
+    } else if matches!(lw.input_ty, Ty::Unknown) {
         quote! { RecordingWitnessEval::new(#component) }
     } else {
         // Slot layout: flat row inputs, uniform statement inputs, enabler, iota,
@@ -330,6 +334,13 @@ fn generic_simd_tokens(component: &str, lw: &Lowerer, writer: &ItemFn) -> TokenS
         }
         None => quote! { None },
     };
+    let blake_round_id: TokenStream = match &lw.blake_round_state {
+        Some(name) => {
+            let id = Ident::new(name, Span::call_site());
+            quote! { #id }
+        }
+        None => quote! { None },
+    };
     let input_id = Ident::new(&lw.input_name, Span::call_site());
     // Opcode writers pass their `PackedCasmState` binder straight through
     // (`impl Into<SimdInputs>` — the emitted text is unchanged from the pre-builtin
@@ -408,6 +419,7 @@ fn generic_simd_tokens(component: &str, lw: &Lowerer, writer: &ItemFn) -> TokenS
             #row_id,
             #addr_id,
             #big_id,
+            #blake_round_id,
             #eval_input,
             row_index,
             &enabler_col,

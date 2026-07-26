@@ -4,9 +4,9 @@ use std::path::Path;
 
 use super::components::{
     add_ap_opcode, add_mod_builtin, add_opcode, add_opcode_small, assert_eq_opcode,
-    assert_eq_opcode_double_deref, assert_eq_opcode_imm, bitwise_builtin, blake_g, blake_round,
-    blake_round_sigma, call_opcode_abs, call_opcode_rel_imm, cube_252, ec_op_builtin,
-    generic_opcode, jnz_opcode_non_taken, jnz_opcode_taken, jump_opcode_abs,
+    assert_eq_opcode_double_deref, assert_eq_opcode_imm, bitwise_builtin, blake_compress_opcode,
+    blake_g, blake_round, blake_round_sigma, call_opcode_abs, call_opcode_rel_imm, cube_252,
+    ec_op_builtin, generic_opcode, jnz_opcode_non_taken, jnz_opcode_taken, jump_opcode_abs,
     jump_opcode_double_deref, jump_opcode_rel, jump_opcode_rel_imm, mul_mod_builtin, mul_opcode,
     mul_opcode_small, partial_ec_mul_generic, partial_ec_mul_window_bits_18,
     partial_ec_mul_window_bits_9,
@@ -83,6 +83,10 @@ fn recordings() -> Vec<(&'static str, RecordingOutput)> {
         (
             "verify_instruction",
             verify_instruction::record_verify_instruction(),
+        ),
+        (
+            "blake_compress_opcode",
+            blake_compress_opcode::record_blake_compress_opcode(),
         ),
         ("blake_g", blake_g::record_blake_g()),
         ("blake_round", blake_round::record_blake_round()),

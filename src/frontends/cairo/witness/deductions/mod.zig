@@ -1,6 +1,7 @@
 //! Backend-neutral host implementation of official Cairo witness deductions.
 
 const std = @import("std");
+const blake = @import("blake.zig");
 const felt252 = @import("felt252.zig");
 const mod_biguint = @import("mod_biguint.zig");
 const partial_ec_mul_generic = @import("partial_ec_mul_generic.zig");
@@ -24,13 +25,29 @@ pub const Selector = enum(u32) {
     partial_ec_mul_generic = 14,
     add_mod_is_zero = 15,
     mul_mod_quotient = 16,
+    triple_xor_32 = 17,
+    blake_round = 18,
 };
 
 pub fn context() program.DeduceContext {
-    return .{ .context = undefined, .call_fn = call };
+    return .{
+        .context = undefined,
+        .call_fn = call,
+        .table_call_fn = callWithTables,
+    };
 }
 
 fn call(_: *anyopaque, raw_selector: u32, args: []const u32, outputs: []u32) !void {
+    return callWithTables(undefined, raw_selector, args, outputs, .zero());
+}
+
+fn callWithTables(
+    _: *anyopaque,
+    raw_selector: u32,
+    args: []const u32,
+    outputs: []u32,
+    tables: program.TableContext,
+) !void {
     const selector = std.meta.intToEnum(Selector, raw_selector) catch
         return error.UnsupportedDeduction;
     switch (selector) {
@@ -41,12 +58,15 @@ fn call(_: *anyopaque, raw_selector: u32, args: []const u32, outputs: []u32) !vo
         .partial_ec_mul_generic => try partial_ec_mul_generic.apply(args, outputs),
         .add_mod_is_zero => try mod_biguint.applyAddIsZero(args, outputs),
         .mul_mod_quotient => try mod_biguint.applyMulQuotient(args, outputs),
+        .triple_xor_32 => try blake.applyTripleXor(args, outputs),
+        .blake_round => try blake.applyRound(args, outputs, tables),
         else => return error.UnsupportedDeduction,
     }
 }
 
 test {
     _ = felt252;
+    _ = blake;
     _ = mod_biguint;
     _ = partial_ec_mul_generic;
 }

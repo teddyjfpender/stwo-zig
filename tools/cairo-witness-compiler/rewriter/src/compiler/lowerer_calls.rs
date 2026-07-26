@@ -290,6 +290,18 @@ impl Lowerer {
                     }
                     return self.deduce_site(known_deduce_output_ty(p).expect("in table"));
                 }
+                if p == "PackedTripleXor32 :: deduce_output" {
+                    if let Some(tok) = self.lower_triple_xor_deduce(call, target) {
+                        return (
+                            known_deduce_output_ty(p).expect("TripleXor32 in table"),
+                            tok,
+                        );
+                    }
+                    for a in &call.args {
+                        let _ = self.lower_aggregate(a);
+                    }
+                    return self.deduce_site(known_deduce_output_ty(p).expect("in table"));
+                }
                 if p == "PackedBlakeRoundSigma :: deduce_output" {
                     let (rt, rtok) = match call.args.first() {
                         Some(e) => self.lower_node(strip_parens(e), Target::Temp),

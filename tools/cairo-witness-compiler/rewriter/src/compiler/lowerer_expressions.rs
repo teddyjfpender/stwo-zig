@@ -435,6 +435,17 @@ impl Lowerer {
             }
             "deduce_output" => {
                 let recv = tok_str(strip_parens(&mc.receiver));
+                if Some(&recv) == self.blake_round_state.as_ref() {
+                    return match mc.args.first() {
+                        Some(argument) => self
+                            .lower_blake_round_deduce(argument, target)
+                            .unwrap_or_else(|| (Ty::Unknown, quote! { WG_SKIP })),
+                        None => {
+                            self.skip("expr", "missing Blake-round argument".to_string());
+                            (Ty::Unknown, quote! { WG_SKIP })
+                        }
+                    };
+                }
                 // Aggregate-aware: builtin deduce args are tuples; lower their leaves
                 // for real (the deduce itself skips below for non-mem receivers).
                 let (_at, atok) = match mc.args.first() {

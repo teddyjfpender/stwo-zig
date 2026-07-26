@@ -118,6 +118,28 @@ impl Lowerer {
                 (Ty::Unknown, quote! { WG_SKIP })
             }
             BinOp::BitXor(_) => {
+                if let Some(k) = self.peek_const_u16(&b.right) {
+                    let (lt, ltok) = self.lower_node(&b.left, Target::Temp);
+                    if lt.is_u16() {
+                        let constant = self.materialize_u16_const(k);
+                        return self.emit_op(
+                            target,
+                            Ty::U16,
+                            quote! { eval.u16_xor(#ltok, #constant) },
+                        );
+                    }
+                }
+                if let Some(k) = self.peek_const_u16(&b.left) {
+                    let (rt, rtok) = self.lower_node(&b.right, Target::Temp);
+                    if rt.is_u16() {
+                        let constant = self.materialize_u16_const(k);
+                        return self.emit_op(
+                            target,
+                            Ty::U16,
+                            quote! { eval.u16_xor(#constant, #rtok) },
+                        );
+                    }
+                }
                 let (lt, ltok) = self.lower_node(&b.left, Target::Temp);
                 let (rt, rtok) = self.lower_node(&b.right, Target::Temp);
                 if lt.is_u16() && rt.is_u16() {
@@ -282,6 +304,10 @@ impl Lowerer {
                     // Full-32-bit sub element (blake words): one raw word, stored via
                     // the u32 effect (the flat transport is raw lanes).
                     Ty::U32 => vec![SubLeaf { tok, u32: true }],
+                    constant @ Ty::ConstU32(_) => vec![SubLeaf {
+                        tok: self.u32ish_value(constant, tok),
+                        u32: true,
+                    }],
                     // Felt-valued sub element: 28 flat limb words (the canonical
                     // decomposition; the driver's `from_limbs` reconstruction is the
                     // exact inverse, so the receiver sees the identical felt).

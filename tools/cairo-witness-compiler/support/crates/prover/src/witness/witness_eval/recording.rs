@@ -20,6 +20,8 @@ use crate::witness::witness_eval::{
     WitnessEval, FELT_N_LIMBS, SLOT_ENABLER, TABLE_ADDR_TO_ID, TABLE_ID_TO_BIG,
 };
 
+mod blake;
+
 /// An SSA-register handle, or a poison marker for an op the 32-bit ISA cannot express.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum RecVal {
@@ -529,6 +531,13 @@ impl WitnessEval for RecordingWitnessEval {
         std::array::from_fn(|i| RecVal::Ok(outs[i]))
     }
 
+    fn deduce_triple_xor_32(&mut self, input: [RecVal; 3]) -> RecVal {
+        let Some(args) = Self::plain_args(&input) else {
+            return self.poison("deduce_triple_xor_32");
+        };
+        RecVal::Ok(self.recorder.deduce(DeduceKind::TripleXor32, &args)[0])
+    }
+
     fn deduce_blake_round_sigma(&mut self, round: RecVal) -> [RecVal; 16] {
         let RecVal::Ok(r) = round else {
             let p = self.poison("deduce_blake_round_sigma");
@@ -536,6 +545,16 @@ impl WitnessEval for RecordingWitnessEval {
         };
         let outs = self.recorder.deduce(DeduceKind::BlakeRoundSigma, &[r]);
         std::array::from_fn(|i| RecVal::Ok(outs[i]))
+    }
+
+    fn deduce_blake_round(
+        &mut self,
+        chain: RecVal,
+        round: RecVal,
+        state: [RecVal; 16],
+        message_pointer: RecVal,
+    ) -> (RecVal, RecVal, ([RecVal; 16], RecVal)) {
+        self.record_blake_round(chain, round, state, message_pointer)
     }
 
     fn deduce_poseidon_round_keys(&mut self, round: RecVal) -> [[RecVal; 10]; 3] {

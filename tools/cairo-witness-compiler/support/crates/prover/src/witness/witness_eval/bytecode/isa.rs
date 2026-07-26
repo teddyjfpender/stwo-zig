@@ -154,6 +154,10 @@ pub enum DeduceKind {
     AddModIsZero = 15,
     /// Mul-mod quotient: four arrays of four felt252 values to 32 12-bit words.
     MulModQuotient = 16,
+    /// `PackedTripleXor32`: three u32 words to one u32 word.
+    TripleXor32 = 17,
+    /// Stateful Blake round: chain, round, 16 state words, and message pointer.
+    BlakeRound = 18,
 }
 
 impl DeduceKind {
@@ -176,6 +180,8 @@ impl DeduceKind {
             14 => Self::PartialEcMulGeneric,
             15 => Self::AddModIsZero,
             16 => Self::MulModQuotient,
+            17 => Self::TripleXor32,
+            18 => Self::BlakeRound,
             _ => return None,
         })
     }
@@ -196,6 +202,8 @@ impl DeduceKind {
             Self::PartialEcMulGeneric => (125, 125),
             Self::AddModIsZero => (336, 1),
             Self::MulModQuotient => (448, 32),
+            Self::TripleXor32 => (3, 1),
+            Self::BlakeRound => (19, 19),
         }
     }
 }
@@ -391,6 +399,8 @@ mod tests {
         assert_eq!(DeduceKind::PartialEcMulGeneric.shape(), (125, 125));
         assert_eq!(DeduceKind::AddModIsZero.shape(), (336, 1));
         assert_eq!(DeduceKind::MulModQuotient.shape(), (448, 32));
+        assert_eq!(DeduceKind::TripleXor32.shape(), (3, 1));
+        assert_eq!(DeduceKind::BlakeRound.shape(), (19, 19));
     }
 
     #[test]

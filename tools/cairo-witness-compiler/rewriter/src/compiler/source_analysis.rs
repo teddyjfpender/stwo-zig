@@ -103,7 +103,7 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
     }
 
     // The mem-state param idents (for deduce_output receiver matching).
-    let (addr_state, big_state) = mem_state_param_names(writer);
+    let (addr_state, big_state, blake_round_state) = deduce_state_param_names(writer);
 
     // Collect hoisted constants (scalar broadcast + felt broadcast + Seq) + locate the
     // `for_each` closure.
@@ -244,6 +244,7 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
         uniform_slots,
         addr_state,
         big_state,
+        blake_round_state,
         input_name.clone(),
         input_ty,
         row_index_name,
@@ -283,11 +284,11 @@ fn analyze_file(path: &Path, build_block: bool) -> FileAnalysis {
     fa
 }
 
-/// Extract the `&memory_address_to_id::ClaimGenerator` / `&memory_id_to_big::ClaimGenerator`
-/// parameter identifiers from the `write_trace_simd` signature.
-fn mem_state_param_names(f: &ItemFn) -> (Option<String>, Option<String>) {
+/// Extract the stateful deduce receivers from the `write_trace_simd` signature.
+fn deduce_state_param_names(f: &ItemFn) -> (Option<String>, Option<String>, Option<String>) {
     let mut addr = None;
     let mut big = None;
+    let mut blake_round = None;
     for arg in &f.sig.inputs {
         if let FnArg::Typed(pt) = arg {
             let tystr = tok_str(&pt.ty);
@@ -299,10 +300,12 @@ fn mem_state_param_names(f: &ItemFn) -> (Option<String>, Option<String>) {
                 addr = Some(name);
             } else if tystr.contains("memory_id_to_big :: ClaimGenerator") {
                 big = Some(name);
+            } else if tystr.contains("blake_round :: ClaimGenerator") {
+                blake_round = Some(name);
             }
         }
     }
-    (addr, big)
+    (addr, big, blake_round)
 }
 
 fn find_for_each_closure(f: &ItemFn) -> Option<syn::ExprClosure> {

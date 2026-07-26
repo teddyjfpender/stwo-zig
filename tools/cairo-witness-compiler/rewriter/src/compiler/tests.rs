@@ -31,6 +31,7 @@ mod tests {
             BTreeMap::new(),
             Some("memory_address_to_id_state".to_string()),
             Some("memory_id_to_big_state".to_string()),
+            Some("blake_round_state".to_string()),
             "add_opcode_input".to_string(),
             input_ty,
             "row_index".to_string(),
@@ -70,6 +71,7 @@ mod tests {
             .into_iter()
             .collect(),
             BTreeMap::new(),
+            None,
             None,
             None,
             "__no_row_input".to_string(),
@@ -170,6 +172,7 @@ mod tests {
             BTreeSet::new(),
             BTreeMap::new(),
             slots,
+            None,
             None,
             None,
             "__no_row_input".to_string(),

@@ -23,10 +23,10 @@ OFFICIAL_WITNESS_MOD_SHA256 = (
     "e0113af8099143ea2770312bff24bc1e2fa5329933b272bac0fdae815b0de448"
 )
 EXPECTED_BUNDLE_SHA256 = (
-    "d119a31ecf07c0e4d97ad5884384d99150517ffddfb4515ebbe5c626ce28094f"
+    "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6"
 )
-EXPECTED_BUNDLE_BYTES = 2_486_826
-EXPECTED_PROGRAM_COUNT = 63
+EXPECTED_BUNDLE_BYTES = 2_527_495
+EXPECTED_PROGRAM_COUNT = 64
 
 COMPONENTS = (
     "add_ap_opcode",
@@ -37,6 +37,7 @@ COMPONENTS = (
     "assert_eq_opcode_double_deref",
     "assert_eq_opcode_imm",
     "bitwise_builtin",
+    "blake_compress_opcode",
     "blake_g",
     "blake_round",
     "blake_round_sigma",
@@ -393,14 +394,12 @@ def _compile_bundle(staged: Path, artifact: Path) -> None:
 
 
 def inspect_bundle(data: bytes) -> tuple[int, int]:
-    if len(data) != EXPECTED_BUNDLE_BYTES:
-        raise RuntimeError(
-            f"bundle has {len(data)} bytes; expected {EXPECTED_BUNDLE_BYTES}"
-        )
     digest = hashlib.sha256(data).hexdigest()
-    if digest != EXPECTED_BUNDLE_SHA256:
+    if len(data) != EXPECTED_BUNDLE_BYTES or digest != EXPECTED_BUNDLE_SHA256:
         raise RuntimeError(
-            f"bundle SHA-256 {digest} != expected {EXPECTED_BUNDLE_SHA256}"
+            "bundle identity mismatch: "
+            f"bytes={len(data)} expected={EXPECTED_BUNDLE_BYTES}; "
+            f"sha256={digest} expected={EXPECTED_BUNDLE_SHA256}"
         )
     if data[:8] != b"STWZWIT\0":
         raise RuntimeError("bundle magic mismatch")

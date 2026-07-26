@@ -8,6 +8,7 @@ impl Lowerer {
         uniform_slots: BTreeMap<String, usize>,
         addr_state: Option<String>,
         big_state: Option<String>,
+        blake_round_state: Option<String>,
         input_name: String,
         input_ty: Ty,
         row_index_name: String,
@@ -30,6 +31,7 @@ impl Lowerer {
             uniform_slots,
             addr_state,
             big_state,
+            blake_round_state,
             input_name,
             input_ty,
             row_index_name,
@@ -665,7 +667,17 @@ impl Lowerer {
     fn lower_agg_elem(&mut self, e: &Expr) -> (Ty, TokenStream) {
         match strip_parens(e) {
             Expr::Tuple(_) | Expr::Array(_) => self.lower_aggregate(e),
-            other => self.lower_node(other, Target::Temp),
+            other => {
+                let (ty, token) = self.lower_node(other, Target::Temp);
+                match ty {
+                    Ty::ConstM31(_) => (Ty::M31, token),
+                    Ty::ConstU32(_) => {
+                        let token = self.u32ish_value(ty, token);
+                        (Ty::U32, token)
+                    }
+                    _ => (ty, token),
+                }
+            }
         }
     }
 
