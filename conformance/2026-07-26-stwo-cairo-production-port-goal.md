@@ -360,7 +360,9 @@ As of the starting commit `cfd47be9`:
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
 | Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
 | Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for both frozen fixtures; broader execution corpus remains |
-| Native Zig AIR | only `ret_opcode` is directly represented | incomplete |
+| Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component | complete for both frozen fixtures under the explicitly diagnostic challenge; proof-transcript challenges remain |
+| Official AIR compiler | authenticated exact-source overlay lowers the 46 active all-opcodes component evaluators into one backend-neutral bundle containing 678 constraints, 9,689 base instructions, and 14,797 extension instructions | complete for the frozen all-opcodes proof; all-family coverage and quotient execution remain |
+| Native Zig AIR | consumes and validates the official AIR bundle shape, but does not yet execute it through the generic prover | incomplete |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
@@ -416,6 +418,29 @@ fixture. Together these paths reproduce every base column and cumulative
 component accumulator: 46/46 components for all-opcodes and 48/48 for
 all-builtins. The latter includes the 16,128 active rows, padded to 16,384, and
 all 624 columns of `partial_ec_mul_generic`.
+
+The same backend-neutral graph also reproduces every official interaction
+column for both fixtures under the pinned diagnostic lookup challenge. The
+final interaction accumulators are
+`74386dacef4d5c36da2b02a570e894ed2a8f050f6d32d7e1228c378b3c7d0a60`
+for all-opcodes and
+`c62b56454feb25f110bb16dcebe583aa0adfa42e042cfefcea0827192fc1f37e`
+for all-builtins. These checkpoints cover 46/46 and 48/48 components,
+respectively, but deliberately do not claim the Fiat-Shamir proof transcript.
+
+The authenticated AIR source compiler at
+`tools/stwo-cairo-air-compiler` archives the exact official Stwo Git tree,
+applies one exact-context evaluator accessor in an ignored overlay, and lowers
+the official typed constraint tree without patching proof semantics. For the
+committed all-opcodes proof it records all 46 active components, 678
+constraints, 9,689 base instructions, 14,797 extension instructions, and 655
+deduplicated runtime extension parameters. Two independent warm generations
+produce the same 490,417-byte bundle with SHA-256
+`73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c`.
+The Zig inspector reports 46 components, 678 constraints, maximum evaluation
+log 21, and plan hash `a3611657b6f2c65f`. This is exact CP-06 source
+extraction evidence only: the Zig quotient evaluator and a Rust-accepted Zig
+proof are still required.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The

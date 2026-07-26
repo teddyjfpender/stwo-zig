@@ -40,6 +40,23 @@ pub fn addProducts(context: Context) void {
     cairo_input.addImport("stwo", stwo);
     addExecutable(context, cairo_input, "cairo-input", "cairo-input", "Build adapted Cairo input inspector", false);
 
+    const cairo_composition = consumer(
+        context,
+        protocol,
+        "src/frontends/cairo/witness/composition_bundle.zig",
+    );
+    const cairo_air_bundle =
+        consumer(context, protocol, "src/tools/cairo/air_bundle_inspector.zig");
+    cairo_air_bundle.addImport("cairo_composition_bundle", cairo_composition);
+    addExecutable(
+        context,
+        cairo_air_bundle,
+        "cairo-air-bundle-inspector",
+        "cairo-air-bundle-inspector",
+        "Build official Cairo AIR bundle inspector",
+        false,
+    );
+
     const cairo_frontend = consumer(context, protocol, "src/frontends/cairo/mod.zig");
     const cairo_test_root = consumer(context, protocol, "src/frontends/cairo/tests/mod.zig");
     cairo_test_root.addImport("cairo_frontend", cairo_frontend);

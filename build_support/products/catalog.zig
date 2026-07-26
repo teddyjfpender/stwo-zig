@@ -82,6 +82,7 @@ pub const steps = [_]Step{
     .{ .name = "cuda-native-archive", .description = "Build the exact static CUDA runtime and copied AOT pack", .scope = .cuda_tools },
     .{ .name = "cuda-native-adapter", .description = "Build the copied-backend Native CUDA proof adapter", .scope = .cuda_tools },
     .{ .name = "cairo-input", .description = "Build adapted Cairo input inspector", .scope = .compatibility_tools },
+    .{ .name = "cairo-air-bundle-inspector", .description = "Build official Cairo AIR bundle inspector", .scope = .compatibility_tools },
     .{ .name = "test-cairo-frontend", .description = "Run focused backend-neutral Cairo conformance tests", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest", .description = "Dump the canonical Stark-V opcode and proof-family policy as JSON", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest-check", .description = "Validate exact Stark-V opcode IDs and execution-only classifications", .scope = .compatibility_tools },
@@ -164,6 +165,8 @@ pub const configure = [_]Configure{
         .module_roots = &.{
             "src/tools/interop/main.zig",
             "src/tools/cairo/input_inspector.zig",
+            "src/tools/cairo/air_bundle_inspector.zig",
+            "src/frontends/cairo/witness/composition_bundle.zig",
             "src/frontends/cairo/tests/mod.zig",
             "src/tools/riscv_opcode_manifest/main.zig",
             "src/riscv_bench_cli.zig",
