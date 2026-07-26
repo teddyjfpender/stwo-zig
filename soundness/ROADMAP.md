@@ -1,115 +1,83 @@
-# zkVM Soundness & Correctness Roadmap
+# RV32IM zkVM soundness roadmap
 
-Tracking document for taking the RISC-V proving lanes — the stwo-zig
-`riscv` adapter and the pinned Stark-V oracle
-(`ClementWalter/stark-v @ d478f78`) — from "benchmarked and semantically
-cross-checked" to "production-grade confidence that the proof attests real
-RV32IM execution." Owned here so progress is reviewable; each layer lands
-as PRs that reference this file.
+This roadmap tracks assurance beyond ordinary feature completeness. The
+normative architectural model is pinned Sail RISC-V; Spike is an independent
+executor, and the pinned RISC-V Architectural Tests provide the standards
+corpus. Stark-V is retained only for legacy proof-layout lineage.
 
-## The two properties, kept separate
+The two obligations stay separate:
 
-1. **Semantic correctness** — the VM executes RV32IM exactly per the ISA
-   specification. Known failure territory: MULH-family sign handling (the
-   adapter fails closed today: `UnsupportedProofFamily
-   limitation=stark-v-signed-mulh`), DIV/REM by zero and signed overflow
-   (spec: div-by-zero → −1, overflow → dividend), x0 hard-wiring, jump
-   alignment, shard-boundary state passing.
-2. **Soundness** — the constraint system *forces* that execution: no
-   accepting proof exists for a false statement. Failure territory:
-   under-constrained AIR cells (missing range checks, unconstrained
-   carries, memory-argument holes). **Every test we run today uses an
-   honest prover and therefore cannot detect this class at all.**
+1. **Semantic refinement:** every admitted retirement has the Sail-defined
+   decode, state transition, memory effect, and next PC.
+2. **Computational integrity:** an accepting proof forces that retirement
+   sequence and its public program, input, output, roots, and completion state.
 
-Current baseline (2026-07-22): committed ELF corpus + CP-11 semantic
-oracle parity (public data / final PC / registers / steps); fail-closed
-typed refusal of unsupported proof families; fuzz sampling showed exact
-step/cycle agreement on all comparable vectors and byte-identical
-stwo-zig proofs across independent runs (`riscv-fuzz` session evidence).
-Assurance gap vs the native board: native holds **byte-identity** against
-audited upstream stwo; the RISC-V lane holds **semantic parity only**, and
-the pinned Stark-V CLI cannot serialize proofs (its `Measure` subcommand
-documents this), so its "verified" is an in-process assertion.
+## Current assurance baseline — 2026-07-26
 
-## Layer 1 — ISA ground truth against the official spec
+- [x] Exact Sail model, compiler, configuration, and transport patch are
+      machine-pinned and reproducibly verified.
+- [x] Exact Spike and architectural-test revisions are machine-pinned.
+- [x] Canonical retirement comparison covers PC, word, register write, next PC,
+      and memory effect with no PC normalization.
+- [x] The deterministic positive/negative corpus passes live Sail and Spike
+      comparison, including strict illegal/reserved/misaligned rejection.
+- [x] All applicable upstream RV32I and RV32M architectural tests use
+      Sail-generated signatures and pass the zkVM executor.
+- [x] Every applicable architectural test follows execute → secure prove →
+      separate-process verify in the formal audit.
+- [x] MULH, MULHSU, and MULHU are admitted. Signed high multiplication binds
+      both operand sign bits and the complete byte/carry recurrence.
+- [x] MULH malicious-witness mutations are rejected at proof admission.
+- [x] FENCE is admitted for the single-hart zkVM; FENCE.I remains an explicit,
+      conservative profile exclusion.
+- [x] Misaligned instruction targets and data accesses reject before state
+      mutation and are constrained at the AIR boundary.
+- [x] CPU/SIMD and Metal consume the same backend-neutral witness/AIR; Metal has
+      no CPU fallback.
+- [x] Completion is a public relation event, artifact schema v4 binds protocol
+      and exact PCS geometry, and independent verification recomputes the
+      decoded-program root from the supplied ELF.
 
-The CP-11 oracle is self-built and shares no lineage with the spec.
+The reproducible commands and evidence schemas live in
+`scripts/riscv_formal_tools.py`, `scripts/riscv_trace_vectors.py`,
+`scripts/riscv_arch_tests.py`, and `conformance/riscv/`.
 
-- [ ] Integrate **sail-riscv** (the formal executable ISA spec) and
-      **Spike** as second and third executors behind the CP-11 interface.
-- [ ] Run the official **riscv-arch-test** suite through all executors;
-      commit results as conformance evidence.
-- [ ] Trace-level differential fuzzing: constrained-random instruction
-      streams (riscv-dv or in-repo generator), comparing every retired
-      instruction's (pc, rd, value) across executors — not just final
-      state. Millions of programs, seeds committed.
-- [ ] Implement the MULH family correctly against the Sail model and
-      retire the `stark-v-signed-mulh` refusal; its trigger programs
-      become permanent corpus vectors.
+## Continuing adversarial work
 
-**Acceptance:** arch-test suite green on all executors; N ≥ 10^6 fuzzed
-programs with zero trace divergences; zero remaining
-`UnsupportedProofFamily` refusals for RV32IM.
+- [ ] Expand committed-witness mutation coverage from the highest-risk MULH and
+      program/memory boundaries to every opcode family.
+- [ ] Add a deliberately malicious prover harness for skipped instructions,
+      stale reads, forged outputs, and altered completion.
+- [ ] Exhaustively check small-limb component domains where enumeration is
+      feasible, with Sail transitions as the reference relation.
+- [ ] Maintain serialized-proof bit-flip, truncation, splice, and wrong-statement
+      rejection corpora as the wire evolves.
+- [ ] Increase deterministic differential generation beyond the current
+      checked corpus and record seed ranges and retirement counts.
 
-## Layer 2 — adversarial prover testing (kills the honest-prover blind spot)
+## Independent verification and accounting
 
-- [ ] **Witness-mutation fuzzing:** take valid witnesses, flip one cell
-      (register value, decode, memory read), attempt to prove. Any mutant
-      that yields an accepting proof is an under-constraint hole. CI gate:
-      all mutants rejected, thousands per instruction family.
-- [ ] **Malicious-prover harness:** a forked prover that cheats
-      deliberately (altered public outputs, skipped instruction, replayed
-      stale memory value); verifier must reject every variant.
-- [ ] **Exhaustive component checks:** for each instruction family's AIR
-      component in isolation, enumerate all limb-width inputs and check
-      constraint-satisfaction ⟺ Sail semantics. At 8/16-bit limbs,
-      enumeration is feasible and beats sampling.
-- [ ] **Proof-malformation fuzzing** (stwo-zig lane, which has
-      `--proof-out`): bit-flip / truncate / splice serialized proofs;
-      verifier must reject all.
+- [x] Proof artifacts are serialized and accepted only by a separate verifier
+      invocation bound to an externally supplied statement digest.
+- [x] Statement mutation and malformed-proof tests cover the public artifact
+      boundary.
+- [ ] Add a second independently implemented verifier for the RISC-V proof
+      protocol. Sail and Spike independently validate execution semantics, not
+      the repository-specific PCS/FRI proof wire.
+- [x] Publish the current conjectural security-bit accounting for every exposed
+      PCS profile, explicitly separating it from a reviewed reduction.
+- [ ] Obtain independent review of the FRI/list-decoding security accounting.
+- [ ] Keep the Fiat–Shamir schedule and all domain-separated extensions in the
+      conformance ledger with mutation coverage.
 
-**Acceptance:** mutation and malformation gates in CI, fail-closed; a
-committed refuter corpus where every discovered hole becomes a permanent
-negative vector.
+## Formal and external assurance
 
-## Layer 3 — close the structural gaps
+- [ ] Machine-check that AIR satisfaction refines the pinned Sail transition
+      relation, beginning with instruction decode and memory consistency.
+- [ ] Obtain independent AIR and protocol audits.
+- [ ] Maintain a public bug-bounty scope for witness construction, statement
+      binding, serialization, and verification.
 
-- [ ] **Stark-V proof serialization** (upstream contribution or fork):
-      an unserializable proof cannot be independently verified; this is a
-      production prerequisite, not a nicety.
-- [ ] **Independent cross-verifier:** verify stwo-zig RISC-V proofs with
-      a second implementation (and Stark-V's once serialization exists).
-- [ ] **Explain the verifier cost asymmetry** observed in fuzzing
-      (stwo-zig ~97 ms flat vs Stark-V 1.5–3 ms) before production — a
-      verifier accepting what it should reject is as fatal as a prover
-      bug, and unexplained cost usually means unexamined structure.
-
-## Layer 4 — protocol accounting
-
-- [ ] Compute and publish the **actual security bits** from the deployed
-      parameters (FRI queries × log-blowup + proof-of-work grinding;
-      conjectured vs proven), per board, in conformance evidence.
-- [ ] Audit that the **Fiat-Shamir transcript** binds every commitment
-      and every public input (`transcript_state_blake2s` telemetry is the
-      hook); document the transcript schedule.
-- [ ] **Statement-binding tests:** prove program A, verify against
-      program B's statement — must reject; mutate each public field
-      (program hash, inputs, outputs, step count) — must reject.
-
-## Layer 5 — formal + external (the production bar)
-
-- [ ] Machine-checked proof (Lean is where the field is converging) that
-      AIR-satisfaction implies a valid Sail-model execution — starting
-      with the two highest-risk components: the **memory consistency
-      argument** and the **instruction decoder**.
-- [ ] Two independent external audits (AIR + protocol layers).
-- [ ] Public bug bounty scoped to the malicious-prover surface.
-
-## Sequencing
-
-1 → 2 first (cheap, mechanical, and exactly the fail-closed evidence
-machinery this repo already runs for performance, pointed at soundness);
-then 3 (serialization + cross-verifier), 4 (accounting is documentation
-plus tests), and 5 once layers 1–4 hold. The bar for "production ready"
-is every checkbox above landed or explicitly rejected with reasoning
-recorded in this file's history.
+Feature completion does not imply these longer-horizon audit items are done.
+Conversely, they must not be represented as missing RV32IM instructions or as
+authority for reintroducing a second semantic oracle.

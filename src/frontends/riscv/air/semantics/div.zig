@@ -13,8 +13,8 @@ const common = @import("common.zig");
 const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
-pub const N_ORACLE_COLUMNS: usize = 65;
-pub const N_CONSTRAINTS: usize = 62;
+pub const N_ORACLE_COLUMNS: usize = 67;
+pub const N_CONSTRAINTS: usize = 69;
 pub const LOOKUP_BATCH_SIZE: usize = 1;
 pub const BITWISE_LOOKUP_COUNT: usize = 0;
 pub const CURRENT_TRACE_COMPATIBLE = true;
@@ -44,6 +44,7 @@ pub const Row = struct {
     is_divu: QM31,
     is_rem: QM31,
     is_remu: QM31,
+    destination: common.Destination,
 
     pub fn fromOracleColumns(columns: []const QM31) !Row {
         if (columns.len != N_ORACLE_COLUMNS) return error.InvalidOracleTraceShape;
@@ -71,6 +72,7 @@ pub const Row = struct {
             .is_divu = columns[62],
             .is_rem = columns[63],
             .is_remu = columns[64],
+            .destination = common.destinationFromColumns(columns[65..67]),
         };
     }
 
@@ -283,6 +285,14 @@ pub fn evaluate(row: Row) Constraints {
     }
     out[n] = d.active.mul(QM31.one().sub(d.prefixes[0]));
     n += 1;
+    for (common.destinationConstraints(row.rd.addr, row.destination)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    for (common.destinationResultConstraints(row.rd, d.result, row.destination)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
     std.debug.assert(n == out.len);
     return .{ .values = out };
 }
@@ -317,29 +327,6 @@ pub const Lookups = struct {
     rd: control.RegisterAccessLookups,
 };
 
-fn resultAccessLookups(row: Row, d: Derived) control.RegisterAccessLookups {
-    const previous = common.MemoryAccessTuple{
-        .addr_space = QM31.zero(),
-        .addr = row.rd.addr,
-        .clock = row.rd.previous_clock,
-        .limbs = row.rd.previous,
-    };
-    const next = common.MemoryAccessTuple{
-        .addr_space = QM31.zero(),
-        .addr = row.rd.addr,
-        .clock = row.clock,
-        .limbs = d.result,
-    };
-    return .{
-        .consume = .{ .numerator = d.active.neg(), .tuple = previous },
-        .emit = .{ .numerator = d.active, .tuple = next },
-        .clock_gap = control.range20Request(
-            d.active,
-            row.clock.sub(row.rd.previous_clock),
-        ),
-    };
-}
-
 pub fn lookups(row: Row) Lookups {
     const d = derive(row);
     var ranges: [8]control.Request(control.RangePairTuple) = undefined;
@@ -358,7 +345,7 @@ pub fn lookups(row: Row) Lookups {
             .numerator = d.valid_not_special.neg(),
             .tuple = .{ .value = row.lt_diff.sub(QM31.one()) },
         },
-        .rd = resultAccessLookups(row, d),
+        .rd = control.registerAccessLookups(row.rd, row.clock, d.active),
     };
 }
 
@@ -396,6 +383,7 @@ fn baseRow() Row {
         .is_divu = QM31.zero(),
         .is_rem = QM31.zero(),
         .is_remu = QM31.zero(),
+        .destination = .{ .nonzero = QM31.zero(), .inverse = QM31.zero() },
     };
 }
 
@@ -407,6 +395,10 @@ fn honestUnsignedRow() Row {
     var row = baseRow();
     row.is_divu = QM31.one();
     row.rd.addr = common.q(3);
+    row.destination = .{
+        .nonzero = QM31.one(),
+        .inverse = inverse(3),
+    };
     row.rd.next[0] = common.q(2);
     row.rs1.addr = common.q(1);
     row.rs1.next[0] = common.q(7);
@@ -462,6 +454,8 @@ test "div: REMU emits the remainder rather than the quotient" {
 test "div: zero divisor requires all-one quotient" {
     var row = baseRow();
     row.is_divu = QM31.one();
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.zero_divisor = QM31.one();
     row.rs1.next[0] = common.q(7);
     row.q = .{common.q(255)} ** 4;
@@ -476,6 +470,8 @@ test "div: zero divisor requires all-one quotient" {
 test "div: signed negative quotient and remainder satisfy sign extension" {
     var row = baseRow();
     row.is_div = QM31.one();
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.rd.next = .{ common.q(254), common.q(255), common.q(255), common.q(255) };
     row.rs1.next = .{ common.q(249), common.q(255), common.q(255), common.q(255) };
     row.rs2.next[0] = common.q(3);

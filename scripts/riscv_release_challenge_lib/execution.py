@@ -287,7 +287,8 @@ def execute(
     if not isinstance(statement_digest, str) or model.SHA256_RE.fullmatch(statement_digest) is None:
         raise model.ChallengeError("prove report has no valid statement digest")
     verify_receipt, record = trusted_runner.run("anchor-independent-verify", [
-        str(verifier_cli), "verify", "--artifact", str(proof_path), "--protocol", "secure",
+        str(verifier_cli), "verify", "--artifact", str(proof_path),
+        "--elf", str(elf_path), "--protocol", "secure",
         "--expect-statement-digest", statement_digest,
     ])
     records.append(record)

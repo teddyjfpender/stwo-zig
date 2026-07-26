@@ -1109,8 +1109,10 @@ python3 scripts/riscv_trace_vectors.py
 This gate must produce and independently verify the branch, memory,
 cross-shard, and crypto proof corpus defined in
 [`conformance/riscv-pr-proof-gate.md`](conformance/riscv-pr-proof-gate.md).
-Unit tests and compilation do not waive it. Live pinned-Stark-V comparison
-remains mandatory in the exhaustive release gate.
+Unit tests and compilation do not waive it. Live comparison against the exact
+pinned Sail and Spike executables, plus the applicable architectural-test
+execute → prove → independent-verify audit, remains mandatory in the exhaustive
+release gate.
 
 For Metal work on a supported Mac:
 
@@ -1293,11 +1295,12 @@ compilation-free property is enforced by test, not convention — a compile-clas
 command entering the fast plan fails `scripts/tests/test_ci.py`. Only after fast
 passes is the standard gate worth its minutes.
 
-For the RISC-V lane, `scripts/riscv_stark_v_benchmark.py` produces the matched
-Zig-vs-Stark-V prove/verify matrix over the committed release ELF corpus (both
-lanes under the pinned oracle's default PCS profile). Zig rows run the staged
-CLI and carry `staged_experimental_not_release_gated` until RF-01 promotes the
-adapter; treat them as baseline candidates, never as release evidence.
+For the RISC-V lane, `scripts/riscv_formal_tools.py`,
+`scripts/riscv_trace_vectors.py`, and `scripts/riscv_arch_tests.py` own formal
+correctness evidence. They fail closed on the exact Sail compiler/model, Spike,
+and architectural-test revisions. `scripts/riscv_stark_v_benchmark.py` remains
+only a legacy performance/layout comparison; it is not an ISA correctness
+authority or release substitute.
 
 Both RISC-V harnesses embed a `host_environment` block (chip, cores, memory, OS,
 toolchain) so every report says what machine produced it, and their committed
@@ -1308,14 +1311,14 @@ README for the anchor-freeze linkage. The native board's tracked history is
 `vectors/reports/benchmark_history/`.
 
 `scripts/build_crypto_guests.py` vendors the compiled cryptographic guests
-(SHA-256, Keccak, ECDSA from Stark-V's guest-lib, plus the repo-owned
+(SHA-256, Keccak, ECDSA from Stark-V's guest-lib as source provenance, plus the repo-owned
 `vectors/riscv_guests/poseidon2_m31` guest) into `vectors/riscv_elfs/crypto/`
 with a provenance record, and `scripts/riscv_crypto_benchmark.py` benches them
 on both lanes. Rows are either `proof` (SHA-256 all sizes, single-block Keccak)
 or `execution` (ECDSA, Poseidon2-M31, multi-block Keccak — neither lane proves
-these at the pinned config, so both only execute them). Every RISC-V row's Metal
-cell is `gated`: the RISC-V adapter is CPU-only and neither lane ships a RISC-V
-Metal prover — CPU-vs-Metal comparison exists only in the native proof matrix.
+these at the pinned config, so both only execute them). The legacy matched
+benchmark matrix remains CPU-only. The separate `stwo-zig-riscv-metal` product
+owns RISC-V Metal conformance and must fail instead of entering a CPU fallback.
 
 Membership in `scripts/` is also enforced by test: every script must be
 transitively reachable from a live entry point (build graph, hosted workflow,

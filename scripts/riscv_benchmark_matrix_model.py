@@ -17,13 +17,9 @@ TRACE_MANIFEST_REL = "vectors/riscv_elfs/trace_vectors.json"
 CRYPTO_PROVENANCE_REL = "vectors/riscv_elfs/crypto/provenance.json"
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-FULL_COUNTS = {"proof": 20, "execution": 10, "expected_rejection": 2}
+FULL_COUNTS = {"proof": 23, "execution": 10}
 SUPPORTED = "supported"
-EXPECTED_REJECTIONS = {
-    "fail_closed_known_limitation",
-    "diagnostic_balanced_family_fail_closed",
-}
-KNOWN_LIMITATION = "stark-v-signed-mulh"
+PINNED_LEGACY_LAYOUT = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
 
 
 class MatrixModelError(ValueError):
@@ -102,8 +98,10 @@ def _regular_fixture(root: Path, relative: str, expected: str, label: str) -> Pa
 
 
 def _corpus_workloads(root: Path, manifest: dict[str, Any]) -> list[Workload]:
-    if manifest.get("stark_v_commit") != PINNED_ORACLE:
-        raise MatrixModelError("trace manifest pins a different Stark-V commit")
+    authorities = manifest.get("authorities")
+    sail = authorities.get("sail") if isinstance(authorities, dict) else None
+    if not isinstance(sail, dict) or sail.get("revision") != PINNED_ORACLE:
+        raise MatrixModelError("trace manifest pins a different Sail revision")
     vectors = manifest.get("vectors")
     if not isinstance(vectors, list) or not vectors:
         raise MatrixModelError("trace manifest has no vectors")
@@ -138,16 +136,11 @@ def _corpus_workloads(root: Path, manifest: dict[str, Any]) -> list[Workload]:
         if not isinstance(admission, dict) or not isinstance(admission.get("status"), str):
             raise MatrixModelError(f"{name}: invalid proof admission")
         status = admission["status"]
-        if status == SUPPORTED:
-            if set(admission) != {"status"}:
-                raise MatrixModelError(f"{name}: supported admission fields drifted")
-            row_class = "proof"
-        elif status in EXPECTED_REJECTIONS:
-            if admission != {"status": status, "known_limitation": KNOWN_LIMITATION}:
-                raise MatrixModelError(f"{name}: rejection admission fields drifted")
-            row_class = "expected_rejection"
-        else:
+        if status != SUPPORTED:
             raise MatrixModelError(f"{name}: unknown proof admission {status!r}")
+        if set(admission) != {"status"}:
+            raise MatrixModelError(f"{name}: supported admission fields drifted")
+        row_class = "proof"
         fixture = {
             "manifest": TRACE_MANIFEST_REL,
             "name": name,
@@ -207,8 +200,11 @@ def _crypto_class(spec: dict[str, Any], label: str) -> str:
 def _crypto_workloads(root: Path, provenance: dict[str, Any]) -> list[Workload]:
     if provenance.get("schema") != "riscv_crypto_guests_v1":
         raise MatrixModelError("crypto provenance schema drifted")
-    if provenance.get("stark_v_commit") != PINNED_ORACLE:
-        raise MatrixModelError("crypto provenance pins a different Stark-V commit")
+    # These guest binaries still record the Stark-V checkout used to build the
+    # legacy benchmark assets.  It is provenance, not the semantic authority:
+    # corpus correctness is independently gated against the Sail revision above.
+    if provenance.get("stark_v_commit") != PINNED_LEGACY_LAYOUT:
+        raise MatrixModelError("crypto provenance pins a different legacy layout revision")
     inputs = provenance.get("input_sha256")
     guests = provenance.get("guests")
     if not isinstance(inputs, dict) or not isinstance(guests, dict) or not guests:

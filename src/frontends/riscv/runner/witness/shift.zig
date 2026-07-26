@@ -32,6 +32,13 @@ fn compute(value: u32, amount: u5, left: bool, arithmetic: bool) Shift {
     return result;
 }
 
+fn shiftedValue(value: u32, amount: u5, left: bool, arithmetic: bool) u32 {
+    if (left) return value << amount;
+    if (!arithmetic) return value >> amount;
+    const signed: i32 = @bitCast(value);
+    return @bitCast(signed >> amount);
+}
+
 fn suffix(columns: anytype, index: usize, start: usize, row: anytype, amount: u5) void {
     const left = row.opcode == .SLL or row.opcode == .SLLI;
     const arithmetic = row.opcode == .SRA or row.opcode == .SRAI;
@@ -55,7 +62,12 @@ pub fn reg(columns: anytype, index: usize, row: anytype) void {
     w.rd(columns, index, 2, row);
     w.rs1(columns, index, 12, row);
     w.rs2(columns, index, 22, row);
-    suffix(columns, index, 32, row, @truncate(row.rs2_val));
+    const amount: u5 = @truncate(row.rs2_val);
+    suffix(columns, index, 32, row, amount);
+    const left = row.opcode == .SLL;
+    const arithmetic = row.opcode == .SRA;
+    w.writeLimbs(columns, index, 54, shiftedValue(row.rs1_val, amount, left, arithmetic));
+    w.destination(columns, index, 58, row.rd);
 }
 
 pub fn immediate(columns: anytype, index: usize, row: anytype) void {
@@ -78,6 +90,8 @@ pub fn immediate(columns: anytype, index: usize, row: anytype) void {
     for (witness.bit_markers, 0..) |marker, i| w.set(columns, index, 29 + i, w.u(marker));
     for (witness.limb_markers, 0..) |marker, i| w.set(columns, index, 37 + i, w.u(marker));
     for (witness.carries, 0..) |carry, i| w.set(columns, index, 41 + i, w.u(carry));
+    w.writeLimbs(columns, index, 45, shiftedValue(row.rs1_val, amount, left, arithmetic));
+    w.destination(columns, index, 49, row.rd);
 }
 
 const std_probe = @import("std");

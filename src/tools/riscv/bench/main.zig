@@ -307,6 +307,7 @@ pub fn mainWithEngine(comptime Engine: type) !void {
         &run_result.rw_memory,
         if (profile_enabled) &recorder else null,
     );
+    defer output.deinitAfterProofMoved(allocator);
     const prove_ms = t_prove.elapsedMs();
 
     std.debug.print("Prove:    {d:.1}ms\n", .{prove_ms});

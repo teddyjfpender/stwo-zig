@@ -83,6 +83,13 @@ class EncoderTest(unittest.TestCase):
     def test_ecall(self):
         self.assertEqual(rtv.ECALL(), 0x00000073)
 
+    def test_fence_reserved_fields_are_encoded_without_register_effects(self):
+        self.assertEqual(rtv.FENCE(), 0x0FF0000F)
+        self.assertEqual(
+            rtv.FENCE(pred=0b0101, succ=0b1010, fm=0b0111, rs1=1, rd=2),
+            0x75A0810F,
+        )
+
 
 class FixtureIdentityTest(unittest.TestCase):
     def test_historical_ecall_fixture_layout_still_reproduces(self):
@@ -95,6 +102,7 @@ class FixtureIdentityTest(unittest.TestCase):
         elf = rtv.build_elf(historical)
         self.assertEqual(len(elf), 104)
         self.assertEqual(elf[0x18:0x1C], (0x00010000).to_bytes(4, "little"))
+        self.assertEqual(elf[0x3C:0x40], (0x00010000).to_bytes(4, "little"))
 
     def test_every_release_program_sets_the_nonzero_halt_flag(self):
         for name, program in rtv.PROGRAMS.items():
@@ -139,46 +147,29 @@ class FixtureIdentityTest(unittest.TestCase):
         }
         self.assertEqual({word for word in program if word in expected}, expected)
 
-    def test_mulhu_only_keeps_balanced_mulh_diagnostics_fail_closed(self):
+    def test_mulhu_only_is_independently_proof_admitted(self):
         program = rtv.prog_mulhu_only()
         self.assertEqual(program.count(rtv.MULHU(3, 1, 2)), 1)
         self.assertNotIn(rtv.MULH(3, 1, 2), program)
         self.assertNotIn(rtv.MULHSU(3, 1, 2), program)
         self.assertEqual(
             rtv.PROOF_ADMISSION["mulhu_only"],
-            {
-                "status": admission_policy.DIAGNOSTIC_FAIL_CLOSED,
-                "known_limitation": admission_policy.SIGNED_MULH_LIMITATION,
-            },
+            {"status": admission_policy.SUPPORTED},
         )
 
-    def test_proof_admission_separates_limitation_from_balanced_diagnostic(self):
+    def test_every_rv32im_corpus_program_is_proof_admitted(self):
         self.assertEqual(set(rtv.PROOF_ADMISSION), set(rtv.PROGRAMS))
         vectors = [
             {"name": name, "proof_admission": dict(rtv.PROOF_ADMISSION[name])}
             for name in sorted(rtv.PROGRAMS)
         ]
         self.assertEqual(admission_policy.errors(vectors, rtv.PROOF_ADMISSION), [])
-        fail_closed = {
-            name: policy
-            for name, policy in rtv.PROOF_ADMISSION.items()
-            if policy["status"] == admission_policy.FAIL_CLOSED
-        }
-        self.assertEqual(
-            fail_closed,
-            {
-                "mul_div": {
-                    "status": admission_policy.FAIL_CLOSED,
-                    "known_limitation": admission_policy.SIGNED_MULH_LIMITATION,
-                },
-            },
-        )
         supported = {
             name
             for name, policy in rtv.PROOF_ADMISSION.items()
             if policy["status"] == admission_policy.SUPPORTED
         }
-        self.assertEqual(supported, set(rtv.PROGRAMS) - {"mul_div", "mulhu_only"})
+        self.assertEqual(supported, set(rtv.PROGRAMS))
 
         unknown = [{**vector, "proof_admission": dict(vector["proof_admission"])} for vector in vectors]
         unknown[0]["proof_admission"]["status"] = "unknown"
@@ -186,21 +177,6 @@ class FixtureIdentityTest(unittest.TestCase):
             "unknown proof-admission status 'unknown'" in error
             for error in admission_policy.errors(unknown, rtv.PROOF_ADMISSION)
         ))
-        diagnostic = {
-            name: policy
-            for name, policy in rtv.PROOF_ADMISSION.items()
-            if policy["status"] == admission_policy.DIAGNOSTIC_FAIL_CLOSED
-        }
-        self.assertEqual(
-            diagnostic,
-            {
-                "mulhu_only": {
-                    "status": admission_policy.DIAGNOSTIC_FAIL_CLOSED,
-                    "known_limitation": admission_policy.SIGNED_MULH_LIMITATION,
-                },
-            },
-        )
-
     def test_legacy_shapes_are_explicit_negative_diagnostics(self):
         undeclared, undeclared_reason = rtv.NEGATIVE_FIXTURES["undeclared_program"]
         self.assertEqual(struct.unpack_from("<I", undeclared, 32)[0], 0)
@@ -232,10 +208,11 @@ class FixtureIdentityTest(unittest.TestCase):
             rtv.PROOF_ADMISSION,
         )
         self.assertTrue(all(
-            vector["expected"] == "diagnostic_only_not_release_eligible"
+            vector["expected"] == "zig_reject_before_retirement"
             for vector in payload["negative_vectors"]
         ))
-        self.assertEqual(payload["stark_v_commit"], rtv.pinned_stark_v_commit())
+        for field, expected in rtv.manifest_identity().items():
+            self.assertEqual(payload[field], expected)
         self.assertEqual(
             {
                 opcode_id
@@ -243,6 +220,23 @@ class FixtureIdentityTest(unittest.TestCase):
                 for opcode_id in vector["executed_opcode_ids"]
             },
             corpus_contract.EXPECTED_PROOF_OPCODE_IDS,
+        )
+
+    def test_decode_and_trap_negative_set_is_closed_and_declared(self):
+        self.assertEqual(
+            set(rtv.FORMAL_WORD_DISPOSITIONS),
+            {
+                "illegal_opcode",
+                "reserved_op_funct7",
+                "fence_i_outside_profile",
+                "misaligned_jump_target",
+                "misaligned_word_load",
+                "system_ecall",
+            },
+        )
+        self.assertEqual(
+            rtv.FORMAL_WORD_DISPOSITIONS["fence_i_outside_profile"],
+            (0x0000100F, False),
         )
 
 

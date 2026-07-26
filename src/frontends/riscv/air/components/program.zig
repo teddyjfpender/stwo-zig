@@ -4,14 +4,19 @@
 //! committed program.  In stark-v this is backed by a Merkle tree over
 //! program instruction words.
 //!
-//! Trace layout (8 columns):
-//!   enabler, addr (pc), value_0, value_1, value_2, value_3, multiplicity, root.
+//! Trace layout (10 columns):
+//!   enabler, addr (pc), value_0, value_1, value_2, value_3, multiplicity,
+//!   root, word_addr_lo20, word_addr_hi8.
 //!
 //! value_0..3 are byte decomposition of the instruction word.
 //!
 //! Constraints:
 //!   - enabler is boolean (enabler^2 - enabler = 0).
+//!   - active addr = 4 * (word_addr_lo20 + 2^20 * word_addr_hi8).
 //!   - Program lookup relation: +multiplicity / (z - entry(addr, value_0..3)).
+//! Production range-table interactions separately bind the address limbs to
+//! 20 and 8 bits; this legacy expression-framework component records the
+//! algebraic part of that invariant.
 
 const std = @import("std");
 const cf = @import("stwo_core").constraint_framework;
@@ -33,7 +38,7 @@ pub const InteractionClaim = claims_mod.ComponentInteractionClaim;
 pub fn evaluate(eval: *ExprEvaluator) !void {
     const arena = eval.arena;
 
-    // Read all 8 trace columns in order.
+    // Read all 10 trace columns in order.
     const enabler = try eval.nextTraceMask();
     const addr = try eval.nextTraceMask();
     const value_0 = try eval.nextTraceMask();
@@ -42,16 +47,32 @@ pub fn evaluate(eval: *ExprEvaluator) !void {
     const value_3 = try eval.nextTraceMask();
     const multiplicity = try eval.nextTraceMask();
     const root = try eval.nextTraceMask();
+    const word_addr_lo20 = try eval.nextTraceMask();
+    const word_addr_hi8 = try eval.nextTraceMask();
 
     _ = root;
 
     const shift_8 = try arena.baseConst(M31.fromCanonical(1 << 8));
     const shift_16 = try arena.baseConst(M31.fromCanonical(1 << 16));
     const shift_24 = try arena.baseConst(M31.fromCanonical(1 << 24));
+    const shift_20 = try arena.baseConst(M31.fromCanonical(1 << 20));
+    const four = try arena.baseConst(M31.fromCanonical(4));
 
     // ---- enabler is boolean ----
     try eval.addConstraint(try arena.extFromBase(
         try arena.baseSub(try arena.baseMul(enabler, enabler), enabler),
+    ));
+
+    // ---- canonical aligned address decomposition ----
+    const word_address = try arena.baseAdd(
+        word_addr_lo20,
+        try arena.baseMul(word_addr_hi8, shift_20),
+    );
+    try eval.addConstraint(try arena.extFromBase(
+        try arena.baseMul(
+            enabler,
+            try arena.baseSub(addr, try arena.baseMul(word_address, four)),
+        ),
     ));
 
     // ---- Program lookup LogUp ----
@@ -80,6 +101,6 @@ test "program: constraint count" {
 
     try evaluate(&eval);
 
-    // 1 enabler-boolean constraint + 1 logup constraint = 2
-    try std.testing.expectEqual(@as(usize, 2), eval.constraints.items.len);
+    // Boolean enabler, aligned address decomposition, and one LogUp identity.
+    try std.testing.expectEqual(@as(usize, 3), eval.constraints.items.len);
 }

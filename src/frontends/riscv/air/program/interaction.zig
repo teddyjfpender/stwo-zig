@@ -9,16 +9,18 @@ const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const commitment = @import("commitment.zig");
 
-pub const N_SUMS: usize = 3;
+pub const N_SUMS: usize = 4;
 pub const N_COLUMNS: usize = N_SUMS * 4;
-pub const N_CONSTRAINTS: usize = N_SUMS + 2;
+pub const N_CONSTRAINTS: usize = N_SUMS + 3;
 pub const Previous = [N_SUMS][4][]M31;
 
 pub const Claims = struct {
     sums: [N_SUMS]QM31,
 
     pub fn total(self: Claims) QM31 {
-        return self.sums[0].add(self.sums[1]).add(self.sums[2]);
+        var result = QM31.zero();
+        for (self.sums) |sum| result = result.add(sum);
+        return result;
     }
 };
 
@@ -82,6 +84,7 @@ pub fn generate(
             cumulative[0].claimed,
             cumulative[1].claimed,
             cumulative[2].claimed,
+            cumulative[3].claimed,
         } },
     };
 }
@@ -108,6 +111,10 @@ pub fn evaluate(
     }
     result[N_SUMS] = main[0].sub(is_active);
     result[N_SUMS + 1] = main[6].mul(QM31.one().sub(is_active));
+    const word_address = main[8].add(main[9].mul(base(@as(u32, 1) << 20)));
+    result[N_SUMS + 2] = main[0].mul(
+        main[1].sub(word_address.mul(base(4))),
+    );
     return result;
 }
 
@@ -121,6 +128,8 @@ pub fn rowPairsFromRow(row: commitment.Row, relations: *const relations_mod.Rela
         base(row.values[3]),
         base(row.multiplicity),
         base(row.root),
+        base((row.addr >> 2) & ((@as(u32, 1) << 20) - 1)),
+        base(row.addr >> 22),
     };
     return rowPairs(main, relations);
 }
@@ -131,6 +140,7 @@ pub fn rowPairs(main: [commitment.N_MAIN_COLUMNS]QM31, relations: *const relatio
         list.pair(0, relations) catch unreachable,
         list.pair(1, relations) catch unreachable,
         list.pair(2, relations) catch unreachable,
+        list.pair(3, relations) catch unreachable,
     };
 }
 
@@ -146,6 +156,8 @@ pub fn entries(main: [commitment.N_MAIN_COLUMNS]QM31) lookup_entry.List {
     append(&list, .merkle, enabler.neg(), .{ addr.add(base(1)), depth, values[1], root });
     append(&list, .merkle, enabler.neg(), .{ addr.add(base(2)), depth, values[2], root });
     append(&list, .merkle, enabler.neg(), .{ addr.add(base(3)), depth, values[3], root });
+    append(&list, .range_check_20, enabler.neg(), .{main[8]});
+    append(&list, .range_check_8_8, enabler.neg(), .{ main[9], QM31.zero() });
     return list;
 }
 
@@ -166,7 +178,7 @@ pub fn diagnosticSum(
     return result;
 }
 
-fn entriesFromRow(row: commitment.Row) lookup_entry.List {
+pub fn entriesFromRow(row: commitment.Row) lookup_entry.List {
     return entries(.{
         QM31.one(),
         base(row.addr),
@@ -176,6 +188,8 @@ fn entriesFromRow(row: commitment.Row) lookup_entry.List {
         base(row.values[3]),
         base(row.multiplicity),
         base(row.root),
+        base((row.addr >> 2) & ((@as(u32, 1) << 20) - 1)),
+        base(row.addr >> 22),
     });
 }
 
@@ -183,6 +197,7 @@ pub fn paddingPairs() [N_SUMS]logup.RowPair {
     const zero = QM31.zero();
     const one = QM31.one();
     return .{
+        .{ .n1 = zero, .d1 = one, .n2 = zero, .d2 = one },
         .{ .n1 = zero, .d1 = one, .n2 = zero, .d2 = one },
         .{ .n1 = zero, .d1 = one, .n2 = zero, .d2 = one },
         .{ .n1 = zero, .d1 = one, .n2 = zero, .d2 = one },
@@ -225,7 +240,7 @@ fn append(list: *lookup_entry.List, domain: lookup_entry.Domain, numerator: QM31
     list.append(item);
 }
 
-test "program interaction: exact declaration order uses three pair columns" {
+test "program interaction: exact declaration order uses four pair columns" {
     const relations = relations_mod.Relations.dummy();
     const row = commitment.Row{
         .addr = 0x1000,
@@ -236,7 +251,8 @@ test "program interaction: exact declaration order uses three pair columns" {
     const pairs = rowPairsFromRow(row, &relations);
     try std.testing.expect(!pairs[0].n1.isZero());
     try std.testing.expect(!pairs[0].n2.isZero());
-    try std.testing.expect(pairs[2].n2.isZero());
+    try std.testing.expect(!pairs[2].n2.isZero());
+    try std.testing.expect(pairs[3].n2.isZero());
 }
 
 test "program interaction: inactive rows cannot inject program multiplicity" {
@@ -266,4 +282,65 @@ test "program interaction: inactive rows cannot inject program multiplicity" {
         &relations,
     );
     try std.testing.expect(padding[N_SUMS + 1].isZero());
+}
+
+test "program interaction: address limbs bind aligned words over the full Merkle domain" {
+    const zero = QM31.zero();
+    const one = QM31.one();
+    const relations = relations_mod.Relations.dummy();
+    var main = [_]QM31{zero} ** commitment.N_MAIN_COLUMNS;
+    main[0] = one;
+    main[1] = base(0x3fff_fffc);
+    main[8] = base(0x000f_ffff);
+    main[9] = base(0xff);
+    const valid = evaluate(
+        main,
+        one,
+        zero,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        &relations,
+    );
+    try std.testing.expect(valid[N_SUMS + 2].isZero());
+
+    main[8] = main[8].add(one);
+    const forged_limb = evaluate(
+        main,
+        one,
+        zero,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        &relations,
+    );
+    try std.testing.expect(!forged_limb[N_SUMS + 2].isZero());
+
+    main[1] = base(0x1002);
+    main[8] = base(0x400);
+    main[9] = zero;
+    const unaligned = evaluate(
+        main,
+        one,
+        zero,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        &relations,
+    );
+    try std.testing.expect(!unaligned[N_SUMS + 2].isZero());
+}
+
+test "program interaction: address limbs are range-table consumers" {
+    const list = entriesFromRow(.{
+        .addr = 0x3fff_fffc,
+        .values = .{ 10, 1, 0, 1 },
+        .multiplicity = 1,
+        .root = 99,
+    });
+    try std.testing.expectEqual(@as(usize, 7), list.len);
+    try std.testing.expectEqual(lookup_entry.Domain.range_check_20, list.entries[5].domain);
+    try std.testing.expectEqual(lookup_entry.Domain.range_check_8_8, list.entries[6].domain);
+    try std.testing.expect(list.entries[5].numerator.eql(QM31.one().neg()));
+    try std.testing.expect(list.entries[6].numerator.eql(QM31.one().neg()));
 }

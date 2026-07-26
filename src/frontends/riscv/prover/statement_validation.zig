@@ -41,8 +41,7 @@ pub fn computeOpcodeLogSize(count: usize) u32 {
 pub const AdmissionPolicy = enum {
     /// Proofs and verification admit only fully constrained opcode families.
     proof,
-    /// CP-11 diagnostics may inspect the exact committed relation sources for
-    /// the pinned MULH family limitation. This never authorizes a proof.
+    /// Diagnostics use the same family admission policy as production proofs.
     relation_diagnostic,
 };
 
@@ -139,9 +138,11 @@ fn validateFamily(
     family: trace_mod.OpcodeFamily,
     policy: AdmissionPolicy,
 ) types.ProverError!void {
+    _ = policy;
     if (semantic_eval.isTraceCompatible(family)) return;
-    if (policy == .relation_diagnostic and family == .mulh) return;
-    return types.ProverError.UnsupportedProofFamily;
+    // Every enum value is an admitted RV32IM proof family. A future family
+    // cannot enter statement geometry before its semantic component lands.
+    return types.ProverError.InvalidStatement;
 }
 
 fn validateMemoryShards(shards: []const statement_mod.InfraComponentDesc) types.ProverError!void {
@@ -232,13 +233,8 @@ test "statement validation: execution clock cannot wrap the base field" {
 
 test "statement validation: only semantically constrained opcode families are admitted" {
     for (component_order.opcodeFamilies()) |family| {
-        if (family == .mulh) {
-            try std.testing.expectError(error.UnsupportedProofFamily, validateFamily(family, .proof));
-            try validateFamily(family, .relation_diagnostic);
-        } else {
-            try validateFamily(family, .proof);
-            try validateFamily(family, .relation_diagnostic);
-            try std.testing.expect(semantic_eval.constraintCount(family) > 0);
-        }
+        try validateFamily(family, .proof);
+        try validateFamily(family, .relation_diagnostic);
+        try std.testing.expect(semantic_eval.constraintCount(family) > 0);
     }
 }

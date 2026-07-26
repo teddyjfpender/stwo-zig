@@ -291,6 +291,7 @@ def _verify_artifact(
     statement = benchmark_report["statement_sha256"]
     argv = [
         str(candidate_cli), "verify", "--artifact", str(proof_path),
+        "--elf", str(ROOT / workload.elf_rel),
         "--protocol", "functional", "--expect-statement-digest", statement,
     ]
     capture = run_capture(argv, store, f"logs/{safe}.candidate-verify")

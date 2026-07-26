@@ -4,12 +4,12 @@
 
 const schema = @import("schema.zig");
 
-pub const FAMILY_COUNT: usize = 16;
+pub const FAMILY_COUNT: usize = 17;
 pub const LOOKUP_TABLE_COUNT: usize = 6;
 
 /// Interaction PoW for proof-artifact schema v3. A change requires a schema
 /// version bump rather than accepting a value from an artifact or caller.
-pub const INTERACTION_POW_SCHEMA_VERSION: u32 = 3;
+pub const INTERACTION_POW_SCHEMA_VERSION: u32 = 4;
 pub const INTERACTION_POW_BITS: u32 = 10;
 
 pub const Family = struct {
@@ -18,24 +18,25 @@ pub const Family = struct {
     n_interaction_batches: u32,
 };
 
-/// Canonical Stark-V component order, independent of Zig enum declaration order.
+/// Canonical proof component order, independent of Zig enum declaration order.
 pub const FAMILIES = [FAMILY_COUNT]Family{
-    .{ .ordinal = 9, .n_main_columns = 14, .n_interaction_batches = 4 }, // auipc
-    .{ .ordinal = 1, .n_main_columns = 29, .n_interaction_batches = 8 }, // base_alu_imm
-    .{ .ordinal = 0, .n_main_columns = 37, .n_interaction_batches = 9 }, // base_alu_reg
+    .{ .ordinal = 9, .n_main_columns = 29, .n_interaction_batches = 6 }, // auipc
+    .{ .ordinal = 1, .n_main_columns = 35, .n_interaction_batches = 8 }, // base_alu_imm
+    .{ .ordinal = 0, .n_main_columns = 43, .n_interaction_batches = 9 }, // base_alu_reg
     .{ .ordinal = 6, .n_main_columns = 30, .n_interaction_batches = 5 }, // branch_eq
     .{ .ordinal = 7, .n_main_columns = 37, .n_interaction_batches = 6 }, // branch_lt
-    .{ .ordinal = 15, .n_main_columns = 65, .n_interaction_batches = 22 }, // div
-    .{ .ordinal = 11, .n_main_columns = 14, .n_interaction_batches = 4 }, // jal
-    .{ .ordinal = 10, .n_main_columns = 26, .n_interaction_batches = 6 }, // jalr
-    .{ .ordinal = 12, .n_main_columns = 50, .n_interaction_batches = 7 }, // load_store
-    .{ .ordinal = 5, .n_main_columns = 34, .n_interaction_batches = 6 }, // lt_imm
-    .{ .ordinal = 4, .n_main_columns = 42, .n_interaction_batches = 7 }, // lt_reg
-    .{ .ordinal = 8, .n_main_columns = 16, .n_interaction_batches = 4 }, // lui
-    .{ .ordinal = 13, .n_main_columns = 33, .n_interaction_batches = 16 }, // mul
-    .{ .ordinal = 14, .n_main_columns = 41, .n_interaction_batches = 20 }, // mulh
-    .{ .ordinal = 3, .n_main_columns = 45, .n_interaction_batches = 7 }, // shifts_imm
-    .{ .ordinal = 2, .n_main_columns = 54, .n_interaction_batches = 9 }, // shifts_reg
+    .{ .ordinal = 15, .n_main_columns = 67, .n_interaction_batches = 22 }, // div
+    .{ .ordinal = 11, .n_main_columns = 20, .n_interaction_batches = 4 }, // jal
+    .{ .ordinal = 10, .n_main_columns = 32, .n_interaction_batches = 6 }, // jalr
+    .{ .ordinal = 12, .n_main_columns = 56, .n_interaction_batches = 8 }, // load_store
+    .{ .ordinal = 5, .n_main_columns = 37, .n_interaction_batches = 6 }, // lt_imm
+    .{ .ordinal = 4, .n_main_columns = 44, .n_interaction_batches = 7 }, // lt_reg
+    .{ .ordinal = 8, .n_main_columns = 18, .n_interaction_batches = 4 }, // lui
+    .{ .ordinal = 13, .n_main_columns = 39, .n_interaction_batches = 16 }, // mul
+    .{ .ordinal = 14, .n_main_columns = 47, .n_interaction_batches = 22 }, // mulh
+    .{ .ordinal = 3, .n_main_columns = 51, .n_interaction_batches = 7 }, // shifts_imm
+    .{ .ordinal = 2, .n_main_columns = 60, .n_interaction_batches = 9 }, // shifts_reg
+    .{ .ordinal = 16, .n_main_columns = 6, .n_interaction_batches = 2 }, // fence
 };
 
 pub const InfraKind = enum(u32) {
@@ -84,7 +85,8 @@ pub fn familyRank(ordinal: u8) ?usize {
 
 pub fn claimCount(kind: InfraKind) u32 {
     return switch (kind) {
-        .program, .merkle => 3,
+        .program => 4,
+        .merkle => 3,
         .memory => 4,
         .poseidon2 => 2,
         .bitwise,
@@ -107,7 +109,8 @@ pub fn preprocessedColumns(kind: InfraKind) u32 {
 
 pub fn mainColumns(kind: InfraKind) u32 {
     return switch (kind) {
-        .program, .memory, .clock_update => 8,
+        .program => 10,
+        .memory, .clock_update => 8,
         .poseidon2 => 445,
         .merkle => 10,
         .bitwise,

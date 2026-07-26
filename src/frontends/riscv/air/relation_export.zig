@@ -488,6 +488,7 @@ pub fn publicEvidence(
     var domains = [_]QM31{QM31.zero()} ** DOMAIN_COUNT;
     domains[@intFromEnum(Domain.registers_state)] = sums.registers_state;
     domains[@intFromEnum(Domain.memory_access)] = sums.memory_access;
+    domains[@intFromEnum(Domain.program_access)] = sums.program_access;
     domains[@intFromEnum(Domain.merkle)] = sums.merkle;
     return .{ .domains = domains, .total = sums.total() };
 }
@@ -734,6 +735,7 @@ fn componentForFamily(family: trace.OpcodeFamily) Component {
         .mulh => .mulh,
         .shifts_imm => .shifts_imm,
         .shifts_reg => .shifts_reg,
+        .fence => .fence,
     };
 }
 

@@ -1,4 +1,4 @@
-//! Stark-V RV32IM ELF adapter seam behind the production proof CLI.
+//! Sail-authoritative RV32IM ELF adapter seam behind the production proof CLI.
 //!
 //! The adapter is deliberately fail-closed: `proveElf` is the one call site
 //! the CLI routes `--elf` runs through, and it returns
@@ -21,11 +21,7 @@ const WireArena = wire_arena.WireArena;
 pub const AdapterError = error{AdapterNotReleaseGated};
 
 pub const PENDING_DIAGNOSTIC =
-    "stark-v adapter: staged only; the RISC-V release contract is not yet fully satisfied";
-pub const UNSUPPORTED_PROOF_FAMILY_DIAGNOSTIC =
-    "stark-v adapter: error=UnsupportedProofFamily " ++
-    "stage=statement_validation_before_first_commitment " ++
-    "limitation=stark-v-signed-mulh";
+    "RISC-V adapter: staged only; the formal release contract is not yet fully satisfied";
 
 pub const Benchmark = struct {
     warmups: usize,
@@ -113,12 +109,13 @@ fn runProve(
     std.crypto.hash.sha2.Sha256.hash(input_bytes, &input_digest, .{});
 
     var execution_timer = try std.time.Timer.start();
-    // The production CLI always enforces the symbol-bearing Stark-V ABI. The
+    // The production CLI always enforces the symbol-bearing zkVM ABI. The
     // compatibility runner deliberately accepts older, undeclared programs and
     // must never become an empty-input bypass around this boundary.
     var run_result = try runner.runWithInput(allocator, elf_bytes, input_bytes, 10_000_000);
     defer run_result.deinit();
-    if (run_result.completion_reason != .halt_flag)
+    if (run_result.completion_reason != .halt_flag and
+        run_result.completion_reason != .self_loop)
         return error.InvalidReleaseCompletion;
     const execution_seconds = seconds(execution_timer.read());
 
@@ -136,7 +133,7 @@ fn runProve(
     var recorder = stwo.prover.stage_profile.Recorder.init(
         allocator,
         @tagName(@import("builtin").mode),
-        "stark_v_rv32im",
+        "sail_rv32im_zkvm_v1",
     );
     defer recorder.deinit();
     var proving_timer = try std.time.Timer.start();
@@ -159,6 +156,7 @@ fn runProve(
             .program_root = null,
             .initial_rw_root = null,
             .final_rw_root = null,
+            .completion = try pd_mod.completionFromRun(run_result),
             .io_entries = .{
                 .input_start = run_result.input_start,
                 .input_len = @intCast(run_result.input.len),
@@ -171,6 +169,7 @@ fn runProve(
         },
         &prove_channel,
     );
+    defer output.deinitAfterProofMoved(allocator);
     const transcript_state_digest = transcript_state.receiptDigest(
         prove_channel.digestBytes(),
         prove_channel.n_draws,
@@ -227,11 +226,26 @@ fn runProve(
         .elf_sha256 = &elf_digest_hex,
         .input_sha256 = &input_digest_hex,
     };
+    const pcs_wire = artifact_mod.PcsConfigWire{
+        .pow_bits = config.pow_bits,
+        .fri_config = .{
+            .log_blowup_factor = config.fri_config.log_blowup_factor,
+            .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
+            .n_queries = config.fri_config.n_queries,
+            .fold_step = config.fri_config.fold_step,
+        },
+        .lifting_log_size = config.lifting_log_size,
+    };
     const layout_digest_hex = std.fmt.bytesToHex(
         stwo.frontends.riscv.witness_layout.digest(),
         .lower,
     );
-    const statement_digest = artifact_mod.statementDigest(source, wires.statement);
+    const statement_digest = artifact_mod.statementDigest(
+        @tagName(options.protocol),
+        pcs_wire,
+        source,
+        wires.statement,
+    );
     const statement_digest_hex = std.fmt.bytesToHex(statement_digest, .lower);
     const transcript_state_digest_hex = std.fmt.bytesToHex(transcript_state_digest, .lower);
     const executable_digest_hex = std.fmt.bytesToHex(
@@ -257,14 +271,7 @@ fn runProve(
             .implementation_dirty = build_identity.implementation_dirty,
             .witness_layout_sha256 = &layout_digest_hex,
         },
-        .pcs_config = .{
-            .pow_bits = config.pow_bits,
-            .fri_config = .{
-                .log_blowup_factor = config.fri_config.log_blowup_factor,
-                .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
-                .n_queries = config.fri_config.n_queries,
-            },
-        },
+        .pcs_config = pcs_wire,
         .statement = wires.statement,
         .interaction_claim = wires.claim,
         .proof_bytes_hex = proof_hex,
@@ -523,6 +530,7 @@ pub fn verifyArtifact(
     artifact: stwo.interop.riscv_artifact.Artifact,
     requested_policy: Protocol,
     expected_statement_digest: [32]u8,
+    elf_path: []const u8,
 ) !void {
     const artifact_mod = stwo.interop.riscv_artifact;
     const prover = stwo.frontends.riscv.prover_mod;
@@ -534,7 +542,13 @@ pub fn verifyArtifact(
         .smoke => .smoke,
     });
     try validateLocalProvenance(artifact.provenance);
-    const actual_statement_digest = artifact_mod.statementDigest(artifact.source, artifact.statement);
+    try validateElfBinding(allocator, artifact, elf_path);
+    const actual_statement_digest = artifact_mod.statementDigest(
+        artifact.protocol,
+        artifact.pcs_config,
+        artifact.source,
+        artifact.statement,
+    );
     if (!std.mem.eql(u8, &expected_statement_digest, &actual_statement_digest))
         return error.StatementDigestMismatch;
 
@@ -580,7 +594,7 @@ pub fn verifyArtifact(
         config,
         reconstructed.statement,
         proof,
-        reconstructed.claim,
+        &reconstructed.claim,
         &verify_channel,
     );
 
@@ -606,6 +620,58 @@ pub fn verifyArtifact(
     defer allocator.free(receipt);
     try std.fs.File.stdout().writeAll(receipt);
     try std.fs.File.stdout().writeAll("\n");
+}
+
+fn validateElfBinding(
+    allocator: std.mem.Allocator,
+    artifact: stwo.interop.riscv_artifact.Artifact,
+    elf_path: []const u8,
+) !void {
+    const runner = stwo.frontends.riscv.runner;
+    const program_commitment = stwo.frontends.riscv.air.program.commitment;
+    const elf_bytes = try std.fs.cwd().readFileAlloc(allocator, elf_path, 64 * 1024 * 1024);
+    defer allocator.free(elf_bytes);
+    try runner.elf_loader.validateReleaseAbi(elf_bytes);
+
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(elf_bytes, &digest, .{});
+    const digest_hex = std.fmt.bytesToHex(digest, .lower);
+    if (!std.mem.eql(u8, artifact.source.elf_sha256, &digest_hex))
+        return error.ElfDigestMismatch;
+
+    var memory = runner.Memory.init(allocator);
+    defer memory.deinit();
+    const elf_info = try runner.elf_loader.loadElf(elf_bytes, &memory);
+    var tracker = runner.state_chain.StateChainTracker.init(allocator);
+    defer tracker.deinit();
+    var snapshot = try runner.memory_state.capture(
+        allocator,
+        &memory,
+        &tracker,
+        elf_info.memory_layout,
+        runner.memory_state.SegmentRole.single(),
+        0,
+        null,
+    );
+    defer snapshot.deinit(allocator);
+    var program = try program_commitment.build(allocator, &.{}, snapshot.program_words);
+    defer program.deinit(allocator);
+    if (artifact.statement.public_data.program_root.? != program.tree.root)
+        return error.ProgramRootMismatch;
+
+    const completion = artifact.statement.public_data.completion;
+    switch (completion.kind) {
+        .halt_flag => {
+            if (completion.address != elf_info.halt_flag)
+                return error.CompletionSymbolMismatch;
+            if (memory.readU32(elf_info.halt_flag) != 0)
+                return error.NonZeroInitialHaltFlag;
+        },
+        .unretired_self_loop => {
+            if (memory.readU32(completion.address) != completion.value)
+                return error.CompletionInstructionMismatch;
+        },
+    }
 }
 
 fn measureProcessIdentity(allocator: std.mem.Allocator) !ProcessIdentity {

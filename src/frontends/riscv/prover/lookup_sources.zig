@@ -5,8 +5,11 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const counter = @import("../air/lookups/tables/counter.zig");
 const table_interaction = @import("../air/lookups/tables/interaction.zig");
+const table_schema = @import("../air/lookups/tables/schema.zig");
 const memory_boundary = @import("../air/memory_commitment/boundary.zig");
 const memory_interaction = @import("../air/memory_commitment/interaction.zig");
+const program_commitment = @import("../air/program/commitment.zig");
+const program_interaction = @import("../air/program/interaction.zig");
 const relations_mod = @import("../air/relation_challenges.zig");
 const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
@@ -75,6 +78,56 @@ pub fn registerMemoryBoundary(
     rows: []const memory_boundary.Row,
 ) !void {
     for (rows) |row| try counters.registerList(memory_interaction.entriesFromRow(row));
+}
+
+pub fn registerProgram(
+    counters: *counter.Set,
+    rows: []const program_commitment.Row,
+) !void {
+    for (rows) |row| try counters.registerList(program_interaction.entriesFromRow(row));
+}
+
+test "lookup sources range-check every committed program word address" {
+    const allocator = std.testing.allocator;
+    const rows = [_]program_commitment.Row{
+        .{
+            .addr = 0x1000,
+            .values = .{ 10, 1, 0, 1 },
+            .multiplicity = 3,
+            .root = 99,
+        },
+        .{
+            .addr = 0x3fff_fffc,
+            .values = .{ 10, 2, 0, 1 },
+            .multiplicity = 0,
+            .root = 99,
+        },
+    };
+    var counters = try counter.Set.init(allocator);
+    defer counters.deinit(allocator);
+    try registerProgram(&counters, &rows);
+    try std.testing.expect(
+        counters.get(.range_check_20).signedTotal().eql(M31.fromU64(2).neg()),
+    );
+    try std.testing.expect(
+        counters.get(.range_check_8_8).signedTotal().eql(M31.fromU64(2).neg()),
+    );
+
+    const relations = relations_mod.Relations.dummy();
+    inline for (.{ table_schema.Kind.range_check_20, table_schema.Kind.range_check_8_8 }) |kind| {
+        var table = try table_interaction.generate(
+            allocator,
+            counters.get(kind),
+            &relations,
+        );
+        defer table.deinit(allocator);
+        const source = try program_interaction.diagnosticSum(
+            &rows,
+            table_schema.domain(kind),
+            &relations,
+        );
+        try std.testing.expect(source.add(table.claim).isZero());
+    }
 }
 
 test "lookup sources include both range88 requests from every memory boundary row" {

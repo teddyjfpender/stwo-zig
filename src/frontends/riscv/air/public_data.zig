@@ -6,14 +6,23 @@
 //! the committed program and RW-memory trees before entering the transcript.
 
 const std = @import("std");
+const profile = @import("../isa/profile.zig");
 
 pub const ValidationError = error{
     InputAddressOverflow,
     InputWordCountMismatch,
+    InvalidCompletionAddress,
+    InvalidCompletionClock,
+    InvalidCompletionValue,
+    MisalignedFinalPc,
+    MisalignedInitialPc,
+    MissingCompletion,
     MisalignedOutputDataAddress,
     MisalignedOutputLengthAddress,
     MissingProgramRoot,
     NonCanonicalInputPadding,
+    NonZeroFinalX0,
+    NonZeroInitialX0,
     OutputAddressOverflow,
     OutputClockOutOfRange,
     OutputLengthWordMismatch,
@@ -21,7 +30,51 @@ pub const ValidationError = error{
     OutputWordCountMismatch,
     OverlappingOutputRegions,
     RegisterClockOutOfRange,
+    UnsupportedCompletion,
 };
+
+/// Proof-bearing environment event that ended the execution.
+pub const CompletionKind = enum(u32) {
+    /// A nonzero final word at the linker-declared halt flag.
+    halt_flag = 1,
+    /// The canonical `jal x0, 0` at `final_pc`, observed but not retired.
+    unretired_self_loop = 2,
+};
+
+pub const CANONICAL_SELF_LOOP_WORD: u32 = 0x0000_006f;
+
+pub const Completion = struct {
+    kind: CompletionKind,
+    address: u32,
+    value: u32,
+    clock: u32,
+
+    pub fn canonicalSelfLoop(pc: u32) Completion {
+        return .{
+            .kind = .unretired_self_loop,
+            .address = pc,
+            .value = CANONICAL_SELF_LOOP_WORD,
+            .clock = 0,
+        };
+    }
+};
+
+pub fn completionFromRun(run_result: anytype) ValidationError!Completion {
+    return switch (run_result.completion_reason) {
+        .halt_flag => .{
+            .kind = .halt_flag,
+            .address = run_result.completion_address,
+            .value = run_result.completion_value,
+            .clock = run_result.completion_clock,
+        },
+        .self_loop => blk: {
+            if (run_result.completion_value != CANONICAL_SELF_LOOP_WORD)
+                return error.InvalidCompletionValue;
+            break :blk Completion.canonicalSelfLoop(run_result.completion_address);
+        },
+        else => error.UnsupportedCompletion,
+    };
+}
 
 /// A final public output word and the clock of its last memory access.
 pub const OutputWord = struct {
@@ -92,6 +145,9 @@ pub const PublicData = struct {
     program_root: ?u32,
     initial_rw_root: ?u32,
     final_rw_root: ?u32,
+    /// Mandatory in every produced proof. `null` is accepted only as an input
+    /// convenience for synthetic traces and is resolved before commitment.
+    completion: ?Completion = null,
     io_entries: IoEntries,
 
     /// Validate the statement shape that is derivable from public data alone.
@@ -101,12 +157,41 @@ pub const PublicData = struct {
     /// unused bytes of the final output word are intentionally not required to
     /// be zero.
     pub fn validate(self: *const PublicData) ValidationError!void {
+        if (!profile.isInstructionAligned(self.initial_pc))
+            return error.MisalignedInitialPc;
+        if (!profile.isInstructionAligned(self.final_pc))
+            return error.MisalignedFinalPc;
         if (self.program_root == null) return error.MissingProgramRoot;
+        if (self.initial_regs[0] != 0) return error.NonZeroInitialX0;
+        if (self.final_regs[0] != 0) return error.NonZeroFinalX0;
+        try self.validateCompletion();
         for (self.reg_last_clock) |clock| {
             if (clock > self.clock) return error.RegisterClockOutOfRange;
         }
         try self.validateInput();
         try self.validateOutput();
+    }
+
+    fn validateCompletion(self: *const PublicData) ValidationError!void {
+        const completion = self.completion orelse return error.MissingCompletion;
+        switch (completion.kind) {
+            .halt_flag => {
+                if ((completion.address & 3) != 0 or completion.address >= 0x7fff_fffc)
+                    return error.InvalidCompletionAddress;
+                if (completion.value == 0) return error.InvalidCompletionValue;
+                if (completion.clock == 0 or completion.clock > self.clock)
+                    return error.InvalidCompletionClock;
+            },
+            .unretired_self_loop => {
+                if (completion.address != self.final_pc)
+                    return error.InvalidCompletionAddress;
+                profile.requireProgramWordAddress(completion.address) catch
+                    return error.InvalidCompletionAddress;
+                if (completion.value != CANONICAL_SELF_LOOP_WORD)
+                    return error.InvalidCompletionValue;
+                if (completion.clock != 0) return error.InvalidCompletionClock;
+            },
+        }
     }
 
     fn validateInput(self: *const PublicData) ValidationError!void {
@@ -184,6 +269,15 @@ pub const PublicData = struct {
             self.final_rw_root orelse 0,
         });
 
+        const completion = self.completion;
+        channel.mixU32s(&.{
+            @intFromBool(completion != null),
+            if (completion) |value| @intFromEnum(value.kind) else 0,
+            if (completion) |value| value.address else 0,
+            if (completion) |value| value.value else 0,
+            if (completion) |value| value.clock else 0,
+        });
+
         channel.mixU32s(&.{
             self.io_entries.input_start,
             self.io_entries.input_len,
@@ -259,6 +353,7 @@ test "public data: transcript mix order matches pinned Stark-V" {
         .program_root = 44,
         .initial_rw_root = null,
         .final_rw_root = 66,
+        .completion = Completion.canonicalSelfLoop(22),
         .io_entries = .{
             .input_start = 0x0018_0000,
             .input_len = 6,
@@ -273,14 +368,14 @@ test "public data: transcript mix order matches pinned Stark-V" {
     var channel = RecordingChannel{};
     public_data.mixInto(&channel);
 
-    const expected_call_lengths = [_]usize{ 3, 32, 32, 32, 3, 3, 6, 2, 3, 3 };
+    const expected_call_lengths = [_]usize{ 3, 32, 32, 32, 3, 3, 5, 6, 2, 3, 3 };
     try std.testing.expectEqualSlices(
         usize,
         &expected_call_lengths,
         channel.call_lengths[0..channel.calls_len],
     );
 
-    var expected: [119]u32 = undefined;
+    var expected: [124]u32 = undefined;
     var cursor: usize = 0;
     const append = struct {
         fn values(dst: []u32, at: *usize, src: []const u32) void {
@@ -294,6 +389,7 @@ test "public data: transcript mix order matches pinned Stark-V" {
     append(&expected, &cursor, &reg_last_clock);
     append(&expected, &cursor, &.{ 1, 0, 1 });
     append(&expected, &cursor, &.{ 44, 0, 66 });
+    append(&expected, &cursor, &.{ 1, 2, 22, CANONICAL_SELF_LOOP_WORD, 0 });
     append(&expected, &cursor, &.{ 0x0018_0000, 6, 0x0010_0004, 0x0010_0008, 5, 2 });
     append(&expected, &cursor, &input_words);
     append(&expected, &cursor, &.{ 0x0010_0004, 5, 40 });
@@ -313,6 +409,7 @@ test "public data: absent roots and empty input preserve upstream mix calls" {
         .program_root = null,
         .initial_rw_root = null,
         .final_rw_root = null,
+        .completion = Completion.canonicalSelfLoop(2),
         .io_entries = .{
             .input_start = 4,
             .input_len = 0,
@@ -328,10 +425,14 @@ test "public data: absent roots and empty input preserve upstream mix calls" {
     public_data.mixInto(&channel);
     try std.testing.expectEqualSlices(
         usize,
-        &.{ 3, 32, 32, 32, 3, 3, 6, 0 },
+        &.{ 3, 32, 32, 32, 3, 3, 5, 6, 0 },
         channel.call_lengths[0..channel.calls_len],
     );
-    try std.testing.expectEqualSlices(u32, &.{ 0, 0, 0, 0, 0, 0 }, channel.words[99..105]);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 0, 0, 0, 1, 2, 2, CANONICAL_SELF_LOOP_WORD, 0 },
+        channel.words[102..110],
+    );
 }
 
 test "public data: pack input words is little endian with zero padding" {
@@ -356,6 +457,7 @@ fn validPublicData(input_words: []const u32, output_words: []const OutputWord) P
         .program_root = 1,
         .initial_rw_root = null,
         .final_rw_root = null,
+        .completion = Completion.canonicalSelfLoop(0x1010),
         .io_entries = .{
             .input_start = 0x2000,
             .input_len = 6,
@@ -390,8 +492,24 @@ test "public data: validator rejects missing root and malformed input" {
     const canonical_input = [_]u32{ 0x0403_0201, 0x0000_0605 };
 
     var data = validPublicData(&canonical_input, &output_words);
+    data.initial_pc += 2;
+    try std.testing.expectError(error.MisalignedInitialPc, data.validate());
+
+    data = validPublicData(&canonical_input, &output_words);
+    data.final_pc += 2;
+    try std.testing.expectError(error.MisalignedFinalPc, data.validate());
+
+    data = validPublicData(&canonical_input, &output_words);
     data.program_root = null;
     try std.testing.expectError(error.MissingProgramRoot, data.validate());
+
+    data = validPublicData(&canonical_input, &output_words);
+    data.initial_regs[0] = 42;
+    try std.testing.expectError(error.NonZeroInitialX0, data.validate());
+
+    data = validPublicData(&canonical_input, &output_words);
+    data.final_regs[0] = 42;
+    try std.testing.expectError(error.NonZeroFinalX0, data.validate());
 
     data = validPublicData(&canonical_input, &output_words);
     data.reg_last_clock[31] = data.clock + 1;

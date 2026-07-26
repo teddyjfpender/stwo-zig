@@ -448,8 +448,8 @@ test "lookup source ingestion: commitment, tuple, and activity mutations fail" {
     const row = auipcRow(0);
     try fillRows(allocator, &columns, .auipc, &.{row});
     var shard = boundShard(.auipc, &columns, 0, 1, 1);
-    const original = columns.storage[10][0];
-    columns.storage[10][0] = M31.fromU64(256);
+    const original = columns.storage[15][0];
+    columns.storage[15][0] = M31.fromU64(256);
     try expectIngestError(error.CommittedDigestMismatch, &.{.{
         .family = .auipc,
         .shards = &.{shard},
@@ -460,7 +460,7 @@ test "lookup source ingestion: commitment, tuple, and activity mutations fail" {
         .shards = &.{shard},
     }});
 
-    columns.storage[10][0] = original;
+    columns.storage[15][0] = original;
     columns.storage[0][0] = M31.zero();
     shard.committed_digest = digestShard(.auipc, shard);
     try expectIngestError(error.InactiveRealRow, &.{.{

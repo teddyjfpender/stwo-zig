@@ -40,10 +40,10 @@ def registry(*, promoted: bool, focused: bool = False) -> dict[str, object]:
         result["product"] = {
             "schema_version": 2,
             "name": "stwo-riscv-cpu",
-            "frontend": "stark-v-rv32im",
+            "frontend": "sail-rv32im-zkvm",
             "backend": "cpu",
             "role": "cli",
-            "protocol_features": "stark-v-rv32im+logup-v1",
+            "protocol_features": "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1",
             "protocol_manifest_sha256": "1" * 64,
             "identity_sha256": "2" * 64,
             "source": {},

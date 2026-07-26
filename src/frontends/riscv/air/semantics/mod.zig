@@ -22,6 +22,7 @@ pub const load_store = @import("load_store.zig");
 pub const mul = @import("mul.zig");
 pub const mulh = @import("mulh.zig");
 pub const div = @import("div.zig");
+pub const fence = @import("fence.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

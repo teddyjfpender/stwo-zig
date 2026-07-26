@@ -185,7 +185,7 @@ def validate_verify_receipt(
         "schema": "riscv_verify_v1",
         "status": "verified",
         "artifact_kind": "stwo_riscv_proof",
-        "artifact_schema_version": 3,
+        "artifact_schema_version": 4,
         "release_status": admission.release_status,
         "security_policy": "functional",
         "statement_sha256": statement,
@@ -242,6 +242,7 @@ def run_workload(
 
     verify_command = [
         str(cli), "verify", "--artifact", str(proof_path),
+        "--elf", str(elf),
         "--protocol", "functional", "--expect-statement-digest", statement,
     ]
     verify_result, verify_duration_ns = run_command(verify_command)

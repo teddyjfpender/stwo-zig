@@ -1,4 +1,4 @@
-//! Focused Stwo facade for the Stark-V RV32IM + CPU/SIMD product.
+//! Focused Stwo facade for the Sail RV32IM + CPU/SIMD product.
 //!
 //! This is intentionally not `src/stwo.zig`: declarations outside this
 //! product's capability closure cannot enter the focused executable through a

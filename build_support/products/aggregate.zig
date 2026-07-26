@@ -84,7 +84,7 @@ fn sourceClosure(comptime metal: bool) policy.SourceClosure {
             .{ .name = "native_product_identity", .source = "src/integrations/native/product_identity.zig" },
             .{ .name = "native_cpu_capabilities", .source = "src/products/native_cpu/capabilities.zig" },
             .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
-            .{ .name = "starkv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
+            .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         },
         .generated_imports = &.{"aggregate_capabilities"},
         .allowed_files = if (metal) &metal_allowed_files else &common_allowed_files,

@@ -33,7 +33,7 @@ pub fn prove(
     channel: *Engine.Channel,
     statement: types.RiscVStatement,
     relations: *const relation_challenges.Relations,
-    interaction_claim: types.RiscVInteractionClaim,
+    interaction_claim: *const types.RiscVInteractionClaim,
     opcode_results: []const opcode_interaction.Result,
     table_results: []const lookup_table_interaction.Result,
     clock_result: *const clock_update_interaction.InteractionTrace,
@@ -44,14 +44,30 @@ pub fn prove(
     n_main: usize,
     n_interaction: usize,
 ) !types.Proof {
-    var semantic_storage: [types.MAX_COMPONENTS]semantic_component.SemanticComponent = undefined;
-    var opcode_lookup_storage: [types.MAX_COMPONENTS]opcode_component.OpcodeLookupComponent = undefined;
-    var infra_storage: [types.MAX_INFRA_COMPONENTS]riscv_component.RiscVTraceComponent = undefined;
+    const semantic_storage = try allocator.alloc(
+        semantic_component.SemanticComponent,
+        statement.n_components,
+    );
+    defer allocator.free(semantic_storage);
+    const opcode_lookup_storage = try allocator.alloc(
+        opcode_component.OpcodeLookupComponent,
+        statement.n_components,
+    );
+    defer allocator.free(opcode_lookup_storage);
+    const infra_storage = try allocator.alloc(
+        riscv_component.RiscVTraceComponent,
+        statement.n_infra,
+    );
+    defer allocator.free(infra_storage);
     var hash_storage: [2]hash_component.HashComponent = undefined;
     var n_hash_components: usize = 0;
     var clock_storage: clock_update_component.ClockUpdateComponent = undefined;
     var table_storage: [component_order.LOOKUP_TABLE_COUNT]lookup_table_component.LookupTableComponent = undefined;
-    var components: [2 * types.MAX_COMPONENTS + types.MAX_INFRA_COMPONENTS]prover_component.ComponentProver = undefined;
+    const components = try allocator.alloc(
+        prover_component.ComponentProver,
+        2 * statement.n_components + statement.n_infra,
+    );
+    defer allocator.free(components);
     var n_components: usize = 0;
 
     var main_offset: usize = 0;

@@ -47,13 +47,13 @@ pub fn addProducts(context: Context) void {
     dump.addArg("dump");
     b.step(
         "riscv-opcode-manifest",
-        "Dump the canonical Stark-V opcode and proof-family policy as JSON",
+        "Dump the Sail-authoritative opcode and proof-family policy as JSON",
     ).dependOn(&dump.step);
     const check = b.addRunArtifact(opcode_cli);
     check.addArg("check");
     b.step(
         "riscv-opcode-manifest-check",
-        "Validate exact Stark-V opcode IDs and execution-only classifications",
+        "Validate stable RV32IM protocol IDs and proof classifications",
     ).dependOn(&check.step);
 
     const riscv_bench = consumer(context, protocol, "src/riscv_bench_cli.zig");

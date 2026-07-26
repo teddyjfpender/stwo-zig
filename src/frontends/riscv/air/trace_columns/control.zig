@@ -19,6 +19,8 @@ pub const LuiColumns = struct {
     imm_0: M31,
     imm_1: M31,
     imm_2: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 
@@ -37,6 +39,21 @@ pub const AuipcColumns = struct {
     rd_next_2: M31,
     rd_next_3: M31,
     imm_felt: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
+    pc_limb_0: M31,
+    pc_limb_1: M31,
+    pc_limb_2: M31,
+    pc_limb_3: M31,
+    imm_limb_0: M31,
+    imm_limb_1: M31,
+    imm_limb_2: M31,
+    imm_limb_3: M31,
+    imm_sign: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 
@@ -67,6 +84,12 @@ pub const JalrColumns = struct {
     to_pc_over_two: M31,
     to_pc_lsb: M31,
     imm_felt: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 
@@ -85,5 +108,22 @@ pub const JalColumns = struct {
     rd_next_2: M31,
     rd_next_3: M31,
     imm_felt: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
+    pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
+};
+
+/// Local Sail-authoritative extension beyond the legacy Stark-V layouts.
+pub const FenceColumns = struct {
+    enabler: M31,
+    clock: M31,
+    pc: M31,
+    rd: M31,
+    rs1: M31,
+    immediate: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };

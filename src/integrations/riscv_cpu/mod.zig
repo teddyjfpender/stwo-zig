@@ -1,4 +1,4 @@
-//! CPU integration for the backend-neutral Stark-V RISC-V frontend.
+//! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
 const std = @import("std");
 const CpuBackend = @import("../../backends/cpu_scalar/mod.zig").CpuBackend;
@@ -92,7 +92,7 @@ pub fn verifyRiscV(
     pcs_config: pcs_core.PcsConfig,
     statement: prover_mod.RiscVStatement,
     proof: prover_mod.Proof,
-    claim: prover_mod.RiscVInteractionClaim,
+    claim: *const prover_mod.RiscVInteractionClaim,
 ) !void {
     return prover_mod.verifyRiscVWithEngine(
         CpuProverEngine,

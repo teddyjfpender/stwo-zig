@@ -4,8 +4,8 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
-pub const N_ORACLE_COLUMNS: usize = 50;
-pub const N_CONSTRAINTS: usize = 44;
+pub const N_ORACLE_COLUMNS: usize = 56;
+pub const N_CONSTRAINTS: usize = 57;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
 pub const Row = struct {
@@ -29,6 +29,8 @@ pub const Row = struct {
     is_sb: QM31,
     is_sh: QM31,
     is_sw: QM31,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn fromOracleColumns(columns: []const QM31) !Row {
         if (columns.len != N_ORACLE_COLUMNS) return error.InvalidOracleTraceShape;
@@ -53,6 +55,8 @@ pub const Row = struct {
             .is_sb = columns[47],
             .is_sh = columns[48],
             .is_sw = columns[49],
+            .result = columns[50..54].*,
+            .destination = common.destinationFromColumns(columns[54..56]),
         };
     }
 
@@ -115,7 +119,6 @@ pub fn evaluate(row: Row) Constraints {
     var out: [N_CONSTRAINTS]QM31 = undefined;
     var n: usize = 0;
     const d = derive(row);
-
     out[n] = common.bit(row.active());
     n += 1;
     for ([_]QM31{
@@ -125,6 +128,12 @@ pub fn evaluate(row: Row) Constraints {
         out[n] = common.bit(flag);
         n += 1;
     }
+    out[n] = common.bit(row.src_msb);
+    n += 1;
+    // The sign witness has no meaning outside signed loads. Canonicalizing it
+    // prevents an unconstrained committed column on every other opcode.
+    out[n] = QM31.one().sub(d.is_signed).mul(row.src_msb);
+    n += 1;
 
     for (row.markers) |marker| {
         out[n] = common.bit(marker);
@@ -151,30 +160,30 @@ pub fn evaluate(row: Row) Constraints {
     n += 1;
 
     for (1..4) |limb| {
-        out[n] = d.load_b.mul(d.signed_mask.sub(row.dst.next[limb]));
+        out[n] = d.load_b.mul(d.signed_mask.sub(row.result[limb]));
         n += 1;
     }
     for (0..4) |limb| {
         const marker = row.markers[limb];
-        out[n] = d.load_b.mul(row.dst.next[0].sub(row.src.next[limb])).mul(marker);
+        out[n] = d.load_b.mul(row.result[0].sub(row.src.next[limb])).mul(marker);
         n += 1;
         out[n] = row.is_sb.mul(row.dst.next[limb].sub(row.src.next[0])).mul(marker);
         n += 1;
     }
     for (2..4) |limb| {
-        out[n] = d.load_h.mul(d.signed_mask.sub(row.dst.next[limb]));
+        out[n] = d.load_h.mul(d.signed_mask.sub(row.result[limb]));
         n += 1;
     }
 
     const low_half = common.q(5).sub(d.shift_id).mul(common.INV_4);
     const high_half = d.shift_id.sub(QM31.one()).mul(common.INV_4);
-    out[n] = d.load_h.mul(low_half).mul(row.dst.next[0].sub(row.src.next[0]));
+    out[n] = d.load_h.mul(low_half).mul(row.result[0].sub(row.src.next[0]));
     n += 1;
-    out[n] = d.load_h.mul(low_half).mul(row.dst.next[1].sub(row.src.next[1]));
+    out[n] = d.load_h.mul(low_half).mul(row.result[1].sub(row.src.next[1]));
     n += 1;
-    out[n] = d.load_h.mul(high_half).mul(row.dst.next[0].sub(row.src.next[2]));
+    out[n] = d.load_h.mul(high_half).mul(row.result[0].sub(row.src.next[2]));
     n += 1;
-    out[n] = d.load_h.mul(high_half).mul(row.dst.next[1].sub(row.src.next[3]));
+    out[n] = d.load_h.mul(high_half).mul(row.result[1].sub(row.src.next[3]));
     n += 1;
     out[n] = row.is_sh.mul(low_half).mul(row.dst.next[0].sub(row.src.next[0]));
     n += 1;
@@ -186,7 +195,26 @@ pub fn evaluate(row: Row) Constraints {
     n += 1;
 
     for (0..4) |limb| {
-        out[n] = d.opcode_w.mul(row.dst.next[limb].sub(row.src.next[limb]));
+        out[n] = row.is_lw.mul(row.result[limb].sub(row.src.next[limb]))
+            .add(row.is_sw.mul(row.dst.next[limb].sub(row.src.next[limb])));
+        n += 1;
+    }
+    for (common.destinationConstraints(row.r2_idx, row.destination)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    for (common.destinationResultConstraints(
+        row.dst,
+        row.result,
+        row.destination,
+    )) |constraint| {
+        out[n] = d.is_load.mul(constraint);
+        n += 1;
+    }
+    // Stores do not have an architectural result. Pin the appended result
+    // witness to its canonical zero encoding so no committed cell is free.
+    for (row.result) |limb| {
+        out[n] = QM31.one().sub(d.is_load).mul(limb);
         n += 1;
     }
     std.debug.assert(n == out.len);
@@ -238,6 +266,15 @@ pub fn baseAddressM31Lookup(row: Row) [2]QM31 {
     return .{ row.rs1.next[0], row.rs1.next[3] };
 }
 
+/// Seven-bit residuals that bind `src_msb` to the actual sign-bearing result
+/// byte. The caller activates the first tuple for LB and the second for LH.
+pub fn signRangeLookups(row: Row) [2][2]QM31 {
+    return .{
+        .{ QM31.zero(), row.result[0].sub(row.src_msb.mul(common.q(128))) },
+        .{ QM31.zero(), row.result[1].sub(row.src_msb.mul(common.q(128))) },
+    };
+}
+
 fn zeroAccess() common.Access {
     return .{
         .addr = QM31.zero(),
@@ -275,6 +312,11 @@ fn honestSignedByteLoad() Row {
         .is_sb = QM31.zero(),
         .is_sh = QM31.zero(),
         .is_sw = QM31.zero(),
+        .result = .{ common.q(128), common.q(255), common.q(255), common.q(255) },
+        .destination = .{
+            .nonzero = QM31.one(),
+            .inverse = common.q(2).inv() catch unreachable,
+        },
     };
 }
 
@@ -295,19 +337,62 @@ test "load store: forged selected byte and unaligned selector are rejected" {
     row = honestSignedByteLoad();
     row.src_addr_selector = QM31.one();
     try std.testing.expect(!evaluate(row).allZero());
+
+    row = honestSignedByteLoad();
+    row.src_msb = common.q(3);
+    row.result = .{ common.q(128), common.q(765), common.q(765), common.q(765) };
+    row.dst.next = row.result;
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "load store: signed-load range requests bind the selected sign byte" {
+    const table = @import("../lookups/tables/schema.zig");
+
+    var row = honestSignedByteLoad();
+    const honest = signRangeLookups(row);
+    _ = try table.indexSecure(.range_check_m31, &honest[0]);
+
+    row.src_msb = QM31.zero();
+    row.result = .{ common.q(128), QM31.zero(), QM31.zero(), QM31.zero() };
+    row.dst.next = row.result;
+    try std.testing.expect(evaluate(row).allZero());
+    const forged = signRangeLookups(row);
+    try std.testing.expectError(
+        error.ValueOutOfRange,
+        table.indexSecure(.range_check_m31, &forged[0]),
+    );
+}
+
+test "load store: a load to x0 still constrains memory but discards its result" {
+    var row = honestSignedByteLoad();
+    row.dst.addr = QM31.zero();
+    row.r2_idx = QM31.zero();
+    row.dst_addr_selector = QM31.zero();
+    row.dst.next = .{QM31.zero()} ** 4;
+    row.destination = .{ .nonzero = QM31.zero(), .inverse = QM31.zero() };
+    try std.testing.expect(evaluate(row).allZero());
+
+    row.src_addr_selector = QM31.one();
+    try std.testing.expect(!evaluate(row).allZero());
 }
 
 test "load store: word store reverses register and memory roles" {
     var row = honestSignedByteLoad();
     row.is_lb = QM31.zero();
     row.is_sw = QM31.one();
+    row.src_msb = QM31.zero();
     row.markers = .{QM31.zero()} ** 4;
     row.shift_amount = QM31.zero();
     row.imm_felt = common.q(4);
     row.r2_idx = common.q(3);
+    row.destination = .{
+        .nonzero = QM31.one(),
+        .inverse = common.q(3).inv() catch unreachable,
+    };
     row.src.addr = common.q(3);
     row.src.next = .{ common.q(1), common.q(2), common.q(3), common.q(4) };
     row.dst.next = row.src.next;
+    row.result = .{QM31.zero()} ** 4;
     row.src_addr_selector = common.q(3);
     row.dst_addr_selector = common.q(4);
     try std.testing.expect(evaluate(row).allZero());

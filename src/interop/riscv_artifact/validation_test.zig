@@ -128,6 +128,12 @@ fn fixture() schema.Artifact {
                 .program_root = 7,
                 .initial_rw_root = null,
                 .final_rw_root = null,
+                .completion = .{
+                    .kind = .unretired_self_loop,
+                    .address = 8,
+                    .value = 0x0000_006f,
+                    .clock = 0,
+                },
                 .input_start = 0,
                 .input_len = 0,
                 .input_words = &.{},
@@ -172,7 +178,7 @@ fn table(index: u32, kind: protocol.InfraKind) schema.InfraComponentWire {
     unreachable;
 }
 
-test "schema v3 accepts exact indexed claims and exact PCS profiles" {
+test "schema v4 accepts completion-bound indexed claims and exact PCS profiles" {
     const artifact = fixture();
     try validation.validate(artifact, RELEASE_STATUS);
     try validation.validateForPolicy(artifact, .functional, RELEASE_STATUS);
@@ -186,7 +192,7 @@ test "schema v3 accepts exact indexed claims and exact PCS profiles" {
     try std.testing.expectError(error.InvalidPcsProfile, validation.validate(drifted, RELEASE_STATUS));
 }
 
-test "schema v3 rejects non-canonical component order" {
+test "schema v4 rejects non-canonical component order" {
     var artifact = fixture();
     var components = [_]schema.ComponentWire{
         artifact.statement.components[0],
@@ -205,7 +211,7 @@ test "schema v3 rejects non-canonical component order" {
     );
 }
 
-test "schema v3 rejects padded and misindexed claim arrays" {
+test "schema v4 rejects padded and misindexed claim arrays" {
     var artifact = fixture();
     var infra_claims = [_]schema.InfraClaimWire{
         artifact.interaction_claim.infrastructure_claims[0],
@@ -230,7 +236,12 @@ test "schema v3 rejects padded and misindexed claim arrays" {
 
 test "statement digest binds shard and exact claim geometry" {
     var artifact = fixture();
-    const expected = digest.statement(artifact.source, artifact.statement);
+    const expected = digest.statement(
+        artifact.protocol,
+        artifact.pcs_config,
+        artifact.source,
+        artifact.statement,
+    );
     var components = [_]schema.ComponentWire{
         artifact.statement.components[0],
         artifact.statement.components[1],
@@ -240,7 +251,12 @@ test "statement digest binds shard and exact claim geometry" {
     try std.testing.expect(!std.mem.eql(
         u8,
         &expected,
-        &digest.statement(artifact.source, artifact.statement),
+        &digest.statement(
+            artifact.protocol,
+            artifact.pcs_config,
+            artifact.source,
+            artifact.statement,
+        ),
     ));
 
     artifact = fixture();
@@ -248,7 +264,12 @@ test "statement digest binds shard and exact claim geometry" {
     try std.testing.expect(!std.mem.eql(
         u8,
         &expected,
-        &digest.statement(artifact.source, artifact.statement),
+        &digest.statement(
+            artifact.protocol,
+            artifact.pcs_config,
+            artifact.source,
+            artifact.statement,
+        ),
     ));
 
     artifact = fixture();
@@ -256,11 +277,55 @@ test "statement digest binds shard and exact claim geometry" {
     try std.testing.expect(!std.mem.eql(
         u8,
         &expected,
-        &digest.statement(artifact.source, artifact.statement),
+        &digest.statement(
+            artifact.protocol,
+            artifact.pcs_config,
+            artifact.source,
+            artifact.statement,
+        ),
+    ));
+
+    artifact = fixture();
+    artifact.protocol = "smoke";
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &expected,
+        &digest.statement(
+            artifact.protocol,
+            artifact.pcs_config,
+            artifact.source,
+            artifact.statement,
+        ),
+    ));
+
+    artifact = fixture();
+    artifact.pcs_config.pow_bits += 1;
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &expected,
+        &digest.statement(
+            artifact.protocol,
+            artifact.pcs_config,
+            artifact.source,
+            artifact.statement,
+        ),
+    ));
+
+    artifact = fixture();
+    artifact.statement.public_data.completion.address += 4;
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &expected,
+        &digest.statement(
+            artifact.protocol,
+            artifact.pcs_config,
+            artifact.source,
+            artifact.statement,
+        ),
     ));
 }
 
-test "schema v3 validates build provenance and current segment geometry" {
+test "schema v4 validates build provenance and current segment geometry" {
     var artifact = fixture();
     artifact.provenance.implementation_commit = "AA" ** 20;
     try std.testing.expectError(
@@ -283,7 +348,7 @@ test "schema v3 validates build provenance and current segment geometry" {
     );
 }
 
-test "schema v3 rejects an input digest unrelated to canonical public bytes" {
+test "schema v4 rejects an input digest unrelated to canonical public bytes" {
     var artifact = fixture();
     artifact.source.input_sha256 = "11" ** 32;
     try std.testing.expectError(
@@ -298,7 +363,7 @@ test "fixed-memory preflight accepts the canonical typed artifact" {
     try preflight.validate(encoded);
 }
 
-test "schema v3 rejects public data that production preflight rejects" {
+test "schema v4 rejects public data that production preflight rejects" {
     var artifact = fixture();
     artifact.statement.public_data.program_root = null;
     try std.testing.expectError(

@@ -37,6 +37,7 @@ const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
 const opcode_memory = @import("../air/opcode_memory.zig");
+const public_data_mod = @import("../air/public_data.zig");
 const memory_boundary = @import("../air/memory_commitment/boundary.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
@@ -123,6 +124,13 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     comptime prover_engine.assertProverEngine(Engine);
     if (exec_trace.step_count == 0) return ProverError.EmptyTrace;
 
+    var bound_public_data = public_data;
+    if (bound_public_data.completion == null) {
+        bound_public_data.completion =
+            public_data_mod.Completion.canonicalSelfLoop(exec_trace.final_pc);
+    }
+    try validateCompletionWitness(&bound_public_data, opt_memory);
+
     var boundary_claims: ?memory_boundary.Claims = if (opt_memory) |snapshot|
         try memory_boundary.build(allocator, snapshot.words)
     else
@@ -130,10 +138,22 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     defer if (boundary_claims) |*claims| claims.deinit(allocator);
     if (boundary_claims) |claims| try claims.validate(allocator);
 
-    const fetches = try allocator.alloc(program_table.Fetch, exec_trace.rows.items.len);
+    const has_public_fetch =
+        bound_public_data.completion.?.kind == .unretired_self_loop;
+    const fetches = try allocator.alloc(
+        program_table.Fetch,
+        exec_trace.rows.items.len + @intFromBool(has_public_fetch),
+    );
     defer allocator.free(fetches);
-    for (exec_trace.rows.items, fetches) |row, *fetch| {
+    for (exec_trace.rows.items, fetches[0..exec_trace.rows.items.len]) |row, *fetch| {
         fetch.* = .{ .pc = row.pc, .word = row.inst_word };
+    }
+    if (has_public_fetch) {
+        const completion = bound_public_data.completion.?;
+        fetches[fetches.len - 1] = .{
+            .pc = completion.address,
+            .word = completion.value,
+        };
     }
     var program = try program_commitment.build(
         allocator,
@@ -195,7 +215,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         .initial_pc = exec_trace.initial_pc,
         .final_pc = exec_trace.final_pc,
         .total_steps = @intCast(exec_trace.step_count),
-        .public_data = public_data,
+        .public_data = bound_public_data,
     };
 
     for (component_order.opcodeFamilies()) |family| {
@@ -222,7 +242,8 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     // -- Step 2b: Build infrastructure component descriptors. --
     statement.n_infra = 0;
 
-    // Exact sparse decoded-program commitment (8 columns).
+    // Exact sparse decoded-program commitment, including canonical aligned
+    // address limbs (10 columns).
     const program_log_size = computeLogSize(program.rows.len);
     statement.infra_descs[statement.n_infra] = .{
         .kind = .program,
@@ -341,6 +362,10 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         .relation_diagnostic => .relation_diagnostic,
     });
 
+    // Security geometry is part of the RISC-V Fiat–Shamir statement. This
+    // prevents a proof under one profile from sharing a transcript prefix with
+    // another profile even when every execution field is identical.
+    pcs_config.mixInto(channel);
     statement.public_data.mixInto(channel);
 
     var scheme = try Engine.init(allocator, pcs_config);
@@ -414,13 +439,15 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             };
         }
     };
-    var opcode_work = OpcodeGenerationWork{
+    const opcode_work = try allocator.create(OpcodeGenerationWork);
+    defer allocator.destroy(opcode_work);
+    opcode_work.* = OpcodeGenerationWork{
         .allocator = allocator,
         .exec_trace = exec_trace,
         .statement = statement,
     };
     var opcode_stage = try stage_profile.StageScope.begin(recorder, "riscv_opcode_trace_generation", "RISC-V opcode trace generation (overlapped)");
-    const opcode_thread = std.Thread.spawn(.{}, OpcodeGenerationWork.run, .{&opcode_work}) catch null;
+    const opcode_thread = std.Thread.spawn(.{}, OpcodeGenerationWork.run, .{opcode_work}) catch null;
     var opcode_joined = false;
     var opcode_cleanup_on_error = true;
     defer if (opcode_thread) |thread| {
@@ -437,7 +464,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
             opcode_work.result.deinit(allocator, statement);
         }
     }
-    if (opcode_thread == null) OpcodeGenerationWork.run(&opcode_work);
+    if (opcode_thread == null) OpcodeGenerationWork.run(opcode_work);
 
     var col_offset: usize = n_opcode_main;
 
@@ -539,6 +566,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     // one witness path, including any future pre-commit mutation hook.
     var lookup_source = try lookup_sources.ingest(allocator, statement, &opcode_work.result);
     defer lookup_source.deinit(allocator);
+    try lookup_sources.registerProgram(&lookup_source.counters, program.rows);
     if (boundary_claims) |claims| {
         try lookup_sources.registerMemoryBoundary(&lookup_source.counters, claims.rows);
     }
@@ -621,14 +649,21 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     };
     const relations = transcript_prefix.relations;
 
-    var interaction_claim = RiscVInteractionClaim.initZero();
+    const interaction_claim = try allocator.create(RiscVInteractionClaim);
+    var interaction_claim_owned = true;
+    defer if (interaction_claim_owned) allocator.destroy(interaction_claim);
+    interaction_claim.initZeroInto();
     interaction_claim.n_components = statement.n_components;
     interaction_claim.n_infra = statement.n_infra;
     interaction_claim.interaction_pow = transcript_prefix.interaction_pow;
 
     // Shifted cumulative columns remain alive through composition evaluation.
     // Opcode interactions consume the exact values retained by Tree 1.
-    var opcode_results: [MAX_COMPONENTS]opcode_interaction.Result = undefined;
+    const opcode_results = try allocator.alloc(
+        opcode_interaction.Result,
+        statement.n_components,
+    );
+    defer allocator.free(opcode_results);
     var n_opcode_results: usize = 0;
     defer for (opcode_results[0..n_opcode_results]) |*result| result.deinit(allocator);
     var table_results: [component_order.LOOKUP_TABLE_COUNT]lookup_table_interaction.Result = undefined;
@@ -804,7 +839,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         }
         std.debug.assert(inter_col_idx == n_interaction);
 
-        try proof_transcript.mixInteractionClaim(channel, &statement, &interaction_claim);
+        try proof_transcript.mixInteractionClaim(channel, &statement, interaction_claim);
         interaction_columns_moved = true;
         try Engine.commit(&scheme, allocator, interaction_columns, recorder, channel);
     }
@@ -822,7 +857,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
                 scheme.trees.items[2].root(),
             },
             relations,
-            &interaction_claim,
+            interaction_claim,
         );
     }
 
@@ -846,5 +881,24 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         n_main,
         n_interaction,
     );
+    interaction_claim_owned = false;
     return .{ .statement = statement, .proof = proof, .interaction_claim = interaction_claim };
+}
+
+fn validateCompletionWitness(
+    data: *const PublicData,
+    opt_memory: ?*const memory_state.Snapshot,
+) !void {
+    const completion = data.completion orelse return ProverError.InvalidStatement;
+    if (completion.kind != .halt_flag) return;
+    const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+    for (snapshot.words) |word| {
+        if (word.addr != completion.address) continue;
+        if (!word.role.is_public_completion or
+            word.final_word != completion.value or
+            word.final_clock != completion.clock)
+            return ProverError.InvalidStatement;
+        return;
+    }
+    return ProverError.InvalidStatement;
 }

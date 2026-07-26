@@ -6,8 +6,8 @@ const common = @import("common.zig");
 const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
-pub const N_MAIN_COLUMNS: usize = 16;
-pub const N_CONSTRAINTS: usize = 1;
+pub const N_MAIN_COLUMNS: usize = 18;
+pub const N_CONSTRAINTS: usize = 8;
 
 pub const Row = struct {
     enabler: QM31,
@@ -17,6 +17,7 @@ pub const Row = struct {
     imm_0: QM31,
     imm_1: QM31,
     imm_2: QM31,
+    destination: common.Destination,
 
     pub fn fromMainColumns(columns: []const QM31) !Row {
         if (columns.len != N_MAIN_COLUMNS) return error.InvalidMainTraceShape;
@@ -28,6 +29,7 @@ pub const Row = struct {
             .imm_0 = columns[13],
             .imm_1 = columns[14],
             .imm_2 = columns[15],
+            .destination = common.destinationFromColumns(columns[16..18]),
         };
     }
 };
@@ -35,7 +37,14 @@ pub const Row = struct {
 pub const Constraints = common.ConstraintSet(N_CONSTRAINTS);
 
 pub fn evaluate(row: Row) Constraints {
-    return .{ .values = .{common.bit(row.enabler)} };
+    var out: [N_CONSTRAINTS]QM31 = undefined;
+    out[0] = common.bit(row.enabler);
+    @memcpy(out[1..4], &common.destinationConstraints(row.rd.addr, row.destination));
+    @memcpy(
+        out[4..8],
+        &common.destinationResultConstraints(row.rd, resultLimbs(row), row.destination),
+    );
+    return .{ .values = out };
 }
 
 pub fn placementConstraint(row: Row, is_active: QM31) QM31 {
@@ -93,12 +102,7 @@ pub fn lookups(row: Row) Lookups {
             .consume = .{ .numerator = row.enabler.neg(), .tuple = chain.previous },
             .emit = .{
                 .numerator = row.enabler,
-                .tuple = .{
-                    .addr_space = QM31.zero(),
-                    .addr = row.rd.addr,
-                    .clock = row.clock,
-                    .limbs = resultLimbs(row),
-                },
+                .tuple = chain.next,
             },
             .clock_gap = control.range20Request(row.enabler, chain.clock_gap),
         },
@@ -119,6 +123,7 @@ fn zeroRow() Row {
         .imm_0 = QM31.zero(),
         .imm_1 = QM31.zero(),
         .imm_2 = QM31.zero(),
+        .destination = .{ .nonzero = QM31.zero(), .inverse = QM31.zero() },
     };
 }
 
@@ -128,9 +133,14 @@ test "lui: exact lookup writes the decomposed upper immediate" {
     row.clock = common.q(8);
     row.pc = common.q(0x1000);
     row.rd.addr = common.q(7);
+    row.destination = .{
+        .nonzero = QM31.one(),
+        .inverse = common.q(7).inv() catch unreachable,
+    };
     row.imm_0 = common.q(0xc);
     row.imm_1 = common.q(0xab);
     row.imm_2 = common.q(0xde);
+    row.rd.next = resultLimbs(row);
     try std.testing.expect(evaluate(row).allZero());
 
     const requests = lookups(row);

@@ -10,8 +10,10 @@ const ManifestJson = struct {
         try writer.beginObject();
         try writer.objectField("schema_version");
         try writer.write(manifest.schema_version);
-        try writer.objectField("stark_v_revision");
-        try writer.write(manifest.stark_v_revision);
+        try writer.objectField("semantic_authority_revision");
+        try writer.write(manifest.semantic_authority_revision);
+        try writer.objectField("legacy_layout_revision");
+        try writer.write(manifest.legacy_layout_revision);
         try writer.objectField("supported");
         try writer.beginArray();
         for (manifest.entries) |entry| {
@@ -102,14 +104,14 @@ fn run() !void {
     try writer.flush();
 }
 
-test "machine-readable view contains both proof and execution-only policy" {
+test "machine-readable view contains proof and host-control policy" {
     var encoded: [32 * 1024]u8 = undefined;
     var writer = std.Io.Writer.fixed(&encoded);
     try std.json.Stringify.value(ManifestJson{}, .{}, &writer);
     var parsed = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, writer.buffered(), .{});
     defer parsed.deinit();
-    try std.testing.expectEqual(@as(usize, 45), parsed.value.object.get("supported").?.array.items.len);
-    try std.testing.expectEqual(@as(usize, 15), parsed.value.object.get("unsupported").?.array.items.len);
+    try std.testing.expectEqual(@as(usize, 46), parsed.value.object.get("supported").?.array.items.len);
+    try std.testing.expectEqual(@as(usize, 2), parsed.value.object.get("unsupported").?.array.items.len);
     const first = parsed.value.object.get("supported").?.array.items[0].object;
     try std.testing.expectEqualStrings("r_type", first.get("encoding_class").?.string);
     try std.testing.expect(first.get("relation_domains").?.array.items.len >= 4);

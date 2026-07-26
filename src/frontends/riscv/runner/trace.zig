@@ -97,7 +97,7 @@ pub const Trace = struct {
     }
 };
 
-pub const MAX_FAMILY_COLUMNS: usize = 65;
+pub const MAX_FAMILY_COLUMNS: usize = 67;
 
 pub const TraceColumns = struct {
     columns: [MAX_FAMILY_COLUMNS][]M31,
@@ -128,6 +128,7 @@ pub fn nColumnsForFamily(family: OpcodeFamily) u32 {
         .mul => layouts.MulColumns.N_COLUMNS,
         .mulh => layouts.MulhColumns.N_COLUMNS,
         .div => layouts.DivColumns.N_COLUMNS,
+        .fence => layouts.FenceColumns.N_COLUMNS,
     };
 }
 
@@ -154,6 +155,7 @@ pub fn fillFamilyColumns(
         .mul => m_extension_witness.mul(columns, index, row),
         .mulh => m_extension_witness.mulh(columns, index, row),
         .div => m_extension_witness.div(columns, index, row),
+        .fence => control_witness.fence(columns, index, row),
     }
 }
 
@@ -195,9 +197,8 @@ test "trace groups opcode families" {
     try std.testing.expectEqual(OpcodeFamily.branch_lt, try proofOpcodeFamily(.BGEU));
     try std.testing.expectEqual(OpcodeFamily.load_store, try proofOpcodeFamily(.SW));
     try std.testing.expectEqual(OpcodeFamily.div, try proofOpcodeFamily(.REMU));
+    try std.testing.expectEqual(OpcodeFamily.fence, try proofOpcodeFamily(.FENCE));
     try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.ECALL));
-    try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.LR_W));
-    try std.testing.expectError(error.UnsupportedForProof, proofOpcodeFamily(.FENCE));
 }
 
 test "trace rejects execution-only opcodes before family witness generation" {
@@ -314,6 +315,7 @@ test "witness rows satisfy comparison and branch semantic evaluators" {
 
 test "witness rows satisfy upper jump and memory semantic evaluators" {
     var row = testRow(.LUI);
+    row.imm = @bitCast(@as(u32, 0x12345000));
     row.rd_val = 0x12345000;
     var lui_columns = filledRow(semantics.lui.N_MAIN_COLUMNS, row, .lui);
     const lui = try semantics.lui.Row.fromMainColumns(&lui_columns);

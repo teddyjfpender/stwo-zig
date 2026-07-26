@@ -27,6 +27,7 @@ pub const Constructor = enum {
     riscv_cpu,
     native_metal,
     unavailable,
+    riscv_metal,
 };
 
 pub const Spec = struct {
@@ -59,7 +60,13 @@ pub const products = [_]Spec{
     },
     .{ .descriptor = cairo_cpu.descriptor, .scope = .deferred, .constructor = .unavailable },
     .{ .descriptor = cairo_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
-    .{ .descriptor = riscv_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
+    .{
+        .descriptor = riscv_metal.descriptor,
+        .scope = .riscv_metal,
+        .constructor = .riscv_metal,
+        .configure_tools = &.{ "python3", "xcrun" },
+        .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
+    },
     .{
         .descriptor = native_cuda.descriptor,
         .scope = .native_cuda,

@@ -16,6 +16,7 @@ const native_cuda = @import("native_cuda.zig");
 const native_metal = @import("native_metal.zig");
 const prover = @import("prover.zig");
 const riscv_cpu = @import("riscv_cpu.zig");
+const riscv_metal = @import("riscv_metal.zig");
 const specs = @import("product_specs.zig");
 
 pub const Scope = specs.Scope;
@@ -97,6 +98,13 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
                 .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
             }),
             .riscv_cpu => riscv_cpu.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
+            .riscv_metal => riscv_metal.addProduct(.{
                 .b = context.b,
                 .target = context.target,
                 .optimize = context.optimize,

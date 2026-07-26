@@ -1,13 +1,15 @@
-//! Canonical Stark-V opcode protocol and proof-family policy.
+//! Sail-authoritative RV32IM opcode protocol and proof-family policy.
 //!
-//! Execution supports a wider instruction set than the proof statement. Every
-//! proof-eligible opcode is listed exactly once here; execution-only opcodes are
-//! listed separately and never receive a proof family.
+//! The legacy Stark-V IDs remain stable for protocol-layout compatibility, but
+//! accepted encodings and architectural semantics follow the pinned Sail model.
+//! Every successfully retired profile instruction is listed exactly once here;
+//! host-control instructions are listed separately and never receive a family.
 
 const std = @import("std");
 
-pub const schema_version: u32 = 2;
-pub const stark_v_revision = "d478f783055aa0d73a93768a433a3c6c31c91d1c";
+pub const schema_version: u32 = 3;
+pub const semantic_authority_revision = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f";
+pub const legacy_layout_revision = "d478f783055aa0d73a93768a433a3c6c31c91d1c";
 
 pub const Opcode = enum(u8) {
     add = 0,
@@ -55,6 +57,8 @@ pub const Opcode = enum(u8) {
     divu = 42,
     rem = 43,
     remu = 44,
+    /// Local protocol extension. IDs 0...44 retain the legacy layout.
+    fence = 45,
 
     pub inline fn protocolId(self: Opcode) u32 {
         return @intFromEnum(self);
@@ -78,6 +82,7 @@ pub const Family = enum(u8) {
     mul,
     mulh,
     div,
+    fence,
 };
 
 pub const ProgramShape = enum {
@@ -91,6 +96,7 @@ pub const ProgramShape = enum {
     jalr,
     lui,
     auipc,
+    fence,
 };
 
 pub const EncodingClass = enum {
@@ -100,6 +106,7 @@ pub const EncodingClass = enum {
     b_type,
     u_type,
     j_type,
+    misc_mem,
 };
 
 /// Relation order matches the pinned Stark-V transcript order.
@@ -132,7 +139,6 @@ pub const RelationSet = struct {
 
 pub const ProofEligibility = enum {
     admitted,
-    fail_closed_signed_mulh_family,
 };
 
 pub const Entry = struct {
@@ -198,6 +204,7 @@ pub const entries = [_]Entry{
     proof(.divu, "divu", .div, reg),
     proof(.rem, "rem", .div, reg),
     proof(.remu, "remu", .div, reg),
+    proof(.fence, "fence", .fence, .fence),
 };
 
 fn proof(comptime opcode: Opcode, mnemonic: []const u8, comptime family_id: Family, shape: ProgramShape) Entry {
@@ -211,7 +218,7 @@ fn proof(comptime opcode: Opcode, mnemonic: []const u8, comptime family_id: Fami
         .semantic_component = family_id,
         .relation_domains = relationDomains(family_id),
         .execution_supported = true,
-        .proof_eligibility = if (family_id == .mulh) .fail_closed_signed_mulh_family else .admitted,
+        .proof_eligibility = .admitted,
     };
 }
 
@@ -223,6 +230,7 @@ fn encodingClass(shape: ProgramShape) EncodingClass {
         .branch => .b_type,
         .lui, .auipc => .u_type,
         .jal => .j_type,
+        .fence => .misc_mem,
     };
 }
 
@@ -237,17 +245,20 @@ fn relationDomains(comptime family_id: Family) RelationSet {
     return switch (family_id) {
         .base_alu_reg => relationSet(base ++ [_]RelationDomain{ .bitwise, .range_check_8_8 }),
         .base_alu_imm => relationSet(base ++ [_]RelationDomain{ .bitwise, .range_check_8_11, .range_check_8_8 }),
-        .shifts_reg, .shifts_imm, .lt_reg, .branch_lt => relationSet(base ++ [_]RelationDomain{.range_check_8_8}),
+        .shifts_reg, .shifts_imm => relationSet(base ++ [_]RelationDomain{ .range_check_8_8, .range_check_m31 }),
+        .lt_reg, .branch_lt => relationSet(base ++ [_]RelationDomain{.range_check_8_8}),
         .lt_imm, .lui => relationSet(base ++ [_]RelationDomain{.range_check_8_8_4}),
         .branch_eq => relationSet(base),
         .auipc, .jalr, .jal => relationSet(base ++ [_]RelationDomain{ .range_check_8_8, .range_check_m31 }),
         .load_store => relationSet(base ++ [_]RelationDomain{.range_check_m31}),
-        .mul, .mulh => relationSet(base ++ [_]RelationDomain{.range_check_8_11}),
+        .mul => relationSet(base ++ [_]RelationDomain{.range_check_8_11}),
+        .mulh => relationSet(base ++ [_]RelationDomain{ .range_check_8_11, .range_check_m31 }),
         .div => relationSet(base ++ [_]RelationDomain{ .range_check_8_11, .range_check_8_8 }),
+        .fence => relationSet([_]RelationDomain{ .registers_state, .program_access }),
     };
 }
 
-pub const UnsupportedClass = enum { system, fence, rv32a };
+pub const UnsupportedClass = enum { system };
 
 pub const UnsupportedEntry = struct {
     mnemonic: []const u8,
@@ -255,23 +266,11 @@ pub const UnsupportedEntry = struct {
     execution_supported: bool,
 };
 
-/// Instructions understood by the runner but excluded from the Stark-V proof statement.
+/// Architectural environment controls decoded for host dispatch but excluded
+/// from the successful-retirement proof language.
 pub const unsupported_entries = [_]UnsupportedEntry{
     .{ .mnemonic = "ecall", .class = .system, .execution_supported = true },
     .{ .mnemonic = "ebreak", .class = .system, .execution_supported = true },
-    .{ .mnemonic = "fence", .class = .fence, .execution_supported = true },
-    .{ .mnemonic = "fence.i", .class = .fence, .execution_supported = true },
-    .{ .mnemonic = "lr.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "sc.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amoswap.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amoadd.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amoand.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amoor.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amoxor.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amomin.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amomax.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amominu.w", .class = .rv32a, .execution_supported = true },
-    .{ .mnemonic = "amomaxu.w", .class = .rv32a, .execution_supported = true },
 };
 
 pub const RejectionKind = enum {
@@ -287,26 +286,25 @@ pub const RejectionVector = struct {
 
 /// Canonical words that must fail before proof construction.
 ///
-/// The first fifteen entries correspond one-for-one with
-/// `unsupported_entries`. The remaining entries cover unsupported extension
-/// primary opcodes and malformed encodings within otherwise admitted classes.
+/// The first two entries correspond one-for-one with `unsupported_entries`.
+/// Remaining entries cover disabled extensions and malformed/reserved
+/// encodings within otherwise admitted primary opcodes.
 pub const proof_rejection_vectors = [_]RejectionVector{
     .{ .name = "ecall", .word = 0x00000073, .kind = .unsupported_instruction_class },
     .{ .name = "ebreak", .word = 0x00100073, .kind = .unsupported_instruction_class },
-    .{ .name = "fence", .word = 0x0000000f, .kind = .unsupported_instruction_class },
-    .{ .name = "fence.i", .word = 0x0000100f, .kind = .unsupported_instruction_class },
-    .{ .name = "lr.w", .word = atomicWord(0b00010, 0), .kind = .unsupported_instruction_class },
-    .{ .name = "sc.w", .word = atomicWord(0b00011, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amoswap.w", .word = atomicWord(0b00001, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amoadd.w", .word = atomicWord(0b00000, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amoand.w", .word = atomicWord(0b01100, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amoor.w", .word = atomicWord(0b01000, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amoxor.w", .word = atomicWord(0b00100, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amomin.w", .word = atomicWord(0b10000, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amomax.w", .word = atomicWord(0b10100, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amominu.w", .word = atomicWord(0b11000, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "amomaxu.w", .word = atomicWord(0b11100, 3), .kind = .unsupported_instruction_class },
-    .{ .name = "csrrw", .word = 0x300110f3, .kind = .unsupported_instruction_class },
+    .{ .name = "fence.i-disabled", .word = 0x0000100f, .kind = .invalid_instruction },
+    .{ .name = "lr.w-disabled", .word = atomicWord(0b00010, 0), .kind = .invalid_instruction },
+    .{ .name = "sc.w-disabled", .word = atomicWord(0b00011, 3), .kind = .invalid_instruction },
+    .{ .name = "amoswap.w-disabled", .word = atomicWord(0b00001, 3), .kind = .invalid_instruction },
+    .{ .name = "amoadd.w-disabled", .word = atomicWord(0b00000, 3), .kind = .invalid_instruction },
+    .{ .name = "amoand.w-disabled", .word = atomicWord(0b01100, 3), .kind = .invalid_instruction },
+    .{ .name = "amoor.w-disabled", .word = atomicWord(0b01000, 3), .kind = .invalid_instruction },
+    .{ .name = "amoxor.w-disabled", .word = atomicWord(0b00100, 3), .kind = .invalid_instruction },
+    .{ .name = "amomin.w-disabled", .word = atomicWord(0b10000, 3), .kind = .invalid_instruction },
+    .{ .name = "amomax.w-disabled", .word = atomicWord(0b10100, 3), .kind = .invalid_instruction },
+    .{ .name = "amominu.w-disabled", .word = atomicWord(0b11000, 3), .kind = .invalid_instruction },
+    .{ .name = "amomaxu.w-disabled", .word = atomicWord(0b11100, 3), .kind = .invalid_instruction },
+    .{ .name = "csrrw-disabled", .word = 0x300110f3, .kind = .invalid_instruction },
     .{ .name = "load-fp", .word = 0x00002087, .kind = .invalid_instruction },
     .{ .name = "store-fp", .word = 0x00112027, .kind = .invalid_instruction },
     .{ .name = "op-fp", .word = 0x003100d3, .kind = .invalid_instruction },
@@ -318,23 +316,10 @@ pub const proof_rejection_vectors = [_]RejectionVector{
     .{ .name = "load-reserved-funct3", .word = 0x00003083, .kind = .invalid_instruction },
     .{ .name = "store-reserved-funct3", .word = 0x00113023, .kind = .invalid_instruction },
     .{ .name = "branch-reserved-funct3", .word = 0x0020a063, .kind = .invalid_instruction },
+    .{ .name = "slli-reserved-funct7", .word = shiftWord(0b1111111, 31, 0b001), .kind = .invalid_instruction },
+    .{ .name = "srli-reserved-funct7", .word = shiftWord(0b0000001, 3, 0b101), .kind = .invalid_instruction },
+    .{ .name = "jalr-reserved-funct3", .word = 0x001170e7, .kind = .invalid_instruction },
     .{ .name = "invalid-primary-opcode", .word = 0x00000000, .kind = .invalid_instruction },
-};
-
-pub const PinnedPermissiveEncoding = struct {
-    name: []const u8,
-    word: u32,
-    opcode: Opcode,
-};
-
-/// Reserved encodings accepted by the pinned Rust decoder.
-///
-/// These are parity constraints, not ISA endorsements. Rejecting them would
-/// silently change the accepted statement while the Stark-V pin is unchanged.
-pub const pinned_permissive_encodings = [_]PinnedPermissiveEncoding{
-    .{ .name = "slli-reserved-funct7", .word = shiftWord(0b1111111, 31, 0b001), .opcode = .slli },
-    .{ .name = "srli-reserved-funct7", .word = shiftWord(0b0000001, 3, 0b101), .opcode = .srli },
-    .{ .name = "jalr-nonzero-funct3", .word = 0x001170e7, .opcode = .jalr },
 };
 
 fn atomicWord(funct5: u32, rs2: u32) u32 {
@@ -383,25 +368,19 @@ pub fn validate() ValidationError!void {
             if (lhs.word == rhs.word) return error.DuplicateEncoding;
         }
     }
-    inline for (pinned_permissive_encodings, 0..) |lhs, lhs_index| {
-        inline for (pinned_permissive_encodings[lhs_index + 1 ..]) |rhs| {
-            if (lhs.word == rhs.word) return error.DuplicateEncoding;
-        }
-        inline for (proof_rejection_vectors) |rejected| {
-            if (lhs.word == rejected.word) return error.DuplicateEncoding;
-        }
-    }
 }
 
-test "opcode manifest is complete and indexed by pinned protocol id" {
+test "opcode manifest is complete and preserves legacy protocol ids" {
     try validate();
-    try std.testing.expectEqual(@as(usize, 45), entries.len);
+    try std.testing.expectEqual(@as(usize, 46), entries.len);
     try std.testing.expectEqual(Family.base_alu_imm, family(.addi));
     try std.testing.expectEqual(Family.div, family(.remu));
+    try std.testing.expectEqual(@as(u32, 44), Opcode.remu.protocolId());
+    try std.testing.expectEqual(@as(u32, 45), Opcode.fence.protocolId());
 }
 
-test "execution-only instructions have no proof-family field" {
-    try std.testing.expectEqual(@as(usize, 15), unsupported_entries.len);
+test "host-control instructions have no proof-family field" {
+    try std.testing.expectEqual(@as(usize, 2), unsupported_entries.len);
     inline for (unsupported_entries) |item| {
         try std.testing.expect(item.execution_supported);
         try std.testing.expect(item.mnemonic.len != 0);
@@ -410,6 +389,5 @@ test "execution-only instructions have no proof-family field" {
 
 test "opcode manifest owns a unique fail-closed decoder matrix" {
     try validate();
-    try std.testing.expectEqual(@as(usize, 28), proof_rejection_vectors.len);
-    try std.testing.expectEqual(@as(usize, 3), pinned_permissive_encodings.len);
+    try std.testing.expectEqual(@as(usize, 30), proof_rejection_vectors.len);
 }

@@ -6,8 +6,8 @@ const common = @import("common.zig");
 const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
-pub const N_MAIN_COLUMNS: usize = 26;
-pub const N_CONSTRAINTS: usize = 4;
+pub const N_MAIN_COLUMNS: usize = 32;
+pub const N_CONSTRAINTS: usize = 11;
 
 pub const Row = struct {
     enabler: QM31,
@@ -18,6 +18,8 @@ pub const Row = struct {
     to_pc_over_two: QM31,
     to_pc_lsb: QM31,
     imm_felt: QM31,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn fromMainColumns(columns: []const QM31) !Row {
         if (columns.len != N_MAIN_COLUMNS) return error.InvalidMainTraceShape;
@@ -30,6 +32,8 @@ pub const Row = struct {
             .to_pc_over_two = columns[23],
             .to_pc_lsb = columns[24],
             .imm_felt = columns[25],
+            .result = columns[26..30].*,
+            .destination = common.destinationFromColumns(columns[30..32]),
         };
     }
 };
@@ -42,13 +46,19 @@ pub fn jumpTarget(row: Row) QM31 {
 
 pub fn evaluate(row: Row) Constraints {
     const rs1_felt = common.composeU32(row.rs1.next);
-    const rd_felt = common.composeU32(row.rd.next);
-    return .{ .values = .{
-        common.bit(row.enabler),
-        common.bit(row.to_pc_lsb),
-        jumpTarget(row).add(row.to_pc_lsb).sub(rs1_felt.add(row.imm_felt)),
-        row.enabler.mul(row.rd.addr).mul(rd_felt.sub(row.pc.add(common.q(4)))),
-    } };
+    var out: [N_CONSTRAINTS]QM31 = undefined;
+    out[0] = common.bit(row.enabler);
+    out[1] = common.bit(row.to_pc_lsb);
+    out[2] = jumpTarget(row).add(row.to_pc_lsb).sub(rs1_felt.add(row.imm_felt));
+    out[3] = row.enabler.mul(
+        common.composeU32(row.result).sub(row.pc.add(common.q(4))),
+    );
+    @memcpy(out[4..7], &common.destinationConstraints(row.rd.addr, row.destination));
+    @memcpy(
+        out[7..11],
+        &common.destinationResultConstraints(row.rd, row.result, row.destination),
+    );
+    return .{ .values = out };
 }
 
 pub fn placementConstraint(row: Row, is_active: QM31) QM31 {
@@ -93,13 +103,13 @@ pub fn lookups(row: Row) Lookups {
         ),
         .rd_middle_bytes = control.rangePairRequest(
             row.enabler,
-            row.rd.next[1],
-            row.rd.next[2],
+            row.result[1],
+            row.result[2],
         ),
         .rd_m31 = control.rangePairRequest(
             row.enabler,
-            row.rd.next[0],
-            row.rd.next[3],
+            row.result[0],
+            row.result[3],
         ),
         .rd = control.registerAccessLookups(row.rd, row.clock, row.enabler),
     };
@@ -121,6 +131,8 @@ fn zeroRow() Row {
         .to_pc_over_two = QM31.zero(),
         .to_pc_lsb = QM31.zero(),
         .imm_felt = QM31.zero(),
+        .result = .{QM31.zero()} ** 4,
+        .destination = .{ .nonzero = QM31.zero(), .inverse = QM31.zero() },
     };
 }
 
@@ -131,6 +143,8 @@ test "jalr: honest odd target clears its low bit" {
     row.pc = common.q(0x1000);
     row.rd.addr = common.q(1);
     row.rd.next = .{ common.q(4), common.q(0x10), QM31.zero(), QM31.zero() };
+    row.result = row.rd.next;
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.rs1.addr = common.q(2);
     row.rs1.next[0] = common.q(100);
     row.imm_felt = common.q(3);
@@ -150,6 +164,8 @@ test "jalr: forged target decomposition and link register are rejected" {
     row.pc = common.q(100);
     row.rd.addr = QM31.one();
     row.rd.next[0] = common.q(104);
+    row.result[0] = common.q(104);
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.rs1.next[0] = common.q(20);
     row.to_pc_over_two = common.q(10);
     row.to_pc_lsb = common.q(2);
@@ -157,6 +173,7 @@ test "jalr: forged target decomposition and link register are rejected" {
 
     row.to_pc_lsb = QM31.zero();
     row.rd.next[0] = common.q(105);
+    row.result[0] = common.q(105);
     try std.testing.expect(!evaluate(row).allZero());
 }
 

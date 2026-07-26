@@ -4,8 +4,8 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
-pub const N_ORACLE_COLUMNS: usize = 42;
-pub const N_CONSTRAINTS: usize = 20;
+pub const N_ORACLE_COLUMNS: usize = 44;
+pub const N_CONSTRAINTS: usize = 27;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
 pub const Row = struct {
@@ -21,6 +21,7 @@ pub const Row = struct {
     is_sltu: QM31,
     diff_markers: [4]QM31,
     diff_val: QM31,
+    destination: common.Destination,
 
     pub fn active(self: Row) QM31 {
         return self.is_slt.add(self.is_sltu);
@@ -41,6 +42,7 @@ pub const Row = struct {
             .is_sltu = columns[36],
             .diff_markers = columns[37..41].*,
             .diff_val = columns[41],
+            .destination = common.destinationFromColumns(columns[42..44]),
         };
     }
 };
@@ -110,6 +112,18 @@ pub fn evaluate(row: Row) Constraints {
     n += 1;
     out[n] = QM31.one().sub(d.prefix_sum).mul(row.cmp_result);
     n += 1;
+    for (common.destinationConstraints(row.rd.addr, row.destination)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    for (common.destinationResultConstraints(
+        row.rd,
+        .{ row.cmp_result, QM31.zero(), QM31.zero(), QM31.zero() },
+        row.destination,
+    )) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
     std.debug.assert(n == out.len);
     return .{ .values = out };
 }
@@ -136,13 +150,7 @@ pub const AccessLookups = struct {
 
 pub fn accessLookups(row: Row) AccessLookups {
     return .{
-        .rd = common.accessChain(
-            row.rd,
-            row.clk,
-            QM31.zero(),
-            row.rd.addr,
-            .{ row.cmp_result, QM31.zero(), QM31.zero(), QM31.zero() },
-        ),
+        .rd = common.registerAccessChain(row.rd, row.clk),
         .rs1 = common.registerAccessChain(row.rs1, row.clk),
         .rs2 = common.registerAccessChain(row.rs2, row.clk),
     };
@@ -195,6 +203,7 @@ fn honestUnsignedRow() Row {
         .is_sltu = QM31.one(),
         .diff_markers = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero() },
         .diff_val = QM31.one(),
+        .destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() },
     };
 }
 

@@ -245,6 +245,7 @@ fn boundaryData() public_data.PublicData {
         .program_root = null,
         .initial_rw_root = null,
         .final_rw_root = null,
+        .completion = public_data.Completion.canonicalSelfLoop(0),
         .io_entries = .{
             .input_start = 0,
             .input_len = 0,

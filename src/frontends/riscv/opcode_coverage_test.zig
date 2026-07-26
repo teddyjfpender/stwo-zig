@@ -1,4 +1,4 @@
-//! Cross-authority coverage checks for the pinned 45-opcode proof surface.
+//! Cross-authority coverage checks for the Sail-authoritative proof surface.
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
@@ -46,13 +46,13 @@ fn selectorColumn(comptime opcode: opcode_manifest.Opcode) []const u8 {
         .divu => "opcode_divu_flag",
         .rem => "opcode_rem_flag",
         .remu => "opcode_remu_flag",
-        .jal, .jalr, .lui, .auipc, .mul => "enabler",
+        .jal, .jalr, .lui, .auipc, .mul, .fence => "enabler",
     };
 }
 
-test "all 45 proof opcodes reach witness, semantic, lookup, and component authorities" {
+test "all 46 proof opcodes reach witness, semantic, lookup, and component authorities" {
     try opcode_manifest.validate();
-    try std.testing.expectEqual(@as(usize, 45), opcode_manifest.entries.len);
+    try std.testing.expectEqual(@as(usize, 46), opcode_manifest.entries.len);
 
     var covered_families = [_]bool{false} ** trace.N_FAMILIES;
     var zero_columns = [_]QM31{QM31.zero()} ** trace.MAX_FAMILY_COLUMNS;
@@ -89,7 +89,11 @@ test "all 45 proof opcodes reach witness, semantic, lookup, and component author
         try std.testing.expectEqual(manifest_entry.relation_domains.bits, domain_bits);
         try std.testing.expect(domains[@intFromEnum(lookup_entry.Domain.program_access)]);
         try std.testing.expect(domains[@intFromEnum(lookup_entry.Domain.registers_state)]);
-        try std.testing.expect(domains[@intFromEnum(lookup_entry.Domain.memory_access)]);
+        if (family == .fence) {
+            try std.testing.expect(!domains[@intFromEnum(lookup_entry.Domain.memory_access)]);
+        } else {
+            try std.testing.expect(domains[@intFromEnum(lookup_entry.Domain.memory_access)]);
+        }
 
         const transcript_component = component_order.transcriptComponentForOpcodeFamily(family);
         try std.testing.expectEqual(
@@ -97,27 +101,15 @@ test "all 45 proof opcodes reach witness, semantic, lookup, and component author
             @as(usize, @intFromEnum(transcript_component)),
         );
 
-        if (semantic_eval.isTraceCompatible(family)) {
-            try std.testing.expectEqual(
-                opcode_manifest.ProofEligibility.admitted,
-                manifest_entry.proof_eligibility,
-            );
-            const component = try semantic_component.SemanticComponent.init(family, 0, 0, 0);
-            try std.testing.expectEqual(family, component.family);
-            try std.testing.expectEqual(layout_fields.len, component.mainColumnCount());
-            try std.testing.expectEqual(semantic_eval.constraintCount(family), component.nConstraints());
-        } else {
-            // The pinned signed-MULH family remains the sole fail-closed limitation.
-            try std.testing.expectEqual(opcode_manifest.Family.mulh, family);
-            try std.testing.expectEqual(
-                opcode_manifest.ProofEligibility.fail_closed_signed_mulh_family,
-                manifest_entry.proof_eligibility,
-            );
-            try std.testing.expectError(
-                error.IncompatibleCommittedTrace,
-                semantic_component.SemanticComponent.init(family, 0, 0, 0),
-            );
-        }
+        try std.testing.expect(semantic_eval.isTraceCompatible(family));
+        try std.testing.expectEqual(
+            opcode_manifest.ProofEligibility.admitted,
+            manifest_entry.proof_eligibility,
+        );
+        const component = try semantic_component.SemanticComponent.init(family, 0, 0, 0);
+        try std.testing.expectEqual(family, component.family);
+        try std.testing.expectEqual(layout_fields.len, component.mainColumnCount());
+        try std.testing.expectEqual(semantic_eval.constraintCount(family), component.nConstraints());
     }
 
     for (covered_families) |covered| try std.testing.expect(covered);

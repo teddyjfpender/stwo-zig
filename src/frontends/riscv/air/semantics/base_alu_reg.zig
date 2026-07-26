@@ -8,8 +8,8 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
-pub const N_ORACLE_COLUMNS: usize = 37;
-pub const N_CONSTRAINTS: usize = 14;
+pub const N_ORACLE_COLUMNS: usize = 43;
+pub const N_CONSTRAINTS: usize = 21;
 
 pub const Row = struct {
     clk: QM31,
@@ -22,6 +22,8 @@ pub const Row = struct {
     is_xor: QM31,
     is_or: QM31,
     is_and: QM31,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn fromOracleColumns(columns: []const QM31) !Row {
         if (columns.len != N_ORACLE_COLUMNS) return error.InvalidOracleTraceShape;
@@ -36,6 +38,8 @@ pub const Row = struct {
             .is_xor = columns[34],
             .is_or = columns[35],
             .is_and = columns[36],
+            .result = columns[37..41].*,
+            .destination = common.destinationFromColumns(columns[41..43]),
         };
     }
 
@@ -62,7 +66,7 @@ pub fn evaluate(row: Row) Constraints {
     }
     var carry = QM31.zero();
     for (0..4) |limb| {
-        const numerator = row.rs1.next[limb].add(row.rs2.next[limb]).add(carry).sub(row.rd.next[limb]);
+        const numerator = row.rs1.next[limb].add(row.rs2.next[limb]).add(carry).sub(row.result[limb]);
         carry = numerator.mul(common.INV_BYTE_RADIX);
         out[i] = common.selected(row.is_add, common.bit(carry));
         i += 1;
@@ -70,9 +74,17 @@ pub fn evaluate(row: Row) Constraints {
 
     carry = QM31.zero();
     for (0..4) |limb| {
-        const numerator = row.rd.next[limb].add(row.rs2.next[limb]).add(carry).sub(row.rs1.next[limb]);
+        const numerator = row.result[limb].add(row.rs2.next[limb]).add(carry).sub(row.rs1.next[limb]);
         carry = numerator.mul(common.INV_BYTE_RADIX);
         out[i] = common.selected(row.is_sub, common.bit(carry));
+        i += 1;
+    }
+    for (common.destinationConstraints(row.rd.addr, row.destination)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+    for (common.destinationResultConstraints(row.rd, row.result, row.destination)) |constraint| {
+        out[i] = constraint;
         i += 1;
     }
     std.debug.assert(i == out.len);
@@ -108,18 +120,22 @@ pub fn bitwiseLookups(row: Row) [4]common.BitwiseTuple {
         tuple.* = .{
             .lhs = row.rs1.next[i],
             .rhs = row.rs2.next[i],
-            .result = row.rd.next[i],
+            .result = row.result[i],
             .operation_id = operation_id,
         };
     }
     return tuples;
 }
 
+pub fn bitwiseLookupEnabler(row: Row) QM31 {
+    return row.is_xor.add(row.is_or).add(row.is_and);
+}
+
 /// Each pair is one `range_check_8_8` request.
 pub fn rangeCheckPairs(row: Row) [6][2]QM31 {
     return .{
-        .{ row.rd.next[0], row.rd.next[1] },
-        .{ row.rd.next[2], row.rd.next[3] },
+        .{ row.result[0], row.result[1] },
+        .{ row.result[2], row.result[3] },
         .{ row.rs1.next[0], row.rs1.next[1] },
         .{ row.rs1.next[2], row.rs1.next[3] },
         .{ row.rs2.next[0], row.rs2.next[1] },
@@ -158,6 +174,8 @@ fn zeroRow() Row {
         .is_xor = QM31.zero(),
         .is_or = QM31.zero(),
         .is_and = QM31.zero(),
+        .result = .{QM31.zero()} ** 4,
+        .destination = .{ .nonzero = QM31.zero(), .inverse = QM31.zero() },
         .rd = zero_access,
         .rs1 = zero_access,
         .rs2 = zero_access,
@@ -167,30 +185,53 @@ fn zeroRow() Row {
 test "base alu reg semantics: ADD accepts byte carry chain" {
     var row = zeroRow();
     row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_add = QM31.one();
     row.rs1.next = .{ common.q(255), common.q(255), common.q(0), common.q(0) };
     row.rs2.next = .{ common.q(1), common.q(0), common.q(0), common.q(0) };
     row.rd.next = .{ common.q(0), common.q(0), common.q(1), common.q(0) };
+    row.result = row.rd.next;
     try std.testing.expect(evaluate(row).allZero());
 }
 
 test "base alu reg semantics: ADD rejects a forged result" {
     var row = zeroRow();
     row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_add = QM31.one();
     row.rs1.next[0] = common.q(7);
     row.rs2.next[0] = common.q(9);
     row.rd.next[0] = common.q(17);
+    row.result[0] = common.q(17);
     try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "base alu reg semantics: x0 discards arithmetic and bitwise results" {
+    var row = zeroRow();
+    row.pc = common.q(0x1000);
+    row.is_add = QM31.one();
+    row.rs1.next[0] = common.q(7);
+    row.rs2.next[0] = common.q(9);
+    row.result[0] = common.q(16);
+    try std.testing.expect(evaluate(row).allZero());
+
+    row.is_add = QM31.zero();
+    row.is_xor = QM31.one();
+    try std.testing.expect(bitwiseLookupEnabler(row).eql(QM31.one()));
 }
 
 test "base alu reg semantics: SUB accepts unsigned wraparound" {
     var row = zeroRow();
     row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_sub = QM31.one();
     row.rs1.next = .{QM31.zero()} ** 4;
     row.rs2.next[0] = common.q(1);
     row.rd.next = .{ common.q(255), common.q(255), common.q(255), common.q(255) };
+    row.result = row.rd.next;
     try std.testing.expect(evaluate(row).allZero());
 }
 

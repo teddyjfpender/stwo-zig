@@ -160,6 +160,7 @@ pub fn deriveRegisterBoundary(rows: []const trace_mod.TraceRow) !RegisterBoundar
                     try observe(&result, &seen, rs2Trace(row));
                 }
             },
+            .fence => {},
         }
     }
     return result;
@@ -170,12 +171,13 @@ pub fn accessCount(family: trace_mod.OpcodeFamily) usize {
         .base_alu_reg, .shifts_reg, .lt_reg, .load_store, .mul, .mulh, .div => 3,
         .base_alu_imm, .shifts_imm, .lt_imm, .branch_eq, .branch_lt, .jalr => 2,
         .lui, .auipc, .jal => 1,
+        .fence => 0,
     };
 }
 
 pub fn clockColumn(family: trace_mod.OpcodeFamily) usize {
     return switch (family) {
-        .lui, .auipc, .jalr, .jal, .mul => 1,
+        .lui, .auipc, .jalr, .jal, .mul, .fence => 1,
         else => 0,
     };
 }
@@ -184,6 +186,7 @@ fn accessOffset(family: trace_mod.OpcodeFamily, slot: usize) usize {
     return switch (family) {
         .lui, .auipc, .jal => 3,
         .jalr, .mul => 3 + slot * 10,
+        .fence => unreachable,
         else => 2 + slot * 10,
     };
 }
@@ -221,6 +224,7 @@ fn accessKind(family: trace_mod.OpcodeFamily, slot: usize) AccessKind {
         .branch_eq, .branch_lt => if (slot == 0) .rs1 else .rs2,
         .lui, .auipc, .jal => .rd,
         .jalr => if (slot == 0) .rd else .rs1,
+        .fence => unreachable,
         else => @enumFromInt(slot),
     };
 }
@@ -361,7 +365,7 @@ fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {
 }
 
 test "opcode memory: committed load/store selectors choose address spaces" {
-    var main = [_]QM31{QM31.zero()} ** 50;
+    var main = [_]QM31{QM31.zero()} ** trace_mod.MAX_FAMILY_COLUMNS;
     main[0] = base(9);
     main[12] = base(3);
     main[22] = base(0x1000);
@@ -378,7 +382,7 @@ test "opcode memory: committed load/store selectors choose address spaces" {
 }
 
 test "opcode memory: absent family slots are disabled" {
-    var main = [_]QM31{QM31.zero()} ** 16;
+    var main = [_]QM31{QM31.zero()} ** trace_mod.MAX_FAMILY_COLUMNS;
     const absent = try accessFromMain(.lui, &main, 1, QM31.one());
     try std.testing.expect(absent.enabler.isZero());
     try std.testing.expectEqual(@as(usize, 1), accessCount(.lui));

@@ -258,18 +258,24 @@ pub const RiscVInteractionClaim = struct {
     interaction_pow: u64,
 
     pub fn initZero() RiscVInteractionClaim {
-        return .{
-            .opcode_claims = .{.{QM31.zero()} ** lookup_entry.MAX_BATCHES} ** MAX_COMPONENTS,
-            .program_claims = .{.{QM31.zero()} ** program_interaction.N_SUMS} ** MAX_INFRA_COMPONENTS,
-            .memory_claims = .{.{QM31.zero()} ** memory_interaction.N_SUMS} ** MAX_INFRA_COMPONENTS,
-            .merkle_claims = .{.{QM31.zero()} ** merkle_node.N_SUMS} ** MAX_INFRA_COMPONENTS,
-            .poseidon_claims = .{.{QM31.zero()} ** poseidon2_air.N_SUMS} ** MAX_INFRA_COMPONENTS,
-            .clock_claims = .{QM31.zero()} ** MAX_INFRA_COMPONENTS,
-            .lookup_claims = .{QM31.zero()} ** MAX_INFRA_COMPONENTS,
-            .n_components = 0,
-            .n_infra = 0,
-            .interaction_pow = 0,
-        };
+        var result: RiscVInteractionClaim = undefined;
+        result.initZeroInto();
+        return result;
+    }
+
+    /// Initializes caller-owned storage without materializing another
+    /// two-megabyte fixed-capacity claim on the stack.
+    pub fn initZeroInto(self: *RiscVInteractionClaim) void {
+        for (&self.opcode_claims) |*claims| @memset(claims, QM31.zero());
+        for (&self.program_claims) |*claims| @memset(claims, QM31.zero());
+        for (&self.memory_claims) |*claims| @memset(claims, QM31.zero());
+        for (&self.merkle_claims) |*claims| @memset(claims, QM31.zero());
+        for (&self.poseidon_claims) |*claims| @memset(claims, QM31.zero());
+        @memset(&self.clock_claims, QM31.zero());
+        @memset(&self.lookup_claims, QM31.zero());
+        self.n_components = 0;
+        self.n_infra = 0;
+        self.interaction_pow = 0;
     }
 
     pub fn opcodeClaims(
@@ -398,6 +404,7 @@ fn componentForFamily(family: trace_mod.OpcodeFamily) transcript_claims.Componen
         .mulh => .mulh,
         .shifts_imm => .shifts_imm,
         .shifts_reg => .shifts_reg,
+        .fence => .fence,
     };
 }
 

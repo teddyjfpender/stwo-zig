@@ -101,6 +101,7 @@ test "riscv public statement: nonempty input proves and binds every public class
         .program_root = null,
         .initial_rw_root = null,
         .final_rw_root = null,
+        .completion = try public_data_mod.completionFromRun(run),
         .io_entries = .{
             .input_start = run.input_start,
             .input_len = @intCast(run.input.len),
@@ -143,6 +144,7 @@ test "riscv public statement: nonempty input proves and binds every public class
         null,
         public_data,
     );
+    defer proof.deinitAfterProofMoved(allocator);
     try riscv_cpu.verifyRiscV(
         allocator,
         TEST_PCS_CONFIG,

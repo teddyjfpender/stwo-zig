@@ -1,4 +1,4 @@
-//! Proof admission must reject unsupported families before backend work.
+//! Every RV32IM proof family must reach the selected backend.
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
@@ -115,7 +115,7 @@ test "transaction engine is the proving substitution point" {
     try std.testing.expectEqual(@as(usize, 1), CountingEngine.prove_calls);
 }
 
-test "MULH family rejection happens before engine initialization" {
+test "MULH family reaches the selected proving engine" {
     CountingEngine.reset();
     const allocator = std.testing.allocator;
     var trace = trace_mod.Trace.init(allocator);
@@ -142,19 +142,17 @@ test "MULH family rejection happens before engine initialization" {
         .inst_word = 0x0220_b1b3,
     });
 
-    try std.testing.expectError(
-        error.UnsupportedProofFamily,
-        prover.proveRiscVWithEngine(
-            CountingEngine,
-            allocator,
-            TEST_CONFIG,
-            &trace,
-            null,
-            null,
-            null,
-        ),
+    var output = try prover.proveRiscVWithEngine(
+        CountingEngine,
+        allocator,
+        TEST_CONFIG,
+        &trace,
+        null,
+        null,
+        null,
     );
-    try std.testing.expectEqual(@as(usize, 0), CountingEngine.init_calls);
-    try std.testing.expectEqual(@as(usize, 0), CountingEngine.commit_calls);
-    try std.testing.expectEqual(@as(usize, 0), CountingEngine.prove_calls);
+    defer output.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 1), CountingEngine.init_calls);
+    try std.testing.expectEqual(@as(usize, 3), CountingEngine.commit_calls);
+    try std.testing.expectEqual(@as(usize, 1), CountingEngine.prove_calls);
 }

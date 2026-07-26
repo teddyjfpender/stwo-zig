@@ -33,6 +33,7 @@ pub fn isTraceCompatible(family: trace.OpcodeFamily) bool {
         .auipc,
         .jalr,
         .jal,
+        .fence,
         => true,
         .shifts_reg => semantics.shifts_reg.CURRENT_TRACE_COMPATIBLE,
         .shifts_imm => semantics.shifts_imm.CURRENT_TRACE_COMPATIBLE,
@@ -63,12 +64,13 @@ pub fn mainColumnCount(family: trace.OpcodeFamily) usize {
         .mul => moduleColumnCount(semantics.mul),
         .mulh => moduleColumnCount(semantics.mulh),
         .div => moduleColumnCount(semantics.div),
+        .fence => moduleColumnCount(semantics.fence),
     };
 }
 
 pub fn clockColumn(family: trace.OpcodeFamily) usize {
     return switch (family) {
-        .lui, .auipc, .jalr, .jal, .mul => 1,
+        .lui, .auipc, .jalr, .jal, .mul, .fence => 1,
         else => 0,
     };
 }
@@ -95,7 +97,19 @@ pub fn constraintCount(family: trace.OpcodeFamily) usize {
         .mul => moduleConstraintCount(semantics.mul),
         .mulh => moduleConstraintCount(semantics.mulh),
         .div => moduleConstraintCount(semantics.div),
+        .fence => moduleConstraintCount(semantics.fence),
     };
+}
+
+/// Every direct constraint remains degree three or lower.  In particular,
+/// x0 writes use committed boolean write-enables and address inverses rather
+/// than multiplying an already-cubic semantic equation by `rd`.
+pub fn constraintLogDegreeBound(
+    family: trace.OpcodeFamily,
+    trace_log_size: u32,
+) u32 {
+    _ = family;
+    return trace_log_size + 1;
 }
 
 pub fn evaluate(
@@ -121,6 +135,7 @@ pub fn evaluate(
         .mul => evaluateModule(semantics.mul, columns, is_active),
         .mulh => evaluateModule(semantics.mulh, columns, is_active),
         .div => evaluateModule(semantics.div, columns, is_active),
+        .fence => evaluateModule(semantics.fence, columns, is_active),
     };
 }
 

@@ -1,4 +1,4 @@
-//! Build ownership for the focused Stark-V RV32IM + CPU/SIMD product.
+//! Build ownership for the focused Sail RV32IM + CPU/SIMD product.
 
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
@@ -12,7 +12,7 @@ const product = graph.Product{
     .frontend = .riscv,
     .backend = .cpu,
     .role = .cli,
-    .protocol_features = "stark-v-rv32im+logup-v1",
+    .protocol_features = "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1",
 };
 const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{
@@ -26,7 +26,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_riscv_cpu", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
-        .{ .name = "starkv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
+        .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
         .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
     },
@@ -72,7 +72,7 @@ pub const Context = struct {
 
 pub const descriptor = product_policy.Descriptor{
     .product = product,
-    .state = .staged,
+    .state = .released,
     .target_support = .any,
     .build_step = "stwo-zig-riscv-cpu",
     .test_step = "test-riscv-cpu-product",
@@ -102,7 +102,7 @@ pub fn addProduct(context: Context) void {
     trace_step.dependOn(&install_host_trace.step);
     const host_step = context.b.step(
         "stwo-zig-riscv-cpu",
-        "Build the focused Stark-V RV32IM CPU/SIMD proof CLI",
+        "Build the focused Sail RV32IM CPU/SIMD proof CLI",
     );
     host_step.dependOn(&install_host.step);
 
@@ -201,7 +201,7 @@ fn addExecutable(
     protocol.addImports(root);
     root.addImport("stwo", stwo);
     root.addImport("stwo_riscv_cpu", stwo);
-    root.addImport("starkv_adapter", adapter);
+    root.addImport("riscv_adapter", adapter);
     root.addImport("riscv_cpu_capabilities", capabilities);
     root.addImport("output_transaction", createOutputTransaction(context, target, optimize));
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
@@ -240,7 +240,7 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     context.protocol.addImports(root);
     root.addImport("stwo", stwo);
     root.addImport("stwo_riscv_cpu", stwo);
-    root.addImport("starkv_adapter", adapter);
+    root.addImport("riscv_adapter", adapter);
     root.addImport("riscv_cpu_capabilities", capabilities);
     root.addImport(
         "output_transaction",

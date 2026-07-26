@@ -193,16 +193,6 @@ pub fn addProducts(context: Context) void {
     const install_metal_bench = b.addInstallArtifact(metal_bench, .{});
     const metal_bench_step = b.step("metal-bench", "Build resident Metal commitment benchmark");
     metal_bench_step.dependOn(&install_metal_bench.step);
-
-    const riscv_metal_module = consumer(context, "src/riscv_metal_bench_cli.zig");
-    const riscv_metal_bench = b.addExecutable(.{
-        .name = "riscv-metal-bench",
-        .root_module = riscv_metal_module,
-    });
-    metal_backend.linkRuntime(b, riscv_metal_bench);
-    const install_riscv_metal_bench = b.addInstallArtifact(riscv_metal_bench, .{});
-    const riscv_metal_step = b.step("riscv-metal-bench", "Build RISC-V prover with Metal commitments");
-    riscv_metal_step.dependOn(&install_riscv_metal_bench.step);
 }
 
 fn consumer(context: Context, root_source_file: []const u8) *std.Build.Module {
@@ -233,7 +223,6 @@ fn addUnavailableProducts(b: *std.Build) void {
         "metal-test",
         "metal-check",
         "metal-bench",
-        "riscv-metal-bench",
     }) |name| {
         const step = b.step(name, reason);
         step.dependOn(&failure.step);

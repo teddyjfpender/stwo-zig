@@ -1,4 +1,4 @@
-//! Canonical identity of the pinned Stark-V opcode witness layout.
+//! Canonical identity of the Sail-authoritative opcode witness layout.
 
 const std = @import("std");
 const trace = @import("runner/trace.zig");
@@ -23,6 +23,7 @@ pub const canonical_families = [_]Family{
     .mulh,
     .shifts_imm,
     .shifts_reg,
+    .fence,
 };
 
 pub fn LayoutFor(comptime family: Family) type {
@@ -43,6 +44,7 @@ pub fn LayoutFor(comptime family: Family) type {
         .mul => layouts.MulColumns,
         .mulh => layouts.MulhColumns,
         .div => layouts.DivColumns,
+        .fence => layouts.FenceColumns,
     };
 }
 
@@ -70,8 +72,8 @@ fn updateFamily(hasher: *std.crypto.hash.sha2.Sha256, comptime family: Family) v
     hasher.update("\n");
 }
 
-test "witness layout digest matches the live pinned-Rust receipt" {
-    const expected = "8896dea17812761ba2246e07508c6d11d455f08519984c0512ce9e7093143b79";
+test "witness layout digest matches the Sail-authoritative schema receipt" {
+    const expected = "c1fbdc34701f9b27513652bd292ec06001e9847d5c75b6dc01aeed0b597c58af";
     const actual = std.fmt.bytesToHex(digest(), .lower);
     try std.testing.expectEqualStrings(expected, &actual);
 }

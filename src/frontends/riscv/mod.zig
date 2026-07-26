@@ -1,4 +1,4 @@
-//! RISC-V RV32IM zkVM frontend (stark-v port).
+//! Sail-authoritative RISC-V RV32IM zkVM frontend.
 //!
 //! Provides an execution runner for RISC-V RV32IM programs (ELF loading,
 //! decode, execute) and AIR constraints for STARK proving of execution traces.

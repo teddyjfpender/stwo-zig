@@ -23,6 +23,7 @@ pub const LuiColumns = control.LuiColumns;
 pub const AuipcColumns = control.AuipcColumns;
 pub const JalrColumns = control.JalrColumns;
 pub const JalColumns = control.JalColumns;
+pub const FenceColumns = control.FenceColumns;
 pub const LoadStoreColumns = memory.LoadStoreColumns;
 
 pub const MulColumns = m_extension.MulColumns;
@@ -41,9 +42,9 @@ pub const RangeCheck8_8_4Multiplicity = infrastructure.RangeCheck8_8_4Multiplici
 pub const RangeCheckM31Multiplicity = infrastructure.RangeCheckM31Multiplicity;
 pub const Poseidon2Columns = infrastructure.Poseidon2Columns;
 
-test "pinned opcode-family widths" {
+test "opcode-family widths preserve legacy prefixes and sound x0 extensions" {
     const std = @import("std");
-    const expected = [_]usize{ 37, 29, 54, 45, 42, 34, 30, 37, 16, 14, 26, 14, 50, 33, 41, 65 };
+    const expected = [_]usize{ 43, 35, 60, 51, 44, 37, 30, 37, 18, 29, 32, 20, 56, 39, 47, 67, 6 };
     const actual = [_]usize{
         BaseAluRegColumns.N_COLUMNS, BaseAluImmColumns.N_COLUMNS,
         ShiftsRegColumns.N_COLUMNS,  ShiftsImmColumns.N_COLUMNS,
@@ -53,11 +54,12 @@ test "pinned opcode-family widths" {
         JalrColumns.N_COLUMNS,       JalColumns.N_COLUMNS,
         LoadStoreColumns.N_COLUMNS,  MulColumns.N_COLUMNS,
         MulhColumns.N_COLUMNS,       DivColumns.N_COLUMNS,
+        FenceColumns.N_COLUMNS,
     };
     try std.testing.expectEqualSlices(usize, &expected, &actual);
 }
 
-test "total opcode family columns is 567" {
+test "total opcode family columns is 651" {
     const std = @import("std");
     const total = BaseAluRegColumns.N_COLUMNS + BaseAluImmColumns.N_COLUMNS +
         ShiftsRegColumns.N_COLUMNS + ShiftsImmColumns.N_COLUMNS +
@@ -65,6 +67,6 @@ test "total opcode family columns is 567" {
         BranchEqColumns.N_COLUMNS + BranchLtColumns.N_COLUMNS +
         LuiColumns.N_COLUMNS + AuipcColumns.N_COLUMNS + JalrColumns.N_COLUMNS +
         JalColumns.N_COLUMNS + LoadStoreColumns.N_COLUMNS + MulColumns.N_COLUMNS +
-        MulhColumns.N_COLUMNS + DivColumns.N_COLUMNS;
-    try std.testing.expectEqual(@as(usize, 567), total);
+        MulhColumns.N_COLUMNS + DivColumns.N_COLUMNS + FenceColumns.N_COLUMNS;
+    try std.testing.expectEqual(@as(usize, 651), total);
 }

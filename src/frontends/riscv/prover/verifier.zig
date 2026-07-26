@@ -33,7 +33,7 @@ pub fn verifyRiscVWithEngine(
     pcs_config: pcs_core.PcsConfig,
     statement: types.RiscVStatement,
     proof_in: types.Proof,
-    claim: types.RiscVInteractionClaim,
+    claim: *const types.RiscVInteractionClaim,
 ) !void {
     var channel = Engine.Channel{};
     return verifyRiscVWithEngineUsingChannel(
@@ -55,7 +55,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
     pcs_config: pcs_core.PcsConfig,
     statement: types.RiscVStatement,
     proof_in: types.Proof,
-    claim: types.RiscVInteractionClaim,
+    claim: *const types.RiscVInteractionClaim,
     channel: *Engine.Channel,
 ) !void {
     comptime prover_engine.assertProverEngine(Engine);
@@ -78,6 +78,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
         proof.commitment_scheme_proof.commitments.items[0],
     );
 
+    pcs_config.mixInto(channel);
     statement.public_data.mixInto(channel);
 
     var commitment_scheme = try pcs_verifier.CommitmentSchemeVerifier(
@@ -144,7 +145,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
         inter_col_offset += n_cols;
     }
     std.debug.assert(inter_col_offset == n_interaction);
-    try proof_transcript.mixInteractionClaim(channel, &statement, &claim);
+    try proof_transcript.mixInteractionClaim(channel, &statement, claim);
     try commitment_scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[2],
@@ -159,14 +160,30 @@ pub fn verifyRiscVWithEngineUsingChannel(
         try public_logup.sum(&statement.public_data, &relations),
     );
 
-    var semantic_storage: [types.MAX_COMPONENTS]semantic_component.SemanticComponent = undefined;
-    var opcode_lookup_storage: [types.MAX_COMPONENTS]opcode_component.OpcodeLookupComponent = undefined;
-    var infra_storage: [types.MAX_INFRA_COMPONENTS]riscv_component.RiscVTraceComponent = undefined;
+    const semantic_storage = try allocator.alloc(
+        semantic_component.SemanticComponent,
+        statement.n_components,
+    );
+    defer allocator.free(semantic_storage);
+    const opcode_lookup_storage = try allocator.alloc(
+        opcode_component.OpcodeLookupComponent,
+        statement.n_components,
+    );
+    defer allocator.free(opcode_lookup_storage);
+    const infra_storage = try allocator.alloc(
+        riscv_component.RiscVTraceComponent,
+        statement.n_infra,
+    );
+    defer allocator.free(infra_storage);
     var hash_storage: [2]hash_component.HashComponent = undefined;
     var n_hash_components: usize = 0;
     var clock_storage: clock_update_component.ClockUpdateComponent = undefined;
     var table_storage: [component_order.LOOKUP_TABLE_COUNT]lookup_table_component.LookupTableComponent = undefined;
-    var verifier_components: [2 * types.MAX_COMPONENTS + types.MAX_INFRA_COMPONENTS]core_air_components.Component = undefined;
+    const verifier_components = try allocator.alloc(
+        core_air_components.Component,
+        2 * statement.n_components + statement.n_infra,
+    );
+    defer allocator.free(verifier_components);
     var total_components: usize = 0;
 
     var main_offset: usize = 0;

@@ -42,11 +42,11 @@ def available_resources() -> dict[str, object]:
 def artifact() -> dict[str, object]:
     return {
         "artifact_kind": "stwo_riscv_proof",
-        "schema_version": 3,
-        "exchange_mode": "riscv_proof_json_wire_v3",
+        "schema_version": 4,
+        "exchange_mode": "riscv_proof_json_wire_v4",
         "release_status": "not_release_gated",
         "generator": "zig",
-        "air": "stark_v_rv32im",
+        "air": "sail_rv32im_zkvm_v1",
         "backend": "cpu",
         "protocol": "functional",
         "source": {"elf_sha256": DIGEST, "input_sha256": DIGEST},
@@ -113,7 +113,7 @@ class JsonContractTests(unittest.TestCase):
             "schema": "riscv_verify_v1",
             "status": "verified",
             "artifact_kind": "stwo_riscv_proof",
-            "artifact_schema_version": 3,
+            "artifact_schema_version": 4,
             "release_status": "not_release_gated",
             "security_policy": "functional",
             "statement_sha256": DIGEST,
@@ -282,7 +282,7 @@ class JsonContractTests(unittest.TestCase):
             },
             "applications": [],
             "deferred_adapters": [{
-                "adapter": "stark-v-rv32im-elf",
+                "adapter": "sail-rv32im-zkvm-elf",
                 "status": "not_release_gated",
                 "isa": "rv32im",
                 "backends": ["cpu"],
@@ -310,7 +310,7 @@ class JsonContractTests(unittest.TestCase):
             },
             "applications": [],
             "deferred_adapters": [{
-                "adapter": "stark-v-rv32im-elf",
+                "adapter": "sail-rv32im-zkvm-elf",
                 "status": "not_release_gated",
                 "isa": "rv32im",
                 "backends": ["cpu"],
@@ -388,7 +388,7 @@ class MutationTests(unittest.TestCase):
             "corrupt-json", "legacy-schema-v2", "duplicate-header", "unknown-field",
             "omitted-claim", "release-relabel",
         }, set(cases))
-        self.assertIn('"schema_version":3,"schema_version":3', cases["duplicate-header"][0])
+        self.assertIn('"schema_version":4,"schema_version":4', cases["duplicate-header"][0])
         self.assertEqual("not_release_gated", payload["release_status"])
 
     def test_proof_wire_mutations_are_distinct_and_bounded(self) -> None:

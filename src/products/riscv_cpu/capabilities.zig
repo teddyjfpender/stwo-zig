@@ -1,13 +1,13 @@
-//! Authoritative capability and release-admission data for Stark-V RV32IM.
+//! Authoritative capability and release-admission data for Sail RV32IM.
 
 /// RF-01 flips this in the same commit as the artifact release status after
 /// every RISC-V soundness and oracle gate passes.
 pub const adapter_release_gated = true;
-pub const adapter = "stark-v-rv32im-elf";
-pub const air = "stark_v_rv32im";
+pub const adapter = "sail-rv32im-zkvm-elf";
+pub const air = "sail_rv32im_zkvm_v1";
 pub const isa = "rv32im";
 pub const backend = "cpu";
-pub const deferred_reason = "RISC-V release contract is not yet fully satisfied";
+pub const deferred_reason = "RISC-V formal release contract is not yet fully satisfied";
 
 pub fn requireAdmission(experimental: bool) !void {
     if (adapter_release_gated) {

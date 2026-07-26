@@ -15,7 +15,7 @@ const public_data = @import("../air/public_data.zig");
 const memory_boundary = @import("../air/memory_commitment/boundary.zig");
 const program_commitment = @import("../air/program/commitment.zig");
 const program_table = @import("../air/program/table.zig");
-const opcode_manifest = @import("../opcode_manifest.zig");
+const authority = @import("../isa/authority.zig");
 const runner = @import("../runner/mod.zig");
 const witness_layout = @import("../witness_layout.zig");
 
@@ -79,6 +79,7 @@ pub fn derive(
         .program_root = program.tree.root,
         .initial_rw_root = if (memory.initial_tree) |tree| tree.root else null,
         .final_rw_root = if (memory.final_tree) |tree| tree.root else null,
+        .completion = try public_data.completionFromRun(run_result),
         .io_entries = .{
             .input_start = run_result.input_start,
             .input_len = std.math.cast(u32, run_result.input.len) orelse
@@ -143,7 +144,7 @@ pub fn encode(
         .provenance = .{
             .implementation_commit = implementation_commit,
             .implementation_dirty = implementation_dirty,
-            .oracle_commit = opcode_manifest.stark_v_revision,
+            .oracle_commit = authority.sail_revision,
             .witness_layout_sha256 = &layout_hex,
         },
         .source = .{
@@ -171,6 +172,7 @@ test "public-value diagnostic schema binds provenance and nonempty IO shape" {
         .program_root = 11,
         .initial_rw_root = 22,
         .final_rw_root = 33,
+        .completion = public_data.Completion.canonicalSelfLoop(0x1020),
         .io_entries = .{
             .input_start = 0x10,
             .input_len = 4,
@@ -201,7 +203,7 @@ test "public-value diagnostic schema binds provenance and nonempty IO shape" {
     try std.testing.expectEqual(@as(usize, 4), provenance.count());
     try std.testing.expect(provenance.get("implementation_dirty").?.bool);
     try std.testing.expectEqualStrings(
-        opcode_manifest.stark_v_revision,
+        authority.sail_revision,
         provenance.get("oracle_commit").?.string,
     );
     const io = root.get("public_data").?.object.get("io_entries").?.object;

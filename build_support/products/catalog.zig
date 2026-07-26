@@ -21,6 +21,7 @@ pub const Scope = enum {
     release,
     riscv_cpu,
     riscv_cpu_compat,
+    riscv_metal,
     verification,
 };
 
@@ -82,8 +83,8 @@ pub const steps = [_]Step{
     .{ .name = "cuda-native-archive", .description = "Build the exact static CUDA runtime and copied AOT pack", .scope = .cuda_tools },
     .{ .name = "cuda-native-adapter", .description = "Build the copied-backend Native CUDA proof adapter", .scope = .cuda_tools },
     .{ .name = "cairo-input", .description = "Build adapted Cairo input inspector", .scope = .compatibility_tools },
-    .{ .name = "riscv-opcode-manifest", .description = "Dump the canonical Stark-V opcode and proof-family policy as JSON", .scope = .compatibility_tools },
-    .{ .name = "riscv-opcode-manifest-check", .description = "Validate exact Stark-V opcode IDs and execution-only classifications", .scope = .compatibility_tools },
+    .{ .name = "riscv-opcode-manifest", .description = "Dump the Sail-authoritative opcode and proof-family policy as JSON", .scope = .compatibility_tools },
+    .{ .name = "riscv-opcode-manifest-check", .description = "Validate stable RV32IM protocol IDs and proof classifications", .scope = .compatibility_tools },
     .{ .name = "test-riscv", .description = "Run RISC-V runner tests (trace_dump)", .scope = .riscv_cpu_compat },
     .{ .name = "test-riscv-prover", .description = "Run RISC-V prover tests (prove+verify)", .scope = .riscv_cpu_compat },
     .{ .name = "riscv-bench", .description = "Build RISC-V benchmark CLI", .scope = .compatibility_tools },
@@ -105,7 +106,6 @@ pub const steps = [_]Step{
     .{ .name = "metal-test", .description = "Run resident Metal backend parity tests", .scope = .metal_tools },
     .{ .name = "metal-check", .description = "Compile and link resident Metal backend tests without executing them", .scope = .metal_tools },
     .{ .name = "metal-bench", .description = "Build resident Metal commitment benchmark", .scope = .metal_tools },
-    .{ .name = "riscv-metal-bench", .description = "Build RISC-V prover with Metal commitments", .scope = .metal_tools },
     .{ .name = "cuda-test", .description = "Unavailable compatibility alias; CUDA now requires an explicit product toolchain", .scope = .deferred },
     .{ .name = "riscv-release-gate", .description = "Run the staged CLI and validate complete candidate-bound CP-11 evidence", .scope = .verification },
     .{ .name = "deep-gate", .description = "Run expanded deep graph coverage", .scope = .verification },
@@ -149,6 +149,7 @@ pub const steps = [_]Step{
 pub const configure = [_]Configure{
     .{ .scope = .architecture, .role = .gates, .external_tools = &.{"python3"}, .constructors = &.{ "gates/architecture_receipts.addGates", "gates/baseline.addGate" } },
     .{ .scope = .riscv_cpu_compat, .role = .product, .inherited_product_scope = .riscv_cpu, .constructors = &.{ "products/matrix.construct.riscv_cpu", "compatibility aliases" } },
+    .{ .scope = .riscv_metal, .role = .product, .product_ids = &.{"stwo-riscv-metal"}, .module_roots = &.{ "src/riscv_metal_bench_cli.zig", "src/stwo_riscv_metal.zig", "src/integrations/riscv_metal/mod.zig", "src/tests/riscv/metal_backend_test.zig" }, .external_tools = &.{ "python3", "xcrun" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{"products/matrix.construct.riscv_metal"} },
     .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/core/mod.zig", "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/core", "src/backend", "src/prover", "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
         .{ .product_id = "stwo-core", .frontend = "none", .backend = "none", .role = "library", .protocol_manifest = "stwo-core-v1" },
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },

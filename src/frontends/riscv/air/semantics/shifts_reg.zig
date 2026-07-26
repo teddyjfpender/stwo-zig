@@ -5,7 +5,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 const shift = @import("shift_common.zig");
 
-pub const N_ORACLE_COLUMNS: usize = 54;
+pub const N_ORACLE_COLUMNS: usize = 60;
 pub const N_CONSTRAINTS: usize = shift.N_CONSTRAINTS;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
@@ -37,6 +37,8 @@ pub const Row = struct {
                 .bit_markers = columns[38..46].*,
                 .limb_markers = columns[46..50].*,
                 .carries = columns[50..54].*,
+                .result = columns[54..58].*,
+                .destination = common.destinationFromColumns(columns[58..60]),
             },
         };
     }
@@ -89,6 +91,7 @@ pub fn shiftAmountRangeLookup(row: Row) QM31 {
 
 pub const carryRangePairs = shift.carryRangePairs;
 pub const rdRangePairs = shift.rdRangePairs;
+pub const signRangeLookup = shift.signRangeLookup;
 
 fn zeroAccess() common.Access {
     return .{
@@ -128,6 +131,8 @@ fn sllByOneRow() Row {
             .bit_markers = .{ QM31.zero(), QM31.one(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero() },
             .limb_markers = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero() },
             .carries = .{QM31.zero()} ** 4,
+            .result = .{ common.q(2), QM31.zero(), QM31.zero(), QM31.zero() },
+            .destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() },
         },
     };
 }
@@ -159,6 +164,7 @@ test "shifts reg: arithmetic right shift binds sign extension" {
     row.semantic.bit_multiplier_right = common.q(2);
     row.semantic.rs1.next = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(128) };
     row.semantic.rd.next = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(192) };
+    row.semantic.result = row.semantic.rd.next;
     try std.testing.expect(evaluate(row).allZero());
 
     row.semantic.rs1_sign = QM31.zero();

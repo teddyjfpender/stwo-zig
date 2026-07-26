@@ -72,6 +72,7 @@ const ReleaseFixture = struct {
             .program_root = null,
             .initial_rw_root = null,
             .final_rw_root = null,
+            .completion = public_data_mod.completionFromRun(self.run) catch unreachable,
             .io_entries = .{
                 .input_start = self.run.input_start,
                 .input_len = @intCast(self.run.input.len),
@@ -103,6 +104,7 @@ fn expectCommittedMutationRejected(fixture: *const ReleaseFixture, mutation: Mut
         try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
         return;
     };
+    defer output.deinitAfterProofMoved(fixture.allocator);
     try std.testing.expect(std.meta.isError(riscv_cpu.verifyRiscV(
         fixture.allocator,
         TEST_PCS_CONFIG,
@@ -155,6 +157,7 @@ test "riscv verifier distinguishes absent RW root from present default root" {
     var trace = try testAddiTrace(std.testing.allocator, 4);
     defer trace.deinit();
     const output = try riscv_cpu.proveRiscV(std.testing.allocator, TEST_PCS_CONFIG, &trace, null, null);
+    defer output.deinitAfterProofMoved(std.testing.allocator);
     try std.testing.expect(output.statement.public_data.initial_rw_root == null);
 
     var statement = output.statement;

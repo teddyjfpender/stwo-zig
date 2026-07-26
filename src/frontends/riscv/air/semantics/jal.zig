@@ -6,8 +6,8 @@ const common = @import("common.zig");
 const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
-pub const N_MAIN_COLUMNS: usize = 14;
-pub const N_CONSTRAINTS: usize = 2;
+pub const N_MAIN_COLUMNS: usize = 20;
+pub const N_CONSTRAINTS: usize = 9;
 
 pub const Row = struct {
     enabler: QM31,
@@ -15,6 +15,8 @@ pub const Row = struct {
     pc: QM31,
     rd: common.Access,
     imm_felt: QM31,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn fromMainColumns(columns: []const QM31) !Row {
         if (columns.len != N_MAIN_COLUMNS) return error.InvalidMainTraceShape;
@@ -24,6 +26,8 @@ pub const Row = struct {
             .pc = columns[2],
             .rd = control.accessFromColumns(columns, 3),
             .imm_felt = columns[13],
+            .result = columns[14..18].*,
+            .destination = common.destinationFromColumns(columns[18..20]),
         };
     }
 };
@@ -31,11 +35,17 @@ pub const Row = struct {
 pub const Constraints = common.ConstraintSet(N_CONSTRAINTS);
 
 pub fn evaluate(row: Row) Constraints {
-    const rd_felt = common.composeU32(row.rd.next);
-    return .{ .values = .{
-        common.bit(row.enabler),
-        row.enabler.mul(row.rd.addr).mul(rd_felt.sub(row.pc.add(common.q(4)))),
-    } };
+    var out: [N_CONSTRAINTS]QM31 = undefined;
+    out[0] = common.bit(row.enabler);
+    out[1] = row.enabler.mul(
+        common.composeU32(row.result).sub(row.pc.add(common.q(4))),
+    );
+    @memcpy(out[2..5], &common.destinationConstraints(row.rd.addr, row.destination));
+    @memcpy(
+        out[5..9],
+        &common.destinationResultConstraints(row.rd, row.result, row.destination),
+    );
+    return .{ .values = out };
 }
 
 pub fn placementConstraint(row: Row, is_active: QM31) QM31 {
@@ -94,13 +104,13 @@ pub fn lookups(row: Row) Lookups {
         .ranges = .{
             .middle_bytes = control.rangePairRequest(
                 row.enabler,
-                row.rd.next[1],
-                row.rd.next[2],
+                row.result[1],
+                row.result[2],
             ),
             .m31_split = control.rangePairRequest(
                 row.enabler,
-                row.rd.next[0],
-                row.rd.next[3],
+                row.result[0],
+                row.result[3],
             ),
         },
     };
@@ -118,6 +128,8 @@ fn zeroRow() Row {
             .next = .{QM31.zero()} ** 4,
         },
         .imm_felt = QM31.zero(),
+        .result = .{QM31.zero()} ** 4,
+        .destination = .{ .nonzero = QM31.zero(), .inverse = QM31.zero() },
     };
 }
 
@@ -129,6 +141,8 @@ test "jal: honest jump binds link register and target" {
     row.imm_felt = common.q(24);
     row.rd.addr = QM31.one();
     row.rd.next = .{ common.q(4), common.q(0x10), QM31.zero(), QM31.zero() };
+    row.result = row.rd.next;
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     try std.testing.expect(evaluate(row).allZero());
 
     const requests = lookups(row);
@@ -143,7 +157,9 @@ test "jal: forged link register is rejected" {
     row.enabler = QM31.one();
     row.pc = common.q(100);
     row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.rd.next[0] = common.q(105);
+    row.result[0] = common.q(105);
     try std.testing.expect(!evaluate(row).allZero());
 }
 

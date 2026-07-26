@@ -58,6 +58,7 @@ pub const SegmentRole = struct {
 pub const WordRole = struct {
     is_public_input: bool = false,
     is_public_output: bool = false,
+    is_public_completion: bool = false,
 };
 
 /// Initial and final state of one aligned word in the RW-memory union.
@@ -74,7 +75,7 @@ pub const WordState = struct {
 
     pub fn includeFinal(self: WordState) bool {
         if (self.role.is_public_input) return self.final_clock > 0;
-        return !self.role.is_public_output;
+        return !self.role.is_public_output and !self.role.is_public_completion;
     }
 };
 
@@ -103,6 +104,7 @@ pub fn capture(
     layout: MemoryLayout,
     segment_role: SegmentRole,
     output_len: u32,
+    completion_word_addr: ?u32,
 ) !Snapshot {
     var addresses = std.AutoHashMap(u32, void).init(allocator);
     defer addresses.deinit();
@@ -128,6 +130,8 @@ pub fn capture(
                 .is_public_input = segment_role.is_first and layout.isInputAddr(addr),
                 .is_public_output = segment_role.is_last and
                     layout.isPublicOutputAddr(addr, output_len),
+                .is_public_completion = segment_role.is_last and
+                    completion_word_addr != null and addr == completion_word_addr.?,
             },
         });
     }
@@ -202,6 +206,7 @@ test "memory state: captures initialized and accessed RW words in address order"
         testLayout(),
         SegmentRole.single(),
         0,
+        null,
     );
     defer snapshot.deinit(std.testing.allocator);
 
@@ -240,6 +245,7 @@ test "memory state: first and last segment roles classify IO independently" {
         testLayout(),
         .{ .is_first = true, .is_last = false },
         4,
+        null,
     );
     defer first.deinit(std.testing.allocator);
     try std.testing.expect(first.words[0].role.is_public_input);
@@ -252,6 +258,7 @@ test "memory state: first and last segment roles classify IO independently" {
         testLayout(),
         .{ .is_first = false, .is_last = true },
         4,
+        null,
     );
     defer last.deinit(std.testing.allocator);
     try std.testing.expect(!last.words[0].role.is_public_input);

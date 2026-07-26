@@ -5,7 +5,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 const shift = @import("shift_common.zig");
 
-pub const N_ORACLE_COLUMNS: usize = 45;
+pub const N_ORACLE_COLUMNS: usize = 51;
 pub const N_CONSTRAINTS: usize = shift.N_CONSTRAINTS + 1;
 pub const CURRENT_TRACE_COMPATIBLE = true;
 
@@ -35,6 +35,8 @@ pub const Row = struct {
                 .bit_markers = columns[29..37].*,
                 .limb_markers = columns[37..41].*,
                 .carries = columns[41..45].*,
+                .result = columns[45..49].*,
+                .destination = common.destinationFromColumns(columns[49..51]),
             },
         };
     }
@@ -84,6 +86,7 @@ pub fn stateLookup(row: Row) common.RegistersStateChain {
 
 pub const carryRangePairs = shift.carryRangePairs;
 pub const rdRangePairs = shift.rdRangePairs;
+pub const signRangeLookup = shift.signRangeLookup;
 
 fn slliByOneRow() Row {
     const rd = common.Access{
@@ -114,6 +117,8 @@ fn slliByOneRow() Row {
             .bit_markers = .{ QM31.zero(), QM31.one(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero() },
             .limb_markers = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero() },
             .carries = .{QM31.zero()} ** 4,
+            .result = .{ common.q(2), QM31.zero(), QM31.zero(), QM31.zero() },
+            .destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() },
         },
     };
 }

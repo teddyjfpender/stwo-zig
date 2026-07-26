@@ -3,6 +3,7 @@
 const std = @import("std");
 const component_order = @import("air/component_order.zig");
 const lookup_table_schema = @import("air/lookups/tables/schema.zig");
+const program_commitment = @import("air/program/commitment.zig");
 const public_data = @import("air/public_data.zig");
 const relation_challenges = @import("air/relation_challenges.zig");
 const statement_mod = @import("air/statement.zig");
@@ -262,6 +263,8 @@ fn fixtureStatement() statement_mod.RiscVStatement {
         .{ .addr = 0x0010_0004, .value = 4, .clock = 12 },
         .{ .addr = 0x0010_0008, .value = 0x0807_0605, .clock = 13 },
     };
+    var final_regs = [_]u32{1} ** 32;
+    final_regs[0] = 0;
     var statement: statement_mod.RiscVStatement = undefined;
     statement.n_components = 2;
     statement.component_descs[0] = .{
@@ -284,11 +287,12 @@ fn fixtureStatement() statement_mod.RiscVStatement {
         .final_pc = statement.final_pc,
         .clock = statement.total_steps,
         .initial_regs = .{0} ** 32,
-        .final_regs = .{1} ** 32,
+        .final_regs = final_regs,
         .reg_last_clock = .{2} ** 32,
         .program_root = 101,
         .initial_rw_root = 202,
         .final_rw_root = 303,
+        .completion = public_data.Completion.canonicalSelfLoop(statement.final_pc),
         .io_entries = .{
             .input_start = 0x0018_0000,
             .input_len = 4,
@@ -304,7 +308,7 @@ fn fixtureStatement() statement_mod.RiscVStatement {
         .kind = .program,
         .log_size = statement_validation.computeLogSize(20),
         .n_rows = 20,
-        .n_columns = 8,
+        .n_columns = program_commitment.N_MAIN_COLUMNS,
     };
     statement.n_infra += 1;
     statement.infra_descs[statement.n_infra] = .{

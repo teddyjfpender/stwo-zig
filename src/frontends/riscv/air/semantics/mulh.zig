@@ -1,9 +1,9 @@
-//! Exact pinned Stark-V `MULH`, `MULHSU`, and `MULHU` semantics.
+//! RV32M `MULH`, `MULHSU`, and `MULHU` semantics.
 //!
-//! The witness carries both halves of the 64-bit product. Eight singleton
-//! `range_check_8_11` requests enforce the signed schoolbook carry chain while
-//! keeping every lookup denominator within the oracle's degree bound.
-//! Oracle: pinned `crates/air/src/schema.rs` and `runner/src/ops/muldiv.rs`.
+//! This follows Sail's `mult_to_bits_half` semantics. The witness carries both
+//! halves of the 64-bit product. Eight `range_check_8_11` requests enforce the
+//! byte-wise carry chain, while two `range_check_m31` requests bind each signed
+//! operand's sign witness to bit 31.
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
@@ -11,24 +11,12 @@ const common = @import("common.zig");
 const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
-pub const N_ORACLE_COLUMNS: usize = 41;
-pub const N_CONSTRAINTS: usize = 8;
+pub const N_ORACLE_COLUMNS: usize = 47;
+pub const N_CONSTRAINTS: usize = 15;
 pub const LOOKUP_BATCH_SIZE: usize = 1;
 pub const BITWISE_LOOKUP_COUNT: usize = 0;
-// FIX(stark-v-signed-mulh): The pinned oracle adds `sign * 128` to the raw top
-// byte while also using a `255 * sign` extension byte. For signed operands this
-// makes the carry numerator non-divisible by 256 (for example, MULH(-1, -1)
-// yields carry_4 = 2_139_096_569), outside the 11-bit lookup table. Of the eight
-// invalid range requests, four index past the table and four wrap to an existing
-// u32 index whose generated tuple does not match. The sign witnesses are also
-// not tied to the operand top bits, so clearing them can admit unsigned-high
-// behavior for a signed opcode. Preserve the formula below for d478f783 parity,
-// keep this family fail closed in production, and remove this marker only after
-// the pinned Rust oracle changes with signed prove/verify vectors.
-pub const CURRENT_TRACE_COMPATIBLE = false;
-pub const MISSING_CURRENT_WITNESS_COLUMNS = [_][]const u8{
-    "pinned signed carry relation rejects the exact runner witness",
-};
+pub const CURRENT_TRACE_COMPATIBLE = true;
+pub const MISSING_CURRENT_WITNESS_COLUMNS = [_][]const u8{};
 
 pub const Row = struct {
     clock: QM31,
@@ -42,6 +30,8 @@ pub const Row = struct {
     is_mulh: QM31,
     is_mulhsu: QM31,
     is_mulhu: QM31,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn fromOracleColumns(columns: []const QM31) !Row {
         if (columns.len != N_ORACLE_COLUMNS) return error.InvalidOracleTraceShape;
@@ -57,6 +47,8 @@ pub const Row = struct {
             .is_mulh = columns[38],
             .is_mulhsu = columns[39],
             .is_mulhu = columns[40],
+            .result = columns[41..45].*,
+            .destination = common.destinationFromColumns(columns[45..47]),
         };
     }
 
@@ -71,38 +63,31 @@ pub const Derived = struct {
 
 pub fn derive(row: Row) Derived {
     @setEvalBranchQuota(100_000);
-    const a = row.rs1.next;
-    const b = row.rs2.next;
-    const low = row.rd_high;
-    const high = row.rd.next;
-    const a_top = a[3].add(row.rs1_sign.mul(common.q(128)));
-    const b_top = b[3].add(row.rs2_sign.mul(common.q(128)));
     const a_fill = row.rs1_sign.mul(common.q(255));
     const b_fill = row.rs2_sign.mul(common.q(255));
-    var carry: [8]QM31 = undefined;
+    var a: [8]QM31 = undefined;
+    var b: [8]QM31 = undefined;
+    var product: [8]QM31 = undefined;
+    @memcpy(a[0..4], &row.rs1.next);
+    @memcpy(b[0..4], &row.rs2.next);
+    @memcpy(product[0..4], &row.rd_high);
+    @memcpy(product[4..8], &row.result);
+    for (4..8) |limb| {
+        a[limb] = a_fill;
+        b[limb] = b_fill;
+    }
 
-    carry[0] = a[0].mul(b[0]).sub(low[0]).mul(common.INV_BYTE_RADIX);
-    carry[1] = carry[0].add(a[0].mul(b[1])).add(a[1].mul(b[0]))
-        .sub(low[1]).mul(common.INV_BYTE_RADIX);
-    carry[2] = carry[1].add(a[0].mul(b[2])).add(a[1].mul(b[1]))
-        .add(a[2].mul(b[0])).sub(low[2]).mul(common.INV_BYTE_RADIX);
-    carry[3] = carry[2].add(a[0].mul(b_top)).add(a[1].mul(b[2]))
-        .add(a[2].mul(b[1])).add(a_top.mul(b[0]))
-        .sub(low[3]).mul(common.INV_BYTE_RADIX);
-    carry[4] = carry[3].add(a[0].mul(b_fill)).add(a[1].mul(b_top))
-        .add(a[2].mul(b[2])).add(a_top.mul(b[1])).add(a_fill.mul(b[0]))
-        .sub(high[0]).mul(common.INV_BYTE_RADIX);
-    carry[5] = carry[4].add(a[0].mul(b_fill)).add(a[1].mul(b_fill))
-        .add(a[2].mul(b_top)).add(a_top.mul(b[2])).add(a_fill.mul(b[1]))
-        .add(a_fill.mul(b[0])).sub(high[1]).mul(common.INV_BYTE_RADIX);
-    carry[6] = carry[5].add(a[0].mul(b_fill)).add(a[1].mul(b_fill))
-        .add(a[2].mul(b_fill)).add(a_top.mul(b_top)).add(a_fill.mul(b[2]))
-        .add(a_fill.mul(b[1])).add(a_fill.mul(b[0]))
-        .sub(high[2]).mul(common.INV_BYTE_RADIX);
-    carry[7] = carry[6].add(a[0].mul(b_fill)).add(a[1].mul(b_fill))
-        .add(a[2].mul(b_fill)).add(a_top.mul(b_fill)).add(a_fill.mul(b_top))
-        .add(a_fill.mul(b[2])).add(a_fill.mul(b[1])).add(a_fill.mul(b[0]))
-        .sub(high[3]).mul(common.INV_BYTE_RADIX);
+    var carry: [8]QM31 = undefined;
+    var previous = QM31.zero();
+    for (0..8) |output_limb| {
+        var numerator = previous;
+        for (0..output_limb + 1) |lhs_limb| {
+            numerator = numerator.add(a[lhs_limb].mul(b[output_limb - lhs_limb]));
+        }
+        carry[output_limb] = numerator.sub(product[output_limb])
+            .mul(common.INV_BYTE_RADIX);
+        previous = carry[output_limb];
+    }
     return .{ .carries = carry };
 }
 
@@ -114,16 +99,23 @@ fn booleanConstraint(value: QM31) QM31 {
 
 pub fn evaluate(row: Row) Constraints {
     const active = row.active();
-    return .{ .values = .{
+    var out: [N_CONSTRAINTS]QM31 = undefined;
+    out[0..8].* = .{
         booleanConstraint(active),
         booleanConstraint(row.is_mulh),
         booleanConstraint(row.is_mulhsu),
         booleanConstraint(row.is_mulhu),
         booleanConstraint(row.rs1_sign),
         booleanConstraint(row.rs2_sign),
-        row.is_mulhsu.add(row.is_mulhu).mul(row.rs2_sign),
-        row.is_mulhu.mul(row.rs1_sign),
-    } };
+        QM31.one().sub(row.is_mulh).sub(row.is_mulhsu).mul(row.rs1_sign),
+        QM31.one().sub(row.is_mulh).mul(row.rs2_sign),
+    };
+    @memcpy(out[8..11], &common.destinationConstraints(row.rd.addr, row.destination));
+    @memcpy(
+        out[11..15],
+        &common.destinationResultConstraints(row.rd, row.result, row.destination),
+    );
+    return .{ .values = out };
 }
 
 pub fn placementConstraint(row: Row, is_active: QM31) QM31 {
@@ -150,6 +142,7 @@ pub const Lookups = struct {
     rs1: control.RegisterAccessLookups,
     rs2: control.RegisterAccessLookups,
     product_ranges: [8]control.Request(control.RangePairTuple),
+    sign_ranges: [2]control.Request(control.RangePairTuple),
     rd: control.RegisterAccessLookups,
 };
 
@@ -158,15 +151,32 @@ pub fn lookups(row: Row) Lookups {
     const carries = derive(row).carries;
     var ranges: [8]control.Request(control.RangePairTuple) = undefined;
     for (&ranges, 0..) |*request, limb| {
-        const result_limb = if (limb < 4) row.rd.next[limb] else row.rd_high[limb - 4];
+        const result_limb = if (limb < 4) row.rd_high[limb] else row.result[limb - 4];
         request.* = control.rangePairRequest(active, result_limb, carries[limb]);
     }
+    const signed_rs1 = row.is_mulh.add(row.is_mulhsu);
+    const signed_rs2 = row.is_mulh;
     return .{
         .program = control.programRequest(active, programLookup(row)),
         .state = control.stateLookups(row.pc, row.clock, row.pc.add(common.q(4)), active),
         .rs1 = control.registerAccessLookups(row.rs1, row.clock, active),
         .rs2 = control.registerAccessLookups(row.rs2, row.clock, active),
         .product_ranges = ranges,
+        // `range_check_m31` accepts `(lo8, hi7)`. Keeping `lo8 = 0`
+        // proves `top_byte - 128 * sign` is a seven-bit value, which is
+        // equivalent to `sign == bit31` for an already byte-ranged operand.
+        .sign_ranges = .{
+            control.rangePairRequest(
+                signed_rs1,
+                QM31.zero(),
+                row.rs1.next[3].sub(row.rs1_sign.mul(common.q(128))),
+            ),
+            control.rangePairRequest(
+                signed_rs2,
+                QM31.zero(),
+                row.rs2.next[3].sub(row.rs2_sign.mul(common.q(128))),
+            ),
+        },
         .rd = control.registerAccessLookups(row.rd, row.clock, active),
     };
 }
@@ -202,10 +212,15 @@ fn honestUnsignedMaxRow() Row {
         .is_mulh = QM31.zero(),
         .is_mulhsu = QM31.zero(),
         .is_mulhu = QM31.one(),
+        .result = rd.next,
+        .destination = .{
+            .nonzero = QM31.one(),
+            .inverse = common.q(3).inv() catch unreachable,
+        },
     };
 }
 
-test "mulh: unsigned maximal product has eight bounded oracle requests" {
+test "mulh: unsigned maximal product has eight bounded carry requests" {
     const row = honestUnsignedMaxRow();
     try std.testing.expect(evaluate(row).allZero());
     const requests = lookups(row);
@@ -224,9 +239,32 @@ test "mulh: unsigned opcode rejects a forged signed witness" {
     try std.testing.expect(!evaluate(row).allZero());
 }
 
+test "mulh: signed operand sign is bound to bit 31" {
+    var row = honestUnsignedMaxRow();
+    row.is_mulhu = QM31.zero();
+    row.is_mulh = QM31.one();
+    row.rs1_sign = QM31.one();
+    row.rs2_sign = QM31.one();
+    try std.testing.expect(evaluate(row).allZero());
+
+    const honest = lookups(row);
+    try std.testing.expect(
+        honest.sign_ranges[0].tuple.limb_1.eql(common.q(127)),
+    );
+    try std.testing.expect(
+        honest.sign_ranges[1].tuple.limb_1.eql(common.q(127)),
+    );
+
+    row.rs1_sign = QM31.zero();
+    const forged = lookups(row);
+    const forged_top = try forged.sign_ranges[0].tuple.limb_1.tryIntoM31();
+    try std.testing.expect(forged_top.toU32() >= 128);
+}
+
 test "mulh: forged high product escapes constraints but fails range table" {
     var row = honestUnsignedMaxRow();
     row.rd.next[0] = common.q(255);
+    row.result[0] = common.q(255);
     try std.testing.expect(evaluate(row).allZero());
     const forged_carry = try derive(row).carries[4].tryIntoM31();
     try std.testing.expect(forged_carry.toU32() >= 2048);

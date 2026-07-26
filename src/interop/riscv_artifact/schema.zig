@@ -1,16 +1,17 @@
-//! Stable JSON wire types for the staged Stark-V proof artifact.
+//! Stable JSON wire types for the Sail-authoritative RV32IM proof artifact.
 
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 4;
 pub const ARTIFACT_KIND = "stwo_riscv_proof";
-pub const EXCHANGE_MODE = "riscv_proof_json_wire_v3";
+pub const EXCHANGE_MODE = "riscv_proof_json_wire_v4";
 pub const LEGACY_EXCHANGE_MODE_V1 = "riscv_proof_json_wire_v1";
 pub const LEGACY_EXCHANGE_MODE_V2 = "riscv_proof_json_wire_v2";
+pub const LEGACY_EXCHANGE_MODE_V3 = "riscv_proof_json_wire_v3";
 pub const EXCHANGE_MODE_PREFIX = "riscv_proof_json_wire_v";
 
 pub const GENERATOR = "zig";
-pub const AIR = "stark_v_rv32im";
-pub const ORACLE_REPOSITORY = "https://github.com/ClementWalter/stark-v";
-pub const ORACLE_COMMIT = "d478f783055aa0d73a93768a433a3c6c31c91d1c";
+pub const AIR = "sail_rv32im_zkvm_v1";
+pub const ORACLE_REPOSITORY = "https://github.com/riscv/sail-riscv";
+pub const ORACLE_COMMIT = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f";
 pub const IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig";
 
 pub const MAX_ARTIFACT_BYTES: usize = 256 * 1024 * 1024;
@@ -59,6 +60,18 @@ pub const OutputWordWire = struct {
     clock: u32,
 };
 
+pub const CompletionKindWire = enum {
+    halt_flag,
+    unretired_self_loop,
+};
+
+pub const CompletionWire = struct {
+    kind: CompletionKindWire,
+    address: u32,
+    value: u32,
+    clock: u32,
+};
+
 pub const PublicDataWire = struct {
     initial_pc: u32,
     final_pc: u32,
@@ -69,6 +82,7 @@ pub const PublicDataWire = struct {
     program_root: ?u32,
     initial_rw_root: ?u32,
     final_rw_root: ?u32,
+    completion: CompletionWire,
     input_start: u32,
     input_len: u32,
     input_words: []const u32,

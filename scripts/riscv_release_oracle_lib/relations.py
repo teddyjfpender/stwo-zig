@@ -38,7 +38,11 @@ EMPTY_TUPLE_DIGEST = hashlib.blake2s(
 ).hexdigest()
 EMPTY_INPUT_DIGEST = hashlib.sha256(b"").hexdigest()
 LIMITATION_SCHEMA = "riscv-mulh-limitation-v1"
-LIMITATION_ID = admission_policy.SIGNED_MULH_LIMITATION
+# Retained only to parse archived CP-11 evidence.  These values are deliberately
+# local to the legacy adapter and are not part of current proof admission.
+LEGACY_FAIL_CLOSED = "fail_closed_known_limitation"
+LEGACY_DIAGNOSTIC_FAIL_CLOSED = "diagnostic_balanced_family_fail_closed"
+LIMITATION_ID = "stark-v-signed-mulh"
 LIMITATION_MODE = "pinned_known_limitation"
 BALANCED_MODE = "balanced_full"
 RANGE_8_11_DOMAIN = 8
@@ -714,7 +718,7 @@ def compare_relation_boundaries(
         elf = root / vector["elf"]
         admission = vector["proof_admission"]
         status = admission["status"]
-        if status == admission_policy.FAIL_CLOSED:
+        if status == LEGACY_FAIL_CLOSED:
             limitation_error = None
             limitation = None
             rust_raw = ""
@@ -750,7 +754,7 @@ def compare_relation_boundaries(
 
         if status not in {
             admission_policy.SUPPORTED,
-            admission_policy.DIAGNOSTIC_FAIL_CLOSED,
+            LEGACY_DIAGNOSTIC_FAIL_CLOSED,
         }:
             raise EvidenceError(
                 f"unknown relation proof-admission status for {vector['name']}: {status!r}"
@@ -793,7 +797,7 @@ def compare_relation_boundaries(
             tuple_result["evidence_error"] = "tuple and sum diagnostic bindings differ"
             sum_result["evidence_error"] = "tuple and sum diagnostic bindings differ"
         proof_admitted = status == admission_policy.SUPPORTED
-        if status == admission_policy.DIAGNOSTIC_FAIL_CLOSED:
+        if status == LEGACY_DIAGNOSTIC_FAIL_CLOSED:
             nonzero = tuple_result.get("mulh_nonzero_entries")
             sum_result["mulh_nonzero_entries"] = nonzero
             if type(nonzero) is not int or nonzero <= 0:

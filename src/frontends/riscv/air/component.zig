@@ -4,7 +4,7 @@
 //!   tree 0: its IsFirst column at `preprocessed_col_idx`;
 //!   tree 1: `desc.n_columns` main columns starting at `main_col_offset`;
 //!   tree 2: its interaction columns starting at `interaction_col_offset`
-//!           (family-specific for opcode shards, 7 for the program ROM, and
+//!           (family-specific for opcode shards, 16 for the program ROM, and
 //!           16 for a memory-boundary shard).
 //!
 //! Opcode components enforce the two pairs-batched LogUp transitions (CPU

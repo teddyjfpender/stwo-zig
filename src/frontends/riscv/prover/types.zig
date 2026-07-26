@@ -36,10 +36,17 @@ pub fn RunOutput(comptime mode: RunMode) type {
 pub const ProveOutput = struct {
     statement: RiscVStatement,
     proof: Proof,
-    interaction_claim: RiscVInteractionClaim,
+    interaction_claim: *RiscVInteractionClaim,
+
+    /// Release the boxed interaction claim after ownership of `proof` has
+    /// moved into the verifier.
+    pub fn deinitAfterProofMoved(self: ProveOutput, allocator: std.mem.Allocator) void {
+        allocator.destroy(self.interaction_claim);
+    }
 
     pub fn deinit(self: *ProveOutput, allocator: std.mem.Allocator) void {
         self.proof.deinit(allocator);
+        allocator.destroy(self.interaction_claim);
         self.* = undefined;
     }
 };
@@ -63,7 +70,6 @@ pub const ProverError = error{
     EmptyTrace,
     InvalidLogSize,
     InvalidStatement,
-    UnsupportedProofFamily,
     InvalidPreprocessedCommitment,
     InvalidInteractionClaim,
     ProvingFailed,

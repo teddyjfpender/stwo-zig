@@ -66,6 +66,7 @@ const RejectionMatrix = struct {
         statement: prover.RiscVStatement,
     ) anyerror {
         var channel = riscv_cpu.CpuProverEngine.Channel{};
+        self.config.mixInto(&channel);
         statement.public_data.mixInto(&channel);
         riscv_cpu.CpuProverEngine.MerkleChannel.mixRoot(&channel, self.tree0_root);
         riscv_cpu.CpuProverEngine.MerkleChannel.mixRoot(&channel, self.tree1_root);
@@ -90,7 +91,7 @@ const RejectionMatrix = struct {
         claim: prover.RiscVInteractionClaim,
     ) !void {
         const proof = try self.cloneProof();
-        const result = riscv_cpu.verifyRiscV(self.allocator, self.config, statement, proof, claim);
+        const result = riscv_cpu.verifyRiscV(self.allocator, self.config, statement, proof, &claim);
         if (result) |_| {
             std.debug.print("forged {s}[{d}][{d}] was accepted\n", .{ label, index, sub });
             return error.ForgedWitnessAccepted;
@@ -179,6 +180,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
             .program_root = null,
             .initial_rw_root = null,
             .final_rw_root = null,
+            .completion = try public_data_mod.completionFromRun(run_result),
             .io_entries = .{
                 .input_start = run_result.input_start,
                 .input_len = @intCast(run_result.input.len),
@@ -203,7 +205,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         .tree0_root = output.proof.commitment_scheme_proof.commitments.items[0],
         .tree1_root = output.proof.commitment_scheme_proof.commitments.items[1],
         .statement = output.statement,
-        .claim = output.interaction_claim,
+        .claim = output.interaction_claim.*,
     };
 
     // Baseline: an untampered decoded clone must verify, so every rejection
@@ -213,7 +215,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         TEST_PCS_CONFIG,
         matrix.statement,
         try matrix.cloneProof(),
-        matrix.claim,
+        &matrix.claim,
     );
 
     const n_components: usize = matrix.claim.n_components;
@@ -446,20 +448,28 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
     for (0..matrix.statement.public_data.initial_regs.len) |r| {
         var statement = matrix.statement;
         statement.public_data.initial_regs[r] +%= 1;
+        const expected_error = if (r == 0)
+            error.InvalidStatement
+        else
+            matrix.expectedBoundRejection(statement);
         try matrix.expectStatementRejected(
             "initial_regs",
             r,
-            matrix.expectedBoundRejection(statement),
+            expected_error,
             statement,
         );
     }
     for (0..matrix.statement.public_data.final_regs.len) |r| {
         var statement = matrix.statement;
         statement.public_data.final_regs[r] +%= 1;
+        const expected_error = if (r == 0)
+            error.InvalidStatement
+        else
+            matrix.expectedBoundRejection(statement);
         try matrix.expectStatementRejected(
             "final_regs",
             r,
-            matrix.expectedBoundRejection(statement),
+            expected_error,
             statement,
         );
     }
@@ -527,6 +537,59 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         statement.public_data.final_rw_root = null;
         try matrix.expectStatementRejected(
             "final_rw_root presence",
+            0,
+            matrix.expectedBoundRejection(statement),
+            statement,
+        );
+    }
+
+    // -- Completion presence, kind, and every relation tuple field. --
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion = null;
+        try matrix.expectStatementRejected(
+            "completion presence",
+            0,
+            error.InvalidStatement,
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion.?.address +%= 4;
+        try matrix.expectStatementRejected(
+            "completion address",
+            0,
+            matrix.expectedBoundRejection(statement),
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion.?.value +%= 1;
+        try matrix.expectStatementRejected(
+            "completion value",
+            0,
+            matrix.expectedBoundRejection(statement),
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion.?.clock -%= 1;
+        try matrix.expectStatementRejected(
+            "completion clock",
+            0,
+            matrix.expectedBoundRejection(statement),
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion =
+            public_data_mod.Completion.canonicalSelfLoop(statement.final_pc);
+        try matrix.expectStatementRejected(
+            "completion kind and tuple",
             0,
             matrix.expectedBoundRejection(statement),
             statement,
@@ -756,6 +819,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         matrix.statement.public_data.final_regs.len +
         matrix.statement.public_data.reg_last_clock.len + // reg_last_clock entries
         6 + // three optional roots, value and presence
+        5 + // completion presence, address, value, clock, and coordinated kind
         2 + // input_start and shape-preserving input_len
         input_words.len + // every input word value
         4 + // input order, short count, long count, and non-canonical padding
@@ -765,6 +829,10 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
     try std.testing.expectEqual(expected_rejections, matrix.rejected);
     try std.testing.expect(matrix.pow_rejected > 0);
     try std.testing.expect(matrix.logup_rejected > 0);
-    try std.testing.expect(matrix.bound_pow_classified > 0);
-    try std.testing.expect(matrix.bound_logup_classified > 0);
+    // A shape-preserving statement mutation reaches LogUp only when the
+    // original fixed 10-bit interaction nonce happens to remain valid. That
+    // is deliberately rare and must not be a test-coverage requirement.
+    try std.testing.expect(
+        matrix.bound_pow_classified + matrix.bound_logup_classified > 0,
+    );
 }

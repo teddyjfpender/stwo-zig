@@ -22,8 +22,9 @@ execution explicit. The result is one proving stack: pure Stwo with native examp
 and the Cairo frontend (stwo-cairo in Zig) when that effort resumes.
 
 > [!IMPORTANT]
-> The [pinned Rust Stwo revision](conformance/upstream.md) is the final correctness oracle.
-> Gated proofs cross-verify in both directions: Rust to Zig and Zig to Rust.
+> The [pin ledger](conformance/upstream.md) names a separate authority for each
+> frontend. Native proofs use pinned Rust Stwo; RISC-V decode and retirement use
+> pinned Sail, with Spike and the architectural tests as independent checks.
 
 ## Backends
 
@@ -39,7 +40,7 @@ and the Cairo frontend (stwo-cairo in Zig) when that effort resumes.
 | :--- | :--- |
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
 | **Cairo** | Versioned PIE ingestion and SN2-specialized resident proof machinery, parked until the stwo-cairo effort resumes; the general Cairo proof path is not release-gated |
-| **RISC-V** | Release-gated Stark-V RV32IM ELF adapter with sharded AIR components, CPU proving, independent verification, and pinned-Rust oracle evidence |
+| **RISC-V** | Release-gated Sail RV32IM zkVM frontend with sharded AIR components, CPU/SIMD and Metal proving, independent verification, and pinned formal evidence |
 
 ## Quick Start
 
@@ -62,6 +63,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-native-metal` | macOS with Apple Metal | Parity-gated, source-JIT, device-only CLI |
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
+| `stwo-zig-riscv-metal` | macOS with Apple Metal | Parity-gated, device-only RV32IM prove-and-verify CLI |
 | Cairo products | No production host | Deferred until the separate Rust-oracle semantic goal resumes |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
@@ -131,11 +133,14 @@ independently auditable.
 
 ## RISC-V frontend
 
-The release-gated adapter accepts an RV32IM ELF, executes it, builds the sharded witness, proves it through
-the same PCS/FRI core, self-verifies before publication, and emits a bounded schema-v3 artifact.
-A separate process must verify that artifact against a caller-supplied expected-statement digest.
-The pinned Rust [Stark-V](https://github.com/ClementWalter/stark-v) implementation remains the final
-oracle at shared boundaries. Published artifacts carry the immutable `release_gated` status.
+The release-gated frontend accepts an `rv32im-zkvm-v1` ELF, executes it, builds
+the sharded witness, proves it through the same PCS/FRI core, self-verifies
+before publication, and emits a bounded schema-v3 artifact. A separate process
+must verify that artifact against a caller-supplied expected-statement digest.
+The exact pinned [Sail RISC-V model](https://github.com/riscv/sail-riscv) is the
+semantic authority; Spike is an independent executor and Stark-V is retained
+only as legacy proof-layout provenance. Published artifacts carry the immutable
+`release_gated` status.
 
 ```sh
 zig build stwo-zig -Doptimize=ReleaseFast
@@ -157,9 +162,16 @@ zig-out/bin/stwo-zig verify \
 ```sh
 zig build test-riscv -Doptimize=ReleaseFast         # runner + trace suites
 zig build test-riscv-prover -Doptimize=ReleaseFast  # prove + verify roundtrips
+zig build test-riscv-metal -Doptimize=ReleaseFast   # macOS, no CPU fallback
 zig build riscv-bench -Doptimize=ReleaseFast        # CPU benchmark CLI
 zig build riscv-metal-bench -Doptimize=ReleaseFast  # Metal commitments CLI (macOS)
 zig build riscv-trace-dump -Doptimize=ReleaseFast   # trace dumper for equivalence runs
+
+python3 scripts/riscv_formal_tools.py verify \
+  --workspace /tmp/stwo-riscv-formal
+python3 scripts/riscv_trace_vectors.py \
+  --sail-bin /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim \
+  --spike-bin /tmp/stwo-riscv-formal/install/spike/bin/spike
 ```
 
 Run the same standard gate used by hosted CI:

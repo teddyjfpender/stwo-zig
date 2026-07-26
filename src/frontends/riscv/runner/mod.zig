@@ -4,6 +4,7 @@
 //! Supports optional host syscall interface for guest↔host communication.
 
 const std = @import("std");
+const isa_profile = @import("../isa/profile.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
 pub const memory = @import("memory.zig");
@@ -104,21 +105,16 @@ fn runConfigured(
             break;
         }
         const pc_before = rv_cpu.pc;
+        isa_profile.requireInstructionAligned(pc_before) catch
+            return error.InstructionAddressMisaligned;
         const inst_word = mem.readU32(rv_cpu.pc);
         if (strict_completion and (inst_word == 0x00000073 or inst_word == 0x00100073))
             return error.InvalidInstruction;
-        // ECALL/EBREAK are runtime affordances (hosted syscalls and halts),
-        // not part of the pinned decode contract - synthesize them here.
-        const inst = if (inst_word == 0x00000073)
-            DecodedInst{ .opcode = .ECALL, .rd = 0, .rs1 = 0, .rs2 = 0, .imm = 0 }
-        else if (inst_word == 0x00100073)
-            DecodedInst{ .opcode = .EBREAK, .rd = 0, .rs1 = 0, .rs2 = 0, .imm = 0 }
-        else
-            DecodedInst.decode(inst_word) catch {
-                if (strict_completion) return error.InvalidInstruction;
-                completion_reason = .invalid_instruction;
-                break;
-            };
+        const inst = DecodedInst.decode(inst_word) catch {
+            if (strict_completion) return error.InvalidInstruction;
+            completion_reason = .invalid_instruction;
+            break;
+        };
 
         // Capture pre-execution register values.
         const rs1_val = rv_cpu.readReg(inst.rs1);
@@ -127,8 +123,8 @@ fn runConfigured(
         const access_clk: u32 = @intCast(steps + 1);
         const access = access_witness.capture(&chain_tracker, inst, access_clk);
 
-        // Halt on the Stark-V self-loop sentinel without tracing it, exactly
-        // like the pinned oracle: `jal x0, 0`, or `jalr x0` targeting itself.
+        // The zkVM completion sentinel is an environment event, not a retired
+        // instruction: `jal x0, 0`, or `jalr x0` targeting itself.
         const is_self_loop = switch (inst.opcode) {
             .JAL => inst.rd == 0 and inst.imm == 0,
             .JALR => inst.rd == 0 and
@@ -146,14 +142,8 @@ fn runConfigured(
         var mem_val: u32 = 0;
         var mem_prev_word: u32 = 0;
         var mem_prev_clk: u32 = 0;
-        const is_load = switch (inst.opcode) {
-            .LB, .LBU, .LH, .LHU, .LW => true,
-            else => false,
-        };
-        const is_store = switch (inst.opcode) {
-            .SB, .SH, .SW => true,
-            else => false,
-        };
+        const is_load = decode.isLoad(inst.opcode);
+        const is_store = decode.isStore(inst.opcode);
 
         if (is_load or is_store) {
             mem_addr = rs1_val +% @as(u32, @bitCast(inst.imm));
@@ -219,6 +209,7 @@ fn runConfigured(
                 halted = true;
             },
             error.MisalignedMemoryAccess => return error.MisalignedMemoryAccess,
+            error.InstructionAddressMisaligned => return error.InstructionAddressMisaligned,
         };
 
         const rd_val = rv_cpu.readReg(inst.rd);
@@ -280,8 +271,7 @@ fn runConfigured(
 
         if (halted) break;
 
-        // Backup infinite-loop halt matching the pinned oracle: the traced
-        // instruction left the PC unchanged.
+        // Backup infinite-loop halt: the retired instruction left PC unchanged.
         if (rv_cpu.pc == pc_before) {
             completion_reason = .stalled_pc;
             break;
@@ -303,6 +293,20 @@ fn runConfigured(
         if (captured_output.bytes) |output| allocator.free(output);
         allocator.free(captured_output.words);
     }
+    const completion_address: u32 = switch (completion_reason) {
+        .halt_flag => elf_info.halt_flag,
+        .self_loop => rv_cpu.pc,
+        else => 0,
+    };
+    const completion_value: u32 = switch (completion_reason) {
+        .halt_flag => mem.readU32(elf_info.halt_flag),
+        .self_loop => mem.readU32(rv_cpu.pc),
+        else => 0,
+    };
+    const completion_clock: u32 = switch (completion_reason) {
+        .halt_flag => chain_tracker.mem_last_clk.get(elf_info.halt_flag & ~@as(u32, 3)) orelse 0,
+        else => 0,
+    };
     const rw_memory = try memory_state.capture(
         allocator,
         &mem,
@@ -310,6 +314,10 @@ fn runConfigured(
         elf_info.memory_layout,
         memory_state.SegmentRole.single(),
         captured_output.len,
+        if (completion_reason == .halt_flag)
+            elf_info.halt_flag & ~@as(u32, 3)
+        else
+            null,
     );
     chain_tracker.releaseMemoryBaselines();
     errdefer {
@@ -325,6 +333,9 @@ fn runConfigured(
         .final_regs = snapshotRegisters(rv_cpu),
         .step_count = steps,
         .completion_reason = completion_reason,
+        .completion_address = completion_address,
+        .completion_value = completion_value,
+        .completion_clock = completion_clock,
         .input = owned_input,
         .input_start = elf_info.input_start,
         .input_end = elf_info.input_end,

@@ -7,8 +7,8 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
-pub const N_ORACLE_COLUMNS: usize = 29;
-pub const N_CONSTRAINTS: usize = 10;
+pub const N_ORACLE_COLUMNS: usize = 35;
+pub const N_CONSTRAINTS: usize = 17;
 
 pub const Row = struct {
     clk: QM31,
@@ -22,6 +22,8 @@ pub const Row = struct {
     is_xori: QM31,
     is_ori: QM31,
     is_andi: QM31,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn fromOracleColumns(columns: []const QM31) !Row {
         if (columns.len != N_ORACLE_COLUMNS) return error.InvalidOracleTraceShape;
@@ -37,6 +39,8 @@ pub const Row = struct {
             .is_xori = columns[26],
             .is_ori = columns[27],
             .is_andi = columns[28],
+            .result = columns[29..33].*,
+            .destination = common.destinationFromColumns(columns[33..35]),
         };
     }
 
@@ -78,9 +82,17 @@ pub fn evaluate(row: Row) Constraints {
     const imm = immediateLimbs(row);
     var carry = QM31.zero();
     for (0..4) |limb| {
-        const numerator = row.rs1.next[limb].add(imm[limb]).add(carry).sub(row.rd.next[limb]);
+        const numerator = row.rs1.next[limb].add(imm[limb]).add(carry).sub(row.result[limb]);
         carry = numerator.mul(common.INV_BYTE_RADIX);
         out[i] = common.selected(row.is_addi, common.bit(carry));
+        i += 1;
+    }
+    for (common.destinationConstraints(row.rd.addr, row.destination)) |constraint| {
+        out[i] = constraint;
+        i += 1;
+    }
+    for (common.destinationResultConstraints(row.rd, row.result, row.destination)) |constraint| {
+        out[i] = constraint;
         i += 1;
     }
     std.debug.assert(i == out.len);
@@ -113,11 +125,15 @@ pub fn bitwiseLookups(row: Row) [4]common.BitwiseTuple {
         tuple.* = .{
             .lhs = row.rs1.next[i],
             .rhs = imm[i],
-            .result = row.rd.next[i],
+            .result = row.result[i],
             .operation_id = operation_id,
         };
     }
     return tuples;
+}
+
+pub fn bitwiseLookupEnabler(row: Row) QM31 {
+    return row.is_xori.add(row.is_ori).add(row.is_andi);
 }
 
 /// Inputs for the upstream `range_check_8_11` immediate lookup. The second
@@ -128,8 +144,8 @@ pub fn immediateRangeLookup(row: Row) [2]QM31 {
 
 pub fn registerRangeCheckPairs(row: Row) [4][2]QM31 {
     return .{
-        .{ row.rd.next[0], row.rd.next[1] },
-        .{ row.rd.next[2], row.rd.next[3] },
+        .{ row.result[0], row.result[1] },
+        .{ row.result[2], row.result[3] },
         .{ row.rs1.next[0], row.rs1.next[1] },
         .{ row.rs1.next[2], row.rs1.next[3] },
     };
@@ -164,6 +180,8 @@ fn zeroRow() Row {
         .imm_0 = QM31.zero(),
         .imm_1 = QM31.zero(),
         .imm_msb = QM31.zero(),
+        .result = .{QM31.zero()} ** 4,
+        .destination = .{ .nonzero = QM31.zero(), .inverse = QM31.zero() },
         .rd = zero_access,
         .rs1 = zero_access,
     };
@@ -172,44 +190,69 @@ fn zeroRow() Row {
 test "base alu imm semantics: exact ADDI accepts an honest row" {
     var row = zeroRow();
     row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_addi = QM31.one();
     row.imm_0 = common.q(1);
     row.rd.next[0] = common.q(1);
+    row.result[0] = common.q(1);
     try std.testing.expect(evaluate(row).allZero());
 }
 
 test "base alu imm semantics: exact ADDI rejects known impossible witness" {
     var row = zeroRow();
     row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_addi = QM31.one();
     row.imm_0 = common.q(1);
     // The pre-existing prover test claimed ADDI x1,x1,1 while rs1 remained 0
     // and rd advanced to 2. The byte carry constraint must reject that row.
     row.rs1.next[0] = common.q(0);
     row.rd.next[0] = common.q(2);
+    row.result[0] = common.q(2);
     try std.testing.expect(!evaluate(row).allZero());
 }
 
 test "base alu imm semantics: byte carries reject M31 word alias" {
     var row = zeroRow();
     row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_addi = QM31.one();
     // 0x7fffffff is the M31 modulus, so a single reconstructed word equation
     // would confuse this forged result with zero. Per-byte carries do not.
     row.rd.next = .{ common.q(255), common.q(255), common.q(255), common.q(127) };
+    row.result = row.rd.next;
     try std.testing.expect(common.composeU32(row.rd.next).isZero());
     try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "base alu imm semantics: x0 discards arithmetic and bitwise results" {
+    var row = zeroRow();
+    row.pc = common.q(0x1000);
+    row.is_addi = QM31.one();
+    row.imm_0 = common.q(1);
+    row.result[0] = common.q(1);
+    try std.testing.expect(evaluate(row).allZero());
+
+    row.is_addi = QM31.zero();
+    row.is_xori = QM31.one();
+    try std.testing.expect(bitwiseLookupEnabler(row).eql(QM31.one()));
 }
 
 test "base alu imm semantics: negative immediate sign extends by bytes" {
     var row = zeroRow();
     row.pc = common.q(0x1000);
+    row.rd.addr = QM31.one();
+    row.destination = .{ .nonzero = QM31.one(), .inverse = QM31.one() };
     row.is_addi = QM31.one();
     row.imm_0 = common.q(255);
     row.imm_1 = common.q(7);
     row.imm_msb = QM31.one();
     row.rs1.next = .{QM31.zero()} ** 4;
     row.rd.next = .{ common.q(255), common.q(255), common.q(255), common.q(255) };
+    row.result = row.rd.next;
     try std.testing.expect(evaluate(row).allZero());
 
     const tuple = programLookup(row);

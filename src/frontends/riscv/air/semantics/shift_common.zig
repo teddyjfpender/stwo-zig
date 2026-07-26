@@ -7,7 +7,7 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
 
-pub const N_CONSTRAINTS: usize = 53;
+pub const N_CONSTRAINTS: usize = 61;
 
 pub const Row = struct {
     rd: common.Access,
@@ -21,6 +21,8 @@ pub const Row = struct {
     bit_markers: [8]QM31,
     limb_markers: [4]QM31,
     carries: [4]QM31,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn active(self: Row) QM31 {
         return self.is_sll.add(self.is_srl).add(self.is_sra);
@@ -83,6 +85,10 @@ pub fn evaluate(row: Row) Constraints {
 
     out[n] = common.bit(row.rs1_sign);
     n += 1;
+    // Logical and left shifts always zero-fill. Arithmetic right shifts are
+    // the only instructions allowed to carry a sign witness.
+    out[n] = QM31.one().sub(row.is_sra).mul(row.rs1_sign);
+    n += 1;
     for (row.bit_markers) |marker| {
         out[n] = common.bit(marker);
         n += 1;
@@ -105,15 +111,15 @@ pub fn evaluate(row: Row) Constraints {
         const marker = row.limb_markers[i];
         for (0..4) |j| {
             if (j < i) {
-                out[n] = row.is_sll.mul(marker).mul(row.rd.next[j]);
+                out[n] = row.is_sll.mul(marker).mul(row.result[j]);
             } else if (j == i) {
                 out[n] = row.is_sll.mul(marker).mul(
-                    row.rd.next[j].add(common.BYTE_RADIX.mul(row.carries[0])),
+                    row.result[j].add(common.BYTE_RADIX.mul(row.carries[0])),
                 ).sub(marker.mul(row.rs1.next[0]).mul(row.bit_multiplier_left));
             } else {
                 const k = j - i;
                 const carry_term = row.carries[k - 1].sub(common.BYTE_RADIX.mul(row.carries[k]));
-                out[n] = row.is_sll.mul(marker).mul(row.rd.next[j].sub(carry_term))
+                out[n] = row.is_sll.mul(marker).mul(row.result[j].sub(carry_term))
                     .sub(marker.mul(row.rs1.next[k]).mul(row.bit_multiplier_left));
             }
             n += 1;
@@ -129,21 +135,29 @@ pub fn evaluate(row: Row) Constraints {
                 out[n] = marker.mul(
                     row.carries[input + 1].mul(d.right_shift).mul(common.BYTE_RADIX)
                         .add(d.right_shift.mul(row.rs1.next[input].sub(row.carries[input])))
-                        .sub(row.rd.next[j].mul(row.bit_multiplier_right)),
+                        .sub(row.result[j].mul(row.bit_multiplier_right)),
                 );
             } else if (input == 3) {
                 out[n] = marker.mul(
                     row.rs1_sign.mul(row.bit_multiplier_right.sub(QM31.one())).mul(common.BYTE_RADIX)
                         .add(d.right_shift.mul(row.rs1.next[3].sub(row.carries[3])))
-                        .sub(row.rd.next[j].mul(row.bit_multiplier_right)),
+                        .sub(row.result[j].mul(row.bit_multiplier_right)),
                 );
             } else {
                 out[n] = d.right_shift.mul(marker).mul(
-                    row.rd.next[j].sub(row.rs1_sign.mul(common.q(255))),
+                    row.result[j].sub(row.rs1_sign.mul(common.q(255))),
                 );
             }
             n += 1;
         }
+    }
+    for (common.destinationConstraints(row.rd.addr, row.destination)) |constraint| {
+        out[n] = constraint;
+        n += 1;
+    }
+    for (common.destinationResultConstraints(row.rd, row.result, row.destination)) |constraint| {
+        out[n] = constraint;
+        n += 1;
     }
     std.debug.assert(n == out.len);
     return .{ .values = out };
@@ -160,7 +174,87 @@ pub fn carryRangePairs(row: Row) [2][2]QM31 {
 
 pub fn rdRangePairs(row: Row) [2][2]QM31 {
     return .{
-        .{ row.rd.next[0], row.rd.next[1] },
-        .{ row.rd.next[2], row.rd.next[3] },
+        .{ row.result[0], row.result[1] },
+        .{ row.result[2], row.result[3] },
     };
+}
+
+/// `range_check_m31` constrains the second limb to seven bits. Together with
+/// boolean `rs1_sign`, this proves it is exactly bit 31 of the operand.
+pub fn signRangeLookup(row: Row) [2]QM31 {
+    return .{
+        QM31.zero(),
+        row.rs1.next[3].sub(row.rs1_sign.mul(common.q(128))),
+    };
+}
+
+test "shift common: logical right shift cannot choose arithmetic sign fill" {
+    const rd = common.Access{
+        .addr = common.q(3),
+        .previous = .{QM31.zero()} ** 4,
+        .previous_clock = QM31.zero(),
+        .next = .{ common.q(0x22), common.q(0x33), common.q(0x44), common.q(0xff) },
+    };
+    var rs1 = rd;
+    rs1.addr = QM31.one();
+    rs1.next = .{ common.q(0x11), common.q(0x22), common.q(0x33), common.q(0x44) };
+    const row = Row{
+        .rd = rd,
+        .rs1 = rs1,
+        .rs1_sign = QM31.one(),
+        .is_sll = QM31.zero(),
+        .is_srl = QM31.one(),
+        .is_sra = QM31.zero(),
+        .bit_multiplier_left = QM31.zero(),
+        .bit_multiplier_right = QM31.one(),
+        .bit_markers = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero() },
+        .limb_markers = .{ QM31.zero(), QM31.one(), QM31.zero(), QM31.zero() },
+        .carries = .{QM31.zero()} ** 4,
+        .result = rd.next,
+        .destination = .{
+            .nonzero = QM31.one(),
+            .inverse = common.q(3).inv() catch unreachable,
+        },
+    };
+    try std.testing.expect(!evaluate(row).allZero());
+}
+
+test "shift common: arithmetic sign range binds operand bit 31" {
+    const table = @import("../lookups/tables/schema.zig");
+    var row = Row{
+        .rd = .{
+            .addr = common.q(3),
+            .previous = .{QM31.zero()} ** 4,
+            .previous_clock = QM31.zero(),
+            .next = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(0x44) },
+        },
+        .rs1 = .{
+            .addr = QM31.one(),
+            .previous = .{QM31.zero()} ** 4,
+            .previous_clock = QM31.zero(),
+            .next = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(0x44) },
+        },
+        .rs1_sign = QM31.zero(),
+        .is_sll = QM31.zero(),
+        .is_srl = QM31.zero(),
+        .is_sra = QM31.one(),
+        .bit_multiplier_left = QM31.zero(),
+        .bit_multiplier_right = QM31.one(),
+        .bit_markers = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero(), QM31.zero() },
+        .limb_markers = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero() },
+        .carries = .{QM31.zero()} ** 4,
+        .result = .{ QM31.zero(), QM31.zero(), QM31.zero(), common.q(0x44) },
+        .destination = .{
+            .nonzero = QM31.one(),
+            .inverse = common.q(3).inv() catch unreachable,
+        },
+    };
+    _ = try table.indexSecure(.range_check_m31, &signRangeLookup(row));
+
+    row.rs1_sign = QM31.one();
+    try std.testing.expect(evaluate(row).allZero());
+    try std.testing.expectError(
+        error.ValueOutOfRange,
+        table.indexSecure(.range_check_m31, &signRangeLookup(row)),
+    );
 }

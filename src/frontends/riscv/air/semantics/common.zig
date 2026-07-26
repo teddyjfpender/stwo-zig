@@ -65,6 +65,48 @@ pub const Access = struct {
     next: [4]QM31,
 };
 
+/// Witness that turns a five-bit architectural destination address into an
+/// exact write-enable without increasing result constraints above degree two.
+///
+/// `nonzero` is forced to zero for x0 and one for every other register:
+///
+///   nonzero * (nonzero - 1) = 0
+///   addr * (1 - nonzero) = 0
+///   addr * inverse - nonzero = 0
+///
+/// The final equation also fixes `inverse` for non-zero addresses.  Its value
+/// is deliberately unconstrained at address zero; the canonical witness uses
+/// zero so padding rows remain all-zero.
+pub const Destination = struct {
+    nonzero: QM31,
+    inverse: QM31,
+};
+
+pub fn destinationFromColumns(columns: []const QM31) Destination {
+    std.debug.assert(columns.len == 2);
+    return .{ .nonzero = columns[0], .inverse = columns[1] };
+}
+
+pub fn destinationConstraints(addr: QM31, destination: Destination) [3]QM31 {
+    return .{
+        bit(destination.nonzero),
+        addr.mul(QM31.one().sub(destination.nonzero)),
+        addr.mul(destination.inverse).sub(destination.nonzero),
+    };
+}
+
+pub fn destinationResultConstraints(
+    access: Access,
+    result: [4]QM31,
+    destination: Destination,
+) [4]QM31 {
+    var constraints: [4]QM31 = undefined;
+    for (&constraints, access.next, result) |*constraint, actual, computed| {
+        constraint.* = actual.sub(destination.nonzero.mul(computed));
+    }
+    return constraints;
+}
+
 /// Canonical Stark-V `memory_access` relation tuple.
 pub const MemoryAccessTuple = struct {
     addr_space: QM31,

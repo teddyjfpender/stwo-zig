@@ -12,7 +12,7 @@ HELP_SHA256 = {
     "root-help": "da4c10b0b6b0da94e05b2cab64892184c09143857cecb50837db9cdd6936dad3",
     "prove-help": "dfe3a1a6227d1002a0be02a381a9dc6903a6e614f2c5803df6f24d68f7a8d98f",
     "bench-help": "85829dc20d199d4d3a628ef6ac6de18284c899e5a03cbec9719395c5e58a09eb",
-    "verify-help": "8a878cd538b6f27edca958362a1b24fb4a30a8070dc347446221e8e17a327ca5",
+    "verify-help": "d1a91ffee4831ae7b20e31aef5e2a075c605e944d7bfbfc0c4799aee8259a4f8",
     "applications-help": "c375525c99ee84a5e51a3db048fc2ac61a44782536b4d0d8e9a55de826b8bf5b",
 }
 
@@ -227,7 +227,7 @@ def validate_registry(payload: Mapping[str, Any], expected_status: str) -> None:
         raise ContractError("applications: adapter lists must be arrays")
     all_entries = [*applications, *deferred]
     matches = [entry for entry in all_entries
-               if isinstance(entry, dict) and entry.get("adapter") == "stark-v-rv32im-elf"]
+               if isinstance(entry, dict) and entry.get("adapter") == "sail-rv32im-zkvm-elf"]
     if len(matches) != 1 or matches[0].get("status") != expected_status:
         raise ContractError("applications: RISC-V release status drifted")
     if matches[0].get("isa") != "rv32im" or matches[0].get("backends") != ["cpu"]:
@@ -240,8 +240,8 @@ def validate_artifact(
 ) -> None:
     exact_fields(payload, ARTIFACT_FIELDS, "artifact")
     if (payload["artifact_kind"], payload["schema_version"], payload["exchange_mode"]) != (
-            "stwo_riscv_proof", 3, "riscv_proof_json_wire_v3"):
-        raise ContractError("artifact: schema-v3 identity drifted")
+            "stwo_riscv_proof", 4, "riscv_proof_json_wire_v4"):
+        raise ContractError("artifact: schema-v4 identity drifted")
     if payload["release_status"] != expected_status or payload["backend"] != "cpu":
         raise ContractError("artifact: release/backend identity drifted")
     source = payload["source"]
@@ -302,7 +302,7 @@ def validate_verify_receipt(
         "schema": "riscv_verify_v1",
         "status": "verified",
         "artifact_kind": "stwo_riscv_proof",
-        "artifact_schema_version": 3,
+        "artifact_schema_version": 4,
         "release_status": expected_status,
         "security_policy": policy,
         "statement_sha256": statement_sha256,

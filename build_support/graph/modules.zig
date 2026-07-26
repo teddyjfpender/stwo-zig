@@ -29,7 +29,7 @@ pub const Product = struct {
         return switch (self.frontend) {
             .none => "none",
             .native => "native-examples",
-            .riscv => "stark-v-rv32im",
+            .riscv => "sail-rv32im-zkvm",
             .cairo => "cairo",
             .aggregate => "aggregate",
         };
@@ -169,7 +169,7 @@ test "capability manifests have stable public names" {
         .backend = .cpu,
         .role = .gate,
     };
-    try std.testing.expectEqualStrings("stark-v-rv32im", riscv.frontendManifest());
+    try std.testing.expectEqualStrings("sail-rv32im-zkvm", riscv.frontendManifest());
     try std.testing.expectEqualStrings("cpu", riscv.backendManifest());
 }
 

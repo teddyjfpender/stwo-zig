@@ -234,6 +234,30 @@ fn validatePublicData(public: schema.PublicDataWire) !void {
     if (public.input_len > schema.MAX_IO_BYTES or public.output_len > schema.MAX_IO_BYTES)
         return error.IoLimitExceeded;
     if (public.program_root == null) return error.MissingProgramRoot;
+    if ((public.initial_pc & 3) != 0 or (public.final_pc & 3) != 0)
+        return error.MisalignedProgramCounter;
+    if (public.initial_regs[0] != 0 or public.final_regs[0] != 0)
+        return error.NonZeroX0;
+    switch (public.completion.kind) {
+        .halt_flag => {
+            if ((public.completion.address & 3) != 0 or
+                public.completion.address >= 0x7fff_fffc)
+                return error.InvalidCompletionAddress;
+            if (public.completion.value == 0)
+                return error.InvalidCompletionValue;
+            if (public.completion.clock == 0 or public.completion.clock > public.clock)
+                return error.InvalidCompletionClock;
+        },
+        .unretired_self_loop => {
+            if (public.completion.address != public.final_pc or
+                public.completion.address > 0x3fff_fffc)
+                return error.InvalidCompletionAddress;
+            if (public.completion.value != 0x0000_006f)
+                return error.InvalidCompletionValue;
+            if (public.completion.clock != 0)
+                return error.InvalidCompletionClock;
+        },
+    }
     for (public.reg_last_clock) |clock| {
         if (clock > public.clock) return error.InvalidRegisterClock;
     }

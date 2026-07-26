@@ -74,6 +74,54 @@ class UpstreamPinTests(unittest.TestCase):
         self.assertIn("tools/stwo-vector-gen/Cargo.lock", joined)
         self.assertIn("tools/stwo-cf-vector-gen/Cargo.toml", joined)
 
+    def test_riscv_sail_drift_reaches_executable_and_machine_readable_carriers(self) -> None:
+        drifted = LEDGER.read_text(encoding="utf-8").replace(
+            "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+            "e" * 40,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "upstream.md"
+            path.write_text(drifted, encoding="utf-8")
+            errors = validate_repository(ROOT, path)
+
+        joined = "\n".join(errors)
+        self.assertIn("scripts/riscv_equivalence.py", joined)
+        self.assertIn("src/frontends/riscv/isa/authority.zig", joined)
+        self.assertIn("conformance/riscv/rv32im-sail-profile.json", joined)
+
+    def test_riscv_spike_and_arch_test_drift_reach_formal_profile(self) -> None:
+        for revision in (
+            "520a5f185083ac3c97b751501dfac02a6c1f5970",
+            "426e1598ebc3688eaf9aba7b4a1b8a81dae9807f",
+        ):
+            with self.subTest(revision=revision):
+                drifted = LEDGER.read_text(encoding="utf-8").replace(revision, "d" * 40)
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "upstream.md"
+                    path.write_text(drifted, encoding="utf-8")
+                    errors = validate_repository(ROOT, path)
+
+                joined = "\n".join(errors)
+                self.assertIn("src/frontends/riscv/isa/authority.zig", joined)
+                self.assertIn("conformance/riscv/rv32im-sail-profile.json", joined)
+
+    def test_riscv_legacy_layout_drift_does_not_masquerade_as_isa_authority(self) -> None:
+        drifted = LEDGER.read_text(encoding="utf-8").replace(
+            "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "c" * 40,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "upstream.md"
+            path.write_text(drifted, encoding="utf-8")
+            errors = validate_repository(ROOT, path)
+
+        joined = "\n".join(errors)
+        self.assertIn("src/frontends/riscv/isa/authority.zig", joined)
+        self.assertIn("src/frontends/riscv/opcode_manifest.zig", joined)
+        self.assertIn("vectors/riscv_elfs/trace_vectors.json", joined)
+        self.assertIn("conformance/riscv/rv32im-sail-profile.json", joined)
+        self.assertNotIn("scripts/riscv_equivalence.py", joined)
+
     def test_cairo_repository_drift_reaches_manifest_lock_source_and_ci(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(
             "https://github.com/teddyjfpender/stwo-cairo",

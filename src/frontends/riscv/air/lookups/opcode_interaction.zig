@@ -358,6 +358,13 @@ fn testRowForFamily(family: trace.OpcodeFamily, row_index: usize) trace.TraceRow
             row.rs2_val = 3;
             row.rd_val = 2;
         },
+        .fence => {
+            row.opcode = .FENCE;
+            row.rd = 0;
+            row.rs1 = 0;
+            row.imm = 0x0ff;
+            row.inst_word = 0x0ff0000f;
+        },
     }
     return row;
 }
@@ -546,11 +553,11 @@ test "opcode interaction rejects malformed committed geometry" {
     );
 }
 
-test "opcode interaction matches scalar prefixes for all sixteen families" {
+test "opcode interaction matches scalar prefixes for every family" {
     const allocator = std.testing.allocator;
     const relations = relations_mod.Relations.dummy();
-    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 4, 6, 4, 7, 16, 20, 22 };
-    const expected_batch_sizes = [_]usize{ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1 };
+    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 6, 6, 4, 8, 16, 22, 22, 2 };
+    const expected_batch_sizes = [_]usize{ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2 };
     for (0..trace.N_FAMILIES) |index| {
         const family: trace.OpcodeFamily = @enumFromInt(index);
         try std.testing.expectEqual(expected_batches[index], opcode_entries.batchCount(family));

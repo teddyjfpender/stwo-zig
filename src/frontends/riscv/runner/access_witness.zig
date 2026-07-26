@@ -4,13 +4,8 @@ const decode = @import("decode.zig");
 const state_chain = @import("state_chain.zig");
 
 const DecodedInst = decode.DecodedInst;
-const Opcode = decode.Opcode;
 
-const Plan = struct {
-    reads_rs1: bool,
-    reads_rs2: bool,
-    writes_rd: bool,
-};
+const Plan = decode.OperandUsage;
 
 pub const Witness = struct {
     rs1_prev_clock: u32,
@@ -48,7 +43,7 @@ pub fn capture(
     inst: DecodedInst,
     clock: u32,
 ) Witness {
-    const plan = planFor(inst.opcode);
+    const plan = decode.operandUsage(inst.opcode);
     const rs1_prev = state_chain.StateChainTracker.effectivePreviousClock(
         tracker.reg_last_clk[inst.rs1],
         clock,
@@ -73,83 +68,6 @@ pub fn capture(
         .rs2_prev_clock = rs2_prev,
         .rd_prev_clock = rd_prev,
         .plan = plan,
-    };
-}
-
-fn planFor(opcode: Opcode) Plan {
-    return switch (opcode) {
-        .ADD,
-        .SUB,
-        .XOR,
-        .OR,
-        .AND,
-        .SLL,
-        .SRL,
-        .SRA,
-        .SLT,
-        .SLTU,
-        .MUL,
-        .MULH,
-        .MULHSU,
-        .MULHU,
-        .DIV,
-        .DIVU,
-        .REM,
-        .REMU,
-        => .{ .reads_rs1 = true, .reads_rs2 = true, .writes_rd = true },
-
-        .ADDI,
-        .XORI,
-        .ORI,
-        .ANDI,
-        .SLLI,
-        .SRLI,
-        .SRAI,
-        .SLTI,
-        .SLTIU,
-        .LB,
-        .LBU,
-        .LH,
-        .LHU,
-        .LW,
-        .JALR,
-        => .{ .reads_rs1 = true, .reads_rs2 = false, .writes_rd = true },
-
-        .SB,
-        .SH,
-        .SW,
-        .BEQ,
-        .BNE,
-        .BLT,
-        .BGE,
-        .BLTU,
-        .BGEU,
-        => .{ .reads_rs1 = true, .reads_rs2 = true, .writes_rd = false },
-
-        .LUI,
-        .AUIPC,
-        .JAL,
-        => .{ .reads_rs1 = false, .reads_rs2 = false, .writes_rd = true },
-
-        // RV32A is outside the release-gated RV32IM statement. Preserve its
-        // executor bookkeeping without implying that its AIR is supported.
-        .LR_W,
-        .SC_W,
-        .AMOSWAP_W,
-        .AMOADD_W,
-        .AMOAND_W,
-        .AMOOR_W,
-        .AMOXOR_W,
-        .AMOMIN_W,
-        .AMOMAX_W,
-        .AMOMINU_W,
-        .AMOMAXU_W,
-        => .{ .reads_rs1 = true, .reads_rs2 = true, .writes_rd = true },
-
-        .ECALL,
-        .EBREAK,
-        .FENCE,
-        => .{ .reads_rs1 = false, .reads_rs2 = false, .writes_rd = false },
     };
 }
 

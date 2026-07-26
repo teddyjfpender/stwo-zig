@@ -3,14 +3,26 @@
 const std = @import("std");
 const schema = @import("schema.zig");
 
-const DOMAIN = "stwo-zig/riscv/expected-statement/v3\x00";
+const DOMAIN = "stwo-zig/riscv/expected-statement/v4\x00";
 
 /// Hashes every statement field in declaration order using fixed-width little
 /// endian words. Sequence lengths and optional-value presence are explicit.
-pub fn statement(source: schema.SourceWire, wire_statement: schema.StatementWire) [32]u8 {
+pub fn statement(
+    protocol: []const u8,
+    pcs_config: schema.PcsConfigWire,
+    source: schema.SourceWire,
+    wire_statement: schema.StatementWire,
+) [32]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     hasher.update(DOMAIN);
 
+    bytes(&hasher, protocol);
+    word(&hasher, pcs_config.pow_bits);
+    word(&hasher, pcs_config.fri_config.log_blowup_factor);
+    word(&hasher, pcs_config.fri_config.log_last_layer_degree_bound);
+    wide(&hasher, pcs_config.fri_config.n_queries);
+    word(&hasher, pcs_config.fri_config.fold_step);
+    optional(&hasher, pcs_config.lifting_log_size);
     bytes(&hasher, source.elf_sha256);
     bytes(&hasher, source.input_sha256);
     word(&hasher, wire_statement.segment_ordinal);
@@ -50,6 +62,10 @@ pub fn statement(source: schema.SourceWire, wire_statement: schema.StatementWire
     optional(&hasher, public.program_root);
     optional(&hasher, public.initial_rw_root);
     optional(&hasher, public.final_rw_root);
+    word(&hasher, @intFromEnum(public.completion.kind));
+    word(&hasher, public.completion.address);
+    word(&hasher, public.completion.value);
+    word(&hasher, public.completion.clock);
     word(&hasher, public.input_start);
     word(&hasher, public.input_len);
     length(&hasher, public.input_words.len);
@@ -64,6 +80,12 @@ pub fn statement(source: schema.SourceWire, wire_statement: schema.StatementWire
         word(&hasher, value.clock);
     }
     return hasher.finalResult();
+}
+
+fn wide(hasher: *std.crypto.hash.sha2.Sha256, value: u64) void {
+    var encoded: [8]u8 = undefined;
+    std.mem.writeInt(u64, &encoded, value, .little);
+    hasher.update(&encoded);
 }
 
 fn word(hasher: *std.crypto.hash.sha2.Sha256, value: anytype) void {

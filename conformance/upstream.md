@@ -1,10 +1,11 @@
 # Upstream Pin Ledger
 
-This file is the single source-pin ledger for the repository's independent Rust correctness
-oracles. A revision applies only to the compatibility lane that names it. Native Stwo acceptance
-does not establish Cairo acceptance, and Cairo acceptance does not establish Native Stwo parity.
+This file is the single source-pin ledger for the repository's independent correctness
+authorities. A revision applies only to the compatibility lane that names it. Native Stwo
+acceptance does not establish Cairo acceptance, and neither establishes RISC-V ISA conformance.
 `python3 scripts/check_upstream_pins.py` rejects drift in manifests, lockfiles, source constants,
-generated registries, persistent sessions, prover boundaries, and hosted CI checkout metadata.
+formal-profile metadata, generated registries, persistent sessions, prover boundaries, and hosted
+CI checkout metadata.
 
 ## Native Stwo Lane
 
@@ -16,16 +17,36 @@ checkers.
 - Pinned commit: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Pin date: `2026-02-07`
 
-## RISC-V (Stark-V) Lane
+## RISC-V Formal ISA Lane
 
-This lane governs the RV32IM frontend's executor semantics, trace format, and AIR parity target.
-Stark-V is a work in progress upstream; pinning a commit turns parity into a concrete, testable
-contract instead of a moving reference. Native Stwo or Cairo acceptance does not establish
-Stark-V parity, and Stark-V acceptance establishes neither of the other lanes.
+This lane governs RV32IM decode and architectural retirement semantics. Sail is the normative
+executable ISA model, Spike is the independent implementation cross-check, and riscv-arch-test is
+the architectural corpus. The exact Sail compiler is part of the pin because generated simulator
+behavior is not attributed to an unversioned toolchain.
 
-- Stark-V repository: `https://github.com/ClementWalter/stark-v`
-- Pinned Stark-V commit: `d478f783055aa0d73a93768a433a3c6c31c91d1c`
-- Stark-V pin date: `2026-06-12`
+- Sail RISC-V repository: `https://github.com/riscv/sail-riscv`
+- Pinned Sail RISC-V commit: `8c7f2da58de0ba5e4457e4de07e0046f0439f35f`
+- Pinned Sail compiler version: `0.20.2`
+- Sail RISC-V pin date: `2026-07-26`
+- Spike repository: `https://github.com/riscv-software-src/riscv-isa-sim`
+- Pinned Spike commit: `520a5f185083ac3c97b751501dfac02a6c1f5970`
+- RISC-V Architectural Tests repository: `https://github.com/riscv-non-isa/riscv-arch-test`
+- Pinned RISC-V Architectural Tests commit: `426e1598ebc3688eaf9aba7b4a1b8a81dae9807f`
+
+The normative environment and refinement boundary are
+`conformance/2026-07-26-riscv-sail-contract.md` and
+`conformance/riscv/rv32im-sail-profile.json`. A semantic disagreement is resolved in favor of the
+pinned Sail model under those exact configuration overrides.
+
+## RISC-V Legacy Protocol Layout Lane
+
+Stark-V is retained only as the source of legacy opcode IDs, witness column ordering, relation
+ordering, and proof-transcript compatibility. It is not an ISA semantic oracle and cannot override
+Sail decode or retirement behavior.
+
+- Legacy Stark-V repository: `https://github.com/ClementWalter/stark-v`
+- Pinned legacy Stark-V commit: `d478f783055aa0d73a93768a433a3c6c31c91d1c`
+- Legacy Stark-V pin date: `2026-06-12`
 
 ## Cairo Lane
 
@@ -95,6 +116,9 @@ The current Native Stwo increment targets:
 3. Update manifests, lockfiles, constants, proof envelopes, receipts, and generated artifacts that
    carry those revisions.
 4. Re-run vector generation for all committed fixtures in the affected lane.
-5. Require the affected Zig parity, bidirectional interoperability, and exact Rust-oracle tests to
-   pass before merging.
-6. Document any intentional divergence in `conformance/divergence-log.md`.
+5. For RISC-V ISA changes, validate the exact Sail configuration, run retirement-level Sail and
+   Spike differentials, and run every applicable architectural test through execute → prove →
+   independent verify.
+6. Require the affected Zig parity, bidirectional interoperability, and exact external-authority
+   tests to pass before merging.
+7. Document any intentional divergence in `conformance/divergence-log.md`.

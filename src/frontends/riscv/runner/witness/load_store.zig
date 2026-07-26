@@ -7,6 +7,15 @@ const Opcode = @import("../decode.zig").Opcode;
 const load_store_semantics = @import("../../air/semantics/load_store.zig");
 const w = @import("writer.zig");
 
+fn loadResult(row: anytype) u32 {
+    return switch (row.opcode) {
+        .LB => @bitCast(@as(i32, @as(i8, @bitCast(@as(u8, @truncate(row.mem_val)))))),
+        .LH => @bitCast(@as(i32, @as(i16, @bitCast(@as(u16, @truncate(row.mem_val)))))),
+        .LBU, .LHU, .LW => row.mem_val,
+        else => 0,
+    };
+}
+
 pub fn fill(columns: anytype, index: usize, row: anytype) void {
     w.common(columns, index, 0, row);
     w.loadStoreDst(columns, index, 2, row);
@@ -21,16 +30,13 @@ pub fn fill(columns: anytype, index: usize, row: anytype) void {
     const aligned = row.mem_addr -% shift;
     const src_selector = if (row.is_load) aligned else r2;
     const dst_selector = if (row.is_load) r2 else aligned;
+    const result = loadResult(row);
     const selected_msb: u32 = if (row.opcode == .LB)
-        (row.rd_val >> 31) & 1
+        (result >> 31) & 1
     else if (row.opcode == .LH)
-        (row.rd_val >> 31) & 1
-    else if (row.opcode == .SB)
-        (row.rs2_val >> 7) & 1
-    else if (row.opcode == .SH)
-        (row.rs2_val >> 15) & 1
+        (result >> 31) & 1
     else
-        (if (row.is_load) row.mem_next_word else row.rs2_val) >> 31;
+        0;
 
     w.set(columns, index, 32, w.u(r2));
     w.set(columns, index, 33, w.signed(row.imm));
@@ -52,6 +58,8 @@ pub fn fill(columns: anytype, index: usize, row: anytype) void {
         row.opcode == .LW, row.opcode == .SB, row.opcode == .SH,  row.opcode == .SW,
     };
     for (flags, 0..) |flag, i| w.set(columns, index, 42 + i, w.bit(flag));
+    w.writeLimbs(columns, index, 50, result);
+    w.destination(columns, index, 54, @intCast(r2));
 }
 
 fn semanticRow(row: anytype) !load_store_semantics.Row {
@@ -83,6 +91,7 @@ test "load store witness: aligned SW and LW satisfy pinned semantics" {
         rd_prev_clk: u32 = 0,
         rd_val: u32 = 0,
         mem_addr: u32 = 0x2000,
+        mem_val: u32 = 0,
         mem_prev_word: u32 = 0,
         mem_prev_clk: u32 = 0,
         mem_next_word: u32 = 0,
@@ -108,6 +117,7 @@ test "load store witness: aligned SW and LW satisfy pinned semantics" {
         .opcode = .LW,
         .rd = 4,
         .rd_val = value,
+        .mem_val = value,
         .mem_prev_word = value,
         .mem_prev_clk = 1,
         .mem_next_word = value,

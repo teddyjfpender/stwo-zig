@@ -12,8 +12,8 @@ const control = @import("control_common.zig");
 const Opcode = @import("../program/opcode.zig").Opcode;
 
 /// Exact generated `MulColumns` order at the pinned Stark-V revision.
-pub const N_ORACLE_COLUMNS: usize = 33;
-pub const N_CONSTRAINTS: usize = 1;
+pub const N_ORACLE_COLUMNS: usize = 39;
+pub const N_CONSTRAINTS: usize = 8;
 pub const LOOKUP_BATCH_SIZE: usize = 1;
 pub const BITWISE_LOOKUP_COUNT: usize = 0;
 pub const CURRENT_TRACE_COMPATIBLE = true;
@@ -26,6 +26,8 @@ pub const Row = struct {
     rd: common.Access,
     rs1: common.Access,
     rs2: common.Access,
+    result: [4]QM31,
+    destination: common.Destination,
 
     pub fn fromOracleColumns(columns: []const QM31) !Row {
         if (columns.len != N_ORACLE_COLUMNS) return error.InvalidOracleTraceShape;
@@ -36,6 +38,8 @@ pub const Row = struct {
             .rd = common.accessFromColumns(columns[3..13]),
             .rs1 = common.accessFromColumns(columns[13..23]),
             .rs2 = common.accessFromColumns(columns[23..33]),
+            .result = columns[33..37].*,
+            .destination = common.destinationFromColumns(columns[37..39]),
         };
     }
 };
@@ -48,7 +52,7 @@ pub fn derive(row: Row) Derived {
     @setEvalBranchQuota(100_000);
     const lhs = row.rs1.next;
     const rhs = row.rs2.next;
-    const result = row.rd.next;
+    const result = row.result;
     var carry: [4]QM31 = undefined;
     carry[0] = lhs[0].mul(rhs[0]).sub(result[0]).mul(common.INV_BYTE_RADIX);
     carry[1] = carry[0].add(lhs[1].mul(rhs[0])).add(lhs[0].mul(rhs[1]))
@@ -64,7 +68,14 @@ pub fn derive(row: Row) Derived {
 pub const Constraints = common.ConstraintSet(N_CONSTRAINTS);
 
 pub fn evaluate(row: Row) Constraints {
-    return .{ .values = .{row.enabler.mul(QM31.one().sub(row.enabler))} };
+    var out: [N_CONSTRAINTS]QM31 = undefined;
+    out[0] = row.enabler.mul(QM31.one().sub(row.enabler));
+    @memcpy(out[1..4], &common.destinationConstraints(row.rd.addr, row.destination));
+    @memcpy(
+        out[4..8],
+        &common.destinationResultConstraints(row.rd, row.result, row.destination),
+    );
+    return .{ .values = out };
 }
 
 /// Binds the table-local enabler to the component placement selector.
@@ -96,7 +107,7 @@ pub fn lookups(row: Row) Lookups {
     const carries = derive(row).carries;
     var ranges: [4]control.Request(control.RangePairTuple) = undefined;
     for (&ranges, 0..) |*request, limb| {
-        request.* = control.rangePairRequest(row.enabler, row.rd.next[limb], carries[limb]);
+        request.* = control.rangePairRequest(row.enabler, row.result[limb], carries[limb]);
     }
     return .{
         .program = control.programRequest(row.enabler, programLookup(row)),
@@ -139,6 +150,11 @@ fn honestRow() Row {
         .rd = rd,
         .rs1 = rs1,
         .rs2 = rs2,
+        .result = rd.next,
+        .destination = .{
+            .nonzero = QM31.one(),
+            .inverse = common.q(3).inv() catch unreachable,
+        },
     };
 }
 
@@ -161,6 +177,7 @@ test "mul: forged low product is rejected by exact range request" {
     row.rs1.next = .{ QM31.one(), QM31.zero(), QM31.zero(), QM31.zero() };
     row.rs2.next = row.rs1.next;
     row.rd.next[0] = common.q(2);
+    row.result[0] = common.q(2);
     const forged_carry = try derive(row).carries[0].tryIntoM31();
     try std.testing.expect(forged_carry.toU32() >= 2048);
 }
