@@ -1,0 +1,32 @@
+{
+  "schema": "stwo-zig-cairo-proving-profile-v1",
+  "version": 1,
+  "profile": "official-all-opcodes-canonical-small",
+  "preprocessed_variant": "canonical_small",
+  "assets": {
+    "witness_programs": {
+      "path": "witness_programs_v1.bin",
+      "sha256": "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6"
+    },
+    "witness_topology": {
+      "path": "witness_feed_topology_v1.json",
+      "sha256": "366c12c942d267940e3b85376873fc3624684be4416d98c244ddcfc25ce1af63"
+    },
+    "fixed_tables": {
+      "path": "../cairo_fixed_tables.bin",
+      "sha256": "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890"
+    },
+    "relation_templates": {
+      "path": "../cairo_relation_templates.bin",
+      "sha256": "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f"
+    },
+    "air_programs": {
+      "path": "all_opcodes.air_programs_v1.bin",
+      "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c"
+    },
+    "base_checkpoint": {
+      "path": "all_opcodes.base_trace_checkpoint.json",
+      "sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7"
+    }
+  }
+}

@@ -9,6 +9,7 @@ const product_policy = @import("../graph/product.zig");
 const aggregate = @import("aggregate.zig");
 const aggregate_cli = @import("aggregate_cli.zig");
 const catalog_manifest = @import("catalog_manifest.zig");
+const cairo_cpu = @import("cairo_cpu.zig");
 const cairo_cuda = @import("cairo_cuda.zig");
 const core = @import("core.zig");
 const native_cpu = @import("native_cpu.zig");
@@ -47,6 +48,13 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
         if (spec.scope != scope or spec.constructor == .unavailable) continue;
         switch (spec.constructor) {
             .aggregate => unreachable,
+            .cairo_cpu => cairo_cpu.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
             .cairo_cuda => cairo_cuda.addProduct(.{
                 .b = context.b,
                 .target = context.target,

@@ -19,6 +19,7 @@ pub const Scope = catalog.Scope;
 
 pub const Constructor = enum {
     aggregate,
+    cairo_cpu,
     cairo_cuda,
     core,
     prover,
@@ -57,7 +58,13 @@ pub const products = [_]Spec{
         .generated_module_roots = &.{"generated:options:"},
         .configure_allowed_files = &.{"build_support/product_policy_test.zig"},
     },
-    .{ .descriptor = cairo_cpu.descriptor, .scope = .deferred, .constructor = .unavailable },
+    .{
+        .descriptor = cairo_cpu.descriptor,
+        .scope = .cairo_cpu,
+        .constructor = .cairo_cpu,
+        .configure_tools = &.{"python3"},
+        .generated_module_roots = &.{"generated:options:"},
+    },
     .{ .descriptor = cairo_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
     .{ .descriptor = riscv_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
     .{

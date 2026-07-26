@@ -78,6 +78,41 @@ test "official Cairo all-opcodes canonical-small CPU proof completes" {
         result.preprocessed_variant == .canonical_small,
     );
     try emitProofIfRequested(&input, &composition, &result);
+
+    result.interaction_pow ^= 1;
+    try std.testing.expectError(
+        error.ProofOfWork,
+        cairo_cpu.prover.transaction.verifyAndConsume(
+            &input,
+            &composition,
+            &result,
+        ),
+    );
+    result.interaction_pow ^= 1;
+    try std.testing.expect(result.proof_owned);
+
+    result.claimed_sums[0] = result.claimed_sums[0].add(
+        stwo.core.fields.qm31.QM31.one(),
+    );
+    try std.testing.expectError(
+        error.InvalidGlobalLookupSum,
+        cairo_cpu.prover.transaction.verifyAndConsume(
+            &input,
+            &composition,
+            &result,
+        ),
+    );
+    result.claimed_sums[0] = result.claimed_sums[0].sub(
+        stwo.core.fields.qm31.QM31.one(),
+    );
+    try std.testing.expect(result.proof_owned);
+
+    try cairo_cpu.prover.transaction.verifyAndConsume(
+        &input,
+        &composition,
+        &result,
+    );
+    try std.testing.expect(!result.proof_owned);
 }
 
 fn emitProofIfRequested(

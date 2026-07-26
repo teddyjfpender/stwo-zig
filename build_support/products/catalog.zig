@@ -6,6 +6,7 @@ const construction_observer = @import("../graph/construction_observer.zig");
 pub const Scope = enum {
     aggregate,
     architecture,
+    cairo_cpu,
     compatibility_tools,
     core,
     cairo_cuda,
@@ -83,6 +84,7 @@ pub const steps = [_]Step{
     .{ .name = "cuda-native-adapter", .description = "Build the copied-backend Native CUDA proof adapter", .scope = .cuda_tools },
     .{ .name = "cairo-input", .description = "Build adapted Cairo input inspector", .scope = .compatibility_tools },
     .{ .name = "cairo-air-bundle-inspector", .description = "Build official Cairo AIR bundle inspector", .scope = .compatibility_tools },
+    .{ .name = "test-cairo-cpu-oracle", .description = "Prove through the CPU CLI and require official Rust acceptance", .scope = .cairo_cpu },
     .{ .name = "test-cairo-frontend", .description = "Run focused backend-neutral Cairo conformance tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-air", .description = "Run Cairo CPU AIR integration tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-proof", .description = "Run the complete official Cairo CPU proof gate", .scope = .compatibility_tools },
