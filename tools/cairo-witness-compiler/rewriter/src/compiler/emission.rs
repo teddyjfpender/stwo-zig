@@ -380,6 +380,7 @@ fn generic_simd_tokens(component: &str, lw: &Lowerer, writer: &ItemFn) -> TokenS
         #[allow(clippy::type_complexity)]
         #[allow(unused_variables)]
         #[allow(dead_code)]
+        #[allow(non_snake_case)]
         fn write_trace_generic_simd(#inputs) #output {
             #(#preamble)*
             #enabler_fallback
@@ -567,6 +568,7 @@ fn lookup_flat_tokens(lw: &Lowerer) -> TokenStream {
         }
     }
     quote! {
+        #[cfg(test)]
         fn lookup_data_flat(ld: &LookupData) -> Vec<Vec<PackedM31>> {
             vec![ #(#parts),* ]
         }
@@ -595,6 +597,7 @@ fn sub_flat_tokens(lw: &Lowerer) -> TokenStream {
         }
     }
     quote! {
+        #[cfg(test)]
         fn sub_inputs_flat(sci: &SubComponentInputs) -> Vec<Vec<Simd<u32, N_LANES>>> {
             vec![ #(#parts),* ]
         }

@@ -19,20 +19,39 @@ authenticated official source
   witness_programs_v1.bin    parsed and authenticated by Zig
 ```
 
-`rewriter/` is the first repository-owned phase. It parses generated component
+`rewriter/` parses generated component
 writers with `syn`, accepts only known shapes and operations, and reports every
 unsupported construct. It never edits the authenticated checkout during normal
 artifact generation. Its `--emit-dir` output is staged into a disposable
 overlay.
 
-The remaining compiler phases must live beside it:
+The rest of the owned compiler closure lives beside it:
 
-- a backend-neutral evaluator instruction model;
-- deterministic component recording and bundle serialization;
-- an orchestrator that verifies the official source revision and clean tree;
-- provenance generation that binds the source, compiler closure, toolchain,
-  component census, and artifact digest;
-- reproduction and mutation gates for every released program bundle.
+- `support/` contains the backend-neutral evaluator, SSA instruction model,
+  deterministic recorder, and bundle exporter installed into the isolated
+  official-source overlay;
+- `orchestrator.py` verifies the official revision, tree, and clean checkout,
+  creates the overlay from `git archive`, runs the rewriter and official Rust
+  compiler, validates the complete bundle, and publishes outputs without
+  replacement;
+- `generate.py` is the small command-line boundary;
+- `tests/` covers compiler identities, registry patch admission, immutable
+  publication, and the checked-in bundle contract.
+
+Generate a new artifact and deterministic receipt with:
+
+```sh
+python3 tools/cairo-witness-compiler/generate.py \
+  --source /path/to/clean/stwo-cairo \
+  --output /path/to/new/witness_programs_v1.bin \
+  --receipt /path/to/new/compiler-receipt.json
+```
+
+The first run populates `tools/cairo-witness-compiler/target/`, which is ignored
+by Git. Later runs use a process lock, a stable official-overlay path, and
+content-derived mtimes so Cargo can reuse the exact compiler closure. A change
+to the official tree, rewriter, or support sources changes that identity and
+invalidates the affected build.
 
 The compiler is not part of proof generation. `stwo-cairo-cpu` and
 `stwo-cairo-metal` read only authenticated artifacts already present in the
@@ -48,7 +67,7 @@ known evaluator extensions, and rejects 38 with explicit reasons. Its census
 and all emitted files are byte-identical to the migration transformer recorded
 by `vectors/cairo/official/witness_programs_v1.provenance.json`.
 
-This establishes rewriter ownership, not release completion. The binary bundle
-remains non-release evidence until this directory owns the entire compiler
-closure, all official witness writers are covered, every input edge is bound,
-and the resulting SIMD and Metal proofs pass the official verifier.
+This establishes compiler ownership, not product release completion. The
+binary bundle remains non-release evidence until all official witness writers
+are covered, every input edge is bound, and the resulting SIMD and Metal
+proofs pass the official verifier.

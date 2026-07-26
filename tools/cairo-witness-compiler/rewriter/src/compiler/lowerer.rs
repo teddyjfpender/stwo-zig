@@ -59,8 +59,8 @@ struct Lowerer {
     /// whose RESULT type is in [`known_deduce_output_ty`]'s table. Typing the result lets
     /// every downstream projection (`.N` / `[i]` / `.get_m31(i)`) resolve — collapsing the
     /// cascade of Unknown skips to the honest per-call deduce count — while the call
-    /// itself stays census-only: it needs either a computed-deduce ISA op backed by a
-    /// device function (ec_ops.cuh) or device-to-device component feeding. Blocks emission.
+    /// itself stays census-only: it needs either a computed-deduce instruction or direct
+    /// component-to-component feeding. Blocks emission.
     deduce_sites: usize,
     counter: usize,
 
