@@ -73,7 +73,7 @@ fn updateFamily(hasher: *std.crypto.hash.sha2.Sha256, comptime family: Family) v
 }
 
 test "witness layout digest matches the Sail-authoritative schema receipt" {
-    const expected = "c1fbdc34701f9b27513652bd292ec06001e9847d5c75b6dc01aeed0b597c58af";
+    const expected = "314f1669804bb2c7fa2c99c5fe7fedb6801f9bf7e0353ace6750e1c2c7b302b9";
     const actual = std.fmt.bytesToHex(digest(), .lower);
     try std.testing.expectEqualStrings(expected, &actual);
 }

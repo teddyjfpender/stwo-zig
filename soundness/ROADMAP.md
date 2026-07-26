@@ -57,17 +57,20 @@ deferred end-to-end DIV committed-trace mutation called out below.
 - [x] `SB`/`SH` preserve the unmarked bytes of the destination word.
 - [x] `AUIPC` pins `imm_limbs[0] == 0`. Because `2^32 = 2p + 2`, every immediate
       previously admitted a second byte decomposition offset by `p + 2`.
-- [x] `JALR` range-checks the `rs1` middle bytes, bounding the composed jump
-      target.
+- [x] `JALR` binds all source bytes, the signed I-immediate, bit 0, and the
+      aligned target through an exact byte-carry recurrence. Its committed
+      `target / 4` low20/high8 split mirrors the program AIR and enforces the
+      successful-retirement address bound locally, including u32 wraparound.
 - [x] `DIV`/`DIVU`/`REM`/`REMU` byte-range every divisor limb locally, bind the
-      quotient sign to its top byte, and pin the zero-divisor sign convention.
-      The proven-sufficient `lt_diff` RC_20 bound is unchanged.
+      ambiguous zero-quotient sign while preserving the signed-overflow
+      algebraic convention, and pin the zero-divisor convention. The
+      proven-sufficient `lt_diff` RC_20 bound is unchanged.
 - [x] `LB`/`LH` sign extension and `SRL`/`SRA` sign fill bind their sign
       witnesses to the operand bit they claim to represent.
 
-One residual obligation remains global rather than row-local and is documented
-at its site: the `JALR` `to_pc_lsb` flip rests on ROM fetch alignment, which the
-opcode row does not yet enforce locally.
+The sweep's previously global DIV byte-ness and JALR target-bit obligations are
+now row-local. No known residual obligation from that sweep rests solely on bus
+closure or the consuming ROM row.
 
 The review that found these is the reason the first item below is now the
 highest-priority soundness task rather than one of five parallel ones: every one

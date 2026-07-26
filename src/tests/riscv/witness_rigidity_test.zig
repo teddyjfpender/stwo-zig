@@ -37,7 +37,7 @@
 //! shows the probed perturbations move. Neither tier proves rigidity over all
 //! of M31.
 //!
-//! Cost: 3.6 s wall for the four tests in a Debug build on an Apple M5 Max,
+//! Cost: 8.9 s wall for the four tests in a Debug build on an Apple M5 Max,
 //! dominated by executing the 20-program corpus once per property. Raising
 //! `ROWS_PER_PROGRAM` or making the byte sweep unconditional is what turns this
 //! into a slow gate, so both are constants here.
@@ -275,11 +275,25 @@ test "witness rigidity: every committed column is observable somewhere" {
             const view = honest[0..columns.n_columns];
             const probe_view = probe[0..columns.n_columns];
             var visited: usize = 0;
-            while (iterator.next(view)) |_| {
+            while (iterator.next(view)) |trace_row| {
                 if (visited == ROWS_PER_PROGRAM) break;
                 // An honest row that the row-local oracle rejects is a witness
                 // generator bug, not a row to skip.
-                try std.testing.expect(try oracle.accepts(family, view));
+                const accepted = try oracle.accepts(family, view);
+                if (!accepted) {
+                    std.debug.print(
+                        "  HONEST REJECT path={s} family={s} pc=0x{x} rs1=0x{x} imm={d} next_pc=0x{x}\n",
+                        .{
+                            path,
+                            @tagName(family),
+                            trace_row.pc,
+                            trace_row.rs1_val,
+                            trace_row.imm,
+                            trace_row.next_pc,
+                        },
+                    );
+                }
+                try std.testing.expect(accepted);
                 visited += 1;
                 probed[family_index] += 1;
                 try markObservable(family, view, probe_view, &observable[family_index]);

@@ -340,10 +340,10 @@ test "witness rows satisfy upper jump and memory semantic evaluators" {
     try std.testing.expect(semantics.jal.evaluate(jal).allZero());
 
     row = testRow(.JALR);
-    row.imm = 3;
-    row.rs1_val = 100;
+    row.imm = 4;
+    row.rs1_val = 101;
     row.rd_val = 104;
-    row.next_pc = 102;
+    row.next_pc = 104;
     var jalr_columns = filledRow(semantics.jalr.N_MAIN_COLUMNS, row, .jalr);
     const jalr = try semantics.jalr.Row.fromMainColumns(&jalr_columns);
     try std.testing.expect(semantics.jalr.evaluate(jalr).allZero());

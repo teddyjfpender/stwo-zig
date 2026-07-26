@@ -363,9 +363,12 @@ pub fn lookups(row: Row) Lookups {
         },
         .quotient_remainder_ranges = ranges,
         // q[3] is byte-ranged above. Requiring q[3] - 128*q_sign to fit seven
-        // bits binds q_sign to bit 31, including the q == 0 signed case.
+        // bits binds the ambiguous q == 0, sign_xor == 1 case. Both-negative
+        // division is excluded because signed overflow intentionally represents
+        // 0x80000000 with the algebraic extension q_sign = sign_xor = 0; for
+        // that whole class the existing direct equations already force zero.
         .quotient_sign_range = control.rangePairRequest(
-            d.valid_not_zero_divisor,
+            d.valid_not_zero_divisor.sub(row.b_sign.mul(row.c_sign)),
             QM31.zero(),
             row.q[3].sub(row.q_sign.mul(common.q(128))),
         ),

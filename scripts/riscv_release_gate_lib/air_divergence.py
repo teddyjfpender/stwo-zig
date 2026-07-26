@@ -8,7 +8,7 @@ closed -- a source register access that emits a value it did not consume (which
 also leaves every witness derived from that value, including the ``LB``/``LH``
 and ``SRL``/``SRA`` sign witnesses, a free prover choice), free unmarked
 ``SB``/``SH`` bytes, a second ``AUIPC`` immediate decomposition offset by
-``p + 2``, and an unbounded ``composeU32(rs1)`` in ``JALR``.
+``p + 2``, an unbound JALR target, and non-byte DIV divisors.
 ``conformance/divergence-log.md`` is the authoritative disclosure.  An oracle
 that accepts those cannot arbitrate AIR soundness, so the boundaries whose
 comparison *is* an AIR comparison cannot be required to agree with it.
@@ -31,10 +31,12 @@ regression is the whole purpose of this module:
 * The status is not portable.  ``SUPERSEDED_BOUNDARIES`` is closed, and
   ``contract.receipt_errors`` rejects the status on every other boundary, so a
   parity boundary cannot launder a real failure through it.
-* Lineage is still gated.  A demoted boundary must attest that the layout
-  lineage Stark-V is still authoritative for was compared and agreed, so the
-  demotion covers constraint and lookup content only -- never column identity,
-  column order, family identity, or relation order.
+* Lineage is still gated.  A demoted boundary must attest that every legacy
+  family and committed-column prefix Stark-V remains authoritative for was
+  compared and agreed.  Reviewed soundness columns, relation additions, and
+  relation-domain substitutions are permitted only when their complete paths
+  are part of the pinned divergence shape; family identity and legacy column
+  identity/order are never demoted.
 
 Ownership: every value here is borrowed read-only by ``contract`` and by the
 release-gate tests.  Nothing in this module reads the filesystem or a receipt.
@@ -62,17 +64,19 @@ SUPERSEDED_STATUS = "superseded_by_soundness_divergence"
 SUPERSEDED_BOUNDARIES: dict[str, str] = {
     "per_family_witness_rows": (
         "Zig binds rs1/rs2 read-only accesses and preserves every unmarked SB/SH "
-        "destination byte, so witness cells the pinned AIR leaves free are now "
-        "determined; row content cannot match a dump produced by the unsound AIR."
+        "destination byte; JALR also appends its row-local target decomposition. "
+        "Witness cells the pinned AIR leaves free are now determined, so row "
+        "content cannot match a dump produced by the unsound AIR."
     ),
     "relation_tuples": (
-        "JALR adds an rs1 middle-byte range_check_8_8 request (12 -> 13 entries, "
-        "6 -> 7 batches) and AUIPC pins imm_limbs[0] == 0, so the activated "
-        "lookup tuple streams differ from the pinned oracle by construction."
+        "JALR adds source, target, and immediate requests (12 -> 18 entries, "
+        "6 -> 9 batches), DIV adds divisor and quotient-sign requests "
+        "(22 -> 25), and AUIPC pins imm_limbs[0] == 0, so activated lookup "
+        "tuple streams differ from the pinned oracle by construction."
     ),
     "relation_sums": (
-        "The added JALR lookup request and the injective AUIPC decomposition move "
-        "per-domain cumulative sums; both sides must still balance to zero "
+        "The added JALR and DIV requests plus the injective AUIPC decomposition "
+        "move per-domain cumulative sums; both sides must still balance to zero "
         "independently, which the sum parser continues to enforce."
     ),
 }
@@ -83,8 +87,9 @@ AIR_SOUNDNESS_SITES: tuple[str, ...] = (
     "read_only_access_binding",
     "store_unmarked_byte_preservation",
     "auipc_immediate_injectivity",
-    "jalr_operand_range_check",
-    "jalr_interaction_geometry",
+    "jalr_row_local_target_binding",
+    "divisor_byte_and_quotient_sign_binding",
+    "load_and_shift_sign_binding",
 )
 
 # Divergence shapes accepted for each demoted boundary, as ``shape_digest``
