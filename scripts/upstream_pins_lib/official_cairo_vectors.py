@@ -7,6 +7,7 @@ import json
 import struct
 from pathlib import Path
 
+from .official_cairo_air import check as check_air_programs
 from .official_cairo_topology import check as check_topology
 
 
@@ -441,6 +442,7 @@ def _check_record(
     if requires_proof:
         proof = record.get("proof")
         claim_summary = record.get("claim_summary")
+        air_programs = record.get("air_programs")
         if not isinstance(proof, dict):
             errors.append(f"{relative_path}: proof object is required")
         else:
@@ -449,6 +451,17 @@ def _check_record(
             errors.append(f"{relative_path}: claim_summary object is required")
         else:
             errors.extend(_check_claim_summary(root, relative_path, claim_summary))
+        if not isinstance(air_programs, dict):
+            errors.append(f"{relative_path}: air_programs object is required")
+        else:
+            errors.extend(
+                check_air_programs(
+                    root,
+                    relative_path,
+                    air_programs,
+                    closure_sha256=_closure_sha256,
+                )
+            )
     checkpoint = record.get("base_trace_checkpoint")
     if not isinstance(checkpoint, dict):
         errors.append(f"{relative_path}: base_trace_checkpoint object is required")

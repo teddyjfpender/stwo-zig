@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from scripts.check_upstream_pins import PinLedgerError, parse_ledger, validate_repository
-from scripts.upstream_pins_lib import official_cairo_vectors
+from scripts.upstream_pins_lib import official_cairo_air, official_cairo_vectors
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -173,6 +173,37 @@ class UpstreamPinTests(unittest.TestCase):
         )
         self.assertIsNone(parsed)
         self.assertIn("semantic hash mismatch", "\n".join(errors))
+
+    def test_official_air_program_mutation_is_rejected(self) -> None:
+        provenance = json.loads(
+            (
+                ROOT
+                / "vectors/cairo/official/all_opcodes_blake2s.provenance.json"
+            ).read_text(encoding="utf-8")
+        )
+        artifact = provenance["air_programs"]
+        encoded = bytearray((ROOT / artifact["path"]).read_bytes())
+        encoded[-1] ^= 1
+
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            path = temporary_root / artifact["path"]
+            path.parent.mkdir(parents=True)
+            path.write_bytes(encoded)
+            shutil.copytree(
+                ROOT / "tools/stwo-cairo-air-compiler",
+                temporary_root / "tools/stwo-cairo-air-compiler",
+                ignore=shutil.ignore_patterns("target", "__pycache__", "*.pyc"),
+            )
+            errors = official_cairo_air.check(
+                temporary_root,
+                "vectors/cairo/official/all_opcodes_blake2s.provenance.json",
+                artifact,
+                closure_sha256=official_cairo_vectors._closure_sha256,
+            )
+
+        self.assertIn("AIR program digest drifted", "\n".join(errors))
+        self.assertIn("AIR program plan hash drifted", "\n".join(errors))
 
     def test_official_witness_compiler_receipt_mutation_is_rejected(self) -> None:
         provenance = json.loads(

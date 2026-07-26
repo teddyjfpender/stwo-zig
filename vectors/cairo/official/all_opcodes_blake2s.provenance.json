@@ -43,6 +43,18 @@
     "final_accumulator_sha256": "74386dacef4d5c36da2b02a570e894ed2a8f050f6d32d7e1228c378b3c7d0a60",
     "generator": "stwo-cairo-trace-oracle"
   },
+  "air_programs": {
+    "path": "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
+    "format": "STWZEVA/1",
+    "bytes": 490417,
+    "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c",
+    "component_count": 46,
+    "constraint_count": 678,
+    "max_evaluation_log": 21,
+    "plan_hash": "a3611657b6f2c65f",
+    "generator": "tools/stwo-cairo-air-compiler",
+    "generator_closure_sha256": "b5912adfa4ccc3e2f3c4a56ab6ba55963cdf7a012aa3b60c58047322b4c525b3"
+  },
   "prover_input": {
     "path": "vectors/cairo/official/all_opcodes.prover_input.json",
     "format": "official_json",
