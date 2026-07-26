@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -163,6 +165,54 @@ class UpstreamPinTests(unittest.TestCase):
         )
         self.assertIsNone(parsed)
         self.assertIn("semantic hash mismatch", "\n".join(errors))
+
+    def test_official_witness_compiler_receipt_mutation_is_rejected(self) -> None:
+        provenance = json.loads(
+            (
+                ROOT
+                / "vectors/cairo/official/witness_programs_v1.provenance.json"
+            ).read_text(encoding="utf-8")
+        )
+        encoded = (
+            ROOT / "vectors/cairo/official/witness_programs_v1.bin"
+        ).read_bytes()
+        parsed, parse_errors = official_cairo_vectors._parse_witness_bundle(
+            encoded,
+            "vectors/cairo/official/witness_programs_v1.bin",
+        )
+        self.assertEqual([], parse_errors)
+        self.assertIsNotNone(parsed)
+        labels, instruction_count = parsed
+
+        receipt_relative = provenance["compiler"]["receipt"]["path"]
+        receipt = (ROOT / receipt_relative).read_text(encoding="utf-8")
+        mutated = receipt.replace(
+            '"artifact_bytes": 685149',
+            '"artifact_bytes": 685150',
+        )
+        self.assertNotEqual(receipt, mutated)
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            receipt_path = temporary_root / receipt_relative
+            receipt_path.parent.mkdir(parents=True)
+            receipt_path.write_text(mutated, encoding="utf-8")
+            shutil.copytree(
+                ROOT / "tools/cairo-witness-compiler",
+                temporary_root / "tools/cairo-witness-compiler",
+                ignore=shutil.ignore_patterns("target", "__pycache__", "*.pyc"),
+            )
+            errors = official_cairo_vectors._check_witness_compiler(
+                temporary_root,
+                "vectors/cairo/official/witness_programs_v1.provenance.json",
+                provenance["compiler"],
+                provenance["source"],
+                provenance["artifact"],
+                labels,
+                instruction_count,
+            )
+        joined = "\n".join(errors)
+        self.assertIn("compiler receipt digest drifted", joined)
+        self.assertIn("compiler receipt artifact identity drifted", joined)
 
     def test_ledger_rejects_ambiguous_native_pin(self) -> None:
         text = LEDGER.read_text(encoding="utf-8")

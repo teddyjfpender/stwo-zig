@@ -80,7 +80,7 @@ def _check_witness_bundle(
     blockers = record.get("release_blockers")
     if not isinstance(blockers, list) or len(blockers) < 3:
         errors.append(f"{relative_path}: explicit release blockers are required")
-    if compiler.get("classification") != "authenticated_migration_checkpoint":
+    if compiler.get("classification") != "repository_owned_source_compiler":
         errors.append(f"{relative_path}: compiler classification drifted")
 
     path = artifact.get("path")
@@ -108,6 +108,17 @@ def _check_witness_bundle(
         errors.append(f"{relative_path}: witness instruction count drifted")
     if artifact.get("components") != labels:
         errors.append(f"{relative_path}: witness component order drifted")
+    errors.extend(
+        _check_witness_compiler(
+            root,
+            relative_path,
+            compiler,
+            source,
+            artifact,
+            labels,
+            instruction_count,
+        )
+    )
 
     expected_parity = {
         "all_opcodes": (
@@ -140,6 +151,119 @@ def _check_witness_bundle(
         if actual != expected or value.get("column_mismatches") != 0:
             errors.append(f"{relative_path}: parity case {case!r} drifted")
     return errors
+
+
+def _check_witness_compiler(
+    root: Path,
+    relative_path: str,
+    compiler: dict[str, object],
+    source: dict[str, object],
+    artifact: dict[str, object],
+    labels: list[str],
+    instruction_count: int,
+) -> list[str]:
+    errors: list[str] = []
+    receipt_metadata = compiler.get("receipt")
+    if not isinstance(receipt_metadata, dict):
+        return [f"{relative_path}: compiler receipt metadata is required"]
+    receipt_path = receipt_metadata.get("path")
+    if not isinstance(receipt_path, str) or Path(receipt_path).is_absolute():
+        return [f"{relative_path}: compiler receipt path is invalid"]
+    try:
+        receipt_bytes = (root / receipt_path).read_bytes()
+        receipt = json.loads(receipt_bytes)
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative_path}: invalid compiler receipt: {error}"]
+    if not isinstance(receipt, dict):
+        return [f"{relative_path}: compiler receipt must be an object"]
+    if receipt_metadata.get("bytes") != len(receipt_bytes):
+        errors.append(f"{relative_path}: compiler receipt byte count drifted")
+    if receipt_metadata.get("sha256") != hashlib.sha256(receipt_bytes).hexdigest():
+        errors.append(f"{relative_path}: compiler receipt digest drifted")
+    if receipt.get("schema") != "stwo_zig_cairo_witness_compiler_receipt_v1":
+        errors.append(f"{relative_path}: compiler receipt schema drifted")
+
+    official_source = receipt.get("official_source")
+    if not isinstance(official_source, dict):
+        errors.append(f"{relative_path}: compiler receipt source is missing")
+    elif (
+        official_source.get("revision") != source.get("revision")
+        or official_source.get("tree") != source.get("tree")
+        or not isinstance(official_source.get("commit_timestamp"), int)
+    ):
+        errors.append(f"{relative_path}: compiler receipt source drifted")
+
+    receipt_artifact = (
+        receipt.get("artifact_bytes"),
+        receipt.get("artifact_sha256"),
+        receipt.get("program_count"),
+        receipt.get("instruction_count"),
+    )
+    expected_artifact = (
+        artifact.get("bytes"),
+        artifact.get("sha256"),
+        len(labels),
+        instruction_count,
+    )
+    if receipt_artifact != expected_artifact:
+        errors.append(f"{relative_path}: compiler receipt artifact identity drifted")
+    emitted = receipt.get("emitted_components")
+    if not isinstance(emitted, list) or sorted(emitted) != sorted(labels):
+        errors.append(f"{relative_path}: compiler receipt component set drifted")
+
+    if (
+        compiler.get("repository") != "https://github.com/teddyjfpender/stwo-zig"
+        or compiler.get("path") != "tools/cairo-witness-compiler"
+    ):
+        errors.append(f"{relative_path}: compiler repository identity drifted")
+    compiler_root = root / "tools/cairo-witness-compiler"
+    try:
+        closure_contract = {
+            "orchestrator_sha256": _files_sha256(
+                compiler_root,
+                (
+                    compiler_root / "generate.py",
+                    compiler_root / "orchestrator.py",
+                ),
+            ),
+            "rewriter_closure_sha256": _closure_sha256(compiler_root / "rewriter"),
+            "support_closure_sha256": _closure_sha256(compiler_root / "support"),
+        }
+    except OSError as error:
+        return errors + [f"{relative_path}: unable to hash witness compiler: {error}"]
+    for key, expected in closure_contract.items():
+        if receipt.get(key) != expected or compiler.get(key) != expected:
+            errors.append(f"{relative_path}: compiler {key} drifted")
+
+    migration = compiler.get("migration_equivalence")
+    if not isinstance(migration, dict) or migration.get("artifact_byte_identical") is not True:
+        errors.append(f"{relative_path}: migration equivalence is not explicit")
+    return errors
+
+
+def _closure_sha256(root: Path) -> str:
+    files = sorted(
+        path
+        for path in root.rglob("*")
+        if path.is_file()
+        and not {"target", "__pycache__", ".git"}.intersection(
+            path.relative_to(root).parts
+        )
+        and path.suffix != ".pyc"
+    )
+    return _files_sha256(root, files)
+
+
+def _files_sha256(root: Path, paths: tuple[Path, ...] | list[Path]) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(paths):
+        relative = path.relative_to(root).as_posix().encode("utf-8")
+        data = path.read_bytes()
+        digest.update(len(relative).to_bytes(4, "little"))
+        digest.update(relative)
+        digest.update(len(data).to_bytes(8, "little"))
+        digest.update(data)
+    return digest.hexdigest()
 
 
 def _parse_witness_bundle(
