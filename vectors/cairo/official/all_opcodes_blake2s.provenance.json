@@ -53,7 +53,7 @@
     "max_evaluation_log": 21,
     "plan_hash": "a3611657b6f2c65f",
     "generator": "tools/stwo-cairo-air-compiler",
-    "generator_closure_sha256": "b5912adfa4ccc3e2f3c4a56ab6ba55963cdf7a012aa3b60c58047322b4c525b3"
+    "generator_closure_sha256": "97feef7a49bdbef1283c77f2a22fd793da5f0912e61fa4e000d228da72b43858"
   },
   "prover_input": {
     "path": "vectors/cairo/official/all_opcodes.prover_input.json",

@@ -124,7 +124,14 @@ def ensure_overlay(source: Path) -> dict[str, object]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stwo-source", required=True, type=Path)
-    parser.add_argument("--proof", required=True, type=Path)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--proof", type=Path)
+    source.add_argument("--prover-input", type=Path)
+    parser.add_argument(
+        "--preprocessed-variant",
+        choices=("canonical", "canonical-small", "canonical-without-pedersen"),
+        default="canonical",
+    )
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args()
 
@@ -134,6 +141,16 @@ def main() -> None:
     receipt = ensure_overlay(args.stwo_source.resolve())
     if args.output.exists():
         raise FileExistsError(f"refusing to replace {args.output}")
+    source_args = (
+        [str(args.proof.resolve())]
+        if args.proof is not None
+        else [
+            "--prover-input",
+            str(args.prover_input.resolve()),
+            "--preprocessed-variant",
+            args.preprocessed_variant,
+        ]
+    )
     run(
         [
             "cargo",
@@ -143,7 +160,7 @@ def main() -> None:
             "--manifest-path",
             str(TOOL / "Cargo.toml"),
             "--",
-            str(args.proof.resolve()),
+            *source_args,
             str(args.output.resolve()),
         ],
         TOOL,

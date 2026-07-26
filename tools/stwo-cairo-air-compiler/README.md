@@ -21,6 +21,17 @@ python3 tools/stwo-cairo-air-compiler/generate.py \
   --output /tmp/all-opcodes-air.bin
 ```
 
+The compiler can also derive the typed claim and interaction claim from an
+official input without first trusting or producing a proof:
+
+```sh
+python3 tools/stwo-cairo-air-compiler/generate.py \
+  --stwo-source /path/to/stwo-at-7b211edd \
+  --prover-input vectors/cairo/official/all_builtins.prover_input.json \
+  --preprocessed-variant canonical \
+  --output /tmp/all-builtins-air.bin
+```
+
 For every component, two independent lookup/claimed-sum probes identify
 proof-dependent extension constants. The compiler converts those constants to
 typed runtime parameters, rejects ambiguous or unclassified values, then binds

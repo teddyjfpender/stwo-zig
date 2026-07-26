@@ -15,8 +15,11 @@ official-stwo-revision = "7b211edde786775016ef3eecb837a6240d8fe792"
 anyhow = "1.0"
 cairo-air = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 num-traits = "0.2"
+serde_json = "1.0"
 stwo = { path = "../../target/cairo-air-official-stwo/crates/stwo" }
+stwo-cairo-adapter = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 stwo-cairo-common = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
+stwo-cairo-prover = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 stwo-constraint-framework = { path = "../../target/cairo-air-official-stwo/crates/constraint-framework", features = ["prover"] }
 
 [patch."https://github.com/starkware-libs/stwo"]

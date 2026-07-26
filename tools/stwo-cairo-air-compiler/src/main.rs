@@ -1,12 +1,17 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, ensure};
 use cairo_air::CairoProofForRustVerifier;
 use cairo_air::cairo_components::CairoComponents;
+use cairo_air::claims::{CairoClaim, CairoInteractionClaim};
 use cairo_air::utils::{ProofFormat, deserialize_proof_from_file};
 use stwo::core::air::Component;
 use stwo::core::fields::qm31::SecureField;
 use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher;
+use stwo_cairo_adapter::ProverInput;
+use stwo_cairo_common::preprocessed_columns::preprocessed_trace::PreProcessedTraceVariant;
+use stwo_cairo_prover::witness::cairo::create_cairo_claim_generator;
 use stwo_constraint_framework::{FrameworkComponent, FrameworkEval};
 
 mod bundle;
@@ -115,14 +120,70 @@ fn lower_component<E: FrameworkEval>(
 
 const PROBE_CLAIMED_SUM: SecureField = SecureField::from_u32_unchecked(257, 263, 269, 271);
 
-fn main() -> Result<()> {
+enum Source {
+    Proof(PathBuf),
+    ProverInput {
+        path: PathBuf,
+        variant: PreProcessedTraceVariant,
+    },
+}
+
+struct Arguments {
+    source: Source,
+    output: Option<PathBuf>,
+}
+
+fn arguments() -> Result<Arguments> {
     let mut arguments = std::env::args_os().skip(1);
-    let proof_path = arguments
+    let first = arguments
         .next()
         .map(PathBuf::from)
-        .context("usage: stwo-cairo-air-compiler <official-binary-proof> [output-bundle]")?;
+        .context(
+            "usage: stwo-cairo-air-compiler <official-binary-proof> [output-bundle]\n       stwo-cairo-air-compiler --prover-input <input.json> [--preprocessed-variant canonical|canonical-small|canonical-without-pedersen] [output-bundle]",
+        )?;
+    let source = if first == std::path::Path::new("--prover-input") {
+        let path = arguments
+            .next()
+            .map(PathBuf::from)
+            .context("--prover-input requires an input path")?;
+        let mut variant = PreProcessedTraceVariant::Canonical;
+        let mut next = arguments.next().map(PathBuf::from);
+        if next.as_deref() == Some(std::path::Path::new("--preprocessed-variant")) {
+            let value = arguments
+                .next()
+                .context("--preprocessed-variant requires a value")?;
+            variant = match value.to_str() {
+                Some("canonical") => PreProcessedTraceVariant::Canonical,
+                Some("canonical-small") => PreProcessedTraceVariant::CanonicalSmall,
+                Some("canonical-without-pedersen") => {
+                    PreProcessedTraceVariant::CanonicalWithoutPedersen
+                }
+                _ => return Err(anyhow!("unsupported preprocessed variant")),
+            };
+            next = arguments.next().map(PathBuf::from);
+        }
+        return Ok(Arguments {
+            source: Source::ProverInput { path, variant },
+            output: next,
+        });
+    } else {
+        Source::Proof(first)
+    };
     let output_path = arguments.next().map(PathBuf::from);
     ensure!(arguments.next().is_none(), "too many arguments");
+    Ok(Arguments {
+        source,
+        output: output_path,
+    })
+}
+
+fn proof_source(
+    proof_path: &PathBuf,
+) -> Result<(
+    CairoClaim,
+    CairoInteractionClaim,
+    Vec<stwo_constraint_framework::preprocessed_columns::PreProcessedColumnId>,
+)> {
     let proof: CairoProofForRustVerifier<Blake2sMerkleHasher> =
         deserialize_proof_from_file(&proof_path, ProofFormat::Binary)
             .with_context(|| format!("failed to read {}", proof_path.display()))?;
@@ -130,18 +191,47 @@ fn main() -> Result<()> {
         .preprocessed_trace_variant
         .to_preprocessed_trace()
         .ids();
+    Ok((proof.claim, proof.interaction_claim, preprocessed))
+}
+
+fn prover_input_source(
+    input_path: &PathBuf,
+    variant: PreProcessedTraceVariant,
+    lookup: &parameters::LookupProbe,
+) -> Result<(
+    CairoClaim,
+    CairoInteractionClaim,
+    Vec<stwo_constraint_framework::preprocessed_columns::PreProcessedColumnId>,
+)> {
+    let bytes = std::fs::read(input_path)
+        .with_context(|| format!("failed to read {}", input_path.display()))?;
+    let input: ProverInput =
+        serde_json::from_slice(&bytes).context("failed to decode official ProverInput JSON")?;
+    let preprocessed_trace = Arc::new(variant.to_preprocessed_trace());
+    let preprocessed = preprocessed_trace.ids();
+    let generator = create_cairo_claim_generator(input, preprocessed_trace);
+    let (base_evaluations, claim, interaction_generator) = generator.write_trace(None);
+    drop(base_evaluations);
+    let (interaction_evaluations, interaction_claim) =
+        interaction_generator.write_interaction_trace(&lookup.elements);
+    drop(interaction_evaluations);
+    Ok((claim, interaction_claim, preprocessed))
+}
+
+fn main() -> Result<()> {
+    let arguments = arguments()?;
     let lookup = parameters::LookupProbe::from_seed(&[11, 13, 17, 19])?;
     let probe_lookup = parameters::LookupProbe::from_seed(&[23, 29, 31, 37])?;
-    let components = CairoComponents::new(
-        &proof.claim,
-        &lookup.elements,
-        &proof.interaction_claim,
-        &preprocessed,
-    );
+    let (claim, interaction_claim, preprocessed) = match &arguments.source {
+        Source::Proof(path) => proof_source(path)?,
+        Source::ProverInput { path, variant } => prover_input_source(path, *variant, &lookup)?,
+    };
+    let components =
+        CairoComponents::new(&claim, &lookup.elements, &interaction_claim, &preprocessed);
     let probe_components = CairoComponents::new(
-        &proof.claim,
+        &claim,
         &probe_lookup.elements,
-        &proof.interaction_claim,
+        &interaction_claim,
         &preprocessed,
     );
     let expected_components = components.components().len();
@@ -275,7 +365,7 @@ fn main() -> Result<()> {
     );
     let encoded = bundle::encode(&captured)?;
     println!("bundle_bytes={}", encoded.len());
-    if let Some(output_path) = output_path {
+    if let Some(output_path) = arguments.output {
         bundle::write_new(&output_path, &encoded)?;
         println!("wrote={}", output_path.display());
     }
