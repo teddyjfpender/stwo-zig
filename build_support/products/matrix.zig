@@ -11,6 +11,7 @@ const aggregate_cli = @import("aggregate_cli.zig");
 const catalog_manifest = @import("catalog_manifest.zig");
 const cairo_cpu = @import("cairo_cpu.zig");
 const cairo_cuda = @import("cairo_cuda.zig");
+const cairo_metal = @import("cairo_metal.zig");
 const core = @import("core.zig");
 const native_cpu = @import("native_cpu.zig");
 const native_cuda = @import("native_cuda.zig");
@@ -49,6 +50,13 @@ pub fn construct(context: ConstructionContext, scope: Scope) bool {
         switch (spec.constructor) {
             .aggregate => unreachable,
             .cairo_cpu => cairo_cpu.addProduct(.{
+                .b = context.b,
+                .target = context.target,
+                .optimize = context.optimize,
+                .identity = context.identity,
+                .protocol = graph.createPrivateProtocolModules(context.b, context.target, context.optimize),
+            }),
+            .cairo_metal => cairo_metal.addProduct(.{
                 .b = context.b,
                 .target = context.target,
                 .optimize = context.optimize,

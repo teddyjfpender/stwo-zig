@@ -3,6 +3,7 @@
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const cairo_oracle_gate = @import("cairo_cpu/oracle_gate.zig");
+const cairo_support = @import("cairo_support.zig");
 const cairo_vm_adapter = @import("cairo_cpu/vm_adapter.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
@@ -10,15 +11,14 @@ const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
 const policy = @import("../graph/product.zig");
 
-const protocol_features =
-    "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
-
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
         "src/products/cairo_cpu/main.zig",
         "src/stwo_cairo_cpu.zig",
     },
     .named_imports = &.{
+        .{ .name = "cairo_product", .source = "src/products/cairo/shared/mod.zig" },
+        .{ .name = "stwo_cairo", .source = "src/stwo_cairo_cpu.zig" },
         .{ .name = "stwo_cairo_cpu", .source = "src/stwo_cairo_cpu.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
@@ -37,6 +37,7 @@ const source_closure = policy.SourceClosure{
         "src/core",
         "src/frontends/cairo",
         "src/integrations/cairo_cpu",
+        "src/products/cairo",
         "src/products/cairo_cpu",
         "src/prover",
     },
@@ -83,7 +84,13 @@ pub fn addProduct(context: Context) void {
         .{@errorName(err)},
     );
     const stwo = createStwoModule(context, .library);
-    const root = createProductModule(context, descriptor.product, stwo);
+    const shared = createSharedProductModule(context, .library, stwo);
+    const root = createProductModule(
+        context,
+        descriptor.product,
+        stwo,
+        shared,
+    );
     const installed = graph_install.executable(
         context.b,
         descriptor.executable.?,
@@ -91,17 +98,19 @@ pub fn addProduct(context: Context) void {
         descriptor.build_step,
         "Build the focused official Cairo CPU/SIMD proof CLI",
     );
-    linkBzip2(context.b, installed.executable);
+    cairo_support.linkBzip2(context.b, installed.executable);
     installed.build_step.dependOn(cairo_vm_adapter.addInstall(context.b));
-    installProfile(context, installed.build_step);
+    cairo_support.installProfile(context.b, installed.build_step);
 
+    const test_stwo = createStwoModule(context, .@"test");
     const test_root = createProductModule(
         context,
         product(.@"test"),
-        createStwoModule(context, .@"test"),
+        test_stwo,
+        createSharedProductModule(context, .@"test", test_stwo),
     );
     const tests = context.b.addTest(.{ .root_module = test_root });
-    linkBzip2(context.b, tests);
+    cairo_support.linkBzip2(context.b, tests);
     const test_step = context.b.step(
         descriptor.test_step.?,
         "Test the Cairo CPU product, profile, and command contract",
@@ -127,6 +136,25 @@ pub fn addProduct(context: Context) void {
     cairo_oracle_gate.add(context.b, installed.executable);
 }
 
+/// Builds an uninstalled CPU authority used by cross-backend parity gates.
+pub fn addReferenceExecutable(
+    context: Context,
+) *std.Build.Step.Compile {
+    const stwo = createStwoModule(context, .gate);
+    const shared = createSharedProductModule(context, .gate, stwo);
+    const executable = context.b.addExecutable(.{
+        .name = "stwo-cairo-cpu-reference",
+        .root_module = createProductModule(
+            context,
+            product(.gate),
+            stwo,
+            shared,
+        ),
+    });
+    cairo_support.linkBzip2(context.b, executable);
+    return executable;
+}
+
 fn createStwoModule(
     context: Context,
     role: graph.Role,
@@ -141,34 +169,11 @@ fn createStwoModule(
     return module;
 }
 
-fn linkBzip2(b: *std.Build, artifact: *std.Build.Step.Compile) void {
-    artifact.addIncludePath(b.path("third_party/bzip2"));
-    inline for (.{
-        "blocksort.c",
-        "huffman.c",
-        "crctable.c",
-        "randtable.c",
-        "compress.c",
-        "decompress.c",
-        "bzlib.c",
-    }) |name| {
-        artifact.addCSourceFile(.{
-            .file = b.path("third_party/bzip2/" ++ name),
-            .flags = &.{
-                "-std=c99",
-                "-DBZ_NO_STDIO=1",
-                "-D_FILE_OFFSET_BITS=64",
-                "-Wno-unused-parameter",
-            },
-        });
-    }
-    artifact.linkLibC();
-}
-
 fn createProductModule(
     context: Context,
     product_descriptor: graph.Product,
     stwo: *std.Build.Module,
+    shared: *std.Build.Module,
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = product_descriptor,
@@ -178,6 +183,7 @@ fn createProductModule(
     });
     context.protocol.addImports(root);
     root.addImport("stwo_cairo_cpu", stwo);
+    root.addImport("cairo_product", shared);
     root.addOptions(
         "product_identity",
         graph_identity.productOptions(
@@ -191,59 +197,18 @@ fn createProductModule(
     return root;
 }
 
-fn installProfile(context: Context, step: *std.Build.Step) void {
-    const Asset = struct {
-        source: []const u8,
-        destination: []const u8,
-    };
-    for ([_]Asset{
-        .{
-            .source = "vectors/cairo/official/all_opcodes.params.json",
-            .destination = "share/stwo-zig/cairo/official/all_opcodes.params.json",
-        },
-        .{
-            .source = "vectors/cairo/official/all_builtins.params.json",
-            .destination = "share/stwo-zig/cairo/official/all_builtins.params.json",
-        },
-        .{
-            .source = "vectors/cairo/official/witness_programs_v1.bin",
-            .destination = "share/stwo-zig/cairo/official/witness_programs_v1.bin",
-        },
-        .{
-            .source = "vectors/cairo/official/witness_feed_topology_v1.json",
-            .destination = "share/stwo-zig/cairo/official/witness_feed_topology_v1.json",
-        },
-        .{
-            .source = "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
-            .destination = "share/stwo-zig/cairo/official/all_opcodes.air_programs_v1.bin",
-        },
-        .{
-            .source = "vectors/cairo/official/all_builtins_canonical.air_programs_v1.bin",
-            .destination = "share/stwo-zig/cairo/official/all_builtins_canonical.air_programs_v1.bin",
-        },
-        .{
-            .source = "vectors/cairo/official/all_builtins_canonical_small.air_programs_v1.bin",
-            .destination = "share/stwo-zig/cairo/official/all_builtins_canonical_small.air_programs_v1.bin",
-        },
-        .{
-            .source = "vectors/cairo/official/air_template_library_v1.json",
-            .destination = "share/stwo-zig/cairo/official/air_template_library_v1.json",
-        },
-        .{
-            .source = "vectors/cairo/cairo_fixed_tables.bin",
-            .destination = "share/stwo-zig/cairo/cairo_fixed_tables.bin",
-        },
-        .{
-            .source = "vectors/cairo/cairo_relation_templates.bin",
-            .destination = "share/stwo-zig/cairo/cairo_relation_templates.bin",
-        },
-    }) |asset| {
-        const install = context.b.addInstallFile(
-            context.b.path(asset.source),
-            asset.destination,
-        );
-        step.dependOn(&install.step);
-    }
+fn createSharedProductModule(
+    context: Context,
+    role: graph.Role,
+    stwo: *std.Build.Module,
+) *std.Build.Module {
+    return cairo_support.createProductSupportModule(
+        context.b,
+        context.target,
+        context.optimize,
+        product(role),
+        stwo,
+    );
 }
 
 fn product(role: graph.Role) graph.Product {
@@ -252,7 +217,7 @@ fn product(role: graph.Role) graph.Product {
         .frontend = .cairo,
         .backend = .cpu,
         .role = role,
-        .protocol_features = protocol_features,
+        .protocol_features = cairo_support.protocol_features,
     };
 }
 

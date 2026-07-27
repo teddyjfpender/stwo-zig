@@ -38,7 +38,7 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 | Surface | Current status |
 | :--- | :--- |
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
-| **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD proofs, compiled JSON and Cairo 2.20 executable execution, and active Metal completion |
+| **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD and staged Metal proofs, compiled JSON and Cairo 2.20 executable execution |
 | **RISC-V** | Release-gated Stark-V RV32IM ELF adapter with sharded AIR components, CPU proving, independent verification, and pinned-Rust oracle evidence |
 
 ## Quick Start
@@ -63,7 +63,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
 | `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Staged CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
-| `stwo-cairo-metal` | No production host yet | Active port; disabled until its [formal completion matrix](conformance/2026-07-26-stwo-cairo-production-port-goal.md) passes |
+| `stwo-cairo-metal` | macOS with Apple Metal | Staged source-JIT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance on all-opcodes |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes

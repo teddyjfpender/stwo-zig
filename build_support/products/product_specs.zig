@@ -21,6 +21,7 @@ pub const Constructor = enum {
     aggregate,
     cairo_cpu,
     cairo_cuda,
+    cairo_metal,
     core,
     prover,
     native_cpu,
@@ -65,7 +66,18 @@ pub const products = [_]Spec{
         .configure_tools = &.{"python3"},
         .generated_module_roots = &.{"generated:options:"},
     },
-    .{ .descriptor = cairo_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
+    .{
+        .descriptor = cairo_metal.descriptor,
+        .scope = .cairo_metal,
+        .constructor = .cairo_metal,
+        .configure_tools = &.{ "python3", "xcrun" },
+        .runtime_probes = &.{
+            "Metal.framework",
+            "Foundation.framework",
+            "libobjc",
+        },
+        .generated_module_roots = &.{"generated:options:"},
+    },
     .{ .descriptor = riscv_metal.descriptor, .scope = .deferred, .constructor = .unavailable },
     .{
         .descriptor = native_cuda.descriptor,

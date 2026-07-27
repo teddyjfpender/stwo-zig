@@ -1,9 +1,7 @@
-//! Authenticated file-backed proving profiles for the Cairo CPU product.
+//! Authenticated file-backed proving profiles for Cairo products.
 
 const std = @import("std");
-const stwo = @import("stwo_cairo_cpu");
-
-const cairo = stwo.frontends.cairo;
+const cairo = @import("stwo_cairo").frontends.cairo;
 
 pub const schema = "stwo-zig-cairo-proving-profile-v3";
 pub const version: u32 = 3;
@@ -193,7 +191,7 @@ fn parseSha256(encoded: []const u8) ![32]u8 {
     return digest;
 }
 
-test "official Cairo CPU proving profile authenticates every asset" {
+test "official Cairo proving profile authenticates every asset" {
     var small = try load(
         std.testing.allocator,
         "vectors/cairo/official/all_opcodes.params.json",

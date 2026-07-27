@@ -3,7 +3,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
-const eval = @import("../../../frontends/cairo/witness/eval_program.zig");
+const eval = @import("../../witness/eval_program.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

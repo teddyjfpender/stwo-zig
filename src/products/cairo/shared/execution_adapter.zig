@@ -1,4 +1,4 @@
-//! Process boundary for the pinned official Cairo VM execution sidecar.
+//! Shared process boundary for the pinned official Cairo VM execution sidecar.
 
 const std = @import("std");
 const builtin = @import("builtin");

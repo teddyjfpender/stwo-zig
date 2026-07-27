@@ -1,4 +1,4 @@
-//! Strict command contract for the focused Cairo CPU/SIMD product.
+//! Strict command contract shared by focused Cairo proving products.
 
 const std = @import("std");
 
@@ -223,22 +223,32 @@ fn isHelp(value: []const u8) bool {
         std.mem.eql(u8, value, "-h");
 }
 
-pub fn writeUsage(writer: anytype, command: ?Command) !void {
-    if (command == null) return writer.writeAll(
-        \\Usage: stwo-cairo-cpu <command> [options]
-        \\
-        \\Commands:
-        \\  prove          Prove one official Stwo-Cairo ProverInput
-        \\  run-and-prove  Execute and prove one compiled Cairo program
-        \\  capabilities   Print the machine-readable capability contract
-        \\  identity       Print the immutable product identity
-        \\
-        \\Backend: CPU scalar/SIMD only; no runtime fallback.
-        \\
-    );
+pub fn writeUsage(
+    writer: anytype,
+    command: ?Command,
+    product_name: []const u8,
+    backend_description: []const u8,
+) !void {
+    if (command == null) {
+        try writer.print(
+            \\Usage: {s} <command> [options]
+            \\
+        , .{product_name});
+        try writer.writeAll(
+            \\
+            \\Commands:
+            \\  prove          Prove one official Stwo-Cairo ProverInput
+            \\  run-and-prove  Execute and prove one compiled Cairo program
+            \\  capabilities   Print the machine-readable capability contract
+            \\  identity       Print the immutable product identity
+            \\
+        );
+        return writer.print("Backend: {s}\n", .{backend_description});
+    }
+    try writer.print("Usage: {s} ", .{product_name});
     switch (command.?) {
         .prove => try writer.writeAll(
-            \\Usage: stwo-cairo-cpu prove --prover-input PATH --proof PATH [options]
+            \\prove --prover-input PATH --proof PATH [options]
             \\  --params PATH          Authenticated proving-profile manifest
             \\  --proof-format FORMAT  json, cairo-serde, or binary
             \\  --report-out PATH      Write the machine-readable proving report
@@ -246,7 +256,7 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
             \\
         ),
         .run_and_prove => try writer.writeAll(
-            \\Usage: stwo-cairo-cpu run-and-prove --program PATH --proof PATH [options]
+            \\run-and-prove --program PATH --proof PATH [options]
             \\  --program-type TYPE    Compiled program type: json or executable
             \\  --arguments PATH       Optional program arguments JSON
             \\  --params PATH          Authenticated proving-profile manifest
@@ -255,15 +265,30 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
             \\  --verify               Verify before publishing the proof
             \\
         ),
-        .capabilities => try writer.writeAll(
-            \\Usage: stwo-cairo-cpu capabilities
-            \\
-        ),
-        .identity => try writer.writeAll(
-            \\Usage: stwo-cairo-cpu identity
-            \\
-        ),
+        .capabilities => try writer.writeAll("capabilities\n"),
+        .identity => try writer.writeAll("identity\n"),
     }
+}
+
+test "Cairo usage is parameterized by product identity" {
+    var storage: [2048]u8 = undefined;
+    var output = std.Io.Writer.fixed(&storage);
+    try writeUsage(
+        &output,
+        null,
+        "stwo-cairo-test",
+        "test backend",
+    );
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.buffered(),
+        "Usage: stwo-cairo-test",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.buffered(),
+        "Backend: test backend",
+    ) != null);
 }
 
 test "Cairo CPU prove command is explicit and strict" {

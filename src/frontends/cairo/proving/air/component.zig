@@ -3,9 +3,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_impl");
-const composition = @import("../../../frontends/cairo/witness/composition_bundle.zig");
-const geometry = @import("../../../frontends/cairo/witness/resident_geometry.zig");
-const verifier_runtime = @import("../../../frontends/cairo/witness/resident_verifier.zig");
+const composition = @import("../../witness/composition_bundle.zig");
+const geometry = @import("../../witness/resident_geometry.zig");
+const verifier_runtime = @import("../../witness/resident_verifier.zig");
 const simd = @import("simd_evaluator.zig");
 
 const M31 = core.fields.m31.M31;
@@ -222,7 +222,7 @@ fn orderedCoefficients(
     return output;
 }
 
-test "Cairo CPU coefficients preserve point-accumulator order" {
+test "Cairo coefficients preserve point-accumulator order" {
     const values = [_]QM31{
         QM31.fromU32Unchecked(1, 0, 0, 0),
         QM31.fromU32Unchecked(2, 0, 0, 0),
