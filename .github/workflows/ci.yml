@@ -99,6 +99,10 @@ jobs:
             echo "::notice title=native_metal deferred::Metal device-execution lane selected but excluded from hosted macOS runners (GPU-less VMs). Covered by local pre-push on a real Mac / judge host."
             echo "- native_metal: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if grep -q '"cairo_metal"' "$RUNNER_TEMP/focused-ci-plan.json"; then
+            echo "::notice title=cairo_metal deferred::Cairo Metal product lane selected but excluded from hosted macOS runners. It requires a real Metal device and an authenticated external AOT bundle."
+            echo "- cairo_metal: deferred to a real-device judge host with STWO_METAL_CORE_AOT_BUNDLE" >> "$GITHUB_STEP_SUMMARY"
+          fi
           if grep -q '"native_cuda_device"' "$RUNNER_TEMP/focused-ci-plan.json"; then
             echo "- native_cuda_device: required on the explicitly CUDA-labelled self-hosted runner" >> "$GITHUB_STEP_SUMMARY"
             echo "- CUDA oracle authority: repository Rust source + Cargo.lock + nightly-2025-07-14; its built binary digest is bound into the receipt" >> "$GITHUB_STEP_SUMMARY"
@@ -120,7 +124,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
       needs.focused-plan.outputs.linux_count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.linux_matrix) }}
