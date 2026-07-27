@@ -210,3 +210,33 @@ input identity. The remaining approximately 20-second stage proves that
 regenerating an immutable canonical product is now the stronger system
 boundary; authenticated coefficient/evaluation/Merkle reuse is the next
 hypothesis.
+
+## Hypothesis 7: expose uniform Pedersen scheduling units
+
+The 58 logical standard-table blocks are not homogeneous. Twenty-six contain
+262,144 rows and dominate work; the remaining 32 contain only 16,384 rows.
+Even with host-auto worker selection, static round-robin placement leaves the
+large blocks in two waves on 18 cores.
+
+Split only blocks larger than 64K rows, derive each subplan's exact projective
+starting point, reduce scratch workspaces to the maximum subplan size, and use
+an atomic task cursor. Falsifiers are a boundary-point mismatch, changed proof
+bytes, higher preprocessing time, or a memory increase.
+
+### Result: accepted
+
+The exact first chunk boundary agrees with the canonical Pedersen deduction,
+the complete small table remains exact, and the canonical proof is
+byte-identical. The incremental result was:
+
+```text
+                                      262K plans     64K plans      speedup
+complete prove                       23983.830 ms   21859.696 ms    1.097x
+preprocessed materialize + commit    19745.659 ms   17497.209 ms    1.128x
+worker scratch rows                  262144         65536           4x fewer
+```
+
+Against the immutable `b0439ccf` control, the cumulative result is `1.606x`
+end-to-end and `1.770x` for canonical preprocessing. Further table arithmetic
+tuning has diminishing system leverage; immutable product reuse remains the
+architectural target.

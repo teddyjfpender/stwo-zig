@@ -251,3 +251,27 @@ protocol-identity-bound preprocessed product containing the coefficient,
 evaluation, and Merkle state needed by both CPU and Metal. Loading such a
 product must preserve the exact transcript commitment and cannot trust a path
 or unauthenticated cache entry.
+
+## Result 5: balance Pedersen block geometry
+
+The standard table's 26 dominant blocks each contained 262,144 rows. With 18
+workers, static plan assignment still executed two uneven waves and allocated
+a full-size elliptic-curve scratch workspace per worker. Splitting each large
+block into 64K plans exposes 104 uniform large tasks. Each plan carries its
+exact projective starting point, and workers claim tasks dynamically while
+writing disjoint output ranges.
+
+Against Result 4, the same canonical Arithmetic 2m proof measured:
+
+| Metric | 262K static plans | 64K dynamic plans | Improvement |
+| --- | ---: | ---: | ---: |
+| complete prove | 23,983.830 ms | 21,859.696 ms | `1.097x` |
+| preprocessed materialize + commit | 19,745.659 ms | 17,497.209 ms | `1.128x` |
+| worker scratch rows | 262,144 | 65,536 | `4x` fewer |
+
+The binary proof remained byte-identical with SHA-256
+`bd663c9ba5e89fe3c8d9a70a3eb57d12da5e0cf1ef3715d254ce75e29900dc9f`.
+The cumulative canonical improvement from the immutable `b0439ccf` control is
+`1.606x` end to end and `1.770x` in preprocessing. This improves cold
+canonical construction but does not change the conclusion that an
+authenticated immutable preprocessed product is the dominant next boundary.

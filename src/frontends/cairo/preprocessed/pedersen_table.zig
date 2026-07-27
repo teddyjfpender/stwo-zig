@@ -77,9 +77,10 @@ pub const Table = struct {
 };
 
 const max_workers = 32;
+const max_rows_per_plan = 64 * 1024;
 
 const BlockPlan = struct {
-    start: stark_curve.AffinePoint,
+    start: stark_curve.ProjectivePoint,
     step: stark_curve.AffinePoint,
     first_row: usize,
     row_count: usize,
@@ -110,12 +111,12 @@ const Workspace = struct {
 
     fn block(
         self: *Workspace,
-        start: stark_curve.AffinePoint,
+        start: stark_curve.ProjectivePoint,
         step: stark_curve.AffinePoint,
         destination: []stark_curve.AffinePoint,
     ) Error!void {
         std.debug.assert(destination.len <= self.projective.len);
-        var point = stark_curve.projectiveFromAffine(start);
+        var point = start;
         for (self.projective[0..destination.len]) |*slot| {
             slot.* = point;
             try stark_curve.add(&point, step);
@@ -144,7 +145,10 @@ fn fill(
         detected_workers,
         block_count,
     );
-    const workspace_rows = @as(usize, 1) << window.bits();
+    const workspace_rows = @min(
+        @as(usize, 1) << window.bits(),
+        max_rows_per_plan,
+    );
 
     var workspaces: [max_workers]Workspace = undefined;
     var initialized_workspaces: usize = 0;
@@ -153,12 +157,12 @@ fn fill(
         workspaces[initialized_workspaces] = try Workspace.init(allocator, workspace_rows);
 
     var workers: [max_workers]Worker = undefined;
+    var next_plan = std.atomic.Value(usize).init(0);
     for (workers[0..active_workers], 0..) |*worker, index| worker.* = .{
         .workspace = &workspaces[index],
         .plans = plans[0..block_count],
         .destination = destination,
-        .first_plan = index,
-        .plan_stride = active_workers,
+        .next_plan = &next_plan,
     };
 
     var threads: [max_workers - 1]std.Thread = undefined;
@@ -199,13 +203,13 @@ const Worker = struct {
     workspace: *Workspace,
     plans: []const BlockPlan,
     destination: []stark_curve.AffinePoint,
-    first_plan: usize,
-    plan_stride: usize,
+    next_plan: *std.atomic.Value(usize),
     failure: ?Error = null,
 
     fn run(self: *Worker) void {
-        var plan_index = self.first_plan;
-        while (plan_index < self.plans.len) : (plan_index += self.plan_stride) {
+        while (true) {
+            const plan_index = self.next_plan.fetchAdd(1, .monotonic);
+            if (plan_index >= self.plans.len) return;
             const plan = self.plans[plan_index];
             self.workspace.block(
                 plan.start,
@@ -221,7 +225,11 @@ const Worker = struct {
 
 fn blockPlanCount(window: Window) usize {
     const windows = 252 / @as(usize, window.bits());
-    return 2 * (windows - 1 + 16);
+    const rows_per_window: usize = @as(usize, 1) << window.bits();
+    const high_rows: usize = @as(usize, 1) << (window.bits() - 4);
+    return 2 *
+        ((windows - 1) * ((rows_per_window + max_rows_per_plan - 1) / max_rows_per_plan) +
+            16 * ((high_rows + max_rows_per_plan - 1) / max_rows_per_plan));
 }
 
 fn planBlocks(window: Window, plans: []BlockPlan) Error!usize {
@@ -235,14 +243,14 @@ fn planBlocks(window: Window, plans: []BlockPlan) Error!usize {
     inline for (.{ .{ parameters.p0, parameters.p1 }, .{ parameters.p2, parameters.p3 } }) |pair| {
         var step = stark_curve.projectiveFromAffine(pair[0]);
         for (0..windows - 1) |_| {
-            plans[block_count] = .{
-                .start = parameters.negative_shift,
-                .step = try stark_curve.projectiveToAffine(step),
-                .first_row = cursor,
-                .row_count = rows_per_window,
-            };
-            block_count += 1;
-            cursor += rows_per_window;
+            try appendBlockPlans(
+                plans,
+                &block_count,
+                &cursor,
+                parameters.negative_shift,
+                try stark_curve.projectiveToAffine(step),
+                rows_per_window,
+            );
             for (0..bits) |_| try stark_curve.double(&step);
         }
 
@@ -258,18 +266,50 @@ fn planBlocks(window: Window, plans: []BlockPlan) Error!usize {
                 0,
                 parameters.negative_shift,
             );
-            plans[block_count] = .{
-                .start = start,
-                .step = raised_low,
-                .first_row = cursor,
-                .row_count = high_rows,
-            };
-            block_count += 1;
-            cursor += high_rows;
+            try appendBlockPlans(
+                plans,
+                &block_count,
+                &cursor,
+                start,
+                raised_low,
+                high_rows,
+            );
         }
     }
     std.debug.assert(block_count == plans.len);
     return block_count;
+}
+
+fn appendBlockPlans(
+    plans: []BlockPlan,
+    block_count: *usize,
+    cursor: *usize,
+    start: stark_curve.AffinePoint,
+    step: stark_curve.AffinePoint,
+    row_count: usize,
+) Error!void {
+    var chunk_start = stark_curve.projectiveFromAffine(start);
+    const chunk_step = if (row_count > max_rows_per_plan)
+        try stark_curve.scaleByPowerOfTwo(
+            step,
+            std.math.log2_int(usize, max_rows_per_plan),
+        )
+    else
+        undefined;
+    var remaining = row_count;
+    while (remaining != 0) {
+        const chunk_rows = @min(remaining, max_rows_per_plan);
+        plans[block_count.*] = .{
+            .start = chunk_start,
+            .step = step,
+            .first_row = cursor.*,
+            .row_count = chunk_rows,
+        };
+        block_count.* += 1;
+        cursor.* += chunk_rows;
+        remaining -= chunk_rows;
+        if (remaining != 0) try stark_curve.add(&chunk_start, chunk_step);
+    }
 }
 
 test "Pedersen block generation agrees with exact window-18 deductions" {
@@ -279,7 +319,11 @@ test "Pedersen block generation agrees with exact window-18 deductions" {
     defer workspace.deinit();
     const actual = try allocator.alloc(stark_curve.AffinePoint, rows);
     defer allocator.free(actual);
-    try workspace.block(parameters.negative_shift, parameters.p0, actual);
+    try workspace.block(
+        stark_curve.projectiveFromAffine(parameters.negative_shift),
+        parameters.p0,
+        actual,
+    );
     for (actual, 0..) |point, row|
         try std.testing.expectEqual(try parameters.tablePoint(@intCast(row)), point);
 }
@@ -288,7 +332,19 @@ test "Pedersen table geometry covers official window variants" {
     try std.testing.expectEqual(@as(u32, 1 << 15), Window.small.rowCount());
     try std.testing.expectEqual(@as(u32, 1 << 23), Window.standard.rowCount());
     try std.testing.expectEqual(@as(usize, 86), blockPlanCount(.small));
-    try std.testing.expectEqual(@as(usize, 58), blockPlanCount(.standard));
+    try std.testing.expectEqual(@as(usize, 136), blockPlanCount(.standard));
+}
+
+test "standard Pedersen plans preserve exact points across chunk boundaries" {
+    var plans: [blockPlanCount(.standard)]BlockPlan = undefined;
+    const count = try planBlocks(.standard, &plans);
+    try std.testing.expectEqual(plans.len, count);
+    try std.testing.expectEqual(@as(usize, max_rows_per_plan), plans[0].row_count);
+    try std.testing.expectEqual(@as(usize, max_rows_per_plan), plans[1].first_row);
+    try std.testing.expectEqual(
+        try parameters.tablePointForWindow(max_rows_per_plan, Window.standard.bits()),
+        try stark_curve.projectiveToAffine(plans[1].start),
+    );
 }
 
 test "Pedersen worker policy is explicit, bounded, and never empty" {
