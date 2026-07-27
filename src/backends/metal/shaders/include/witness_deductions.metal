@@ -39,11 +39,16 @@ inline Felt252Metal witness_poseidon_key(device uint *arena, constant WitnessArg
     return witness_from_w27(words);
 }
 
-[[clang::noinline]] void witness_deduce_0(device uint *, constant WitnessArgs &, thread const uint *input, thread uint *output) {
-    uint a=input[0], b=input[1], c=input[2], d=input[3], m0=input[4], m1=input[5];
+inline void witness_blake_mix(thread uint *values, uint m0, uint m1) {
+    uint a=values[0], b=values[1], c=values[2], d=values[3];
     a=a+b+m0; d=d^a; d=(d>>16u)|(d<<16u); c+=d; b=b^c; b=(b>>12u)|(b<<20u);
     a=a+b+m1; d=d^a; d=(d>>8u)|(d<<24u); c+=d; b=b^c; b=(b>>7u)|(b<<25u);
-    output[0]=a; output[1]=b; output[2]=c; output[3]=d;
+    values[0]=a; values[1]=b; values[2]=c; values[3]=d;
+}
+
+[[clang::noinline]] void witness_deduce_0(device uint *, constant WitnessArgs &, thread const uint *input, thread uint *output) {
+    for (uint i = 0u; i < 4u; ++i) output[i] = input[i];
+    witness_blake_mix(output, input[4], input[5]);
 }
 
 constant uint witness_blake_sigma[160] = {
@@ -126,6 +131,268 @@ inline EcPointMetal witness_ec_add(thread const EcPointMetal &left_standard, thr
         state[0]=state[2]; state[1]=state[3]; state[2]=z23; state[3]=z3;
     }
     output[0]=input[0]; output[1]=input[1]+1u; for(uint i=0u;i<4u;++i) witness_to_w27(state[i],output+2u+i*10u);
+}
+
+[[clang::noinline]] void witness_deduce_12(device uint *arena, constant WitnessArgs &args, thread const uint *input, thread uint *output) {
+    uint row = (input[1] * 512u + input[2]) & (args.pedersen_rows - 1u);
+    uint limbs[28];
+    EcPointMetal accumulator = {
+        felt_from_m31_words(input + 30u),
+        felt_from_m31_words(input + 58u)
+    };
+    EcPointMetal point;
+    for (uint i = 0u; i < 28u; ++i)
+        limbs[i] = arena[arena[args.pedersen_offsets + i] + row];
+    point.x = felt_from_m31_words(limbs);
+    for (uint i = 0u; i < 28u; ++i)
+        limbs[i] = arena[arena[args.pedersen_offsets + 28u + i] + row];
+    point.y = felt_from_m31_words(limbs);
+    EcPointMetal sum = witness_ec_add(accumulator, point);
+    output[0] = input[0];
+    output[1] = input[1] + 1u;
+    for (uint i = 0u; i < 27u; ++i) output[2u + i] = input[3u + i];
+    output[29] = 0u;
+    felt_to_m31_words(sum.x, output + 30u);
+    felt_to_m31_words(sum.y, output + 58u);
+}
+
+[[clang::noinline]] void witness_deduce_13(device uint *arena, constant WitnessArgs &args, thread const uint *input, thread uint *output) {
+    uint row = input[0] & (args.pedersen_rows - 1u);
+    for (uint column = 0u; column < 56u; ++column)
+        output[column] = arena[arena[args.pedersen_offsets + column] + row];
+}
+
+inline EcPointMetal witness_ec_double(thread const EcPointMetal &point_standard) {
+    EcPointMetal point = {
+        felt_to_montgomery(point_standard.x),
+        felt_to_montgomery(point_standard.y)
+    };
+    EcProjectiveMetal projective = ec_projective_double(
+        ec_projective_from_affine(point)
+    );
+    Felt252Metal inverse = ec_felt_inverse_252(projective.z);
+    EcPointMetal doubled = ec_projective_to_affine(projective, inverse);
+    doubled.x = felt_from_montgomery(doubled.x);
+    doubled.y = felt_from_montgomery(doubled.y);
+    return doubled;
+}
+
+[[clang::noinline]] void witness_deduce_14(device uint *, constant WitnessArgs &, thread const uint *input, thread uint *output) {
+    EcPointMetal point = {
+        felt_from_m31_words(input + 12u),
+        felt_from_m31_words(input + 40u)
+    };
+    EcPointMetal accumulator = {
+        felt_from_m31_words(input + 68u),
+        felt_from_m31_words(input + 96u)
+    };
+    output[0] = input[0];
+    output[1] = input[1] == 0x7ffffffeu ? 0u : input[1] + 1u;
+    if (input[124] == 0u) {
+        for (uint i = 0u; i < 9u; ++i) output[2u + i] = input[3u + i];
+        output[11] = 0u;
+    } else {
+        output[2] = input[2] >> 1u;
+        for (uint i = 1u; i < 10u; ++i) output[2u + i] = input[2u + i];
+    }
+    EcPointMetal doubled = witness_ec_double(point);
+    felt_to_m31_words(doubled.x, output + 12u);
+    felt_to_m31_words(doubled.y, output + 40u);
+    if ((input[2] & 1u) != 0u) accumulator = witness_ec_add(accumulator, point);
+    felt_to_m31_words(accumulator.x, output + 68u);
+    felt_to_m31_words(accumulator.y, output + 96u);
+    output[124] = input[124] == 0u ? 26u : input[124] - 1u;
+}
+
+inline void witness_decode_u384(thread const uint *input, thread uint *output) {
+    for (uint i = 0u; i < 12u; ++i) output[i] = 0u;
+    for (uint felt = 0u; felt < 4u; ++felt) {
+        for (uint limb = 0u; limb < 11u; ++limb) {
+            uint bit = limb * 9u;
+            uint word = bit >> 5u;
+            uint shift = bit & 31u;
+            uint value = input[felt * 28u + limb] & 0x1ffu;
+            output[felt * 3u + word] |= value << shift;
+            if (shift > 23u && word + 1u < 3u)
+                output[felt * 3u + word + 1u] |= value >> (32u - shift);
+        }
+    }
+}
+
+inline uint witness_add_u384(
+    thread const uint *left,
+    thread const uint *right,
+    thread uint *output
+) {
+    ulong carry = 0u;
+    for (uint i = 0u; i < 12u; ++i) {
+        ulong value = ulong(left[i]) + ulong(right[i]) + carry;
+        output[i] = uint(value);
+        carry = value >> 32u;
+    }
+    return uint(carry);
+}
+
+inline uint witness_sub_words(
+    thread const uint *left,
+    thread const uint *right,
+    thread uint *output,
+    uint words
+) {
+    ulong borrow = 0u;
+    for (uint i = 0u; i < words; ++i) {
+        ulong subtrahend = ulong(right[i]) + borrow;
+        output[i] = left[i] - uint(subtrahend);
+        borrow = ulong(left[i]) < subtrahend;
+    }
+    return uint(borrow);
+}
+
+[[clang::noinline]] void witness_deduce_15(device uint *, constant WitnessArgs &, thread const uint *input, thread uint *output) {
+    uint a[12], b[12], c[12], sum[12], difference[12];
+    witness_decode_u384(input, a);
+    witness_decode_u384(input + 112u, b);
+    witness_decode_u384(input + 224u, c);
+    witness_add_u384(a, b, sum);
+    witness_sub_words(sum, c, difference, 12u);
+    uint combined = 0u;
+    for (uint i = 0u; i < 12u; ++i) combined |= difference[i];
+    output[0] = combined == 0u;
+}
+
+inline void witness_mul_u384(
+    thread const uint *left,
+    thread const uint *right,
+    thread uint *output
+) {
+    for (uint i = 0u; i < 24u; ++i) output[i] = 0u;
+    for (uint i = 0u; i < 12u; ++i) {
+        ulong carry = 0u;
+        for (uint j = 0u; j < 12u; ++j) {
+            ulong value = ulong(left[i]) * ulong(right[j]) +
+                ulong(output[i + j]) + carry;
+            output[i + j] = uint(value);
+            carry = value >> 32u;
+        }
+        uint cursor = i + 12u;
+        while (carry != 0u && cursor < 24u) {
+            ulong value = ulong(output[cursor]) + carry;
+            output[cursor] = uint(value);
+            carry = value >> 32u;
+            ++cursor;
+        }
+    }
+}
+
+inline bool witness_remainder_ge(
+    thread const uint *remainder,
+    thread const uint *divisor
+) {
+    if (remainder[12] != 0u) return true;
+    for (int i = 11; i >= 0; --i) {
+        if (remainder[i] != divisor[i]) return remainder[i] > divisor[i];
+    }
+    return true;
+}
+
+inline void witness_div_u768_u384(
+    thread const uint *numerator,
+    thread const uint *divisor,
+    thread uint *quotient
+) {
+    uint remainder[13];
+    for (uint i = 0u; i < 13u; ++i) remainder[i] = 0u;
+    for (uint i = 0u; i < 12u; ++i) quotient[i] = 0u;
+    for (int bit = 767; bit >= 0; --bit) {
+        uint carry = (numerator[uint(bit) >> 5u] >> (uint(bit) & 31u)) & 1u;
+        for (uint i = 0u; i < 13u; ++i) {
+            uint next = remainder[i] >> 31u;
+            remainder[i] = (remainder[i] << 1u) | carry;
+            carry = next;
+        }
+        if (witness_remainder_ge(remainder, divisor)) {
+            ulong borrow = 0u;
+            for (uint i = 0u; i < 12u; ++i) {
+                ulong subtrahend = ulong(divisor[i]) + borrow;
+                uint prior = remainder[i];
+                remainder[i] = prior - uint(subtrahend);
+                borrow = ulong(prior) < subtrahend;
+            }
+            remainder[12] -= uint(borrow);
+            if (bit < 384) quotient[uint(bit) >> 5u] |= 1u << (uint(bit) & 31u);
+        }
+    }
+}
+
+[[clang::noinline]] void witness_deduce_16(device uint *, constant WitnessArgs &, thread const uint *input, thread uint *output) {
+    uint p[12], a[12], b[12], c[12], product[24], extended_c[24], numerator[24], quotient[12];
+    witness_decode_u384(input, p);
+    witness_decode_u384(input + 112u, a);
+    witness_decode_u384(input + 224u, b);
+    witness_decode_u384(input + 336u, c);
+    witness_mul_u384(a, b, product);
+    for (uint i = 0u; i < 24u; ++i) extended_c[i] = i < 12u ? c[i] : 0u;
+    witness_sub_words(product, extended_c, numerator, 24u);
+    witness_div_u768_u384(numerator, p, quotient);
+    for (uint word = 0u; word < 32u; ++word) {
+        uint bit = word * 12u;
+        uint limb = bit >> 5u;
+        uint shift = bit & 31u;
+        uint value = quotient[limb] >> shift;
+        if (shift > 20u && limb + 1u < 12u)
+            value |= quotient[limb + 1u] << (32u - shift);
+        output[word] = value & 0xfffu;
+    }
+}
+
+[[clang::noinline]] void witness_deduce_17(device uint *, constant WitnessArgs &, thread const uint *input, thread uint *output) {
+    output[0] = input[0] ^ input[1] ^ input[2];
+}
+
+inline uint witness_read_small(
+    device uint *arena,
+    constant WitnessArgs &args,
+    uint address
+) {
+    uint encoded = address < arena[args.table_strides]
+        ? arena[arena[args.table_offsets] + address]
+        : 0x3fffffffu;
+    if (encoded >= 0x40000000u) return 0u;
+    return witness_table_limb(arena, args, encoded, 0u) |
+        (witness_table_limb(arena, args, encoded, 1u) << 9u) |
+        (witness_table_limb(arena, args, encoded, 2u) << 18u) |
+        ((witness_table_limb(arena, args, encoded, 3u) & 0x1fu) << 27u);
+}
+
+[[clang::noinline]] void witness_deduce_18(device uint *arena, constant WitnessArgs &args, thread const uint *input, thread uint *output) {
+    uint round = input[1] < 10u ? input[1] : 0u;
+    uint state[16], message[16];
+    for (uint i = 0u; i < 16u; ++i) {
+        state[i] = input[2u + i];
+        message[i] = witness_read_small(
+            arena,
+            args,
+            input[18] + witness_blake_sigma[round * 16u + i]
+        );
+    }
+    const uint indices[32] = {
+        0,4,8,12, 1,5,9,13, 2,6,10,14, 3,7,11,15,
+        0,5,10,15, 1,6,11,12, 2,7,8,13, 3,4,9,14
+    };
+    for (uint group = 0u; group < 8u; ++group) {
+        uint at = group * 4u;
+        uint mixed[4] = {
+            state[indices[at]], state[indices[at + 1u]],
+            state[indices[at + 2u]], state[indices[at + 3u]]
+        };
+        uint pair = group * 2u;
+        witness_blake_mix(mixed, message[pair], message[pair + 1u]);
+        for (uint i = 0u; i < 4u; ++i) state[indices[at + i]] = mixed[i];
+    }
+    output[0] = input[0];
+    output[1] = input[1] + 1u;
+    for (uint i = 0u; i < 16u; ++i) output[2u + i] = state[i];
+    output[18] = input[18];
 }
 
 #endif

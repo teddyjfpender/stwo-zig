@@ -113,7 +113,7 @@ pub const Program = struct {
             const op = std.meta.intToEnum(Op, inst.op) catch continue;
             if (op != .deduce_call) continue;
             switch (inst.imm) {
-                2, 3 => requirements.pedersen_table = true,
+                2, 3, 12, 13 => requirements.pedersen_table = true,
                 8, 10, 11 => requirements.poseidon_constants = true,
                 else => {},
             }
