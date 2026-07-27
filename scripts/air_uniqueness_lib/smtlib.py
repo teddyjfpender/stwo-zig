@@ -46,7 +46,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as dataclass_field, replace
 
-from . import tables
 from .analysis import (
     determined_columns,
     eliminable_inverses,
@@ -58,7 +57,13 @@ from .analysis import (
     projectable_sinks,
     renormalise,
 )
-from .ir import MODULUS, IRError, System
+
+try:
+    from riscv_air_ir_lib import tables
+    from riscv_air_ir_lib.ir import MODULUS, IRError, System
+except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
+    from scripts.riscv_air_ir_lib import tables
+    from scripts.riscv_air_ir_lib.ir import MODULUS, IRError, System
 
 COPIES = ("a", "b")
 # Suffix for a variable both copies share; see `_Emitter._shared_nodes`.

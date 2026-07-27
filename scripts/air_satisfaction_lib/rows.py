@@ -5,9 +5,9 @@ evaluator decided in Zig: every direct constraint vanishes on every committed
 row, and every activated preprocessed-table request names a tuple the table
 contains.
 
-Two reuses, both deliberate.  `air_uniqueness_lib.ir` parses the emitted IR, so
+Two reuses, both deliberate.  `riscv_air_ir_lib.ir` parses the emitted IR, so
 there is one IR parser in the repository rather than two that can disagree about
-what a `sub` node means.  `air_uniqueness_lib.tables` owns the table widths, and
+what a `sub` node means.  `riscv_air_ir_lib.tables` owns the table widths, and
 `scripts/tests/test_air_uniqueness.py` already cross-checks those against
 `air/lookups/tables/schema.zig`.  Neither module contains any evaluation: the
 arithmetic below is this package's own.
@@ -32,9 +32,9 @@ from .dump import Component
 from .field import P
 
 try:
-    from air_uniqueness_lib import ir, tables
+    from riscv_air_ir_lib import ir, tables
 except ModuleNotFoundError:  # Imported as scripts.air_satisfaction_lib in tests.
-    from scripts.air_uniqueness_lib import ir, tables
+    from scripts.riscv_air_ir_lib import ir, tables
 
 
 class LayoutMismatch(ValueError):

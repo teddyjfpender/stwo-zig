@@ -16,7 +16,8 @@ from dataclasses import replace
 from pathlib import Path
 
 from scripts import air_uniqueness_board
-from scripts.air_uniqueness_lib import analysis, ir, smtlib, solve
+from scripts.air_uniqueness_lib import analysis, smtlib, solve
+from scripts.riscv_air_ir_lib import ir
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "air_uniqueness"
 UNDER_CONSTRAINED = FIXTURES / "sign_load_underconstrained.json"

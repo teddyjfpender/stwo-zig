@@ -45,9 +45,11 @@ import time
 from pathlib import Path
 
 try:
-    from air_uniqueness_lib import ir, smtlib, solve
+    from air_uniqueness_lib import smtlib, solve
+    from riscv_air_ir_lib import ir
 except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_board in tests.
-    from scripts.air_uniqueness_lib import ir, smtlib, solve
+    from scripts.air_uniqueness_lib import smtlib, solve
+    from scripts.riscv_air_ir_lib import ir
 
 # Worst first: a counterexample outranks an unfinished shard, which outranks a
 # family the query cannot speak about, which outranks a proof.

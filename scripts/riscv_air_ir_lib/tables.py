@@ -1,4 +1,4 @@
-"""Preprocessed lookup-table membership, per relation domain.
+"""Shared RISC-V preprocessed lookup-table membership, per relation domain.
 
 Transcribed from `src/frontends/riscv/air/lookups/tables/schema.zig` (`Kind`,
 `logSize`, `arity`, `tupleAt`) and from `air/lookups/entry.zig` (`Domain`,

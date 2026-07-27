@@ -1,4 +1,4 @@
-"""Serialisable constraint-system IR for one AIR family's per-row relation.
+"""Shared serialisable constraint-system IR for one RISC-V AIR row relation.
 
 A family is described by: named columns carrying an architectural role and,
 where the AIR around the row establishes one, a declared input domain; a

@@ -35,6 +35,7 @@ PYTHON_FOUNDATION_LIBRARIES = frozenset({
     "interop_cli_lib",
     "process_resources_lib",
     "product_identity_lib",
+    "riscv_air_ir_lib",
     "zig_protocol_lib",
 })
 # Controller packages with historical executable names that are not a direct

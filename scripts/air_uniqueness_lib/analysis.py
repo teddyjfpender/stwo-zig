@@ -11,7 +11,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .ir import LEAF_OPS, MODULUS, Node, System
+try:
+    from riscv_air_ir_lib import tables
+    from riscv_air_ir_lib.ir import LEAF_OPS, MODULUS, Node, System
+except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
+    from scripts.riscv_air_ir_lib import tables
+    from scripts.riscv_air_ir_lib.ir import LEAF_OPS, MODULUS, Node, System
 
 
 def degrees(system: System) -> list[int]:
@@ -171,8 +176,6 @@ def _live_box_windows(system: System, pinned: Pinned) -> dict[int, int]:
     narrows a bare column.  A conditionally live request narrows nothing here,
     so a window can never delete a witness the AIR admits.
     """
-    from . import tables  # Local import keeps ir/analysis free of table policy.
-
     pivots = solved_forms(system, pinned)
     forms = linear_forms(system, pinned)
     windows: dict[int, int] = {}
@@ -536,8 +539,6 @@ def projectable_sinks(
     re-solve the dropped definitions in *reverse* drop order, so `z1` is back
     before `f(z1)` is evaluated.
     """
-    from . import tables  # Local import keeps ir/analysis free of table policy.
-
     support = column_support(system)
     lookup_read: set[str] = set()
     for lookup in system.lookups:
@@ -770,8 +771,6 @@ def _narrow_once(
     system: System, bounds: dict[str, tuple[int, int]]
 ) -> dict[str, tuple[int, int]]:
     """One narrowing pass, reading the columns `bounds` already pins."""
-    from . import tables  # Local import keeps ir/analysis free of table policy.
-
     pinned = pins(bounds)
     refined = dict(bounds)
     forms = linear_forms(system, pinned)

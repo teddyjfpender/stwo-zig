@@ -73,11 +73,11 @@ from pathlib import Path
 try:
     from air_satisfaction_lib import dump as dump_mod
     from air_satisfaction_lib import infrastructure, logup, rows
-    from air_uniqueness_lib import ir
+    from riscv_air_ir_lib import ir
 except ModuleNotFoundError:  # Imported as scripts.air_satisfaction in tests.
     from scripts.air_satisfaction_lib import dump as dump_mod
     from scripts.air_satisfaction_lib import infrastructure, logup, rows
-    from scripts.air_uniqueness_lib import ir
+    from scripts.riscv_air_ir_lib import ir
 
 DEFAULT_DUMP = Path("zig-out/committed-trace/honest.json")
 DEFAULT_IR = Path("zig-out/uniqueness-ir")

@@ -50,7 +50,7 @@ from pathlib import Path
 from scripts import air_satisfaction
 from scripts.air_satisfaction_lib import dump as dump_mod
 from scripts.air_satisfaction_lib import field, logup, rows
-from scripts.air_uniqueness_lib import ir
+from scripts.riscv_air_ir_lib import ir
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPORTS = ROOT / "zig-out" / "committed-trace"

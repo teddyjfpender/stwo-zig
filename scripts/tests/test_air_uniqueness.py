@@ -17,7 +17,8 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import air_uniqueness
-from scripts.air_uniqueness_lib import analysis, ir, smtlib, solve, tables
+from scripts.air_uniqueness_lib import analysis, smtlib, solve
+from scripts.riscv_air_ir_lib import ir, tables
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "air_uniqueness"

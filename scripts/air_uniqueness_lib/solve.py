@@ -15,9 +15,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Sequence
 
-from . import tables
 from .analysis import column_support, implied_column_bounds
-from .ir import MODULUS, System
 from .smtlib import (
     COPIES,
     Query,
@@ -25,6 +23,13 @@ from .smtlib import (
     emit_satisfiability_query,
     emit_uniqueness_query,
 )
+
+try:
+    from riscv_air_ir_lib import tables
+    from riscv_air_ir_lib.ir import MODULUS, System
+except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
+    from scripts.riscv_air_ir_lib import tables
+    from scripts.riscv_air_ir_lib.ir import MODULUS, System
 
 
 @dataclass

@@ -41,9 +41,11 @@ import sys
 from pathlib import Path
 
 try:
-    from air_uniqueness_lib import analysis, ir, smtlib, solve
+    from air_uniqueness_lib import analysis, smtlib, solve
+    from riscv_air_ir_lib import ir
 except ModuleNotFoundError:  # Imported as scripts.air_uniqueness in tests.
-    from scripts.air_uniqueness_lib import analysis, ir, smtlib, solve
+    from scripts.air_uniqueness_lib import analysis, smtlib, solve
+    from scripts.riscv_air_ir_lib import ir
 
 
 ENCODING_SPEC = """\
