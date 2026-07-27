@@ -26,6 +26,14 @@ OPERATOR_TOOLS: dict[str, str] = {
     # emitted from the real modules yet. Its own contracts do run, through
     # scripts/tests/test_air_uniqueness.py in the discovered suite.
     "air_uniqueness.py": "SMT witness-uniqueness checker for AIR families",
+    # Owner: soundness. Independently re-decides, in Python, the AIR
+    # row-satisfaction and LogUp-closure layer of an exported proving run.
+    # Un-gated because its two inputs are Zig test artefacts under zig-out/
+    # (`committed_trace_export_test.zig` and `uniqueness_ir_test.zig`) that
+    # hosted CI does not build. Its own contracts do run, through
+    # scripts/tests/test_air_satisfaction.py in the discovered suite; the
+    # export-backed cases there skip when zig-out/ is absent.
+    "air_satisfaction.py": "independent AIR row-satisfaction and LogUp-closure checker",
 }
 
 ENTRY_POINT_GLOBS = (
