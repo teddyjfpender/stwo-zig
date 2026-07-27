@@ -47,8 +47,14 @@ The reproducible commands and evidence schemas live in
 Six demonstrated under-constraints in the opcode AIR were found by adversarial
 review and closed. Each was inherited from the pinned Stark-V layout, so the
 fixes are an intentional divergence recorded in `conformance/divergence-log.md`.
-Each has a focused executable check in its owning module, except for the
-deferred end-to-end DIV committed-trace mutation called out below.
+
+Every fix has a row-local rejection check. Five of the six have one in the
+owning AIR module. The DIV divisor byte range does not: `semantics/div.zig`
+covers only the quotient-sign and zero-divisor halves of that item, and the
+divisor byte-range check lives in
+`src/tests/riscv/divisor_byte_range_soundness_test.zig`. The committed-trace
+coverage of all six, and what it does and does not establish, is the table
+below.
 
 - [x] Read-only accesses bind `next == previous`. Previously a source register's
       emitted bus value was a free prover choice that was also the operand the
@@ -72,23 +78,138 @@ The sweep's previously global DIV byte-ness and JALR target-bit obligations are
 now row-local. No known residual obligation from that sweep rests solely on bus
 closure or the consuming ROM row.
 
-The review that found these is the reason the first item below is now the
-highest-priority soundness task rather than one of five parallel ones: every one
-of the five was invisible to the Sail differential (which validates the runner,
-not the AIR) and to the CP-11 oracle (which compares against the layout that
-contains the same omissions).
+The review that found these is the reason the first item under "Continuing
+adversarial work" is now the highest-priority soundness task rather than one of
+several parallel ones: every one of the six was invisible to the Sail
+differential (which validates the runner, not the AIR) and to the CP-11 oracle
+(which compares against the layout that contains the same omissions).
+
+## Committed-trace coverage of the six fixes — 2026-07-26
+
+A row-local verdict says the AIR would reject a row. It does not say the row is
+reachable through the committed pipeline, and "rejected" alone is not evidence
+for the constraint under test. The seven modules below add the reachability half
+where they can. The column that decides whether a test is a guard or merely
+coverage is "attribution": an end-to-end case marked "no" still passes with its
+fix deleted.
+
+Every end-to-end entry means both halves — the guest proves and verifies
+honestly, then the same guest with one committed row overridden does not.
+
+**Why the attribution column is "row-local only" almost everywhere, and why that
+is a harness limit rather than six oversights.** A `.main_row` override does not
+reach the interaction trace or the lookup multiplicities.
+`prover/main_trace.zig:116` derives multiplicity counters from the unmutated
+`workspace.opcode_columns`, `:125` applies the override afterwards and only to
+the duped committed main columns, and `prover/interaction_trace.zig:155` reads
+the unmutated buffers too. So any override that moves a relation tuple leaves the
+committed main trace disagreeing with the interaction trace, and proving raises
+`ConstraintsNotSatisfied` whatever the AIR would have said. Every column the
+read-only binding constrains is a bus tuple element, so no override can isolate
+it end to end; `read_only_access_soundness_test.zig` pins this as an executable
+control, and it is why `divisor_byte_range_soundness_test.zig`'s `.verification`
+expectation is currently unsatisfiable. Until the hook feeds the overridden
+columns into multiplicity ingestion and interaction generation, an end-to-end
+rejection is evidence of reachability, not of which constraint did the rejecting.
+Row-local attribution is unaffected and remains the load-bearing assertion.
+
+| Closed item | Row-local check | End-to-end committed-trace test | Attribution asserted | Self-check reported |
+| --- | --- | --- | --- | --- |
+| Read-only `next == previous` | `semantics/{base_alu_imm,base_alu_reg,branch_eq,branch_lt,lt_imm,lt_reg,shifts_reg,load_store,div,mul,jalr}.zig`; `read_only_access_soundness_test.zig` | `read_only_access_soundness_test.zig`, `branch_eq` guest | row-local only | yes |
+| `SB`/`SH` unmarked bytes | `semantics/load_store.zig`; `partial_store_soundness_test.zig` | `partial_store_soundness_test.zig`, `load_store` guest (`SB`, `SW`, `LW`) | row-local only | yes |
+| `AUIPC` `imm_limbs[0] == 0` | `semantics/auipc.zig`; `auipc_alias_soundness_test.zig` | `auipc_alias_soundness_test.zig`, `auipc` guest | row-local only | yes |
+| `JALR` target binding | `semantics/jalr.zig`; `jalr_target_soundness_test.zig` | `jalr_target_soundness_test.zig`, `jalr` guest, three forgeries | row-local, **and end-to-end for the bit-0 forgery** | yes |
+| DIV divisor byte range | `divisor_byte_range_soundness_test.zig` only — **not** `semantics/div.zig` | `divisor_byte_range_soundness_test.zig`, `div` guest — honest half green, **forged half currently red** | row-local only | **no record** |
+| `LB`/`LH`, `SRL`/`SRA` sign witnesses | `semantics/load_store.zig`, `semantics/shift_common.zig`; `load_sign_soundness_test.zig`, `shift_sign_soundness_test.zig` | `load_sign_soundness_test.zig` (`load_store` guest), `shift_sign_soundness_test.zig` (`shifts_reg` guest) | row-local only | yes |
+
+The red DIV cell is a test-expectation failure, not an admitted forgery: that
+test pins `RejectionStage.verification` and production refuses the row earlier
+than the pin allows. No forged row anywhere in this sweep produced a proof.
+
+"Self-check reported" means the module records an executed run with its real
+output in which the specific constraint or lookup request was disabled, the
+row-local attribution assertion failed because the forged row became admissible,
+and the AIR file was then restored byte-for-byte. That is what makes the
+row-local column a guard. Five of those six modules also report, unprompted,
+that their end-to-end case still passes with the fix disabled; only
+`jalr_target_soundness_test.zig`'s bit-0 case fails when its carry constraints
+are deleted, and it is the only end-to-end guard in the sweep.
+
+That asymmetry is a property of the test harness, not of the fixes.
+`prover/orchestration.zig` duplicates the opcode witness columns, applies a test
+row override to the duplicates it commits as tree 1, and then generates the
+LogUp interaction trace from the unmutated workspace buffers. Any override of a
+column that appears in a relation tuple therefore leaves the two trees
+disagreeing, and the prover's own composition check refuses the row before a
+proof exists, whatever the AIR says. Every fix above except the JALR bit-0
+witness constrains a value that is also a bus tuple element, so no end-to-end
+forgery of them can be attributed, and `RejectionStage.verification` in
+`tests/riscv/committed_forgery_harness.zig` is unreachable for a `main_row`
+override. Until the override runs ahead of interaction generation, these tests
+establish reachability — an honest row of that family proves and verifies, and
+the forged row never becomes a proof — and attribution stays row-local.
+
+Several of those modules say in their own doc comments that nothing in the
+repository previously proved a row of their family end to end. Read that as
+"no test under `src/tests/riscv/` did", and not even that for `branch_eq` and
+`load_store`: `prover_test.zig` already proves and verifies BEQ, BNE, `LW`, and
+`SW` rows, and `scripts/riscv_arch_tests.py` already runs execute → prove →
+separate-process verify over the pinned architectural corpus, which exercises
+every one of the six families. What the honest halves add is a *guest the forged
+half is derived from*, which is what keeps the rejection from being vacuous —
+not first-ever coverage of the family.
 
 ## Continuing adversarial work
 
-- [ ] Expand committed-witness mutation coverage from the highest-risk MULH and
-      program/memory boundaries to every opcode family.
+- [ ] Expand committed-witness mutation coverage to every opcode family. Eight
+      of the seventeen families in `air/component_order.zig` now have a
+      committed-trace forgery test: `mulh` (`mulh_soundness_test.zig`) and `lui`
+      (one cell of one column, as the "lookup request" case in
+      `main_witness_rejection_test.zig`) predate this work; `auipc`,
+      `branch_eq`, `jalr`, `load_store`, and `shifts_reg` were added by the
+      sweep above. All seven are green; `div`'s is red (below). Nine families
+      have no committed-trace forgery test at all: `base_alu_imm`,
+      `base_alu_reg`, `branch_lt`, `fence`, `jal`, `lt_imm`, `lt_reg`, `mul`,
+      and `shifts_imm`.
+      Within the covered families the coverage is one or two rows chosen to
+      exhibit a specific bug, not the family's operand space: only the `is_sb`
+      half of the partial-store gate is exercised, only `SRL`/`SRA` of
+      `shifts_reg`, and only `LB`/`LH`/`SB`/`SW`/`LW` of `load_store`.
+- [ ] Apply the committed-row override before `opcode_interaction.generate` in
+      `prover/orchestration.zig` rather than after, so a row-locally coherent
+      forgery reaches a real proof and loses the global LogUp closure at
+      verification. Until then `RejectionStage.verification` in
+      `tests/riscv/committed_forgery_harness.zig` is unreachable for a
+      `main_row` override, that enum's doc comment overstates what a stage pin
+      distinguishes, and no end-to-end test in this sweep can tell a constraint
+      fix from a lookup fix.
+- [ ] Give `src/tests/riscv/proof_admission_test.zig` the family enumeration its
+      file name implies. It proves two hand-built traces — `base_alu_imm` and
+      `mulh` — through a counting engine and verifies neither proof; the other
+      fifteen families are not reached.
 - [x] Commit a generic witness-rigidity suite over all seventeen families: every
       committed column must be observable through a constraint or a lookup, no
       opcode selector may be interchangeable with another whose semantics differ,
       and every access must emit a value determined by constrained inputs. The
-      third property is what the six closed items above all violated.
-- [ ] Promote the non-byte DIVU divisor mutation (`[0, 0, 0, 256]`) into the
-      end-to-end malicious-witness suite.
+      third property is what the six closed items above all violated. Its own
+      bounds, as `witness_rigidity_test.zig` states them: a per-family row
+      budget over the committed ELF corpus, an exhaustive sweep of the byte
+      domain on the first honest row of each family and a fixed delta sweep
+      elsewhere, so rigidity is decided over that domain and not over all of
+      M31; and two
+      `load_store` address columns are recorded as knowingly unobservable rather
+      than the check being weakened around them.
+- [ ] Repair the end-to-end non-byte DIVU divisor mutation (`[0, 0, 0, 256]`).
+      The row-local half is done and green. The committed-trace half exists —
+      `divisor_byte_range_soundness_test.zig`, "the honest DIVU proof verifies
+      and the forged committed row does not" — and **currently fails**: it pins
+      `RejectionStage.verification`, and for the harness reason above proving
+      refuses the row first with `error.ConstraintsNotSatisfied`. Fixing the
+      hook ordering is the repair that keeps the pin meaningful; relabelling the
+      pin `.prover_constraints` makes the test green but leaves it asserting
+      only reachability. The stale `TODO(soundness)` in
+      `air/semantics/div.zig` still says the test is deferred and must be
+      updated with whichever repair lands.
 - [ ] Add a deliberately malicious prover harness for skipped instructions,
       stale reads, forged outputs, and altered completion.
 - [ ] Exhaustively check small-limb component domains where enumeration is
