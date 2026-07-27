@@ -42,5 +42,6 @@ test {
     // stops matching `Semantics(QM31)`, the solver is answering about a system
     // we no longer ship. Unregistered it never ran, so the guard was nominal.
     _ = @import("uniqueness_ir_test.zig");
+    _ = @import("uniqueness_counterexample_test.zig");
     _ = @import("witness_rigidity_test.zig");
 }
