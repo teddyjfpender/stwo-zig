@@ -1,19 +1,15 @@
-//! Exact host implementation of Stwo-Cairo's window-18 Pedersen deductions.
+//! Exact host implementation of Stwo-Cairo's windowed Pedersen deductions.
 
 const std = @import("std");
 const felt252 = @import("felt252.zig");
 const stark_curve = @import("stark_curve.zig");
 
-const window_bits: u32 = 18;
-const window_count: u32 = 14;
-const rows_per_window: u32 = 1 << window_bits;
-const low_window_count: u32 = window_count - 1;
-const high_rows_per_block: u32 = 1 << (window_bits - 4);
-const section_rows: u32 = window_count * rows_per_window;
-const real_table_rows: u32 = 2 * section_rows;
-const padded_table_rows: u32 = 1 << 23;
+const default_window_bits: u5 = 18;
+const default_window_count: u32 = 252 / default_window_bits;
+const default_rows_per_window: u32 = 1 << default_window_bits;
+const default_section_rows: u32 = default_window_count * default_rows_per_window;
+const real_table_rows: u32 = 2 * default_section_rows;
 const point_words: usize = 2 * felt252.word_count;
-const partial_words: usize = 2 + window_count + point_words;
 
 pub const p0 = stark_curve.AffinePoint{
     .x = 0x0234287dcbaffe7f969c748655fca9e58fa8120b6d56eb0c1080d17957ebe47b,
@@ -45,40 +41,76 @@ pub const Error = felt252.Error || stark_curve.Error || error{
 };
 
 pub fn applyPointsTable(args: []const u32, outputs: []u32) Error!void {
+    return applyPointsTableForWindow(args, outputs, default_window_bits);
+}
+
+pub fn applyPointsTableWindowBits9(args: []const u32, outputs: []u32) Error!void {
+    return applyPointsTableForWindow(args, outputs, 9);
+}
+
+fn applyPointsTableForWindow(
+    args: []const u32,
+    outputs: []u32,
+    comptime requested_window_bits: u5,
+) Error!void {
     if (args.len != 1 or outputs.len != point_words)
         return error.InvalidWordCount;
-    const point = try tablePoint(args[0]);
+    const point = try tablePointForWindow(args[0], requested_window_bits);
     felt252.encode(point.x, outputs[0..felt252.word_count]);
     felt252.encode(point.y, outputs[felt252.word_count..point_words]);
 }
 
 pub fn applyPartialEcMul(args: []const u32, outputs: []u32) Error!void {
-    if (args.len != partial_words or outputs.len != partial_words)
-        return error.InvalidWordCount;
-    if (args[1] >= 2 * window_count) return error.InvalidRound;
-    if (args[2] >= rows_per_window) return error.InvalidWindow;
+    return applyPartialEcMulForWindow(args, outputs, default_window_bits);
+}
 
-    const table_row = args[1] * rows_per_window + args[2];
-    const table_point = try tablePoint(table_row);
+pub fn applyPartialEcMulWindowBits9(args: []const u32, outputs: []u32) Error!void {
+    return applyPartialEcMulForWindow(args, outputs, 9);
+}
+
+fn applyPartialEcMulForWindow(
+    args: []const u32,
+    outputs: []u32,
+    comptime requested_window_bits: u5,
+) Error!void {
+    const requested_window_count: usize = 252 / @as(usize, requested_window_bits);
+    const requested_rows_per_window: u32 = 1 << requested_window_bits;
+    const requested_partial_words = 2 + requested_window_count + point_words;
+    if (args.len != requested_partial_words or outputs.len != requested_partial_words)
+        return error.InvalidWordCount;
+    if (args[1] >= @as(u32, @intCast(2 * requested_window_count)))
+        return error.InvalidRound;
+    if (args[2] >= requested_rows_per_window) return error.InvalidWindow;
+
+    const table_row = args[1] * requested_rows_per_window + args[2];
+    const table_point = try tablePointForWindow(table_row, requested_window_bits);
     const accumulator = stark_curve.AffinePoint{
-        .x = try felt252.decode(args[2 + window_count ..][0..felt252.word_count]),
-        .y = try felt252.decode(args[2 + window_count + felt252.word_count ..][0..felt252.word_count]),
+        .x = try felt252.decode(args[2 + requested_window_count ..][0..felt252.word_count]),
+        .y = try felt252.decode(
+            args[2 + requested_window_count + felt252.word_count ..][0..felt252.word_count],
+        ),
     };
     const sum = try stark_curve.addAffine(accumulator, table_point);
 
     outputs[0] = args[0];
     outputs[1] = args[1] + 1;
-    @memcpy(outputs[2 .. 2 + window_count - 1], args[3 .. 2 + window_count]);
-    outputs[2 + window_count - 1] = 0;
-    felt252.encode(sum.x, outputs[2 + window_count ..][0..felt252.word_count]);
+    @memcpy(
+        outputs[2 .. 2 + requested_window_count - 1],
+        args[3 .. 2 + requested_window_count],
+    );
+    outputs[2 + requested_window_count - 1] = 0;
+    felt252.encode(
+        sum.x,
+        outputs[2 + requested_window_count ..][0..felt252.word_count],
+    );
     felt252.encode(
         sum.y,
-        outputs[2 + window_count + felt252.word_count ..][0..felt252.word_count],
+        outputs[2 + requested_window_count + felt252.word_count ..][0..felt252.word_count],
     );
 }
 
 pub fn tablePoint(raw_index: u32) Error!stark_curve.AffinePoint {
-    return tablePointForWindow(raw_index, window_bits);
+    return tablePointForWindow(raw_index, default_window_bits);
 }
 
 pub fn tablePointForWindow(
@@ -134,4 +166,57 @@ test "Pedersen table padding repeats the first official point" {
     const padded = try tablePoint(real_table_rows);
     try @import("std").testing.expectEqual(first, padded);
     try @import("std").testing.expect(stark_curve.isOnCurve(first));
+}
+
+test "window-9 Pedersen deduction preserves the official state layout" {
+    const requested_window_count: usize = 28;
+    const partial_words = 2 + requested_window_count + point_words;
+    var args = [_]u32{0} ** partial_words;
+    var outputs = [_]u32{0} ** partial_words;
+
+    args[0] = 1234;
+    args[1] = 0;
+    args[2] = 56;
+    args[3] = 99;
+    felt252.encode(p1.x, args[2 + requested_window_count ..][0..felt252.word_count]);
+    felt252.encode(
+        p1.y,
+        args[2 + requested_window_count + felt252.word_count ..][0..felt252.word_count],
+    );
+
+    try applyPartialEcMulWindowBits9(&args, &outputs);
+
+    const expected = try stark_curve.addAffine(p1, try tablePointForWindow(56, 9));
+    try std.testing.expectEqual(@as(u32, 1234), outputs[0]);
+    try std.testing.expectEqual(@as(u32, 1), outputs[1]);
+    try std.testing.expectEqual(@as(u32, 99), outputs[2]);
+    try std.testing.expectEqualSlices(
+        u32,
+        &([_]u32{0} ** (requested_window_count - 1)),
+        outputs[3 .. 2 + requested_window_count],
+    );
+    try std.testing.expectEqual(
+        expected.x,
+        try felt252.decode(outputs[2 + requested_window_count ..][0..felt252.word_count]),
+    );
+    try std.testing.expectEqual(
+        expected.y,
+        try felt252.decode(
+            outputs[2 + requested_window_count + felt252.word_count ..][0..felt252.word_count],
+        ),
+    );
+}
+
+test "window-9 Pedersen points-table wrapper matches the generalized table" {
+    var output = [_]u32{0} ** point_words;
+    try applyPointsTableWindowBits9(&.{512}, &output);
+    const expected = try tablePointForWindow(512, 9);
+    try std.testing.expectEqual(
+        expected.x,
+        try felt252.decode(output[0..felt252.word_count]),
+    );
+    try std.testing.expectEqual(
+        expected.y,
+        try felt252.decode(output[felt252.word_count..point_words]),
+    );
 }

@@ -78,9 +78,7 @@ fn writeClaim(
     for (registry.claim_fields) |field| {
         const span = layout.componentSpan(composition, field.name);
         try writer.objectField(field.name);
-        if (span.len == 0) {
-            try writer.write(null);
-        } else if (std.mem.eql(u8, field.name, "memory_id_to_big")) {
+        if (std.mem.eql(u8, field.name, "memory_id_to_big")) {
             try writer.beginObject();
             try writer.objectField("big_log_sizes");
             try writer.beginArray();
@@ -88,6 +86,8 @@ fn writeClaim(
                 try writer.write(component.trace_log_size);
             try writer.endArray();
             try writer.endObject();
+        } else if (span.len == 0) {
+            try writer.write(null);
         } else {
             if (span.len != 1) return error.InvalidClaimGeometry;
             try writer.beginObject();
@@ -108,9 +108,7 @@ fn writeInteractionClaim(
     for (registry.claim_fields) |field| {
         const span = layout.componentSpan(composition, field.name);
         try writer.objectField(field.name);
-        if (span.len == 0) {
-            try writer.write(null);
-        } else if (std.mem.eql(u8, field.name, "memory_id_to_big")) {
+        if (std.mem.eql(u8, field.name, "memory_id_to_big")) {
             var sum = QM31.zero();
             try writer.beginObject();
             try writer.objectField("big_claimed_sums");
@@ -123,6 +121,8 @@ fn writeInteractionClaim(
             try writer.objectField("claimed_sum");
             try stwo_json.writeQm31(writer, sum);
             try writer.endObject();
+        } else if (span.len == 0) {
+            try writer.write(null);
         } else {
             if (span.len != 1) return error.InvalidInteractionClaimGeometry;
             try writer.beginObject();

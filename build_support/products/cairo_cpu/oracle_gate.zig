@@ -16,6 +16,12 @@ const OracleResult = struct {
     proof: std.Build.LazyPath,
 };
 
+const ProgramCase = struct {
+    name: []const u8,
+    program: []const u8,
+    proof_format: []const u8 = "json",
+};
+
 pub fn add(
     b: *std.Build,
     executable: *std.Build.Step.Compile,
@@ -245,6 +251,64 @@ fn addRunAndProveGate(
     adapter_tests: *std.Build.Step.Run,
     previous: *std.Build.Step,
 ) *std.Build.Step {
+    var completed = addRunAndProveCase(
+        b,
+        executable,
+        verifier_cargo,
+        adapter_tests,
+        previous,
+        .{
+            .name = "all-opcodes",
+            .program = "vectors/cairo/programs/all_opcodes.compiled.json",
+            .proof_format = "binary",
+        },
+    );
+    for ([_]ProgramCase{
+        .{
+            .name = "bitwise",
+            .program = "vectors/cairo/programs/test_prove_verify_bitwise_builtin/compiled.json",
+        },
+        .{
+            .name = "range-check-96",
+            .program = "vectors/cairo/programs/test_prove_verify_range_check_bits_96_builtin/compiled.json",
+        },
+        .{
+            .name = "range-check-128",
+            .program = "vectors/cairo/programs/test_prove_verify_range_check_bits_128_builtin/compiled.json",
+        },
+        .{
+            .name = "poseidon",
+            .program = "vectors/cairo/programs/test_prove_verify_poseidon_builtin/compiled.json",
+        },
+        .{
+            .name = "ret",
+            .program = "vectors/cairo/programs/test_prove_verify_ret_opcode/compiled.json",
+        },
+        .{
+            .name = "pedersen",
+            .program = "vectors/cairo/programs/test_prove_verify_pedersen_builtin/compiled.json",
+        },
+    }) |case| {
+        completed = addRunAndProveCase(
+            b,
+            executable,
+            verifier_cargo,
+            adapter_tests,
+            completed,
+            case,
+        );
+    }
+    return completed;
+}
+
+fn addRunAndProveCase(
+    b: *std.Build,
+    executable: *std.Build.Step.Compile,
+    verifier_cargo: *std.Build.Step.Run,
+    adapter_tests: *std.Build.Step.Run,
+    previous: *std.Build.Step,
+    case: ProgramCase,
+) *std.Build.Step {
     const prove = b.addRunArtifact(executable);
     prove.step.dependOn(previous);
     prove.step.dependOn(&adapter_tests.step);
@@ -256,22 +320,28 @@ fn addRunAndProveGate(
         ),
     );
     prove.addArgs(&.{ "run-and-prove", "--program" });
-    prove.addFileArg(b.path(
-        "vectors/cairo/programs/all_opcodes.compiled.json",
-    ));
+    prove.addFileArg(b.path(case.program));
     prove.addArgs(&.{ "--program-type", "json", "--params" });
     prove.addFileArg(b.path(
         "vectors/cairo/official/all_opcodes.params.json",
     ));
     prove.addArg("--proof");
-    const proof = prove.addOutputFileArg(
-        "all-opcodes-run-and-prove.binary.bz2",
-    );
+    const proof = prove.addOutputFileArg(b.fmt(
+        "{s}-run-and-prove.{s}",
+        .{
+            case.name,
+            if (std.mem.eql(u8, case.proof_format, "binary"))
+                "binary.bz2"
+            else
+                "proof.json",
+        },
+    ));
     prove.addArg("--report-out");
-    _ = prove.addOutputFileArg(
-        "all-opcodes-run-and-prove.report.json",
-    );
-    prove.addArgs(&.{ "--proof-format", "binary", "--verify" });
+    _ = prove.addOutputFileArg(b.fmt(
+        "{s}-run-and-prove.report.json",
+        .{case.name},
+    ));
+    prove.addArgs(&.{ "--proof-format", case.proof_format, "--verify" });
 
     const verify = b.addSystemCommand(&.{
         oraclePath(b),
@@ -284,13 +354,17 @@ fn addRunAndProveGate(
         "--channel",
         "blake2s",
         "--proof-format",
-        "binary",
+        case.proof_format,
         "--result",
     });
-    _ = verify.addOutputFileArg(
-        "all-opcodes-run-and-prove-rust-verdict.json",
-    );
-    verify.setName("verify official Cairo run-and-prove proof");
+    _ = verify.addOutputFileArg(b.fmt(
+        "{s}-run-and-prove-rust-verdict.json",
+        .{case.name},
+    ));
+    verify.setName(b.fmt(
+        "verify official Cairo {s} run-and-prove proof",
+        .{case.name},
+    ));
     return &verify.step;
 }
 

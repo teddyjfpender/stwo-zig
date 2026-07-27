@@ -26,7 +26,7 @@ pub fn writeClaim(
     try writePublicData(writer, state, input);
     for (registry.claim_fields) |field| {
         const span = layout.componentSpan(bundle, field.name);
-        if (span.len == 0) {
+        if (!layout.claimFieldPresent(field.name, span)) {
             try felt_json.write(writer, state, 1);
             continue;
         }

@@ -147,6 +147,14 @@ fn instantiateComponent(
         template.preprocessed_indices,
     );
     errdefer allocator.free(projected);
+    try rebindSequenceColumn(
+        projected,
+        template.preprocessed_indices,
+        source_spec,
+        target_spec,
+        template.trace_log_size,
+        trace_log,
+    );
     const denominators = try denominatorInverses(
         allocator,
         trace_log,
@@ -249,6 +257,28 @@ fn rebindDomainConstants(
     }
 }
 
+fn rebindSequenceColumn(
+    projected: []u32,
+    source_indices: []const u32,
+    source_spec: preprocessed.Spec,
+    target_spec: preprocessed.Spec,
+    source_log: u32,
+    target_log: u32,
+) !void {
+    if (source_log == target_log) return;
+    var source_buffer: [16]u8 = undefined;
+    const source_name = try std.fmt.bufPrint(&source_buffer, "seq_{}", .{source_log});
+    const source_sequence = source_spec.indexOf(source_name) orelse
+        return error.MissingSourceSequenceColumn;
+    var target_buffer: [16]u8 = undefined;
+    const target_name = try std.fmt.bufPrint(&target_buffer, "seq_{}", .{target_log});
+    const target_sequence = target_spec.indexOf(target_name) orelse
+        return error.MissingTargetSequenceColumn;
+    for (source_indices, projected) |source_index, *target_index| {
+        if (source_index == source_sequence) target_index.* = target_sequence;
+    }
+}
+
 fn rebindSegmentConstant(
     program: *eval_program.Program,
     label: []const u8,
@@ -264,6 +294,10 @@ fn rebindSegmentConstant(
 }
 
 fn segmentStart(segments: adapter.BuiltinSegments, label: []const u8) ?u32 {
+    if (std.mem.eql(u8, label, "pedersen_builtin_narrow_windows")) {
+        const segment = segments.pedersen_builtin orelse return null;
+        return std.math.cast(u32, segment.begin_addr);
+    }
     inline for (std.meta.fields(adapter.BuiltinSegments)) |field| {
         if (std.mem.eql(u8, label, field.name)) {
             const segment = @field(segments, field.name) orelse return null;
@@ -353,6 +387,14 @@ test "official Cairo AIR templates instantiate live logs and segment starts" {
     try std.testing.expectEqual(@as(usize, 3), bundle.components.len);
     try std.testing.expectEqual(@as(u32, 7), bundle.components[0].trace_log_size);
     try std.testing.expectEqual(@as(u32, 9), bundle.components[1].trace_log_size);
+    var canonical = try preprocessed.Spec.init(allocator, .canonical);
+    defer canonical.deinit();
+    const live_sequence = canonical.indexOf("seq_9").?;
+    try std.testing.expect(std.mem.indexOfScalar(
+        u32,
+        bundle.components[1].preprocessed_indices,
+        live_sequence,
+    ) != null);
     try std.testing.expectEqualStrings(
         "memory_id_to_big[0]",
         bundle.components[2].label,

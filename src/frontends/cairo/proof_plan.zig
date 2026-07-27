@@ -712,4 +712,15 @@ test "Cairo proof plan classifies gather and compact geometry" {
     try std.testing.expectEqual(@as(usize, 20), compact.edges.len);
     try std.testing.expect(gatheredProducerEdges("verify_instruction") == null);
     try std.testing.expectEqual(compact.edges.len, canonicalProducerEdges("verify_instruction").len);
+
+    const narrow = compactGeometry("pedersen_aggregator_window_bits_9") orelse
+        return error.TestUnexpectedResult;
+    try std.testing.expectEqualStrings(
+        "pedersen_builtin_narrow_windows",
+        narrow.edges[0].producer,
+    );
+    const partial = gatheredProducerEdges("partial_ec_mul_window_bits_9") orelse
+        return error.TestUnexpectedResult;
+    try std.testing.expectEqual(@as(u32, 86), partial[0].words_per_instance);
+    try std.testing.expectEqual(@as(u32, 56), partial[0].instances);
 }

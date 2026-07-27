@@ -358,23 +358,23 @@ The table started at commit `cfd47be9` and is updated as evidence lands on
 | Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Public lookup boundary | public program, output, safe-call, segment-pointer, and initial/final state relations are derived in official order; the resulting public LogUp term cancels all 46 all-opcodes component claims under both diagnostic and proof-transcript challenges | complete for the frozen all-opcodes proof |
-| Claim geometry | active generator imports only the official 68-field/83-slot registry; direct, gathered, compact, fixed, and memory domains are derived from live input and the authenticated witness graph for both official fixtures | complete for all-opcodes and all-builtins; broader corpus remains |
+| Claim geometry | active generator imports only the official 68-field/83-slot registry; direct, gathered, compact, fixed, and memory domains are derived from live input and the authenticated witness graph for both official fixtures and the six-program execution corpus | complete for the admitted CPU corpus |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
 | Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
-| Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for both frozen fixtures; broader execution corpus remains |
+| Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for the all-family differential fixtures; release corpus adds proof-level coverage |
 | Official interaction-trace parity | all-opcodes matches 46 components and 1,032 columns; all-builtins matches 48 components and 2,220 columns, including every claimed sum and the cumulative accumulator after each component; the all-opcodes proof-input path lowers the same secure columns into exact M31 commitment order | complete for both frozen diagnostic fixtures and for the all-opcodes proof-transcript challenge |
 | Official preprocessed trace | backend-neutral registry constructs canonical (161 columns), canonical-without-Pedersen (105 columns), and canonical-small (156 columns) in exact stable identity order; canonical AIR indices project to canonical-small identities and reject absent columns | canonical-small and canonical are committed in independently accepted proofs; process-owned cache reuse remains |
-| Official base commitment input | live execution resolves claim geometry, routes fixed and memory multiplicities, and materializes every base column in canonical commitment order without a checkpoint parameter | committed in accepted all-opcodes and all-builtins proofs; broader corpus remains |
+| Official base commitment input | live execution resolves claim geometry, routes fixed and memory multiplicities, and materializes every base column in canonical commitment order without a checkpoint parameter | committed in every accepted CPU release-corpus proof |
 | Official AIR compiler | authenticated exact-source overlay lowers official evaluators from either a proof or a live `ProverInput`; three source bundles cover all 68 claim fields across canonical and canonical-small preprocessing; generation differentially evaluates every recorded component against official Rust on deterministic OODS masks | complete as an authenticated template authority for the two frozen proof fixtures |
 | Native Zig AIR | authenticates the template library, selects each live component by official claim identity and domain, derives live vanishing inverses, binds statement parameters, and executes through the generic CPU/SIMD domain accumulator | complete for the frozen all-opcodes and all-builtins proofs; Zig and official Rust verification pass |
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
-| CPU product | focused `stwo-cairo-cpu` product, adjacent pinned Cairo VM sidecar, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON, Cairo-serde, and compressed-binary transports, and a serial official Rust oracle gate | staged with all-family AIR admission; executable-format programs and broader release corpus remain |
+| CPU product | focused `stwo-cairo-cpu` product, adjacent pinned Cairo VM sidecar, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON, Cairo-serde, and compressed-binary transports, and a serial official Rust oracle gate | compiled-JSON release corpus complete; executable-format programs remain |
 | Metal product | disabled descriptor, no executable or product test | incomplete |
-| Rust oracle | isolated official verifier accepts the deterministic Zig all-opcodes and all-builtins proofs, rejects mutation, and independently derives canonical Cairo-serde and raw-bincode transports | complete for both frozen JSON proof fixtures and all three released proof transports |
-| Cairo VM execution | isolated `stwo-cairo-vm-adapter` runs compiled Cairo JSON under Cairo VM 3.2.0 with `all_cairo_stwo`, sorts public-memory addresses, and reproduces the 181,534-byte official all-opcodes `ProverInput` byte-for-byte | complete for compiled JSON all-opcodes; executable format, arguments corpus, and broader programs remain |
-| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON; `run-and-prove` invokes the adjacent identity-bound VM adapter; both derive the live proof schedule, publish all three transports transactionally, emit format/execution-bound reports, and optionally verify in Zig before publication | complete for direct all-opcodes/all-builtins inputs and compiled-JSON all-opcodes; executable format and broader corpus remain |
+| Rust oracle | isolated official verifier accepts deterministic Zig all-opcodes, all-builtins, and six-program corpus proofs, rejects mutation, and independently derives canonical Cairo-serde and raw-bincode transports | complete for the admitted CPU corpus and all three released proof transports |
+| Cairo VM execution | isolated `stwo-cairo-vm-adapter` runs compiled Cairo JSON under Cairo VM 3.2.0 with `all_cairo_stwo`, sorts public-memory addresses, reproduces the 181,534-byte official all-opcodes `ProverInput` byte-for-byte, and executes the six-program release corpus | complete for compiled JSON corpus; executable format and arguments corpus remain |
+| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON; `run-and-prove` invokes the adjacent identity-bound VM adapter; both derive the live proof schedule, publish all three transports transactionally, emit format/execution-bound reports, and optionally verify in Zig before publication | complete for direct all-opcodes/all-builtins inputs and the compiled-JSON release corpus; executable format remains |
 | Metal execution | substantial SN2-specific resident machinery | not release evidence |
 | Repository structure | several Cairo files exceed size policy | incomplete |
 
@@ -394,15 +394,13 @@ table, public address, builtin segment, public-context bit, and execution
 resource. Their `PublicData` is also compared for unpadded and transcript-padded
 public claims, output and program value splits, and Blake2s roots. The
 all-opcodes statement is independently recovered from the committed official
-proof and required to equal the input-derived Rust statement. RF-02 still
-requires the broader execution corpus. The same proof now pins the exact flat
-claim, interaction-claim values, trace log-size matrix, and claim mix digest.
-Zig derives its activation closure from the admitted input, resolves only
-witness-fed log sizes from the oracle vector, and reproduces the exact claim
-mix. Independent live-witness derivation of those deferred logs and the
-interaction mix remain open, as does RF-03; these vectors do not establish
-witness or proof parity. The official base checkpoints now define the exact
-CP-04 target after every component: final accumulators are
+proof and required to equal the input-derived Rust statement. RF-02 is
+complete. The same proof pins the exact flat claim, interaction-claim values,
+trace log-size matrix, and claim mix digest. The focused adapter vectors do not
+alone establish witness or proof parity; the live proof and compiled-program
+release gate described below supplies that evidence. Executable-format
+programs remain open under RF-03 and RF-14. The official base checkpoints now
+define the exact CP-04 target after every component: final accumulators are
 `45acd12a96745ee0e9fbc32b5509de84c65676eb4d2a9d2bdb5822b696fd38d6`
 for all-opcodes and
 `d7a654ae5c3017c1c742fe9186a38f625722adf22ce47896840c83817e1818f8`
@@ -470,9 +468,8 @@ live statement parameters: component domains, memory strides, builtin segment
 starts, preprocessed identities, tree spans, and random-coefficient offsets.
 The resulting all-opcodes proof is byte-identical to the frozen reference. The
 same library now produces a complete all-builtins proof under canonical
-preprocessing. Both are accepted by the native Zig verifier and the pinned
-official Rust verifier. The broader execution corpus remains required release
-evidence.
+preprocessing. Both and every proof in the compiled-program release corpus are
+accepted by the native Zig verifier and the pinned official Rust verifier.
 
 The CPU integration at `src/integrations/cairo_cpu/air` now adapts those same
 captured programs to the generic prover component contract. Its fixed-width
@@ -542,7 +539,7 @@ seconds. This proof exposed and closed a generic lifted-PCS defect: an
 unsampled high-domain preprocessed column must not raise the FRI lifting domain
 above the final split-composition tree. A focused PCS roundtrip now covers that
 heterogeneous-tree case. RF-09 is complete for both frozen profiles and remains
-open for the broader release corpus and remaining proof transports.
+open only for executable-format and future admitted release cases.
 
 The CPU product also streams the official Cairo-verifier transport without
 building a second in-memory felt document. For the canonical all-builtins
@@ -582,7 +579,35 @@ as direct `prove`. On the development host, a functional cold run spent
 368.5 milliseconds in execution and 5.70 seconds in proving; the independent
 official Rust verifier accepted the result. The release gate repeats execution
 parity and proof acceptance. RF-03 and RF-14 remain open for executable-format
-Cairo programs and the broader program/argument corpus.
+Cairo programs and the argument corpus.
+
+The repository-owned compiled-program corpus adds six independent programs
+from the same pinned Stwo-Cairo tree. The manifest
+`vectors/cairo/programs/official_corpus.provenance.json` binds every byte,
+source path, adapter version, VM version, and proving profile. One serial
+ReleaseFast release-gate run produced the following functional evidence:
+
+| Case | Execute | Prove | Zig verify | Proof bytes | Proof SHA-256 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Bitwise | 54.58 ms | 2,839.27 ms | 4.86 ms | 1,828,426 | `3b86383712e8b742...1546470e` |
+| Range check 96 | 34.11 ms | 2,230.76 ms | 5.66 ms | 1,817,014 | `35dbf85ce05e2473...803b247b` |
+| Range check 128 | 37.21 ms | 8,779.75 ms | 7.77 ms | 1,777,306 | `9f2f861d3d9e89a9...a2cce2f8` |
+| Poseidon | 35.62 ms | 2,185.51 ms | 6.20 ms | 2,714,305 | `9a434f2e2134125c...7eceac20` |
+| Ret | 17.97 ms | 2,587.67 ms | 5.57 ms | 1,628,472 | `0261cf9ecb1d33ab...1b48d07` |
+| Pedersen | 41.22 ms | 7,684.01 ms | 8.40 ms | 2,432,073 | `e6b201fc285cb6c3...aa96638` |
+
+Every digest above was independently accepted by the untouched pinned Rust
+`verify_cairo`. These are correctness timings under a contended development
+host, not benchmark or promotion evidence.
+
+This corpus closed three general correctness gaps. Live AIR template binding
+now rebinds sequence preprocessed columns to the component's derived domain
+instead of retaining the source fixture's `seq_<log>` identity. Empty
+large-felt memory uses one all-zero log-4 shard, which is an upstream-supported
+claim shape and avoids a real subtraction underflow in the pinned Rust
+verifier's empty-vector path without changing that oracle. Narrow Pedersen now
+has the official window-9 aggregator and 56-by-86-word partial-EC dependency
+edges plus exact implementations of witness selectors 12 and 13.
 
 Compact claim inputs use one backend-neutral implementation of the official key
 sort, tuple multiplicity merge, first-row padding, enabler, and iota laws. The

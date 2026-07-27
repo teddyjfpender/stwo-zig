@@ -8,6 +8,7 @@ from pathlib import Path
 
 from scripts.check_upstream_pins import PinLedgerError, parse_ledger, validate_repository
 from scripts.upstream_pins_lib import (
+    cairo_vm_adapter,
     official_cairo_air,
     official_cairo_air_templates,
     official_cairo_vectors,
@@ -21,6 +22,35 @@ LEDGER = ROOT / "conformance" / "upstream.md"
 class UpstreamPinTests(unittest.TestCase):
     def test_repository_pin_carriers_match_ledger(self) -> None:
         self.assertEqual([], validate_repository(ROOT))
+
+    def test_cairo_program_corpus_rejects_release_gate_omission(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(
+                ROOT / "vectors/cairo/programs",
+                root / "vectors/cairo/programs",
+            )
+            gate = root / cairo_vm_adapter.ORACLE_GATE
+            gate.parent.mkdir(parents=True)
+            source_gate = (ROOT / cairo_vm_adapter.ORACLE_GATE).read_text(
+                encoding="utf-8"
+            )
+            omitted = (
+                "vectors/cairo/programs/"
+                "test_prove_verify_pedersen_builtin/compiled.json"
+            )
+            gate.write_text(
+                source_gate.replace(f'"{omitted}"', '"omitted"'),
+                encoding="utf-8",
+            )
+
+            errors = cairo_vm_adapter._check_program_corpus(
+                root,
+                cairo_repository="https://github.com/starkware-libs/stwo-cairo",
+                cairo_revision="82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+            )
+
+        self.assertIn("program is absent", "\n".join(errors))
 
     def test_cairo_ledger_drift_reaches_every_carrier_class(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(

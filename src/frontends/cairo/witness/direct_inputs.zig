@@ -123,7 +123,8 @@ pub fn resolve(input: *const cairo_adapter.ProverInput, component: []const u8) E
         Segment{ .addresses = input.builtin_segments.range_check96_builtin, .cells_per_instance = 1 }
     else if (std.mem.eql(u8, component, "range_check_builtin"))
         Segment{ .addresses = input.builtin_segments.range_check_builtin, .cells_per_instance = 1 }
-    else if (std.mem.eql(u8, component, "pedersen_builtin"))
+    else if (std.mem.eql(u8, component, "pedersen_builtin") or
+        std.mem.eql(u8, component, "pedersen_builtin_narrow_windows"))
         Segment{ .addresses = input.builtin_segments.pedersen_builtin, .cells_per_instance = 3 }
     else if (std.mem.eql(u8, component, "poseidon_builtin"))
         Segment{ .addresses = input.builtin_segments.poseidon_builtin, .cells_per_instance = 6 }

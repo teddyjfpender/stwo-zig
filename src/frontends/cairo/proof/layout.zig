@@ -37,6 +37,12 @@ pub fn componentSpan(
     return result;
 }
 
+/// Upstream always constructs the large-value memory claim. Its component
+/// vector may be empty when an execution contains only small memory values.
+pub fn claimFieldPresent(field_name: []const u8, span: ComponentSpan) bool {
+    return span.len != 0 or std.mem.eql(u8, field_name, "memory_id_to_big");
+}
+
 pub fn validateComponents(bundle: *const composition.Bundle) !void {
     var seen = [_]bool{false} ** registry.claim_field_count;
     var last_field: ?usize = null;
@@ -110,4 +116,9 @@ test "proof layout canonicalizes split big-memory components" {
         "memory_id_to_big",
         canonicalName("memory_id_to_big[15]"),
     );
+}
+
+test "proof layout preserves the required empty big-memory claim" {
+    try std.testing.expect(claimFieldPresent("memory_id_to_big", .{}));
+    try std.testing.expect(!claimFieldPresent("pedersen_builtin", .{}));
 }

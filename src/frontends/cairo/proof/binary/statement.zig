@@ -18,8 +18,9 @@ pub fn writeClaim(
     try writePublicData(output, input);
     for (registry.claim_fields) |field| {
         const span = layout.componentSpan(bundle, field.name);
-        try binary.optional(output, span.len != 0);
-        if (span.len == 0) continue;
+        const present = layout.claimFieldPresent(field.name, span);
+        try binary.optional(output, present);
+        if (!present) continue;
         switch (field.log_size_shape) {
             .fixed => if (span.len != 1) return error.InvalidClaimGeometry,
             .dynamic => {
@@ -49,8 +50,9 @@ pub fn writeInteractionClaim(
     try layout.validateComponents(bundle);
     for (registry.claim_fields) |field| {
         const span = layout.componentSpan(bundle, field.name);
-        try binary.optional(output, span.len != 0);
-        if (span.len == 0) continue;
+        const present = layout.claimFieldPresent(field.name, span);
+        try binary.optional(output, present);
+        if (!present) continue;
         if (field.log_size_shape == .special_dynamic_prefix) {
             try binary.length(output, span.len);
             var total = QM31.zero();

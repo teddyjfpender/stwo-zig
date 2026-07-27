@@ -396,12 +396,13 @@ const BigLogs = struct {
 };
 
 fn memoryBigLogs(count: usize, requested_components: ?usize) Error!BigLogs {
-    if (count == 0) return Error.EmptyMemoryTable;
     const padded_count = std.mem.alignForward(usize, count, 1 << simd_log_lanes);
     const max_rows: usize = @as(usize, 1) << max_sequence_log_size;
     const natural_components = std.math.divCeil(usize, padded_count, max_rows) catch
         return Error.TooManyMemoryComponents;
-    const component_count = requested_components orelse natural_components;
+    // The pinned verifier underflows while bounding an empty component vector.
+    // This is upstream's supported `opt_n_id_to_big_components` padding shape.
+    const component_count = @max(requested_components orelse natural_components, 1);
     if (component_count < natural_components or component_count > max_memory_id_to_big_components)
         return Error.TooManyMemoryComponents;
     var result = BigLogs{ .len = component_count };
@@ -413,4 +414,12 @@ fn memoryBigLogs(count: usize, requested_components: ?usize) Error!BigLogs {
     }
     for (natural_components..component_count) |index| result.values[index] = simd_log_lanes;
     return result;
+}
+
+test "Cairo claim geometry pads an empty large-value memory table" {
+    const natural = try memoryBigLogs(0, null);
+    try std.testing.expectEqualSlices(u32, &.{4}, natural.slice());
+
+    const padded = try memoryBigLogs(0, 2);
+    try std.testing.expectEqualSlices(u32, &.{ 4, 4 }, padded.slice());
 }

@@ -63,13 +63,14 @@ pub fn supports(raw_selector: u32) bool {
         .poseidon_cube,
         .poseidon_full_round_chain,
         .poseidon_3_partial_rounds_chain,
+        .partial_ec_mul_w9,
+        .pedersen_points_table_w9,
         .partial_ec_mul_generic,
         .add_mod_is_zero,
         .mul_mod_quotient,
         .triple_xor_32,
         .blake_round,
         => true,
-        else => false,
     };
 }
 
@@ -99,12 +100,13 @@ fn callWithTables(
         .poseidon_cube => try poseidon.applyCube(args, outputs),
         .poseidon_full_round_chain => try poseidon.applyFullRound(args, outputs),
         .poseidon_3_partial_rounds_chain => try poseidon.applyThreePartialRounds(args, outputs),
+        .partial_ec_mul_w9 => try pedersen.applyPartialEcMulWindowBits9(args, outputs),
+        .pedersen_points_table_w9 => try pedersen.applyPointsTableWindowBits9(args, outputs),
         .partial_ec_mul_generic => try partial_ec_mul_generic.apply(args, outputs),
         .add_mod_is_zero => try mod_biguint.applyAddIsZero(args, outputs),
         .mul_mod_quotient => try mod_biguint.applyMulQuotient(args, outputs),
         .triple_xor_32 => try blake.applyTripleXor(args, outputs),
         .blake_round => try blake.applyRound(args, outputs, tables),
-        else => return error.UnsupportedDeduction,
     }
 }
 
@@ -121,6 +123,6 @@ test {
 test "Cairo deductions report only executable selectors" {
     try std.testing.expect(supports(@intFromEnum(Selector.blake_g)));
     try std.testing.expect(supports(@intFromEnum(Selector.partial_ec_mul_generic)));
-    try std.testing.expect(!supports(@intFromEnum(Selector.partial_ec_mul_w18)));
+    try std.testing.expect(supports(@intFromEnum(Selector.partial_ec_mul_w9)));
     try std.testing.expect(!supports(std.math.maxInt(u32)));
 }

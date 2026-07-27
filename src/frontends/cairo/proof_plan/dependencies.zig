@@ -18,6 +18,7 @@ const edge_blake_round = [_]ProducerEdge{.{ .producer = "blake_compress_opcode",
 const edge_blake_g = [_]ProducerEdge{.{ .producer = "blake_round", .word_base = 81, .words_per_instance = 6, .instances = 8 }};
 const edge_triple_xor = [_]ProducerEdge{.{ .producer = "blake_compress_opcode", .word_base = 300, .words_per_instance = 3, .instances = 8 }};
 const edge_partial_w18 = [_]ProducerEdge{.{ .producer = "pedersen_aggregator_window_bits_18", .word_base = 7, .words_per_instance = 72, .instances = 28 }};
+const edge_partial_w9 = [_]ProducerEdge{.{ .producer = "pedersen_aggregator_window_bits_9", .word_base = 7, .words_per_instance = 86, .instances = 56 }};
 const edge_partial_ec_generic = [_]ProducerEdge{.{ .producer = "ec_op_builtin", .word_base = 16, .words_per_instance = 125, .instances = 252 }};
 const edge_cube = [_]ProducerEdge{
     .{ .producer = "poseidon_aggregator", .word_base = 282, .words_per_instance = 10, .instances = 2 },
@@ -53,12 +54,14 @@ const compact_verify_edges = [_]ProducerEdge{
     .{ .producer = "ret_opcode", .word_base = 0, .words_per_instance = 7, .instances = 1 },
 };
 const compact_pedersen_edges = [_]ProducerEdge{.{ .producer = "pedersen_builtin", .word_base = 3, .words_per_instance = 3, .instances = 1 }};
+const compact_pedersen_narrow_edges = [_]ProducerEdge{.{ .producer = "pedersen_builtin_narrow_windows", .word_base = 3, .words_per_instance = 3, .instances = 1 }};
 const compact_poseidon_edges = [_]ProducerEdge{.{ .producer = "poseidon_builtin", .word_base = 6, .words_per_instance = 6, .instances = 1 }};
 
 const capacity_blake_round = [_]CapacityFeed{.{ .producer = "blake_compress_opcode", .instances = 10 }};
 const capacity_blake_g = [_]CapacityFeed{.{ .producer = "blake_round", .instances = 8 }};
 const capacity_triple_xor = [_]CapacityFeed{.{ .producer = "blake_compress_opcode", .instances = 8 }};
 const capacity_partial_w18 = [_]CapacityFeed{.{ .producer = "pedersen_aggregator_window_bits_18", .instances = 28 }};
+const capacity_partial_w9 = [_]CapacityFeed{.{ .producer = "pedersen_aggregator_window_bits_9", .instances = 56 }};
 const capacity_partial_ec_generic = [_]CapacityFeed{.{ .producer = "ec_op_builtin", .instances = 252 }};
 const capacity_cube = [_]CapacityFeed{
     .{ .producer = "poseidon_aggregator", .instances = 2 },
@@ -94,6 +97,7 @@ const capacity_verify = [_]CapacityFeed{
     .{ .producer = "ret_opcode", .instances = 1 },
 };
 const capacity_pedersen = [_]CapacityFeed{.{ .producer = "pedersen_builtin", .instances = 1 }};
+const capacity_pedersen_narrow = [_]CapacityFeed{.{ .producer = "pedersen_builtin_narrow_windows", .instances = 1 }};
 const capacity_poseidon = [_]CapacityFeed{.{ .producer = "poseidon_builtin", .instances = 1 }};
 
 /// Producer slabs gathered without sorting into one consumer witness input.
@@ -102,6 +106,7 @@ pub fn gatheredProducerEdges(component: []const u8) ?[]const ProducerEdge {
     if (std.mem.eql(u8, component, "blake_g")) return &edge_blake_g;
     if (std.mem.eql(u8, component, "triple_xor_32")) return &edge_triple_xor;
     if (std.mem.eql(u8, component, "partial_ec_mul_window_bits_18")) return &edge_partial_w18;
+    if (std.mem.eql(u8, component, "partial_ec_mul_window_bits_9")) return &edge_partial_w9;
     if (std.mem.eql(u8, component, "partial_ec_mul_generic")) return &edge_partial_ec_generic;
     if (std.mem.eql(u8, component, "cube_252")) return &edge_cube;
     if (std.mem.eql(u8, component, "range_check_252_width_27")) return &edge_range_252;
@@ -123,6 +128,7 @@ pub const CompactGeometry = struct {
 pub fn compactGeometry(component: []const u8) ?CompactGeometry {
     if (std.mem.eql(u8, component, "verify_instruction")) return .{ .edges = &compact_verify_edges, .tuple_words = 7, .key_words = 1, .enabler_slot = 7, .iota_slot = 8, .multiplicity_slot = 9 };
     if (std.mem.eql(u8, component, "pedersen_aggregator_window_bits_18")) return .{ .edges = &compact_pedersen_edges, .tuple_words = 3, .key_words = 2, .enabler_slot = 3, .iota_slot = 4, .multiplicity_slot = 5 };
+    if (std.mem.eql(u8, component, "pedersen_aggregator_window_bits_9")) return .{ .edges = &compact_pedersen_narrow_edges, .tuple_words = 3, .key_words = 2, .enabler_slot = 3, .iota_slot = 4, .multiplicity_slot = 5 };
     if (std.mem.eql(u8, component, "poseidon_aggregator")) return .{ .edges = &compact_poseidon_edges, .tuple_words = 6, .key_words = 3, .enabler_slot = 6, .iota_slot = 7, .multiplicity_slot = 8 };
     return null;
 }
@@ -138,6 +144,7 @@ pub fn canonicalCapacityFeeds(component: []const u8) []const CapacityFeed {
     if (std.mem.eql(u8, component, "blake_g")) return &capacity_blake_g;
     if (std.mem.eql(u8, component, "triple_xor_32")) return &capacity_triple_xor;
     if (std.mem.eql(u8, component, "partial_ec_mul_window_bits_18")) return &capacity_partial_w18;
+    if (std.mem.eql(u8, component, "partial_ec_mul_window_bits_9")) return &capacity_partial_w9;
     if (std.mem.eql(u8, component, "partial_ec_mul_generic")) return &capacity_partial_ec_generic;
     if (std.mem.eql(u8, component, "cube_252")) return &capacity_cube;
     if (std.mem.eql(u8, component, "range_check_252_width_27")) return &capacity_range_252;
@@ -145,6 +152,7 @@ pub fn canonicalCapacityFeeds(component: []const u8) []const CapacityFeed {
     if (std.mem.eql(u8, component, "poseidon_3_partial_rounds_chain")) return &capacity_poseidon_partial;
     if (std.mem.eql(u8, component, "verify_instruction")) return &capacity_verify;
     if (std.mem.eql(u8, component, "pedersen_aggregator_window_bits_18")) return &capacity_pedersen;
+    if (std.mem.eql(u8, component, "pedersen_aggregator_window_bits_9")) return &capacity_pedersen_narrow;
     if (std.mem.eql(u8, component, "poseidon_aggregator")) return &capacity_poseidon;
     return &.{};
 }
