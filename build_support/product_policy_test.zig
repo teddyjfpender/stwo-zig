@@ -17,14 +17,21 @@ test "deferred compositions are named, reasoned, and non-installable" {
     }
 }
 
-test "only Cairo CUDA is staged and RISC-V accelerators unavailable" {
+test "Cairo products expose deliberate release states" {
     for (matrix.descriptors) |descriptor| {
-        if (descriptor.product.frontend == .cairo) {
-            if (descriptor.product.backend == .cuda)
-                try std.testing.expectEqual(product_policy.State.staged, descriptor.state)
-            else
-                try std.testing.expectEqual(product_policy.State.disabled, descriptor.state);
-        }
+        if (descriptor.product.frontend != .cairo) continue;
+        const expected: product_policy.State = switch (descriptor.product.backend) {
+            .cpu => .released,
+            .metal => .parity_gated,
+            .cuda => .staged,
+            .none, .contracts => unreachable,
+        };
+        try std.testing.expectEqual(expected, descriptor.state);
+    }
+}
+
+test "RISC-V accelerators remain unavailable" {
+    for (matrix.descriptors) |descriptor| {
         if (descriptor.product.frontend == .riscv and descriptor.product.backend != .cpu)
             try std.testing.expectEqual(product_policy.State.unavailable, descriptor.state);
     }
@@ -46,7 +53,7 @@ test "CUDA products are explicit Linux constructions without toolchain defaults"
     try std.testing.expectError(error.MissingCudaCompiler, (cuda.Toolchain{}).validate());
 }
 
-test "Native Metal alone is parity-gated and macOS compatible" {
+test "Native Metal is parity-gated and macOS compatible" {
     const descriptor = matrix.find("stwo-native-metal").?;
     try descriptor.validate();
     try std.testing.expect(descriptor.isAvailableOn(.macos));

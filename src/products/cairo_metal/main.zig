@@ -5,3 +5,7 @@ pub const stwo = @import("stwo_cairo_metal");
 pub fn main() !void {
     return @import("app.zig").main();
 }
+
+test {
+    _ = @import("runtime_contract_test.zig");
+}

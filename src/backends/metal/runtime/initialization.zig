@@ -24,6 +24,13 @@ extern fn stwo_zig_metal_runtime_create_from_metallib_data(
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;
+extern fn stwo_zig_metal_runtime_create_from_metallib_data_on_device(
+    device: ?*anyopaque,
+    bytes: [*]const u8,
+    byte_len: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
 
 pub fn Initialization(comptime MetalError: type) type {
     return struct {
@@ -69,6 +76,26 @@ pub fn Initialization(comptime MetalError: type) type {
                 std.log.err("Metal AOT data initialization failed: {s}", .{std.mem.sliceTo(&message, 0)});
                 return MetalError.RuntimeInitializationFailed;
             };
+        }
+
+        /// Constructs a runtime on one caller-selected Metal device.
+        ///
+        /// A null device fails through the same production initializer. This
+        /// keeps missing-device behavior deterministic without process-global
+        /// environment switches or mutable test hooks.
+        pub fn fromMetallibDataOnDevice(
+            device: ?*anyopaque,
+            bytes: []const u8,
+        ) MetalError!*anyopaque {
+            if (bytes.len == 0) return MetalError.RuntimeInitializationFailed;
+            var message: [1024]u8 = [_]u8{0} ** 1024;
+            return stwo_zig_metal_runtime_create_from_metallib_data_on_device(
+                device,
+                bytes.ptr,
+                bytes.len,
+                &message,
+                message.len,
+            ) orelse return MetalError.RuntimeInitializationFailed;
         }
     };
 }

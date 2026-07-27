@@ -1,6 +1,6 @@
 # Stwo-Cairo Zig Production Port Goal
 
-Status: active
+Status: complete for the scoped CPU/SIMD and Metal products (2026-07-27)
 
 Owner: Cairo frontend
 
@@ -378,8 +378,8 @@ The table started at commit `cfd47be9` and is updated as evidence lands on
 | Rust oracle | isolated official verifier accepts deterministic Zig all-opcodes, all-builtins, six legacy-program proofs, and the Cairo 2.20 executable proof, rejects mutation, and independently derives canonical Cairo-serde and raw-bincode transports | complete for the admitted CPU corpus and all three released proof transports |
 | Cairo VM execution | isolated `stwo-cairo-vm-adapter` runs compiled Cairo JSON and modern Cairo 2.20 executables under Cairo VM 3.2.0 with `all_cairo_stwo`, sorts public-memory addresses, reproduces the 181,534-byte official all-opcodes `ProverInput` byte-for-byte, derives standalone public segments from the executable builtin list, and executes the release corpus | complete for compiled JSON and executable formats |
 | CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON; `run-and-prove` invokes the adjacent identity-bound VM adapter for compiled JSON or executable artifacts and optional arguments; both derive the live proof schedule, publish all three transports transactionally, emit format/execution-bound reports, and optionally verify in Zig before publication | complete for direct all-opcodes/all-builtins inputs and both program formats |
-| Metal execution | process-owned shared runtime, proof-scoped telemetry, strict lifecycle shutdown, and exact full-corpus parity use the focused generic Metal PCS path; the product embeds manifest digest `0bc892380b884433876bb58863b6ab9883edb1361c8dcae978a604421a9ede83`, installs the retained core bundle, admits it through `core_aot`, and exposes no source-JIT product mode | authenticated-AOT corpus evidence complete; remaining missing-device and ownership failure paths remain |
-| Repository structure | the backend-neutral transaction and captured AIR evaluator live under `frontends/cairo/proving`; CPU and Metal integrations are thin engine bindings; CLI, execution adapter, profile, identity, and publication workflow are shared without cross-backend imports | touched production paths conform; legacy Cairo Metal monolith decomposition remains |
+| Metal execution | process-owned shared runtime, proof-scoped telemetry, strict lifecycle shutdown, and exact full-corpus parity use the focused generic Metal PCS path; the product embeds manifest digest `0bc892380b884433876bb58863b6ab9883edb1361c8dcae978a604421a9ede83`, installs the retained core bundle, admits it through `core_aot`, and exposes no source-JIT product mode; focused tests reject a null explicit device, recover from AOT-admission allocation failure, repeat authenticated sessions, and prevent teardown while a resident buffer is live | authenticated-AOT corpus and lifecycle evidence complete |
+| Repository structure | the backend-neutral transaction and captured AIR evaluator live under `frontends/cairo/proving`; CPU and Metal integrations are thin engine bindings; CLI, execution adapter, profile, identity, and publication workflow are shared without cross-backend imports; the focused product closure excludes the legacy Cairo Metal integration tree | touched production paths conform; untouched legacy paths remain isolated from the released products |
 
 The first complete authenticated-AOT release-corpus gate ran on 2026-07-27.
 All 12 CPU/Metal proof pairs were exact, all 12 Metal reports recorded one
@@ -391,6 +391,80 @@ included a cold ReleaseFast reference-product compilation and must not be
 reported as proving time. `all-builtins` was the dominant proof row at 211.38
 seconds CPU and 248.83 seconds Metal; the outer process peaked at 20,996,390,912
 bytes RSS without memory pressure.
+
+The focused Metal lifecycle gate ran on 2026-07-27 in 46.09 seconds and passed
+all six product tests. Missing-device behavior is exercised through the same
+Objective-C runtime constructor used in production, using its explicit-device
+entry point with a null device rather than a mutable global or environment
+override. A failing allocator at the first AOT-admission allocation leaves the
+shared runtime, counters, leases, and resident-resource count unchanged, after
+which a valid authenticated initialization succeeds. A live device buffer
+increments the resident-resource count, makes shutdown return
+`ResidentResourcesLive`, and releases exactly once before successful teardown.
+The same gate initializes and shuts down the authenticated runtime twice in one
+process. Its product closure contained 375 transitive Zig sources and no CUDA
+dependency.
+
+After the initializer refactor, the installed authenticated-AOT candidate
+reproved all-opcodes in 7.686 seconds. It emitted the canonical 3,006,412-byte
+proof with SHA-256
+`79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`,
+reported 75 Metal dispatches, zero fallbacks, one initialization, and one
+shutdown, passed in-process Zig verification, and was accepted independently
+by the pinned official Rust verifier. This is a functional final-candidate
+check, not benchmark evidence.
+
+## Final Release Verdict
+
+All release-matrix rows are green for the scoped products:
+
+| ID | Final evidence | Verdict |
+| --- | --- | --- |
+| RF-01 | clean-source registry generation, frozen source receipts, and `upstream-pins` | pass |
+| RF-02 | strict official-input reader plus independent Rust semantic summaries | pass |
+| RF-03 | compiled JSON and Cairo 2.20 executable execution through the pinned VM adapter | pass |
+| RF-04 | exact public statement, public memory, segment, and LogUp boundary checks | pass |
+| RF-05 | canonical and canonical-small preprocessed commitments in Rust-accepted proofs | pass |
+| RF-06 | 46/46 all-opcodes and 48/48 all-builtins cumulative base-trace parity | pass |
+| RF-07 | 46/46 and 48/48 interaction components with per-component cumulative parity | pass |
+| RF-08 | authenticated official AIR templates through generic Zig evaluation and quotient construction | pass |
+| RF-09 | complete CPU and Metal PCS/FRI proofs accepted by official Rust | pass |
+| RF-10 | exact JSON CPU/Metal bytes, Zig verification, and official Rust acceptance | pass |
+| RF-11 | exact raw bincode CPU/Metal/Rust bytes plus accepted compressed transport | pass |
+| RF-12 | exact Cairo-serde CPU/Metal/Rust field sequence | pass |
+| RF-13 | transactional `prove` success, rejection, verification, and publication paths | pass |
+| RF-14 | transactional `run-and-prove` corpus for both admitted program formats | pass |
+| RF-15 | 324-source CPU-only and 375-source Metal product closures | pass |
+| RF-16 | every Metal corpus row reports device dispatches and zero CPU fallback | pass |
+| RF-17 | statement/proof/identity/AOT mutation rejection plus lifecycle and allocation unwind | pass |
+| RF-18 | formatting, upstream pins, source conformance, policy, shader ABI, and focused product gates | pass |
+
+The final focused audit ran:
+
+```text
+zig fmt --check build.zig build_support src tools
+python3 scripts/check_upstream_pins.py
+python3 scripts/check_source_conformance.py
+zig test build_support/product_policy_test.zig -OReleaseFast
+zig test src/backends/metal/shader_manifest.zig -OReleaseFast
+zig build test-cairo-frontend -Doptimize=ReleaseFast
+zig build test-cairo-cpu-air -Doptimize=ReleaseFast
+zig build test-cairo-cpu-proof -Doptimize=ReleaseFast
+zig build test-cairo-cpu-product -Doptimize=ReleaseFast
+zig build test-cairo-metal-product -Doptimize=ReleaseFast \
+  -Dmetal-core-aot-bundle=<authenticated-bundle>
+```
+
+The CPU descriptor is `released`; the Metal descriptor is `parity_gated`
+because its availability is bound to macOS and an authenticated offline
+artifact. Neither state admits fallback or weakens oracle requirements.
+
+The repository-wide `build-configure-closure` audit still reports one
+pre-existing, CUDA-only catalog mismatch:
+`extra=['cuda-native-ec-composite-oracle']`. CUDA is explicitly excluded from
+this goal, no scoped change imports or modifies it, and both Cairo product
+closures pass independently. This exception is not presented as a green
+repository-wide configure result.
 
 No existing benchmark, SN PIE receipt, compact envelope, or raw-trace test
 proves this goal complete.

@@ -51,7 +51,7 @@ const source_closure = policy.SourceClosure{
 
 pub const descriptor = policy.Descriptor{
     .product = product(.cli),
-    .state = .staged,
+    .state = .released,
     .target_support = .any,
     .build_step = "stwo-cairo-cpu",
     .test_step = "test-cairo-cpu-product",
@@ -221,8 +221,8 @@ fn product(role: graph.Role) graph.Product {
     };
 }
 
-test "Cairo CPU is a focused staged product" {
+test "Cairo CPU is a focused released product" {
     try descriptor.validate();
     try std.testing.expect(descriptor.isConstructible());
-    try std.testing.expectEqual(policy.State.staged, descriptor.state);
+    try std.testing.expectEqual(policy.State.released, descriptor.state);
 }

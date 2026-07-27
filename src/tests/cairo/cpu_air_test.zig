@@ -6,7 +6,6 @@ const stwo = @import("stwo");
 const core = stwo.core;
 const prover = stwo.prover;
 const cairo = stwo.frontends.cairo;
-const cairo_cpu = stwo.integrations.cairo_cpu;
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -247,7 +246,7 @@ test "Cairo CPU AIR evaluates coefficients and denominators on domain" {
     defer accumulator.deinit();
 
     const preprocessed_logs: [0]u32 = .{};
-    const component = cairo_cpu.air.component.Component.init(
+    const component = cairo.proving.air.component.Component.init(
         allocator,
         &captured,
         &preprocessed_logs,

@@ -38,7 +38,7 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 | Surface | Current status |
 | :--- | :--- |
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
-| **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD and staged Metal proofs, compiled JSON and Cairo 2.20 executable execution |
+| **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD and authenticated Metal proofs, compiled JSON and Cairo 2.20 executable execution |
 | **RISC-V** | Release-gated Stark-V RV32IM ELF adapter with sharded AIR components, CPU proving, independent verification, and pinned-Rust oracle evidence |
 
 ## Quick Start
@@ -62,8 +62,8 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-native-metal` | macOS with Apple Metal | Parity-gated, source-JIT, device-only CLI |
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
-| `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Staged CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
-| `stwo-cairo-metal` | macOS with Apple Metal | Staged authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
+| `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Released CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
+| `stwo-cairo-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
@@ -174,8 +174,9 @@ the product identity, and runtime admission remeasures the manifest, shader
 library, ABI, exports, and compiler artifacts before creating the Metal
 runtime. The serial Metal oracle gate covers both official inputs, all released
 proof transports, the builtin/opcode program corpus, and a Cairo 2.20
-executable. Metal remains staged until its remaining lifecycle and failure
-gates are green.
+executable. Focused product tests additionally require deterministic
+missing-device failure, repeated authenticated sessions, allocation rollback,
+and resident-buffer-safe teardown.
 
 ## RISC-V frontend
 

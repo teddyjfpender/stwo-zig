@@ -10,7 +10,7 @@ const product_identity = @import("identity.zig");
 const backend_transaction =
     package.integrations.cairo_metal.transaction;
 
-const Product = struct {
+pub const Product = struct {
     pub const name = "stwo-cairo-metal";
     pub const backend_name = "metal";
     pub const backend_description =

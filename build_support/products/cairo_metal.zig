@@ -59,7 +59,7 @@ const source_closure = policy.SourceClosure{
 
 pub const descriptor = policy.Descriptor{
     .product = product(.cli),
-    .state = .staged,
+    .state = .parity_gated,
     .target_support = .macos,
     .unsupported_target_reason = "the Metal backend requires a macOS target and Apple Metal SDK",
     .build_step = "stwo-cairo-metal",
@@ -307,8 +307,8 @@ fn product(role: graph.Role) graph.Product {
     };
 }
 
-test "Cairo Metal is a focused staged product" {
+test "Cairo Metal is a focused parity-gated product" {
     try descriptor.validate();
     try std.testing.expect(descriptor.isConstructible());
-    try std.testing.expectEqual(policy.State.staged, descriptor.state);
+    try std.testing.expectEqual(policy.State.parity_gated, descriptor.state);
 }
