@@ -152,6 +152,26 @@ pub fn evaluatePart(
     input: Input,
     output: anytype,
 ) !void {
+    const row_count = checkedPow2(input.evaluation_log_size) catch
+        return error.InvalidEvaluationInput;
+    return evaluatePartRange(
+        allocator,
+        program,
+        input,
+        output,
+        0,
+        row_count,
+    );
+}
+
+pub fn evaluatePartRange(
+    allocator: std.mem.Allocator,
+    program: eval.Program,
+    input: Input,
+    output: anytype,
+    row_start: usize,
+    row_end: usize,
+) !void {
     try program.validate();
     if (program.header.n_base_params != 0 or
         program.header.n_ext_params != input.extension_parameters.len or
@@ -166,7 +186,11 @@ pub fn evaluatePart(
     const denominator_count = checkedPow2(input.evaluation_log_size - input.trace_log_size) catch
         return error.InvalidEvaluationInput;
     if (row_count % lane_count != 0 or
-        input.denominator_inverses.len != denominator_count)
+        input.denominator_inverses.len != denominator_count or
+        row_start > row_end or
+        row_end > row_count or
+        row_start % lane_count != 0 or
+        row_end % lane_count != 0)
         return error.InvalidEvaluationInput;
 
     const base = try allocator.alloc(PackedM31, program.header.max_base_regs);
@@ -174,8 +198,8 @@ pub fn evaluatePart(
     const extension = try allocator.alloc(PackedQm31, program.header.max_ext_regs);
     defer allocator.free(extension);
 
-    var row: usize = 0;
-    while (row < row_count) : (row += lane_count) {
+    var row = row_start;
+    while (row < row_end) : (row += lane_count) {
         for (program.base_insts) |instruction| {
             base[instruction.dst] = switch (instruction.op) {
                 .trace_col, .preprocessed_col => try input.trace.read(

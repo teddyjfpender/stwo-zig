@@ -47,7 +47,9 @@ pub const Component = struct {
     }
 
     pub fn asProverComponent(self: *const Component) ComponentProver {
-        return Adapter.asProverComponent(self);
+        var component = Adapter.asProverComponent(self);
+        component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
+        return component;
     }
 
     pub fn asVerifierComponent(self: *const Component) CoreComponent {
@@ -109,6 +111,32 @@ pub const Component = struct {
         trace: *const Trace,
         accumulator: *DomainAccumulator,
     ) !void {
+        return self.evaluateConstraintQuotientsOnDomainImpl(
+            trace,
+            accumulator,
+            null,
+        );
+    }
+
+    pub fn evaluateConstraintQuotientsOnDomainParallel(
+        self: *const Component,
+        trace: *const Trace,
+        accumulator: *DomainAccumulator,
+        pool: *prover.work_pool.WorkPool,
+    ) !void {
+        return self.evaluateConstraintQuotientsOnDomainImpl(
+            trace,
+            accumulator,
+            pool,
+        );
+    }
+
+    fn evaluateConstraintQuotientsOnDomainImpl(
+        self: *const Component,
+        trace: *const Trace,
+        accumulator: *DomainAccumulator,
+        maybe_pool: ?*prover.work_pool.WorkPool,
+    ) !void {
         const captured = self.runtime.captured;
         const requests = [_]prover.air.accumulation.ColumnRequest{.{
             .log_size = captured.evaluation_log_size,
@@ -130,22 +158,131 @@ pub const Component = struct {
             .captured = captured,
             .evaluation_log_size = captured.evaluation_log_size,
         };
-        for (captured.parts) |part| {
-            try simd.evaluatePart(
-                accumulator.allocator,
+        const evaluation = EvaluationContext{
+            .allocator = accumulator.allocator,
+            .captured = captured,
+            .trace = &context,
+            .parameters = parameters,
+            .coefficients = coefficients,
+            .column = column,
+        };
+        const row_count = try checkedPow2(captured.evaluation_log_size);
+        const pool = maybe_pool orelse
+            return evaluation.evaluateRange(0, row_count, false);
+        if (row_count < parallel_row_threshold or pool.workerCount() <= 1) {
+            return evaluation.evaluateRange(0, row_count, false);
+        }
+
+        const worker_count = @min(pool.workerCount(), row_count / simd.lane_count);
+        const workers = try accumulator.allocator.alloc(RangeWorker, worker_count);
+        defer accumulator.allocator.free(workers);
+        const row_groups = row_count / simd.lane_count;
+        const direct_store = column.next_fresh_index == 0;
+        for (workers, 0..) |*worker, index| {
+            worker.* = .{
+                .evaluation = evaluation,
+                .row_start = (row_groups * index / worker_count) * simd.lane_count,
+                .row_end = (row_groups * (index + 1) / worker_count) * simd.lane_count,
+                .additive = !direct_store,
+            };
+        }
+
+        var wait_group = std.Thread.WaitGroup{};
+        for (workers[1..]) |*worker| {
+            pool.spawnWg(&wait_group, RangeWorker.run, .{worker});
+        }
+        RangeWorker.run(&workers[0]);
+        wait_group.wait();
+        for (workers) |worker| {
+            if (worker.err) |err| return err;
+        }
+        column.next_fresh_index = if (direct_store) row_count else null;
+    }
+};
+
+const parallel_row_threshold: usize = 4096;
+
+fn evaluateDomainParallelAdapter(
+    raw_context: *const anyopaque,
+    trace: *const Trace,
+    accumulator: *DomainAccumulator,
+    pool: *prover.work_pool.WorkPool,
+) anyerror!void {
+    const self: *const Component = @ptrCast(@alignCast(raw_context));
+    return self.evaluateConstraintQuotientsOnDomainParallel(
+        trace,
+        accumulator,
+        pool,
+    );
+}
+
+const EvaluationContext = struct {
+    allocator: std.mem.Allocator,
+    captured: *const composition.Component,
+    trace: *const TraceContext,
+    parameters: []const QM31,
+    coefficients: []const QM31,
+    column: *prover.air.accumulation.ColumnAccumulator,
+
+    fn evaluateRange(
+        self: EvaluationContext,
+        row_start: usize,
+        row_end: usize,
+        additive: bool,
+    ) !void {
+        const output = RangeOutput{
+            .column = self.column.col,
+            .additive = additive,
+        };
+        for (self.captured.parts) |part| {
+            try simd.evaluatePartRange(
+                self.allocator,
                 part.program,
                 .{
-                    .evaluation_log_size = captured.evaluation_log_size,
-                    .trace_log_size = captured.trace_log_size,
-                    .trace = .{ .context = &context, .read = readTrace },
-                    .extension_parameters = parameters,
-                    .random_coefficients = coefficients,
+                    .evaluation_log_size = self.captured.evaluation_log_size,
+                    .trace_log_size = self.captured.trace_log_size,
+                    .trace = .{ .context = self.trace, .read = readTrace },
+                    .extension_parameters = self.parameters,
+                    .random_coefficients = self.coefficients,
                     .constraint_base = part.rc_base,
-                    .denominator_inverses = captured.denominator_inverses,
+                    .denominator_inverses = self.captured.denominator_inverses,
                 },
-                column,
+                output,
+                row_start,
+                row_end,
             );
         }
+    }
+};
+
+const RangeOutput = struct {
+    column: *prover.secure_column.SecureColumnByCoords,
+    additive: bool,
+
+    pub fn accumulate(self: RangeOutput, row: usize, value: QM31) void {
+        if (self.additive) {
+            self.column.set(row, self.column.at(row).add(value));
+        } else {
+            self.column.set(row, value);
+        }
+    }
+};
+
+const RangeWorker = struct {
+    evaluation: EvaluationContext,
+    row_start: usize,
+    row_end: usize,
+    additive: bool,
+    err: ?anyerror = null,
+
+    fn run(self: *RangeWorker) void {
+        self.evaluation.evaluateRange(
+            self.row_start,
+            self.row_end,
+            self.additive,
+        ) catch |err| {
+            self.err = err;
+        };
     }
 };
 
@@ -220,6 +357,11 @@ fn orderedCoefficients(
         value.* = powers[powers.len - 1 - index];
     }
     return output;
+}
+
+fn checkedPow2(log_size: u32) !usize {
+    if (log_size >= @bitSizeOf(usize)) return error.InvalidLogSize;
+    return @as(usize, 1) << @intCast(log_size);
 }
 
 test "Cairo coefficients preserve point-accumulator order" {
