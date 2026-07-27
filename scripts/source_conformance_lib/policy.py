@@ -65,6 +65,9 @@ PYTHON_LIBRARY_DEPENDENCIES = {
         "riscv_equivalence_lib",
         "riscv_sail_oracle_lib",
     }),
+    "riscv_infrastructure_uniqueness_lib": frozenset({
+        "air_satisfaction_lib",
+    }),
     "riscv_poseidon_table_uniqueness_lib": frozenset({
         "air_satisfaction_lib",
     }),
