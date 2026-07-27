@@ -116,6 +116,20 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
             return out;
         }
 
+        pub fn hashFixedSingleBlock4(
+            comptime byte_len: usize,
+            data: *const [4][byte_len]u8,
+        ) [4]Blake2sHash {
+            var out = blake2_backend.Blake2sHasher.hashFixedSingleBlock4(
+                byte_len,
+                data,
+            );
+            if (is_m31_output) {
+                for (&out) |*digest| digest.* = reduceToM31(digest.*);
+            }
+            return out;
+        }
+
         pub fn hashFixed64(data: *const [64]u8) Blake2sHash {
             var out = blake2_backend.Blake2sHasher.hashFixed64(data);
             if (is_m31_output) out = reduceToM31(out);

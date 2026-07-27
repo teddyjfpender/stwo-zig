@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const block_io = @import("blake2s_blocks.zig");
 const contract = @import("blake2s_contract.zig");
 const parallel4 = @import("blake2s_parallel4.zig");
 const stream4 = @import("blake2s_stream4.zig");
@@ -8,6 +9,7 @@ const terminal_parallel = @import("blake2s_terminal_parallel.zig");
 pub const Blake2sHash = [32]u8;
 const BLAKE2S_IV = terminal_parallel.iv;
 const BLAKE2S_SIGMA = terminal_parallel.sigma;
+const V4 = block_io.V4;
 
 pub const BackendMode = contract.BackendMode;
 pub const BackendSelection = contract.BackendSelection;
@@ -212,6 +214,61 @@ pub const Blake2sHasher = struct {
         return terminal_parallel.stateToDigest(Blake2sHash, hasher.h);
     }
 
+    /// Hashes four independent, equal-length, single-block messages.
+    ///
+    /// The SIMD path maps each message to one vector lane. It is intended for
+    /// independent fixed-size work such as proof-of-work nonce batches; the
+    /// scalar backend retains the exact one-message implementation.
+    pub fn hashFixedSingleBlock4(
+        comptime byte_len: usize,
+        data: *const [4][byte_len]u8,
+    ) [4]Blake2sHash {
+        return hashFixedSingleBlock4WithMode(
+            byte_len,
+            getDefaultBackendMode(),
+            data,
+        );
+    }
+
+    pub fn hashFixedSingleBlock4WithMode(
+        comptime byte_len: usize,
+        mode: BackendMode,
+        data: *const [4][byte_len]u8,
+    ) [4]Blake2sHash {
+        comptime std.debug.assert(byte_len <= 64);
+
+        if (selectBackend(mode).effective == .scalar) {
+            var out: [4]Blake2sHash = undefined;
+            for (&out, data) |*digest, *message| {
+                digest.* = hashFixedSingleBlockWithMode(
+                    byte_len,
+                    .scalar,
+                    message,
+                );
+            }
+            return out;
+        }
+
+        const initial = Self.initWithMode(mode);
+        var states: [8]V4 = undefined;
+        for (0..8) |word_index| states[word_index] = @splat(initial.h[word_index]);
+
+        var blocks = [_][64]u8{[_]u8{0} ** 64} ** 4;
+        for (&blocks, data) |*block, message| {
+            if (byte_len > 0) @memcpy(block[0..byte_len], message[0..]);
+        }
+        var messages: [16]V4 = undefined;
+        block_io.loadParallel4(&blocks, &messages);
+        compressParallel4(
+            &states,
+            &messages,
+            @intCast(byte_len),
+            0,
+            0xFFFF_FFFF,
+        );
+        return parallelStatesToDigests(&states);
+    }
+
     pub fn hashFixed64(data: *const [64]u8) Blake2sHash {
         return hashFixedSingleBlock(64, data);
     }
@@ -257,7 +314,7 @@ pub const Blake2sHasher = struct {
     ) Blake2sHash {
         var h = seed;
         var words: [16]u32 = undefined;
-        loadBlockWords(data, &words);
+        block_io.loadFixed(data, &words);
         switch (selectBackend(mode).effective) {
             .simd => compressSimd(&h, &words, 128, 0, 0xFFFF_FFFF),
             .scalar => compressScalar(&h, &words, 128, 0, 0xFFFF_FFFF),
@@ -285,7 +342,7 @@ pub const Blake2sHasher = struct {
             selectBackend(mode).effective == .scalar,
             seed,
             data,
-            loadParallelBlock4,
+            block_io.loadParallel4,
             compressParallel4,
             parallelStatesToDigests,
         );
@@ -314,7 +371,7 @@ pub const Blake2sHasher = struct {
             selectBackend(mode).effective == .scalar,
             seed,
             data,
-            loadParallelBlock4,
+            block_io.loadParallel4,
             parallelStatesToDigests,
             BLAKE2S_IV,
             BLAKE2S_SIGMA,
@@ -362,7 +419,7 @@ pub const Blake2sHasher = struct {
             var blocks: [4][64]u8 = undefined;
             for (0..4) |lane| @memcpy(blocks[lane][0..], data[lane][at .. at + 64]);
             var messages: [16]V4 = undefined;
-            loadParallelBlock4(&blocks, &messages);
+            block_io.loadParallel4(&blocks, &messages);
             counter +%= 64;
             compressParallel4(&states, &messages, counter, 0, 0);
         }
@@ -371,7 +428,7 @@ pub const Blake2sHasher = struct {
         var final_blocks = [_][64]u8{[_]u8{0} ** 64} ** 4;
         for (0..4) |lane| @memcpy(final_blocks[lane][0..remaining], data[lane][at..]);
         var final_messages: [16]V4 = undefined;
-        loadParallelBlock4(&final_blocks, &final_messages);
+        block_io.loadParallel4(&final_blocks, &final_messages);
         counter +%= @intCast(remaining);
         compressParallel4(&states, &final_messages, counter, 0, 0xFFFF_FFFF);
 
@@ -388,7 +445,7 @@ pub const Blake2sHasher = struct {
             Blake2sHash,
             hashers,
             tails,
-            loadParallelBlock4,
+            block_io.loadParallel4,
             compressParallel4,
             parallelStatesToDigests,
         );
@@ -403,7 +460,7 @@ pub const Blake2sHasher = struct {
             V4,
             hashers,
             data,
-            loadParallelBlock4,
+            block_io.loadParallel4,
             compressParallel4,
         );
     }
@@ -419,7 +476,7 @@ pub const Blake2sHasher = struct {
             hashers,
             columns,
             position,
-            loadParallelBlock4,
+            block_io.loadParallel4,
             compressParallel4,
         );
     }
@@ -527,14 +584,14 @@ pub const Blake2sHasher = struct {
 
     fn compressBlock(self: *Self, block: *const [64]u8, is_last: bool) void {
         var m: [16]u32 = undefined;
-        loadBlockWords(block, &m);
+        block_io.loadFixed(block, &m);
         self.compressWords(&m, is_last);
     }
 
     fn compressBlockBytes(self: *Self, block: []const u8, is_last: bool) void {
         std.debug.assert(block.len == 64);
         var m: [16]u32 = undefined;
-        loadBlockWordsFromSlice(block, &m);
+        block_io.loadSlice(block, &m);
         self.compressWords(&m, is_last);
     }
 
@@ -548,73 +605,8 @@ pub const Blake2sHasher = struct {
     }
 };
 
-fn loadBlockWords(block: *const [64]u8, out: *[16]u32) void {
-    var i: usize = 0;
-    while (i < 16) : (i += 1) {
-        out[i] = readU32LeFromFixed(block, i * 4);
-    }
-}
-
-fn loadBlockWordsFromSlice(block: []const u8, out: *[16]u32) void {
-    std.debug.assert(block.len == 64);
-    var i: usize = 0;
-    while (i < 16) : (i += 1) {
-        const start = i * 4;
-        out[i] = (@as(u32, block[start + 0])) |
-            (@as(u32, block[start + 1]) << 8) |
-            (@as(u32, block[start + 2]) << 16) |
-            (@as(u32, block[start + 3]) << 24);
-    }
-}
-
-fn readU32LeFromFixed(data: *const [64]u8, at: usize) u32 {
-    return (@as(u32, data[at + 0])) |
-        (@as(u32, data[at + 1]) << 8) |
-        (@as(u32, data[at + 2]) << 16) |
-        (@as(u32, data[at + 3]) << 24);
-}
-
-fn loadParallelBlock4(data: *const [4][64]u8, out: *[16]V4) void {
-    if (comptime builtin.cpu.arch.endian() == .little) {
-        const words: [4][4]V4 = @bitCast(data.*);
-        inline for (0..4) |group| {
-            const transposed = transpose4x4(.{
-                words[0][group],
-                words[1][group],
-                words[2][group],
-                words[3][group],
-            });
-            inline for (0..4) |word| out[group * 4 + word] = transposed[word];
-        }
-    } else {
-        for (0..16) |word_index| {
-            const byte_index = word_index * 4;
-            out[word_index] = .{
-                readU32LeFromFixed(&data[0], byte_index),
-                readU32LeFromFixed(&data[1], byte_index),
-                readU32LeFromFixed(&data[2], byte_index),
-                readU32LeFromFixed(&data[3], byte_index),
-            };
-        }
-    }
-}
-
 fn parallelStatesToDigests(states: *const [8]V4) [4]Blake2sHash {
-    if (comptime builtin.cpu.arch.endian() == .little) {
-        const low = transpose4x4(.{ states[0], states[1], states[2], states[3] });
-        const high = transpose4x4(.{ states[4], states[5], states[6], states[7] });
-        var words: [4][2]V4 = undefined;
-        inline for (0..4) |lane| words[lane] = .{ low[lane], high[lane] };
-        return @bitCast(words);
-    } else {
-        var out: [4]Blake2sHash = undefined;
-        for (0..4) |lane| {
-            var lane_state: [8]u32 = undefined;
-            for (0..8) |word_index| lane_state[word_index] = states[word_index][lane];
-            out[lane] = terminal_parallel.stateToDigest(Blake2sHash, lane_state);
-        }
-        return out;
-    }
+    return block_io.parallelStatesToDigests(Blake2sHash, states);
 }
 
 fn rotr32(x: u32, bits: u5) u32 {
@@ -664,22 +656,8 @@ fn compressScalar(h: *[8]u32, m: *const [16]u32, t0: u32, t1: u32, f0: u32) void
     }
 }
 
-const V4 = @Vector(4, u32);
 const Shift4 = @Vector(4, u5);
 const V16u8 = @Vector(16, u8);
-
-fn transpose4x4(rows: [4]V4) [4]V4 {
-    const ab_low = @shuffle(u32, rows[0], rows[1], @Vector(4, i32){ 0, -1, 1, -2 });
-    const ab_high = @shuffle(u32, rows[0], rows[1], @Vector(4, i32){ 2, -3, 3, -4 });
-    const cd_low = @shuffle(u32, rows[2], rows[3], @Vector(4, i32){ 0, -1, 1, -2 });
-    const cd_high = @shuffle(u32, rows[2], rows[3], @Vector(4, i32){ 2, -3, 3, -4 });
-    return .{
-        @shuffle(u32, ab_low, cd_low, @Vector(4, i32){ 0, 1, -1, -2 }),
-        @shuffle(u32, ab_low, cd_low, @Vector(4, i32){ 2, 3, -3, -4 }),
-        @shuffle(u32, ab_high, cd_high, @Vector(4, i32){ 0, 1, -1, -2 }),
-        @shuffle(u32, ab_high, cd_high, @Vector(4, i32){ 2, 3, -3, -4 }),
-    };
-}
 
 fn rotr32x4(x: V4, comptime bits: u5) V4 {
     if (comptime builtin.cpu.arch.endian() == .little) {

@@ -154,12 +154,30 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         /// Only hashes 40 bytes (prefix_digest + nonce) per call — the prefix
         /// hash that would normally cost an extra compression is pre-computed.
         fn verifyNonceWithPrefix(prefix: Digest32, nonce: u64, n_bits: u32) bool {
-            var hasher = Hasher.init();
-            hasher.update(prefix[0..]);
+            var input: [40]u8 = undefined;
+            @memcpy(input[0..32], prefix[0..]);
             const nonce_bytes = u64ToBytesLe(nonce);
-            hasher.update(nonce_bytes[0..]);
-            const out = hasher.finalize();
+            @memcpy(input[32..40], nonce_bytes[0..]);
+            const out = Hasher.hashFixedSingleBlock(40, &input);
             return trailingZeroBits(out[0..16]) >= n_bits;
+        }
+
+        fn firstValidNonceWithPrefix4(
+            prefix: Digest32,
+            nonces: [4]u64,
+            n_bits: u32,
+        ) ?u64 {
+            var inputs: [4][40]u8 = undefined;
+            for (&inputs, nonces) |*input, nonce| {
+                @memcpy(input[0..32], prefix[0..]);
+                const nonce_bytes = u64ToBytesLe(nonce);
+                @memcpy(input[32..40], nonce_bytes[0..]);
+            }
+            const outputs = Hasher.hashFixedSingleBlock4(40, &inputs);
+            for (outputs, nonces) |output, nonce| {
+                if (trailingZeroBits(output[0..16]) >= n_bits) return nonce;
+            }
+            return null;
         }
 
         /// Grind for the lowest valid PoW nonce with prefix caching and parallel search.
@@ -249,11 +267,24 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         ) void {
             var nonce = start;
             while (nonce < found.load(.monotonic)) {
-                if (verifyNonceWithPrefix(prefix, nonce, n_bits)) {
-                    _ = found.fetchMin(nonce, .release);
+                var nonces: [4]u64 = undefined;
+                nonces[0] = nonce;
+                for (1..nonces.len) |index| {
+                    nonces[index] = std.math.add(
+                        u64,
+                        nonces[index - 1],
+                        stride,
+                    ) catch std.math.maxInt(u64);
+                }
+                if (firstValidNonceWithPrefix4(prefix, nonces, n_bits)) |valid| {
+                    _ = found.fetchMin(valid, .release);
                     return;
                 }
-                nonce = std.math.add(u64, nonce, stride) catch return;
+                nonce = std.math.add(
+                    u64,
+                    nonces[nonces.len - 1],
+                    stride,
+                ) catch return;
             }
         }
 
