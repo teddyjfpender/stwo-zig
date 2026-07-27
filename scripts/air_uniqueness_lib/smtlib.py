@@ -199,6 +199,15 @@ class _Emitter:
             ]
             if lookup.domain == tables.BITWISE_DOMAIN:
                 clauses.append(self._bitwise_definition(components))
+            # A box is a superset wherever the real table omits a row inside it.
+            # Leaving the omission out admits witnesses the AIR rejects, which
+            # shows up as spurious `sat`, never as a false `unsat`.
+            for excluded in tables.EXCLUDED_TUPLES.get(lookup.domain, ()):
+                literal = " ".join(
+                    f"(= {component} {value})"
+                    for component, value in zip(components, excluded)
+                )
+                clauses.append(f"(not (and {literal}))")
             body = clauses[0] if len(clauses) == 1 else f"(and {' '.join(clauses)})"
             self.emit(f"(assert (=> (not (= {live} 0)) {body}))")
 

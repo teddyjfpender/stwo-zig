@@ -27,9 +27,18 @@ BOX_TABLES: dict[str, tuple[int, ...]] = {
     "range_check_8_11": (8, 11),
     "range_check_8_8_4": (8, 8, 4),
     "range_check_8_8": (8, 8),
-    # logSize 15 = 8 + 7.  Row 2^15-1 is the all-zero sentinel, which is already
-    # inside the box, so the box is exact.
+    # logSize 15 = 8 + 7, but the box is a strict SUPERSET of the real table.
+    # `schema.zig` gives row 2^15-1 an all-zero tuple and `checkedIndex` rejects
+    # (255, 127) outright, so that one tuple is unrepresentable.  Modelling it as
+    # a plain box admits it, and admitting it re-opens exactly the `word == p`
+    # limb aliasing the exclusion exists to kill: for a value congruent to zero,
+    # both [0,0,0,0] and [255,255,255,127] decompose it.  See EXCLUDED_TUPLES.
     "range_check_m31": (8, 7),
+}
+
+# domain -> tuples inside the box that the preprocessed table does not contain.
+EXCLUDED_TUPLES: dict[str, tuple[tuple[int, ...], ...]] = {
+    "range_check_m31": (((255, 127)),),
 }
 
 BITWISE_DOMAIN = "bitwise"

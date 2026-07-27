@@ -28,6 +28,7 @@ const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
 const witness_layout = @import("../../frontends/riscv/witness_layout.zig");
 const layout = @import("committed_row_layout.zig");
+const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
 
 const OpcodeFamily = trace_mod.OpcodeFamily;
 const MODULUS: u64 = (1 << 31) - 1;
@@ -192,9 +193,16 @@ fn writtenPrefix(comptime family: OpcodeFamily, names: []const []const u8) []con
     return "";
 }
 
+const Lookup = struct {
+    domain: []const u8,
+    numerator: u32,
+    tuple: []const u32,
+};
+
 const Emitted = struct {
     nodes: []const Node,
     constraints: []const u32,
+    lookups: []const Lookup,
 };
 
 fn emit(comptime family: OpcodeFamily, allocator: std.mem.Allocator) !Emitted {
@@ -216,7 +224,28 @@ fn emit(comptime family: OpcodeFamily, allocator: std.mem.Allocator) !Emitted {
     for (evaluation.values[0..evaluation.len], 0..) |value, index| {
         constraints[index] = value.idx;
     }
-    return .{ .nodes = try arena.toOwnedSlice(arena_allocator), .constraints = constraints };
+
+    // The same tracing instantiation records what the row asks of the
+    // preprocessed tables. Without these the admitted witness set is strictly
+    // larger -- nothing forces a limb to be a byte -- so the query is weaker and
+    // reports uniqueness failures a range check would have excluded.
+    const list = try opcode_entries.Entries(Trace).fromMain(family, columns[0..names.len]);
+    var lookups = try allocator.alloc(Lookup, list.len);
+    for (list.entries[0..list.len], 0..) |request, index| {
+        const tuple = try allocator.alloc(u32, request.arity);
+        for (request.values[0..request.arity], 0..) |value, limb| tuple[limb] = value.idx;
+        lookups[index] = .{
+            .domain = @tagName(request.domain),
+            .numerator = request.numerator.idx,
+            .tuple = tuple,
+        };
+    }
+
+    return .{
+        .nodes = try arena.toOwnedSlice(arena_allocator),
+        .constraints = constraints,
+        .lookups = lookups,
+    };
 }
 
 /// Walks the emitted DAG over M31. This is deliberately a separate evaluator
@@ -253,6 +282,10 @@ test "uniqueness IR: the emitted system agrees with the committed AIR" {
         const emitted = try emit(family, allocator);
         defer allocator.free(emitted.nodes);
         defer allocator.free(emitted.constraints);
+        defer {
+            for (emitted.lookups) |request| allocator.free(request.tuple);
+            allocator.free(emitted.lookups);
+        }
 
         for (0..TRIALS) |_| {
             var assignment: [trace_mod.MAX_FAMILY_COLUMNS]M31 = undefined;
@@ -315,6 +348,10 @@ test "uniqueness IR: emit every family" {
         const emitted = try emit(family, allocator);
         defer allocator.free(emitted.nodes);
         defer allocator.free(emitted.constraints);
+        defer {
+            for (emitted.lookups) |request| allocator.free(request.tuple);
+            allocator.free(emitted.lookups);
+        }
 
         var out: std.ArrayList(u8) = .{};
         defer out.deinit(allocator);
@@ -343,7 +380,15 @@ test "uniqueness IR: emit every family" {
         for (emitted.constraints, 0..) |c, i| {
             try w.print("{d}{s}", .{ c, if (i + 1 == emitted.constraints.len) "" else ", " });
         }
-        try w.writeAll("],\n  \"notes\": \"extracted from Semantics(S); lookups not modelled\"\n}\n");
+        try w.writeAll("],\n  \"lookups\": [\n");
+        for (emitted.lookups, 0..) |request, i| {
+            try w.print("    {{\"domain\": \"{s}\", \"numerator\": {d}, \"tuple\": [", .{ request.domain, request.numerator });
+            for (request.tuple, 0..) |node, j| {
+                try w.print("{d}{s}", .{ node, if (j + 1 == request.tuple.len) "" else ", " });
+            }
+            try w.print("]}}{s}\n", .{if (i + 1 == emitted.lookups.len) "" else ","});
+        }
+        try w.writeAll("  ],\n  \"notes\": \"extracted from Semantics(S) and Entries(S)\"\n}\n");
 
         try dir.writeFile(.{ .sub_path = @tagName(family) ++ ".json", .data = out.items });
         std.debug.print("  {s: <14} {d: >3} columns  {d: >5} nodes  {d: >3} constraints\n", .{
