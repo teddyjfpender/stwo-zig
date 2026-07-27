@@ -7,11 +7,13 @@
 //! addressable until `Engine.prove` / `core_verifier.verify` returns. A stack
 //! frame satisfies that only accidentally. It also fails at scale: a Debug build
 //! gives every by-value copy and every error-propagation site in a function its
-//! own permanent frame slot, so a ~740-line orchestration function whose return
-//! type embeds a 12,808-byte `RiscVStatement` reserved megabytes of frame
-//! against macOS's 8 MiB main-thread stack. Moving the capacity-sized arrays
-//! here, and returning `!void` from the stage function that uses them, removes
-//! both problems without changing a single protocol value.
+//! own permanent frame slot, so a proving path whose values embed a 12,808-byte
+//! `RiscVStatement` reserved megabytes of frame against macOS's 8 MiB
+//! main-thread stack. Moving the capacity-sized arrays here, and returning
+//! `!void` from the stage function that uses them, removes both problems
+//! without changing a single protocol value. Splitting that path into per-tree
+//! stage modules shortened each frame but did not remove the need: the
+//! components `core` borrows still outlive every stage that built them.
 //!
 //! ## Capacity story (this is not unbounded state)
 //!
@@ -36,10 +38,13 @@
 //!   retain a pointer past `destroy`.
 //! - Column buffers *referenced* from `opcode_columns`, `clock_main`,
 //!   `opcode_results`, `table_results`, `clock_result` and the `*_prev` sets are
-//!   acquired by the AIR generators and released by the named `defer`s in
-//!   `orchestration.zig`, or **transferred** to the commitment scheme at a
-//!   commit point. `destroy` frees the workspace block only; it never frees a
-//!   column buffer, because the workspace never allocated one.
+//!   acquired by the AIR generators, or **transferred** to the commitment scheme
+//!   at a commit point. They are released by exactly two `defer`s, both
+//!   registered in `orchestration.proveStages` so they run after `Engine.prove`:
+//!   `main_trace.Retained.deinit` for the Tree-1 buffers Tree 2 reads back, and
+//!   `releaseInteractionScratch` for the Tree-2 buffers composition reads back.
+//!   `destroy` frees the workspace block only; it never frees a column buffer,
+//!   because the workspace never allocated one.
 //! - A workspace value must not be copied. All access goes through the pointer
 //!   returned by `create`; the component fat pointers handed to `core` point
 //!   into that block.
@@ -247,6 +252,18 @@ pub const ProofWorkspace = struct {
     /// error-propagation site of the enclosing function.
     pub fn releaseOpcodeColumns(self: *ProofWorkspace, allocator: std.mem.Allocator) void {
         self.opcode_columns.deinit(allocator, self.statement);
+    }
+
+    /// Arms `releaseInteractionScratch` for the admitted infrastructure count.
+    ///
+    /// `create` cannot do this: `memory_prev` is indexed by infrastructure
+    /// position, which only exists once the statement has been built. Calling
+    /// this immediately before registering the release is what makes the release
+    /// safe on a path that fails inside the first generator.
+    pub fn beginInteractionScratch(self: *ProofWorkspace) void {
+        for (self.memory_prev[0..self.statement.n_infra]) |*prev| {
+            prev.* = .{.{ &.{}, &.{}, &.{}, &.{} }} ** memory_interaction.N_SUMS;
+        }
     }
 
     /// Releases every interaction buffer the workspace still references.

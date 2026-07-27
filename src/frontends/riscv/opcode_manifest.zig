@@ -249,11 +249,19 @@ fn relationDomains(comptime family_id: Family) RelationSet {
         .lt_reg, .branch_lt => relationSet(base ++ [_]RelationDomain{.range_check_8_8}),
         .lt_imm, .lui => relationSet(base ++ [_]RelationDomain{.range_check_8_8_4}),
         .branch_eq => relationSet(base),
-        .auipc, .jalr, .jal => relationSet(base ++ [_]RelationDomain{ .range_check_8_8, .range_check_m31 }),
+        .auipc, .jal => relationSet(base ++ [_]RelationDomain{ .range_check_8_8, .range_check_m31 }),
+        // JALR bounds its sign-extended immediate through the (8,8,4) table on
+        // top of the byte and M31 checks the other jump families use; the
+        // row-local target binding is what makes the composed jump target a
+        // bounded value rather than a free field element.
+        .jalr => relationSet(base ++ [_]RelationDomain{ .range_check_8_8, .range_check_m31, .range_check_8_8_4 }),
         .load_store => relationSet(base ++ [_]RelationDomain{.range_check_m31}),
         .mul => relationSet(base ++ [_]RelationDomain{.range_check_8_11}),
         .mulh => relationSet(base ++ [_]RelationDomain{ .range_check_8_11, .range_check_m31 }),
-        .div => relationSet(base ++ [_]RelationDomain{ .range_check_8_11, .range_check_8_8 }),
+        // The quotient-sign witness is bounded through range_check_m31; without
+        // it a signed DIV row could choose the sign that makes its own
+        // remainder bound vacuous.
+        .div => relationSet(base ++ [_]RelationDomain{ .range_check_8_11, .range_check_8_8, .range_check_m31 }),
         .fence => relationSet([_]RelationDomain{ .registers_state, .program_access }),
     };
 }

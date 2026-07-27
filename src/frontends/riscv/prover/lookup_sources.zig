@@ -19,6 +19,7 @@ pub fn ingest(
     allocator: std.mem.Allocator,
     statement: statement_mod.RiscVStatement,
     columns: *const opcode_trace.Columns,
+    options: source_ingest.Options,
 ) !source_ingest.Result {
     var shard_counts = [_]u32{0} ** trace.N_FAMILIES;
     for (0..statement.n_components) |component_index| {
@@ -70,7 +71,7 @@ pub fn ingest(
         source_count += 1;
     }
     if (shard_offset != statement.n_components) return error.InvalidShardCount;
-    return source_ingest.ingest(allocator, sources[0..source_count]);
+    return source_ingest.ingest(allocator, sources[0..source_count], options);
 }
 
 pub fn registerMemoryBoundary(

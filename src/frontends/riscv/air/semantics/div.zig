@@ -465,9 +465,10 @@ test "div: regular unsigned row satisfies exact constraints and requests" {
     }
 }
 
-// TODO(soundness): promote the `[0, 0, 0, 256]` DIVU divisor forgery into the
-// end-to-end malicious-witness suite. The two `divisor_ranges` requests above
-// are the row-local fix; the deferred test should mutate the committed trace.
+// The `[0, 0, 0, 256]` DIVU divisor forgery is covered end to end by
+// `tests/riscv/divisor_byte_range_soundness_test.zig`: the committed row reaches a
+// real proof and loses the global LogUp closure, because the two `divisor_ranges`
+// requests above have no row in `range_check_8_8` to cancel against.
 
 test "div: quotient sign range binds the zero quotient" {
     const table = @import("../lookups/tables/schema.zig");

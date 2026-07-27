@@ -81,18 +81,35 @@ const Validation = struct {
     manifest_digest: Digest,
 };
 
+/// What to do with an activated request whose tuple has no row in its table.
+///
+/// `reject` is the only correct production policy: the sources are generated from a
+/// validated witness, so an unrepresentable request is a prover bug and aborting names
+/// it. `drop` exists for the committed-forgery harness, which must model the adversary
+/// that builds its multiplicity column by hand. Such a prover cannot add multiplicity to
+/// a table row that does not exist, so it omits the request, its opcode-side fraction has
+/// nothing to cancel against, and the global LogUp sum is non-zero at verification.
+/// Aborting ingestion instead would replace that verdict with a prover error and leave
+/// `RejectionStage.verification` unreachable for every lookup-guarded forgery.
+pub const UnrepresentableRequest = enum { reject, drop };
+
+pub const Options = struct {
+    unrepresentable: UnrepresentableRequest = .reject,
+};
+
 /// Validate all production sources before allocating the returned table set.
 /// A caller can therefore never observe partially registered counters.
 pub fn ingest(
     allocator: std.mem.Allocator,
     sources: []const FamilySource,
+    options: Options,
 ) !Result {
-    const validation = try validateSources(allocator, sources);
+    const validation = try validateSources(allocator, sources, options);
     var counters = try counter.Set.init(allocator);
     errdefer counters.deinit(allocator);
     for (sources) |source| {
         for (source.shards) |shard| {
-            _ = try scanShard(allocator, source.family, shard, &counters);
+            _ = try scanShard(allocator, source.family, shard, &counters, options);
         }
     }
     return .{
@@ -127,6 +144,7 @@ pub fn digestShard(family: trace.OpcodeFamily, shard: Shard) Digest {
 fn validateSources(
     allocator: std.mem.Allocator,
     sources: []const FamilySource,
+    options: Options,
 ) !Validation {
     var seen = [_]bool{false} ** trace.N_FAMILIES;
     var previous_family: ?usize = null;
@@ -158,7 +176,7 @@ fn validateSources(
             const actual_digest = digestShard(source.family, shard);
             if (!std.mem.eql(u8, &actual_digest, &shard.committed_digest))
                 return error.CommittedDigestMismatch;
-            const counts = try scanShard(allocator, source.family, shard, null);
+            const counts = try scanShard(allocator, source.family, shard, null, options);
             for (&source_entries, counts) |*total, count| total.* += count;
             shard_count += 1;
             real_rows += @intCast(shard.n_real_rows);
@@ -202,6 +220,7 @@ fn scanShard(
     family: trace.OpcodeFamily,
     shard: Shard,
     counters: ?*counter.Set,
+    options: Options,
 ) ![schema.KIND_COUNT]u64 {
     const size = shard.committed_columns[0].len;
     const placement = try infra.BitReversalTable.init(
@@ -227,21 +246,34 @@ fn scanShard(
             active = active or nonzero;
             if (row >= shard.n_real_rows and nonzero) return error.NonZeroPadding;
             const kind = counter.kindForDomain(relation_entry.domain) orelse continue;
-            try validateTableEntry(kind, relation_entry);
+            if (!try representable(kind, relation_entry, options)) continue;
             if (nonzero) counts[@intFromEnum(kind)] += 1;
+            // Registration is per entry rather than one `registerList` over the whole
+            // row so a dropped request is dropped from the counters too, which is the
+            // only thing that makes `.drop` mean anything.
+            if (counters) |set| try set.get(kind).register(relation_entry);
         }
         if (row < shard.n_real_rows and !active) return error.InactiveRealRow;
-        if (counters) |set| try set.registerList(list);
     }
     return counts;
 }
 
-fn validateTableEntry(kind: schema.Kind, relation_entry: entry.Entry) Error!void {
+/// Whether this request has a row in its table, under `options`. A zero-numerator
+/// request is inactive and asks for nothing, so it is representable by construction.
+fn representable(
+    kind: schema.Kind,
+    relation_entry: entry.Entry,
+    options: Options,
+) Error!bool {
     if (relation_entry.arity != schema.arity(kind)) return error.InvalidArity;
     const numerator = relation_entry.numerator.tryIntoM31() catch
         return error.NonBaseFieldValue;
-    if (numerator.isZero()) return;
-    _ = try schema.indexSecure(kind, relation_entry.values[0..relation_entry.arity]);
+    if (numerator.isZero()) return true;
+    _ = schema.indexSecure(kind, relation_entry.values[0..relation_entry.arity]) catch |err| {
+        if (options.unrepresentable == .reject) return err;
+        return false;
+    };
+    return true;
 }
 
 fn updateU32(hasher: *blake2.Blake2sHasher, value: u32) void {
@@ -382,7 +414,7 @@ test "lookup source ingestion: committed families feed all six signed tables" {
         shard.* = boundShard(family, item, 0, 1, 1);
         source.* = .{ .family = family, .shards = shard[0..1] };
     }
-    var result = try ingest(allocator, &sources);
+    var result = try ingest(allocator, &sources, .{});
     defer result.deinit(allocator);
     try std.testing.expectEqual(@as(u32, families.len), result.family_count);
     for (result.source_entries, result.signedTotals()) |entries_count, total| {
@@ -407,13 +439,13 @@ test "lookup source ingestion: every table counter is additive across shards" {
         boundShard(.auipc, &first, 0, 2, 16),
         boundShard(.auipc, &second, 1, 2, 1),
     };
-    var combined = try ingest(allocator, &.{.{ .family = .auipc, .shards = &shards }});
+    var combined = try ingest(allocator, &.{.{ .family = .auipc, .shards = &shards }}, .{});
     defer combined.deinit(allocator);
     const first_alone = boundShard(.auipc, &first, 0, 1, 16);
-    var lhs = try ingest(allocator, &.{.{ .family = .auipc, .shards = &.{first_alone} }});
+    var lhs = try ingest(allocator, &.{.{ .family = .auipc, .shards = &.{first_alone} }}, .{});
     defer lhs.deinit(allocator);
     const second_alone = boundShard(.auipc, &second, 0, 1, 1);
-    var rhs = try ingest(allocator, &.{.{ .family = .auipc, .shards = &.{second_alone} }});
+    var rhs = try ingest(allocator, &.{.{ .family = .auipc, .shards = &.{second_alone} }}, .{});
     defer rhs.deinit(allocator);
 
     for (0..schema.KIND_COUNT) |kind_index| {
@@ -476,15 +508,49 @@ test "lookup source ingestion: commitment, tuple, and activity mutations fail" {
     }});
 }
 
+test "lookup source ingestion: the drop policy omits an unrepresentable request" {
+    const allocator = std.testing.allocator;
+    var columns = try testColumns(allocator, .auipc);
+    defer freeTestColumns(allocator, &columns);
+    try fillRows(allocator, &columns, .auipc, &.{auipcRow(0)});
+    var shards = [_]Shard{boundShard(.auipc, &columns, 0, 1, 1)};
+    const source = FamilySource{ .family = .auipc, .shards = &shards };
+    var honest = try ingest(allocator, &.{source}, .{});
+    defer honest.deinit(allocator);
+
+    // A non-byte limb in a byte-range tuple: the shape every lookup-guarded forgery
+    // has, since asking for a tuple the table does not contain is what the guard
+    // detects. Production must still refuse it.
+    columns.storage[15][0] = M31.fromU64(256);
+    shards[0].committed_digest = digestShard(.auipc, shards[0]);
+    try expectIngestError(error.ValueOutOfRange, &.{source});
+
+    var forged = try ingest(allocator, &.{source}, .{ .unrepresentable = .drop });
+    defer forged.deinit(allocator);
+    // Exactly one request disappears and nothing else moves, which is what makes the
+    // dropped fraction the only thing the global LogUp sum can be missing.
+    var dropped: u64 = 0;
+    for (honest.source_entries, forged.source_entries) |before, after| {
+        try std.testing.expect(after <= before);
+        dropped += before - after;
+    }
+    try std.testing.expectEqual(@as(u64, 1), dropped);
+    var totals_moved = false;
+    for (honest.signedTotals(), forged.signedTotals()) |before, after| {
+        totals_moved = totals_moved or !before.eql(after);
+    }
+    try std.testing.expect(totals_moved);
+}
+
 fn expectIngestError(expected: Error, sources: []const FamilySource) !void {
-    try std.testing.expectError(expected, ingest(std.testing.allocator, sources));
+    try std.testing.expectError(expected, ingest(std.testing.allocator, sources, .{}));
 }
 
 fn ingestForAllocationFailures(
     allocator: std.mem.Allocator,
     sources: []const FamilySource,
 ) !void {
-    var result = try ingest(allocator, sources);
+    var result = try ingest(allocator, sources, .{});
     defer result.deinit(allocator);
 }
 

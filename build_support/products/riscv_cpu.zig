@@ -132,6 +132,7 @@ pub fn addProduct(context: Context) void {
 
     const tests = addTests(context);
     const integration_tests = addIntegrationTests(context);
+    const core_prover_tests = addCoreProverTests(context);
     const exhaustive_tests = addExhaustiveTests(context);
     const test_step = context.b.step(
         "test-riscv-cpu-product",
@@ -143,6 +144,14 @@ pub fn addProduct(context: Context) void {
         "test-riscv-release-exhaustive",
         "Run the exhaustive RISC-V proof and adversarial release suites",
     ).dependOn(&context.b.addRunArtifact(exhaustive_tests).step);
+    context.b.step(
+        "test-riscv-prover-core",
+        "Run the RISC-V prover corpus without the separately retained committed-witness mutation suites",
+    ).dependOn(&context.b.addRunArtifact(core_prover_tests).step);
+    context.b.step(
+        "test-riscv-rigidity",
+        "Run the full witness-rigidity sweep over every committed opcode column",
+    ).dependOn(&context.b.addRunArtifact(addRigidityTests(context)).step);
 
     const closure_check = closure_gate.addCheck(.{
         .b = context.b,
@@ -260,18 +269,45 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     return b.addTest(.{ .root_module = root });
 }
 
+/// Which suites a `src/tests.zig` binary compiles in, and which of its tests it
+/// runs. Named rather than positional: four booleans at a call site say nothing
+/// about which sweep a step is paying for.
+const TestRoot = struct {
+    exhaustive: bool = false,
+    committed_mutations: bool = false,
+    /// Full witness-rigidity sweep instead of the sampled default. The sampled
+    /// default keeps every opcode selector and every committed column covered
+    /// at a fraction of the probe count; the full sweep re-probes every honest
+    /// row the corpus materialises.
+    rigidity_exhaustive: bool = false,
+    filters: []const []const u8 = &.{},
+};
+
 fn addIntegrationTests(context: Context) *std.Build.Step.Compile {
-    return addTestRoot(context, false);
+    return addTestRoot(context, .{});
+}
+
+fn addCoreProverTests(context: Context) *std.Build.Step.Compile {
+    return addTestRoot(context, .{ .exhaustive = true });
 }
 
 fn addExhaustiveTests(context: Context) *std.Build.Step.Compile {
-    return addTestRoot(context, true);
+    return addTestRoot(context, .{
+        .exhaustive = true,
+        .committed_mutations = true,
+        .rigidity_exhaustive = true,
+    });
 }
 
-fn addTestRoot(
-    context: Context,
-    exhaustive: bool,
-) *std.Build.Step.Compile {
+fn addRigidityTests(context: Context) *std.Build.Step.Compile {
+    return addTestRoot(context, .{
+        .exhaustive = true,
+        .rigidity_exhaustive = true,
+        .filters = &.{"witness rigidity"},
+    });
+}
+
+fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
     const b = context.b;
     const test_product = graph.Product{
         .name = product.name,
@@ -290,9 +326,11 @@ fn addTestRoot(
     const test_options = b.addOptions();
     test_options.addOption(bool, "metal_only", false);
     test_options.addOption(bool, "riscv_only", true);
-    test_options.addOption(bool, "riscv_exhaustive", exhaustive);
+    test_options.addOption(bool, "riscv_exhaustive", options.exhaustive);
+    test_options.addOption(bool, "riscv_committed_mutations", options.committed_mutations);
+    test_options.addOption(bool, "riscv_rigidity_exhaustive", options.rigidity_exhaustive);
     root.addOptions("test_options", test_options);
-    return b.addTest(.{ .root_module = root });
+    return b.addTest(.{ .root_module = root, .filters = options.filters });
 }
 
 fn createStwoModule(
