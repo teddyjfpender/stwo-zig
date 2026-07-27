@@ -89,13 +89,13 @@ pub fn build(
             producer.row_count,
         );
         defer compiled.deinit();
-        const source = try interaction_trace.SourceView.lookupWords(
+        const source = (try interaction_trace.SourceView.lookupWords(
             try interaction_trace.LookupColumns.init(
                 producer.lookup_words,
                 producer.row_count,
             ),
             producer.active_rows,
-        );
+        )).withResidency(producer.lookupResidency());
         try collector.capture(
             producer.label,
             compiled.descriptors,

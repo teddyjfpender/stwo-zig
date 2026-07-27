@@ -3,6 +3,10 @@
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const interaction_trace = @import("interaction_trace.zig");
+const residency = @import("interaction_residency.zig");
+
+pub const LookupAllocation = residency.LookupAllocation;
+pub const LookupAllocationRequest = residency.LookupAllocationRequest;
 
 pub const MaterializedTrace = struct {
     allocator: std.mem.Allocator,
@@ -33,6 +37,11 @@ pub const Request = struct {
 /// fail the proof. Callers never fall back after selecting an executor.
 pub const Executor = struct {
     context: ?*anyopaque = null,
+    allocate_lookup_fn: ?*const fn (
+        context: ?*anyopaque,
+        allocator: std.mem.Allocator,
+        request: LookupAllocationRequest,
+    ) anyerror!?LookupAllocation = null,
     execute_fn: *const fn (
         context: ?*anyopaque,
         allocator: std.mem.Allocator,
@@ -45,5 +54,14 @@ pub const Executor = struct {
         request: Request,
     ) !MaterializedTrace {
         return self.execute_fn(self.context, allocator, request);
+    }
+
+    pub fn allocateLookup(
+        self: Executor,
+        allocator: std.mem.Allocator,
+        request: LookupAllocationRequest,
+    ) !?LookupAllocation {
+        const allocate = self.allocate_lookup_fn orelse return null;
+        return allocate(self.context, allocator, request);
     }
 };

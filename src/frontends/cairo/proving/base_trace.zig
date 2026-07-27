@@ -24,10 +24,11 @@ pub const BaseTrace = struct {
     columns: []ColumnEvaluation,
     geometry: claim_generator.OwnedClaimGeometry,
     execution: live_graph.Execution,
+    execution_owned: bool = true,
 
     pub fn deinit(self: *BaseTrace) void {
         deinitColumns(self.allocator, self.columns);
-        self.execution.deinit();
+        if (self.execution_owned) self.execution.deinit();
         self.geometry.deinit();
         self.* = undefined;
     }
@@ -37,6 +38,12 @@ pub const BaseTrace = struct {
         self.columns = &.{};
         return columns;
     }
+
+    pub fn releaseWitnessFeeds(self: *BaseTrace) void {
+        if (!self.execution_owned) return;
+        self.execution.deinit();
+        self.execution_owned = false;
+    }
 };
 
 pub fn build(
@@ -44,6 +51,7 @@ pub fn build(
     input: *const adapter.ProverInput,
     programs: *const witness_bundle.Bundle,
     generated_executor: ?@import("../witness/generated_executor.zig").Executor,
+    interaction_executor: ?@import("../witness/interaction_executor.zig").Executor,
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     variant: claim_generator.PreprocessedVariant,
@@ -78,6 +86,8 @@ pub fn build(
             input,
             programs,
             generated_executor,
+            interaction_executor,
+            topology,
             &geometry,
             .{
                 .context = &collector,

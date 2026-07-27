@@ -14,8 +14,10 @@ const component_executor = @import("component_executor.zig");
 const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const direct_inputs = @import("direct_inputs.zig");
+const feed_topology = @import("feed_topology.zig");
 const gathered_inputs = @import("gathered_inputs.zig");
 const generated_executor_mod = @import("generated_executor.zig");
+const interaction_executor = @import("interaction_executor.zig");
 const producer_output = @import("producer_output.zig");
 const witness_bundle = @import("bundle.zig");
 const stage_profile = @import("stwo_prover_impl").stage_profile;
@@ -64,6 +66,8 @@ pub fn execute(
     input: *const adapter.ProverInput,
     programs: *const witness_bundle.Bundle,
     generated_executor: ?generated_executor_mod.Executor,
+    interaction_backend: ?interaction_executor.Executor,
+    topology: feed_topology.Loaded,
     geometry: *claim_generator.OwnedClaimGeometry,
     observer: ?ComponentObserver,
     pedersen_table: ?deductions.PedersenTable,
@@ -88,6 +92,9 @@ pub fn execute(
         };
         if (!deductions.supportsProgram(entry.program))
             return Error.UnsupportedWitnessProgram;
+        const interaction_component = topology.find(claim_component.name) orelse
+            return Error.IncompleteWitnessGraph;
+        const interaction_columns = interaction_component.logup_columns.len;
 
         var component_stage = try stage_profile.StageScope.begin(
             recorder,
@@ -119,6 +126,8 @@ pub fn execute(
                 input,
                 entry.program,
                 generated_executor,
+                interaction_backend,
+                interaction_columns,
                 compact,
                 claim_component,
                 @intCast(ordinal),
@@ -132,6 +141,8 @@ pub fn execute(
                 input,
                 entry.program,
                 generated_executor,
+                interaction_backend,
+                interaction_columns,
                 direct,
                 claim_component,
                 @intCast(ordinal),
@@ -158,6 +169,8 @@ pub fn execute(
                 input,
                 entry.program,
                 generated_executor,
+                interaction_backend,
+                interaction_columns,
                 gathered,
                 claim_component,
                 @intCast(ordinal),
@@ -201,6 +214,8 @@ fn executeComponent(
     input: *const adapter.ProverInput,
     witness_program: @import("program.zig").Program,
     generated_executor: ?generated_executor_mod.Executor,
+    interaction_backend: ?interaction_executor.Executor,
+    interaction_columns: usize,
     source: anytype,
     claim_component: claim_generator.ComponentGeometry,
     ordinal: u32,
@@ -223,6 +238,8 @@ fn executeComponent(
         input,
         witness_program,
         generated_executor,
+        interaction_backend,
+        interaction_columns,
         source,
         layout,
         pedersen_table,
@@ -251,7 +268,7 @@ fn executeComponent(
     ) orelse return Error.AllocationSizeOverflow;
     const sub_words = execution.takeSubWords();
     errdefer allocator.free(sub_words);
-    const lookup_words = execution.takeLookupWords();
+    const lookup = execution.takeLookup();
     feed_stage.end();
     return .{
         .component = .{
@@ -265,7 +282,8 @@ fn executeComponent(
             .words_per_row = witness_program.n_sub_words,
             .words = sub_words,
             .lookup_words_per_row = witness_program.n_lookup_words,
-            .lookup_words = lookup_words,
+            .lookup_words = lookup.words,
+            .lookup_allocation = lookup.allocation,
         },
     };
 }

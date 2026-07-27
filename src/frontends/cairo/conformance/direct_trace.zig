@@ -126,6 +126,8 @@ fn compareComponent(
         input,
         witness_program,
         null,
+        null,
+        0,
         source,
         try base_execution.layout(expected),
         null,

@@ -5,11 +5,18 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const arena_plan = @import("../../../backends/metal/arena_plan.zig");
 const relation_recipe = @import("../../../backends/metal/recipes/relation.zig");
 const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
+const recorded_interaction =
+    @import("../../../frontends/cairo/conformance/recorded_interaction.zig");
 const interaction_executor = @import("../../../frontends/cairo/witness/interaction_executor.zig");
 const interaction_trace = @import("../../../frontends/cairo/witness/interaction_trace.zig");
+const resident_interaction = @import("resident_interaction.zig");
+const resident_lookup = @import("resident_lookup.zig");
 
 pub fn executor() interaction_executor.Executor {
-    return .{ .execute_fn = execute };
+    return .{
+        .allocate_lookup_fn = resident_lookup.allocate,
+        .execute_fn = execute,
+    };
 }
 
 fn execute(
@@ -22,6 +29,17 @@ fn execute(
     ) != null;
     const started = if (diagnostics) try std.time.Instant.now() else undefined;
     try validateRequest(request);
+    if (request.source.backendResidency()) |residency|
+        if (resident_lookup.fromResidency(residency)) |storage|
+            return resident_interaction.execute(allocator, request, storage);
+    if (std.posix.getenv("STWO_CAIRO_METAL_FORCE_COPIED_LOGUP") == null)
+        return recorded_interaction.materializeTrace(
+            allocator,
+            request.descriptors,
+            request.source,
+            request.z,
+            request.alpha_powers,
+        );
     var projection = try Projection.init(allocator, request);
     defer projection.deinit();
     const rows = request.source.rows();

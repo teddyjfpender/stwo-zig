@@ -6,6 +6,8 @@ const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const execution_tables = @import("execution_tables.zig");
 const generated = @import("generated_executor.zig");
+const interaction_executor = @import("interaction_executor.zig");
+const interaction_residency = @import("interaction_residency.zig");
 const program_mod = @import("program.zig");
 const prover = @import("stwo_prover_impl");
 const work_pool = prover.work_pool;
@@ -23,20 +25,29 @@ pub const Execution = struct {
     output_storage: []u32,
     output_columns: [][]u32,
     lookup_words: []u32,
+    lookup_allocation: ?interaction_residency.LookupAllocation,
     sub_words: []u32,
 
     pub fn deinit(self: *Execution) void {
         self.allocator.free(self.sub_words);
-        self.allocator.free(self.lookup_words);
+        var lookup = interaction_residency.RetainedLookup{
+            .words = self.lookup_words,
+            .allocation = self.lookup_allocation,
+        };
+        lookup.deinit(self.allocator);
         self.allocator.free(self.output_columns);
         self.allocator.free(self.output_storage);
         self.* = undefined;
     }
 
-    pub fn takeLookupWords(self: *Execution) []u32 {
-        const words = self.lookup_words;
+    pub fn takeLookup(self: *Execution) interaction_residency.RetainedLookup {
+        const retained = interaction_residency.RetainedLookup{
+            .words = self.lookup_words,
+            .allocation = self.lookup_allocation,
+        };
         self.lookup_words = &.{};
-        return words;
+        self.lookup_allocation = null;
+        return retained;
     }
 
     pub fn takeSubWords(self: *Execution) []u32 {
@@ -51,6 +62,8 @@ pub fn execute(
     input: *const adapter.ProverInput,
     witness_program: program_mod.Program,
     generated_executor: ?generated.Executor,
+    interaction_backend: ?interaction_executor.Executor,
+    interaction_columns: usize,
     source: anytype,
     layout: component_layout.ComponentLayout,
     pedersen_table: ?deductions.PedersenTable,
@@ -114,6 +127,7 @@ pub fn execute(
         .output_storage = try allocator.alloc(u32, output_words),
         .output_columns = &.{},
         .lookup_words = &.{},
+        .lookup_allocation = null,
         .sub_words = &.{},
     };
     errdefer allocator.free(result.output_storage);
@@ -131,8 +145,30 @@ pub fn execute(
     for (result.output_columns, native_output_columns) |column, *view| {
         view.* = .{ .ptr = column.ptr, .len = column.len };
     }
-    result.lookup_words = try allocator.alloc(u32, lookup_words);
-    errdefer allocator.free(result.lookup_words);
+    if (interaction_backend) |backend| {
+        if (try backend.allocateLookup(allocator, .{
+            .rows = row_count,
+            .word_columns = witness_program.n_lookup_words,
+            .interaction_columns = interaction_columns,
+        })) |allocation| {
+            if (allocation.words.len != lookup_words) {
+                var invalid = allocation;
+                invalid.deinit();
+                return Error.InvalidReceiptGeometry;
+            }
+            result.lookup_words = allocation.words;
+            result.lookup_allocation = allocation;
+        }
+    }
+    if (result.lookup_allocation == null) {
+        result.lookup_words = try allocator.alloc(u32, lookup_words);
+    }
+    errdefer {
+        if (result.lookup_allocation) |*allocation|
+            allocation.deinit()
+        else
+            allocator.free(result.lookup_words);
+    }
     result.sub_words = try allocator.alloc(u32, sub_words);
     errdefer allocator.free(result.sub_words);
     output_stage.end();

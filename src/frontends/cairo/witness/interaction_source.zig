@@ -8,6 +8,7 @@ const std = @import("std");
 const m31_mod = @import("stwo_core").fields.m31;
 const M31 = m31_mod.M31;
 const relation_bundle = @import("relation_bundle.zig");
+const interaction_residency = @import("interaction_residency.zig");
 
 pub const Error = error{
     InvalidDescriptor,
@@ -104,6 +105,7 @@ pub const SourceView = struct {
     storage: Storage,
     real_rows: usize,
     source_offset_rows: u32,
+    residency: ?interaction_residency.Residency = null,
 
     pub fn lookupWords(columns: LookupColumns, real_rows: usize) Error!SourceView {
         try validateRows(columns.rows, real_rows);
@@ -184,6 +186,19 @@ pub const SourceView = struct {
 
     pub fn sourceOffsetRows(self: SourceView) u32 {
         return self.source_offset_rows;
+    }
+
+    pub fn backendResidency(self: SourceView) ?interaction_residency.Residency {
+        return self.residency;
+    }
+
+    pub fn withResidency(
+        self: SourceView,
+        residency: ?interaction_residency.Residency,
+    ) SourceView {
+        var result = self;
+        result.residency = residency;
+        return result;
     }
 
     /// Physical columns in the relation-kernel ABI. Lookup words form one

@@ -46,6 +46,7 @@ test "official Cairo all-opcodes commitment traces match Rust" {
         &input,
         &programs,
         null,
+        null,
         topology,
         &fixed,
         .canonical_small,

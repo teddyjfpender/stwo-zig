@@ -143,6 +143,7 @@ pub fn proveFixtureWithRecorder(
             fixture.input,
             fixture.programs,
             fixture.generated_executor,
+            fixture.interaction_executor,
             fixture.topology,
             fixture.fixed,
             claimVariant(variant),
@@ -264,6 +265,7 @@ pub fn proveFixtureWithRecorder(
         );
     };
     defer interaction.deinit();
+    base.releaseWitnessFeeds();
     const public_sum = try statement.public_logup.sum(
         allocator,
         fixture.input,

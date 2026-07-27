@@ -488,3 +488,47 @@ resident allocation whose ownership crosses generated witness execution,
 lookup-word retention, LogUp, and commitment. The staged executor remains an
 exact differential harness for that architecture and is not enabled in the
 production capability surface.
+
+## Result 10: resident generated lookup feeds
+
+The generated witness boundary now accepts backend-owned lookup storage. The
+Metal implementation reserves exact source, relation-output, challenge, and
+scan regions in one shared arena per generated component. Generated CPU
+writers fill the canonical lookup region directly; the retained producer
+carries an opaque residency identity into LogUp. CPU and conformance callers
+retain ordinary allocator-owned storage.
+
+This removes source projection and host-to-transient-arena copies for admitted
+generated component relations. A structural `2^22` total relation-cell
+threshold admits large relations; sub-break-even relations use the existing
+CPU/SIMD materializer until they can be batched into one GPU epoch. Implicit
+fixed and memory-table relations also retain their existing materializer.
+Retained witness arenas are released immediately after interaction
+construction rather than surviving through interaction commitment and proof
+completion.
+
+The initial all-resident screen was rejected after a same-build control showed
+that per-component synchronization regressed small relations. The final hybrid
+screen was:
+
+| Workload | Default Metal ms | Hybrid resident Metal ms | Result |
+| --- | ---: | ---: | ---: |
+| all-opcodes | 1,351.424 | 1,504.393 | no admitted relations; timing inconclusive |
+| Arithmetic 2m | 2,101.387 | 1,988.535 | `1.057x` |
+| Memory 7m | 4,973.406 | 4,649.810 | `1.070x` |
+
+Arithmetic used five relation epochs and interaction construction fell from
+358.161 to 234.601 ms. Memory used eight relation epochs and interaction
+construction fell from the prior 938.298 ms profile to 529.173 ms. Proof
+SHA-256 values remained exactly
+`c85871be873122a30a4c6e9c553a368281d206bc55d78c0a40ea16d819474740`,
+`caf3c89b90d69b7c35baace30ba9892e3e9c30a8a03f5f59213018477db4ae9f`,
+and `1cc39978f3d0ba73a7974f173f156c2f9b6ae966a107aa041cc600cd50fe8ffc`.
+All proofs verified with zero CPU fallbacks.
+
+These are diagnostic comparisons, not a multi-round promotion. The retained
+storage and structural admission policy are accepted as the first
+system-positive generalized Metal LogUp placement for large relations. Small
+relations remain an explicit batching task. Telemetry records every relation
+command epoch so later judged runs cannot undercount this new GPU work.
+The path remains opt-in through `STWO_CAIRO_METAL_RESIDENT_LOGUP=1`.

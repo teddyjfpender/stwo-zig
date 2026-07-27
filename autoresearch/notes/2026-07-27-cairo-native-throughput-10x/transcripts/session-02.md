@@ -208,3 +208,48 @@ This candidate is rejected for default placement. It is retained behind
 harness. Default Metal proving continues to use the faster host materializer
 until generated witness outputs, lookup feeds, interaction outputs, and PCS
 commitment share one resident backing.
+
+## Resident lookup-feed increment
+
+The copied bridge isolated source movement as the dominant cost, so the next
+candidate changed ownership rather than the relation kernels. The interaction
+executor can now allocate retained lookup storage before witness execution.
+Metal allocates an exact shared arena for the lookup source, relation outputs,
+challenges, claimed sum, and scan scratch. The generated host writer writes
+directly through the shared buffer's CPU mapping, and the producer transports
+only an opaque backend residency identity into LogUp.
+
+The first exact all-resident screen looked positive against an earlier loaded
+control, but a same-build all-opcodes control measured 1,351.424 ms default
+versus 1,532-1,555 ms resident. This rejected one synchronized GPU epoch per
+component. The implementation now admits a generated relation only when its
+source plus coordinate outputs cover at least `2^22` field cells. Smaller and
+implicit relations use the existing CPU/SIMD materializer pending batching.
+
+All-opcodes admitted no relations and measured 1,504.393 ms in the final
+diagnostic; the default/hybrid difference is not claimed because unrelated
+proof stages varied. Both paths retained exact SHA-256
+`c85871be873122a30a4c6e9c553a368281d206bc55d78c0a40ea16d819474740`.
+
+Arithmetic 2m used five resident relation epochs and measured 1,988.535 ms
+versus a same-build 2,101.387 ms default (`1.057x`). Interaction construction
+fell from 358.161 to 234.601 ms, making the improvement attributable rather
+than a whole-proof timing coincidence. Its exact proof SHA-256 remained
+`caf3c89b90d69b7c35baace30ba9892e3e9c30a8a03f5f59213018477db4ae9f`.
+
+A single bounded Memory 7m hybrid run used eight resident relation epochs and
+measured 4,649.810 ms versus the committed generated-writer default of
+4,973.406 ms (`1.070x`). Interaction construction was 529.173 ms versus
+938.298 ms in the prior default profile, and the proof retained SHA-256
+`1cc39978f3d0ba73a7974f173f156c2f9b6ae966a107aa041cc600cd50fe8ffc`.
+All three proofs independently verified with zero CPU fallbacks.
+
+The run also exposed missing evidence granularity: relation commands were real
+Metal work but absent from the aggregate dispatch counters. A dedicated
+relation-epoch counter was added at the shared recipe boundary. The candidate
+will not be promoted from these single samples; retained storage and the
+structural large-relation policy are accepted for exactness and positive
+large-workload evidence, while small-relation batching remains future work.
+The final experimental selector is
+`STWO_CAIRO_METAL_RESIDENT_LOGUP=1`; the prior host-bridge selector remains a
+compatibility alias for this research branch.

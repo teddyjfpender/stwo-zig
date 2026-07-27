@@ -29,6 +29,8 @@ pub const Product = struct {
         _: *ProofContext,
     ) ?package.frontends.cairo.witness.interaction_executor.Executor {
         const enabled = std.posix.getenv(
+            "STWO_CAIRO_METAL_RESIDENT_LOGUP",
+        ) orelse std.posix.getenv(
             "STWO_CAIRO_METAL_HOST_BRIDGED_LOGUP",
         ) orelse return null;
         if (!std.mem.eql(u8, enabled, "1")) return null;
