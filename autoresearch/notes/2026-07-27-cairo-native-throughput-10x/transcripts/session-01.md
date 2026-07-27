@@ -268,3 +268,32 @@ The candidate was removed completely. The architectural lesson is stricter:
 one final arena must be planned before witness execution so writers target
 their committed offsets directly. Ownership metadata cannot repair fragmented
 construction after the fact.
+
+## Clean portfolio checkpoint
+
+The accepted branch was rebuilt from clean commit `43e9f3b5` and each of the
+seven portfolio rows was proved once through both product binaries. The
+historically invalid memory input was replaced with the established valid
+7.37M-step artifact. Every proof verified, CPU and Metal bytes matched for
+every row, and Metal recorded zero fallbacks.
+
+Relative to the clean pre-round `03644459` matrix:
+
+```text
+workload             CPU ms     CPU gain    Metal ms    Metal gain
+all-opcodes          1556.857    1.505x      1442.562     1.609x
+poseidon             1173.401    1.685x       970.110     1.951x
+pedersen             4066.334    1.072x      3758.979     1.129x
+fibonacci-100k       2060.214    1.198x      1586.225     1.347x
+factorial-100k       2709.832    1.570x      2245.060     1.729x
+arithmetic-2m        4350.179    1.211x      3368.295     1.336x
+memory-7m           11492.443    1.062x      9277.984     1.115x
+geometric mean                   1.309x                   1.431x
+```
+
+This is broad movement, but it is not the requested order of magnitude.
+Current Zig/Rust geometric-mean time ratios remain 2.109 on CPU and 1.760 on
+Metal. Native PCS throughput cannot close a frontend that still constructs
+witnesses through a row-wise interpreter and executes witness, interaction,
+and AIR work on the host. The next research goal must make those boundaries
+resident or generated while retaining the same seven-row scoring surface.

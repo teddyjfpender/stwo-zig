@@ -296,3 +296,43 @@ The implementation was removed. A valid successor must allocate one
 backend-shaped base arena before component execution and write every generated
 and implicit column directly into its final offset. Retrofitting ownership
 after fragmented allocation does not remove the representation transform.
+
+## Final clean portfolio screen
+
+Commit `43e9f3b5` was rebuilt cleanly and screened once across the fixed
+seven-workload canonical-small portfolio. This is a diagnostic portfolio
+screen, not a multi-round judged promotion. The comparison column uses the
+clean `03644459` matrix recorded before this research branch.
+
+| Workload | CPU ms | CPU M cells/s | CPU gain | Metal ms | Metal M cells/s | Metal gain |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 1,556.857 | 62.575 | `1.505x` | 1,442.562 | 67.533 | `1.609x` |
+| Poseidon aggregator | 1,173.401 | 41.162 | `1.685x` | 970.110 | 49.787 | `1.951x` |
+| Pedersen aggregator | 4,066.334 | 11.813 | `1.072x` | 3,758.979 | 12.779 | `1.129x` |
+| Fibonacci 100k | 2,060.214 | 54.829 | `1.198x` | 1,586.225 | 71.213 | `1.347x` |
+| Factorial 100k | 2,709.832 | 45.458 | `1.570x` | 2,245.060 | 54.869 | `1.729x` |
+| Arithmetic 2m | 4,350.179 | 49.800 | `1.211x` | 3,368.295 | 64.317 | `1.336x` |
+| Memory 7m | 11,492.443 | 52.570 | `1.062x` | 9,277.984 | 65.118 | `1.115x` |
+
+The geometric-mean throughput gains are `1.309x` CPU and `1.431x` Metal.
+Against the unchanged pinned Rust medians, current Zig remains `2.109x`
+slower on CPU and `1.760x` slower on Metal. Therefore neither the Rust-parity
+threshold nor the `10x` forcing target is reached.
+
+All seven CPU/Metal binary proof pairs were byte-identical and verified. Metal
+reported 73-79 dispatches per row and zero CPU fallbacks. The invalid
+historical memory corpus was not reused: the memory row used the valid
+7.37M-step replacement established by the preceding soundness-aware study.
+Peak RSS ranged from 1.39 to 13.98 GB on CPU and 0.53 to 9.76 GB on Metal.
+
+The results reject the premise that native and Cairo committed-cell rates
+differ only because of low-level PCS kernels. The remaining gap is dominated
+by Cairo-specific witness execution, interaction construction, static
+preprocessing, and host AIR evaluation. Reaching another order of magnitude
+requires the already identified system architecture:
+
+- profile-authenticated immutable preprocessing products;
+- one final base arena planned before witness execution;
+- generated CPU witness writers rather than a row-wise bytecode switch;
+- general Metal AOT witness admission beyond the captured SN2 schedule; and
+- resident interaction and AIR evaluation fused into commitment epochs.
