@@ -270,6 +270,7 @@ fn rebindSequenceColumn(
     const source_name = try std.fmt.bufPrint(&source_buffer, "seq_{}", .{source_log});
     const source_sequence = source_spec.indexOf(source_name) orelse
         return error.MissingSourceSequenceColumn;
+    if (std.mem.indexOfScalar(u32, source_indices, source_sequence) == null) return;
     var target_buffer: [16]u8 = undefined;
     const target_name = try std.fmt.bufPrint(&target_buffer, "seq_{}", .{target_log});
     const target_sequence = target_spec.indexOf(target_name) orelse
@@ -428,4 +429,27 @@ test "official Cairo AIR templates derive vanishing inverses from live geometry"
         );
         try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
     }
+}
+
+test "sequence rebinding permits larger components without sequence inputs" {
+    const allocator = std.testing.allocator;
+    var canonical = try preprocessed.Spec.init(allocator, .canonical);
+    defer canonical.deinit();
+    var small = try preprocessed.Spec.init(allocator, .canonical_small);
+    defer small.deinit();
+
+    const source_indices = [_]u32{canonical.indexOf("blake_sigma_0").?};
+    var projected = [_]u32{small.indexOf("blake_sigma_0").?};
+    try rebindSequenceColumn(
+        &projected,
+        &source_indices,
+        canonical,
+        small,
+        20,
+        21,
+    );
+    try std.testing.expectEqual(
+        small.indexOf("blake_sigma_0").?,
+        projected[0],
+    );
 }
