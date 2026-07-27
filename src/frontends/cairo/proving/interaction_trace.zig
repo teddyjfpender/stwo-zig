@@ -63,7 +63,7 @@ pub fn build(
     recorder: ?*prover.stage_profile.Recorder,
 ) !InteractionTrace {
     const alpha_powers = deriveAlphaPowers(lookup_alpha);
-    var collector = try Collector.init(allocator, &base.geometry);
+    var collector = try Collector.init(allocator, &base.geometry, recorder);
     defer collector.deinit();
 
     for (base.execution.producers) |producer| {
@@ -309,10 +309,12 @@ const Collector = struct {
     allocator: std.mem.Allocator,
     geometry: *const claim_generator.OwnedClaimGeometry,
     components: []?ComponentColumns,
+    recorder: ?*prover.stage_profile.Recorder,
 
     fn init(
         allocator: std.mem.Allocator,
         geometry: *const claim_generator.OwnedClaimGeometry,
+        recorder: ?*prover.stage_profile.Recorder,
     ) !Collector {
         const components = try allocator.alloc(?ComponentColumns, geometry.components.len);
         @memset(components, null);
@@ -320,6 +322,7 @@ const Collector = struct {
             .allocator = allocator,
             .geometry = geometry,
             .components = components,
+            .recorder = recorder,
         };
     }
 
@@ -401,13 +404,21 @@ const Collector = struct {
     ) !void {
         if (self.components[component_index] != null)
             return error.DuplicateInteractionComponent;
-        var materialized = try recorded_interaction.materializeTrace(
-            self.allocator,
-            descriptors,
-            source,
-            lookup_z,
-            alpha_powers,
-        );
+        var materialized = blk: {
+            var stage = try prover.stage_profile.StageScope.begin(
+                self.recorder,
+                "interaction_fraction_materialize",
+                "Interaction fraction materialization",
+            );
+            defer stage.end();
+            break :blk try recorded_interaction.materializeTrace(
+                self.allocator,
+                descriptors,
+                source,
+                lookup_z,
+                alpha_powers,
+            );
+        };
         defer materialized.deinit();
         const component = self.geometry.components[component_index];
         const log_size = switch (component.log_size) {
@@ -416,8 +427,17 @@ const Collector = struct {
         };
         if (materialized.row_count != @as(usize, 1) << @intCast(log_size))
             return error.InvalidInteractionGeometry;
+        const columns = blk: {
+            var stage = try prover.stage_profile.StageScope.begin(
+                self.recorder,
+                "interaction_coordinate_lower",
+                "Interaction coordinate lowering",
+            );
+            defer stage.end();
+            break :blk try lowerCoordinates(self.allocator, materialized);
+        };
         self.components[component_index] = .{
-            .columns = try lowerCoordinates(self.allocator, materialized),
+            .columns = columns,
             .claimed_sum = materialized.claimed_sum,
         };
     }

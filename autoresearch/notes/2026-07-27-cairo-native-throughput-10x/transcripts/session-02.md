@@ -54,6 +54,13 @@ The approximate frontend share was 12-13% for all-opcodes, 13-14% for
 Poseidon, 78-82% for Pedersen, 37-46% for Fibonacci, 36-41% for Factorial,
 49-59% for Arithmetic, and 54-64% for Memory.
 
+An additional Memory 7m interaction split attributed 609.188 ms to relation
+fraction construction and batch inversion, 108.156 ms to lowering interleaved
+QM31 values into four commitment coordinates, and about 114 ms to
+multiplicity/source preparation and finalization. This makes device-resident
+relation construction and inversion a stronger target than optimizing the
+coordinate transpose in isolation.
+
 `/usr/bin/sample` attributed the main active CPU stacks to the witness graph,
 BLAKE2s commitments, Cairo AIR evaluation, and circle transforms. A true Metal
 device trace was unavailable because `xctrace` requires full Xcode and the
