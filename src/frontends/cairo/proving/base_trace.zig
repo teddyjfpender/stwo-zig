@@ -45,34 +45,60 @@ pub fn build(
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     variant: claim_generator.PreprocessedVariant,
+    recorder: ?*prover.stage_profile.Recorder,
 ) !BaseTrace {
-    var geometry = try claim_generator.deriveFromProverInput(
-        allocator,
-        input,
-        .{ .preprocessed_variant = variant },
-    );
+    var geometry = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_geometry",
+            "Base geometry derivation",
+        );
+        defer stage.end();
+        break :blk try claim_generator.deriveFromProverInput(
+            allocator,
+            input,
+            .{ .preprocessed_variant = variant },
+        );
+    };
     errdefer geometry.deinit();
     var collector = try Collector.init(allocator, &geometry);
     defer collector.deinit();
-    var execution = try live_graph.execute(
-        allocator,
-        input,
-        programs,
-        &geometry,
-        .{
-            .context = &collector,
-            .visit = observeGenerated,
-        },
-    );
+    var execution = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_witness_graph",
+            "Recorded witness graph",
+        );
+        defer stage.end();
+        break :blk try live_graph.execute(
+            allocator,
+            input,
+            programs,
+            &geometry,
+            .{
+                .context = &collector,
+                .visit = observeGenerated,
+            },
+            recorder,
+        );
+    };
     errdefer execution.deinit();
 
-    var multiplicities = try fixed_trace.populateLiveTopology(
-        allocator,
-        input,
-        topology,
-        execution.producers,
-        fixed,
-    );
+    var multiplicities = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_fixed_multiplicities",
+            "Fixed-table multiplicities",
+        );
+        defer stage.end();
+        break :blk try fixed_trace.populateLiveTopology(
+            allocator,
+            input,
+            topology,
+            execution.producers,
+            fixed,
+        );
+    };
     defer multiplicities.deinit();
     var max_fixed_rows: usize = 0;
     for (fixed.entries) |entry| {
@@ -94,36 +120,52 @@ pub fn build(
         try collector.captureNamed(entry.component, 0, source_columns);
     }
 
-    var counts = try cpu_memory.collectTopology(
-        allocator,
-        input,
-        topology,
-        execution.producers,
-    );
-    defer counts.deinit();
-    var address = try implicit.memoryAddress(allocator, input, &counts);
-    defer address.deinit();
-    try collector.captureNamed("memory_address_to_id", 0, address.columns);
-    const big_component_count = try @import("../witness/memory_tables.zig")
-        .bigComponentCount(input);
-    for (0..big_component_count) |component_index| {
-        var big = try implicit.memoryBig(allocator, input, &counts, component_index);
-        defer big.deinit();
-        const big_base_columns = try memoryBaseOrder(allocator, big.columns);
-        defer allocator.free(big_base_columns);
-        try collector.captureNamed(
-            "memory_id_to_big",
-            @intCast(component_index),
-            big_base_columns,
+    {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_memory_tables",
+            "Memory-table construction",
         );
+        defer stage.end();
+        var counts = try cpu_memory.collectTopology(
+            allocator,
+            input,
+            topology,
+            execution.producers,
+        );
+        defer counts.deinit();
+        var address = try implicit.memoryAddress(allocator, input, &counts);
+        defer address.deinit();
+        try collector.captureNamed("memory_address_to_id", 0, address.columns);
+        const big_component_count = try @import("../witness/memory_tables.zig")
+            .bigComponentCount(input);
+        for (0..big_component_count) |component_index| {
+            var big = try implicit.memoryBig(allocator, input, &counts, component_index);
+            defer big.deinit();
+            const big_base_columns = try memoryBaseOrder(allocator, big.columns);
+            defer allocator.free(big_base_columns);
+            try collector.captureNamed(
+                "memory_id_to_big",
+                @intCast(component_index),
+                big_base_columns,
+            );
+        }
+        var small = try implicit.memorySmall(allocator, input, &counts);
+        defer small.deinit();
+        const small_base_columns = try memoryBaseOrder(allocator, small.columns);
+        defer allocator.free(small_base_columns);
+        try collector.captureNamed("memory_id_to_small", 0, small_base_columns);
     }
-    var small = try implicit.memorySmall(allocator, input, &counts);
-    defer small.deinit();
-    const small_base_columns = try memoryBaseOrder(allocator, small.columns);
-    defer allocator.free(small_base_columns);
-    try collector.captureNamed("memory_id_to_small", 0, small_base_columns);
 
-    const columns = try collector.finish();
+    const columns = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_finalize",
+            "Base-column finalization",
+        );
+        defer stage.end();
+        break :blk try collector.finish();
+    };
     return .{
         .allocator = allocator,
         .columns = columns,

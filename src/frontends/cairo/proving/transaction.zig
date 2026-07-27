@@ -114,6 +114,7 @@ pub fn proveFixtureWithRecorder(
             fixture.topology,
             fixture.fixed,
             claimVariant(variant),
+            recorder,
         );
     };
     defer base.deinit();

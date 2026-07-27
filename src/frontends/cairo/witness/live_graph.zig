@@ -17,6 +17,7 @@ const direct_inputs = @import("direct_inputs.zig");
 const gathered_inputs = @import("gathered_inputs.zig");
 const producer_output = @import("producer_output.zig");
 const witness_bundle = @import("bundle.zig");
+const stage_profile = @import("stwo_prover_impl").stage_profile;
 
 pub const Error = error{
     AllocationSizeOverflow,
@@ -63,6 +64,7 @@ pub fn execute(
     programs: *const witness_bundle.Bundle,
     geometry: *claim_generator.OwnedClaimGeometry,
     observer: ?ComponentObserver,
+    recorder: ?*stage_profile.Recorder,
 ) !Execution {
     var components = std.ArrayList(Component).empty;
     errdefer components.deinit(allocator);
@@ -84,6 +86,12 @@ pub fn execute(
         if (!deductions.supportsProgram(entry.program))
             return Error.UnsupportedWitnessProgram;
 
+        var component_stage = try stage_profile.StageScope.begin(
+            recorder,
+            claim_component.name,
+            claim_component.name,
+        );
+        defer component_stage.end();
         const result = if (proof_plan.compactGeometry(claim_component.name)) |compact_geometry| blk: {
             var active_edges = std.ArrayList(proof_plan.ProducerEdge).empty;
             defer active_edges.deinit(allocator);
