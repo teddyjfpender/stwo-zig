@@ -139,7 +139,10 @@ const Trace = struct {
 /// committed column order and is already pinned by the witness-layout digest.
 /// Deriving them here rather than restating them means a layout change moves
 /// the IR with it instead of silently renaming a counterexample's variables.
-fn columnNames(comptime family: OpcodeFamily) []const []const u8 {
+/// Public because a board counterexample is keyed by these names, and the test
+/// that replays one against the row oracle must use the emitter's own mapping
+/// rather than a second copy that can drift.
+pub fn columnNames(comptime family: OpcodeFamily) []const []const u8 {
     @setEvalBranchQuota(20_000);
     const Layout = witness_layout.LayoutFor(family);
     const fields = @typeInfo(Layout).@"struct".fields;
@@ -170,6 +173,10 @@ fn columnNames(comptime family: OpcodeFamily) []const []const u8 {
 //            witness, not input, and that is deliberate: it is bound to `prev`
 //            only by the read-only residuals, so leaving it free is exactly how
 //            a solver rediscovers the register-rewrite bug.
+//
+// One correction is applied on top of the names: a committed column handed
+// verbatim to the `program_access` tuple is instruction identity and becomes an
+// input whatever it is called. See `programIdentityNames`.
 fn roleOf(name: []const u8, written_prefix: []const u8) []const u8 {
     if (eq(name, "clock") or eq(name, "pc") or eq(name, "enabler")) return "input";
     if (std.mem.endsWith(u8, name, "_flag")) return "input";
@@ -185,6 +192,41 @@ fn roleOf(name: []const u8, written_prefix: []const u8) []const u8 {
         std.mem.indexOf(u8, name, "_next_") != null) return "output";
 
     return "witness";
+}
+
+/// Committed columns the row hands verbatim to its `program_access` consume
+/// tuple. These are instruction-identity fields — the decoded operand indexes
+/// and immediates — and they are inputs for the same reason `pc`'s declared
+/// domain is admissible: the yielding side of the bus is the program
+/// commitment, which holds exactly one decoded tuple per pc, so two full traces
+/// presenting the same pc present the same tuple. ASSUMPTION: the bus closes,
+/// which a per-row query cannot see — identical to the assumption already
+/// recorded on the pc domain.
+///
+/// The name heuristic above catches most of them (`*_addr`, `imm*`, `*_flag`),
+/// but not a pinned Stark-V name like `load_store`'s `r2_idx`, which reached
+/// the board as a free witness and manufactured a "counterexample" in which the
+/// two copies executed different decoded instructions. Promotion is the
+/// dangerous direction — an input is shared between copies, so over-promoting
+/// hides real bugs — which is why only bare tuple components qualify: a column
+/// that merely feeds an expression of the tuple is not itself pinned by it.
+fn programIdentityNames(
+    nodes: []const Node,
+    lookups: []const Lookup,
+    buffer: *[8][]const u8,
+) ![]const []const u8 {
+    var count: usize = 0;
+    for (lookups) |request| {
+        if (!eq(request.domain, "program_access")) continue;
+        for (request.tuple) |component| {
+            const node = nodes[component];
+            if (!eq(node.op, "col")) continue;
+            buffer[count] = node.name;
+            count += 1;
+            if (count == buffer.len) return error.ProgramTupleWiderThanExpected;
+        }
+    }
+    return buffer[0..count];
 }
 
 fn eq(a: []const u8, b: []const u8) bool {
@@ -488,12 +530,20 @@ fn writeColumns(
     names: []const []const u8,
     prefix: []const u8,
     aliases: []const Alias,
+    program_identity: []const []const u8,
 ) !void {
     const total = names.len + aliases.len;
     var written: usize = 0;
     try w.writeAll("  \"columns\": [\n");
     for (names) |name| {
-        const role = roleOf(name, prefix);
+        var role = roleOf(name, prefix);
+        for (program_identity) |identity| {
+            if (!eq(name, identity)) continue;
+            // An architectural output inside the instruction identity would be
+            // a category error; surface it instead of silently reclassifying.
+            if (eq(role, "output")) return error.OutputInsideProgramTuple;
+            role = "input";
+        }
         written += 1;
         try w.print("    {{\"name\": \"{s}\", \"role\": \"{s}\"", .{ name, role });
         if (declaredDomain(name, role)) |domain| {
@@ -538,7 +588,13 @@ fn writeSystem(
     emitted: Emitted,
 ) !void {
     try w.print("{{\n  \"modulus\": {d},\n  \"family\": \"{s}\",\n", .{ MODULUS, @tagName(family) });
-    try writeColumns(w, names, writtenPrefix(family, names), emitted.aliases);
+    var identity_buffer: [8][]const u8 = undefined;
+    const program_identity = try programIdentityNames(
+        emitted.nodes,
+        emitted.lookups,
+        &identity_buffer,
+    );
+    try writeColumns(w, names, writtenPrefix(family, names), emitted.aliases, program_identity);
     try writeNodes(w, emitted.nodes);
 
     // Alias definitions follow the extracted constraints, so the prefix of this
