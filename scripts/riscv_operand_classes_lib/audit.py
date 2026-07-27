@@ -21,9 +21,9 @@ import tempfile
 from pathlib import Path
 
 try:
-    from scripts import riscv_equivalence as equivalence
-except ImportError:  # direct execution with scripts/ on sys.path
-    import riscv_equivalence as equivalence
+    from riscv_equivalence_lib import contract, rvfi
+except ModuleNotFoundError:  # Imported as scripts.riscv_operand_classes_lib.
+    from scripts.riscv_equivalence_lib import contract, rvfi
 
 from . import classes, encoding, session
 
@@ -145,7 +145,7 @@ def dump_trace(zig_bin: Path, elf: Path) -> dict:
         result = subprocess.run(
             [str(zig_bin), "--elf", str(elf), "--output", str(output),
              "--max-steps", str(MAX_STEPS)],
-            cwd=equivalence.ROOT,
+            cwd=rvfi.ROOT,
             capture_output=True,
             text=True,
         )
@@ -153,7 +153,7 @@ def dump_trace(zig_bin: Path, elf: Path) -> dict:
             raise AuditError(
                 f"riscv-trace-dump failed for {elf}: {result.stderr.strip()}"
             )
-        return equivalence.load_trace(output)
+        return contract.load_trace(output)
 
 
 def audit_corpus(
@@ -166,14 +166,14 @@ def audit_corpus(
     coverage = empty_coverage()
     skipped = []
     for path in elf_paths:
-        elf = equivalence.ROOT / path
+        elf = rvfi.ROOT / path
         if not elf.is_file():
             skipped.append(f"{path}: missing")
             continue
         try:
             trace = dump_trace(zig_bin, elf)
             replay_trace(sail_bin, trace, coverage)
-        except (AuditError, equivalence.EquivalenceError, OSError) as error:
+        except (AuditError, contract.EquivalenceError, OSError) as error:
             skipped.append(f"{path}: {error}")
     return coverage, skipped
 

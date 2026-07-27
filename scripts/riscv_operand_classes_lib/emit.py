@@ -20,9 +20,9 @@ import dataclasses
 from pathlib import Path
 
 try:
-    from scripts import riscv_sail_oracle as oracle
-except ImportError:  # direct execution with scripts/ on sys.path
-    import riscv_sail_oracle as oracle
+    from riscv_sail_oracle_lib import resolution as oracle
+except ModuleNotFoundError:  # Imported as scripts.riscv_operand_classes_lib.
+    from scripts.riscv_sail_oracle_lib import resolution as oracle
 
 from . import classes, encoding, session
 
@@ -136,7 +136,7 @@ def _header(identity: dict[str, str], group: str, count: int) -> str:
         f"//!   transport RVFI-DII v1, entry patch sha256 {identity['transport_patch_sha256']}\n"
         f"//! The binary hash is omitted deliberately: sail_riscv_sim builds are\n"
         f"//! not bit-reproducible, and identity is the pinned source revision\n"
-        f"//! plus build-info strings, which `riscv_equivalence.verify_sail_binary`\n"
+        f"//! plus build-info strings, which the Sail identity contract checked\n"
         f"//! checked before a single case was observed.\n\n"
         f'const data = @import("../operand_classes.zig");\n\n'
     )

@@ -46,7 +46,6 @@ but wrong binary is never silently papered over by a later candidate.
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import hashlib
 import json
 import os
@@ -58,9 +57,11 @@ from typing import Any, Mapping
 
 if __package__:
     from scripts import riscv_equivalence as equivalence
+    from scripts.riscv_sail_oracle_lib import resolution
 else:  # direct execution: python3 scripts/riscv_sail_oracle.py
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import riscv_equivalence as equivalence
+    from riscv_sail_oracle_lib import resolution
 
 
 REPORT_SCHEMA = "stwo-riscv-sail-oracle-report-v1"
@@ -82,10 +83,10 @@ EXIT_CODES = {
     VERDICT_UNAVAILABLE: 3,
 }
 
-ENV_SAIL_BIN = "STWO_RISCV_SAIL_BIN"
-ENV_WORKSPACE = "STWO_RISCV_FORMAL_WORKSPACE"
-DEFAULT_WORKSPACE = Path("/tmp/stwo-riscv-formal")
-SAIL_BINARY_IN_WORKSPACE = Path("source/sail-riscv/build/c_emulator/sail_riscv_sim")
+ENV_SAIL_BIN = resolution.ENV_SAIL_BIN
+ENV_WORKSPACE = resolution.ENV_WORKSPACE
+DEFAULT_WORKSPACE = resolution.DEFAULT_WORKSPACE
+SAIL_BINARY_IN_WORKSPACE = resolution.SAIL_BINARY_IN_WORKSPACE
 
 COMPARED_FIELDS = (
     "pc",
@@ -101,70 +102,10 @@ COMPARED_FIELDS = (
 )
 
 
-class SailUnavailable(RuntimeError):
-    """The pinned Sail oracle cannot be consulted on this host."""
-
-
-@dataclasses.dataclass(frozen=True)
-class ResolvedSail:
-    """A Sail binary that has already passed the pinned identity check."""
-
-    binary: Path
-    identity: dict[str, str]
-    source: str
-
-
-def resolve_sail(
-    explicit: Path | None = None,
-    environ: Mapping[str, str] = os.environ,
-) -> ResolvedSail:
-    """Find and identity-verify the pinned Sail binary, or raise SailUnavailable.
-
-    The first *configured* candidate is authoritative: if --sail-bin or an
-    environment variable names a binary that is missing or fails the pin,
-    that is UNAVAILABLE with the precise reason, not a fall-through to some
-    other binary that happens to exist. Falling through would let a
-    misconfigured caller believe it checked the binary it named.
-    """
-    candidate, source = _first_configured_candidate(explicit, environ)
-    if not candidate.is_file():
-        raise SailUnavailable(
-            f"pinned Sail binary not found at {candidate} (from {source}); "
-            f"build it with: python3 scripts/riscv_formal_tools.py prepare "
-            f"--workspace {DEFAULT_WORKSPACE}"
-        )
-    try:
-        identity = equivalence.verify_sail_binary(candidate)
-    except (
-        equivalence.EquivalenceError,
-        OSError,
-        subprocess.SubprocessError,
-    ) as error:
-        raise SailUnavailable(
-            f"{candidate} (from {source}) is not the pinned Sail oracle: {error}"
-        ) from error
-    return ResolvedSail(binary=candidate, identity=identity, source=source)
-
-
-def _first_configured_candidate(
-    explicit: Path | None,
-    environ: Mapping[str, str],
-) -> tuple[Path, str]:
-    if explicit is not None:
-        return Path(explicit), "--sail-bin"
-    env_bin = environ.get(ENV_SAIL_BIN)
-    if env_bin:
-        return Path(env_bin), f"${ENV_SAIL_BIN}"
-    env_workspace = environ.get(ENV_WORKSPACE)
-    if env_workspace:
-        return (
-            Path(env_workspace) / SAIL_BINARY_IN_WORKSPACE,
-            f"${ENV_WORKSPACE}",
-        )
-    return (
-        DEFAULT_WORKSPACE / SAIL_BINARY_IN_WORKSPACE,
-        f"default workspace {DEFAULT_WORKSPACE}",
-    )
+SailUnavailable = resolution.SailUnavailable
+ResolvedSail = resolution.ResolvedSail
+resolve_sail = resolution.resolve_sail
+_first_configured_candidate = resolution.first_configured_candidate
 
 
 def probe(

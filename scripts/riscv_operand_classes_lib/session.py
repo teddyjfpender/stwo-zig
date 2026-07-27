@@ -5,7 +5,7 @@ state across injected instructions, so a shared session would let one
 case's registers or memory leak into the next and the recorded expectation
 would no longer be the body's own. Transport plumbing (port reservation,
 connection, packet framing, pinned-identity verification) is imported from
-`riscv_equivalence`, which remains the one owner of the RVFI-DII wire
+`riscv_equivalence_lib.rvfi`, which remains the one owner of the RVFI-DII wire
 format; this module adds only the source-register fields the coverage
 audit needs, which the canonical retirement comparison deliberately
 excludes.
@@ -19,13 +19,13 @@ import subprocess
 from pathlib import Path
 
 try:
-    from scripts import riscv_equivalence as equivalence
-except ImportError:  # direct execution with scripts/ on sys.path
-    import riscv_equivalence as equivalence
+    from riscv_equivalence_lib import rvfi
+except ModuleNotFoundError:  # Imported as scripts.riscv_operand_classes_lib.
+    from scripts.riscv_equivalence_lib import rvfi
 
 from . import classes, encoding
 
-ENTRY = equivalence.RVFI_DII_ENTRY
+ENTRY = rvfi.RVFI_DII_ENTRY
 # A body may retire each instruction at most once (the trampolines are
 # built that way), so anything past this bound is a malformed case looping.
 MAX_RETIREMENTS_FACTOR = 2
@@ -60,7 +60,7 @@ class Retirement:
 
 
 def _decode_retirement(packet: bytes) -> Retirement:
-    row = equivalence.decode_rvfi_dii_v1(packet)
+    row = rvfi.decode_rvfi_dii_v1(packet)
     return Retirement(
         pc=row["pc"],
         next_pc=row["next_pc"],
@@ -155,20 +155,20 @@ class SailSession:
     """One live RVFI-DII v1 session against an already-verified binary."""
 
     def __init__(self, sail_bin: Path, timeout_seconds: float = 10.0):
-        port = equivalence._reserve_tcp_port()
+        port = rvfi.reserve_tcp_port()
         command = [str(sail_bin), "--rv32"]
-        for override in equivalence.SAIL_CONFIG_OVERRIDES:
+        for override in rvfi.SAIL_CONFIG_OVERRIDES:
             command.extend(("--config-override", str(override)))
         command.extend(("--rvfi-dii", str(port)))
         self._timeout = timeout_seconds
         self._process = subprocess.Popen(
             command,
-            cwd=equivalence.ROOT,
+            cwd=rvfi.ROOT,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         try:
-            self._connection = equivalence._connect_rvfi(
+            self._connection = rvfi.connect_rvfi(
                 self._process, port, timeout_seconds
             )
             self._connection.settimeout(timeout_seconds)
@@ -178,8 +178,8 @@ class SailSession:
 
     def step(self, instruction: int) -> Retirement:
         self._connection.sendall(struct.pack("<Q", (1 << 48) | instruction))
-        packet = equivalence._recv_exact(
-            self._connection, equivalence.RVFI_DII_V1_BYTES
+        packet = rvfi.recv_exact(
+            self._connection, rvfi.RVFI_DII_V1_BYTES
         )
         return _decode_retirement(packet)
 
@@ -188,8 +188,8 @@ class SailSession:
         try:
             self._connection.sendall(struct.pack("<Q", 0))
             halt_packet = _decode_retirement(
-                equivalence._recv_exact(
-                    self._connection, equivalence.RVFI_DII_V1_BYTES
+                rvfi.recv_exact(
+                    self._connection, rvfi.RVFI_DII_V1_BYTES
                 )
             )
             if not halt_packet.halt:
@@ -331,5 +331,4 @@ def _check_retirement(
         raise SessionError(
             f"{case.name}[{index}]: Sail wrote x{ret.rd}, encoder meant x{decoded['rd']}"
         )
-
 
