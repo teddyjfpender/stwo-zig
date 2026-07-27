@@ -22,6 +22,29 @@ pub const MAX_INFRA_COMPONENTS: usize = 512;
 pub const MAX_TOTAL_STEPS: u32 = 10_000_000;
 pub const MAX_DOMAIN_LOG_SIZE: u32 = 30;
 pub const MAX_COMMITTED_CELLS: u64 = 1 << 32;
+pub const ACCESS_CLOCK_STRIDE: u32 = 4;
+pub const MAX_ACCESSES_PER_INSTRUCTION: u32 = 3;
+
+pub fn maximumAccessClock(instruction_count: u32) u64 {
+    if (instruction_count == 0) return 0;
+    return (@as(u64, instruction_count) - 1) * ACCESS_CLOCK_STRIDE +
+        MAX_ACCESSES_PER_INSTRUCTION;
+}
+
+pub fn isCanonicalAccessClock(clock: u32) bool {
+    if (clock == 0) return false;
+    return ((clock - 1) % ACCESS_CLOCK_STRIDE) < MAX_ACCESSES_PER_INSTRUCTION;
+}
+
+pub fn isAccessClockWithinExecution(
+    clock: u32,
+    instruction_count: u32,
+    allow_zero: bool,
+) bool {
+    if (clock == 0) return allow_zero;
+    return isCanonicalAccessClock(clock) and
+        @as(u64, clock) <= maximumAccessClock(instruction_count);
+}
 
 pub const Qm31Wire = [4]u32;
 
@@ -142,7 +165,7 @@ pub const InteractionClaimWire = struct {
     infrastructure_claims: []const InfraClaimWire,
 };
 
-/// JSON envelope reserved for CPU proofs while the adapter is staged.
+/// JSON envelope for Sail-profile RISC-V CPU proofs.
 /// `proof_bytes_hex` is the canonical Stwo proof wire encoded as lowercase hex.
 pub const Artifact = struct {
     artifact_kind: []const u8,

@@ -28,10 +28,10 @@ of the shipped audit and peer-series workflows accumulate evidence after merge
 without changing metric semantics.
 
 This goal starts from the fully release-gated RISC-V adapter commit. It does not
-weaken RF-01, the Rust Stwo correctness oracle, the pinned Stark-V RISC-V oracle,
-or the locked-host judge contract. Metrics v2 is complete only when the repository
-can measure large native workloads, adjudicate changes on the locked M5 host, and
-derive every published score from replayable evidence.
+weaken RF-01, the Rust Stwo correctness authority, pinned Sail/Spike RISC-V
+evidence, or the locked-host judge contract. Metrics v2 is complete only when
+the repository can measure large native workloads, adjudicate changes on the
+locked M5 host, and derive every published score from replayable evidence.
 
 ## Objective
 
@@ -56,7 +56,8 @@ validation, and a clean replay from the recorded inputs.
 ## Non-negotiable invariants
 
 - Proofs measured by the native lanes pass the pinned Rust Stwo oracle. RISC-V
-  proofs pass the pinned Stark-V oracle. Cross-arm proof bytes remain identical.
+  rows bind pinned Sail/Spike correctness evidence and pass independent Zig
+  artifact verification. Cross-arm proof bytes remain identical.
 - Frozen performance-authority epoch 3 files under
   `conformance/performance-authority/epoch-3/` are never edited.
 - Historical ledger rows are never rewritten. New schema versions parse old rows
@@ -328,9 +329,9 @@ Its judged row references the claimed row through `supersedes`; effective views
 retire the claim but preserve it visibly. Feed output reports judged/effective
 row count and judged share by board/class and globally.
 
-The RISC-V group is enabled only after the promoted RF-01 release receipt, M5
-anchors/A/A, Stark-V oracle cache identity, and activation receipt all validate.
-Its promotions remain isolated to the RISC-V board.
+The RISC-V group is enabled only after the promoted RF-01 release state, M5
+anchors/A/A, pinned Sail/Spike corpus evidence, and activation receipt all
+validate. Its promotions remain isolated to the RISC-V board.
 
 ## W10: Search health
 
@@ -361,7 +362,7 @@ fully promoted RF commit:
 1. Zig format and source-conformance gates.
 2. Focused native CPU product tests and report-schema tests.
 3. Focused native Metal build/tests and AOT admission checks.
-4. Focused RISC-V product/release tests and Stark-V oracle parity.
+4. Focused RISC-V product/release tests and pinned Sail/Spike evidence binding.
 5. All autoresearch unit, hermetic end-to-end, failure-injection, workflow, feed,
    ledger, correction-graph, and activation tests.
 6. Synthetic W2-W4 replay: direct audit replaces claimed credit exactly; a

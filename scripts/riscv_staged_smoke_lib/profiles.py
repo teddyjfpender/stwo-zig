@@ -1,4 +1,8 @@
-"""Profile contracts and producer linkage for the installed RISC-V smoke."""
+"""Archived producer-linked smoke profile parsers.
+
+The executable fast profile is retired; these validators remain so historical
+bundle fixtures can be inspected.
+"""
 
 from __future__ import annotations
 

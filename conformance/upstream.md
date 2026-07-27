@@ -42,17 +42,13 @@ AIR soundness, which is proved by the constraint- and lookup-level tests in the 
 
 ## RISC-V Legacy Protocol Layout Lane
 
-Stark-V is retained as a layout-lineage reference. It remains pinned and authoritative for exactly
-two things:
+Stark-V is retained as a non-normative historical layout and performance reference. Its pin makes
+old receipts and benchmark results reproducible; it has no current release-admission, semantic,
+AIR-soundness, transcript, relation, or proof-acceptance authority. Source-level legacy opcode IDs
+and column ordering may still be documented or compared for migration archaeology, but current
+Zig protocol specifications and tests own those invariants.
 
-1. the shared transcript prefix, up to the documented shard-manifest extension recorded in
-   `conformance/divergence-log.md`;
-2. legacy layout lineage — protocol and opcode identity, witness column identity and ordering,
-   relation identity and ordering, and the resulting proof-transcript compatibility surface.
-
-It is **not** a semantic oracle. It cannot override Sail decode or retirement behavior, and as of
-this branch it is no longer the correctness oracle for opcode AIR constraints or activated lookup
-tuples. The pinned revision admits the under-constraints enumerated in the
+The pinned revision admits the under-constraints enumerated in the
 `Opcode AIR constraint and lookup layout` row of `conformance/divergence-log.md`, which is the
 authoritative disclosure: a source register access may emit a value it did not consume (which also
 leaves any witness derived from that value, including the `LB`/`LH` and `SRL`/`SRA` sign witnesses,
@@ -69,22 +65,15 @@ An oracle that accepts an unsound AIR cannot arbitrate AIR soundness, so agreeme
 longer evidence of correctness on those surfaces and disagreement with it is no longer evidence
 of a defect.
 
-Consequences for evidence:
-
-- The CP-11 boundaries whose comparison *is* an AIR comparison — `per_family_witness_rows`,
-  `relation_tuples`, `relation_sums`, and the JALR interaction geometry — are demoted in
-  `scripts/riscv_release_gate_lib/air_divergence.py`. They are not waived: each must publish the
-  complete enumerated set of structural paths at which the two dumps differ, and only the digests
-  authorized in that module are accepted, so an unintended difference still fails the gate.
-- Every other CP-11 boundary, including `shared_transcript_prefix`, remains a strict parity
-  boundary against this pin.
-- Layout lineage still gates the demoted boundaries: family identity, column identity, column
-  order and relation order must agree, because none of the closed constraints adds or reorders a
-  committed opcode column. Access-clock values and the associated relation tuples intentionally
-  differ; public-data field order remains lineage-compatible even where final register, memory,
-  output, and completion access clocks now use the strict subclock encoding.
-- Stark-V is never an acceptance authority for RV32IM semantics. `scripts/riscv_stark_v_benchmark.py`
-  remains a legacy performance and layout comparison only.
+The pre-Sail CP-11 producer, bundle, challenge, owner-dispatch inputs, and fast
+producer-linked smoke profile are retired. Their top-level CLIs fail closed,
+and `contract.receipt_errors` rejects even a structurally valid archived
+receipt as current evidence. The old parser and divergence-shape code remain
+read-only so historical bundles can be inspected; no shape can be added to
+authorize release. `scripts/riscv_stark_v_benchmark.py` and the Stark-V side of
+the autoresearch performance lane remain optional performance comparisons
+only. Pinned Sail/Spike evidence and the current Zig constraint/proof suites
+own correctness admission.
 
 Pins:
 

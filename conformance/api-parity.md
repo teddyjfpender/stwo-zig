@@ -595,7 +595,7 @@ This ledger maps every public export in the Zig root/module API surface to the p
     },
     "stwo.interop.riscv_artifact": {
       "kind": "const",
-      "rationale": "Zig-only fail-closed Stark-V proof artifact envelope pinned to the Rust oracle provenance.",
+      "rationale": "Zig-only RISC-V proof artifact envelope pinned to Sail semantic-authority provenance.",
       "rust_path": null,
       "source": "src/interop/mod.zig"
     },

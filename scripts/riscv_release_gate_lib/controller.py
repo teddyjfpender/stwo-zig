@@ -1,4 +1,4 @@
-"""Execution and evidence capture for the enforcing CP-13 command."""
+"""Execution and evidence capture for the active Sail-backed RISC-V gate."""
 
 from __future__ import annotations
 
@@ -223,9 +223,10 @@ def _tool_versions(root: Path = ROOT) -> dict[str, str]:
 
 def _artifact_digests(root: Path, evidence_dir: Path) -> dict[str, str]:
     paths = (
-        "conformance/2026-07-18-riscv-release-goal.md",
-        "conformance/2026-07-18-riscv-bias-audit.md",
+        "conformance/2026-07-26-riscv-sail-contract.md",
+        "conformance/riscv/formal-corpus-evidence.json",
         "conformance/divergence-log.md",
+        "soundness/SAIL_AIR_COMPOSITION.md",
         "src/tests/riscv/malicious_witness_test.zig",
         "autoresearch/MANIFEST.json",
     )
@@ -358,7 +359,9 @@ def run_gate(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run and record the enforcing CP-13 RISC-V gate")
+    parser = argparse.ArgumentParser(
+        description="Run and record the Sail-backed RISC-V release gate"
+    )
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--phase", choices=("candidate", "promoted"), required=True)
     parser.add_argument("--formal-workspace", type=Path)

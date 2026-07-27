@@ -4,8 +4,8 @@ const capabilities = @import("aggregate_capabilities");
 const native = @import("native_cpu_capabilities");
 const riscv = @import("riscv_cpu_capabilities");
 
-/// The single typed admission switch for the Stark-V adapter. RF-01 flips this
-/// in the same commit as the artifact release status after every gate passes.
+/// The single typed admission switch for the Sail-profile RISC-V CPU adapter.
+/// It changes with the artifact release status after every gate passes.
 pub const RISCV_ADAPTER_RELEASE_GATED = riscv.adapter_release_gated;
 
 pub fn requireRiscVAdmission(experimental: bool) !void {

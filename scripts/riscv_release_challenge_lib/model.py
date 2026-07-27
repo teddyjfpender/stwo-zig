@@ -1,4 +1,4 @@
-"""Strict challenge and result contracts for the trusted RISC-V fast gate."""
+"""Strict parsers for the archived pre-Sail challenge/result formats."""
 
 from __future__ import annotations
 

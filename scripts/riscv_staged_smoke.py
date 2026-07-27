@@ -31,7 +31,7 @@ COMMAND_TIMEOUT_SECONDS = 1_800
 MULTI_SHARD_TOTAL_STEPS = 131_078
 MULTI_SHARD_ADDI_ROWS = 65_538
 MULTI_SHARD_PROGRAM_WORDS = 8
-MULTI_SHARD_ELF_SHA256 = "06d217624c13bed63beecbc15127b1fbcd098ee520ac11a20d864cb38d7577a0"
+MULTI_SHARD_ELF_SHA256 = "c93d9a3dd6104ae0f76a4297f3800ab70e5e59984187b1357e7619a0a0004adb"
 WITNESS_LAYOUT_SHA256 = "314f1669804bb2c7fa2c99c5fe7fedb6801f9bf7e0353ace6750e1c2c7b302b9"
 
 
@@ -133,6 +133,11 @@ def main() -> int:
     parser.add_argument("--evidence-dir", type=Path)
     args = parser.parse_args()
     fast = args.profile == "fast"
+    if fast:
+        parser.error(
+            "the pre-Sail producer-linked fast profile is retired; run the "
+            "exhaustive profile and scripts/riscv_sail_gate.py instead"
+        )
     if fast and (args.cli is None or args.producer_receipt is None or args.evidence_dir is None):
         parser.error("--profile fast requires --cli, --producer-receipt, and --evidence-dir")
     if not fast and args.producer_receipt is not None:

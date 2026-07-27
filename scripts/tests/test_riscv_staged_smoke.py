@@ -75,6 +75,17 @@ class JsonContractTests(unittest.TestCase):
         self.assertEqual(smoke.ELF_SHA256, digest)
         self.assertEqual(smoke.ELF_SHA256, vector["elf_sha256"])
 
+    def test_multi_shard_elf_digest_matches_the_cross_verified_manifest(self) -> None:
+        manifest = json.loads(
+            (smoke.ROOT / "vectors/riscv_elfs/trace_vectors.json").read_text()
+        )
+        vector = next(
+            item for item in manifest["vectors"] if item["name"] == "multi_shard_addi"
+        )
+        path = smoke.ROOT / vector["elf"]
+        self.assertEqual(smoke.MULTI_SHARD_ELF_SHA256, hashlib.sha256(path.read_bytes()).hexdigest())
+        self.assertEqual(smoke.MULTI_SHARD_ELF_SHA256, vector["elf_sha256"])
+
     def test_strict_json_requires_one_object_and_rejects_nested_duplicates(self) -> None:
         self.assertEqual({"value": 1}, contracts.strict_json_object('{"value":1}', "test"))
         with self.assertRaisesRegex(contracts.ContractError, "duplicate JSON field value"):

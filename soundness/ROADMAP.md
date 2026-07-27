@@ -3,7 +3,8 @@
 This roadmap tracks assurance beyond ordinary feature completeness. The
 normative architectural model is pinned Sail RISC-V; Spike is an independent
 executor, and the pinned RISC-V Architectural Tests provide the standards
-corpus. Stark-V is retained only for legacy proof-layout lineage.
+corpus. Stark-V is retained only as a non-normative historical layout and
+performance reference; it is not a release or correctness authority.
 
 The two obligations stay separate:
 
@@ -93,8 +94,8 @@ The review that found these is the reason expanding committed-witness mutation
 coverage (under "Continuing adversarial work") became a top soundness task
 rather than one of several parallel ones: every one of the six was invisible to
 the Sail differential (which validates the runner, not the AIR) and to the
-CP-11 oracle (which compares against the layout that contains the same
-omissions).
+retired CP-11 comparison (which compared against the layout containing the
+same omissions).
 
 ## Committed-trace coverage of the six fixes — 2026-07-26
 
@@ -406,7 +407,7 @@ This closes the missing *statement* of the composition argument and provides
 machine checks for its finite arithmetic and graph premises. It does not close
 the universal refinement theorem or the proof-system reduction: the repository
 still has no independent PCS/FRI/proof-wire verifier, no externally reviewed
-security-bit accounting, and no reviewed CP-11 divergence shape.
+security-bit accounting, and no universal AIR-to-Sail refinement proof.
 
 ## Continuing adversarial work
 

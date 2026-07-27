@@ -373,7 +373,7 @@ test "schema v4 rejects public data that production preflight rejects" {
     );
 
     artifact = fixture();
-    artifact.statement.public_data.reg_last_clock[4] = artifact.statement.public_data.clock + 1;
+    artifact.statement.public_data.reg_last_clock[4] = 4;
     try std.testing.expectError(
         error.InvalidRegisterClock,
         validation.validate(artifact, RELEASE_STATUS),
@@ -399,6 +399,22 @@ test "schema v4 rejects public data that production preflight rejects" {
     artifact.statement.public_data.output_len_addr = 1;
     try std.testing.expectError(
         error.MisalignedOutputLengthAddress,
+        validation.validate(artifact, RELEASE_STATUS),
+    );
+}
+
+test "schema v4 accepts strict access subclocks beyond the instruction clock" {
+    var artifact = fixture();
+    artifact.statement.public_data.reg_last_clock[4] = 5;
+    const output_words = [_]schema.OutputWordWire{
+        .{ .addr = 0, .value = 0, .clock = 7 },
+    };
+    artifact.statement.public_data.output_words = &output_words;
+    try validation.validate(artifact, RELEASE_STATUS);
+
+    artifact.statement.public_data.reg_last_clock[4] = 9;
+    try std.testing.expectError(
+        error.InvalidRegisterClock,
         validation.validate(artifact, RELEASE_STATUS),
     );
 }

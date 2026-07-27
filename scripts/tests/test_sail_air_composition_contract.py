@@ -46,8 +46,8 @@ class SailAirCompositionContractTest(unittest.TestCase):
             "Fiat–Shamir",
             "independent second verifier",
             "reviewed security-bit accounting",
-            "AUTHORIZED_SHAPES",
-            "CP-11 parity",
+            "Legacy Stark-V layout comparisons are not a premise",
+            "archived CP-11 receipt reader is fail-closed",
         )
         for marker in required:
             with self.subTest(marker=marker):

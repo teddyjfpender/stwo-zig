@@ -1,4 +1,4 @@
-"""Contract tests for the demoted Stark-V AIR-comparison boundaries."""
+"""Forensic contract tests for archived Stark-V AIR-comparison receipts."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.riscv_release_gate_lib.contract import (
+    ARCHIVED_RECEIPT_ERROR,
     BOUNDARIES,
     PARITY_BOUNDARIES,
     receipt_errors,
@@ -21,8 +22,8 @@ from scripts.tests.riscv_release_receipt_fixture import (
 )
 
 
-class SupersededBoundaryTests(unittest.TestCase):
-    """The Stark-V AIR demotion narrows the required set without waiving it."""
+class ArchivedBoundaryTests(unittest.TestCase):
+    """Old receipts stay parseable but can never authorize a release."""
 
     PATHS = ["/components/auipc/stream", "/components/jalr/relations/range_check_8_8"]
 
@@ -57,18 +58,24 @@ class SupersededBoundaryTests(unittest.TestCase):
             "a demoted boundary without a shape slot could never be authorized",
         )
 
-    def test_authorized_shape_is_accepted_and_any_other_shape_is_not(self) -> None:
+    def test_old_shape_parser_accepts_known_structure_but_not_release(self) -> None:
         for boundary in air_divergence.SUPERSEDED_BOUNDARIES:
             with self.subTest(boundary=boundary):
                 receipt = superseded_receipt(int(time.time()), boundary, self.PATHS)
-                self.assertEqual([], self.errors(receipt, authorize=self.PATHS))
+                self.assertEqual(
+                    [ARCHIVED_RECEIPT_ERROR],
+                    self.errors(receipt, authorize=self.PATHS),
+                )
 
                 regressed = superseded_receipt(
                     int(time.time()), boundary, [*self.PATHS, "/components/div/stream"]
                 )
                 errors = self.errors(regressed, authorize=self.PATHS)
                 self.assertTrue(
-                    any("unauthorized divergence shape" in error for error in errors),
+                    any(
+                        "unauthorized archived divergence shape" in error
+                        for error in errors
+                    ),
                     errors,
                 )
 
@@ -79,9 +86,9 @@ class SupersededBoundaryTests(unittest.TestCase):
         receipt = superseded_receipt(int(time.time()), "relation_tuples", self.PATHS)
         errors = self.errors(receipt, authorize=None)
         self.assertTrue(any(
-            "unauthorized divergence shape" in error
-            and "air_divergence.py" in error
-            and air_divergence.LEDGER_REFERENCE in error
+            "unauthorized archived divergence shape" in error
+            and "no new shape may be authorized" in error
+            and "use the Sail release gate instead" in error
             for error in errors
         ), errors)
 

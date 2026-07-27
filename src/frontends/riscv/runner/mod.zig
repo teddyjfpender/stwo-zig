@@ -39,8 +39,7 @@ pub fn run(allocator: std.mem.Allocator, elf_bytes: []const u8, max_steps: usize
     return runWithHost(allocator, elf_bytes, max_steps, null);
 }
 
-/// Run an ELF using its linker-defined input buffer and halt flag.
-/// This is compatible with stark-v guest binaries.
+/// Run an ELF using its linker-defined input buffer and halt flag (legacy-ABI compatible).
 pub fn runWithInput(
     allocator: std.mem.Allocator,
     elf_bytes: []const u8,

@@ -3,7 +3,8 @@
 
 This is a correctness gate, not a performance benchmark. The selected programs
 exercise branch, memory, cross-shard, and crypto shapes while keeping the warm
-CI path short. The exhaustive Stark-V oracle gate remains the release authority.
+CI path short. Pinned Sail/Spike evidence owns the external ISA boundary; AIR
+soundness and proof acceptance remain separate obligations.
 """
 
 from __future__ import annotations
@@ -318,7 +319,8 @@ def main(argv: list[str] | None = None) -> int:
             "experimental": admission.experimental,
             "oracle_boundary": (
                 "independent Zig artifact verification plus separately gated pinned "
-                "Stark-V trace vectors; exhaustive live Stark-V comparison remains release-only"
+                "Sail/Spike corpus evidence; finite ISA agreement is not universal "
+                "AIR refinement or independent proof-system verification"
             ),
             "duration_ns": time.monotonic_ns() - started,
             "workloads": rows,

@@ -1,4 +1,4 @@
-"""CLI orchestration for trusted fresh RISC-V release challenges."""
+"""Archived pre-Sail challenge-format orchestration for forensic tests."""
 
 from __future__ import annotations
 

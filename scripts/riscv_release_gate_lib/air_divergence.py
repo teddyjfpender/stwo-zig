@@ -1,21 +1,16 @@
-"""Demotion policy for the CP-11 boundaries the legacy oracle cannot arbitrate.
+"""Archived demotion policy for pre-Sail CP-11 receipt inspection.
 
-Stark-V, pinned in ``conformance/upstream.md``, remains the reference for the
-shared transcript prefix and for legacy layout lineage: protocol and opcode
-identity, witness column order, relation order.  It is no longer the correctness
-oracle for opcode AIR constraints.  It admits the under-constraints this branch
-closed -- a source register access that emits a value it did not consume (which
-also leaves every witness derived from that value, including the ``LB``/``LH``
-and ``SRL``/``SRA`` sign witnesses, a free prover choice), free unmarked
-``SB``/``SH`` bytes, a second ``AUIPC`` immediate decomposition offset by
-``p + 2``, an unbound JALR target, non-byte DIV divisors, a shift-carry
-lookup window that admits negative carries, and same-instruction register
-accesses that all reuse one clock while the clock-gap table admits zero.  The
-latter combination lets an aliased read present an arbitrary value in a
-same-tuple/same-clock self-loop that cancels from the memory relation.
-``conformance/divergence-log.md`` is the authoritative disclosure.  An oracle
-that accepts those cannot arbitrate AIR soundness, so the boundaries whose
-comparison *is* an AIR comparison cannot be required to agree with it.
+The active release controller does not use this policy for admission or
+execute the Stark-V producer. Sail owns semantics, and the Zig constraints,
+certificates, and adversarial suites own AIR evidence. This module is retained
+only so old CP-11 receipts remain inspectable while the archived bundle format
+exists. Its empty authorization sets are therefore not an active release
+blocker.
+
+The historical policy demoted the boundaries at which Stark-V accepted the
+under-constraints closed by Zig: unconstrained read-only emissions and partial
+store bytes, the AUIPC alias, the unbound JALR target, non-byte DIV divisors,
+negative shift carries, and shared same-instruction access clocks.
 
 Demotion is not a waiver.  Telling an intended divergence apart from a new
 regression is the whole purpose of this module:
@@ -24,14 +19,12 @@ regression is the whole purpose of this module:
   which the two dumps differ, enumerated in full instead of stopping at the
   first difference.  The canonical digest of that set is the boundary's
   *divergence shape*.
-* Only shapes listed in ``AUTHORIZED_SHAPES`` are accepted.  A regression at any
+* Only shapes listed in ``AUTHORIZED_SHAPES`` are accepted by the archived
+  receipt reader. A regression at any
   path outside the intended blast radius enlarges the set, changes the digest,
   and fails the gate exactly as a boundary failure did before the demotion.
-* Re-authorising a shape is a deliberate edit here, reviewed together with the
-  matching ``conformance/divergence-log.md`` row.  ``AUTHORIZED_SHAPES`` is
-  empty on purpose: no shape has been recorded from a CP-11 run since the
-  soundness fixes landed, so the gate fails closed with a named remediation
-  rather than trusting an unpinned difference.
+* ``AUTHORIZED_SHAPES`` is empty on purpose. No new legacy receipt can be
+  authorized, because the producer and hosted CP-11 path are retired.
 * The status is not portable.  ``SUPERSEDED_BOUNDARIES`` is closed, and
   ``contract.receipt_errors`` rejects the status on every other boundary, so a
   parity boundary cannot launder a real failure through it.
@@ -106,8 +99,8 @@ AIR_SOUNDNESS_SITES: tuple[str, ...] = (
     "strict_access_clock_ordering",
 )
 
-# Divergence shapes accepted for each demoted boundary, as ``shape_digest``
-# values.  Empty until a CP-11 run over the post-fix candidate records them.
+# Divergence shapes accepted by the archived receipt reader. Empty permanently:
+# the retired producer cannot create new release evidence.
 AUTHORIZED_SHAPES: dict[str, frozenset[str]] = {
     "per_family_witness_rows": frozenset(),
     "relation_tuples": frozenset(),
@@ -165,12 +158,12 @@ def boundary_errors(name: str, boundary: dict[str, Any]) -> tuple[list[str], tup
             errors.append(f"{label} divergence shape digest does not bind its paths")
         elif digest not in AUTHORIZED_SHAPES.get(name, frozenset()):
             errors.append(
-                f"{label} reports unauthorized divergence shape {digest}; if the "
-                "difference is confined to the recorded soundness sites ("
+                f"{label} reports unauthorized archived divergence shape {digest}; "
+                "the pre-Sail producer is retired and no new shape may be "
+                "authorized, even if the difference is confined to ("
                 + ", ".join(AIR_SOUNDNESS_SITES)
-                + f") record it in AUTHORIZED_SHAPES[{name!r}] of "
-                "scripts/riscv_release_gate_lib/air_divergence.py together with the "
-                f"{LEDGER_REFERENCE} divergence-log row"
+                + f"); use the Sail release gate instead of "
+                f"AUTHORIZED_SHAPES[{name!r}]"
             )
     return (errors, paths)
 

@@ -1,4 +1,4 @@
-"""Static candidate/promoted state and CP-11 receipt validation."""
+"""Active Sail release contracts plus an archived CP-11 receipt reader."""
 
 from __future__ import annotations
 
@@ -20,13 +20,15 @@ except ModuleNotFoundError:  # Imported as scripts.riscv_release_gate_lib in tes
     from scripts.riscv_release_gate_lib import air_divergence
 
 
-PINNED_ORACLE = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
-ORACLE_REPOSITORY = "https://github.com/riscv/sail-riscv"
+PINNED_SAIL = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
+SAIL_REPOSITORY = "https://github.com/riscv/sail-riscv"
+ARCHIVED_STARK_V_COMMIT = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
+ARCHIVED_STARK_V_REPOSITORY = "https://github.com/ClementWalter/stark-v"
+ARCHIVED_RECEIPT_ERROR = (
+    "archived Stark-V CP-11 receipts are not active RISC-V release evidence"
+)
 IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig"
-# Every boundary a CP-11 receipt must still report, in producer order.  The set
-# is unchanged by the Stark-V demotion: a demoted boundary keeps its evidence,
-# its per-case digests, and its place in the key manifest.  What changed is the
-# verdict it is held to -- see PARITY_BOUNDARIES below.
+# Historical boundaries retained solely to parse pre-Sail CP-11 receipts.
 BOUNDARIES = (
     "decode",
     "execution",
@@ -40,10 +42,7 @@ BOUNDARIES = (
     "relation_sums",
     "shared_transcript_prefix",
 )
-# Boundaries for which pinned-oracle agreement is still the acceptance verdict.
-# The complement is air_divergence.SUPERSEDED_BOUNDARIES, which may instead
-# report a pinned divergence shape; see that module for why and for how a real
-# regression stays distinguishable from the intended divergence.
+# Historical parity boundaries in the archived receipt schema.
 PARITY_BOUNDARIES = tuple(
     name for name in BOUNDARIES if name not in air_divergence.SUPERSEDED_BOUNDARIES
 )
@@ -221,7 +220,7 @@ def phase_errors(
     return errors
 
 
-def divergence_ledger_errors(text: str, pinned_oracle: str = PINNED_ORACLE) -> list[str]:
+def divergence_ledger_errors(text: str, pinned_oracle: str = PINNED_SAIL) -> list[str]:
     """Reject active divergences except narrow, explicitly documented exceptions."""
     marker = "## Active divergences"
     if marker not in text:
@@ -281,7 +280,7 @@ def divergence_errors(root: Path) -> list[str]:
 
 def repository_contract_errors(root: Path, phase: str) -> list[str]:
     required = (
-        "conformance/2026-07-18-riscv-release-goal.md",
+        "conformance/2026-07-26-riscv-sail-contract.md",
         "conformance/divergence-log.md",
         "scripts/riscv_release_gate.py",
         "scripts/riscv_formal_tools.py",
@@ -305,8 +304,13 @@ def repository_contract_errors(root: Path, phase: str) -> list[str]:
         riscv = groups.get("riscv") if isinstance(groups, dict) else None
         if not isinstance(riscv, dict):
             errors.append("autoresearch RISC-V workload group is missing")
-        elif riscv.get("enabled") is not False or not str(riscv.get("disabled_reason", "")).strip():
-            errors.append("autoresearch RISC-V workload group must remain disabled through RF-01")
+        elif phase == "candidate" and (
+            riscv.get("enabled") is not False
+            or not str(riscv.get("disabled_reason", "")).strip()
+        ):
+            errors.append("candidate-phase autoresearch RISC-V workload group must be disabled")
+        elif phase == "promoted" and not isinstance(riscv.get("enabled"), bool):
+            errors.append("promoted autoresearch RISC-V workload state is not explicit")
     return errors
 
 
@@ -493,7 +497,7 @@ def _nonempty_relation_errors(
     binding_expected = {
         "implementation_commit": candidate,
         "implementation_dirty": False,
-        "oracle_commit": PINNED_ORACLE,
+        "oracle_commit": ARCHIVED_STARK_V_COMMIT,
         "elf_sha256": NONEMPTY_RELATION_ELF_SHA256,
         "input_sha256": NONEMPTY_RELATION_INPUT_SHA256,
         "witness_layout_sha256": witness_digest,
@@ -563,8 +567,8 @@ def receipt_errors(
     now: int | None = None,
     vector_names: tuple[str, ...] | None = None,
 ) -> list[str]:
-    """Validate the full CP-11 evidence contract, not only its verdict bit."""
-    errors: list[str] = []
+    """Read an archived CP-11 receipt; never authorize a current release."""
+    errors = [ARCHIVED_RECEIPT_ERROR]
     try:
         live_names, live_admission, live_elf_digests = trace_vector_contract()
     except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
@@ -595,9 +599,9 @@ def receipt_errors(
     if not isinstance(oracle, dict):
         errors.append("oracle provenance is missing")
         oracle = {}
-    if oracle.get("repository") != ORACLE_REPOSITORY:
+    if oracle.get("repository") != ARCHIVED_STARK_V_REPOSITORY:
         errors.append("oracle repository identity is not pinned")
-    if oracle.get("commit") != PINNED_ORACLE:
+    if oracle.get("commit") != ARCHIVED_STARK_V_COMMIT:
         errors.append("oracle commit identity is not pinned")
     if oracle.get("clean") is not True:
         errors.append("oracle receipt does not attest a clean source tree")

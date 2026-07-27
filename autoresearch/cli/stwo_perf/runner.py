@@ -1540,7 +1540,7 @@ def rust_oracle_check(candidate_root: Path, manifest: Manifest,
             candidate_root, group, workload, out_dir,
         )
     if group.report_schema == "riscv_proof_v2":
-        return _riscv_stark_v_oracle_check(
+        return _riscv_sail_oracle_check(
             candidate_root, group, workload, out_dir,
         )
     if group.report_schema == "native_cuda_product_v6":
@@ -1683,62 +1683,64 @@ def _native_rust_oracle_check(
     }
 
 
-def _riscv_stark_v_oracle_check(
+def _riscv_sail_oracle_check(
     candidate_root: Path,
     group: WorkloadGroup,
     workload: Workload,
     out_dir: Path,
 ) -> dict:
     oracle_policy = group.correctness_oracle
-    pinned_commit = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
-    if (oracle_policy.get("authority"), oracle_policy.get("commit")) != (
-        "stark-v", pinned_commit,
+    pinned_commit = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
+    if (
+        oracle_policy.get("authority"),
+        oracle_policy.get("repository"),
+        oracle_policy.get("commit"),
+        oracle_policy.get("final_validator"),
+    ) != (
+        "sail-riscv",
+        "https://github.com/riscv/sail-riscv",
+        pinned_commit,
+        True,
     ):
         raise RunError(
             f"{workload.workload_id}: RISC-V group is not bound to the pinned "
-            "Stark-V correctness authority"
+            "Sail correctness authority"
         )
-    anchor, anchor_bytes = _riscv_release_anchor(
+    evidence_path, evidence_bytes = _riscv_sail_evidence(
         candidate_root, oracle_policy, workload.workload_id,
     )
     try:
         payload = _load_json_object(
-            anchor_bytes.decode("utf-8"), "Stark-V release anchor",
+            evidence_bytes.decode("utf-8"), "Sail corpus evidence",
         )
-        anchor_candidate = _commit_hex(
-            payload.get("candidate_commit"), "anchor candidate_commit",
-        )
-        binding = oracle_policy.get("release_anchor")
         if (
-            isinstance(binding, dict)
-            and binding.get("candidate_commit") != anchor_candidate
+            payload.get("schema") != "stwo-riscv-formal-corpus-evidence-v1"
+            or payload.get("result") != "equivalent"
+            or payload.get("semantic_authority") != "Sail"
+            or payload.get("independent_cross_check") != "Spike"
         ):
-            raise ValueError("receipt candidate differs from the manifest release anchor")
-        oracle = payload.get("oracle")
-        if payload.get("schema") != "riscv-oracle-receipt-v2":
-            raise ValueError("unexpected receipt schema")
-        if payload.get("verdict") != "PASS":
-            raise ValueError("release anchor verdict is not PASS")
-        if not isinstance(oracle, dict) or oracle.get("commit") != pinned_commit:
-            raise ValueError("receipt is not bound to the pinned Stark-V revision")
+            raise ValueError("unexpected Sail/Spike evidence identity or verdict")
+        sail = payload.get("sail")
+        if (
+            not isinstance(sail, dict)
+            or sail.get("repository_revision") != pinned_commit
+        ):
+            raise ValueError("evidence is not bound to the pinned Sail revision")
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         raise RunError(
-            f"{workload.workload_id}: invalid pinned Stark-V release anchor: {exc}"
+            f"{workload.workload_id}: invalid pinned Sail corpus evidence: {exc}"
         ) from exc
-    validator = candidate_root / "scripts" / "riscv_release_evidence.py"
+    validator = candidate_root / "scripts" / "riscv_sail_gate.py"
     if not validator.is_file():
-        raise RunError(f"missing immutable RISC-V anchor validator: {validator}")
+        raise RunError(f"missing Sail evidence validator: {validator}")
     _run(
-        shlex.join([
-            "python3", str(validator), "--receipt", str(anchor),
-            "--candidate", anchor_candidate, "--at-receipt-time",
-        ]),
+        shlex.join(["python3", str(validator), "bind"]),
         candidate_root,
         timeout=600,
     )
     try:
-        if anchor.read_bytes() != anchor_bytes:
-            raise ValueError("release anchor changed during validation")
+        if evidence_path.read_bytes() != evidence_bytes:
+            raise ValueError("Sail corpus evidence changed during validation")
         report_path, proof_path = _latest_riscv_candidate_artifact(out_dir, workload)
         report = _load_json_object(
             report_path.read_text(encoding="utf-8"), "candidate RISC-V bench report",
@@ -1788,54 +1790,55 @@ def _riscv_stark_v_oracle_check(
     return {
         "workload": workload.workload_id,
         "verified": True,
-        "oracle": "pinned-stark-v-release-anchor",
-        "oracle_commit": oracle["commit"],
-        "anchor_candidate": anchor_candidate,
-        "anchor_receipt_sha256": hashlib.sha256(anchor_bytes).hexdigest(),
+        "oracle": "pinned-sail-corpus-evidence",
+        "oracle_commit": pinned_commit,
+        "sail_evidence_sha256": hashlib.sha256(evidence_bytes).hexdigest(),
+        "attested_programs": payload["programs"],
+        "attested_retirements": payload["retirements"],
         "artifact_sha256": hashlib.sha256(artifact_bytes).hexdigest(),
         "proof_sha256": verified["proof_sha256"],
     }
 
 
-def _riscv_release_anchor(
+def _riscv_sail_evidence(
     candidate_root: Path,
     oracle_policy: dict,
     workload_id: str,
 ) -> tuple[Path, bytes]:
-    """Resolve the immutable release receipt, with an explicit calibration override."""
-    binding = oracle_policy.get("release_anchor")
-    anchor_raw = os.environ.get("STWO_ZIG_RISCV_RELEASE_ANCHOR_RECEIPT")
-    if anchor_raw:
-        anchor = Path(anchor_raw).expanduser().resolve()
+    """Resolve immutable finite Sail/Spike evidence for benchmark admission."""
+    binding = oracle_policy.get("evidence")
+    evidence_raw = os.environ.get("STWO_ZIG_RISCV_SAIL_EVIDENCE")
+    if evidence_raw:
+        evidence = Path(evidence_raw).expanduser().resolve()
     else:
         if not isinstance(binding, dict):
             raise RunError(
-                f"{workload_id}: STWO_ZIG_RISCV_RELEASE_ANCHOR_RECEIPT is "
-                "required until the manifest pins a release_anchor"
+                f"{workload_id}: STWO_ZIG_RISCV_SAIL_EVIDENCE is required "
+                "until the manifest pins Sail evidence"
             )
-        relative = binding.get("receipt")
+        relative = binding.get("path")
         if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
-            raise RunError(f"{workload_id}: manifest release anchor path is invalid")
+            raise RunError(f"{workload_id}: manifest Sail evidence path is invalid")
         root = candidate_root.resolve()
-        anchor = (root / relative).resolve()
+        evidence = (root / relative).resolve()
         try:
-            anchor.relative_to(root)
+            evidence.relative_to(root)
         except ValueError as exc:
             raise RunError(
-                f"{workload_id}: manifest release anchor escapes the repository"
+                f"{workload_id}: manifest Sail evidence escapes the repository"
             ) from exc
-    if not anchor.is_file():
+    if not evidence.is_file():
         raise RunError(
-            f"{workload_id}: RISC-V release anchor is not a file: {anchor}"
+            f"{workload_id}: RISC-V Sail evidence is not a file: {evidence}"
         )
-    anchor_bytes = anchor.read_bytes()
+    evidence_bytes = evidence.read_bytes()
     if isinstance(binding, dict):
         expected = binding.get("sha256")
         if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
-            raise RunError(f"{workload_id}: manifest release anchor digest is invalid")
-        if hashlib.sha256(anchor_bytes).hexdigest() != expected:
-            raise RunError(f"{workload_id}: manifest release anchor digest mismatches")
-    return anchor, anchor_bytes
+            raise RunError(f"{workload_id}: manifest Sail evidence digest is invalid")
+        if hashlib.sha256(evidence_bytes).hexdigest() != expected:
+            raise RunError(f"{workload_id}: manifest Sail evidence digest mismatches")
+    return evidence, evidence_bytes
 
 
 def _latest_riscv_candidate_artifact(

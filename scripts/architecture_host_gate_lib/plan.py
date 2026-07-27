@@ -22,8 +22,6 @@ COMMAND_LAUNCHERS = {
     "riscv-product": ("zig", "build"),
     "riscv-applications": ("zig-out/bin/stwo-zig-riscv-cpu", "applications"),
     "riscv-link-closure": ("python3", "scripts/check_architecture_link_closure.py"),
-    "riscv-fast-challenge-issue": ("python3", "scripts/riscv_release_challenge.py"),
-    "riscv-fast-challenge-execute": ("python3", "scripts/riscv_release_challenge.py"),
     "native-cpu-product": ("zig", "build"),
     "native-cpu-applications": ("zig-out/bin/stwo-zig-native-cpu", "applications"),
     "native-cpu-link-closure": ("python3", "scripts/check_architecture_link_closure.py"),
@@ -52,7 +50,6 @@ COMMAND_LAUNCHERS = {
     "benchmark-contract": ("python3", "scripts/check_benchmark_product_contract.py"),
     "native-rust-oracle": ("python3", "scripts/e2e_interop.py"),
     "native-oracle-bundle-validate": ("python3", "scripts/architecture_native_oracle.py"),
-    "riscv-anchor-validate": ("python3", "scripts/riscv_release_bundle.py"),
     "performance-readiness": ("python3", "scripts/architecture_performance_readiness.py"),
 }
 def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -215,9 +212,6 @@ def authority_argv(
                 "--repo", str(candidate_root),
                 "--baseline", str(authority_root / "conformance/source-baseline.json"),
             ])
-        elif command_id == "riscv-anchor-validate":
-            separator = resolved.index("--")
-            resolved[separator + 1:separator + 1] = ["--root", str(candidate_root)]
         elif command_id == "performance-readiness":
             resolved.extend([
                 "--root", str(authority_root),

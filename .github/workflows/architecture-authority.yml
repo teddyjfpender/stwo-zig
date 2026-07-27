@@ -7,10 +7,6 @@ on:
         description: Exact candidate commit to execute
         type: string
         required: true
-      riscv_producer_run_id:
-        description: Trusted exhaustive RISC-V producer run
-        type: string
-        required: true
       native_oracle_run_id:
         description: Trusted two-host Native oracle producer run
         type: string
@@ -42,7 +38,6 @@ jobs:
           test "$ARCHITECTURE_AUTHORITY_SHA" != "$CANDIDATE_SHA"
           test "$GITHUB_WORKFLOW_SHA" = "$ARCHITECTURE_AUTHORITY_SHA"
           test "$STWO_ARCHITECTURE_DISPATCH_ACTOR_ID" = "$GITHUB_REPOSITORY_OWNER_ID"
-          [[ "${{ inputs.riscv_producer_run_id }}" =~ ^[1-9][0-9]*$ ]]
           [[ "${{ inputs.native_oracle_run_id }}" =~ ^[1-9][0-9]*$ ]]
 
       - name: Checkout authenticated authority
@@ -95,7 +90,6 @@ jobs:
       CANDIDATE_SHA: ${{ inputs.candidate_sha }}
       STWO_ARCHITECTURE_SESSION_NONCE: ${{ needs.architecture-authority-session.outputs.nonce }}
       NATIVE_ORACLE_RUN_ID: ${{ inputs.native_oracle_run_id }}
-      RISCV_PRODUCER_RUN_ID: ${{ inputs.riscv_producer_run_id }}
     steps:
       - name: Checkout authenticated authority
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
@@ -147,68 +141,9 @@ jobs:
             --archive "$RUNNER_TEMP/native-transport/native-oracle-linux.tar" \
             --output "$RUNNER_TEMP/native-oracle"
 
-      - name: Select and unpack trusted exhaustive RISC-V anchor
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RISCV_PRODUCER_RUN_ID" > "$RUNNER_TEMP/riscv-run.json"
-          attempt=$(jq -r .run_attempt "$RUNNER_TEMP/riscv-run.json")
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RISCV_PRODUCER_RUN_ID/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/riscv-jobs.json"
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RISCV_PRODUCER_RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/riscv-artifacts.json"
-          python3 authority/scripts/architecture_riscv_anchor_selection.py select \
-            --run "$RUNNER_TEMP/riscv-run.json" \
-            --jobs "$RUNNER_TEMP/riscv-jobs.json" \
-            --artifacts "$RUNNER_TEMP/riscv-artifacts.json" \
-            --authority-commit "$ARCHITECTURE_AUTHORITY_SHA" \
-            --output "$RUNNER_TEMP/riscv-selection.json"
-          expected_digest=$(jq -r .artifact_digest "$RUNNER_TEMP/riscv-selection.json")
-          artifact_id=$(jq -r .artifact_id "$RUNNER_TEMP/riscv-selection.json")
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/riscv.zip"
-          test "sha256:$(shasum -a 256 "$RUNNER_TEMP/riscv.zip" | cut -d' ' -f1)" = "$expected_digest"
-          python3 authority/scripts/architecture_authority_dispatch.py \
-            --candidate-root candidate \
-            --script scripts/riscv_release_policy.py -- extract \
-            --archive "$RUNNER_TEMP/riscv.zip" \
-            --output "$RUNNER_TEMP/riscv-bundle"
-          anchor=$(jq -r .anchor_candidate "$RUNNER_TEMP/riscv-selection.json")
-          gh api "repos/$GITHUB_REPOSITORY/git/commits/$anchor" > "$RUNNER_TEMP/riscv-commit.json"
-          gh api "repos/$GITHUB_REPOSITORY/commits/$anchor/branches-where-head?per_page=100" > "$RUNNER_TEMP/riscv-branches.json"
-          python3 authority/scripts/architecture_riscv_anchor_selection.py bind \
-            --run "$RUNNER_TEMP/riscv-run.json" \
-            --jobs "$RUNNER_TEMP/riscv-jobs.json" \
-            --artifacts "$RUNNER_TEMP/riscv-artifacts.json" \
-            --authority-commit "$ARCHITECTURE_AUTHORITY_SHA" \
-            --selection "$RUNNER_TEMP/riscv-selection.json" \
-            --commit "$RUNNER_TEMP/riscv-commit.json" \
-            --branches "$RUNNER_TEMP/riscv-branches.json" \
-            --manifest "$RUNNER_TEMP/riscv-bundle/manifest.json" \
-            --release-phase "$(jq -r .phase "$RUNNER_TEMP/riscv-bundle/manifest.json")" \
-            --output "$RUNNER_TEMP/riscv-producer.json"
-
-      - name: Capture authority-owned RISC-V release policy
-        run: |
-          python3 authority/scripts/architecture_authority_dispatch.py \
-            --candidate-root candidate \
-            --script scripts/riscv_release_policy.py -- capture \
-            --root authority \
-            --trusted-commit "$ARCHITECTURE_AUTHORITY_SHA" \
-            --output "$RUNNER_TEMP/riscv-policy-baseline.json"
-          python3 authority/scripts/architecture_authority_dispatch.py \
-            --candidate-root candidate \
-            --script scripts/riscv_release_policy.py -- compare \
-            --root candidate \
-            --candidate "$CANDIDATE_SHA" \
-            --baseline "$RUNNER_TEMP/riscv-policy-baseline.json" \
-            --output "$RUNNER_TEMP/riscv-policy-match.json"
-
       - name: Execute exact authority plan against candidate
         id: host
         run: |
-          if grep -q 'pub const RISCV_ADAPTER_RELEASE_GATED = true;' candidate/src/tools/prove/registry.zig; then
-            riscv_phase=promoted
-          else
-            riscv_phase=candidate
-          fi
           evidence="$GITHUB_WORKSPACE/candidate/zig-out/release-evidence/architecture-authority/linux-$GITHUB_RUN_ID"
           receipts="$RUNNER_TEMP/receipts"
           python3 authority/scripts/architecture_external_authority.py run-host \
@@ -218,12 +153,8 @@ jobs:
             --output-dir "$evidence" \
             --receipt-root "$receipts" \
             --session-nonce "$STWO_ARCHITECTURE_SESSION_NONCE" \
-            --riscv-bundle "$RUNNER_TEMP/riscv-bundle" \
             --native-oracle-bundle "$RUNNER_TEMP/native-oracle" \
-            --native-oracle-trust "$RUNNER_TEMP/native-producer.json" \
-            --riscv-trust-context "$RUNNER_TEMP/riscv-producer.json" \
-            --riscv-policy-context "$RUNNER_TEMP/riscv-policy-match.json" \
-            --riscv-phase "$riscv_phase"
+            --native-oracle-trust "$RUNNER_TEMP/native-producer.json"
           mkdir "$RUNNER_TEMP/host-artifact"
           cp "$receipts/$CANDIDATE_SHA/linux/$GITHUB_RUN_ID.json" "$RUNNER_TEMP/host-artifact/receipt.json"
           cp "$evidence/linux-$GITHUB_RUN_ID-preimages.zip" "$RUNNER_TEMP/host-artifact/preimages.zip"
@@ -308,8 +239,6 @@ jobs:
           python3 authority/scripts/architecture_native_oracle_transport.py extract \
             --archive "$RUNNER_TEMP/native-transport/native-oracle-macos.tar" \
             --output "$RUNNER_TEMP/native-oracle"
-          printf '{}\n' > "$RUNNER_TEMP/unused-riscv-trust.json"
-          printf '{}\n' > "$RUNNER_TEMP/unused-riscv-policy.json"
 
       - name: Execute exact authority plan against candidate
         id: host
@@ -323,12 +252,8 @@ jobs:
             --output-dir "$evidence" \
             --receipt-root "$receipts" \
             --session-nonce "$STWO_ARCHITECTURE_SESSION_NONCE" \
-            --riscv-bundle "$RUNNER_TEMP/unused-riscv" \
             --native-oracle-bundle "$RUNNER_TEMP/native-oracle" \
-            --native-oracle-trust "$RUNNER_TEMP/native-producer.json" \
-            --riscv-trust-context "$RUNNER_TEMP/unused-riscv-trust.json" \
-            --riscv-policy-context "$RUNNER_TEMP/unused-riscv-policy.json" \
-            --riscv-phase candidate
+            --native-oracle-trust "$RUNNER_TEMP/native-producer.json"
           mkdir "$RUNNER_TEMP/host-artifact"
           cp "$receipts/$CANDIDATE_SHA/macos/$GITHUB_RUN_ID.json" "$RUNNER_TEMP/host-artifact/receipt.json"
           cp "$evidence/macos-$GITHUB_RUN_ID-preimages.zip" "$RUNNER_TEMP/host-artifact/preimages.zip"

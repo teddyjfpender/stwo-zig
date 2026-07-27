@@ -24,7 +24,6 @@ from scripts.build_architecture_receipt_lib.model import ReceiptError, require_h
 from scripts.build_architecture_receipt_lib.producer import produce  # noqa: E402
 from scripts.build_architecture_receipt_lib.protocol import load_protocol  # noqa: E402
 from scripts.build_architecture_receipt_lib.verifier import verify as verify_receipts  # noqa: E402
-from scripts.riscv_release_bundle_lib import controller as riscv_bundle_controller  # noqa: E402
 
 
 CONTRACT = AUTHORITY_ROOT / "conformance/build-architecture-external-verifier-v1.json"
@@ -152,9 +151,8 @@ def authenticate(
 
 def run_host(
     *, role: str, candidate_root: Path, candidate: str, output_dir: Path,
-    receipt_root: Path, session_nonce: str, riscv_bundle: Path,
-    native_oracle_bundle: Path, native_oracle_trust: Path,
-    riscv_trust_context: Path, riscv_policy_context: Path, riscv_phase: str,
+    receipt_root: Path, session_nonce: str, native_oracle_bundle: Path,
+    native_oracle_trust: Path,
     environment: Mapping[str, str] | None = None,
 ) -> tuple[Path, dict[str, Any]]:
     env = os.environ if environment is None else environment
@@ -175,11 +173,9 @@ def run_host(
         run_attempt=_required(env, "GITHUB_RUN_ATTEMPT"),
         repository=_required(env, "GITHUB_REPOSITORY"),
         repository_id=_required(env, "GITHUB_REPOSITORY_ID"),
-        workflow_sha=identity["authority_commit"], riscv_bundle=riscv_bundle,
+        workflow_sha=identity["authority_commit"],
         native_oracle_bundle=native_oracle_bundle,
         native_oracle_trust=native_oracle_trust,
-        riscv_trust_context=riscv_trust_context,
-        riscv_policy_context=riscv_policy_context, riscv_phase=riscv_phase,
     )
     post_identity = authenticate(
         candidate_root=candidate_root, candidate=candidate,
@@ -196,17 +192,6 @@ def run_host(
         authority_root=AUTHORITY_ROOT,
         protected=True,
     )
-    if role == "linux":
-        anchor_arguments = argparse.Namespace(
-            root=candidate_root,
-            bundle=riscv_bundle,
-            candidate=candidate,
-            workflow_sha=identity["authority_commit"],
-            trust_context=riscv_trust_context,
-            policy_context=riscv_policy_context,
-        )
-        if riscv_bundle_controller.verify_anchor(anchor_arguments) != 0:
-            raise ReceiptError("RISC-V anchor changed during candidate execution")
     preimages_path = output_dir / f"{role}-{_required(env, 'GITHUB_RUN_ID')}-preimages.zip"
     preimages.verify(
         preimages_path,
@@ -314,12 +299,8 @@ def main(argv: list[str] | None = None) -> int:
     host.add_argument("--output-dir", type=Path, required=True)
     host.add_argument("--receipt-root", type=Path, required=True)
     host.add_argument("--session-nonce", required=True)
-    host.add_argument("--riscv-bundle", type=Path, required=True)
     host.add_argument("--native-oracle-bundle", type=Path, required=True)
     host.add_argument("--native-oracle-trust", type=Path, required=True)
-    host.add_argument("--riscv-trust-context", type=Path, required=True)
-    host.add_argument("--riscv-policy-context", type=Path, required=True)
-    host.add_argument("--riscv-phase", choices=("candidate", "promoted"), required=True)
     verify = phases.add_parser("verify")
     verify.add_argument("--candidate-root", type=Path, required=True)
     verify.add_argument("--candidate", required=True)
@@ -343,12 +324,8 @@ def main(argv: list[str] | None = None) -> int:
                 role=args.role, candidate_root=args.candidate_root,
                 candidate=args.candidate, output_dir=args.output_dir,
                 receipt_root=args.receipt_root, session_nonce=args.session_nonce,
-                riscv_bundle=args.riscv_bundle,
                 native_oracle_bundle=args.native_oracle_bundle,
                 native_oracle_trust=args.native_oracle_trust,
-                riscv_trust_context=args.riscv_trust_context,
-                riscv_policy_context=args.riscv_policy_context,
-                riscv_phase=args.riscv_phase,
             )
             print(f"architecture authority host: PASS {receipt_path}")
             return 0

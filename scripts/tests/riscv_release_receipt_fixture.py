@@ -5,18 +5,18 @@ import json
 
 from scripts.riscv_release_gate_lib import contract as contract_module
 from scripts.riscv_release_gate_lib.contract import (
+    ARCHIVED_STARK_V_COMMIT,
+    ARCHIVED_STARK_V_REPOSITORY,
     BOUNDARIES,
     ELF_CORPUS_BOUNDARIES,
     GENERATED_CORPUS_KEYS,
     IMPLEMENTATION_REPOSITORY,
-    ORACLE_REPOSITORY,
     expected_case_result_keys,
     NONEMPTY_RELATION_CASE,
     NONEMPTY_RELATION_ELF_SHA256,
     NONEMPTY_RELATION_GENERATOR,
     NONEMPTY_RELATION_INPUT_SHA256,
     NONEMPTY_RELATION_PUBLIC_FIELDS,
-    PINNED_ORACLE,
 )
 
 
@@ -58,7 +58,7 @@ def nonempty_relation_case(boundary: str) -> dict[str, object]:
         "zig_binding": {
             "implementation_commit": TEST_COMMIT,
             "implementation_dirty": False,
-            "oracle_commit": PINNED_ORACLE,
+            "oracle_commit": ARCHIVED_STARK_V_COMMIT,
             "elf_sha256": NONEMPTY_RELATION_ELF_SHA256,
             "input_sha256": NONEMPTY_RELATION_INPUT_SHA256,
             "witness_layout_sha256": TEST_DIGEST,
@@ -129,8 +129,8 @@ def valid_receipt(now: int) -> dict[str, object]:
         "expected_case_result_keys": expected_case_result_keys(("alu",)),
         "verdict": "PASS",
         "oracle": {
-            "repository": ORACLE_REPOSITORY,
-            "commit": PINNED_ORACLE,
+            "repository": ARCHIVED_STARK_V_REPOSITORY,
+            "commit": ARCHIVED_STARK_V_COMMIT,
             "clean": True,
             "tree_digest_sha256": TEST_DIGEST,
             "lockfile_sha256": TEST_DIGEST,

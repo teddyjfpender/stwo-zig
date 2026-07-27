@@ -10,9 +10,9 @@ from typing import Any
 
 HELP_SHA256 = {
     "root-help": "da4c10b0b6b0da94e05b2cab64892184c09143857cecb50837db9cdd6936dad3",
-    "prove-help": "dfe3a1a6227d1002a0be02a381a9dc6903a6e614f2c5803df6f24d68f7a8d98f",
-    "bench-help": "85829dc20d199d4d3a628ef6ac6de18284c899e5a03cbec9719395c5e58a09eb",
-    "verify-help": "d1a91ffee4831ae7b20e31aef5e2a075c605e944d7bfbfc0c4799aee8259a4f8",
+    "prove-help": "34eb85228d74ea5eb1276ce03e5f2e1a4fa2c491e913861a8fddaec84a31c41b",
+    "bench-help": "d11320578bc04a00f70f61ed4df5d968827680c9a1205c00e70af7fca8e83d9e",
+    "verify-help": "f192d0ddda2e4090a4add4737c9cd6f5b79fd4d755f5792915a823042adeef0b",
     "applications-help": "c375525c99ee84a5e51a3db048fc2ac61a44782536b4d0d8e9a55de826b8bf5b",
 }
 

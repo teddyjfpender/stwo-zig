@@ -319,19 +319,23 @@
         "binary": "zig-out/bin/stwo-zig",
         "report_schema": "riscv_proof_v2",
         "correctness_oracle": {
-          "authority": "stark-v",
-          "repository": "https://github.com/ClementWalter/stark-v",
-          "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
-          "binary": "target/release/stark-v-bench",
-          "build_command": "cargo build --locked --release -p bench-cli --features parallel",
-          "required_features": [
-            "parallel"
-          ],
+          "authority": "sail-riscv",
+          "repository": "https://github.com/riscv/sail-riscv",
+          "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
           "final_validator": true,
-          "release_anchor": {
-            "receipt": "conformance/evidence/riscv/release-anchor.json",
-            "sha256": "92a901106ff3f3236cf03e2d29469e9a6901ec50ce82a5dc2d473d85155a768a",
-            "candidate_commit": "4c4049bdf878de450f172403a3ddac37eef0dca2"
+          "evidence": {
+            "path": "conformance/riscv/formal-corpus-evidence.json",
+            "sha256": "dde4b06136b6e3b681225ce914c8f8b79504e946e04ce7a50273897bc0979e10"
+          },
+          "benchmark_reference": {
+            "authority": "stark-v",
+            "repository": "https://github.com/ClementWalter/stark-v",
+            "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "binary": "target/release/stark-v-bench",
+            "build_command": "cargo build --locked --release -p bench-cli --features parallel",
+            "required_features": [
+              "parallel"
+            ]
           }
         },
         "gates_policy": {

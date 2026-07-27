@@ -8,8 +8,9 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.riscv_release_gate_lib.contract import (
+    ARCHIVED_STARK_V_COMMIT,
+    ARCHIVED_RECEIPT_ERROR,
     BOUNDARIES,
-    PINNED_ORACLE,
     core_purity_errors,
     divergence_errors,
     divergence_ledger_errors,
@@ -146,10 +147,10 @@ class ReceiptContractTests(unittest.TestCase):
                 object_pairs_hook=_strict_object,
             )
 
-    def test_complete_current_candidate_receipt_passes(self) -> None:
+    def test_well_formed_archived_receipt_cannot_authorize_release(self) -> None:
         now = int(time.time())
         self.assertEqual(
-            [],
+            [ARCHIVED_RECEIPT_ERROR],
             receipt_errors(valid_receipt(now), COMMIT, now=now, vector_names=("alu",)),
         )
 
@@ -168,7 +169,7 @@ class ReceiptContractTests(unittest.TestCase):
             "schema": "riscv-oracle-receipt-v1",
             "candidate_commit": COMMIT,
             "verdict": "PASS",
-            "oracle": {"commit": PINNED_ORACLE},
+            "oracle": {"commit": ARCHIVED_STARK_V_COMMIT},
             "boundaries": {name: {"status": "pass"} for name in BOUNDARIES},
         }
         errors = receipt_errors(receipt, COMMIT, now=0, vector_names=("alu",))

@@ -613,7 +613,7 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
             \\  --report-out PATH  Write the machine-readable proving report
             \\  --elf PATH         Prove a Sail-profile RV32IM guest ELF instead of --air
             \\  --input PATH       Guest input bytes (requires --elf)
-            \\  --experimental     Admit the staged Stark-V adapter before its release gate
+            \\  --experimental     Admit the RISC-V CPU adapter in a staged release build
         ),
         .bench => try writer.writeAll(
             \\Usage: stwo-zig bench --air NAME --backend NAME [run options] [benchmark options]
@@ -627,7 +627,7 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
             \\  --profiled        Enable diagnostic stage instrumentation
             \\  --elf PATH         Benchmark a Sail-profile RV32IM guest ELF instead of --air
             \\  --input PATH       Guest input bytes (requires --elf)
-            \\  --experimental     Admit the staged Stark-V adapter before its release gate
+            \\  --experimental     Admit the RISC-V CPU adapter in a staged release build
         ),
         .verify => return writer.writeAll(
             \\Usage: stwo-zig verify --artifact PATH [--elf PATH] [--protocol secure|functional|smoke]

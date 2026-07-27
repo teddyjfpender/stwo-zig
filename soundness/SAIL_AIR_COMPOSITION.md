@@ -443,13 +443,13 @@ This document does **not** claim:
 - that the node guard \(2\,n_{\mathrm{node}}<p\) alone supplies the
   all-source Merkle coefficient lift, or that either admission guard without
   exact tuple balance and collision resistance root-connects an aggregate; or
-- CP-11 parity for the post-divergence production layout.
+- byte-for-byte compatibility with the retired Stark-V witness, relation, or
+  proof layout.
 
-The last item is deliberately fail-closed:
-`AUTHORIZED_SHAPES` in
-[`scripts/riscv_release_gate_lib/air_divergence.py`](../scripts/riscv_release_gate_lib/air_divergence.py)
-is empty until a reviewed Rust-oracle shape is authorized. This document
-cannot authorize one.
+Legacy Stark-V layout comparisons are not a premise of SA-1 and cannot
+authorize a release. The archived CP-11 receipt reader is fail-closed
+unconditionally; its old divergence-shape parser exists only to inspect
+historical bundles.
 
 ## Reproduction and change control
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate CP-11 oracle evidence against the exact CP-13 candidate."""
+"""Inspect an archived CP-11 receipt; archived receipts always fail admission."""
 
 from __future__ import annotations
 

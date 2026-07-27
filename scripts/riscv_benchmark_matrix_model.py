@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from scripts.riscv_release_oracle_lib.public_values import PINNED_ORACLE
+from scripts.riscv_release_oracle_lib.public_values import PINNED_SAIL
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,7 +100,7 @@ def _regular_fixture(root: Path, relative: str, expected: str, label: str) -> Pa
 def _corpus_workloads(root: Path, manifest: dict[str, Any]) -> list[Workload]:
     authorities = manifest.get("authorities")
     sail = authorities.get("sail") if isinstance(authorities, dict) else None
-    if not isinstance(sail, dict) or sail.get("revision") != PINNED_ORACLE:
+    if not isinstance(sail, dict) or sail.get("revision") != PINNED_SAIL:
         raise MatrixModelError("trace manifest pins a different Sail revision")
     vectors = manifest.get("vectors")
     if not isinstance(vectors, list) or not vectors:

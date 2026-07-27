@@ -120,6 +120,7 @@ all-input equivalence.
 and independently verifies artifacts; it deliberately uses the pinned
 trace-vector digests so PRs stay fast. This gate is the live half of that
 bargain: the digests those lanes trust are themselves re-derived against
-Sail whenever their meaning could move, and daily. The exhaustive release
-protocol (`conformance/riscv-release-evidence.md`) retains its own mandatory
-live comparison; nothing here weakens it.
+Sail whenever their meaning could move, and daily. Strict release execution
+uses the same pinned Sail/Spike workspace through
+`scripts/riscv_release_gate.py --strict`. The older Stark-V bundle protocol in
+`conformance/riscv-release-evidence.md` is archived and has no admission role.

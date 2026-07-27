@@ -245,7 +245,11 @@ fn validatePublicData(public: schema.PublicDataWire) !void {
                 return error.InvalidCompletionAddress;
             if (public.completion.value == 0)
                 return error.InvalidCompletionValue;
-            if (public.completion.clock == 0 or public.completion.clock > public.clock)
+            if (!schema.isAccessClockWithinExecution(
+                public.completion.clock,
+                public.clock,
+                false,
+            ))
                 return error.InvalidCompletionClock;
         },
         .unretired_self_loop => {
@@ -259,7 +263,8 @@ fn validatePublicData(public: schema.PublicDataWire) !void {
         },
     }
     for (public.reg_last_clock) |clock| {
-        if (clock > public.clock) return error.InvalidRegisterClock;
+        if (!schema.isAccessClockWithinExecution(clock, public.clock, true))
+            return error.InvalidRegisterClock;
     }
 
     const expected_input_words_u32 = std.math.divCeil(u32, public.input_len, 4) catch unreachable;
@@ -321,7 +326,8 @@ fn validatePublicData(public: schema.PublicDataWire) !void {
 }
 
 fn validateOutputClock(clock: u32, final_clock: u32) !void {
-    if (clock == 0 or clock > final_clock) return error.InvalidOutputClock;
+    if (!schema.isAccessClockWithinExecution(clock, final_clock, false))
+        return error.InvalidOutputClock;
 }
 
 fn validateCellBudget(statement: schema.StatementWire) !void {

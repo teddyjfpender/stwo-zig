@@ -1,12 +1,14 @@
-"""Strict public-value wires for the RISC-V CP-11 oracle boundary."""
+"""Strict public-value wires for RISC-V artifacts and benchmark adapters."""
 
 from __future__ import annotations
 
 import json
 
 
-PINNED_ORACLE = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
-ORACLE_REPOSITORY = "https://github.com/riscv/sail-riscv"
+PINNED_SAIL = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
+SAIL_REPOSITORY = "https://github.com/riscv/sail-riscv"
+PINNED_STARK_V = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
+STARK_V_REPOSITORY = "https://github.com/ClementWalter/stark-v"
 IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig"
 
 PUBLIC_VALUES_SCHEMA = "riscv-public-values-diagnostic-v1"
@@ -187,12 +189,14 @@ def _validate_binding(
     expected_provenance = {
         "implementation_commit": candidate,
         "implementation_dirty": candidate_dirty,
-        "oracle_commit": PINNED_ORACLE,
+        # The wire field retains its historical name, but it now binds the
+        # active Sail semantic authority, never the Stark-V benchmark.
+        "oracle_commit": PINNED_SAIL,
         "witness_layout_sha256": witness_layout_sha256,
     }
     if artifact:
         expected_provenance.update({
-            "oracle_repository": ORACLE_REPOSITORY,
+            "oracle_repository": SAIL_REPOSITORY,
             "implementation_repository": IMPLEMENTATION_REPOSITORY,
         })
     for field, expected in expected_provenance.items():

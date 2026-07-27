@@ -752,7 +752,9 @@ def produce(
     if final_workloads != all_workloads or final_fixtures != fixtures:
         raise MatrixRunError("fixture identities changed during the matrix run")
     if file_identity(cp11)["sha256"] != oracle["correctness"]["executable_sha256"]:
-        raise MatrixRunError("CP-11 oracle executable changed during the matrix run")
+        raise MatrixRunError(
+            "legacy Stark-V execution comparator changed during the matrix run"
+        )
     if file_identity(timing_binary)["sha256"] != oracle["timing"]["executable"]["sha256"]:
         raise MatrixRunError("Stark-V timing executable changed during the matrix run")
     report = {

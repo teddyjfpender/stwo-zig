@@ -253,14 +253,14 @@ test "public LogUp: exact strict-access public-boundary dummy-relation vector" {
     };
 
     const actual = try sum(&data, &relation_challenges.Relations.dummy());
-    const legacy = QM31.fromU32Unchecked(
+    const previous_combined_sum = QM31.fromU32Unchecked(
         748137912,
         668873569,
         1441913112,
         794627628,
     );
     try std.testing.expect(actual.eql(
-        legacy.add(try programAccessSum(&data, &relation_challenges.Relations.dummy())),
+        previous_combined_sum.add(try programAccessSum(&data, &relation_challenges.Relations.dummy())),
     ));
 }
 
