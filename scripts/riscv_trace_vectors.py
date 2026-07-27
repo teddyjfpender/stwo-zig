@@ -26,7 +26,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import struct
 import types
 import subprocess
 import sys
@@ -34,7 +33,7 @@ from pathlib import Path
 
 try:
     from scripts import riscv_equivalence as equivalence
-    from scripts.riscv_trace_vectors_lib import admission, classics, corpus
+    from scripts.riscv_trace_vectors_lib import admission, classics, corpus, elf
     from scripts.riscv_trace_vectors_lib.encoders import (  # noqa: F401
         ADDI, XORI, ORI, ANDI, SLTI, SLTIU, SLLI, SRLI, SRAI, ADD, SUB, SLL, SLT, SLTU,
         XOR, SRL, SRA, OR, AND, MUL, MULH, MULHSU, MULHU, DIV, DIVU, REM, REMU, LB, LH,
@@ -43,7 +42,7 @@ try:
     )
 except ImportError:
     import riscv_equivalence as equivalence
-    from riscv_trace_vectors_lib import admission, classics, corpus
+    from riscv_trace_vectors_lib import admission, classics, corpus, elf
     from riscv_trace_vectors_lib.encoders import (  # noqa: F401
         ADDI, XORI, ORI, ANDI, SLTI, SLTIU, SLLI, SRLI, SRAI, ADD, SUB, SLL, SLT, SLTU,
         XOR, SRL, SRA, OR, AND, MUL, MULH, MULHSU, MULHU, DIV, DIVU, REM, REMU, LB, LH,
@@ -90,141 +89,23 @@ def comparison_digest(compared: list[dict]) -> str:
 # RV32IM assembler (encoders follow the RISC-V unprivileged spec exactly)
 # ---------------------------------------------------------------------------
 
-CODE_VADDR = 0x0001_0000
-INPUT_START = 0x0010_0000
-INPUT_END = INPUT_START
-HALT_FLAG = 0x0010_0000
-OUTPUT_LEN = 0x0010_0004
-OUTPUT_DATA = 0x0010_0008
-STACK_BOTTOM = 0x001F_FC00
-STACK_TOP = 0x0020_0000
-GLOBAL_POINTER = 0x0020_0800
-OUTPUT_END = STACK_BOTTOM
+CODE_VADDR = elf.CODE_VADDR
+INPUT_START = elf.INPUT_START
+INPUT_END = elf.INPUT_END
+HALT_FLAG = elf.HALT_FLAG
+OUTPUT_LEN = elf.OUTPUT_LEN
+OUTPUT_DATA = elf.OUTPUT_DATA
+STACK_BOTTOM = elf.STACK_BOTTOM
+STACK_TOP = elf.STACK_TOP
+GLOBAL_POINTER = elf.GLOBAL_POINTER
+OUTPUT_END = elf.OUTPUT_END
 MULTI_SHARD_LOOP_ITERATIONS = 65_536
 MULTI_SHARD_ADDI_ROWS = MULTI_SHARD_LOOP_ITERATIONS + 2
 
-
-def build_elf_with_symbols(instructions: list[int], symbols: dict[str, int]) -> bytes:
-    """Minimal ELF with a symtab: header + PT_LOAD phdr + code + .symtab/.strtab
-    and section headers, so both runners resolve linker-script symbols."""
-    code = b"".join(struct.pack("<I", inst) for inst in instructions)
-    e_phoff = 52
-    code_off = 52 + 32
-
-    strtab = b"\x00"
-    name_offsets = {}
-    for name in symbols:
-        name_offsets[name] = len(strtab)
-        strtab += name.encode() + b"\x00"
-    # Symbol entries: null + one per symbol (Elf32_Sym: name,value,size,info,other,shndx)
-    symtab = struct.pack("<IIIBBH", 0, 0, 0, 0, 0, 0)
-    for name, value in symbols.items():
-        symtab += struct.pack("<IIIBBH", name_offsets[name], value, 0, 0x10, 0, 0xFFF1)
-
-    shstrtab = b"\x00.symtab\x00.strtab\x00.shstrtab\x00"
-    symtab_off = code_off + len(code)
-    strtab_off = symtab_off + len(symtab)
-    shstrtab_off = strtab_off + len(strtab)
-    shoff = shstrtab_off + len(shstrtab)
-
-    def shdr(name_off, sh_type, offset, size, link, info, entsize):
-        return struct.pack("<IIIIIIIIII", name_off, sh_type, 0, 0, offset, size, link, info, 1, entsize)
-
-    sections = b"".join([
-        shdr(0, 0, 0, 0, 0, 0, 0),  # null
-        shdr(1, 2, symtab_off, len(symtab), 2, 1, 16),  # .symtab -> links .strtab
-        shdr(9, 3, strtab_off, len(strtab), 0, 0, 0),  # .strtab
-        shdr(17, 3, shstrtab_off, len(shstrtab), 0, 0, 0),  # .shstrtab
-    ])
-
-    header = struct.pack(
-        "<4sBBBBB7xHHIIIIIHHHHHH",
-        b"\x7fELF", 1, 1, 1, 0, 0,
-        2, 0xF3, 1,
-        CODE_VADDR,
-        e_phoff,
-        shoff,  # e_shoff
-        0,
-        52, 32, 1,
-        40, 4, 3,  # shentsize, shnum, shstrndx
-    )
-    phdr = struct.pack(
-        "<IIIIIIII",
-        1,
-        code_off,
-        CODE_VADDR,
-        CODE_VADDR,
-        len(code),
-        len(code),
-        0,
-        0,
-    )
-    return header + phdr + code + symtab + strtab + shstrtab + sections
-
-
-def build_elf(instructions: list[int]) -> bytes:
-    """No-symbol RV32 ELF retained only for an ABI-negative diagnostic."""
-    code = b"".join(struct.pack("<I", inst) for inst in instructions)
-    e_phoff = 52
-    code_off = 52 + 32
-    header = struct.pack(
-        "<4sBBBBB7xHHIIIIIHHHHHH",
-        b"\x7fELF",
-        1,  # 32-bit
-        1,  # little-endian
-        1,  # EV_CURRENT
-        0,  # System V ABI
-        0,  # ABI version
-        2,  # ET_EXEC
-        0xF3,  # EM_RISCV
-        1,  # e_version
-        CODE_VADDR,  # e_entry
-        e_phoff,
-        0,  # e_shoff
-        0,  # e_flags
-        52,  # e_ehsize
-        32,  # e_phentsize
-        1,  # e_phnum
-        0,  # e_shentsize
-        0,  # e_shnum
-        0,  # e_shstrndx
-    )
-    phdr = struct.pack(
-        "<IIIIIIII",
-        1,  # PT_LOAD
-        code_off,  # p_offset
-        CODE_VADDR,  # p_vaddr
-        CODE_VADDR,  # p_paddr
-        len(code),  # p_filesz
-        len(code),  # p_memsz
-        0,  # p_flags (loader ignores)
-        0,  # p_align (matches the historical fixture)
-    )
-    return header + phdr + code
-
-
-def release_symbols(instructions: list[int]) -> dict[str, int]:
-    """Explicit zkVM linker contract for a release-corpus program."""
-    return {
-        "__text_start": CODE_VADDR,
-        "__text_len": len(instructions) * 4,
-        "__data_start": STACK_TOP,
-        "__data_len": 0,
-        "__global_pointer$": GLOBAL_POINTER,
-        "__stack_bottom": STACK_BOTTOM,
-        "__stack_top": STACK_TOP,
-        "__input_start": INPUT_START,
-        "__input_end": INPUT_END,
-        "__halt_flag": HALT_FLAG,
-        "__output_len": OUTPUT_LEN,
-        "__output_data": OUTPUT_DATA,
-        "__output_end": OUTPUT_END,
-    }
-
-
-def build_release_elf(instructions: list[int]) -> bytes:
-    """Build a symbol-bearing ELF whose complete text and I/O ABI are declared."""
-    return build_elf_with_symbols(instructions, release_symbols(instructions))
+build_elf_with_symbols = elf.build_elf_with_symbols
+build_elf = elf.build_elf
+release_symbols = elf.release_symbols
+build_release_elf = elf.build_release_elf
 
 
 # ---------------------------------------------------------------------------
