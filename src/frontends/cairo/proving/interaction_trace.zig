@@ -15,6 +15,7 @@ const fixed_tables = @import("../witness/fixed_table_bundle.zig");
 const implicit = @import("../witness/implicit_interaction_sources.zig");
 const interaction_topology = @import("../witness/interaction_topology.zig");
 const interaction_trace = @import("../witness/interaction_trace.zig");
+const interaction_executor = @import("../witness/interaction_executor.zig");
 const memory_tables = @import("../witness/memory_tables.zig");
 const relation_bundle = @import("../witness/relation_bundle.zig");
 const base_trace = @import("base_trace.zig");
@@ -60,10 +61,16 @@ pub fn build(
     lookup_z: QM31,
     lookup_alpha: QM31,
     pedersen: ?*const pedersen_table.Table,
+    executor: ?interaction_executor.Executor,
     recorder: ?*prover.stage_profile.Recorder,
 ) !InteractionTrace {
     const alpha_powers = deriveAlphaPowers(lookup_alpha);
-    var collector = try Collector.init(allocator, &base.geometry, recorder);
+    var collector = try Collector.init(
+        allocator,
+        &base.geometry,
+        executor,
+        recorder,
+    );
     defer collector.deinit();
 
     for (base.execution.producers) |producer| {
@@ -309,11 +316,13 @@ const Collector = struct {
     allocator: std.mem.Allocator,
     geometry: *const claim_generator.OwnedClaimGeometry,
     components: []?ComponentColumns,
+    executor: ?interaction_executor.Executor,
     recorder: ?*prover.stage_profile.Recorder,
 
     fn init(
         allocator: std.mem.Allocator,
         geometry: *const claim_generator.OwnedClaimGeometry,
+        executor: ?interaction_executor.Executor,
         recorder: ?*prover.stage_profile.Recorder,
     ) !Collector {
         const components = try allocator.alloc(?ComponentColumns, geometry.components.len);
@@ -322,6 +331,7 @@ const Collector = struct {
             .allocator = allocator,
             .geometry = geometry,
             .components = components,
+            .executor = executor,
             .recorder = recorder,
         };
     }
@@ -411,13 +421,21 @@ const Collector = struct {
                 "Interaction fraction materialization",
             );
             defer stage.end();
-            break :blk try recorded_interaction.materializeTrace(
-                self.allocator,
-                descriptors,
-                source,
-                lookup_z,
-                alpha_powers,
-            );
+            break :blk if (self.executor) |executor|
+                try executor.execute(self.allocator, .{
+                    .descriptors = descriptors,
+                    .source = source,
+                    .z = lookup_z,
+                    .alpha_powers = alpha_powers,
+                })
+            else
+                try recorded_interaction.materializeTrace(
+                    self.allocator,
+                    descriptors,
+                    source,
+                    lookup_z,
+                    alpha_powers,
+                );
         };
         defer materialized.deinit();
         const component = self.geometry.components[component_index];

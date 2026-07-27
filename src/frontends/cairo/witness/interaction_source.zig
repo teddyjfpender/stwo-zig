@@ -178,6 +178,43 @@ pub const SourceView = struct {
         };
     }
 
+    pub fn realRows(self: SourceView) usize {
+        return self.real_rows;
+    }
+
+    pub fn sourceOffsetRows(self: SourceView) u32 {
+        return self.source_offset_rows;
+    }
+
+    /// Physical columns in the relation-kernel ABI. Lookup words form one
+    /// dense column-major slab; the other layouts bind sparse columns.
+    pub fn physicalColumnCount(self: SourceView) usize {
+        return switch (self.storage) {
+            .lookup_words => |source| source.columns,
+            inline else => |source| source.values.len,
+        };
+    }
+
+    pub fn copyPhysicalColumn(
+        self: SourceView,
+        column: usize,
+        destination: []u32,
+    ) Error!void {
+        if (destination.len != self.rows() or
+            column >= self.physicalColumnCount())
+            return Error.InvalidSourceShape;
+        switch (self.storage) {
+            .lookup_words => |source| {
+                for (destination, 0..) |*value, row|
+                    value.* = (try source.value(column, row)).v;
+            },
+            inline else => |source| {
+                for (destination, 0..) |*value, row|
+                    value.* = (try source.value(column, row)).v;
+            },
+        }
+    }
+
     pub fn layout(self: SourceView) relation_bundle.SourceLayout {
         return std.meta.activeTag(self.storage);
     }

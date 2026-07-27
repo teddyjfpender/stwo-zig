@@ -154,3 +154,57 @@ The profiles support four system changes:
 The branch has not reached the 10x forcing target. The accepted work advances
 the broad portfolio while preserving the exact proof protocol and identifies
 the architecture required for the next order of improvement.
+
+## Generated writers and generalized Metal placement
+
+Generated native CPU writers were admitted by the full 256-bit semantic
+program identity and bound into both focused products. On Memory 7m, CPU
+witness execution improved `630.323 -> 492.046 ms`; Metal's host witness
+execution improved `627.719 -> 557.105 ms`. Complete proof changes were small,
+so this was accepted for architecture and stage-level evidence rather than
+promoted as a portfolio speed claim.
+
+The official Metal witness generator was then advanced to codegen v7 and
+completed for deduction selectors 12-18. Focused runtime compilation passed:
+
+```text
+add_mod_builtin                        140,514 source bytes
+mul_mod_builtin                       296,565 source bytes
+blake_compress_opcode                 163,379 source bytes
+pedersen_aggregator_window_bits_9     545,878 source bytes
+poseidon_aggregator                   327,857 source bytes
+ec_op_builtin                       3,167,670 source bytes; 143.41 s compile
+```
+
+The complete official translation unit was 12,120,041 bytes across 128
+kernels. The result rules out runtime monolithic JIT. Production must compile
+shards in parallel offline and link one authenticated metallib.
+
+A generic Metal relation executor was wired behind an explicit frontend
+interface. Its first normalized-source version produced exact proofs but
+regressed all-opcodes interaction construction from 142.917 to 489.375 ms.
+Direct physical layout binding reduced that to 366.539 ms. Descriptor
+projection then reduced transfer volume further.
+
+Arithmetic 2m diagnostics after projection:
+
+```text
+main relation rows=2,097,152 columns=5
+GPU relation time                         16.751 ms
+host source copy                          96.889 ms
+output gather                             14.191 ms
+complete interaction trace               536.534 ms
+complete proof                          2,162.338 ms
+```
+
+Memory 7m remained exact with proof SHA-256
+`1cc39978f3d0ba73a7974f173f156c2f9b6ae966a107aa041cc600cd50fe8ffc`,
+zero fallbacks, and 4,892.090 ms reported proving time. The interaction trace
+was 1,062.226 ms, including 849.440 ms inside host-bridged relation
+materialization. Maximum RSS was 9,760,882,688 bytes.
+
+This candidate is rejected for default placement. It is retained behind
+`STWO_CAIRO_METAL_HOST_BRIDGED_LOGUP=1` as an exact differential and profiling
+harness. Default Metal proving continues to use the faster host materializer
+until generated witness outputs, lookup feeds, interaction outputs, and PCS
+commitment share one resident backing.

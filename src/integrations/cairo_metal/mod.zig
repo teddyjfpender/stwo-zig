@@ -10,6 +10,7 @@ pub const eval_codegen = @import("eval_codegen.zig");
 pub const composition_prewarm = @import("composition_prewarm.zig");
 pub const witness_aot = @import("witness_aot.zig");
 pub const witness_codegen = @import("witness_codegen.zig");
+pub const interaction_executor = @import("prover/interaction_executor.zig");
 pub const process_backend = @import("process/backend.zig");
 
 test {
@@ -24,5 +25,6 @@ test {
     _ = composition_prewarm;
     _ = witness_aot;
     _ = witness_codegen;
+    _ = interaction_executor;
     _ = process_backend;
 }

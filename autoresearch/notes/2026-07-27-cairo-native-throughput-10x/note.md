@@ -436,3 +436,55 @@ The next high-leverage boundary is now narrower and better supported by data:
    witness output, interaction input, and commitment share storage.
 4. Move interaction materialization and Cairo AIR evaluation behind explicit
    CPU-SIMD and Metal backend interfaces.
+
+## Result 8: generated CPU witness writers
+
+The official witness bundle now generates one native writer per full
+`Program.semanticIdentity()`. Admission uses the complete 256-bit structural
+identity rather than labels or the legacy 64-bit diagnostic hash. The same
+writers serve the CPU product and the current host-witness portion of the
+Metal product.
+
+On Memory 7m, the CPU witness graph fell from 813.373 to 632.933 ms (`1.285x`)
+and witness execution fell from 630.323 to 492.046 ms (`1.281x`). The Metal
+product's host witness graph fell from 805.644 to 691.123 ms (`1.166x`) and
+execution fell from 627.719 to 557.105 ms (`1.127x`). Complete proofs moved
+only from 6,888.709 to 6,832.396 ms CPU and from 5,069.174 to 4,973.406 ms
+Metal. The result is accepted architecture and a material witness-stage gain,
+not a broad system-performance promotion.
+
+## Result 9: generalized Metal AOT and LogUp bridge
+
+Metal witness generation now covers every official deduction selector from 0
+through 18. Focused Apple runtime-compiler probes passed add-mod, mul-mod,
+Blake, window-nine Pedersen, Poseidon, and the 3.17 MB generic EC-op kernel.
+The complete official source has 128 kernels, 12,120,041 bytes, and 276,276
+lines. Runtime source JIT is therefore rejected as a production architecture.
+The required build is sharded offline compilation followed by one
+authenticated metallib link and one runtime library load.
+
+A backend-neutral interaction executor boundary and a fail-closed Metal
+implementation exercise the existing authenticated relation kernels over all
+official source layouts. CPU remains the default. The host-bridged Metal path
+is available only with `STWO_CAIRO_METAL_HOST_BRIDGED_LOGUP=1` while resident
+witness storage is incomplete.
+
+Exact proof parity held on all-opcodes, Arithmetic 2m, and Memory 7m. Metal
+reported zero fallbacks. The bridge is not promoted:
+
+| Workload | Default Metal ms | Host-bridged LogUp ms | Result |
+| --- | ---: | ---: | --- |
+| Arithmetic 2m | 2,044.014 | 2,162.338 | reject |
+| Memory 7m | 4,973.406 | 4,892.090 | inconclusive single-sample noise |
+
+The device arithmetic is already fast. On Arithmetic 2m, the 2,097,152-row
+main relation used 16.5-16.8 ms of GPU time, while copying its host source
+columns into a transient arena cost 96.9-123.7 ms. The controlled Memory 7m
+run spent 849.440 ms in the bridged fraction stage and peaked at 9.76 GB RSS
+with a 17.65 GB physical-footprint counter.
+
+This rejects post-witness host bridging. The critical path is one shared
+resident allocation whose ownership crosses generated witness execution,
+lookup-word retention, LogUp, and commitment. The staged executor remains an
+exact differential harness for that architecture and is not enabled in the
+production capability surface.

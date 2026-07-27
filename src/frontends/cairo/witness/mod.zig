@@ -1,5 +1,6 @@
 pub const program = @import("program.zig");
 pub const generated_executor = @import("generated_executor.zig");
+pub const interaction_executor = @import("interaction_executor.zig");
 pub const execution_tables = @import("execution_tables.zig");
 pub const verify_instruction_inputs = @import("verify_instruction_inputs.zig");
 pub const direct_inputs = @import("direct_inputs.zig");

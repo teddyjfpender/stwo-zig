@@ -22,6 +22,12 @@ const Product = struct {
         return witness_cpu_aot.executor();
     }
 
+    pub fn interactionExecutor(
+        _: *ProofContext,
+    ) ?package.frontends.cairo.witness.interaction_executor.Executor {
+        return null;
+    }
+
     pub fn beginProof(_: std.mem.Allocator) !ProofContext {}
 
     pub fn finishProof(_: *ProofContext) !application.BackendEvidence {
