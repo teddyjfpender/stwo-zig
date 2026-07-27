@@ -65,6 +65,9 @@ PYTHON_LIBRARY_DEPENDENCIES = {
         "riscv_equivalence_lib",
         "riscv_sail_oracle_lib",
     }),
+    "riscv_poseidon_table_uniqueness_lib": frozenset({
+        "air_satisfaction_lib",
+    }),
     "riscv_sail_oracle_lib": frozenset({"riscv_equivalence_lib"}),
     "native_profile_capture_lib": frozenset({
         "metal_profile_report_lib",
