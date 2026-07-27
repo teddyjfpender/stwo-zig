@@ -166,3 +166,23 @@ Under a concurrently loaded host, prove time was 5,108.769 ms and peak RSS was
 noisy because unrelated RISC-V gates were active, so this is retained on the
 strength of deleted duplicate work and exact end-to-end parity, not presented
 as a causal portfolio speedup.
+
+## Rejected: eight-stream Merkle leaf continuation
+
+The CPU sample identified BLAKE2s as the largest aggregate active stack.
+Merkle parent layers already use the proven eight-stream compressor, while
+fragmented leaf continuation used four streams. An exact implementation
+extended eight-stream state gathering, column updates, tail finalization, and
+scalar/four-stream tails through the generic leaf path.
+
+Against the Pedersen-only commit, Arithmetic 2m A-B-B-A means were:
+
+| Candidate | Mean prove | Ratio |
+| --- | ---: | ---: |
+| four-stream predecessor | 4,655.697 ms | `1.000000` |
+| eight-stream leaves | 4,717.112 ms | `1.013191` |
+
+Proof bytes were identical. The wider logical vectors did not turn the
+existing active stack into a win; register and generated-code pressure
+slightly outweighed additional instruction-level parallelism. The
+implementation was removed completely.

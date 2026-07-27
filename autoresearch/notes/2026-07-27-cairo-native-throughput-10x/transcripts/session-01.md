@@ -122,3 +122,20 @@ stages and the complete proof fell from roughly 294 ms to 62 ms. Because
 surrounding stage times were visibly perturbed by concurrent RISC-V gates, no
 portfolio speedup is claimed from this run; a later controlled matrix will
 judge its net effect.
+
+## Hypothesis 4: extend eight-stream BLAKE2s through Merkle leaves
+
+The complete CPU sample names BLAKE2s compression as the largest aggregate
+active stack. Parent layers already batch eight independent hashes, but leaf
+continuation batches four. Extend the same logical-vector implementation
+through M31 column updates and terminal blocks, retaining four/scalar tails
+and exact scalar differential tests.
+
+### Result: rejected
+
+All differential tests and proof hashes passed. Isolated Arithmetic 2m
+A-B-B-A against the Pedersen-only predecessor measured 4,655.697 ms for the
+four-stream path and 4,717.112 ms for eight streams, a `1.013191` regression.
+The M5 executes the 256-bit logical vector as native halves; extra live state
+and code pressure outweighed scheduling overlap for fragmented leaf messages.
+All implementation source was removed.
