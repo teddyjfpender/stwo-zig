@@ -69,8 +69,17 @@ pub const products = [_]Spec{
             "python3",
             "stwo-cairo-official-verifier",
         },
-        .generated_module_roots = &.{"generated:options:"},
-        .configure_allowed_prefixes = &.{"third_party/bzip2"},
+        .generated_module_roots = &.{
+            "generated:options:",
+            "generated:cairo-witness-cpu-aot:",
+        },
+        .configure_allowed_files = &.{
+            "build_support/products/cairo_witness_cpu_aot.zig",
+        },
+        .configure_allowed_prefixes = &.{
+            "src/tools/cairo_witness_cpu_codegen",
+            "third_party/bzip2",
+        },
     },
     .{
         .descriptor = cairo_metal.descriptor,

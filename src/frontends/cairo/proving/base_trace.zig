@@ -43,6 +43,7 @@ pub fn build(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     programs: *const witness_bundle.Bundle,
+    generated_executor: ?@import("../witness/generated_executor.zig").Executor,
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     variant: claim_generator.PreprocessedVariant,
@@ -76,6 +77,7 @@ pub fn build(
             allocator,
             input,
             programs,
+            generated_executor,
             &geometry,
             .{
                 .context = &collector,

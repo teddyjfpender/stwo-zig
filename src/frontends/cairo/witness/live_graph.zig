@@ -15,6 +15,7 @@ const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const direct_inputs = @import("direct_inputs.zig");
 const gathered_inputs = @import("gathered_inputs.zig");
+const generated_executor_mod = @import("generated_executor.zig");
 const producer_output = @import("producer_output.zig");
 const witness_bundle = @import("bundle.zig");
 const stage_profile = @import("stwo_prover_impl").stage_profile;
@@ -62,6 +63,7 @@ pub fn execute(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     programs: *const witness_bundle.Bundle,
+    generated_executor: ?generated_executor_mod.Executor,
     geometry: *claim_generator.OwnedClaimGeometry,
     observer: ?ComponentObserver,
     pedersen_table: ?deductions.PedersenTable,
@@ -116,6 +118,7 @@ pub fn execute(
                 allocator,
                 input,
                 entry.program,
+                generated_executor,
                 compact,
                 claim_component,
                 @intCast(ordinal),
@@ -128,6 +131,7 @@ pub fn execute(
                 allocator,
                 input,
                 entry.program,
+                generated_executor,
                 direct,
                 claim_component,
                 @intCast(ordinal),
@@ -153,6 +157,7 @@ pub fn execute(
                 allocator,
                 input,
                 entry.program,
+                generated_executor,
                 gathered,
                 claim_component,
                 @intCast(ordinal),
@@ -195,6 +200,7 @@ fn executeComponent(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     witness_program: @import("program.zig").Program,
+    generated_executor: ?generated_executor_mod.Executor,
     source: anytype,
     claim_component: claim_generator.ComponentGeometry,
     ordinal: u32,
@@ -216,6 +222,7 @@ fn executeComponent(
         allocator,
         input,
         witness_program,
+        generated_executor,
         source,
         layout,
         pedersen_table,

@@ -173,6 +173,7 @@ fn proveFile(
         .{
             .input = &input,
             .programs = &programs,
+            .generated_executor = Product.witnessExecutor(),
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,

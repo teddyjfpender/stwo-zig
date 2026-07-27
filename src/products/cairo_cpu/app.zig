@@ -4,6 +4,7 @@ const std = @import("std");
 const package = @import("stwo_cairo_cpu");
 const application = @import("cairo_product").application;
 const capability_surface = @import("capabilities.zig");
+const witness_cpu_aot = @import("cairo_witness_cpu_aot");
 const product_identity = @import("identity.zig");
 
 const Product = struct {
@@ -16,6 +17,10 @@ const Product = struct {
     pub const capabilities = capability_surface;
     pub const identity = product_identity;
     pub const ProofContext = void;
+
+    pub fn witnessExecutor() ?package.frontends.cairo.witness.generated_executor.Executor {
+        return witness_cpu_aot.executor();
+    }
 
     pub fn beginProof(_: std.mem.Allocator) !ProofContext {}
 
@@ -42,4 +47,20 @@ pub fn main() !void {
 
 test "Cairo CPU application binds the CPU transaction" {
     try std.testing.expectEqualStrings("cpu", Product.backend_name);
+}
+
+test "Cairo CPU generated writers cover every authenticated program" {
+    var bundle = try package.frontends.cairo.witness.bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer bundle.deinit();
+    try std.testing.expectEqual(
+        bundle.entries.len,
+        witness_cpu_aot.generated_program_count,
+    );
+    const executor = Product.witnessExecutor().?;
+    for (bundle.entries) |entry| {
+        try std.testing.expect(executor.resolve(entry.program) != null);
+    }
 }

@@ -63,6 +63,7 @@ fn expectLiveCase(case: Case) !void {
         std.testing.allocator,
         &input,
         &programs,
+        null,
         &geometry,
         .{
             .context = &observer,

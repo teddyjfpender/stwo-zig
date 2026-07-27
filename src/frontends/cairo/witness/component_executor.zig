@@ -5,6 +5,7 @@ const adapter = @import("../adapter/mod.zig");
 const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const execution_tables = @import("execution_tables.zig");
+const generated = @import("generated_executor.zig");
 const program_mod = @import("program.zig");
 const prover = @import("stwo_prover_impl");
 const work_pool = prover.work_pool;
@@ -49,6 +50,7 @@ pub fn execute(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     witness_program: program_mod.Program,
+    generated_executor: ?generated.Executor,
     source: anytype,
     layout: component_layout.ComponentLayout,
     pedersen_table: ?deductions.PedersenTable,
@@ -83,11 +85,20 @@ pub fn execute(
     defer allocator.free(input_storage);
     const input_columns = try allocator.alloc([]const u32, source.columnCount());
     defer allocator.free(input_columns);
+    const native_input_columns = try allocator.alloc(
+        generated.ConstColumnView,
+        source.columnCount(),
+    );
+    defer allocator.free(native_input_columns);
     for (input_columns, 0..) |*column, column_index| {
         const start = column_index * row_count;
         const values = input_storage[start .. start + row_count];
         try source.writeColumn(column_index, values);
         column.* = values;
+        native_input_columns[column_index] = .{
+            .ptr = values.ptr,
+            .len = values.len,
+        };
     }
     input_stage.end();
 
@@ -111,6 +122,14 @@ pub fn execute(
     for (result.output_columns, 0..) |*column, column_index| {
         const start = column_index * row_count;
         column.* = result.output_storage[start .. start + row_count];
+    }
+    const native_output_columns = try allocator.alloc(
+        generated.ColumnView,
+        witness_program.n_cols,
+    );
+    defer allocator.free(native_output_columns);
+    for (result.output_columns, native_output_columns) |column, *view| {
+        view.* = .{ .ptr = column.ptr, .len = column.len };
     }
     result.lookup_words = try allocator.alloc(u32, lookup_words);
     errdefer allocator.free(result.lookup_words);
@@ -175,6 +194,8 @@ pub fn execute(
         program: program_mod.Program,
         input_columns: []const []const u32,
         output_columns: []const []u32,
+        native_input_columns: []const generated.ConstColumnView,
+        native_output_columns: []const generated.ColumnView,
         auxiliary: program_mod.AuxiliaryOutputs,
         start: usize,
         end: usize,
@@ -182,21 +203,38 @@ pub fn execute(
         deduce_args: []u32,
         tables: program_mod.TableContext,
         deduce: program_mod.DeduceContext,
+        generated_writer: ?generated.Writer,
         failure: ?anyerror = null,
 
         fn run(self: *@This()) void {
-            program_mod.executeAllRange(
-                self.program,
-                self.input_columns,
-                self.output_columns,
-                self.auxiliary,
-                self.start,
-                self.end,
-                self.registers,
-                self.deduce_args,
-                self.tables,
-                self.deduce,
-            ) catch |err| {
+            const execution_result = if (self.generated_writer) |writer|
+                writer(.{
+                    .input_columns = self.input_columns,
+                    .output_columns = self.output_columns,
+                    .native_input_columns = self.native_input_columns,
+                    .native_output_columns = self.native_output_columns,
+                    .auxiliary = self.auxiliary,
+                    .start = self.start,
+                    .end = self.end,
+                    .registers = self.registers,
+                    .deduce_args = self.deduce_args,
+                    .tables = self.tables,
+                    .deduce = self.deduce,
+                })
+            else
+                program_mod.executeAllRange(
+                    self.program,
+                    self.input_columns,
+                    self.output_columns,
+                    self.auxiliary,
+                    self.start,
+                    self.end,
+                    self.registers,
+                    self.deduce_args,
+                    self.tables,
+                    self.deduce,
+                );
+            execution_result catch |err| {
                 self.failure = err;
             };
         }
@@ -213,6 +251,8 @@ pub fn execute(
             .program = witness_program,
             .input_columns = input_columns,
             .output_columns = result.output_columns,
+            .native_input_columns = native_input_columns,
+            .native_output_columns = native_output_columns,
             .auxiliary = auxiliary,
             .start = start,
             .end = @min(row_count, start + chunk_len),
@@ -220,6 +260,10 @@ pub fn execute(
             .deduce_args = deduce_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .tables = execution_tables.fromInput(input),
             .deduce = deductions.contextWithConfig(&deduction_config),
+            .generated_writer = if (generated_executor) |executor|
+                executor.resolve(witness_program)
+            else
+                null,
         };
     }
     if (worker_count > 1) {

@@ -20,6 +20,10 @@ pub const Product = struct {
     pub const capabilities = capability_surface;
     pub const identity = product_identity;
 
+    pub fn witnessExecutor() ?package.frontends.cairo.witness.generated_executor.Executor {
+        return null;
+    }
+
     pub const ProofContext = struct {
         before: backend_transaction.TelemetrySnapshot,
         lifecycle_before: backend_transaction.RuntimeLifecycleSnapshot,

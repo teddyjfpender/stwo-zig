@@ -265,6 +265,7 @@ fn executeComponent(
         allocator,
         input,
         witness_program,
+        null,
         source,
         try base_execution.layout(expected),
         null,
