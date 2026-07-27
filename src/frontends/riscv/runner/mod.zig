@@ -12,6 +12,8 @@ pub const execute_mod = @import("execute.zig");
 pub const elf_loader = @import("elf_loader.zig");
 pub const trace = @import("trace.zig");
 pub const trace_dump = @import("trace_dump.zig");
+/// Test-only bridge to the pinned Sail oracle; see `sail_oracle.zig`.
+pub const sail_oracle = @import("sail_oracle.zig");
 pub const state_chain = @import("state_chain.zig");
 pub const memory_state = @import("memory_state.zig");
 pub const result_mod = @import("result.zig");

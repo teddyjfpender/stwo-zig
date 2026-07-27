@@ -101,7 +101,9 @@ fn memoryValueMask(width: u3) u32 {
 const runner = @import("mod.zig");
 
 /// Build a minimal in-memory ELF with the given instructions at vaddr 0x10000.
-fn buildTestElf(comptime n_insts: usize, instructions: [n_insts]u32) [84 + n_insts * 4]u8 {
+/// Test support only; shared with `sail_oracle.zig` so the two files exercise
+/// the same guest shape.
+pub fn buildTestElf(comptime n_insts: usize, instructions: [n_insts]u32) [84 + n_insts * 4]u8 {
     const code_size = n_insts * 4;
     var elf_buf: [84 + code_size]u8 = [_]u8{0} ** (84 + code_size);
 
