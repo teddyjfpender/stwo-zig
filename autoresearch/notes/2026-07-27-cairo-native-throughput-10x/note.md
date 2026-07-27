@@ -275,3 +275,24 @@ The cumulative canonical improvement from the immutable `b0439ccf` control is
 `1.606x` end to end and `1.770x` in preprocessing. This improves cold
 canonical construction but does not change the conclusion that an
 authenticated immutable preprocessed product is the dominant next boundary.
+
+## Rejected: retrofit base-trace backing ownership
+
+Generated witness components first write `u32` storage, then the base collector
+copies those values into `M31` commitment columns. A candidate transferred the
+original ABI-identical storage through the PCS backing contract. The CPU lane
+had to retain its existing detached-column path because the streaming
+commitment policy otherwise regressed materially.
+
+The Metal backend accepts a true no-copy host source only when all columns
+cover one contiguous arena. Cairo component execution produces multiple
+independent allocations, so Metal still had to pack them. An exact
+predecessor/candidate Arithmetic 2m comparison measured 3,388.989 ms versus
+3,410.897 ms, with candidate instructions also 0.6% higher. Proofs were exact,
+both used 74 Metal dispatches and zero fallbacks, and peak footprint was
+neutral.
+
+The implementation was removed. A valid successor must allocate one
+backend-shaped base arena before component execution and write every generated
+and implicit column directly into its final offset. Retrofitting ownership
+after fragmented allocation does not remove the representation transform.

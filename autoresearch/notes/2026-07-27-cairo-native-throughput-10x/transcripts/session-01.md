@@ -240,3 +240,31 @@ Against the immutable `b0439ccf` control, the cumulative result is `1.606x`
 end-to-end and `1.770x` for canonical preprocessing. Further table arithmetic
 tuning has diminishing system leverage; immutable product reuse remains the
 architectural target.
+
+## Hypothesis 8: transfer generated base storage into commitment
+
+The witness interpreter's `u32` outputs are ABI-identical to canonical `M31`
+words. Transfer those component allocations into base-trace ownership and
+pass backing buffers through the PCS contract. Keep CPU on detached columns
+because its streaming commitment does not adopt shared backing.
+
+### Result: rejected
+
+Metal no-copy admission requires one backing arena that is covered
+contiguously by every column. The live witness graph produces one allocation
+per component plus separate implicit-table allocations. Consequently, the
+backend still packed the fragments and the ownership change removed no
+complete representation pass.
+
+```text
+Arithmetic 2m Metal             predecessor     candidate      ratio
+prove                           3388.989 ms     3410.897 ms    1.0065
+instructions                    207.040 B       208.308 B      1.0061
+dispatches / fallbacks          74 / 0          74 / 0         exact
+proof SHA-256                   caf3c89b...ae9f caf3c89b...ae9f exact
+```
+
+The candidate was removed completely. The architectural lesson is stricter:
+one final arena must be planned before witness execution so writers target
+their committed offsets directly. Ownership metadata cannot repair fragmented
+construction after the fact.
