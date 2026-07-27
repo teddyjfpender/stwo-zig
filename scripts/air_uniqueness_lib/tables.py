@@ -83,6 +83,19 @@ def check_arity(domain: str, arity: int) -> None:
         )
 
 
+def box_widths(domain: str) -> tuple[int, ...] | None:
+    """Per-component bit widths a live request imposes, or None for a bus.
+
+    `bitwise` belongs here as much as the range checks do: its rows are a
+    function on top of a box, and the box binds every component including the
+    result.  Leaving it out is why an ALU operand stayed unbounded over the
+    whole field while the request that bounds it was already known to be live.
+    """
+    if domain == BITWISE_DOMAIN:
+        return BITWISE_WIDTHS
+    return BOX_TABLES.get(domain)
+
+
 def is_constraining(domain: str) -> bool:
     """Whether a live request in this domain constrains the row on its own."""
-    return domain in BOX_TABLES or domain == BITWISE_DOMAIN
+    return box_widths(domain) is not None

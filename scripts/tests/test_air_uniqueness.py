@@ -27,6 +27,7 @@ FIXED = FIXTURES / "sign_load_fixed.json"
 ADDER = FIXTURES / "byte_carry_adder.json"
 ADDER_UNRANGED = FIXTURES / "byte_carry_adder_unranged.json"
 XOR = FIXTURES / "bitwise_xor_byte.json"
+INLINE_ADDER = FIXTURES / "inline_carry_adder.json"
 
 # Observed worst case is ~3.5s, on the bitwise model whose int2bv encoding is
 # the least predictable. The headroom is deliberate but bounded: a regression
@@ -191,11 +192,49 @@ class EncodingSoundnessTest(unittest.TestCase):
         self.assertTrue(result.vacuous)
         self.assertIn("VACUOUS", solve.format_result(result))
 
-    def test_uniqueness_query_declares_both_copies(self) -> None:
-        text = smtlib.emit_uniqueness_query(ir.load(ADDER)).text
+    def test_the_two_copies_are_two_variables_where_they_may_differ(self) -> None:
+        """Inputs are one variable; anything the copies may disagree on is two.
+
+        Making the hypothesis structural rather than asserted is what removes
+        the possibility of a missing `x@a = x@b`, but it also means a column
+        wrongly counted as shared silently strengthens the hypothesis.  So the
+        contract is stated from both ends.
+        """
+        query = smtlib.emit_uniqueness_query(ir.load(ADDER))
+        self.assertIn("a0", query.shared_columns)
+        self.assertIn("(declare-const a0@s Int)", query.text)
+        self.assertNotIn("a0@a", query.text)
         for copy in smtlib.COPIES:
-            self.assertIn(f"(declare-const a0@{copy} Int)", text)
-        self.assertIn("(assert (= a0@a a0@b))", text)
+            self.assertIn(f"(declare-const c0@{copy} Int)", query.text)
+
+    def test_a_column_is_shared_only_where_the_constraints_determine_it(self) -> None:
+        system = ir.load(ADDER)
+        inputs = frozenset(system.by_role("input"))
+        determined = analysis.determined_columns(system, inputs)
+        # Carries and sums are free until the range checks pin them, and the
+        # range checks are memberships rather than equations.
+        self.assertEqual(determined, inputs)
+
+    def test_a_chain_of_equations_reaches_the_far_end(self) -> None:
+        system = ir.from_dict(
+            {
+                "columns": [
+                    {"name": "given", "role": "input"},
+                    {"name": "middle", "role": "witness"},
+                    {"name": "far", "role": "output"},
+                    {"name": "free", "role": "output"},
+                ],
+                "exprs": {
+                    "first": ["sub", ["col", "middle"], ["col", "given"]],
+                    "second": ["sub", ["col", "far"], ["col", "middle"]],
+                    "loose": ["bit", ["col", "free"]],
+                },
+                "constraints": ["first", "second", "loose"],
+            }
+        )
+        determined = analysis.determined_columns(system, frozenset({"given"}))
+        self.assertEqual(determined, {"given", "middle", "far"})
+        self.assertNotIn("free", determined)
 
 
 def _escape_model(escape: int, stride: int) -> dict[str, object]:
@@ -345,6 +384,55 @@ class LookupLivenessTest(unittest.TestCase):
         self.assertEqual(analysis.solved_forms(system), {})
         # The root analysis still bounds it, by the argument it is entitled to.
         self.assertEqual(analysis.implied_column_bounds(system)["x"], (0, 1))
+
+
+class RenormalisationTest(unittest.TestCase):
+    """The rewrite that makes an inline carry chain reachable for the solver."""
+
+    def setUp(self) -> None:
+        self.system = ir.load(INLINE_ADDER)
+        self.bounds = analysis.implied_column_bounds(self.system)
+
+    def test_the_carry_is_pinned_although_no_column_in_it_is(self) -> None:
+        """The fact lives on a line of the column space, not on a column.
+
+        This is the whole reason the column-only analysis could not see it: the
+        AIR spells a carry as an expression over four byte columns, none of
+        which is a bit.
+        """
+        values = analysis.constrained_node_values(self.system)
+        carries = [
+            index
+            for index, pinned in values.items()
+            if pinned == (0, 1) and self.system.nodes[index].op == "mul"
+        ]
+        self.assertEqual(len(carries), 4, "one carry per limb")
+        self.assertEqual(
+            [i for i in values if self.system.nodes[i].op == "col"],
+            [],
+            "the fact is on a line through four columns, not on any one of them",
+        )
+        for column in ("a0", "s0", "s3"):
+            self.assertEqual(self.bounds[column], (0, 255))
+
+    def test_interval_width_stops_compounding_at_the_pinned_nodes(self) -> None:
+        widest = lambda r: max(hi - lo for lo, hi in r.effective)  # noqa: E731
+        plain = analysis.renormalise(self.system, self.bounds, values={})
+        renormalised = analysis.renormalise(self.system, self.bounds)
+        self.assertGreater(widest(plain), 10**60, "2^23 per limb, four limbs")
+        self.assertLessEqual(widest(renormalised), 511)
+
+    @needs_z3
+    def test_the_verdict_is_the_same_with_and_without_it(self) -> None:
+        for derived in (False, True):
+            with self.subTest(renormalise=derived):
+                result = solve.check(
+                    self.system,
+                    timeout_ms=TIMEOUT_MS,
+                    derived=derived,
+                )
+                self.assertEqual(result.status, "unsat")
+                self.assertTrue(result.constraints_satisfiable)
 
 
 class VacuousFamilyTest(unittest.TestCase):

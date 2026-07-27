@@ -7,12 +7,14 @@ so the artifact a reviewer reads is the artifact that was checked.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from typing import Sequence
 
 from .ir import System
 from .smtlib import (
     COPIES,
     Query,
+    Shard,
     emit_satisfiability_query,
     emit_uniqueness_query,
 )
@@ -41,6 +43,9 @@ class Result:
     constraints_satisfiable: bool | None = None
     # Non-empty exactly when `status == "skipped"`.
     skip_reason: str = ""
+    # Which sub-query this is, or which sub-queries an aggregate covers.
+    shard: str = "monolithic"
+    open_shards: tuple[str, ...] = ()
 
     @property
     def unique(self) -> bool:
@@ -57,32 +62,77 @@ def check(
     timeout_ms: int = 0,
     refine: bool = True,
     assume_domains: bool = False,
+    derived: bool = True,
+    shard: Shard = Shard(),
+    probe: bool = True,
 ) -> Result:
-    """Run the uniqueness query.  `sat` is a real under-constraint witness pair;
+    """Run one uniqueness query.  `sat` is a real under-constraint witness pair;
     see `air_uniqueness.py explain` for what `unsat` does not mean.
 
     A family the query cannot say anything about returns `skipped` with the
     reason, never a verdict.  A fabricated `unsat` on such a family is worse
     than no row on the board, because the board is read as coverage.
+
+    The default `Shard()` asks the family's whole question at once.  A board
+    asks it one shard at a time and combines the answers with `aggregate`.
     """
     reason = system.uniqueness_skip_reason()
     if reason is not None:
         return Result(
             family=system.family, status="skipped", seconds=0.0, skip_reason=reason
         )
-    result = run_query(
-        emit_uniqueness_query(system, refine=refine, assume_domains=assume_domains),
-        timeout_ms,
-    )
-    if result.unique:
-        probe = run_query(
-            emit_satisfiability_query(
-                system, refine=refine, assume_domains=assume_domains
-            ),
-            timeout_ms,
-        )
-        result.constraints_satisfiable = probe.status == "sat"
+    options = {
+        "refine": refine,
+        "assume_domains": assume_domains,
+        "derived": derived,
+        "shard": shard,
+    }
+    result = run_query(emit_uniqueness_query(system, **options), timeout_ms)
+    result.shard = shard.label()
+    if result.unique and probe:
+        result.constraints_satisfiable = satisfiable(system, timeout_ms, **options)
     return result
+
+
+def satisfiable(system: System, timeout_ms: int = 0, **options: object) -> bool | None:
+    """Whether an honest witness exists at all, or None if the probe ran out.
+
+    `None` is not `False`.  An unsatisfiable system is trivially unique, so a
+    probe that times out leaves the accompanying `unsat` unqualified rather than
+    disproved -- reporting it as VACUOUS would invent a defect out of a budget.
+    """
+    result = run_query(emit_satisfiability_query(system, **options), timeout_ms)
+    return {"sat": True, "unsat": False}.get(result.status)
+
+
+def aggregate(family: str, shards: Sequence[Result]) -> Result:
+    """Combine one family's shard verdicts into the family's verdict.
+
+    The shards partition a complete case split, so the family is unique exactly
+    when all of them are.  Precedence is `sat` over `unknown` over `unsat`,
+    because one counterexample decides the family however the rest went, and one
+    unfinished shard means the remaining `unsat`s do not add up to a proof.
+    Seconds are summed: that is the solver work the verdict cost, and a board
+    that reported the max would understate a family split many ways.
+    """
+    if not shards:
+        raise ValueError(f"{family}: nothing to aggregate")
+    for status in ("skipped", "sat", "unknown"):
+        chosen = [s for s in shards if s.status == status]
+        if chosen:
+            merged = replace(chosen[0], family=family)
+            break
+    else:
+        merged = replace(shards[0], family=family)
+        merged.constraints_satisfiable = all(
+            s.constraints_satisfiable is not False for s in shards
+        )
+    merged.seconds = sum(s.seconds for s in shards)
+    merged.shard = f"{len(shards)} shards"
+    merged.open_shards = tuple(
+        s.shard for s in shards if s.status in ("sat", "unknown")
+    )
+    return merged
 
 
 def run_query(query: Query, timeout_ms: int = 0) -> Result:
@@ -202,6 +252,11 @@ def format_result(result: Result) -> str:
             lines.append(
                 "VACUOUS: nothing satisfies the constraints, so uniqueness is "
                 "empty. Fix the model before reading this as evidence."
+            )
+        elif result.constraints_satisfiable is None:
+            lines.append(
+                "the honest-witness probe did not finish, so this unsat is not "
+                "yet known to be non-vacuous."
             )
         else:
             lines.append(

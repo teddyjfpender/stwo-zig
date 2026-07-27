@@ -47,10 +47,52 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import tables
-from .analysis import factors, implied_column_bounds, node_bounds
+from .analysis import (
+    determined_columns,
+    factors,
+    implied_column_bounds,
+    node_bounds,
+    one_hot_selectors,
+    pins,
+    renormalise,
+)
 from .ir import MODULUS, IRError, System
 
 COPIES = ("a", "b")
+# Suffix for a variable both copies share; see `_Emitter._shared_nodes`.
+SHARED = "s"
+
+
+@dataclass(frozen=True)
+class Shard:
+    """One sub-query of a family's uniqueness question.
+
+    `output` is the single architectural output required to differ; `selector`
+    is the one-hot input pinned to 1 with its siblings pinned to 0.  Empty means
+    "do not split on this axis", so `Shard()` is the monolithic query.
+
+    Both splits are complete case splits, so a family is unique iff every shard
+    of it is unsat -- the output axis because the conclusion is a disjunction
+    over outputs, the opcode axis because `one_hot_selectors` only returns a
+    group the constraints force into exactly-one-of.  Sharding also sharpens a
+    counterexample: it arrives already labelled with the output that differs and
+    the opcode it differs under, rather than leaving both to be read off a model.
+    """
+
+    output: str = ""
+    selector: str = ""
+
+    def label(self) -> str:
+        return "/".join(p for p in (self.selector, self.output) if p) or "monolithic"
+
+
+def plan_shards(
+    system: System, by_output: bool, by_selector: bool
+) -> tuple[Shard, ...]:
+    """The sub-queries whose conjunction is the family's uniqueness question."""
+    outputs = system.by_role("output") if by_output else ("",)
+    selectors = (one_hot_selectors(system) if by_selector else ()) or ("",)
+    return tuple(Shard(o, s) for s in selectors for o in outputs)
 
 
 def _lit(value: int) -> str:
@@ -71,20 +113,35 @@ class Query:
     copies: tuple[str, ...] = COPIES
     skipped_bus_lookups: tuple[str, ...] = ()
     modelled_lookups: tuple[str, ...] = ()
+    # Columns the query carries as a single variable; see `_Emitter.label_for`.
+    shared_columns: frozenset[str] = frozenset()
 
     def var(self, column: str, copy: str) -> str:
-        return f"{column}@{copy}"
+        return f"{column}@{SHARED if column in self.shared_columns else copy}"
 
 
 class _Emitter:
-    def __init__(self, system: System, refine: bool, assume_domains: bool) -> None:
+    def __init__(
+        self,
+        system: System,
+        refine: bool,
+        assume_domains: bool,
+        derived: bool = True,
+        shard: Shard = Shard(),
+    ) -> None:
         self.system = system
+        self.shard = shard
         self.declared = system.declared_domains() if assume_domains else {}
         bounds = (
             implied_column_bounds(system)
             if refine
             else {c.name: (0, MODULUS - 1) for c in system.columns}
         )
+        # Pinning the opcode as a bound rather than an assertion is what makes
+        # the split pay: interval analysis then sees `flag * anything` collapse
+        # to either that thing or zero, instead of a product over [0, 1].
+        for name in _selector_group(system, shard):
+            bounds[name] = (1, 1) if name == shard.selector else (0, 0)
         # Implied and declared bounds are intersected, never merged: the first
         # is a consequence of the asserted system, the second an assumption
         # imported from the AIR around it, and `assume_domains` has to be able
@@ -93,15 +150,35 @@ class _Emitter:
             lo, hi = bounds[name]
             bounds[name] = (max(lo, domain.lo), min(hi, domain.hi))
         self.column_bounds = bounds
-        self.bounds = node_bounds(system, self.column_bounds)
+        self.renorm = renormalise(system, bounds, values=None if derived else {})
+        self.bounds = self.renorm.effective
+        self.static = node_bounds(system, bounds)
+        inputs = frozenset(system.by_role("input"))
+        self.shared_columns = (
+            determined_columns(system, inputs, pins(bounds)) if derived else inputs
+        )
+        self.live = self._live_constraints()
+        self.needed = self._reachable()
+        self.shared_nodes = self._shared_nodes()
         self.lines: list[str] = []
-        self.fresh = 0
+        self.said: set[str] = set()
         self.skipped: list[str] = []
         self.modelled: list[str] = []
 
     # -- low level ---------------------------------------------------------
 
     def emit(self, line: str) -> None:
+        """Append a line, dropping one already emitted verbatim.
+
+        Every line here is either a declaration, which must not repeat, or an
+        assertion of a fact, which is idempotent.  So dropping exact repeats is
+        always safe -- and it is what makes sharing work: the second copy
+        regenerates character-identical text for every shared node, and the
+        filter removes it without either pass needing to know about the other.
+        """
+        if line in self.said:
+            return
+        self.said.add(line)
         self.lines.append(line)
 
     def declare(self, name: str, lo: int | None, hi: int | None) -> str:
@@ -128,9 +205,36 @@ class _Emitter:
         )
         self.emit(f"(assert (= {name}@{copy} (* {domain.stride} {multiplier})))")
 
-    def fresh_name(self, stem: str) -> str:
-        self.fresh += 1
-        return f"{stem}!{self.fresh}"
+    def _shared_nodes(self) -> frozenset[int]:
+        """Nodes the two copies must agree on, so the query gives them one name.
+
+        A node over input columns alone takes the same value in both copies --
+        that is the hypothesis of the theorem, not a guess -- so naming it twice
+        only asks the solver to rediscover it.  It is not a micro-optimisation:
+        a bitwise request decomposes its operands into bits, and with two names
+        the solver must first prove an 8-bit decomposition unique before it can
+        conclude anything about the result.  Sharing makes that free.
+        """
+        support: list[frozenset[str]] = []
+        shared: set[int] = set()
+        for index, node in enumerate(self.system.nodes):
+            if node.op == "col":
+                assert node.name is not None
+                names = frozenset({node.name})
+            elif node.op == "const":
+                names = frozenset()
+            else:
+                names = frozenset().union(*(support[a] for a in node.args))
+            support.append(names)
+            if names <= self.shared_columns:
+                shared.add(index)
+        return frozenset(shared)
+
+    def label_for(self, index: int, copy: str) -> str:
+        return SHARED if index in self.shared_nodes else copy
+
+    def label_of(self, column: str, copy: str) -> str:
+        return SHARED if column in self.shared_columns else copy
 
     # -- expressions -------------------------------------------------------
 
@@ -140,12 +244,18 @@ class _Emitter:
         than exponential in its depth."""
         terms: list[str] = []
         for index, node in enumerate(self.system.nodes):
+            if index not in self.needed:
+                # Nothing emitted reads this node, and reachability is closed
+                # downwards, so no emitted node can read it either.  The marker
+                # is deliberately unparseable rather than a plausible 0.
+                terms.append("<unreachable>")
+                continue
             if node.op == "const":
                 assert node.value is not None
                 terms.append(_lit(node.value))
                 continue
             if node.op == "col":
-                terms.append(f"{node.name}@{copy}")
+                terms.append(f"{node.name}@{self.label_for(index, copy)}")
                 continue
             if node.op == "neg":
                 body = f"(- {terms[node.args[0]]})"
@@ -153,21 +263,47 @@ class _Emitter:
                 symbol = {"add": "+", "sub": "-", "mul": "*"}[node.op]
                 lhs, rhs = terms[node.args[0]], terms[node.args[1]]
                 body = f"({symbol} {lhs} {rhs})"
-            lo, hi = self.bounds[index]
-            name = self.declare(f"n{index}@{copy}", lo, hi)
+            lo, hi = self.renorm.raw[index]
+            label = self.label_for(index, copy)
+            name = self.declare(f"n{index}@{label}", lo, hi)
             self.emit(f"(assert (= {name} {body}))")
-            terms.append(name)
+            terms.append(self.representative(index, name, label))
         return terms
+
+    def representative(self, index: int, name: str, copy: str) -> str:
+        """The term this node's parents see: itself, or a pinned stand-in.
+
+        Handing a parent a congruent term is exact -- every assertion here reads
+        a node only through its residue mod p -- and it is what stops the
+        byte-carry chain from compounding its interval by 2^23 per limb.
+        """
+        values = self.renorm.representatives.get(index)
+        if values is None:
+            return name
+        lo, hi = self.bounds[index]
+        stand_in = self.declare(f"v{index}@{copy}", lo, hi)
+        if len(values) < hi - lo + 1:
+            memberships = " ".join(f"(= {stand_in} {_lit(v)})" for v in values)
+            self.emit(f"(assert (or {memberships}))")
+        raw_lo, raw_hi = self.renorm.raw[index]
+        quotient = self.declare(
+            f"v{index}q@{copy}",
+            _ceil_div(raw_lo - hi, MODULUS),
+            (raw_hi - lo) // MODULUS,
+        )
+        self.emit(f"(assert (= {name} (+ {stand_in} (* {MODULUS} {quotient}))))")
+        return stand_in
 
     def vanishing(self, node: int, term: str, copy: str, stem: str) -> str:
         """Assertion body for "the field value of `node` is zero"."""
+        copy = self.label_for(node, copy)
         lo, hi = self.bounds[node]
         if -MODULUS < lo and hi < MODULUS:
             # Zero is the only multiple of p in (-p, p), so no quotient is
             # needed and the constraint stays linear in the node term.
             return f"(= {term} 0)"
         quotient = self.declare(
-            self.fresh_name(f"{stem}k@{copy}"),
+            f"{stem}k@{copy}",
             _ceil_div(lo, MODULUS),
             hi // MODULUS,
         )
@@ -175,27 +311,95 @@ class _Emitter:
 
     def reduced(self, node: int, term: str, copy: str, stem: str) -> str:
         """Canonical representative in [0, p) of the field value of `node`."""
+        copy = self.label_for(node, copy)
         lo, hi = self.bounds[node]
         if 0 <= lo and hi < MODULUS:
             return term
-        name = self.declare(self.fresh_name(f"{stem}@{copy}"), 0, MODULUS - 1)
+        name = self.declare(f"{stem}r@{copy}", 0, MODULUS - 1)
         quotient = self.declare(
-            self.fresh_name(f"{stem}q@{copy}"),
+            f"{stem}q@{copy}",
             _ceil_div(lo - MODULUS + 1, MODULUS),
             hi // MODULUS,
         )
         self.emit(f"(assert (= {term} (+ {name} (* {MODULUS} {quotient}))))")
         return name
 
+    # -- static field-value status -----------------------------------------
+
+    def vanishes(self, node: int) -> bool | None:
+        """Whether the node's field value is always / never / maybe zero.
+
+        Read off `self.static`, the interval implied by the *declared* column
+        ranges alone, and deliberately not off the pinned value sets.  A value
+        set is a consequence of the constraints, so discharging a constraint
+        with it is circular -- and worse than circular, because the emitter then
+        prunes the pinned node as unreachable and the fact is asserted nowhere.
+        Declared ranges are in the query unconditionally, so reading them is not.
+
+        It earns its place under the opcode split: with one selector pinned to
+        zero by its declaration, every other opcode's machinery sits behind a
+        statically zero factor, and asserting it anyway leaves the solver a
+        query full of dead 10^74-wide terms.
+        """
+        lo, hi = self.static[node]
+        if lo == hi:
+            return lo % MODULUS == 0
+        return None if hi // MODULUS >= _ceil_div(lo, MODULUS) else False
+
+    def _live_constraints(self) -> list[tuple[int, list[int]]]:
+        """Constraints still worth asserting, as (position, vanishing factors).
+
+        A factor that always vanishes discharges its product, and one that never
+        vanishes cannot be the reason a product does; dropping either is exact.
+        A constraint left with no candidate factor is unsatisfiable, and is kept
+        so the solver reports that as the vacuous unsat it is.
+        """
+        out: list[tuple[int, list[int]]] = []
+        for position, node in enumerate(self.system.constraints):
+            candidates = []
+            for factor in factors(self.system, node):
+                status = self.vanishes(factor)
+                if status is True:
+                    candidates = []
+                    break
+                if status is None:
+                    candidates.append(factor)
+            else:
+                out.append((position, candidates))
+        return out
+
+    def _reachable(self) -> set[int]:
+        """Nodes some emitted obligation reads, closed downwards."""
+        roots: list[int] = []
+        for _, candidates in self.live:
+            roots.extend(candidates)
+        for lookup in self.system.lookups:
+            if tables.is_constraining(lookup.domain) and self.vanishes(
+                lookup.numerator
+            ) is not True:
+                roots.extend((lookup.numerator, *lookup.tuple_))
+        seen: set[int] = set()
+        while roots:
+            node = roots.pop()
+            if node in seen:
+                continue
+            seen.add(node)
+            roots.extend(self.system.nodes[node].args)
+        return seen
+
     # -- obligations -------------------------------------------------------
 
     def emit_constraints(self, terms: list[str], copy: str) -> None:
-        for position, node in enumerate(self.system.constraints):
+        for position, candidates in self.live:
             stem = f"c{position}"
             clauses = [
                 self.vanishing(factor, terms[factor], copy, f"{stem}f{i}")
-                for i, factor in enumerate(factors(self.system, node))
+                for i, factor in enumerate(candidates)
             ]
+            if not clauses:
+                self.emit(f"; constraint {position}: no factor can vanish")
+                self.emit("(assert false)")
+                continue
             body = clauses[0] if len(clauses) == 1 else f"(or {' '.join(clauses)})"
             self.emit(f"(assert {body})")
 
@@ -208,6 +412,9 @@ class _Emitter:
                     self.skipped.append(label)
                 self.emit(f"; lookup {position} {label}: bus relation, not a table")
                 continue
+            if self.vanishes(lookup.numerator) is True:
+                self.emit(f"; lookup {position} {label}: numerator is zero, no request")
+                continue
             if record:
                 self.modelled.append(label)
             self.emit(f"; lookup {position} {label}")
@@ -217,13 +424,14 @@ class _Emitter:
                 self.reduced(node, terms[node], copy, f"{stem}t{j}")
                 for j, node in enumerate(lookup.tuple_)
             ]
-            widths = tables.BOX_TABLES.get(lookup.domain) or tables.BITWISE_WIDTHS
+            widths = tables.box_widths(lookup.domain)
+            assert widths is not None
             clauses = [
                 f"(< {component} {1 << width})"
                 for component, width in zip(components, widths)
             ]
             if lookup.domain == tables.BITWISE_DOMAIN:
-                clauses.append(self._bitwise_definition(components))
+                clauses.append(self._bitwise_definition(components, stem, copy))
             # A box is a superset wherever the real table omits a row inside it.
             # Leaving the omission out admits witnesses the AIR rejects, which
             # shows up as spurious `sat`, never as a false `unsat`.
@@ -236,30 +444,58 @@ class _Emitter:
             body = clauses[0] if len(clauses) == 1 else f"(and {' '.join(clauses)})"
             self.emit(f"(assert (=> (not (= {live} 0)) {body}))")
 
-    def _bitwise_definition(self, components: list[str]) -> str:
-        """`value` as a function of `(lhs, rhs, op)`.
+    def bits_of(self, term: str, stem: str, copy: str) -> tuple[list[str], str]:
+        """Eight 0/1 constants, plus the equation making them `term`'s bits.
 
-        The box clauses already pin the operands to 8 bits, so the 8-bit
-        `int2bv` views are faithful and no `bv2int` direction is needed.
+        The bits are declared unconditionally but the equation is returned, not
+        asserted: it belongs inside the membership implication.  Asserting it
+        eagerly would force `term < 256` on a row whose request is not live,
+        which is an over-constraint and so a deleted counterexample.
+        """
+        names = [self.declare(f"{stem}b{i}@{copy}", 0, 1) for i in range(8)]
+        weighted = " ".join(
+            name if i == 0 else f"(* {1 << i} {name})" for i, name in enumerate(names)
+        )
+        return names, f"(= {term} (+ {weighted}))"
+
+    def _bitwise_definition(self, components: list[str], stem: str, copy: str) -> str:
+        """`value` as a function of `(lhs, rhs, op)`, bit by bit in integers.
+
+        The obvious encoding is `int2bv` over the byte-boxed operands, and it is
+        the one this replaced.  It is correct and it is slow: it drags the query
+        into the bitvector theory, and a family whose ALU shard is `add` closes
+        in 0.4 s while the same family's `xor` shard did not close in 25 s.
+        Eight 0/1 integers per operand and one product per bit keeps the whole
+        query in the arithmetic the rest of the encoding already uses.
         """
         lhs, rhs, value, op = components
-        as_bv = "(_ int2bv 8)"
-        lhs_bv, rhs_bv = f"({as_bv} {lhs})", f"({as_bv} {rhs})"
-        value_bv = f"({as_bv} {value})"
-        cases = {
-            0: f"(bvand {lhs_bv} {rhs_bv})",
-            1: f"(bvor {lhs_bv} {rhs_bv})",
-            2: f"(bvxor {lhs_bv} {rhs_bv})",
-            3: "#x00",
-        }
-        return (
-            "(and "
-            + " ".join(
-                f"(=> (= {op} {code}) (= {value_bv} {expr}))"
-                for code, expr in cases.items()
+        left, left_sum = self.bits_of(lhs, f"{stem}l", copy)
+        right, right_sum = self.bits_of(rhs, f"{stem}r", copy)
+        out, out_sum = self.bits_of(value, f"{stem}v", copy)
+        clauses = [left_sum, right_sum]
+        # op 3 is the padding row, whose value is zero for every operand pair,
+        # so it needs no bit decomposition of `value` at all.
+        for code, definition in enumerate(("(* {l} {r})", "(- (+ {l} {r}) (* {l} {r}))",
+                                           "(- (+ {l} {r}) (* 2 {l} {r}))")):
+            body = " ".join(
+                f"(= {v} {definition.format(l=l, r=r)})"
+                for l, r, v in zip(left, right, out)
             )
-            + ")"
+            clauses.append(f"(=> (= {op} {code}) (and {out_sum} {body}))")
+        clauses.append(f"(=> (= {op} 3) (= {value} 0))")
+        return "(and " + " ".join(clauses) + ")"
+
+
+def _selector_group(system: System, shard: Shard) -> tuple[str, ...]:
+    if not shard.selector:
+        return ()
+    group = one_hot_selectors(system)
+    if shard.selector not in group:
+        raise IRError(
+            f"{system.family}: {shard.selector!r} is not in the derived one-hot "
+            f"group {group}; splitting on it would not be a complete case split"
         )
+    return group
 
 
 def _emit_copies(
@@ -276,8 +512,9 @@ def _emit_copies(
         emitter.emit(f"; ---- copy {copy}: columns ----")
         for column in system.columns:
             lo, hi = emitter.column_bounds[column.name]
-            emitter.declare(f"{column.name}@{copy}", lo, hi)
-            emitter.declare_stride(column.name, copy)
+            label = SHARED if column.name in emitter.shared_columns else copy
+            emitter.declare(f"{column.name}@{label}", lo, hi)
+            emitter.declare_stride(column.name, label)
         emitter.emit(f"; ---- copy {copy}: polynomials ----")
         terms = emitter.node_terms(copy)
         emitter.emit(f"; ---- copy {copy}: vanishing constraints ----")
@@ -293,13 +530,18 @@ def _finish(emitter: _Emitter, system: System, copies: tuple[str, ...]) -> Query
         family=system.family,
         columns={c.name: c.role for c in system.columns},
         copies=copies,
+        shared_columns=emitter.shared_columns,
         skipped_bus_lookups=tuple(emitter.skipped),
         modelled_lookups=tuple(emitter.modelled),
     )
 
 
 def emit_uniqueness_query(
-    system: System, refine: bool = True, assume_domains: bool = False
+    system: System,
+    refine: bool = True,
+    assume_domains: bool = False,
+    derived: bool = True,
+    shard: Shard = Shard(),
 ) -> Query:
     """`refine=False` drops the implied-bounds narrowing while keeping the
     factor rewrite.  It exists so the narrowing can be differentially checked:
@@ -315,17 +557,27 @@ def emit_uniqueness_query(
     reason = system.uniqueness_skip_reason()
     if reason is not None:
         raise IRError(f"{system.family}: {reason}")
-    emitter = _Emitter(system, refine, assume_domains)
-    _emit_copies(emitter, system, COPIES, "witness-uniqueness query")
+    outputs = system.by_role("output")
+    if shard.output and shard.output not in outputs:
+        raise IRError(f"{system.family}: {shard.output!r} is not an output column")
+    emitter = _Emitter(system, refine, assume_domains, derived, shard)
+    _emit_copies(emitter, system, COPIES, f"witness-uniqueness query [{shard.label()}]")
 
-    emitter.emit("; ---- architectural inputs agree ----")
-    for name in system.by_role("input"):
-        emitter.emit(f"(assert (= {name}@{COPIES[0]} {name}@{COPIES[1]}))")
+    # The hypothesis is structural rather than asserted: an input is one
+    # variable, so "the copies agree on it" cannot be omitted or mis-stated.
+    emitter.emit(
+        "; ---- architectural inputs are one variable each: "
+        + ", ".join(f"{name}@{SHARED}" for name in system.by_role("input"))
+        + " ----"
+    )
 
     emitter.emit("; ---- negated conclusion: some architectural output differs ----")
+    # A shared output cannot differ, and says so as `x@s != x@s`: the static
+    # analysis has already decided that shard, and the text records which.
     differing = [
-        f"(not (= {name}@{COPIES[0]} {name}@{COPIES[1]}))"
-        for name in system.by_role("output")
+        f"(not (= {name}@{emitter.label_of(name, COPIES[0])}"
+        f" {name}@{emitter.label_of(name, COPIES[1])}))"
+        for name in ((shard.output,) if shard.output else outputs)
     ]
     disjunction = differing[0] if len(differing) == 1 else f"(or {' '.join(differing)})"
     emitter.emit(f"(assert {disjunction})")
@@ -333,7 +585,11 @@ def emit_uniqueness_query(
 
 
 def emit_satisfiability_query(
-    system: System, refine: bool = True, assume_domains: bool = False
+    system: System,
+    refine: bool = True,
+    assume_domains: bool = False,
+    derived: bool = True,
+    shard: Shard = Shard(),
 ) -> Query:
     """One copy, constraints and lookups only.
 
@@ -341,10 +597,17 @@ def emit_satisfiability_query(
     verdict means nothing until this comes back `sat`.  Every `check` run pairs
     the two rather than leaving the vacuity check to whoever remembers.
 
+    Only `shard.selector` is read: the output axis does not restrict the
+    witnesses, so it cannot change whether one exists.  Probing per opcode does
+    matter -- one opcode's constraints can be contradictory while the family as
+    a whole is satisfiable, and that opcode's shards would then be unsat for a
+    reason that says nothing about its semantics.
+
     `assume_domains` must match the uniqueness query it accompanies: a system
     satisfiable only outside the assumed domains is, for the purposes of that
     verdict, not satisfiable.
     """
-    emitter = _Emitter(system, refine, assume_domains)
-    _emit_copies(emitter, system, COPIES[:1], "satisfiability probe")
+    probe = Shard(selector=shard.selector)
+    emitter = _Emitter(system, refine, assume_domains, derived, probe)
+    _emit_copies(emitter, system, COPIES[:1], f"satisfiability probe [{probe.label()}]")
     return _finish(emitter, system, COPIES[:1])

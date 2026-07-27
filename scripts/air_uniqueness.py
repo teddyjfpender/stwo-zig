@@ -19,11 +19,13 @@ Usage
     python3 -m scripts.air_uniqueness explain
     python3 -m scripts.air_uniqueness emit  <model.json> [-o query.smt2]
     python3 -m scripts.air_uniqueness check <model.json> [--timeout-ms N]
-        [--no-refine] [--counterexample-json out.json]
+        [--no-refine] [--no-derived-facts] [--opcode F] [--output-column C]
+        [--counterexample-json out.json]
 
 `explain` prints the encoding decisions a reviewer has to agree with, including
 what a green result does not mean.  `check` exits 0 on `unsat` (unique) and 1
-on `sat` or `unknown`.
+on `sat` or `unknown`.  It answers for one family; `scripts/air_uniqueness_board.py`
+schedules it across all of them and folds the shard verdicts into a board.
 
 Not wired into any gate: it is an operator tool until a family's IR is emitted
 from the real `air/semantics/` modules rather than hand-written.  The models in
@@ -66,10 +68,18 @@ Encoding decisions a reviewer must check
    the table.  For the box tables (range_check_20 / 8_11 / 8_8_4 / 8_8 / m31)
    that is a per-component bit-width bound on the canonical representative in
    [0, p) -- the representative is explicit, for the same reason as (1).  For
-   `bitwise` it is the box on (lhs, rhs, op) plus `value` defined by the
-   operation, through faithful 8-bit int2bv views.
+   `bitwise` it is the box on all four components plus `value` defined by the
+   operation, bit by bit: each operand becomes eight 0/1 integers summing to it
+   and each result bit is `l*r`, `l + r - l*r` or `l + r - 2*l*r`.  The obvious
+   alternative is `int2bv`, which was measured and rejected: it pulls the query
+   into the bitvector theory, and a family whose `add` shard closed in 0.4 s did
+   not close its `xor` shard in 25 s.  The bit equations sit inside the
+   membership implication, never outside it -- asserting them for a row whose
+   request is not live would force the operand under 256 unconditionally.
    Widths are transcribed from `air/lookups/tables/schema.zig`; a unit test
-   cross-checks the transcription against that file.
+   cross-checks the transcription against that file.  `bitwise` counts as a box
+   for the purpose of (4b) as well as here: a live request bounds every one of
+   its components, including the result.
    THIS IS AN ASSUMPTION, and it points one way.  Per row we simply grant that
    a live request implies membership; what actually enforces it is the LogUp
    argument plus a well-formed preprocessed table, neither of which is in
@@ -84,24 +94,26 @@ Encoding decisions a reviewer must check
    from them, so it asserts nothing for them and reports how many it ignored.
    Anything whose only protection is bus closure is invisible here.
 
-4. Two rewrites, both exact, that decide whether the query terminates at all.
-   On the models in `scripts/tests/fixtures/air_uniqueness/`: with neither,
-   every unsat query times out at 60s; with either alone they finish under
-   0.4s; with both, under 20ms.  Only the unsat direction is sensitive -- a
-   counterexample is found either way, the same asymmetry the soundness
-   argument has.  Treat these as the highest-risk part of the encoding: an
-   unsound narrowing deletes counterexamples rather than producing visibly
-   wrong ones.
+4. Four rewrites, all exact, that decide whether the query terminates at all.
+   Only the unsat direction is sensitive -- a counterexample is found either
+   way, the same asymmetry the soundness argument has.  Treat these as the
+   highest-risk part of the encoding: an unsound narrowing deletes
+   counterexamples rather than producing visibly wrong ones, so each states the
+   argument for why it is implied and each has an off-switch the mutation
+   differential drives.
    (a) Factor splitting.  A constraint that is a product is discharged as a
        disjunction over its factors, since a product vanishes in a field iff
        some factor does.  `bit(x)` becomes `x = 0 or x = 1` instead of a
        quadratic diophantine equation.
    (b) Implied column bounds.  A column is narrowed only by consequences of
-       the asserted obligations: a constraint whose factors are all linear in
-       one and the same column confines it to the factor roots, and a
-       box-table request with a constant non-zero numerator bounds a bare
-       column in its tuple.  Narrowing shrinks the quotient ranges the solver
-       must search and never removes an assignment the AIR admits.
+       the asserted obligations: a constraint whose factors all lie on one line
+       of the column space, where that line is a single column, confines it to
+       the factor roots, and a box-table request live in every satisfying
+       assignment bounds a bare column in its tuple.  Narrowing shrinks the
+       quotient ranges the solver must search and never removes an assignment
+       the AIR admits.  Iterated to a fixpoint: each pinned column unlocks the
+       next pass, because a constraint gated by a pinned flag stops being a
+       product once the flag reads as its constant.
        `check --no-refine` disables (b); the unit tests assert that every
        `sat` model stays `sat` without it.
        (b) is what makes the shipped families tractable at all.  Every table
@@ -111,6 +123,33 @@ Encoding decisions a reviewer must check
        Gaussian elimination over the constraints that are single linear
        equations turns that into "this request is live in every satisfying
        assignment", which is an implication, not an assumption.
+   (c) Node renormalisation.  A constraint pins a *line* of the column space,
+       not a column: the AIR spells a byte carry as
+       `(a + b + carry_in - s) * inv(256)` with `inv(256) = 2^23`, and `bit()`
+       of that pins the line to {0, 1} while pinning no column in it.  Where a
+       node's field value is confined to a finite set, the emitter hands its
+       parents a representative in that set instead of the expression.  Exact,
+       because every assertion here reads a node only through its residue mod p,
+       so a congruent substitution changes nothing, and the representative
+       exists in every satisfying assignment.  Without it, interval arithmetic
+       multiplies the width by 2^23 per limb, four limbs reach 10^60 on the
+       `inline_carry_adder` fixture, and the quotient discharging `P = p*k`
+       ranges over 10^18 values.  Measured on the shipped families: AUIPC goes
+       from 19.1 s to 0.3 s and its widest declared bound from 3e60 to 2e9.
+   (d) Shared determined columns.  The two copies agree on the inputs by
+       hypothesis, so a column the constraints determine from inputs takes the
+       same value in both, and the query gives it one variable rather than two.
+       Iterated: a node pinned to a single value whose degree-one expansion has
+       exactly one column outside the set determines that column.  This is not
+       cosmetic.  A register the row only reads still has a `_next` column tied
+       to `_prev` by a selector-gated constraint; it is the operand of the
+       bitwise requests, and with two names the solver must first prove an
+       8-bit decomposition unique before concluding anything about the result.
+       An output that turns out to be determined is decided by this analysis
+       rather than by the solver, which is why (c) and (d) share one off-switch:
+       `--no-derived-facts` drops both, and the mutation differential in
+       `test_air_uniqueness.py` requires the two encodings to agree on every
+       one-obligation deletion of every fixture.
 
 4b. Declared input domains, OFF BY DEFAULT.  A column may carry a `domain`: a
    range, an optional stride, and a one-line justification, all emitted in the
@@ -138,6 +177,29 @@ Encoding decisions a reviewer must check
    (b) in place, every family that terminates reaches the same verdict without
    it, and two families that terminate without it time out with it.
 
+4c. Sharding, and why a shard verdict adds up to a family verdict.  A family
+   splits along two axes, and both are complete case splits, so the family is
+   unsat iff every shard is.
+   - by output: the negated conclusion is a disjunction over outputs, so one
+     query per disjunct covers it;
+   - by opcode: only where the IR carries a non-product constraint expanding to
+     `sum(f) - 1 = 0` with a `bit` constraint on every `f` in it, and every `f`
+     an input.  Both facts are read off the IR, never off a naming convention:
+     `f + g = 1` alone allows f = 7, g = -6, and enumerating two cases would
+     delete every other solution and any counterexample living there.  Inputs
+     only, because the copies are one variable on an input, so one case pins
+     both; a one-hot over witnesses would need the |F|^2 cross product.
+   The pinned opcode enters as a *bound*, not an assertion, so interval analysis
+   sees every other opcode's machinery collapse to a statically zero factor; the
+   emitter then drops those constraints and the nodes only they reached.  A
+   statically zero factor discharges its product and a factor whose interval
+   contains no multiple of p cannot be why one vanished -- both read off the
+   declared column ranges alone, never off (c), because discharging a constraint
+   with a fact derived from it is circular.
+   Sharding is not uniformly faster and the board does not pretend it is; see
+   the benchmark in the commit message.  It is uniformly *sharper*: a sat shard
+   names the output and the opcode without anyone reading a model.
+
 5. Inputs versus outputs.  An `input` column is what the row is given and may
    not choose: the program counter and clock, opcode selectors, the immediate,
    and the `previous` side of an access.  An `output` column is what the row
@@ -147,8 +209,8 @@ Encoding decisions a reviewer must check
    certificates.  The classification is part of the model, not inferred, and a
    wrong classification silently changes the theorem.  Three failure modes to
    check by hand:
-   - marking a genuinely free column `input` asserts it equal across copies
-     and can turn a real `sat` into `unsat`;
+   - marking a genuinely free column `input` makes it one variable across
+     copies and can turn a real `sat` into `unsat`;
    - marking a derived value `output` when nothing observes it can produce a
      `sat` nobody cares about;
    - omitting the family's placement constraint.  Every opcode constraint is
@@ -174,6 +236,10 @@ Encoding decisions a reviewer must check
    - Families with nothing to conclude about.  A family whose columns carry no
      `output` role gets the verdict `skipped`, with the reason, rather than the
      `unsat` an empty disjunction would produce.
+   - Budget.  A shard that runs out is `unknown` and makes its family a
+     `timeout`; nine unsat shards and one timeout is not an unsat family.  The
+     same goes for the honest-witness probe: a probe that does not finish leaves
+     the accompanying `unsat` unqualified, not disproved.
 
 7. Expression-valued outputs.  Only columns carry roles.  If an architectural
    output is an expression (e.g. `composeU32(next_limbs)`), the extractor
@@ -204,6 +270,8 @@ def _cmd_emit(args: argparse.Namespace) -> int:
         ir.load(args.model),
         refine=not args.no_refine,
         assume_domains=args.assume_declared_domains,
+        derived=not args.no_derived_facts,
+        shard=smtlib.Shard(args.output_column or "", args.opcode or ""),
     )
     if args.output:
         Path(args.output).write_text(query.text, encoding="utf-8")
@@ -232,6 +300,8 @@ def _cmd_check(args: argparse.Namespace) -> int:
         timeout_ms=args.timeout_ms,
         refine=not args.no_refine,
         assume_domains=args.assume_declared_domains,
+        derived=not args.no_derived_facts,
+        shard=smtlib.Shard(args.output_column or "", args.opcode or ""),
     )
     print(solve.format_result(result))
     if args.counterexample_json and result.status == "sat":
@@ -260,26 +330,36 @@ def build_parser() -> argparse.ArgumentParser:
         "less. Turn them on to triage a sat at an unreachable input"
     )
 
-    emit = sub.add_parser("emit", help="emit the SMT-LIB2 query")
-    emit.add_argument("model")
-    emit.add_argument("-o", "--output")
-    emit.add_argument("--no-refine", action="store_true")
-    emit.add_argument(
-        "--assume-declared-domains", action="store_true", help=domains_help
+    derived_help = (
+        "drop the rewrites derived from the constraints -- node "
+        "renormalisation and shared determined columns. Slower, and the "
+        "control arm for whether they deleted a counterexample"
     )
+    shard_help = (
+        "ask about one architectural output / under one opcode instead of the "
+        "whole family. Both are complete case splits; see `explain`"
+    )
+
+    def add_shared(parser: argparse.ArgumentParser) -> None:
+        parser.add_argument("model")
+        parser.add_argument("--no-refine", action="store_true")
+        parser.add_argument(
+            "--no-derived-facts", action="store_true", help=derived_help
+        )
+        parser.add_argument("--output-column", help=shard_help)
+        parser.add_argument("--opcode", help=shard_help)
+        parser.add_argument(
+            "--assume-declared-domains", action="store_true", help=domains_help
+        )
+
+    emit = sub.add_parser("emit", help="emit the SMT-LIB2 query")
+    add_shared(emit)
+    emit.add_argument("-o", "--output")
     emit.set_defaults(func=_cmd_emit)
 
     check = sub.add_parser("check", help="run the query through z3")
-    check.add_argument("model")
+    add_shared(check)
     check.add_argument("--timeout-ms", type=int, default=0)
-    check.add_argument(
-        "--no-refine",
-        action="store_true",
-        help="drop implied column bounds; slower, and a check on the narrowing",
-    )
-    check.add_argument(
-        "--assume-declared-domains", action="store_true", help=domains_help
-    )
     check.add_argument(
         "--counterexample-json",
         help="on sat, write the witness pair here for the mutation corpus",

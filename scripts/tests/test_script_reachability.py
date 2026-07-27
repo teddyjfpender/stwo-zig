@@ -26,6 +26,13 @@ OPERATOR_TOOLS: dict[str, str] = {
     # emitted from the real modules yet. Its own contracts do run, through
     # scripts/tests/test_air_uniqueness.py in the discovered suite.
     "air_uniqueness.py": "SMT witness-uniqueness checker for AIR families",
+    # Owner: soundness. Schedules `air_uniqueness.py` across every emitted
+    # family and folds the shard verdicts into one board. Un-gated for the same
+    # two reasons as the checker it drives, plus a third: a board is a budgeted
+    # measurement, and a gate that fails on a solver timeout would be a gate on
+    # the machine it ran on. Its contracts run through
+    # scripts/tests/test_air_uniqueness_board.py in the discovered suite.
+    "air_uniqueness_board.py": "witness-uniqueness board over every AIR family",
     # Owner: soundness. Independently re-decides, in Python, the AIR
     # row-satisfaction and LogUp-closure layer of an exported proving run.
     # Un-gated because its two inputs are Zig test artefacts under zig-out/
