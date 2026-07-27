@@ -1,6 +1,6 @@
-//! End-to-end committed-row coverage for the seven previously unexercised
+//! End-to-end committed-row coverage for the eight previously unexercised
 //! opcode families: `base_alu_imm`, `branch_lt`, `fence`, `jal`, `lt_imm`,
-//! `lt_reg`, and `mul`.
+//! `lt_reg`, `mul`, and `shifts_imm`.
 //!
 //! Each case reads its honest row from the production witness generator,
 //! attributes a semantic forgery locally where that is possible, requires the
@@ -92,6 +92,7 @@ const JAL_X0_PLUS_4: u32 = 0x0040_006F;
 const SLTIU_X0_X0_0: u32 = 0x0000_3013;
 const SLTU_X0_X5_X5: u32 = 0x0052_B033;
 const MUL_X0_X5_X5: u32 = 0x0252_8033;
+const SLLI_X0_X5_1: u32 = 0x0012_9013;
 
 const BASE_SPEC = harness.Spec{ .body = &.{ADDI_X0_X5_7}, .publish = 5 };
 const BRANCH_SPEC = harness.Spec{ .body = &.{BLTU_X0_X0_PLUS_4}, .publish = 5 };
@@ -100,6 +101,7 @@ const JAL_SPEC = harness.Spec{ .body = &.{JAL_X0_PLUS_4}, .publish = 5 };
 const LT_IMM_SPEC = harness.Spec{ .body = &.{SLTIU_X0_X0_0}, .publish = 5 };
 const LT_REG_SPEC = harness.Spec{ .body = &.{SLTU_X0_X5_X5}, .publish = 5 };
 const MUL_SPEC = harness.Spec{ .body = &.{MUL_X0_X5_X5}, .publish = 5 };
+const SHIFTS_IMM_SPEC = harness.Spec{ .body = &.{SLLI_X0_X5_1}, .publish = 5 };
 
 test "committed family base_alu_imm: wrong ADDI high byte is rejected and honest proof verifies" {
     var guest = try harness.Guest.init(std.testing.allocator, BASE_SPEC);
@@ -309,5 +311,33 @@ test "committed family mul: false product loses only on carry range and honest p
         &values,
         .verification,
         "committed mul guest (MUL x0, x5, x5)",
+    );
+}
+
+test "committed family shifts_imm: wrong SLLI high byte is rejected and honest proof verifies" {
+    var guest = try harness.Guest.init(std.testing.allocator, SHIFTS_IMM_SPEC);
+    defer guest.deinit();
+    const honest = try honestBodyRow(&guest, .shifts_imm, 1);
+
+    const result_3 = columnOf(.shifts_imm, "result_3");
+    // The fixture loads x5 = 0x04030201 from its declared input image, so
+    // SLLI x0, x5, 1 commits 0x08060402 while discarding the register write.
+    try std.testing.expectEqual(@as(u32, 8), honest.m31At(result_3).toU32());
+    const values = [_]harness.ColumnValue{
+        .{ .column = result_3, .value = 9 },
+    };
+    var forged = honest;
+    forged.apply(&values);
+
+    // Constraints 22..37 are the 4 x 4 left-shift equations. For a one-bit
+    // shift limb marker 0 is active, and index 25 is its high-byte equation.
+    try expectOnlyConstraint(.shifts_imm, &forged, 25, 67);
+    try expectAllBusesUnchanged(.shifts_imm, &honest, &forged);
+    try rejectThenProveHonest(
+        &guest,
+        .shifts_imm,
+        &values,
+        .prover_constraints,
+        "committed shifts_imm guest (SLLI x0, x5, 1)",
     );
 }

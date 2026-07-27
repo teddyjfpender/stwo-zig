@@ -14,8 +14,9 @@
 //! witness is mutated. The base-ALU sample is runner-produced and its proven
 //! retirement sequence is replayed through pinned Sail after the engine
 //! assertions. Per-family committed-trace coverage lives in the
-//! `*_soundness_test.zig` modules and is still partial; the family-by-family
-//! accounting and the remaining gaps are in `soundness/ROADMAP.md`.
+//! `*_soundness_test.zig` modules; this file remains only a proving-substitution
+//! check and does not claim family enumeration, proof verification, or witness
+//! mutation.
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");

@@ -161,9 +161,17 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
                 source = (REPO_ROOT / relative).read_text()
                 call = source.find(marker)
                 self.assertNotEqual(-1, call, "missing fail-closed Sail assertion")
+                self.assertEqual(
+                    1,
+                    source.count(marker),
+                    "module must keep exactly one intentionally sampled Sail tail",
+                )
+                test_start = source.rfind('test "', 0, call)
+                self.assertNotEqual(-1, test_start, "Sail assertion moved outside a test")
+                assertion = source.rfind(preceding_assertion, test_start, call)
                 self.assertNotEqual(
                     -1,
-                    source.rfind(preceding_assertion, 0, call),
+                    assertion,
                     "Sail sample moved ahead of its proof/attribution assertions",
                 )
                 call_end = source.find("\n    );", call)
@@ -171,6 +179,11 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
                 call_source = source[call:call_end]
                 self.assertIn(f'"{label}"', call_source)
                 self.assertIn(memory_argument, call_source)
+                statement_end = call_end + len("\n    );")
+                self.assertTrue(
+                    source.startswith("\n}", statement_end),
+                    "Sail assertion must remain the test's last obligation",
+                )
 
         for relative in (
             "src/tests/riscv/malicious_witness_test.zig",
@@ -180,6 +193,23 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
                 "release_elf_fixture.initialMemory(&input)",
                 (REPO_ROOT / relative).read_text(),
             )
+
+    def test_proof_admission_keeps_its_narrow_scope_explicit(self) -> None:
+        source = (
+            REPO_ROOT / "src/tests/riscv/proof_admission_test.zig"
+        ).read_text()
+        module_doc = " ".join(
+            line.removeprefix("//!").strip()
+            for line in source.splitlines()
+            if line.startswith("//!")
+        )
+        for disclosure in (
+            "The other fifteen opcode families",
+            "no proof is verified",
+            "no witness is mutated",
+            "does not claim family enumeration",
+        ):
+            self.assertIn(disclosure, module_doc)
 
 
 class VerdictContractTests(unittest.TestCase):

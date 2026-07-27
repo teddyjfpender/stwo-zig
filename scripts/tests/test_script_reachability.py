@@ -33,14 +33,30 @@ OPERATOR_TOOLS: dict[str, str] = {
     # the machine it ran on. Its contracts run through
     # scripts/tests/test_air_uniqueness_board.py in the discovered suite.
     "air_uniqueness_board.py": "witness-uniqueness board over every AIR family",
-    # Owner: soundness. Independently re-decides, in Python, the AIR
-    # row-satisfaction and LogUp-closure layer of an exported proving run.
-    # Un-gated because its two inputs are Zig test artefacts under zig-out/
-    # (`committed_trace_export_test.zig` and `uniqueness_ir_test.zig`) that
-    # hosted CI does not build. Its own contracts do run, through
-    # scripts/tests/test_air_satisfaction.py in the discovered suite; the
-    # export-backed cases there skip when zig-out/ is absent.
-    "air_satisfaction.py": "independent AIR row-satisfaction and LogUp-closure checker",
+    # Owner: soundness. Constructively proves active-narrow Poseidon2 main-row
+    # rigidity and the exact deterministic/conditional-functional relations of
+    # all six fixed lookup-table components. It is an operator certificate,
+    # not a proof-wire verifier; its exhaustive and mutation contracts run in
+    # scripts/tests/test_riscv_poseidon_table_uniqueness.py.
+    "riscv_poseidon_table_uniqueness.py":
+        "Poseidon2 and fixed-table row-local rigidity certificate",
+    # Owner: soundness. Separates row-local infrastructure functionality from
+    # the exact LogUp-closure premises needed by program, offline-memory,
+    # Merkle, and clock recurrences. Its exhaustive small models, concrete
+    # overclaim counterexamples, and production-source mutation contracts run
+    # in scripts/tests/test_riscv_infrastructure_uniqueness.py.
+    "riscv_infrastructure_uniqueness.py":
+        "conditional AIR-infrastructure uniqueness and recurrence certificate",
+    # Owner: soundness. Checks the all-path Merkle index/parity induction and
+    # the field-depth cycle bound, pinned to the shipped relation and statement
+    # guard. Contracts run in scripts/tests/test_riscv_merkle_recurrence.py.
+    "riscv_merkle_recurrence.py":
+        "sparse-Merkle index and detached-cycle recurrence certificate",
+    # Owner: soundness. Checks state-clock cycle order, bounded synthetic clock
+    # updates, and the historical wrapped-cycle counterexample. Contracts run
+    # in scripts/tests/test_riscv_state_chain_recurrence.py.
+    "riscv_state_chain_recurrence.py":
+        "state-chain and clock-window recurrence certificate",
 }
 
 ENTRY_POINT_GLOBS = (
