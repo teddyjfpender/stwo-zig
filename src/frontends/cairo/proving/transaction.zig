@@ -70,27 +70,67 @@ pub fn proveFixture(
     fixture: Fixture,
     variant: preprocessed.trace.Variant,
 ) !Result(Engine) {
+    return proveFixtureWithRecorder(
+        Engine,
+        allocator,
+        fixture,
+        variant,
+        null,
+    );
+}
+
+pub fn proveFixtureWithRecorder(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    fixture: Fixture,
+    variant: preprocessed.trace.Variant,
+    recorder: ?*prover.stage_profile.Recorder,
+) !Result(Engine) {
     comptime prover.engine.assertProverEngine(Engine);
-    var target = try preprocessed.trace.Spec.init(allocator, variant);
+    var target = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "preprocessed_plan",
+            "Preprocessed plan",
+        );
+        defer stage.end();
+        break :blk try preprocessed.trace.Spec.init(allocator, variant);
+    };
     defer target.deinit();
     const preprocessed_logs = try target.logs(allocator);
     defer allocator.free(preprocessed_logs);
 
-    var base = try base_trace.build(
-        allocator,
-        fixture.input,
-        fixture.programs,
-        fixture.topology,
-        fixture.fixed,
-        claimVariant(variant),
-    );
+    var base = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_trace_build",
+            "Base trace build",
+        );
+        defer stage.end();
+        break :blk try base_trace.build(
+            allocator,
+            fixture.input,
+            fixture.programs,
+            fixture.topology,
+            fixture.fixed,
+            claimVariant(variant),
+        );
+    };
     defer base.deinit();
-    var composition = try fixture.air_templates.instantiate(
-        allocator,
-        &base.geometry,
-        variant,
-        fixture.input.builtin_segments,
-    );
+    var composition = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "air_template_instantiation",
+            "AIR template instantiation",
+        );
+        defer stage.end();
+        break :blk try fixture.air_templates.instantiate(
+            allocator,
+            &base.geometry,
+            variant,
+            fixture.input.builtin_segments,
+        );
+    };
     errdefer composition.deinit();
     try validateComposition(&composition, base.geometry);
 
@@ -119,13 +159,41 @@ pub fn proveFixture(
     var scheme_owned = true;
     errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
 
-    const preprocessed_columns = try target.materialize(allocator);
-    try Engine.commit(&scheme, allocator, preprocessed_columns, null, &channel);
-    try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "preprocessed_materialize_and_commit",
+            "Preprocessed materialize and commit",
+        );
+        defer stage.end();
+        const preprocessed_columns = try target.materialize(allocator);
+        try Engine.commit(
+            &scheme,
+            allocator,
+            preprocessed_columns,
+            recorder,
+            &channel,
+        );
+        try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    }
     try transcript.mixClaim(allocator, &channel, &owned_statement);
 
-    try Engine.commit(&scheme, allocator, base.takeColumns(), null, &channel);
-    try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "main_trace_commit",
+            "Main trace commit",
+        );
+        defer stage.end();
+        try Engine.commit(
+            &scheme,
+            allocator,
+            base.takeColumns(),
+            recorder,
+            &channel,
+        );
+        try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    }
 
     const interaction_pow =
         transcript.grindInteraction(&channel);
@@ -154,17 +222,25 @@ pub fn proveFixture(
             pedersen_initialized = true;
         },
     }
-    var interaction = try interaction_trace.build(
-        allocator,
-        fixture.input,
-        fixture.topology,
-        fixture.fixed,
-        fixture.relations,
-        &base,
-        lookup.z,
-        lookup.alpha,
-        if (pedersen_initialized) &pedersen else null,
-    );
+    var interaction = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "interaction_trace_build",
+            "Interaction trace build",
+        );
+        defer stage.end();
+        break :blk try interaction_trace.build(
+            allocator,
+            fixture.input,
+            fixture.topology,
+            fixture.fixed,
+            fixture.relations,
+            &base,
+            lookup.z,
+            lookup.alpha,
+            if (pedersen_initialized) &pedersen else null,
+        );
+    };
     defer interaction.deinit();
     const public_sum = try statement.public_logup.sum(
         allocator,
@@ -178,14 +254,22 @@ pub fn proveFixture(
         &channel,
         interaction.claimed_sums,
     );
-    try Engine.commit(
-        &scheme,
-        allocator,
-        interaction.takeColumns(),
-        null,
-        &channel,
-    );
-    try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "interaction_trace_commit",
+            "Interaction trace commit",
+        );
+        defer stage.end();
+        try Engine.commit(
+            &scheme,
+            allocator,
+            interaction.takeColumns(),
+            recorder,
+            &channel,
+        );
+        try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    }
 
     const runtime_components = try allocator.alloc(
         proving_air.component.Component,
@@ -221,7 +305,7 @@ pub fn proveFixture(
         components,
         &channel,
         scheme,
-        .{},
+        .{ .recorder = recorder },
     );
     return .{
         .allocator = allocator,

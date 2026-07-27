@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const metal = @import("../../../backends/metal/mod.zig");
+const prover = @import("stwo_prover_impl");
 const adapter = @import("../../../frontends/cairo/adapter/mod.zig");
 const generic = @import("../../../frontends/cairo/proving/transaction.zig");
 const preprocessed = @import("../../../frontends/cairo/preprocessed/mod.zig");
@@ -40,6 +41,21 @@ pub fn proveFixture(
     variant: preprocessed.trace.Variant,
 ) !Result {
     return generic.proveFixture(Engine, allocator, fixture, variant);
+}
+
+pub fn proveFixtureWithRecorder(
+    allocator: std.mem.Allocator,
+    fixture: Fixture,
+    variant: preprocessed.trace.Variant,
+    recorder: ?*prover.stage_profile.Recorder,
+) !Result {
+    return generic.proveFixtureWithRecorder(
+        Engine,
+        allocator,
+        fixture,
+        variant,
+        recorder,
+    );
 }
 
 pub fn verifyAndConsume(

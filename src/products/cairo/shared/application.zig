@@ -95,6 +95,7 @@ fn runAndProve(
         .proof = request.proof,
         .params = request.params,
         .report_out = request.report_out,
+        .stage_profile_out = request.stage_profile_out,
         .proof_format = request.proof_format,
         .verify = request.verify,
     }, execution);
@@ -156,7 +157,18 @@ fn proveFile(
     var proof_context = try Product.beginProof(allocator);
     var proof_context_owned = true;
     defer if (proof_context_owned) Product.abortProof(&proof_context);
-    var result = try transaction.proveFixture(
+    const stage_profile = Product.stwo.prover.stage_profile;
+    var maybe_recorder: ?stage_profile.Recorder =
+        if (request.stage_profile_out != null)
+            stage_profile.Recorder.init(
+                allocator,
+                Product.backend_name,
+                "cairo",
+            )
+        else
+            null;
+    defer if (maybe_recorder) |*recorder| recorder.deinit();
+    var result = try transaction.proveFixtureWithRecorder(
         allocator,
         .{
             .input = &input,
@@ -167,11 +179,19 @@ fn proveFile(
             .air_templates = &air_templates,
         },
         paths.variant,
+        if (maybe_recorder) |*recorder| recorder else null,
     );
     var result_owned = true;
     defer if (result_owned) result.deinit();
     const proving_ns = (std.time.Instant.now() catch
         return error.ClockUnavailable).since(started);
+    if (request.stage_profile_out) |path|
+        try writeStageProfile(
+            Product,
+            allocator,
+            &maybe_recorder.?,
+            path,
+        );
 
     const temporary = try Product.stwo.interop.atomic_file.temporaryPathAlloc(
         allocator,
@@ -231,6 +251,26 @@ fn proveFile(
         request.report_out,
         std.fs.File.stdout().deprecatedWriter(),
     );
+}
+
+fn writeStageProfile(
+    comptime Product: type,
+    allocator: std.mem.Allocator,
+    recorder: *Product.stwo.prover.stage_profile.Recorder,
+    path: []const u8,
+) !void {
+    var stage_snapshot = try recorder.snapshot(allocator);
+    defer stage_snapshot.deinit(allocator);
+    const rendered = try std.json.Stringify.valueAlloc(
+        allocator,
+        stage_snapshot,
+        .{},
+    );
+    defer allocator.free(rendered);
+    try std.fs.cwd().writeFile(.{
+        .sub_path = path,
+        .data = rendered,
+    });
 }
 
 fn writeProof(

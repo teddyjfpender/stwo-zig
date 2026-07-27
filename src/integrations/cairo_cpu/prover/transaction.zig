@@ -36,6 +36,21 @@ pub fn proveFixture(
     return generic.proveFixture(Engine, allocator, fixture, variant);
 }
 
+pub fn proveFixtureWithRecorder(
+    allocator: std.mem.Allocator,
+    fixture: Fixture,
+    variant: preprocessed.trace.Variant,
+    recorder: ?*prover.stage_profile.Recorder,
+) !Result {
+    return generic.proveFixtureWithRecorder(
+        Engine,
+        allocator,
+        fixture,
+        variant,
+        recorder,
+    );
+}
+
 pub fn verifyAndConsume(
     input: *const adapter.ProverInput,
     result: *Result,

@@ -28,6 +28,7 @@ pub const Prove = struct {
     proof: []const u8,
     params: ?[]const u8,
     report_out: ?[]const u8,
+    stage_profile_out: ?[]const u8,
     proof_format: ProofFormat,
     verify: bool,
 };
@@ -48,6 +49,7 @@ pub const RunAndProve = struct {
     proof: []const u8,
     params: ?[]const u8,
     report_out: ?[]const u8,
+    stage_profile_out: ?[]const u8,
     proof_format: ProofFormat,
     verify: bool,
 };
@@ -68,6 +70,7 @@ const Flag = enum {
     proof,
     params,
     report_out,
+    stage_profile_out,
     proof_format,
     verify,
     count,
@@ -83,6 +86,7 @@ const Scratch = struct {
     proof: ?[]const u8 = null,
     params: ?[]const u8 = null,
     report_out: ?[]const u8 = null,
+    stage_profile_out: ?[]const u8 = null,
     proof_format: ProofFormat = .json,
     verify: bool = false,
 
@@ -128,6 +132,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
     const proof = try requiredPath(scratch.proof, error.MissingProofOutput);
     const params = try optionalPath(scratch.params);
     const report_out = try optionalPath(scratch.report_out);
+    const stage_profile_out = try optionalPath(scratch.stage_profile_out);
     return switch (command) {
         .prove => blk: {
             if (scratch.seen[@intFromEnum(Flag.program)] or
@@ -142,6 +147,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
                 .proof = proof,
                 .params = params,
                 .report_out = report_out,
+                .stage_profile_out = stage_profile_out,
                 .proof_format = scratch.proof_format,
                 .verify = scratch.verify,
             } };
@@ -159,6 +165,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
                 .proof = proof,
                 .params = params,
                 .report_out = report_out,
+                .stage_profile_out = stage_profile_out,
                 .proof_format = scratch.proof_format,
                 .verify = scratch.verify,
             } };
@@ -193,6 +200,7 @@ fn assign(scratch: *Scratch, flag: Flag, value: []const u8) !void {
         .proof => scratch.proof = value,
         .params => scratch.params = value,
         .report_out => scratch.report_out = value,
+        .stage_profile_out => scratch.stage_profile_out = value,
         .proof_format => {
             if (std.mem.eql(u8, value, "cairo-serde")) {
                 scratch.proof_format = .cairo_serde;
@@ -252,6 +260,8 @@ pub fn writeUsage(
             \\  --params PATH          Authenticated proving-profile manifest
             \\  --proof-format FORMAT  json, cairo-serde, or binary
             \\  --report-out PATH      Write the machine-readable proving report
+            \\  --stage-profile-out PATH
+            \\                         Write detailed proving-stage timings
             \\  --verify               Verify before publishing the proof
             \\
         ),
@@ -262,6 +272,8 @@ pub fn writeUsage(
             \\  --params PATH          Authenticated proving-profile manifest
             \\  --proof-format FORMAT  json, cairo-serde, or binary
             \\  --report-out PATH      Write the machine-readable proving report
+            \\  --stage-profile-out PATH
+            \\                         Write detailed proving-stage timings
             \\  --verify               Verify before publishing the proof
             \\
         ),
@@ -300,6 +312,8 @@ test "Cairo CPU prove command is explicit and strict" {
         "proof.json",
         "--params",
         "params.json",
+        "--stage-profile-out",
+        "stages.json",
         "--verify",
     });
     try std.testing.expectEqualStrings(
@@ -307,6 +321,10 @@ test "Cairo CPU prove command is explicit and strict" {
         parsed.prove.prover_input,
     );
     try std.testing.expect(parsed.prove.verify);
+    try std.testing.expectEqualStrings(
+        "stages.json",
+        parsed.prove.stage_profile_out.?,
+    );
     try std.testing.expectEqual(ProofFormat.json, parsed.prove.proof_format);
 }
 
