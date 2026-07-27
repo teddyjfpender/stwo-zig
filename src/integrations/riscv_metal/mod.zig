@@ -6,13 +6,13 @@
 
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
-const MetalProverEngineImpl =
-    @import("../../backends/metal/prover_engine.zig").MetalProverEngine;
-const prover_mod = @import("../../frontends/riscv/prover.zig");
-const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
-const state_chain = @import("../../frontends/riscv/runner/state_chain.zig");
-const memory_state = @import("../../frontends/riscv/runner/memory_state.zig");
+const MetalProverEngineImpl = @import("stwo_metal_backend").MetalProverEngine;
+const riscv = @import("stwo_riscv_frontend");
+const prover_mod = riscv.prover_mod;
+const public_data_mod = riscv.air.public_data;
+const trace_mod = riscv.runner.trace;
+const state_chain = riscv.runner.state_chain;
+const memory_state = riscv.runner.memory_state;
 const stage_profile = @import("stwo_prover_impl").stage_profile;
 
 pub const MetalProverEngine = MetalProverEngineImpl;

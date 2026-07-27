@@ -19,19 +19,23 @@ const product = graph.Product{
 const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{
         "src/riscv_metal_bench_cli.zig",
-        "src/stwo_riscv_metal.zig",
+        "src/products/riscv_metal/root.zig",
         "src/integrations/riscv_metal/mod.zig",
         "src/tests/riscv/metal_backend_test.zig",
     },
     .named_imports = &.{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_metal_backend", .source = "src/backends/metal_surface.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
-        .{ .name = "stwo_riscv_metal", .source = "src/stwo_riscv_metal.zig" },
+        .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
+        .{ .name = "stwo_riscv_metal", .source = "src/products/riscv_metal/root.zig" },
+        .{ .name = "stwo_riscv_metal_integration", .source = "src/integrations/riscv_metal/mod.zig" },
     },
     .allowed_files = &.{
         "src/riscv_metal_bench_cli.zig",
-        "src/stwo_riscv_metal.zig",
+        "src/backends/metal_surface.zig",
+        "src/products/riscv_metal/root.zig",
         "src/tests/riscv/metal_backend_test.zig",
     },
     .allowed_prefixes = &.{
@@ -120,10 +124,9 @@ pub fn addProduct(context: Context) void {
     );
     metal.linkRuntime(context.b, benchmark.executable);
 
-    const stwo_tests = createModule(
+    const stwo_tests = createFacadeModule(
         context,
         testProduct(),
-        "src/stwo_riscv_metal.zig",
     );
     const integration_tests = context.b.addTest(.{ .root_module = stwo_tests });
     metal.linkRuntime(context.b, integration_tests);
@@ -132,7 +135,7 @@ pub fn addProduct(context: Context) void {
         testProduct(),
         "src/tests/riscv/metal_backend_test.zig",
     );
-    const stwo = createModule(
+    const stwo = createFacadeModule(
         context,
         .{
             .name = product.name,
@@ -141,7 +144,6 @@ pub fn addProduct(context: Context) void {
             .role = .library,
             .protocol_features = product.protocol_features,
         },
-        "src/stwo_riscv_metal.zig",
     );
     proof_test_module.addImport("stwo_riscv_metal", stwo);
     const proof_tests = context.b.addTest(.{
@@ -176,7 +178,70 @@ fn createModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    const dependencies = createDependencies(context, logical_product);
+    module.addImport("stwo_metal_backend", dependencies.metal_backend);
+    module.addImport("stwo_riscv_frontend", dependencies.frontend);
+    module.addImport("stwo_riscv_metal_integration", dependencies.integration);
     return module;
+}
+
+fn createFacadeModule(
+    context: Context,
+    logical_product: graph.Product,
+) *std.Build.Module {
+    const dependencies = createDependencies(context, logical_product);
+    const facade = graph.create(context.b, .{
+        .product = logical_product,
+        .root_source_file = "src/products/riscv_metal/root.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(facade);
+    facade.addImport("stwo_riscv_frontend", dependencies.frontend);
+    facade.addImport("stwo_riscv_metal_integration", dependencies.integration);
+    return facade;
+}
+
+const Dependencies = struct {
+    frontend: *std.Build.Module,
+    metal_backend: *std.Build.Module,
+    integration: *std.Build.Module,
+};
+
+fn createDependencies(
+    context: Context,
+    logical_product: graph.Product,
+) Dependencies {
+    const frontend = graph.create(context.b, .{
+        .product = logical_product,
+        .root_source_file = "src/frontends/riscv/mod.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(frontend);
+
+    const metal_backend = graph.create(context.b, .{
+        .product = logical_product,
+        .root_source_file = "src/backends/metal_surface.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(metal_backend);
+
+    const integration = graph.create(context.b, .{
+        .product = logical_product,
+        .root_source_file = "src/integrations/riscv_metal/mod.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(integration);
+    integration.addImport("stwo_metal_backend", metal_backend);
+    integration.addImport("stwo_riscv_frontend", frontend);
+    return .{
+        .frontend = frontend,
+        .metal_backend = metal_backend,
+        .integration = integration,
+    };
 }
 
 fn testProduct() graph.Product {

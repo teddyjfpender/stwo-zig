@@ -1,7 +1,8 @@
-const benchmark = @import("../bench/main.zig");
+const benchmark = @import("../bench/runner.zig");
+const frontend = @import("stwo_riscv_frontend");
 const MetalProverEngine =
-    @import("../../../integrations/riscv_metal/mod.zig").MetalProverEngine;
+    @import("stwo_riscv_metal_integration").MetalProverEngine;
 
 pub fn main() !void {
-    return benchmark.mainWithEngine(MetalProverEngine);
+    return benchmark.mainWithEngine(frontend, MetalProverEngine);
 }

@@ -4,11 +4,11 @@ pub const core = @import("stwo_core");
 pub const prover = @import("stwo_prover_impl");
 
 pub const frontends = struct {
-    pub const riscv = @import("frontends/riscv/mod.zig");
+    pub const riscv = @import("stwo_riscv_frontend");
 };
 
 pub const integrations = struct {
-    pub const riscv_metal = @import("integrations/riscv_metal/mod.zig");
+    pub const riscv_metal = @import("stwo_riscv_metal_integration");
 };
 
 test {
