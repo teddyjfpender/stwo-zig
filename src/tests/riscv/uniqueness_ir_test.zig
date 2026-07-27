@@ -27,6 +27,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
 const witness_layout = @import("../../frontends/riscv/witness_layout.zig");
+const layout = @import("committed_row_layout.zig");
 
 const OpcodeFamily = trace_mod.OpcodeFamily;
 const MODULUS: u64 = (1 << 31) - 1;
@@ -137,6 +138,60 @@ fn columnNames(comptime family: OpcodeFamily) []const []const u8 {
     return &frozen;
 }
 
+// --- architectural roles ----------------------------------------------------
+//
+// Uniqueness asks: do two witnesses that agree on the INPUTS have to agree on
+// the OUTPUTS? So the classification below is the question being posed, not a
+// presentation detail. Getting it wrong yields a board that answers something
+// else while looking green.
+//
+// Derived from the pinned layout field names rather than seventeen hand-kept
+// lists, because a hand-kept list drifts the first time a column moves and the
+// drift is invisible.
+//
+//   input    what the instruction consumes: every access's `addr`, `prev_*` and
+//            `clock_prev`, plus `pc`, `clock`, `enabler`, the opcode selectors
+//            and the immediates.
+//   output   what it produces: the WRITTEN access's `next_*`, plus `result_*`
+//            and a branch's decision and target.
+//   witness  everything else -- carries, one-hot markers, sign bits, inverse
+//            certificates, and the SOURCE accesses' `next_*`. Source `next` is
+//            witness, not input, and that is deliberate: it is bound to `prev`
+//            only by the read-only residuals, so leaving it free is exactly how
+//            a solver rediscovers the register-rewrite bug.
+fn roleOf(name: []const u8, written_prefix: []const u8) []const u8 {
+    if (eq(name, "clock") or eq(name, "pc") or eq(name, "enabler")) return "input";
+    if (std.mem.endsWith(u8, name, "_flag")) return "input";
+    if (std.mem.startsWith(u8, name, "imm")) return "input";
+    if (std.mem.endsWith(u8, name, "_addr")) return "input";
+    if (std.mem.endsWith(u8, name, "_clock_prev")) return "input";
+    if (std.mem.indexOf(u8, name, "_prev_") != null) return "input";
+
+    if (eq(name, "cmp_result") or eq(name, "branch_target")) return "output";
+    if (std.mem.startsWith(u8, name, "result_")) return "output";
+    if (written_prefix.len != 0 and
+        std.mem.startsWith(u8, name, written_prefix) and
+        std.mem.indexOf(u8, name, "_next_") != null) return "output";
+
+    return "witness";
+}
+
+fn eq(a: []const u8, b: []const u8) bool {
+    return std.mem.eql(u8, a, b);
+}
+
+/// Slot 0 is the written access for every writing family, and its prefix is the
+/// first `_addr` field in committed order.
+fn writtenPrefix(comptime family: OpcodeFamily, names: []const []const u8) []const u8 {
+    if (layout.writtenSlot(family) == null) return "";
+    for (names) |name| {
+        if (std.mem.endsWith(u8, name, "_addr")) {
+            return name[0 .. name.len - "_addr".len];
+        }
+    }
+    return "";
+}
+
 const Emitted = struct {
     nodes: []const Node,
     constraints: []const u32,
@@ -237,4 +292,62 @@ test "uniqueness IR: the emitted system agrees with the committed AIR" {
         .{ checked, TRIALS, SEED },
     );
     try std.testing.expectEqual(trace_mod.N_FAMILIES, checked);
+}
+
+// Writes one JSON system per family for `scripts/air_uniqueness.py`.
+//
+// Lookup requests are NOT emitted yet, and the omission is deliberate and
+// one-directional: without range-table membership the admitted witness set is
+// strictly larger, so the query is weaker. An UNSAT verdict therefore still
+// holds for the real AIR, while a SAT counterexample may be excluded by a range
+// check this system does not carry and must be triaged against
+// `row_admissibility` before it is called a bug.
+test "uniqueness IR: emit every family" {
+    const allocator = std.testing.allocator;
+    const dir_path = "zig-out/uniqueness-ir";
+    std.fs.cwd().makePath(dir_path) catch {};
+    var dir = try std.fs.cwd().openDir(dir_path, .{});
+    defer dir.close();
+
+    inline for (comptime std.enums.values(OpcodeFamily)) |family| {
+        const names = comptime columnNames(family);
+        const prefix = writtenPrefix(family, names);
+        const emitted = try emit(family, allocator);
+        defer allocator.free(emitted.nodes);
+        defer allocator.free(emitted.constraints);
+
+        var out: std.ArrayList(u8) = .{};
+        defer out.deinit(allocator);
+        const w = out.writer(allocator);
+
+        try w.print("{{\n  \"modulus\": {d},\n  \"family\": \"{s}\",\n  \"columns\": [\n", .{ MODULUS, @tagName(family) });
+        for (names, 0..) |name, i| {
+            try w.print("    {{\"name\": \"{s}\", \"role\": \"{s}\"}}{s}\n", .{
+                name, roleOf(name, prefix), if (i + 1 == names.len) "" else ",",
+            });
+        }
+        try w.writeAll("  ],\n  \"nodes\": [\n");
+        for (emitted.nodes, 0..) |node, i| {
+            const tail = if (i + 1 == emitted.nodes.len) "" else ",";
+            if (eq(node.op, "const")) {
+                try w.print("    {{\"op\": \"const\", \"value\": {d}}}{s}\n", .{ node.value, tail });
+            } else if (eq(node.op, "col")) {
+                try w.print("    {{\"op\": \"col\", \"name\": \"{s}\"}}{s}\n", .{ node.name, tail });
+            } else if (eq(node.op, "neg")) {
+                try w.print("    {{\"op\": \"neg\", \"args\": [{d}]}}{s}\n", .{ node.lhs, tail });
+            } else {
+                try w.print("    {{\"op\": \"{s}\", \"args\": [{d}, {d}]}}{s}\n", .{ node.op, node.lhs, node.rhs, tail });
+            }
+        }
+        try w.writeAll("  ],\n  \"constraints\": [");
+        for (emitted.constraints, 0..) |c, i| {
+            try w.print("{d}{s}", .{ c, if (i + 1 == emitted.constraints.len) "" else ", " });
+        }
+        try w.writeAll("],\n  \"notes\": \"extracted from Semantics(S); lookups not modelled\"\n}\n");
+
+        try dir.writeFile(.{ .sub_path = @tagName(family) ++ ".json", .data = out.items });
+        std.debug.print("  {s: <14} {d: >3} columns  {d: >5} nodes  {d: >3} constraints\n", .{
+            @tagName(family), names.len, emitted.nodes.len, emitted.constraints.len,
+        });
+    }
 }
