@@ -374,12 +374,23 @@ The table started at commit `cfd47be9` and is updated as evidence lands on
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
 | CPU product | focused `stwo-cairo-cpu` product, adjacent pinned Cairo VM sidecar, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON, Cairo-serde, and compressed-binary transports, and a serial official Rust oracle gate | compiled-JSON and Cairo 2.20 executable release corpora complete |
-| Metal product | focused `stwo-cairo-metal` product and CLI execute the backend-neutral official transaction through `PlainMetalProverEngine`; the all-opcodes gate produces byte-identical CPU/Metal JSON, reports 75 Metal dispatches and zero backend fallbacks, and passes the untouched official Rust verifier | authenticated AOT all-opcodes evidence complete; full release corpus remains |
+| Metal product | focused `stwo-cairo-metal` product and CLI execute the backend-neutral official transaction through `PlainMetalProverEngine`; the serial release gate proves 12 CPU/Metal pairs spanning both official inputs, all three transports, seven compiled programs, and one Cairo 2.20 executable; every pair is byte-identical, every Metal report is fallback-free, and every verifier-supported proof passes untouched official Rust | authenticated AOT release corpus complete |
 | Rust oracle | isolated official verifier accepts deterministic Zig all-opcodes, all-builtins, six legacy-program proofs, and the Cairo 2.20 executable proof, rejects mutation, and independently derives canonical Cairo-serde and raw-bincode transports | complete for the admitted CPU corpus and all three released proof transports |
 | Cairo VM execution | isolated `stwo-cairo-vm-adapter` runs compiled Cairo JSON and modern Cairo 2.20 executables under Cairo VM 3.2.0 with `all_cairo_stwo`, sorts public-memory addresses, reproduces the 181,534-byte official all-opcodes `ProverInput` byte-for-byte, derives standalone public segments from the executable builtin list, and executes the release corpus | complete for compiled JSON and executable formats |
 | CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON; `run-and-prove` invokes the adjacent identity-bound VM adapter for compiled JSON or executable artifacts and optional arguments; both derive the live proof schedule, publish all three transports transactionally, emit format/execution-bound reports, and optionally verify in Zig before publication | complete for direct all-opcodes/all-builtins inputs and both program formats |
-| Metal execution | process-owned shared runtime, proof-scoped telemetry, strict lifecycle shutdown, and exact all-opcodes parity use the focused generic Metal PCS path; the product embeds manifest digest `0bc892380b884433876bb58863b6ab9883edb1361c8dcae978a604421a9ede83`, installs the retained core bundle, admits it through `core_aot`, and exposes no source-JIT product mode | authenticated-AOT product evidence complete; full-corpus and failure-path evidence remain |
+| Metal execution | process-owned shared runtime, proof-scoped telemetry, strict lifecycle shutdown, and exact full-corpus parity use the focused generic Metal PCS path; the product embeds manifest digest `0bc892380b884433876bb58863b6ab9883edb1361c8dcae978a604421a9ede83`, installs the retained core bundle, admits it through `core_aot`, and exposes no source-JIT product mode | authenticated-AOT corpus evidence complete; remaining missing-device and ownership failure paths remain |
 | Repository structure | the backend-neutral transaction and captured AIR evaluator live under `frontends/cairo/proving`; CPU and Metal integrations are thin engine bindings; CLI, execution adapter, profile, identity, and publication workflow are shared without cross-backend imports | touched production paths conform; legacy Cairo Metal monolith decomposition remains |
+
+The first complete authenticated-AOT release-corpus gate ran on 2026-07-27.
+All 12 CPU/Metal proof pairs were exact, all 12 Metal reports recorded one
+runtime initialization and shutdown with zero fallback, 11 verifier-supported
+proofs passed the official Rust verifier, and Cairo-serde bytes matched the
+official Rust serializer. Recorded proving time summed to approximately 269
+seconds for CPU and 322 seconds for Metal. The 3,303.77-second outer wall also
+included a cold ReleaseFast reference-product compilation and must not be
+reported as proving time. `all-builtins` was the dominant proof row at 211.38
+seconds CPU and 248.83 seconds Metal; the outer process peaked at 20,996,390,912
+bytes RSS without memory pressure.
 
 No existing benchmark, SN PIE receipt, compact envelope, or raw-trace test
 proves this goal complete.

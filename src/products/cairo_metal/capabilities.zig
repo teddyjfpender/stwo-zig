@@ -28,7 +28,7 @@ pub fn write(writer: anytype) !void {
         },
         .verification = .{
             .zig = true,
-            .official_rust_release_gate = false,
+            .official_rust_release_gate = true,
         },
     }, .{}, writer);
 }

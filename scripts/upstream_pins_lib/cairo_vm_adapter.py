@@ -14,7 +14,7 @@ CORPUS_PROVENANCE = "vectors/cairo/programs/official_corpus.provenance.json"
 EXECUTABLE_PROVENANCE = (
     "vectors/cairo/programs/executable/add_one.provenance.json"
 )
-ORACLE_GATE = "build_support/products/cairo_cpu/oracle_gate.zig"
+ORACLE_GATE = "build_support/products/cairo/oracle_corpus.zig"
 PROGRAM_SCHEMA = "stwo_cairo_compiled_program_vector_v1"
 CORPUS_SCHEMA = "stwo_cairo_compiled_program_corpus_v1"
 EXECUTABLE_SCHEMA = "stwo_cairo_executable_program_vector_v1"

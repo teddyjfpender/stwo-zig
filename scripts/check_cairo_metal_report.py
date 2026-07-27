@@ -23,6 +23,8 @@ def validate(
     proof_sha256: str,
     proof_bytes: int,
     runtime_mode: str,
+    proof_format: str,
+    require_execution: bool = False,
 ) -> None:
     require(report.get("schema_version") == 2, "unsupported report schema")
     require(report.get("backend") == "metal", "report backend is not Metal")
@@ -33,7 +35,7 @@ def validate(
 
     proof = report.get("proof")
     require(isinstance(proof, dict), "missing proof receipt")
-    require(proof.get("format") == "json", "oracle gate requires JSON proof")
+    require(proof.get("format") == proof_format, "proof format mismatch")
     require(proof.get("bytes") == proof_bytes, "proof byte count mismatch")
     require(proof.get("sha256") == proof_sha256, "proof digest mismatch")
     require(LOWER_SHA256.fullmatch(proof_sha256) is not None, "invalid proof digest")
@@ -59,6 +61,21 @@ def validate(
     require(evidence.get("runtime_initializations") == 1, "runtime init count mismatch")
     require(evidence.get("runtime_shutdowns") == 1, "runtime shutdown count mismatch")
 
+    execution = report.get("execution")
+    if require_execution:
+        require(isinstance(execution, dict), "missing program execution receipt")
+        require(
+            execution.get("program_type") in {"json", "executable"},
+            "invalid executed program type",
+        )
+        require(
+            isinstance(execution.get("wall_ns"), int)
+            and execution["wall_ns"] > 0,
+            "invalid program execution duration",
+        )
+    else:
+        require(execution is None, "direct proof unexpectedly claims execution")
+
     runtime = product.get("runtime")
     require(isinstance(runtime, dict), "missing runtime identity")
     manifest = runtime.get("manifest")
@@ -79,6 +96,12 @@ def main() -> int:
         choices=("source-jit", "authenticated-aot"),
         required=True,
     )
+    parser.add_argument(
+        "--proof-format",
+        choices=("json", "cairo-serde", "binary"),
+        required=True,
+    )
+    parser.add_argument("--require-execution", action="store_true")
     args = parser.parse_args()
 
     proof_bytes = args.proof.read_bytes()
@@ -89,6 +112,8 @@ def main() -> int:
         hashlib.sha256(proof_bytes).hexdigest(),
         len(proof_bytes),
         args.runtime_mode,
+        args.proof_format,
+        args.require_execution,
     )
     return 0
 

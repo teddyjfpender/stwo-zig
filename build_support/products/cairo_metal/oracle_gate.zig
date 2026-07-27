@@ -1,6 +1,14 @@
-//! Exact CPU parity and official-Rust acceptance for Cairo Metal.
+//! Serial CPU/Metal parity and official-Rust release gate for Cairo.
 
 const std = @import("std");
+const corpus = @import("../cairo/oracle_corpus.zig");
+const commands = @import("oracle_commands.zig");
+
+const PairResult = struct {
+    step: *std.Build.Step,
+    cpu_proof: std.Build.LazyPath,
+    metal_proof: std.Build.LazyPath,
+};
 
 pub fn add(
     b: *std.Build,
@@ -8,108 +16,307 @@ pub fn add(
     cpu_executable: *std.Build.Step.Compile,
     aot_bundle_path: []const u8,
 ) void {
+    const cargo = commands.addCargoBuild(b);
+    const adapter_tests = commands.addAdapterTests(b);
     const gate = b.step(
         "test-cairo-metal-oracle",
-        "Require exact CPU parity, fallback-free Metal, and Rust acceptance",
+        "Require full-corpus CPU parity, fallback-free Metal, and Rust acceptance",
     );
-    const cargo = b.addSystemCommand(&.{
-        "cargo",
-        "build",
-        "--locked",
-        "--manifest-path",
-        b.pathFromRoot(
-            "tools/stwo-cairo-official-verifier-rs/Cargo.toml",
-        ),
-    });
-
-    const cpu = addProofRun(
+    var previous: ?*std.Build.Step = null;
+    var all_opcodes_json: ?std.Build.LazyPath = null;
+    for (corpus.direct_cases) |case| {
+        const pair = addDirectPair(
+            b,
+            cpu_executable,
+            metal_executable,
+            cargo,
+            aot_bundle_path,
+            case,
+            previous,
+        );
+        previous = pair.step;
+        if (std.mem.eql(u8, case.name, "all-opcodes"))
+            all_opcodes_json = pair.metal_proof;
+    }
+    previous = addCairoSerdePair(
         b,
         cpu_executable,
-        "cairo-metal-reference-cpu.proof.json",
-        "cairo-metal-reference-cpu.report.json",
+        metal_executable,
+        cargo,
+        aot_bundle_path,
+        all_opcodes_json.?,
+        previous.?,
     );
-    const metal = addProofRun(
+    previous = addBinaryPair(
+        b,
+        cpu_executable,
+        metal_executable,
+        cargo,
+        aot_bundle_path,
+        all_opcodes_json.?,
+        previous.?,
+    );
+    for (corpus.program_cases) |case| {
+        previous = addProgramPair(
+            b,
+            cpu_executable,
+            metal_executable,
+            cargo,
+            adapter_tests,
+            aot_bundle_path,
+            case,
+            previous.?,
+        );
+    }
+    gate.dependOn(previous.?);
+}
+
+fn addDirectPair(
+    b: *std.Build,
+    cpu_executable: *std.Build.Step.Compile,
+    metal_executable: *std.Build.Step.Compile,
+    cargo: *std.Build.Step.Run,
+    aot_bundle_path: []const u8,
+    case: corpus.DirectCase,
+    previous: ?*std.Build.Step,
+) PairResult {
+    const cpu = commands.addDirectProof(
+        b,
+        cpu_executable,
+        case,
+        "cpu",
+        null,
+    );
+    if (previous) |dependency| cpu.run.step.dependOn(dependency);
+    const metal = commands.addDirectProof(
         b,
         metal_executable,
-        "cairo-metal-candidate.proof.json",
-        "cairo-metal-candidate.report.json",
-    );
-    metal.run.setEnvironmentVariable(
-        "STWO_CAIRO_METAL_AOT_BUNDLE",
+        case,
+        "metal",
         aot_bundle_path,
     );
     metal.run.step.dependOn(&cpu.run.step);
+    const compare = commands.addExactComparison(
+        b,
+        cpu.proof,
+        metal.proof,
+        b.fmt("compare exact Cairo {s} CPU and Metal proof bytes", .{
+            case.name,
+        }),
+    );
+    const report = commands.addReportCheck(
+        b,
+        metal,
+        "json",
+        false,
+    );
+    const verify = commands.addRustVerification(
+        b,
+        cargo,
+        metal.proof,
+        "json",
+        b.fmt("cairo-metal-{s}-rust-verdict.json", .{case.name}),
+        b.fmt("verify Cairo Metal {s} proof with official Rust", .{
+            case.name,
+        }),
+    );
+    verify.dependOn(compare);
+    verify.dependOn(report);
+    return .{
+        .step = verify,
+        .cpu_proof = cpu.proof,
+        .metal_proof = metal.proof,
+    };
+}
 
-    const compare = b.addSystemCommand(&.{"cmp"});
-    compare.addFileArg(cpu.proof);
-    compare.addFileArg(metal.proof);
-    compare.setName("compare exact Cairo CPU and Metal proof bytes");
-
-    const report = b.addSystemCommand(&.{
-        "python3",
-        "scripts/check_cairo_metal_report.py",
-        "--report",
-    });
-    report.addFileArg(metal.report);
-    report.addArg("--proof");
-    report.addFileArg(metal.proof);
-    report.addArgs(&.{ "--runtime-mode", "authenticated-aot" });
-
-    const verify = b.addSystemCommand(&.{
-        oraclePath(b),
-        "verify",
+fn addCairoSerdePair(
+    b: *std.Build,
+    cpu_executable: *std.Build.Step.Compile,
+    metal_executable: *std.Build.Step.Compile,
+    cargo: *std.Build.Step.Run,
+    aot_bundle_path: []const u8,
+    json_proof: std.Build.LazyPath,
+    previous: *std.Build.Step,
+) *std.Build.Step {
+    const cpu = commands.addTransportProof(
+        b,
+        cpu_executable,
+        "cpu",
+        "cairo-serde",
+        "cairo-serde.json",
+        null,
+    );
+    cpu.run.step.dependOn(previous);
+    const metal = commands.addTransportProof(
+        b,
+        metal_executable,
+        "metal",
+        "cairo-serde",
+        "cairo-serde.json",
+        aot_bundle_path,
+    );
+    metal.run.step.dependOn(&cpu.run.step);
+    const exact = commands.addExactComparison(
+        b,
+        cpu.proof,
+        metal.proof,
+        "compare exact Cairo-serde CPU and Metal proof bytes",
+    );
+    const serialize_oracle = b.addSystemCommand(&.{
+        commands.oraclePath(b),
+        "serialize-cairo",
         "--proof",
     });
-    verify.step.dependOn(&cargo.step);
-    verify.step.dependOn(&compare.step);
-    verify.step.dependOn(&report.step);
-    verify.addFileArg(metal.proof);
-    verify.addArgs(&.{
-        "--channel",
-        "blake2s",
-        "--proof-format",
-        "json",
-        "--result",
-    });
-    _ = verify.addOutputFileArg("cairo-metal-rust-verdict.json");
-    verify.setName("verify Cairo Metal proof with official Rust");
-    gate.dependOn(&verify.step);
-}
-
-const ProofRun = struct {
-    run: *std.Build.Step.Run,
-    proof: std.Build.LazyPath,
-    report: std.Build.LazyPath,
-};
-
-fn addProofRun(
-    b: *std.Build,
-    executable: *std.Build.Step.Compile,
-    proof_name: []const u8,
-    report_name: []const u8,
-) *ProofRun {
-    const command = b.addRunArtifact(executable);
-    command.addArgs(&.{ "prove", "--prover-input" });
-    command.addFileArg(b.path(
-        "vectors/cairo/official/all_opcodes.prover_input.json",
-    ));
-    command.addArg("--params");
-    command.addFileArg(b.path(
-        "vectors/cairo/official/all_opcodes.params.json",
-    ));
-    command.addArg("--proof");
-    const proof = command.addOutputFileArg(proof_name);
-    command.addArg("--report-out");
-    const report = command.addOutputFileArg(report_name);
-    command.addArg("--verify");
-    const result = b.allocator.create(ProofRun) catch @panic("out of memory");
-    result.* = .{ .run = command, .proof = proof, .report = report };
-    return result;
-}
-
-fn oraclePath(b: *std.Build) []const u8 {
-    return b.pathFromRoot(
-        "tools/stwo-cairo-official-verifier-rs/target/debug/" ++
-            "stwo-cairo-official-verifier",
+    serialize_oracle.step.dependOn(&cargo.step);
+    serialize_oracle.addFileArg(json_proof);
+    serialize_oracle.addArgs(&.{ "--proof-format", "json", "--result" });
+    const expected = serialize_oracle.addOutputFileArg(
+        "cairo-metal-cairo-serde.oracle.json",
     );
+    const official = commands.addExactComparison(
+        b,
+        expected,
+        metal.proof,
+        "compare Metal Cairo-serde bytes with official Rust",
+    );
+    official.dependOn(exact);
+    official.dependOn(commands.addReportCheck(
+        b,
+        metal,
+        "cairo-serde",
+        false,
+    ));
+    return official;
+}
+
+fn addBinaryPair(
+    b: *std.Build,
+    cpu_executable: *std.Build.Step.Compile,
+    metal_executable: *std.Build.Step.Compile,
+    cargo: *std.Build.Step.Run,
+    aot_bundle_path: []const u8,
+    json_proof: std.Build.LazyPath,
+    previous: *std.Build.Step,
+) *std.Build.Step {
+    const cpu = commands.addTransportProof(
+        b,
+        cpu_executable,
+        "cpu",
+        "binary",
+        "binary.bz2",
+        null,
+    );
+    cpu.run.step.dependOn(previous);
+    const metal = commands.addTransportProof(
+        b,
+        metal_executable,
+        "metal",
+        "binary",
+        "binary.bz2",
+        aot_bundle_path,
+    );
+    metal.run.step.dependOn(&cpu.run.step);
+    const exact = commands.addExactComparison(
+        b,
+        cpu.proof,
+        metal.proof,
+        "compare exact compressed-binary CPU and Metal proof bytes",
+    );
+
+    const serialize_oracle = b.addSystemCommand(&.{
+        commands.oraclePath(b),
+        "serialize-binary-raw",
+        "--proof",
+    });
+    serialize_oracle.step.dependOn(&cargo.step);
+    serialize_oracle.addFileArg(json_proof);
+    serialize_oracle.addArgs(&.{ "--proof-format", "json", "--result" });
+    const expected = serialize_oracle.addOutputFileArg(
+        "cairo-metal-binary.oracle.raw",
+    );
+    const decompress = b.addSystemCommand(&.{
+        commands.oraclePath(b),
+        "decompress-binary",
+        "--proof",
+    });
+    decompress.step.dependOn(&cargo.step);
+    decompress.addFileArg(metal.proof);
+    decompress.addArg("--result");
+    const actual = decompress.addOutputFileArg("cairo-metal-binary.raw");
+    const raw = commands.addExactComparison(
+        b,
+        expected,
+        actual,
+        "compare Metal bincode bytes with official Rust",
+    );
+    const verify = commands.addRustVerification(
+        b,
+        cargo,
+        metal.proof,
+        "binary",
+        "cairo-metal-binary-rust-verdict.json",
+        "verify Cairo Metal compressed-binary proof with official Rust",
+    );
+    verify.dependOn(exact);
+    verify.dependOn(raw);
+    verify.dependOn(commands.addReportCheck(b, metal, "binary", false));
+    return verify;
+}
+
+fn addProgramPair(
+    b: *std.Build,
+    cpu_executable: *std.Build.Step.Compile,
+    metal_executable: *std.Build.Step.Compile,
+    cargo: *std.Build.Step.Run,
+    adapter_tests: *std.Build.Step.Run,
+    aot_bundle_path: []const u8,
+    case: corpus.ProgramCase,
+    previous: *std.Build.Step,
+) *std.Build.Step {
+    const cpu = commands.addProgramProof(
+        b,
+        cpu_executable,
+        case,
+        "cpu",
+        null,
+    );
+    cpu.run.step.dependOn(previous);
+    cpu.run.step.dependOn(&adapter_tests.step);
+    const metal = commands.addProgramProof(
+        b,
+        metal_executable,
+        case,
+        "metal",
+        aot_bundle_path,
+    );
+    metal.run.step.dependOn(&cpu.run.step);
+    const compare = commands.addExactComparison(
+        b,
+        cpu.proof,
+        metal.proof,
+        b.fmt("compare exact Cairo {s} program CPU and Metal proof bytes", .{
+            case.name,
+        }),
+    );
+    const report = commands.addReportCheck(
+        b,
+        metal,
+        case.proof_format,
+        true,
+    );
+    const verify = commands.addRustVerification(
+        b,
+        cargo,
+        metal.proof,
+        case.proof_format,
+        b.fmt("cairo-metal-{s}-program-rust-verdict.json", .{
+            case.name,
+        }),
+        b.fmt("verify Cairo Metal {s} program proof with official Rust", .{
+            case.name,
+        }),
+    );
+    verify.dependOn(compare);
+    verify.dependOn(report);
+    return verify;
 }

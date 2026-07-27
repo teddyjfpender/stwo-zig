@@ -63,7 +63,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
 | `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Staged CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
-| `stwo-cairo-metal` | macOS with Apple Metal | Staged authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance on all-opcodes |
+| `stwo-cairo-metal` | macOS with Apple Metal | Staged authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
@@ -172,7 +172,10 @@ zig build stwo-cairo-metal -Doptimize=ReleaseFast \
 The bundle path is not trusted. Its canonical manifest digest is embedded in
 the product identity, and runtime admission remeasures the manifest, shader
 library, ABI, exports, and compiler artifacts before creating the Metal
-runtime. Metal remains staged until its full release corpus is green.
+runtime. The serial Metal oracle gate covers both official inputs, all released
+proof transports, the builtin/opcode program corpus, and a Cairo 2.20
+executable. Metal remains staged until its remaining lifecycle and failure
+gates are green.
 
 ## RISC-V frontend
 

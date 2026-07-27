@@ -35,7 +35,7 @@ class CairoMetalReportTest(unittest.TestCase):
         }
 
     def test_accepts_exact_fallback_free_receipt(self) -> None:
-        validate(self.report, self.digest, 123, "source-jit")
+        validate(self.report, self.digest, 123, "source-jit", "json")
 
     def test_rejects_fallback_and_lifecycle_drift(self) -> None:
         for field, value in (
@@ -47,11 +47,45 @@ class CairoMetalReportTest(unittest.TestCase):
                 drifted = copy.deepcopy(self.report)
                 drifted["backend_evidence"][field] = value
                 with self.assertRaises(ValueError):
-                    validate(drifted, self.digest, 123, "source-jit")
+                    validate(
+                        drifted,
+                        self.digest,
+                        123,
+                        "source-jit",
+                        "json",
+                    )
 
     def test_rejects_proof_digest_drift(self) -> None:
         with self.assertRaises(ValueError):
-            validate(self.report, "cd" * 32, 123, "source-jit")
+            validate(self.report, "cd" * 32, 123, "source-jit", "json")
+
+    def test_requires_a_real_program_execution_receipt(self) -> None:
+        executed = copy.deepcopy(self.report)
+        executed["execution"] = {
+            "program_type": "executable",
+            "wall_ns": 1234,
+        }
+        validate(
+            executed,
+            self.digest,
+            123,
+            "source-jit",
+            "json",
+            require_execution=True,
+        )
+        with self.assertRaises(ValueError):
+            validate(
+                self.report,
+                self.digest,
+                123,
+                "source-jit",
+                "json",
+                require_execution=True,
+            )
+
+    def test_rejects_proof_format_drift(self) -> None:
+        with self.assertRaises(ValueError):
+            validate(self.report, self.digest, 123, "source-jit", "binary")
 
 
 if __name__ == "__main__":
