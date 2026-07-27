@@ -6,6 +6,7 @@ const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const execution_tables = @import("execution_tables.zig");
 const program_mod = @import("program.zig");
+const work_pool = @import("stwo_prover_impl").work_pool;
 
 pub const Error = error{
     AllocationSizeOverflow,
@@ -88,24 +89,157 @@ pub fn execute(
     result.sub_words = try allocator.alloc(u32, sub_words);
     errdefer allocator.free(result.sub_words);
 
-    const registers = try allocator.alloc(u32, witness_program.n_regs);
-    defer allocator.free(registers);
-    const deduce_args = try allocator.alloc(u32, witness_program.n_regs);
-    defer allocator.free(deduce_args);
     const no_multiplicity_tables = [_][]u32{};
-    try program_mod.executeAll(
+    const auxiliary = program_mod.AuxiliaryOutputs{
+        .lookup_words = result.lookup_words,
+        .sub_words = result.sub_words,
+        .multiplicity_tables = &no_multiplicity_tables,
+    };
+    _ = try program_mod.initializeAllOutputs(
         witness_program,
         input_columns,
         result.output_columns,
-        .{
-            .lookup_words = result.lookup_words,
-            .sub_words = result.sub_words,
-            .multiplicity_tables = &no_multiplicity_tables,
-        },
-        registers,
-        deduce_args,
-        execution_tables.fromInput(input),
-        deductions.context(),
+        auxiliary,
     );
+
+    const active_pool = work_pool.getGlobalPool();
+    const rows_per_worker = parallelRowsPerWorker(witness_program);
+    const worker_count = if (active_pool) |pool|
+        @max(
+            @as(usize, 1),
+            @min(
+                pool.workerCount(),
+                std.math.divCeil(usize, row_count, rows_per_worker) catch
+                    unreachable,
+            ),
+        )
+    else
+        1;
+    const scratch_words = std.math.mul(
+        usize,
+        witness_program.n_regs,
+        worker_count,
+    ) catch return Error.AllocationSizeOverflow;
+    const register_storage = try allocator.alloc(u32, scratch_words);
+    defer allocator.free(register_storage);
+    const deduce_storage = try allocator.alloc(u32, scratch_words);
+    defer allocator.free(deduce_storage);
+
+    const Work = struct {
+        program: program_mod.Program,
+        input_columns: []const []const u32,
+        output_columns: []const []u32,
+        auxiliary: program_mod.AuxiliaryOutputs,
+        start: usize,
+        end: usize,
+        registers: []u32,
+        deduce_args: []u32,
+        tables: program_mod.TableContext,
+        deduce: program_mod.DeduceContext,
+        failure: ?anyerror = null,
+
+        fn run(self: *@This()) void {
+            program_mod.executeAllRange(
+                self.program,
+                self.input_columns,
+                self.output_columns,
+                self.auxiliary,
+                self.start,
+                self.end,
+                self.registers,
+                self.deduce_args,
+                self.tables,
+                self.deduce,
+            ) catch |err| {
+                self.failure = err;
+            };
+        }
+    };
+    const chunk_len = std.math.divCeil(
+        usize,
+        row_count,
+        worker_count,
+    ) catch unreachable;
+    var works: [work_pool.MAX_WORKERS]Work = undefined;
+    for (0..worker_count) |worker| {
+        const start = worker * chunk_len;
+        works[worker] = .{
+            .program = witness_program,
+            .input_columns = input_columns,
+            .output_columns = result.output_columns,
+            .auxiliary = auxiliary,
+            .start = start,
+            .end = @min(row_count, start + chunk_len),
+            .registers = register_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
+            .deduce_args = deduce_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
+            .tables = execution_tables.fromInput(input),
+            .deduce = deductions.context(),
+        };
+    }
+    if (worker_count > 1) {
+        var wait_group: std.Thread.WaitGroup = .{};
+        for (works[1..worker_count]) |*work| {
+            active_pool.?.spawnWg(&wait_group, Work.run, .{work});
+        }
+        Work.run(&works[0]);
+        wait_group.wait();
+    } else {
+        Work.run(&works[0]);
+    }
+    for (works[0..worker_count]) |work| {
+        if (work.failure) |err| return err;
+    }
     return result;
+}
+
+/// Recorded deductions can contain field inversions, hash rounds, or elliptic
+/// curve arithmetic. Their row cost is orders of magnitude above the scalar
+/// interpreter, so use finer ranges whenever a program contains a deduction.
+fn parallelRowsPerWorker(witness_program: program_mod.Program) usize {
+    for (witness_program.insts) |inst| {
+        if (std.meta.intToEnum(program_mod.Op, inst.op) catch null == .deduce_call)
+            return 32;
+    }
+    return 4096;
+}
+
+test "Cairo component executor assigns finer ranges to computed deductions" {
+    const plain = [_]program_mod.Inst{.{
+        .op = @intFromEnum(program_mod.Op.constant),
+        .dst = 0,
+        .a = 0,
+        .b = 0,
+        .imm = 1,
+    }};
+    const computed = [_]program_mod.Inst{.{
+        .op = @intFromEnum(program_mod.Op.deduce_call),
+        .dst = 0,
+        .a = 0,
+        .b = 1,
+        .imm = 0,
+    }};
+    try std.testing.expectEqual(
+        @as(usize, 4096),
+        parallelRowsPerWorker(.{
+            .insts = &plain,
+            .n_regs = 1,
+            .n_inputs = 0,
+            .n_cols = 1,
+            .n_mult_tables = 0,
+            .n_lookup_words = 0,
+            .n_sub_words = 0,
+        }),
+    );
+    try std.testing.expectEqual(
+        @as(usize, 32),
+        parallelRowsPerWorker(.{
+            .insts = &computed,
+            .n_regs = 1,
+            .n_inputs = 0,
+            .n_cols = 1,
+            .n_mult_tables = 0,
+            .n_lookup_words = 0,
+            .n_sub_words = 0,
+        }),
+    );
 }

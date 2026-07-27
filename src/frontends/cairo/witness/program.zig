@@ -276,6 +276,78 @@ pub const AuxiliaryOutputs = struct {
     multiplicity_tables: []const []u32,
 };
 
+/// Validates and clears the complete output set before one or more disjoint
+/// row ranges are executed. Multiplicity tables cannot be range-parallel
+/// without private reductions and therefore remain a caller-level policy.
+pub fn initializeAllOutputs(
+    program: Program,
+    input_columns: []const []const u32,
+    output_columns: []const []u32,
+    auxiliary: ?AuxiliaryOutputs,
+) !usize {
+    const row_count = try validateAllBuffers(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+    );
+    for (output_columns) |output| @memset(output, 0);
+    if (auxiliary) |outputs| {
+        @memset(outputs.lookup_words, 0);
+        @memset(outputs.sub_words, 0);
+        for (outputs.multiplicity_tables) |table| @memset(table, 0);
+    }
+    return row_count;
+}
+
+/// Executes a disjoint row range into an output set initialized by
+/// `initializeAllOutputs`. Scratch is private to the caller. Concurrent calls
+/// are valid only when their ranges do not overlap and multiplicity tables are
+/// absent.
+pub fn executeAllRange(
+    program: Program,
+    input_columns: []const []const u32,
+    output_columns: []const []u32,
+    auxiliary: ?AuxiliaryOutputs,
+    start: usize,
+    end: usize,
+    registers: []u32,
+    deduce_args: []u32,
+    tables: TableContext,
+    deduce: DeduceContext,
+) !void {
+    const row_count = try validateAllBuffers(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+    );
+    if (start > end or end > row_count or
+        registers.len < program.n_regs or deduce_args.len < program.n_regs)
+        return error.InvalidOutput;
+    if (start != 0 or end != row_count) {
+        if (auxiliary) |outputs| {
+            if (outputs.multiplicity_tables.len != 0)
+                return error.InvalidMultiplicityKey;
+        }
+    }
+    for (start..end) |row| {
+        try executeRow(
+            program,
+            input_columns,
+            @intCast(row),
+            null,
+            null,
+            output_columns,
+            auxiliary,
+            registers,
+            deduce_args,
+            tables,
+            deduce,
+        );
+    }
+}
+
 pub fn executeAll(
     program: Program,
     input_columns: []const []const u32,
@@ -286,28 +358,60 @@ pub fn executeAll(
     tables: TableContext,
     deduce: DeduceContext,
 ) !void {
+    const row_count = try initializeAllOutputs(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+    );
+    try executeAllRange(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+        0,
+        row_count,
+        registers,
+        deduce_args,
+        tables,
+        deduce,
+    );
+}
+
+fn validateAllBuffers(
+    program: Program,
+    input_columns: []const []const u32,
+    output_columns: []const []u32,
+    auxiliary: ?AuxiliaryOutputs,
+) !usize {
     try program.validate();
-    if (input_columns.len < program.n_inputs or output_columns.len != program.n_cols or
-        registers.len < program.n_regs or deduce_args.len < program.n_regs)
+    if (input_columns.len < program.n_inputs or
+        output_columns.len == 0 or output_columns.len != program.n_cols)
         return error.InvalidOutput;
     const row_count = output_columns[0].len;
-    for (input_columns[0..program.n_inputs]) |input| if (input.len < row_count) return error.InvalidInput;
+    for (input_columns[0..program.n_inputs]) |input| {
+        if (input.len < row_count) return error.InvalidInput;
+    }
     for (output_columns) |output| {
         if (output.len != row_count) return error.InvalidOutput;
-        @memset(output, 0);
     }
     if (auxiliary) |outputs| {
-        if (outputs.lookup_words.len != row_count * program.n_lookup_words or
-            outputs.sub_words.len != row_count * program.n_sub_words or
+        const lookup_len = std.math.mul(
+            usize,
+            row_count,
+            program.n_lookup_words,
+        ) catch return error.InvalidOutput;
+        const sub_len = std.math.mul(
+            usize,
+            row_count,
+            program.n_sub_words,
+        ) catch return error.InvalidOutput;
+        if (outputs.lookup_words.len != lookup_len or
+            outputs.sub_words.len != sub_len or
             outputs.multiplicity_tables.len != program.n_mult_tables)
             return error.InvalidOutput;
-        @memset(outputs.lookup_words, 0);
-        @memset(outputs.sub_words, 0);
-        for (outputs.multiplicity_tables) |table| @memset(table, 0);
     }
-    for (0..row_count) |row| {
-        try executeRow(program, input_columns, @intCast(row), null, null, output_columns, auxiliary, registers, deduce_args, tables, deduce);
-    }
+    return row_count;
 }
 
 fn executeRow(
