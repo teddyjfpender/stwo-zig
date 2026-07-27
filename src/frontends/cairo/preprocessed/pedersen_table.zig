@@ -32,7 +32,7 @@ pub const Error = stark_curve.Error || felt252.Error || error{
 };
 
 pub const Options = struct {
-    worker_count: u8 = 4,
+    worker_count: u8 = max_workers,
 };
 
 pub const Table = struct {

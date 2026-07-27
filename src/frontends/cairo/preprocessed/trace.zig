@@ -203,7 +203,25 @@ pub const Spec = struct {
                 has_pedersen = true;
             },
         }
+        return self.materializeWithPedersen(
+            allocator,
+            if (has_pedersen) &pedersen else null,
+        );
+    }
 
+    pub fn materializeWithPedersen(
+        self: Spec,
+        allocator: std.mem.Allocator,
+        pedersen: ?*const pedersen_table.Table,
+    ) ![]ColumnEvaluation {
+        switch (self.variant) {
+            .canonical_without_pedersen => if (pedersen != null)
+                return error.InvalidPreprocessedTrace,
+            .canonical => if (pedersen == null or pedersen.?.window != .standard)
+                return error.InvalidPreprocessedTrace,
+            .canonical_small => if (pedersen == null or pedersen.?.window != .small)
+                return error.InvalidPreprocessedTrace,
+        }
         const result = try allocator.alloc(ColumnEvaluation, self.columns.len);
         var initialized: usize = 0;
         errdefer {
@@ -217,7 +235,7 @@ pub const Spec = struct {
             const pedersen_column = try pedersenColumn(column.identity);
             for (values, 0..) |*value, row| {
                 const raw = if (pedersen_column) |index|
-                    try pedersen.value(index, row)
+                    try pedersen.?.value(index, row)
                 else
                     try columns.value(column.identity, @intCast(row));
                 value.* = M31.fromCanonical(raw);

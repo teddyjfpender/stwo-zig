@@ -128,3 +128,41 @@ Metal reported 74 dispatches and zero fallbacks. The stage win is broad and
 security-preserving, but it moves complete proofs only about `1.13-1.16x`
 against the latest current medians. It is retained as one system checkpoint,
 not represented as the `10x` objective.
+
+## Rejected: homogeneous worker reduction
+
+The M5 Max exposes 6 `Super` and 12 `Performance` cores. The prover currently
+treats all 18 as one pool, so a complete Arithmetic 2m screen held PoW at 18
+workers and varied the shared prover pool:
+
+| Prover workers | Prove | Base trace | Composition |
+| ---: | ---: | ---: | ---: |
+| 6 | 6,567.685 ms | 1,756.180 ms | 792.475 ms |
+| 12 | 5,198.112 ms | 1,636.156 ms | 597.468 ms |
+| 18 | 4,680.900 ms | 1,597.465 ms | 424.224 ms |
+
+All proofs had the exact canonical digest. Peak footprint stayed within
+approximately 1% across the screen. Reducing the worker count is therefore
+rejected: every core tier contributes useful throughput, and the current
+bottleneck is not simple oversubscription.
+
+## Result 2: retain the Pedersen table across proof phases
+
+Complete-process sampling found that the same immutable Pedersen point table
+was generated once inside preprocessed materialization and then generated
+again before interaction construction. The second generation occurred outside
+the recorded interaction stage, so the stage profile hid the duplicate.
+
+The proof transaction now owns one table and passes the authenticated window
+variant to both consumers. The table generator uses its existing eight-worker
+bound instead of the historical four-worker default. The selection depends
+only on the canonical preprocessed variant.
+
+An exact Arithmetic 2m diagnostic retained proof digest
+`25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`.
+Under a concurrently loaded host, prove time was 5,108.769 ms and peak RSS was
+5.244 GiB. The uninstrumented remainder outside named stages fell from about
+294 ms in the preceding 18-worker screen to 62 ms. Cross-run stage times were
+noisy because unrelated RISC-V gates were active, so this is retained on the
+strength of deleted duplicate work and exact end-to-end parity, not presented
+as a causal portfolio speedup.

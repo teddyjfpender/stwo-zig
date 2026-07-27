@@ -159,6 +159,9 @@ pub fn proveFixtureWithRecorder(
     var scheme_owned = true;
     errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
 
+    var pedersen: preprocessed.pedersen_table.Table = undefined;
+    var pedersen_initialized = false;
+    defer if (pedersen_initialized) pedersen.deinit();
     {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -166,7 +169,27 @@ pub fn proveFixtureWithRecorder(
             "Preprocessed materialize and commit",
         );
         defer stage.end();
-        const preprocessed_columns = try target.materialize(allocator);
+        switch (variant) {
+            .canonical_without_pedersen => {},
+            .canonical => {
+                pedersen = try preprocessed.pedersen_table.Table.init(
+                    allocator,
+                    .standard,
+                );
+                pedersen_initialized = true;
+            },
+            .canonical_small => {
+                pedersen = try preprocessed.pedersen_table.Table.init(
+                    allocator,
+                    .small,
+                );
+                pedersen_initialized = true;
+            },
+        }
+        const preprocessed_columns = try target.materializeWithPedersen(
+            allocator,
+            if (pedersen_initialized) &pedersen else null,
+        );
         try Engine.commit(
             &scheme,
             allocator,
@@ -202,26 +225,6 @@ pub fn proveFixtureWithRecorder(
         &channel,
     );
 
-    var pedersen: preprocessed.pedersen_table.Table = undefined;
-    var pedersen_initialized = false;
-    defer if (pedersen_initialized) pedersen.deinit();
-    switch (variant) {
-        .canonical_without_pedersen => {},
-        .canonical => {
-            pedersen = try preprocessed.pedersen_table.Table.init(
-                allocator,
-                .standard,
-            );
-            pedersen_initialized = true;
-        },
-        .canonical_small => {
-            pedersen = try preprocessed.pedersen_table.Table.init(
-                allocator,
-                .small,
-            );
-            pedersen_initialized = true;
-        },
-    }
     var interaction = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,

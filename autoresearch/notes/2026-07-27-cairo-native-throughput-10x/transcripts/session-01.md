@@ -89,3 +89,36 @@ The complete-proof movement is much smaller than the kernel result because
 base trace construction, composition evaluation, commitments, and interaction
 construction remain. The candidate is retained and the search proceeds to
 those architectural stages.
+
+## Hypothesis 2: heterogeneous-core worker reduction
+
+The local M5 Max reports 6 `Super` and 12 `Performance` cores. Test whether the
+global pool's assumption that all 18 workers are interchangeable creates
+memory-bandwidth contention or slow-tail effects. Hold PoW at 18 workers and
+screen complete Arithmetic 2m proofs with 6, 12, and 18 prover workers.
+
+### Result: rejected
+
+Complete proof time was 6,567.685, 5,198.112, and 4,680.900 ms respectively.
+Base-trace construction was 1,756.180, 1,636.156, and 1,597.465 ms;
+composition was 792.475, 597.468, and 424.224 ms. Proof digests were exact and
+peak RSS was effectively unchanged. The complete prover benefits from both
+core tiers, so reducing the shared pool cannot supply the desired system gain.
+
+## Hypothesis 3: one Pedersen table per proof transaction
+
+The symbolized complete-process sample showed Pedersen-table generation both
+inside preprocessed materialization and again between main commitment and
+interaction construction. The latter work was outside every named stage.
+Retain one authenticated table under transaction ownership, supply it to both
+consumers, and use the already bounded eight-worker generation plan.
+
+### Result: accepted as a structural checkpoint
+
+The duplicate table construction is removed and the complete Arithmetic 2m
+proof remains byte-exact. One diagnostic under unrelated concurrent host load
+measured 5,108.769 ms and 5.244 GiB peak RSS. The gap between the sum of named
+stages and the complete proof fell from roughly 294 ms to 62 ms. Because
+surrounding stage times were visibly perturbed by concurrent RISC-V gates, no
+portfolio speedup is claimed from this run; a later controlled matrix will
+judge its net effect.
