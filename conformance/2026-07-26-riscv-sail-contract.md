@@ -177,3 +177,22 @@ through the same runner boundary and then follows execute → prove →
 independent verify. Differential fuzz evidence records the generator version,
 seed interval, program count, retirement count, exact pins, and zero-divergence
 digest.
+
+## Sail-backed tooling
+
+Two script entry points make the pinned model consumable outside the
+release corpus gate, and both refuse to answer rather than substitute a
+weaker authority when the pinned binary is absent (exit 3, UNAVAILABLE):
+
+- `scripts/riscv_sail_oracle.py` asks one question -- does pinned Sail
+  agree with a runner retirement trace? -- with the four-verdict contract
+  EQUIVALENT/DIVERGENT/ERROR/UNAVAILABLE that `runner/sail_oracle.zig`
+  consumes from tests.
+- `scripts/riscv_operand_classes.py` derives the operand classes the ISA
+  admits and the AIR's limb structure distinguishes, executes one case per
+  class on pinned Sail over RVFI-DII, and commits Sail's architectural
+  results to `src/tests/riscv/operand_class_corpus/` for guest-building
+  tests (`operand_classes.zig`, the class sweep, the rigidity corpus). Its
+  `check` mode regenerates and requires byte identity with the committed
+  data; its `audit` mode measures which enumerated classes an existing
+  trace corpus touches and lists the pairs it never does.

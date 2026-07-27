@@ -34,6 +34,9 @@ test {
         _ = @import("read_only_access_soundness_test.zig");
         _ = @import("shift_sign_soundness_test.zig");
     }
+    // The Sail-derived operand-class corpus and its honest sweep: the
+    // corpus's structural self-checks are imported by the sweep module.
+    _ = @import("operand_class_sweep_test.zig");
     _ = @import("proof_admission_test.zig");
     _ = @import("prover_test.zig");
     _ = @import("public_relation_binding_test.zig");
