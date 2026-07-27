@@ -336,3 +336,103 @@ requires the already identified system architecture:
 - generated CPU witness writers rather than a row-wise bytecode switch;
 - general Metal AOT witness admission beyond the captured SN2 schedule; and
 - resident interaction and AIR evaluation fused into commitment epochs.
+
+## Result 6: reuse authenticated Pedersen points in deductions
+
+Component-level profiling showed that the Pedersen aggregator spent 2.65
+seconds inside its generated witness program. The program invokes the
+window-nine partial-EC deduction 56 times per row. Each invocation rebuilt the
+same fixed Pedersen window point even though the proof transaction had already
+constructed the exact authenticated preprocessed point table.
+
+The transaction now constructs that table before base witness execution and
+passes a typed borrowed view through the deduction context. Window-nine,
+window-eighteen, and points-table deductions read the exact existing points.
+No program label or benchmark input participates in dispatch.
+
+| Backend | Before | After | Improvement |
+| --- | ---: | ---: | ---: |
+| CPU | 3,915.226 ms | 1,509.376 ms | `2.594x` |
+| Metal | 3,760.697 ms | 1,369.378 ms | `2.746x` |
+
+CPU and Metal produced the same 769,097-byte proof with SHA-256
+`2f22237a78c26b5abaae644979c0caaf3fc7c8bf4587c8b2d050ff42acb71325`.
+Metal used 75 dispatches and zero CPU fallbacks.
+
+## Frontend placement profile
+
+Nested stage instrumentation was extended through base witness components,
+interaction components, source materialization, output initialization,
+program execution, base lowering, and feed retention. The profile established
+that the current Metal product is intentionally hybrid: witness generation,
+interaction construction, and Cairo AIR evaluation are host work; Metal owns
+PCS, quotient, and FRI stages.
+
+Before the direct-feed change, representative CPU attribution was:
+
+| Workload | Base witness | Interaction build | AIR composition |
+| --- | ---: | ---: | ---: |
+| Arithmetic 2m | 1,499 ms | 352 ms | 378 ms |
+| Memory 7m | 4,518 ms | 853 ms | 1,181 ms |
+
+Metal reported the same host shape: Memory 7m spent 4,606 ms in the base
+witness, 884 ms in interaction construction, and 1,221 ms in AIR composition.
+It then used 79 Metal dispatches with zero fallbacks.
+
+A symbolized `/usr/bin/sample` capture agreed with the stage data. The
+recorded witness graph and BLAKE2s commitments were the dominant active CPU
+stacks. A device trace could not be collected: `xctrace` requires full Xcode,
+while this host has `/Library/Developer/CommandLineTools`. No Metal
+complete-command or occupancy claim is made without that evidence.
+
+## Result 7: emit canonical lookup feeds directly
+
+The finer profile found the dominant frontend defect. On Memory 7m,
+`add_opcode_small` spent only 176-189 ms executing its witness bytecode but
+more than 2.1 seconds retaining its 116-word lookup feed. The writer emitted
+row-major words and `live_graph` allocated and transposed the complete feed
+into the column-major layout consumed by LogUp.
+
+The witness ABI now emits lookup words in canonical column-major layout, which
+already matches the Metal generated-witness ABI. `live_graph` and the
+conformance executor transfer ownership of lookup and subcomponent feeds
+instead of duplicating them. A static coverage check also avoids clearing
+trace and feed destinations that a straight-line recorded program proves it
+will overwrite; incomplete compatibility programs retain zero initialization.
+
+The Memory 7m witness graph fell from 4,518 ms to 0.92 seconds in the final
+portfolio screen. A direct before/after screen measured complete CPU proving
+at 10,115.634 versus 7,140.352 ms before the coverage refinement. The final
+screen measured 6,888.709 ms CPU and 5,069.174 ms Metal.
+
+## Current seven-workload screen
+
+This is a single controlled diagnostic screen at `9c46d8fc`, not a judged
+multi-round promotion. Gains compare with the post-PoW, pre-Pedersen profile
+captured before Results 6 and 7.
+
+| Workload | CPU ms | CPU gain | Metal ms | Metal gain |
+| --- | ---: | ---: | ---: | ---: |
+| all-opcodes | 1,430.705 | `0.978x` | 1,384.647 | `1.061x` |
+| Poseidon aggregator | 1,069.266 | `0.983x` | 925.778 | `1.040x` |
+| Pedersen aggregator | 1,528.133 | `2.562x` | 1,355.564 | `2.774x` |
+| Fibonacci 100k | 1,648.315 | `1.142x` | 1,254.109 | `1.254x` |
+| Factorial 100k | 2,156.506 | `1.157x` | 1,775.236 | `1.254x` |
+| Arithmetic 2m | 2,810.166 | `1.416x` | 2,044.014 | `1.625x` |
+| Memory 7m | 6,888.709 | `1.541x` | 5,069.174 | `1.790x` |
+
+The geometric-mean complete-proof improvements are `1.323x` CPU and `1.458x`
+Metal. Every CPU/Metal pair is byte-identical and verifies. Metal reports
+73-79 dispatches and zero fallbacks in every row. The two small CPU ratios are
+neutral diagnostic noise, not claimed regressions or wins.
+
+The next high-leverage boundary is now narrower and better supported by data:
+
+1. Generate authenticated CPU witness writers from semantic program identity,
+   replacing the row-wise opcode switch.
+2. Generalize the existing Metal witness AOT path from the SN2 resident
+   schedule to live Cairo geometry.
+3. Emit base columns and retained feeds into one backend-shaped arena so
+   witness output, interaction input, and commitment share storage.
+4. Move interaction materialization and Cairo AIR evaluation behind explicit
+   CPU-SIMD and Metal backend interfaces.
