@@ -293,11 +293,11 @@ test "shift sign end-to-end: the honest SRL and SRA guest proves and verifies" {
     // repository proved a `shifts_reg` row end to end.
     var guest = try harness.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();
-    try guest.proveAndVerify();
     // A positive operand shifts the same way both ways, which is what makes
     // `rs1_sign = 1` a lie on either row.
     try std.testing.expectEqual(HONEST_RESULT, guest.run.final_regs[10]);
     try std.testing.expectEqual(HONEST_RESULT, guest.run.final_regs[11]);
+    try guest.proveAndVerify("shift sign guest (SRL and SRA of a positive word)");
 }
 
 // Runtime: about thirty seconds — one rejected proof attempt.

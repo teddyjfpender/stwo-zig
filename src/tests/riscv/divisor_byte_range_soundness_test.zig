@@ -297,6 +297,7 @@ test "divisor byte range: the honest DIVU proof verifies and the forged committe
     const forgery = nonByteDivisorForgery();
     try harness.expectHonestProofAndForgedRejection(
         std.testing.allocator,
+        "divisor byte-range guest (DIVU 100/2)",
         divu_fixture.SPEC,
         .{
             .target = .{ .opcode = .{ .family = .div } },

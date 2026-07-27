@@ -363,7 +363,7 @@ test "load sign: the honest signed-load proof verifies" {
     // repository proved a signed `load_store` row end to end.
     var guest = try harness.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();
-    try guest.proveAndVerify();
+    try guest.proveAndVerify("load sign guest (SB/LB of 0x80, SH/LH of 0x8000)");
 }
 
 // Runtime: about thirty seconds — one proof of the same guest.

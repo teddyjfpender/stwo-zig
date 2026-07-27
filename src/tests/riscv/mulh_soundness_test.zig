@@ -1,4 +1,5 @@
-//! Sail-compatible RV32M high-multiply proof and malicious-witness coverage.
+//! RV32M high-multiply proof and malicious-witness coverage, with the proven
+//! run replayed through the pinned Sail model rather than assumed compatible.
 
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
@@ -97,6 +98,19 @@ test "signed high-multiply relation closes and proves through the CPU-SIMD engin
         proof.statement,
         proof.proof,
         proof.interaction_claim,
+    );
+
+    // The Sail leg, on the very run that was just proven: the guest takes no
+    // input and initializes its data with its own stores, so no memory image
+    // is seeded. Last so its visible skip on an absent oracle costs only this
+    // leg; everything above has already been decided.
+    try runner.sail_oracle.requireAgreement(
+        fixture.allocator,
+        "mulh guest (vectors/riscv_elfs/mul_div.elf)",
+        fixture.elf,
+        &fixture.run.execution_trace,
+        fixture.run.cpu_final,
+        &.{},
     );
 }
 

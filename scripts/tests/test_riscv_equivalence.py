@@ -122,5 +122,78 @@ class RiscvEquivalenceTests(unittest.TestCase):
             )
 
 
+class SeedPreambleTests(unittest.TestCase):
+    """The memory-seeding preamble, decoded rather than trusted.
+
+    A wrong encoder would seed the wrong word or land at the wrong pc and turn
+    every seeded comparison into noise, so the words are re-executed here by an
+    independent decoder before the pinned Sail ever sees them.
+    """
+
+    @staticmethod
+    def _execute(words: list[int]) -> tuple[int, dict[int, int], dict[int, int]]:
+        """Interpret the RV32I subset a preamble may use; returns pc/regs/mem."""
+        pc = equivalence.RVFI_DII_ENTRY
+        regs: dict[int, int] = {}
+        memory: dict[int, int] = {}
+
+        def signed12(imm: int) -> int:
+            return imm - 0x1000 if imm >= 0x800 else imm
+
+        for word in words:
+            opcode = word & 0x7F
+            if opcode == 0x37:  # LUI
+                regs[(word >> 7) & 0x1F] = (word >> 12 << 12) & 0xFFFF_FFFF
+                pc += 4
+            elif opcode == 0x13:  # ADDI
+                rd = (word >> 7) & 0x1F
+                rs1 = (word >> 15) & 0x1F
+                base = regs.get(rs1, 0) if rs1 else 0
+                regs[rd] = (base + signed12(word >> 20)) & 0xFFFF_FFFF
+                pc += 4
+            elif opcode == 0x23:  # SW
+                imm = ((word >> 25) << 5) | ((word >> 7) & 0x1F)
+                address = regs[(word >> 15) & 0x1F] + signed12(imm)
+                memory[address & 0xFFFF_FFFF] = regs[(word >> 20) & 0x1F]
+                pc += 4
+            elif opcode == 0x6F:  # JAL x0
+                imm = (
+                    ((word >> 31) & 1) << 20
+                    | ((word >> 12) & 0xFF) << 12
+                    | ((word >> 20) & 1) << 11
+                    | ((word >> 21) & 0x3FF) << 1
+                )
+                pc += imm - (1 << 21) if imm & (1 << 20) else imm
+            else:
+                raise AssertionError(f"preamble emitted 0x{word:08x}")
+        return pc, regs, memory
+
+    def test_jal_encoding_matches_known_word(self) -> None:
+        # `j -4` is the canonical assembler fixture for the scattered immediate.
+        self.assertEqual(0xFFDFF06F, equivalence._encode_jal_x0(-4))
+
+    def test_preamble_seeds_image_restores_registers_and_lands_on_entry(self) -> None:
+        image = [(0x0018_0000, 0x0403_0201), (0x0010_0000, 0xFFFF_F800)]
+        pc, regs, memory = self._execute(equivalence.seed_preamble(image))
+        self.assertEqual(equivalence.RVFI_DII_ENTRY, pc)
+        self.assertEqual(0, regs[equivalence._SEED_ADDRESS_REGISTER])
+        self.assertEqual(0, regs[equivalence._SEED_VALUE_REGISTER])
+        self.assertEqual(dict(image), memory)
+
+    def test_preamble_longer_than_one_jal_hop_still_lands_on_entry(self) -> None:
+        image = [(0x0010_0000 + 4 * index, index) for index in range(70_000)]
+        words = equivalence.seed_preamble(image)
+        self.assertGreater(4 * len(words), equivalence._JAL_MAX_BACKWARD)
+        pc, _, memory = self._execute(words)
+        self.assertEqual(equivalence.RVFI_DII_ENTRY, pc)
+        self.assertEqual(70_000, len(memory))
+
+    def test_preamble_rejects_misaligned_and_duplicate_words(self) -> None:
+        with self.assertRaisesRegex(equivalence.EquivalenceError, "word-aligned"):
+            equivalence.seed_preamble([(0x0018_0002, 1)])
+        with self.assertRaisesRegex(equivalence.EquivalenceError, "seeded twice"):
+            equivalence.seed_preamble([(0x0018_0000, 1), (0x0018_0000, 2)])
+
+
 if __name__ == "__main__":
     unittest.main()

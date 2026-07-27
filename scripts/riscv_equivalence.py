@@ -293,10 +293,105 @@ def run_zig_trace(
         output_path.unlink(missing_ok=True)
 
 
+# Scratch registers of the memory-seeding preamble. x1/x2 are the RISC-V
+# ra/sp conventions, but under RVFI-DII nothing has run yet, so they are
+# ordinary zero-initialized registers the preamble may borrow and must return
+# to zero — Sail's reset state — before the compared stream begins.
+_SEED_ADDRESS_REGISTER = 1
+_SEED_VALUE_REGISTER = 2
+# One JAL hop reaches at most ±1 MiB; the jump back to the entry chains hops
+# when the preamble itself is longer than that.
+_JAL_MAX_BACKWARD = 1 << 20
+
+
+def _encode_load_immediate(register: int, value: int) -> list[int]:
+    """LUI+ADDI pair leaving exactly `value` (mod 2^32) in `register`.
+
+    The +0x800 carry fold: ADDI sign-extends its 12-bit immediate, so the LUI
+    half must carry one when the low half is negative. Encoding is derived,
+    not tabulated, and the pinned Sail itself checks it live — a wrong pair
+    seeds the wrong word and the differential fails loudly.
+    """
+    low = value & 0xFFF
+    signed_low = low - 0x1000 if low >= 0x800 else low
+    high = ((value - signed_low) & 0xFFFF_FFFF) >> 12
+    return [
+        (high << 12) | (register << 7) | 0x37,
+        (low << 20) | (register << 15) | (register << 7) | 0x13,
+    ]
+
+
+def _encode_jal_x0(offset: int) -> int:
+    """JAL x0 with the RV32I bit-scattered immediate (imm[20|10:1|11|19:12])."""
+    if offset % 2 or not -(1 << 20) <= offset < (1 << 20):
+        raise EquivalenceError(f"JAL offset {offset} is not encodable")
+    value = offset & 0x1F_FFFF
+    return (
+        (((value >> 20) & 1) << 31)
+        | (((value >> 1) & 0x3FF) << 21)
+        | (((value >> 11) & 1) << 20)
+        | (((value >> 12) & 0xFF) << 12)
+        | 0x6F
+    )
+
+
+def seed_preamble(
+    initial_memory: list[tuple[int, int]],
+    entry: int = RVFI_DII_ENTRY,
+) -> list[int]:
+    """Instruction words that materialize an initial memory image inside Sail.
+
+    RVFI-DII injects instruction words, so Sail never loads the guest's ELF:
+    its memory starts zeroed, and a load of runner-initialized memory (a
+    public-input region, ELF data) would falsely diverge. The preamble builds
+    that image with Sail's own stores, then restores x1/x2 to their reset
+    zeros and jumps back so the compared stream starts at `entry` in the
+    reset register state with only memory changed.
+
+    The image must come from the guest's *definition* — its ELF and declared
+    input — never from the trace's own read claims, which would make every
+    load self-fulfilling and reduce Sail to an echo of the candidate.
+    """
+    words: list[int] = []
+    seen: set[int] = set()
+    for address, value in initial_memory:
+        _u32(address, "initial memory address")
+        _u32(value, "initial memory value")
+        if address % 4:
+            raise EquivalenceError(
+                f"initial memory address 0x{address:08x} is not word-aligned"
+            )
+        if address in seen:
+            raise EquivalenceError(
+                f"initial memory address 0x{address:08x} is seeded twice"
+            )
+        seen.add(address)
+        words.extend(_encode_load_immediate(_SEED_ADDRESS_REGISTER, address))
+        words.extend(_encode_load_immediate(_SEED_VALUE_REGISTER, value))
+        words.append(  # SW x2, 0(x1)
+            (_SEED_VALUE_REGISTER << 20)
+            | (_SEED_ADDRESS_REGISTER << 15)
+            | (0b010 << 12)
+            | 0x23
+        )
+    words.append((_SEED_ADDRESS_REGISTER << 7) | 0x13)  # ADDI x1, x0, 0
+    words.append((_SEED_VALUE_REGISTER << 7) | 0x13)  # ADDI x2, x0, 0
+    # Straight-line execution has carried the pc to entry + 4*len(words);
+    # chain backward jumps to land *exactly* on the entry, because the first
+    # compared retirement's pc is itself a compared field.
+    pc = entry + 4 * len(words)
+    while pc != entry:
+        hop = min(pc - entry, _JAL_MAX_BACKWARD)
+        words.append(_encode_jal_x0(-hop))
+        pc -= hop
+    return words
+
+
 def run_sail_rvfi_dii(
     sail_bin: Path,
     zig_trace: dict[str, Any],
     timeout_seconds: float = 10.0,
+    initial_memory: list[tuple[int, int]] | None = None,
 ) -> dict[str, Any]:
     """Execute Zig's retired words through the pinned Sail RVFI-DII transport."""
     validate_trace(zig_trace, "Zig")
@@ -306,6 +401,7 @@ def run_sail_rvfi_dii(
             f"Zig ELF entry is 0x{target_entry:08x}, "
             f"formal RVFI corpus entry must be 0x{RVFI_DII_ENTRY:08x}"
         )
+    preamble = seed_preamble(initial_memory) if initial_memory else []
     port = _reserve_tcp_port()
     command = [str(sail_bin), "--rv32"]
     for override in SAIL_CONFIG_OVERRIDES:
@@ -321,6 +417,22 @@ def run_sail_rvfi_dii(
     try:
         connection = _connect_rvfi(process, port, timeout_seconds)
         connection.settimeout(timeout_seconds)
+        for index, word in enumerate(preamble):
+            connection.sendall(struct.pack("<Q", (1 << 48) | word))
+            packet = decode_rvfi_dii_v1(_recv_exact(connection, RVFI_DII_V1_BYTES))
+            if index == 0 and packet["pc"] != RVFI_DII_ENTRY:
+                raise EquivalenceError(
+                    f"Sail RVFI transport entry is 0x{packet['pc']:08x}, expected "
+                    f"0x{RVFI_DII_ENTRY:08x}; build the pinned Sail revision "
+                    f"with {RVFI_TRANSPORT_PATCH.relative_to(ROOT)}"
+                )
+            # A preamble word that traps says the image or the encoders are
+            # broken — a harness failure, never evidence about the candidate.
+            if packet["trap"] or packet["halt"] or packet["intr"]:
+                raise EquivalenceError(
+                    f"memory-seeding preamble word {index} "
+                    f"(0x{word:08x}) did not retire cleanly"
+                )
         rows: list[dict[str, Any]] = []
         for order, zig_row in enumerate(zig_trace["retirements"]):
             instruction = zig_row["instruction"]
@@ -336,6 +448,11 @@ def run_sail_rvfi_dii(
                     f"Sail emitted unexpected halt/interrupt at retirement {order}"
                 )
             if order == 0 and row["pc"] != RVFI_DII_ENTRY:
+                if preamble:
+                    raise EquivalenceError(
+                        f"memory-seeding preamble landed at 0x{row['pc']:08x}, "
+                        f"not the entry 0x{RVFI_DII_ENTRY:08x}"
+                    )
                 raise EquivalenceError(
                     f"Sail RVFI transport entry is 0x{row['pc']:08x}, expected "
                     f"0x{RVFI_DII_ENTRY:08x}; build the pinned Sail revision "

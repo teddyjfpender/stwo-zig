@@ -28,6 +28,7 @@ ADDER = FIXTURES / "byte_carry_adder.json"
 ADDER_UNRANGED = FIXTURES / "byte_carry_adder_unranged.json"
 XOR = FIXTURES / "bitwise_xor_byte.json"
 INLINE_ADDER = FIXTURES / "inline_carry_adder.json"
+MULTIPLIER = FIXTURES / "window_carry_multiplier.json"
 
 # Observed worst case is ~3.5s, on the bitwise model whose int2bv encoding is
 # the least predictable. The headroom is deliberate but bounded: a regression
@@ -292,14 +293,16 @@ class DeclaredDomainTest(unittest.TestCase):
             smtlib.emit_uniqueness_query(system, assume_domains=True).text,
         )
 
-    def test_both_copies_carry_the_domain(self) -> None:
-        text = smtlib.emit_uniqueness_query(
+    def test_the_domain_binds_the_variable_both_copies_read(self) -> None:
+        """Only an input may declare a domain, and an input is one variable, so
+        the domain reaching "both copies" is now a property of the naming."""
+        query = smtlib.emit_uniqueness_query(
             ir.from_dict(_escape_model(escape=1, stride=4)), assume_domains=True
-        ).text
-        for copy in smtlib.COPIES:
-            self.assertIn(f"(assert (<= pc@{copy} {1 << 30}))", text)
-            self.assertIn(f"(assert (= pc@{copy} (* 4 pc!stride@{copy})))", text)
-        self.assertNotIn("(mod ", text)
+        )
+        self.assertIn("pc", query.shared_columns)
+        self.assertIn(f"(assert (<= pc@s {1 << 30}))", query.text)
+        self.assertIn("(assert (= pc@s (* 4 pc!stride@s)))", query.text)
+        self.assertNotIn("(mod ", query.text)
 
     def test_the_two_knobs_are_independent(self) -> None:
         """`--no-refine` drops derived narrowing, never a declared domain."""
@@ -433,6 +436,156 @@ class RenormalisationTest(unittest.TestCase):
                 )
                 self.assertEqual(result.status, "unsat")
                 self.assertTrue(result.constraints_satisfiable)
+
+
+class LookupWindowTest(unittest.TestCase):
+    """Range representatives recovered from live box requests.
+
+    The multiplier families pin their carries with `range_check_8_11`, not with
+    `bit()`, so the value-set renormalisation above never fires for them and
+    the window is the only thing between the carry chain and a 2^23-per-limb
+    interval blowup.  The window points the dangerous way -- it narrows -- so
+    the tests here are mostly about when it must NOT apply.
+    """
+
+    def setUp(self) -> None:
+        self.system = ir.load(MULTIPLIER)
+        self.bounds = analysis.implied_column_bounds(self.system)
+
+    def test_a_live_request_windows_the_carry_expression(self) -> None:
+        renorm = analysis.renormalise(self.system, self.bounds)
+        by_op = {
+            self.system.nodes[index].op: window
+            for index, window in renorm.windows.items()
+        }
+        self.assertEqual(len(renorm.windows), 2)
+        self.assertEqual(by_op["mul"], (0, 2047), "the 11-bit half of the box")
+        self.assertEqual(
+            by_op["sub"],
+            (0, 256 * 2047),
+            "the sum the carry divides, through inv(256)",
+        )
+        for index, window in renorm.windows.items():
+            self.assertEqual(renorm.effective[index], window)
+
+    def test_without_placement_the_window_is_refused(self) -> None:
+        """Unpinned enabler leaves the request dodgeable: a witness could set
+        it to zero and put anything in the tuple, so narrowing would delete
+        exactly that witness."""
+        from dataclasses import replace
+
+        mutant = replace(self.system, constraints=self.system.constraints[1:])
+        bounds = analysis.implied_column_bounds(mutant)
+        self.assertEqual(analysis.renormalise(mutant, bounds).windows, {})
+
+    def test_the_naive_arm_never_windows(self) -> None:
+        """`--no-derived-facts` must reproduce the un-rewritten query."""
+        naive = analysis.renormalise(self.system, self.bounds, values={})
+        self.assertEqual(naive.windows, {})
+
+    @needs_z3
+    def test_the_multiplier_toy_is_unique_and_non_vacuous(self) -> None:
+        result = solve.check(self.system, timeout_ms=TIMEOUT_MS)
+        self.assertEqual(result.status, "unsat")
+        self.assertTrue(result.constraints_satisfiable)
+
+    @needs_z3
+    def test_dropping_the_request_is_sat_under_both_encodings(self) -> None:
+        """The window derives from the lookup, so deleting the lookup must
+        delete the window with it -- a window that survived would prove the
+        mutant unique with an obligation that no longer exists."""
+        from dataclasses import replace
+
+        mutant = replace(self.system, lookups=())
+        for derived in (False, True):
+            with self.subTest(derived=derived):
+                result = solve.check(
+                    mutant, timeout_ms=TIMEOUT_MS, derived=derived, probe=False
+                )
+                self.assertEqual(result.status, "sat")
+
+
+class InverseProjectionTest(unittest.TestCase):
+    """The rewrite that projects single-reader inverse witnesses out."""
+
+    def setUp(self) -> None:
+        self.system = ir.load(MULTIPLIER)
+
+    def test_the_marker_is_matched_with_its_a_and_b(self) -> None:
+        [(a, b, column)] = list(analysis.eliminable_inverses(self.system).values())
+        self.assertEqual(column, "inv")
+        self.assertEqual(self.system.nodes[a].name, "addr")
+        self.assertEqual(self.system.nodes[b].name, "nonzero")
+
+    def test_a_witness_a_lookup_reads_is_not_projected(self) -> None:
+        """Projection is exact only when nothing else reads the witness; a
+        lookup component is a reader."""
+        payload = json.loads(MULTIPLIER.read_text(encoding="utf-8"))
+        payload["lookups"][0]["tuple"][0] = ["col", "inv"]
+        self.assertEqual(analysis.eliminable_inverses(ir.from_dict(payload)), {})
+
+    def test_a_witness_two_constraints_read_is_not_projected(self) -> None:
+        payload = json.loads(MULTIPLIER.read_text(encoding="utf-8"))
+        payload["exprs"]["second_reader"] = ["mul", ["col", "inv"], ["col", "addr"]]
+        payload["constraints"].append("second_reader")
+        self.assertEqual(analysis.eliminable_inverses(ir.from_dict(payload)), {})
+
+    def test_an_output_is_never_projected(self) -> None:
+        """An output is what the conclusion quantifies over."""
+        payload = json.loads(MULTIPLIER.read_text(encoding="utf-8"))
+        for column in payload["columns"]:
+            if column["name"] == "inv":
+                column["role"] = "output"
+        self.assertEqual(analysis.eliminable_inverses(ir.from_dict(payload)), {})
+
+    def test_the_projected_product_never_enters_the_query(self) -> None:
+        query = smtlib.emit_uniqueness_query(self.system)
+        [factor] = list(analysis.eliminable_inverses(self.system))
+        self.assertIn("witness inv projected out", query.text)
+        self.assertNotIn(f"n{factor}@", query.text, "the A*Z - B term itself")
+        self.assertEqual(query.eliminated, {"inv": factor})
+
+    @needs_z3
+    def test_reconstruction_satisfies_the_projected_constraint(self) -> None:
+        """A decoded pair must be replayable against the AIR, which still has
+        the constraint the query projected away.  Break the write-back so the
+        family goes sat, then require `addr * inv = nonzero` to hold on both
+        decoded copies with the reconstructed `inv`."""
+        from dataclasses import replace
+
+        mutant = replace(
+            self.system,
+            constraints=self.system.constraints[:4] + self.system.constraints[5:],
+        )
+        result = solve.check(mutant, timeout_ms=TIMEOUT_MS, probe=False)
+        self.assertEqual(result.status, "sat")
+        for copy in smtlib.COPIES:
+            witness = result.witnesses[copy]
+            columns = {**witness.inputs, **witness.outputs, **witness.witness}
+            self.assertEqual(
+                (columns["addr"] * columns["inv"] - columns["nonzero"]) % ir.MODULUS,
+                0,
+                f"copy {copy}",
+            )
+
+
+class BitwiseBitSharingTest(unittest.TestCase):
+    """Bits carry the label of the component they decompose.
+
+    Sharing is what lets a `xor` shard close: with per-copy bits of a shared
+    operand, the solver must prove an 8-bit decomposition unique before it can
+    conclude anything about the result.  Measured on `base_alu_reg`'s xor
+    shard: 30.7 s on the one engine that closed it at all before, 0.5 s after.
+    """
+
+    def test_shared_operand_bits_are_shared_and_result_bits_are_not(self) -> None:
+        text = smtlib.emit_uniqueness_query(ir.load(XOR)).text
+        # Operands are inputs, so their bits are one set of eight.
+        self.assertEqual(text.count("(declare-const lk0lb0@s Int)"), 1)
+        self.assertEqual(text.count("(declare-const lk0lb0@a Int)"), 0)
+        # The result is an output: each copy decomposes its own.
+        for copy in smtlib.COPIES:
+            self.assertEqual(text.count(f"(declare-const lk0vb0@{copy} Int)"), 1)
 
 
 class VacuousFamilyTest(unittest.TestCase):

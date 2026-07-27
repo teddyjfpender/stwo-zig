@@ -458,6 +458,7 @@ test "partial store: the honest guest proves and verifies and the corrupted word
     const forgery = wholeWordForgery();
     try harness.expectHonestProofAndForgedRejection(
         std.testing.allocator,
+        "partial store guest (SW then SB then LW readback)",
         SPEC,
         .{
             .target = .{ .opcode = .{ .family = .load_store } },

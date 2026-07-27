@@ -10,12 +10,19 @@ explains the encoding; this schedules it across all of them.
 
 Budget
 ------
-`--timeout-ms` is per *shard*, not per family.  A family splits into shards --
-one per architectural output, times one per opcode where the constraints force a
-one-hot selector -- and it is unique exactly when every shard is unsat, so the
-budget that matters is the one each sub-query gets.  The board prints the shard
-count alongside the summed solver seconds so neither number can be read as the
-other.
+`--timeout-ms` is per *shard*, not per family.  A family splits into shards and
+is unique exactly when every shard is unsat, so the budget that matters is the
+one each sub-query gets.  The board prints the shard count alongside the summed
+solver seconds so neither number can be read as the other.
+
+Splitting by opcode is on by default and splitting by output is not, because
+that is what the measurement said.  Over the 17 shipped families at a 60 s
+per-shard budget: monolithic closes 9 (17 shards), by opcode closes 11
+(46 shards), by output closes 9 (118 shards).  Both axes are sound; only the
+opcode one pays, because pinning a selector is what lets interval analysis
+delete the other opcodes' machinery, while asking about one output re-derives
+the whole family per output.  `--split-outputs` turns the other axis on anyway:
+its counterexamples are sharper, which is worth the budget during triage.
 
 Honesty rules this runner exists to keep
 ----------------------------------------
@@ -53,6 +60,12 @@ def _run_job(job: tuple[str, dict, dict]) -> dict:
     A `probe` job is the honest-witness check, planned once per opcode rather
     than once per shard: it ignores the output axis, so every output shard of an
     opcode would otherwise re-run the same query.
+
+    A shard whose monolithic question runs out of budget escalates to the
+    sequential ladder (`solve.ladder`) instead of stopping at `timeout`: the
+    multiplier families are provable only step by step.  The escalation stays
+    inside the job so the pool sees one work item either way, and the row keeps
+    both costs: `seconds` sums the failed monolith and every ladder step.
     """
     path, spec, options = job
     system = ir.load(path)
@@ -74,7 +87,21 @@ def _run_job(job: tuple[str, dict, dict]) -> dict:
             "seconds": time.perf_counter() - started,
             "wall": time.perf_counter() - started,
         }
-    result = solve.check(system, shard=shard, probe=False, **options)
+    check_options = {k: v for k, v in options.items() if k != "no_ladder"}
+    result = solve.check(system, shard=shard, probe=False, **check_options)
+    if result.status == "unknown" and not spec.get("output") and not options.get(
+        "no_ladder"
+    ):
+        escalated = solve.ladder(
+            system,
+            options["timeout_ms"],
+            shard=smtlib.Shard(selector=shard.selector),
+            refine=options["refine"],
+            derived=options["derived"],
+            assume_domains=options["assume_domains"],
+        )
+        escalated.seconds += result.seconds
+        result = escalated
     return {
         "family": system.family,
         "kind": "unique",
@@ -116,6 +143,7 @@ def plan(paths: list[str], args: argparse.Namespace) -> list[tuple[str, dict, di
         "refine": not args.no_refine,
         "derived": not args.no_derived_facts,
         "assume_domains": args.assume_declared_domains,
+        "no_ladder": args.no_ladder,
     }
     jobs: list[tuple[str, dict, dict]] = []
     for path in paths:
@@ -124,7 +152,7 @@ def plan(paths: list[str], args: argparse.Namespace) -> list[tuple[str, dict, di
             jobs.append((path, {}, options))
             continue
         shards = smtlib.plan_shards(
-            system, not args.no_split_outputs, not args.no_split_opcodes
+            system, args.split_outputs, not args.no_split_opcodes
         )
         for shard in shards:
             jobs.append(
@@ -191,8 +219,13 @@ def render(rows: list[dict], args: argparse.Namespace) -> str:
             + _vacuity_note(row)
         )
         if row["status"] in ("sat", "timeout"):
-            lines.append(f"{'':<14} {'':<8} {'':>6} {'':>9}  open: "
-                         f"{', '.join(row['open_shards'][:6])}")
+            # A timeout is only a result if it says how long it was given, so
+            # the longest shard's wall clock rides along with the open list.
+            lines.append(
+                f"{'':<14} {'':<8} {'':>6} {row['wall']:>9.1f}  open ("
+                f"{len(row['open_shards'])}): "
+                f"{', '.join(row['open_shards'][:6])}"
+            )
     tally: dict[str, int] = {}
     for row in rows:
         tally[row["status"]] = tally.get(row["status"], 0) + 1
@@ -222,8 +255,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--family", action="append", default=[])
     parser.add_argument("--json", help="write the board here as JSON")
     parser.add_argument("--counterexample-dir", help="write each sat witness pair here")
-    parser.add_argument("--no-split-outputs", action="store_true")
+    parser.add_argument(
+        "--split-outputs",
+        action="store_true",
+        help="one query per architectural output. Sharper, and measurably "
+        "slower; see the module docstring",
+    )
     parser.add_argument("--no-split-opcodes", action="store_true")
+    parser.add_argument(
+        "--no-ladder",
+        action="store_true",
+        help="stop at `timeout` instead of escalating a stuck shard to the "
+        "sequential ladder",
+    )
     parser.add_argument("--no-derived-facts", action="store_true")
     parser.add_argument("--no-refine", action="store_true")
     parser.add_argument("--assume-declared-domains", action="store_true")

@@ -10,6 +10,7 @@ test {
     std.testing.refAllDeclsRecursive(runner);
     _ = @import("../../frontends/riscv/air/clock_update_component_test.zig");
     _ = @import("../../frontends/riscv/air/component_order.zig");
+    _ = @import("../../frontends/riscv/air/extract/mod.zig");
     _ = @import("../../frontends/riscv/air/logup.zig");
     _ = @import("../../frontends/riscv/air/interaction.zig");
     _ = @import("../../frontends/riscv/air/memory_commitment/mod.zig");

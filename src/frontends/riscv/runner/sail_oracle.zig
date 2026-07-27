@@ -19,6 +19,23 @@ const trace_dump = @import("trace_dump.zig");
 
 const ORACLE_SCRIPT_RELATIVE = "scripts/riscv_sail_oracle.py";
 
+/// Must match `INITIAL_MEMORY_SCHEMA` in `scripts/riscv_sail_oracle.py`; a
+/// drift is a loud ERROR verdict, never a silently unseeded comparison.
+const INITIAL_MEMORY_SCHEMA = "stwo-riscv-initial-memory-v1";
+
+/// One word of the memory image the runner started from. RVFI-DII injects
+/// instruction words without loading the ELF, so Sail's memory begins zeroed
+/// and a guest that loads runner-initialized memory (a public-input region,
+/// ELF data) can only be compared after that image is seeded into Sail.
+///
+/// The image must come from the guest's *definition* — its ELF and declared
+/// input — never from the trace's own read claims, which would make every
+/// load self-fulfilling and reduce Sail to an echo of the candidate.
+pub const MemoryWord = struct {
+    address: u32,
+    value: u32,
+};
+
 /// Exit-code contract shared with `scripts/riscv_sail_oracle.py`:
 /// 0 EQUIVALENT, 1 DIVERGENT, 2 ERROR, 3 UNAVAILABLE.
 pub const Verdict = enum {
@@ -54,11 +71,12 @@ pub fn checkTrace(
     elf_bytes: []const u8,
     exec_trace: *const trace_mod.Trace,
     final_cpu: cpu_mod.Cpu,
+    initial_memory: []const MemoryWord,
 ) !Outcome {
     var json_buf: std.ArrayList(u8) = .{};
     defer json_buf.deinit(allocator);
     try trace_dump.writeTraceJson(json_buf.writer(allocator), exec_trace, final_cpu);
-    return checkTraceJson(allocator, elf_bytes, json_buf.items);
+    return checkTraceJson(allocator, elf_bytes, json_buf.items, initial_memory);
 }
 
 /// Lower-level entry taking an already-serialized canonical trace, so a
@@ -67,6 +85,7 @@ pub fn checkTraceJson(
     allocator: std.mem.Allocator,
     elf_bytes: []const u8,
     trace_json: []const u8,
+    initial_memory: []const MemoryWord,
 ) !Outcome {
     const script = try findOracleScript(allocator);
     defer allocator.free(script);
@@ -80,9 +99,26 @@ pub fn checkTraceJson(
     const trace_path = try scratch.dir.realpathAlloc(allocator, "trace.json");
     defer allocator.free(trace_path);
 
+    var argv: std.ArrayList([]const u8) = .{};
+    defer argv.deinit(allocator);
+    try argv.appendSlice(
+        allocator,
+        &.{ "python3", script, "check", "--elf", elf_path, "--trace", trace_path },
+    );
+    var memory_path: ?[]u8 = null;
+    defer if (memory_path) |path| allocator.free(path);
+    if (initial_memory.len != 0) {
+        var memory_buf: std.ArrayList(u8) = .{};
+        defer memory_buf.deinit(allocator);
+        try writeMemoryJson(memory_buf.writer(allocator), initial_memory);
+        try scratch.dir.writeFile(.{ .sub_path = "memory.json", .data = memory_buf.items });
+        memory_path = try scratch.dir.realpathAlloc(allocator, "memory.json");
+        try argv.appendSlice(allocator, &.{ "--memory", memory_path.? });
+    }
+
     const run = std.process.Child.run(.{
         .allocator = allocator,
-        .argv = &.{ "python3", script, "check", "--elf", elf_path, "--trace", trace_path },
+        .argv = argv.items,
         .max_output_bytes = 1 << 20,
     }) catch |err| switch (err) {
         // No python3 is the same class of absence as no Sail binary: the
@@ -113,39 +149,55 @@ pub fn checkTraceJson(
 
 /// The consumer-facing seam: pass on agreement, skip VISIBLY when the pinned
 /// oracle is absent, and fail loudly on disagreement or harness breakage.
+///
+/// `guest_label` names the guest in every notice, because a skip that does
+/// not say *what* went unchecked reads as coverage from the summary line.
 pub fn requireAgreement(
     allocator: std.mem.Allocator,
+    guest_label: []const u8,
     elf_bytes: []const u8,
     exec_trace: *const trace_mod.Trace,
     final_cpu: cpu_mod.Cpu,
+    initial_memory: []const MemoryWord,
 ) !void {
-    var outcome = try checkTrace(allocator, elf_bytes, exec_trace, final_cpu);
+    var outcome = try checkTrace(allocator, elf_bytes, exec_trace, final_cpu, initial_memory);
     defer outcome.deinit(allocator);
     switch (outcome.verdict) {
         .equivalent => {},
         .unavailable => {
             std.debug.print(
                 "SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement " ++
-                    "was NOT checked for this guest.\n{s}\n",
-                .{outcome.report},
+                    "was NOT checked for guest '{s}'.\n{s}\n",
+                .{ guest_label, outcome.report },
             );
             return error.SkipZigTest;
         },
         .divergent => {
             std.debug.print(
-                "Pinned Sail DISAGREES with the runner's retirement trace:\n{s}\n",
-                .{outcome.report},
+                "Pinned Sail DISAGREES with the runner's retirement trace " ++
+                    "for guest '{s}':\n{s}\n",
+                .{ guest_label, outcome.report },
             );
             return error.SailDisagreesWithRunner;
         },
         .protocol_error => {
             std.debug.print(
-                "Sail oracle harness failure (this is not a skip):\n{s}\n",
-                .{outcome.report},
+                "Sail oracle harness failure for guest '{s}' (this is not a skip):\n{s}\n",
+                .{ guest_label, outcome.report },
             );
             return error.SailOracleProtocolFailure;
         },
     }
+}
+
+/// Canonical serialization of an initial-memory image for `--memory`.
+fn writeMemoryJson(writer: anytype, words: []const MemoryWord) !void {
+    try writer.writeAll("{\"schema\":\"" ++ INITIAL_MEMORY_SCHEMA ++ "\",\"words\":[");
+    for (words, 0..) |word, index| {
+        if (index != 0) try writer.writeByte(',');
+        try writer.print("{{\"address\":{d},\"value\":{d}}}", .{ word.address, word.value });
+    }
+    try writer.writeAll("]}");
 }
 
 /// Locate the oracle script by a bounded upward walk from the cwd: test
@@ -184,7 +236,14 @@ test "sail_oracle: runner agrees with pinned Sail on a small guest (skips visibl
     });
     var result = try runner.run(alloc, &elf, 1000);
     defer result.deinit();
-    try requireAgreement(alloc, &elf, &result.execution_trace, result.cpu_final);
+    try requireAgreement(
+        alloc,
+        "sail_oracle ADDI/ADD self-test",
+        &elf,
+        &result.execution_trace,
+        result.cpu_final,
+        &.{},
+    );
 }
 
 test "sail_oracle: a forged integer write is DIVERGENT, never a pass or a skip (~0.3s when present)" {
@@ -208,7 +267,7 @@ test "sail_oracle: a forged integer write is DIVERGENT, never a pass or a skip (
     defer alloc.free(forged);
     try std.testing.expect(!std.mem.eql(u8, honest.items, forged));
 
-    var outcome = try checkTraceJson(alloc, &elf, forged);
+    var outcome = try checkTraceJson(alloc, &elf, forged, &.{});
     defer outcome.deinit(alloc);
     switch (outcome.verdict) {
         .divergent => {},

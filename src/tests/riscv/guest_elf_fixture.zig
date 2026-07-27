@@ -38,6 +38,7 @@
 //! straight-line body does.
 
 const std = @import("std");
+const sail_oracle = @import("../../frontends/riscv/runner/sail_oracle.zig");
 
 pub const CODE_VADDR: u32 = 0x0001_0000;
 const INPUT_START: u32 = 0x0018_0000;
@@ -53,6 +54,19 @@ const OUTPUT_END: u32 = STACK_BOTTOM;
 
 /// The public input every guest built here consumes, exactly one word wide.
 pub const INPUT = [_]u8{ 1, 2, 3, 4 };
+
+/// The runner-initialized data memory of every guest built here, as the Sail
+/// oracle's seed image: exactly the input word at the declared input region.
+/// Code is not data to these guests — no body may load from the text segment,
+/// because Sail over RVFI-DII executes injected words without an ELF image —
+/// so the input word is the whole image. Derived from the same constants the
+/// wrapper assembles with, never from an executed trace.
+pub fn initialMemory() [1]sail_oracle.MemoryWord {
+    return .{.{
+        .address = INPUT_START,
+        .value = std.mem.readInt(u32, INPUT[0..4], .little),
+    }};
+}
 
 /// `LUI x1, __halt_flag`, `LUI x4, __input_start`, `LW x5, 0(x4)`.
 const PROLOGUE = [_]u32{

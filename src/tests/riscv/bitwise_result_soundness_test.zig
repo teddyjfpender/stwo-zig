@@ -195,9 +195,6 @@ test "bitwise result end-to-end: the forged XOR result proves and loses at verif
     var guest = try harness.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();
 
-    // Without this the rejection below would also be satisfied by a guest that
-    // cannot be proven at all.
-    try guest.proveAndVerify();
     try std.testing.expectEqual(MASK, guest.run.final_regs[6]);
     // `XOR x0, ...` wrote nowhere, which is the property the forgery exploits.
     try std.testing.expectEqual(@as(u32, 0), guest.run.final_regs[0]);
@@ -207,4 +204,10 @@ test "bitwise result end-to-end: the forged XOR result proves and loses at verif
     // that refuses it. Pinning the stage is what distinguishes this fix from a
     // constraint fix — delete the bitwise requests and the proof verifies.
     try guest.expectRejectedAt(.{ .main_row = OVERRIDE }, .verification);
+
+    // Without this the rejection above would also be satisfied by a guest that
+    // cannot be proven at all. Last because its tail is the Sail agreement
+    // check, whose visible skip on an absent oracle must not cost the
+    // rejection half.
+    try guest.proveAndVerify("bitwise result guest (XOR into x6 and x0)");
 }

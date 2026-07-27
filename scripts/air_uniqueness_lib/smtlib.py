@@ -44,16 +44,18 @@ the soundness argument has.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 
 from . import tables
 from .analysis import (
     determined_columns,
+    eliminable_inverses,
     factors,
     implied_column_bounds,
     node_bounds,
     one_hot_selectors,
     pins,
+    projectable_sinks,
     renormalise,
 )
 from .ir import MODULUS, IRError, System
@@ -77,13 +79,34 @@ class Shard:
     group the constraints force into exactly-one-of.  Sharding also sharpens a
     counterexample: it arrives already labelled with the output that differs and
     the opcode it differs under, rather than leaving both to be read off a model.
+
+    The ladder fields (`solve.ladder` schedules them):
+
+    `group` widens the conclusion to a set of columns -- witnesses allowed --
+    required to differ.  `assume_agree` treats columns as shared: it is the
+    HYPOTHESIS of a sequential step, and the emitter takes it on faith, so the
+    caller owes the proof that each assumed column was concluded `unsat` by an
+    earlier step over the same system and selector.  The chain rule is what
+    makes the composition complete: a family counterexample has a first
+    differing conclusion in any fixed order, agrees on everything before it,
+    and so survives into exactly that step's query.
     """
 
     output: str = ""
     selector: str = ""
+    group: tuple[str, ...] = ()
+    assume_agree: tuple[str, ...] = ()
+
+    def conclusion(self) -> tuple[str, ...]:
+        return self.group if self.group else (self.output,) if self.output else ()
 
     def label(self) -> str:
-        return "/".join(p for p in (self.selector, self.output) if p) or "monolithic"
+        parts = [p for p in (self.selector, self.output) if p]
+        if self.group:
+            parts.append("|".join(self.group))
+        if self.assume_agree:
+            parts.append(f"given[{len(self.assume_agree)}]")
+        return "/".join(parts) or "monolithic"
 
 
 def plan_shards(
@@ -115,6 +138,16 @@ class Query:
     modelled_lookups: tuple[str, ...] = ()
     # Columns the query carries as a single variable; see `_Emitter.label_for`.
     shared_columns: frozenset[str] = frozenset()
+    # Witness columns projected out of the query (`eliminable_inverses`), as
+    # column -> the factor node that is linear in it.  A decoded model has no
+    # value for these, and a witness pair missing a column would fail replay
+    # against the AIR, so the decoder re-solves the factor for each copy; the
+    # node arena rides along for exactly that evaluation.
+    eliminated: dict[str, int] = dataclass_field(default_factory=dict)
+    nodes: tuple = ()
+    # The columns the negated conclusion ranges over; a decoded model reports
+    # its disagreements against exactly these.
+    conclusion: tuple[str, ...] = ()
 
     def var(self, column: str, copy: str) -> str:
         return f"{column}@{SHARED if column in self.shared_columns else copy}"
@@ -153,10 +186,19 @@ class _Emitter:
         self.renorm = renormalise(system, bounds, values=None if derived else {})
         self.bounds = self.renorm.effective
         self.static = node_bounds(system, bounds)
-        inputs = frozenset(system.by_role("input"))
+        # `assume_agree` joins the seed: a sequential step's hypothesis is that
+        # the copies agree on those columns, exactly as they agree on inputs.
+        seed = frozenset(system.by_role("input")) | frozenset(shard.assume_agree)
         self.shared_columns = (
-            determined_columns(system, inputs, pins(bounds)) if derived else inputs
+            determined_columns(system, seed, pins(bounds)) if derived else seed
         )
+        self.inverse_elim = eliminable_inverses(system) if derived else {}
+        # Free-sink definitions are projected out entirely: keep everything the
+        # question is about, the hypothesis set, and the conclusion set.
+        keep = seed | frozenset(shard.conclusion() or system.by_role("output"))
+        self.sunk = (
+            dict(projectable_sinks(system, keep)) if derived else {}
+        )  # constraint position -> column, in drop order
         self.live = self._live_constraints()
         self.needed = self._reachable()
         self.shared_nodes = self._shared_nodes()
@@ -275,14 +317,16 @@ class _Emitter:
 
         Handing a parent a congruent term is exact -- every assertion here reads
         a node only through its residue mod p -- and it is what stops the
-        byte-carry chain from compounding its interval by 2^23 per limb.
+        byte-carry chain from compounding its interval by 2^23 per limb.  A
+        value-set pin also asserts membership; a window pin (`renorm.windows`)
+        is bounds only.
         """
         values = self.renorm.representatives.get(index)
-        if values is None:
+        if values is None and index not in self.renorm.windows:
             return name
         lo, hi = self.bounds[index]
         stand_in = self.declare(f"v{index}@{copy}", lo, hi)
-        if len(values) < hi - lo + 1:
+        if values is not None and len(values) < hi - lo + 1:
             memberships = " ".join(f"(= {stand_in} {_lit(v)})" for v in values)
             self.emit(f"(assert (or {memberships}))")
         raw_lo, raw_hi = self.renorm.raw[index]
@@ -356,6 +400,8 @@ class _Emitter:
         """
         out: list[tuple[int, list[int]]] = []
         for position, node in enumerate(self.system.constraints):
+            if position in self.sunk:
+                continue  # Projected free-sink definition; see `projectable_sinks`.
             candidates = []
             for factor in factors(self.system, node):
                 status = self.vanishes(factor)
@@ -369,10 +415,19 @@ class _Emitter:
         return out
 
     def _reachable(self) -> set[int]:
-        """Nodes some emitted obligation reads, closed downwards."""
+        """Nodes some emitted obligation reads, closed downwards.
+
+        An eliminated factor contributes its A and B, never itself: the whole
+        point of the projection is that the witness inside it is not declared.
+        """
         roots: list[int] = []
         for _, candidates in self.live:
-            roots.extend(candidates)
+            for factor in candidates:
+                projected = self.inverse_elim.get(factor)
+                if projected is None:
+                    roots.append(factor)
+                else:
+                    roots.extend(projected[:2])
         for lookup in self.system.lookups:
             if tables.is_constraining(lookup.domain) and self.vanishes(
                 lookup.numerator
@@ -393,7 +448,7 @@ class _Emitter:
         for position, candidates in self.live:
             stem = f"c{position}"
             clauses = [
-                self.vanishing(factor, terms[factor], copy, f"{stem}f{i}")
+                self.factor_clause(factor, terms, copy, f"{stem}f{i}")
                 for i, factor in enumerate(candidates)
             ]
             if not clauses:
@@ -402,6 +457,20 @@ class _Emitter:
                 continue
             body = clauses[0] if len(clauses) == 1 else f"(or {' '.join(clauses)})"
             self.emit(f"(assert {body})")
+
+    def factor_clause(self, factor: int, terms: list[str], copy: str, stem: str) -> str:
+        """Clause under which this factor lets its constraint vanish: the
+        factor's own vanishing, or -- for a projected inverse witness -- the
+        exact solvability condition `A != 0 or B = 0` from
+        `eliminable_inverses`."""
+        projected = self.inverse_elim.get(factor)
+        if projected is None:
+            return self.vanishing(factor, terms[factor], copy, stem)
+        a, b, column = projected
+        self.emit(f"; witness {column} projected out: A*Z = B iff A != 0 or B = 0")
+        alive = self.reduced(a, terms[a], copy, f"{stem}a")
+        vanishes = self.vanishing(b, terms[b], copy, f"{stem}b")
+        return f"(or (not (= {alive} 0)) {vanishes})"
 
     def emit_lookups(self, terms: list[str], copy: str, record: bool) -> None:
         for position, lookup in enumerate(self.system.lookups):
@@ -431,7 +500,8 @@ class _Emitter:
                 for component, width in zip(components, widths)
             ]
             if lookup.domain == tables.BITWISE_DOMAIN:
-                clauses.append(self._bitwise_definition(components, stem, copy))
+                labels = [self.label_for(node, copy) for node in lookup.tuple_]
+                clauses.append(self._bitwise_definition(components, labels, stem))
             # A box is a superset wherever the real table omits a row inside it.
             # Leaving the omission out admits witnesses the AIR rejects, which
             # shows up as spurious `sat`, never as a false `unsat`.
@@ -458,7 +528,9 @@ class _Emitter:
         )
         return names, f"(= {term} (+ {weighted}))"
 
-    def _bitwise_definition(self, components: list[str], stem: str, copy: str) -> str:
+    def _bitwise_definition(
+        self, components: list[str], labels: list[str], stem: str
+    ) -> str:
         """`value` as a function of `(lhs, rhs, op)`, bit by bit in integers.
 
         The obvious encoding is `int2bv` over the byte-boxed operands, and it is
@@ -467,11 +539,16 @@ class _Emitter:
         in 0.4 s while the same family's `xor` shard did not close in 25 s.
         Eight 0/1 integers per operand and one product per bit keeps the whole
         query in the arithmetic the rest of the encoding already uses.
+
+        Each component's bits carry that component's own copy label: the bits
+        of a shared operand are shared, so the second copy re-emits the same
+        text and `emit` drops it, instead of the solver having to prove an
+        8-bit decomposition unique before concluding anything about the value.
         """
         lhs, rhs, value, op = components
-        left, left_sum = self.bits_of(lhs, f"{stem}l", copy)
-        right, right_sum = self.bits_of(rhs, f"{stem}r", copy)
-        out, out_sum = self.bits_of(value, f"{stem}v", copy)
+        left, left_sum = self.bits_of(lhs, f"{stem}l", labels[0])
+        right, right_sum = self.bits_of(rhs, f"{stem}r", labels[1])
+        out, out_sum = self.bits_of(value, f"{stem}v", labels[2])
         clauses = [left_sum, right_sum]
         # op 3 is the padding row, whose value is zero for every operand pair,
         # so it needs no bit decomposition of `value` at all.
@@ -533,6 +610,22 @@ def _finish(emitter: _Emitter, system: System, copies: tuple[str, ...]) -> Query
         shared_columns=emitter.shared_columns,
         skipped_bus_lookups=tuple(emitter.skipped),
         modelled_lookups=tuple(emitter.modelled),
+        eliminated={
+            # Inverse projections first: a sunk definition may read a projected
+            # inverse, never the other way round (a sink is read by nothing).
+            # Sinks in reverse drop order, so a definition whose right side
+            # uses a later-orphaned column is re-solved after that column is.
+            **{
+                column: factor
+                for factor, (_, _, column) in emitter.inverse_elim.items()
+            },
+            **{
+                column: system.constraints[position]
+                for position, column in reversed(list(emitter.sunk.items()))
+            },
+        },
+        nodes=system.nodes,
+        conclusion=emitter.shard.conclusion() or system.by_role("output"),
     )
 
 
@@ -558,8 +651,7 @@ def emit_uniqueness_query(
     if reason is not None:
         raise IRError(f"{system.family}: {reason}")
     outputs = system.by_role("output")
-    if shard.output and shard.output not in outputs:
-        raise IRError(f"{system.family}: {shard.output!r} is not an output column")
+    _validate_shard(system, shard, outputs)
     emitter = _Emitter(system, refine, assume_domains, derived, shard)
     _emit_copies(emitter, system, COPIES, f"witness-uniqueness query [{shard.label()}]")
 
@@ -571,17 +663,44 @@ def emit_uniqueness_query(
         + " ----"
     )
 
-    emitter.emit("; ---- negated conclusion: some architectural output differs ----")
-    # A shared output cannot differ, and says so as `x@s != x@s`: the static
-    # analysis has already decided that shard, and the text records which.
+    emitter.emit("; ---- negated conclusion: some concluded column differs ----")
+    # A shared conclusion column cannot differ, and says so as `x@s != x@s`:
+    # the static analysis has already decided that shard, and the text records
+    # which.
     differing = [
         f"(not (= {name}@{emitter.label_of(name, COPIES[0])}"
         f" {name}@{emitter.label_of(name, COPIES[1])}))"
-        for name in ((shard.output,) if shard.output else outputs)
+        for name in (shard.conclusion() or outputs)
     ]
     disjunction = differing[0] if len(differing) == 1 else f"(or {' '.join(differing)})"
     emitter.emit(f"(assert {disjunction})")
     return _finish(emitter, system, COPIES)
+
+
+def _validate_shard(system: System, shard: Shard, outputs: tuple[str, ...]) -> None:
+    """Reject a shard whose question would be about different columns than the
+    caller believes, before any solver time is spent on it."""
+    if shard.output and shard.group:
+        raise IRError(f"{system.family}: a shard takes `output` or `group`, not both")
+    if shard.output and shard.output not in outputs:
+        raise IRError(f"{system.family}: {shard.output!r} is not an output column")
+    inputs = frozenset(system.by_role("input"))
+    known = set(system.column_names())
+    for name in shard.group + shard.assume_agree:
+        if name not in known:
+            raise IRError(f"{system.family}: {name!r} is not a column")
+    for name in shard.group:
+        if name in inputs:
+            raise IRError(
+                f"{system.family}: {name!r} is an input; the copies agree on it "
+                "by hypothesis, so concluding about it asks nothing"
+            )
+    overlap = set(shard.group) & set(shard.assume_agree)
+    if overlap:
+        raise IRError(
+            f"{system.family}: {sorted(overlap)} both assumed and concluded; "
+            "that step would prove nothing and hide that it proved nothing"
+        )
 
 
 def emit_satisfiability_query(

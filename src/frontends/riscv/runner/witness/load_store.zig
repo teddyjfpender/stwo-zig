@@ -4,7 +4,7 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const Opcode = @import("../decode.zig").Opcode;
-const load_store_semantics = @import("../../air/semantics/load_store.zig");
+const load_store_semantics = @import("../../air/semantics/mod.zig").load_store;
 const w = @import("writer.zig");
 
 fn loadResult(row: anytype) u32 {

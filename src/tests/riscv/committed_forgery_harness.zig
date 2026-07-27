@@ -12,11 +12,24 @@
 //!
 //!  - The HONEST half must pass. A guest that cannot be proven at all would
 //!    satisfy "the forgery is rejected" vacuously, so `Guest.proveAndVerify`
-//!    runs first and its failure is the harness's failure, not the forgery's.
+//!    is part of every module and its failure is the harness's failure, not
+//!    the forgery's.
 //!  - The FORGED half must be rejected by the prover's own constraint check or
 //!    by verification. Both are acceptable outcomes: an unsatisfied direct
 //!    constraint aborts proving with `error.ConstraintsNotSatisfied`, while an
 //!    absent lookup tuple survives proving and breaks verification.
+//!
+//! The honest half also carries the SAIL leg of the soundness argument.
+//! "Prove and verify" only shows the witness satisfies the AIR; that the
+//! witness *means* RV32IM is exactly what the pinned Sail model is for, and
+//! sampling it elsewhere on a different corpus leaves a seam between the two
+//! legs. So `proveAndVerify` ends by replaying the guest's retirement trace
+//! through pinned Sail: the same run that is proven is the run Sail has seen,
+//! and a guest cannot pass its honest half without that agreement. When the
+//! pinned oracle is absent the test skips visibly, naming the guest — which
+//! is why callers place `proveAndVerify` as the *last* obligation of a test:
+//! everything Sail-independent must already have been decided when the only
+//! remaining exit is the skip.
 //!
 //! Attribution is separate and row-local, because "rejected" alone is not
 //! evidence for the constraint under test. `attribute` reports *which* direct
@@ -41,6 +54,7 @@ const entry_mod = @import("../../frontends/riscv/air/lookups/entry.zig");
 const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
 const public_values = @import("../../frontends/riscv/diagnostics/public_values.zig");
 const runner = @import("../../frontends/riscv/runner/mod.zig");
+const sail_oracle = @import("../../frontends/riscv/runner/sail_oracle.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
 
 const guest_elf = @import("guest_elf_fixture.zig");
@@ -166,9 +180,18 @@ pub const Guest = struct {
         return row;
     }
 
-    /// Prove and verify the unmutated guest. Failure here is a broken fixture,
-    /// not evidence about any forgery.
-    pub fn proveAndVerify(self: *const Guest) !void {
+    /// Prove and verify the unmutated guest, then require the pinned Sail
+    /// model to agree with the retirement trace that was just proven. Failure
+    /// of the proof half is a broken fixture, not evidence about any forgery.
+    ///
+    /// The Sail leg runs LAST, and callers must make this call the last
+    /// obligation of their test: when the pinned oracle is absent it exits
+    /// with a visible skip naming `guest_label`, and a skip must only ever
+    /// cost the Sail leg — every Sail-independent assertion, including the
+    /// forged half, must already have been decided. The order also keeps
+    /// attribution clean the other way: a broken honest proof fails here as
+    /// a proof failure instead of hiding behind an oracle skip.
+    pub fn proveAndVerify(self: *const Guest, guest_label: []const u8) !void {
         const output = try riscv_cpu.proveRiscVWithPublicData(
             self.allocator,
             PCS_CONFIG,
@@ -185,6 +208,25 @@ pub const Guest = struct {
             output.statement,
             output.proof,
             output.interaction_claim,
+        );
+        try self.requireSailAgreement(guest_label);
+    }
+
+    /// The Sail leg on its own: replay the retirement sequence of this run —
+    /// exactly the rows the prover commits — through the pinned Sail model,
+    /// seeding the fixture's declared input word so the prologue's public
+    /// input load compares against Sail's own read. Skips visibly (naming
+    /// the guest) when the pinned oracle is absent; any disagreement or
+    /// harness breakage fails the test.
+    pub fn requireSailAgreement(self: *const Guest, guest_label: []const u8) !void {
+        const image = guest_elf.initialMemory();
+        try sail_oracle.requireAgreement(
+            self.allocator,
+            guest_label,
+            self.elf,
+            &self.run.execution_trace,
+            self.run.cpu_final,
+            &image,
         );
     }
 
@@ -322,19 +364,26 @@ pub const RejectionStage = enum {
 };
 
 /// The whole end-to-end obligation in one call: the guest proves and verifies
-/// honestly, and the same guest with `override` applied does not.
+/// honestly, its retirement trace matches pinned Sail, and the same guest
+/// with `override` applied does not prove.
+///
+/// The forged half runs first. Both halves must pass, so the order changes
+/// nothing about what the call asserts — but the honest half ends in the
+/// Sail check, whose visible skip on an absent oracle must be the last
+/// possible exit so a Sail-less host still decides the forgery.
 ///
 /// `override.values` is borrowed for the duration of the call.
 pub fn expectHonestProofAndForgedRejection(
     allocator: std.mem.Allocator,
+    guest_label: []const u8,
     spec: Spec,
     override: RowOverride,
     stage: RejectionStage,
 ) !void {
     var guest = try Guest.init(allocator, spec);
     defer guest.deinit();
-    try guest.proveAndVerify();
     try guest.expectRejectedAt(.{ .main_row = override }, stage);
+    try guest.proveAndVerify(guest_label);
 }
 
 // ---------------------------------------------------------------------------
@@ -525,6 +574,80 @@ test "forgery harness: the honest row of a body instruction is admissible where 
         M31.fromCanonical(guest_elf.bodyClock(0)),
         row.m31At(semantic_eval.clockColumn(.base_alu_imm)),
     );
+}
+
+// Runtime: about a second when the pinned Sail is present — three oracle
+// round-trips over a nine-instruction guest, no proofs. Skips visibly when the
+// pinned oracle is absent.
+test "forgery harness: the Sail assertion rejects a forged retirement and a forged input seed" {
+    // An oracle never observed disagreeing is not evidence that it agrees.
+    // This is the disagreement half of `requireSailAgreement`, on the very
+    // guest shape the soundness modules prove: the honest trace with the
+    // declared seed passes, and each of the two inputs a module supplies —
+    // the retirement trace and the input-word image — is shown to flip the
+    // verdict on its own when it lies.
+    const allocator = std.testing.allocator;
+    var guest = try Guest.init(allocator, .{ .body = &.{ADDI_X10_7} });
+    defer guest.deinit();
+
+    var honest: std.ArrayList(u8) = .{};
+    defer honest.deinit(allocator);
+    try runner.trace_dump.writeTraceJson(
+        honest.writer(allocator),
+        &guest.run.execution_trace,
+        guest.run.cpu_final,
+    );
+    const image = guest_elf.initialMemory();
+
+    // Baseline: the honest trace with the declared image is EQUIVALENT; the
+    // two rejections below mean nothing without it.
+    var baseline = try sail_oracle.checkTraceJson(allocator, guest.elf, honest.items, &image);
+    defer baseline.deinit(allocator);
+    switch (baseline.verdict) {
+        .equivalent => {},
+        .unavailable => {
+            std.debug.print(
+                "SKIP: pinned Sail oracle unavailable; the forged-retirement and " ++
+                    "forged-seed rejections were NOT checked for the fixture guest.\n{s}\n",
+                .{baseline.report},
+            );
+            return error.SkipZigTest;
+        },
+        else => {
+            std.debug.print("honest fixture guest not EQUIVALENT: {s}\n", .{baseline.report});
+            return error.TestUnexpectedResult;
+        },
+    }
+
+    // A forged retirement: the prologue's input load claims one more than the
+    // word the runner read. `writeTraceJson` output is deterministic, so the
+    // textual field is a stable mutation point (67305985 = 0x04030201).
+    const forged = try std.mem.replaceOwned(
+        u8,
+        allocator,
+        honest.items,
+        "\"rd_value\":67305985",
+        "\"rd_value\":67305986",
+    );
+    defer allocator.free(forged);
+    try std.testing.expect(!std.mem.eql(u8, honest.items, forged));
+    var forged_outcome = try sail_oracle.checkTraceJson(allocator, guest.elf, forged, &image);
+    defer forged_outcome.deinit(allocator);
+    if (forged_outcome.verdict != .divergent) {
+        std.debug.print("forged retirement not DIVERGENT: {s}\n", .{forged_outcome.report});
+        return error.ForgedTraceNotRejected;
+    }
+
+    // A forged seed: Sail reads its *own* seeded memory, so a wrong image
+    // diverges — the load comparison is not an echo of the trace's claims.
+    var wrong_image = image;
+    wrong_image[0].value +%= 1;
+    var seed_outcome = try sail_oracle.checkTraceJson(allocator, guest.elf, honest.items, &wrong_image);
+    defer seed_outcome.deinit(allocator);
+    if (seed_outcome.verdict != .divergent) {
+        std.debug.print("forged input seed not DIVERGENT: {s}\n", .{seed_outcome.report});
+        return error.ForgedSeedNotRejected;
+    }
 }
 
 // Runtime: milliseconds.

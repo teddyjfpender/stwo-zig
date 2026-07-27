@@ -278,12 +278,6 @@ test "auipc alias: the honest AUIPC proof verifies and the aliased row cannot be
     var guest = try harness.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();
 
-    // The honest half is the new coverage: `proof_admission_test.zig` promises
-    // every RV32IM family reaches the backend and proves only MULH, so until
-    // this line nothing proved an `auipc` row end to end. Without it, the
-    // rejection below would also be satisfied by a guest that cannot be proven.
-    try guest.proveAndVerify();
-
     const honest = try honestAuipcRow(&guest);
     const forgery = aliasForgery(&honest);
     // `.prover_constraints` is where the pin lives, so it is the stage to name —
@@ -295,4 +289,12 @@ test "auipc alias: the honest AUIPC proof verifies and the aliased row cannot be
         .logical_row = 0,
         .values = &forgery,
     } }, .prover_constraints);
+
+    // The honest half is the other new coverage: `proof_admission_test.zig`
+    // promises every RV32IM family reaches the backend and proves only MULH,
+    // so until this line nothing proved an `auipc` row end to end. Without it,
+    // the rejection above would also be satisfied by a guest that cannot be
+    // proven. Last because its tail is the Sail agreement check, whose visible
+    // skip on an absent oracle must not cost the rejection half.
+    try guest.proveAndVerify("auipc alias guest (AUIPC x6, pc+0x1000)");
 }

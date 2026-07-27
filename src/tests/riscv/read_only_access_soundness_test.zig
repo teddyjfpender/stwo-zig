@@ -424,12 +424,6 @@ test "read-only access: the honest BEQ proof verifies and neither forged write-b
     var guest = try harness.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();
 
-    // The honest half is the new coverage: before this test nothing in the
-    // repository proved a `branch_eq` row end to end, and without it "the
-    // forgery is rejected" would also hold for a guest that cannot be proven at
-    // all.
-    try guest.proveAndVerify();
-
     // The forged rows are refused before a proof exists, which is the stage a
     // direct-constraint fix lives at and which the control test above shows a
     // merely bus-moving override does *not* reach. It is still not attribution
@@ -440,4 +434,11 @@ test "read-only access: the honest BEQ proof verifies and neither forged write-b
 
     const non_byte = nonByteForgery();
     try guest.expectRejectedAt(.{ .main_row = override(&non_byte) }, .prover_constraints);
+
+    // The honest half is the other new coverage: before this test nothing in
+    // the repository proved a `branch_eq` row end to end, and without it "the
+    // forgery is rejected" would also hold for a guest that cannot be proven
+    // at all. Last because its tail is the Sail agreement check, whose visible
+    // skip on an absent oracle must not cost the two rejections.
+    try guest.proveAndVerify("read-only access guest (BEQ on equal LUIs)");
 }

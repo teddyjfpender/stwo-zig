@@ -97,7 +97,7 @@ pub fn immediate(columns: anytype, index: usize, row: anytype) void {
 const std_probe = @import("std");
 const M31_probe = @import("stwo_core").fields.m31.M31;
 const QM31_probe = @import("stwo_core").fields.qm31.QM31;
-const shifts_imm_semantics = @import("../../air/semantics/shifts_imm.zig");
+const shifts_imm_semantics = @import("../../air/semantics/mod.zig").shifts_imm;
 
 test "shift witness: SLLI by 8 satisfies pinned semantics" {
     const n = shifts_imm_semantics.N_ORACLE_COLUMNS;

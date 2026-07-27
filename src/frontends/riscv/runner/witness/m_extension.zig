@@ -4,9 +4,9 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const mul_semantics = @import("../../air/semantics/mul.zig");
-const mulh_semantics = @import("../../air/semantics/mulh.zig");
-const div_semantics = @import("../../air/semantics/div.zig");
+const mul_semantics = @import("../../air/semantics/mod.zig").mul;
+const mulh_semantics = @import("../../air/semantics/mod.zig").mulh;
+const div_semantics = @import("../../air/semantics/mod.zig").div;
 const Opcode = @import("../decode.zig").Opcode;
 const w = @import("writer.zig");
 

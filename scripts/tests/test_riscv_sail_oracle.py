@@ -41,6 +41,68 @@ def one_retirement_trace(rd_value: int = 1) -> dict:
     }
 
 
+INPUT_WORD_ADDRESS = 0x0018_0000
+INPUT_WORD_VALUE = 0x0403_0201
+
+
+def load_word_trace() -> dict:
+    """LUI x4, 0x180 then LW x5, 0(x4): a load of runner-initialized memory.
+
+    The claimed read value exists nowhere in the injected instruction stream,
+    so Sail can only agree by reading it out of a seeded memory image — the
+    shape of every guest that consumes a public-input word.
+    """
+    entry = equivalence.RVFI_DII_ENTRY
+    def row(order: int, pc: int, instruction: int, rd: int, rd_value: int, **memory):
+        return {
+            "order": order,
+            "pc": pc,
+            "instruction": instruction,
+            "rd": rd,
+            "rd_value": rd_value,
+            "next_pc": pc + 4,
+            "memory": {
+                "address": 0,
+                "read_mask": 0,
+                "read_value": 0,
+                "write_mask": 0,
+                "write_value": 0,
+                **memory,
+            },
+        }
+    final_regs = [0] * 32
+    final_regs[4] = INPUT_WORD_ADDRESS
+    final_regs[5] = INPUT_WORD_VALUE
+    return {
+        "schema": equivalence.TRACE_SCHEMA,
+        "profile": equivalence.PROFILE,
+        "initial_pc": entry,
+        "retirements": [
+            row(0, entry, 0x00180237, 4, INPUT_WORD_ADDRESS),
+            row(
+                1,
+                entry + 4,
+                0x00022283,
+                5,
+                INPUT_WORD_VALUE,
+                address=INPUT_WORD_ADDRESS,
+                read_mask=0xF,
+                read_value=INPUT_WORD_VALUE,
+            ),
+        ],
+        "final_pc": entry + 8,
+        "final_regs": final_regs,
+        "total_steps": 2,
+    }
+
+
+def memory_image(value: int) -> dict:
+    return {
+        "schema": oracle.INITIAL_MEMORY_SCHEMA,
+        "words": [{"address": INPUT_WORD_ADDRESS, "value": value}],
+    }
+
+
 def pinned_workspace_binary() -> Path:
     return oracle.DEFAULT_WORKSPACE / oracle.SAIL_BINARY_IN_WORKSPACE
 
@@ -143,6 +205,33 @@ class VerdictContractTests(unittest.TestCase):
         self.assertEqual(oracle.VERDICT_ERROR, report["verdict"])
         self.assertIn("input artefact rejected", report["reason"])
 
+    def test_malformed_initial_memory_is_error_not_a_silent_unseeded_run(self) -> None:
+        # A rejected image must never degrade into an unseeded comparison:
+        # the caller declared initial memory, so either it is seeded exactly
+        # as declared or the whole check fails as ERROR.
+        resolved = oracle.ResolvedSail(Path("/pinned/sail"), {"model_tag": "t"}, "test")
+        rejected = [
+            '{"schema": "bogus"}',
+            '{"schema": "%s", "words": [{"address": 2, "value": 1}]}'
+            % oracle.INITIAL_MEMORY_SCHEMA,
+            '{"schema": "%s", "words": [{"address": 4, "value": 1, "extra": 2}]}'
+            % oracle.INITIAL_MEMORY_SCHEMA,
+        ]
+        for text in rejected:
+            with tempfile.TemporaryDirectory() as scratch:
+                elf = Path(scratch) / "guest.elf"
+                elf.write_bytes(b"\x7fELF")
+                trace = Path(scratch) / "trace.json"
+                trace.write_text(json.dumps(one_retirement_trace()))
+                memory = Path(scratch) / "memory.json"
+                memory.write_text(text)
+                with mock.patch.object(oracle, "resolve_sail", return_value=resolved):
+                    report = oracle.check_trace_agreement(
+                        elf, trace, memory_path=memory
+                    )
+            self.assertEqual(oracle.VERDICT_ERROR, report["verdict"], text)
+            self.assertIn("input artefact rejected", report["reason"])
+
 
 @unittest.skipUnless(
     pinned_workspace_binary().is_file(),
@@ -175,13 +264,39 @@ class LivePinnedSailTests(unittest.TestCase):
             report["differences"],
         )
 
-    def _check(self, trace_value: dict) -> dict:
+    def test_seeded_load_of_declared_memory_is_equivalent(self) -> None:
+        # Unseeded, the same trace is DIVERGENT (Sail's memory is zeroed), so
+        # equivalence here is evidence the seeding preamble is load-bearing.
+        self.assertEqual(
+            oracle.VERDICT_DIVERGENT, self._check(load_word_trace())["verdict"]
+        )
+        report = self._check(load_word_trace(), memory_image(INPUT_WORD_VALUE))
+        self.assertEqual(oracle.VERDICT_EQUIVALENT, report["verdict"], report)
+        self.assertEqual(1, report["seeded_words"])
+
+    def test_seed_disagreeing_with_the_trace_is_divergent(self) -> None:
+        # Sail reads its *own* seeded memory, never the trace's claims: a
+        # wrong image surfaces as Sail reporting the wrong-image value.
+        report = self._check(load_word_trace(), memory_image(0x0807_0605))
+        self.assertEqual(oracle.VERDICT_DIVERGENT, report["verdict"])
+        self.assertTrue(
+            any("0x08070605" in item for item in report["differences"]),
+            report["differences"],
+        )
+
+    def _check(self, trace_value: dict, memory_value: dict | None = None) -> dict:
         with tempfile.TemporaryDirectory() as scratch:
             elf = Path(scratch) / "guest.elf"
             elf.write_bytes(b"\x7fELF")
             trace = Path(scratch) / "trace.json"
             trace.write_text(json.dumps(trace_value))
-            return oracle.check_trace_agreement(elf, trace, environ={})
+            memory: Path | None = None
+            if memory_value is not None:
+                memory = Path(scratch) / "memory.json"
+                memory.write_text(json.dumps(memory_value))
+            return oracle.check_trace_agreement(
+                elf, trace, environ={}, memory_path=memory
+            )
 
 
 if __name__ == "__main__":

@@ -297,7 +297,7 @@ fn failingConstraints(columns: []const QM31) !u32 {
     // `FIRST_CARRY_CONSTRAINT` shows up as a failed identity rather than as a
     // mask that silently names the wrong constraints.
     try std.testing.expectEqual(semantic_eval.constraintCount(.jalr), evaluation.len);
-    try std.testing.expectEqual(jalr_air.N_CONSTRAINTS + 1, evaluation.len);
+    try std.testing.expectEqual(jalr_air.Semantics(QM31).N_CONSTRAINTS + 1, evaluation.len);
     var mask: u32 = 0;
     for (evaluation.values[0..evaluation.len], 0..) |value, index| {
         if (!value.isZero()) mask |= @as(u32, 1) << @intCast(index);
@@ -503,7 +503,7 @@ test "jalr target: the honest JALR guest proves and verifies" {
     // also be satisfied by a guest that cannot be proven at all.
     var guest = try harness.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();
-    try guest.proveAndVerify();
+    try guest.proveAndVerify("jalr target guest (JALR x7 over one ADDI)");
 }
 
 // Runtime: about thirty seconds — one proof.

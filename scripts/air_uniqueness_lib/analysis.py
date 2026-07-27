@@ -78,12 +78,15 @@ class Renormalisation:
 
     `raw[i]` bounds the defining expression of node `i`; `effective[i]` bounds
     the term its parents receive.  They differ exactly on `representatives`,
-    which maps a node to the signed representatives its field value may take.
+    which maps a node to the signed representatives its field value may take,
+    and on `windows`, which maps a node to the canonical range a live box
+    lookup confines it to.
     """
 
     raw: list[tuple[int, int]]
     effective: list[tuple[int, int]]
     representatives: dict[int, tuple[int, ...]]
+    windows: dict[int, tuple[int, int]]
 
 
 def _signed(value: int) -> int:
@@ -111,29 +114,112 @@ def renormalise(
     carry's field value is 0 or 1, so passing the parent a representative in
     [0, 1] is exact and the width stops compounding.
 
+    The multiplier families spell the same idiom with an 11-bit carry, pinned
+    by a `range_check_8_11` request rather than a `bit` constraint, so the
+    value-set pass above never sees it.  `_live_box_windows` recovers those
+    pins from the requests the constraints force live; a window is a range
+    representative rather than a value set, and it is what keeps MUL's carry
+    chain from compounding through all four limbs.
+
     Exactness: every assertion this encoding makes about a node reads only its
     residue mod p, so substituting a congruent term into any parent changes
     nothing; and the representative exists in every satisfying assignment
-    because the pinning is an implication of the constraints.
+    because the pinning is an implication of the constraints -- for a window,
+    of the constraints plus the table membership they force live.
     """
+    windows = _live_box_windows(system, pins(column_bounds)) if values is None else {}
     if values is None:
         values = constrained_node_values(system, pins(column_bounds))
     raw: list[tuple[int, int]] = []
     effective: list[tuple[int, int]] = []
     representatives: dict[int, tuple[int, ...]] = {}
+    ranged: dict[int, tuple[int, int]] = {}
     for index, node in enumerate(system.nodes):
         span = _interval(node, effective, column_bounds)
         raw.append(span)
         roots = values.get(index)
         reps = tuple(sorted(_signed(root) for root in roots or ()))
+        window = windows.get(index)
         # Leaves are their own representative; a column already carries its
         # implied bounds, and re-deriving them here would only add a quotient.
-        if node.op in LEAF_OPS or not reps or reps[-1] - reps[0] >= span[1] - span[0]:
+        if node.op in LEAF_OPS:
             effective.append(span)
             continue
-        representatives[index] = reps
-        effective.append((reps[0], reps[-1]))
-    return Renormalisation(raw, effective, representatives)
+        span_width = span[1] - span[0]
+        if reps and reps[-1] - reps[0] < span_width and (
+            window is None or reps[-1] - reps[0] <= window
+        ):
+            representatives[index] = reps
+            effective.append((reps[0], reps[-1]))
+            continue
+        if window is not None and window < span_width:
+            ranged[index] = (0, window)
+            effective.append((0, window))
+            continue
+        effective.append(span)
+    return Renormalisation(raw, effective, representatives, ranged)
+
+
+def _live_box_windows(system: System, pinned: Pinned) -> dict[int, int]:
+    """Per node, the top of the canonical range a live box request confines it
+    to: `node -> 2^width - 1` over the components of every box-table lookup
+    whose request fires in all satisfying assignments.
+
+    Narrowing from a lookup is only exact when the request cannot be dodged,
+    which is why liveness is required to be *unconditional* -- proved by row
+    reduction of the constraints, exactly as `_narrow_once` requires before it
+    narrows a bare column.  A conditionally live request narrows nothing here,
+    so a window can never delete a witness the AIR admits.
+    """
+    from . import tables  # Local import keeps ir/analysis free of table policy.
+
+    pivots = solved_forms(system, pinned)
+    forms = linear_forms(system, pinned)
+    windows: dict[int, int] = {}
+    for lookup in system.lookups:
+        widths = tables.box_widths(lookup.domain)
+        if widths is None:
+            continue
+        if not unconditionally_live(system, lookup.numerator, pivots, forms):
+            continue
+        for component, width in zip(lookup.tuple_, widths):
+            top = (1 << width) - 1
+            windows[component] = min(windows.get(component, top), top)
+    return _propagate_windows(system, windows)
+
+
+def _propagate_windows(system: System, windows: dict[int, int]) -> dict[int, int]:
+    """Push a window through `inner * constant` onto `inner` where that is
+    exact: canonical(inner) = canonical(c^-1 * node), and for t = canonical(node)
+    <= top the products c^-1 * t stay below p, so they *are* the canonical
+    values and inner's window is c^-1 * top.
+
+    This is the carry idiom's other half.  The AIR divides by 256 as
+    `* inv(256)`, `inv(256) = 2^23`, so the windowed carry is `mul(sum, 2^23)`
+    and the sum it divides -- the node every parent actually reads -- spans
+    2^23 times the window until this step gives it `256 * top`.  Guarded to
+    small inverses: a c^-1 of field size would put the product past p, where
+    canonical values wrap and the equality above is simply false.
+    """
+    out = dict(windows)
+    for index, top in windows.items():
+        node = system.nodes[index]
+        if node.op != "mul":
+            continue
+        for side in (0, 1):
+            constant = system.nodes[node.args[side]]
+            if constant.op != "const" or constant.value is None:
+                continue
+            value = constant.value % MODULUS
+            if value == 0:
+                continue
+            inverse = pow(value, MODULUS - 2, MODULUS)
+            if inverse * top >= MODULUS:
+                continue
+            inner = node.args[1 - side]
+            bound = inverse * top
+            out[inner] = min(out.get(inner, bound), bound)
+    return out
 
 
 def factors(system: System, node: int) -> list[int]:
@@ -429,6 +515,115 @@ def determined_columns(
     return frozenset(known)
 
 
+def projectable_sinks(
+    system: System, keep: frozenset[str]
+) -> tuple[tuple[int, str], ...]:
+    """Constraints that only define a column nothing else observes, in drop
+    order, as `(constraint position, column)`.
+
+    A single-factor constraint whose expansion is linear in `Z` with a nonzero
+    *constant* coefficient has exactly one solution in `Z` for every value of
+    the other columns.  If no other constraint and no constraining lookup reads
+    `Z`, and `Z` is not in `keep` (the conclusion, the inputs, an assumed
+    prefix), then dropping the constraint is the exact existential projection
+    of `Z` -- the witness set over every observed column is unchanged, in both
+    directions.  The write-back idiom is the shape this exists for: a lemma
+    about `q` drags `rd_next = nonzero * result` along, and that equation adds
+    nothing about `q` while adding four full-field unknowns per copy.
+
+    Iterated to a fixpoint because dropping one definition can orphan the next:
+    `z2 = f(z1)` frees `z1` once `z2`'s definition is gone.  The decoder must
+    re-solve the dropped definitions in *reverse* drop order, so `z1` is back
+    before `f(z1)` is evaluated.
+    """
+    from . import tables  # Local import keeps ir/analysis free of table policy.
+
+    support = column_support(system)
+    lookup_read: set[str] = set()
+    for lookup in system.lookups:
+        if not tables.is_constraining(lookup.domain):
+            continue
+        lookup_read |= support[lookup.numerator]
+        for component in lookup.tuple_:
+            lookup_read |= support[component]
+
+    dropped: list[tuple[int, str]] = []
+    gone: set[int] = set()
+    changed = True
+    while changed:
+        changed = False
+        readers: dict[str, set[int]] = {}
+        for position, root in enumerate(system.constraints):
+            if position in gone:
+                continue
+            for name in support[root]:
+                readers.setdefault(name, set()).add(position)
+        for position, root in enumerate(system.constraints):
+            if position in gone or len(factors(system, root)) != 1:
+                continue
+            for name in sorted(support[root]):
+                if name in keep or name in lookup_read:
+                    continue
+                if readers.get(name) != {position}:
+                    continue
+                if _constant_coefficient(system, root, name):
+                    dropped.append((position, name))
+                    gone.add(position)
+                    changed = True
+                    break
+    return tuple(dropped)
+
+
+def _constant_coefficient(system: System, root: int, name: str) -> int | None:
+    """The coefficient of column `name` in `root`, where `root` is linear in
+    `name` and that coefficient is a field constant; None otherwise.
+
+    The rest of the expression may be any degree -- `rd_next - nonzero * value`
+    is degree two overall and still has coefficient 1 in `rd_next`, which is
+    exactly why `linear_forms` cannot answer this question.
+    """
+    coefficient: list[int | None] = []
+    for index, node in enumerate(system.nodes[: root + 1]):
+        if node.op == "const":
+            coefficient.append(0)
+        elif node.op == "col":
+            coefficient.append(1 if node.name == name else 0)
+        elif node.op == "neg":
+            inner = coefficient[node.args[0]]
+            coefficient.append(None if inner is None else -inner % MODULUS)
+        elif node.op in ("add", "sub"):
+            lhs, rhs = (coefficient[a] for a in node.args)
+            if lhs is None or rhs is None:
+                coefficient.append(None)
+            elif node.op == "add":
+                coefficient.append((lhs + rhs) % MODULUS)
+            else:
+                coefficient.append((lhs - rhs) % MODULUS)
+        else:  # mul: linear only when the side carrying `name` is scaled by a
+            # constant node; anything else makes the coefficient non-constant.
+            lhs, rhs = (coefficient[a] for a in node.args)
+            if lhs == 0 and rhs == 0:
+                coefficient.append(0)
+            elif None in (lhs, rhs) or (lhs != 0 and rhs != 0):
+                coefficient.append(None)
+            else:
+                scale_node, linear = (
+                    (node.args[0], rhs) if lhs == 0 else (node.args[1], lhs)
+                )
+                scale = system.nodes[scale_node]
+                if scale.op == "const":
+                    assert scale.value is not None and linear is not None
+                    coefficient.append(scale.value * linear % MODULUS)
+                elif name in column_support(system)[scale_node]:
+                    coefficient.append(None)
+                else:
+                    # A non-constant scale is fine while the other side is
+                    # `name`-free (coefficient stays 0); with `name` inside,
+                    # the coefficient would be an expression, not a constant.
+                    coefficient.append(None if linear else 0)
+    return coefficient[root] or None
+
+
 def one_hot_selectors(system: System) -> tuple[str, ...]:
     """Input columns the constraints force into exactly-one-of, or ().
 
@@ -464,6 +659,111 @@ def one_hot_selectors(system: System) -> tuple[str, ...]:
 def pins(column_bounds: dict[str, tuple[int, int]]) -> Pinned:
     """The columns an interval map has narrowed to a single value."""
     return {name: lo for name, (lo, hi) in column_bounds.items() if lo == hi}
+
+
+def column_support(system: System) -> list[frozenset[str]]:
+    """Per node, the set of column names its expression reads."""
+    support: list[frozenset[str]] = []
+    for node in system.nodes:
+        if node.op == "col":
+            assert node.name is not None
+            support.append(frozenset({node.name}))
+        elif node.op == "const":
+            support.append(frozenset())
+        else:
+            support.append(frozenset().union(*(support[a] for a in node.args)))
+    return support
+
+
+def eliminable_inverses(system: System) -> dict[int, tuple[int, int, str]]:
+    """Factor nodes of the shape `A*Z - B` whose witness `Z` may be projected
+    out, as `factor -> (A, B, Z)`.
+
+    The AIR's inverse-marker idiom -- `rd_addr * rd_inv = rd_nonzero`,
+    `(r_abs - 256) * r_inv = 1` -- burns one witness column per non-zero test,
+    and each one puts a full-field product into the query per copy.  Where `Z`
+    is read by exactly one factor of exactly one constraint and by no lookup,
+    the witness set projected onto every other column is unchanged by replacing
+    that factor's vanishing with
+
+        exists Z. A*Z = B   <=>   A != 0  or  B = 0        (in F_p)
+
+    which is exact, not an approximation: for A != 0 the solution Z = B/A
+    exists and is unique, for A = 0 the equation forces B = 0, and because
+    nothing else reads Z the existential distributes over the constraint's
+    factor disjunction.  Exactness is directional evidence too -- a projection
+    admits the same witnesses, so it can neither hide a counterexample nor
+    manufacture one.  The decoder still owes the caller a value for `Z`
+    (`Query.eliminated` carries A and B so it can divide); a witness pair
+    missing a column would fail replay against the AIR for a reason that has
+    nothing to do with uniqueness.
+
+    Restricted to witnesses: projecting an input would weaken the hypothesis
+    of the uniqueness theorem, and an output is exactly what the conclusion
+    quantifies over.
+    """
+    support = column_support(system)
+    constraints_reading: dict[str, set[int]] = {}
+    for position, root in enumerate(system.constraints):
+        for name in support[root]:
+            constraints_reading.setdefault(name, set()).add(position)
+    read_by_lookups: set[str] = set()
+    for lookup in system.lookups:
+        read_by_lookups |= support[lookup.numerator]
+        for component in lookup.tuple_:
+            read_by_lookups |= support[component]
+
+    found: dict[int, tuple[int, int, str]] = {}
+    for column in system.columns:
+        name = column.name
+        if column.role != "witness" or name in read_by_lookups:
+            continue
+        positions = constraints_reading.get(name, set())
+        if len(positions) != 1:
+            continue
+        containing = [
+            f
+            for f in factors(system, system.constraints[next(iter(positions))])
+            if name in support[f]
+        ]
+        if len(containing) != 1:
+            continue
+        match = _linear_in(system, support, containing[0], name)
+        if match is not None:
+            found[containing[0]] = (*match, name)
+
+    # A factor whose A or B reads another eliminated witness would leave the
+    # reconstruction order-dependent; no shipped family does this, so the rare
+    # overlap keeps the exact-but-slower spelling instead.
+    names = {name for _, _, name in found.values()}
+    return {
+        f: (a, b, name)
+        for f, (a, b, name) in found.items()
+        if not (support[a] | support[b]) & (names - {name})
+    }
+
+
+def _linear_in(
+    system: System, support: list[frozenset[str]], factor: int, name: str
+) -> tuple[int, int] | None:
+    """Match `factor` as `+/-(A*Z - B)` with `Z` the column `name` appearing
+    only as the multiplicand, returning (A, B).  `bare Z` never reaches here:
+    `factors` would have split it out of any product, and a witness that IS a
+    whole factor pins nothing eliminable."""
+    node = system.nodes[factor]
+    if node.op not in ("add", "sub"):
+        return None
+    for z_side in (0, 1):
+        product = system.nodes[node.args[z_side]]
+        other = node.args[1 - z_side]
+        if product.op != "mul" or name in support[other]:
+            continue
+        for a_side in (0, 1):
+            z_node = system.nodes[product.args[1 - a_side]]
+            a = product.args[a_side]
+            if z_node.op == "col" and z_node.name == name and name not in support[a]:
+                return a, other
+    return None
 
 
 def _narrow_once(

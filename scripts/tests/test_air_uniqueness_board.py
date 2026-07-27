@@ -159,37 +159,58 @@ class EncodingDifferentialTest(unittest.TestCase):
             dropped = system.lookups[:index] + system.lookups[index + 1 :]
             yield f"lookup {index}", replace(system, lookups=dropped)
 
+    def _compare(self, verdicts) -> None:
+        """Require the two encodings to agree wherever both finished.
+
+        A mutant neither finishes is no evidence either way, so it is counted
+        rather than failed -- and the count is asserted against a floor, because
+        a differential that skipped everything would pass while checking
+        nothing.  The floor is well under the observed 30 of 33 so that a slow
+        machine does not turn it red.
+        """
+        agreed = [name for name, (left, right) in verdicts.items() if left == right]
+        disagreed = {
+            name: pair for name, pair in verdicts.items() if pair[0] != pair[1]
+        }
+        self.assertEqual(disagreed, {})
+        self.assertGreaterEqual(
+            len(agreed), 24, f"only {len(agreed)} of {len(verdicts)} mutants decided"
+        )
+
     def test_the_fast_encoding_finds_every_counterexample_the_slow_one_does(
         self,
     ) -> None:
+        verdicts = {}
         for model in self.MODELS:
-            system = ir.load(model)
-            for name, mutant in self._mutants(system):
-                with self.subTest(model=model.stem, deleted=name):
-                    slow = solve.check(
-                        mutant, timeout_ms=TIMEOUT_MS, derived=False
-                    )
-                    fast = solve.check(mutant, timeout_ms=TIMEOUT_MS)
-                    if "unknown" in (slow.status, fast.status):
-                        self.skipTest(f"{name}: out of budget, nothing to compare")
-                    self.assertEqual(slow.status, fast.status)
+            for name, mutant in self._mutants(ir.load(model)):
+                # No vacuity probe: what is being compared is the verdict each
+                # encoding reaches, and the probe doubles the work without
+                # entering the comparison.
+                slow = solve.check(
+                    mutant, timeout_ms=TIMEOUT_MS, derived=False, probe=False
+                )
+                fast = solve.check(mutant, timeout_ms=TIMEOUT_MS, probe=False)
+                if "unknown" not in (slow.status, fast.status):
+                    verdicts[f"{model.stem}/{name}"] = (slow.status, fast.status)
+        self._compare(verdicts)
 
     def test_sharding_agrees_with_the_monolithic_question(self) -> None:
+        verdicts = {}
         for model in self.MODELS:
-            system = ir.load(model)
-            for name, mutant in self._mutants(system):
-                with self.subTest(model=model.stem, deleted=name):
-                    whole = solve.check(mutant, timeout_ms=TIMEOUT_MS)
-                    parts = solve.aggregate(
-                        mutant.family,
-                        [
-                            solve.check(mutant, timeout_ms=TIMEOUT_MS, shard=shard)
-                            for shard in smtlib.plan_shards(mutant, True, True)
-                        ],
-                    )
-                    if "unknown" in (whole.status, parts.status):
-                        self.skipTest(f"{name}: out of budget, nothing to compare")
-                    self.assertEqual(whole.status, parts.status)
+            for name, mutant in self._mutants(ir.load(model)):
+                whole = solve.check(mutant, timeout_ms=TIMEOUT_MS, probe=False)
+                parts = solve.aggregate(
+                    mutant.family,
+                    [
+                        solve.check(
+                            mutant, timeout_ms=TIMEOUT_MS, shard=shard, probe=False
+                        )
+                        for shard in smtlib.plan_shards(mutant, True, True)
+                    ],
+                )
+                if "unknown" not in (whole.status, parts.status):
+                    verdicts[f"{model.stem}/{name}"] = (whole.status, parts.status)
+        self._compare(verdicts)
 
 
 class VacuityReportingTest(unittest.TestCase):
