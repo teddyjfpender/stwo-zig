@@ -26,12 +26,43 @@
 //! - `exhaustive` keeps the original bounds — a prefix of every family's
 //!   materialised rows in every program, byte-swept once per program — so the
 //!   slower sweep remains a faithful superset of what it always probed.
+//!
+//! # Where the honest rows come from
+//!
+//! Two sources, and the difference is what they can reach:
+//!
+//! - the committed ELF vectors below — real programs, which decide selector
+//!   coverage and give the audits long dependent computations; and
+//! - every case of the Sail-derived operand-class corpus
+//!   (`operand_classes.zig`), wrapped by the guest fixture. The measured gap
+//!   this closes: the ELF vectors leave 180 of the 270 enumerated
+//!   (opcode, operand-class) pairs untouched — no zero divisor, no shift at
+//!   the limb-alignment edges or mod-32 wrap, no MULH sign pair, no
+//!   backward-taken branch outside `beq`, no byte-lane spread — so the
+//!   rigidity probes were auditing rows whose operand structure a prover
+//!   controls completely. Each class guest carries one distinguished row
+//!   (its instruction under test); the sampler takes that row regardless of
+//!   quota, the way it already takes novel selectors, because representing
+//!   every class the corpus executes is the point of executing them.
+//!
+//! Class guests take the per-selector sweep policy under BOTH profiles: the
+//! exhaustive profile's per-program sweep exists to stay a superset of what
+//! it historically probed, and the class guests are new, so selector-bounded
+//! sweeps add their coverage without multiplying the exhaustive tier's cost
+//! by three hundred programs.
+//!
+//! The two `KNOWN_COMPLETENESS_REJECTIONS` cases are excluded here: their
+//! under-test rows are honest AND inadmissible (the finding), and this
+//! module's contract is that honest rows are admissible. The sweep test
+//! keeps asserting they still fail.
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const test_options = @import("test_options");
 
+const guest_elf = @import("guest_elf_fixture.zig");
 const layout = @import("committed_row_layout.zig");
+const operand_classes = @import("operand_classes.zig");
 const oracle = @import("row_admissibility.zig");
 const isa_decode = @import("../../frontends/riscv/isa/decode.zig");
 const runner = @import("../../frontends/riscv/runner/mod.zig");
@@ -139,6 +170,34 @@ pub const CORPUS = [_][]const u8{
 /// The longest corpus program, `multi_shard_addi.elf`, runs 131 078 steps.
 const MAX_STEPS: usize = 200_000;
 
+/// The operand-class guests, minus the known completeness rejections whose
+/// honest under-test rows the AIR refuses (see the header).
+pub const CLASS_GUESTS = blk: {
+    // ~300 cases x string comparison exceeds the default comptime budget.
+    @setEvalBranchQuota(200_000);
+    var kept: [operand_classes.all.len]operand_classes.Case = undefined;
+    var count: usize = 0;
+    for (operand_classes.all) |case| {
+        if (operand_classes.isKnownCompletenessRejection(case.name)) continue;
+        kept[count] = case;
+        count += 1;
+    }
+    const frozen = kept;
+    break :blk frozen[0..count].*;
+};
+
+/// Total corpus programs: the ELF vectors then every class guest, in that
+/// order, so `Sample.program` keeps indexing one flat list.
+pub const N_PROGRAMS: usize = CORPUS.len + CLASS_GUESTS.len;
+
+/// Diagnostic name of corpus program `index`.
+pub fn programName(index: usize) []const u8 {
+    return if (index < CORPUS.len)
+        CORPUS[index]
+    else
+        CLASS_GUESTS[index - CORPUS.len].name;
+}
+
 // ---------------------------------------------------------------------------
 // Work accounting
 // ---------------------------------------------------------------------------
@@ -206,6 +265,10 @@ pub const FamilyStats = struct {
     /// Committed columns of the family, zero when the corpus never runs it.
     width: usize = 0,
     sampled: usize = 0,
+    /// Sampled rows contributed by operand-class guests: the audit power
+    /// added by Sail-chosen operands, printed so a class regression (the
+    /// column falling to zero) is visible in the log.
+    from_classes: usize = 0,
     /// Rows of this family across the whole corpus, before any sampling.
     corpus_rows: usize = 0,
 };
@@ -215,12 +278,13 @@ pub const Corpus = struct {
     stats: [trace_mod.N_FAMILIES]FamilyStats,
 
     pub fn report(self: *const Corpus) void {
-        std.debug.print("\n  family         cols  sampled  corpus rows\n", .{});
+        std.debug.print("\n  family         cols  sampled  of which class  corpus rows\n", .{});
         for (self.stats, 0..) |stat, index| {
-            std.debug.print("  {s: <14} {d: >4}  {d: >7}  {d: >11}\n", .{
+            std.debug.print("  {s: <14} {d: >4}  {d: >7}  {d: >14}  {d: >11}\n", .{
                 @tagName(@as(OpcodeFamily, @enumFromInt(index))),
                 stat.width,
                 stat.sampled,
+                stat.from_classes,
                 stat.corpus_rows,
             });
         }
@@ -251,7 +315,7 @@ fn build() !Corpus {
 
     // Both arrays are populated before either phase runs so that their cleanup
     // is registered over initialised memory, whichever phase fails.
-    const programs = try allocator.alloc(Program, CORPUS.len);
+    const programs = try allocator.alloc(Program, N_PROGRAMS);
     for (programs) |*program| program.* = .{ .allocator = allocator };
     defer {
         for (programs) |*program| program.deinit();
@@ -284,6 +348,7 @@ fn collect(allocator: std.mem.Allocator, samplers: []const FamilySampler) !Corpu
         stat.* = .{
             .width = sampler.width,
             .sampled = sampler.samples.items.len,
+            .from_classes = sampler.from_classes,
             .corpus_rows = sampler.corpus_rows,
         };
     }
@@ -295,11 +360,14 @@ fn collect(allocator: std.mem.Allocator, samplers: []const FamilySampler) !Corpu
 // ---------------------------------------------------------------------------
 
 /// One executed corpus program. `elf` is owned; `run` owns the trace.
+/// A non-null `distinguished_pc` marks an operand-class guest and names the
+/// retirement its class is about.
 const Program = struct {
     allocator: std.mem.Allocator,
     elf: []u8 = &.{},
     run: ?runner.RunResult = null,
     failure: ?anyerror = null,
+    distinguished_pc: ?u32 = null,
 
     fn deinit(self: *Program) void {
         if (self.run) |*run| run.deinit();
@@ -314,11 +382,19 @@ fn executeCorpus(
     programs: []Program,
 ) !void {
     var wait_group: std.Thread.WaitGroup = .{};
-    for (CORPUS, programs) |path, *program| {
+    for (CORPUS, programs[0..CORPUS.len]) |path, *program| {
         pool.spawnWg(&wait_group, executeProgram, .{ allocator, path, program });
     }
+    for (&CLASS_GUESTS, programs[CORPUS.len..]) |*case, *program| {
+        pool.spawnWg(&wait_group, executeClassGuest, .{ allocator, case, program });
+    }
     pool.waitAndWork(&wait_group);
-    for (programs) |program| if (program.failure) |err| return err;
+    for (programs, 0..) |program, index| {
+        if (program.failure) |err| {
+            std.debug.print("  corpus program failed: {s}\n", .{programName(index)});
+            return err;
+        }
+    }
 }
 
 fn executeProgram(allocator: std.mem.Allocator, path: []const u8, out: *Program) void {
@@ -328,6 +404,27 @@ fn executeProgram(allocator: std.mem.Allocator, path: []const u8, out: *Program)
     };
     if (runner.runWithInput(allocator, out.elf, &.{}, MAX_STEPS)) |run| {
         out.run = run;
+    } else |err| {
+        out.failure = err;
+    }
+}
+
+fn executeClassGuest(
+    allocator: std.mem.Allocator,
+    case: *const operand_classes.Case,
+    out: *Program,
+) void {
+    const spec = guest_elf.Spec{ .body = case.body };
+    out.distinguished_pc = guest_elf.bodyPc(case.under_test);
+    out.elf = guest_elf.build(allocator, spec) catch |err| {
+        out.failure = err;
+        return;
+    };
+    if (runner.runWithInput(allocator, out.elf, &guest_elf.INPUT, guest_elf.maxSteps(spec))) |run| {
+        out.run = run;
+        // A guest that stopped any other way retired a different program
+        // than the corpus case describes.
+        if (run.completion_reason != .halt_flag) out.failure = error.ClassGuestDidNotHalt;
     } else |err| {
         out.failure = err;
     }
@@ -343,6 +440,7 @@ const FamilySampler = struct {
     family: OpcodeFamily = undefined,
     width: usize = 0,
     corpus_rows: usize = 0,
+    from_classes: usize = 0,
     seen_selector: [layout.MAX_SELECTORS]bool = .{false} ** layout.MAX_SELECTORS,
     swept_selector: [layout.MAX_SELECTORS]bool = .{false} ** layout.MAX_SELECTORS,
     samples: std.ArrayList(Sample) = .{},
@@ -418,6 +516,11 @@ fn sampleProgram(
     while (rows.next(sample.columns[0..columns.n_columns])) |trace_row| : (position += 1) {
         const selector = selectorIndex(sampler.family, trace_row.opcode);
         const novel = !sampler.seen_selector[selector];
+        // The distinguished row of a class guest is the operand-class
+        // witness the guest exists to contribute; it bypasses the quota the
+        // way novel selectors do, because "every executed class is
+        // represented" is the property the class corpus was added for.
+        const distinguished = program.distinguished_pc == trace_row.pc;
         const on_quota = taken < PROFILE.rows_per_program and
             position % stride == 0 and
             sampler.samples.items.len < PROFILE.rows_per_family;
@@ -425,21 +528,27 @@ fn sampleProgram(
         // selector this family has not shown yet. "Every executed selector is
         // represented" is the property the fast profile trades row count for,
         // so it has to be structural rather than a coincidence of the cap.
-        if (!novel and !on_quota) continue;
+        if (!novel and !distinguished and !on_quota) continue;
 
         // An honest row the row-local oracle rejects is a witness generator
         // bug, not a row to skip. Decided once here so the three properties do
         // not each re-decide it.
         if (!try budget.accepts(sampler.family, sample.columns[0..columns.n_columns])) {
-            reportHonestReject(CORPUS[index], sampler.family, trace_row);
+            reportHonestReject(programName(index), sampler.family, trace_row);
             return error.HonestRowRejected;
         }
-        sample.sweep = switch (PROFILE.sweep) {
+        sample.sweep = if (program.distinguished_pc != null)
+            // Class guests sweep per selector under both profiles: see the
+            // header for why the exhaustive per-program policy is not
+            // extended to three hundred new programs.
+            !sampler.swept_selector[selector]
+        else switch (PROFILE.sweep) {
             .first_row_per_program => taken == 0,
             .first_row_per_selector => !sampler.swept_selector[selector],
         };
         sample.trace_row = trace_row;
         try sampler.samples.append(allocator, sample);
+        if (program.distinguished_pc != null) sampler.from_classes += 1;
         sampler.seen_selector[selector] = true;
         if (sample.sweep) sampler.swept_selector[selector] = true;
         taken += 1;
