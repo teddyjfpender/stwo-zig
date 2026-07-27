@@ -1,4 +1,19 @@
-//! Every RV32IM proof family must reach the selected backend.
+//! The RISC-V prover routes commitment and proving through the injected engine,
+//! so a backend substitution cannot be silently bypassed.
+//!
+//! `CountingEngine` wraps `CpuProverEngine` and counts the calls the frontend
+//! makes; the assertions are one `init`, three `commit`s, and one `prove`. Three
+//! commits is the tree count the RISC-V schema fixes (preprocessed, main,
+//! interaction), so a stage that quietly proved against a different scheme would
+//! move a counter.
+//!
+//! Coverage, stated exactly, because the file name reads wider than it is. Two
+//! hand-built traces are proven: a four-row `base_alu_imm` run and a one-row
+//! `mulh` run. The other fifteen opcode families in
+//! `air/component_order.zig` are not reached here, no proof is verified, and no
+//! witness is mutated. Per-family committed-trace coverage lives in the
+//! `*_soundness_test.zig` modules and is still partial; the family-by-family
+//! accounting and the remaining gaps are in `soundness/ROADMAP.md`.
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");

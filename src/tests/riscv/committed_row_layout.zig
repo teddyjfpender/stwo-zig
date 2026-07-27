@@ -68,6 +68,25 @@ pub fn nextLimbColumn(family: OpcodeFamily, slot: usize, limb: usize) usize {
     return accessOffset(family, slot) + 6 + limb;
 }
 
+/// Column index of the named field of `family`'s committed layout struct.
+///
+/// The accessors above cover the objects every family shares. A family's own
+/// witness columns — `div`'s `q_*`, `r_abs_*`, `lt_diff` and inverses — have no
+/// such accessor, and their only map is the layout struct's field order, which
+/// `selectorLayout` already relies on and which the test below binds to the
+/// AIR's own `clockColumn` and `pcColumn` for every family. Addressing them by
+/// name rather than by a literal means a renamed or reordered column is a
+/// compile error instead of a probe silently landing on its neighbour.
+pub fn columnOf(comptime family: OpcodeFamily, comptime name: []const u8) usize {
+    return comptime found: {
+        for (@typeInfo(LayoutFor(family)).@"struct".fields, 0..) |field, index| {
+            if (std.mem.eql(u8, field.name, name)) break :found index;
+        }
+        @compileError("no committed column named '" ++ name ++ "' in " ++
+            @typeName(LayoutFor(family)));
+    };
+}
+
 /// The slot whose `next` is pinned to the row's computed result rather than to
 /// its own `previous`, or null when the family writes nothing. Mirrors
 /// `opcode_memory.accessKind`: slot 0 is `rd` for every writing family and
@@ -143,6 +162,33 @@ fn selectorLayout(comptime family: OpcodeFamily) SelectorLayout {
     var result = SelectorLayout{ .base = base, .len = len };
     for (opcodes, 0..) |opcode, index| result.opcodes[index] = opcode;
     return result;
+}
+
+test "committed row layout: named columns agree with the AIR's own accessors" {
+    // `columnOf` is only sound if the layout struct's field order is the
+    // committed column order. The AIR states that order independently for the
+    // two columns every family has, so agreeing with both on all seventeen
+    // families is the derivation check, not an assumption.
+    inline for (0..trace_mod.N_FAMILIES) |index| {
+        const family: OpcodeFamily = @enumFromInt(index);
+        try std.testing.expectEqual(
+            semantic_eval.clockColumn(family),
+            columnOf(family, "clock"),
+        );
+        try std.testing.expectEqual(semantic_eval.pcColumn(family), columnOf(family, "pc"));
+    }
+    // The access-block arithmetic and the selector scan must land on the same
+    // columns the field names do.
+    try std.testing.expectEqual(
+        previousLimbColumn(.div, 2, 0),
+        columnOf(.div, "rs2_prev_0"),
+    );
+    try std.testing.expectEqual(nextLimbColumn(.div, 2, 3), columnOf(.div, "rs2_next_3"));
+    const div_selectors = SELECTORS[@intFromEnum(OpcodeFamily.div)];
+    try std.testing.expectEqual(
+        div_selectors.column(div_selectors.indexOf(.DIVU).?),
+        columnOf(.div, "opcode_divu_flag"),
+    );
 }
 
 test "committed row layout: every selector column lies inside its family" {

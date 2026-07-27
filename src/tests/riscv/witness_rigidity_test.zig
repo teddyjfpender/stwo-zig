@@ -6,7 +6,8 @@
 //! — direct constraints AND preprocessed lookup membership, because several
 //! bindings exist only as lookup requests. Column indices come from
 //! `committed_row_layout`, which derives them from the committed layout structs
-//! rather than repeating them here.
+//! rather than repeating them here. The honest rows, the profile that bounds
+//! them and the evaluation budget that prices them come from `rigidity_corpus`.
 //!
 //! 1. OBSERVABILITY. Perturbing a committed column of an honest row must move
 //!    the constraint vector or some emitted relation tuple. Accumulated across
@@ -29,18 +30,19 @@
 //!    AIR bugs all violated, and neither 1 nor 2 can see it — `previous` and
 //!    `next` are each individually observable, and the selector is untouched.
 //!
-//! Bounds, honestly stated. `LOG_ROWS` rows are materialised per family per
-//! program and at most `ROWS_PER_PROGRAM` honest rows are probed. Property 3
-//! runs an exhaustive sweep over the byte domain of each `next` limb on the
-//! first honest row of each family in each program, which decides determinacy
-//! over that domain, and a `DELTAS` sweep on the remaining rows, which only
-//! shows the probed perturbations move. Neither tier proves rigidity over all
-//! of M31.
+//! Bounds, honestly stated. Rows swept exhaustively over the byte domain of
+//! each `next` limb decide determinacy over that domain; every other probe is
+//! a `DELTAS` sweep, which only shows the probed perturbations move. Neither
+//! tier proves rigidity over all of M31, and neither profile probes every
+//! honest row of the corpus.
 //!
-//! Cost: 8.9 s wall for the four tests in a Debug build on an Apple M5 Max,
-//! dominated by executing the 20-program corpus once per property. Raising
-//! `ROWS_PER_PROGRAM` or making the byte sweep unconditional is what turns this
-//! into a slow gate, so both are constants here.
+//! Cost, measured in a Debug build on an 18-core Apple M5 Max, warm cache:
+//! 0.4 s wall / 1.8 s CPU for the four tests under the default `fast` profile
+//! and 0.5 s / 3.1 s under `exhaustive`, against 8.7 s / 7.9 s for the
+//! single-threaded prefix sweep these profiles replaced. Each property prints
+//! the admissibility evaluations it actually spent next to its ceiling, so a
+//! probe that starts costing more says so instead of quietly slowing the gate.
+//! `zig build test-riscv-rigidity` runs the exhaustive profile on its own.
 //!
 //! `DEAD_COLUMNS` records the one finding that is real but not a soundness
 //! failure, with its cause, instead of deleting the check that reports it.
@@ -50,60 +52,21 @@ const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
+const corpus_mod = @import("rigidity_corpus.zig");
 const layout = @import("committed_row_layout.zig");
-const oracle = @import("row_admissibility.zig");
 const opcode_memory = @import("../../frontends/riscv/air/opcode_memory.zig");
 const runner = @import("../../frontends/riscv/runner/mod.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
 const execute_mod = @import("../../frontends/riscv/runner/execute.zig");
 const isa_decode = @import("../../frontends/riscv/isa/decode.zig");
 
+const Budget = corpus_mod.Budget;
 const OpcodeFamily = trace_mod.OpcodeFamily;
-const TraceRow = trace_mod.TraceRow;
 const Opcode = isa_decode.Opcode;
+const PROFILE = corpus_mod.PROFILE;
+const Sample = corpus_mod.Sample;
+const TraceRow = trace_mod.TraceRow;
 const RowBuffer = [trace_mod.MAX_FAMILY_COLUMNS]QM31;
-
-// ---------------------------------------------------------------------------
-// Corpus and probe budget
-// ---------------------------------------------------------------------------
-
-/// Every committed RV32IM ELF the runner executes within `MAX_STEPS`. The three
-/// vendored cryptographic guests are included deliberately: they are the only
-/// programs in the tree that reach `auipc`, `jalr` with a non-`x0` destination,
-/// or `mul` more than once. `crypto/ecdsa.elf` is excluded because it does not
-/// terminate within `MAX_STEPS`.
-const CORPUS = [_][]const u8{
-    "vectors/riscv_elfs/shift_logic.elf",
-    "vectors/riscv_elfs/mem_ls.elf",
-    "vectors/riscv_elfs/mul_div.elf",
-    "vectors/riscv_elfs/alu_test.elf",
-    "vectors/riscv_elfs/branch_fib.elf",
-    "vectors/riscv_elfs/jal_jalr.elf",
-    "vectors/riscv_elfs/mulhu_only.elf",
-    "vectors/riscv_elfs/memcpy_loop.elf",
-    "vectors/riscv_elfs/bubble_sort.elf",
-    "vectors/riscv_elfs/sieve_primes.elf",
-    "vectors/riscv_elfs/gcd_euclid.elf",
-    "vectors/riscv_elfs/collatz.elf",
-    "vectors/riscv_elfs/xorshift_prng.elf",
-    "vectors/riscv_elfs/fib_iter.elf",
-    "vectors/riscv_elfs/fence.elf",
-    "vectors/riscv_elfs/declared_region.elf",
-    "vectors/riscv_elfs/multi_shard_addi.elf",
-    "vectors/riscv_elfs/crypto/sha2_input.elf",
-    "vectors/riscv_elfs/crypto/keccak_input.elf",
-    "vectors/riscv_elfs/crypto/poseidon2_m31.elf",
-};
-
-/// The longest corpus program, `multi_shard_addi.elf`, runs 131 078 steps.
-const MAX_STEPS: usize = 200_000;
-
-/// Committed rows materialised per family per program. 2^10 covers every family
-/// of every small program completely and samples the hot families.
-const LOG_ROWS: u32 = 10;
-
-/// Honest rows probed per family per program.
-const ROWS_PER_PROGRAM: usize = 64;
 
 /// Perturbations for the cheap probe tier. `1` and `2` leave any `{0, 1}`
 /// encoding, `128` flips the sign bit of a byte limb, `255` leaves the byte
@@ -134,61 +97,6 @@ fn isKnownDead(family: OpcodeFamily, column: usize) bool {
     }
     return false;
 }
-
-// ---------------------------------------------------------------------------
-// Corpus access
-// ---------------------------------------------------------------------------
-
-/// One executed corpus program. `elf` is owned; `run` owns the trace.
-const Program = struct {
-    allocator: std.mem.Allocator,
-    elf: []u8,
-    run: runner.RunResult,
-
-    fn load(allocator: std.mem.Allocator, path: []const u8) !Program {
-        const elf = try std.fs.cwd().readFileAlloc(allocator, path, 16 << 20);
-        errdefer allocator.free(elf);
-        const run = try runner.runWithInput(allocator, elf, &.{}, MAX_STEPS);
-        return .{ .allocator = allocator, .elf = elf, .run = run };
-    }
-
-    fn deinit(self: *Program) void {
-        self.run.deinit();
-        self.allocator.free(self.elf);
-        self.* = undefined;
-    }
-};
-
-/// Pairs each committed row with the trace row that produced it.
-///
-/// `Trace.columnsForFamily` fills family rows in execution order, so the k-th
-/// real committed row is the k-th trace row of that family. The trace row
-/// carries the architectural operands the reference semantics need; the
-/// committed row carries the columns the AIR sees.
-const FamilyRows = struct {
-    rows: []const TraceRow,
-    columns: *const trace_mod.TraceColumns,
-    family: OpcodeFamily,
-    cursor: usize = 0,
-    emitted: usize = 0,
-
-    /// Writes the next committed row into `out` and returns its trace row, or
-    /// null once the materialised rows are exhausted. `out` is borrowed.
-    fn next(self: *FamilyRows, out: []QM31) ?TraceRow {
-        while (self.cursor < self.rows.len and self.emitted < self.columns.n_real_rows) {
-            const row = self.rows[self.cursor];
-            self.cursor += 1;
-            const family = trace_mod.proofOpcodeFamily(row.opcode) catch continue;
-            if (family != self.family) continue;
-            for (out, self.columns.columns[0..self.columns.n_columns]) |*value, column| {
-                value.* = QM31.fromBase(column[self.emitted]);
-            }
-            self.emitted += 1;
-            return row;
-        }
-        return null;
-    }
-};
 
 // ---------------------------------------------------------------------------
 // Reference architectural effect
@@ -243,79 +151,36 @@ fn sameOperandRoles(lhs: Opcode, rhs: Opcode) bool {
 // ---------------------------------------------------------------------------
 
 test "witness rigidity: every committed column is observable somewhere" {
-    const allocator = std.testing.allocator;
+    const corpus = try corpus_mod.shared();
+    var budget = Budget{ .label = "observability", .cap = PROFILE.observability_budget };
 
     var observable = [_][trace_mod.MAX_FAMILY_COLUMNS]bool{
         [_]bool{false} ** trace_mod.MAX_FAMILY_COLUMNS,
     } ** trace_mod.N_FAMILIES;
-    var widths = [_]usize{0} ** trace_mod.N_FAMILIES;
-    var probed = [_]usize{0} ** trace_mod.N_FAMILIES;
-    var corpus_rows = [_]usize{0} ** trace_mod.N_FAMILIES;
 
-    for (CORPUS) |path| {
-        var program = try Program.load(allocator, path);
-        defer program.deinit();
-        const rows = program.run.execution_trace.rows.items;
-        for (rows) |row| {
-            const family = trace_mod.proofOpcodeFamily(row.opcode) catch continue;
-            corpus_rows[@intFromEnum(family)] += 1;
-        }
-
-        for (0..trace_mod.N_FAMILIES) |family_index| {
-            const family: OpcodeFamily = @enumFromInt(family_index);
-            var columns = try program.run.execution_trace
-                .columnsForFamily(allocator, family, LOG_ROWS);
-            defer columns.deinit(allocator);
-            if (columns.n_real_rows == 0) continue;
-            widths[family_index] = columns.n_columns;
-
-            var honest: RowBuffer = undefined;
-            var probe: RowBuffer = undefined;
-            var iterator = FamilyRows{ .rows = rows, .columns = &columns, .family = family };
-            const view = honest[0..columns.n_columns];
-            const probe_view = probe[0..columns.n_columns];
-            var visited: usize = 0;
-            while (iterator.next(view)) |trace_row| {
-                if (visited == ROWS_PER_PROGRAM) break;
-                // An honest row that the row-local oracle rejects is a witness
-                // generator bug, not a row to skip.
-                const accepted = try oracle.accepts(family, view);
-                if (!accepted) {
-                    std.debug.print(
-                        "  HONEST REJECT path={s} family={s} pc=0x{x} rs1=0x{x} imm={d} next_pc=0x{x}\n",
-                        .{
-                            path,
-                            @tagName(family),
-                            trace_row.pc,
-                            trace_row.rs1_val,
-                            trace_row.imm,
-                            trace_row.next_pc,
-                        },
-                    );
-                }
-                try std.testing.expect(accepted);
-                visited += 1;
-                probed[family_index] += 1;
-                try markObservable(family, view, probe_view, &observable[family_index]);
-            }
-        }
+    // Sequential and in corpus order: observability accumulates, so which rows
+    // do work depends on which columns earlier rows already marked, and only a
+    // fixed traversal makes the realised evaluation count reproducible.
+    var probe: RowBuffer = undefined;
+    for (corpus.samples) |*sample| {
+        const family_index = @intFromEnum(sample.family);
+        if (settledObservable(&observable[family_index], sample.family, sample.width)) continue;
+        try markObservable(
+            &budget,
+            sample,
+            probe[0..sample.width],
+            &observable[family_index],
+        );
     }
 
-    std.debug.print("\n  family         cols  probed  corpus rows\n", .{});
-    for (0..trace_mod.N_FAMILIES) |family_index| {
-        std.debug.print("  {s: <14} {d: >4}  {d: >6}  {d: >11}\n", .{
-            @tagName(@as(OpcodeFamily, @enumFromInt(family_index))),
-            widths[family_index],
-            probed[family_index],
-            corpus_rows[family_index],
-        });
-    }
+    corpus.report();
+    budget.report();
 
     var unobservable: usize = 0;
-    for (0..trace_mod.N_FAMILIES) |family_index| {
+    for (corpus.stats, 0..) |stat, family_index| {
         const family: OpcodeFamily = @enumFromInt(family_index);
-        try std.testing.expect(probed[family_index] > 0);
-        for (0..widths[family_index]) |column| {
+        try std.testing.expect(stat.sampled > 0);
+        for (0..stat.width) |column| {
             if (observable[family_index][column]) continue;
             if (isKnownDead(family, column)) continue;
             unobservable += 1;
@@ -333,24 +198,40 @@ test "witness rigidity: every committed column is observable somewhere" {
     try std.testing.expectEqual(@as(usize, 0), unobservable);
 }
 
-/// Mark every column of `honest` that some delta makes visible, either by
+/// True once every column of the family that this suite can mark is marked, so
+/// no later row of it can do anything but re-confirm. Skipping there is what
+/// keeps the cost proportional to the AIR rather than to the corpus.
+fn settledObservable(
+    observable: *const [trace_mod.MAX_FAMILY_COLUMNS]bool,
+    family: OpcodeFamily,
+    width: usize,
+) bool {
+    for (0..width) |column| {
+        if (!observable[column] and !isKnownDead(family, column)) return false;
+    }
+    return true;
+}
+
+/// Mark every column of `sample` that some delta makes visible, either by
 /// breaking admissibility or by moving the emitted relation tuples. Columns
 /// already marked by an earlier row are skipped: observability accumulates.
-/// `probe` is borrowed scratch of the same width as `honest`.
+/// `probe` is borrowed scratch of the same width as the sample.
 fn markObservable(
-    family: OpcodeFamily,
-    honest: []const QM31,
+    budget: *Budget,
+    sample: *const Sample,
     probe: []QM31,
     observable: *[trace_mod.MAX_FAMILY_COLUMNS]bool,
 ) !void {
-    const base_entries = try oracle.fingerprint(family, honest);
+    const honest = sample.view();
+    // One honest fingerprint for the whole row rather than one per delta.
+    const base_entries = try budget.fingerprint(sample.family, honest);
     for (0..honest.len) |column| {
         if (observable[column]) continue;
         for (DELTAS) |delta| {
             @memcpy(probe, honest);
             probe[column] = probe[column].add(QM31.fromBase(M31.fromCanonical(delta)));
-            if (!try oracle.accepts(family, probe) or
-                try oracle.fingerprint(family, probe) != base_entries)
+            if (!try budget.accepts(sample.family, probe) or
+                try budget.fingerprint(sample.family, probe) != base_entries)
             {
                 observable[column] = true;
                 break;
@@ -379,6 +260,7 @@ const Confusion = struct {
 const SelectorAudit = struct {
     allocator: std.mem.Allocator,
     memory: *runner.Memory,
+    budget: *Budget,
     confusions: std.ArrayList(Confusion) = .{},
     settled: [trace_mod.N_FAMILIES][layout.MAX_SELECTORS][layout.MAX_SELECTORS]bool =
         .{.{.{false} ** layout.MAX_SELECTORS} ** layout.MAX_SELECTORS} ** trace_mod.N_FAMILIES,
@@ -394,16 +276,12 @@ const SelectorAudit = struct {
 
     /// Relabel one honest row into every other selector of its family whose
     /// architectural effect on these operands differs, and record acceptance.
-    /// `probe` is borrowed scratch of the same width as `honest`.
-    fn probeRow(
-        self: *SelectorAudit,
-        family: OpcodeFamily,
-        row: TraceRow,
-        honest: []const QM31,
-        probe: []QM31,
-    ) !void {
-        const family_index = @intFromEnum(family);
+    /// `probe` is borrowed scratch of the same width as the sample.
+    fn probeRow(self: *SelectorAudit, sample: *const Sample, probe: []QM31) !void {
+        const family_index = @intFromEnum(sample.family);
         const selectors = layout.SELECTORS[family_index];
+        const row = sample.trace_row;
+        const honest = sample.view();
         const from = selectors.indexOf(row.opcode) orelse
             return error.UnmappedOpcodeSelector;
         self.executed[family_index][from] = true;
@@ -435,9 +313,9 @@ const SelectorAudit = struct {
             probe[selectors.column(to)] = QM31.one();
             self.discriminating += 1;
             self.settled[family_index][from][to] = true;
-            if (try oracle.accepts(family, probe)) {
+            if (try self.budget.accepts(sample.family, probe)) {
                 try self.confusions.append(self.allocator, .{
-                    .family = family,
+                    .family = sample.family,
                     .from = row.opcode,
                     .to = to_opcode,
                 });
@@ -451,8 +329,8 @@ const SelectorAudit = struct {
     /// Reported, not failed — the fix is a corpus program, not an AIR change.
     fn report(self: *const SelectorAudit) void {
         std.debug.print(
-            "\n  selector relabellings: {d} discriminating, {d} architecturally identical\n",
-            .{ self.discriminating, self.identical },
+            "  [{s}] selector relabellings: {d} discriminating, {d} architecturally identical\n",
+            .{ PROFILE.name, self.discriminating, self.identical },
         );
         for (self.confusions.items) |item| {
             std.debug.print("  INDISTINGUISHABLE {s}: {s} -> {s}\n", .{
@@ -479,42 +357,22 @@ const SelectorAudit = struct {
 
 test "witness rigidity: opcode selectors are not interchangeable" {
     const allocator = std.testing.allocator;
+    const corpus = try corpus_mod.shared();
+    var budget = Budget{ .label = "selector rigidity", .cap = PROFILE.selector_budget };
     var memory = runner.Memory.init(allocator);
     defer memory.deinit();
-    var audit = SelectorAudit{ .allocator = allocator, .memory = &memory };
+    var audit = SelectorAudit{ .allocator = allocator, .memory = &memory, .budget = &budget };
     defer audit.deinit();
 
-    for (CORPUS) |path| {
-        var program = try Program.load(allocator, path);
-        defer program.deinit();
-        const rows = program.run.execution_trace.rows.items;
-
-        for (0..trace_mod.N_FAMILIES) |family_index| {
-            const family: OpcodeFamily = @enumFromInt(family_index);
-            if (layout.SELECTORS[family_index].len < 2) continue;
-            var columns = try program.run.execution_trace
-                .columnsForFamily(allocator, family, LOG_ROWS);
-            defer columns.deinit(allocator);
-            if (columns.n_real_rows == 0) continue;
-
-            var honest: RowBuffer = undefined;
-            var probe: RowBuffer = undefined;
-            var iterator = FamilyRows{ .rows = rows, .columns = &columns, .family = family };
-            const view = honest[0..columns.n_columns];
-            const probe_view = probe[0..columns.n_columns];
-            var visited: usize = 0;
-            while (iterator.next(view)) |row| {
-                if (visited == ROWS_PER_PROGRAM) break;
-                // An honest row the row-local oracle rejects is a witness
-                // generator bug, not a row to skip.
-                try std.testing.expect(try oracle.accepts(family, view));
-                visited += 1;
-                try audit.probeRow(family, row, view, probe_view);
-            }
-        }
+    // Sequential for the same reason as observability: `settled` accumulates.
+    var probe: RowBuffer = undefined;
+    for (corpus.samples) |*sample| {
+        if (layout.SELECTORS[@intFromEnum(sample.family)].len < 2) continue;
+        try audit.probeRow(sample, probe[0..sample.width]);
     }
 
     audit.report();
+    budget.report();
     try std.testing.expectEqual(@as(usize, 0), audit.confusions.items.len);
     try std.testing.expect(audit.discriminating > 0);
 }
@@ -532,66 +390,78 @@ const Indeterminacy = struct {
     exhaustive: bool,
 };
 
+/// One sampled row's share of the determinacy sweep. The rows are independent
+/// and their costs differ by two orders of magnitude — a byte-swept
+/// `load_store` row is 3072 evaluations, a delta-probed `fence` row is none —
+/// so one task per row is what keeps the pool balanced. Nothing here is shared
+/// with another task except the atomic budget, so the work set, and therefore
+/// the realised evaluation count, does not depend on scheduling.
+const DeterminacyTask = struct {
+    sample: *const Sample,
+    budget: *Budget,
+    allocator: std.mem.Allocator,
+    failures: std.ArrayList(Indeterminacy) = .{},
+    failure: ?anyerror = null,
+};
+
 test "witness rigidity: every committed access emits a determined value" {
     const allocator = std.testing.allocator;
-    var failures = std.ArrayList(Indeterminacy){};
-    defer failures.deinit(allocator);
+    const corpus = try corpus_mod.shared();
+    var budget = Budget{ .label = "access determinacy", .cap = PROFILE.determinacy_budget };
+
+    const tasks = try allocator.alloc(DeterminacyTask, corpus.samples.len);
+    defer allocator.free(tasks);
+    var pool: std.Thread.Pool = undefined;
+    try pool.init(.{ .allocator = allocator });
+    defer pool.deinit();
+
     var probed: usize = 0;
     var swept: usize = 0;
+    var wait_group: std.Thread.WaitGroup = .{};
+    for (tasks, corpus.samples) |*task, *sample| {
+        task.* = .{ .sample = sample, .budget = &budget, .allocator = allocator };
+        if (opcode_memory.accessCount(sample.family) == 0) continue;
+        probed += 1;
+        if (sample.sweep) swept += 1;
+        pool.spawnWg(&wait_group, sweepRow, .{task});
+    }
+    pool.waitAndWork(&wait_group);
 
-    for (CORPUS) |path| {
-        var program = try Program.load(allocator, path);
-        defer program.deinit();
-        const rows = program.run.execution_trace.rows.items;
-
-        for (0..trace_mod.N_FAMILIES) |family_index| {
-            const family: OpcodeFamily = @enumFromInt(family_index);
-            const n_accesses = opcode_memory.accessCount(family);
-            if (n_accesses == 0) continue;
-            var columns = try program.run.execution_trace
-                .columnsForFamily(allocator, family, LOG_ROWS);
-            defer columns.deinit(allocator);
-            if (columns.n_real_rows == 0) continue;
-
-            var honest: RowBuffer = undefined;
-            var iterator = FamilyRows{ .rows = rows, .columns = &columns, .family = family };
-            const view = honest[0..columns.n_columns];
-            var visited: usize = 0;
-            while (iterator.next(view)) |_| {
-                if (visited == ROWS_PER_PROGRAM) break;
-                // An honest row that the row-local oracle rejects is a witness
-                // generator bug, not a row to skip.
-                try std.testing.expect(try oracle.accepts(family, view));
-                // The exhaustive byte sweep runs on the first honest row of
-                // each family in each program; the rest get the delta probe.
-                const exhaustive = visited == 0;
-                visited += 1;
-                probed += 1;
-                if (exhaustive) swept += 1;
-
-                for (0..n_accesses) |slot| {
-                    try probeAccessNext(allocator, family, view, slot, exhaustive, &failures);
-                }
-            }
-        }
+    var indeterminate: usize = 0;
+    for (tasks) |*task| {
+        defer task.failures.deinit(allocator);
+        if (task.failure) |err| return err;
+        indeterminate += task.failures.items.len;
+        for (task.failures.items) |item| reportIndeterminacy(item);
     }
 
     std.debug.print(
-        "\n  access determinacy: {d} honest rows probed, {d} exhaustively swept\n",
-        .{ probed, swept },
+        "  [{s}] access determinacy: {d} honest rows probed, {d} exhaustively swept\n",
+        .{ PROFILE.name, probed, swept },
     );
-    for (failures.items) |item| {
-        std.debug.print("  INDETERMINATE {s} slot {d} ({s}) next[{d}] accepts {d} ({s})\n", .{
-            @tagName(item.family),
-            item.slot,
-            if (item.written) "written" else "read-only",
-            item.limb,
-            item.forged,
-            if (item.exhaustive) "exhaustive" else "delta",
-        });
-    }
-    try std.testing.expectEqual(@as(usize, 0), failures.items.len);
+    budget.report();
+    try std.testing.expectEqual(@as(usize, 0), indeterminate);
     try std.testing.expect(probed > 0);
+}
+
+fn reportIndeterminacy(item: Indeterminacy) void {
+    std.debug.print("  INDETERMINATE {s} slot {d} ({s}) next[{d}] accepts {d} ({s})\n", .{
+        @tagName(item.family),
+        item.slot,
+        if (item.written) "written" else "read-only",
+        item.limb,
+        item.forged,
+        if (item.exhaustive) "exhaustive" else "delta",
+    });
+}
+
+fn sweepRow(task: *DeterminacyTask) void {
+    for (0..opcode_memory.accessCount(task.sample.family)) |slot| {
+        probeAccessNext(task, slot) catch |err| {
+            task.failure = err;
+            return;
+        };
+    }
 }
 
 /// Every alternative value of every `next` limb of one access must be
@@ -599,14 +469,10 @@ test "witness rigidity: every committed access emits a determined value" {
 /// written slot because `next` must equal the row's computed result. Nothing in
 /// the global LogUp closure relates the emitted `next` to the consumed
 /// `previous`, so this has to hold row-locally.
-fn probeAccessNext(
-    allocator: std.mem.Allocator,
-    family: OpcodeFamily,
-    honest: []const QM31,
-    slot: usize,
-    exhaustive: bool,
-    failures: *std.ArrayList(Indeterminacy),
-) !void {
+fn probeAccessNext(task: *DeterminacyTask, slot: usize) !void {
+    const sample = task.sample;
+    const honest = sample.view();
+    const family = sample.family;
     var probe: RowBuffer = undefined;
     const view = probe[0..honest.len];
 
@@ -618,9 +484,9 @@ fn probeAccessNext(
             return error.AccessLimbNotBaseField).v;
         if (canonical > 0xff) return error.AccessLimbNotAByte;
 
-        const candidates: usize = if (exhaustive) BYTE_VALUES else DELTAS.len;
+        const candidates: usize = if (sample.sweep) BYTE_VALUES else DELTAS.len;
         for (0..candidates) |index| {
-            const forged: u32 = if (exhaustive)
+            const forged: u32 = if (sample.sweep)
                 @intCast(index)
             else
                 (canonical + DELTAS[index]) % m31.Modulus;
@@ -628,14 +494,14 @@ fn probeAccessNext(
 
             @memcpy(view, honest);
             view[column] = QM31.fromBase(M31.fromCanonical(forged));
-            if (!try oracle.accepts(family, view)) continue;
-            try failures.append(allocator, .{
+            if (!try task.budget.accepts(family, view)) continue;
+            try task.failures.append(task.allocator, .{
                 .family = family,
                 .slot = slot,
                 .written = layout.writtenSlot(family) == slot,
                 .limb = limb,
                 .forged = forged,
-                .exhaustive = exhaustive,
+                .exhaustive = sample.sweep,
             });
             // One accepted alternative already refutes determinacy for this
             // limb; the rest would only repeat the finding.
