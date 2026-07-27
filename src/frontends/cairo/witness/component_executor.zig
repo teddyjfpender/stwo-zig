@@ -6,7 +6,8 @@ const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const execution_tables = @import("execution_tables.zig");
 const program_mod = @import("program.zig");
-const work_pool = @import("stwo_prover_impl").work_pool;
+const prover = @import("stwo_prover_impl");
+const work_pool = prover.work_pool;
 
 pub const Error = error{
     AllocationSizeOverflow,
@@ -30,6 +31,18 @@ pub const Execution = struct {
         self.allocator.free(self.output_storage);
         self.* = undefined;
     }
+
+    pub fn takeLookupWords(self: *Execution) []u32 {
+        const words = self.lookup_words;
+        self.lookup_words = &.{};
+        return words;
+    }
+
+    pub fn takeSubWords(self: *Execution) []u32 {
+        const words = self.sub_words;
+        self.sub_words = &.{};
+        return words;
+    }
 };
 
 pub fn execute(
@@ -39,6 +52,7 @@ pub fn execute(
     source: anytype,
     layout: component_layout.ComponentLayout,
     pedersen_table: ?deductions.PedersenTable,
+    recorder: ?*prover.stage_profile.Recorder,
 ) !Execution {
     layout.validate() catch return Error.InvalidReceiptGeometry;
     if (witness_program.n_inputs != source.columnCount())
@@ -59,6 +73,12 @@ pub fn execute(
     const sub_words = std.math.mul(usize, witness_program.n_sub_words, row_count) catch
         return Error.AllocationSizeOverflow;
 
+    var input_stage = try prover.stage_profile.StageScope.begin(
+        recorder,
+        "witness_input_materialize",
+        "Witness input materialization",
+    );
+    defer input_stage.end();
     const input_storage = try allocator.alloc(u32, input_words);
     defer allocator.free(input_storage);
     const input_columns = try allocator.alloc([]const u32, source.columnCount());
@@ -69,7 +89,14 @@ pub fn execute(
         try source.writeColumn(column_index, values);
         column.* = values;
     }
+    input_stage.end();
 
+    var output_stage = try prover.stage_profile.StageScope.begin(
+        recorder,
+        "witness_output_allocate",
+        "Witness output allocation",
+    );
+    defer output_stage.end();
     var result = Execution{
         .allocator = allocator,
         .row_count = row_count,
@@ -89,6 +116,7 @@ pub fn execute(
     errdefer allocator.free(result.lookup_words);
     result.sub_words = try allocator.alloc(u32, sub_words);
     errdefer allocator.free(result.sub_words);
+    output_stage.end();
 
     const no_multiplicity_tables = [_][]u32{};
     const auxiliary = program_mod.AuxiliaryOutputs{
@@ -96,13 +124,27 @@ pub fn execute(
         .sub_words = result.sub_words,
         .multiplicity_tables = &no_multiplicity_tables,
     };
-    _ = try program_mod.initializeAllOutputs(
-        witness_program,
-        input_columns,
-        result.output_columns,
-        auxiliary,
-    );
+    {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "witness_output_initialize",
+            "Witness output initialization",
+        );
+        defer stage.end();
+        _ = try program_mod.initializeAllOutputs(
+            witness_program,
+            input_columns,
+            result.output_columns,
+            auxiliary,
+        );
+    }
 
+    var execute_stage = try prover.stage_profile.StageScope.begin(
+        recorder,
+        "witness_program_execute",
+        "Witness program execution",
+    );
+    defer execute_stage.end();
     const active_pool = work_pool.getGlobalPool();
     const rows_per_worker = parallelRowsPerWorker(witness_program);
     const worker_count = if (active_pool) |pool|
@@ -193,6 +235,7 @@ pub fn execute(
     for (works[0..worker_count]) |work| {
         if (work.failure) |err| return err;
     }
+    execute_stage.end();
     return result;
 }
 

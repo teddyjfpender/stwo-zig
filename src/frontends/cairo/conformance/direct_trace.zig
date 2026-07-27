@@ -128,6 +128,7 @@ fn compareComponent(
         source,
         try base_execution.layout(expected),
         null,
+        null,
     );
     defer execution.deinit();
     return base_execution.compare(expected, execution);

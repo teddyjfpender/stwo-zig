@@ -121,6 +121,7 @@ pub fn execute(
                 @intCast(ordinal),
                 observer,
                 pedersen_table,
+                recorder,
             );
         } else if (try direct_inputs.resolve(input, claim_component.name)) |direct| blk: {
             break :blk try executeComponent(
@@ -132,6 +133,7 @@ pub fn execute(
                 @intCast(ordinal),
                 observer,
                 pedersen_table,
+                recorder,
             );
         } else if (proof_plan.gatheredProducerEdges(claim_component.name)) |edges| blk: {
             const sources = try allocator.alloc(gathered_inputs.Producer, edges.len);
@@ -156,6 +158,7 @@ pub fn execute(
                 @intCast(ordinal),
                 observer,
                 pedersen_table,
+                recorder,
             );
         } else {
             std.log.err(
@@ -197,6 +200,7 @@ fn executeComponent(
     ordinal: u32,
     observer: ?ComponentObserver,
     pedersen_table: ?deductions.PedersenTable,
+    recorder: ?*stage_profile.Recorder,
 ) !ComponentResult {
     const padded_rows = std.math.cast(u32, try source.paddedRowCount()) orelse
         return Error.AllocationSizeOverflow;
@@ -215,22 +219,33 @@ fn executeComponent(
         source,
         layout,
         pedersen_table,
+        recorder,
     );
     defer execution.deinit();
-    if (observer) |active| try active.visit(active.context, layout, &execution);
+    if (observer) |active| {
+        var stage = try stage_profile.StageScope.begin(
+            recorder,
+            "witness_base_lower",
+            "Witness base-column lowering",
+        );
+        defer stage.end();
+        try active.visit(active.context, layout, &execution);
+    }
 
+    var feed_stage = try stage_profile.StageScope.begin(
+        recorder,
+        "witness_feed_retain",
+        "Witness feed retention",
+    );
+    defer feed_stage.end();
     const active_rows = std.math.cast(
         u32,
         try source.realRowCount(execution.row_count),
     ) orelse return Error.AllocationSizeOverflow;
-    const sub_words = try allocator.dupe(u32, execution.sub_words);
+    const sub_words = execution.takeSubWords();
     errdefer allocator.free(sub_words);
-    const lookup_words = try transposeLookupWords(
-        allocator,
-        execution.lookup_words,
-        execution.row_count,
-        witness_program.n_lookup_words,
-    );
+    const lookup_words = execution.takeLookupWords();
+    feed_stage.end();
     return .{
         .component = .{
             .layout = layout,
@@ -274,24 +289,4 @@ fn findProducer(entries: []const ProducerOutput, label: []const u8) ?ProducerOut
         if (std.mem.eql(u8, entry.label, label)) return entry;
     }
     return null;
-}
-
-fn transposeLookupWords(
-    allocator: std.mem.Allocator,
-    row_major: []const u32,
-    rows: usize,
-    columns: u32,
-) ![]u32 {
-    const expected = std.math.mul(usize, rows, columns) catch
-        return Error.AllocationSizeOverflow;
-    if (row_major.len != expected) return Error.IncompleteWitnessGraph;
-    const column_major = try allocator.alloc(u32, expected);
-    errdefer allocator.free(column_major);
-    for (0..rows) |row| {
-        for (0..columns) |column| {
-            column_major[column * rows + row] =
-                row_major[row * @as(usize, columns) + column];
-        }
-    }
-    return column_major;
 }

@@ -463,7 +463,12 @@ fn executeRow(
                 continue;
             },
             .lookup_word => {
-                if (auxiliary) |outputs| outputs.lookup_words[@as(usize, row) * program.n_lookup_words + inst.imm] = a;
+                if (auxiliary) |outputs| {
+                    // Interaction consumers read canonical lookup columns
+                    // directly; emitting that layout avoids a full transpose.
+                    const row_count = output_columns.?[0].len;
+                    outputs.lookup_words[@as(usize, inst.imm) * row_count + row] = a;
+                }
                 continue;
             },
             .sub_word => {
@@ -613,20 +618,22 @@ test "cairo witness program: grouped execution preserves lookup and feed outputs
         .{ .op = @intFromEnum(Op.input), .dst = 0, .a = 0, .b = 0, .imm = 0 },
         .{ .op = @intFromEnum(Op.col_write), .dst = 0, .a = 0, .b = 0, .imm = 0 },
         .{ .op = @intFromEnum(Op.lookup_word), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+        .{ .op = @intFromEnum(Op.constant), .dst = 1, .a = 0, .b = 0, .imm = 9 },
+        .{ .op = @intFromEnum(Op.lookup_word), .dst = 0, .a = 1, .b = 0, .imm = 1 },
         .{ .op = @intFromEnum(Op.sub_word), .dst = 0, .a = 0, .b = 0, .imm = 0 },
         .{ .op = @intFromEnum(Op.mult_push), .dst = 0, .a = 0, .b = 0, .imm = 0 },
     };
-    const program = Program{ .insts = &insts, .n_regs = 1, .n_inputs = 1, .n_cols = 1, .n_mult_tables = 1, .n_lookup_words = 1, .n_sub_words = 1 };
+    const program = Program{ .insts = &insts, .n_regs = 2, .n_inputs = 1, .n_cols = 1, .n_mult_tables = 1, .n_lookup_words = 2, .n_sub_words = 1 };
     const input = [_]u32{ 1, 2, 1, 3 };
     const inputs = [_][]const u32{&input};
     var trace = [_]u32{0} ** input.len;
     const traces = [_][]u32{&trace};
-    var lookup = [_]u32{0} ** input.len;
+    var lookup = [_]u32{0} ** (input.len * 2);
     var sub = [_]u32{0} ** input.len;
     var counts = [_]u32{0} ** 4;
     const count_tables = [_][]u32{&counts};
-    var registers: [1]u32 = undefined;
-    var deduce_args: [1]u32 = undefined;
+    var registers: [2]u32 = undefined;
+    var deduce_args: [2]u32 = undefined;
     try executeAll(
         program,
         &inputs,
@@ -638,7 +645,11 @@ test "cairo witness program: grouped execution preserves lookup and feed outputs
         .unsupported(),
     );
     try std.testing.expectEqualSlices(u32, &input, &trace);
-    try std.testing.expectEqualSlices(u32, &input, &lookup);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 1, 2, 1, 3, 9, 9, 9, 9 },
+        &lookup,
+    );
     try std.testing.expectEqualSlices(u32, &input, &sub);
     try std.testing.expectEqualSlices(u32, &.{ 0, 2, 1, 1 }, &counts);
 }

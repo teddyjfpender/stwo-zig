@@ -256,6 +256,7 @@ pub fn proveFixtureWithRecorder(
             lookup.z,
             lookup.alpha,
             if (pedersen_initialized) &pedersen else null,
+            recorder,
         );
     };
     defer interaction.deinit();

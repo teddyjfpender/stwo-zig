@@ -268,6 +268,7 @@ fn executeComponent(
         source,
         try base_execution.layout(expected),
         null,
+        null,
     );
     defer execution.deinit();
     const mismatch = try base_execution.compare(expected, execution);
@@ -280,14 +281,9 @@ fn executeComponent(
         witness_program.n_lookup_words == 0)
         null
     else blk: {
-        const sub_words = try allocator.dupe(u32, execution.sub_words);
+        const sub_words = execution.takeSubWords();
         errdefer allocator.free(sub_words);
-        const lookup_words = try transposeLookupWords(
-            allocator,
-            execution.lookup_words,
-            execution.row_count,
-            witness_program.n_lookup_words,
-        );
+        const lookup_words = execution.takeLookupWords();
         break :blk ProducerOutput{
             .label = expected.label,
             .row_count = @intCast(execution.row_count),
@@ -301,26 +297,6 @@ fn executeComponent(
     return .{ .mismatch = mismatch, .producer = producer };
 }
 
-fn transposeLookupWords(
-    allocator: std.mem.Allocator,
-    row_major: []const u32,
-    rows: usize,
-    columns: u32,
-) ![]u32 {
-    const expected = std.math.mul(usize, rows, columns) catch
-        return error.AllocationSizeOverflow;
-    if (row_major.len != expected) return error.InvalidReceiptGeometry;
-    const column_major = try allocator.alloc(u32, expected);
-    errdefer allocator.free(column_major);
-    for (0..rows) |row| {
-        for (0..columns) |column| {
-            column_major[column * rows + row] =
-                row_major[row * @as(usize, columns) + column];
-        }
-    }
-    return column_major;
-}
-
 fn componentRows(component: checkpoint.Component) Error!u32 {
     if (component.columns.len == 0) return Error.InvalidReceiptGeometry;
     return std.math.cast(u32, component.columns[0].row_count) orelse
@@ -332,15 +308,4 @@ fn findProducer(entries: []const ProducerOutput, label: []const u8) ?ProducerOut
         if (std.mem.eql(u8, entry.label, label)) return entry;
     }
     return null;
-}
-
-test "recorded Cairo lookup words transpose into interaction layout" {
-    const transposed = try transposeLookupWords(
-        std.testing.allocator,
-        &.{ 1, 2, 3, 4, 5, 6 },
-        2,
-        3,
-    );
-    defer std.testing.allocator.free(transposed);
-    try std.testing.expectEqualSlices(u32, &.{ 1, 4, 2, 5, 3, 6 }, transposed);
 }

@@ -60,12 +60,19 @@ pub fn build(
     lookup_z: QM31,
     lookup_alpha: QM31,
     pedersen: ?*const pedersen_table.Table,
+    recorder: ?*prover.stage_profile.Recorder,
 ) !InteractionTrace {
     const alpha_powers = deriveAlphaPowers(lookup_alpha);
     var collector = try Collector.init(allocator, &base.geometry);
     defer collector.deinit();
 
     for (base.execution.producers) |producer| {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            producer.label,
+            producer.label,
+        );
+        defer stage.end();
         const component = topology.find(producer.label) orelse
             return error.MissingInteractionTopology;
         var compiled = try interaction_topology.compile(
@@ -91,16 +98,30 @@ pub fn build(
         );
     }
 
-    var multiplicities = try fixed_trace.populateLiveTopology(
-        allocator,
-        input,
-        topology,
-        base.execution.producers,
-        fixed,
-    );
+    var multiplicities = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "interaction_fixed_multiplicities",
+            "Fixed-table multiplicities",
+        );
+        defer stage.end();
+        break :blk try fixed_trace.populateLiveTopology(
+            allocator,
+            input,
+            topology,
+            base.execution.producers,
+            fixed,
+        );
+    };
     defer multiplicities.deinit();
     for (fixed.entries) |entry| {
         if (collector.componentIndex(entry.component) == null) continue;
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            entry.component,
+            entry.component,
+        );
+        defer stage.end();
         const relation = relations.find(entry.component) orelse
             return error.MissingRelationTemplate;
         const trace = componentTrace(relation.traces) orelse
@@ -142,12 +163,20 @@ pub fn build(
         }
     }
 
-    var counts = try cpu_memory.collectTopology(
-        allocator,
-        input,
-        topology,
-        base.execution.producers,
-    );
+    var counts = blk: {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "interaction_memory_multiplicities",
+            "Memory multiplicities",
+        );
+        defer stage.end();
+        break :blk try cpu_memory.collectTopology(
+            allocator,
+            input,
+            topology,
+            base.execution.producers,
+        );
+    };
     defer counts.deinit();
     try captureMemoryAddress(
         allocator,
@@ -157,6 +186,7 @@ pub fn build(
         &collector,
         lookup_z,
         &alpha_powers,
+        recorder,
     );
     try captureMemoryBig(
         allocator,
@@ -166,6 +196,7 @@ pub fn build(
         &collector,
         lookup_z,
         &alpha_powers,
+        recorder,
     );
     try captureMemorySmall(
         allocator,
@@ -175,6 +206,7 @@ pub fn build(
         &collector,
         lookup_z,
         &alpha_powers,
+        recorder,
     );
     return collector.finish();
 }
@@ -187,9 +219,12 @@ fn captureMemoryAddress(
     collector: *Collector,
     lookup_z: QM31,
     alpha_powers: []const QM31,
+    recorder: ?*prover.stage_profile.Recorder,
 ) !void {
     const label = "memory_address_to_id";
     if (collector.componentIndex(label) == null) return;
+    var stage = try prover.stage_profile.StageScope.begin(recorder, label, label);
+    defer stage.end();
     var columns = try implicit.memoryAddress(allocator, input, counts);
     defer columns.deinit();
     const trace = componentTrace((relations.find(label) orelse
@@ -208,6 +243,7 @@ fn captureMemoryBig(
     collector: *Collector,
     lookup_z: QM31,
     alpha_powers: []const QM31,
+    recorder: ?*prover.stage_profile.Recorder,
 ) !void {
     const relation = relations.find("memory_id_to_big") orelse
         return error.MissingRelationTemplate;
@@ -215,6 +251,12 @@ fn captureMemoryBig(
         return error.MissingRelationTrace;
     for (collector.geometry.components) |component| {
         if (!std.mem.eql(u8, component.name, "memory_id_to_big")) continue;
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            component.name,
+            component.name,
+        );
+        defer stage.end();
         const index: usize = component.instance;
         var columns = try implicit.memoryBig(allocator, input, counts, index);
         defer columns.deinit();
@@ -241,9 +283,12 @@ fn captureMemorySmall(
     collector: *Collector,
     lookup_z: QM31,
     alpha_powers: []const QM31,
+    recorder: ?*prover.stage_profile.Recorder,
 ) !void {
     const label = "memory_id_to_small";
     if (collector.componentIndex(label) == null) return;
+    var stage = try prover.stage_profile.StageScope.begin(recorder, label, label);
+    defer stage.end();
     const relation = relations.find("memory_id_to_big") orelse
         return error.MissingRelationTemplate;
     const trace = findTrace(relation.traces, .memory_small) orelse
