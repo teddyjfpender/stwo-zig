@@ -6,6 +6,7 @@ const metal_aot = @import("../backends/metal_aot.zig");
 const build_identity = @import("../build_identity.zig");
 const cairo_cpu = @import("cairo_cpu.zig");
 const cairo_support = @import("cairo_support.zig");
+const cairo_witness_cpu_aot = @import("cairo_witness_cpu_aot.zig");
 const cairo_vm_adapter = @import("cairo_cpu/vm_adapter.zig");
 const oracle_gate = @import("cairo_metal/oracle_gate.zig");
 const closure_gate = @import("../gates/product_closure.zig");
@@ -16,7 +17,8 @@ const policy = @import("../graph/product.zig");
 
 const protocol_features =
     cairo_support.protocol_features ++
-    "+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2";
+    "+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2" ++
+    "+authenticated-witness-cpu-aot-v1";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -31,7 +33,11 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     },
-    .generated_imports = &.{ "metal_aot_config", "product_identity" },
+    .generated_imports = &.{
+        "cairo_witness_cpu_aot",
+        "metal_aot_config",
+        "product_identity",
+    },
     .allowed_files = &.{
         "src/stwo_cairo_metal.zig",
         "src/interop/atomic_file.zig",
@@ -130,6 +136,12 @@ pub fn addProduct(context: Context) void {
     );
 
     const stwo = createStwoModule(context, .library);
+    const witness_aot = cairo_witness_cpu_aot.createModule(
+        context.b,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const shared = cairo_support.createProductSupportModule(
         context.b,
         context.target,
@@ -142,6 +154,7 @@ pub fn addProduct(context: Context) void {
         descriptor.product,
         stwo,
         shared,
+        witness_aot,
         aot_bundle,
     );
     const installed = graph_install.executable(
@@ -158,6 +171,12 @@ pub fn addProduct(context: Context) void {
     aot_bundle.install(context.b, installed.build_step);
 
     const test_stwo = createStwoModule(context, .@"test");
+    const test_witness_aot = cairo_witness_cpu_aot.createModule(
+        context.b,
+        context.target,
+        context.optimize,
+        test_stwo,
+    );
     const test_shared = cairo_support.createProductSupportModule(
         context.b,
         context.target,
@@ -171,6 +190,7 @@ pub fn addProduct(context: Context) void {
             product(.@"test"),
             test_stwo,
             test_shared,
+            test_witness_aot,
             aot_bundle,
         ),
     });
@@ -280,6 +300,7 @@ fn createProductModule(
     logical_product: graph.Product,
     stwo: *std.Build.Module,
     shared: *std.Build.Module,
+    witness_aot: *std.Build.Module,
     aot_bundle: metal_aot.ExternalBundle,
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
@@ -291,6 +312,7 @@ fn createProductModule(
     context.protocol.addImports(root);
     root.addImport("stwo_cairo_metal", stwo);
     root.addImport("cairo_product", shared);
+    root.addImport("cairo_witness_cpu_aot", witness_aot);
     root.addOptions("metal_aot_config", aot_bundle.addOptions(context.b));
     root.addOptions(
         "product_identity",

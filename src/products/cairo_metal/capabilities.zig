@@ -22,7 +22,7 @@ pub fn write(writer: anytype) !void {
         .runtime_modes = &[_][]const u8{"authenticated-aot"},
         .stage_placement = .{
             .execution = "cairo-vm-sidecar",
-            .witness = "host",
+            .witness = "generated-host-aot",
             .air_constraint_evaluation = "host-simd",
             .commitment_lde_quotient_fri = "metal",
         },
