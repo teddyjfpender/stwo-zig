@@ -230,3 +230,51 @@ Final validation passed:
 - exact proof verification and zero-fallback assertions in every measured
   candidate process; and
 - `git diff --check`.
+
+## Latest three-lane Cairo matrix
+
+A clean identity-bound build of commit `03644459` was compared on the Apple M5
+Max against the unchanged pinned Rust `stwo-cairo` Release/native binary with
+its default parallel feature. Each lane ran three cold processes in rotated
+order. No sample was discarded. Prove time is the backend-reported proof
+transaction and excludes execution and verification.
+
+| Workload | Steps | Committed cells | Rust exec / prove ms | Zig CPU exec / prove ms | Zig Metal exec / prove ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 1,499 | 97,420,320 | 3.189 / 1,010.000 | 18.407 / 2,343.844 | 20.098 / 2,321.179 |
+| Poseidon aggregator | 6,892 | 48,299,328 | 2.917 / 815.000 | 17.684 / 1,976.634 | 14.891 / 1,893.150 |
+| Pedersen aggregator | 5,872 | 48,037,024 | 6.841 / 794.000 | 21.781 / 4,358.832 | 22.670 / 4,244.287 |
+| Fibonacci 100k | 700,022 | 112,959,872 | 77.248 / 1,250.000 | 112.550 / 2,467.677 | 114.533 / 2,136.681 |
+| Factorial 100k | 600,015 | 123,184,848 | 65.619 / 1,250.000 | 104.890 / 4,253.705 | 99.452 / 3,881.166 |
+| Arithmetic 2m | 2,200,019 | 216,639,776 | 208.288 / 2,190.000 | 298.090 / 5,269.462 | 291.823 / 4,501.328 |
+| Memory 7m | 7,367,979 | 604,162,096 | 713.659 / 5,000.000 | 951.691 / 12,206.887 | 953.136 / 10,341.602 |
+
+| Workload | Rust step MHz / Mcells/s | Zig CPU step MHz / Mcells/s | Zig Metal step MHz / Mcells/s |
+| --- | ---: | ---: | ---: |
+| all-opcodes | 0.001484 / 96.456 | 0.000640 / 41.564 | 0.000646 / 41.970 |
+| Poseidon aggregator | 0.008456 / 59.263 | 0.003487 / 24.435 | 0.003640 / 25.513 |
+| Pedersen aggregator | 0.007395 / 60.500 | 0.001347 / 11.021 | 0.001384 / 11.318 |
+| Fibonacci 100k | 0.560018 / 90.368 | 0.283677 / 45.776 | 0.327621 / 52.867 |
+| Factorial 100k | 0.480012 / 98.548 | 0.141057 / 28.959 | 0.154597 / 31.739 |
+| Arithmetic 2m | 1.004575 / 98.922 | 0.417503 / 41.112 | 0.488749 / 48.128 |
+| Memory 7m | 1.473596 / 120.832 | 0.603592 / 49.494 | 0.712460 / 58.421 |
+
+Against the first same-host Cairo matrix, raw geometric-mean prove throughput
+improved `1.678x` for Zig CPU and `2.333x` for Zig Metal. The unchanged Rust
+control also improved `1.425x` between those sessions, exposing meaningful
+cross-run host drift. Normalizing by that control gives directional net gains
+of about `1.18x` for Zig CPU and `1.64x` for Zig Metal. The exact
+predecessor/candidate A-B-B-A Metal result above, `1.473x`, remains the stronger
+causal claim.
+
+Zig Metal is now `1.096x` faster than Zig CPU by geometric mean across this
+portfolio, but Zig CPU and Zig Metal remain respectively `2.760x` and `2.519x`
+slower than the contemporary Rust baseline. The frontend has materially
+benefited, especially on Metal, but it has not reached Rust parity.
+
+All 63 measured processes self-verified. The pinned official Rust verifier
+accepted one proof from every lane and workload. Each lane was deterministic;
+Zig CPU and Zig Metal proof bytes matched exactly on all seven rows, and Metal
+reported zero CPU fallbacks. The pinned Rust prover uses a different
+transcript/claim realization, so its accepted proofs are not byte-identical to
+the Zig proofs.

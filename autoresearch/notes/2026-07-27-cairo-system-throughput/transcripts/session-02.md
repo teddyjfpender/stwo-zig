@@ -233,3 +233,36 @@ git diff --check
 The second command exercised the pinned Rust verifier/oracle, executable and
 legacy Cairo program inputs, native Metal lifecycle and boundary tests, and
 the complete 376-source Cairo Metal product closure. All commands passed.
+
+## Fresh Rust / Zig CPU / Zig Metal comparison
+
+After committing the quotient candidate as `03644459`, clean identity-bound
+CPU and Metal products were built. The same seven Cairo programs then ran
+through the unchanged pinned Rust Release/native parallel prover, Zig CPU, and
+Zig Metal. The schedule used three cold processes per lane and rotated lane
+order. No sample was discarded; all 63 processes self-verified.
+
+The complete machine-readable result is retained at
+`/private/tmp/stwo-cairo-latest-three-lane-20260727/result.json`, with raw
+samples and every proof under the same directory. Median proof times were:
+
+| Workload | Rust ms | Zig CPU ms | Zig Metal ms |
+| --- | ---: | ---: | ---: |
+| all-opcodes | 1,010.000 | 2,343.844 | 2,321.179 |
+| Poseidon aggregator | 815.000 | 1,976.634 | 1,893.150 |
+| Pedersen aggregator | 794.000 | 4,358.832 | 4,244.287 |
+| Fibonacci 100k | 1,250.000 | 2,467.677 | 2,136.681 |
+| Factorial 100k | 1,250.000 | 4,253.705 | 3,881.166 |
+| Arithmetic 2m | 2,190.000 | 5,269.462 | 4,501.328 |
+| Memory 7m | 5,000.000 | 12,206.887 | 10,341.602 |
+
+Raw geometric-mean speedups against the first same-host matrix are `1.678x`
+for Zig CPU and `2.333x` for Zig Metal. The unchanged Rust control also ran
+`1.425x` faster, so drift-normalized directional gains are approximately
+`1.18x` and `1.64x`. The current Metal/CPU geometric-mean speedup is `1.096x`.
+Current Zig CPU and Metal remain `2.760x` and `2.519x` slower than Rust.
+
+Every lane was deterministic. Zig CPU and Zig Metal bytes matched on all seven
+rows with zero Metal fallbacks. The official Rust verifier accepted each Zig
+proof; Rust prover bytes differ from Zig because the implementations use
+different accepted transcript/claim realizations.
