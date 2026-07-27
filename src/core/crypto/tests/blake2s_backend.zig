@@ -91,6 +91,36 @@ test "blake2s backend: four-way single-block hashes match scalar messages" {
     }
 }
 
+test "blake2s backend: eight-way single-block hashes match scalar messages" {
+    var prng = std.Random.DefaultPrng.init(0x706f_775f_6261_7438);
+    const rng = prng.random();
+
+    inline for (.{
+        @as(usize, 0),
+        @as(usize, 1),
+        @as(usize, 40),
+        @as(usize, 63),
+        @as(usize, 64),
+    }) |byte_len| {
+        var messages: [8][byte_len]u8 = undefined;
+        for (&messages) |*message| {
+            if (byte_len > 0) rng.bytes(message[0..]);
+        }
+        const batched = Blake2sHasher.hashFixedSingleBlock8(
+            byte_len,
+            &messages,
+        );
+        for (messages, 0..) |message, lane| {
+            const expected = Blake2sHasher.hash(message[0..]);
+            try std.testing.expectEqualSlices(
+                u8,
+                expected[0..],
+                batched[lane][0..],
+            );
+        }
+    }
+}
+
 test "blake2s backend: four-way terminal compression matches scalar messages" {
     var prng = std.Random.DefaultPrng.init(0x6c62_6174_6368_345f);
     var prefix: [64]u8 = undefined;

@@ -269,6 +269,27 @@ pub const Blake2sHasher = struct {
         return parallelStatesToDigests(&states);
     }
 
+    /// Hashes eight independent, equal-length, single-block messages.
+    pub fn hashFixedSingleBlock8(
+        comptime byte_len: usize,
+        data: *const [8][byte_len]u8,
+    ) [8]Blake2sHash {
+        const initial = Self.init();
+        return terminal_parallel.hashFixedSingleBlock8(
+            Self,
+            Blake2sHash,
+            byte_len,
+            BackendMode.scalar,
+            initial.selection.effective == .scalar,
+            initial.h,
+            data,
+            block_io.loadParallel4,
+            parallelStatesToDigests,
+            BLAKE2S_IV,
+            BLAKE2S_SIGMA,
+        );
+    }
+
     pub fn hashFixed64(data: *const [64]u8) Blake2sHash {
         return hashFixedSingleBlock(64, data);
     }

@@ -186,3 +186,32 @@ Proof bytes were identical. The wider logical vectors did not turn the
 existing active stack into a win; register and generated-code pressure
 slightly outweighed additional instruction-level parallelism. The
 implementation was removed completely.
+
+## Result 3: eight-stream PoW search
+
+The rejected Merkle experiment did not falsify eight-stream hashing for
+independent fixed messages. Merkle leaves carry fragmented state, variable
+tails, and enough live values to make the wider logical vector regress. PoW
+hashes independent fixed 40-byte messages with no continuation state.
+
+The fixed-message helper now reuses the already tested eight-stream terminal
+compressor. Each worker checks eight ordered residue-class nonces per batch.
+The strided partition, atomic global minimum, failed-spawn recovery, proof
+parameters, transcript order, and scalar fallback remain unchanged.
+
+An immutable four-stream predecessor and live eight-stream candidate measured:
+
+| Metric | Candidate / predecessor | Interpretation |
+| --- | ---: | --- |
+| paired wall time | `0.7307` | `1.369x` faster |
+| wall 95% CI | `[0.693294, 0.758206]` | stable win |
+| cycles | `0.7247` | `1.380x` fewer |
+| instructions | `1.2366` | more issued work |
+
+Complete Arithmetic 2m diagnostics retained canonical proof hash
+`25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`.
+CPU and Metal PoW stages measured 109.298 and 101.537 ms. The Metal proof
+completed in 3,564.711 ms with 74 dispatches and zero fallbacks. The CPU proof
+completed in 4,701.342 ms. These complete timings were collected while an
+unrelated RISC-V test occupied one core, so they are correctness and stage
+diagnostics rather than a controlled end-to-end promotion claim.

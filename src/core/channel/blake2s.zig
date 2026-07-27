@@ -162,18 +162,18 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             return trailingZeroBits(out[0..16]) >= n_bits;
         }
 
-        fn firstValidNonceWithPrefix4(
+        fn firstValidNonceWithPrefix8(
             prefix: Digest32,
-            nonces: [4]u64,
+            nonces: [8]u64,
             n_bits: u32,
         ) ?u64 {
-            var inputs: [4][40]u8 = undefined;
+            var inputs: [8][40]u8 = undefined;
             for (&inputs, nonces) |*input, nonce| {
                 @memcpy(input[0..32], prefix[0..]);
                 const nonce_bytes = u64ToBytesLe(nonce);
                 @memcpy(input[32..40], nonce_bytes[0..]);
             }
-            const outputs = Hasher.hashFixedSingleBlock4(40, &inputs);
+            const outputs = Hasher.hashFixedSingleBlock8(40, &inputs);
             for (outputs, nonces) |output, nonce| {
                 if (trailingZeroBits(output[0..16]) >= n_bits) return nonce;
             }
@@ -267,7 +267,7 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         ) void {
             var nonce = start;
             while (nonce < found.load(.monotonic)) {
-                var nonces: [4]u64 = undefined;
+                var nonces: [8]u64 = undefined;
                 nonces[0] = nonce;
                 for (1..nonces.len) |index| {
                     nonces[index] = std.math.add(
@@ -276,7 +276,7 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
                         stride,
                     ) catch std.math.maxInt(u64);
                 }
-                if (firstValidNonceWithPrefix4(prefix, nonces, n_bits)) |valid| {
+                if (firstValidNonceWithPrefix8(prefix, nonces, n_bits)) |valid| {
                     _ = found.fetchMin(valid, .release);
                     return;
                 }

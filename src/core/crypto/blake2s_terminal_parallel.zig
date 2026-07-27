@@ -1,5 +1,6 @@
 //! Fixed-terminal BLAKE2s batching wider than one scalar message.
 
+const std = @import("std");
 const builtin = @import("builtin");
 const parallel4 = @import("blake2s_parallel4.zig");
 
@@ -107,6 +108,52 @@ pub fn hashFinal64FromSeed8(
         &states,
         &messages,
         128,
+        0,
+        0xFFFF_FFFF,
+        initial_vector,
+        message_schedule,
+    );
+    return statesToDigests8(Hash, &states, statesToDigests4);
+}
+
+pub fn hashFixedSingleBlock8(
+    comptime Hasher: type,
+    comptime Hash: type,
+    comptime byte_len: usize,
+    scalar_mode: anytype,
+    use_scalar: bool,
+    initial_state: [8]u32,
+    data: *const [8][byte_len]u8,
+    comptime load4: anytype,
+    comptime statesToDigests4: anytype,
+    comptime initial_vector: [8]u32,
+    comptime message_schedule: [10][16]u8,
+) [8]Hash {
+    comptime std.debug.assert(byte_len <= 64);
+    if (use_scalar) {
+        var out: [8]Hash = undefined;
+        for (&out, data) |*digest, *message| {
+            digest.* = Hasher.hashFixedSingleBlockWithMode(
+                byte_len,
+                scalar_mode,
+                message,
+            );
+        }
+        return out;
+    }
+
+    var blocks = [_][64]u8{[_]u8{0} ** 64} ** 8;
+    for (&blocks, data) |*block, message| {
+        if (byte_len > 0) @memcpy(block[0..byte_len], message[0..]);
+    }
+    var messages: [16]V8 = undefined;
+    load8(&blocks, &messages, load4);
+    var states: [8]V8 = undefined;
+    for (0..8) |word| states[word] = @splat(initial_state[word]);
+    compress8(
+        &states,
+        &messages,
+        @intCast(byte_len),
         0,
         0xFFFF_FFFF,
         initial_vector,

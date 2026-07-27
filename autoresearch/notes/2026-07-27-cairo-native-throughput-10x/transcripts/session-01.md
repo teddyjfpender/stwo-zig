@@ -139,3 +139,33 @@ four-stream path and 4,717.112 ms for eight streams, a `1.013191` regression.
 The M5 executes the 256-bit logical vector as native halves; extra live state
 and code pressure outweighed scheduling overlap for fragmented leaf messages.
 All implementation source was removed.
+
+## Hypothesis 5: use eight streams only for independent PoW messages
+
+The Merkle rejection was shape-specific: fragmented leaf continuation grows
+live state and code pressure. PoW hashes independent fixed 40-byte messages
+and can reuse the existing tested eight-stream terminal compressor without
+carrying continuation state.
+
+Widen each worker's ordered nonce batch from four to eight. Preserve nonce
+order, the atomic minimum, failed-spawn recovery, scalar behavior, and every
+proof parameter. The candidate is falsified by any digest mismatch, invalid
+lowest nonce, a paired PoW regression, or a complete proof mismatch.
+
+### Result: accepted as a focused checkpoint
+
+Core differential tests passed across message lengths 0, 1, 40, 63, and 64.
+The immutable four-stream/live eight-stream paired comparison measured:
+
+```text
+wall B/A  0.7307, 95% CI [0.693294, 0.758206]
+cycles    0.7247
+instr     1.2366
+```
+
+The candidate trades additional issued instructions for more compression
+overlap and reduces wall time by 1.369x. Exact Arithmetic 2m diagnostics
+retained proof hash `25e571...deea6`. CPU PoW was 109.298 ms. Metal PoW was
+101.537 ms and the complete Metal proof was 3,564.711 ms with 74 dispatches
+and zero fallbacks. An unrelated RISC-V test occupied one core throughout the
+complete screens, so no causal whole-proof ratio is claimed from them.
