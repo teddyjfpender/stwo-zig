@@ -10,8 +10,14 @@ root therefore applies
 This module checks, by a 30-step symbolic induction, that a path rooted at
 index zero reaches exactly the integer represented by its 30 path bits and
 never wraps M31.  It also computes the additive order of the depth step ``-1``:
-a detached cycle needs exactly p edges and p distinct depths.  The production
-statement guard admits fewer than p Merkle rows, so such a cycle cannot fit.
+a detached cycle needs exactly p edges and p distinct depths.  A Merkle node
+row can contribute coefficient two to one relation tuple, so the production
+statement guards require both ``2 * n_node_rows < p`` and
+``2 * n_node_rows + n_program_rows + sum(n_memory_rows) + 3 < p``.
+The latter conservatively includes coincident node, leaf-source, and public
+root terms.  These bounds lift both sides of a zero M31 aggregate to ordinary
+integers and, more strongly than necessary for depth alone, prevent a detached
+depth cycle from fitting.
 
 Run from the repository root:
 
@@ -65,6 +71,9 @@ class DepthCycleCertificate:
     distinct_depths_before_repeat: int
     statement_row_limit_exclusive: int
     maximum_admitted_rows: int
+    maximum_row_coefficient: int
+    maximum_aggregate_coefficient: int
+    aggregate_coefficient_below_field: bool
     detached_cycle_excluded: bool
 
 
@@ -78,6 +87,8 @@ class ProductionContract:
     child_recurrence: str
     depth_recurrence: str
     admission_rule: str
+    node_coefficient_rule: str
+    all_source_rule: str
 
 
 def _checked_bit(value: int) -> int:
@@ -223,20 +234,32 @@ def depth_after_rows(start_depth: int, n_rows: int, modulus: int) -> int:
 
 def depth_cycle_certificate(
     modulus: int = M31_MODULUS,
-    statement_row_limit_exclusive: int = M31_MODULUS,
+    statement_row_limit_exclusive: int = (M31_MODULUS + 1) // 2,
 ) -> DepthCycleCertificate:
-    """Certify the minimum detached cycle and compare it with admission.
+    """Certify coefficient lifting and the minimum detached depth cycle.
 
     Two positions ``a < b`` in a depth walk collide exactly when
     ``(b - a) * (-1) == 0 mod p``.  The smallest positive difference is the
     additive order of ``-1``.  Consequently all depths before that first
     return are distinct.  A row carries one depth and a cycle has one active
     row per edge, so p distinct depths require at least p active rows.
+
+    Independently, one active Merkle row can contribute coefficient two to a
+    tuple.  With at most ``(p - 1) / 2`` admitted rows, the largest aggregate
+    node-row coefficient is ``p - 1``.  It therefore cannot be a nonzero
+    integer that vanishes modulo p.  This certificate remains node-only; the
+    production-contract check below separately binds the program-plus-memory
+    leaf-source bound needed for the entire Merkle bus.
     """
 
     step = -1
     divisor = math.gcd(step % modulus, modulus)
     order = additive_order(step, modulus)
+    maximum_admitted_rows = statement_row_limit_exclusive - 1
+    maximum_row_coefficient = 2
+    maximum_aggregate_coefficient = (
+        maximum_admitted_rows * maximum_row_coefficient
+    )
     certificate = DepthCycleCertificate(
         field_modulus=modulus,
         depth_step=step,
@@ -244,13 +267,18 @@ def depth_cycle_certificate(
         minimum_positive_cycle_rows=order,
         distinct_depths_before_repeat=order,
         statement_row_limit_exclusive=statement_row_limit_exclusive,
-        maximum_admitted_rows=statement_row_limit_exclusive - 1,
-        detached_cycle_excluded=(statement_row_limit_exclusive - 1) < order,
+        maximum_admitted_rows=maximum_admitted_rows,
+        maximum_row_coefficient=maximum_row_coefficient,
+        maximum_aggregate_coefficient=maximum_aggregate_coefficient,
+        aggregate_coefficient_below_field=maximum_aggregate_coefficient < modulus,
+        detached_cycle_excluded=maximum_admitted_rows < order,
     )
     if depth_after_rows(0, order, modulus) != 0:
         raise AssertionError("computed additive order does not close the depth walk")
     if not certificate.detached_cycle_excluded:
         raise AssertionError("statement row bound does not exclude a depth cycle")
+    if not certificate.aggregate_coefficient_below_field:
+        raise AssertionError("statement row bound does not lift node coefficients")
     return certificate
 
 
@@ -310,15 +338,45 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         if fragment not in merkle_source:
             raise AssertionError(f"production Merkle recurrence changed: {fragment}")
 
+    admission_limit = (
+        "const MAX_MERKLE_ROWS_WITHOUT_COEFFICIENT_WRAP: u32 = "
+        "(m31.Modulus - 1) / 2;"
+    )
+    if admission_limit not in admission_source:
+        raise AssertionError("production Merkle coefficient limit changed")
     admission_guard = (
-        "if (n_rows >= m31.Modulus) "
+        "if (merkle_rows > MAX_MERKLE_ROWS_WITHOUT_COEFFICIENT_WRAP) "
         "return types.ProverError.InvalidStatement;"
     )
     if admission_guard not in admission_source:
         raise AssertionError("production Merkle row admission guard changed")
-    admission_call = "try validateMerkleRowsFieldCycle(merkle_desc.n_rows);"
+    admission_call = (
+        "try validateMerkleCoefficientLift("
+        "program.n_rows, memory_shards, merkle_desc.n_rows);"
+    )
     if admission_call not in admission_source:
-        raise AssertionError("Merkle descriptor is not checked by the row guard")
+        raise AssertionError("Merkle descriptors are not checked by the lift guard")
+    all_source_fragments = (
+        "const MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY: u64 = 3;",
+        (
+            "var terms_per_side = @as(u64, merkle_rows) * 2 + "
+            "@as(u64, program_rows) + "
+            "MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY;"
+        ),
+        (
+            "for (memory_shards) |desc| "
+            "terms_per_side += @as(u64, desc.n_rows);"
+        ),
+        (
+            "if (terms_per_side >= m31.Modulus) "
+            "return types.ProverError.InvalidStatement;"
+        ),
+    )
+    for fragment in all_source_fragments:
+        if fragment not in admission_source:
+            raise AssertionError(
+                f"production Merkle all-source lift changed: {fragment}"
+            )
 
     return ProductionContract(
         m31_source=str(m31_path.relative_to(repo_root)),
@@ -328,7 +386,14 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         source_inverse_two=source_inverse_two,
         child_recurrence="child = 2 * parent + bit",
         depth_recurrence="parent_depth = child_depth - 1 (mod p)",
-        admission_rule="merkle n_rows < M31 modulus",
+        admission_rule=(
+            "2 * merkle n_rows < M31 modulus and "
+            "2 * merkle + program + memory n_rows + 3 < M31 modulus"
+        ),
+        node_coefficient_rule="2 * merkle n_rows < M31 modulus",
+        all_source_rule=(
+            "2 * merkle + program + memory n_rows + 3 < M31 modulus"
+        ),
     )
 
 

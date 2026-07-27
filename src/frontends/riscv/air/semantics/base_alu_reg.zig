@@ -163,13 +163,13 @@ pub fn Semantics(comptime S: type) type {
             rs2: ops.AccessChain,
         };
 
-        /// Register-file state-chain entries. All three accesses emit at this AIR
-        /// row's clock, matching the pinned Stark-V schema.
+        /// Register-file state-chain entries use the protocol's strict
+        /// source-before-destination subclocks.
         pub fn accessLookups(row: Row) AccessLookups {
             return .{
-                .rd = ops.registerAccessChain(row.rd, row.clk),
-                .rs1 = ops.registerAccessChain(row.rs1, row.clk),
-                .rs2 = ops.registerAccessChain(row.rs2, row.clk),
+                .rd = ops.registerAccessChain(row.rd, row.clk, .third),
+                .rs1 = ops.registerAccessChain(row.rs1, row.clk, .first),
+                .rs2 = ops.registerAccessChain(row.rs2, row.clk, .second),
             };
         }
 
@@ -291,7 +291,7 @@ pub fn Semantics(comptime S: type) type {
                     try std.testing.expect(tuple.opcode_id.eql(ops.q(5)));
                 }
 
-                test "base alu reg semantics: access lookups consume previous and emit at row clock" {
+                test "base alu reg semantics: access lookups emit at derived subclocks" {
                     var row = zeroRow();
                     row.clk = ops.q(19);
                     row.rs1.addr = ops.q(7);
@@ -304,9 +304,9 @@ pub fn Semantics(comptime S: type) type {
                     try std.testing.expect(chain.previous.addr.eql(ops.q(7)));
                     try std.testing.expect(chain.previous.clock.eql(ops.q(11)));
                     try std.testing.expect(chain.previous.limbs[0].eql(ops.q(41)));
-                    try std.testing.expect(chain.next.clock.eql(ops.q(19)));
+                    try std.testing.expect(chain.next.clock.eql(ops.q(73)));
                     try std.testing.expect(chain.next.limbs[0].eql(ops.q(42)));
-                    try std.testing.expect(chain.clock_gap.eql(ops.q(8)));
+                    try std.testing.expect(chain.clock_gap.eql(ops.q(61)));
                 }
 
                 test "base alu reg semantics: oracle adapter preserves access-first layout" {

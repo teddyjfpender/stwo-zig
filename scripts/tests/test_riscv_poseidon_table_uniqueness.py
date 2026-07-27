@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import riscv_poseidon_table_uniqueness as checker
+from scripts.air_satisfaction_lib import field as field_transcription
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,6 +41,7 @@ class RiscVPoseidonTableUniquenessTest(unittest.TestCase):
         self.assertIn("all 445 main cells", result.theorem)
 
     def test_all_six_tables_are_exhaustive_and_transcript_nonvacuous(self) -> None:
+        self.assertEqual(self.report.source_files, len(checker.SOURCE_BINDINGS))
         self.assertEqual(
             [table.kind for table in self.report.tables],
             list(checker.TABLE_ORDER),
@@ -94,6 +96,88 @@ class RiscVPoseidonTableUniquenessTest(unittest.TestCase):
 
         with self.assertRaisesRegex(checker.AuditError, "bitwise row 7"):
             checker.audit_tables(mutated)
+
+    def test_table_inverse_and_committed_placement_are_nonvacuous(self) -> None:
+        for kind in checker.TABLE_ORDER:
+            with self.subTest(kind=kind):
+                values = checker._table_formula(kind, 17)
+                self.assertEqual(checker._table_index(kind, values), 17)
+                if kind == "bitwise":
+                    mutation = values[:2] + (values[2] + 1,) + values[3:]
+                    with self.assertRaises(ValueError):
+                        checker._table_index(kind, mutation)
+                else:
+                    mutation = (values[0] + 1,) + values[1:]
+                    self.assertNotEqual(checker._table_index(kind, mutation), 17)
+
+        log_sizes = {
+            checker.infrastructure.TABLE_LOG_SIZES[kind]
+            for kind in checker.TABLE_ORDER
+        }
+        for log_size in log_sizes:
+            size = 1 << log_size
+            placement = field_transcription.committed_placement(log_size)
+            for row in (0, 1, 2, 17, size // 2, size - 2, size - 1):
+                with self.subTest(log_size=log_size, row=row):
+                    committed = checker._committed_index(row, log_size)
+                    self.assertEqual(committed, placement[row])
+                    self.assertEqual(
+                        checker._committed_index(committed, log_size),
+                        row,
+                    )
+
+    def test_singleton_transition_reacts_to_each_fixed_input(self) -> None:
+        denominator = checker._dummy_denominator(
+            checker._table_formula("range_check_8_8", 17)
+        )
+        self.assertFalse(denominator.is_zero())
+        previous = checker.QM31(9, 8, 7, 6)
+        claim = checker.QM31(5, 4, 3, 2)
+        signed_multiplicity = checker.P - 1
+        current = previous + denominator.inv()
+        honest = dict(
+            signed_multiplicity=signed_multiplicity,
+            current=current,
+            previous=previous,
+            is_first=0,
+            claim=claim,
+            denominator=denominator,
+        )
+        self.assertTrue(checker._transition_residual(**honest).is_zero())
+        mutations = (
+            {"signed_multiplicity": 0},
+            {"current": current + checker.QM31_ONE},
+            {"previous": previous + checker.QM31_ONE},
+            {"is_first": 1},
+            {"denominator": denominator + checker.QM31_ONE},
+        )
+        for mutation in mutations:
+            with self.subTest(mutation=tuple(mutation)):
+                candidate = honest | mutation
+                self.assertFalse(
+                    checker._transition_residual(**candidate).is_zero()
+                )
+
+        first_row = honest | {
+            "current": current - claim,
+            "is_first": 1,
+        }
+        self.assertTrue(checker._transition_residual(**first_row).is_zero())
+        first_row["claim"] = claim + checker.QM31_ONE
+        self.assertFalse(checker._transition_residual(**first_row).is_zero())
+
+    def test_field_relation_and_placement_dependencies_are_bound(self) -> None:
+        self.assertLessEqual(
+            {
+                "src/core/fields/m31.zig",
+                "src/core/fields/cm31.zig",
+                "src/core/fields/qm31.zig",
+                "src/core/utils.zig",
+                "src/frontends/riscv/air/lookups/entry.zig",
+                "src/frontends/riscv/air/relation_challenges.zig",
+            },
+            set(checker.SOURCE_BINDINGS),
+        )
 
     def test_source_bindings_fail_closed_for_every_bound_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -18,6 +18,7 @@ pub const state_chain = @import("state_chain.zig");
 pub const memory_state = @import("memory_state.zig");
 pub const result_mod = @import("result.zig");
 const access_witness = @import("access_witness.zig");
+const access_clock = @import("../access_clock.zig");
 pub const host_mod = @import("../host/mod.zig");
 
 pub const Cpu = cpu.Cpu;
@@ -124,6 +125,7 @@ fn runConfigured(
         const rd_prev_val = rv_cpu.readReg(inst.rd);
         const access_clk: u32 = @intCast(steps + 1);
         const access = access_witness.capture(&chain_tracker, inst, access_clk);
+        const memory_access_clock = access_clock.encode(access_clk, .third);
 
         // The zkVM completion sentinel is an environment event, not a retired
         // instruction: `jal x0, 0`, or `jalr x0` targeting itself.
@@ -153,7 +155,7 @@ fn runConfigured(
             mem_prev_word = mem.readU32(aligned_addr);
             mem_prev_clk = state_chain.StateChainTracker.effectivePreviousClock(
                 chain_tracker.mem_last_clk.get(aligned_addr) orelse 0,
-                access_clk,
+                memory_access_clock,
             );
             if (is_load) {
                 mem_val = switch (inst.opcode) {
@@ -180,7 +182,7 @@ fn runConfigured(
                     for (h.lastMemoryWrites()) |mw| {
                         try chain_tracker.recordMemTransition(
                             mw.addr,
-                            access_clk,
+                            memory_access_clock,
                             mw.previous_value,
                             mw.value,
                         );
@@ -247,13 +249,12 @@ fn runConfigured(
             .inst_word = inst_word,
         });
 
-        // Record state chain accesses.
-        // Pinned Stark-V places every operand access for an instruction at
-        // the same one-based execution clock, in source-then-destination order.
+        // Record state-chain accesses at strict protocol subclocks derived
+        // from the one-based instruction clock, in source-then-destination
+        // order. This intentionally diverges from Stark-V's shared clock.
         try access.recordRegisters(
             &chain_tracker,
             inst,
-            access_clk,
             rs1_val,
             rs2_val,
             rd_prev_val,
@@ -263,7 +264,7 @@ fn runConfigured(
             const aligned_addr = mem_addr & ~@as(u32, 3);
             try chain_tracker.recordMemTransition(
                 aligned_addr,
-                access_clk,
+                memory_access_clock,
                 mem_prev_word,
                 mem.readU32(aligned_addr),
             );
@@ -542,12 +543,12 @@ test "runner: runWithInput captures Stark-V public IO with access clocks" {
     try std.testing.expectEqual(OutputWord{
         .addr = elf_loader.DEFAULT_OUTPUT_LEN,
         .value = 4,
-        .clock = 3,
+        .clock = 11,
     }, result.output_words[0]);
     try std.testing.expectEqual(OutputWord{
         .addr = elf_loader.DEFAULT_OUTPUT_DATA,
         .value = 42,
-        .clock = 5,
+        .clock = 19,
     }, result.output_words[1]);
     try std.testing.expect(result.rw_memory.segment_role.is_first);
     try std.testing.expect(result.rw_memory.segment_role.is_last);
@@ -682,7 +683,7 @@ test "runner: mem_addr and mem_val captured for load/store" {
     try std.testing.expectEqual(@as(u32, 0x55), rows[3].mem_val);
     try std.testing.expectEqual(@as(u32, 0x55), rows[3].mem_prev_word);
     try std.testing.expectEqual(@as(u32, 0x55), rows[3].mem_next_word);
-    try std.testing.expectEqual(@as(u32, 3), rows[3].mem_prev_clk);
+    try std.testing.expectEqual(@as(u32, 11), rows[3].mem_prev_clk);
 
     // Verify final register state
     try std.testing.expectEqual(@as(u32, 0x55), result.cpu_final.readReg(3));

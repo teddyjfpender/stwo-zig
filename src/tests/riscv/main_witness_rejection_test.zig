@@ -10,6 +10,7 @@ const memory_poseidon = @import("../../frontends/riscv/air/memory_commitment/pos
 const runner = @import("../../frontends/riscv/runner/mod.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
 const release_elf_fixture = @import("release_elf_fixture.zig");
+const strict_clock_fixture = @import("strict_clock_fixture.zig");
 
 const Mutation = orchestration.TestWitnessMutation;
 
@@ -198,6 +199,7 @@ fn testAddiTrace(allocator: std.mem.Allocator, n: usize) !trace_mod.Trace {
         .next_pc = @intCast(0x1000 + (i + 1) * 4),
         .inst_word = 0x00100093,
     });
+    strict_clock_fixture.assignRegisterClocks(trace.rows.items);
     trace.final_pc = @intCast(0x1000 + n * 4);
     return trace;
 }

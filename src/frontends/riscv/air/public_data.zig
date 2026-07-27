@@ -1,12 +1,15 @@
 //! Public statement data for RV32IM proofs.
 //!
-//! The field model and transcript order mirror Stark-V's `PublicData` at the
-//! pinned RISC-V oracle revision. PC and clock bind through registers-state,
-//! registers and I/O close through memory-access, and roots are checked against
-//! the committed program and RW-memory trees before entering the transcript.
+//! The field layout and transcript order mirror Stark-V's `PublicData` at the
+//! pinned RISC-V oracle revision. Access-clock values intentionally use this
+//! implementation's strict derived subclocks instead of Stark-V's shared
+//! instruction clock. PC and clock bind through registers-state, registers and
+//! I/O close through memory-access, and roots are checked against the committed
+//! program and RW-memory trees before entering the transcript.
 
 const std = @import("std");
 const profile = @import("../isa/profile.zig");
+const access_clock = @import("../access_clock.zig");
 
 pub const ValidationError = error{
     InputAddressOverflow,
@@ -136,7 +139,7 @@ pub const IoEntries = struct {
 pub const PublicData = struct {
     initial_pc: u32,
     final_pc: u32,
-    /// Total executed cycles in the Stark-V public-data clock model.
+    /// Total executed instructions; access fields use derived protocol subclocks.
     clock: u32,
     initial_regs: [32]u32,
     final_regs: [32]u32,
@@ -166,7 +169,8 @@ pub const PublicData = struct {
         if (self.final_regs[0] != 0) return error.NonZeroFinalX0;
         try self.validateCompletion();
         for (self.reg_last_clock) |clock| {
-            if (clock > self.clock) return error.RegisterClockOutOfRange;
+            if (!access_clock.isWithinExecution(clock, self.clock, true))
+                return error.RegisterClockOutOfRange;
         }
         try self.validateInput();
         try self.validateOutput();
@@ -179,7 +183,7 @@ pub const PublicData = struct {
                 if ((completion.address & 3) != 0 or completion.address >= 0x7fff_fffc)
                     return error.InvalidCompletionAddress;
                 if (completion.value == 0) return error.InvalidCompletionValue;
-                if (completion.clock == 0 or completion.clock > self.clock)
+                if (!access_clock.isWithinExecution(completion.clock, self.clock, false))
                     return error.InvalidCompletionClock;
             },
             .unretired_self_loop => {
@@ -294,7 +298,8 @@ pub const PublicData = struct {
 };
 
 fn validateOutputClock(clock: u32, final_clock: u32) ValidationError!void {
-    if (clock == 0 or clock > final_clock) return error.OutputClockOutOfRange;
+    if (!access_clock.isWithinExecution(clock, final_clock, false))
+        return error.OutputClockOutOfRange;
 }
 
 /// Pack public input bytes into Stark-V's contiguous little-endian words.
@@ -473,11 +478,11 @@ fn validPublicData(input_words: []const u32, output_words: []const OutputWord) P
 test "public data: validator accepts the pinned input and output shape" {
     const input_words = [_]u32{ 0x0403_0201, 0x0000_0605 };
     const output_words = [_]OutputWord{
-        .{ .addr = 0x3004, .value = 5, .clock = 8 },
-        .{ .addr = 0x3008, .value = 0x4443_4241, .clock = 9 },
+        .{ .addr = 0x3004, .value = 5, .clock = 33 },
+        .{ .addr = 0x3008, .value = 0x4443_4241, .clock = 34 },
         // Stark-V publishes the complete final memory word. Bytes above the
         // five-byte logical output are public but are not required to be zero.
-        .{ .addr = 0x300c, .value = 0xaabb_cc45, .clock = 10 },
+        .{ .addr = 0x300c, .value = 0xaabb_cc45, .clock = 35 },
     };
     const data = validPublicData(&input_words, &output_words);
     try data.validate();
@@ -485,9 +490,9 @@ test "public data: validator accepts the pinned input and output shape" {
 
 test "public data: validator rejects missing root and malformed input" {
     const output_words = [_]OutputWord{
-        .{ .addr = 0x3004, .value = 5, .clock = 8 },
-        .{ .addr = 0x3008, .value = 11, .clock = 9 },
-        .{ .addr = 0x300c, .value = 12, .clock = 10 },
+        .{ .addr = 0x3004, .value = 5, .clock = 33 },
+        .{ .addr = 0x3008, .value = 11, .clock = 34 },
+        .{ .addr = 0x300c, .value = 12, .clock = 35 },
     };
     const canonical_input = [_]u32{ 0x0403_0201, 0x0000_0605 };
 
@@ -512,7 +517,7 @@ test "public data: validator rejects missing root and malformed input" {
     try std.testing.expectError(error.NonZeroFinalX0, data.validate());
 
     data = validPublicData(&canonical_input, &output_words);
-    data.reg_last_clock[31] = data.clock + 1;
+    data.reg_last_clock[31] = 41;
     try std.testing.expectError(error.RegisterClockOutOfRange, data.validate());
 
     data = validPublicData(canonical_input[0..1], &output_words);
@@ -532,9 +537,9 @@ test "public data: validator rejects missing root and malformed input" {
 test "public data: validator rejects malformed output structure" {
     const input_words = [_]u32{ 0x0403_0201, 0x0000_0605 };
     var output_words = [_]OutputWord{
-        .{ .addr = 0x3004, .value = 5, .clock = 8 },
-        .{ .addr = 0x3008, .value = 11, .clock = 9 },
-        .{ .addr = 0x300c, .value = 12, .clock = 10 },
+        .{ .addr = 0x3004, .value = 5, .clock = 33 },
+        .{ .addr = 0x3008, .value = 11, .clock = 34 },
+        .{ .addr = 0x300c, .value = 12, .clock = 35 },
     };
     var data = validPublicData(&input_words, output_words[0..2]);
     try std.testing.expectError(error.OutputWordCountMismatch, data.validate());
@@ -550,7 +555,7 @@ test "public data: validator rejects malformed output structure" {
 
     output_words[1].clock = 0;
     try std.testing.expectError(error.OutputClockOutOfRange, data.validate());
-    output_words[1].clock = 11;
+    output_words[1].clock = 41;
     try std.testing.expectError(error.OutputClockOutOfRange, data.validate());
 }
 
@@ -563,7 +568,7 @@ test "public data: empty output forms retain the pinned segment distinction" {
     const final_segment_words = [_]OutputWord{.{
         .addr = 0x3004,
         .value = 0,
-        .clock = 8,
+        .clock = 33,
     }};
     data.io_entries.output_words = &final_segment_words;
     try data.validate();
@@ -575,8 +580,8 @@ test "public data: empty output forms retain the pinned segment distinction" {
 test "public data: output regions use checked, non-overlapping addresses" {
     const input_words = [_]u32{ 0x0403_0201, 0x0000_0605 };
     const overflow_words = [_]OutputWord{
-        .{ .addr = 0x3004, .value = 2, .clock = 8 },
-        .{ .addr = 0xffff_fffc, .value = 1, .clock = 9 },
+        .{ .addr = 0x3004, .value = 2, .clock = 33 },
+        .{ .addr = 0xffff_fffc, .value = 1, .clock = 34 },
     };
     var data = validPublicData(&input_words, &overflow_words);
     data.io_entries.output_len = 4;
@@ -584,8 +589,8 @@ test "public data: output regions use checked, non-overlapping addresses" {
     try std.testing.expectError(error.OutputAddressOverflow, data.validate());
 
     const overlap_words = [_]OutputWord{
-        .{ .addr = 0x3008, .value = 4, .clock = 8 },
-        .{ .addr = 0x3008, .value = 1, .clock = 9 },
+        .{ .addr = 0x3008, .value = 4, .clock = 33 },
+        .{ .addr = 0x3008, .value = 1, .clock = 34 },
     };
     data = validPublicData(&input_words, &overlap_words);
     data.io_entries.output_len = 4;
@@ -596,9 +601,9 @@ test "public data: output regions use checked, non-overlapping addresses" {
 test "public data: unaligned output length is outside the supported proof profile" {
     const input_words = [_]u32{ 0x0403_0201, 0x0000_0605 };
     const output_words = [_]OutputWord{
-        .{ .addr = 0x3004, .value = 5, .clock = 8 },
-        .{ .addr = 0x3008, .value = 11, .clock = 9 },
-        .{ .addr = 0x300c, .value = 12, .clock = 10 },
+        .{ .addr = 0x3004, .value = 5, .clock = 33 },
+        .{ .addr = 0x3008, .value = 11, .clock = 34 },
+        .{ .addr = 0x300c, .value = 12, .clock = 35 },
     };
     var data = validPublicData(&input_words, &output_words);
     data.io_entries.output_len_addr += 1;

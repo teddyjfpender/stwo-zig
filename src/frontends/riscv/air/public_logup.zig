@@ -1,9 +1,10 @@
-//! Public LogUp compensation terms for a Stark-V RV32IM statement.
+//! Public LogUp compensation terms for an RV32IM statement.
 //!
-//! This is an exact port of pinned Stark-V `PublicData::logup_sum`. Each domain
-//! is exposed separately so callers cannot accidentally offset an unclosed
-//! claim against another relation. The production proof consumes all three
-//! public domains independently.
+//! The relation algebra and serialized field order follow pinned Stark-V
+//! `PublicData::logup_sum`; memory-boundary clock values use this
+//! implementation's strict derived access clocks. Each domain is exposed
+//! separately so callers cannot accidentally offset an unclosed claim against
+//! another relation.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -223,7 +224,7 @@ fn emptyPublicData() public_data.PublicData {
     };
 }
 
-test "public LogUp: exact pinned Stark-V dummy-relation vector" {
+test "public LogUp: exact strict-access public-boundary dummy-relation vector" {
     var data = emptyPublicData();
     data.initial_pc = 0x1000;
     data.final_pc = 0x1040;
@@ -238,8 +239,8 @@ test "public LogUp: exact pinned Stark-V dummy-relation vector" {
     data.final_rw_root = 303;
     const input_words = [_]u32{ 0x0403_0201, 0x0000_0605 };
     const output_words = [_]public_data.OutputWord{
-        .{ .addr = 0x0010_0004, .value = 4, .clock = 15 },
-        .{ .addr = 0x0010_0008, .value = 0x4443_4241, .clock = 16 },
+        .{ .addr = 0x0010_0004, .value = 4, .clock = 14 },
+        .{ .addr = 0x0010_0008, .value = 0x4443_4241, .clock = 15 },
     };
     data.io_entries = .{
         .input_start = 0x0018_0000,
@@ -253,10 +254,10 @@ test "public LogUp: exact pinned Stark-V dummy-relation vector" {
 
     const actual = try sum(&data, &relation_challenges.Relations.dummy());
     const legacy = QM31.fromU32Unchecked(
-        673401415,
-        755770749,
-        1943640833,
-        2140834143,
+        748137912,
+        668873569,
+        1441913112,
+        794627628,
     );
     try std.testing.expect(actual.eql(
         legacy.add(try programAccessSum(&data, &relation_challenges.Relations.dummy())),

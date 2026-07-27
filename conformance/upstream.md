@@ -58,9 +58,16 @@ authoritative disclosure: a source register access may emit a value it did not c
 leaves any witness derived from that value, including the `LB`/`LH` and `SRL`/`SRA` sign witnesses,
 a free prover choice); `SB`/`SH` leave every unmarked destination byte free; the `AUIPC` immediate
 admits a second byte decomposition offset by `p + 2`; and `composeU32(rs1.next)` is unbounded in
-`JALR`. An oracle that accepts an unsound AIR cannot arbitrate AIR soundness, so agreement with it
-is no longer evidence of correctness on those surfaces and disagreement with it is no longer
-evidence of a defect.
+`JALR`; DIV permits non-byte divisors and an ambiguous quotient sign; the shift carry lookup admits
+negative carries; and every operand access in one instruction reuses the same clock while a zero
+clock gap is admissible. That last pair permits an aliased read to hide an arbitrary value in a
+same-tuple/same-clock memory-relation self-loop. Zig therefore derives three ordered access
+subclocks inside a four-wide instruction bucket and range-checks `current - previous - 1`.
+It also rejects statement geometries whose combined memory or Merkle relation-source
+coefficients could reach the M31 modulus, including malicious cross-source tuple collisions.
+An oracle that accepts an unsound AIR cannot arbitrate AIR soundness, so agreement with it is no
+longer evidence of correctness on those surfaces and disagreement with it is no longer evidence
+of a defect.
 
 Consequences for evidence:
 
@@ -73,7 +80,9 @@ Consequences for evidence:
   boundary against this pin.
 - Layout lineage still gates the demoted boundaries: family identity, column identity, column
   order and relation order must agree, because none of the closed constraints adds or reorders a
-  column.
+  committed opcode column. Access-clock values and the associated relation tuples intentionally
+  differ; public-data field order remains lineage-compatible even where final register, memory,
+  output, and completion access clocks now use the strict subclock encoding.
 - Stark-V is never an acceptance authority for RV32IM semantics. `scripts/riscv_stark_v_benchmark.py`
   remains a legacy performance and layout comparison only.
 

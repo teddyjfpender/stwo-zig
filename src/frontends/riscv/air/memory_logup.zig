@@ -1,7 +1,7 @@
 //! Exact `memory_access` LogUp generation over full access witnesses.
 //!
 //! Each enabled access consumes its previous tuple and emits its next tuple at
-//! the same instruction clock. Claims from arbitrary component shards cancel
+//! its derived strict access subclock. Claims from arbitrary component shards cancel
 //! against `public_logup.relationSums(...).memory_access`. Ordinary RW memory
 //! that is neither public input nor public output still needs the committed
 //! memory-boundary table and its Merkle leaf rows; this module does not invent
@@ -11,6 +11,7 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const infra = @import("../infra_trace.zig");
+const access_clock = @import("../access_clock.zig");
 const common = @import("semantics/common.zig");
 const public_data = @import("public_data.zig");
 const public_logup = @import("public_logup.zig");
@@ -258,18 +259,21 @@ fn boundaryData() public_data.PublicData {
     };
 }
 
-test "memory LogUp: aliased register accesses chain at one instruction clock across shards" {
+test "memory LogUp: aliased register accesses chain across strict subclocks and shards" {
     const relations = relation_challenges.Relations.dummy();
     var data = boundaryData();
+    data.clock = 1;
     data.initial_regs[1] = 5;
     data.final_regs[1] = 6;
-    data.reg_last_clock[1] = 1;
+    const source_clock = access_clock.encode(1, .first);
+    const destination_clock = access_clock.encode(1, .second);
+    data.reg_last_clock[1] = destination_clock;
 
     // ADDI x1,x1,1: source read then destination write. The intermediate
-    // tuple at clock 1 must cancel even when the two accesses are sharded.
+    // tuple at the first subclock must cancel even when the accesses are sharded.
     const accesses = [_]AccessWitness{
-        witness(0, 1, 0, 5, 1, 5),
-        witness(0, 1, 1, 5, 1, 6),
+        witness(0, 1, 0, 5, source_clock, 5),
+        witness(0, 1, source_clock, 5, destination_clock, 6),
     };
     var first = try generate(std.testing.allocator, accesses[0..1], 1, &relations.memory_access);
     defer first.deinit(std.testing.allocator);

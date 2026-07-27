@@ -16,20 +16,25 @@ silently promoting bus closure to a row-local fact:
 
 * the exact relation requests emitted by a fixed row are deterministic;
 * the program address and clock-predecessor decompositions are unique;
-* exact ``program_access`` closure binds fetches to a canonical program-leaf
-  map, conditional on the Merkle commitment assumption;
-* exact ``memory_access`` closure plus ordinary increasing clocks makes a
-  finite RW-memory component one source-to-sink path, while closure alone
-  admits a detached cycle;
+* exact integer ``program_access`` balance binds fetches to a canonical
+  program-leaf map, conditional on the Merkle commitment assumption;
+* exact integer ``memory_access`` balance plus ordinary increasing clocks
+  makes a finite RW-memory component one source-to-sink path, while field
+  balance without a coefficient bound admits additional forgeries; the
+  production statement now bounds every memory-relation coefficient side
+  below p and therefore supplies that lift;
 * a root-connected depth-30 Merkle path has the unique binary index/parity
-  recurrence and carries one root, while a detached component would require
-  at least p rows; and
+  recurrence and carries one root; the production all-source bound lifts
+  every Merkle coefficient side and excludes detached components under exact
+  tuple balance; and
 * a clock-update row preserves the memory key/value and advances the clock by
   exactly ``2**20 - 1`` inside the committed predecessor window.
 
-Known counterexamples to stronger claims are emitted in the JSON report.  The
-production-source contract pins every premise to the shipped Zig row
-constraints and relation declarations, so source drift fails closed.
+Known counterexamples to stronger claims are emitted in the JSON report.  In
+particular, the report distinguishes exact field balance from the stronger
+integer-multiset premise needed by graph arguments.  The production-source
+contract pins every claimed row layout and recurrence to the shipped Zig
+constraints and relation declarations, so relevant source drift fails closed.
 
 Run from the repository root:
 
@@ -59,7 +64,7 @@ PROGRAM_HIGH_BOUND = 1 << 8
 PROGRAM_ADDRESS_BOUND = 1 << 30
 MERKLE_DEPTH = riscv_merkle_recurrence.MERKLE_PATH_DEPTH
 CLOCK_LOW_BASE = 1 << 20
-CLOCK_HIGH_BOUND = 1 << 4
+CLOCK_HIGH_BOUND = 1 << 6
 CLOCK_PREDECESSOR_BOUND = CLOCK_LOW_BASE * CLOCK_HIGH_BOUND
 MAX_CLOCK_DIFF = infrastructure.MAX_CLOCK_DIFF
 
@@ -109,6 +114,24 @@ class RadixExhaustion:
     represented_pairs: int
     maximum_decompositions_per_residue: int
     unique: bool
+
+
+@dataclasses.dataclass(frozen=True)
+class FieldCoefficientWrapCounterexample:
+    """A zero field coefficient whose ordinary integer coefficient is nonzero."""
+
+    field_modulus: int
+    maximum_row_coefficient: int
+    coefficient_two_rows: int
+    coefficient_one_rows: int
+    active_rows: int
+    ordinary_coefficient: int
+    field_coefficient: int
+    admitted_by_rows_less_than_modulus: bool
+    admitted_by_production_node_guard: bool
+    locally_admissible_multiplicities: bool
+    depth_cycle_present: bool
+    consequence: str
 
 
 def _row_snapshot(row: object) -> tuple[tuple[str, object], ...]:
@@ -337,6 +360,7 @@ class ProgramBindingCheck:
     exact_program_multiset: bool
     common_public_root: bool
     canonical_leaf_map: bool
+    field_coefficient_lift_safe: bool
 
 
 def verify_program_binding(
@@ -349,7 +373,11 @@ def verify_program_binding(
 
     This function assumes that one canonical leaf map is the leaf opening of
     ``public_root``.  Establishing that assumption from a root is the Merkle
-    collision-resistance claim, not an AIR row-local uniqueness theorem.
+    collision-resistance claim, not an AIR row-local uniqueness theorem.  The
+    comparison below is deliberately over ordinary integer multiplicities,
+    not merely M31 residues.  For production fetches the admitted execution
+    bound is below p; together with one canonical row per tuple, that is the
+    coefficient-lift premise which makes field equality imply this comparison.
     """
 
     for index, row in enumerate(rows):
@@ -361,6 +389,7 @@ def verify_program_binding(
                 len(rows),
                 len(fetches),
                 0,
+                False,
                 False,
                 False,
                 False,
@@ -382,6 +411,7 @@ def verify_program_binding(
         supplied[row.program_tuple()] += row.multiplicity
     demanded = Counter(fetches)
     exact_multiset = supplied == demanded
+    coefficient_lift_safe = canonical_leaf_map and len(fetches) < P
     valid = common_root and canonical_leaf_map and exact_multiset and bool(rows)
     if not rows:
         reason = "program commitment is empty"
@@ -405,6 +435,7 @@ def verify_program_binding(
         exact_multiset,
         common_root,
         canonical_leaf_map,
+        coefficient_lift_safe,
     )
 
 
@@ -527,6 +558,22 @@ class MemoryState:
         return self.addr_space, self.addr
 
 
+def memory_state_violations(state: MemoryState) -> tuple[str, ...]:
+    """Require the Python graph nodes to denote canonical relation tuples."""
+
+    violations = _canonical_violations(
+        (
+            ("addr_space", state.addr_space),
+            ("addr", state.addr),
+            ("clock", state.clock),
+            *((f"value[{index}]", value) for index, value in enumerate(state.values)),
+        )
+    )
+    if len(state.values) != 4:
+        violations.append("memory state must carry four values")
+    return tuple(violations)
+
+
 @dataclasses.dataclass(frozen=True)
 class MemoryTransition:
     previous: MemoryState
@@ -583,16 +630,31 @@ def verify_offline_memory_chain(
 ) -> MemoryChainCheck:
     """Check one finite exact offline-memory component.
 
-    Exact tuple balance supplies value continuity.  Strict ordinary clock
-    increase makes the graph acyclic.  A finite positive integral flow with one
-    unit source and one unit sink can then neither branch nor contain a
-    detached component, so it is one path.
+    Exact *integer* tuple balance supplies value continuity.  Strict ordinary
+    clock increase makes the graph acyclic.  A finite positive integral flow
+    with one unit source and one unit sink can then neither branch nor contain
+    a detached component, so it is one path.  Equality of M31 coefficients is
+    not enough unless a separate row/count bound lifts every coefficient to
+    its ordinary integer representative.
     """
 
     expected_key = initial.key()
     states = [initial, final]
     for transition in transitions:
         states.extend((transition.previous, transition.next))
+    for index, state in enumerate(states):
+        violations = memory_state_violations(state)
+        if violations:
+            return MemoryChainCheck(
+                False,
+                f"state {index}: {violations[0]}",
+                len(transitions),
+                False,
+                False,
+                False,
+                (),
+                (),
+            )
     if any(state.key() != expected_key for state in states):
         return MemoryChainCheck(
             False,
@@ -778,73 +840,100 @@ def detached_memory_cycle_counterexample() -> DetachedMemoryCycle:
 
 @dataclasses.dataclass(frozen=True)
 class SameClockAliasCounterexample:
-    """A second aliased register source can be an arbitrary self-loop."""
+    """The legacy shared-clock alias forgery versus derived subclocks."""
 
     architectural_scenario: str
     initial: MemoryState
-    honest_at_instruction_clock: MemoryState
-    forged_second_source: MemoryState
-    transitions: tuple[MemoryTransition, ...]
-    exact_relation_balance: bool
+    honest_first_source: MemoryState
+    honest_final_source: MemoryState
+    forged_shared_clock_source: MemoryState
+    legacy_transitions: tuple[MemoryTransition, ...]
+    derived_subclock_transitions: tuple[MemoryTransition, ...]
+    legacy_exact_relation_balance: bool
+    derived_subclock_exact_relation_balance: bool
     forged_value_differs_from_honest_value: bool
-    second_source_term_is_identically_zero: bool
-    rejected_by_strict_clock_lemma: bool
+    legacy_second_source_term_is_identically_zero: bool
+    derived_second_source_term_is_identically_zero: bool
+    derived_forgery_rejected: bool
     consequence: str
 
 
 def same_clock_alias_counterexample() -> SameClockAliasCounterexample:
-    """Model ``ADD x3, x1, x1`` with a forged second x1 source.
+    """Show that strict derived subclocks reject the old aliased-source attack.
 
     The first source advances the honest x1 chain from clock zero to the
-    instruction clock with value A.  The second source claims previous value B
-    at that same clock and emits B at that same clock.  Its
+    instruction's first access clock with value A.  Under the legacy protocol,
+    the second source could claim previous value B and emit B at that same
+    clock.  Its
     ``-1/(x1,t,B) + 1/(x1,t,B)`` contribution vanishes for every relation
-    challenge, so exact ``memory_access`` closure cannot distinguish B from A.
+    challenge.  Under the shipped protocol the second source emits at ``t+1``:
+    the forged B edge is no longer a self-loop and leaves four unmatched
+    tuples against the honest A boundary.
     """
 
     honest_value = (5, 0, 0, 0)
     forged_value = (9, 0, 0, 0)
     initial = MemoryState(0, 1, 0, honest_value)
-    honest_at_clock = MemoryState(0, 1, 7, honest_value)
-    forged_at_clock = MemoryState(0, 1, 7, forged_value)
-    transitions = (
-        MemoryTransition(initial, honest_at_clock, "first x1 source"),
+    honest_first = MemoryState(0, 1, 5, honest_value)
+    honest_final = MemoryState(0, 1, 6, honest_value)
+    forged_shared = MemoryState(0, 1, 5, forged_value)
+    forged_next = MemoryState(0, 1, 6, forged_value)
+    legacy_transitions = (
+        MemoryTransition(initial, honest_first, "first x1 source"),
         MemoryTransition(
-            forged_at_clock,
-            forged_at_clock,
-            "second aliased x1 source",
+            forged_shared,
+            forged_shared,
+            "legacy second aliased x1 source",
+        ),
+    )
+    derived_transitions = (
+        MemoryTransition(initial, honest_first, "first x1 source"),
+        MemoryTransition(
+            forged_shared,
+            forged_next,
+            "derived-clock second aliased x1 source",
         ),
     )
     result = SameClockAliasCounterexample(
         architectural_scenario="ADD x3, x1, x1",
         initial=initial,
-        honest_at_instruction_clock=honest_at_clock,
-        forged_second_source=forged_at_clock,
-        transitions=transitions,
-        exact_relation_balance=not _nonzero_balance(
-            initial, honest_at_clock, transitions
+        honest_first_source=honest_first,
+        honest_final_source=honest_final,
+        forged_shared_clock_source=forged_shared,
+        legacy_transitions=legacy_transitions,
+        derived_subclock_transitions=derived_transitions,
+        legacy_exact_relation_balance=not _nonzero_balance(
+            initial, honest_first, legacy_transitions
+        ),
+        derived_subclock_exact_relation_balance=not _nonzero_balance(
+            initial, honest_final, derived_transitions
         ),
         forged_value_differs_from_honest_value=(
-            forged_at_clock.values != honest_at_clock.values
+            forged_shared.values != honest_first.values
         ),
-        second_source_term_is_identically_zero=(
-            transitions[1].previous == transitions[1].next
+        legacy_second_source_term_is_identically_zero=(
+            legacy_transitions[1].previous == legacy_transitions[1].next
         ),
-        rejected_by_strict_clock_lemma=not verify_offline_memory_chain(
-            initial, honest_at_clock, transitions
-        ).valid,
+        derived_second_source_term_is_identically_zero=(
+            derived_transitions[1].previous == derived_transitions[1].next
+        ),
+        derived_forgery_rejected=bool(
+            _nonzero_balance(initial, honest_final, derived_transitions)
+        ),
         consequence=(
-            "memory_access closure alone permits the opcode row to use A + B "
-            "instead of A + A unless same-clock aliased sources are bound "
-            "row-locally or by an additional ordering rule"
+            "the old A + B forgery no longer balances memory_access: the "
+            "second aliased source must continue the A chain from the first "
+            "derived access clock to the second"
         ),
     )
     if not all(
         (
-            result.exact_relation_balance,
+            result.legacy_exact_relation_balance,
+            not result.derived_subclock_exact_relation_balance,
             result.forged_value_differs_from_honest_value,
-            result.second_source_term_is_identically_zero,
-            result.rejected_by_strict_clock_lemma,
+            result.legacy_second_source_term_is_identically_zero,
+            not result.derived_second_source_term_is_identically_zero,
+            result.derived_forgery_rejected,
         )
     ):
         raise AssertionError("same-clock alias counterexample is malformed")
@@ -974,16 +1063,92 @@ class MerkleConnectivityCertificate:
     minimum_detached_depth_cycle_rows: int
     maximum_admitted_merkle_rows: int
     detached_cycle_excluded: bool
+    detached_depth_cycle_excluded: bool
+    maximum_all_source_side_coefficient: int
+    maximum_public_root_coefficient: int
+    every_coefficient_side_below_field: bool
+    field_balance_lifts_to_integer_balance: bool
+    all_detached_components_excluded: bool
     conditional_on_exact_merkle_multiset_equality: bool
+    conditional_on_integer_coefficient_lift: bool
+
+
+def merkle_field_coefficient_wrap_counterexample(
+    modulus: int = P,
+) -> FieldCoefficientWrapCounterexample:
+    """Retain the witness that motivated the stronger production node guard.
+
+    Take ``(p - 1) / 2`` identical active Merkle rows with only parent
+    multiplicity two, and one with only parent multiplicity one.  All edge
+    multiplicities are locally admissible, the ordinary coefficient of that
+    parent tuple is p, and its M31 coefficient is therefore zero.  Matching
+    Poseidon rows can cancel each row's hash call one-for-one, so no depth
+    cycle is involved.  The construction uses ``(p + 1) / 2 < p`` rows and is
+    consequently admitted by the legacy ``n_rows < p`` depth-cycle guard, but
+    rejected by the current ``2 * n_rows < p`` production guard.
+    """
+
+    if modulus <= 2 or modulus % 2 == 0:
+        raise ValueError("counterexample needs an odd modulus greater than two")
+    coefficient_two_rows = (modulus - 1) // 2
+    coefficient_one_rows = 1
+    active_rows = coefficient_two_rows + coefficient_one_rows
+    ordinary_coefficient = 2 * coefficient_two_rows + coefficient_one_rows
+    multiplicity_two = MerkleNodeRow(0, 1, 1, 2, 3, 0, 0, 2, 7)
+    multiplicity_one = dataclasses.replace(
+        multiplicity_two,
+        current_multiplicity=1,
+    )
+    locally_admissible = (
+        not merkle_row_violations(multiplicity_two)
+        and not merkle_row_violations(multiplicity_one)
+    )
+    result = FieldCoefficientWrapCounterexample(
+        field_modulus=modulus,
+        maximum_row_coefficient=2,
+        coefficient_two_rows=coefficient_two_rows,
+        coefficient_one_rows=coefficient_one_rows,
+        active_rows=active_rows,
+        ordinary_coefficient=ordinary_coefficient,
+        field_coefficient=ordinary_coefficient % modulus,
+        admitted_by_rows_less_than_modulus=active_rows < modulus,
+        admitted_by_production_node_guard=(
+            active_rows <= (modulus - 1) // 2
+        ),
+        locally_admissible_multiplicities=locally_admissible,
+        depth_cycle_present=False,
+        consequence=(
+            "the legacy n_rows < p guard excluded depth cycles but admitted "
+            "this wrapped aggregate; the production 2 * n_rows < p guard "
+            "rejects it and supplies the node-side integer lift"
+        ),
+    )
+    if (
+        result.field_coefficient != 0
+        or not result.admitted_by_rows_less_than_modulus
+        or result.admitted_by_production_node_guard
+        or not result.locally_admissible_multiplicities
+        or result.ordinary_coefficient == 0
+    ):
+        raise AssertionError("field-coefficient wrap counterexample is malformed")
+    return result
 
 
 def merkle_connectivity_certificate(
     exhaustive_prefix_depth: int = 12,
 ) -> MerkleConnectivityCertificate:
-    """Combine the all-depth induction with an exhaustive finite prefix."""
+    """Combine path induction, production coefficient bounds, and a prefix.
+
+    The production all-source guard bounds the combined coefficient from
+    node, program, memory, and up to three public-root terms on either side by
+    ``p - 1``.  Exact M31 equality therefore lifts side-by-side to integer
+    equality.  The depth recurrence is acyclic below p rows, so a finite
+    detached balanced component would have a source or sink and is impossible.
+    """
 
     index = riscv_merkle_recurrence.index_certificate()
     cycle = riscv_merkle_recurrence.depth_cycle_certificate()
+    field_wrap = merkle_field_coefficient_wrap_counterexample()
     paths = 1 << exhaustive_prefix_depth
     edges_checked = 0
     every_even = True
@@ -1014,13 +1179,31 @@ def merkle_connectivity_certificate(
         minimum_detached_depth_cycle_rows=cycle.minimum_positive_cycle_rows,
         maximum_admitted_merkle_rows=cycle.maximum_admitted_rows,
         detached_cycle_excluded=cycle.detached_cycle_excluded,
+        detached_depth_cycle_excluded=cycle.detached_cycle_excluded,
+        maximum_all_source_side_coefficient=P - 1,
+        maximum_public_root_coefficient=3,
+        every_coefficient_side_below_field=P - 1 < P,
+        field_balance_lifts_to_integer_balance=(
+            cycle.aggregate_coefficient_below_field
+            and not field_wrap.admitted_by_production_node_guard
+            and P - 1 < P
+        ),
+        all_detached_components_excluded=(
+            cycle.detached_cycle_excluded
+            and cycle.aggregate_coefficient_below_field
+            and not field_wrap.admitted_by_production_node_guard
+        ),
         conditional_on_exact_merkle_multiset_equality=True,
+        conditional_on_integer_coefficient_lift=True,
     )
     if not all(
         (
             certificate.every_connected_base_index_even,
             certificate.every_leaf_index_is_unique_binary_path,
-            certificate.detached_cycle_excluded,
+            certificate.detached_depth_cycle_excluded,
+            certificate.every_coefficient_side_below_field,
+            certificate.field_balance_lifts_to_integer_balance,
+            certificate.all_detached_components_excluded,
         )
     ):
         raise AssertionError("Merkle connectivity certificate failed")
@@ -1081,7 +1264,7 @@ class ClockUpdateRow:
     previous_clock: int
     values: tuple[int, int, int, int]
     low20: int
-    high4: int
+    high6: int
 
     @classmethod
     def from_previous(
@@ -1091,8 +1274,8 @@ class ClockUpdateRow:
         previous_clock: int,
         values: tuple[int, int, int, int],
     ) -> ClockUpdateRow:
-        high4, low20 = divmod(previous_clock, CLOCK_LOW_BASE)
-        return cls(addr_space, addr, previous_clock, values, low20, high4)
+        high6, low20 = divmod(previous_clock, CLOCK_LOW_BASE)
+        return cls(addr_space, addr, previous_clock, values, low20, high6)
 
 
 def clock_update_row_violations(row: ClockUpdateRow) -> tuple[str, ...]:
@@ -1104,7 +1287,7 @@ def clock_update_row_violations(row: ClockUpdateRow) -> tuple[str, ...]:
             ("addr", row.addr),
             ("previous_clock", row.previous_clock),
             ("low20", row.low20),
-            ("high4", row.high4),
+            ("high6", row.high6),
             *((f"value[{index}]", value) for index, value in enumerate(row.values)),
         )
     )
@@ -1113,9 +1296,9 @@ def clock_update_row_violations(row: ClockUpdateRow) -> tuple[str, ...]:
         return tuple(violations)
     if not 0 <= row.low20 < CLOCK_LOW_BASE:
         violations.append("low20 is outside range_check_20")
-    if not 0 <= row.high4 < CLOCK_HIGH_BOUND:
-        violations.append("high4 is outside range_check_8_8_4")
-    if row.previous_clock % P != (row.low20 + CLOCK_LOW_BASE * row.high4) % P:
+    if not 0 <= row.high6 < (1 << 8) or not 0 <= 4 * row.high6 < (1 << 8):
+        violations.append("high6 or 4*high6 is outside range_check_8_8")
+    if row.previous_clock % P != (row.low20 + CLOCK_LOW_BASE * row.high6) % P:
         violations.append("clock predecessor decomposition does not recompose")
     return tuple(violations)
 
@@ -1138,7 +1321,7 @@ def clock_update_requests(row: ClockUpdateRow) -> tuple[RelationRequest, ...]:
             ),
         ),
         _request("range_check_20", -1, (row.low20,)),
-        _request("range_check_8_8_4", -1, (0, 0, row.high4)),
+        _request("range_check_8_8", -1, (row.high6, 4 * row.high6)),
     )
 
 
@@ -1238,6 +1421,7 @@ PUBLIC_LOGUP_PATH = Path("src/frontends/riscv/air/public_logup.zig")
 M31_PATH = Path("src/core/fields/m31.zig")
 STATE_COMMON_PATH = Path("src/frontends/riscv/air/semantics/common.zig")
 LOOKUP_ENTRY_PATH = Path("src/frontends/riscv/air/lookups/entry.zig")
+ACCESS_CLOCK_PATH = Path("src/frontends/riscv/access_clock.zig")
 STATEMENT_PATH = Path("src/frontends/riscv/air/statement.zig")
 STATEMENT_VALIDATION_PATH = Path(
     "src/frontends/riscv/prover/statement_validation.zig"
@@ -1259,6 +1443,7 @@ PRODUCTION_PATHS = (
     PUBLIC_LOGUP_PATH,
     STATE_COMMON_PATH,
     LOOKUP_ENTRY_PATH,
+    ACCESS_CLOCK_PATH,
     STATEMENT_PATH,
     STATEMENT_VALIDATION_PATH,
 )
@@ -1295,9 +1480,24 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "append(&list, .program_access, main[6], .{ addr, values[0], values[1], values[2], values[3] });",
     ),
     (
+        "program Merkle leaf depth",
+        PROGRAM_INTERACTION_PATH,
+        "const depth = base(30);",
+    ),
+    (
         "program first Merkle leaf",
         PROGRAM_INTERACTION_PATH,
         "append(&list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });",
+    ),
+    (
+        "program second Merkle leaf",
+        PROGRAM_INTERACTION_PATH,
+        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(1)), depth, values[1], root });",
+    ),
+    (
+        "program third Merkle leaf",
+        PROGRAM_INTERACTION_PATH,
+        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(2)), depth, values[2], root });",
     ),
     (
         "program fourth Merkle leaf",
@@ -1313,6 +1513,16 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "program high address range",
         PROGRAM_INTERACTION_PATH,
         "append(&list, .range_check_8_8, enabler.neg(), .{ main[9], QM31.zero() });",
+    ),
+    (
+        "program builder tree validation",
+        PROGRAM_COMMITMENT_PATH,
+        "try self.tree.validate(allocator);",
+    ),
+    (
+        "program builder row-to-leaf cardinality",
+        PROGRAM_COMMITMENT_PATH,
+        "if (self.rows.len * 4 != self.tree.leaves.len) return error.InvalidProgramCommitment;",
     ),
     (
         "program builder common root",
@@ -1345,14 +1555,49 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "append(&list, .memory_access, multiplicity, .{ QM31.one(), addr, clock, values[0], values[1], values[2], values[3], });",
     ),
     (
-        "memory byte ranges",
+        "memory first byte range pair",
         MEMORY_INTERACTION_PATH,
         "append(&list, .range_check_8_8, enabler.neg(), .{ values[0], values[1] });",
+    ),
+    (
+        "memory second byte range pair",
+        MEMORY_INTERACTION_PATH,
+        "append(&list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });",
+    ),
+    (
+        "memory Merkle leaf depth",
+        MEMORY_INTERACTION_PATH,
+        "const depth = base(30);",
+    ),
+    (
+        "memory first Merkle leaf",
+        MEMORY_INTERACTION_PATH,
+        "append(&list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });",
+    ),
+    (
+        "memory second Merkle leaf",
+        MEMORY_INTERACTION_PATH,
+        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(1)), depth, values[1], root });",
+    ),
+    (
+        "memory third Merkle leaf",
+        MEMORY_INTERACTION_PATH,
+        "append(&list, .merkle, enabler.neg(), .{ addr.add(base(2)), depth, values[2], root });",
     ),
     (
         "memory fourth Merkle leaf",
         MEMORY_INTERACTION_PATH,
         "append(&list, .merkle, enabler.neg(), .{ addr.add(base(3)), depth, values[3], root });",
+    ),
+    (
+        "memory host tree validation",
+        MEMORY_BOUNDARY_PATH,
+        "if (self.initial_tree) |tree| try tree.validate(allocator); if (self.final_tree) |tree| try tree.validate(allocator);",
+    ),
+    (
+        "memory host address canonicality",
+        MEMORY_BOUNDARY_PATH,
+        "if ((row.addr & 3) != 0 or row.addr > sparse_merkle.LEAF_COUNT - 4) return error.InvalidBoundary;",
     ),
     (
         "memory host initial sign",
@@ -1375,6 +1620,26 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "if (row.root != tree.root) return error.InvalidBoundary;",
     ),
     (
+        "memory host initial leaf binding",
+        MEMORY_BOUNDARY_PATH,
+        "try initial_leaves.append(allocator, leaf);",
+    ),
+    (
+        "memory host final leaf binding",
+        MEMORY_BOUNDARY_PATH,
+        "try final_leaves.append(allocator, leaf);",
+    ),
+    (
+        "memory host exact initial leaves",
+        MEMORY_BOUNDARY_PATH,
+        "try matchLeaves(self.initial_tree, initial_leaves.items);",
+    ),
+    (
+        "memory host exact final leaves",
+        MEMORY_BOUNDARY_PATH,
+        "try matchLeaves(self.final_tree, final_leaves.items);",
+    ),
+    (
         "offline memory previous tuple",
         MEMORY_LOGUP_PATH,
         "self.addr_space, self.addr, self.previous_clock, self.previous[0], self.previous[1], self.previous[2], self.previous[3],",
@@ -1388,6 +1653,36 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "offline memory transition signs",
         MEMORY_LOGUP_PATH,
         "const expected_numerator = pair.enabler.neg().mul(pair.next_denominator) .add(pair.enabler.mul(pair.previous_denominator));",
+    ),
+    (
+        "Merkle active selector",
+        MERKLE_NODE_PATH,
+        "result[N_SUMS] = enabler.sub(is_active);",
+    ),
+    (
+        "Merkle left multiplicity constraint",
+        MERKLE_NODE_PATH,
+        "result[N_SUMS + 1] = multiplicityConstraint(main[6]);",
+    ),
+    (
+        "Merkle right multiplicity constraint",
+        MERKLE_NODE_PATH,
+        "result[N_SUMS + 2] = multiplicityConstraint(main[7]);",
+    ),
+    (
+        "Merkle parent multiplicity constraint",
+        MERKLE_NODE_PATH,
+        "result[N_SUMS + 3] = multiplicityConstraint(main[8]);",
+    ),
+    (
+        "Merkle multiplicity polynomial",
+        MERKLE_NODE_PATH,
+        "return value.mul(value.sub(one)).mul(value.sub(two));",
+    ),
+    (
+        "Merkle padding multiplicities",
+        MERKLE_NODE_PATH,
+        "result[N_SUMS + 4] = main[6].mul(is_padding); result[N_SUMS + 5] = main[7].mul(is_padding); result[N_SUMS + 6] = main[8].mul(is_padding);",
     ),
     (
         "Merkle left child",
@@ -1405,6 +1700,16 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "append(&list, .merkle, main[8].neg(), .{ index.mul(INV2), depth.sub(one), cur, root });",
     ),
     (
+        "Merkle Poseidon zero-padded input",
+        MERKLE_NODE_PATH,
+        "var poseidon_input = [_]QM31{QM31.zero()} ** poseidon2_air.WIDTH; poseidon_input[0] = lhs; poseidon_input[1] = rhs;",
+    ),
+    (
+        "Merkle Poseidon narrow output",
+        MERKLE_NODE_PATH,
+        "var poseidon_output = [_]QM31{QM31.zero()} ** poseidon2_air.WIDTH; poseidon_output[0] = cur;",
+    ),
+    (
         "Merkle Poseidon input",
         MERKLE_NODE_PATH,
         "append(&list, .poseidon2, enabler, poseidon_input);",
@@ -1418,6 +1723,16 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "sparse Merkle parent index",
         SPARSE_MERKLE_PATH,
         "try next.put(left_index / 2, parent);",
+    ),
+    (
+        "clock committed row layout",
+        CLOCK_INTERACTION_PATH,
+        ".enabler = main[0], .addr_space = main[1], .addr = main[2], .clock_prev = main[3], .value = .{ main[4], main[5], main[6], main[7] }, .clock_prev_low20 = main[8], .clock_prev_high6 = main[9],",
+    ),
+    (
+        "clock memory tuple layout",
+        CLOCK_INTERACTION_PATH,
+        "return .{ .addr_space = row.addr_space, .addr = row.addr, .clock = clock, .limbs = row.value, };",
     ),
     (
         "clock previous tuple",
@@ -1437,27 +1752,67 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "clock high range",
         CLOCK_INTERACTION_PATH,
-        ".{ QM31.zero(), QM31.zero(), row.clock_prev_high4 },",
+        ".{ row.clock_prev_high6, row.clock_prev_high6.mul(q(4)) },",
+    ),
+    (
+        "clock boolean enabler",
+        CLOCK_COMPONENT_PATH,
+        "result.values[interaction.N_SUMS] = row.enabler.mul(QM31.one().sub(row.enabler));",
+    ),
+    (
+        "clock active selector",
+        CLOCK_COMPONENT_PATH,
+        "result.values[interaction.N_SUMS + 1] = row.enabler.sub(is_active);",
     ),
     (
         "clock direct recomposition",
         CLOCK_COMPONENT_PATH,
-        "row.clock_prev_low20.add( row.clock_prev_high4.mul(",
+        "result.values[interaction.N_SUMS + 2] = row.enabler.mul( row.clock_prev.sub( row.clock_prev_low20.add( row.clock_prev_high6.mul( QM31.fromBase(M31.fromU64( @as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS, )), ), ), ), );",
     ),
     (
-        "clock committed low decomposition",
+        "clock committed row contents",
         CLOCK_TRACE_PATH,
-        "update.clk_prev & ((@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1)",
-    ),
-    (
-        "clock committed high decomposition",
-        CLOCK_TRACE_PATH,
-        "M31.fromCanonical(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS)",
+        "fn placeClockUpdateRow( columns: *[CLOCK_UPDATE_COLS][]M31, row: usize, placement: permutation.BitReversalTable, address_space: u32, update: state_chain.ClockUpdate, ) void { permutation.placeValue(columns[0], row, placement, M31.one()); permutation.placeValue(columns[1], row, placement, M31.fromCanonical(address_space)); permutation.placeValue( columns[2], row, placement, M31.fromCanonical(update.addr & 0x7fff_ffff), ); permutation.placeValue(columns[3], row, placement, M31.fromCanonical(update.clk_prev)); for (update.value_limbs, 0..) |value, limb| { permutation.placeValue(columns[4 + limb], row, placement, value); } permutation.placeValue( columns[8], row, placement, M31.fromCanonical( update.clk_prev & ((@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1), ), ); permutation.placeValue( columns[9], row, placement, M31.fromCanonical(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS), ); }",
     ),
     (
         "clock bridge recurrence",
         STATE_CHAIN_PATH,
         "while (clk -| current > MAX_CLOCK_DIFF) { const next = current + MAX_CLOCK_DIFF;",
+    ),
+    (
+        "strict positive opcode access gap",
+        STATE_COMMON_PATH,
+        "clock_gap = current_clock.sub(access.previous_clock).sub(S.one()),",
+    ),
+    (
+        "opcode access gap table",
+        LOOKUP_ENTRY_PATH,
+        "Self.range20(list, enabler.neg(), chain.clock_gap);",
+    ),
+    (
+        "Merkle coefficient lift admission",
+        STATEMENT_VALIDATION_PATH,
+        "try validateMerkleCoefficientLift(program.n_rows, memory_shards, merkle_desc.n_rows);",
+    ),
+    (
+        "Merkle node coefficient bound",
+        STATEMENT_VALIDATION_PATH,
+        "if (merkle_rows > MAX_MERKLE_ROWS_WITHOUT_COEFFICIENT_WRAP) return types.ProverError.InvalidStatement;",
+    ),
+    (
+        "Merkle all-source coefficient bound",
+        STATEMENT_VALIDATION_PATH,
+        "var terms_per_side = @as(u64, merkle_rows) * 2 + @as(u64, program_rows) + MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY; for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows); if (terms_per_side >= m31.Modulus) return types.ProverError.InvalidStatement;",
+    ),
+    (
+        "memory coefficient lift admission",
+        STATEMENT_VALIDATION_PATH,
+        "try validateMemoryRelationCoefficientLift( statement.total_steps, memory_shards, clock_update.n_rows, );",
+    ),
+    (
+        "memory coefficient side bound",
+        STATEMENT_VALIDATION_PATH,
+        "var terms_per_side = @as(u64, total_steps) * @as(u64, access_clock.MAX_ACCESSES_PER_INSTRUCTION) + @as(u64, clock_update_rows) + MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY; for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows); if (terms_per_side >= m31.Modulus) return types.ProverError.InvalidStatement;",
     ),
     (
         "public Merkle root tuple",
@@ -1477,6 +1832,7 @@ class ProductionContract:
     source_clock_low_bits: int
     source_clock_high_bits: int
     merkle_admission_rule: str
+    memory_coefficient_rule: str
     state_recurrence: str
     opcode_gap_table: str
     clock_predecessor_range: str
@@ -1487,13 +1843,16 @@ class ProductionContract:
 
 
 def _decimal_constant(source: str, name: str) -> int:
-    match = re.search(
+    matches = re.findall(
         rf"(?:pub )?const {re.escape(name)}(?:: [^=]+)?\s*=\s*([0-9]+)\s*;",
         source,
     )
-    if match is None:
-        raise AssertionError(f"could not locate production constant {name}")
-    return int(match.group(1))
+    if len(matches) != 1:
+        raise AssertionError(
+            f"could not uniquely locate production constant {name}: "
+            f"found {len(matches)}"
+        )
+    return int(matches[0])
 
 
 def check_production_contract(repo_root: Path) -> ProductionContract:
@@ -1504,20 +1863,26 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         for path in PRODUCTION_PATHS
     }
     compact = {path: _compact(source) for path, source in sources.items()}
-    modulus_match = re.search(
+    modulus_matches = re.findall(
         r"pub const Modulus:\s*u32\s*=\s*(0x[0-9a-fA-F]+|[0-9]+)\s*;",
         sources[M31_PATH],
     )
-    if modulus_match is None:
-        raise AssertionError("could not locate the production M31 modulus")
-    source_modulus = int(modulus_match.group(1), 0)
-    inverse_match = re.search(
+    if len(modulus_matches) != 1:
+        raise AssertionError(
+            "could not uniquely locate the production M31 modulus: "
+            f"found {len(modulus_matches)}"
+        )
+    source_modulus = int(modulus_matches[0], 0)
+    inverse_matches = re.findall(
         r"const INV2: QM31 = QM31\.fromBase\(M31\.fromU64\(([0-9]+)\)\);",
         compact[MERKLE_NODE_PATH],
     )
-    if inverse_match is None:
-        raise AssertionError("could not locate the production Merkle INV2")
-    source_inverse_two = int(inverse_match.group(1))
+    if len(inverse_matches) != 1:
+        raise AssertionError(
+            "could not uniquely locate the production Merkle INV2: "
+            f"found {len(inverse_matches)}"
+        )
+    source_inverse_two = int(inverse_matches[0])
     source_merkle_depth = _decimal_constant(
         sources[SPARSE_MERKLE_PATH], "LEAF_DEPTH"
     )
@@ -1533,15 +1898,19 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         raise AssertionError("infrastructure checker INV2 drifted from production")
     if source_merkle_depth != MERKLE_DEPTH:
         raise AssertionError("infrastructure checker Merkle depth drifted")
-    if (source_clock_low_bits, source_clock_high_bits) != (20, 4):
+    if (source_clock_low_bits, source_clock_high_bits) != (20, 6):
         raise AssertionError("infrastructure checker clock radix drifted")
     max_clock_fragment = "pub const MAX_CLOCK_DIFF: u32 = (1 << 20) - 1;"
     if max_clock_fragment not in compact[STATE_CHAIN_PATH]:
         raise AssertionError("production contract changed: maximum clock gap")
 
     for label, path, fragment in SOURCE_BINDINGS:
-        if fragment not in compact[path]:
-            raise AssertionError(f"production contract changed: {label}")
+        occurrences = compact[path].count(fragment)
+        if occurrences != 1:
+            raise AssertionError(
+                f"production contract changed: {label} "
+                f"(expected exactly once, found {occurrences})"
+            )
     merkle_contract = riscv_merkle_recurrence.check_production_contract(repo_root)
     clock_contract = riscv_state_chain_recurrence.check_production_contract(repo_root)
     return ProductionContract(
@@ -1553,6 +1922,10 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         source_clock_low_bits=source_clock_low_bits,
         source_clock_high_bits=source_clock_high_bits,
         merkle_admission_rule=merkle_contract.admission_rule,
+        memory_coefficient_rule=(
+            "3 * execution steps + clock-update rows + memory rows + "
+            "public multiplicity < M31 modulus"
+        ),
         state_recurrence=clock_contract.state_recurrence,
         opcode_gap_table=clock_contract.opcode_gap_table,
         clock_predecessor_range=clock_contract.clock_predecessor_range,
@@ -1565,7 +1938,8 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         ),
         merkle_relation=(
             "fixed row -> consecutive children, field-half/depth-1 parent, "
-            "and one Poseidon2 call"
+            "and one Poseidon2 call; the production all-source bound "
+            "lifts exact field balance to integer coefficients"
         ),
         clock_relation=(
             "fixed predecessor tuple -> same key/value at clock + (2^20 - 1); "
@@ -1692,6 +2066,9 @@ def build_report(repo_root: Path) -> dict[str, object]:
             "merkle_connectivity": dataclasses.asdict(
                 merkle_connectivity_certificate()
             ),
+            "merkle_field_coefficient_wrap_counterexample": dataclasses.asdict(
+                merkle_field_coefficient_wrap_counterexample()
+            ),
             "clock_window": dataclasses.asdict(
                 riscv_state_chain_recurrence.clock_window_certificate()
             ),
@@ -1705,18 +2082,26 @@ def build_report(repo_root: Path) -> dict[str, object]:
         "scope": {
             "proves": (
                 "exact conditional row functionality, bounded decomposition "
-                "uniqueness, finite strict-clock memory path structure, and "
-                "root-connected Merkle index/depth/root propagation"
+                "uniqueness, finite strict-clock memory path structure under "
+                "exact field tuple balance plus the production coefficient "
+                "bounds, strict derived ordering of aliased instruction "
+                "accesses, root-connected Merkle index/depth/root propagation, "
+                "field-to-integer lifts for the memory and Merkle buses, and "
+                "exclusion of detached Merkle components"
             ),
             "assumes": (
-                "exact LogUp multiset equality rather than its randomized "
-                "challenge reduction, public-root binding, and Poseidon/Merkle "
-                "collision resistance where a root is treated as a commitment"
+                "exact tuple-wise relation balance rather than its randomized "
+                "LogUp challenge reduction; production admission of the "
+                "source-bound coefficient guards; public-root binding; and "
+                "Poseidon/Merkle collision resistance where a root is treated "
+                "as a commitment"
             ),
             "does_not_prove": (
                 "PCS/FRI/Fiat-Shamir soundness, hash collision resistance, "
-                "same-clock register ordering, opcode semantics, host builder "
-                "correctness beyond pinned source fragments, or Sail refinement"
+                "Merkle root connectivity without exact tuple balance and the "
+                "production all-source guards, "
+                "opcode semantics, host builder correctness beyond pinned "
+                "source fragments, or Sail refinement"
             ),
         },
     }

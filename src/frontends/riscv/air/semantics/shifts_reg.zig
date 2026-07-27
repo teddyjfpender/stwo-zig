@@ -87,9 +87,9 @@ pub fn Semantics(comptime S: type) type {
 
         pub fn accessLookups(row: Row) AccessLookups {
             return .{
-                .rd = ops.registerAccessChain(row.semantic.rd, row.clk),
-                .rs1 = ops.registerAccessChain(row.semantic.rs1, row.clk),
-                .rs2 = ops.registerAccessChain(row.rs2, row.clk),
+                .rd = ops.registerAccessChain(row.semantic.rd, row.clk, .third),
+                .rs1 = ops.registerAccessChain(row.semantic.rs1, row.clk, .first),
+                .rs2 = ops.registerAccessChain(row.rs2, row.clk, .second),
             };
         }
 

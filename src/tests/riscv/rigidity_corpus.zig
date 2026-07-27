@@ -51,11 +51,6 @@
 //! sweeps add their coverage without multiplying the exhaustive tier's cost
 //! by three hundred programs.
 //!
-//! The two `KNOWN_COMPLETENESS_REJECTIONS` cases are excluded here: their
-//! under-test rows are honest AND inadmissible (the finding), and this
-//! module's contract is that honest rows are admissible. The sweep test
-//! keeps asserting they still fail.
-
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const test_options = @import("test_options");
@@ -170,21 +165,8 @@ pub const CORPUS = [_][]const u8{
 /// The longest corpus program, `multi_shard_addi.elf`, runs 131 078 steps.
 const MAX_STEPS: usize = 200_000;
 
-/// The operand-class guests, minus the known completeness rejections whose
-/// honest under-test rows the AIR refuses (see the header).
-pub const CLASS_GUESTS = blk: {
-    // ~300 cases x string comparison exceeds the default comptime budget.
-    @setEvalBranchQuota(200_000);
-    var kept: [operand_classes.all.len]operand_classes.Case = undefined;
-    var count: usize = 0;
-    for (operand_classes.all) |case| {
-        if (operand_classes.isKnownCompletenessRejection(case.name)) continue;
-        kept[count] = case;
-        count += 1;
-    }
-    const frozen = kept;
-    break :blk frozen[0..count].*;
-};
+/// Every Sail-derived operand-class guest enters the rigidity corpus.
+pub const CLASS_GUESTS = operand_classes.all;
 
 /// Total corpus programs: the ELF vectors then every class guest, in that
 /// order, so `Sample.program` keeps indexing one flat list.

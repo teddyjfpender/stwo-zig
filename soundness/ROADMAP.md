@@ -74,8 +74,13 @@ below.
       `target / 4` low20/high8 split mirrors the program AIR and enforces the
       successful-retirement address bound locally, including u32 wraparound.
 - [x] `DIV`/`DIVU`/`REM`/`REMU` byte-range every divisor limb locally, bind the
-      ambiguous zero-quotient sign while preserving the signed-overflow
-      algebraic convention, and pin the zero-divisor convention. The
+      ambiguous signed zero-quotient sign while preserving the signed-overflow
+      algebraic convention, and pin the zero-divisor convention. The sign
+      request is inactive for unsigned operations, whose direct equations
+      already pin `q_sign = 0`; this keeps bit-31-set DIVU/REMU quotients
+      complete. All 292 Sail-derived operand-class rows are admitted by the
+      row oracle and enter the rigidity corpus, and the original
+      `0x8abcdef1 / 1` DIVU finding now proves and verifies end to end. The
       proven-sufficient `lt_diff` RC_20 bound is unchanged.
 - [x] `LB`/`LH` sign extension and `SRL`/`SRA` sign fill bind their sign
       witnesses to the operand bit they claim to represent.
@@ -251,13 +256,36 @@ limitation does not leave the demonstrated bug open: the production row oracle
 rejects the exact former counterexample, and the exhaustive table-membership
 test proves the requested carry interval for every limb in both families.
 
+**The eighth demonstrated under-constraint — CLOSED.** The pinned Stark-V
+layout assigned every register and RW-memory access of one instruction the same
+clock, while its `range_check_20(current - previous)` request admitted zero.
+For an aliased instruction such as `ADD x3, x1, x1`, a forged second read
+`(t, B) -> (t, B)` therefore cancelled identically from the memory relation and
+let the opcode compute with arbitrary `B`.
+
+Production now derives up to three source-before-destination access clocks
+`A(c, i) = 4 * (c - 1) + i + 1`, for `i` in `{0, 1, 2}`, from the one-based
+instruction clock. Residue zero in each four-wide bucket is reserved. Every
+live access sends `current_access_clock - previous_clock - 1` to
+`range_check_20`, so a zero gap becomes `p - 1` and cannot enter the table.
+Long honest gaps retain the `2^20 - 1` bridge step. At the maximum `2^24`
+instructions, live clocks are below `2^26`; clock-update predecessors use a
+low20/high6 decomposition, with `(high6, 4 * high6)` in `range_check_8_8`
+proving `high6 < 64`. Public register, output, and halt clocks are required to
+be canonical live subclocks. The runner, every opcode AIR family, the
+trace-only register-boundary derivation, clock-update component, independent
+infrastructure checker, and public validation all use the same ordering
+contract.
+
 **The two long byte-product rows now close — proof scheduling, not an AIR
 change.** Freshly extracted production IR closes all four `div`/`divu`/`rem`/
-`remu` opcode shards and all three `mulh`/`mulhsu`/`mulhu` shards at a 5 s
+`remu` opcode shards and all three `mulh`/`mulhsu`/`mulhu` shards at a 20 s
 per-query budget, with the declared input domains off and a satisfiable control
-for every opcode. The recorded run was `div`: 4 shards, 2.2 summed solver
-seconds; `mulh`: 3 shards, 23.2 summed solver seconds. Those timings are
-measurements, not part of the claim.
+for every opcode. The former 5 s smoke budget became insufficient after the
+strict access-clock expressions enlarged the emitted graph; the proof path is
+unchanged. The final focused three-test regression completed in 38 wall
+seconds on the audit machine. That timing is a measurement, not part of the
+claim.
 
 MULH uses a sequential two-copy ladder. It proves byte/carry witnesses in table
 order, then each architectural output under only the agreements already
@@ -285,7 +313,7 @@ remainder. An independent integer query proves that two such rows have the same
 quotient and remainder, while ordinary emitted two-copy queries prove the
 operand/sign/zero prerequisites and bind those limbs to each real output in
 separate proof steps. This manual derivation fails closed over SHA-256
-`1e4ef3b84e581640301b8fba84d0c3034c3d1ab48ef1af13a301bfa16febce53`,
+`2feaee5ddd2b1f24a3264a2a09840a3dedb77c9761c8733f7980f9dee97b5d0a`,
 which covers every extracted column, expression node, direct constraint,
 lookup, and referenced table width/classification: every one-obligation
 deletion, representative node/column mutations, and a table-width mutation
@@ -325,6 +353,61 @@ What an `unsat` row on this board does not establish:
 * the input promotion above imports program-bus closure as an assumption; a
   forged program commitment is out of scope here as it is everywhere row-local.
 
+## Infrastructure components and cross-row composition — 2026-07-27
+
+The 17-family board is no longer the only independently checked AIR surface.
+`scripts/air_satisfaction.py` now re-decides all 28 canonical transcript
+component kinds on an exported committed trace: the 17 opcode families,
+program, RW-memory boundary, Merkle, Poseidon2, clock update, and all six
+preprocessed lookup tables. It checks every implemented infrastructure direct
+constraint and table request, infrastructure padding, every component claim,
+the 28-slot transcript aggregation, public compensation, and global LogUp
+closure. The all-family export is produced by one real proving run, verifies,
+and reaches pinned Sail.
+
+The infrastructure rows are not all unconditionally unique in isolation, so
+the certificates state conditional theorems rather than relabelling bus inputs
+as row-local outputs:
+
+- `scripts/riscv_poseidon_table_uniqueness.py` proves the active narrow
+  Poseidon2 schedule triangular: 16 inputs determine all 426 materialized
+  cells and hence the 445-column main row. It separately exhausts the natural
+  row → tuple mapping and singleton-LogUp recurrence for all six tables,
+  retaining the required zero-denominator and inactive-row counterexamples.
+- `scripts/riscv_infrastructure_uniqueness.py` binds the exact production
+  requests for program, RW-memory, Merkle, and clock-update rows; proves the
+  program and clock mixed-radix decompositions; checks small exact-multiset
+  analogues for program binding and offline memory; and makes every
+  integer-coefficient and root-connectivity premise explicit.
+- `scripts/riscv_merkle_recurrence.py` proves the 30-step binary index/parity
+  recurrence from the public root and the additive order of the depth
+  decrement. Its retained counterexample showed that `n_rows < p` alone did
+  not lift Merkle node coefficients: `(p-1)/2` rows of multiplicity two plus
+  one row of multiplicity one vanish in M31 without vanishing over the
+  integers. Production retains `2 * merkle_rows < p` and additionally requires
+  `2 * merkle_rows + program_rows + memory_rows + 3 < p`. The combined rule
+  covers malicious cross-source tuple collisions and supplies the all-source
+  coefficient lift used by the conditional connectivity lemma.
+- `scripts/riscv_state_chain_recurrence.py` binds the `+1` state clock,
+  strict four-wide access-clock encoding, shifted live-gap lookup, long-gap
+  bridges, predecessor decomposition, and no-wrap statement bounds to the
+  production sources. It retains the historical wrapped-clock cycle and
+  same-clock alias witnesses as negative controls.
+
+The five global obligations are now explicit lemmas—offline memory
+consistency, monotone clocks and `2^20` bridging, state telescoping and cycle
+exclusion, program root ↔ executed word, and public boundary closure—in
+`soundness/SAIL_AIR_COMPOSITION.md`. That document states conditional theorem
+SA-1 and composes the cross-row lemmas with the runner/Sail evidence and
+row-local work. It deliberately distinguishes exact AIR satisfaction,
+production proof acceptance, and finite tested agreement.
+
+This closes the missing *statement* of the composition argument and provides
+machine checks for its finite arithmetic and graph premises. It does not close
+the universal refinement theorem or the proof-system reduction: the repository
+still has no independent PCS/FRI/proof-wire verifier, no externally reviewed
+security-bit accounting, and no reviewed CP-11 divergence shape.
+
 ## Continuing adversarial work
 
 - [x] Close the shift carry window (the seventh under-constraint above):
@@ -333,21 +416,34 @@ What an `unsat` row on this board does not establish:
       and ledger are updated; and `uniqueness_counterexample_test.zig` both
       exhausts the exact byte window and attributes rejection of the former
       forged copy to the carry `range_check_8_8` request in each shift family.
-- [ ] Expand committed-witness mutation coverage to every opcode family. Nine
-      of the seventeen families in `air/component_order.zig` now have a
-      committed-trace forgery test: `mulh` (`mulh_soundness_test.zig`) and `lui`
-      (one cell of one column, as the "lookup request" case in
-      `main_witness_rejection_test.zig`) predate this work; `auipc`,
-      `branch_eq`, `div`, `jalr`, `load_store`, and `shifts_reg` were added by
-      the sweep above, and `base_alu_reg` by
-      `bitwise_result_soundness_test.zig`. All nine are green. Eight families
-      have no committed-trace forgery test at all: `base_alu_imm`,
-      `branch_lt`, `fence`, `jal`, `lt_imm`, `lt_reg`, `mul`, and
-      `shifts_imm`.
-      Within the covered families the coverage is one or two rows chosen to
-      exhibit a specific bug, not the family's operand space: only the `is_sb`
-      half of the partial-store gate is exercised, only `SRL`/`SRA` of
-      `shifts_reg`, and only `LB`/`LH`/`SB`/`SW`/`LW` of `load_store`.
+- [x] Cover every opcode family with a pre-ingestion committed-row forgery and
+      a paired honest prove → verify → pinned-Sail run. The canonical accounting
+      is `FAMILY_COVERAGE` in
+      `src/tests/riscv/opcode_family_committed_soundness_test.zig`: it is in the
+      exact order of all seventeen families in `air/component_order.zig`, names
+      the executable forgery and honest case for each one, requires every owner
+      module to be registered by `trace_test.zig`, and fails at compile time on
+      a missing family, reordered family, missing case marker, or unreachable
+      owner.
+
+      The same module owns `base_alu_imm`, `branch_lt`, `fence`, `jal`,
+      `lt_imm`, `lt_reg`, `mul`, and `shifts_imm`, the eight families that had
+      no case, and upgrades `lui` and `mulh` to the same adversary. The older
+      CP-06 LUI and MULH cases mutate `.main` after interaction generation and
+      remain useful prover-consistency checks, but they are deliberately not
+      counted toward this stronger claim. The other owners are
+      `auipc_alias_soundness_test.zig` (`auipc`),
+      `bitwise_result_soundness_test.zig` (`base_alu_reg`),
+      `read_only_access_soundness_test.zig` (`branch_eq`),
+      `divisor_byte_range_soundness_test.zig` (`div`),
+      `jalr_target_soundness_test.zig` (`jalr`),
+      `partial_store_soundness_test.zig` (`load_store`), and
+      `shift_sign_soundness_test.zig` (`shifts_reg`).
+
+      This is family reachability and one malicious sample per family, not an
+      exhaustive opcode/operand claim: only the `is_sb` half of the
+      partial-store gate is exercised, only `SRL`/`SRA` of `shifts_reg`, and
+      only `LB`/`LH`/`SB`/`SW`/`LW` of `load_store`.
 - [x] Apply the committed-row override before multiplicity ingestion and
       interaction generation, so a row-locally coherent forgery reaches a real
       proof and loses the global LogUp closure at verification.
@@ -356,10 +452,14 @@ What an `unsat` row on this board does not establish:
       its post-generation single-cell semantics and the two are documented apart
       at the hook. Seven end-to-end expectations moved from
       `.prover_constraints` to `.verification` as a result.
-- [ ] Give `src/tests/riscv/proof_admission_test.zig` the family enumeration its
-      file name implies. It proves two hand-built traces — `base_alu_imm` and
-      `mulh` — through a counting engine and verifies neither proof; the other
-      fifteen families are not reached.
+- [x] Keep `src/tests/riscv/proof_admission_test.zig` scoped to what it actually
+      tests and put family enumeration in the committed-mutation suite above.
+      The admission file checks that the injected engine is the proving
+      substitution point for two traces: a runner-produced four-row
+      `base_alu_imm` run and a hand-built one-row `mulh` run. It verifies
+      neither proof and mutates no witness; its base-ALU runner trace alone is
+      replayed through pinned Sail. Its module documentation and source
+      contract state those limits explicitly.
 - [x] Commit a generic witness-rigidity suite over all seventeen families: every
       committed column must be observable through a constraint or a lookup, no
       opcode selector may be interchangeable with another whose semantics differ,
@@ -399,59 +499,52 @@ What an `unsat` row on this board does not establish:
       the repository-specific PCS/FRI proof wire. Nothing below closes this
       item: no second implementation reads a proof.
 
-      One slice of it now exists, named for what it is.
+      One slice of it exists, named for what it is.
       `scripts/air_satisfaction.py` is an independent AIR **row-satisfaction and
       LogUp-closure checker**. It is not a verifier and must not be cited as
-      one. It reads a committed opcode trace exported from a real proving run
+      one. It reads committed buffers exported from a real proving run
       (`src/tests/riscv/committed_trace_export_test.zig`, via the test-only
       `prover/test_trace_dump.zig`) together with the extracted per-family IR,
-      and re-decides in Python, sharing no code with the Zig evaluator:
+      and re-decides in Python, sharing no evaluator code with Zig:
 
-        * the committed-row placement permutation — the export is in committed
-          circle-domain order and the reader inverts it itself;
-        * every direct constraint of every real opcode row, over M31;
-        * every activated preprocessed-table request: the box tables and the
-          functional `bitwise` table;
-        * every opcode component's claimed LogUp sum, recomputed from the
-          committed trace and the exported challenges rather than read from the
-          prover;
-        * the verifier's public boundary compensation, as a second
-          implementation of `air/public_logup.zig`;
-        * the global cancellation of opcode claims + infrastructure claims +
-          boundary.
+        * committed-row placement for dense and sparse components;
+        * every direct constraint of every real opcode row;
+        * program, RW-memory, Merkle, Poseidon2, and clock-update direct
+          constraints, including infrastructure padding;
+        * every activated fixed-table request and the exact sparse
+          multiplicity columns of all six lookup tables;
+        * every opcode and infrastructure LogUp claim from rows and exported
+          challenges;
+        * all 28 canonical transcript slots, including shard aggregation and
+          zero claims for absent opcode families;
+        * the public boundary compensation as a second implementation of
+          `air/public_logup.zig`; and
+        * global cancellation using only recomputed claims and boundary terms.
 
-      On the honest export that is 10 real rows across four families, 394
-      direct constraints, 44 box requests, 4 `bitwise` requests, four
-      recomputed claims all agreeing with the prover's, and a zero global sum.
+      `all_families.json` contains all 17 opcode and all 11 infrastructure
+      component kinds, with at least one active row in every opcode family.
+      Its production run proves and verifies before export and reaches pinned
+      Sail. The checker independently requires all 28 component claims to
+      agree and the global sum to be zero.
 
       What it does not touch is what this item still asks for. The proof wire —
       PCS commitments, Merkle openings, FRI, the composition polynomial, OODS,
-      the Fiat–Shamir transcript — is never read; nothing in the checker opens
-      a proof. Three further limits are load-bearing and are stated at the tool
-      itself: the export is bound to the commitment by a code-level identity
-      (`copyOpcodeColumns` duplicates the exported buffers verbatim into the
-      committed array) and not a cryptographic one, so the checker cannot tell
-      that the values it read are the values the proof opens; infrastructure
-      claims (program, RW memory, Merkle, Poseidon2, clock update, the six
-      tables) are taken as given, so a closure failure attributes no further
-      than "the opcode side and the boundary agree, the ledger does not"; and
-      padding rows are out of scope, because the extracted IR fixes the
-      preprocessed `is_active` selector to one.
+      and Fiat–Shamir transcript — is never read. The export is bound to the
+      committed buffers by a code-level identity, not a cryptographic opening.
+      Opcode padding remains outside the extracted active-row IR; infrastructure
+      padding is checked. Bus tuples are recomputed and closed globally, but
+      their exact-multiset interpretation still depends on randomized LogUp
+      soundness and the integer-coefficient premises in
+      `soundness/SAIL_AIR_COMPOSITION.md`.
 
       It is shown failing, which is the only reason a green run means anything.
-      Two of the three exports are forgeries and the checker attributes each to
-      the right layer: the `bitwise_result_soundness_test.zig` forgery, whose
-      only guard is a preprocessed table, produces exactly one LOOKUP violation
-      (`1 xor 15 = 14, the row claims 15`) with every direct constraint still
-      vanishing; a raised `ADDI` destination limb produces exactly one
-      CONSTRAINT violation in `base_alu_imm`. Both lose the global sum.
-      `scripts/tests/test_air_satisfaction.py` pins all of that, anchors the
-      QM31 tower and the boundary reimplementation to the Rust-oracle vector
-      pinned in `air/public_logup.zig`, and records an executed self-check in
-      which the placement permutation was replaced by a plain bit reversal: the
-      honest export then failed with four constraint violations while the
-      global sum stayed zero, because the closure check sums over the domain
-      and is invariant under any permutation of the rows.
+      The bitwise forgery produces one attributed LOOKUP violation while its
+      direct constraints vanish; a raised `ADDI` destination limb produces an
+      attributed `base_alu_imm` CONSTRAINT violation. Infrastructure mutation
+      tests cover every implemented row recurrence, selector, padding rule,
+      table tuple, and claim source. Placement, QM31-tower, public-boundary, and
+      transcript-order self-checks remain fail-closed in
+      `scripts/tests/test_air_satisfaction.py`.
 - [x] Publish the current conjectural security-bit accounting for every exposed
       PCS profile, explicitly separating it from a reviewed reduction.
 - [ ] Obtain independent review of the FRI/list-decoding security accounting.
@@ -461,7 +554,12 @@ What an `unsat` row on this board does not establish:
 ## Formal and external assurance
 
 - [ ] Machine-check that AIR satisfaction refines the pinned Sail transition
-      relation, beginning with instruction decode and memory consistency.
+      relation. The defensible partial result is now recorded as conditional
+      theorem SA-1 in `soundness/SAIL_AIR_COMPOSITION.md`: all five cross-row
+      obligations are explicit; the finite all-family committed corpus is
+      independently re-decided; and every family has runner/AIR/Sail evidence.
+      The item remains open because universal opcode-row refinement and the
+      accepted-proof → exact-AIR reduction are not machine-proved.
 - [ ] Obtain independent AIR and protocol audits.
 - [ ] Maintain a public bug-bounty scope for witness construction, statement
       binding, serialization, and verification.

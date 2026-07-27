@@ -90,10 +90,10 @@ class InfrastructureRowsTest(unittest.TestCase):
         self.assertTrue(any("Poseidon2 residual" in v.detail for v in violations))
 
     def test_clock_predecessor_bound_is_both_recomposed_and_table_checked(self) -> None:
-        previous = (15 << 20) + 7
+        previous = (63 << 20) + 7
         component = dense_component(
             "clock_update",
-            (1, 0, 3, previous, 1, 2, 3, 4, 7, 15),
+            (1, 0, 3, previous, 1, 2, 3, 4, 7, 63),
         )
         violations, _, requests = self.decide(component)
         self.assertEqual(violations, [])
@@ -101,11 +101,11 @@ class InfrastructureRowsTest(unittest.TestCase):
 
         forged = dense_component(
             "clock_update",
-            (1, 0, 3, 16 << 20, 1, 2, 3, 4, 0, 16),
+            (1, 0, 3, 64 << 20, 1, 2, 3, 4, 0, 64),
         )
         violations, _, _ = self.decide(forged)
         self.assertEqual([v.kind for v in violations], ["lookup"])
-        self.assertIn("4-bit box", violations[0].detail)
+        self.assertIn("8-bit box", violations[0].detail)
 
     def test_sparse_table_uses_natural_tuple_at_committed_nonzero_row(self) -> None:
         component = Component(

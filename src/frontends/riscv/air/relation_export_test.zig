@@ -116,10 +116,10 @@ test "relation export: committed opcode stream binds a fixed native claim" {
     const shard = oneShard(&columns);
     var native_sums = [_]QM31{QM31.zero()} ** relation_export.COMPONENT_COUNT;
     native_sums[@intFromEnum(relation_export.Component.auipc)] = QM31.fromU32Unchecked(
-        359353687,
-        91930404,
-        1338260407,
-        1873335128,
+        329023804,
+        1517245229,
+        476668728,
+        845289624,
     );
     const native = claims.InteractionClaim.init(native_sums, &.{});
     var ledger = try relation_export.ClaimLedger.init(.{3} ** 32, .{1} ** 32, .{2} ** 32, &native);
@@ -221,10 +221,10 @@ test "relation export: ordered two-shard family checks one aggregate claim" {
     }
     var native_sums = [_]QM31{QM31.zero()} ** relation_export.COMPONENT_COUNT;
     native_sums[@intFromEnum(relation_export.Component.auipc)] = QM31.fromU32Unchecked(
-        2040762406,
-        474076735,
-        243048998,
-        990795334,
+        1494796886,
+        943261898,
+        172869581,
+        1009213607,
     );
     const native = claims.InteractionClaim.init(native_sums, &.{});
     var ledger = try relation_export.ClaimLedger.init(.{3} ** 32, .{1} ** 32, .{2} ** 32, &native);

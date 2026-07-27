@@ -2,6 +2,13 @@
 //! opcode families: `base_alu_imm`, `branch_lt`, `fence`, `jal`, `lt_imm`,
 //! `lt_reg`, `mul`, and `shifts_imm`.
 //!
+//! LUI and MULH are ninth and tenth cases in this module for a different
+//! reason. Their older CP-06 tests flip committed cells after interaction
+//! generation. Those remain useful prover-consistency checks, but they are
+//! weaker than the pre-ingestion `.main_row` adversary used here: these tests
+//! replace production rows before lookup multiplicities and the interaction
+//! trace are derived.
+//!
 //! Each case reads its honest row from the production witness generator,
 //! attributes a semantic forgery locally where that is possible, requires the
 //! forged committed pipeline to reject it, and finally proves and verifies the
@@ -9,23 +16,214 @@
 //! the architectural buses byte-identical and makes the direct constraint or
 //! range-table request named by the test the only possible rejection.
 //!
-//! FENCE is the deliberate exception. Its reserved decoded fields have no
-//! direct constraint: they are bound to the fetched instruction exclusively by
-//! `program_access`. The FENCE test therefore proves local admissibility,
-//! isolates the changed program-bus fingerprint, and pins rejection to
-//! verification.
+//! FENCE and LUI are the deliberate program-binding cases. Their forged
+//! decoded fields are row-locally admissible and are bound to the fetched
+//! instruction exclusively by `program_access`. Both tests isolate the changed
+//! program-bus fingerprint and pin rejection to verification.
 
 const std = @import("std");
 
 const harness = @import("committed_forgery_harness.zig");
 const guest_elf = @import("guest_elf_fixture.zig");
 const layout = @import("committed_row_layout.zig");
+const component_order = @import("../../frontends/riscv/air/component_order.zig");
 const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
 
 const OpcodeFamily = harness.OpcodeFamily;
 
+const FamilyCoverage = struct {
+    family: OpcodeFamily,
+    owner: []const u8,
+    source: []const u8,
+    forgery_test: []const u8,
+    honest_test: []const u8,
+};
+
+const THIS_SOURCE = @embedFile("opcode_family_committed_soundness_test.zig");
+const COMMITTED_TEST = "test \"committed family ";
+
+/// Canonical accounting for the stronger committed-witness obligation:
+/// a pre-ingestion `.main_row` forgery is rejected, and a guest containing an
+/// honest row of the same family proves, verifies, and reaches a Sail tail.
+///
+/// The source markers keep the accounting tied to executable cases rather
+/// than to prose. The compile-time checks below also require every owner to be
+/// imported by the exhaustive mutation root and keep this list in exact
+/// `component_order.zig` order, so adding or removing a proof family fails
+/// closed until its coverage is named.
+const FAMILY_COVERAGE = [_]FamilyCoverage{
+    .{
+        .family = .auipc,
+        .owner = "auipc_alias_soundness_test.zig",
+        .source = @embedFile("auipc_alias_soundness_test.zig"),
+        .forgery_test = "test \"auipc alias: the honest AUIPC proof verifies and the aliased row cannot be proven\"",
+        .honest_test = "test \"auipc alias: the honest AUIPC proof verifies and the aliased row cannot be proven\"",
+    },
+    .{
+        .family = .base_alu_imm,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "base_alu_imm: wrong ADDI high byte is rejected and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "base_alu_imm: wrong ADDI high byte is rejected and honest proof verifies\"",
+    },
+    .{
+        .family = .base_alu_reg,
+        .owner = "bitwise_result_soundness_test.zig",
+        .source = @embedFile("bitwise_result_soundness_test.zig"),
+        .forgery_test = "test \"bitwise result end-to-end: the forged XOR result proves and loses at verification\"",
+        .honest_test = "test \"bitwise result end-to-end: the forged XOR result proves and loses at verification\"",
+    },
+    .{
+        .family = .branch_eq,
+        .owner = "read_only_access_soundness_test.zig",
+        .source = @embedFile("read_only_access_soundness_test.zig"),
+        .forgery_test = "test \"read-only access: the honest BEQ proof verifies and neither forged write-back can be proven\"",
+        .honest_test = "test \"read-only access: the honest BEQ proof verifies and neither forged write-back can be proven\"",
+    },
+    .{
+        .family = .branch_lt,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "branch_lt: false equal-operand comparison is rejected and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "branch_lt: false equal-operand comparison is rejected and honest proof verifies\"",
+    },
+    .{
+        .family = .div,
+        .owner = "divisor_byte_range_soundness_test.zig",
+        .source = @embedFile("divisor_byte_range_soundness_test.zig"),
+        .forgery_test = "test \"divisor byte range: the honest DIVU proof verifies and the forged committed row does not\"",
+        .honest_test = "test \"divisor byte range: the honest DIVU proof verifies and the forged committed row does not\"",
+    },
+    .{
+        .family = .jal,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "jal: forged link address is rejected and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "jal: forged link address is rejected and honest proof verifies\"",
+    },
+    .{
+        .family = .jalr,
+        .owner = "jalr_target_soundness_test.zig",
+        .source = @embedFile("jalr_target_soundness_test.zig"),
+        .forgery_test = "test \"jalr target: the committed flipped bit 0 is refused by the carry recurrence in production\"",
+        .honest_test = "test \"jalr target: the honest JALR guest proves and verifies\"",
+    },
+    .{
+        .family = .load_store,
+        .owner = "partial_store_soundness_test.zig",
+        .source = @embedFile("partial_store_soundness_test.zig"),
+        .forgery_test = "test \"partial store: the honest guest proves and verifies and the corrupted word row does not\"",
+        .honest_test = "test \"partial store: the honest guest proves and verifies and the corrupted word row does not\"",
+    },
+    .{
+        .family = .lt_imm,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "lt_imm: false equality comparison is rejected and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "lt_imm: false equality comparison is rejected and honest proof verifies\"",
+    },
+    .{
+        .family = .lt_reg,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "lt_reg: false equality comparison is rejected and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "lt_reg: false equality comparison is rejected and honest proof verifies\"",
+    },
+    .{
+        .family = .lui,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "lui: forged upper immediate loses on the program bus and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "lui: forged upper immediate loses on the program bus and honest proof verifies\"",
+    },
+    .{
+        .family = .mul,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "mul: false product loses only on carry range and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "mul: false product loses only on carry range and honest proof verifies\"",
+    },
+    .{
+        .family = .mulh,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "mulh: false high product loses only on carry range and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "mulh: false high product loses only on carry range and honest proof verifies\"",
+    },
+    .{
+        .family = .shifts_imm,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "shifts_imm: wrong SLLI high byte is rejected and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "shifts_imm: wrong SLLI high byte is rejected and honest proof verifies\"",
+    },
+    .{
+        .family = .shifts_reg,
+        .owner = "shift_sign_soundness_test.zig",
+        .source = @embedFile("shift_sign_soundness_test.zig"),
+        .forgery_test = "test \"shift sign end-to-end: the forged SRA row proves and loses at verification\"",
+        .honest_test = "test \"shift sign end-to-end: the honest SRL and SRA guest proves and verifies\"",
+    },
+    .{
+        .family = .fence,
+        .owner = "opcode_family_committed_soundness_test.zig",
+        .source = THIS_SOURCE,
+        .forgery_test = COMMITTED_TEST ++
+            "fence: forged reserved field loses on the program bus and honest proof verifies\"",
+        .honest_test = COMMITTED_TEST ++
+            "fence: forged reserved field loses on the program bus and honest proof verifies\"",
+    },
+};
+
+comptime {
+    @setEvalBranchQuota(1_000_000);
+    if (FAMILY_COVERAGE.len != component_order.OPCODE_FAMILY_COUNT)
+        @compileError("committed-witness coverage count drifted from component_order.zig");
+    const registration = @embedFile("trace_test.zig");
+    for (FAMILY_COVERAGE, component_order.OPCODE_FAMILIES) |coverage, family| {
+        if (coverage.family != family)
+            @compileError("committed-witness coverage order drifted from component_order.zig");
+        if (std.mem.indexOf(u8, coverage.source, coverage.forgery_test) == null)
+            @compileError("committed-witness forgery case is missing from its owner");
+        if (std.mem.indexOf(u8, coverage.source, coverage.honest_test) == null)
+            @compileError("committed-witness honest/Sail case is missing from its owner");
+        if (std.mem.indexOf(u8, registration, coverage.owner) == null)
+            @compileError("committed-witness coverage owner is not registered");
+    }
+}
+
 fn columnOf(comptime family: OpcodeFamily, comptime name: []const u8) u32 {
     return @intCast(layout.columnOf(family, name));
+}
+
+fn honestFamilyRow(
+    guest: *const harness.Guest,
+    family: OpcodeFamily,
+    expected_family_rows: usize,
+    logical_row: usize,
+) !harness.Row {
+    try std.testing.expectEqual(expected_family_rows, try guest.familyRowCount(family));
+    const row = try guest.honestRow(family, logical_row);
+    try harness.expectAccepted(family, row.slice());
+    return row;
 }
 
 fn honestBodyRow(
@@ -33,10 +231,7 @@ fn honestBodyRow(
     family: OpcodeFamily,
     expected_family_rows: usize,
 ) !harness.Row {
-    try std.testing.expectEqual(expected_family_rows, try guest.familyRowCount(family));
-    const row = try guest.honestRow(family, 0);
-    try harness.expectAccepted(family, row.slice());
-    return row;
+    return honestFamilyRow(guest, family, expected_family_rows, 0);
 }
 
 fn expectOnlyConstraint(
@@ -69,13 +264,14 @@ fn expectAllBusesUnchanged(
 fn rejectThenProveHonest(
     guest: *const harness.Guest,
     family: OpcodeFamily,
+    logical_row: usize,
     values: []const harness.ColumnValue,
     stage: harness.RejectionStage,
     label: []const u8,
 ) !void {
     try guest.expectRejectedAt(.{ .main_row = .{
         .target = .{ .opcode = .{ .family = family } },
-        .logical_row = 0,
+        .logical_row = @intCast(logical_row),
         .values = values,
     } }, stage);
     // Last: a missing pinned Sail oracle may skip only after every
@@ -89,18 +285,22 @@ const ADDI_X0_X5_7: u32 = 0x0072_8013;
 const BLTU_X0_X0_PLUS_4: u32 = 0x0000_6263;
 const FENCE_RESERVED: u32 = 0x0FF0_000F;
 const JAL_X0_PLUS_4: u32 = 0x0040_006F;
+const LUI_X0_12345: u32 = 0x1234_5037;
 const SLTIU_X0_X0_0: u32 = 0x0000_3013;
 const SLTU_X0_X5_X5: u32 = 0x0052_B033;
 const MUL_X0_X5_X5: u32 = 0x0252_8033;
+const MULH_X0_X5_X5: u32 = 0x0252_9033;
 const SLLI_X0_X5_1: u32 = 0x0012_9013;
 
 const BASE_SPEC = harness.Spec{ .body = &.{ADDI_X0_X5_7}, .publish = 5 };
 const BRANCH_SPEC = harness.Spec{ .body = &.{BLTU_X0_X0_PLUS_4}, .publish = 5 };
 const FENCE_SPEC = harness.Spec{ .body = &.{FENCE_RESERVED}, .publish = 5 };
 const JAL_SPEC = harness.Spec{ .body = &.{JAL_X0_PLUS_4}, .publish = 5 };
+const LUI_SPEC = harness.Spec{ .body = &.{LUI_X0_12345}, .publish = 5 };
 const LT_IMM_SPEC = harness.Spec{ .body = &.{SLTIU_X0_X0_0}, .publish = 5 };
 const LT_REG_SPEC = harness.Spec{ .body = &.{SLTU_X0_X5_X5}, .publish = 5 };
 const MUL_SPEC = harness.Spec{ .body = &.{MUL_X0_X5_X5}, .publish = 5 };
+const MULH_SPEC = harness.Spec{ .body = &.{MULH_X0_X5_X5}, .publish = 5 };
 const SHIFTS_IMM_SPEC = harness.Spec{ .body = &.{SLLI_X0_X5_1}, .publish = 5 };
 
 test "committed family base_alu_imm: wrong ADDI high byte is rejected and honest proof verifies" {
@@ -123,6 +323,7 @@ test "committed family base_alu_imm: wrong ADDI high byte is rejected and honest
     try rejectThenProveHonest(
         &guest,
         .base_alu_imm,
+        0,
         &values,
         .prover_constraints,
         "committed base_alu_imm guest (ADDI x0, x5, 7)",
@@ -158,6 +359,7 @@ test "committed family branch_lt: false equal-operand comparison is rejected and
     try rejectThenProveHonest(
         &guest,
         .branch_lt,
+        0,
         &values,
         .prover_constraints,
         "committed branch_lt guest (BLTU x0, x0, +4)",
@@ -194,6 +396,7 @@ test "committed family fence: forged reserved field loses on the program bus and
     try rejectThenProveHonest(
         &guest,
         .fence,
+        0,
         &values,
         .verification,
         "committed fence guest (reserved-field FENCE no-op)",
@@ -223,9 +426,51 @@ test "committed family jal: forged link address is rejected and honest proof ver
     try rejectThenProveHonest(
         &guest,
         .jal,
+        0,
         &values,
         .prover_constraints,
         "committed jal guest (JAL x0, +4)",
+    );
+}
+
+test "committed family lui: forged upper immediate loses on the program bus and honest proof verifies" {
+    var guest = try harness.Guest.init(std.testing.allocator, LUI_SPEC);
+    defer guest.deinit();
+
+    // The wrapper's two prologue LUI rows precede the body instruction, so
+    // this is family-relative row 2 rather than the row-zero convention the
+    // eight newly covered families use.
+    const logical_row = 2;
+    const honest = try honestFamilyRow(&guest, .lui, 3, logical_row);
+    const imm_0 = columnOf(.lui, "imm_0");
+    try std.testing.expectEqual(@as(u32, 5), honest.m31At(imm_0).toU32());
+    const values = [_]harness.ColumnValue{
+        .{ .column = imm_0, .value = 6 },
+    };
+    var forged = honest;
+    forged.apply(&values);
+
+    // LUI x0 discards its computed value. Both nibble values are in
+    // range_check_8_8_4, so the forged row satisfies every local obligation;
+    // only the decoded-program tuple can distinguish 0x12345 from 0x12346.
+    try harness.expectAccepted(.lui, forged.slice());
+    try std.testing.expect(
+        try harness.busFingerprint(.lui, honest.slice(), .program_access) !=
+            try harness.busFingerprint(.lui, forged.slice(), .program_access),
+    );
+    for ([_]harness.Domain{ .memory_access, .registers_state }) |domain| {
+        try std.testing.expectEqual(
+            try harness.busFingerprint(.lui, honest.slice(), domain),
+            try harness.busFingerprint(.lui, forged.slice(), domain),
+        );
+    }
+    try rejectThenProveHonest(
+        &guest,
+        .lui,
+        logical_row,
+        &values,
+        .verification,
+        "committed lui guest (LUI x0, 0x12345)",
     );
 }
 
@@ -248,6 +493,7 @@ test "committed family lt_imm: false equality comparison is rejected and honest 
     try rejectThenProveHonest(
         &guest,
         .lt_imm,
+        0,
         &values,
         .prover_constraints,
         "committed lt_imm guest (SLTIU x0, x0, 0)",
@@ -273,6 +519,7 @@ test "committed family lt_reg: false equality comparison is rejected and honest 
     try rejectThenProveHonest(
         &guest,
         .lt_reg,
+        0,
         &values,
         .prover_constraints,
         "committed lt_reg guest (SLTU x0, x5, x5)",
@@ -308,9 +555,52 @@ test "committed family mul: false product loses only on carry range and honest p
     try rejectThenProveHonest(
         &guest,
         .mul,
+        0,
         &values,
         .verification,
         "committed mul guest (MUL x0, x5, x5)",
+    );
+}
+
+test "committed family mulh: false high product loses only on carry range and honest proof verifies" {
+    var guest = try harness.Guest.init(std.testing.allocator, MULH_SPEC);
+    defer guest.deinit();
+    const honest = try honestBodyRow(&guest, .mulh, 1);
+
+    const result_0 = columnOf(.mulh, "result_0");
+    // 0x04030201 squared is 0x00101819140a0401, whose high word begins
+    // with byte 0x19. Writing x0 keeps that computed high half off every bus.
+    try std.testing.expectEqual(@as(u32, 0x19), honest.m31At(result_0).toU32());
+    const values = [_]harness.ColumnValue{
+        .{ .column = result_0, .value = 0x1a },
+    };
+    var forged = honest;
+    forged.apply(&values);
+
+    // MULH has no direct product constraint. Product range requests occupy
+    // entries 9..16 after program, state, and the two source accesses; result_0
+    // is output limb four, hence request 13.
+    const rejection = try harness.expectOnlyLookup(
+        .mulh,
+        forged.slice(),
+        .range_check_8_11,
+    );
+    try std.testing.expectEqual(@as(usize, 13), rejection.index);
+    try std.testing.expectEqual(
+        @as(u32, 0x1a),
+        (try rejection.tuple()[0].tryIntoM31()).toU32(),
+    );
+    try std.testing.expect(
+        (try rejection.tuple()[1].tryIntoM31()).toU32() >= (1 << 11),
+    );
+    try expectAllBusesUnchanged(.mulh, &honest, &forged);
+    try rejectThenProveHonest(
+        &guest,
+        .mulh,
+        0,
+        &values,
+        .verification,
+        "committed mulh guest (MULH x0, x5, x5)",
     );
 }
 
@@ -336,6 +626,7 @@ test "committed family shifts_imm: wrong SLLI high byte is rejected and honest p
     try rejectThenProveHonest(
         &guest,
         .shifts_imm,
+        0,
         &values,
         .prover_constraints,
         "committed shifts_imm guest (SLLI x0, x5, 1)",

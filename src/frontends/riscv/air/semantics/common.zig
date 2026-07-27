@@ -7,6 +7,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const access_clock = @import("../../access_clock.zig");
 
 pub fn Ops(comptime S: type) type {
     return struct {
@@ -168,8 +169,10 @@ pub fn Ops(comptime S: type) type {
 
         /// The two sides of one access-chain transition. The caller consumes
         /// `previous` with a negative numerator and emits `next` with a positive
-        /// numerator, both gated by the component enabler. `clock_gap` is a sibling
-        /// `range_check_20` request.
+        /// numerator, both gated by the component enabler. `clock_gap` is the
+        /// shifted sibling `range_check_20` request `next - previous - 1`.
+        /// Consequently every enabled transition advances by at least one and
+        /// a same-tuple/same-clock self-loop cannot disappear from the relation.
         pub const AccessChain = struct {
             previous: MemoryAccessTuple,
             next: MemoryAccessTuple,
@@ -197,13 +200,29 @@ pub fn Ops(comptime S: type) type {
             };
         }
 
-        pub fn registerAccessChain(access: Access, row_clock: S) AccessChain {
-            return accessChain(access, row_clock, S.zero(), access.addr, access.next);
+        pub fn accessClock(instruction_clock: S, ordinal: access_clock.Ordinal) S {
+            return instruction_clock.sub(S.one())
+                .mul(q(access_clock.STRIDE))
+                .add(q(@intFromEnum(ordinal) + 1));
+        }
+
+        pub fn registerAccessChain(
+            access: Access,
+            instruction_clock: S,
+            ordinal: access_clock.Ordinal,
+        ) AccessChain {
+            return accessChain(
+                access,
+                accessClock(instruction_clock, ordinal),
+                S.zero(),
+                access.addr,
+                access.next,
+            );
         }
 
         pub fn accessChain(
             access: Access,
-            row_clock: S,
+            current_clock: S,
             addr_space: S,
             addr: S,
             next: [4]S,
@@ -218,10 +237,10 @@ pub fn Ops(comptime S: type) type {
                 .next = .{
                     .addr_space = addr_space,
                     .addr = addr,
-                    .clock = row_clock,
+                    .clock = current_clock,
                     .limbs = next,
                 },
-                .clock_gap = row_clock.sub(access.previous_clock),
+                .clock_gap = current_clock.sub(access.previous_clock).sub(S.one()),
             };
         }
 

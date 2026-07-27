@@ -6,6 +6,7 @@ const prover = @import("../../frontends/riscv/prover.zig");
 const runner_mod = @import("../../frontends/riscv/runner/mod.zig");
 const memory_state = @import("../../frontends/riscv/runner/memory_state.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const strict_clock_fixture = @import("strict_clock_fixture.zig");
 const pcs_core = @import("stwo_core").pcs;
 const qm31 = @import("stwo_core").fields.qm31;
 
@@ -189,6 +190,7 @@ fn singleAddTrace(allocator: std.mem.Allocator, result: u32) !trace_mod.Trace {
         .next_pc = 0x1004,
         .inst_word = 0x002081b3,
     });
+    strict_clock_fixture.assignRegisterClocks(trace.rows.items);
     return trace;
 }
 
@@ -239,6 +241,7 @@ fn singleAddiTrace(allocator: std.mem.Allocator, result: u32) !trace_mod.Trace {
         .next_pc = 0x1004,
         .inst_word = 0x00100093,
     });
+    strict_clock_fixture.assignRegisterClocks(trace.rows.items);
     return trace;
 }
 
@@ -344,6 +347,7 @@ test "riscv prover: multi-family splitting" {
             .inst_word = 0x00208463,
         });
     }
+    strict_clock_fixture.assignRegisterClocks(exec_trace.rows.items);
     exec_trace.final_pc = 0x1040;
 
     const config = pcs_core.PcsConfig{
@@ -470,6 +474,7 @@ test "riscv prover: ADDI + ADD + BNE split prove and verify" {
         });
         branch_pc += 8;
     }
+    strict_clock_fixture.assignRegisterClocks(exec_trace.rows.items);
     exec_trace.final_pc = branch_pc;
 
     const config = pcs_core.PcsConfig{
@@ -540,6 +545,7 @@ fn testAddiTrace(alloc: std.mem.Allocator, n: usize) !trace_mod.Trace {
             .inst_word = 0x00100093,
         });
     }
+    strict_clock_fixture.assignRegisterClocks(exec_trace.rows.items);
     exec_trace.final_pc = @intCast(0x1000 + n * 4);
     return exec_trace;
 }

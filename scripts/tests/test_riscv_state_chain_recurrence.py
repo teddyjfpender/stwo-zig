@@ -39,14 +39,14 @@ class ClockWindowTests(unittest.TestCase):
     def test_production_window_turns_range20_into_integer_monotonicity(self) -> None:
         certificate = recurrence.clock_window_certificate()
 
-        self.assertEqual((1 << 24) - 1, certificate.maximum_synthetic_predecessor)
+        self.assertEqual((1 << 26) - 1, certificate.maximum_synthetic_predecessor)
         self.assertEqual(
-            (1 << 24) - 1 + (1 << 20) - 1,
+            (1 << 26) - 1 + (1 << 20) - 1,
             certificate.maximum_synthetic_output,
         )
         self.assertGreater(
             certificate.minimum_wrapped_backward_gap,
-            certificate.maximum_clock_gap,
+            certificate.maximum_live_access_gap,
         )
         self.assertTrue(certificate.wrapped_gap_exceeds_table)
         self.assertTrue(certificate.synthetic_addition_does_not_wrap)
@@ -77,9 +77,11 @@ class ClockWindowTests(unittest.TestCase):
                 self.assertLessEqual(certificate["final_gap"], step)
                 self.assertTrue(certificate["strictly_increasing"] or expected == 0)
 
-        production = recurrence.bridge_certificate(0, recurrence.MAX_EXECUTION_STEPS)
-        self.assertEqual(16, production["synthetic_rows"])
-        self.assertEqual(16, production["final_gap"])
+        production = recurrence.bridge_certificate(
+            0, recurrence.MAX_HONEST_ACCESS_CLOCK
+        )
+        self.assertEqual(64, production["synthetic_rows"])
+        self.assertEqual(63, production["final_gap"])
         self.assertLess(production["effective_previous"], recurrence.CLOCK_PREV_BOUND)
 
     def test_old_wrapped_cycle_is_reproduced_and_new_window_rejects_it(self) -> None:
@@ -91,7 +93,7 @@ class ClockWindowTests(unittest.TestCase):
         self.assertEqual(2_049, attack.total_edges)
         self.assertTrue(attack.closes_mod_field)
         self.assertTrue(attack.every_gap_was_in_old_window)
-        self.assertEqual(17, attack.first_rejected_row_zero_based)
+        self.assertEqual(65, attack.first_rejected_row_zero_based)
         self.assertGreaterEqual(
             attack.first_rejected_predecessor,
             recurrence.CLOCK_PREV_BOUND,
@@ -106,14 +108,20 @@ class ProductionContractTests(unittest.TestCase):
         self.assertEqual(256, contract.source_max_components)
         self.assertEqual(16, contract.source_shard_log_size)
         self.assertEqual(20, contract.source_clock_low_bits)
-        self.assertEqual(4, contract.source_clock_high_bits)
+        self.assertEqual(6, contract.source_clock_high_bits)
+        self.assertEqual(4, contract.source_access_clock_stride)
+        self.assertEqual((1 << 26) - 1, contract.maximum_honest_access_clock)
         self.assertEqual(
             "(pc, clock) -> (next_pc, clock + 1)",
             contract.state_recurrence,
         )
         self.assertEqual(
-            "0 <= clock_prev < 2^24",
+            "0 <= clock_prev < 2^26",
             contract.clock_predecessor_range,
+        )
+        self.assertEqual(
+            "range_check_20(access_clock - previous_clock - 1)",
+            contract.opcode_gap_table,
         )
 
     def test_cli_emits_a_reviewable_json_certificate(self) -> None:

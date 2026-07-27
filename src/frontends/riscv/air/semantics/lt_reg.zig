@@ -164,9 +164,9 @@ pub fn Semantics(comptime S: type) type {
 
         pub fn accessLookups(row: Row) AccessLookups {
             return .{
-                .rd = ops.registerAccessChain(row.rd, row.clk),
-                .rs1 = ops.registerAccessChain(row.rs1, row.clk),
-                .rs2 = ops.registerAccessChain(row.rs2, row.clk),
+                .rd = ops.registerAccessChain(row.rd, row.clk, .third),
+                .rs1 = ops.registerAccessChain(row.rs1, row.clk, .first),
+                .rs2 = ops.registerAccessChain(row.rs2, row.clk, .second),
             };
         }
 

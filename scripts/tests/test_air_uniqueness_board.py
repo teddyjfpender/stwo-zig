@@ -310,7 +310,10 @@ class ProductionLongCarryBoardTest(unittest.TestCase):
     """The board selects the terminating proof path for DIV and MULH."""
 
     OPTIONS = {
-        "timeout_ms": 5_000,
+        # Strict access-clock expressions slightly enlarge the emitted MULH
+        # graph. Keep the same isolated ladder proof, but give each rung the
+        # standard production-board budget instead of the old smoke budget.
+        "timeout_ms": TIMEOUT_MS,
         "refine": True,
         "derived": True,
         "assume_domains": False,

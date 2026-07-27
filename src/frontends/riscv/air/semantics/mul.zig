@@ -126,10 +126,10 @@ pub fn Semantics(comptime S: type) type {
                     row.pc.add(ops.q(4)),
                     row.enabler,
                 ),
-                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, row.enabler),
-                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, row.enabler),
+                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, .first, row.enabler),
+                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, .second, row.enabler),
                 .product_ranges = ranges,
-                .rd = ctl.registerAccessLookups(row.rd, row.clock, row.enabler),
+                .rd = ctl.registerAccessLookups(row.rd, row.clock, .third, row.enabler),
             };
         }
 

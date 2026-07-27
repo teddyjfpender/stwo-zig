@@ -7,12 +7,15 @@ arguments depend:
 
 * a ``clock -> clock + 1`` state cycle over M31 needs exactly p edges;
 * admitted execution geometry is far shorter than that cycle;
+* three derived access subclocks strictly order each instruction's live
+  register/RW-memory transitions;
 * the committed clock-update predecessor window keeps every possible emitted
   memory clock far below the field wrap;
-* an opcode gap in ``[0, 2**20)`` between clocks in that window is therefore an
-  ordinary non-negative integer gap, not a wrapped subtraction; and
+* a shifted opcode gap in ``[0, 2**20)`` (an actual gap in
+  ``[1, 2**20]``) between clocks in that window is therefore an ordinary
+  positive integer gap, not a wrapped subtraction; and
 * the old unbounded clock-update layout really did admit a 2,049-edge wrapped
-  cycle, while the new predecessor decomposition rejects its eighteenth
+  cycle, while the new predecessor decomposition rejects its sixty-sixth
   synthetic row.
 
 The production-contract check pins those facts to the shipped Zig sources so a
@@ -39,7 +42,14 @@ MAX_COMPONENTS = 256
 MAX_OPCODE_SHARD_ROWS = 1 << 16
 MAX_EXECUTION_STEPS = MAX_COMPONENTS * MAX_OPCODE_SHARD_ROWS
 MAX_CLOCK_DIFF = (1 << 20) - 1
-CLOCK_PREV_BOUND = 1 << 24
+MAX_LIVE_CLOCK_DIFF = 1 << 20
+ACCESS_CLOCK_STRIDE = 4
+MAX_ACCESSES_PER_INSTRUCTION = 3
+MAX_HONEST_ACCESS_CLOCK = (
+    (MAX_EXECUTION_STEPS - 1) * ACCESS_CLOCK_STRIDE
+    + MAX_ACCESSES_PER_INSTRUCTION
+)
+CLOCK_PREV_BOUND = 1 << 26
 
 
 @dataclasses.dataclass(frozen=True)
@@ -57,7 +67,8 @@ class StateCycleCertificate:
 @dataclasses.dataclass(frozen=True)
 class ClockWindowCertificate:
     field_modulus: int
-    maximum_clock_gap: int
+    maximum_synthetic_clock_step: int
+    maximum_live_access_gap: int
     predecessor_bound_exclusive: int
     maximum_synthetic_predecessor: int
     maximum_synthetic_output: int
@@ -88,12 +99,16 @@ class ProductionContract:
     clock_tracker_source: str
     clock_component_source: str
     clock_interaction_source: str
+    access_clock_source: str
     source_modulus: int
     source_max_components: int
     source_shard_log_size: int
     source_clock_low_bits: int
     source_clock_high_bits: int
+    source_access_clock_stride: int
+    maximum_honest_access_clock: int
     state_recurrence: str
+    access_clock_recurrence: str
     opcode_gap_table: str
     clock_update_recurrence: str
     clock_predecessor_range: str
@@ -135,6 +150,7 @@ def state_cycle_certificate(
 def clock_window_certificate(
     modulus: int = M31_MODULUS,
     maximum_clock_gap: int = MAX_CLOCK_DIFF,
+    maximum_live_clock_gap: int = MAX_LIVE_CLOCK_DIFF,
     predecessor_bound_exclusive: int = CLOCK_PREV_BOUND,
 ) -> ClockWindowCertificate:
     """Certify that the committed predecessor range excludes field wrapping.
@@ -143,22 +159,28 @@ def clock_window_certificate(
     every positive memory-bus clock is at most ``E = B - 1 + D``.  If two
     clocks in ``[0, E]`` are in decreasing integer order, their field
     subtraction is at least ``p - E``.  The production inequality
-    ``p - E > D`` makes such a subtraction impossible to place in range20.
+    ``p - E > G``, where ``G`` is the largest actual live gap, makes such a
+    subtraction impossible to place in the shifted range20 request.
     """
 
-    if predecessor_bound_exclusive <= 0 or maximum_clock_gap <= 0:
+    if (
+        predecessor_bound_exclusive <= 0
+        or maximum_clock_gap <= 0
+        or maximum_live_clock_gap <= 0
+    ):
         raise ValueError("clock bounds must be positive")
     maximum_predecessor = predecessor_bound_exclusive - 1
     maximum_output = maximum_predecessor + maximum_clock_gap
     minimum_backward = modulus - maximum_output
     certificate = ClockWindowCertificate(
         field_modulus=modulus,
-        maximum_clock_gap=maximum_clock_gap,
+        maximum_synthetic_clock_step=maximum_clock_gap,
+        maximum_live_access_gap=maximum_live_clock_gap,
         predecessor_bound_exclusive=predecessor_bound_exclusive,
         maximum_synthetic_predecessor=maximum_predecessor,
         maximum_synthetic_output=maximum_output,
         minimum_wrapped_backward_gap=minimum_backward,
-        wrapped_gap_exceeds_table=minimum_backward > maximum_clock_gap,
+        wrapped_gap_exceeds_table=minimum_backward > maximum_live_clock_gap,
         synthetic_addition_does_not_wrap=maximum_output < modulus,
     )
     if not certificate.synthetic_addition_does_not_wrap:
@@ -275,6 +297,7 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
     tracker_path = repo_root / "src/frontends/riscv/runner/state_chain.zig"
     component_path = repo_root / "src/frontends/riscv/air/clock_update_component.zig"
     interaction_path = repo_root / "src/frontends/riscv/air/clock_update_interaction.zig"
+    access_clock_path = repo_root / "src/frontends/riscv/access_clock.zig"
 
     m31_source = m31_path.read_text(encoding="utf-8")
     common_source = _compact(common_path.read_text(encoding="utf-8"))
@@ -283,6 +306,7 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
     tracker_source = _compact(tracker_path.read_text(encoding="utf-8"))
     component_source = _compact(component_path.read_text(encoding="utf-8"))
     interaction_source = _compact(interaction_path.read_text(encoding="utf-8"))
+    access_clock_source = _compact(access_clock_path.read_text(encoding="utf-8"))
 
     modulus_match = re.search(
         r"pub const Modulus:\s*u32\s*=\s*(0x[0-9a-fA-F]+|[0-9]+)\s*;",
@@ -307,13 +331,19 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         tracker_path.read_text(encoding="utf-8"),
         "CLOCK_PREV_HIGH_BITS",
     )
+    source_access_clock_stride = _decimal_constant(
+        access_clock_path.read_text(encoding="utf-8"),
+        "STRIDE",
+    )
 
     if source_modulus != M31_MODULUS:
         raise AssertionError("checker modulus drifted from production")
     if source_max_components != MAX_COMPONENTS or source_shard_log_size != 16:
         raise AssertionError("execution-capacity constants drifted from production")
-    if (source_clock_low_bits, source_clock_high_bits) != (20, 4):
+    if (source_clock_low_bits, source_clock_high_bits) != (20, 6):
         raise AssertionError("clock predecessor decomposition drifted")
+    if source_access_clock_stride != ACCESS_CLOCK_STRIDE:
+        raise AssertionError("access-clock stride drifted")
 
     required = {
         "state +1 recurrence": (
@@ -321,12 +351,24 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
             ".next = .{ .pc = pc.add(q(4)), .clock = clock.add(S.one()) },",
         ),
         "opcode memory gap lookup": (
+            common_source,
+            "clock_gap = current_clock.sub(access.previous_clock).sub(S.one()),",
+        ),
+        "opcode shifted gap table": (
             entry_source,
             "Self.range20(list, enabler.neg(), chain.clock_gap);",
         ),
+        "derived access clock": (
+            common_source,
+            "return instruction_clock.sub(S.one()) .mul(q(access_clock.STRIDE)) .add(q(@intFromEnum(ordinal) + 1));",
+        ),
+        "host access clock": (
+            access_clock_source,
+            "const encoded = (@as(u64, instruction_clock) - 1) * STRIDE + @intFromEnum(ordinal) + 1;",
+        ),
         "execution field-cycle guard": (
             admission_source,
-            "if (total_steps >= m31.Modulus - 1) return types.ProverError.InvalidStatement;",
+            "if (total_steps > MAX_EXECUTION_STEPS or total_steps >= m31.Modulus - 1 or access_clock.maximum(total_steps) >= state_chain.CLOCK_PREV_BOUND) return types.ProverError.InvalidStatement;",
         ),
         "execution geometry sum": (
             admission_source,
@@ -342,11 +384,11 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         ),
         "clock high range": (
             interaction_source,
-            ".{ QM31.zero(), QM31.zero(), row.clock_prev_high4 },",
+            ".{ row.clock_prev_high6, row.clock_prev_high6.mul(q(4)) },",
         ),
         "clock recomposition": (
             component_source,
-            "row.clock_prev_low20.add( row.clock_prev_high4.mul(",
+            "row.clock_prev_low20.add( row.clock_prev_high6.mul(",
         ),
     }
     for label, (source, fragment) in required.items():
@@ -365,15 +407,19 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         clock_tracker_source=str(tracker_path.relative_to(repo_root)),
         clock_component_source=str(component_path.relative_to(repo_root)),
         clock_interaction_source=str(interaction_path.relative_to(repo_root)),
+        access_clock_source=str(access_clock_path.relative_to(repo_root)),
         source_modulus=source_modulus,
         source_max_components=source_max_components,
         source_shard_log_size=source_shard_log_size,
         source_clock_low_bits=source_clock_low_bits,
         source_clock_high_bits=source_clock_high_bits,
+        source_access_clock_stride=source_access_clock_stride,
+        maximum_honest_access_clock=MAX_HONEST_ACCESS_CLOCK,
         state_recurrence="(pc, clock) -> (next_pc, clock + 1)",
-        opcode_gap_table="range_check_20(row_clock - previous_clock)",
+        access_clock_recurrence="4 * (instruction_clock - 1) + ordinal + 1",
+        opcode_gap_table="range_check_20(access_clock - previous_clock - 1)",
         clock_update_recurrence="clock -> clock + (2^20 - 1)",
-        clock_predecessor_range="0 <= clock_prev < 2^24",
+        clock_predecessor_range="0 <= clock_prev < 2^26",
     )
 
 
@@ -382,7 +428,7 @@ def report(repo_root: Path) -> dict[str, object]:
         "schema": "stwo-riscv-state-chain-recurrence-v1",
         "state_cycle": dataclasses.asdict(state_cycle_certificate()),
         "clock_window": dataclasses.asdict(clock_window_certificate()),
-        "maximum_honest_bridge": bridge_certificate(0, MAX_EXECUTION_STEPS),
+        "maximum_honest_bridge": bridge_certificate(0, MAX_HONEST_ACCESS_CLOCK),
         "old_wrapped_cycle": dataclasses.asdict(old_wrapped_cycle_counterexample()),
         "production_contract": dataclasses.asdict(check_production_contract(repo_root)),
         "scope": {
@@ -391,8 +437,8 @@ def report(repo_root: Path) -> dict[str, object]:
                 "state-chain and memory-chain lemmas"
             ),
             "does_not_prove": (
-                "LogUp multiset equality, opcode row semantics, same-clock "
-                "access ordering, PCS/FRI soundness, or Sail refinement"
+                "LogUp randomized multiset soundness, opcode arithmetic "
+                "semantics, PCS/FRI soundness, or Sail refinement"
             ),
         },
     }

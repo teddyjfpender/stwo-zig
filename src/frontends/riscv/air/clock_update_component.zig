@@ -347,7 +347,7 @@ pub const ClockUpdateComponent = struct {
         result.values[interaction.N_SUMS + 2] = row.enabler.mul(
             row.clock_prev.sub(
                 row.clock_prev_low20.add(
-                    row.clock_prev_high4.mul(
+                    row.clock_prev_high6.mul(
                         QM31.fromBase(M31.fromU64(
                             @as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS,
                         )),

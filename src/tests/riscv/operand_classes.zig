@@ -145,33 +145,6 @@ pub fn countOf(op: Opcode) usize {
     return count;
 }
 
-/// Honest cases the AIR rejects today: real completeness findings this
-/// corpus made, kept as data so every consumer handles them the same way.
-///
-/// Both commit a regular-path unsigned division whose quotient has bit 31
-/// set (0x8ABCDEF1 / 1). `div.zig`'s `quotient_sign_range` request exists,
-/// per its own comment, to bind the signed `q == 0, sign_xor == 1`
-/// ambiguity, but its numerator `valid_not_zero_divisor - b_sign * c_sign`
-/// is not gated on `is_signed`: on a DIVU/REMU row the direct constraint
-/// `(1 - zero_divisor) * (q_sign - sign_xor) * q_sign` forces `q_sign = 0`,
-/// so the request demands `q[3] < 128` and every honest unsigned quotient
-/// >= 2^31 asks `range_check_m31` for a tuple that does not exist. The
-/// prover itself refuses such a guest while ingesting lookup sources --
-/// `operand_class_sweep_test` demonstrates that end to end and fails the
-/// moment either row becomes admissible, so an AIR fix must delete these
-/// entries in the same change.
-pub const KNOWN_COMPLETENESS_REJECTIONS = [_][]const u8{
-    "divu/div_divisor_one",
-    "remu/div_divisor_one",
-};
-
-pub fn isKnownCompletenessRejection(name: []const u8) bool {
-    for (KNOWN_COMPLETENESS_REJECTIONS) |known| {
-        if (std.mem.eql(u8, known, name)) return true;
-    }
-    return false;
-}
-
 // ---------------------------------------------------------------------------
 // Corpus self-checks: structure only. Architectural agreement with the
 // runner and AIR admissibility live in operand_class_sweep_test.zig.

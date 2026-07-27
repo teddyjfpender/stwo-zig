@@ -169,8 +169,8 @@ pub fn Semantics(comptime S: type) type {
             return .{
                 .program = ctl.programRequest(active, programLookup(row)),
                 .state = ctl.stateLookups(row.pc, row.clock, row.pc.add(ops.q(4)), active),
-                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, active),
-                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, active),
+                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, .first, active),
+                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, .second, active),
                 .product_ranges = ranges,
                 // `range_check_m31` accepts `(lo8, hi7)`. Keeping `lo8 = 0`
                 // proves `top_byte - 128 * sign` is a seven-bit value, which is
@@ -187,7 +187,7 @@ pub fn Semantics(comptime S: type) type {
                         row.rs2.next[3].sub(row.rs2_sign.mul(ops.q(128))),
                     ),
                 },
-                .rd = ctl.registerAccessLookups(row.rd, row.clock, active),
+                .rd = ctl.registerAccessLookups(row.rd, row.clock, .third, active),
             };
         }
 

@@ -225,7 +225,7 @@ def prefers_ladder(system: System) -> bool:
 # node, direct constraint, lookup, and referenced table shape part of the
 # certificate boundary.
 DIVISION_CONTROL_DIGEST = (
-    "1e4ef3b84e581640301b8fba84d0c3034c3d1ab48ef1af13a301bfa16febce53"
+    "2feaee5ddd2b1f24a3264a2a09840a3dedb77c9761c8733f7980f9dee97b5d0a"
 )
 DIVISION_SELECTORS = (
     "opcode_div_flag",

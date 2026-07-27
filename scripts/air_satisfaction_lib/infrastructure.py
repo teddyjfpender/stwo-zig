@@ -438,7 +438,7 @@ def _clock(
 ) -> None:
     enabler, addr_space, addr, previous = row[:4]
     values = row[4:8]
-    low20, high4 = row[8:10]
+    low20, high6 = row[8:10]
     _constraint(
         component,
         row_index,
@@ -452,7 +452,7 @@ def _clock(
         component,
         row_index,
         "clock predecessor recomposition",
-        enabler * (previous - low20 - (1 << 20) * high4),
+        enabler * (previous - low20 - (1 << 20) * high6),
         counts,
         violations,
     )
@@ -477,7 +477,16 @@ def _clock(
         requests,
     )
     _request(component, row_index, "range_check_20", -enabler, (low20,), counts, violations, requests)
-    _request(component, row_index, "range_check_8_8_4", -enabler, (0, 0, high4), counts, violations, requests)
+    _request(
+        component,
+        row_index,
+        "range_check_8_8",
+        -enabler,
+        (high6, 4 * high6),
+        counts,
+        violations,
+        requests,
+    )
 
 
 def check_component(component: Component) -> tuple[list[Violation], Counts, tuple[Request, ...]]:

@@ -167,8 +167,8 @@ pub fn Semantics(comptime S: type) type {
 
         pub fn accessLookups(row: Row) AccessLookups {
             return .{
-                .rd = ops.registerAccessChain(row.rd, row.clk),
-                .rs1 = ops.registerAccessChain(row.rs1, row.clk),
+                .rd = ops.registerAccessChain(row.rd, row.clk, .second),
+                .rs1 = ops.registerAccessChain(row.rs1, row.clk, .first),
             };
         }
 
@@ -306,9 +306,9 @@ pub fn Semantics(comptime S: type) type {
                     try std.testing.expect(chain.previous.addr.eql(ops.q(3)));
                     try std.testing.expect(chain.previous.clock.eql(ops.q(17)));
                     try std.testing.expect(chain.previous.limbs[2].eql(ops.q(90)));
-                    try std.testing.expect(chain.next.clock.eql(ops.q(23)));
+                    try std.testing.expect(chain.next.clock.eql(ops.q(90)));
                     try std.testing.expect(chain.next.limbs[2].eql(ops.q(91)));
-                    try std.testing.expect(chain.clock_gap.eql(ops.q(6)));
+                    try std.testing.expect(chain.clock_gap.eql(ops.q(72)));
                 }
 
                 test "base alu imm semantics: oracle adapter preserves access-first layout" {

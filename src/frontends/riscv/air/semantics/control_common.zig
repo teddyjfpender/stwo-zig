@@ -5,6 +5,7 @@
 
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const common = @import("common.zig");
+const access_clock = @import("../../access_clock.zig");
 
 pub fn Ops(comptime S: type) type {
     return struct {
@@ -85,9 +86,10 @@ pub fn Ops(comptime S: type) type {
         pub fn registerAccessLookups(
             access: ops.Access,
             row_clock: S,
+            ordinal: access_clock.Ordinal,
             enabler: S,
         ) RegisterAccessLookups {
-            const chain = ops.registerAccessChain(access, row_clock);
+            const chain = ops.registerAccessChain(access, row_clock, ordinal);
             return .{
                 .consume = .{ .numerator = enabler.neg(), .tuple = chain.previous },
                 .emit = .{ .numerator = enabler, .tuple = chain.next },
@@ -153,12 +155,17 @@ pub fn Ops(comptime S: type) type {
                         .previous_clock = ops.q(11),
                         .next = .{ ops.q(5), ops.q(6), ops.q(7), ops.q(8) },
                     };
-                    const requests = registerAccessLookups(access, ops.q(19), S.one());
+                    const requests = registerAccessLookups(
+                        access,
+                        ops.q(19),
+                        .second,
+                        S.one(),
+                    );
                     try std.testing.expect(requests.consume.numerator.eql(S.one().neg()));
                     try std.testing.expect(requests.consume.tuple.clock.eql(ops.q(11)));
                     try std.testing.expect(requests.emit.numerator.eql(S.one()));
-                    try std.testing.expect(requests.emit.tuple.clock.eql(ops.q(19)));
-                    try std.testing.expect(requests.clock_gap.tuple.value.eql(ops.q(8)));
+                    try std.testing.expect(requests.emit.tuple.clock.eql(ops.q(74)));
+                    try std.testing.expect(requests.clock_gap.tuple.value.eql(ops.q(62)));
                 }
             };
         }

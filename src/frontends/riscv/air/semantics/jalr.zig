@@ -174,7 +174,7 @@ pub fn Semantics(comptime S: type) type {
         pub fn lookups(row: Row) Lookups {
             return .{
                 .program = ctl.programRequest(row.enabler, programLookup(row)),
-                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, row.enabler),
+                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, .first, row.enabler),
                 .rs1_middle_bytes = ctl.rangePairRequest(
                     row.enabler,
                     row.rs1.next[1],
@@ -232,7 +232,7 @@ pub fn Semantics(comptime S: type) type {
                     row.result[0],
                     row.result[3],
                 ),
-                .rd = ctl.registerAccessLookups(row.rd, row.clock, row.enabler),
+                .rd = ctl.registerAccessLookups(row.rd, row.clock, .second, row.enabler),
             };
         }
 

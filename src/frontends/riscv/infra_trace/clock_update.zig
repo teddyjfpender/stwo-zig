@@ -11,12 +11,12 @@ const StateChainTracker = state_chain.StateChainTracker;
 pub const MEM_CLOCK_UPDATE_COLS: usize = trace_columns.MemClockUpdateColumns.N_COLUMNS;
 pub const REG_CLOCK_UPDATE_COLS: usize = trace_columns.RegClockUpdateColumns.N_COLUMNS;
 /// enabler, address space, address, previous clock, four value bytes,
-/// previous-clock low20, previous-clock high4.
+/// previous-clock low20, previous-clock high6.
 ///
 /// The decomposition is a soundness boundary, not redundant witness data.
-/// Opcode clocks are state-chained below `2^24`; bounding every synthetic
-/// predecessor to that same integer interval prevents an M31-wrapped clock
-/// cycle from balancing the memory bus.
+/// Opcode access clocks are four-wide refinements of at most `2^24`
+/// instruction clocks. Bounding every synthetic predecessor below `2^26`
+/// prevents an M31-wrapped clock cycle from balancing the memory bus.
 pub const CLOCK_UPDATE_COLS: usize = 10;
 
 pub fn genMemClockUpdateColumns(

@@ -134,8 +134,8 @@ pub fn Semantics(comptime S: type) type {
             const enabler = row.enabler();
             return .{
                 .program = ctl.programRequest(enabler, programLookup(row)),
-                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, enabler),
-                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, enabler),
+                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, .first, enabler),
+                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, .second, enabler),
                 .state = ctl.stateLookups(row.pc, row.clock, nextPc(row), enabler),
             };
         }

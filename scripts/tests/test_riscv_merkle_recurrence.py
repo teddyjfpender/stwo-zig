@@ -97,9 +97,15 @@ class MerkleDepthCycleTests(unittest.TestCase):
             certificate.distinct_depths_before_repeat,
         )
         self.assertEqual(
-            recurrence.M31_MODULUS - 1,
+            (recurrence.M31_MODULUS - 1) // 2,
             certificate.maximum_admitted_rows,
         )
+        self.assertEqual(2, certificate.maximum_row_coefficient)
+        self.assertEqual(
+            recurrence.M31_MODULUS - 1,
+            certificate.maximum_aggregate_coefficient,
+        )
+        self.assertTrue(certificate.aggregate_coefficient_below_field)
         self.assertTrue(certificate.detached_cycle_excluded)
 
     def test_additive_order_formula_matches_brute_force_small_rings(self) -> None:
@@ -120,9 +126,11 @@ class MerkleDepthCycleTests(unittest.TestCase):
                 ]
                 self.assertEqual(actual, len(set(depths)))
 
-    def test_statement_bound_is_one_row_below_first_possible_cycle(self) -> None:
+    def test_statement_bound_lifts_node_coefficients_and_excludes_cycle(self) -> None:
         p = recurrence.M31_MODULUS
-        self.assertNotEqual(0, recurrence.depth_after_rows(0, p - 1, p))
+        maximum_rows = (p - 1) // 2
+        self.assertLess(2 * maximum_rows, p)
+        self.assertNotEqual(0, recurrence.depth_after_rows(0, maximum_rows, p))
         self.assertEqual(0, recurrence.depth_after_rows(0, p, p))
 
 
@@ -141,8 +149,19 @@ class MerkleProductionContractTests(unittest.TestCase):
             contract.depth_recurrence,
         )
         self.assertEqual(
-            "merkle n_rows < M31 modulus",
+            (
+                "2 * merkle n_rows < M31 modulus and "
+                "2 * merkle + program + memory n_rows + 3 < M31 modulus"
+            ),
             contract.admission_rule,
+        )
+        self.assertEqual(
+            "2 * merkle n_rows < M31 modulus",
+            contract.node_coefficient_rule,
+        )
+        self.assertEqual(
+            "2 * merkle + program + memory n_rows + 3 < M31 modulus",
+            contract.all_source_rule,
         )
 
     def test_cli_emits_a_reviewable_json_certificate(self) -> None:

@@ -15,6 +15,7 @@ const postcard = @import("../../interop/postcard.zig");
 const runner_mod = @import("../../frontends/riscv/runner/mod.zig");
 const release_elf_fixture = @import("release_elf_fixture.zig");
 const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
+const access_clock = @import("../../frontends/riscv/access_clock.zig");
 const clock_update_interaction = @import("../../frontends/riscv/air/clock_update_interaction.zig");
 const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
 const merkle_node = @import("../../frontends/riscv/air/memory_commitment/merkle_node.zig");
@@ -479,7 +480,11 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
     for (0..matrix.statement.public_data.reg_last_clock.len) |r| {
         var statement = matrix.statement;
         statement.public_data.reg_last_clock[r] +%= 1;
-        const expected_error = if (statement.public_data.reg_last_clock[r] > statement.total_steps)
+        const expected_error = if (!access_clock.isWithinExecution(
+            statement.public_data.reg_last_clock[r],
+            statement.total_steps,
+            true,
+        ))
             error.InvalidStatement
         else
             matrix.expectedBoundRejection(statement);
@@ -580,10 +585,18 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
     {
         var statement = matrix.statement;
         statement.public_data.completion.?.clock -%= 1;
+        const expected_error = if (!access_clock.isWithinExecution(
+            statement.public_data.completion.?.clock,
+            statement.total_steps,
+            false,
+        ))
+            error.InvalidStatement
+        else
+            matrix.expectedBoundRejection(statement);
         try matrix.expectStatementRejected(
             "completion clock",
             0,
-            matrix.expectedBoundRejection(statement),
+            expected_error,
             statement,
         );
     }
@@ -751,7 +764,11 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         );
         word.* = original;
         word.clock +%= 1;
-        const expected_clock_error = if (word.clock > matrix.statement.total_steps)
+        const expected_clock_error = if (!access_clock.isWithinExecution(
+            word.clock,
+            matrix.statement.total_steps,
+            false,
+        ))
             error.InvalidStatement
         else
             matrix.expectedBoundRejection(matrix.statement);

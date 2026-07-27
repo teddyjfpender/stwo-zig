@@ -261,8 +261,8 @@ fn finishTracedClaimPhase(
 fn fixtureStatement() statement_mod.RiscVStatement {
     const input_words = &[_]u32{0x0403_0201};
     const output_words = &[_]public_data.OutputWord{
-        .{ .addr = 0x0010_0004, .value = 4, .clock = 12 },
-        .{ .addr = 0x0010_0008, .value = 0x0807_0605, .clock = 13 },
+        .{ .addr = 0x0010_0004, .value = 4, .clock = 9 },
+        .{ .addr = 0x0010_0008, .value = 0x0807_0605, .clock = 10 },
     };
     var final_regs = [_]u32{1} ** 32;
     final_regs[0] = 0;

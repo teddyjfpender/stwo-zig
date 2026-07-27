@@ -167,6 +167,10 @@ fn honestSraRow(comptime family: OpcodeFamily) Row {
         .values = .{QM31.zero()} ** trace_mod.MAX_FAMILY_COLUMNS,
         .len = names.len,
     };
+    // Access clocks are derived from the one-based instruction clock. Leaving
+    // this at the zero-filled default would make the honest baseline wrap
+    // before the carry-window mutation is even applied.
+    setCell(family, &row, "clock", 1);
     setCell(family, &row, "opcode_sra_flag", 1);
     setCell(family, &row, "bit_multiplier_right", 128);
     setCell(family, &row, "bit_shift_marker_7", 1);

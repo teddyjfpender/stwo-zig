@@ -88,7 +88,7 @@ pub fn Semantics(comptime S: type) type {
         };
 
         pub fn lookups(row: Row) Lookups {
-            const chain = ops.registerAccessChain(row.rd, row.clock);
+            const chain = ops.registerAccessChain(row.rd, row.clock, .first);
             const consume = ctl.Request(ops.MemoryAccessTuple){
                 .numerator = row.enabler.neg(),
                 .tuple = chain.previous,

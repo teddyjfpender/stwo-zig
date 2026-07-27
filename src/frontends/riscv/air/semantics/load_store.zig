@@ -282,10 +282,26 @@ pub fn Semantics(comptime S: type) type {
 
         pub fn accessLookups(row: Row) AccessLookups {
             const d = derive(row);
+            const second = ops.accessClock(row.clk, .second);
             return .{
-                .rs1 = ops.registerAccessChain(row.rs1, row.clk),
-                .src = ops.accessChain(row.src, row.clk, d.is_load, row.src_addr_selector, row.src.next),
-                .dst = ops.accessChain(row.dst, row.clk, d.is_store, row.dst_addr_selector, row.dst.next),
+                .rs1 = ops.registerAccessChain(row.rs1, row.clk, .first),
+                // Loads read memory after rs1 and rd bookkeeping; stores read
+                // rs2 second. Both use the same committed `src` block.
+                .src = ops.accessChain(
+                    row.src,
+                    second.add(d.is_load),
+                    d.is_load,
+                    row.src_addr_selector,
+                    row.src.next,
+                ),
+                // Loads write rd second; stores update memory third.
+                .dst = ops.accessChain(
+                    row.dst,
+                    second.add(d.is_store),
+                    d.is_store,
+                    row.dst_addr_selector,
+                    row.dst.next,
+                ),
             };
         }
 

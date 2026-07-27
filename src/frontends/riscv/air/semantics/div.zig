@@ -360,20 +360,25 @@ pub fn Semantics(comptime S: type) type {
             return .{
                 .program = ctl.programRequest(d.active, programLookup(row)),
                 .state = ctl.stateLookups(row.pc, row.clock, row.pc.add(ops.q(4)), d.active),
-                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, d.active),
-                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, d.active),
+                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, .first, d.active),
+                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, .second, d.active),
                 .divisor_ranges = .{
                     ctl.rangePairRequest(d.active, row.rs2.next[0], row.rs2.next[1]),
                     ctl.rangePairRequest(d.active, row.rs2.next[2], row.rs2.next[3]),
                 },
                 .quotient_remainder_ranges = ranges,
-                // q[3] is byte-ranged above. Requiring q[3] - 128*q_sign to fit seven
-                // bits binds the ambiguous q == 0, sign_xor == 1 case. Both-negative
-                // division is excluded because signed overflow intentionally represents
-                // 0x80000000 with the algebraic extension q_sign = sign_xor = 0; for
-                // that whole class the existing direct equations already force zero.
+                // q[3] is byte-ranged above. On signed rows, requiring
+                // q[3] - 128*q_sign to fit seven bits binds the ambiguous
+                // q == 0, sign_xor == 1 case. Unsigned q_sign is already
+                // fixed to zero by the direct equations, so activating this
+                // request there would incorrectly reject quotients with bit
+                // 31 set. Both-negative division is excluded because signed
+                // overflow intentionally represents 0x80000000 with the
+                // algebraic extension q_sign = sign_xor = 0; for that whole
+                // class the existing direct equations already force zero.
                 .quotient_sign_range = ctl.rangePairRequest(
-                    d.valid_not_zero_divisor.sub(row.b_sign.mul(row.c_sign)),
+                    d.is_signed.mul(d.valid_not_zero_divisor)
+                        .sub(row.b_sign.mul(row.c_sign)),
                     S.zero(),
                     row.q[3].sub(row.q_sign.mul(ops.q(128))),
                 ),
@@ -382,7 +387,7 @@ pub fn Semantics(comptime S: type) type {
                     .numerator = d.valid_not_special.neg(),
                     .tuple = .{ .value = row.lt_diff.sub(S.one()) },
                 },
-                .rd = ctl.registerAccessLookups(row.rd, row.clock, d.active),
+                .rd = ctl.registerAccessLookups(row.rd, row.clock, .third, d.active),
             };
         }
 
@@ -485,18 +490,46 @@ pub fn Semantics(comptime S: type) type {
                     const table = @import("../lookups/tables/schema.zig");
                     var row = baseRow();
                     row.is_div = S.one();
+                    // Opposite operand signs with q == 0 leave q_sign = 0
+                    // and q_sign = 1 as direct-constraint solutions. The
+                    // active lookup below selects the canonical zero sign.
+                    row.b_sign = S.one();
+                    row.sign_xor = S.one();
 
                     var request = lookups(row).quotient_sign_range;
+                    try std.testing.expect(request.numerator.eql(S.one().neg()));
                     var tuple = request.tuple.values();
                     _ = try table.indexSecure(.range_check_m31, &tuple);
 
                     row.q_sign = S.one();
                     request = lookups(row).quotient_sign_range;
+                    try std.testing.expect(request.numerator.eql(S.one().neg()));
                     tuple = request.tuple.values();
                     try std.testing.expectError(
                         error.ValueOutOfRange,
                         table.indexSecure(.range_check_m31, &tuple),
                     );
+                }
+
+                test "div: quotient sign range is inactive for unsigned high-bit quotients" {
+                    const table = @import("../lookups/tables/schema.zig");
+                    inline for ([_]bool{ false, true }) |is_remainder| {
+                        var row = baseRow();
+                        row.is_divu = if (is_remainder) S.zero() else S.one();
+                        row.is_remu = if (is_remainder) S.one() else S.zero();
+                        row.q[3] = ops.q(0x8a);
+
+                        const request = lookups(row).quotient_sign_range;
+                        try std.testing.expect(request.numerator.eql(S.zero()));
+                        var tuple = request.tuple.values();
+                        // Non-vacuity: this tuple has no range_check_m31 row.
+                        // It is admissible only because unsigned rows emit no
+                        // quotient-sign request.
+                        try std.testing.expectError(
+                            error.ValueOutOfRange,
+                            table.indexSecure(.range_check_m31, &tuple),
+                        );
+                    }
                 }
 
                 test "div: forged quotient fails the carry range oracle" {

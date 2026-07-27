@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 import tempfile
 import unittest
@@ -210,6 +211,123 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
             "does not claim family enumeration",
         ):
             self.assertIn(disclosure, module_doc)
+
+    def test_committed_mutation_registry_covers_component_order_and_is_reachable(
+        self,
+    ) -> None:
+        coverage_path = (
+            REPO_ROOT
+            / "src/tests/riscv/opcode_family_committed_soundness_test.zig"
+        )
+        coverage_source = coverage_path.read_text()
+        coverage_block = coverage_source.split(
+            "const FAMILY_COVERAGE = [_]FamilyCoverage{", 1
+        )[1].split("\n};\n\ncomptime {", 1)[0]
+        covered_families = re.findall(r"\.family = \.([a-z_]+),", coverage_block)
+        owners = re.findall(r'\.owner = "([^"]+)",', coverage_block)
+
+        component_source = (
+            REPO_ROOT / "src/frontends/riscv/air/component_order.zig"
+        ).read_text()
+        component_block = component_source.split(
+            "pub const OPCODE_FAMILIES = ", 1
+        )[1].split("\n};", 1)[0]
+        component_families = re.findall(r"^\s+\.([a-z_]+),$", component_block, re.M)
+        self.assertEqual(component_families, covered_families)
+        self.assertEqual(17, len(covered_families))
+        self.assertEqual(len(covered_families), len(set(covered_families)))
+        self.assertEqual(len(covered_families), len(owners))
+
+        registration = (REPO_ROOT / "src/tests/riscv/trace_test.zig").read_text()
+        gated_registration = registration.split(
+            "if (test_options.riscv_committed_mutations) {", 1
+        )[1].split("\n    }", 1)[0]
+        self.assertIn(
+            '@import("opcode_family_committed_soundness_test.zig")',
+            gated_registration,
+        )
+        for owner in set(owners):
+            with self.subTest(owner=owner):
+                self.assertIn(f'@import("{owner}")', gated_registration)
+                owner_source = (coverage_path.parent / owner).read_text()
+                self.assertTrue(
+                    ".main_row" in owner_source
+                    or "expectHonestProofAndForgedRejection(" in owner_source,
+                    "strong coverage must replace a row before interaction generation",
+                )
+                self.assertTrue(
+                    "proveAndVerify(" in owner_source
+                    or "expectHonestProofAndForgedRejection(" in owner_source,
+                    "strong coverage needs an honest prove/verify/Sail half",
+                )
+
+        # The older CP-06 cell flips remain registered, but neither is the
+        # owner of the stronger LUI/MULH row-forgery claim.
+        self.assertNotIn("main_witness_rejection_test.zig", owners)
+        self.assertNotIn("mulh_soundness_test.zig", owners)
+
+    def test_generic_family_cases_share_pre_ingestion_and_sail_tail_contract(
+        self,
+    ) -> None:
+        source = (
+            REPO_ROOT
+            / "src/tests/riscv/opcode_family_committed_soundness_test.zig"
+        ).read_text()
+        cases = re.findall(r'^test "committed family ([a-z_]+):', source, re.M)
+        self.assertEqual(
+            [
+                "base_alu_imm",
+                "branch_lt",
+                "fence",
+                "jal",
+                "lui",
+                "lt_imm",
+                "lt_reg",
+                "mul",
+                "mulh",
+                "shifts_imm",
+            ],
+            cases,
+        )
+        for family in cases:
+            start = source.index(f'test "committed family {family}:')
+            end = source.find('\ntest "committed family ', start + 1)
+            body = source[start:] if end == -1 else source[start:end]
+            with self.subTest(family=family):
+                self.assertIn("try rejectThenProveHonest(", body)
+                self.assertLess(
+                    body.index("forged.apply(&values);"),
+                    body.index("try rejectThenProveHonest("),
+                )
+
+        helper = source.split("fn rejectThenProveHonest(", 1)[1].split(
+            "\n}\n\n// All writing fixtures", 1
+        )[0]
+        self.assertIn("guest.expectRejectedAt(.{ .main_row = .{", helper)
+        self.assertIn(".logical_row = @intCast(logical_row)", helper)
+        self.assertTrue(
+            helper.rstrip().endswith("try guest.proveAndVerify(label);"),
+            "the helper's Sail-bearing honest half must remain its final obligation",
+        )
+
+        harness = (
+            REPO_ROOT / "src/tests/riscv/committed_forgery_harness.zig"
+        ).read_text()
+        honest = harness.split(
+            "pub fn proveAndVerify(self: *const Guest, guest_label: []const u8) !void {",
+            1,
+        )[1].split("\n    /// The Sail leg on its own:", 1)[0]
+        prove = honest.index("proveRiscVWithPublicData(")
+        verify = honest.index("verifyRiscV(")
+        sail = honest.index("self.requireSailAgreement(guest_label)")
+        self.assertLess(prove, verify)
+        self.assertLess(verify, sail)
+        self.assertTrue(
+            honest.rstrip().endswith(
+                "try self.requireSailAgreement(guest_label);\n    }"
+            ),
+            "Sail replay must remain the honest helper's final obligation",
+        )
 
 
 class VerdictContractTests(unittest.TestCase):

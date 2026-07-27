@@ -16,7 +16,7 @@ pub const N_MAIN_COLUMNS: usize = 10;
 pub const N_SUMS: usize = 2;
 pub const N_INTERACTION_COLUMNS: usize = N_SUMS * 4;
 pub const RANGE_CHECK_20_ENTRIES_PER_ROW: usize = 1;
-pub const RANGE_CHECK_8_8_4_ENTRIES_PER_ROW: usize = 1;
+pub const RANGE_CHECK_8_8_ENTRIES_PER_ROW: usize = 1;
 pub const CHUNK_ROWS: usize = 4096;
 
 comptime {
@@ -30,7 +30,7 @@ pub const Row = struct {
     clock_prev: QM31,
     value: [4]QM31,
     clock_prev_low20: QM31,
-    clock_prev_high4: QM31,
+    clock_prev_high6: QM31,
 
     pub fn fromMain(main: []const QM31) !Row {
         if (main.len != N_MAIN_COLUMNS) return error.InvalidMainTraceShape;
@@ -41,14 +41,15 @@ pub const Row = struct {
             .clock_prev = main[3],
             .value = .{ main[4], main[5], main[6], main[7] },
             .clock_prev_low20 = main[8],
-            .clock_prev_high4 = main[9],
+            .clock_prev_high6 = main[9],
         };
     }
 };
 
 /// The first pair is the pinned memory-bus transition. The second pair binds
-/// the predecessor clock to an integer in `[0, 2^24)`: low20 is checked by the
-/// 20-bit table, high4 by the 8/8/4 table, and the direct component constraint
+/// the predecessor clock to an integer in `[0, 2^26)`: low20 is checked by the
+/// 20-bit table. The 8/8 table checks both `high6` and `4 * high6`; because
+/// both are canonical bytes, `high6 < 64`. The direct component constraint
 /// recomposes them. This prevents a synthetic chain from reaching the top of
 /// M31 and closing through a wrapped opcode access.
 pub fn orderedEntries(row: Row) entry.List {
@@ -60,10 +61,10 @@ pub fn orderedEntries(row: Row) entry.List {
         memoryTuple(row, row.clock_prev.add(q(state_chain.MAX_CLOCK_DIFF))),
     );
     entry.range20(&result, row.enabler.neg(), row.clock_prev_low20);
-    entry.range884(
+    entry.range88(
         &result,
         row.enabler.neg(),
-        .{ QM31.zero(), QM31.zero(), row.clock_prev_high4 },
+        .{ row.clock_prev_high6, row.clock_prev_high6.mul(q(4)) },
     );
     return result;
 }

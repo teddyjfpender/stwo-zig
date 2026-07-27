@@ -150,7 +150,7 @@ pub fn Semantics(comptime S: type) type {
                         ),
                     },
                 },
-                .rd = ctl.registerAccessLookups(row.rd, row.clock, row.enabler),
+                .rd = ctl.registerAccessLookups(row.rd, row.clock, .first, row.enabler),
             };
         }
 

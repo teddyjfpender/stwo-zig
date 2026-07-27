@@ -131,6 +131,7 @@ class ProgramRowTests(unittest.TestCase):
         self.assertTrue(result.exact_program_multiset)
         self.assertTrue(result.common_public_root)
         self.assertTrue(result.canonical_leaf_map)
+        self.assertTrue(result.field_coefficient_lift_safe)
 
         wrong_root = uniqueness.verify_program_binding(
             (first, second),
@@ -245,19 +246,42 @@ class MemoryBoundaryAndChainTests(unittest.TestCase):
         self.assertFalse(result.valid)
         self.assertIn("not strictly increasing", result.reason)
 
-    def test_same_clock_aliased_register_source_is_an_exact_self_cancelling_forgery(self) -> None:
+    def test_integer_graph_model_rejects_noncanonical_field_aliases(self) -> None:
+        initial = uniqueness.MemoryState(1, 7, 0, (1, 2, 3, 4))
+        final = uniqueness.MemoryState(1, 7, P, (1, 2, 3, 4))
+
+        result = uniqueness.verify_offline_memory_chain(
+            initial,
+            final,
+            (uniqueness.MemoryTransition(initial, final),),
+        )
+
+        self.assertFalse(result.valid)
+        self.assertIn("not a canonical field element", result.reason)
+
+    def test_derived_subclocks_reject_the_old_self_cancelling_alias_forgery(self) -> None:
         counterexample = uniqueness.same_clock_alias_counterexample()
 
         self.assertEqual("ADD x3, x1, x1", counterexample.architectural_scenario)
-        self.assertTrue(counterexample.exact_relation_balance)
+        self.assertTrue(counterexample.legacy_exact_relation_balance)
+        self.assertFalse(counterexample.derived_subclock_exact_relation_balance)
         self.assertTrue(counterexample.forged_value_differs_from_honest_value)
-        self.assertTrue(counterexample.second_source_term_is_identically_zero)
-        self.assertTrue(counterexample.rejected_by_strict_clock_lemma)
-        self.assertEqual(
-            counterexample.transitions[1].previous,
-            counterexample.transitions[1].next,
+        self.assertTrue(
+            counterexample.legacy_second_source_term_is_identically_zero
         )
-        self.assertIn("A + B", counterexample.consequence)
+        self.assertFalse(
+            counterexample.derived_second_source_term_is_identically_zero
+        )
+        self.assertTrue(counterexample.derived_forgery_rejected)
+        self.assertEqual(
+            counterexample.legacy_transitions[1].previous,
+            counterexample.legacy_transitions[1].next,
+        )
+        self.assertNotEqual(
+            counterexample.derived_subclock_transitions[1].previous,
+            counterexample.derived_subclock_transitions[1].next,
+        )
+        self.assertIn("no longer balances", counterexample.consequence)
 
     def test_small_offline_memory_graph_is_exhausted(self) -> None:
         certificate = uniqueness.exhaustive_offline_memory_analogue()
@@ -316,6 +340,30 @@ class MerkleNodeTests(unittest.TestCase):
         self.assertTrue(certificate.every_leaf_index_is_unique_binary_path)
         self.assertTrue(certificate.every_connected_path_keeps_one_root)
         self.assertTrue(certificate.detached_cycle_excluded)
+        self.assertTrue(certificate.detached_depth_cycle_excluded)
+        self.assertEqual(P - 1, certificate.maximum_all_source_side_coefficient)
+        self.assertEqual(3, certificate.maximum_public_root_coefficient)
+        self.assertTrue(certificate.every_coefficient_side_below_field)
+        self.assertTrue(certificate.field_balance_lifts_to_integer_balance)
+        self.assertTrue(certificate.all_detached_components_excluded)
+        self.assertTrue(certificate.conditional_on_integer_coefficient_lift)
+
+    def test_legacy_merkle_wrap_witness_is_rejected_by_production_guard(self) -> None:
+        production = uniqueness.merkle_field_coefficient_wrap_counterexample()
+        self.assertEqual(P, production.ordinary_coefficient)
+        self.assertEqual(0, production.field_coefficient)
+        self.assertEqual((P + 1) // 2, production.active_rows)
+        self.assertTrue(production.admitted_by_rows_less_than_modulus)
+        self.assertFalse(production.admitted_by_production_node_guard)
+        self.assertFalse(production.depth_cycle_present)
+
+        analogue = uniqueness.merkle_field_coefficient_wrap_counterexample(17)
+        self.assertEqual(8, analogue.coefficient_two_rows)
+        self.assertEqual(1, analogue.coefficient_one_rows)
+        self.assertEqual(9, analogue.active_rows)
+        self.assertEqual(17, 2 * analogue.coefficient_two_rows + 1)
+        self.assertEqual(0, analogue.field_coefficient)
+        self.assertFalse(analogue.admitted_by_production_node_guard)
 
     def test_merkle_overclaims_have_concrete_admissible_pairs(self) -> None:
         counterexamples = uniqueness.merkle_counterexamples()
@@ -345,7 +393,7 @@ class ClockUpdateTests(unittest.TestCase):
                 row.previous_clock,
                 *row.values,
                 row.low20,
-                row.high4,
+                row.high6,
             ),
         )
         self.assertEqual(expected, uniqueness.clock_update_requests(row))
@@ -356,10 +404,10 @@ class ClockUpdateTests(unittest.TestCase):
 
     def test_clock_predecessor_decomposition_and_successor_are_unique(self) -> None:
         certificate = uniqueness.clock_row_certificate()
-        self.assertEqual(1 << 24, certificate.predecessor_bound_exclusive)
-        self.assertEqual((1 << 24) - 1, certificate.maximum_predecessor)
+        self.assertEqual(1 << 26, certificate.predecessor_bound_exclusive)
+        self.assertEqual((1 << 26) - 1, certificate.maximum_predecessor)
         self.assertEqual(
-            (1 << 24) - 1 + (1 << 20) - 1,
+            (1 << 26) - 1 + (1 << 20) - 1,
             certificate.maximum_output_clock,
         )
         self.assertTrue(certificate.predecessor_decomposition_unique)
@@ -387,7 +435,7 @@ class ClockUpdateTests(unittest.TestCase):
         attack = uniqueness.riscv_state_chain_recurrence.old_wrapped_cycle_counterexample()
         self.assertTrue(attack.closes_mod_field)
         self.assertTrue(attack.every_gap_was_in_old_window)
-        self.assertEqual(17, attack.first_rejected_row_zero_based)
+        self.assertEqual(65, attack.first_rejected_row_zero_based)
         self.assertGreaterEqual(
             attack.first_rejected_predecessor,
             uniqueness.CLOCK_PREDECESSOR_BOUND,
@@ -418,8 +466,103 @@ class ProductionBindingTests(unittest.TestCase):
         self.assertEqual(uniqueness.INV2, contract.source_inverse_two)
         self.assertEqual(30, contract.source_merkle_depth)
         self.assertEqual(20, contract.source_clock_low_bits)
-        self.assertEqual(4, contract.source_clock_high_bits)
-        self.assertGreaterEqual(contract.bindings_checked, 39)
+        self.assertEqual(6, contract.source_clock_high_bits)
+        self.assertEqual(len(uniqueness.SOURCE_BINDINGS), contract.bindings_checked)
+        self.assertGreaterEqual(contract.bindings_checked, 66)
+        self.assertIn("memory rows", contract.memory_coefficient_rule)
+
+    def test_every_declared_source_binding_is_unique_and_fails_closed(self) -> None:
+        for label, relative, fragment in uniqueness.SOURCE_BINDINGS:
+            with self.subTest(binding=label):
+                path = self.repo / relative
+                original = path.read_text(encoding="utf-8")
+                compact = uniqueness._compact(original)
+                self.assertEqual(
+                    1,
+                    compact.count(fragment),
+                    f"{label} must identify exactly one production fragment",
+                )
+                path.write_text(
+                    compact.replace(fragment, "/* mutated premise */", 1),
+                    encoding="utf-8",
+                )
+                try:
+                    with self.assertRaises(AssertionError) as raised:
+                        uniqueness.check_production_contract(self.repo)
+                    self.assertIn(label, str(raised.exception))
+                finally:
+                    path.write_text(original, encoding="utf-8")
+                path.write_text(
+                    compact.replace(fragment, f"{fragment} {fragment}", 1),
+                    encoding="utf-8",
+                )
+                try:
+                    with self.assertRaises(AssertionError) as raised:
+                        uniqueness.check_production_contract(self.repo)
+                    self.assertIn(label, str(raised.exception))
+                    self.assertIn("found 2", str(raised.exception))
+                finally:
+                    path.write_text(original, encoding="utf-8")
+
+    def test_parsed_production_constants_fail_closed_under_mutation(self) -> None:
+        cases = (
+            (
+                uniqueness.M31_PATH,
+                "pub const Modulus: u32 = 0x7fffffff;",
+                "pub const Modulus: u32 = 0x7ffffffd;",
+                "modulus drifted",
+            ),
+            (
+                uniqueness.MERKLE_NODE_PATH,
+                "M31.fromU64(1073741824)",
+                "M31.fromU64(1073741823)",
+                "INV2 drifted",
+            ),
+            (
+                uniqueness.SPARSE_MERKLE_PATH,
+                "pub const LEAF_DEPTH: u32 = 30;",
+                "pub const LEAF_DEPTH: u32 = 29;",
+                "Merkle depth drifted",
+            ),
+            (
+                uniqueness.STATE_CHAIN_PATH,
+                "pub const CLOCK_PREV_HIGH_BITS: u5 = 6;",
+                "pub const CLOCK_PREV_HIGH_BITS: u5 = 5;",
+                "clock radix drifted",
+            ),
+            (
+                uniqueness.STATE_CHAIN_PATH,
+                "pub const MAX_CLOCK_DIFF: u32 = (1 << 20) - 1;",
+                "pub const MAX_CLOCK_DIFF: u32 = (1 << 19) - 1;",
+                "maximum clock gap",
+            ),
+        )
+        for relative, old, new, error in cases:
+            with self.subTest(path=str(relative), mutation=old):
+                path = self.repo / relative
+                original = path.read_text(encoding="utf-8")
+                self.mutate(relative, old, new)
+                try:
+                    with self.assertRaisesRegex(AssertionError, error):
+                        uniqueness.check_production_contract(self.repo)
+                finally:
+                    path.write_text(original, encoding="utf-8")
+
+        modulus_path = self.repo / uniqueness.M31_PATH
+        original = modulus_path.read_text(encoding="utf-8")
+        declaration = "pub const Modulus: u32 = 0x7fffffff;"
+        modulus_path.write_text(
+            original.replace(declaration, f"{declaration}\n{declaration}", 1),
+            encoding="utf-8",
+        )
+        try:
+            with self.assertRaisesRegex(
+                AssertionError,
+                "uniquely locate the production M31 modulus: found 2",
+            ):
+                uniqueness.check_production_contract(self.repo)
+        finally:
+            modulus_path.write_text(original, encoding="utf-8")
 
     def test_program_relation_mutation_fails_closed(self) -> None:
         self.mutate(
@@ -438,6 +581,17 @@ class ProductionBindingTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(
             AssertionError, "memory multiplicity square definition"
+        ):
+            uniqueness.check_production_contract(self.repo)
+
+    def test_memory_second_range_mutation_fails_closed(self) -> None:
+        self.mutate(
+            uniqueness.MEMORY_INTERACTION_PATH,
+            "append(&list, .range_check_8_8, enabler.neg(), .{ values[2], values[3] });",
+            "append(&list, .range_check_8_8, enabler.neg(), .{ values[2], values[2] });",
+        )
+        with self.assertRaisesRegex(
+            AssertionError, "memory second byte range pair"
         ):
             uniqueness.check_production_contract(self.repo)
 
@@ -498,10 +652,22 @@ class ReportTests(unittest.TestCase):
         )
         self.assertTrue(
             payload["tier_3_cross_row"]["same_clock_alias_counterexample"][
-                "second_source_term_is_identically_zero"
+                "derived_forgery_rejected"
             ]
         )
+        self.assertTrue(
+            payload["tier_3_cross_row"]["merkle_connectivity"][
+                "all_detached_components_excluded"
+            ]
+        )
+        self.assertEqual(
+            0,
+            payload["tier_3_cross_row"][
+                "merkle_field_coefficient_wrap_counterexample"
+            ]["field_coefficient"],
+        )
         self.assertIn("assumes", payload["scope"])
+        self.assertIn("field-to-integer", payload["scope"]["proves"])
         self.assertIn("does_not_prove", payload["scope"])
 
 

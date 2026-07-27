@@ -3,8 +3,9 @@
 //!
 //! The bug this guards. A committed access carries `previous` and `next` as two
 //! distinct column groups: the access chain consumes `previous` at
-//! `previous_clock` and emits `next` at the row clock, and the opcode semantics
-//! compute on `next`. Nothing tied the two for a source operand, so `next` was a
+//! `previous_clock` and emits `next` at its derived ordered access clock, and
+//! the opcode semantics compute on `next`. Nothing tied the two for a source
+//! operand, so `next` was a
 //! free prover choice that was *also* what the row wrote back into the register
 //! cell. Every register-reading instruction therefore doubled as an arbitrary
 //! register write. `common.readOnlyAccessConstraints` closes it by forcing
@@ -71,6 +72,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 
+const access_clock = @import("../../frontends/riscv/access_clock.zig");
 const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");
 const layout = @import("committed_row_layout.zig");
@@ -122,7 +124,9 @@ fn limbsOf(word: u32) [4]u32 {
 // a compile error rather than a probe landing on its neighbour.
 const RS1_ADDR = layout.columnOf(.branch_eq, "rs1_addr");
 const RS2_ADDR = layout.columnOf(.branch_eq, "rs2_addr");
+const ROW_CLOCK = layout.columnOf(.branch_eq, "clock");
 const RS1_CLOCK_PREV = layout.columnOf(.branch_eq, "rs1_clock_prev");
+const RS2_CLOCK_PREV = layout.columnOf(.branch_eq, "rs2_clock_prev");
 const CMP_RESULT = layout.columnOf(.branch_eq, "cmp_result");
 const RS1_PREVIOUS = limbColumns("rs1_prev");
 const RS1_NEXT = limbColumns("rs1_next");
@@ -386,9 +390,9 @@ test "read-only access: a row-locally admissible bus-moving override proves and 
 
     // `rs1_clock_prev` reaches no direct constraint of `branch_eq`. It appears
     // only in the consumed `memory_access` tuple and in the `range_check_20`
-    // request over `clock - previous_clock`, which an earlier clock keeps in
-    // range. So this row is row-locally admissible while still asking the
-    // register bus for something else.
+    // request over `current_access_clock - previous_clock - 1`, which an
+    // earlier clock keeps in range. So this row is row-locally admissible while
+    // still asking the register bus for something else.
     const honest_previous_clock = honest.m31At(RS1_CLOCK_PREV).toU32();
     try std.testing.expect(honest_previous_clock > 1);
     const control = [_]harness.ColumnValue{.{
@@ -413,6 +417,45 @@ test "read-only access: a row-locally admissible bus-moving override proves and 
         .target = BRANCH_EQ_TARGET,
         .logical_row = 0,
         .values = &control,
+    } }, .verification);
+}
+
+// Runtime: about half a minute. This is the exact protocol-level regression
+// for the former zero-length access edge, not just a tracker-unit test.
+test "strict access clocks: a same-clock source self-loop loses the shifted gap lookup" {
+    var guest = try harness.Guest.init(std.testing.allocator, SPEC);
+    defer guest.deinit();
+    const honest = try honestBranchRow(&guest);
+
+    const instruction_clock = honest.m31At(ROW_CLOCK).toU32();
+    const second_access_clock = access_clock.encode(instruction_clock, .second);
+    try std.testing.expect(honest.m31At(RS2_CLOCK_PREV).toU32() < second_access_clock);
+
+    const values = [_]harness.ColumnValue{.{
+        .column = @intCast(RS2_CLOCK_PREV),
+        .value = second_access_clock,
+    }};
+    var self_loop = honest;
+    self_loop.apply(&values);
+
+    // The consumed and emitted register tuple is now identical. All direct
+    // constraints still vanish, but current - previous - 1 is p - 1, outside
+    // range_check_20. Request 6 is the second source's gap in branch_eq.
+    const rejection = try harness.expectOnlyLookup(
+        .branch_eq,
+        self_loop.slice(),
+        .range_check_20,
+    );
+    try std.testing.expectEqual(@as(usize, 6), rejection.index);
+    try std.testing.expectEqual(
+        m31.Modulus - 1,
+        (try rejection.tuple()[0].tryIntoM31()).toU32(),
+    );
+
+    try guest.expectRejectedAt(.{ .main_row = .{
+        .target = BRANCH_EQ_TARGET,
+        .logical_row = 0,
+        .values = &values,
     } }, .verification);
 }
 

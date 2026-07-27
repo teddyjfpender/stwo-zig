@@ -205,8 +205,8 @@ pub fn Semantics(comptime S: type) type {
             return .{
                 .program = ctl.programRequest(enabler, programLookup(row)),
                 .state = ctl.stateLookups(row.pc, row.clock, row.branch_target, enabler),
-                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, enabler),
-                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, enabler),
+                .rs1 = ctl.registerAccessLookups(row.rs1, row.clock, .first, enabler),
+                .rs2 = ctl.registerAccessLookups(row.rs2, row.clock, .second, enabler),
                 .ranges = .{
                     .shifted_msls = ctl.rangePairRequest(
                         enabler,

@@ -14,8 +14,8 @@ This checker proves two deliberately narrow statements.
   its denominator is nonzero.
 
 The checker binds those transcriptions and derivations to exact SHA-256 digests
-of the production Zig sources.  Any source drift fails closed until the
-derivation is reviewed and the binding is deliberately refreshed.
+of the reviewed production Zig sources.  Any bound-source drift fails closed
+until the derivation is reviewed and the binding is deliberately refreshed.
 
 This is not a proof verifier.  It does not read a proof, open a commitment,
 check FRI/PCS/OODS, validate Fiat-Shamir sampling, establish global LogUp
@@ -32,7 +32,7 @@ import struct
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Sequence
 
 try:
     from air_satisfaction_lib import infrastructure, poseidon2
@@ -44,10 +44,19 @@ except ModuleNotFoundError:  # Imported as scripts.riscv_poseidon_table_uniquene
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# These bindings cover the production AIR adapters, the constraint schedules,
-# the fixed-table generator and placement, the singleton LogUp identity, and
-# the independent Python transcriptions used by the constructive proof.
+# These bindings cover field and relation-challenge algebra, the production AIR
+# adapters and constraint schedules, the fixed-table generator and placement,
+# the singleton LogUp identity, and the independent Python transcriptions used
+# by the constructive proof.
 SOURCE_BINDINGS: dict[str, str] = {
+    "src/core/fields/m31.zig":
+        "4fc330e004420a64dab38d35a04db0b3fc3ab0c4e53f8088ad5ff1fe13b42789",
+    "src/core/fields/cm31.zig":
+        "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
+    "src/core/fields/qm31.zig":
+        "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
+    "src/core/utils.zig":
+        "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18",
     "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig":
         "2187d5204b5e8b077a0e5d780b5311db99059099d2f3e61c8abec068d2c6723b",
     "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig":
@@ -62,8 +71,12 @@ SOURCE_BINDINGS: dict[str, str] = {
         "27678848907a62f3c3710ba44d0d6e2f098873d1f1a2a8b442f5f1e289eac7c0",
     "src/frontends/riscv/air/lookups/tables/counter.zig":
         "c371e5a5146fa1cc6efeca71210b51f2b9635b2af48850352e256f28f79c6d19",
+    "src/frontends/riscv/air/lookups/entry.zig":
+        "499e9cf1660243e85c0e1163ac078af29ddc75d4791f9719d4b930b2c10aaaf7",
     "src/frontends/riscv/air/logup.zig":
         "b1d18803eb05c44cc6546e8122c2c4f6e634796fef7df39cfed895c42e61c7f8",
+    "src/frontends/riscv/air/relation_challenges.zig":
+        "72929411eef7fd4bf13811db52275fe31dc357187de69344cd46053e839327df",
     "src/frontends/riscv/prover/preprocessed.zig":
         "ac8c57ce3b164b4254d4f5d8570a929dcbf4f618993e12af85b16189330662dd",
     "src/frontends/riscv/prover/opcode_trace.zig":
@@ -73,7 +86,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "scripts/air_satisfaction_lib/poseidon2.py":
         "13e6e97035652e250859e2dfa77c20ff373dda47d1cc44b093e8725f64f0ede3",
     "scripts/air_satisfaction_lib/infrastructure.py":
-        "b85e9e24a8e8f7796ef476fd7788ba3addac43e0d924776578ab6ef7491f44a8",
+        "dc2df08d61cc4d5e9b2e9c995d55df20e8489edd0b6b5b45246455033a0791f7",
     "scripts/air_satisfaction_lib/field.py":
         "84402a223ddb4622fdeab073186ba9e3614dd5d9887d8b4c8e339e866571daf9",
 }
@@ -150,8 +163,8 @@ Not covered
 No proof wire, PCS commitment, Merkle opening, FRI, OODS/composition check,
 Fiat-Shamir sampling argument, global LogUp cancellation, bus closure, source
 counter correctness, or cross-row transition is proved here.  Exact source
-digests make the local derivation fail closed on production drift; they do not
-turn it into independent proof-wire verification.
+digests make the local derivation fail closed on reviewed-source drift; they do
+not turn it into independent proof-wire verification.
 """
 
 
@@ -232,6 +245,29 @@ def _require_anchor(compact: str, anchor: str, source: str) -> None:
 
 
 def _production_semantic_anchors(root: Path) -> None:
+    m31_source = "src/core/fields/m31.zig"
+    m31 = _compact_zig((root / m31_source).read_text(encoding="utf-8"))
+    _require_anchor(m31, "pubconstModulus:u32=0x7fffffff;", m31_source)
+
+    qm31_source = "src/core/fields/qm31.zig"
+    qm31 = _compact_zig((root / qm31_source).read_text(encoding="utf-8"))
+    for anchor in (
+        "pubconstR:CM31=CM31.fromU32Unchecked(2,1);",
+        "return.{self.c0.a,self.c0.b,self.c1.a,self.c1.b};",
+    ):
+        _require_anchor(qm31, anchor, qm31_source)
+
+    utils_source = "src/core/utils.zig"
+    utils = _compact_zig((root / utils_source).read_text(encoding="utf-8"))
+    _require_anchor(
+        utils,
+        "pubfncosetIndexToCircleDomainIndex(coset_index:usize,"
+        "log_domain_size:u32)usize{if((coset_index&1)==0){"
+        "returncoset_index/2;}return((@as(usize,2)<<"
+        "@intCast(log_domain_size))-coset_index)/2;}",
+        utils_source,
+    )
+
     poseidon_source = "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig"
     poseidon = _compact_zig((root / poseidon_source).read_text(encoding="utf-8"))
     for anchor in (
@@ -277,6 +313,35 @@ def _production_semantic_anchors(root: Path) -> None:
         "tryrelation_entry.denominator(relations)),);",
     ):
         _require_anchor(table_interaction, anchor, table_interaction_source)
+
+    entry_source = "src/frontends/riscv/air/lookups/entry.zig"
+    entry = _compact_zig((root / entry_source).read_text(encoding="utf-8"))
+    for anchor in (
+        ".bitwise=>relations.bitwise.combineSecure(self.values[0..4].*),",
+        ".range_check_20=>relations.range_check_20.combineSecure("
+        "self.values[0..1].*),",
+        ".range_check_8_11=>relations.range_check_8_11.combineSecure("
+        "self.values[0..2].*),",
+        ".range_check_8_8_4=>relations.range_check_8_8_4.combineSecure("
+        "self.values[0..3].*),",
+        ".range_check_8_8=>relations.range_check_8_8.combineSecure("
+        "self.values[0..2].*),",
+        ".range_check_m31=>relations.range_check_m31.combineSecure("
+        "self.values[0..2].*),",
+    ):
+        _require_anchor(entry, anchor, entry_source)
+
+    relations_source = "src/frontends/riscv/air/relation_challenges.zig"
+    relations = _compact_zig((root / relations_source).read_text(encoding="utf-8"))
+    for anchor in (
+        "returninit(QM31.fromU32Unchecked(1,2,3,4),"
+        "QM31.fromU32Unchecked(4,3,2,1),);",
+        "for(values,self.alpha_powers)|value,power|{"
+        "result=result.add(power.mul(value));}returnresult.sub(self.z);",
+        ".bitwise=pair(4,values,6),",
+        ".range_check_m31=pair(2,values,11),",
+    ):
+        _require_anchor(relations, anchor, relations_source)
 
     table_component_source = "src/frontends/riscv/air/lookups/tables/component.zig"
     table_component = _compact_zig(

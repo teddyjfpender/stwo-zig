@@ -610,6 +610,22 @@ class ProductionDivisionCertificateTest(unittest.TestCase):
             solve.DIVISION_CONTROL_DIGEST,
         )
 
+    def test_constraint_geometry_and_degree_do_not_rise(self) -> None:
+        node_degrees = analysis.degrees(self.system)
+        self.assertEqual(len(self.system.columns), 68)
+        self.assertEqual(len(self.system.constraints), 80)
+        self.assertEqual(len(self.system.lookups), 25)
+        self.assertEqual(
+            max(node_degrees[node] for node in self.system.constraints),
+            3,
+        )
+        [quotient_sign] = [
+            lookup
+            for lookup in self.system.lookups
+            if lookup.domain == "range_check_m31"
+        ]
+        self.assertEqual(node_degrees[quotient_sign.numerator], 2)
+
     def test_control_cancels_unranged_dividend_limbs_instead_of_bounding_them(
         self,
     ) -> None:

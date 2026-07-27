@@ -19,21 +19,19 @@
 //! honest witness the AIR rejects, i.e. a completeness bug in a constraint
 //! or lookup at exactly the operand class the case names. Both name the
 //! case, so "what broke" arrives as `divu/div_by_zero`, not a row number.
-//! `KNOWN_COMPLETENESS_REJECTIONS` records the finding this sweep made on
-//! its first run, with its cause; the sweep asserts those cases still
-//! fail, so an AIR fix must revisit the note rather than leave it stale.
 //!
 //! What this file does NOT show: uniqueness (a forged row could still be
-//! admissible; the mutation suites and the SMT board own that), and only
-//! the known-rejection demonstration below proves anything end to end --
-//! the corpus rows enter the witness audits through `rigidity_corpus`,
-//! which executes these same guests.
+//! admissible; the mutation suites and the SMT board own that). The corpus
+//! rows enter the witness audits through `rigidity_corpus`, which executes
+//! these same guests. The focused DIVU regression below additionally proves
+//! and verifies the unsigned high-bit quotient case that exposed a lookup
+//! completeness bug.
 //!
 //! Runtime: about a quarter second for the 292-case sweep (guest
 //! executions of at most ~25 retirements plus one family materialization
 //! per case; measured on an M-series CPU, printed per run, bounded by
 //! corpus size) plus about two seconds for the end-to-end demonstration,
-//! which stops inside one proof attempt.
+//! which produces and verifies one proof.
 
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
@@ -55,11 +53,6 @@ test {
     // The corpus's structural self-checks travel with its consumer.
     _ = operand_classes;
 }
-
-/// The completeness findings this sweep made on its first run live as
-/// corpus metadata (`operand_classes.KNOWN_COMPLETENESS_REJECTIONS`, with
-/// the full cause); this alias keeps the assertions below readable.
-const isKnownRejection = operand_classes.isKnownCompletenessRejection;
 
 /// Whether the encoding class of `op` carries a live rs1/rs2 operand, i.e.
 /// whether the corpus recorded a source value worth comparing. Shift
@@ -206,22 +199,7 @@ fn runCase(allocator: std.mem.Allocator, case: *const Case) !void {
     try expectRetirementPath(case, &body_rows);
     try expectCheckedFields(case, &body_rows);
 
-    // A known completeness rejection must stay rejected: silently becoming
-    // admissible would leave the note above describing a fixed bug as live.
     const verdict = try underTestRowVerdict(allocator, case, &run);
-    if (isKnownRejection(case.name)) {
-        switch (verdict) {
-            .accepted => {
-                std.debug.print(
-                    "{s}: known completeness rejection is now admissible; " ++
-                        "remove it from KNOWN_COMPLETENESS_REJECTIONS\n",
-                    .{case.name},
-                );
-                return error.KnownRejectionNowAdmissible;
-            },
-            else => return,
-        }
-    }
     switch (verdict) {
         .accepted => {},
         .direct_constraints => {
@@ -275,17 +253,14 @@ test "operand class sweep: runner and AIR agree with Sail on every enumerated cl
     try std.testing.expectEqual(@as(usize, 0), failures);
 }
 
-// Runtime: about two seconds -- one refused proof attempt of a
-// nine-instruction guest; the prover stops while ingesting lookup sources.
-test "operand class sweep: the DIVU big-quotient completeness rejection is real end to end" {
-    // The row-local verdict above says the honest row asks range_check_m31
-    // for a tuple that does not exist. This shows production agrees, one
-    // stage earlier than a forged row would fail: the prover's lookup
-    // source ingest cannot index the request `{0, q[3]}` with q[3] = 0x8a,
-    // so the honest guest cannot be PROVEN at all -- `ValueOutOfRange`
-    // from the range_check_m31 pair schema, no proof object ever exists.
-    // When the AIR is fixed this test must become a proveAndVerify
-    // expectation and the KNOWN_COMPLETENESS_REJECTIONS entries must go.
+// Runtime: about two seconds -- one proof and verification of a
+// nine-instruction guest.
+test "operand class sweep: DIVU accepts a high-bit quotient end to end" {
+    // This exact Sail-derived case exposed the old completeness bug:
+    // quotient_sign_range was active on DIVU, so q[3] = 0x8a was rejected
+    // by range_check_m31 even though every quotient limb was already a byte.
+    // Keep it on the production proof path so the signed-only gate cannot
+    // accidentally widen back to unsigned rows.
     const case = comptime operand_classes.named("divu/div_divisor_one");
     const allocator = std.testing.allocator;
     const spec = guest_elf.Spec{ .body = case.body };
@@ -307,7 +282,7 @@ test "operand class sweep: the DIVU big-quotient completeness rejection is real 
             .n_queries = 3,
         },
     };
-    try std.testing.expectError(error.ValueOutOfRange, riscv_cpu.proveRiscVWithPublicData(
+    const proof = try riscv_cpu.proveRiscVWithPublicData(
         allocator,
         config,
         &run.execution_trace,
@@ -315,5 +290,13 @@ test "operand class sweep: the DIVU big-quotient completeness rejection is real 
         &run.rw_memory,
         null,
         public.data,
-    ));
+    );
+    defer proof.deinitAfterProofMoved(allocator);
+    try riscv_cpu.verifyRiscV(
+        allocator,
+        config,
+        proof.statement,
+        proof.proof,
+        proof.interaction_claim,
+    );
 }
