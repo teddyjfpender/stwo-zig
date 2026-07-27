@@ -78,11 +78,12 @@ The sweep's previously global DIV byte-ness and JALR target-bit obligations are
 now row-local. No known residual obligation from that sweep rests solely on bus
 closure or the consuming ROM row.
 
-The review that found these is the reason the first item under "Continuing
-adversarial work" is now the highest-priority soundness task rather than one of
-several parallel ones: every one of the six was invisible to the Sail
-differential (which validates the runner, not the AIR) and to the CP-11 oracle
-(which compares against the layout that contains the same omissions).
+The review that found these is the reason expanding committed-witness mutation
+coverage (under "Continuing adversarial work") became a top soundness task
+rather than one of several parallel ones: every one of the six was invisible to
+the Sail differential (which validates the runner, not the AIR) and to the
+CP-11 oracle (which compares against the layout that contains the same
+omissions).
 
 ## Committed-trace coverage of the six fixes — 2026-07-26
 
@@ -173,8 +174,110 @@ every one of the six families. What the honest halves add is a *guest the forged
 half is derived from*, which is what keeps the rejection from being vacuous —
 not first-ever coverage of the family.
 
+## Per-row witness uniqueness — 2026-07-27
+
+The property, and exactly it: for one active row of one opcode family, any two
+witness assignments that satisfy the family's direct constraints and its
+preprocessed-table memberships and that agree on the architectural inputs must
+agree on the architectural outputs. Inputs are the instruction identity (pc,
+opcode selectors, operand indexes, immediates) and the consumed accesses'
+`previous` limbs and clocks; outputs are the written access's `next` limbs,
+`result_*`, a branch's decision and target, and the state-chain `next_pc`. Bus
+relations (`program_access`, `memory_access`, `registers_state`) are outside
+the modelled system, identically on both sides of every verdict below.
+
+The instrument chain, each link executed rather than assumed:
+
+* `src/tests/riscv/uniqueness_ir_test.zig` emits each family's constraints and
+  lookup requests by instantiating the production `Semantics(S)`/`Entries(S)`
+  with a tracing scalar, and a fixed-seed differential (17 families x 32
+  trials, seed 0x51501ce01dedbeef) checks the emitted DAG against
+  `Semantics(QM31)` constraint by constraint.
+* `scripts/air_uniqueness_board.py` decides the two-copy query per family,
+  sharded by opcode, with an honest-witness probe so an `unsat` cannot be
+  vacuous silently.
+* `src/tests/riscv/uniqueness_counterexample_test.zig` replays every exported
+  `sat` pair against `row_admissibility.verdict` — the AIR's own direct
+  constraints plus real preprocessed-table membership — so a solver-model
+  artifact cannot be reported as an AIR bug. All three pairs exported by the
+  first board were re-accepted by the oracle, which is what separated the two
+  findings below.
+
+Board at a 120 s/shard budget, this run: 13 families unique and non-vacuous
+(`auipc`, `base_alu_imm`, `base_alu_reg`, `branch_eq`, `branch_lt`, `fence`,
+`jal`, `jalr`, `load_store`, `lt_imm`, `lt_reg`, `lui`, `mul`), 2 `sat`
+(`shifts_imm`, `shifts_reg`, deciding shard SRA in both, SLL/SRL shards still
+open), 2 `timeout` (`div`, all four shards and its honest probe open; `mulh`,
+all three shards open). Verdicts at a budget are budget- and run-dependent:
+`base_alu_imm`, `base_alu_reg` and `mul` were `unknown` on an earlier run of
+the same budget and closed on this one; a `timeout` is not a property.
+
+**The seventh demonstrated under-constraint — OPEN, not fixed.** The shift
+carry window admits carries the recurrence never produces.
+`shift_common.carryRangePairs` sends `(bit_multiplier - 1) - carry_i` to an
+8-bit box, so a live row admits `carry_i` anywhere in
+`[bit_multiplier - 256, bit_multiplier - 1]`, while honest carries live in
+`[0, bit_multiplier - 1]`; the window below zero is reachable because 256-wide
+is a fixed shape and `bit_multiplier <= 128`. The carries feed the result
+recurrence and nothing else — no bus tuple carries them — so no global
+argument closes what the row admits, and the freedom moves an architectural
+register write: for `SRA rd, x0, 31`, `result[0] * 128 = rs1[3] - carries[3]`
+with `carries[3] = -128` buys `result[0] = 1` from a zero operand.
+`uniqueness_counterexample_test.zig` holds the executed two-row evidence with
+every input byte-clean and `rd = x1`: both rows accepted by
+`row_admissibility`, one writes 0 and the other writes 1, plus the control one
+step below the window floor rejected by the same `range_check_8_8` request that
+must reject the forged row once fixed. The shape is unchanged since the pinned
+Stark-V port commit, so this is the same lineage as the closed six and was
+equally invisible to the Sail differential and the demoted oracle. It is not a
+missing source-byte range check: the demonstration needs no non-byte limb
+anywhere. The demanded fix is row-local — bind every `bit_shift_carry` to
+`[0, bit_multiplier)`, e.g. by pairing `(carry_i, bit_multiplier - 1 - carry_i)`
+in the existing `range_check_8_8` domain (+2 entries per shift family, geometry
+pins and the divergence log updated, and the demonstration test flipped to
+expect the rejection) — and is deliberately a separately reviewed change, not
+part of this sweep.
+
+**What the third `sat` was instead: a mis-posed query, fixed.** `load_store`'s
+counterexample pair differed in `r2_idx` — the destination/data register index,
+a component the row hands verbatim to its `program_access` tuple. That is
+instruction identity: the program commitment holds one decoded tuple per pc and
+independent verification recomputes its root from the supplied ELF, so two
+traces presenting the same pc present the same `r2_idx`, exactly as they
+present the same opcode flags and immediate, which the query already shared.
+No family binds its instruction fields row-locally and none could; there was no
+missing request to add. The emitter now promotes committed columns appearing
+verbatim in the `program_access` tuple to inputs (`load_store.r2_idx` and
+`fence.{rd,rs1}` moved; nothing else), with the same recorded assumption the pc
+domain already carries — the program bus closes. After the promotion
+`load_store` closes unique across all eight opcode shards, non-vacuously, and
+no family moved toward `sat`.
+
+What an `unsat` row on this board does not establish:
+
+* nothing cross-row and nothing bus-mediated — read-set consistency, program
+  binding and clock monotonicity are LogUp-closure properties the query
+  neither models nor weakens;
+* no refinement claim: a uniquely determined output can still be the wrong
+  output. Agreement with the Sail transition is obligation 1 at the top of
+  this file and is decided by the differential and the architectural corpus,
+  never by this board;
+* uniqueness is over inputs ranging across all of M31 except where a row
+  obligation itself bounds them; the pc domain declaration exists but is off
+  by default, so a verdict does not depend on it;
+* the input promotion above imports program-bus closure as an assumption; a
+  forged program commitment is out of scope here as it is everywhere row-local.
+
 ## Continuing adversarial work
 
+- [ ] Close the shift carry window (the OPEN seventh under-constraint above):
+      bind every `bit_shift_carry` limb to `[0, bit_multiplier)` in
+      `shift_common`, update the pinned lookup geometry and the divergence log,
+      and flip the two-row demonstration in
+      `uniqueness_counterexample_test.zig` to assert the forged copy is
+      rejected by the carry `range_check_8_8` request. An AIR constraint change
+      is a separately reviewed commit; the demonstration, the failing shape,
+      and the fix recipe are all recorded so the review starts from evidence.
 - [ ] Expand committed-witness mutation coverage to every opcode family. Nine
       of the seventeen families in `air/component_order.zig` now have a
       committed-trace forgery test: `mulh` (`mulh_soundness_test.zig`) and `lui`
