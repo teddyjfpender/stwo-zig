@@ -74,6 +74,12 @@ witness \(W\) with all of the following properties:
 6. **Public closure.** The canonical 28 component claims and public
    compensation are present, transcript-bound, and close exactly as in CR-5.
 
+The implementation and acceptance plan for premise 5 is
+[`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+It requires generated production AIR and pinned Sail definitions, Lean
+kernel-checked per-opcode theorems, non-vacuity, exact 46-opcode coverage, and a
+publication-level binding between the formal IR and the shipped evaluator.
+
 Then the active rows of \(W\) form one contiguous execution from the public
 initial state to the public final state; every fetched decoded instruction is
 bound to the public program root; every register and RW-memory read sees the

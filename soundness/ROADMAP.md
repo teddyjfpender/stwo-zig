@@ -560,7 +560,11 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       obligations are explicit; the finite all-family committed corpus is
       independently re-decided; and every family has runner/AIR/Sail evidence.
       The item remains open because universal opcode-row refinement and the
-      accepted-proof → exact-AIR reduction are not machine-proved.
+      accepted-proof → exact-AIR reduction are not machine-proved. The complete
+      engineering plan, theorem boundary, trusted computing base, LUI/ADDI
+      pilot, LH/DIV stress gates, 46-opcode rollout, and completion criteria are
+      specified in
+      [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md).
 - [ ] Obtain independent AIR and protocol audits.
 - [ ] Maintain a public bug-bounty scope for witness construction, statement
       binding, serialization, and verification.

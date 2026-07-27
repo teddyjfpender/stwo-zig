@@ -10,14 +10,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCUMENT = ROOT / "soundness" / "SAIL_AIR_COMPOSITION.md"
+REFINEMENT_DOCUMENT = ROOT / "soundness" / "UNIVERSAL_AIR_SAIL_REFINEMENT.md"
 FORMAL_EVIDENCE = ROOT / "conformance" / "riscv" / "formal-corpus-evidence.json"
 CLAIMS = ROOT / "src" / "frontends" / "riscv" / "air" / "transcript" / "claims.zig"
+OPCODE_MANIFEST = ROOT / "src" / "frontends" / "riscv" / "opcode_manifest.zig"
 
 
 class SailAirCompositionContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.document = DOCUMENT.read_text(encoding="utf-8")
+        cls.refinement_document = REFINEMENT_DOCUMENT.read_text(encoding="utf-8")
 
     def test_all_five_cross_row_lemmas_are_explicit_and_unique(self) -> None:
         headings = re.findall(r"^### (CR-[1-5]) — ", self.document, re.MULTILINE)
@@ -114,6 +117,78 @@ class SailAirCompositionContractTest(unittest.TestCase):
             "python3 -m scripts.riscv_poseidon_table_uniqueness check",
             self.document,
         )
+
+    def test_universal_refinement_plan_preserves_scope_and_binding_gates(self) -> None:
+        required = (
+            "**Status:** engineering design; implementation not started.",
+            "The completed result closes SA-1 premise 5.",
+            "does **not** by itself prove",
+            "**Publication binding:**",
+            "must not claim a universal theorem about the shipped AIR until level 2 is",
+            "The final CI result is a Lean kernel check.",
+            "Hand-transcribing 46 instruction functions",
+            "commands are planned interfaces, not commands available",
+            "Every opcode needs a machine-checked existence theorem",
+            "independent proof-system validation",
+        )
+        for marker in required:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.refinement_document)
+
+        self.assertIn(
+            "[`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md)",
+            self.document,
+        )
+
+    def test_universal_refinement_plan_covers_exactly_46_opcodes(self) -> None:
+        table_rows = re.findall(
+            r"^\| `[^`]+` \| ([^|]+) \| (\d+) \|",
+            self.refinement_document,
+            re.MULTILINE,
+        )
+        family_counts = [int(count) for _, count in table_rows]
+        self.assertEqual(17, len(family_counts))
+        self.assertEqual(46, sum(family_counts))
+        self.assertIn("| **Total** |  | **46** |", self.refinement_document)
+
+        documented_opcodes = {
+            opcode.strip()
+            for opcode_cell, _ in table_rows
+            for opcode in opcode_cell.split(",")
+        }
+        manifest = OPCODE_MANIFEST.read_text(encoding="utf-8")
+        enum_body = manifest.split("pub const Opcode = enum(u8) {", 1)[1].split(
+            "pub inline fn protocolId",
+            1,
+        )[0]
+        manifest_opcodes = {
+            (quoted or plain).upper()
+            for quoted, plain in re.findall(
+                r'^\s*(?:@"([^"]+)"|([a-z][a-z0-9_]*))\s*=\s*\d+,',
+                enum_body,
+                re.MULTILINE,
+            )
+        }
+        self.assertEqual(manifest_opcodes, documented_opcodes)
+
+        work_packages = re.findall(
+            r"^### (UR-\d{2}) — ",
+            self.refinement_document,
+            re.MULTILINE,
+        )
+        self.assertEqual([f"UR-{index:02d}" for index in range(8)], work_packages)
+
+    def test_universal_refinement_document_links_resolve(self) -> None:
+        targets = re.findall(r"\]\(([^)#]+)(?:#[^)]+)?\)", self.refinement_document)
+        self.assertGreaterEqual(len(targets), 2)
+        missing = sorted(
+            {
+                target
+                for target in targets
+                if not (REFINEMENT_DOCUMENT.parent / target).resolve().exists()
+            }
+        )
+        self.assertEqual([], missing)
 
     def test_every_linked_in_repo_evidence_path_exists(self) -> None:
         targets = re.findall(r"\]\(\.\./([^)#]+)", self.document)
