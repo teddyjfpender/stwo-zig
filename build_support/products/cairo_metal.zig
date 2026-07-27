@@ -110,6 +110,10 @@ pub fn addProduct(context: Context) void {
             descriptor,
             context.target.result.os.tag,
         );
+        registerUnavailableReleaseGates(
+            context.b,
+            descriptor.unsupported_target_reason.?,
+        );
         return;
     }
     const configured_bundle = context.b.option(
@@ -243,6 +247,14 @@ fn registerMissingAotBundle(b: *std.Build) void {
     ));
     b.step(descriptor.build_step, reason).dependOn(&failure.step);
     b.step(descriptor.test_step.?, reason).dependOn(&failure.step);
+    registerUnavailableReleaseGates(b, reason);
+}
+
+fn registerUnavailableReleaseGates(b: *std.Build, reason: []const u8) void {
+    const failure = b.addFail(b.fmt(
+        "{s} release gates are unavailable: {s}",
+        .{ descriptor.product.name, reason },
+    ));
     for (descriptor.release_gates) |gate| {
         if (std.mem.eql(u8, gate, descriptor.test_step.?)) continue;
         b.step(gate, reason).dependOn(&failure.step);
