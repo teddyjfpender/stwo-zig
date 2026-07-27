@@ -50,34 +50,6 @@ pub fn interactionColumnCount(family: trace.OpcodeFamily) usize {
     return batchCount(family) * 4;
 }
 
-pub fn fromMain(
-    family: trace.OpcodeFamily,
-    columns: []const QM31,
-) !List {
-    const result = switch (family) {
-        .base_alu_reg => try baseAluReg(columns),
-        .base_alu_imm => try baseAluImm(columns),
-        .shifts_reg => try shiftsReg(columns),
-        .shifts_imm => try shiftsImm(columns),
-        .lt_reg => try ltReg(columns),
-        .lt_imm => try ltImm(columns),
-        .branch_eq => try branchEq(columns),
-        .branch_lt => try branchLt(columns),
-        .lui => try lui(columns),
-        .auipc => try auipc(columns),
-        .jalr => try jalr(columns),
-        .jal => try jal(columns),
-        .load_store => try loadStore(columns),
-        .mul => try mul(columns),
-        .mulh => try mulh(columns),
-        .div => try div(columns),
-        .fence => try fence(columns),
-    };
-    std.debug.assert(result.len == entryCount(family));
-    std.debug.assert(result.batch_size == batchSize(family));
-    return result;
-}
-
 /// Reconstruct the exact committed family row from a runner row. This is used
 /// only by witness generation; AIR evaluation calls `fromMain` directly.
 pub fn fromTraceRow(row: trace.TraceRow, family: trace.OpcodeFamily) !List {
@@ -91,342 +63,381 @@ pub fn fromTraceRow(row: trace.TraceRow, family: trace.OpcodeFamily) !List {
     return fromMain(family, secure[0..count]);
 }
 
-fn parse(comptime module: type, columns: []const QM31) !module.Row {
-    if (@hasDecl(module.Row, "fromOracleColumns")) return module.Row.fromOracleColumns(columns);
-    return module.Row.fromMainColumns(columns);
+pub fn Entries(comptime S: type) type {
+    return struct {
+        const e = entry.Builder(S);
+        const sem = semantics.Families(S);
+
+        pub fn fromMain(
+            family: trace.OpcodeFamily,
+            columns: []const S,
+        ) !e.List {
+            const result = switch (family) {
+                .base_alu_reg => try baseAluReg(columns),
+                .base_alu_imm => try baseAluImm(columns),
+                .shifts_reg => try shiftsReg(columns),
+                .shifts_imm => try shiftsImm(columns),
+                .lt_reg => try ltReg(columns),
+                .lt_imm => try ltImm(columns),
+                .branch_eq => try branchEq(columns),
+                .branch_lt => try branchLt(columns),
+                .lui => try lui(columns),
+                .auipc => try auipc(columns),
+                .jalr => try jalr(columns),
+                .jal => try jal(columns),
+                .load_store => try loadStore(columns),
+                .mul => try mul(columns),
+                .mulh => try mulh(columns),
+                .div => try div(columns),
+                .fence => try fence(columns),
+            };
+            std.debug.assert(result.len == entryCount(family));
+            std.debug.assert(result.batch_size == batchSize(family));
+            return result;
+        }
+
+        fn parse(comptime module: type, columns: []const S) !module.Row {
+            if (@hasDecl(module.Row, "fromOracleColumns")) return module.Row.fromOracleColumns(columns);
+            return module.Row.fromMainColumns(columns);
+        }
+
+        fn addProgram(list: *e.List, request: anytype) void {
+            e.program(list, request.numerator, request.tuple);
+        }
+
+        fn addState(list: *e.List, requests: anytype) void {
+            e.stateRequests(list, requests);
+        }
+
+        fn baseAluReg(columns: []const S) !e.List {
+            const module = sem.base_alu_reg;
+            const row = try parse(module, columns);
+            const active = row.active();
+            const accesses = module.accessLookups(row);
+            var list = e.List{};
+            e.program(&list, active.neg(), module.programLookup(row));
+            e.stateChain(&list, sem.common.registersStateChain(row.pc, row.clk), active);
+            e.accessChain(&list, accesses.rs1, active);
+            e.accessChain(&list, accesses.rs2, active);
+            const bitwise_active = module.bitwiseLookupEnabler(row);
+            for (module.bitwiseLookups(row)) |tuple| e.bitwise(&list, bitwise_active.neg(), tuple);
+            e.range88(&list, active.neg(), .{ row.result[0], row.result[1] });
+            e.range88(&list, active.neg(), .{ row.result[2], row.result[3] });
+            e.accessChain(&list, accesses.rd, active);
+            return list;
+        }
+
+        fn baseAluImm(columns: []const S) !e.List {
+            const module = sem.base_alu_imm;
+            const row = try parse(module, columns);
+            const active = row.active();
+            const accesses = module.accessLookups(row);
+            var list = e.List{};
+            e.program(&list, active.neg(), module.programLookup(row));
+            e.range811(&list, active.neg(), module.immediateRangeLookup(row));
+            e.stateChain(&list, sem.common.registersStateChain(row.pc, row.clk), active);
+            e.accessChain(&list, accesses.rs1, active);
+            const bitwise_active = module.bitwiseLookupEnabler(row);
+            for (module.bitwiseLookups(row)) |tuple| e.bitwise(&list, bitwise_active.neg(), tuple);
+            e.range88(&list, active.neg(), .{ row.result[0], row.result[1] });
+            e.range88(&list, active.neg(), .{ row.result[2], row.result[3] });
+            e.accessChain(&list, accesses.rd, active);
+            return list;
+        }
+
+        fn shiftsReg(columns: []const S) !e.List {
+            const module = sem.shifts_reg;
+            const row = try parse(module, columns);
+            const active = row.semantic.active();
+            const accesses = module.accessLookups(row);
+            var list = e.List{};
+            e.program(&list, active.neg(), module.programLookup(row));
+            e.stateChain(&list, module.stateLookup(row), active);
+            e.accessChain(&list, accesses.rs1, active);
+            e.accessChain(&list, accesses.rs2, active);
+            e.range20(&list, active.neg(), module.shiftAmountRangeLookup(row));
+            for (module.carryRangePairs(row.semantic)) |values| e.range88(&list, active.neg(), values);
+            for (module.rdRangePairs(row.semantic)) |values| e.range88(&list, active.neg(), values);
+            e.accessChain(&list, accesses.rd, active);
+            e.rangeM31(&list, row.semantic.is_sra.neg(), module.signRangeLookup(row.semantic));
+            return list;
+        }
+
+        fn shiftsImm(columns: []const S) !e.List {
+            const module = sem.shifts_imm;
+            const row = try parse(module, columns);
+            const active = row.semantic.active();
+            const accesses = module.accessLookups(row);
+            var list = e.List{};
+            e.program(&list, active.neg(), module.programLookup(row));
+            e.stateChain(&list, module.stateLookup(row), active);
+            e.accessChain(&list, accesses.rs1, active);
+            for (module.carryRangePairs(row.semantic)) |values| e.range88(&list, active.neg(), values);
+            for (module.rdRangePairs(row.semantic)) |values| e.range88(&list, active.neg(), values);
+            e.accessChain(&list, accesses.rd, active);
+            e.rangeM31(&list, row.semantic.is_sra.neg(), module.signRangeLookup(row.semantic));
+            return list;
+        }
+
+        fn ltReg(columns: []const S) !e.List {
+            const module = sem.lt_reg;
+            const row = try parse(module, columns);
+            const active = row.active();
+            const accesses = module.accessLookups(row);
+            const positive = module.positiveDiffLookup(row);
+            var list = e.List{};
+            e.program(&list, active.neg(), module.programLookup(row));
+            e.stateChain(&list, module.stateLookup(row), active);
+            e.accessChain(&list, accesses.rs1, active);
+            e.accessChain(&list, accesses.rs2, active);
+            e.range88(&list, active.neg(), module.mslRangeLookup(row));
+            e.range20(&list, positive.numerator.neg(), positive.value);
+            e.accessChain(&list, accesses.rd, active);
+            return list;
+        }
+
+        fn ltImm(columns: []const S) !e.List {
+            const module = sem.lt_imm;
+            const row = try parse(module, columns);
+            const active = row.active();
+            const accesses = module.accessLookups(row);
+            const positive = module.positiveDiffLookup(row);
+            var list = e.List{};
+            e.program(&list, active.neg(), module.programLookup(row));
+            e.range884(&list, active.neg(), module.immediateRangeLookup(row));
+            e.stateChain(&list, module.stateLookup(row), active);
+            e.accessChain(&list, accesses.rs1, active);
+            e.range20(&list, positive.numerator.neg(), positive.value);
+            e.accessChain(&list, accesses.rd, active);
+            return list;
+        }
+
+        fn branchEq(columns: []const S) !e.List {
+            const module = sem.branch_eq;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{};
+            addProgram(&list, requests.program);
+            e.access(&list, requests.rs1);
+            e.access(&list, requests.rs2);
+            addState(&list, requests.state);
+            return list;
+        }
+
+        fn branchLt(columns: []const S) !e.List {
+            const module = sem.branch_lt;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{};
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            e.access(&list, requests.rs1);
+            e.access(&list, requests.rs2);
+            e.range88(&list, requests.ranges.shifted_msls.numerator, requests.ranges.shifted_msls.tuple.values());
+            e.range20(&list, requests.ranges.positive_difference.numerator, requests.ranges.positive_difference.tuple.value);
+            return list;
+        }
+
+        fn lui(columns: []const S) !e.List {
+            const module = sem.lui;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{};
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            e.range884(&list, requests.immediate_range.numerator, requests.immediate_range.tuple.values());
+            e.memory(&list, requests.rd.consume.numerator, requests.rd.consume.tuple);
+            e.memory(&list, requests.rd.emit.numerator, requests.rd.emit.tuple);
+            e.range20(&list, requests.rd.clock_gap.numerator, requests.rd.clock_gap.tuple.value);
+            return list;
+        }
+
+        fn auipc(columns: []const S) !e.List {
+            const module = sem.auipc;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{};
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            for (requests.ranges.result) |request|
+                e.range88(&list, request.numerator, request.tuple.values());
+            e.range88(
+                &list,
+                requests.ranges.pc[0].numerator,
+                requests.ranges.pc[0].tuple.values(),
+            );
+            e.rangeM31(
+                &list,
+                requests.ranges.pc[1].numerator,
+                requests.ranges.pc[1].tuple.values(),
+            );
+            e.range88(
+                &list,
+                requests.ranges.immediate[0].numerator,
+                requests.ranges.immediate[0].tuple.values(),
+            );
+            e.rangeM31(
+                &list,
+                requests.ranges.immediate[1].numerator,
+                requests.ranges.immediate[1].tuple.values(),
+            );
+            e.access(&list, requests.rd);
+            return list;
+        }
+
+        fn jalr(columns: []const S) !e.List {
+            const module = sem.jalr;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{};
+            addProgram(&list, requests.program);
+            e.access(&list, requests.rs1);
+            e.range88(&list, requests.rs1_middle_bytes.numerator, requests.rs1_middle_bytes.tuple.values());
+            e.range88(&list, requests.rs1_outer_bytes.numerator, requests.rs1_outer_bytes.tuple.values());
+            e.range20(
+                &list,
+                requests.target_word_low_20.numerator,
+                requests.target_word_low_20.tuple.value,
+            );
+            e.range88(
+                &list,
+                requests.target_word_high_8.numerator,
+                requests.target_word_high_8.tuple.values(),
+            );
+            e.range88(
+                &list,
+                requests.target_middle_bytes.numerator,
+                requests.target_middle_bytes.tuple.values(),
+            );
+            e.rangeM31(&list, requests.target_m31.numerator, requests.target_m31.tuple.values());
+            e.range884(
+                &list,
+                requests.immediate_range.numerator,
+                requests.immediate_range.tuple.values(),
+            );
+            addState(&list, requests.state);
+            e.range88(&list, requests.rd_middle_bytes.numerator, requests.rd_middle_bytes.tuple.values());
+            e.rangeM31(&list, requests.rd_m31.numerator, requests.rd_m31.tuple.values());
+            e.access(&list, requests.rd);
+            return list;
+        }
+
+        fn jal(columns: []const S) !e.List {
+            const module = sem.jal;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{};
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            e.range88(&list, requests.ranges.middle_bytes.numerator, requests.ranges.middle_bytes.tuple.values());
+            e.rangeM31(&list, requests.ranges.m31_split.numerator, requests.ranges.m31_split.tuple.values());
+            // The operative pinned schema has one predecessor request. Do not use the
+            // stale duplicated helper entry retained for historical adapter tests.
+            e.memory(&list, requests.rd.consume[0].numerator, requests.rd.consume[0].tuple);
+            e.memory(&list, requests.rd.emit.numerator, requests.rd.emit.tuple);
+            e.range20(&list, requests.rd.clock_gap.numerator, requests.rd.clock_gap.tuple.value);
+            return list;
+        }
+
+        fn loadStore(columns: []const S) !e.List {
+            const module = sem.load_store;
+            const row = try parse(module, columns);
+            const active = row.active();
+            const accesses = module.accessLookups(row);
+            var list = e.List{};
+            e.program(&list, active.neg(), module.programLookup(row));
+            e.stateChain(&list, module.stateLookup(row), active);
+            e.accessChain(&list, accesses.rs1, active);
+            e.range20(&list, active.neg(), module.alignedAddressRangeLookup(row));
+            e.rangeM31(&list, active.neg(), module.baseAddressM31Lookup(row));
+            e.accessChain(&list, accesses.src, active);
+            e.accessChain(&list, accesses.dst, active);
+            const sign_ranges = module.signRangeLookups(row);
+            e.rangeM31(&list, row.is_lb.neg(), sign_ranges[0]);
+            e.rangeM31(&list, row.is_lh.neg(), sign_ranges[1]);
+            return list;
+        }
+
+        fn mul(columns: []const S) !e.List {
+            const module = sem.mul;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{ .batch_size = 1 };
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            e.access(&list, requests.rs1);
+            e.access(&list, requests.rs2);
+            for (requests.product_ranges) |request| {
+                e.range811(&list, request.numerator, request.tuple.values());
+            }
+            e.access(&list, requests.rd);
+            return list;
+        }
+
+        fn mulh(columns: []const S) !e.List {
+            const module = sem.mulh;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{ .batch_size = 1 };
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            e.access(&list, requests.rs1);
+            e.access(&list, requests.rs2);
+            for (requests.product_ranges) |request| {
+                e.range811(&list, request.numerator, request.tuple.values());
+            }
+            for (requests.sign_ranges) |request| {
+                e.rangeM31(&list, request.numerator, request.tuple.values());
+            }
+            e.access(&list, requests.rd);
+            return list;
+        }
+
+        fn div(columns: []const S) !e.List {
+            const module = sem.div;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{ .batch_size = 1 };
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            e.access(&list, requests.rs1);
+            e.access(&list, requests.rs2);
+            for (requests.divisor_ranges) |request| {
+                e.range88(&list, request.numerator, request.tuple.values());
+            }
+            for (requests.quotient_remainder_ranges) |request| {
+                e.range811(&list, request.numerator, request.tuple.values());
+            }
+            e.rangeM31(
+                &list,
+                requests.quotient_sign_range.numerator,
+                requests.quotient_sign_range.tuple.values(),
+            );
+            e.range88(&list, requests.sign_range.numerator, requests.sign_range.tuple.values());
+            e.range20(
+                &list,
+                requests.positive_remainder_diff.numerator,
+                requests.positive_remainder_diff.tuple.value,
+            );
+            e.access(&list, requests.rd);
+            return list;
+        }
+
+        fn fence(columns: []const S) !e.List {
+            const module = sem.fence;
+            const row = try parse(module, columns);
+            const requests = module.lookups(row);
+            var list = e.List{};
+            addProgram(&list, requests.program);
+            addState(&list, requests.state);
+            return list;
+        }
+    };
 }
 
-fn addProgram(list: *List, request: anytype) void {
-    entry.program(list, request.numerator, request.tuple);
-}
+const shipped = Entries(QM31);
 
-fn addState(list: *List, requests: anytype) void {
-    entry.stateRequests(list, requests);
-}
-
-fn baseAluReg(columns: []const QM31) !List {
-    const module = semantics.base_alu_reg;
-    const row = try parse(module, columns);
-    const active = row.active();
-    const accesses = module.accessLookups(row);
-    var list = List{};
-    entry.program(&list, active.neg(), module.programLookup(row));
-    entry.stateChain(&list, semantics.common.registersStateChain(row.pc, row.clk), active);
-    entry.accessChain(&list, accesses.rs1, active);
-    entry.accessChain(&list, accesses.rs2, active);
-    const bitwise_active = module.bitwiseLookupEnabler(row);
-    for (module.bitwiseLookups(row)) |tuple| entry.bitwise(&list, bitwise_active.neg(), tuple);
-    entry.range88(&list, active.neg(), .{ row.result[0], row.result[1] });
-    entry.range88(&list, active.neg(), .{ row.result[2], row.result[3] });
-    entry.accessChain(&list, accesses.rd, active);
-    return list;
-}
-
-fn baseAluImm(columns: []const QM31) !List {
-    const module = semantics.base_alu_imm;
-    const row = try parse(module, columns);
-    const active = row.active();
-    const accesses = module.accessLookups(row);
-    var list = List{};
-    entry.program(&list, active.neg(), module.programLookup(row));
-    entry.range811(&list, active.neg(), module.immediateRangeLookup(row));
-    entry.stateChain(&list, semantics.common.registersStateChain(row.pc, row.clk), active);
-    entry.accessChain(&list, accesses.rs1, active);
-    const bitwise_active = module.bitwiseLookupEnabler(row);
-    for (module.bitwiseLookups(row)) |tuple| entry.bitwise(&list, bitwise_active.neg(), tuple);
-    entry.range88(&list, active.neg(), .{ row.result[0], row.result[1] });
-    entry.range88(&list, active.neg(), .{ row.result[2], row.result[3] });
-    entry.accessChain(&list, accesses.rd, active);
-    return list;
-}
-
-fn shiftsReg(columns: []const QM31) !List {
-    const module = semantics.shifts_reg;
-    const row = try parse(module, columns);
-    const active = row.semantic.active();
-    const accesses = module.accessLookups(row);
-    var list = List{};
-    entry.program(&list, active.neg(), module.programLookup(row));
-    entry.stateChain(&list, module.stateLookup(row), active);
-    entry.accessChain(&list, accesses.rs1, active);
-    entry.accessChain(&list, accesses.rs2, active);
-    entry.range20(&list, active.neg(), module.shiftAmountRangeLookup(row));
-    for (module.carryRangePairs(row.semantic)) |values| entry.range88(&list, active.neg(), values);
-    for (module.rdRangePairs(row.semantic)) |values| entry.range88(&list, active.neg(), values);
-    entry.accessChain(&list, accesses.rd, active);
-    entry.rangeM31(&list, row.semantic.is_sra.neg(), module.signRangeLookup(row.semantic));
-    return list;
-}
-
-fn shiftsImm(columns: []const QM31) !List {
-    const module = semantics.shifts_imm;
-    const row = try parse(module, columns);
-    const active = row.semantic.active();
-    const accesses = module.accessLookups(row);
-    var list = List{};
-    entry.program(&list, active.neg(), module.programLookup(row));
-    entry.stateChain(&list, module.stateLookup(row), active);
-    entry.accessChain(&list, accesses.rs1, active);
-    for (module.carryRangePairs(row.semantic)) |values| entry.range88(&list, active.neg(), values);
-    for (module.rdRangePairs(row.semantic)) |values| entry.range88(&list, active.neg(), values);
-    entry.accessChain(&list, accesses.rd, active);
-    entry.rangeM31(&list, row.semantic.is_sra.neg(), module.signRangeLookup(row.semantic));
-    return list;
-}
-
-fn ltReg(columns: []const QM31) !List {
-    const module = semantics.lt_reg;
-    const row = try parse(module, columns);
-    const active = row.active();
-    const accesses = module.accessLookups(row);
-    const positive = module.positiveDiffLookup(row);
-    var list = List{};
-    entry.program(&list, active.neg(), module.programLookup(row));
-    entry.stateChain(&list, module.stateLookup(row), active);
-    entry.accessChain(&list, accesses.rs1, active);
-    entry.accessChain(&list, accesses.rs2, active);
-    entry.range88(&list, active.neg(), module.mslRangeLookup(row));
-    entry.range20(&list, positive.numerator.neg(), positive.value);
-    entry.accessChain(&list, accesses.rd, active);
-    return list;
-}
-
-fn ltImm(columns: []const QM31) !List {
-    const module = semantics.lt_imm;
-    const row = try parse(module, columns);
-    const active = row.active();
-    const accesses = module.accessLookups(row);
-    const positive = module.positiveDiffLookup(row);
-    var list = List{};
-    entry.program(&list, active.neg(), module.programLookup(row));
-    entry.range884(&list, active.neg(), module.immediateRangeLookup(row));
-    entry.stateChain(&list, module.stateLookup(row), active);
-    entry.accessChain(&list, accesses.rs1, active);
-    entry.range20(&list, positive.numerator.neg(), positive.value);
-    entry.accessChain(&list, accesses.rd, active);
-    return list;
-}
-
-fn branchEq(columns: []const QM31) !List {
-    const module = semantics.branch_eq;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{};
-    addProgram(&list, requests.program);
-    entry.access(&list, requests.rs1);
-    entry.access(&list, requests.rs2);
-    addState(&list, requests.state);
-    return list;
-}
-
-fn branchLt(columns: []const QM31) !List {
-    const module = semantics.branch_lt;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{};
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    entry.access(&list, requests.rs1);
-    entry.access(&list, requests.rs2);
-    entry.range88(&list, requests.ranges.shifted_msls.numerator, requests.ranges.shifted_msls.tuple.values());
-    entry.range20(&list, requests.ranges.positive_difference.numerator, requests.ranges.positive_difference.tuple.value);
-    return list;
-}
-
-fn lui(columns: []const QM31) !List {
-    const module = semantics.lui;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{};
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    entry.range884(&list, requests.immediate_range.numerator, requests.immediate_range.tuple.values());
-    entry.memory(&list, requests.rd.consume.numerator, requests.rd.consume.tuple);
-    entry.memory(&list, requests.rd.emit.numerator, requests.rd.emit.tuple);
-    entry.range20(&list, requests.rd.clock_gap.numerator, requests.rd.clock_gap.tuple.value);
-    return list;
-}
-
-fn auipc(columns: []const QM31) !List {
-    const module = semantics.auipc;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{};
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    for (requests.ranges.result) |request|
-        entry.range88(&list, request.numerator, request.tuple.values());
-    entry.range88(
-        &list,
-        requests.ranges.pc[0].numerator,
-        requests.ranges.pc[0].tuple.values(),
-    );
-    entry.rangeM31(
-        &list,
-        requests.ranges.pc[1].numerator,
-        requests.ranges.pc[1].tuple.values(),
-    );
-    entry.range88(
-        &list,
-        requests.ranges.immediate[0].numerator,
-        requests.ranges.immediate[0].tuple.values(),
-    );
-    entry.rangeM31(
-        &list,
-        requests.ranges.immediate[1].numerator,
-        requests.ranges.immediate[1].tuple.values(),
-    );
-    entry.access(&list, requests.rd);
-    return list;
-}
-
-fn jalr(columns: []const QM31) !List {
-    const module = semantics.jalr;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{};
-    addProgram(&list, requests.program);
-    entry.access(&list, requests.rs1);
-    entry.range88(&list, requests.rs1_middle_bytes.numerator, requests.rs1_middle_bytes.tuple.values());
-    entry.range88(&list, requests.rs1_outer_bytes.numerator, requests.rs1_outer_bytes.tuple.values());
-    entry.range20(
-        &list,
-        requests.target_word_low_20.numerator,
-        requests.target_word_low_20.tuple.value,
-    );
-    entry.range88(
-        &list,
-        requests.target_word_high_8.numerator,
-        requests.target_word_high_8.tuple.values(),
-    );
-    entry.range88(
-        &list,
-        requests.target_middle_bytes.numerator,
-        requests.target_middle_bytes.tuple.values(),
-    );
-    entry.rangeM31(&list, requests.target_m31.numerator, requests.target_m31.tuple.values());
-    entry.range884(
-        &list,
-        requests.immediate_range.numerator,
-        requests.immediate_range.tuple.values(),
-    );
-    addState(&list, requests.state);
-    entry.range88(&list, requests.rd_middle_bytes.numerator, requests.rd_middle_bytes.tuple.values());
-    entry.rangeM31(&list, requests.rd_m31.numerator, requests.rd_m31.tuple.values());
-    entry.access(&list, requests.rd);
-    return list;
-}
-
-fn jal(columns: []const QM31) !List {
-    const module = semantics.jal;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{};
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    entry.range88(&list, requests.ranges.middle_bytes.numerator, requests.ranges.middle_bytes.tuple.values());
-    entry.rangeM31(&list, requests.ranges.m31_split.numerator, requests.ranges.m31_split.tuple.values());
-    // The operative pinned schema has one predecessor request. Do not use the
-    // stale duplicated helper entry retained for historical adapter tests.
-    entry.memory(&list, requests.rd.consume[0].numerator, requests.rd.consume[0].tuple);
-    entry.memory(&list, requests.rd.emit.numerator, requests.rd.emit.tuple);
-    entry.range20(&list, requests.rd.clock_gap.numerator, requests.rd.clock_gap.tuple.value);
-    return list;
-}
-
-fn loadStore(columns: []const QM31) !List {
-    const module = semantics.load_store;
-    const row = try parse(module, columns);
-    const active = row.active();
-    const accesses = module.accessLookups(row);
-    var list = List{};
-    entry.program(&list, active.neg(), module.programLookup(row));
-    entry.stateChain(&list, module.stateLookup(row), active);
-    entry.accessChain(&list, accesses.rs1, active);
-    entry.range20(&list, active.neg(), module.alignedAddressRangeLookup(row));
-    entry.rangeM31(&list, active.neg(), module.baseAddressM31Lookup(row));
-    entry.accessChain(&list, accesses.src, active);
-    entry.accessChain(&list, accesses.dst, active);
-    const sign_ranges = module.signRangeLookups(row);
-    entry.rangeM31(&list, row.is_lb.neg(), sign_ranges[0]);
-    entry.rangeM31(&list, row.is_lh.neg(), sign_ranges[1]);
-    return list;
-}
-
-fn mul(columns: []const QM31) !List {
-    const module = semantics.mul;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{ .batch_size = 1 };
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    entry.access(&list, requests.rs1);
-    entry.access(&list, requests.rs2);
-    for (requests.product_ranges) |request| {
-        entry.range811(&list, request.numerator, request.tuple.values());
-    }
-    entry.access(&list, requests.rd);
-    return list;
-}
-
-fn mulh(columns: []const QM31) !List {
-    const module = semantics.mulh;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{ .batch_size = 1 };
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    entry.access(&list, requests.rs1);
-    entry.access(&list, requests.rs2);
-    for (requests.product_ranges) |request| {
-        entry.range811(&list, request.numerator, request.tuple.values());
-    }
-    for (requests.sign_ranges) |request| {
-        entry.rangeM31(&list, request.numerator, request.tuple.values());
-    }
-    entry.access(&list, requests.rd);
-    return list;
-}
-
-fn div(columns: []const QM31) !List {
-    const module = semantics.div;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{ .batch_size = 1 };
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    entry.access(&list, requests.rs1);
-    entry.access(&list, requests.rs2);
-    for (requests.divisor_ranges) |request| {
-        entry.range88(&list, request.numerator, request.tuple.values());
-    }
-    for (requests.quotient_remainder_ranges) |request| {
-        entry.range811(&list, request.numerator, request.tuple.values());
-    }
-    entry.rangeM31(
-        &list,
-        requests.quotient_sign_range.numerator,
-        requests.quotient_sign_range.tuple.values(),
-    );
-    entry.range88(&list, requests.sign_range.numerator, requests.sign_range.tuple.values());
-    entry.range20(
-        &list,
-        requests.positive_remainder_diff.numerator,
-        requests.positive_remainder_diff.tuple.value,
-    );
-    entry.access(&list, requests.rd);
-    return list;
-}
-
-fn fence(columns: []const QM31) !List {
-    const module = semantics.fence;
-    const row = try parse(module, columns);
-    const requests = module.lookups(row);
-    var list = List{};
-    addProgram(&list, requests.program);
-    addState(&list, requests.state);
-    return list;
-}
+pub const fromMain = shipped.fromMain;
 
 test "opcode lookup matrix preserves reviewed family geometry" {
     const expected_entries = [_]usize{ 18, 16, 18, 14, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3 };

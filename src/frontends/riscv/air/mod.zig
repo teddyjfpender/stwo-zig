@@ -11,6 +11,7 @@
 pub const claims = @import("claims.zig");
 pub const clock_update_component = @import("clock_update_component.zig");
 pub const component_order = @import("component_order.zig");
+pub const extract = @import("extract/mod.zig");
 pub const interaction = @import("interaction.zig");
 pub const lookups = @import("lookups/mod.zig");
 pub const memory_commitment = @import("memory_commitment/mod.zig");
@@ -32,4 +33,8 @@ pub const preprocessed = @import("preprocessed/mod.zig");
 test {
     const std = @import("std");
     std.testing.refAllDecls(@This());
+    // `refAllDecls` references these lazily from inside a test body, which is
+    // too late for the test runner to collect the tests they contain.
+    _ = @import("extract/mod.zig");
+    _ = @import("semantic_eval.zig");
 }

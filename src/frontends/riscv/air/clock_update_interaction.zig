@@ -156,7 +156,7 @@ pub fn generate(
     return result;
 }
 
-fn memoryTuple(row: Row, clock: QM31) common.MemoryAccessTuple {
+fn memoryTuple(row: Row, clock: QM31) common.Qm31.MemoryAccessTuple {
     return .{
         .addr_space = row.addr_space,
         .addr = row.addr,

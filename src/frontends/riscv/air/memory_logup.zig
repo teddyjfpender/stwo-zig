@@ -35,7 +35,7 @@ pub const AccessWitness = struct {
 
     pub fn fromAccess(
         addr_space: u1,
-        access: common.Access,
+        access: common.Qm31.Access,
         clock: QM31,
         enabler: QM31,
     ) AccessWitness {
