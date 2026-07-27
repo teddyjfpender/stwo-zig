@@ -30,7 +30,7 @@ class Witness:
 @dataclass
 class Result:
     family: str
-    status: str  # "sat" | "unsat" | "unknown"
+    status: str  # "sat" | "unsat" | "unknown" | "skipped"
     seconds: float
     witnesses: dict[str, Witness] = field(default_factory=dict)
     differing_outputs: tuple[str, ...] = ()
@@ -39,6 +39,8 @@ class Result:
     skipped_bus_lookups: tuple[str, ...] = ()
     # None when the vacuity probe was not run; see `emit_satisfiability_query`.
     constraints_satisfiable: bool | None = None
+    # Non-empty exactly when `status == "skipped"`.
+    skip_reason: str = ""
 
     @property
     def unique(self) -> bool:
@@ -50,13 +52,34 @@ class Result:
         return self.unique and self.constraints_satisfiable is False
 
 
-def check(system: System, timeout_ms: int = 0, refine: bool = True) -> Result:
+def check(
+    system: System,
+    timeout_ms: int = 0,
+    refine: bool = True,
+    assume_domains: bool = False,
+) -> Result:
     """Run the uniqueness query.  `sat` is a real under-constraint witness pair;
-    see `air_uniqueness.py explain` for what `unsat` does not mean."""
-    result = run_query(emit_uniqueness_query(system, refine=refine), timeout_ms)
+    see `air_uniqueness.py explain` for what `unsat` does not mean.
+
+    A family the query cannot say anything about returns `skipped` with the
+    reason, never a verdict.  A fabricated `unsat` on such a family is worse
+    than no row on the board, because the board is read as coverage.
+    """
+    reason = system.uniqueness_skip_reason()
+    if reason is not None:
+        return Result(
+            family=system.family, status="skipped", seconds=0.0, skip_reason=reason
+        )
+    result = run_query(
+        emit_uniqueness_query(system, refine=refine, assume_domains=assume_domains),
+        timeout_ms,
+    )
     if result.unique:
         probe = run_query(
-            emit_satisfiability_query(system, refine=refine), timeout_ms
+            emit_satisfiability_query(
+                system, refine=refine, assume_domains=assume_domains
+            ),
+            timeout_ms,
         )
         result.constraints_satisfiable = probe.status == "sat"
     return result
@@ -153,6 +176,14 @@ def counterexample_payload(system: System, result: Result) -> dict[str, object]:
 
 
 def format_result(result: Result) -> str:
+    if result.status == "skipped":
+        return "\n".join(
+            [
+                f"family                : {result.family}",
+                "verdict               : skipped",
+                f"reason                : {result.skip_reason}",
+            ]
+        )
     lines = [
         f"family                : {result.family}",
         f"verdict               : {result.status}",

@@ -145,18 +145,92 @@ def _combine(lhs: LinearForm, rhs: LinearForm, sign: int) -> LinearForm:
     return (terms, (lhs[1] + scaled[1]) % MODULUS)
 
 
+def solved_forms(system: System) -> dict[str, LinearForm]:
+    """Row-reduce the constraints that are single linear equations.
+
+    A constraint that is a product says only that *some* factor vanishes, so it
+    yields no equation.  A constraint that is not a product and whose expansion
+    is degree one says `sum(a_i x_i) + c = 0`, which does.  Gaussian elimination
+    over F_p turns that set into `pivot -> (terms, constant)`, read as
+    "pivot equals this expression in non-pivot columns", and every satisfying
+    assignment obeys it.
+
+    This is what makes the AIR's enabler-gated table requests visible.  Every
+    numerator in the shipped families is `-enabler`, never a literal, and the
+    placement constraint pins `enabler = 1`; without elimination the analysis
+    sees a non-constant numerator, declines to conclude the request is live, and
+    leaves every limb free over the whole field.
+    """
+    pivots: dict[str, LinearForm] = {}
+    forms = linear_forms(system)
+    for constraint in system.constraints:
+        if len(factors(system, constraint)) != 1:
+            continue
+        candidate = forms[constraint]
+        if candidate is None:
+            continue
+        terms, constant = _substitute(candidate, pivots)
+        if not terms:
+            continue  # Either trivial, or a contradiction the solver will find.
+        # `min` rather than dictionary order: the pivot choice must not depend
+        # on how the emitter happened to build the expression.
+        var = min(terms)
+        inverse = pow(terms[var], MODULUS - 2, MODULUS)
+        rest = {
+            name: (-coeff * inverse) % MODULUS
+            for name, coeff in terms.items()
+            if name != var
+        }
+        solution = (rest, (-constant * inverse) % MODULUS)
+        pivots = {
+            name: _substitute(existing, {var: solution})
+            for name, existing in pivots.items()
+        }
+        pivots[var] = solution
+    return pivots
+
+
+def _substitute(form: LinearForm, pivots: dict[str, LinearForm]) -> LinearForm:
+    terms, constant = form
+    out: dict[str, int] = {}
+    for name, coeff in terms.items():
+        replacement = pivots.get(name)
+        if replacement is None:
+            out[name] = (out.get(name, 0) + coeff) % MODULUS
+            continue
+        for inner, inner_coeff in replacement[0].items():
+            out[inner] = (out.get(inner, 0) + coeff * inner_coeff) % MODULUS
+        constant = (constant + coeff * replacement[1]) % MODULUS
+    return ({n: c for n, c in out.items() if c}, constant % MODULUS)
+
+
+def unconditionally_live(
+    system: System,
+    lookup_numerator: int,
+    pivots: dict[str, LinearForm],
+    forms: list[LinearForm | None] | None = None,
+) -> bool:
+    """Whether the request fires in every assignment satisfying the system."""
+    form = (linear_forms(system) if forms is None else forms)[lookup_numerator]
+    if form is None:
+        return False
+    terms, constant = _substitute(form, pivots)
+    return not terms and constant != 0
+
+
 def implied_column_bounds(system: System) -> dict[str, tuple[int, int]]:
     """Column intervals implied by the asserted obligations themselves.
 
-    Two sources, each an implication rather than an assumption:
+    Three sources, each an implication rather than an assumption:
 
       * a constraint whose factors are all linear in one and the same column
         confines that column to the finite set of factor roots, because a
         product vanishes iff a factor does and p is prime.  `bit(x)` is this
         case, and it is the most common constraint in the AIR;
-      * a box-table request with a constant non-zero numerator is
-        unconditionally live, so a bare column in its tuple is bounded by the
-        component width.
+      * a pivot that eliminates to a bare constant pins its column to that
+        value.  This is where `enabler = 1` comes from;
+      * a box-table request that is live in every satisfying assignment bounds
+        any bare column in its tuple by the component width.
 
     Narrowing only ever shrinks the quotient ranges the solver must search; it
     never removes an assignment the AIR admits, so a counterexample cannot be
@@ -179,12 +253,16 @@ def implied_column_bounds(system: System) -> dict[str, tuple[int, int]]:
             name, values = roots
             narrow(name, min(values), max(values))
 
+    pivots = solved_forms(system)
+    for name, (terms, constant) in pivots.items():
+        if not terms:
+            narrow(name, constant, constant)
+
     for lookup in system.lookups:
         widths = tables.BOX_TABLES.get(lookup.domain)
         if widths is None:
             continue
-        numerator = system.nodes[lookup.numerator]
-        if numerator.op != "const" or numerator.value == 0:
+        if not unconditionally_live(system, lookup.numerator, pivots, forms):
             continue
         for component, width in zip(lookup.tuple_, widths):
             entry = system.nodes[component]

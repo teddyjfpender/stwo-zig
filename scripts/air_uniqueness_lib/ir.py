@@ -1,10 +1,11 @@
 """Serialisable constraint-system IR for one AIR family's per-row relation.
 
-A family is described by: named columns carrying an architectural role, a
-hash-consed DAG of polynomials over those columns, the subset of DAG nodes that
-must vanish, and the lookup requests the row emits.  Nothing else -- no field
-tower, no domain, no interaction index -- because per-row witness uniqueness
-needs nothing else.
+A family is described by: named columns carrying an architectural role and,
+where the AIR around the row establishes one, a declared input domain; a
+hash-consed DAG of polynomials over those columns; the subset of DAG nodes that
+must vanish; and the lookup requests the row emits.  Nothing else -- no field
+tower, no evaluation domain, no interaction index -- because per-row witness
+uniqueness needs nothing else.
 
 Why not reuse `src/core/constraint_framework/expr.zig` (`ExprArena`,
 `BaseExpr`, `ConstraintProgram`)
@@ -66,9 +67,31 @@ class Node:
 
 
 @dataclass(frozen=True)
+class Domain:
+    """An input column's real range, imported from outside the row.
+
+    The values are integers in [0, p): `lo <= value <= hi` and `value` is a
+    multiple of `stride`.  This is an ASSUMPTION and it points the dangerous
+    way -- it shrinks the admitted witness set, so it can turn a real `sat` into
+    `unsat`.  `why` is the emitter's one-line justification and exists so the
+    assumption set is auditable without reading the emitter.
+    """
+
+    lo: int
+    hi: int
+    stride: int
+    why: str
+
+
+@dataclass(frozen=True)
 class Column:
     name: str
     role: str
+    domain: Domain | None = None
+    # Non-empty when the column is not committed: it names an architectural
+    # output the AIR carries as an expression, and one constraint pins it to
+    # that expression.  See `air_uniqueness.py explain`, section 7.
+    alias: str = ""
 
 
 @dataclass(frozen=True)
@@ -134,6 +157,27 @@ class System:
 
     def by_role(self, role: str) -> tuple[str, ...]:
         return tuple(c.name for c in self.columns if c.role == role)
+
+    def declared_domains(self) -> dict[str, Domain]:
+        return {c.name: c.domain for c in self.columns if c.domain is not None}
+
+    def uniqueness_skip_reason(self) -> str | None:
+        """Why a two-copy query would say nothing about this family, or None.
+
+        A family with no `output` column has nothing to disagree about, so the
+        negated conclusion is an empty disjunction and every verdict is an
+        artefact of how the emitter spelt `false`.  Reporting that as `unsat`
+        would be a lie and reporting it as an error hides the reason, so the
+        board carries an explicit `skipped` instead.
+        """
+        if not self.by_role("output"):
+            return (
+                "no column carries role 'output': uniqueness has nothing to "
+                "conclude about. Either the family writes nothing the machine "
+                "observes, or an architectural output it does produce is an "
+                "expression that no column aliases."
+            )
+        return None
 
 
 # --- construction from JSON -------------------------------------------------
@@ -229,6 +273,30 @@ def _build_flat(arena: Arena, raw_nodes: Sequence[Any]) -> list[int]:
     return mapped
 
 
+def _build_domain(name: str, role: str, raw: Any) -> Domain | None:
+    """Parse and police a declared domain.
+
+    Only an `input` may carry one.  Bounding an output or a witness would delete
+    forgeries the AIR really admits -- an out-of-range output limb is exactly the
+    shape of counterexample this pipeline exists to find -- whereas bounding an
+    input restricts the theorem to inputs the machine can actually present.
+    """
+    if raw is None:
+        return None
+    if role != "input":
+        raise IRError(f"column {name}: only an input may declare a domain")
+    lo, hi = int(raw["lo"]), int(raw["hi"])
+    stride = int(raw.get("stride", 1))
+    why = str(raw.get("why", ""))
+    if not 0 <= lo <= hi < MODULUS:
+        raise IRError(f"column {name}: domain [{lo}, {hi}] is not inside [0, p)")
+    if stride < 1 or lo % stride or hi % stride:
+        raise IRError(f"column {name}: stride {stride} does not divide its bounds")
+    if not why:
+        raise IRError(f"column {name}: a declared domain must justify itself")
+    return Domain(lo, hi, stride, why)
+
+
 def from_dict(payload: dict[str, Any]) -> System:
     modulus = payload.get("modulus", MODULUS)
     if modulus != MODULUS:
@@ -243,7 +311,14 @@ def from_dict(payload: dict[str, Any]) -> System:
         if name in seen:
             raise IRError(f"duplicate column {name}")
         seen.add(name)
-        columns.append(Column(name, role))
+        columns.append(
+            Column(
+                name,
+                role,
+                _build_domain(name, role, raw.get("domain")),
+                str(raw.get("alias", "")),
+            )
+        )
     if not columns:
         raise IRError("system declares no columns")
 
@@ -311,8 +386,9 @@ def validate(system: System) -> None:
             raise IRError(f"node {index}: undeclared column {node.name!r}")
         if node.op not in BINARY_OPS + LEAF_OPS + ("neg",):
             raise IRError(f"node {index}: unknown operator {node.op!r}")
-    if not system.by_role("output"):
-        raise IRError("uniqueness is vacuous: no column has role 'output'")
+    # A system with no output column is well formed; it is the *query* that is
+    # vacuous, and `System.uniqueness_skip_reason` reports that as a verdict
+    # rather than a load error.
     for ref in system.constraints:
         if not 0 <= ref < len(system.nodes):
             raise IRError(f"constraint node {ref} out of range")

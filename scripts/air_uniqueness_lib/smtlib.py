@@ -48,7 +48,7 @@ from dataclasses import dataclass
 
 from . import tables
 from .analysis import factors, implied_column_bounds, node_bounds
-from .ir import MODULUS, System
+from .ir import MODULUS, IRError, System
 
 COPIES = ("a", "b")
 
@@ -77,13 +77,22 @@ class Query:
 
 
 class _Emitter:
-    def __init__(self, system: System, refine: bool) -> None:
+    def __init__(self, system: System, refine: bool, assume_domains: bool) -> None:
         self.system = system
-        self.column_bounds = (
+        self.declared = system.declared_domains() if assume_domains else {}
+        bounds = (
             implied_column_bounds(system)
             if refine
             else {c.name: (0, MODULUS - 1) for c in system.columns}
         )
+        # Implied and declared bounds are intersected, never merged: the first
+        # is a consequence of the asserted system, the second an assumption
+        # imported from the AIR around it, and `assume_domains` has to be able
+        # to drop exactly the second.
+        for name, domain in self.declared.items():
+            lo, hi = bounds[name]
+            bounds[name] = (max(lo, domain.lo), min(hi, domain.hi))
+        self.column_bounds = bounds
         self.bounds = node_bounds(system, self.column_bounds)
         self.lines: list[str] = []
         self.fresh = 0
@@ -102,6 +111,22 @@ class _Emitter:
         if hi is not None:
             self.emit(f"(assert (<= {name} {_lit(hi)}))")
         return name
+
+    def declare_stride(self, name: str, copy: str) -> None:
+        """Alignment, as `value = stride * k` with `k` an explicit integer.
+
+        A `mod` term would say the same thing and is banned everywhere else in
+        this encoding, so it is banned here too; the multiplier keeps the query
+        in linear integer arithmetic and keeps the reason auditable.
+        """
+        domain = self.declared.get(name)
+        if domain is None or domain.stride == 1:
+            return
+        lo, hi = self.column_bounds[name]
+        multiplier = self.declare(
+            f"{name}!stride@{copy}", _ceil_div(lo, domain.stride), hi // domain.stride
+        )
+        self.emit(f"(assert (= {name}@{copy} (* {domain.stride} {multiplier})))")
 
     def fresh_name(self, stem: str) -> str:
         self.fresh += 1
@@ -252,6 +277,7 @@ def _emit_copies(
         for column in system.columns:
             lo, hi = emitter.column_bounds[column.name]
             emitter.declare(f"{column.name}@{copy}", lo, hi)
+            emitter.declare_stride(column.name, copy)
         emitter.emit(f"; ---- copy {copy}: polynomials ----")
         terms = emitter.node_terms(copy)
         emitter.emit(f"; ---- copy {copy}: vanishing constraints ----")
@@ -272,13 +298,24 @@ def _finish(emitter: _Emitter, system: System, copies: tuple[str, ...]) -> Query
     )
 
 
-def emit_uniqueness_query(system: System, refine: bool = True) -> Query:
+def emit_uniqueness_query(
+    system: System, refine: bool = True, assume_domains: bool = False
+) -> Query:
     """`refine=False` drops the implied-bounds narrowing while keeping the
     factor rewrite.  It exists so the narrowing can be differentially checked:
     an optimisation that silently deleted counterexamples is the one failure
     this pipeline cannot tolerate, and the cheap evidence against it is that
-    every `sat` model stays `sat` without it."""
-    emitter = _Emitter(system, refine)
+    every `sat` model stays `sat` without it.
+
+    `assume_domains` adds the declared input domains, and defaults OFF because
+    they are assumptions rather than optimisations: the query without them
+    proves a strictly stronger statement, and one that rests on strictly less.
+    Turn them on to triage a `sat` whose counterexample sits at an input no
+    execution can present."""
+    reason = system.uniqueness_skip_reason()
+    if reason is not None:
+        raise IRError(f"{system.family}: {reason}")
+    emitter = _Emitter(system, refine, assume_domains)
     _emit_copies(emitter, system, COPIES, "witness-uniqueness query")
 
     emitter.emit("; ---- architectural inputs agree ----")
@@ -295,13 +332,19 @@ def emit_uniqueness_query(system: System, refine: bool = True) -> Query:
     return _finish(emitter, system, COPIES)
 
 
-def emit_satisfiability_query(system: System, refine: bool = True) -> Query:
+def emit_satisfiability_query(
+    system: System, refine: bool = True, assume_domains: bool = False
+) -> Query:
     """One copy, constraints and lookups only.
 
     An unsatisfiable constraint system is trivially unique, so a `unique`
     verdict means nothing until this comes back `sat`.  Every `check` run pairs
     the two rather than leaving the vacuity check to whoever remembers.
+
+    `assume_domains` must match the uniqueness query it accompanies: a system
+    satisfiable only outside the assumed domains is, for the purposes of that
+    verdict, not satisfiable.
     """
-    emitter = _Emitter(system, refine)
+    emitter = _Emitter(system, refine, assume_domains)
     _emit_copies(emitter, system, COPIES[:1], "satisfiability probe")
     return _finish(emitter, system, COPIES[:1])

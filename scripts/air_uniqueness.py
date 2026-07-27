@@ -104,6 +104,39 @@ Encoding decisions a reviewer must check
        must search and never removes an assignment the AIR admits.
        `check --no-refine` disables (b); the unit tests assert that every
        `sat` model stays `sat` without it.
+       (b) is what makes the shipped families tractable at all.  Every table
+       request in `air/lookups/` is gated by `-enabler`, never by a literal, so
+       a numerator-is-a-constant test concludes nothing and leaves every limb
+       free over [0, p).  The placement constraint pins `enabler = 1`, and
+       Gaussian elimination over the constraints that are single linear
+       equations turns that into "this request is live in every satisfying
+       assignment", which is an implication, not an assumption.
+
+4b. Declared input domains, OFF BY DEFAULT.  A column may carry a `domain`: a
+   range, an optional stride, and a one-line justification, all emitted in the
+   IR.  With `check --assume-declared-domains` both copies get
+   `lo <= x <= hi` and, where a stride is declared, `x = stride * k` for an
+   explicit integer `k` -- no `mod`, for the reason in (1).
+   THIS IS AN ASSUMPTION AND IT POINTS THE OTHER WAY FROM (4).  Narrowing an
+   input deletes witnesses, so it can turn a real `sat` into `unsat` and hide a
+   bug, which is why it is opt-in and why three rules contain it:
+   - only an `input` may declare a domain.  Bounding an output or a witness
+     would delete exactly the forgeries this pipeline looks for;
+   - the justification lives in the IR, so the assumption set is auditable
+     without reading the emitter;
+   - the flag makes what an assumption carries measurable rather than argued.
+   Consequence, unchanged in shape from (2): `sat` stays unconditional, since a
+   counterexample inside the domain also satisfies the wider system.  `unsat`
+   becomes conditional on the domain as well as on the lookup argument.
+   The one domain the shipped IR declares is `pc`: 4-aligned and below 2^30,
+   because the row consumes `program_access(pc, ..)` and the yielding side is
+   the program table, whose address the AIR splits into range-checked 20- and
+   8-bit limbs (`air/program/interaction.zig`).  The reason to reach for it is
+   a `sat` at an input no execution presents -- `jal` once reported one at
+   `pc = p - 4`.  It is off by default because assuming it currently costs
+   solver time and decides nothing: with the `range_check_m31` exclusion and
+   (b) in place, every family that terminates reaches the same verdict without
+   it, and two families that terminate without it time out with it.
 
 5. Inputs versus outputs.  An `input` column is what the row is given and may
    not choose: the program counter and clock, opcode selectors, the immediate,
@@ -138,11 +171,26 @@ Encoding decisions a reviewer must check
      IR is only as good as the extractor.
    - Degenerate uniqueness.  An unsatisfiable constraint system is trivially
      unique.  Pair every `unsat` with a satisfiable honest-witness check.
+   - Families with nothing to conclude about.  A family whose columns carry no
+     `output` role gets the verdict `skipped`, with the reason, rather than the
+     `unsat` an empty disjunction would produce.
 
 7. Expression-valued outputs.  Only columns carry roles.  If an architectural
    output is an expression (e.g. `composeU32(next_limbs)`), the extractor
    introduces an alias column plus a defining constraint, which is exactly
    equivalent and keeps one mechanism instead of two.
+   The next program counter is the case that matters.  One retired step
+   produces three things: the word written, the next clock, and the next pc.
+   The first is a committed column everywhere.  The other two appear only inside
+   the `registers_state` emit request, so a classifier reading committed columns
+   would never ask about them -- and `jalr`, whose jump target is a pair of
+   columns any such classifier calls witness, would report `unsat` while saying
+   nothing about where it jumps.  The extractor therefore reads both out of the
+   request: it checks the emitted clock IS `clock + 1`, making it a function of
+   an input and so nothing to ask about, and aliases the emitted pc to a column
+   named `next_pc` with role `output`.  Straight-line families get `pc + 4`,
+   `jal` gets `pc + imm`, the branches get their selected target, and `jalr`
+   gets `4 * (low20 + 2^20 * high8)`.
 """
 
 
@@ -152,7 +200,11 @@ def _cmd_explain(_: argparse.Namespace) -> int:
 
 
 def _cmd_emit(args: argparse.Namespace) -> int:
-    query = smtlib.emit_uniqueness_query(ir.load(args.model), refine=not args.no_refine)
+    query = smtlib.emit_uniqueness_query(
+        ir.load(args.model),
+        refine=not args.no_refine,
+        assume_domains=args.assume_declared_domains,
+    )
     if args.output:
         Path(args.output).write_text(query.text, encoding="utf-8")
         print(f"wrote {args.output}")
@@ -169,8 +221,17 @@ def _cmd_check(args: argparse.Namespace) -> int:
         f"columns={len(system.columns)} nodes={len(system.nodes)} "
         f"constraints={len(system.constraints)} max_degree={worst}"
     )
+    state = "assumed" if args.assume_declared_domains else "declared, NOT assumed"
+    for name, domain in sorted(system.declared_domains().items()):
+        print(
+            f"input domain ({state}): {name} in [{domain.lo}, {domain.hi}] "
+            f"step {domain.stride} -- {domain.why}"
+        )
     result = solve.check(
-        system, timeout_ms=args.timeout_ms, refine=not args.no_refine
+        system,
+        timeout_ms=args.timeout_ms,
+        refine=not args.no_refine,
+        assume_domains=args.assume_declared_domains,
     )
     print(solve.format_result(result))
     if args.counterexample_json and result.status == "sat":
@@ -193,10 +254,19 @@ def build_parser() -> argparse.ArgumentParser:
     explain = sub.add_parser("explain", help="print the encoding spec")
     explain.set_defaults(func=_cmd_explain)
 
+    domains_help = (
+        "assume the declared input domains. Off by default: they are "
+        "assumptions, and the query without them proves more while assuming "
+        "less. Turn them on to triage a sat at an unreachable input"
+    )
+
     emit = sub.add_parser("emit", help="emit the SMT-LIB2 query")
     emit.add_argument("model")
     emit.add_argument("-o", "--output")
     emit.add_argument("--no-refine", action="store_true")
+    emit.add_argument(
+        "--assume-declared-domains", action="store_true", help=domains_help
+    )
     emit.set_defaults(func=_cmd_emit)
 
     check = sub.add_parser("check", help="run the query through z3")
@@ -206,6 +276,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-refine",
         action="store_true",
         help="drop implied column bounds; slower, and a check on the narrowing",
+    )
+    check.add_argument(
+        "--assume-declared-domains", action="store_true", help=domains_help
     )
     check.add_argument(
         "--counterexample-json",

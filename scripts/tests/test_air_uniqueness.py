@@ -46,8 +46,13 @@ needs_z3 = unittest.skipUnless(
 )
 
 
-def _check(path: Path, refine: bool = True) -> solve.Result:
-    return solve.check(ir.load(path), timeout_ms=TIMEOUT_MS, refine=refine)
+def _check(model: Path | ir.System, refine: bool = True) -> solve.Result:
+    system = ir.load(model) if isinstance(model, Path) else model
+    return solve.check(system, timeout_ms=TIMEOUT_MS, refine=refine)
+
+
+def _assume(system: ir.System) -> solve.Result:
+    return solve.check(system, timeout_ms=TIMEOUT_MS, assume_domains=True)
 
 
 @needs_z3
@@ -193,6 +198,181 @@ class EncodingSoundnessTest(unittest.TestCase):
         self.assertIn("(assert (= a0@a a0@b))", text)
 
 
+def _escape_model(escape: int, stride: int) -> dict[str, object]:
+    """`b` is free exactly when `pc` takes one value, chosen outside the domain.
+
+    The declared domain is the only thing that can decide this model, so the
+    verdict is a direct read-out of whether the domain reached the solver.
+    """
+    return {
+        "columns": [
+            {
+                "name": "pc",
+                "role": "input",
+                "domain": {
+                    "lo": 0,
+                    "hi": 1 << 30,
+                    "stride": stride,
+                    "why": "toy: the escape value is outside this domain",
+                },
+            },
+            {"name": "b", "role": "output"},
+        ],
+        "exprs": {
+            "gate": ["mul", ["sub", ["col", "pc"], ["const", escape]], ["col", "b"]],
+            "boolean": ["bit", ["col", "b"]],
+        },
+        "constraints": ["gate", "boolean"],
+    }
+
+
+@needs_z3
+class DeclaredDomainTest(unittest.TestCase):
+    """A declared domain is an assumption, so it needs evidence both ways.
+
+    It must actually reach the solver, and dropping it must restore the
+    counterexample it was hiding -- otherwise the flag that measures it lies.
+    """
+
+    def test_range_half_decides_a_model_the_free_field_cannot(self) -> None:
+        system = ir.from_dict(_escape_model(escape=(1 << 30) + 4, stride=1))
+        self.assertEqual(_check(system).status, "sat")
+        self.assertEqual(_assume(system).status, "unsat")
+
+    def test_stride_half_decides_a_model_the_range_alone_cannot(self) -> None:
+        system = ir.from_dict(_escape_model(escape=1, stride=4))
+        self.assertEqual(_check(system).status, "sat")
+        self.assertEqual(_assume(system).status, "unsat")
+
+    def test_domains_are_off_unless_asked_for(self) -> None:
+        """An assumption that arrives by default is an assumption nobody made."""
+        system = ir.from_dict(_escape_model(escape=1, stride=4))
+        self.assertNotIn("pc!stride", smtlib.emit_uniqueness_query(system).text)
+        self.assertIn(
+            "pc!stride",
+            smtlib.emit_uniqueness_query(system, assume_domains=True).text,
+        )
+
+    def test_both_copies_carry_the_domain(self) -> None:
+        text = smtlib.emit_uniqueness_query(
+            ir.from_dict(_escape_model(escape=1, stride=4)), assume_domains=True
+        ).text
+        for copy in smtlib.COPIES:
+            self.assertIn(f"(assert (<= pc@{copy} {1 << 30}))", text)
+            self.assertIn(f"(assert (= pc@{copy} (* 4 pc!stride@{copy})))", text)
+        self.assertNotIn("(mod ", text)
+
+    def test_the_two_knobs_are_independent(self) -> None:
+        """`--no-refine` drops derived narrowing, never a declared domain."""
+        system = ir.from_dict(_escape_model(escape=1, stride=4))
+        self.assertEqual(
+            solve.check(
+                system, timeout_ms=TIMEOUT_MS, refine=False, assume_domains=True
+            ).status,
+            "unsat",
+        )
+
+
+class LookupLivenessTest(unittest.TestCase):
+    """Every shipped request is gated by `-enabler`, never by a literal."""
+
+    ENABLER_GATED = {
+        "columns": [
+            {"name": "enabler", "role": "input"},
+            {"name": "limb", "role": "output"},
+        ],
+        "exprs": {
+            "placement": ["sub", ["col", "enabler"], ["const", 1]],
+            "gate": ["neg", ["col", "enabler"]],
+            "limb": ["col", "limb"],
+            "pad": ["const", 0],
+        },
+        "constraints": ["placement"],
+        "lookups": [
+            {"domain": "range_check_8_8", "numerator": "gate", "tuple": ["limb", "pad"]}
+        ],
+    }
+
+    def test_placement_makes_an_enabler_gated_request_live(self) -> None:
+        system = ir.from_dict(self.ENABLER_GATED)
+        self.assertEqual(analysis.implied_column_bounds(system)["limb"], (0, 255))
+
+    def test_without_placement_the_request_stays_conditional(self) -> None:
+        payload = dict(self.ENABLER_GATED, constraints=[])
+        system = ir.from_dict(payload)
+        self.assertEqual(
+            analysis.implied_column_bounds(system)["limb"], (0, ir.MODULUS - 1)
+        )
+
+    def test_elimination_solves_a_chained_system(self) -> None:
+        """Back-substitution must reach pivots discovered after the fact."""
+        system = ir.from_dict(
+            {
+                "columns": [
+                    {"name": "x", "role": "output"},
+                    {"name": "y", "role": "witness"},
+                    {"name": "z", "role": "witness"},
+                ],
+                "exprs": {
+                    "sum": ["sub", ["add", ["col", "x"], ["col", "y"]], ["const", 3]],
+                    "difference": [
+                        "sub",
+                        ["sub", ["col", "x"], ["col", "y"]],
+                        ["const", 1],
+                    ],
+                    "chain": [
+                        "sub",
+                        ["col", "z"],
+                        ["add", ["col", "x"], ["col", "y"]],
+                    ],
+                },
+                "constraints": ["sum", "difference", "chain"],
+            }
+        )
+        self.assertEqual(
+            analysis.solved_forms(system), {"x": ({}, 2), "y": ({}, 1), "z": ({}, 3)}
+        )
+
+    def test_a_product_constraint_yields_no_equation(self) -> None:
+        """`bit(x)` is a disjunction; treating it as `x = 0` would be unsound."""
+        system = ir.from_dict(
+            {
+                "columns": [{"name": "x", "role": "output"}],
+                "exprs": {"c": ["bit", ["col", "x"]]},
+                "constraints": ["c"],
+            }
+        )
+        self.assertEqual(analysis.solved_forms(system), {})
+        # The root analysis still bounds it, by the argument it is entitled to.
+        self.assertEqual(analysis.implied_column_bounds(system)["x"], (0, 1))
+
+
+class VacuousFamilyTest(unittest.TestCase):
+    """A family the query cannot speak about must say so, not answer anyway."""
+
+    NO_OUTPUT = {
+        "family": "toy_no_output",
+        "columns": [{"name": "pc", "role": "input"}, {"name": "w", "role": "witness"}],
+        "exprs": {"c": ["mul", ["col", "w"], ["sub", ["col", "w"], ["const", 1]]]},
+        "constraints": ["c"],
+    }
+
+    def test_the_system_loads_and_reports_why_it_cannot_be_queried(self) -> None:
+        system = ir.from_dict(self.NO_OUTPUT)
+        self.assertIn("output", system.uniqueness_skip_reason() or "")
+
+    def test_check_returns_skipped_rather_than_a_verdict(self) -> None:
+        result = solve.check(ir.from_dict(self.NO_OUTPUT))
+        self.assertEqual(result.status, "skipped")
+        self.assertFalse(result.unique)
+        self.assertIn("skipped", solve.format_result(result))
+        self.assertIn(result.skip_reason, solve.format_result(result))
+
+    def test_emitting_a_query_for_it_is_refused(self) -> None:
+        with self.assertRaises(ir.IRError):
+            smtlib.emit_uniqueness_query(ir.from_dict(self.NO_OUTPUT))
+
+
 class IntermediateRepresentationTest(unittest.TestCase):
     def test_flat_and_nested_encodings_agree(self) -> None:
         """A machine emitter writes `nodes`; a human writes `exprs`."""
@@ -262,11 +442,6 @@ class IntermediateRepresentationTest(unittest.TestCase):
 
     def test_malformed_ir_is_rejected(self) -> None:
         cases = {
-            "no output column": {
-                "columns": [{"name": "x", "role": "input"}],
-                "exprs": {"c": ["col", "x"]},
-                "constraints": ["c"],
-            },
             "undeclared column": {
                 "columns": [{"name": "x", "role": "output"}],
                 "exprs": {"c": ["col", "y"]},
@@ -297,6 +472,49 @@ class IntermediateRepresentationTest(unittest.TestCase):
             "unknown expression name": {
                 "columns": [{"name": "x", "role": "output"}],
                 "exprs": {"c": ["add", "missing", ["col", "x"]]},
+                "constraints": ["c"],
+            },
+            "domain on a non-input": {
+                "columns": [
+                    {
+                        "name": "x",
+                        "role": "output",
+                        "domain": {"lo": 0, "hi": 255, "why": "no"},
+                    }
+                ],
+                "exprs": {"c": ["col", "x"]},
+                "constraints": ["c"],
+            },
+            "domain without a justification": {
+                "columns": [
+                    {"name": "y", "role": "output"},
+                    {"name": "x", "role": "input", "domain": {"lo": 0, "hi": 255}},
+                ],
+                "exprs": {"c": ["col", "x"]},
+                "constraints": ["c"],
+            },
+            "domain outside the field": {
+                "columns": [
+                    {"name": "y", "role": "output"},
+                    {
+                        "name": "x",
+                        "role": "input",
+                        "domain": {"lo": 0, "hi": ir.MODULUS, "why": "too wide"},
+                    },
+                ],
+                "exprs": {"c": ["col", "x"]},
+                "constraints": ["c"],
+            },
+            "stride that does not divide its bounds": {
+                "columns": [
+                    {"name": "y", "role": "output"},
+                    {
+                        "name": "x",
+                        "role": "input",
+                        "domain": {"lo": 0, "hi": 255, "stride": 4, "why": "ragged"},
+                    },
+                ],
+                "exprs": {"c": ["col", "x"]},
                 "constraints": ["c"],
             },
         }
