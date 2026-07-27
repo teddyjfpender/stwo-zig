@@ -196,3 +196,9 @@ weaker authority when the pinned binary is absent (exit 3, UNAVAILABLE):
   `check` mode regenerates and requires byte identity with the committed
   data; its `audit` mode measures which enumerated classes an existing
   trace corpus touches and lists the pairs it never does.
+
+The corpus differential itself is a fail-closed hosted CI gate:
+`scripts/riscv_sail_gate.py` binds the committed evidence to the committed
+corpus on every PR and re-derives it against live pinned Sail/Spike whenever
+its meaning can change, per
+[riscv-sail-differential-gate.md](riscv-sail-differential-gate.md).

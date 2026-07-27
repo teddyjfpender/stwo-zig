@@ -1112,7 +1112,10 @@ cross-shard, and crypto proof corpus defined in
 Unit tests and compilation do not waive it. Live comparison against the exact
 pinned Sail and Spike executables, plus the applicable architectural-test
 execute → prove → independent-verify audit, remains mandatory in the exhaustive
-release gate.
+release gate. Changes that can alter what the committed Sail attestation means
+additionally trigger the blocking hosted live differential defined in
+[`conformance/riscv-sail-differential-gate.md`](conformance/riscv-sail-differential-gate.md);
+run it locally with `python3 scripts/riscv_sail_gate.py run`.
 
 For Metal work on a supported Mac:
 

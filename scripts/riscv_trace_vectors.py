@@ -55,6 +55,37 @@ ROOT = Path(__file__).resolve().parent.parent
 VECTOR_DIR = ROOT / "vectors" / "riscv_elfs"
 VECTOR_FILE = VECTOR_DIR / "trace_vectors.json"
 
+# Derived from the comparator's own field tuples so the evidence report can
+# never claim a field that compare_traces does not actually check.
+SAIL_COMPARISON_FIELDS = (
+    *equivalence.RETIREMENT_FIELDS,
+    *(f"memory.{field}" for field in equivalence.MEMORY_FIELDS),
+)
+# Spike's scalar commit log exposes strictly less than RVFI; next_pc is only
+# observable as the following commit's pc (see compare_spike_commit_trace).
+SPIKE_COMPARISON_FIELDS = (
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc (through the following commit)",
+    "memory.address",
+    "memory.write_value",
+)
+
+
+def comparison_digest(compared: list[dict]) -> str:
+    """Digest binding an attestation to the exact per-program trace digests.
+
+    scripts/riscv_sail_gate.py recomputes this from the committed manifest, so
+    the digest is the one value that makes evidence-vs-corpus staleness
+    mechanically detectable; changing the recipe orphans every committed
+    attestation and requires regenerating the live evidence.
+    """
+    return _sha256(
+        json.dumps(compared, sort_keys=True, separators=(",", ":")).encode()
+    )
+
 # ---------------------------------------------------------------------------
 # RV32IM assembler (encoders follow the RISC-V unprivileged spec exactly)
 # ---------------------------------------------------------------------------
@@ -546,9 +577,16 @@ def gate(
     sail_bin: Path | None = None,
     spike_bin: Path | None = None,
     formal_report: Path | None = None,
+    trace_dump_bin: Path | None = None,
 ) -> int:
     if not VECTOR_FILE.exists():
         print("riscv trace vectors: missing vectors/riscv_elfs/trace_vectors.json", file=sys.stderr)
+        return 1
+    if trace_dump_bin is not None and not trace_dump_bin.is_file():
+        print(
+            f"riscv trace vectors: --trace-dump-bin {trace_dump_bin} does not exist",
+            file=sys.stderr,
+        )
         return 1
     payload = json.loads(VECTOR_FILE.read_text(encoding="utf-8"))
     errors: list[str] = []
@@ -562,7 +600,7 @@ def gate(
 
     errors.extend(admission.errors(payload.get("vectors", []), PROOF_ADMISSION))
 
-    dumper = build_trace_dumper()
+    dumper = trace_dump_bin or build_trace_dumper()
     corpus_opcode_ids: set[int] = set()
     for vector in payload.get("vectors", []):
         name = vector["name"]
@@ -794,9 +832,7 @@ def attest_formal(
             "Zig rejected before retirement"
         )
 
-    comparison_digest = _sha256(
-        json.dumps(compared, sort_keys=True, separators=(",", ":")).encode()
-    )
+    digest = comparison_digest(compared)
     report = {
         "schema": "stwo-riscv-formal-corpus-evidence-v1",
         "profile": payload["profile"],
@@ -808,35 +844,16 @@ def attest_formal(
         "programs": len(compared),
         "retirements": total_retirements,
         "negative_decode_and_trap_cases": len(FORMAL_WORD_DISPOSITIONS),
-        "comparison_digest": comparison_digest,
-        "comparison_fields": [
-            "pc",
-            "instruction",
-            "rd",
-            "rd_value",
-            "next_pc",
-            "memory.address",
-            "memory.read_mask",
-            "memory.read_value",
-            "memory.write_mask",
-            "memory.write_value",
-        ],
-        "spike_comparison_fields": [
-            "pc",
-            "instruction",
-            "rd",
-            "rd_value",
-            "next_pc (through the following commit)",
-            "memory.address",
-            "memory.write_value",
-        ],
+        "comparison_digest": digest,
+        "comparison_fields": list(SAIL_COMPARISON_FIELDS),
+        "spike_comparison_fields": list(SPIKE_COMPARISON_FIELDS),
     }
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(
         f"riscv formal corpus: PASS ({len(compared)} programs, "
-        f"{total_retirements} retirements, digest {comparison_digest})"
+        f"{total_retirements} retirements, digest {digest})"
     )
     return 0
 
@@ -861,6 +878,15 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="write formal evidence (requires both --sail-bin and --spike-bin)",
     )
+    # Digest parity fails loudly on a stale executor, so the gate may take a
+    # prebuilt dumper; hosted gates and --update must keep building from the
+    # checkout so the executor under test is the code under review.
+    parser.add_argument(
+        "--trace-dump-bin",
+        type=Path,
+        metavar="RISCV_TRACE_DUMP",
+        help="prebuilt riscv-trace-dump for local runs that must not `zig build`",
+    )
     parser.add_argument("--scratch", type=Path, default=None, help="working dir for trace output")
     args = parser.parse_args(argv)
     import tempfile
@@ -871,6 +897,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.sail_bin is not None
                 or args.spike_bin is not None
                 or args.formal_report is not None
+                or args.trace_dump_bin is not None
             ):
                 parser.error("--update cannot be combined with live formal options")
             return update(scratch)
@@ -883,6 +910,7 @@ def main(argv: list[str] | None = None) -> int:
             args.sail_bin,
             args.spike_bin,
             args.formal_report,
+            args.trace_dump_bin,
         )
 
     if args.scratch is not None:

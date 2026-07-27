@@ -21,6 +21,12 @@ The two obligations stay separate:
       and memory effect with no PC normalization.
 - [x] The deterministic positive/negative corpus passes live Sail and Spike
       comparison, including strict illegal/reserved/misaligned rejection.
+- [x] That live differential is wired as a fail-closed CI gate
+      (`scripts/riscv_sail_gate.py`): the committed evidence must bind to the
+      committed corpus and pins on every PR, semantics-bearing changes must
+      re-derive it against freshly verified pinned Sail/Spike, and toolchain
+      unavailability is red, never a skip
+      (`conformance/riscv-sail-differential-gate.md`).
 - [x] All applicable upstream RV32I and RV32M architectural tests use
       Sail-generated signatures and pass the zkVM executor.
 - [x] Every applicable architectural test follows execute → secure prove →
