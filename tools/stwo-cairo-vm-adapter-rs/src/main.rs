@@ -1,6 +1,6 @@
 use std::ffi::OsString;
 use std::fs::File;
-use std::io::Read;
+use std::io::{BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -115,7 +115,11 @@ fn write_json_new(path: &Path, value: &impl serde::Serialize) -> Result<()> {
         .create_new(true)
         .open(path)
         .with_context(|| format!("refusing to replace {}", path.display()))?;
-    serde_json::to_writer_pretty(&mut file, value).context("failed to serialize ProverInput")?;
+    {
+        let mut writer = BufWriter::with_capacity(4 << 20, &mut file);
+        serde_json::to_writer(&mut writer, value).context("failed to serialize ProverInput")?;
+        writer.flush().context("failed to flush ProverInput")?;
+    }
     file.sync_all().context("failed to sync ProverInput")
 }
 

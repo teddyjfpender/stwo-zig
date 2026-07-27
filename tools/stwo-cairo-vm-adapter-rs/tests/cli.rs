@@ -77,11 +77,15 @@ fn all_opcodes_program_reproduces_the_official_prover_input() {
         .status()
         .unwrap();
     assert!(status.success());
-    assert_eq!(
-        std::fs::read(output).unwrap(),
-        std::fs::read(repository_path(
-            "vectors/cairo/official/all_opcodes.prover_input.json"
+    let rendered = std::fs::read(output).unwrap();
+    assert!(!rendered.contains(&b'\n'));
+    let actual: Value = serde_json::from_slice(&rendered).unwrap();
+    let expected: Value = serde_json::from_slice(
+        &std::fs::read(repository_path(
+            "vectors/cairo/official/all_opcodes.prover_input.json",
         ))
-        .unwrap()
-    );
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
 }
