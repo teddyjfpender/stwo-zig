@@ -39,6 +39,10 @@ class PinLedger:
     official_cairo_revision: str
     official_cairo_stwo_repository: str
     official_cairo_stwo_revision: str
+    cairo_language_repository: str
+    cairo_language_revision: str
+    cairo_language_version: str
+    cairo_vm_version: str
     cairo_repository: str
     cairo_revision: str
     cairo_stwo_repository: str
@@ -97,6 +101,26 @@ def parse_ledger(path: Path = DEFAULT_LEDGER) -> PinLedger:
             text,
             rf"^- Pinned official Cairo Stwo commit: `({REVISION_RE})`$",
             "official Cairo Stwo revision",
+        ),
+        cairo_language_repository=_single_field(
+            text,
+            r"^- Cairo language repository: `([^`]+)`$",
+            "Cairo language repository",
+        ),
+        cairo_language_revision=_single_field(
+            text,
+            rf"^- Pinned Cairo language commit: `({REVISION_RE})`$",
+            "Cairo language revision",
+        ),
+        cairo_language_version=_single_field(
+            text,
+            r"^- Cairo language version: `([0-9]+\.[0-9]+\.[0-9]+)`$",
+            "Cairo language version",
+        ),
+        cairo_vm_version=_single_field(
+            text,
+            r"^- Cairo VM version: `([0-9]+\.[0-9]+\.[0-9]+)`$",
+            "Cairo VM version",
         ),
         cairo_repository=_single_field(
             text, r"^- Stwo-Cairo repository: `([^`]+)`$", "Cairo Stwo-Cairo repository"
@@ -678,6 +702,10 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
             cairo_revision=ledger.official_cairo_revision,
             stwo_repository=ledger.official_cairo_stwo_repository,
             stwo_revision=ledger.official_cairo_stwo_revision,
+            cairo_language_repository=ledger.cairo_language_repository,
+            cairo_language_revision=ledger.cairo_language_revision,
+            cairo_language_version=ledger.cairo_language_version,
+            cairo_vm_version=ledger.cairo_vm_version,
         )
     )
     errors.extend(

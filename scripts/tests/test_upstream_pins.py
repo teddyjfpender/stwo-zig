@@ -48,9 +48,41 @@ class UpstreamPinTests(unittest.TestCase):
                 root,
                 cairo_repository="https://github.com/starkware-libs/stwo-cairo",
                 cairo_revision="82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+                cairo_vm_version="3.2.0",
             )
 
         self.assertIn("program is absent", "\n".join(errors))
+
+    def test_cairo_executable_rejects_artifact_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(
+                ROOT / "vectors/cairo/programs/executable",
+                root / "vectors/cairo/programs/executable",
+            )
+            gate = root / cairo_vm_adapter.ORACLE_GATE
+            gate.parent.mkdir(parents=True)
+            shutil.copyfile(ROOT / cairo_vm_adapter.ORACLE_GATE, gate)
+            program = (
+                root
+                / "vectors/cairo/programs/executable/add_one.executable.json"
+            )
+            program.write_bytes(program.read_bytes() + b"\n")
+
+            errors = cairo_vm_adapter._check_executable(
+                root,
+                cairo_language_repository=(
+                    "https://github.com/starkware-libs/cairo"
+                ),
+                cairo_language_revision=(
+                    "eea264fa54fac04a1a5745ad533a0c0ab3106ab3"
+                ),
+                cairo_language_version="2.20.0",
+                cairo_vm_version="3.2.0",
+            )
+
+        self.assertIn("program byte length drifted", "\n".join(errors))
+        self.assertIn("program digest drifted", "\n".join(errors))
 
     def test_cairo_ledger_drift_reaches_every_carrier_class(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(

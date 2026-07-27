@@ -1,8 +1,9 @@
 # Official Cairo VM Execution Adapter
 
-This isolated sidecar executes compiled Cairo programs with Cairo VM `3.2.0`
-under the `all_cairo_stwo` proof layout and converts the resulting runner state
-through the pinned official `stwo-cairo-adapter`.
+This isolated sidecar executes legacy compiled Cairo JSON and modern Cairo
+`2.20.0` executable artifacts with Cairo VM `3.2.0` under the
+`all_cairo_stwo` proof layout. It converts the resulting runner state through
+the pinned official `stwo-cairo-adapter`.
 
 It is an execution dependency, not a proof oracle. Zig owns witness generation,
 proof generation, and in-process verification. The separately isolated
@@ -17,6 +18,20 @@ cargo run --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml -- \
   --prover-input-out /absolute/path/prover-input.json
 ```
 
+Modern executable arguments are a JSON array of hexadecimal field elements:
+
+```sh
+cargo run --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml -- \
+  run \
+  --program /absolute/path/program.executable.json \
+  --program-type executable \
+  --arguments /absolute/path/arguments.json \
+  --prover-input-out /absolute/path/prover-input.json
+```
+
 The output path must not exist. Public-memory addresses are sorted before
 serialization so equivalent VM executions have one stable adapter document.
-Executable-format Cairo programs are not yet released and fail closed.
+Legacy JSON preserves the pinned adapter's bootloader segment context.
+Executable artifacts derive the public segment context from their authenticated
+builtin list because the official adapter currently hardcodes the bootloader
+context.

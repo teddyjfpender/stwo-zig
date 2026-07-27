@@ -18,8 +18,8 @@ Protocol parity with Rust. Portable CPU execution. Resident GPU proving on Metal
 
 `stwo-zig` is a parity-first port of [StarkWare's Stwo](https://github.com/starkware-libs/stwo).
 It brings Stwo's circle-STARK protocol to Zig while making memory, vectorization, and device
-execution explicit. The result is one proving stack: pure Stwo with native examples today,
-with the complete official Cairo frontend now being ported under a formal conformance goal.
+execution explicit. The result is one proving stack: pure Stwo with native examples,
+an official-oracle-gated Cairo CPU frontend, and independently owned GPU products.
 
 > [!IMPORTANT]
 > The [pinned Rust Stwo revision](conformance/upstream.md) is the final correctness oracle.
@@ -38,7 +38,7 @@ with the complete official Cairo frontend now being ported under a formal confor
 | Surface | Current status |
 | :--- | :--- |
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
-| **Cairo** | Active production port against official Stwo-Cairo `1.2.2`; existing SN2 machinery is not yet a release-gated general Cairo prover |
+| **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD proofs, compiled JSON and Cairo 2.20 executable execution, and active Metal completion |
 | **RISC-V** | Release-gated Stark-V RV32IM ELF adapter with sharded AIR components, CPU proving, independent verification, and pinned-Rust oracle evidence |
 
 ## Quick Start
@@ -62,7 +62,8 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-native-metal` | macOS with Apple Metal | Parity-gated, source-JIT, device-only CLI |
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
-| Cairo products | No production host | Active port; disabled until the [formal completion matrix](conformance/2026-07-26-stwo-cairo-production-port-goal.md) passes |
+| `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Staged CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
+| `stwo-cairo-metal` | No production host yet | Active port; disabled until its [formal completion matrix](conformance/2026-07-26-stwo-cairo-production-port-goal.md) passes |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
@@ -128,6 +129,29 @@ Fibonacci `--log-n-rows 20 --sequence-len 100`, but still rejects log22 x100
 and maximum-width shapes. Report schema v7 records the selected profile,
 checked geometry, accounting factor, and both budgets so benchmark evidence is
 independently auditable.
+
+## Cairo frontend
+
+The focused CPU product accepts an official `ProverInput`, a compiled Cairo
+JSON program, or a modern Cairo 2.20 executable. Its adjacent identity-bound
+Cairo VM adapter executes programs under `all_cairo_stwo`; Zig owns every
+proving and verification stage.
+
+```sh
+zig build stwo-cairo-cpu -Doptimize=ReleaseFast
+
+zig-out/bin/stwo-cairo-cpu run-and-prove \
+  --program program.executable.json \
+  --program-type executable \
+  --arguments arguments.json \
+  --proof proof.json \
+  --verify
+```
+
+Run `zig build test-cairo-cpu-oracle -Doptimize=ReleaseFast` to replay the
+serial corpus and require acceptance from the exact official Rust
+`verify_cairo`. Metal remains fail-closed until its corresponding release
+matrix is complete.
 
 ## RISC-V frontend
 

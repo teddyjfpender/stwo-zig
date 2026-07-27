@@ -41,6 +41,9 @@ This goal starts from the latest official source inspected on 2026-07-26:
 | Stwo commit | `7b211edde786775016ef3eecb837a6240d8fe792` |
 | Stwo package version | `2.2.0` |
 | Cairo VM | `3.2.0` |
+| Cairo language executable stack | `2.20.0` |
+| Cairo language repository | `https://github.com/starkware-libs/cairo` |
+| Cairo language commit | `eea264fa54fac04a1a5745ad533a0c0ab3106ab3` |
 | Scarb used by upstream | `2.15.0` |
 | Rust edition | `2024` |
 
@@ -358,7 +361,7 @@ The table started at commit `cfd47be9` and is updated as evidence lands on
 | Official JSON input | strict bounded reader plus all-opcodes and all-builtins Rust semantic summaries | complete for the frozen `ProverInput` wire schema |
 | Public statement | exact packed-word digests and Blake2s roots match Rust for both inputs; all-opcodes is anchored to the public data inside the official proof | complete for frozen fixtures |
 | Public lookup boundary | public program, output, safe-call, segment-pointer, and initial/final state relations are derived in official order; the resulting public LogUp term cancels all 46 all-opcodes component claims under both diagnostic and proof-transcript challenges | complete for the frozen all-opcodes proof |
-| Claim geometry | active generator imports only the official 68-field/83-slot registry; direct, gathered, compact, fixed, and memory domains are derived from live input and the authenticated witness graph for both official fixtures and the six-program execution corpus | complete for the admitted CPU corpus |
+| Claim geometry | active generator imports only the official 68-field/83-slot registry; direct, gathered, compact, fixed, and memory domains are derived from live input and the authenticated witness graph for both official fixtures, the six-program legacy corpus, and the executable corpus | complete for the admitted CPU corpus |
 | Official base-trace oracle | isolated official Rust tool emits deterministic per-column and cumulative component checkpoints; all-opcodes pins 46 components/1,464 columns and all-builtins pins 48 components/3,332 columns | complete as the CP-04 comparison authority for two frozen fixtures |
 | Official witness recordings | repository-owned source compiler reproduces an authenticated `STWZWIT/1` checkpoint containing all 64 generated official-source programs and 157,733 SSA instructions; its authenticated 1,780-edge source topology drives generated, fixed, and memory writers without fixture-specific routing | complete for the two frozen CP-04 fixtures |
 | Official base-trace parity | all-opcodes matches 24 generated, 19 fixed, and 3 memory components (46/46); all-builtins matches 26 generated, 19 fixed, and 3 memory components (48/48), including all 624 `partial_ec_mul_generic` columns | complete for the all-family differential fixtures; release corpus adds proof-level coverage |
@@ -370,11 +373,11 @@ The table started at commit `cfd47be9` and is updated as evidence lands on
 | Raw trace prover | proves three register columns | diagnostic only |
 | Program prover | consumes proof-derived semantic packs | development only |
 | Production admission | explicitly rejects current packs | correct fail-closed behavior |
-| CPU product | focused `stwo-cairo-cpu` product, adjacent pinned Cairo VM sidecar, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON, Cairo-serde, and compressed-binary transports, and a serial official Rust oracle gate | compiled-JSON release corpus complete; executable-format programs remain |
+| CPU product | focused `stwo-cairo-cpu` product, adjacent pinned Cairo VM sidecar, checkpoint-free authenticated canonical and canonical-small profiles, strict CLI, product closure, Zig verification, exact JSON, Cairo-serde, and compressed-binary transports, and a serial official Rust oracle gate | compiled-JSON and Cairo 2.20 executable release corpora complete |
 | Metal product | disabled descriptor, no executable or product test | incomplete |
-| Rust oracle | isolated official verifier accepts deterministic Zig all-opcodes, all-builtins, and six-program corpus proofs, rejects mutation, and independently derives canonical Cairo-serde and raw-bincode transports | complete for the admitted CPU corpus and all three released proof transports |
-| Cairo VM execution | isolated `stwo-cairo-vm-adapter` runs compiled Cairo JSON under Cairo VM 3.2.0 with `all_cairo_stwo`, sorts public-memory addresses, reproduces the 181,534-byte official all-opcodes `ProverInput` byte-for-byte, and executes the six-program release corpus | complete for compiled JSON corpus; executable format and arguments corpus remain |
-| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON; `run-and-prove` invokes the adjacent identity-bound VM adapter; both derive the live proof schedule, publish all three transports transactionally, emit format/execution-bound reports, and optionally verify in Zig before publication | complete for direct all-opcodes/all-builtins inputs and the compiled-JSON release corpus; executable format remains |
+| Rust oracle | isolated official verifier accepts deterministic Zig all-opcodes, all-builtins, six legacy-program proofs, and the Cairo 2.20 executable proof, rejects mutation, and independently derives canonical Cairo-serde and raw-bincode transports | complete for the admitted CPU corpus and all three released proof transports |
+| Cairo VM execution | isolated `stwo-cairo-vm-adapter` runs compiled Cairo JSON and modern Cairo 2.20 executables under Cairo VM 3.2.0 with `all_cairo_stwo`, sorts public-memory addresses, reproduces the 181,534-byte official all-opcodes `ProverInput` byte-for-byte, derives standalone public segments from the executable builtin list, and executes the release corpus | complete for compiled JSON and executable formats |
+| CLI execution | installed `stwo-cairo-cpu prove` consumes official JSON; `run-and-prove` invokes the adjacent identity-bound VM adapter for compiled JSON or executable artifacts and optional arguments; both derive the live proof schedule, publish all three transports transactionally, emit format/execution-bound reports, and optionally verify in Zig before publication | complete for direct all-opcodes/all-builtins inputs and both program formats |
 | Metal execution | substantial SN2-specific resident machinery | not release evidence |
 | Repository structure | several Cairo files exceed size policy | incomplete |
 
@@ -398,8 +401,8 @@ proof and required to equal the input-derived Rust statement. RF-02 is
 complete. The same proof pins the exact flat claim, interaction-claim values,
 trace log-size matrix, and claim mix digest. The focused adapter vectors do not
 alone establish witness or proof parity; the live proof and compiled-program
-release gate described below supplies that evidence. Executable-format
-programs remain open under RF-03 and RF-14. The official base checkpoints now
+release gate described below supplies that evidence. The compiled-JSON and
+Cairo 2.20 executable cases close RF-03 and RF-14 for the CPU corpus. The official base checkpoints now
 define the exact CP-04 target after every component: final accumulators are
 `45acd12a96745ee0e9fbc32b5509de84c65676eb4d2a9d2bdb5822b696fd38d6`
 for all-opcodes and
@@ -538,8 +541,7 @@ pinned official Rust verifier accepted the exact published bytes in 0.52
 seconds. This proof exposed and closed a generic lifted-PCS defect: an
 unsampled high-domain preprocessed column must not raise the FRI lifting domain
 above the final split-composition tree. A focused PCS roundtrip now covers that
-heterogeneous-tree case. RF-09 is complete for both frozen profiles and remains
-open only for executable-format and future admitted release cases.
+heterogeneous-tree case. RF-09 is complete for the admitted CPU corpus.
 
 The CPU product also streams the official Cairo-verifier transport without
 building a second in-memory felt document. For the canonical all-builtins
@@ -566,9 +568,9 @@ different conforming bzip2 implementations. RF-11 is complete for the released
 Blake2s transport.
 
 The CPU installation now includes `stwo-cairo-vm-adapter` as a separate
-execution boundary. It is pinned to Cairo VM 3.2.0 and the same official
-Stwo-Cairo/Stwo source pair, and does not contain proof-generation or
-verification authority. Its all-opcodes execution produces byte-identical
+execution boundary. It is pinned to Cairo language 2.20.0, Cairo VM 3.2.0,
+and the same official Stwo-Cairo/Stwo source pair, and does not contain
+proof-generation or verification authority. Its all-opcodes execution produces byte-identical
 `ProverInput` with SHA-256
 `7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6`.
 The installed `run-and-prove` path executes that 3,347,296-byte compiled
@@ -578,8 +580,18 @@ publishes the same 881,489-byte binary proof with SHA-256
 as direct `prove`. On the development host, a functional cold run spent
 368.5 milliseconds in execution and 5.70 seconds in proving; the independent
 official Rust verifier accepted the result. The release gate repeats execution
-parity and proof acceptance. RF-03 and RF-14 remain open for executable-format
-Cairo programs and the argument corpus.
+parity and proof acceptance.
+
+The modern executable corpus pins a 59-byte `#[executable]` source, its
+3,348-byte Cairo 2.20 executable artifact, and the hexadecimal argument vector
+independently. The identity-bound production CLI derived the executable's
+output and range-check public segment context, executed it in 24.10
+milliseconds, proved in 2.09 seconds, and verified in Zig in 4.33 milliseconds.
+It emitted a deterministic 1,884,725-byte JSON proof with SHA-256
+`6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742`;
+the untouched pinned Rust verifier accepted those exact bytes. These are
+functional release-gate timings, not benchmark evidence. RF-03 and RF-14 are
+complete for both admitted program formats.
 
 The repository-owned compiled-program corpus adds six independent programs
 from the same pinned Stwo-Cairo tree. The manifest

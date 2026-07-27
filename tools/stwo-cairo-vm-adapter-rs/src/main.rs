@@ -5,15 +5,11 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result, bail};
-use cairo_vm::cairo_run::{CairoRunConfig, cairo_run_program_with_initial_scope};
-use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-use cairo_vm::hint_processor::hint_processor_definition::HintProcessor;
-use cairo_vm::types::exec_scope::ExecutionScopes;
-use cairo_vm::types::layout_name::LayoutName;
-use cairo_vm::types::program::Program;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use stwo_cairo_adapter::adapter::adapt;
+
+mod execution;
 
 const STWO_CAIRO_REVISION: &str = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78";
 const STWO_REVISION: &str = "7b211edde786775016ef3eecb837a6240d8fe792";
@@ -25,6 +21,7 @@ enum Command {
     Identity,
     Run {
         program: PathBuf,
+        program_type: execution::ProgramType,
         arguments: Option<PathBuf>,
         output: PathBuf,
     },
@@ -49,9 +46,10 @@ fn run() -> Result<()> {
                 &json!({
                     "schema_version": 1,
                     "name": "stwo-cairo-vm-adapter",
-                    "program_types": ["json"],
+                    "program_types": execution::PROGRAM_TYPE_NAMES,
                     "layout": "all_cairo_stwo",
                     "cairo_vm_version": CAIRO_VM_VERSION,
+                    "cairo_language_version": execution::CAIRO_LANGUAGE_VERSION,
                     "stwo_cairo_revision": STWO_CAIRO_REVISION,
                     "stwo_revision": STWO_REVISION,
                     "executable_sha256": sha256_file(&executable)?,
@@ -61,42 +59,30 @@ fn run() -> Result<()> {
         }
         Command::Run {
             program,
+            program_type,
             arguments,
             output,
-        } => run_json_program(&program, arguments.as_deref(), &output)?,
+        } => run_program(program_type, &program, arguments.as_deref(), &output)?,
     }
     Ok(())
 }
 
-fn run_json_program(
+fn run_program(
+    program_type: execution::ProgramType,
     program_path: &Path,
     arguments_path: Option<&Path>,
     output_path: &Path,
 ) -> Result<()> {
     let program_bytes = read_bounded(program_path, MAX_PROGRAM_BYTES)?;
-    let program = Program::from_bytes(&program_bytes, Some("main"))
-        .context("failed to decode compiled Cairo JSON program")?;
-    let mut scopes = ExecutionScopes::new();
-    if let Some(arguments_path) = arguments_path {
-        let arguments = read_bounded(arguments_path, MAX_ARGUMENT_BYTES)?;
-        let arguments = String::from_utf8(arguments)
-            .context("legacy Cairo JSON arguments are not valid UTF-8")?;
-        scopes.insert_value("program_input", arguments);
+    let argument_bytes = arguments_path
+        .map(|path| read_bounded(path, MAX_ARGUMENT_BYTES))
+        .transpose()?;
+    let execution = execution::run(program_type, &program_bytes, argument_bytes.as_deref())?;
+    let mut prover_input =
+        adapt(&execution.runner).context("official Stwo-Cairo adaptation failed")?;
+    if let Some(public_segment_context) = execution.public_segment_context {
+        prover_input.public_segment_context = public_segment_context;
     }
-    scopes.insert_value("program_object", program.clone());
-    let mut hints = Box::new(BuiltinHintProcessor::new_empty()) as Box<dyn HintProcessor>;
-    let config = CairoRunConfig {
-        trace_enabled: true,
-        relocate_trace: false,
-        layout: LayoutName::all_cairo_stwo,
-        fill_holes: true,
-        proof_mode: true,
-        disable_trace_padding: true,
-        ..Default::default()
-    };
-    let runner = cairo_run_program_with_initial_scope(&program, &config, hints.as_mut(), scopes)
-        .context("official Cairo VM execution failed")?;
-    let mut prover_input = adapt(&runner).context("official Stwo-Cairo adaptation failed")?;
     prover_input.public_memory_addresses.sort_unstable();
     write_json_new(output_path, &prover_input)
 }
@@ -181,13 +167,10 @@ where
             _ => bail!("unknown option {flag}"),
         }
     }
-    let program_type = program_type.unwrap_or_else(|| "json".to_owned());
-    anyhow::ensure!(
-        program_type == "json",
-        "unsupported program type {program_type:?}; expected json"
-    );
+    let program_type = execution::ProgramType::parse(program_type.as_deref().unwrap_or("json"))?;
     Ok(Command::Run {
         program: program.ok_or_else(|| anyhow::anyhow!("missing --program"))?,
+        program_type,
         arguments,
         output: output.ok_or_else(|| anyhow::anyhow!("missing --prover-input-out"))?,
     })
@@ -208,12 +191,32 @@ mod tests {
     fn parser_rejects_unknown_program_types_and_duplicate_paths() {
         assert!(
             parse_args(
-                ["run", "--program", "p.json", "--program-type", "executable"]
+                ["run", "--program", "p.json", "--program-type", "sierra"]
                     .into_iter()
                     .map(OsString::from)
             )
             .is_err()
         );
+        assert!(matches!(
+            parse_args(
+                [
+                    "run",
+                    "--program",
+                    "p.json",
+                    "--program-type",
+                    "executable",
+                    "--prover-input-out",
+                    "out.json",
+                ]
+                .into_iter()
+                .map(OsString::from)
+            )
+            .unwrap(),
+            Command::Run {
+                program_type: execution::ProgramType::Executable,
+                ..
+            }
+        ));
         assert!(
             parse_args(
                 [

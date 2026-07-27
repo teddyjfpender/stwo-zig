@@ -19,6 +19,8 @@ const OracleResult = struct {
 const ProgramCase = struct {
     name: []const u8,
     program: []const u8,
+    program_type: []const u8 = "json",
+    arguments: ?[]const u8 = null,
     proof_format: []const u8 = "json",
 };
 
@@ -288,6 +290,12 @@ fn addRunAndProveGate(
             .name = "pedersen",
             .program = "vectors/cairo/programs/test_prove_verify_pedersen_builtin/compiled.json",
         },
+        .{
+            .name = "executable-add-one",
+            .program = "vectors/cairo/programs/executable/add_one.executable.json",
+            .program_type = "executable",
+            .arguments = "vectors/cairo/programs/executable/add_one.arguments.json",
+        },
     }) |case| {
         completed = addRunAndProveCase(
             b,
@@ -321,7 +329,12 @@ fn addRunAndProveCase(
     );
     prove.addArgs(&.{ "run-and-prove", "--program" });
     prove.addFileArg(b.path(case.program));
-    prove.addArgs(&.{ "--program-type", "json", "--params" });
+    prove.addArgs(&.{ "--program-type", case.program_type });
+    if (case.arguments) |arguments| {
+        prove.addArg("--arguments");
+        prove.addFileArg(b.path(arguments));
+    }
+    prove.addArg("--params");
     prove.addFileArg(b.path(
         "vectors/cairo/official/all_opcodes.params.json",
     ));

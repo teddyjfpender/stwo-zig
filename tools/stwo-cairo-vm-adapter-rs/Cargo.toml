@@ -11,9 +11,14 @@ stwo-cairo-revision = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78"
 stwo-repository = "https://github.com/starkware-libs/stwo"
 stwo-revision = "7b211edde786775016ef3eecb837a6240d8fe792"
 cairo-vm-version = "3.2.0"
+cairo-language-version = "2.20.0"
 
 [dependencies]
 anyhow = "1.0"
+cairo-lang-executable = "=2.20.0"
+cairo-lang-execute-utils = "=2.20.0"
+cairo-lang-runner = "=2.20.0"
+cairo-lang-utils = "=2.20.0"
 cairo-vm = { version = "=3.2.0", features = ["extensive_hints", "mod_builtin"], default-features = false }
 serde = "1.0"
 serde_json = "1.0"

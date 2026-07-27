@@ -36,6 +36,10 @@ acceptance. The production port targets the current official StarkWare source pa
 - Pinned official Stwo-Cairo commit: `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`
 - Official Cairo Stwo repository: `https://github.com/starkware-libs/stwo`
 - Pinned official Cairo Stwo commit: `7b211edde786775016ef3eecb837a6240d8fe792`
+- Cairo language repository: `https://github.com/starkware-libs/cairo`
+- Pinned Cairo language commit: `eea264fa54fac04a1a5745ad533a0c0ab3106ab3`
+- Cairo language version: `2.20.0`
+- Cairo VM version: `3.2.0`
 
 These revisions govern the production AIR registry, isolated base/interaction
 trace oracle, and final Rust `verify_cairo` adapter. The completion

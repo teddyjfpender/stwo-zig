@@ -11,10 +11,13 @@ from pathlib import Path
 MANIFEST = "tools/stwo-cairo-vm-adapter-rs/Cargo.toml"
 PROVENANCE = "vectors/cairo/programs/all_opcodes.provenance.json"
 CORPUS_PROVENANCE = "vectors/cairo/programs/official_corpus.provenance.json"
+EXECUTABLE_PROVENANCE = (
+    "vectors/cairo/programs/executable/add_one.provenance.json"
+)
 ORACLE_GATE = "build_support/products/cairo_cpu/oracle_gate.zig"
-CAIRO_VM_VERSION = "3.2.0"
 PROGRAM_SCHEMA = "stwo_cairo_compiled_program_vector_v1"
 CORPUS_SCHEMA = "stwo_cairo_compiled_program_corpus_v1"
+EXECUTABLE_SCHEMA = "stwo_cairo_executable_program_vector_v1"
 EXECUTION_ADAPTER = "tools/stwo-cairo-vm-adapter-rs"
 EXECUTION_LAYOUT = "all_cairo_stwo"
 EXECUTION_PARAMS = "vectors/cairo/official/all_opcodes.params.json"
@@ -27,6 +30,10 @@ def check(
     cairo_revision: str,
     stwo_repository: str,
     stwo_revision: str,
+    cairo_language_repository: str,
+    cairo_language_revision: str,
+    cairo_language_version: str,
+    cairo_vm_version: str,
 ) -> list[str]:
     errors = _check_manifest(
         root,
@@ -34,12 +41,15 @@ def check(
         cairo_revision=cairo_revision,
         stwo_repository=stwo_repository,
         stwo_revision=stwo_revision,
+        cairo_language_version=cairo_language_version,
+        cairo_vm_version=cairo_vm_version,
     )
     errors.extend(
         _check_program(
             root,
             cairo_repository=cairo_repository,
             cairo_revision=cairo_revision,
+            cairo_vm_version=cairo_vm_version,
         )
     )
     errors.extend(
@@ -47,6 +57,16 @@ def check(
             root,
             cairo_repository=cairo_repository,
             cairo_revision=cairo_revision,
+            cairo_vm_version=cairo_vm_version,
+        )
+    )
+    errors.extend(
+        _check_executable(
+            root,
+            cairo_language_repository=cairo_language_repository,
+            cairo_language_revision=cairo_language_revision,
+            cairo_language_version=cairo_language_version,
+            cairo_vm_version=cairo_vm_version,
         )
     )
     return errors
@@ -59,6 +79,8 @@ def _check_manifest(
     cairo_revision: str,
     stwo_repository: str,
     stwo_revision: str,
+    cairo_language_version: str,
+    cairo_vm_version: str,
 ) -> list[str]:
     try:
         with (root / MANIFEST).open("rb") as handle:
@@ -75,7 +97,8 @@ def _check_manifest(
         "stwo-cairo-revision": cairo_revision,
         "stwo-repository": stwo_repository,
         "stwo-revision": stwo_revision,
-        "cairo-vm-version": CAIRO_VM_VERSION,
+        "cairo-vm-version": cairo_vm_version,
+        "cairo-language-version": cairo_language_version,
     }
     errors = [
         f"{MANIFEST}: metadata {key!r} is {metadata.get(key)!r}, expected {expected!r}"
@@ -93,10 +116,21 @@ def _check_manifest(
             f"expected {cairo_repository!r}@{cairo_revision!r}"
         )
     cairo_vm = dependencies.get("cairo-vm")
-    if not isinstance(cairo_vm, dict) or cairo_vm.get("version") != f"={CAIRO_VM_VERSION}":
+    if not isinstance(cairo_vm, dict) or cairo_vm.get("version") != f"={cairo_vm_version}":
         errors.append(
-            f"{MANIFEST}: cairo-vm must be pinned exactly to '={CAIRO_VM_VERSION}'"
+            f"{MANIFEST}: cairo-vm must be pinned exactly to '={cairo_vm_version}'"
         )
+    for name in (
+        "cairo-lang-executable",
+        "cairo-lang-execute-utils",
+        "cairo-lang-runner",
+        "cairo-lang-utils",
+    ):
+        if dependencies.get(name) != f"={cairo_language_version}":
+            errors.append(
+                f"{MANIFEST}: {name} must be pinned exactly to "
+                f"'={cairo_language_version}'"
+            )
     for name, value in dependencies.items():
         if isinstance(value, dict) and "path" in value:
             errors.append(f"{MANIFEST}: path dependency {name!r} is forbidden")
@@ -111,6 +145,7 @@ def _check_program(
     *,
     cairo_repository: str,
     cairo_revision: str,
+    cairo_vm_version: str,
 ) -> list[str]:
     try:
         provenance = json.loads((root / PROVENANCE).read_text(encoding="utf-8"))
@@ -137,7 +172,7 @@ def _check_program(
     if program.get("sha256") != hashlib.sha256(data).hexdigest():
         errors.append(f"{PROVENANCE}: program digest drifted")
     execution = provenance.get("execution", {})
-    if execution.get("cairo_vm_version") != CAIRO_VM_VERSION:
+    if execution.get("cairo_vm_version") != cairo_vm_version:
         errors.append(f"{PROVENANCE}: Cairo VM version drifted")
     if execution.get("layout") != "all_cairo_stwo":
         errors.append(f"{PROVENANCE}: execution layout drifted")
@@ -149,6 +184,7 @@ def _check_program_corpus(
     *,
     cairo_repository: str,
     cairo_revision: str,
+    cairo_vm_version: str,
 ) -> list[str]:
     try:
         provenance = json.loads(
@@ -169,7 +205,7 @@ def _check_program_corpus(
     execution = provenance.get("execution", {})
     if execution.get("adapter") != EXECUTION_ADAPTER:
         errors.append(f"{CORPUS_PROVENANCE}: execution adapter drifted")
-    if execution.get("cairo_vm_version") != CAIRO_VM_VERSION:
+    if execution.get("cairo_vm_version") != cairo_vm_version:
         errors.append(f"{CORPUS_PROVENANCE}: Cairo VM version drifted")
     if execution.get("layout") != EXECUTION_LAYOUT:
         errors.append(f"{CORPUS_PROVENANCE}: execution layout drifted")
@@ -236,4 +272,92 @@ def _check_program_corpus(
             errors.append(f"{label}: program byte length drifted")
         if program.get("sha256") != hashlib.sha256(data).hexdigest():
             errors.append(f"{label}: program digest drifted")
+    return errors
+
+
+def _check_executable(
+    root: Path,
+    *,
+    cairo_language_repository: str,
+    cairo_language_revision: str,
+    cairo_language_version: str,
+    cairo_vm_version: str,
+) -> list[str]:
+    try:
+        provenance = json.loads(
+            (root / EXECUTABLE_PROVENANCE).read_text(encoding="utf-8")
+        )
+        oracle_gate = (root / ORACLE_GATE).read_text(encoding="utf-8")
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{EXECUTABLE_PROVENANCE}: unable to load evidence: {error}"]
+
+    errors: list[str] = []
+    if provenance.get("schema") != EXECUTABLE_SCHEMA:
+        errors.append(f"{EXECUTABLE_PROVENANCE}: schema drifted")
+    compiler = provenance.get("compiler", {})
+    expected_compiler = {
+        "package": "cairo-execute",
+        "version": cairo_language_version,
+        "repository": cairo_language_repository,
+        "revision": cairo_language_revision,
+        "tag": f"v{cairo_language_version}",
+    }
+    for key, expected in expected_compiler.items():
+        if compiler.get(key) != expected:
+            errors.append(
+                f"{EXECUTABLE_PROVENANCE}: compiler {key} drifted"
+            )
+    for label in ("source", "program", "arguments"):
+        artifact = provenance.get(label, {})
+        path = artifact.get("path")
+        if (
+            not isinstance(path, str)
+            or Path(path).is_absolute()
+            or ".." in Path(path).parts
+        ):
+            errors.append(
+                f"{EXECUTABLE_PROVENANCE}: invalid {label} path"
+            )
+            continue
+        try:
+            data = (root / path).read_bytes()
+        except OSError as error:
+            errors.append(
+                f"{EXECUTABLE_PROVENANCE}: unable to read {label}: {error}"
+            )
+            continue
+        if artifact.get("bytes") != len(data):
+            errors.append(
+                f"{EXECUTABLE_PROVENANCE}: {label} byte length drifted"
+            )
+        if artifact.get("sha256") != hashlib.sha256(data).hexdigest():
+            errors.append(f"{EXECUTABLE_PROVENANCE}: {label} digest drifted")
+        if label != "source" and f'"{path}"' not in oracle_gate:
+            errors.append(
+                f"{EXECUTABLE_PROVENANCE}: {label} is absent from "
+                f"{ORACLE_GATE}"
+            )
+    program = provenance.get("program", {})
+    if program.get("entrypoint") != "Standalone":
+        errors.append(f"{EXECUTABLE_PROVENANCE}: entrypoint drifted")
+    if program.get("builtins") != ["output", "range_check"]:
+        errors.append(f"{EXECUTABLE_PROVENANCE}: builtin list drifted")
+    execution = provenance.get("execution", {})
+    expected_execution = {
+        "adapter": EXECUTION_ADAPTER,
+        "cairo_language_version": cairo_language_version,
+        "cairo_vm_version": cairo_vm_version,
+        "layout": EXECUTION_LAYOUT,
+        "params": EXECUTION_PARAMS,
+    }
+    for key, expected in expected_execution.items():
+        if execution.get(key) != expected:
+            errors.append(
+                f"{EXECUTABLE_PROVENANCE}: execution {key} drifted"
+            )
+    if '"executable"' not in oracle_gate:
+        errors.append(
+            f"{EXECUTABLE_PROVENANCE}: executable type is absent from "
+            f"{ORACLE_GATE}"
+        )
     return errors

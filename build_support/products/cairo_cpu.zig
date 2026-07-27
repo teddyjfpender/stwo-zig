@@ -11,7 +11,7 @@ const graph = @import("../graph/modules.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
-    "stwo-cairo-v1.2.2+official-vm-adapter-v1+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
+    "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{

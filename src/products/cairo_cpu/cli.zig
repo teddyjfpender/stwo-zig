@@ -34,6 +34,7 @@ pub const Prove = struct {
 
 pub const ProgramType = enum {
     json,
+    executable,
 
     pub fn name(self: ProgramType) []const u8 {
         return @tagName(self);
@@ -246,8 +247,8 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
         ),
         .run_and_prove => try writer.writeAll(
             \\Usage: stwo-cairo-cpu run-and-prove --program PATH --proof PATH [options]
-            \\  --program-type TYPE    Compiled Cairo program type: json
-            \\  --arguments PATH       Optional legacy Cairo program input JSON
+            \\  --program-type TYPE    Compiled program type: json or executable
+            \\  --arguments PATH       Optional program arguments JSON
             \\  --params PATH          Authenticated proving-profile manifest
             \\  --proof-format FORMAT  json, cairo-serde, or binary
             \\  --report-out PATH      Write the machine-readable proving report
@@ -351,6 +352,24 @@ test "Cairo CPU run-and-prove keeps execution arguments separate" {
     try std.testing.expect(parsed.run_and_prove.verify);
 }
 
+test "Cairo CPU run-and-prove admits modern executable artifacts" {
+    const parsed = try parse(&.{
+        "run-and-prove",
+        "--program",
+        "add_one.executable.json",
+        "--program-type",
+        "executable",
+        "--arguments",
+        "arguments.json",
+        "--proof",
+        "proof.json",
+    });
+    try std.testing.expectEqual(
+        ProgramType.executable,
+        parsed.run_and_prove.program_type,
+    );
+}
+
 test "Cairo CPU CLI rejects unsupported and duplicate arguments" {
     try std.testing.expectError(error.DuplicateArgument, parse(&.{
         "prove",
@@ -369,5 +388,14 @@ test "Cairo CPU CLI rejects unsupported and duplicate arguments" {
         "input.json",
         "--proof-format",
         "postcard",
+    }));
+    try std.testing.expectError(error.InvalidProgramType, parse(&.{
+        "run-and-prove",
+        "--program",
+        "program.sierra.json",
+        "--program-type",
+        "sierra",
+        "--proof",
+        "proof.json",
     }));
 }

@@ -65,6 +65,8 @@ pub const Value = struct {
             registry.source_revision.stwo_cairo,
         );
         try field(writer, "stwo_revision", registry.source_revision.stwo);
+        try field(writer, "cairo_language_version", "2.20.0");
+        try field(writer, "cairo_vm_version", "3.2.0");
         try writer.endObject();
         try writer.endObject();
     }

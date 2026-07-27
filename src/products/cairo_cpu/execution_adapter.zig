@@ -5,6 +5,15 @@ const builtin = @import("builtin");
 
 pub const environment_variable = "STWO_CAIRO_VM_ADAPTER";
 
+const expected_name = "stwo-cairo-vm-adapter";
+const expected_layout = "all_cairo_stwo";
+const expected_cairo_language_version = "2.20.0";
+const expected_cairo_vm_version = "3.2.0";
+const expected_stwo_cairo_revision =
+    "82f21252a68ec006d73e299f5bf1ce6d4db0ee78";
+const expected_stwo_revision =
+    "7b211edde786775016ef3eecb837a6240d8fe792";
+
 pub const Request = struct {
     program: []const u8,
     program_type: []const u8,
@@ -29,6 +38,8 @@ pub fn run(
     const adapter = try adapterPath(allocator);
     defer allocator.free(adapter);
     try validateExecutable(adapter);
+    const adapter_sha256 = try fileSha256(adapter);
+    try validateIdentity(allocator, adapter, adapter_sha256);
 
     const started = std.time.Instant.now() catch
         return error.ClockUnavailable;
@@ -67,7 +78,7 @@ pub fn run(
             try fileSha256(path)
         else
             null,
-        .adapter_sha256 = try fileSha256(adapter),
+        .adapter_sha256 = adapter_sha256,
         .execution_ns = execution_ns,
     };
 }
@@ -119,6 +130,67 @@ fn validateExecutable(path: []const u8) !void {
         return error.InvalidExecutionAdapter;
 }
 
+const Identity = struct {
+    schema_version: u32,
+    name: []const u8,
+    program_types: []const []const u8,
+    layout: []const u8,
+    cairo_vm_version: []const u8,
+    cairo_language_version: []const u8,
+    stwo_cairo_revision: []const u8,
+    stwo_revision: []const u8,
+    executable_sha256: []const u8,
+};
+
+fn validateIdentity(
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    executable_sha256: [32]u8,
+) !void {
+    const result = try std.process.Child.run(.{
+        .allocator = allocator,
+        .argv = &.{ path, "identity" },
+        .max_output_bytes = 16 * 1024,
+    });
+    defer allocator.free(result.stdout);
+    defer allocator.free(result.stderr);
+    try requireSuccess(result.term);
+    var parsed = std.json.parseFromSlice(
+        Identity,
+        allocator,
+        result.stdout,
+        .{},
+    ) catch return error.InvalidExecutionAdapterIdentity;
+    defer parsed.deinit();
+    try validateIdentityValue(parsed.value, executable_sha256);
+}
+
+fn validateIdentityValue(identity: Identity, executable_sha256: [32]u8) !void {
+    const digest = std.fmt.bytesToHex(executable_sha256, .lower);
+    if (identity.schema_version != 1 or
+        !std.mem.eql(u8, identity.name, expected_name) or
+        identity.program_types.len != 2 or
+        !std.mem.eql(u8, identity.program_types[0], "json") or
+        !std.mem.eql(u8, identity.program_types[1], "executable") or
+        !std.mem.eql(u8, identity.layout, expected_layout) or
+        !std.mem.eql(
+            u8,
+            identity.cairo_language_version,
+            expected_cairo_language_version,
+        ) or
+        !std.mem.eql(u8, identity.cairo_vm_version, expected_cairo_vm_version) or
+        !std.mem.eql(
+            u8,
+            identity.stwo_cairo_revision,
+            expected_stwo_cairo_revision,
+        ) or
+        !std.mem.eql(u8, identity.stwo_revision, expected_stwo_revision) or
+        !std.mem.eql(u8, identity.executable_sha256, &digest))
+    {
+        return error.InvalidExecutionAdapterIdentity;
+    }
+}
+
 fn runChild(
     allocator: std.mem.Allocator,
     argv: []const []const u8,
@@ -149,5 +221,27 @@ test "execution adapter exit status fails closed" {
     try std.testing.expectError(
         error.ExecutionAdapterTerminated,
         requireSuccess(.{ .Signal = 9 }),
+    );
+}
+
+test "execution adapter identity binds versions, surface, and bytes" {
+    const digest = [_]u8{0xab} ** 32;
+    const valid = Identity{
+        .schema_version = 1,
+        .name = expected_name,
+        .program_types = &.{ "json", "executable" },
+        .layout = expected_layout,
+        .cairo_vm_version = expected_cairo_vm_version,
+        .cairo_language_version = expected_cairo_language_version,
+        .stwo_cairo_revision = expected_stwo_cairo_revision,
+        .stwo_revision = expected_stwo_revision,
+        .executable_sha256 = "abababababababababababababababababababababababababababababababab",
+    };
+    try validateIdentityValue(valid, digest);
+    var drifted = valid;
+    drifted.cairo_language_version = "2.19.3";
+    try std.testing.expectError(
+        error.InvalidExecutionAdapterIdentity,
+        validateIdentityValue(drifted, digest),
     );
 }
