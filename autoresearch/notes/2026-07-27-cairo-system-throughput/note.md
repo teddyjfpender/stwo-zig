@@ -2,8 +2,8 @@
 
 ## Status
 
-Active diagnostic research based on `feature/cairo-frontend-completion` commit
-`734f1eab612720ecf6c3a5413e9759e6d0b675ea`. This is not a Native-board
+Final Cairo throughput research round based on the merged soundness head
+`053db61ad5c2f7561028424ed5c137feaf8729fc`. This is not a Native-board
 promotion: the current autoresearch manifest does not yet score the Cairo
 frontend.
 
@@ -170,3 +170,63 @@ The immediate next candidate is not another interpreter micro-optimization.
 It is a Metal System Trace of the FRI quotient stage followed by a live-code
 base-trace pass/allocation profile. Diagnostic artifacts are stored under
 `/private/tmp/cairo-stage-profile-20260727`.
+
+## Final Metal quotient round
+
+The 5.15x FRI inversion came from an unbounded scheduling branch, not weak FRI
+arithmetic. Arithmetic-2m supplies 1.821 GB of raw quotient columns in 361
+physical source runs. Although the runtime documents a 64-run ceiling, its
+historical `raw_bytes >= 64 MiB` predicate launched one full-domain numerator
+pass per run. Device timing measured 1,291 ms for those passes.
+
+The accepted candidate applies the run ceiling at every byte size. Large,
+high-fragmentation inputs are gathered once with a Metal blit encoder into a
+private flat arena and evaluated by the existing fused raw quotient kernel.
+Low-run resident inputs retain zero-copy segmented evaluation; small
+fragmented inputs retain the previously proven CPU flat pack. Selection uses
+only byte volume and physical source fragmentation.
+
+Arithmetic-2m FRI quotient/commit falls from 1,350 ms to 212 ms, a 6.37x stage
+improvement. Its complete proof falls from 5.351 s to 4.107 s in the adjacent
+profile, a 1.30x system improvement. Exact proof bytes and zero-fallback
+classification are unchanged.
+
+The exact-predecessor A-B-B-A portfolio result is:
+
+| Workload | Predecessor mean ms | Candidate mean ms | Speedup |
+| --- | ---: | ---: | ---: |
+| all-opcodes | 7,355.605 | 3,130.339 | 2.350x |
+| Poseidon aggregator | 5,758.749 | 2,688.987 | 2.141x |
+| Pedersen aggregator | 7,627.300 | 5,622.601 | 1.357x |
+| Fibonacci 100k | 3,533.128 | 2,785.952 | 1.268x |
+| Factorial 100k | 5,621.864 | 5,297.604 | 1.061x |
+| Arithmetic 2m | 5,600.671 | 4,340.107 | 1.290x |
+| Memory 7m | 13,774.909 | 10,841.578 | 1.271x |
+
+Geometric-mean prove ratio is `0.678774`, or `1.473x` throughput. All 28
+measured proofs verified, each row was byte-identical across predecessor and
+candidate, and Metal reported zero CPU fallbacks throughout. Cold wall ratio
+is `0.683646`.
+
+The optimization trades latency for a larger temporary source arena.
+Geometric-mean peak-footprint ratio is `1.100906`; memory-7m rises from 13.722
+to 16.433 GiB. That measured cost is accepted for this research candidate but
+must remain visible in any later promotion or service-capacity decision.
+
+The original memory corpus artifact was invalid under the sound global LogUp
+statement path because it encoded a reversed output segment. The final row
+uses the intended `stwo_memory_200x300.json` execution, preserves the
+historical proof hash, and does not weaken statement validation.
+
+Final validation passed:
+
+- `zig build metal-check test-cairo-metal-product -Doptimize=ReleaseFast
+  -Dmetal-core-aot-bundle=/private/tmp/cairo-quotient-baseline-v2/aot-bundle
+  -j2`;
+- `zig build test-native-metal test-cairo-metal-oracle
+  -Doptimize=ReleaseFast
+  -Dmetal-core-aot-bundle=/private/tmp/cairo-quotient-baseline-v2/aot-bundle
+  -j2`;
+- exact proof verification and zero-fallback assertions in every measured
+  candidate process; and
+- `git diff --check`.
