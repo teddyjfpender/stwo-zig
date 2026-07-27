@@ -190,5 +190,54 @@ been the wrong call. The negative is the finding.
 
 ## Validation performed on the unchanged head
 
-Recorded in the note. No source file differs from `ad2d3ac5`; the commit
-carries the note and this transcript only.
+Paired A-B-B-A between the pristine predecessor `zig-out` copy and a fresh
+rebuild of the same sources. Raw lines as emitted, with the `uptime` that
+preceded each:
+
+```
+--- arithmetic-2m pred 1   load 4.57 3.98 4.01
+prove_ms=3142.939 quotient_ms=300.489 sha=25e5719f... fallbacks=0
+--- arithmetic-2m cand 1   load 4.44 3.96 4.00
+prove_ms=3296.576 quotient_ms=342.335 sha=25e5719f... fallbacks=0
+--- arithmetic-2m cand 2   load 6.97 4.49 4.19
+prove_ms=3202.980 quotient_ms=331.860 sha=25e5719f... fallbacks=0
+--- arithmetic-2m pred 2   load 6.73 4.49 4.19
+prove_ms=3178.248 quotient_ms=300.461 sha=25e5719f... fallbacks=0
+--- memory-7m pred 1   load 6.59 4.49 4.19
+prove_ms=7392.830 quotient_ms=617.102 sha=e3317e55... fallbacks=0
+--- memory-7m cand 1   load 8.25 4.94 4.35
+prove_ms=7584.830 quotient_ms=623.093 sha=e3317e55... fallbacks=0
+--- memory-7m cand 2   load 9.35 5.22 4.46
+prove_ms=7591.878 quotient_ms=607.022 sha=e3317e55... fallbacks=0
+--- memory-7m pred 2   load 11.09 5.71 4.64
+prove_ms=7437.917 quotient_ms=602.469 sha=e3317e55... fallbacks=0
+--- all-opcodes pred 1   load 11.19 5.90 4.72
+prove_ms=1643.247 quotient_ms=138.474 sha=79ae76e1... fallbacks=0
+--- all-opcodes cand 1   load 10.86 5.92 4.73
+prove_ms=1603.982 quotient_ms=137.453 sha=79ae76e1... fallbacks=0
+```
+
+Contamination, stated plainly: `test-riscv-release-exhaustive` had been running
+in another checkout since 23:28 and was still running at the end, and the
+`stwo-cairo-metal` build overlapped the first two arithmetic-2m samples. That
+is why the load average climbed from 4.57 to 11.19 across the block. I should
+have serialised the Metal build ahead of the timing block; I did not, and the
+A-B-B-A ordering is the only mitigation applied.
+
+Because both arms are the same sources, the resulting spread is the noise
+floor, not an effect: -2.4% to +2.8% on prove time, up to +12.2% on the
+quotient stage alone. That is the single most useful number this increment
+produced for the campaign — it sets the bar any later candidate must clear.
+
+Other checks:
+
+- Official Rust verifier on `arithmetic-2m-cand-1.proof.json`:
+  `{"verified":true,"channel":"blake2s","proof_sha256":"25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6","wall_time_ns":197993125,"error":null}`.
+- Metal arithmetic-2m: digest `25e5719f...` identical to CPU,
+  `classification: accelerated_without_fallbacks`, `metal_dispatches: 74`,
+  `cpu_fallbacks: 0`, prove 2,156.876 ms.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  passed. Closure PASS, 326 transitive Zig sources, identity `dirty: false`.
+
+No source file differs from `ad2d3ac5`; the commits carry the note and this
+transcript only.

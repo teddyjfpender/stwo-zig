@@ -142,6 +142,69 @@ one fused domain pass, group-collapsed accumulation, and a compact-plan
 predicate that admits the largest measured Cairo inputs. Porting the Metal
 remedy would be a no-op because the condition it repairs never occurs here.
 
+### Paired measurement and noise floor
+
+Because the increment ships no source change, the A-B-B-A run compares two
+builds of the same sources: the pristine predecessor tree copied to
+`/private/tmp/campaign-inc1-pred/zig-out` before any edit, and a fresh rebuild
+after the instrumentation was reverted. Its value is not a treatment effect —
+there is none — but a calibration of this host's noise floor, which every
+later increment in the campaign must clear.
+
+Cold processes, interleaved pred/cand/cand/pred, `--verify` on every run, no
+sample discarded.
+
+| Workload | Arm | Prove ms | Quotient stage ms |
+| --- | --- | ---: | ---: |
+| arithmetic-2m | pred 1 | 3,142.939 | 300.489 |
+| arithmetic-2m | cand 1 | 3,296.576 | 342.335 |
+| arithmetic-2m | cand 2 | 3,202.980 | 331.860 |
+| arithmetic-2m | pred 2 | 3,178.248 | 300.461 |
+| memory-7m | pred 1 | 7,392.830 | 617.102 |
+| memory-7m | cand 1 | 7,584.830 | 623.093 |
+| memory-7m | cand 2 | 7,591.878 | 607.022 |
+| memory-7m | pred 2 | 7,437.917 | 602.469 |
+| all-opcodes | pred 1 | 1,643.247 | 138.474 |
+| all-opcodes | cand 1 | 1,603.982 | 137.453 |
+
+| Workload | Pred mean prove ms | Cand mean prove ms | Ratio | Pred mean quotient ms | Cand mean quotient ms | Ratio |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| arithmetic-2m | 3,160.594 | 3,249.778 | 1.028x | 300.475 | 337.098 | 1.122x |
+| memory-7m | 7,415.374 | 7,588.354 | 1.023x | 609.786 | 615.058 | 1.009x |
+| all-opcodes | 1,643.247 | 1,603.982 | 0.976x | 138.474 | 137.453 | 0.993x |
+
+Identical sources therefore produced spreads of -2.4% to +2.8% on complete
+prove time and up to +12.2% on the quotient stage alone. **Any future
+single-digit-percent claim on this host is inside the noise and must not be
+accepted without more samples or a quieter machine.**
+
+Host load: the block opened at load average 4.57 and closed at 10.86.
+Contamination was real and is reported rather than hidden. An unrelated
+`test-riscv-release-exhaustive` suite ran in another checkout for the entire
+session, and the Metal product build overlapped the first arithmetic-2m
+samples. A-B-B-A adjacency is the only defence applied.
+
+### Verification
+
+- Proof bytes byte-identical across arms on every workload:
+  arithmetic-2m `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`,
+  memory-7m `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994`,
+  all-opcodes `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`.
+- Metal arithmetic-2m proof digest equals the CPU digest
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`, with
+  `classification: accelerated_without_fallbacks`, 74 Metal dispatches and
+  `cpu_fallbacks: 0`.
+- Pinned official Rust verifier accepted the candidate arithmetic-2m proof:
+  `verified: true`, channel `blake2s`, proof digest
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  passed; product closure PASS over 326 transitive Zig sources; identity
+  reported `dirty: false`.
+- Harness note for later increments: a copied product binary needs its whole
+  `zig-out` tree. `execution_adapter.zig:116` resolves `stwo-cairo-vm-adapter`
+  beside the executable and `profile.zig:140` resolves the params manifest at
+  `<exe_dir>/../share/stwo-zig/cairo/official/all_opcodes.params.json`.
+
 ### Rejected alternatives
 
 - **Port the Metal flat-arena gather to the CPU.** Rejected: CPU columns are
