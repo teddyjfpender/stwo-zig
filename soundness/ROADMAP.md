@@ -238,7 +238,62 @@ not first-ever coverage of the family.
       boundary.
 - [ ] Add a second independently implemented verifier for the RISC-V proof
       protocol. Sail and Spike independently validate execution semantics, not
-      the repository-specific PCS/FRI proof wire.
+      the repository-specific PCS/FRI proof wire. Nothing below closes this
+      item: no second implementation reads a proof.
+
+      One slice of it now exists, named for what it is.
+      `scripts/air_satisfaction.py` is an independent AIR **row-satisfaction and
+      LogUp-closure checker**. It is not a verifier and must not be cited as
+      one. It reads a committed opcode trace exported from a real proving run
+      (`src/tests/riscv/committed_trace_export_test.zig`, via the test-only
+      `prover/test_trace_dump.zig`) together with the extracted per-family IR,
+      and re-decides in Python, sharing no code with the Zig evaluator:
+
+        * the committed-row placement permutation — the export is in committed
+          circle-domain order and the reader inverts it itself;
+        * every direct constraint of every real opcode row, over M31;
+        * every activated preprocessed-table request: the box tables and the
+          functional `bitwise` table;
+        * every opcode component's claimed LogUp sum, recomputed from the
+          committed trace and the exported challenges rather than read from the
+          prover;
+        * the verifier's public boundary compensation, as a second
+          implementation of `air/public_logup.zig`;
+        * the global cancellation of opcode claims + infrastructure claims +
+          boundary.
+
+      On the honest export that is 10 real rows across four families, 394
+      direct constraints, 44 box requests, 4 `bitwise` requests, four
+      recomputed claims all agreeing with the prover's, and a zero global sum.
+
+      What it does not touch is what this item still asks for. The proof wire —
+      PCS commitments, Merkle openings, FRI, the composition polynomial, OODS,
+      the Fiat–Shamir transcript — is never read; nothing in the checker opens
+      a proof. Three further limits are load-bearing and are stated at the tool
+      itself: the export is bound to the commitment by a code-level identity
+      (`copyOpcodeColumns` duplicates the exported buffers verbatim into the
+      committed array) and not a cryptographic one, so the checker cannot tell
+      that the values it read are the values the proof opens; infrastructure
+      claims (program, RW memory, Merkle, Poseidon2, clock update, the six
+      tables) are taken as given, so a closure failure attributes no further
+      than "the opcode side and the boundary agree, the ledger does not"; and
+      padding rows are out of scope, because the extracted IR fixes the
+      preprocessed `is_active` selector to one.
+
+      It is shown failing, which is the only reason a green run means anything.
+      Two of the three exports are forgeries and the checker attributes each to
+      the right layer: the `bitwise_result_soundness_test.zig` forgery, whose
+      only guard is a preprocessed table, produces exactly one LOOKUP violation
+      (`1 xor 15 = 14, the row claims 15`) with every direct constraint still
+      vanishing; a raised `ADDI` destination limb produces exactly one
+      CONSTRAINT violation in `base_alu_imm`. Both lose the global sum.
+      `scripts/tests/test_air_satisfaction.py` pins all of that, anchors the
+      QM31 tower and the boundary reimplementation to the Rust-oracle vector
+      pinned in `air/public_logup.zig`, and records an executed self-check in
+      which the placement permutation was replaced by a plain bit reversal: the
+      honest export then failed with four constraint violations while the
+      global sum stayed zero, because the closure check sums over the domain
+      and is invariant under any permutation of the rows.
 - [x] Publish the current conjectural security-bit accounting for every exposed
       PCS profile, explicitly separating it from a reviewed reduction.
 - [ ] Obtain independent review of the FRI/list-decoding security accounting.
