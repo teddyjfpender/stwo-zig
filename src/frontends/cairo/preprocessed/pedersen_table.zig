@@ -32,7 +32,8 @@ pub const Error = stark_curve.Error || felt252.Error || error{
 };
 
 pub const Options = struct {
-    worker_count: u8 = max_workers,
+    /// Zero selects the host's logical CPU count, bounded by `max_workers`.
+    worker_count: u8 = 0,
 };
 
 pub const Table = struct {
@@ -75,7 +76,7 @@ pub const Table = struct {
     }
 };
 
-const max_workers = 8;
+const max_workers = 32;
 
 const BlockPlan = struct {
     start: stark_curve.AffinePoint,
@@ -137,8 +138,12 @@ fn fill(
     const plans = try allocator.alloc(BlockPlan, blockPlanCount(window));
     defer allocator.free(plans);
     const block_count = try planBlocks(window, plans);
-    const requested_workers = @max(@as(usize, 1), worker_count);
-    const active_workers = @min(@min(requested_workers, max_workers), block_count);
+    const detected_workers = std.Thread.getCpuCount() catch 1;
+    const active_workers = resolveWorkerCount(
+        worker_count,
+        detected_workers,
+        block_count,
+    );
     const workspace_rows = @as(usize, 1) << window.bits();
 
     var workspaces: [max_workers]Workspace = undefined;
@@ -176,6 +181,18 @@ fn fill(
     const real_rows = (@as(usize, 2) * 252 / @as(usize, window.bits())) <<
         window.bits();
     for (destination[real_rows..]) |*point| point.* = parameters.negative_shift;
+}
+
+fn resolveWorkerCount(
+    requested_workers: u8,
+    detected_workers: usize,
+    block_count: usize,
+) usize {
+    const available = if (requested_workers == 0)
+        @max(@as(usize, 1), detected_workers)
+    else
+        @as(usize, requested_workers);
+    return @min(@min(available, max_workers), block_count);
 }
 
 const Worker = struct {
@@ -272,6 +289,14 @@ test "Pedersen table geometry covers official window variants" {
     try std.testing.expectEqual(@as(u32, 1 << 23), Window.standard.rowCount());
     try std.testing.expectEqual(@as(usize, 86), blockPlanCount(.small));
     try std.testing.expectEqual(@as(usize, 58), blockPlanCount(.standard));
+}
+
+test "Pedersen worker policy is explicit, bounded, and never empty" {
+    try std.testing.expectEqual(@as(usize, 18), resolveWorkerCount(0, 18, 58));
+    try std.testing.expectEqual(@as(usize, max_workers), resolveWorkerCount(0, 64, 58));
+    try std.testing.expectEqual(@as(usize, 1), resolveWorkerCount(0, 0, 58));
+    try std.testing.expectEqual(@as(usize, 4), resolveWorkerCount(4, 18, 58));
+    try std.testing.expectEqual(@as(usize, 2), resolveWorkerCount(8, 18, 2));
 }
 
 test "complete window-9 Pedersen table agrees at section boundaries and padding" {

@@ -5,6 +5,7 @@ const core = @import("stwo_core");
 const columns = @import("columns.zig");
 const pedersen_table = @import("pedersen_table.zig");
 const prover = @import("stwo_prover_impl");
+const work_pool = prover.work_pool;
 
 const M31 = core.fields.m31.M31;
 const ColumnEvaluation = prover.pcs.ColumnEvaluation;
@@ -232,23 +233,113 @@ pub const Spec = struct {
             const rows = @as(usize, 1) << @intCast(column.log_size);
             const values = try allocator.alloc(M31, rows);
             errdefer allocator.free(values);
-            const pedersen_column = try pedersenColumn(column.identity);
-            for (values, 0..) |*value, row| {
-                const raw = if (pedersen_column) |index|
-                    try pedersen.?.value(index, row)
-                else
-                    try columns.value(column.identity, @intCast(row));
-                value.* = M31.fromCanonical(raw);
-            }
             evaluation.* = .{
                 .log_size = column.log_size,
                 .values = values,
             };
             initialized += 1;
         }
+        try materializeValues(
+            allocator,
+            self,
+            pedersen,
+            result,
+        );
         return result;
     }
 };
+
+const materialize_rows_per_task = 64 * 1024;
+
+const MaterializeTask = struct {
+    plan: ?columns.Plan,
+    values: []M31,
+    row_start: usize,
+    row_end: usize,
+    pedersen_column: ?usize,
+};
+
+const MaterializeWorker = struct {
+    pedersen: ?*const pedersen_table.Table,
+    tasks: []const MaterializeTask,
+    next: *std.atomic.Value(usize),
+    err: ?anyerror = null,
+
+    fn run(self: *MaterializeWorker) void {
+        while (true) {
+            const task_index = self.next.fetchAdd(1, .monotonic);
+            if (task_index >= self.tasks.len) return;
+            const task = self.tasks[task_index];
+            for (task.row_start..task.row_end) |row| {
+                const raw = if (task.pedersen_column) |index|
+                    self.pedersen.?.value(index, row) catch |err| {
+                        self.err = err;
+                        return;
+                    }
+                else
+                    task.plan.?.value(@intCast(row)) catch |err| {
+                        self.err = err;
+                        return;
+                    };
+                task.values[row] = M31.fromCanonical(raw);
+            }
+        }
+    }
+};
+
+fn materializeValues(
+    allocator: std.mem.Allocator,
+    spec: Spec,
+    pedersen: ?*const pedersen_table.Table,
+    evaluations: []ColumnEvaluation,
+) !void {
+    var tasks = std.ArrayList(MaterializeTask).empty;
+    defer tasks.deinit(allocator);
+    for (spec.columns, 0..) |column, column_index| {
+        const pedersen_column = try pedersenColumn(column.identity);
+        const plan = if (pedersen_column == null)
+            try columns.Plan.init(column.identity)
+        else
+            null;
+        const rows = evaluations[column_index].values.len;
+        var row_start: usize = 0;
+        while (row_start < rows) : (row_start += materialize_rows_per_task) {
+            try tasks.append(allocator, .{
+                .plan = plan,
+                .values = @constCast(evaluations[column_index].values),
+                .row_start = row_start,
+                .row_end = @min(rows, row_start + materialize_rows_per_task),
+                .pedersen_column = pedersen_column,
+            });
+        }
+    }
+
+    const active_pool = work_pool.getGlobalPool();
+    const worker_count = if (active_pool) |pool|
+        @min(pool.workerCount(), tasks.items.len)
+    else
+        1;
+    var next = std.atomic.Value(usize).init(0);
+    const workers = try allocator.alloc(MaterializeWorker, worker_count);
+    defer allocator.free(workers);
+    for (workers) |*worker| worker.* = .{
+        .pedersen = pedersen,
+        .tasks = tasks.items,
+        .next = &next,
+    };
+
+    if (worker_count > 1) {
+        var wait_group = std.Thread.WaitGroup{};
+        for (workers[1..]) |*worker| {
+            active_pool.?.spawnWg(&wait_group, MaterializeWorker.run, .{worker});
+        }
+        MaterializeWorker.run(&workers[0]);
+        wait_group.wait();
+    } else {
+        MaterializeWorker.run(&workers[0]);
+    }
+    for (workers) |worker| if (worker.err) |err| return err;
+}
 
 fn pedersenColumn(identity: []const u8) !?usize {
     const canonical_prefix = "pedersen_points_";

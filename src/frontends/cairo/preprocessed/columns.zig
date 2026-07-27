@@ -12,31 +12,85 @@ pub const Error = error{
     UnsupportedPedersenWindow,
 };
 
+const Sequence = struct {
+    row_limit: u32,
+};
+
+const RangeCheck = struct {
+    row_limit: u32,
+    shift: u5,
+    mask: u32,
+};
+
+const BitwiseXor = struct {
+    bits: u5,
+    column: u2,
+    row_limit: u32,
+};
+
+pub const Plan = union(enum) {
+    sequence: Sequence,
+    range_check: RangeCheck,
+    bitwise_xor: BitwiseXor,
+    blake_sigma: u5,
+    poseidon_round_key: u6,
+    pedersen_point: u6,
+
+    pub fn init(identity: []const u8) Error!Plan {
+        if (std.mem.startsWith(u8, identity, "seq_")) {
+            const log_size = try parseUnsigned(u5, identity["seq_".len..]);
+            if (log_size >= 31) return Error.InvalidColumnIdentity;
+            return .{ .sequence = .{
+                .row_limit = @as(u32, 1) << log_size,
+            } };
+        }
+        if (std.mem.startsWith(u8, identity, "range_check_"))
+            return rangeCheckPlan(identity["range_check_".len..]);
+        if (std.mem.startsWith(u8, identity, "bitwise_xor_"))
+            return bitwiseXorPlan(identity["bitwise_xor_".len..]);
+        if (std.mem.startsWith(u8, identity, "blake_sigma_")) {
+            const column = try parseUnsigned(u5, identity["blake_sigma_".len..]);
+            if (column >= 16) return Error.InvalidColumnIdentity;
+            return .{ .blake_sigma = column };
+        }
+        if (std.mem.startsWith(u8, identity, "poseidon_round_keys_")) {
+            const column = try parseUnsigned(u6, identity["poseidon_round_keys_".len..]);
+            if (column >= 30) return Error.InvalidColumnIdentity;
+            return .{ .poseidon_round_key = column };
+        }
+        if (std.mem.startsWith(u8, identity, "pedersen_points_small_"))
+            return Error.UnsupportedPedersenWindow;
+        if (std.mem.startsWith(u8, identity, "pedersen_points_")) {
+            const column = try parseUnsigned(u6, identity["pedersen_points_".len..]);
+            if (column >= 56) return Error.InvalidColumnIdentity;
+            return .{ .pedersen_point = column };
+        }
+        return Error.InvalidColumnIdentity;
+    }
+
+    pub fn value(self: Plan, row: u32) !u32 {
+        return switch (self) {
+            .sequence => |plan| if (row < plan.row_limit)
+                row
+            else
+                Error.InvalidRow,
+            .range_check => |plan| if (row < plan.row_limit)
+                (row >> plan.shift) & plan.mask
+            else
+                Error.InvalidRow,
+            .bitwise_xor => |plan| bitwiseXorValue(plan, row),
+            .blake_sigma => |column| blakeSigma(column, row),
+            .poseidon_round_key => |column| poseidonRoundKey(column, row),
+            .pedersen_point => |column| pedersenPoint(column, row),
+        };
+    }
+};
+
 pub fn value(identity: []const u8, row: u32) !u32 {
-    if (std.mem.startsWith(u8, identity, "seq_"))
-        return sequence(identity["seq_".len..], row);
-    if (std.mem.startsWith(u8, identity, "range_check_"))
-        return rangeCheck(identity["range_check_".len..], row);
-    if (std.mem.startsWith(u8, identity, "bitwise_xor_"))
-        return bitwiseXor(identity["bitwise_xor_".len..], row);
-    if (std.mem.startsWith(u8, identity, "blake_sigma_"))
-        return blakeSigma(identity["blake_sigma_".len..], row);
-    if (std.mem.startsWith(u8, identity, "poseidon_round_keys_"))
-        return poseidonRoundKey(identity["poseidon_round_keys_".len..], row);
-    if (std.mem.startsWith(u8, identity, "pedersen_points_small_"))
-        return Error.UnsupportedPedersenWindow;
-    if (std.mem.startsWith(u8, identity, "pedersen_points_"))
-        return pedersenPoint(identity["pedersen_points_".len..], row);
-    return Error.InvalidColumnIdentity;
+    return (try Plan.init(identity)).value(row);
 }
 
-fn sequence(log_text: []const u8, row: u32) !u32 {
-    const log_size = try parseUnsigned(u5, log_text);
-    if (log_size >= 31 or row >= @as(u32, 1) << log_size) return Error.InvalidRow;
-    return row;
-}
-
-fn rangeCheck(suffix: []const u8, row: u32) !u32 {
+fn rangeCheckPlan(suffix: []const u8) Error!Plan {
     const marker = "_column_";
     const marker_index = std.mem.lastIndexOf(u8, suffix, marker) orelse
         return Error.InvalidColumnIdentity;
@@ -55,25 +109,35 @@ fn rangeCheck(suffix: []const u8, row: u32) !u32 {
         width_count += 1;
         total_bits += width;
     }
-    if (column >= width_count or row >= @as(u32, 1) << total_bits)
-        return Error.InvalidRow;
+    if (column >= width_count) return Error.InvalidColumnIdentity;
     var shift: u5 = 0;
     for (widths[column + 1 .. width_count]) |width| shift += width;
-    const mask = (@as(u32, 1) << widths[column]) - 1;
-    return (row >> shift) & mask;
+    return .{ .range_check = .{
+        .row_limit = @as(u32, 1) << total_bits,
+        .shift = shift,
+        .mask = (@as(u32, 1) << widths[column]) - 1,
+    } };
 }
 
-fn bitwiseXor(suffix: []const u8, row: u32) !u32 {
+fn bitwiseXorPlan(suffix: []const u8) Error!Plan {
     const separator = std.mem.lastIndexOfScalar(u8, suffix, '_') orelse
         return Error.InvalidColumnIdentity;
     const bits = try parseUnsigned(u5, suffix[0..separator]);
     const column = try parseUnsigned(u2, suffix[separator + 1 ..]);
-    if (bits == 0 or bits >= 16 or column > 2 or
-        row >= @as(u32, 1) << @intCast(@as(u6, bits) * 2))
-        return Error.InvalidRow;
-    const lhs = row >> bits;
-    const rhs = row & ((@as(u32, 1) << bits) - 1);
-    return switch (column) {
+    if (bits == 0 or bits >= 16 or column > 2)
+        return Error.InvalidColumnIdentity;
+    return .{ .bitwise_xor = .{
+        .bits = bits,
+        .column = column,
+        .row_limit = @as(u32, 1) << @intCast(@as(u6, bits) * 2),
+    } };
+}
+
+fn bitwiseXorValue(plan: BitwiseXor, row: u32) Error!u32 {
+    if (row >= plan.row_limit) return Error.InvalidRow;
+    const lhs = row >> plan.bits;
+    const rhs = row & ((@as(u32, 1) << plan.bits) - 1);
+    return switch (plan.column) {
         0 => lhs,
         1 => rhs,
         2 => lhs ^ rhs,
@@ -81,24 +145,21 @@ fn bitwiseXor(suffix: []const u8, row: u32) !u32 {
     };
 }
 
-fn blakeSigma(column_text: []const u8, row: u32) !u32 {
-    const column = try parseUnsigned(u5, column_text);
-    if (column >= 16 or row >= 16) return Error.InvalidRow;
+fn blakeSigma(column: u5, row: u32) !u32 {
+    if (row >= 16) return Error.InvalidRow;
     var values: [16]u32 = undefined;
     try blake.applyRoundSigma(&.{if (row < 10) row else 0}, &values);
     return values[column];
 }
 
-fn poseidonRoundKey(column_text: []const u8, row: u32) !u32 {
-    const column = try parseUnsigned(u6, column_text);
-    if (column >= 30 or row >= 64) return Error.InvalidRow;
+fn poseidonRoundKey(column: u6, row: u32) !u32 {
+    if (row >= 64) return Error.InvalidRow;
     var values: [30]u32 = undefined;
     try poseidon.applyRoundKeys(&.{if (row < 35) row else 0}, &values);
     return values[column];
 }
 
-fn pedersenPoint(column_text: []const u8, row: u32) !u32 {
-    const column = try parseUnsigned(u6, column_text);
+fn pedersenPoint(column: u6, row: u32) !u32 {
     if (column >= 56 or row >= 1 << 23) return Error.InvalidRow;
     var values: [56]u32 = undefined;
     try pedersen.applyPointsTable(&.{row}, &values);

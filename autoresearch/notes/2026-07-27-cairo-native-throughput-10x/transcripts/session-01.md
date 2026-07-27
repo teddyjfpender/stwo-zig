@@ -169,3 +169,44 @@ retained proof hash `25e571...deea6`. CPU PoW was 109.298 ms. Metal PoW was
 101.537 ms and the complete Metal proof was 3,564.711 ms with 74 dispatches
 and zero fallbacks. An unrelated RISC-V test occupied one core throughout the
 complete screens, so no causal whole-proof ratio is claimed from them.
+
+## Hypothesis 6: use the host for canonical preprocessing
+
+The full canonical profile exposed a qualitatively different scale from the
+seven-program canonical-small matrix: 161 columns and 543,100,528 immutable
+preprocessed cells. A stage profile attributed about 30 seconds of a 35-second
+proof to preprocessed materialization and commitment, while the commitment's
+interpolation, extension, and Merkle children accounted for only about five
+seconds. Source inspection found two independent host-side restrictions:
+
+- the standard Pedersen table has 58 independent block plans but a fixed
+  eight-worker ceiling; and
+- column materialization reparses textual identities per cell and fills all
+  columns serially.
+
+Compile every non-Pedersen column identity into a typed evaluation plan once,
+split disjoint row ranges through the global work pool, and make zero-worker
+Pedersen configuration mean bounded host auto-detection. Preserve explicit
+worker overrides, deterministic table geometry, and byte-exact proofs.
+
+### Result: accepted
+
+Focused plan and small-table tests, the complete Cairo frontend suite, and the
+CPU product gate passed. The exact predecessor/candidate canonical comparison
+was:
+
+```text
+                                      b0439ccf      candidate      speedup
+complete prove                       35103.393 ms   23983.830 ms    1.464x
+preprocessed materialize + commit    30967.369 ms   19745.659 ms    1.568x
+peak RSS                             23.086 GB      23.086 GB       neutral
+proof bytes                          564602         564602          exact
+proof SHA-256                        bd663c9...dc9f bd663c9...dc9f  exact
+```
+
+The candidate retired essentially the same total instruction count while
+compressing the parallel wall interval. It does not dispatch on program or
+input identity. The remaining approximately 20-second stage proves that
+regenerating an immutable canonical product is now the stronger system
+boundary; authenticated coefficient/evaluation/Merkle reuse is the next
+hypothesis.

@@ -215,3 +215,39 @@ completed in 3,564.711 ms with 74 dispatches and zero fallbacks. The CPU proof
 completed in 4,701.342 ms. These complete timings were collected while an
 unrelated RISC-V test occupied one core, so they are correctness and stage
 diagnostics rather than a controlled end-to-end promotion claim.
+
+## Result 4: parallel canonical preprocessing
+
+The canonical profile commits 543,100,528 immutable preprocessed cells. Its
+standard Pedersen table consists of 58 independent elliptic-curve block plans,
+but table generation admitted only eight workers on the 18-core M5 Max.
+Preprocessed column materialization also parsed a textual column identity for
+every cell and filled columns serially.
+
+The candidate now compiles each column identity into a typed plan once,
+partitions disjoint column ranges through the repository work pool, and lets
+Pedersen table generation select the bounded host CPU count. Explicit worker
+overrides remain available, auto-selection is capped at 32 workers, and every
+worker owns its elliptic-curve scratch space and output ranges.
+
+An immutable `b0439ccf` predecessor and the live candidate proved the same
+Arithmetic 2m input under `official-live-cairo-canonical`:
+
+| Metric | Predecessor | Candidate | Improvement |
+| --- | ---: | ---: | ---: |
+| complete prove | 35,103.393 ms | 23,983.830 ms | `1.464x` |
+| preprocessed materialize + commit | 30,967.369 ms | 19,745.659 ms | `1.568x` |
+| peak RSS | 23.086 GB | 23.086 GB | neutral |
+
+Both produced the exact 564,602-byte binary proof with SHA-256
+`bd663c9ba5e89fe3c8d9a70a3eb57d12da5e0cf1ef3715d254ce75e29900dc9f`.
+The complete Cairo frontend and CPU product gates pass.
+
+This is a broad profile-level improvement, not a program dispatch: every
+canonical proof receives it. It is still only a partial remedy. Roughly 20
+seconds remain in preprocessing because every cold process regenerates and
+commits immutable profile data. The next system candidate is a
+protocol-identity-bound preprocessed product containing the coefficient,
+evaluation, and Merkle state needed by both CPU and Metal. Loading such a
+product must preserve the exact transcript commitment and cannot trust a path
+or unauthenticated cache entry.
