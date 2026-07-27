@@ -7,6 +7,7 @@ const interaction_checkpoint = @import("interaction_checkpoint.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 const interaction_topology = @import("../witness/interaction_topology.zig");
 const interaction_trace = @import("../witness/interaction_trace.zig");
+const work_pool = @import("stwo_prover_impl").work_pool;
 
 pub const MismatchKind = enum {
     lookup_geometry,
@@ -194,17 +195,19 @@ pub fn materializeTrace(
     ) catch return error.AllocationSizeOverflow;
     const values = try allocator.alloc(QM31, value_count);
     errdefer allocator.free(values);
-    var claimed_sum = QM31.zero();
     const batch_rows: usize = 1 << 15;
-    var first_row: usize = 0;
-    while (first_row < source.rows()) : (first_row += batch_rows) {
-        const rows = @min(batch_rows, source.rows() - first_row);
-        claimed_sum = claimed_sum.add(try reference.evaluateRange(
-            first_row,
-            rows,
+    const claimed_sum = if (source.rows() > batch_rows)
+        try evaluateRangesParallel(
+            allocator,
+            descriptors,
+            source,
+            z,
+            alpha_powers,
             values,
-        ));
-    }
+            batch_rows,
+        ) orelse try evaluateRangesSerial(&reference, values, batch_rows)
+    else
+        try evaluateRangesSerial(&reference, values, batch_rows);
     const final_column =
         values[(reference.columnCount() - 1) * source.rows() ..][0..source.rows()];
     const final_prefix = try interaction_trace.scanLastColumnInPlace(
@@ -219,6 +222,122 @@ pub fn materializeTrace(
         .column_count = reference.columnCount(),
         .claimed_sum = claimed_sum,
     };
+}
+
+fn evaluateRangesSerial(
+    reference: *interaction_trace.Reference,
+    values: []QM31,
+    batch_rows: usize,
+) !QM31 {
+    var claimed_sum = QM31.zero();
+    var first_row: usize = 0;
+    while (first_row < reference.source.rows()) : (first_row += batch_rows) {
+        const rows = @min(batch_rows, reference.source.rows() - first_row);
+        claimed_sum = claimed_sum.add(try reference.evaluateRange(
+            first_row,
+            rows,
+            values,
+        ));
+    }
+    return claimed_sum;
+}
+
+fn evaluateRangesParallel(
+    allocator: std.mem.Allocator,
+    descriptors: []const u32,
+    source: interaction_trace.SourceView,
+    z: QM31,
+    alpha_powers: []const QM31,
+    values: []QM31,
+    batch_rows: usize,
+) !?QM31 {
+    const pool = work_pool.getGlobalPool() orelse return null;
+    const batch_count = std.math.divCeil(usize, source.rows(), batch_rows) catch
+        unreachable;
+    const worker_count = @min(pool.workerCount(), batch_count);
+    if (worker_count <= 1) return null;
+    const batches_per_worker = std.math.divCeil(
+        usize,
+        batch_count,
+        worker_count,
+    ) catch unreachable;
+
+    const Worker = struct {
+        allocator: std.mem.Allocator,
+        descriptors: []const u32,
+        source: interaction_trace.SourceView,
+        z: QM31,
+        alpha_powers: []const QM31,
+        values: []QM31,
+        batch_rows: usize,
+        first_row: usize,
+        end_row: usize,
+        claimed_sum: QM31 = QM31.zero(),
+        failure: ?anyerror = null,
+
+        fn run(self: *@This()) void {
+            var reference = interaction_trace.Reference.init(
+                self.allocator,
+                self.descriptors,
+                self.source,
+                self.z,
+                self.alpha_powers,
+            ) catch |err| {
+                self.failure = err;
+                return;
+            };
+            defer reference.deinit();
+
+            var first_row = self.first_row;
+            while (first_row < self.end_row) : (first_row += self.batch_rows) {
+                const rows = @min(self.batch_rows, self.end_row - first_row);
+                const batch_sum = reference.evaluateRange(
+                    first_row,
+                    rows,
+                    self.values,
+                ) catch |err| {
+                    self.failure = err;
+                    return;
+                };
+                self.claimed_sum = self.claimed_sum.add(batch_sum);
+            }
+        }
+    };
+
+    var workers: [work_pool.MAX_WORKERS]Worker = undefined;
+    var active_workers: usize = 0;
+    for (0..worker_count) |worker_index| {
+        const first_batch = worker_index * batches_per_worker;
+        if (first_batch >= batch_count) break;
+        const end_batch = @min(batch_count, first_batch + batches_per_worker);
+        workers[active_workers] = .{
+            .allocator = allocator,
+            .descriptors = descriptors,
+            .source = source,
+            .z = z,
+            .alpha_powers = alpha_powers,
+            .values = values,
+            .batch_rows = batch_rows,
+            .first_row = first_batch * batch_rows,
+            .end_row = @min(source.rows(), end_batch * batch_rows),
+        };
+        active_workers += 1;
+    }
+    if (active_workers <= 1) return null;
+
+    var wait_group: std.Thread.WaitGroup = .{};
+    for (workers[1..active_workers]) |*worker| {
+        pool.spawnWg(&wait_group, Worker.run, .{worker});
+    }
+    Worker.run(&workers[0]);
+    wait_group.wait();
+
+    var claimed_sum = QM31.zero();
+    for (workers[0..active_workers]) |worker| {
+        if (worker.failure) |err| return err;
+        claimed_sum = claimed_sum.add(worker.claimed_sum);
+    }
+    return claimed_sum;
 }
 
 fn secureFields(
