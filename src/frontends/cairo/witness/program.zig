@@ -291,13 +291,36 @@ pub fn initializeAllOutputs(
         output_columns,
         auxiliary,
     );
-    for (output_columns) |output| @memset(output, 0);
+    if (!coversEveryOutput(program, .col_write, program.n_cols)) {
+        for (output_columns) |output| @memset(output, 0);
+    }
     if (auxiliary) |outputs| {
-        @memset(outputs.lookup_words, 0);
-        @memset(outputs.sub_words, 0);
+        if (!coversEveryOutput(program, .lookup_word, program.n_lookup_words))
+            @memset(outputs.lookup_words, 0);
+        if (!coversEveryOutput(program, .sub_word, program.n_sub_words))
+            @memset(outputs.sub_words, 0);
         for (outputs.multiplicity_tables) |table| @memset(table, 0);
     }
     return row_count;
+}
+
+const max_static_output_count = 1024;
+
+/// Recorded programs are straight-line, so one write instruction covers its
+/// destination for every executed row. Incomplete compatibility programs
+/// retain zero initialization for their unwritten destinations.
+fn coversEveryOutput(program: Program, target: Op, output_count: u32) bool {
+    if (output_count == 0) return true;
+    if (output_count > max_static_output_count) return false;
+    var covered = [_]bool{false} ** max_static_output_count;
+    var covered_count: u32 = 0;
+    for (program.insts) |inst| {
+        if (@as(Op, @enumFromInt(inst.op)) != target or covered[inst.imm])
+            continue;
+        covered[inst.imm] = true;
+        covered_count += 1;
+    }
+    return covered_count == output_count;
 }
 
 /// Executes a disjoint row range into an output set initialized by
@@ -652,4 +675,50 @@ test "cairo witness program: grouped execution preserves lookup and feed outputs
     );
     try std.testing.expectEqualSlices(u32, &input, &sub);
     try std.testing.expectEqualSlices(u32, &.{ 0, 2, 1, 1 }, &counts);
+}
+
+test "cairo witness program: incomplete writers clear uncovered outputs" {
+    const insts = [_]Inst{
+        .{ .op = @intFromEnum(Op.input), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+        .{ .op = @intFromEnum(Op.col_write), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+        .{ .op = @intFromEnum(Op.lookup_word), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+    };
+    const program = Program{
+        .insts = &insts,
+        .n_regs = 1,
+        .n_inputs = 1,
+        .n_cols = 2,
+        .n_mult_tables = 0,
+        .n_lookup_words = 2,
+        .n_sub_words = 0,
+    };
+    const input = [_]u32{ 1, 2, 3, 4 };
+    const inputs = [_][]const u32{&input};
+    var trace_a = [_]u32{99} ** input.len;
+    var trace_b = [_]u32{99} ** input.len;
+    const traces = [_][]u32{ &trace_a, &trace_b };
+    var lookup = [_]u32{99} ** (input.len * 2);
+    var registers: [1]u32 = undefined;
+    var deduce_args: [1]u32 = undefined;
+    try executeAll(
+        program,
+        &inputs,
+        &traces,
+        .{
+            .lookup_words = &lookup,
+            .sub_words = &.{},
+            .multiplicity_tables = &.{},
+        },
+        &registers,
+        &deduce_args,
+        .zero(),
+        .unsupported(),
+    );
+    try std.testing.expectEqualSlices(u32, &input, &trace_a);
+    try std.testing.expectEqualSlices(u32, &.{ 0, 0, 0, 0 }, &trace_b);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 1, 2, 3, 4, 0, 0, 0, 0 },
+        &lookup,
+    );
 }
