@@ -20,6 +20,10 @@ test {
         _ = @import("divu_elf_fixture.zig");
         _ = @import("auipc_alias_soundness_test.zig");
         _ = @import("bitwise_result_soundness_test.zig");
+        // Produces `zig-out/committed-trace/*.json` for the independent Python
+        // row checker; it is a mutation suite because two of its three exports
+        // are forgeries and it asserts the pipeline's verdict on each.
+        _ = @import("committed_trace_export_test.zig");
         _ = @import("divisor_byte_range_soundness_test.zig");
         _ = @import("jalr_target_soundness_test.zig");
         _ = @import("load_sign_soundness_test.zig");

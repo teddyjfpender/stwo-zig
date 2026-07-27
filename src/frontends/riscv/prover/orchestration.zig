@@ -64,6 +64,7 @@ const proof_workspace = @import("proof_workspace.zig");
 const relation_diagnostic = @import("relation_diagnostic.zig");
 const statement_geometry = @import("statement_geometry.zig");
 const statement_validation = @import("statement_validation.zig");
+const test_trace_dump = @import("test_trace_dump.zig");
 const test_witness_hook = @import("test_witness_hook.zig");
 const types = @import("types.zig");
 
@@ -78,6 +79,7 @@ const RunMode = types.RunMode;
 const RunOutput = types.RunOutput;
 
 pub const TestWitnessMutation = test_witness_hook.Mutation;
+pub const TestTraceDump = test_trace_dump.Capture;
 
 pub fn runRiscVWithEngineAndPublicData(
     comptime Engine: type,
@@ -103,6 +105,7 @@ pub fn runRiscVWithEngineAndPublicData(
         public_data,
         &channel,
         null,
+        null,
     );
 }
 
@@ -127,6 +130,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     public_data: PublicData,
     channel: *Engine.Channel,
     test_mutation: ?TestWitnessMutation,
+    test_dump: ?*TestTraceDump,
 ) !RunOutput(mode) {
     comptime prover_engine.assertProverEngine(Engine);
     const workspace = try ProofWorkspace.create(allocator);
@@ -147,6 +151,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
         public_data,
         channel,
         test_mutation,
+        test_dump,
     );
     return output;
 }
@@ -172,6 +177,7 @@ fn proveStages(
     public_data: PublicData,
     channel: *Engine.Channel,
     test_mutation: ?TestWitnessMutation,
+    test_dump: ?*TestTraceDump,
 ) !void {
     if (exec_trace.step_count == 0) return ProverError.EmptyTrace;
 
@@ -247,6 +253,17 @@ fn proveStages(
         geometry,
         &retained.lookup_source,
         &transcript_prefix,
+        interaction_claim,
+    );
+
+    // Exported here and not at the commit point because this is the first
+    // instant at which all four exported artefacts coexist: the opcode buffers
+    // Tree 1 was copied from, the challenges Tree 2 was built under, and the
+    // claims Tree 2 produced. The run continues to a real proof afterwards.
+    if (test_dump) |dump| try dump.record(
+        statement,
+        &workspace.opcode_columns,
+        &transcript_prefix.relations,
         interaction_claim,
     );
 

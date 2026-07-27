@@ -52,6 +52,7 @@ pub const ColumnValue = witness_hook.ColumnValue;
 pub const RowOverride = witness_hook.RowOverride;
 pub const Target = witness_hook.Target;
 pub const Mutation = orchestration.TestWitnessMutation;
+pub const TraceDump = orchestration.TestTraceDump;
 pub const TableRejection = row_admissibility.TableRejection;
 pub const Domain = entry_mod.Domain;
 
@@ -193,6 +194,48 @@ pub const Guest = struct {
         return self.expectRejectedAt(mutation, .any);
     }
 
+    /// Prove the guest with `mutation` applied, exporting the committed opcode
+    /// trace, the relation challenges and the interaction claims of that run
+    /// into `dump`, and report how the pipeline decided the run.
+    ///
+    /// The export happens inside the run, before the proof is assembled, so a
+    /// forgery a direct constraint refuses is still exported. That is the point:
+    /// an external checker must be able to read the witness the prover
+    /// *committed*, not only the subset that survived to a proof.
+    pub fn proveCapturing(
+        self: *const Guest,
+        mutation: ?Mutation,
+        dump: *TraceDump,
+    ) !Outcome {
+        var channel = riscv_cpu.CpuProverEngine.Channel{};
+        const output = orchestration.runRiscVWithEngineAndPublicDataUsingChannel(
+            riscv_cpu.CpuProverEngine,
+            .prove,
+            self.allocator,
+            PCS_CONFIG,
+            &self.run.execution_trace,
+            &self.run.state_chain_tracker,
+            &self.run.rw_memory,
+            null,
+            self.public.data,
+            &channel,
+            mutation,
+            dump,
+        ) catch |err| {
+            try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
+            return .rejected_proving;
+        };
+        defer output.deinitAfterProofMoved(self.allocator);
+        riscv_cpu.verifyRiscV(
+            self.allocator,
+            PCS_CONFIG,
+            output.statement,
+            output.proof,
+            output.interaction_claim,
+        ) catch return .rejected_verification;
+        return .verified;
+    }
+
     /// Prove the guest with `mutation` applied and require rejection at
     /// `stage`.
     ///
@@ -221,6 +264,7 @@ pub const Guest = struct {
             self.public.data,
             &channel,
             mutation,
+            null,
         ) catch |err| {
             // A direct constraint that does not vanish stops the prover before
             // a proof exists; that is a rejection, not a harness failure.
@@ -258,6 +302,11 @@ pub const Guest = struct {
         )));
     }
 };
+
+/// How the committed pipeline decided one proving run. `expectRejectedAt`
+/// asserts against `RejectionStage`; `proveCapturing` reports this instead,
+/// because an export run must be able to say "verified" as an ordinary result.
+pub const Outcome = enum { verified, rejected_proving, rejected_verification };
 
 /// Where in the pipeline a forged row must be refused.
 pub const RejectionStage = enum {

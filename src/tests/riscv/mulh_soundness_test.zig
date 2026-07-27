@@ -114,6 +114,7 @@ fn expectMutationRejected(fixture: *const Fixture, cell: witness_hook.Cell) !voi
         fixture.public.data,
         &channel,
         .{ .main = cell },
+        null,
     ) catch |err| {
         try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
         return;

@@ -100,6 +100,7 @@ fn expectCommittedMutationRejected(fixture: *const ReleaseFixture, mutation: Mut
         fixture.publicData(),
         &channel,
         mutation,
+        null,
     ) catch |err| {
         try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
         return;
