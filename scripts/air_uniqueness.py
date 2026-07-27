@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+"""Per-row witness-uniqueness checking for AIR families, via z3.
+
+Uniqueness is one leg of the tractable decomposition of AIR-refines-Sail:
+
+    witness uniqueness (here)
+  + completeness (the existing Sail differential)
+  + the honest generator matching Sail
+  => soundness
+
+The uniqueness leg needs no reference model, which is what makes it cheap:
+
+    for any two witness assignments satisfying the constraints AND the range
+    table memberships, if they agree on the architectural INPUTS then they
+    agree on the architectural OUTPUTS.
+
+Usage
+-----
+    python3 -m scripts.air_uniqueness explain
+    python3 -m scripts.air_uniqueness emit  <model.json> [-o query.smt2]
+    python3 -m scripts.air_uniqueness check <model.json> [--timeout-ms N]
+        [--no-refine] [--counterexample-json out.json]
+
+`explain` prints the encoding decisions a reviewer has to agree with, including
+what a green result does not mean.  `check` exits 0 on `unsat` (unique) and 1
+on `sat` or `unknown`.
+
+Not wired into any gate: it is an operator tool until a family's IR is emitted
+from the real `air/semantics/` modules rather than hand-written.  The models in
+`scripts/tests/fixtures/air_uniqueness/` exist to prove the pipeline itself,
+not to say anything about the shipped AIR.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+try:
+    from air_uniqueness_lib import analysis, ir, smtlib, solve
+except ModuleNotFoundError:  # Imported as scripts.air_uniqueness in tests.
+    from scripts.air_uniqueness_lib import analysis, ir, smtlib, solve
+
+
+ENCODING_SPEC = """\
+Encoding decisions a reviewer must check
+========================================
+
+1. Field arithmetic.  Every column is an integer in [0, p), p = 2^31 - 1.
+   Polynomials are built with exact integer arithmetic and never implicitly
+   reduced; each constraint is discharged as `P = p * k` with `k` a fresh
+   integer whose range comes from interval analysis.  There is no `mod` or
+   `div` term in the query.
+   Why it matters: the closed AUIPC under-constraint existed because
+   2^32 = 2p + 2 gave every immediate a second byte decomposition offset by
+   p + 2.  An encoding that treated limb arithmetic as unbounded-integer
+   arithmetic would have declared that family unique.  Reduction is explicit
+   so wraparound stays reachable.  The counterexample for the
+   `byte_carry_adder_unranged` model is exactly this shape: a sum limb of
+   p - 247 standing in for 9.
+
+2. Range-table membership.  A lookup request is (domain, numerator, tuple).
+   The encoding asserts: numerator != 0 in the field  =>  the tuple lies in
+   the table.  For the box tables (range_check_20 / 8_11 / 8_8_4 / 8_8 / m31)
+   that is a per-component bit-width bound on the canonical representative in
+   [0, p) -- the representative is explicit, for the same reason as (1).  For
+   `bitwise` it is the box on (lhs, rhs, op) plus `value` defined by the
+   operation, through faithful 8-bit int2bv views.
+   Widths are transcribed from `air/lookups/tables/schema.zig`; a unit test
+   cross-checks the transcription against that file.
+   THIS IS AN ASSUMPTION, and it points one way.  Per row we simply grant that
+   a live request implies membership; what actually enforces it is the LogUp
+   argument plus a well-formed preprocessed table, neither of which is in
+   scope here.  Consequence: a `sat` answer is unconditionally a real
+   under-constraint, because the counterexample respects membership and so
+   also satisfies the weaker real system.  An `unsat` answer is conditional on
+   the lookup argument really enforcing membership.
+
+3. Bus relations are not tables.  registers_state, memory_access,
+   program_access, merkle, poseidon2 and poseidon2_io are multiset buses
+   closed across rows and components.  A per-row query cannot learn anything
+   from them, so it asserts nothing for them and reports how many it ignored.
+   Anything whose only protection is bus closure is invisible here.
+
+4. Two rewrites, both exact, that decide whether the query terminates at all.
+   On the models in `scripts/tests/fixtures/air_uniqueness/`: with neither,
+   every unsat query times out at 60s; with either alone they finish under
+   0.4s; with both, under 20ms.  Only the unsat direction is sensitive -- a
+   counterexample is found either way, the same asymmetry the soundness
+   argument has.  Treat these as the highest-risk part of the encoding: an
+   unsound narrowing deletes counterexamples rather than producing visibly
+   wrong ones.
+   (a) Factor splitting.  A constraint that is a product is discharged as a
+       disjunction over its factors, since a product vanishes in a field iff
+       some factor does.  `bit(x)` becomes `x = 0 or x = 1` instead of a
+       quadratic diophantine equation.
+   (b) Implied column bounds.  A column is narrowed only by consequences of
+       the asserted obligations: a constraint whose factors are all linear in
+       one and the same column confines it to the factor roots, and a
+       box-table request with a constant non-zero numerator bounds a bare
+       column in its tuple.  Narrowing shrinks the quotient ranges the solver
+       must search and never removes an assignment the AIR admits.
+       `check --no-refine` disables (b); the unit tests assert that every
+       `sat` model stays `sat` without it.
+
+5. Inputs versus outputs.  An `input` column is what the row is given and may
+   not choose: the program counter and clock, opcode selectors, the immediate,
+   and the `previous` side of an access.  An `output` column is what the row
+   claims about the machine after the step: result limbs, the `next` side of
+   an access, the next program counter.  Everything else is `witness` -- free
+   prover choice: sign bits, comparison markers, carries, inverse
+   certificates.  The classification is part of the model, not inferred, and a
+   wrong classification silently changes the theorem.  Three failure modes to
+   check by hand:
+   - marking a genuinely free column `input` asserts it equal across copies
+     and can turn a real `sat` into `unsat`;
+   - marking a derived value `output` when nothing observes it can produce a
+     `sat` nobody cares about;
+   - omitting the family's placement constraint.  Every opcode constraint is
+     gated by the activation flag, so an inactive row leaves every output
+     free and the family reports `sat` for a reason that says nothing about
+     its semantics.  The extractor must emit `placementConstraint` alongside
+     `evaluate`, pinning the row active.  This was observed, not predicted:
+     a synthetic model at real-family size reported `sat` until it was added.
+
+6. What the query does NOT cover.  Read a green result narrowly.
+   - Cross-row properties.  One row, no `next`/`prev` row, no boundary
+     conditions.  Transition and permutation arguments are out of scope.
+   - Multiset and LogUp properties.  Numerator signs (yield vs consume),
+     batch composition, denominators, and global sum-to-zero are not
+     modelled; only the zero/non-zero status of a numerator is read.
+   - Completeness.  Uniqueness says at most one output per input.  It does not
+     say the honest witness satisfies the constraints, nor that the unique
+     output is the one Sail specifies.  Those are the other two legs.
+   - Column presence.  A column absent from the extracted IR is invisible; the
+     IR is only as good as the extractor.
+   - Degenerate uniqueness.  An unsatisfiable constraint system is trivially
+     unique.  Pair every `unsat` with a satisfiable honest-witness check.
+
+7. Expression-valued outputs.  Only columns carry roles.  If an architectural
+   output is an expression (e.g. `composeU32(next_limbs)`), the extractor
+   introduces an alias column plus a defining constraint, which is exactly
+   equivalent and keeps one mechanism instead of two.
+"""
+
+
+def _cmd_explain(_: argparse.Namespace) -> int:
+    print(ENCODING_SPEC)
+    return 0
+
+
+def _cmd_emit(args: argparse.Namespace) -> int:
+    query = smtlib.emit_uniqueness_query(ir.load(args.model), refine=not args.no_refine)
+    if args.output:
+        Path(args.output).write_text(query.text, encoding="utf-8")
+        print(f"wrote {args.output}")
+    else:
+        sys.stdout.write(query.text)
+    return 0
+
+
+def _cmd_check(args: argparse.Namespace) -> int:
+    system = ir.load(args.model)
+    node_degrees = analysis.degrees(system)
+    worst = max((node_degrees[c] for c in system.constraints), default=0)
+    print(
+        f"columns={len(system.columns)} nodes={len(system.nodes)} "
+        f"constraints={len(system.constraints)} max_degree={worst}"
+    )
+    result = solve.check(
+        system, timeout_ms=args.timeout_ms, refine=not args.no_refine
+    )
+    print(solve.format_result(result))
+    if args.counterexample_json and result.status == "sat":
+        # A counterexample is a concrete malicious witness pair. Exporting it
+        # is what lets the solver seed the mutation corpus instead of only
+        # reporting.
+        Path(args.counterexample_json).write_text(
+            json.dumps(solve.counterexample_payload(system, result), indent=2)
+            + "\n",
+            encoding="utf-8",
+        )
+        print(f"wrote counterexample to {args.counterexample_json}")
+    return 0 if result.unique else 1
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    explain = sub.add_parser("explain", help="print the encoding spec")
+    explain.set_defaults(func=_cmd_explain)
+
+    emit = sub.add_parser("emit", help="emit the SMT-LIB2 query")
+    emit.add_argument("model")
+    emit.add_argument("-o", "--output")
+    emit.add_argument("--no-refine", action="store_true")
+    emit.set_defaults(func=_cmd_emit)
+
+    check = sub.add_parser("check", help="run the query through z3")
+    check.add_argument("model")
+    check.add_argument("--timeout-ms", type=int, default=0)
+    check.add_argument(
+        "--no-refine",
+        action="store_true",
+        help="drop implied column bounds; slower, and a check on the narrowing",
+    )
+    check.add_argument(
+        "--counterexample-json",
+        help="on sat, write the witness pair here for the mutation corpus",
+    )
+    check.set_defaults(func=_cmd_check)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    return int(args.func(args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,46 @@
+{
+  "family": "toy_byte_carry_adder",
+  "modulus": 2147483647,
+  "notes": "A realistic 32-bit ADD: four byte limbs, a carry witness per limb, and\nrange-checked operand and result limbs. Uniqueness holds limb by limb -- with\nthe sum limb boxed to a byte, `a_i + b_i + c_{i-1}` admits exactly one carry --\nand the whole chain stays below p, so no wraparound branch exists. Expected\nverdict: unsat.",
+  "columns": [
+    {"name": "a0", "role": "input"},
+    {"name": "a1", "role": "input"},
+    {"name": "a2", "role": "input"},
+    {"name": "a3", "role": "input"},
+    {"name": "b0", "role": "input"},
+    {"name": "b1", "role": "input"},
+    {"name": "b2", "role": "input"},
+    {"name": "b3", "role": "input"},
+    {"name": "s0", "role": "output"},
+    {"name": "s1", "role": "output"},
+    {"name": "s2", "role": "output"},
+    {"name": "s3", "role": "output"},
+    {"name": "c0", "role": "witness"},
+    {"name": "c1", "role": "witness"},
+    {"name": "c2", "role": "witness"},
+    {"name": "c3", "role": "witness"}
+  ],
+  "exprs": {
+    "limb0": ["sub", ["sum", ["col", "a0"], ["col", "b0"]], ["sum", ["col", "s0"], ["mul", ["const", 256], ["col", "c0"]]]],
+    "limb1": ["sub", ["sum", ["col", "a1"], ["col", "b1"], ["col", "c0"]], ["sum", ["col", "s1"], ["mul", ["const", 256], ["col", "c1"]]]],
+    "limb2": ["sub", ["sum", ["col", "a2"], ["col", "b2"], ["col", "c1"]], ["sum", ["col", "s2"], ["mul", ["const", 256], ["col", "c2"]]]],
+    "limb3": ["sub", ["sum", ["col", "a3"], ["col", "b3"], ["col", "c2"]], ["sum", ["col", "s3"], ["mul", ["const", 256], ["col", "c3"]]]],
+    "c0_bit": ["bit", ["col", "c0"]],
+    "c1_bit": ["bit", ["col", "c1"]],
+    "c2_bit": ["bit", ["col", "c2"]],
+    "c3_bit": ["bit", ["col", "c3"]],
+    "one": ["const", 1]
+  },
+  "constraints": [
+    "limb0", "limb1", "limb2", "limb3",
+    "c0_bit", "c1_bit", "c2_bit", "c3_bit"
+  ],
+  "lookups": [
+    {"label": "a low half", "domain": "range_check_8_8", "numerator": "one", "tuple": [["col", "a0"], ["col", "a1"]]},
+    {"label": "a high half", "domain": "range_check_8_8", "numerator": "one", "tuple": [["col", "a2"], ["col", "a3"]]},
+    {"label": "b low half", "domain": "range_check_8_8", "numerator": "one", "tuple": [["col", "b0"], ["col", "b1"]]},
+    {"label": "b high half", "domain": "range_check_8_8", "numerator": "one", "tuple": [["col", "b2"], ["col", "b3"]]},
+    {"label": "sum low half", "domain": "range_check_8_8", "numerator": "one", "tuple": [["col", "s0"], ["col", "s1"]]},
+    {"label": "sum high half", "domain": "range_check_8_8", "numerator": "one", "tuple": [["col", "s2"], ["col", "s3"]]}
+  ]
+}

@@ -20,8 +20,12 @@ SCRIPTS = ROOT / "scripts"
 # Operator tools invoked by humans, not gates. Each entry must carry a
 # purpose; remove the entry in the same commit that deletes the tool.
 OPERATOR_TOOLS: dict[str, str] = {
-    # Currently empty: every script is gate-reachable. Add entries only for
-    # genuinely human-invoked tools, with an owner and purpose.
+    # Owner: soundness. Per-row witness-uniqueness checking of an AIR family
+    # via z3, from a serialisable constraint IR. Deliberately un-gated: it
+    # needs z3, which hosted CI does not install, and no family's IR is
+    # emitted from the real modules yet. Its own contracts do run, through
+    # scripts/tests/test_air_uniqueness.py in the discovered suite.
+    "air_uniqueness.py": "SMT witness-uniqueness checker for AIR families",
 }
 
 ENTRY_POINT_GLOBS = (

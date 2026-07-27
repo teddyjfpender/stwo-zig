@@ -1,0 +1,49 @@
+{
+  "family": "toy_signed_byte_load (under-constrained)",
+  "modulus": 2147483647,
+  "notes": "Hand-written model of the closed `src_msb` under-constraint: a free\nsign witness feeds a masked result. Mirrors load_store.zig before the fix --\nthe bit and canonicalisation constraints are present, but nothing binds\n`src_msb` to the sign-bearing byte of the result. Expected verdict: sat.",
+  "columns": [
+    {"name": "is_signed", "role": "input"},
+    {"name": "mem_byte", "role": "input"},
+    {"name": "result0", "role": "output"},
+    {"name": "result1", "role": "output"},
+    {"name": "result2", "role": "output"},
+    {"name": "result3", "role": "output"},
+    {"name": "src_msb", "role": "witness"}
+  ],
+  "exprs": {
+    "signed_mask": ["prod", ["col", "is_signed"], ["col", "src_msb"], ["const", 255]],
+    "is_signed_bit": ["bit", ["col", "is_signed"]],
+    "src_msb_bit": ["bit", ["col", "src_msb"]],
+    "unsigned_canonical": ["mul", ["sub", ["const", 1], ["col", "is_signed"]], ["col", "src_msb"]],
+    "low_byte": ["sub", ["col", "result0"], ["col", "mem_byte"]],
+    "fill1": ["sub", ["col", "result1"], "signed_mask"],
+    "fill2": ["sub", ["col", "result2"], "signed_mask"],
+    "fill3": ["sub", ["col", "result3"], "signed_mask"],
+    "one": ["const", 1],
+    "zero": ["const", 0]
+  },
+  "constraints": [
+    "is_signed_bit",
+    "src_msb_bit",
+    "unsigned_canonical",
+    "low_byte",
+    "fill1",
+    "fill2",
+    "fill3"
+  ],
+  "lookups": [
+    {
+      "label": "loaded byte is a byte",
+      "domain": "range_check_8_8",
+      "numerator": "one",
+      "tuple": [["col", "mem_byte"], "zero"]
+    },
+    {
+      "label": "destination register write (bus, unmodelled)",
+      "domain": "memory_access",
+      "numerator": "one",
+      "tuple": ["zero", "zero", ["col", "result0"], ["col", "result1"], ["col", "result2"], ["col", "result3"], "zero"]
+    }
+  ]
+}
