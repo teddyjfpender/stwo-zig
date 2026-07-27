@@ -10,6 +10,8 @@ const pcs_verifier = @import("stwo_core").pcs.verifier;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const core_verifier = @import("stwo_core").verifier;
 const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
+const public_logup = @import("../statement/public_logup.zig");
+const statement_bootstrap = @import("../statement_bootstrap.zig");
 const composition_bundle = @import("composition_bundle.zig");
 const eval_program = @import("eval_program.zig");
 const proof_bundle = @import("proof_bundle.zig");
@@ -88,6 +90,7 @@ fn verifyWithGeometry(
     const config_words = transcriptWords(input.transcript_inputs, 2) orelse
         return Error.InvalidProofShape;
     if (!protocol_geometry.matchesTranscript(config_words)) return Error.InvalidProtocolGeometry;
+    try validateStatementBinding(allocator, input, protocol_geometry);
 
     const commitment_words = input.bundle.words[input.bundle.layout.commitments.start..input.bundle.layout.commitments.end];
     if (commitment_words.len != protocol_geometry.trace_tree_count * proof_bundle.hash_words)
@@ -124,6 +127,19 @@ fn verifyWithGeometry(
     }
     if (base_cursor != input.tree_logs[1].len or interaction_cursor != input.tree_logs[2].len)
         return Error.InvalidComponentShape;
+    var global_lookup_sum = try public_logup.sum(
+        allocator,
+        input.statement,
+        lookup_z,
+        lookup_alpha,
+    );
+    var claim_cursor: usize = 0;
+    while (claim_cursor < claim_words.len) : (claim_cursor += 4) {
+        global_lookup_sum = global_lookup_sum.add(
+            try qm31FromWords(claim_words[claim_cursor..][0..4]),
+        );
+    }
+    try enforceGlobalLookupClosure(global_lookup_sum);
     channel.mixU32s(claim_words);
     channel.mixU32s(commitment_words[16..24]);
 
@@ -241,6 +257,43 @@ fn verifyWithGeometry(
         &commitment_scheme,
         proof,
     );
+}
+
+fn validateStatementBinding(
+    allocator: std.mem.Allocator,
+    input: VerifyInput,
+    protocol_geometry: ProtocolGeometry,
+) !void {
+    const salt_words = transcriptWords(input.transcript_inputs, 1) orelse
+        return Error.InvalidStatementBinding;
+    if (salt_words.len != 4 or salt_words[1] != 0 or
+        salt_words[2] != 0 or salt_words[3] != 0)
+        return Error.InvalidStatementBinding;
+    var expected = try statement_bootstrap.initFromCompositionSchedule(allocator, .{
+        .channel_salt = salt_words[0],
+        .pcs = .{
+            .pow_bits = protocol_geometry.query_pow_bits,
+            .log_blowup_factor = protocol_geometry.log_blowup_factor,
+            .n_queries = @intCast(protocol_geometry.query_count),
+            .log_last_layer_degree_bound = protocol_geometry.log_last_layer_degree_bound,
+            .fold_step = protocol_geometry.fold_step,
+            .lifting_log_size = protocol_geometry.lifting_log_size,
+        },
+        .composition = &input.composition,
+        .prover_input = input.statement,
+    });
+    defer expected.deinit();
+    inline for (statement_bootstrap.ORDINALS) |ordinal| {
+        const actual_words = transcriptWords(input.transcript_inputs, ordinal) orelse
+            return Error.InvalidStatementBinding;
+        const expected_words = expected.words(ordinal) orelse unreachable;
+        if (!std.mem.eql(u32, actual_words, expected_words))
+            return Error.InvalidStatementBinding;
+    }
+}
+
+fn enforceGlobalLookupClosure(sum_value: QM31) Error!void {
+    if (!sum_value.eql(QM31.zero())) return Error.InvalidGlobalLookupSum;
 }
 
 fn transcriptWords(inputs: []const TranscriptInput, ordinal: u32) ?[]const u32 {
@@ -661,4 +714,28 @@ test "resident verifier evaluates secure OODS trace samples in QM31" {
         &accumulator,
     );
     try std.testing.expect(accumulator.finalize().eql(QM31.fromPartialEvals(values)));
+}
+
+test "global LogUp closure includes every dynamic memory segment" {
+    var component_sums: [16]QM31 = undefined;
+    var total = QM31.zero();
+    for (&component_sums, 0..) |*claimed_sum, index| {
+        claimed_sum.* = QM31.fromBase(M31.fromCanonical(@intCast(index + 1)));
+        total = total.add(claimed_sum.*);
+    }
+
+    var closure = total.neg();
+    for (component_sums) |claimed_sum| closure = closure.add(claimed_sum);
+    try enforceGlobalLookupClosure(closure);
+
+    for (component_sums) |omitted_sum| {
+        try std.testing.expectError(
+            Error.InvalidGlobalLookupSum,
+            enforceGlobalLookupClosure(closure.sub(omitted_sum)),
+        );
+    }
+    try std.testing.expectError(
+        Error.InvalidGlobalLookupSum,
+        enforceGlobalLookupClosure(closure.add(component_sums[0])),
+    );
 }
