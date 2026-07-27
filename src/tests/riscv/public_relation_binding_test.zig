@@ -211,4 +211,18 @@ test "riscv public statement: nonempty input proves and binds every public class
     mutated = public_data;
     mutated.initial_rw_root = initial_root.root ^ 1;
     try std.testing.expectError(error.InvalidStatement, diagnose(allocator, &run, mutated));
+
+    // The production proof above and every public-relation mutation are
+    // decided before this sampled semantic attribution. Seed Sail from the
+    // fixture's declared input image, not from the execution trace, and keep
+    // the call last so oracle absence skips only this final leg.
+    const sail_memory = try release_elf_fixture.initialMemory(&input);
+    try runner.sail_oracle.requireAgreement(
+        allocator,
+        "public-relation binding public-I/O guest",
+        elf,
+        &run.execution_trace,
+        run.cpu_final,
+        &sail_memory,
+    );
 }

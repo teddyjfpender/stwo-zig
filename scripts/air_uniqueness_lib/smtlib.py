@@ -44,7 +44,7 @@ the soundness argument has.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dataclass_field
+from dataclasses import dataclass, field as dataclass_field, replace
 
 from . import tables
 from .analysis import (
@@ -90,12 +90,18 @@ class Shard:
     makes the composition complete: a family counterexample has a first
     differing conclusion in any fixed order, agrees on everything before it,
     and so survives into exactly that step's query.
+
+    `lookup_prefix` is a proof-only weakening: only lookups before that index
+    are asserted.  An `unsat` weakened query proves the full query unsat because
+    it searched a superset of the AIR's witnesses.  A `sat` weakened query is
+    not an AIR counterexample and must be reported as unfinished.
     """
 
     output: str = ""
     selector: str = ""
     group: tuple[str, ...] = ()
     assume_agree: tuple[str, ...] = ()
+    lookup_prefix: int | None = None
 
     def conclusion(self) -> tuple[str, ...]:
         return self.group if self.group else (self.output,) if self.output else ()
@@ -106,6 +112,8 @@ class Shard:
             parts.append("|".join(self.group))
         if self.assume_agree:
             parts.append(f"given[{len(self.assume_agree)}]")
+        if self.lookup_prefix is not None:
+            parts.append(f"lookups[:{self.lookup_prefix}]")
         return "/".join(parts) or "monolithic"
 
 
@@ -148,6 +156,9 @@ class Query:
     # The columns the negated conclusion ranges over; a decoded model reports
     # its disagreements against exactly these.
     conclusion: tuple[str, ...] = ()
+    # A proof-only obligation slice may establish unsat, but its sat model need
+    # not satisfy the dropped AIR lookups and is therefore never exportable.
+    weakened: bool = False
 
     def var(self, column: str, copy: str) -> str:
         return f"{column}@{SHARED if column in self.shared_columns else copy}"
@@ -162,18 +173,27 @@ class _Emitter:
         derived: bool = True,
         shard: Shard = Shard(),
     ) -> None:
-        self.system = system
+        # Every analysis must see the same weakened obligation set the solver
+        # sees.  In particular, a range window derived from a dropped lookup
+        # would silently put that lookup back as an interval assumption and
+        # make a proof-only slice unsound.
+        self.system = (
+            system
+            if shard.lookup_prefix is None
+            else replace(system, lookups=system.lookups[: shard.lookup_prefix])
+        )
         self.shard = shard
-        self.declared = system.declared_domains() if assume_domains else {}
+        proof_system = self.system
+        self.declared = proof_system.declared_domains() if assume_domains else {}
         bounds = (
-            implied_column_bounds(system)
+            implied_column_bounds(proof_system)
             if refine
-            else {c.name: (0, MODULUS - 1) for c in system.columns}
+            else {c.name: (0, MODULUS - 1) for c in proof_system.columns}
         )
         # Pinning the opcode as a bound rather than an assertion is what makes
         # the split pay: interval analysis then sees `flag * anything` collapse
         # to either that thing or zero, instead of a product over [0, 1].
-        for name in _selector_group(system, shard):
+        for name in _selector_group(proof_system, shard):
             bounds[name] = (1, 1) if name == shard.selector else (0, 0)
         # Implied and declared bounds are intersected, never merged: the first
         # is a consequence of the asserted system, the second an assumption
@@ -183,21 +203,29 @@ class _Emitter:
             lo, hi = bounds[name]
             bounds[name] = (max(lo, domain.lo), min(hi, domain.hi))
         self.column_bounds = bounds
-        self.renorm = renormalise(system, bounds, values=None if derived else {})
+        self.renorm = renormalise(
+            proof_system, bounds, values=None if derived else {}
+        )
         self.bounds = self.renorm.effective
-        self.static = node_bounds(system, bounds)
+        self.static = node_bounds(proof_system, bounds)
         # `assume_agree` joins the seed: a sequential step's hypothesis is that
         # the copies agree on those columns, exactly as they agree on inputs.
-        seed = frozenset(system.by_role("input")) | frozenset(shard.assume_agree)
-        self.shared_columns = (
-            determined_columns(system, seed, pins(bounds)) if derived else seed
+        seed = frozenset(proof_system.by_role("input")) | frozenset(
+            shard.assume_agree
         )
-        self.inverse_elim = eliminable_inverses(system) if derived else {}
+        self.shared_columns = (
+            determined_columns(proof_system, seed, pins(bounds))
+            if derived
+            else seed
+        )
+        self.inverse_elim = eliminable_inverses(proof_system) if derived else {}
         # Free-sink definitions are projected out entirely: keep everything the
         # question is about, the hypothesis set, and the conclusion set.
-        keep = seed | frozenset(shard.conclusion() or system.by_role("output"))
+        keep = seed | frozenset(
+            shard.conclusion() or proof_system.by_role("output")
+        )
         self.sunk = (
-            dict(projectable_sinks(system, keep)) if derived else {}
+            dict(projectable_sinks(proof_system, keep)) if derived else {}
         )  # constraint position -> column, in drop order
         self.live = self._live_constraints()
         self.needed = self._reachable()
@@ -626,6 +654,10 @@ def _finish(emitter: _Emitter, system: System, copies: tuple[str, ...]) -> Query
         },
         nodes=system.nodes,
         conclusion=emitter.shard.conclusion() or system.by_role("output"),
+        weakened=(
+            emitter.shard.lookup_prefix is not None
+            and emitter.shard.lookup_prefix < len(system.lookups)
+        ),
     )
 
 
@@ -700,6 +732,13 @@ def _validate_shard(system: System, shard: Shard, outputs: tuple[str, ...]) -> N
         raise IRError(
             f"{system.family}: {sorted(overlap)} both assumed and concluded; "
             "that step would prove nothing and hide that it proved nothing"
+        )
+    if shard.lookup_prefix is not None and not (
+        0 <= shard.lookup_prefix <= len(system.lookups)
+    ):
+        raise IRError(
+            f"{system.family}: lookup prefix {shard.lookup_prefix} is outside "
+            f"[0, {len(system.lookups)}]"
         )
 
 

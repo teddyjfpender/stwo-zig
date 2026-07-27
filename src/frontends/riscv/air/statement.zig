@@ -251,7 +251,7 @@ pub const RiscVInteractionClaim = struct {
     memory_claims: [MAX_INFRA_COMPONENTS][memory_interaction.N_SUMS]QM31,
     merkle_claims: [MAX_INFRA_COMPONENTS][merkle_node.N_SUMS]QM31,
     poseidon_claims: [MAX_INFRA_COMPONENTS][poseidon2_air.N_SUMS]QM31,
-    clock_claims: [MAX_INFRA_COMPONENTS]QM31,
+    clock_claims: [MAX_INFRA_COMPONENTS][clock_update_interaction.N_SUMS]QM31,
     lookup_claims: [MAX_INFRA_COMPONENTS]QM31,
     n_components: u32,
     n_infra: u32,
@@ -271,7 +271,7 @@ pub const RiscVInteractionClaim = struct {
         for (&self.memory_claims) |*claims| @memset(claims, QM31.zero());
         for (&self.merkle_claims) |*claims| @memset(claims, QM31.zero());
         for (&self.poseidon_claims) |*claims| @memset(claims, QM31.zero());
-        @memset(&self.clock_claims, QM31.zero());
+        for (&self.clock_claims) |*claims| @memset(claims, QM31.zero());
         @memset(&self.lookup_claims, QM31.zero());
         self.n_components = 0;
         self.n_infra = 0;
@@ -312,7 +312,7 @@ pub const RiscVInteractionClaim = struct {
             .range_check_8_8,
             .range_check_m31,
             => self.lookup_claims[index],
-            .clock_update => self.clock_claims[index],
+            .clock_update => self.clock_claims[index][sum],
         };
     }
 
@@ -337,7 +337,7 @@ pub const RiscVInteractionClaim = struct {
             .range_check_8_8,
             .range_check_m31,
             => self.lookup_claims[index] = value,
-            .clock_update => self.clock_claims[index] = value,
+            .clock_update => self.clock_claims[index][sum] = value,
         }
     }
 

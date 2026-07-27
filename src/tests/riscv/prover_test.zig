@@ -115,38 +115,22 @@ test "riscv prover: end-to-end ELF prove and verify" {
     );
 }
 
-test "riscv prover: prove and verify synthetic trace" {
+test "riscv prover: prove, verify, and sample one runner trace against Sail" {
     const alloc = std.testing.allocator;
-    var exec_trace = trace_mod.Trace.init(alloc);
-    defer exec_trace.deinit();
-
-    exec_trace.initial_pc = 0x1000;
-
-    for (0..8) |i| {
-        try exec_trace.append(.{
-            .clk = @intCast(i + 1),
-            .pc = @intCast(0x1000 + i * 4),
-            .opcode = .ADDI,
-            .rd = 1,
-            .rs1 = 0,
-            .rs2 = 0,
-            .imm = 1,
-            .rs1_val = 0,
-            .rs2_val = 0,
-            .rs1_prev_clk = @intCast(i),
-            .rd_prev_val = if (i == 0) 0 else 1,
-            .rd_prev_clk = @intCast(i),
-            .rd_val = 1,
-            .mem_addr = 0,
-            .mem_val = 0,
-            .is_load = false,
-            .is_store = false,
-            .branch_taken = false,
-            .next_pc = @intCast(0x1000 + (i + 1) * 4),
-            .inst_word = 0x00100093,
-        });
-    }
-    exec_trace.final_pc = 0x1000 + 8 * 4;
+    const elf = runner_mod.trace_dump.buildTestElf(9, .{
+        0x00100093, // ADDI x1, x0, 1
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x0000006f, // JAL x0, 0: completion sentinel, not a retirement
+    });
+    var run = try runner_mod.run(alloc, &elf, 1000);
+    defer run.deinit();
+    try std.testing.expectEqual(@as(usize, 8), run.step_count);
 
     const config = pcs_core.PcsConfig{
         .pow_bits = 0,
@@ -157,7 +141,7 @@ test "riscv prover: prove and verify synthetic trace" {
         },
     };
 
-    const output = try proveRiscV(alloc, config, &exec_trace, null, null);
+    const output = try proveRiscV(alloc, config, &run.execution_trace, null, null);
     defer output.deinitAfterProofMoved(alloc);
 
     try std.testing.expectEqual(@as(u32, 1), output.statement.n_components);
@@ -168,6 +152,17 @@ test "riscv prover: prove and verify synthetic trace" {
     try std.testing.expectEqual(@as(u32, 4), output.statement.component_descs[0].log_size);
 
     try verifyRiscV(alloc, config, output.statement, output.proof, output.interaction_claim);
+
+    // This exact runner trace is the one just proven. Keep the sampled Sail
+    // assertion last so a visibly absent oracle costs no proof assertion.
+    try runner_mod.sail_oracle.requireAgreement(
+        alloc,
+        "CPU prover eight-ADDI runner guest",
+        &elf,
+        &run.execution_trace,
+        run.cpu_final,
+        &.{},
+    );
 }
 
 fn singleAddTrace(allocator: std.mem.Allocator, result: u32) !trace_mod.Trace {

@@ -2,8 +2,9 @@
 
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
-const riscv_metal = @import("stwo_riscv_metal").integrations.riscv_metal;
-const trace_mod = @import("stwo_riscv_metal").frontends.riscv.runner.trace;
+const stwo_riscv_metal = @import("stwo_riscv_metal");
+const riscv_metal = stwo_riscv_metal.integrations.riscv_metal;
+const runner = stwo_riscv_metal.frontends.riscv.runner;
 
 const TEST_CONFIG = pcs.PcsConfig{
     .pow_bits = 0,
@@ -16,39 +17,24 @@ const TEST_CONFIG = pcs.PcsConfig{
 
 test "metal: RV32IM retirement trace proves and verifies without fallback" {
     const allocator = std.testing.allocator;
-    var trace = trace_mod.Trace.init(allocator);
-    defer trace.deinit();
-    trace.initial_pc = 0x1000;
-    for (0..8) |index| {
-        try trace.append(.{
-            .clk = @intCast(index + 1),
-            .pc = @intCast(0x1000 + index * 4),
-            .opcode = .ADDI,
-            .rd = 1,
-            .rs1 = 0,
-            .rs2 = 0,
-            .imm = 1,
-            .rs1_val = 0,
-            .rs2_val = 0,
-            .rs1_prev_clk = @intCast(index),
-            .rd_prev_val = if (index == 0) 0 else 1,
-            .rd_prev_clk = @intCast(index),
-            .rd_val = 1,
-            .mem_addr = 0,
-            .mem_val = 0,
-            .is_load = false,
-            .is_store = false,
-            .branch_taken = false,
-            .next_pc = @intCast(0x1000 + (index + 1) * 4),
-            .inst_word = 0x00100093,
-        });
-    }
-    trace.final_pc = 0x1020;
+    const elf = runner.trace_dump.buildTestElf(9, .{
+        0x00100093, // ADDI x1, x0, 1
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x0000006f, // JAL x0, 0: completion sentinel, not a retirement
+    });
+    var run = try runner.run(allocator, &elf, 1000);
+    defer run.deinit();
 
     const output = try riscv_metal.proveRiscV(
         allocator,
         TEST_CONFIG,
-        &trace,
+        &run.execution_trace,
         null,
         null,
     );
@@ -61,4 +47,16 @@ test "metal: RV32IM retirement trace proves and verifies without fallback" {
         output.interaction_claim,
     );
     try std.testing.expect(output.statement.n_components > 0);
+
+    // Sample the exact backend-neutral runner trace the Metal engine proved.
+    // This is last so an unavailable pinned oracle skips only the Sail leg;
+    // a configured, answering Sail disagreement remains a hard failure.
+    try runner.sail_oracle.requireAgreement(
+        allocator,
+        "Metal backend eight-ADDI runner guest",
+        &elf,
+        &run.execution_trace,
+        run.cpu_final,
+        &.{},
+    );
 }

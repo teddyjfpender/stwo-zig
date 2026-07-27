@@ -200,6 +200,30 @@ Encoding decisions a reviewer must check
    the benchmark in the commit message.  It is uniformly *sharper*: a sat shard
    names the output and the opcode without anyone reading a model.
 
+4d. Sequential proof decomposition. Long byte-product families are decided by
+   a ladder of smaller two-copy implications. A witness column is added to the
+   shared hypothesis only after a query proving that it agrees; architectural
+   outputs are then proved one at a time. The composition is complete because
+   any counterexample has a first differing output in the ladder order.
+   For a carry digit, the proof query retains the lookup prefix through that
+   digit and drops later requests. This is a deliberate weakening: `unsat` for
+   the larger witness set proves the full AIR query `unsat`, while `sat` is
+   inconclusive and is always returned as `unknown`, never decoded or exported.
+   All interval, node-window, determined-column, and projection analyses are
+   rebuilt from the same prefix, so no fact derived from a dropped request can
+   leak back into the proof. A unit test compares the result byte-for-byte with
+   physically deleting the lookups.
+   Each proof query runs in a disposable solver process. Abnormal exits,
+   malformed replies, outer timeouts, and the reported 529 failure class are
+   `unknown`; process isolation is a liveness boundary, not proof evidence.
+   MULH closes through this generic ladder. DIV additionally uses a reviewed
+   quotient/remainder consequence tied fail-closed to the SHA-256 of every
+   extracted column, expression node, direct constraint, lookup, and referenced
+   table shape. Its non-vacuity check is a complete pinned `0 / 1` row submitted
+   to the unchanged one-copy AIR query for every opcode, not an assumed model.
+   Any IR or table-schema change invalidates both controls until the arithmetic
+   derivation is re-audited.
+
 5. Inputs versus outputs.  An `input` column is what the row is given and may
    not choose: the program counter and clock, opcode selectors, the immediate,
    and the `previous` side of an access.  An `output` column is what the row

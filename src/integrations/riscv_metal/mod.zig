@@ -83,7 +83,7 @@ pub fn verifyRiscV(
     pcs_config: pcs_core.PcsConfig,
     statement: prover_mod.RiscVStatement,
     proof: prover_mod.Proof,
-    claim: prover_mod.RiscVInteractionClaim,
+    claim: *const prover_mod.RiscVInteractionClaim,
 ) !void {
     return prover_mod.verifyRiscVWithEngine(
         MetalProverEngine,

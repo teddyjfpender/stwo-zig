@@ -133,7 +133,7 @@ pub fn prove(
                 interaction_offset,
                 relations,
                 interaction_claim.clock_claims[i],
-                constPrev(workspace.clock_result.?.previous),
+                constClockPrev(workspace.clock_result.?.previous),
             );
             components.push(components.clock.asProverComponent());
             main_offset += desc.n_columns;
@@ -186,6 +186,14 @@ pub fn prove(
 
 fn constPrev(bufs: [4][]M31) [4][]const M31 {
     return .{ bufs[0], bufs[1], bufs[2], bufs[3] };
+}
+
+fn constClockPrev(
+    bufs: [clock_update_interaction.N_INTERACTION_COLUMNS][]M31,
+) [clock_update_interaction.N_INTERACTION_COLUMNS][]const M31 {
+    var result: [clock_update_interaction.N_INTERACTION_COLUMNS][]const M31 = undefined;
+    for (&result, bufs) |*dst, src| dst.* = src;
+    return result;
 }
 
 fn constOpcodePrev(

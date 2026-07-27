@@ -134,6 +134,8 @@ pub fn addProduct(context: Context) void {
     const integration_tests = addIntegrationTests(context);
     const core_prover_tests = addCoreProverTests(context);
     const exhaustive_tests = addExhaustiveTests(context);
+    const air_satisfaction_exports = addAirSatisfactionExportTests(context);
+    const run_air_satisfaction_exports = context.b.addRunArtifact(air_satisfaction_exports);
     const test_step = context.b.step(
         "test-riscv-cpu-product",
         "Test the focused RISC-V CPU product shell and capability surface",
@@ -152,6 +154,23 @@ pub fn addProduct(context: Context) void {
         "test-riscv-rigidity",
         "Run the full witness-rigidity sweep over every committed opcode column",
     ).dependOn(&context.b.addRunArtifact(addRigidityTests(context)).step);
+    const air_satisfaction_export_step = context.b.step(
+        "test-riscv-air-satisfaction-export",
+        "Export committed traces for the independent AIR satisfaction checker",
+    );
+    air_satisfaction_export_step.dependOn(&run_air_satisfaction_exports.step);
+    const air_satisfaction_check = context.b.addSystemCommand(&.{
+        "python3",
+        "-m",
+        "unittest",
+        "scripts.tests.test_air_satisfaction",
+        "scripts.tests.test_air_satisfaction_infrastructure",
+    });
+    air_satisfaction_check.step.dependOn(&run_air_satisfaction_exports.step);
+    context.b.step(
+        "test-riscv-air-satisfaction",
+        "Export and independently check all RISC-V AIR main-trace components",
+    ).dependOn(&air_satisfaction_check.step);
 
     const closure_check = closure_gate.addCheck(.{
         .b = context.b,
@@ -304,6 +323,14 @@ fn addRigidityTests(context: Context) *std.Build.Step.Compile {
         .exhaustive = true,
         .rigidity_exhaustive = true,
         .filters = &.{"witness rigidity"},
+    });
+}
+
+fn addAirSatisfactionExportTests(context: Context) *std.Build.Step.Compile {
+    return addTestRoot(context, .{
+        .exhaustive = true,
+        .committed_mutations = true,
+        .filters = &.{ "committed trace export", "uniqueness IR: emit every family" },
     });
 }
 

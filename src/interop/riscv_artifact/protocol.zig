@@ -34,8 +34,8 @@ pub const FAMILIES = [FAMILY_COUNT]Family{
     .{ .ordinal = 8, .n_main_columns = 18, .n_interaction_batches = 4 }, // lui
     .{ .ordinal = 13, .n_main_columns = 39, .n_interaction_batches = 16 }, // mul
     .{ .ordinal = 14, .n_main_columns = 47, .n_interaction_batches = 22 }, // mulh
-    .{ .ordinal = 3, .n_main_columns = 51, .n_interaction_batches = 7 }, // shifts_imm
-    .{ .ordinal = 2, .n_main_columns = 60, .n_interaction_batches = 9 }, // shifts_reg
+    .{ .ordinal = 3, .n_main_columns = 51, .n_interaction_batches = 8 }, // shifts_imm
+    .{ .ordinal = 2, .n_main_columns = 60, .n_interaction_batches = 10 }, // shifts_reg
     .{ .ordinal = 16, .n_main_columns = 6, .n_interaction_batches = 2 }, // fence
 };
 
@@ -96,7 +96,7 @@ pub fn claimCount(kind: InfraKind) u32 {
         .range_check_8_8,
         .range_check_m31,
         => 1,
-        .clock_update => 1,
+        .clock_update => 2,
     };
 }
 
@@ -110,7 +110,8 @@ pub fn preprocessedColumns(kind: InfraKind) u32 {
 pub fn mainColumns(kind: InfraKind) u32 {
     return switch (kind) {
         .program => 10,
-        .memory, .clock_update => 8,
+        .memory => 8,
+        .clock_update => 10,
         .poseidon2 => 445,
         .merkle => 10,
         .bitwise,

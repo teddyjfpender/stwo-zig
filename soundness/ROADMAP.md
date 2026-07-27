@@ -209,7 +209,7 @@ The instrument chain, each link executed rather than assumed:
   first board were re-accepted by the oracle, which is what separated the two
   findings below.
 
-Board at a 120 s/shard budget, this run: 13 families unique and non-vacuous
+Pre-fix board at a 120 s/shard budget: 13 families unique and non-vacuous
 (`auipc`, `base_alu_imm`, `base_alu_reg`, `branch_eq`, `branch_lt`, `fence`,
 `jal`, `jalr`, `load_store`, `lt_imm`, `lt_reg`, `lui`, `mul`), 2 `sat`
 (`shifts_imm`, `shifts_reg`, deciding shard SRA in both, SLL/SRL shards still
@@ -218,31 +218,82 @@ all three shards open). Verdicts at a budget are budget- and run-dependent:
 `base_alu_imm`, `base_alu_reg` and `mul` were `unknown` on an earlier run of
 the same budget and closed on this one; a `timeout` is not a property.
 
-**The seventh demonstrated under-constraint — OPEN, not fixed.** The shift
-carry window admits carries the recurrence never produces.
-`shift_common.carryRangePairs` sends `(bit_multiplier - 1) - carry_i` to an
-8-bit box, so a live row admits `carry_i` anywhere in
-`[bit_multiplier - 256, bit_multiplier - 1]`, while honest carries live in
-`[0, bit_multiplier - 1]`; the window below zero is reachable because 256-wide
-is a fixed shape and `bit_multiplier <= 128`. The carries feed the result
-recurrence and nothing else — no bus tuple carries them — so no global
-argument closes what the row admits, and the freedom moves an architectural
-register write: for `SRA rd, x0, 31`, `result[0] * 128 = rs1[3] - carries[3]`
-with `carries[3] = -128` buys `result[0] = 1` from a zero operand.
-`uniqueness_counterexample_test.zig` holds the executed two-row evidence with
-every input byte-clean and `rd = x1`: both rows accepted by
-`row_admissibility`, one writes 0 and the other writes 1, plus the control one
-step below the window floor rejected by the same `range_check_8_8` request that
-must reject the forged row once fixed. The shape is unchanged since the pinned
-Stark-V port commit, so this is the same lineage as the closed six and was
-equally invisible to the Sail differential and the demoted oracle. It is not a
-missing source-byte range check: the demonstration needs no non-byte limb
-anywhere. The demanded fix is row-local — bind every `bit_shift_carry` to
-`[0, bit_multiplier)`, e.g. by pairing `(carry_i, bit_multiplier - 1 - carry_i)`
-in the existing `range_check_8_8` domain (+2 entries per shift family, geometry
-pins and the divergence log updated, and the demonstration test flipped to
-expect the rejection) — and is deliberately a separately reviewed change, not
-part of this sweep.
+**The seventh demonstrated under-constraint — CLOSED.** The pinned shift
+carry window admitted carries the recurrence never produces.
+`shift_common.carryRangePairs` sent only
+`(bit_multiplier - 1) - carry_i` to an 8-bit box, so a live row admitted
+`carry_i` anywhere in `[bit_multiplier - 256, bit_multiplier - 1]`, while
+honest carries live in `[0, bit_multiplier - 1]`. The negative half of that
+window moved an architectural write: for `SRA rd, x0, 31`,
+`result[0] * 128 = rs1[3] - carries[3]`, and `carries[3] = -128` bought
+`result[0] = 1` from a zero operand. No bus tuple carried the witness, so no
+global argument repaired the row.
+
+The production helper now emits four
+`(carry_i, bit_multiplier - 1 - carry_i)` pairs in the existing
+`range_check_8_8` domain. The two byte bounds prove exactly
+`0 <= carry_i < bit_multiplier` on an active row. This adds two entries per
+shift family: `shifts_reg` is pinned at 20 entries / 10 batches and
+`shifts_imm` at 16 / 8 in both the AIR matrix and proof-artifact protocol.
+`uniqueness_counterexample_test.zig` exhausts all 16,384 combinations of two
+families, eight multipliers, four carry limbs, and 256 canonical byte
+candidates, accepting exactly the values below the multiplier. The same test
+keeps the original byte-clean negative-carry forgery and now attributes its
+rejection to the fourth carry `range_check_8_8` request (entry 9 for
+`shifts_imm`, 13 for `shifts_reg`). The extraction differential remains green
+over all 17 families, and the divergence policy and ledger name the added
+requests and geometry.
+
+A bounded post-fix board did not produce a whole-family `unsat` verdict:
+all three `shifts_imm` selector shards timed out at 60 s, and an isolated SRAI
+query timed out at 180 s. No stronger solver claim is recorded. That budget
+limitation does not leave the demonstrated bug open: the production row oracle
+rejects the exact former counterexample, and the exhaustive table-membership
+test proves the requested carry interval for every limb in both families.
+
+**The two long byte-product rows now close — proof scheduling, not an AIR
+change.** Freshly extracted production IR closes all four `div`/`divu`/`rem`/
+`remu` opcode shards and all three `mulh`/`mulhsu`/`mulhu` shards at a 5 s
+per-query budget, with the declared input domains off and a satisfiable control
+for every opcode. The recorded run was `div`: 4 shards, 2.2 summed solver
+seconds; `mulh`: 3 shards, 23.2 summed solver seconds. Those timings are
+measurements, not part of the claim.
+
+MULH uses a sequential two-copy ladder. It proves byte/carry witnesses in table
+order, then each architectural output under only the agreements already
+proved. A digit step keeps the lookup prefix through that digit and drops later
+requests. This is proof-only weakening: an `unsat` over the larger assignment
+set proves the complete AIR query, while `sat` is inconclusive and is reported
+as `unknown`, never as a counterexample. Every range/window and projection
+analysis is rebuilt from the same prefix; the regression compares its emitted
+query byte-for-byte with physically deleting the requests. Each shard runs in
+a disposable three-seed Z3 process portfolio. No solver state survives a
+query, and any abnormal exit — including the reported 529 failure class —
+remains `unknown`; worker lifecycle is not promoted to evidence.
+
+DIV uses a smaller reviewed arithmetic consequence. Subtracting the two
+eight-limb byte/carry recurrences cancels the shared dividend limbs even when
+those input limbs are not locally byte-ranged; the bounded remaining terms
+cannot wrap M31. The sign-extended recurrence first telescopes modulo `2^64`;
+the opcode-specific canonical quotient signs and strict remainder bounds keep
+the difference strictly inside that modulus, yielding
+`C*Q_a + R_a = C*Q_b + R_b`. The sign, negation, high-to-low marker, and
+positive-difference obligations give the sign-aligned strict remainder bound
+for a nonzero divisor. For a zero divisor the direct constraints pin the same
+opcode-specific quotient, after which the subtracted recurrence pins the
+remainder. An independent integer query proves that two such rows have the same
+quotient and remainder, while ordinary emitted two-copy queries prove the
+operand/sign/zero prerequisites and bind those limbs to each real output in
+separate proof steps. This manual derivation fails closed over SHA-256
+`1e4ef3b84e581640301b8fba84d0c3034c3d1ab48ef1af13a301bfa16febce53`,
+which covers every extracted column, expression node, direct constraint,
+lookup, and referenced table width/classification: every one-obligation
+deletion, representative node/column mutations, and a table-width mutation
+return `unknown`. Non-vacuity is not left to a hard search; a complete
+`0 / 1 = 0` row with a nonzero destination is pinned and checked against the
+unchanged one-copy AIR query for each opcode. The 17-family extraction
+differential was rerun before the final board, and the freshly emitted DIV
+system retained the certified digest.
 
 **What the third `sat` was instead: a mis-posed query, fixed.** `load_store`'s
 counterexample pair differed in `r2_idx` — the destination/data register index,
@@ -276,14 +327,12 @@ What an `unsat` row on this board does not establish:
 
 ## Continuing adversarial work
 
-- [ ] Close the shift carry window (the OPEN seventh under-constraint above):
-      bind every `bit_shift_carry` limb to `[0, bit_multiplier)` in
-      `shift_common`, update the pinned lookup geometry and the divergence log,
-      and flip the two-row demonstration in
-      `uniqueness_counterexample_test.zig` to assert the forged copy is
-      rejected by the carry `range_check_8_8` request. An AIR constraint change
-      is a separately reviewed commit; the demonstration, the failing shape,
-      and the fix recipe are all recorded so the review starts from evidence.
+- [x] Close the shift carry window (the seventh under-constraint above):
+      every `bit_shift_carry` limb is paired with its complement in
+      `shift_common`; the lookup and artifact geometry pins, divergence policy,
+      and ledger are updated; and `uniqueness_counterexample_test.zig` both
+      exhausts the exact byte window and attributes rejection of the former
+      forged copy to the carry `range_check_8_8` request in each shift family.
 - [ ] Expand committed-witness mutation coverage to every opcode family. Nine
       of the seventeen families in `air/component_order.zig` now have a
       committed-trace forgery test: `mulh` (`mulh_soundness_test.zig`) and `lui`

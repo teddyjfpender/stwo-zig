@@ -227,6 +227,7 @@ fn proveStages(
         geometry,
         opt_chain,
         test_mutation,
+        test_dump,
         &retained_tree1,
     );
     defer retained.deinit(allocator, workspace);
@@ -262,7 +263,6 @@ fn proveStages(
     // claims Tree 2 produced. The run continues to a real proof afterwards.
     if (test_dump) |dump| try dump.record(
         statement,
-        &workspace.opcode_columns,
         &transcript_prefix.relations,
         interaction_claim,
     );

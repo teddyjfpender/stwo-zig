@@ -7,16 +7,16 @@ Two computations, and the difference between them matters:
     from the prover's interaction layer enters it, so a disagreement with the
     exported claim is a real discrepancy between the trace and the claim the
     verifier will be handed.
+  * `relation_claim` RECOMPUTES every infrastructure component from its exact
+    committed main trace (including sparse table multiplicities).
   * `public_boundary` RECOMPUTES the verifier's public compensation from the
     public statement alone.  This is a second implementation of
     `air/public_logup.zig`, anchored by the pinned Rust-oracle vector in
     `scripts/tests/test_air_satisfaction.py`.
 
-Infrastructure claims (program, memory, Merkle, Poseidon2, the six lookup
-tables, clock update) are taken from the export as given: recomputing them needs
-the infrastructure witnesses, which this export does not carry.  `closure`
-therefore checks that the whole ledger cancels, with the opcode half verified
-against the trace and the infrastructure half trusted.
+No interaction claim is taken as given. Pair batching is intentionally erased:
+the sum of the individual fractions is the claim regardless of which adjacent
+terms the Zig interaction generator paired.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from dataclasses import dataclass
 
 from .dump import Dump, PublicData, Relation
 from .field import P, QM31
+from .infrastructure import Request
 from .rows import Prepared
 
 
@@ -62,6 +63,14 @@ def opcode_claim(prepared: Prepared, relations: dict[str, Relation]) -> QM31:
                 relations[lookup.domain], [values[node] for node in lookup.tuple_]
             )
             total = total + inverse.mul_base(numerator)
+    return total
+
+
+def relation_claim(requests: tuple[Request, ...], relations: dict[str, Relation]) -> QM31:
+    total = QM31()
+    for request in requests:
+        inverse = _inverse_of(relations[request.domain], list(request.values))
+        total = total + inverse.mul_base(request.numerator)
     return total
 
 
@@ -164,40 +173,84 @@ def public_boundary(public: PublicData, relations: dict[str, Relation]) -> QM31:
 
 @dataclass
 class Closure:
-    """The whole ledger, with each half labelled by how much it is trusted."""
+    """The whole independently recomputed relation ledger."""
 
     recomputed_opcode: tuple[tuple[str, int, QM31, QM31], ...]
+    recomputed_infra: tuple[tuple[str, int, QM31, QM31], ...]
+    recomputed_transcript: tuple[tuple[str, int, QM31, QM31], ...]
     infra_total: QM31
     boundary: QM31
     total: QM31
 
     def disagreeing_claims(self) -> list[str]:
-        return [
+        component_mismatches = [
             f"{family}[{index}]: claim {claimed.as_tuple()} but the committed "
             f"trace gives {recomputed.as_tuple()}"
-            for family, index, claimed, recomputed in self.recomputed_opcode
+            for family, index, claimed, recomputed in (
+                *self.recomputed_opcode,
+                *self.recomputed_infra,
+            )
             if claimed.as_tuple() != recomputed.as_tuple()
         ]
+        transcript_mismatches = [
+            f"transcript {component}[{index}]: claim {claimed.as_tuple()} but "
+            f"component aggregation gives {recomputed.as_tuple()}"
+            for component, index, claimed, recomputed in self.recomputed_transcript
+            if claimed.as_tuple() != recomputed.as_tuple()
+        ]
+        return component_mismatches + transcript_mismatches
 
     def is_closed(self) -> bool:
         return self.total.is_zero() and not self.disagreeing_claims()
 
 
-def closure(dump: Dump, prepared: dict[int, Prepared]) -> Closure:
+def closure(
+    dump: Dump,
+    prepared: dict[int, Prepared],
+    infra_requests: dict[int, tuple[Request, ...]],
+) -> Closure:
     recomputed: list[tuple[str, int, QM31, QM31]] = []
     running = QM31()
-    for component in dump.components:
+    aggregate: dict[str, QM31] = {
+        claim.label: QM31() for claim in dump.transcript_claims
+    }
+    for component in dump.opcode_components():
         value = opcode_claim(prepared[component.index], dump.relations)
         recomputed.append(
             (component.family, component.index, dump.claim_for(component.index), value)
         )
         running = running + value
+        aggregate[component.family] = aggregate[component.family] + value
+
+    recomputed_infra: list[tuple[str, int, QM31, QM31]] = []
     infra_total = QM31()
-    for claim in dump.infra_claims:
-        infra_total = infra_total + claim.total
+    for component in dump.infra_components():
+        value = relation_claim(infra_requests[component.index], dump.relations)
+        recomputed_infra.append(
+            (
+                component.family,
+                component.index,
+                dump.infra_claim_for(component.index),
+                value,
+            )
+        )
+        infra_total = infra_total + value
+        aggregate[component.family] = aggregate[component.family] + value
+
+    recomputed_transcript = tuple(
+        (
+            claim.label,
+            claim.index,
+            claim.total,
+            aggregate.get(claim.label, QM31()),
+        )
+        for claim in dump.transcript_claims
+    )
     boundary = public_boundary(dump.public, dump.relations)
     return Closure(
         recomputed_opcode=tuple(recomputed),
+        recomputed_infra=tuple(recomputed_infra),
+        recomputed_transcript=recomputed_transcript,
         infra_total=infra_total,
         boundary=boundary,
         total=running + infra_total + boundary,

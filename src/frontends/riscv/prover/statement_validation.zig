@@ -18,13 +18,16 @@ const types = @import("types.zig");
 
 const MAX_OPCODE_SHARD_LOG_SIZE: u32 = 16;
 const MAX_OPCODE_SHARD_ROWS: usize = @as(usize, 1) << MAX_OPCODE_SHARD_LOG_SIZE;
-const MAX_EXECUTION_STEPS: usize = types.MAX_COMPONENTS * MAX_OPCODE_SHARD_ROWS;
+pub const MAX_EXECUTION_STEPS: usize = types.MAX_COMPONENTS * MAX_OPCODE_SHARD_ROWS;
 const MAX_MEMORY_SHARD_LOG_SIZE: u32 = 16;
 const MAX_MEMORY_SHARD_ROWS: usize = @as(usize, 1) << MAX_MEMORY_SHARD_LOG_SIZE;
 
 comptime {
     if (MAX_EXECUTION_STEPS >= m31.Modulus) {
         @compileError("RISC-V execution geometry must fit in one M31 field cycle");
+    }
+    if (MAX_EXECUTION_STEPS != @import("../runner/state_chain.zig").CLOCK_PREV_BOUND) {
+        @compileError("clock predecessor decomposition drifted from execution capacity");
     }
 }
 
@@ -99,6 +102,7 @@ pub fn validate(
     const merkle_desc = statement.infra_descs[index];
     const poseidon_desc = statement.infra_descs[index + 1];
     const clock_update = statement.infra_descs[index + 2];
+    try validateMerkleRowsFieldCycle(merkle_desc.n_rows);
     if (merkle_desc.kind != .merkle or
         merkle_desc.n_columns != merkle_node.N_MAIN_COLUMNS or
         merkle_desc.log_size != @max(@as(u32, 4), computeLogSize(merkle_desc.n_rows)))
@@ -132,6 +136,12 @@ fn validateTotalStepsFieldCycle(total_steps: u32) types.ProverError!void {
     // The state bus exposes clocks 1 through total_steps + 1. Keep that final
     // endpoint canonical so a long execution cannot close through M31 wraparound.
     if (total_steps >= m31.Modulus - 1) return types.ProverError.InvalidStatement;
+}
+
+fn validateMerkleRowsFieldCycle(n_rows: u32) types.ProverError!void {
+    // Every active Merkle row decrements depth by one. Fewer than p rows
+    // excludes a detached depth cycle that closes only through M31 wraparound.
+    if (n_rows >= m31.Modulus) return types.ProverError.InvalidStatement;
 }
 
 fn validateFamily(
@@ -228,6 +238,18 @@ test "statement validation: execution clock cannot wrap the base field" {
     try std.testing.expectError(
         error.InvalidStatement,
         validateTotalStepsFieldCycle(std.math.maxInt(u32)),
+    );
+}
+
+test "statement validation: Merkle depth chain cannot wrap the base field" {
+    try validateMerkleRowsFieldCycle(m31.Modulus - 1);
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateMerkleRowsFieldCycle(m31.Modulus),
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateMerkleRowsFieldCycle(std.math.maxInt(u32)),
     );
 }
 

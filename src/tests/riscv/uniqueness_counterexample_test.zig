@@ -27,8 +27,10 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 const lookup_entry = @import("../../frontends/riscv/air/lookups/entry.zig");
+const lookup_table = @import("../../frontends/riscv/air/lookups/tables/schema.zig");
 const row_admissibility = @import("row_admissibility.zig");
 const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
+const semantics = @import("../../frontends/riscv/air/semantics/mod.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
 const uniqueness_ir = @import("uniqueness_ir_test.zig");
 
@@ -186,19 +188,16 @@ fn honestSraRow(comptime family: OpcodeFamily) Row {
     return row;
 }
 
-// The carry window is 256 wide whatever the shift is. `carryRangePairs` sends
-// `(bit_multiplier - 1) - carry` to an 8-bit box, so a carry is admitted
-// anywhere in `[bit_multiplier - 256, bit_multiplier - 1]`, while honest
-// right-shift carries live in `[0, bit_multiplier - 1]`. The gap below the
-// honest range is what the forged copy uses: for the amount-31 row,
-// `result[0] * 128 = rs1[3] - carries[3]` and `carries[3] = -128` buys
-// `result[0] = 1` from a zero operand. Nothing else reads the carries — they
-// appear in no bus tuple — so no global argument closes what this row admits.
+// The legacy carry lookup sent only `(bit_multiplier - 1) - carry` to an
+// 8-bit box. It therefore admitted negative carries even though the witness
+// recurrence produces carries only in `[0, bit_multiplier)`. For this
+// amount-31 row, `carry_3 = -128` and `result[0] = 1` satisfy every direct
+// equation over a zero operand and move the architectural register write.
 //
-// A fix must shrink the window to the honest carry range; when it lands, the
-// forged copy must be rejected by the carry `range_check_8_8` request and this
-// test flipped to assert exactly that.
-test "uniqueness counterexamples: SRA carry slack admits two byte-clean rows" {
+// The production request now pairs each carry with its complement, so this
+// concrete former counterexample must reach the fourth carry pair and be
+// rejected there in both shift families.
+test "uniqueness counterexamples: SRA negative carry is rejected by the carry window" {
     inline for ([_]OpcodeFamily{ .shifts_imm, .shifts_reg }) |family| {
         const honest = honestSraRow(family);
 
@@ -207,36 +206,83 @@ test "uniqueness counterexamples: SRA carry slack admits two byte-clean rows" {
         setCell(family, &forged, "result_0", 1);
         setCell(family, &forged, "rd_next_0", 1);
 
-        // Same architectural inputs by construction; the written register
-        // differs, so at most one of the two can be the Sail transition.
+        // Same architectural inputs by construction; only the honest written
+        // register is now row-locally admissible.
         try std.testing.expectEqual(
             row_admissibility.Verdict.accepted,
             try row_admissibility.verdict(family, honest.columns()),
         );
-        try std.testing.expectEqual(
-            row_admissibility.Verdict.accepted,
-            try row_admissibility.verdict(family, forged.columns()),
-        );
-
-        // Control: one full step below the window floor, with the recurrence
-        // rebalanced so only the carry request can object. Rejection here pins
-        // both that the request is live on this row — the acceptances above are
-        // not vacuous — and that the floor sits at `bit_multiplier - 256`.
-        var out_of_window = honest;
-        setCell(family, &out_of_window, "bit_shift_carry_3", (1 << 31) - 1 - 256);
-        setCell(family, &out_of_window, "result_0", 2);
-        setCell(family, &out_of_window, "rd_next_0", 2);
         const carry_pair_index: usize = switch (family) {
-            .shifts_imm => 7,
-            .shifts_reg => 11,
+            .shifts_imm => 9,
+            .shifts_reg => 13,
             else => unreachable,
         };
-        switch (try row_admissibility.verdict(family, out_of_window.columns())) {
+        switch (try row_admissibility.verdict(family, forged.columns())) {
             .table => |rejection| {
                 try std.testing.expectEqual(lookup_entry.Domain.range_check_8_8, rejection.domain);
                 try std.testing.expectEqual(carry_pair_index, rejection.index);
             },
-            else => return error.CarryRangeRequestNotLive,
+            else => return error.NegativeCarryWasNotRejected,
+        }
+    }
+}
+
+test "shift carry window: every byte candidate is admitted iff below the multiplier" {
+    const marker_names = [_][]const u8{
+        "bit_shift_marker_0", "bit_shift_marker_1",
+        "bit_shift_marker_2", "bit_shift_marker_3",
+        "bit_shift_marker_4", "bit_shift_marker_5",
+        "bit_shift_marker_6", "bit_shift_marker_7",
+    };
+    const carry_names = [_][]const u8{
+        "bit_shift_carry_0", "bit_shift_carry_1",
+        "bit_shift_carry_2", "bit_shift_carry_3",
+    };
+    inline for ([_]OpcodeFamily{ .shifts_imm, .shifts_reg }) |family| {
+        const module = switch (family) {
+            .shifts_imm => semantics.shifts_imm,
+            .shifts_reg => semantics.shifts_reg,
+            else => unreachable,
+        };
+        inline for (0..8) |bit_shift| {
+            const multiplier: u32 = @as(u32, 1) << bit_shift;
+            inline for (0..4) |carry_index| {
+                for (0..256) |carry| {
+                    var committed = honestSraRow(family);
+                    inline for (0..8) |marker| {
+                        setCell(
+                            family,
+                            &committed,
+                            marker_names[marker],
+                            @intFromBool(marker == bit_shift),
+                        );
+                    }
+                    setCell(family, &committed, "bit_multiplier_right", multiplier);
+                    setCell(
+                        family,
+                        &committed,
+                        carry_names[carry_index],
+                        @intCast(carry),
+                    );
+
+                    const row = try module.Row.fromOracleColumns(committed.columns());
+                    const pairs = module.carryRangePairs(row.semantic);
+                    if (carry < multiplier) {
+                        _ = try lookup_table.indexSecure(
+                            .range_check_8_8,
+                            &pairs[carry_index],
+                        );
+                    } else {
+                        try std.testing.expectError(
+                            error.ValueOutOfRange,
+                            lookup_table.indexSecure(
+                                .range_check_8_8,
+                                &pairs[carry_index],
+                            ),
+                        );
+                    }
+                }
+            }
         }
     }
 }

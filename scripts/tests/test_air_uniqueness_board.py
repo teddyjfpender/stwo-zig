@@ -22,6 +22,9 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures" / "air_uniqueness"
 UNDER_CONSTRAINED = FIXTURES / "sign_load_underconstrained.json"
 ADDER = FIXTURES / "byte_carry_adder.json"
 INLINE_ADDER = FIXTURES / "inline_carry_adder.json"
+ROOT = Path(__file__).resolve().parents[2]
+DIV_IR = ROOT / "zig-out" / "uniqueness-ir" / "div.json"
+MULH_IR = ROOT / "zig-out" / "uniqueness-ir" / "mulh.json"
 
 TIMEOUT_MS = 20_000
 
@@ -254,6 +257,10 @@ class BoardTest(unittest.TestCase):
         (folded,) = air_uniqueness_board.collect(rows)
         self.assertEqual(folded["status"], "timeout")
         self.assertEqual(folded["open_shards"], ["b"])
+        self.assertEqual(
+            [(row["shard"], row["status"]) for row in folded["shard_results"]],
+            [("a", "unsat"), ("b", "unknown")],
+        )
 
     def test_a_counterexample_outranks_an_unfinished_shard(self) -> None:
         rows = [self._row("unknown", "a"), self._row("sat", "b")]
@@ -264,7 +271,14 @@ class BoardTest(unittest.TestCase):
     def test_an_unsatisfiable_opcode_marks_the_family_vacuous(self) -> None:
         rows = [
             self._row("unsat", "add"),
-            {"family": "toy", "kind": "probe", "satisfiable": False, "seconds": 0.1},
+            {
+                "family": "toy",
+                "kind": "probe",
+                "shard": "add",
+                "satisfiable": False,
+                "seconds": 0.1,
+                "wall": 0.1,
+            },
         ]
         (folded,) = air_uniqueness_board.collect(rows)
         self.assertIs(folded["honest_witness"], False)
@@ -273,8 +287,90 @@ class BoardTest(unittest.TestCase):
     def test_an_unfinished_probe_is_not_read_as_vacuous(self) -> None:
         rows = [
             self._row("unsat", "add"),
-            {"family": "toy", "kind": "probe", "satisfiable": None, "seconds": 0.1},
+            {
+                "family": "toy",
+                "kind": "probe",
+                "shard": "add",
+                "satisfiable": None,
+                "seconds": 0.1,
+                "wall": 0.1,
+            },
         ]
         (folded,) = air_uniqueness_board.collect(rows)
         self.assertIsNone(folded["honest_witness"])
         self.assertNotIn("VACUOUS", air_uniqueness_board._vacuity_note(folded))
+
+
+@unittest.skipUnless(
+    DIV_IR.exists() and MULH_IR.exists(),
+    "run the 'uniqueness IR: emit every family' Zig test first",
+)
+@needs_z3
+class ProductionLongCarryBoardTest(unittest.TestCase):
+    """The board selects the terminating proof path for DIV and MULH."""
+
+    OPTIONS = {
+        "timeout_ms": 5_000,
+        "refine": True,
+        "derived": True,
+        "assume_domains": False,
+        "no_ladder": False,
+    }
+
+    def test_mulh_decomposition_follows_the_emitted_carry_order(self) -> None:
+        system = ir.load(MULH_IR)
+        prefixes = {
+            rung.label(): solve._proof_lookup_prefix(
+                system, rung.columns, rung.lemma
+            )
+            for rung in solve.plan_rungs(system)
+        }
+        ordered = [
+            *(f"rd_high_{index}" for index in range(4)),
+            *(f"result_{index}" for index in range(4)),
+        ]
+        positions = [
+            prefixes[
+                ("lemma " if name.startswith("rd_high") else "") + name
+            ]
+            for name in ordered
+        ]
+        self.assertNotIn(None, positions)
+        self.assertEqual(positions, sorted(positions))
+        for name, prefix in zip(ordered, positions, strict=True):
+            assert prefix is not None
+            first = system.nodes[system.lookups[prefix - 1].tuple_[0]]
+            self.assertEqual((first.op, first.name), ("col", name))
+        self.assertEqual(prefixes["next_pc"], 0)
+
+    def test_div_uses_the_control_and_its_known_answer_is_non_vacuous(self) -> None:
+        unique = air_uniqueness_board._run_job(
+            (
+                str(DIV_IR),
+                {"selector": "opcode_div_flag"},
+                self.OPTIONS,
+            )
+        )
+        probe = air_uniqueness_board._run_job(
+            (
+                str(DIV_IR),
+                {"kind": "probe", "selector": "opcode_div_flag"},
+                self.OPTIONS,
+            )
+        )
+        self.assertEqual(unique["status"], "unsat", unique["detail"])
+        self.assertIn("division-control", unique["shard"])
+        self.assertIs(probe["satisfiable"], True)
+
+    def test_all_mulh_opcodes_close_in_disposable_ladder_workers(self) -> None:
+        for selector in (
+            "opcode_mulh_flag",
+            "opcode_mulhsu_flag",
+            "opcode_mulhu_flag",
+        ):
+            with self.subTest(selector=selector):
+                row = air_uniqueness_board._run_job(
+                    (str(MULH_IR), {"selector": selector}, self.OPTIONS)
+                )
+                self.assertEqual(row["status"], "unsat", row["detail"])
+                self.assertIn("ladder", row["shard"])

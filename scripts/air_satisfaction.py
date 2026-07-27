@@ -4,20 +4,24 @@ proving runs.
 
 WHAT THIS CHECKS INDEPENDENTLY
 ------------------------------
-Given a committed opcode trace exported from a real proving run, plus the
-extracted per-family constraint IR, it re-decides in Python:
+Given the complete committed main trace exported from a real proving run, plus
+the extracted per-family opcode constraint IR, it re-decides in Python:
 
   1. the committed-row placement permutation — the export is in committed
      (circle-domain, bit-reversed) order and this reader undoes it itself;
   2. every direct constraint of every real opcode row, over M31;
-  3. every activated preprocessed-table request of those rows: the box tables
-     and the functional `bitwise` table;
-  4. every opcode component's claimed LogUp sum, recomputed from the committed
+  3. every direct constraint of program, RW-memory, Merkle, Poseidon2 and clock
+     rows, including their padding policy;
+  4. every activated preprocessed-table request, including the exact sparse
+     multiplicity columns of all six lookup tables;
+  5. every opcode and infrastructure LogUp claim, recomputed from the committed
      trace and the exported challenges rather than read from the prover;
-  5. the verifier's public boundary compensation, as a second implementation of
+  6. all 28 canonical transcript claim slots, including zero slots for absent
+     opcode families and aggregation of memory/opcode shards;
+  7. the verifier's public boundary compensation, as a second implementation of
      `air/public_logup.zig`;
-  6. the global LogUp cancellation: (4) + the exported infrastructure claims +
-     (5) must be zero.
+  8. global LogUp cancellation using only recomputed component claims and the
+     recomputed public boundary.
 
 It shares no code with the Zig evaluator. A bug in Zig's row evaluation loop,
 its committed-row placement, its column offsets, or its public-boundary
@@ -36,14 +40,9 @@ scope, and a green result says nothing about any of it:
     scheme, which is a code-level identity (see `prover/test_trace_dump.zig`),
     not a cryptographic one. This checker cannot tell that the values it read
     are the values the proof opens;
-  * infrastructure components. Program, RW-memory, Merkle, Poseidon2, clock
-    update and the six lookup tables have their claimed sums TAKEN AS GIVEN from
-    the export. Their internal constraints and their multiplicity columns are
-    not re-decided, so a closure failure attributes to "the opcode side and the
-    boundary agree, the ledger does not" and no further;
-  * padding rows. The extracted IR fixes the preprocessed `is_active` selector
-    to one, so it is the active-row system; what the AIR requires of padding
-    rows is decided in Zig;
+  * opcode padding rows. The extracted opcode IR fixes the preprocessed
+    `is_active` selector to one, so it is the active-row system. Infrastructure
+    padding is checked independently;
   * the bus relations. `registers_state`, `memory_access`, `program_access`,
     `merkle`, `poseidon2` and `poseidon2_io` are multiset buses closed across
     rows and components. Their tuples enter (4) and (6) but are never decided
@@ -73,11 +72,11 @@ from pathlib import Path
 
 try:
     from air_satisfaction_lib import dump as dump_mod
-    from air_satisfaction_lib import logup, rows
+    from air_satisfaction_lib import infrastructure, logup, rows
     from air_uniqueness_lib import ir
 except ModuleNotFoundError:  # Imported as scripts.air_satisfaction in tests.
     from scripts.air_satisfaction_lib import dump as dump_mod
-    from scripts.air_satisfaction_lib import logup, rows
+    from scripts.air_satisfaction_lib import infrastructure, logup, rows
     from scripts.air_uniqueness_lib import ir
 
 DEFAULT_DUMP = Path("zig-out/committed-trace/honest.json")
@@ -117,21 +116,29 @@ def load_systems(directory: Path, families: set[str]) -> dict[str, "ir.System"]:
 
 def check(dump_path: Path, ir_dir: Path) -> Report:
     exported = dump_mod.load(dump_path)
-    systems = load_systems(ir_dir, {c.family for c in exported.components})
+    opcode_components = exported.opcode_components()
+    systems = load_systems(ir_dir, {c.family for c in opcode_components})
     report = Report()
     # Bind every component to its system before deciding any of them: a layout
     # mismatch anywhere means the whole run was read against the wrong AIR, and
     # a partial report of that is worse than none.
     prepared = {
         component.index: rows.prepare(systems[component.family], component)
-        for component in exported.components
+        for component in opcode_components
     }
-    for component in exported.components:
+    for component in opcode_components:
         violations, counts = rows.check_component(prepared[component.index])
         report.violations.extend(violations)
         report.counts[f"{component.family}[{component.index}]"] = counts
+
+    infra_requests: dict[int, tuple[infrastructure.Request, ...]] = {}
+    for component in exported.infra_components():
+        violations, counts, requests = infrastructure.check_component(component)
+        report.violations.extend(violations)
+        report.counts[f"infra:{component.family}[{component.index}]"] = counts
+        infra_requests[component.index] = requests
     try:
-        report.closure = logup.closure(exported, prepared)
+        report.closure = logup.closure(exported, prepared, infra_requests)
     except logup.UnsupportedStatement as error:
         report.unsupported = str(error)
     return report
@@ -166,7 +173,18 @@ def render(report: Report, dump_path: Path, max_report: int) -> str:
     for family, index, claimed, recomputed in closure.recomputed_opcode:
         verdict = "agrees" if claimed.as_tuple() == recomputed.as_tuple() else "DIFFERS"
         lines.append(f"  claim {family}[{index}]: recomputed from the trace {verdict}")
-    lines.append(f"  infrastructure claims (taken as given): {closure.infra_total.as_tuple()}")
+    for kind, index, claimed, recomputed in closure.recomputed_infra:
+        verdict = "agrees" if claimed.as_tuple() == recomputed.as_tuple() else "DIFFERS"
+        lines.append(f"  claim infra:{kind}[{index}]: recomputed from the trace {verdict}")
+    transcript_agrees = sum(
+        claimed.as_tuple() == recomputed.as_tuple()
+        for _, _, claimed, recomputed in closure.recomputed_transcript
+    )
+    lines.append(
+        f"  canonical transcript claims:             "
+        f"{transcript_agrees}/{len(closure.recomputed_transcript)} agree"
+    )
+    lines.append(f"  infrastructure claims (recomputed):      {closure.infra_total.as_tuple()}")
     lines.append(f"  public boundary (recomputed):           {closure.boundary.as_tuple()}")
     lines.append(f"  global sum:                             {closure.total.as_tuple()}")
     for message in closure.disagreeing_claims():

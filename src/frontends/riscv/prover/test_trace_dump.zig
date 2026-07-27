@@ -1,5 +1,6 @@
-//! Test-only export of a proving run's committed opcode trace and its LogUp
-//! inputs, for the independent Python row checker (`scripts/air_satisfaction.py`).
+//! Test-only export of a proving run's complete committed main trace and its
+//! LogUp inputs, for the independent Python checker
+//! (`scripts/air_satisfaction.py`).
 //!
 //! ## Why this lives on the proving path
 //!
@@ -10,45 +11,54 @@
 //!     channel after Tree 0 and Tree 1 are committed, so nothing outside the
 //!     transcript can produce them;
 //!   * the interaction claims are the prover's own accumulated LogUp sums;
-//!   * the opcode witness may carry a `test_witness_hook` forgery, which is
-//!     applied inside the run and must be visible to the checker exactly as the
+//!   * the witness may carry a `test_witness_hook` forgery, which is applied
+//!     inside the run and must be visible to the checker exactly as the
 //!     commitment saw it.
 //!
 //! ## What "committed" means here, precisely
 //!
-//! `record` reads `workspace.opcode_columns`, the buffers `main_trace`'s
-//! `copyOpcodeColumns` duplicated verbatim (`allocator.dupe`) into the Tree-1
-//! column array that was handed to `Engine.commit`. Nothing writes them after
-//! that copy, so the exported values are bit-identical to the committed opcode
-//! prefix of Tree 1. That is a code-level identity, not a cryptographic one:
-//! this export does not recompute the Merkle root, so a consumer of the JSON
-//! knows the values came from the prover's committed buffers and not that they
-//! are the values the *proof* opens.
+//! `recordMain` serialises the exact complete `ColumnEvaluation` array after
+//! every test mutation and immediately before that array is handed to
+//! `Engine.commit`. Nothing is regenerated: opcode, program, RW-memory,
+//! Merkle, Poseidon2, clock-update, and lookup-multiplicity values all come
+//! from the same Tree-1 buffers. This is a code-level identity, not a
+//! cryptographic one: the export does not recompute the Merkle root, so a
+//! consumer knows which buffers the prover committed but not that they are the
+//! values the proof opens.
 //!
 //! Rows are exported in COMMITTED (bit-reversed) order, deliberately. Undoing
 //! that permutation is the reader's job, so a bit-reversal placement bug cannot
 //! be cancelled by the same bug on both sides.
 //!
-//! Ownership: `record` borrows everything and owns only its JSON buffer.
+//! The six lookup multiplicity columns have domains as large as 2^20 and are
+//! overwhelmingly zero, so they use an exact sparse committed-index encoding.
+//! Every other column is dense. The reader undoes the placement in both cases.
+//!
+//! Ownership: both record methods borrow everything and own only JSON buffers.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const prover_pcs = @import("stwo_prover_impl").pcs;
 
-const opcode_trace = @import("opcode_trace.zig");
 const public_data_mod = @import("../air/public_data.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
 const statement_mod = @import("../air/statement.zig");
+const transcript_claims = @import("../air/transcript/claims.zig");
 
 const MODULUS: u32 = (1 << 31) - 1;
 
 /// Bumped whenever a field changes meaning. `air_satisfaction_lib.dump` refuses
 /// any other value rather than guessing at a layout it was not written for.
-pub const SCHEMA: []const u8 = "riscv-committed-trace/1";
+pub const SCHEMA: []const u8 = "riscv-committed-trace/2";
 
 pub const Capture = struct {
     allocator: std.mem.Allocator,
     json: std.ArrayList(u8) = .{},
+    main_json: std.ArrayList(u8) = .{},
+    opcode_component_count: usize = 0,
+    infra_component_count: usize = 0,
+    main_recorded: bool = false,
     recorded: bool = false,
 
     pub fn init(allocator: std.mem.Allocator) Capture {
@@ -57,11 +67,24 @@ pub const Capture = struct {
 
     pub fn deinit(self: *Capture) void {
         self.json.deinit(self.allocator);
+        self.main_json.deinit(self.allocator);
         self.* = undefined;
     }
 
     pub fn bytes(self: *const Capture) []const u8 {
         return self.json.items;
+    }
+
+    pub fn nOpcodeComponents(self: *const Capture) usize {
+        return self.opcode_component_count;
+    }
+
+    pub fn nInfraComponents(self: *const Capture) usize {
+        return self.infra_component_count;
+    }
+
+    pub fn nMainComponents(self: *const Capture) usize {
+        return self.opcode_component_count + self.infra_component_count;
     }
 
     pub fn writeTo(self: *const Capture, dir_path: []const u8, name: []const u8) !void {
@@ -72,18 +95,78 @@ pub const Capture = struct {
         try dir.writeFile(.{ .sub_path = name, .data = self.json.items });
     }
 
+    /// Serialises the exact Tree-1 buffers at the commitment boundary.
+    pub fn recordMain(
+        self: *Capture,
+        statement: *const statement_mod.RiscVStatement,
+        columns: []const prover_pcs.ColumnEvaluation,
+    ) !void {
+        if (self.main_recorded) return error.AlreadyRecorded;
+        if (columns.len != @as(usize, statement.nMainColumns()))
+            return error.InvalidTraceShape;
+
+        const w = self.main_json.writer(self.allocator);
+        try w.writeAll("  \"components\": [\n");
+        var offset: usize = 0;
+        var component_number: usize = 0;
+        const component_count: usize =
+            @as(usize, statement.n_components) + @as(usize, statement.n_infra);
+        for (0..statement.n_components) |index| {
+            const desc = statement.component_descs[index];
+            const n_columns: usize = @intCast(desc.n_columns);
+            try writeComponent(
+                w,
+                "opcode",
+                @tagName(desc.family),
+                index,
+                desc.log_size,
+                desc.n_rows,
+                desc.n_columns,
+                columns[offset..][0..n_columns],
+                false,
+                component_number + 1 == component_count,
+            );
+            offset += n_columns;
+            component_number += 1;
+        }
+        for (0..statement.n_infra) |index| {
+            const desc = statement.infra_descs[index];
+            const n_columns: usize = @intCast(desc.n_columns);
+            try writeComponent(
+                w,
+                "infra",
+                @tagName(desc.kind),
+                index,
+                desc.log_size,
+                desc.n_rows,
+                desc.n_columns,
+                columns[offset..][0..n_columns],
+                statement_mod.tableKind(desc.kind) != null,
+                component_number + 1 == component_count,
+            );
+            offset += n_columns;
+            component_number += 1;
+        }
+        if (offset != columns.len or component_number != component_count)
+            return error.InvalidTraceShape;
+        try w.writeAll("  ]\n");
+        self.opcode_component_count = statement.n_components;
+        self.infra_component_count = statement.n_infra;
+        self.main_recorded = true;
+    }
+
     /// Serialises one proving run. Called once, from `orchestration.proveStages`,
     /// after the interaction claim exists and before the proof is assembled.
     pub fn record(
         self: *Capture,
         statement: *const statement_mod.RiscVStatement,
-        columns: *const opcode_trace.Columns,
         relations: *const relation_challenges.Relations,
         claim: *const statement_mod.RiscVInteractionClaim,
     ) !void {
         // A second record would silently describe a different run under the
         // same handle, and the caller could not tell which one it read.
         if (self.recorded) return error.AlreadyRecorded;
+        if (!self.main_recorded) return error.MainTraceNotRecorded;
         const w = self.json.writer(self.allocator);
         try w.print(
             "{{\n  \"schema\": \"{s}\",\n  \"modulus\": {d},\n",
@@ -92,7 +175,7 @@ pub const Capture = struct {
         try writePublicData(w, &statement.public_data);
         try writeRelations(w, relations);
         try writeClaims(w, statement, claim);
-        try writeComponents(w, statement, columns);
+        try w.writeAll(self.main_json.items);
         try w.writeAll("}\n");
         self.recorded = true;
     }
@@ -205,35 +288,74 @@ fn writeClaims(
         try writeSecure(w, try claim.infraClaimTotal(desc.kind, index));
         try w.print("}}{s}\n", .{if (index + 1 == statement.n_infra) "" else ","});
     }
+    try w.writeAll("    ],\n    \"transcript\": [\n");
+    const canonical = try claim.canonical(statement);
+    const components = @typeInfo(transcript_claims.Component).@"enum".fields;
+    inline for (components, 0..) |component, index| {
+        try w.print("      {{\"component\": \"{s}\", \"index\": {d}, \"total\": ", .{
+            component.name, index,
+        });
+        try writeSecure(w, canonical.claimed_sums[index]);
+        try w.print("}}{s}\n", .{if (index + 1 == components.len) "" else ","});
+    }
     try w.writeAll("    ]\n  },\n");
 }
 
-fn writeComponents(
+fn writeComponent(
     w: anytype,
-    statement: *const statement_mod.RiscVStatement,
-    columns: *const opcode_trace.Columns,
+    class: []const u8,
+    label: []const u8,
+    index: usize,
+    log_size: u32,
+    n_rows: u32,
+    n_columns: u32,
+    columns: []const prover_pcs.ColumnEvaluation,
+    sparse: bool,
+    last: bool,
 ) !void {
-    try w.writeAll("  \"components\": [\n");
-    for (0..statement.n_components) |index| {
-        const desc = statement.component_descs[index];
-        const component = &columns.components[index];
-        if (component.n_columns != desc.n_columns) return error.InvalidTraceShape;
-        try w.print(
-            "    {{\"family\": \"{s}\", \"index\": {d}, \"log_size\": {d}, \"n_rows\": {d}, \"n_columns\": {d},\n     \"columns\": [\n",
-            .{ @tagName(desc.family), index, desc.log_size, desc.n_rows, desc.n_columns },
-        );
-        for (component.columns[0..component.n_columns], 0..) |values, column| {
-            try writeColumn(w, values, column + 1 == component.n_columns);
-        }
-        try w.print("     ]}}{s}\n", .{if (index + 1 == statement.n_components) "" else ","});
+    const domain_size = @as(usize, 1) << @intCast(log_size);
+    if (columns.len != n_columns) return error.InvalidTraceShape;
+    for (columns) |column| {
+        if (column.log_size != log_size or column.values.len != domain_size)
+            return error.InvalidTraceShape;
     }
-    try w.writeAll("  ]\n");
+    try w.print(
+        "    {{\"class\": \"{s}\", \"label\": \"{s}\", \"index\": {d}, \"log_size\": {d}, \"n_rows\": {d}, \"n_columns\": {d},\n     \"encoding\": \"{s}\", \"columns\": [\n",
+        .{
+            class,
+            label,
+            index,
+            log_size,
+            n_rows,
+            n_columns,
+            if (sparse) "sparse_committed" else "dense_committed",
+        },
+    );
+    for (columns, 0..) |column, column_index| {
+        if (sparse)
+            try writeSparseColumn(w, column.values, column_index + 1 == columns.len)
+        else
+            try writeDenseColumn(w, column.values, column_index + 1 == columns.len);
+    }
+    try w.print("     ]}}{s}\n", .{if (last) "" else ","});
 }
 
-fn writeColumn(w: anytype, values: []const M31, last: bool) !void {
+fn writeDenseColumn(w: anytype, values: []const M31, last: bool) !void {
     try w.writeAll("      [");
     for (values, 0..) |value, row| {
         try w.print("{d}{s}", .{ value.toU32(), if (row + 1 == values.len) "" else "," });
+    }
+    try w.print("]{s}\n", .{if (last) "" else ","});
+}
+
+fn writeSparseColumn(w: anytype, values: []const M31, last: bool) !void {
+    try w.writeAll("      [");
+    var written: usize = 0;
+    for (values, 0..) |value, committed_row| {
+        if (value.isZero()) continue;
+        if (written != 0) try w.writeAll(",");
+        try w.print("[{d},{d}]", .{ committed_row, value.toU32() });
+        written += 1;
     }
     try w.print("]{s}\n", .{if (last) "" else ","});
 }

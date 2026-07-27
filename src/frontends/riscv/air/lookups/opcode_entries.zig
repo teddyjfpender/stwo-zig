@@ -13,8 +13,10 @@ pub fn entryCount(family: trace.OpcodeFamily) usize {
     return switch (family) {
         .base_alu_reg => 18,
         .base_alu_imm => 16,
-        .shifts_reg => 18,
-        .shifts_imm => 14,
+        // Four carry/complement byte pairs close every sub-byte carry window,
+        // two requests beyond the pinned Stark-V vectors.
+        .shifts_reg => 20,
+        .shifts_imm => 16,
         .lt_reg => 14,
         .lt_imm => 11,
         .branch_eq => 9,
@@ -440,8 +442,8 @@ const shipped = Entries(QM31);
 pub const fromMain = shipped.fromMain;
 
 test "opcode lookup matrix preserves reviewed family geometry" {
-    const expected_entries = [_]usize{ 18, 16, 18, 14, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3 };
-    const expected_batches = [_]usize{ 9, 8, 9, 7, 7, 6, 5, 6, 4, 6, 9, 4, 8, 16, 22, 25, 2 };
+    const expected_entries = [_]usize{ 18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3 };
+    const expected_batches = [_]usize{ 9, 8, 10, 8, 7, 6, 5, 6, 4, 6, 9, 4, 8, 16, 22, 25, 2 };
     for (0..trace.N_FAMILIES) |index| {
         const family: trace.OpcodeFamily = @enumFromInt(index);
         try std.testing.expectEqual(expected_entries[index], entryCount(family));
@@ -457,9 +459,9 @@ test "opcode lookup vectors preserve exact domain order and batching" {
         // base_alu_imm
         &.{ .program_access, .range_check_8_11, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .bitwise, .bitwise, .bitwise, .bitwise, .range_check_8_8, .range_check_8_8, .memory_access, .memory_access, .range_check_20 },
         // shifts_reg
-        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_20, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .memory_access, .memory_access, .range_check_20, .range_check_m31 },
+        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_20, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .memory_access, .memory_access, .range_check_20, .range_check_m31 },
         // shifts_imm
-        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .memory_access, .memory_access, .range_check_20, .range_check_m31 },
+        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .range_check_8_8, .memory_access, .memory_access, .range_check_20, .range_check_m31 },
         // lt_reg
         &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_8_8, .range_check_20, .memory_access, .memory_access, .range_check_20 },
         // lt_imm

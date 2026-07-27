@@ -290,7 +290,7 @@ fn generateClock(
         geometry.clock_update_log,
         relations,
     );
-    claim.clock_claims[geometry.clock_infra_index] = workspace.clock_result.?.claim;
+    claim.clock_claims[geometry.clock_infra_index] = workspace.clock_result.?.claims;
     const taken = workspace.clock_result.?.takeColumns();
     for (taken) |values| columns.append(geometry.clock_update_log, values);
 }

@@ -172,12 +172,18 @@ pub fn Semantics(comptime S: type) type {
             return .{ .values = out };
         }
 
-        pub fn carryRangePairs(row: Row) [2][2]S {
+        /// Each tuple proves both ends of one honest carry window in the
+        /// existing byte-pair table: `carry_i` is non-negative and
+        /// `(bit_multiplier - 1) - carry_i` is non-negative.  Together they
+        /// bind every carry to `[0, bit_multiplier)` on an active row.
+        pub fn carryRangePairs(row: Row) [4][2]S {
             const enabler = row.active();
             const upper = derive(row).bit_multiplier.sub(enabler);
             return .{
-                .{ upper.sub(row.carries[0]), upper.sub(row.carries[1]) },
-                .{ upper.sub(row.carries[2]), upper.sub(row.carries[3]) },
+                .{ row.carries[0], upper.sub(row.carries[0]) },
+                .{ row.carries[1], upper.sub(row.carries[1]) },
+                .{ row.carries[2], upper.sub(row.carries[2]) },
+                .{ row.carries[3], upper.sub(row.carries[3]) },
             };
         }
 

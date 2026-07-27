@@ -167,3 +167,20 @@ def committed_placement(log_size: int) -> list[int]:
         _bit_reverse_index(_coset_index_to_circle_domain_index(row, log_size), log_size)
         for row in range(1 << log_size)
     ]
+
+
+def logical_index_from_committed(index: int, log_size: int) -> int:
+    """Invert `committed_placement` without materialising a 2^k inverse table.
+
+    This particular circle-domain/bit-reversal composition is an involution.
+    Keeping the scalar inverse matters for sparse lookup-table exports whose
+    domains reach 2^20 but whose committed multiplicity columns have only a
+    handful of nonzero cells.
+    """
+    size = 1 << log_size
+    if not 0 <= index < size:
+        raise ValueError(f"committed row {index} is outside a log-{log_size} domain")
+    return _bit_reverse_index(
+        _coset_index_to_circle_domain_index(index, log_size),
+        log_size,
+    )

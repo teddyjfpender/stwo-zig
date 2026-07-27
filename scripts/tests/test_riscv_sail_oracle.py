@@ -12,6 +12,9 @@ from scripts import riscv_equivalence as equivalence
 from scripts import riscv_sail_oracle as oracle
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
 def one_retirement_trace(rd_value: int = 1) -> dict:
     """ADDI x1, x0, 1 at the formal corpus entry: the smallest honest trace."""
     entry = equivalence.RVFI_DII_ENTRY
@@ -105,6 +108,78 @@ def memory_image(value: int) -> dict:
 
 def pinned_workspace_binary() -> Path:
     return oracle.DEFAULT_WORKSPACE / oracle.SAIL_BINARY_IN_WORKSPACE
+
+
+class EndToEndAttributionCoverageTests(unittest.TestCase):
+    """Every direct end-to-end proof module retains one sampled Sail tail."""
+
+    SAMPLES = {
+        # Landed reference: the other six modules follow this exact
+        # `requireAgreement` verdict boundary and last-obligation convention.
+        "src/tests/riscv/mulh_soundness_test.zig": (
+            "mulh guest (vectors/riscv_elfs/mul_div.elf)",
+            "try riscv_cpu.verifyRiscV(",
+            "&.{}",
+        ),
+        "src/tests/riscv/malicious_witness_test.zig": (
+            "malicious-witness matrix public-I/O guest",
+            "matrix.bound_pow_classified + matrix.bound_logup_classified > 0",
+            "&sail_memory",
+        ),
+        "src/tests/riscv/metal_backend_test.zig": (
+            "Metal backend eight-ADDI runner guest",
+            "try std.testing.expect(output.statement.n_components > 0);",
+            "&.{}",
+        ),
+        "src/tests/riscv/proof_admission_test.zig": (
+            "proving-substitution four-ADDI runner guest",
+            "CountingEngine.prove_calls",
+            "&.{}",
+        ),
+        "src/tests/riscv/prover_test.zig": (
+            "CPU prover eight-ADDI runner guest",
+            "try verifyRiscV(",
+            "&.{}",
+        ),
+        "src/tests/riscv/public_relation_binding_test.zig": (
+            "public-relation binding public-I/O guest",
+            "mutated.initial_rw_root = initial_root.root ^ 1;",
+            "&sail_memory",
+        ),
+        "src/tests/riscv/transcript_path_test.zig": (
+            "transcript-path four-ADDI runner guest",
+            "try expectEqualTrace(verifier_trace, reverted_trace);",
+            "&.{}",
+        ),
+    }
+
+    def test_all_seven_direct_proof_modules_keep_fail_closed_sample(self) -> None:
+        self.assertEqual(7, len(self.SAMPLES))
+        marker = ".sail_oracle.requireAgreement("
+        for relative, (label, preceding_assertion, memory_argument) in self.SAMPLES.items():
+            with self.subTest(module=relative):
+                source = (REPO_ROOT / relative).read_text()
+                call = source.find(marker)
+                self.assertNotEqual(-1, call, "missing fail-closed Sail assertion")
+                self.assertNotEqual(
+                    -1,
+                    source.rfind(preceding_assertion, 0, call),
+                    "Sail sample moved ahead of its proof/attribution assertions",
+                )
+                call_end = source.find("\n    );", call)
+                self.assertNotEqual(-1, call_end, "cannot delimit Sail assertion")
+                call_source = source[call:call_end]
+                self.assertIn(f'"{label}"', call_source)
+                self.assertIn(memory_argument, call_source)
+
+        for relative in (
+            "src/tests/riscv/malicious_witness_test.zig",
+            "src/tests/riscv/public_relation_binding_test.zig",
+        ):
+            self.assertIn(
+                "release_elf_fixture.initialMemory(&input)",
+                (REPO_ROOT / relative).read_text(),
+            )
 
 
 class VerdictContractTests(unittest.TestCase):

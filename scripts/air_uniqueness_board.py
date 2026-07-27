@@ -10,14 +10,15 @@ explains the encoding; this schedules it across all of them.
 
 Budget
 ------
-`--timeout-ms` is per *shard*, not per family.  A family splits into shards and
-is unique exactly when every shard is unsat, so the budget that matters is the
-one each sub-query gets.  The board prints the shard count alongside the summed
-solver seconds so neither number can be read as the other.
+`--timeout-ms` is per solver query, not per family. A family splits into opcode
+and/or output shards, and a long carry shard may decompose again into sequential
+proof queries. A family is unique exactly when every architectural shard is
+unsat. The board prints the shard count alongside the summed solver seconds so
+neither number can be read as the other.
 
 Splitting by opcode is on by default and splitting by output is not, because
-that is what the measurement said.  Over the 17 shipped families at a 60 s
-per-shard budget: monolithic closes 9 (17 shards), by opcode closes 11
+that is what the measurement said. Over the 17 shipped families at a 60 s
+per-query budget: monolithic closes 9 (17 shards), by opcode closes 11
 (46 shards), by output closes 9 (118 shards).  Both axes are sound; only the
 opcode one pays, because pinning a selector is what lets interval analysis
 delete the other opcodes' machinery, while asking about one output re-derives
@@ -61,41 +62,97 @@ def _run_job(job: tuple[str, dict, dict]) -> dict:
     than once per shard: it ignores the output axis, so every output shard of an
     opcode would otherwise re-run the same query.
 
-    A shard whose monolithic question runs out of budget escalates to the
-    sequential ladder (`solve.ladder`) instead of stopping at `timeout`: the
-    multiplier families are provable only step by step.  The escalation stays
-    inside the job so the pool sees one work item either way, and the row keeps
-    both costs: `seconds` sums the failed monolith and every ladder step.
+    A long multiplier shard starts with the sequential ladder (`solve.ladder`)
+    rather than first spending its whole budget on a monolith known not to
+    finish. DIV uses its exact-IR arithmetic control; MULH uses the generic
+    carry-prefix ladder. The escalation stays inside the job so the pool sees
+    one work item either way, and the row keeps both costs: `seconds` sums the
+    failed monolith and every ladder/control step.
     """
     path, spec, options = job
     system = ir.load(path)
     started = time.perf_counter()
     shard = smtlib.Shard(spec.get("output", ""), spec.get("selector", ""))
     if spec.get("kind") == "probe":
+        control_probe = (
+            system.family == "div"
+            and shard.selector in solve.DIVISION_SELECTORS
+            and not options.get("no_ladder")
+        )
         return {
             "family": system.family,
             "kind": "probe",
             "shard": shard.label(),
-            "satisfiable": solve.satisfiable(
-                system,
-                options["timeout_ms"],
-                refine=options["refine"],
-                derived=options["derived"],
-                assume_domains=options["assume_domains"],
-                shard=shard,
+            "method": (
+                "complete pinned DIV 0/1 row"
+                if control_probe
+                else "one-copy satisfiability search"
+            ),
+            "satisfiable": (
+                solve.division_known_answer_satisfiable(
+                    system,
+                    shard.selector,
+                    options["timeout_ms"],
+                    refine=options["refine"],
+                    derived=options["derived"],
+                    assume_domains=options["assume_domains"],
+                )
+                if control_probe
+                else solve.satisfiable(
+                    system,
+                    options["timeout_ms"],
+                    fresh=solve.prefers_ladder(system),
+                    refine=options["refine"],
+                    derived=options["derived"],
+                    assume_domains=options["assume_domains"],
+                    shard=shard,
+                )
             ),
             "seconds": time.perf_counter() - started,
             "wall": time.perf_counter() - started,
         }
     check_options = {k: v for k, v in options.items() if k != "no_ladder"}
-    result = solve.check(system, shard=shard, probe=False, **check_options)
-    if result.status == "unknown" and not spec.get("output") and not options.get(
-        "no_ladder"
+    decomposed = (
+        not spec.get("output")
+        and not options.get("no_ladder")
+        and solve.prefers_ladder(system)
+    )
+    if (
+        decomposed
+        and system.family == "div"
+        and shard.selector in solve.DIVISION_SELECTORS
+    ):
+        result = solve.division_control(
+            system,
+            shard.selector,
+            options["timeout_ms"],
+            refine=options["refine"],
+            derived=options["derived"],
+            assume_domains=options["assume_domains"],
+        )
+    elif decomposed:
+        result = solve.ladder(
+            system,
+            options["timeout_ms"],
+            shard=smtlib.Shard(selector=shard.selector),
+            fresh=True,
+            refine=options["refine"],
+            derived=options["derived"],
+            assume_domains=options["assume_domains"],
+        )
+    else:
+        result = solve.check(system, shard=shard, probe=False, **check_options)
+    if (
+        result.status == "unknown"
+        and not decomposed
+        and not spec.get("output")
+        and not options.get("no_ladder")
     ):
         escalated = solve.ladder(
             system,
             options["timeout_ms"],
             shard=smtlib.Shard(selector=shard.selector),
+            fresh=True,
             refine=options["refine"],
             derived=options["derived"],
             assume_domains=options["assume_domains"],
@@ -173,7 +230,15 @@ def collect(rows: list[dict]) -> list[dict]:
     out = []
     for family, shards in families.items():
         worst = min(shards, key=lambda r: SHARD_ORDER.index(r["status"]))
-        witnessed = [p["satisfiable"] for p in probes.get(family, ())]
+        family_probes = probes.get(family, ())
+        witnessed = [p["satisfiable"] for p in family_probes]
+        honest_witness = (
+            False
+            if False in witnessed
+            else None
+            if None in witnessed or not witnessed
+            else True
+        )
         out.append(
             {
                 "family": family,
@@ -184,13 +249,9 @@ def collect(rows: list[dict]) -> list[dict]:
                 # False beats None beats True: an opcode nothing satisfies makes
                 # its shards vacuously unsat, and a probe that ran out of budget
                 # leaves the question open rather than answering it.
-                "honest_witness": (
-                    False if False in witnessed
-                    else None if None in witnessed or not witnessed
-                    else True
-                ),
+                "honest_witness": honest_witness,
                 "seconds": sum(r["seconds"] for r in shards)
-                + sum(p["seconds"] for p in probes.get(family, ())),
+                + sum(p["seconds"] for p in family_probes),
                 "wall": max(r["wall"] for r in shards),
                 "detail": worst["detail"],
                 "deciding_shard": worst["shard"],
@@ -199,6 +260,26 @@ def collect(rows: list[dict]) -> list[dict]:
                 ],
                 "report": worst["report"],
                 "counterexample": worst["counterexample"],
+                # Keep every verdict and non-vacuity control in the JSON
+                # artifact. A folded `unsat` is useful only if a reviewer can
+                # see that no open shard was averaged away.
+                "shard_results": [
+                    {
+                        key: row[key]
+                        for key in ("shard", "status", "seconds", "wall", "detail")
+                    }
+                    for row in sorted(shards, key=lambda row: row["shard"])
+                ],
+                "probe_results": [
+                    {
+                        **{
+                            key: row[key]
+                            for key in ("shard", "satisfiable", "seconds", "wall")
+                        },
+                        "method": row.get("method", "unspecified"),
+                    }
+                    for row in sorted(family_probes, key=lambda row: row["shard"])
+                ],
             }
         )
     return sorted(out, key=lambda r: (BOARD_ORDER.index(r["status"]), r["family"]))
@@ -206,7 +287,7 @@ def collect(rows: list[dict]) -> list[dict]:
 
 def render(rows: list[dict], args: argparse.Namespace) -> str:
     lines = [
-        f"per-shard budget {args.timeout_ms} ms | {len(rows)} families | "
+        f"per-query budget {args.timeout_ms} ms | {len(rows)} families | "
         f"{sum(r['shards'] for r in rows)} shards | "
         f"declared input domains assumed={args.assume_declared_domains}",
         "",
@@ -265,8 +346,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-ladder",
         action="store_true",
-        help="stop at `timeout` instead of escalating a stuck shard to the "
-        "sequential ladder",
+        help="disable carry-family ladder/certificate decomposition and run "
+        "the raw shard query",
     )
     parser.add_argument("--no-derived-facts", action="store_true")
     parser.add_argument("--no-refine", action="store_true")

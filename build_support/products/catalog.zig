@@ -94,6 +94,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv-prover-core", .description = "Run the RISC-V prover corpus without the separately retained committed-witness mutation suites", .scope = .riscv_cpu },
     .{ .name = "test-riscv-release-exhaustive", .description = "Run the exhaustive RISC-V proof and adversarial release suites", .scope = .riscv_cpu },
     .{ .name = "test-riscv-rigidity", .description = "Run the full witness-rigidity sweep over every committed opcode column", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-air-satisfaction-export", .description = "Export committed traces for the independent AIR satisfaction checker", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-air-satisfaction", .description = "Export and independently check all RISC-V AIR main-trace components", .scope = .riscv_cpu },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },
     .{ .name = "metal-arena-session", .description = "Build persistent Metal SN PIE prover session", .scope = .metal_tools },
     .{ .name = "metal-prover-session-test", .description = "Run persistent Metal prover-session unit tests", .scope = .metal_tools },

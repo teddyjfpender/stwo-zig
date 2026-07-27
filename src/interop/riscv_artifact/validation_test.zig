@@ -15,6 +15,7 @@ const immediate_sums = [_]schema.Qm31Wire{zero} ** 8;
 const program_sums = [_]schema.Qm31Wire{zero} ** 3;
 const merkle_sums = [_]schema.Qm31Wire{zero} ** 3;
 const poseidon_sums = [_]schema.Qm31Wire{zero} ** 2;
+const clock_sums = [_]schema.Qm31Wire{zero} ** 2;
 const lookup_sums = [_]schema.Qm31Wire{zero};
 const empty_output_words = [_]schema.OutputWordWire{
     .{ .addr = 0, .value = 0, .clock = 2 },
@@ -52,7 +53,7 @@ fn fixture() schema.Artifact {
             infra(0, .program, 1, 1, 8),
             infra(1, .merkle, 4, 0, 10),
             infra(2, .poseidon2, 4, 0, 445),
-            infra(3, .clock_update, 4, 0, 8),
+            infra(3, .clock_update, 4, 0, 10),
             table(4, .bitwise),
             table(5, .range_check_20),
             table(6, .range_check_8_11),
@@ -72,7 +73,7 @@ fn fixture() schema.Artifact {
             .{ .infrastructure_index = 0, .claimed_sums = &program_sums },
             .{ .infrastructure_index = 1, .claimed_sums = &merkle_sums },
             .{ .infrastructure_index = 2, .claimed_sums = &poseidon_sums },
-            .{ .infrastructure_index = 3, .claimed_sums = &lookup_sums },
+            .{ .infrastructure_index = 3, .claimed_sums = &clock_sums },
             .{ .infrastructure_index = 4, .claimed_sums = &lookup_sums },
             .{ .infrastructure_index = 5, .claimed_sums = &lookup_sums },
             .{ .infrastructure_index = 6, .claimed_sums = &lookup_sums },

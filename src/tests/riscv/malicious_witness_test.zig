@@ -15,6 +15,7 @@ const postcard = @import("../../interop/postcard.zig");
 const runner_mod = @import("../../frontends/riscv/runner/mod.zig");
 const release_elf_fixture = @import("release_elf_fixture.zig");
 const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
+const clock_update_interaction = @import("../../frontends/riscv/air/clock_update_interaction.zig");
 const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
 const merkle_node = @import("../../frontends/riscv/air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
@@ -292,15 +293,17 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
             },
             .clock_update => {
                 n_clock_infra += 1;
-                var claim = matrix.claim;
-                claim.clock_claims[i] = bump(claim.clock_claims[i]);
-                try matrix.expectClaimRejected(
-                    "clock_claims",
-                    i,
-                    0,
-                    error.LogupSumNonZero,
-                    claim,
-                );
+                for (0..clock_update_interaction.N_SUMS) |j| {
+                    var claim = matrix.claim;
+                    claim.clock_claims[i][j] = bump(claim.clock_claims[i][j]);
+                    try matrix.expectClaimRejected(
+                        "clock_claims",
+                        i,
+                        j,
+                        error.LogupSumNonZero,
+                        claim,
+                    );
+                }
             },
             .bitwise,
             .range_check_20,
@@ -811,7 +814,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         n_memory_infra * 4 + // memory_claims entries
         n_merkle_infra * merkle_node.N_SUMS +
         n_poseidon_infra * poseidon2_air.N_SUMS +
-        n_clock_infra +
+        n_clock_infra * clock_update_interaction.N_SUMS +
         n_lookup_infra +
         3 + // interaction_pow, claim.n_components, claim.n_infra
         9 + // initial_pc/final_pc/clock: statement, public, and coordinated
@@ -834,5 +837,21 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
     // is deliberately rare and must not be a test-coverage requirement.
     try std.testing.expect(
         matrix.bound_pow_classified + matrix.bound_logup_classified > 0,
+    );
+
+    // Attribute the sampled honest execution to the pinned architectural
+    // model after every proof-independent mutation assertion has run. The
+    // release fixture supplies the runner's declared public-input image;
+    // Sail reads those words from its own seeded memory rather than trusting
+    // the trace's load claims. This must stay last so an absent oracle skips
+    // only the sampled Sail leg.
+    const sail_memory = try release_elf_fixture.initialMemory(&input);
+    try runner_mod.sail_oracle.requireAgreement(
+        alloc,
+        "malicious-witness matrix public-I/O guest",
+        elf_buf,
+        &run_result.execution_trace,
+        run_result.cpu_final,
+        &sail_memory,
     );
 }

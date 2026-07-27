@@ -35,6 +35,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 
+const component_order = @import("../../frontends/riscv/air/component_order.zig");
 const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");
 const layout = @import("committed_row_layout.zig");
@@ -55,6 +56,29 @@ const FORGED_XOR_LIMB: u32 = ((OPERAND ^ MASK) & 0xff) ^ 1;
 
 const RESULT_0 = layout.columnOf(.base_alu_reg, "result_0");
 const RD_NEXT_0 = layout.nextLimbColumn(.base_alu_imm, 0, 0);
+
+/// One straight-line retirement from every one of the 17 proof families.
+/// `JAL x0, +4` deliberately targets its successor. The final AUIPC/ADDI/JALR
+/// trio computes the instruction after JALR without relying on host addresses.
+const ALL_FAMILY_BODY = [_]u32{
+    0x0070_0313, // ADDI x6, x0, 7
+    0x0030_0393, // ADDI x7, x0, 3
+    0x0073_0433, // ADD x8, x6, x7
+    0x0003_0263, // BEQ x6, x0, +4 (not taken)
+    0x0003_4263, // BLT x6, x0, +4 (not taken)
+    0x0273_44B3, // DIV x9, x6, x7
+    0x0040_006F, // JAL x0, +4
+    0x0083_2513, // SLTI x10, x6, 8
+    0x0063_A5B3, // SLT x11, x7, x6
+    0x0273_0633, // MUL x12, x6, x7
+    0x0273_16B3, // MULH x13, x6, x7
+    0x0023_1713, // SLLI x14, x6, 2
+    0x0073_17B3, // SLL x15, x6, x7
+    0x0FF0_000F, // FENCE
+    0x0000_0817, // AUIPC x16, 0
+    0x00C8_0813, // ADDI x16, x16, 12
+    0x0008_0067, // JALR x0, x16, 0
+};
 
 fn exportRun(
     guest: *const harness.Guest,
@@ -79,6 +103,26 @@ test "committed trace export: an honest run exports and verifies" {
         harness.Outcome.verified,
         try exportRun(&guest, null, "honest.json"),
     );
+}
+
+// Runtime: about 30 s. One proof covers exactly the 17 opcode component kinds
+// plus the 11 infrastructure kinds in the canonical transcript registry.
+test "committed trace export: all 28 transcript component kinds export and verify" {
+    const spec = harness.Spec{ .body = &ALL_FAMILY_BODY, .publish = 10 };
+    var guest = try harness.Guest.init(std.testing.allocator, spec);
+    defer guest.deinit();
+
+    for (component_order.opcodeFamilies()) |family| {
+        try std.testing.expect(try guest.familyRowCount(family) > 0);
+    }
+    var dump = harness.TraceDump.init(std.testing.allocator);
+    defer dump.deinit();
+    try std.testing.expectEqual(harness.Outcome.verified, try guest.proveCapturing(null, &dump));
+    try std.testing.expectEqual(component_order.OPCODE_FAMILY_COUNT, dump.nOpcodeComponents());
+    try std.testing.expectEqual(@as(usize, 11), dump.nInfraComponents());
+    try std.testing.expectEqual(component_order.TRANSCRIPT_COMPONENT_COUNT, dump.nMainComponents());
+    try dump.writeTo(DIR, "all_families.json");
+    try guest.requireSailAgreement("committed-trace all-family guest");
 }
 
 // Runtime: about 30 s. One proof and one failed verification.

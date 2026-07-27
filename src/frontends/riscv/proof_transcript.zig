@@ -1,6 +1,7 @@
 //! Active claim-phase transcript helpers for the sharded RISC-V frontend.
 
 const std = @import("std");
+const clock_update_interaction = @import("air/clock_update_interaction.zig");
 const component_order = @import("air/component_order.zig");
 const lookup_table_schema = @import("air/lookups/tables/schema.zig");
 const program_commitment = @import("air/program/commitment.zig");
@@ -336,7 +337,7 @@ fn fixtureStatement() statement_mod.RiscVStatement {
         .kind = .clock_update,
         .log_size = 4,
         .n_rows = 1,
-        .n_columns = 8,
+        .n_columns = clock_update_interaction.N_MAIN_COLUMNS,
     };
     statement.n_infra += 1;
     for (component_order.lookupTables()) |kind| {

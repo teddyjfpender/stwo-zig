@@ -12,7 +12,9 @@ from __future__ import annotations
 import json
 import re
 import unittest
+from dataclasses import replace
 from pathlib import Path
+from unittest import mock
 
 from scripts import air_uniqueness
 from scripts.air_uniqueness_lib import analysis, ir, smtlib, solve, tables
@@ -29,6 +31,7 @@ ADDER_UNRANGED = FIXTURES / "byte_carry_adder_unranged.json"
 XOR = FIXTURES / "bitwise_xor_byte.json"
 INLINE_ADDER = FIXTURES / "inline_carry_adder.json"
 MULTIPLIER = FIXTURES / "window_carry_multiplier.json"
+DIV_IR = ROOT / "zig-out" / "uniqueness-ir" / "div.json"
 
 # Observed worst case is ~3.5s, on the bitwise model whose int2bv encoding is
 # the least predictable. The headroom is deliberate but bounded: a regression
@@ -503,6 +506,172 @@ class LookupWindowTest(unittest.TestCase):
                     mutant, timeout_ms=TIMEOUT_MS, derived=derived, probe=False
                 )
                 self.assertEqual(result.status, "sat")
+
+
+class ProofOnlyLookupSliceTest(unittest.TestCase):
+    """A prefix lemma may weaken the AIR only in the proof direction."""
+
+    def setUp(self) -> None:
+        self.system = ir.load(MULTIPLIER)
+
+    def test_every_analysis_sees_the_dropped_lookup_set(self) -> None:
+        """No range window from a dropped request may survive into the query."""
+        for prefix in range(len(self.system.lookups) + 1):
+            with self.subTest(prefix=prefix):
+                sliced = smtlib.emit_uniqueness_query(
+                    self.system, shard=smtlib.Shard(lookup_prefix=prefix)
+                )
+                physically_dropped = smtlib.emit_uniqueness_query(
+                    replace(self.system, lookups=self.system.lookups[:prefix])
+                )
+                self.assertEqual(
+                    sliced.text.replace(
+                        f"[lookups[:{prefix}]]", "[monolithic]"
+                    ),
+                    physically_dropped.text,
+                )
+
+    def test_an_out_of_range_prefix_is_rejected(self) -> None:
+        with self.assertRaises(ir.IRError):
+            smtlib.emit_uniqueness_query(
+                self.system,
+                shard=smtlib.Shard(lookup_prefix=len(self.system.lookups) + 1),
+            )
+
+    def test_a_full_prefix_is_not_marked_as_weakened(self) -> None:
+        query = smtlib.emit_uniqueness_query(
+            self.system,
+            shard=smtlib.Shard(lookup_prefix=len(self.system.lookups)),
+        )
+        self.assertFalse(query.weakened)
+
+    @needs_z3
+    def test_a_sat_weakened_query_is_not_exported_as_a_counterexample(self) -> None:
+        result = solve.check(
+            self.system,
+            timeout_ms=TIMEOUT_MS,
+            shard=smtlib.Shard(lookup_prefix=0),
+            probe=False,
+        )
+        self.assertEqual(result.status, "unknown")
+        self.assertEqual(result.witnesses, {})
+        self.assertIn("proof-only weakened", result.reason_unknown)
+
+    def test_worker_status_529_is_unknown_not_proof(self) -> None:
+        query = smtlib.Query(text="", family="toy", columns={})
+        result = solve._fresh_result(query, 529, "", "worker vanished")
+        self.assertEqual(result.status, "unknown")
+        self.assertIn("status 529", result.reason_unknown)
+        self.assertIn("worker vanished", result.reason_unknown)
+
+    @needs_z3
+    def test_a_disposable_worker_returns_a_real_verdict(self) -> None:
+        query = smtlib.Query(
+            text="(set-logic ALL)\n(assert false)\n(check-sat)\n",
+            family="toy",
+            columns={},
+        )
+        self.assertEqual(solve.run_query_fresh(query, 2_000).status, "unsat")
+
+
+@needs_z3
+class DivisionArithmeticControlTest(unittest.TestCase):
+    """The reduced integer consequence used by the DIV certificate."""
+
+    def test_quotient_remainder_control_has_no_second_answer(self) -> None:
+        result = solve.run_query_fresh(solve._division_theorem_query(), 3_000)
+        self.assertEqual(result.status, "unsat", result.reason_unknown)
+
+    def test_the_subtracted_carry_balance_is_load_bearing(self) -> None:
+        query = solve._division_theorem_query()
+        balance = next(
+            line
+            for line in query.text.splitlines()
+            if line.startswith("(assert (= (+ (* C Q_a)")
+        )
+        mutant = replace(query, text=query.text.replace(balance + "\n", ""))
+        result = solve.run_query_fresh(mutant, 3_000)
+        self.assertEqual(result.status, "sat", result.reason_unknown)
+
+
+@unittest.skipUnless(
+    DIV_IR.exists(),
+    "run the 'uniqueness IR: emit every family' Zig test first",
+)
+class ProductionDivisionCertificateTest(unittest.TestCase):
+    """The manual arithmetic derivation is valid only for one exact IR."""
+
+    def setUp(self) -> None:
+        self.system = ir.load(DIV_IR)
+
+    def test_current_ir_matches_the_reviewed_certificate(self) -> None:
+        self.assertEqual(
+            solve._division_structure_digest(self.system),
+            solve.DIVISION_CONTROL_DIGEST,
+        )
+
+    def test_control_cancels_unranged_dividend_limbs_instead_of_bounding_them(
+        self,
+    ) -> None:
+        columns = {column.name: column for column in self.system.columns}
+        self.assertIsNone(columns["rs1_prev_0"].domain)
+        self.assertNotIn("(declare-const B ", solve._division_theorem_query().text)
+
+    def test_every_single_obligation_deletion_fails_closed(self) -> None:
+        mutants = []
+        for index in range(len(self.system.constraints)):
+            constraints = (
+                self.system.constraints[:index] + self.system.constraints[index + 1 :]
+            )
+            mutants.append(
+                (f"constraint {index}", replace(self.system, constraints=constraints))
+            )
+        for index in range(len(self.system.lookups)):
+            lookups = self.system.lookups[:index] + self.system.lookups[index + 1 :]
+            mutants.append((f"lookup {index}", replace(self.system, lookups=lookups)))
+        for label, mutant in mutants:
+            with self.subTest(obligation=label):
+                result = solve.division_control(
+                    mutant, solve.DIVISION_SELECTORS[0], 1
+                )
+                self.assertEqual(result.status, "unknown")
+                self.assertIn("does not match", result.reason_unknown)
+
+    def test_node_and_column_mutations_also_fail_closed(self) -> None:
+        nodes = list(self.system.nodes)
+        nodes[0] = replace(nodes[0], name=nodes[0].name + "_mutated")
+        columns = list(self.system.columns)
+        columns[0] = replace(columns[0], role="witness")
+        for mutant in (
+            replace(self.system, nodes=tuple(nodes)),
+            replace(self.system, columns=tuple(columns)),
+        ):
+            result = solve.division_control(
+                mutant, solve.DIVISION_SELECTORS[0], 1
+            )
+            self.assertEqual(result.status, "unknown")
+
+    def test_a_referenced_table_width_mutation_fails_closed(self) -> None:
+        with mock.patch.dict(
+            tables.BOX_TABLES, {"range_check_8_11": (8, 10)}
+        ):
+            result = solve.division_control(
+                self.system, solve.DIVISION_SELECTORS[0], 1
+            )
+        self.assertEqual(result.status, "unknown")
+
+    @needs_z3
+    def test_every_opcode_closes_and_has_a_complete_known_answer(self) -> None:
+        for selector in solve.DIVISION_SELECTORS:
+            with self.subTest(selector=selector):
+                result = solve.division_control(self.system, selector, 3_000)
+                self.assertEqual(result.status, "unsat", result.reason_unknown)
+                self.assertIs(
+                    solve.division_known_answer_satisfiable(
+                        self.system, selector, 3_000
+                    ),
+                    True,
+                )
 
 
 class InverseProjectionTest(unittest.TestCase):

@@ -30,6 +30,7 @@ test {
         _ = @import("malicious_witness_test.zig");
         _ = @import("main_witness_rejection_test.zig");
         _ = @import("mulh_soundness_test.zig");
+        _ = @import("opcode_family_committed_soundness_test.zig");
         _ = @import("partial_store_soundness_test.zig");
         _ = @import("read_only_access_soundness_test.zig");
         _ = @import("shift_sign_soundness_test.zig");

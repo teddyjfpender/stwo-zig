@@ -8,16 +8,19 @@
 //! move a counter.
 //!
 //! Coverage, stated exactly, because the file name reads wider than it is. Two
-//! hand-built traces are proven: a four-row `base_alu_imm` run and a one-row
-//! `mulh` run. The other fifteen opcode families in
+//! traces are proven: a runner-produced four-row `base_alu_imm` run and a
+//! hand-built one-row `mulh` run. The other fifteen opcode families in
 //! `air/component_order.zig` are not reached here, no proof is verified, and no
-//! witness is mutated. Per-family committed-trace coverage lives in the
+//! witness is mutated. The base-ALU sample is runner-produced and its proven
+//! retirement sequence is replayed through pinned Sail after the engine
+//! assertions. Per-family committed-trace coverage lives in the
 //! `*_soundness_test.zig` modules and is still partial; the family-by-family
 //! accounting and the remaining gaps are in `soundness/ROADMAP.md`.
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
 const prover = @import("../../frontends/riscv/prover.zig");
+const runner = @import("../../frontends/riscv/runner/mod.zig");
 const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
 const pcs = @import("stwo_core").pcs;
 const prover_component = @import("stwo_prover_impl").air.component_prover;
@@ -86,40 +89,21 @@ const TEST_CONFIG = pcs.PcsConfig{
 test "transaction engine is the proving substitution point" {
     CountingEngine.reset();
     const allocator = std.testing.allocator;
-    var trace = trace_mod.Trace.init(allocator);
-    defer trace.deinit();
-    trace.initial_pc = 0x1000;
-    for (0..4) |row| {
-        try trace.append(.{
-            .clk = @intCast(row + 1),
-            .pc = @intCast(0x1000 + row * 4),
-            .opcode = .ADDI,
-            .rd = 1,
-            .rs1 = 0,
-            .rs2 = 0,
-            .imm = 1,
-            .rs1_val = 0,
-            .rs2_val = 0,
-            .rs1_prev_clk = @intCast(row),
-            .rd_prev_val = if (row == 0) 0 else 1,
-            .rd_prev_clk = @intCast(row),
-            .rd_val = 1,
-            .mem_addr = 0,
-            .mem_val = 0,
-            .is_load = false,
-            .is_store = false,
-            .branch_taken = false,
-            .next_pc = @intCast(0x1000 + (row + 1) * 4),
-            .inst_word = 0x0010_0093,
-        });
-    }
-    trace.final_pc = 0x1010;
+    const elf = runner.trace_dump.buildTestElf(5, .{
+        0x0010_0093, // ADDI x1, x0, 1
+        0x0010_0093,
+        0x0010_0093,
+        0x0010_0093,
+        0x0000_006f, // JAL x0, 0: completion sentinel, not a retirement
+    });
+    var run = try runner.run(allocator, &elf, 1000);
+    defer run.deinit();
 
     var output = try prover.proveRiscVWithEngine(
         CountingEngine,
         allocator,
         TEST_CONFIG,
-        &trace,
+        &run.execution_trace,
         null,
         null,
         null,
@@ -128,6 +112,17 @@ test "transaction engine is the proving substitution point" {
     try std.testing.expectEqual(@as(usize, 1), CountingEngine.init_calls);
     try std.testing.expectEqual(@as(usize, 3), CountingEngine.commit_calls);
     try std.testing.expectEqual(@as(usize, 1), CountingEngine.prove_calls);
+
+    // Attribute the exact runner trace delivered to the selected engine.
+    // Last so an absent oracle skips only this sampled semantic leg.
+    try runner.sail_oracle.requireAgreement(
+        allocator,
+        "proving-substitution four-ADDI runner guest",
+        &elf,
+        &run.execution_trace,
+        run.cpu_final,
+        &.{},
+    );
 }
 
 test "MULH family reaches the selected proving engine" {

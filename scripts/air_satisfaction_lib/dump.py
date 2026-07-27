@@ -14,9 +14,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .field import P, QM31, committed_placement
+from .field import P, QM31, committed_placement, logical_index_from_committed
 
-SCHEMA = "riscv-committed-trace/1"
+SCHEMA = "riscv-committed-trace/2"
 
 
 class DumpError(ValueError):
@@ -81,11 +81,12 @@ class PublicData:
 
 @dataclass(frozen=True)
 class Component:
-    """One opcode shard's committed columns, in NATURAL row order.
+    """One main-trace component's committed columns, in NATURAL row order.
 
     `rows[r][c]` is column `c` of logical row `r`.  The export carries committed
     (permuted) order; `load` undoes the permutation here so every consumer works
-    in the order the IR's column names describe.
+    in the order the AIR's column names describe. Lookup multiplicity tables
+    retain only nonzero logical rows because their fixed domains reach 2^20.
     """
 
     family: str
@@ -94,9 +95,14 @@ class Component:
     n_rows: int
     n_columns: int
     rows: tuple[tuple[int, ...], ...]
+    class_: str = "opcode"
+    sparse_rows: tuple[tuple[int, tuple[int, ...]], ...] = ()
 
     def domain_size(self) -> int:
         return 1 << self.log_size
+
+    def is_sparse(self) -> bool:
+        return bool(self.sparse_rows) or (self.class_ == "infra" and not self.rows)
 
 
 @dataclass(frozen=True)
@@ -113,6 +119,7 @@ class Dump:
     relations: dict[str, Relation]
     opcode_claims: tuple[Claim, ...]
     infra_claims: tuple[Claim, ...]
+    transcript_claims: tuple[Claim, ...]
     components: tuple[Component, ...]
 
     def claim_for(self, index: int) -> QM31:
@@ -120,6 +127,24 @@ class Dump:
             if claim.index == index:
                 return claim.total
         raise DumpError(f"no opcode claim for component {index}")
+
+    def infra_claim_for(self, index: int) -> QM31:
+        for claim in self.infra_claims:
+            if claim.index == index:
+                return claim.total
+        raise DumpError(f"no infrastructure claim for component {index}")
+
+    def transcript_claim_for(self, index: int) -> QM31:
+        for claim in self.transcript_claims:
+            if claim.index == index:
+                return claim.total
+        raise DumpError(f"no transcript claim for component {index}")
+
+    def opcode_components(self) -> tuple[Component, ...]:
+        return tuple(component for component in self.components if component.class_ == "opcode")
+
+    def infra_components(self) -> tuple[Component, ...]:
+        return tuple(component for component in self.components if component.class_ == "infra")
 
 
 def _u32(raw: Any, where: str) -> int:
@@ -188,34 +213,81 @@ def _component(raw: dict[str, Any]) -> Component:
     log_size = int(raw["log_size"])
     n_columns = int(raw["n_columns"])
     n_rows = int(raw["n_rows"])
+    class_ = str(raw["class"])
+    if class_ not in {"opcode", "infra"}:
+        raise DumpError(f"component class must be opcode or infra, got {class_!r}")
     size = 1 << log_size
     if n_rows > size:
-        raise DumpError(f"{raw['family']}: {n_rows} real rows exceed the domain {size}")
+        raise DumpError(f"{raw['label']}: {n_rows} real rows exceed the domain {size}")
     columns = raw["columns"]
     if len(columns) != n_columns:
         raise DumpError(
-            f"{raw['family']}: declares {n_columns} columns and carries {len(columns)}"
+            f"{raw['label']}: declares {n_columns} columns and carries {len(columns)}"
         )
-    for position, column in enumerate(columns):
-        if len(column) != size:
-            raise DumpError(
-                f"{raw['family']} column {position}: {len(column)} values for a domain of {size}"
-            )
-        for value in column:
-            if not 0 <= value < P:
-                raise DumpError(f"{raw['family']} column {position}: {value} is not in [0, p)")
-    placement = committed_placement(log_size)
-    rows = tuple(
-        tuple(columns[column][placement[row]] for column in range(n_columns))
-        for row in range(size)
-    )
+    encoding = raw.get("encoding")
+    if encoding == "dense_committed":
+        for position, column in enumerate(columns):
+            if len(column) != size:
+                raise DumpError(
+                    f"{raw['label']} column {position}: {len(column)} values "
+                    f"for a domain of {size}"
+                )
+            for value in column:
+                if not isinstance(value, int) or not 0 <= value < P:
+                    raise DumpError(
+                        f"{raw['label']} column {position}: {value} is not in [0, p)"
+                    )
+        placement = committed_placement(log_size)
+        rows = tuple(
+            tuple(columns[column][placement[row]] for column in range(n_columns))
+            for row in range(size)
+        )
+        sparse_rows: tuple[tuple[int, tuple[int, ...]], ...] = ()
+    elif encoding == "sparse_committed":
+        logical: dict[int, list[int]] = {}
+        seen: set[tuple[int, int]] = set()
+        for column_index, column in enumerate(columns):
+            for item_index, item in enumerate(column):
+                if not isinstance(item, list) or len(item) != 2:
+                    raise DumpError(
+                        f"{raw['label']} column {column_index} sparse item "
+                        f"{item_index}: expected [committed_row, value]"
+                    )
+                committed_row, value = item
+                if (
+                    not isinstance(committed_row, int)
+                    or not 0 <= committed_row < size
+                    or not isinstance(value, int)
+                    or not 0 < value < P
+                ):
+                    raise DumpError(
+                        f"{raw['label']} column {column_index} sparse item "
+                        f"{item_index}: invalid index or nonzero M31 value"
+                    )
+                key = (column_index, committed_row)
+                if key in seen:
+                    raise DumpError(
+                        f"{raw['label']} column {column_index}: duplicate sparse "
+                        f"committed row {committed_row}"
+                    )
+                seen.add(key)
+                row = logical_index_from_committed(committed_row, log_size)
+                logical.setdefault(row, [0] * n_columns)[column_index] = value
+        sparse_rows = tuple(
+            (row, tuple(values)) for row, values in sorted(logical.items())
+        )
+        rows = ()
+    else:
+        raise DumpError(f"{raw['label']}: unknown column encoding {encoding!r}")
     return Component(
-        family=str(raw["family"]),
+        family=str(raw["label"]),
         index=int(raw["index"]),
         log_size=log_size,
         n_rows=n_rows,
         n_columns=n_columns,
         rows=rows,
+        class_=class_,
+        sparse_rows=sparse_rows,
     )
 
 
@@ -246,9 +318,25 @@ def load(path: str | Path) -> Dump:
         Claim(str(raw["kind"]), int(raw["index"]), _secure(raw["total"], "claims.infra"))
         for raw in payload["claims"]["infra"]
     )
-    if len(opcode_claims) != len(components):
+    transcript_claims = tuple(
+        Claim(
+            str(raw["component"]),
+            int(raw["index"]),
+            _secure(raw["total"], "claims.transcript"),
+        )
+        for raw in payload["claims"]["transcript"]
+    )
+    opcode_components = tuple(c for c in components if c.class_ == "opcode")
+    infra_components = tuple(c for c in components if c.class_ == "infra")
+    if len(opcode_claims) != len(opcode_components):
         raise DumpError(
-            f"{location}: {len(opcode_claims)} opcode claims for {len(components)} components"
+            f"{location}: {len(opcode_claims)} opcode claims for "
+            f"{len(opcode_components)} opcode components"
+        )
+    if len(infra_claims) != len(infra_components):
+        raise DumpError(
+            f"{location}: {len(infra_claims)} infrastructure claims for "
+            f"{len(infra_components)} infrastructure components"
         )
     return Dump(
         path=location,
@@ -256,5 +344,6 @@ def load(path: str | Path) -> Dump:
         relations=relations,
         opcode_claims=opcode_claims,
         infra_claims=infra_claims,
+        transcript_claims=transcript_claims,
         components=components,
     )

@@ -8,7 +8,8 @@ closed -- a source register access that emits a value it did not consume (which
 also leaves every witness derived from that value, including the ``LB``/``LH``
 and ``SRL``/``SRA`` sign witnesses, a free prover choice), free unmarked
 ``SB``/``SH`` bytes, a second ``AUIPC`` immediate decomposition offset by
-``p + 2``, an unbound JALR target, and non-byte DIV divisors.
+``p + 2``, an unbound JALR target, non-byte DIV divisors, and a shift-carry
+lookup window that admits negative carries.
 ``conformance/divergence-log.md`` is the authoritative disclosure.  An oracle
 that accepts those cannot arbitrate AIR soundness, so the boundaries whose
 comparison *is* an AIR comparison cannot be required to agree with it.
@@ -71,13 +72,15 @@ SUPERSEDED_BOUNDARIES: dict[str, str] = {
     "relation_tuples": (
         "JALR adds source, target, and immediate requests (12 -> 18 entries, "
         "6 -> 9 batches), DIV adds divisor and quotient-sign requests "
-        "(22 -> 25), and AUIPC pins imm_limbs[0] == 0, so activated lookup "
-        "tuple streams differ from the pinned oracle by construction."
+        "(22 -> 25), both shift families add two carry-window requests "
+        "(shifts_reg 18/9 -> 20/10, shifts_imm 14/7 -> 16/8), and AUIPC pins "
+        "imm_limbs[0] == 0, so activated lookup tuple streams differ from the "
+        "pinned oracle by construction."
     ),
     "relation_sums": (
-        "The added JALR and DIV requests plus the injective AUIPC decomposition "
-        "move per-domain cumulative sums; both sides must still balance to zero "
-        "independently, which the sum parser continues to enforce."
+        "The added JALR, DIV, and shift-carry requests plus the injective AUIPC "
+        "decomposition move per-domain cumulative sums; both sides must still "
+        "balance to zero independently, which the sum parser continues to enforce."
     ),
 }
 
@@ -90,6 +93,7 @@ AIR_SOUNDNESS_SITES: tuple[str, ...] = (
     "jalr_row_local_target_binding",
     "divisor_byte_and_quotient_sign_binding",
     "load_and_shift_sign_binding",
+    "shift_carry_window_binding",
 )
 
 # Divergence shapes accepted for each demoted boundary, as ``shape_digest``

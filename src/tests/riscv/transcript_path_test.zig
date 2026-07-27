@@ -8,7 +8,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
 const prover = @import("../../frontends/riscv/prover.zig");
 const relation_challenges = @import("../../frontends/riscv/air/relation_challenges.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const runner = @import("../../frontends/riscv/runner/mod.zig");
 const postcard = @import("../../interop/postcard.zig");
 const prover_engine = @import("stwo_prover_impl").engine;
 
@@ -283,36 +283,6 @@ const TraceEngine = prover_engine.ProverEngine(
     TraceChannel,
 );
 
-fn testTrace(allocator: std.mem.Allocator) !trace_mod.Trace {
-    var trace = trace_mod.Trace.init(allocator);
-    errdefer trace.deinit();
-    trace.initial_pc = 0x1000;
-    for (0..4) |i| try trace.append(.{
-        .clk = @intCast(i + 1),
-        .pc = @intCast(0x1000 + i * 4),
-        .opcode = .ADDI,
-        .rd = 1,
-        .rs1 = 0,
-        .rs2 = 0,
-        .imm = 1,
-        .rs1_val = 0,
-        .rs2_val = 0,
-        .rs1_prev_clk = @intCast(i),
-        .rd_prev_val = if (i == 0) 0 else 1,
-        .rd_prev_clk = @intCast(i),
-        .rd_val = 1,
-        .mem_addr = 0,
-        .mem_val = 0,
-        .is_load = false,
-        .is_store = false,
-        .branch_taken = false,
-        .next_pc = @intCast(0x1000 + (i + 1) * 4),
-        .inst_word = 0x00100093,
-    });
-    trace.final_pc = 0x1010;
-    return trace;
-}
-
 fn cloneProof(allocator: std.mem.Allocator, bytes: []const u8) !prover.Proof {
     var stream = std.io.fixedBufferStream(bytes);
     return postcard.deserializeProof(prover.Hasher, allocator, stream.reader());
@@ -335,8 +305,15 @@ fn expectEqualTrace(expected: TranscriptRecorder, actual: TranscriptRecorder) !v
 
 test "riscv transcript: production prover and verifier are byte-symmetric end to end" {
     const allocator = std.testing.allocator;
-    var execution = try testTrace(allocator);
-    defer execution.deinit();
+    const elf = runner.trace_dump.buildTestElf(5, .{
+        0x00100093, // ADDI x1, x0, 1
+        0x00100093,
+        0x00100093,
+        0x00100093,
+        0x0000006f, // JAL x0, 0: completion sentinel, not a retirement
+    });
+    var run = try runner.run(allocator, &elf, 1000);
+    defer run.deinit();
 
     var prover_trace = try TranscriptRecorder.init(allocator);
     defer prover_trace.deinit();
@@ -345,7 +322,7 @@ test "riscv transcript: production prover and verifier are byte-symmetric end to
         TraceEngine,
         allocator,
         TEST_PCS_CONFIG,
-        &execution,
+        &run.execution_trace,
         null,
         null,
         null,
@@ -459,4 +436,16 @@ test "riscv transcript: production prover and verifier are byte-symmetric end to
         &reverted_channel,
     );
     try expectEqualTrace(verifier_trace, reverted_trace);
+
+    // The byte-symmetric proof transcript above is now attributed to the
+    // pinned architectural model on the exact runner trace it committed.
+    // Keep this last so an absent oracle skips only the sampled Sail leg.
+    try runner.sail_oracle.requireAgreement(
+        allocator,
+        "transcript-path four-ADDI runner guest",
+        &elf,
+        &run.execution_trace,
+        run.cpu_final,
+        &.{},
+    );
 }

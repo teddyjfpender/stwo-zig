@@ -153,11 +153,27 @@ class FieldTest(unittest.TestCase):
         for log_size in range(0, 9):
             placement = field.committed_placement(log_size)
             self.assertEqual(sorted(placement), list(range(1 << log_size)))
+            for logical, committed in enumerate(placement):
+                self.assertEqual(
+                    field.logical_index_from_committed(committed, log_size),
+                    logical,
+                )
         # Hand-derived for log_size 2: coset-to-circle sends (0,1,2,3) to
         # (0,3,1,2), and the 2-bit reversal sends (0,1,2,3) to (0,2,1,3), so the
         # composition is (0,3,2,1). A reader who believes the placement is a
         # plain bit reversal would expect (0,2,1,3).
         self.assertEqual(field.committed_placement(2), [0, 3, 2, 1])
+
+        # The sparse fixed-table reader takes this scalar path at log 20; pin
+        # representative boundary and interior indices without allocating a
+        # second million-entry inverse table.
+        placement20 = field.committed_placement(20)
+        for logical in (0, 1, 2, 3, 0x12345, (1 << 20) - 2, (1 << 20) - 1):
+            committed = placement20[logical]
+            self.assertEqual(
+                field.logical_index_from_committed(committed, 20),
+                logical,
+            )
 
 
 def toy_system(**overrides) -> ir.System:
@@ -332,7 +348,23 @@ class DumpTest(unittest.TestCase):
 
 
 def exports_available() -> bool:
-    return (EXPORTS / "honest.json").exists() and (IR_DIR / "lui.json").exists()
+    required = (
+        "honest.json",
+        "all_families.json",
+        "forged_addi_limb.json",
+        "forged_bitwise_result.json",
+    )
+    honest = EXPORTS / "honest.json"
+    if (
+        any(not (EXPORTS / name).exists() for name in required)
+        or not (IR_DIR / "lui.json").exists()
+    ):
+        return False
+    try:
+        return dump_mod.load(honest).components != ()
+    except (ValueError, KeyError):
+        # A stale export is not evidence for the current schema.
+        return False
 
 
 @unittest.skipUnless(
@@ -340,6 +372,23 @@ def exports_available() -> bool:
     "run the 'committed trace export' and 'uniqueness IR: emit every family' Zig tests first",
 )
 class ExportTest(unittest.TestCase):
+    def test_all_28_transcript_components_are_independently_checked(self) -> None:
+        exported = dump_mod.load(EXPORTS / "all_families.json")
+        self.assertEqual(len(exported.opcode_components()), 17)
+        self.assertEqual(len(exported.infra_components()), 11)
+        self.assertEqual(len(exported.components), 28)
+        self.assertEqual(len(exported.transcript_claims), 28)
+        self.assertTrue(all(component.n_rows > 0 for component in exported.opcode_components()))
+
+        report = air_satisfaction.check(EXPORTS / "all_families.json", IR_DIR)
+        self.assertEqual([str(v) for v in report.violations], [])
+        self.assertIsNotNone(report.closure)
+        assert report.closure is not None
+        self.assertEqual(len(report.closure.recomputed_opcode), 17)
+        self.assertEqual(len(report.closure.recomputed_infra), 11)
+        self.assertEqual(len(report.closure.recomputed_transcript), 28)
+        self.assertTrue(report.ok(), report.closure)
+
     def test_the_honest_run_is_satisfied_and_closed(self) -> None:
         report = air_satisfaction.check(EXPORTS / "honest.json", IR_DIR)
         self.assertEqual([str(v) for v in report.violations], [])
@@ -358,7 +407,7 @@ class ExportTest(unittest.TestCase):
         even when it happens to preserve the first.
         """
         exported = dump_mod.load(EXPORTS / "honest.json")
-        for component in exported.components:
+        for component in exported.opcode_components():
             with self.subTest(component.family):
                 system = ir.load(IR_DIR / f"{component.family}.json")
                 pc = [c.name for c in system.columns].index("pc")

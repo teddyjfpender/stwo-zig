@@ -45,6 +45,7 @@ const proof_workspace = @import("proof_workspace.zig");
 const relation_diagnostic = @import("relation_diagnostic.zig");
 const statement_geometry = @import("statement_geometry.zig");
 const statement_validation = @import("statement_validation.zig");
+const test_trace_dump = @import("test_trace_dump.zig");
 const test_witness_hook = @import("test_witness_hook.zig");
 const types = @import("types.zig");
 
@@ -90,6 +91,7 @@ pub fn generateAndCommit(
     geometry: Geometry,
     opt_chain: ?*const state_chain.StateChainTracker,
     test_mutation: ?test_witness_hook.Mutation,
+    test_dump: ?*test_trace_dump.Capture,
     retained_tree: *?relation_diagnostic.RetainedTree,
 ) !Retained {
     const statement = &workspace.statement;
@@ -132,7 +134,7 @@ pub fn generateAndCommit(
         .{ .unrepresentable = if (forged) .drop else .reject },
     );
     errdefer lookup_source.deinit(allocator);
-    try registerLookupSources(&lookup_source, witness);
+    try registerLookupSources(&lookup_source, witness, workspace);
     try appendLookupColumns(allocator, &columns, &lookup_source);
     try copyOpcodeColumns(allocator, workspace, &columns);
 
@@ -140,6 +142,7 @@ pub fn generateAndCommit(
 
     if (test_mutation) |mutation|
         try test_witness_hook.applyMain(allocator, statement.*, columns.values, mutation);
+    if (test_dump) |dump| try dump.recordMain(statement, columns.values);
     if (comptime mode == .relation_diagnostic) {
         retained_tree.* = try relation_diagnostic.RetainedTree.capture(allocator, columns.values);
     }
@@ -256,7 +259,7 @@ fn appendPoseidonColumns(
     }
 }
 
-/// Unified register + memory clock update (8 cols).
+/// Unified register + memory clock update (10 cols).
 ///
 /// The generated set is kept in the workspace and *copied* into the committed
 /// array: Tree 2 reads the workspace copy, which must stay byte-identical to
@@ -290,13 +293,17 @@ fn appendClockColumns(
 fn registerLookupSources(
     lookup_source: *source_ingest.Result,
     witness: *const CommitmentWitness,
+    workspace: *const ProofWorkspace,
 ) !void {
     try lookup_sources.registerProgram(&lookup_source.counters, witness.program.rows);
     if (witness.boundary) |claims| {
         try lookup_sources.registerMemoryBoundary(&lookup_source.counters, claims.rows);
     }
-    try clock_update_interaction.registerRangeCheck20Counter(
-        lookup_source.counters.get(.range_check_20),
+    var clock_views: [clock_update_interaction.N_MAIN_COLUMNS][]const M31 = undefined;
+    for (&clock_views, workspace.clock_main) |*view, column| view.* = column;
+    try clock_update_interaction.registerRangeCheckCounters(
+        &lookup_source.counters,
+        &clock_views,
     );
 }
 

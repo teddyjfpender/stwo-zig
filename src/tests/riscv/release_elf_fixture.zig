@@ -1,10 +1,12 @@
 //! Test-only builder for a minimal symbol-bearing Stark-V guest ELF.
 
 const std = @import("std");
+const sail_oracle = @import("../../frontends/riscv/runner/sail_oracle.zig");
 
 const CODE_VADDR: u32 = 0x0001_0000;
 const INPUT_START: u32 = 0x0018_0000;
 const INPUT_END: u32 = INPUT_START + 12;
+const INPUT_CAPACITY: usize = INPUT_END - INPUT_START;
 const HALT_FLAG: u32 = 0x0010_0000;
 const OUTPUT_LEN: u32 = 0x0010_0004;
 const OUTPUT_DATA: u32 = 0x0010_0008;
@@ -151,6 +153,26 @@ pub fn buildPublicIoHaltElf(allocator: std.mem.Allocator) ![]u8 {
     return elf;
 }
 
+/// The runner-initialized public-input region as the Sail oracle's seed
+/// image. The image is derived from the fixture's declared input and address
+/// constants, never from the retirement trace's load claims.
+pub fn initialMemory(input: []const u8) ![INPUT_CAPACITY / 4]sail_oracle.MemoryWord {
+    if (input.len > INPUT_CAPACITY) return error.InputTooLarge;
+
+    var padded = [_]u8{0} ** INPUT_CAPACITY;
+    @memcpy(padded[0..input.len], input);
+
+    var words: [INPUT_CAPACITY / 4]sail_oracle.MemoryWord = undefined;
+    for (&words, 0..) |*word, index| {
+        const offset = index * @sizeOf(u32);
+        word.* = .{
+            .address = INPUT_START + @as(u32, @intCast(offset)),
+            .value = std.mem.readInt(u32, padded[offset..][0..4], .little),
+        };
+    }
+    return words;
+}
+
 fn writeSectionHeader(
     elf: []u8,
     offset: usize,
@@ -177,4 +199,21 @@ fn writeU16(bytes: []u8, offset: usize, value: anytype) void {
 
 fn writeU32(bytes: []u8, offset: usize, value: anytype) void {
     std.mem.writeInt(u32, bytes[offset..][0..4], @intCast(value), .little);
+}
+
+test "release ELF fixture derives the complete padded Sail input image" {
+    const image = try initialMemory(&.{ 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+    try std.testing.expectEqual(@as(usize, 3), image.len);
+    try std.testing.expectEqualDeep(
+        [_]sail_oracle.MemoryWord{
+            .{ .address = INPUT_START, .value = 0x0403_0201 },
+            .{ .address = INPUT_START + 4, .value = 0x0807_0605 },
+            .{ .address = INPUT_START + 8, .value = 0x0000_0009 },
+        },
+        image,
+    );
+    try std.testing.expectError(
+        error.InputTooLarge,
+        initialMemory(&([_]u8{0} ** (INPUT_CAPACITY + 1))),
+    );
 }
