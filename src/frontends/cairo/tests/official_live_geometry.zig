@@ -69,6 +69,7 @@ fn expectLiveCase(case: Case) !void {
             .visit = Observer.visit,
         },
         null,
+        null,
     );
     defer execution.deinit();
 

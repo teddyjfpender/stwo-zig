@@ -64,6 +64,7 @@ pub fn execute(
     programs: *const witness_bundle.Bundle,
     geometry: *claim_generator.OwnedClaimGeometry,
     observer: ?ComponentObserver,
+    pedersen_table: ?deductions.PedersenTable,
     recorder: ?*stage_profile.Recorder,
 ) !Execution {
     var components = std.ArrayList(Component).empty;
@@ -119,6 +120,7 @@ pub fn execute(
                 claim_component,
                 @intCast(ordinal),
                 observer,
+                pedersen_table,
             );
         } else if (try direct_inputs.resolve(input, claim_component.name)) |direct| blk: {
             break :blk try executeComponent(
@@ -129,6 +131,7 @@ pub fn execute(
                 claim_component,
                 @intCast(ordinal),
                 observer,
+                pedersen_table,
             );
         } else if (proof_plan.gatheredProducerEdges(claim_component.name)) |edges| blk: {
             const sources = try allocator.alloc(gathered_inputs.Producer, edges.len);
@@ -152,6 +155,7 @@ pub fn execute(
                 claim_component,
                 @intCast(ordinal),
                 observer,
+                pedersen_table,
             );
         } else {
             std.log.err(
@@ -192,6 +196,7 @@ fn executeComponent(
     claim_component: claim_generator.ComponentGeometry,
     ordinal: u32,
     observer: ?ComponentObserver,
+    pedersen_table: ?deductions.PedersenTable,
 ) !ComponentResult {
     const padded_rows = std.math.cast(u32, try source.paddedRowCount()) orelse
         return Error.AllocationSizeOverflow;
@@ -209,6 +214,7 @@ fn executeComponent(
         witness_program,
         source,
         layout,
+        pedersen_table,
     );
     defer execution.deinit();
     if (observer) |active| try active.visit(active.context, layout, &execution);

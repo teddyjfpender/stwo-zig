@@ -41,37 +41,71 @@ pub const Error = felt252.Error || stark_curve.Error || error{
 };
 
 pub fn applyPointsTable(args: []const u32, outputs: []u32) Error!void {
-    return applyPointsTableForWindow(args, outputs, default_window_bits);
+    return applyPointsTableForWindow(args, outputs, default_window_bits, null);
 }
 
 pub fn applyPointsTableWindowBits9(args: []const u32, outputs: []u32) Error!void {
-    return applyPointsTableForWindow(args, outputs, 9);
+    return applyPointsTableForWindow(args, outputs, 9, null);
+}
+
+pub fn applyPointsTableCached(
+    args: []const u32,
+    outputs: []u32,
+    comptime requested_window_bits: u5,
+    points: []const stark_curve.AffinePoint,
+) Error!void {
+    return applyPointsTableForWindow(
+        args,
+        outputs,
+        requested_window_bits,
+        points,
+    );
 }
 
 fn applyPointsTableForWindow(
     args: []const u32,
     outputs: []u32,
     comptime requested_window_bits: u5,
+    cached_points: ?[]const stark_curve.AffinePoint,
 ) Error!void {
     if (args.len != 1 or outputs.len != point_words)
         return error.InvalidWordCount;
-    const point = try tablePointForWindow(args[0], requested_window_bits);
+    const point = try resolveTablePoint(
+        args[0],
+        requested_window_bits,
+        cached_points,
+    );
     felt252.encode(point.x, outputs[0..felt252.word_count]);
     felt252.encode(point.y, outputs[felt252.word_count..point_words]);
 }
 
 pub fn applyPartialEcMul(args: []const u32, outputs: []u32) Error!void {
-    return applyPartialEcMulForWindow(args, outputs, default_window_bits);
+    return applyPartialEcMulForWindow(args, outputs, default_window_bits, null);
 }
 
 pub fn applyPartialEcMulWindowBits9(args: []const u32, outputs: []u32) Error!void {
-    return applyPartialEcMulForWindow(args, outputs, 9);
+    return applyPartialEcMulForWindow(args, outputs, 9, null);
+}
+
+pub fn applyPartialEcMulCached(
+    args: []const u32,
+    outputs: []u32,
+    comptime requested_window_bits: u5,
+    points: []const stark_curve.AffinePoint,
+) Error!void {
+    return applyPartialEcMulForWindow(
+        args,
+        outputs,
+        requested_window_bits,
+        points,
+    );
 }
 
 fn applyPartialEcMulForWindow(
     args: []const u32,
     outputs: []u32,
     comptime requested_window_bits: u5,
+    cached_points: ?[]const stark_curve.AffinePoint,
 ) Error!void {
     const requested_window_count: usize = 252 / @as(usize, requested_window_bits);
     const requested_rows_per_window: u32 = 1 << requested_window_bits;
@@ -83,7 +117,11 @@ fn applyPartialEcMulForWindow(
     if (args[2] >= requested_rows_per_window) return error.InvalidWindow;
 
     const table_row = args[1] * requested_rows_per_window + args[2];
-    const table_point = try tablePointForWindow(table_row, requested_window_bits);
+    const table_point = try resolveTablePoint(
+        table_row,
+        requested_window_bits,
+        cached_points,
+    );
     const accumulator = stark_curve.AffinePoint{
         .x = try felt252.decode(args[2 + requested_window_count ..][0..felt252.word_count]),
         .y = try felt252.decode(
@@ -107,6 +145,18 @@ fn applyPartialEcMulForWindow(
         sum.y,
         outputs[2 + requested_window_count + felt252.word_count ..][0..felt252.word_count],
     );
+}
+
+fn resolveTablePoint(
+    raw_index: u32,
+    requested_window_bits: u5,
+    cached_points: ?[]const stark_curve.AffinePoint,
+) Error!stark_curve.AffinePoint {
+    if (cached_points) |points| {
+        if (raw_index >= points.len) return error.InvalidTableIndex;
+        return points[raw_index];
+    }
+    return tablePointForWindow(raw_index, requested_window_bits);
 }
 
 pub fn tablePoint(raw_index: u32) Error!stark_curve.AffinePoint {
@@ -219,4 +269,28 @@ test "window-9 Pedersen points-table wrapper matches the generalized table" {
         expected.y,
         try felt252.decode(output[felt252.word_count..point_words]),
     );
+}
+
+test "cached Pedersen deductions preserve exact window-9 outputs" {
+    const requested_window_count: usize = 28;
+    const partial_words = 2 + requested_window_count + point_words;
+    var args = [_]u32{0} ** partial_words;
+    var expected = [_]u32{0} ** partial_words;
+    var actual = [_]u32{0} ** partial_words;
+    const table_row: u32 = 56;
+    const point = try tablePointForWindow(table_row, 9);
+
+    args[0] = 1234;
+    args[2] = table_row;
+    felt252.encode(p1.x, args[2 + requested_window_count ..][0..felt252.word_count]);
+    felt252.encode(
+        p1.y,
+        args[2 + requested_window_count + felt252.word_count ..][0..felt252.word_count],
+    );
+
+    try applyPartialEcMulWindowBits9(&args, &expected);
+    var points = [_]stark_curve.AffinePoint{negative_shift} ** 57;
+    points[table_row] = point;
+    try applyPartialEcMulCached(&args, &actual, 9, &points);
+    try std.testing.expectEqualSlices(u32, &expected, &actual);
 }

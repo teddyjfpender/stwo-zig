@@ -100,6 +100,35 @@ pub fn proveFixtureWithRecorder(
     const preprocessed_logs = try target.logs(allocator);
     defer allocator.free(preprocessed_logs);
 
+    var pedersen: preprocessed.pedersen_table.Table = undefined;
+    var pedersen_initialized = false;
+    defer if (pedersen_initialized) pedersen.deinit();
+    {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "preprocessed_table_build",
+            "Preprocessed table build",
+        );
+        defer stage.end();
+        switch (variant) {
+            .canonical_without_pedersen => {},
+            .canonical => {
+                pedersen = try preprocessed.pedersen_table.Table.init(
+                    allocator,
+                    .standard,
+                );
+                pedersen_initialized = true;
+            },
+            .canonical_small => {
+                pedersen = try preprocessed.pedersen_table.Table.init(
+                    allocator,
+                    .small,
+                );
+                pedersen_initialized = true;
+            },
+        }
+    }
+
     var base = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -114,6 +143,10 @@ pub fn proveFixtureWithRecorder(
             fixture.topology,
             fixture.fixed,
             claimVariant(variant),
+            if (pedersen_initialized) .{
+                .window_bits = pedersen.window.bits(),
+                .points = pedersen.points,
+            } else null,
             recorder,
         );
     };
@@ -160,9 +193,6 @@ pub fn proveFixtureWithRecorder(
     var scheme_owned = true;
     errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
 
-    var pedersen: preprocessed.pedersen_table.Table = undefined;
-    var pedersen_initialized = false;
-    defer if (pedersen_initialized) pedersen.deinit();
     {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -170,23 +200,6 @@ pub fn proveFixtureWithRecorder(
             "Preprocessed materialize and commit",
         );
         defer stage.end();
-        switch (variant) {
-            .canonical_without_pedersen => {},
-            .canonical => {
-                pedersen = try preprocessed.pedersen_table.Table.init(
-                    allocator,
-                    .standard,
-                );
-                pedersen_initialized = true;
-            },
-            .canonical_small => {
-                pedersen = try preprocessed.pedersen_table.Table.init(
-                    allocator,
-                    .small,
-                );
-                pedersen_initialized = true;
-            },
-        }
         const preprocessed_columns = try target.materializeWithPedersen(
             allocator,
             if (pedersen_initialized) &pedersen else null,

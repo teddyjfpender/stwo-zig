@@ -267,6 +267,7 @@ fn executeComponent(
         witness_program,
         source,
         try base_execution.layout(expected),
+        null,
     );
     defer execution.deinit();
     const mismatch = try base_execution.compare(expected, execution);

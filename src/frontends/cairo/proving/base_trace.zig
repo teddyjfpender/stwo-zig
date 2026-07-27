@@ -13,6 +13,7 @@ const feed_topology = @import("../witness/feed_topology.zig");
 const fixed_tables = @import("../witness/fixed_table_bundle.zig");
 const implicit = @import("../witness/implicit_interaction_sources.zig");
 const live_graph = @import("../witness/live_graph.zig");
+const deductions = @import("../witness/deductions/mod.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 
 const M31 = core.fields.m31.M31;
@@ -45,6 +46,7 @@ pub fn build(
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     variant: claim_generator.PreprocessedVariant,
+    pedersen_table: ?deductions.PedersenTable,
     recorder: ?*prover.stage_profile.Recorder,
 ) !BaseTrace {
     var geometry = blk: {
@@ -79,6 +81,7 @@ pub fn build(
                 .context = &collector,
                 .visit = observeGenerated,
             },
+            pedersen_table,
             recorder,
         );
     };

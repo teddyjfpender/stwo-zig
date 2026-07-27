@@ -127,6 +127,7 @@ fn compareComponent(
         witness_program,
         source,
         try base_execution.layout(expected),
+        null,
     );
     defer execution.deinit();
     return base_execution.compare(expected, execution);

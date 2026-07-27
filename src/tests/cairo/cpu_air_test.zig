@@ -49,6 +49,7 @@ test "official Cairo all-opcodes commitment traces match Rust" {
         &fixed,
         .canonical_small,
         null,
+        null,
     );
     defer trace.deinit();
 

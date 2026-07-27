@@ -38,6 +38,7 @@ pub fn execute(
     witness_program: program_mod.Program,
     source: anytype,
     layout: component_layout.ComponentLayout,
+    pedersen_table: ?deductions.PedersenTable,
 ) !Execution {
     layout.validate() catch return Error.InvalidReceiptGeometry;
     if (witness_program.n_inputs != source.columnCount())
@@ -124,6 +125,9 @@ pub fn execute(
     defer allocator.free(register_storage);
     const deduce_storage = try allocator.alloc(u32, scratch_words);
     defer allocator.free(deduce_storage);
+    const deduction_config = deductions.Context{
+        .pedersen_table = pedersen_table,
+    };
 
     const Work = struct {
         program: program_mod.Program,
@@ -173,7 +177,7 @@ pub fn execute(
             .registers = register_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .deduce_args = deduce_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .tables = execution_tables.fromInput(input),
-            .deduce = deductions.context(),
+            .deduce = deductions.contextWithConfig(&deduction_config),
         };
     }
     if (worker_count > 1) {
