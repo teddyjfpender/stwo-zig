@@ -90,6 +90,18 @@ class EquivalenceError(ValueError):
     """A trace or external formal-model boundary is malformed."""
 
 
+class SailDisagreement(EquivalenceError):
+    """The pinned Sail model was consulted and contradicts the candidate.
+
+    Raised only after the Sail session is answering, for outcomes that are
+    Sail semantics rather than harness failures: a trap, halt, or interrupt
+    where the candidate claims a successful retirement, or a declared trap
+    disposition Sail refuses. Consumers that skip when Sail is *absent* must
+    still fail loudly on this type; folding it into a generic error is how a
+    real divergence gets misread as infrastructure noise.
+    """
+
+
 def load_trace(path: str | os.PathLike[str]) -> dict[str, Any]:
     """Load and validate one canonical retirement trace."""
     with Path(path).open(encoding="utf-8") as handle:
@@ -316,11 +328,11 @@ def run_sail_rvfi_dii(
             packet = _recv_exact(connection, RVFI_DII_V1_BYTES)
             row = decode_rvfi_dii_v1(packet)
             if row.pop("trap"):
-                raise EquivalenceError(
+                raise SailDisagreement(
                     f"Sail trapped at retirement {order} for 0x{instruction:08x}"
                 )
             if row.pop("halt") or row.pop("intr"):
-                raise EquivalenceError(
+                raise SailDisagreement(
                     f"Sail emitted unexpected halt/interrupt at retirement {order}"
                 )
             if order == 0 and row["pc"] != RVFI_DII_ENTRY:
@@ -404,11 +416,11 @@ def run_sail_word(
             )
         if row["trap"] != expect_trap:
             disposition = "trap" if expect_trap else "retire"
-            raise EquivalenceError(
+            raise SailDisagreement(
                 f"Sail did not {disposition} 0x{instruction:08x} as expected"
             )
         if row["halt"] or row["intr"]:
-            raise EquivalenceError(
+            raise SailDisagreement(
                 f"Sail emitted halt/interrupt for rejected word 0x{instruction:08x}"
             )
 
