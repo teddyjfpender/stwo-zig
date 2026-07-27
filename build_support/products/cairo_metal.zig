@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const metal = @import("../backends/metal.zig");
+const metal_aot = @import("../backends/metal_aot.zig");
 const build_identity = @import("../build_identity.zig");
 const cairo_cpu = @import("cairo_cpu.zig");
 const cairo_support = @import("cairo_support.zig");
@@ -15,7 +16,7 @@ const policy = @import("../graph/product.zig");
 
 const protocol_features =
     cairo_support.protocol_features ++
-    "+metal-runtime-v2+plain-blake2s+source-jit-diagnostic-v1";
+    "+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -30,7 +31,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     },
-    .generated_imports = &.{"product_identity"},
+    .generated_imports = &.{ "metal_aot_config", "product_identity" },
     .allowed_files = &.{
         "src/stwo_cairo_metal.zig",
         "src/interop/atomic_file.zig",
@@ -69,6 +70,11 @@ pub const descriptor = policy.Descriptor{
         "stwo-cairo-vm-adapter",
         "share/stwo-zig/cairo/official/all_opcodes.params.json",
         "share/stwo-zig/cairo/official/all_builtins.params.json",
+        "share/stwo-zig/metal/core/stwo_zig_core.air",
+        "share/stwo-zig/metal/core/stwo_zig_core.manifest.json",
+        "share/stwo-zig/metal/core/stwo_zig_core.manifest.sha256",
+        "share/stwo-zig/metal/core/stwo_zig_core.metal",
+        "share/stwo-zig/metal/core/stwo_zig_core.metallib",
     },
     .release_gates = &.{
         "test-cairo-metal-product",
@@ -106,6 +112,18 @@ pub fn addProduct(context: Context) void {
         );
         return;
     }
+    const configured_bundle = context.b.option(
+        []const u8,
+        "metal-core-aot-bundle",
+        "Authenticated core Metal AOT bundle consumed by stwo-cairo-metal",
+    ) orelse {
+        registerMissingAotBundle(context.b);
+        return;
+    };
+    const aot_bundle = metal_aot.loadExternalBundle(
+        context.b,
+        configured_bundle,
+    );
 
     const stwo = createStwoModule(context, .library);
     const shared = cairo_support.createProductSupportModule(
@@ -115,7 +133,13 @@ pub fn addProduct(context: Context) void {
         product(.library),
         stwo,
     );
-    const root = createProductModule(context, descriptor.product, stwo, shared);
+    const root = createProductModule(
+        context,
+        descriptor.product,
+        stwo,
+        shared,
+        aot_bundle,
+    );
     const installed = graph_install.executable(
         context.b,
         descriptor.executable.?,
@@ -127,6 +151,7 @@ pub fn addProduct(context: Context) void {
     metal.linkRuntime(context.b, installed.executable);
     installed.build_step.dependOn(cairo_vm_adapter.addInstall(context.b));
     cairo_support.installProfile(context.b, installed.build_step);
+    aot_bundle.install(context.b, installed.build_step);
 
     const test_stwo = createStwoModule(context, .@"test");
     const test_shared = cairo_support.createProductSupportModule(
@@ -142,15 +167,21 @@ pub fn addProduct(context: Context) void {
             product(.@"test"),
             test_stwo,
             test_shared,
+            aot_bundle,
         ),
     });
     cairo_support.linkBzip2(context.b, tests);
     metal.linkRuntime(context.b, tests);
+    const run_tests = context.b.addRunArtifact(tests);
+    run_tests.setEnvironmentVariable(
+        "STWO_CAIRO_METAL_AOT_BUNDLE",
+        aot_bundle.absolute_path,
+    );
     const test_step = context.b.step(
         descriptor.test_step.?,
         "Test the Cairo Metal product, lifecycle, and command contract",
     );
-    test_step.dependOn(&context.b.addRunArtifact(tests).step);
+    test_step.dependOn(&run_tests.step);
 
     const help = context.b.addRunArtifact(installed.executable);
     help.addArg("--help");
@@ -161,6 +192,25 @@ pub fn addProduct(context: Context) void {
     const identity = context.b.addRunArtifact(installed.executable);
     identity.addArg("identity");
     test_step.dependOn(&identity.step);
+    const fail_closed = context.b.addSystemCommand(&.{
+        "python3",
+        "scripts/check_cairo_metal_aot_fail_closed.py",
+        "--executable",
+    });
+    fail_closed.addArtifactArg(installed.executable);
+    fail_closed.addArgs(&.{
+        "--bundle",
+        aot_bundle.absolute_path,
+        "--prover-input",
+        context.b.pathFromRoot(
+            "vectors/cairo/official/all_opcodes.prover_input.json",
+        ),
+        "--params",
+        context.b.pathFromRoot(
+            "vectors/cairo/official/all_opcodes.params.json",
+        ),
+    });
+    test_step.dependOn(&fail_closed.step);
 
     const closure = closure_gate.addCheck(.{
         .b = context.b,
@@ -178,7 +228,25 @@ pub fn addProduct(context: Context) void {
             .identity = context.identity,
             .protocol = context.protocol,
         }),
+        aot_bundle.absolute_path,
     );
+}
+
+fn registerMissingAotBundle(b: *std.Build) void {
+    const reason =
+        "requires -Dmetal-core-aot-bundle=<path>; build the bundle with " ++
+        "`zig build metal-core-aot-acceptance` on a full-Xcode host or " ++
+        "consume its retained artifact";
+    const failure = b.addFail(b.fmt(
+        "{s} is unavailable: {s}",
+        .{ descriptor.product.name, reason },
+    ));
+    b.step(descriptor.build_step, reason).dependOn(&failure.step);
+    b.step(descriptor.test_step.?, reason).dependOn(&failure.step);
+    for (descriptor.release_gates) |gate| {
+        if (std.mem.eql(u8, gate, descriptor.test_step.?)) continue;
+        b.step(gate, reason).dependOn(&failure.step);
+    }
 }
 
 fn createStwoModule(
@@ -200,6 +268,7 @@ fn createProductModule(
     logical_product: graph.Product,
     stwo: *std.Build.Module,
     shared: *std.Build.Module,
+    aot_bundle: metal_aot.ExternalBundle,
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = logical_product,
@@ -210,6 +279,7 @@ fn createProductModule(
     context.protocol.addImports(root);
     root.addImport("stwo_cairo_metal", stwo);
     root.addImport("cairo_product", shared);
+    root.addOptions("metal_aot_config", aot_bundle.addOptions(context.b));
     root.addOptions(
         "product_identity",
         graph_identity.productOptionsWithRuntime(
@@ -218,7 +288,10 @@ fn createProductModule(
             logical_product,
             context.target,
             context.optimize,
-            metal.sourceJitIdentity(context.b),
+            metal.authenticatedAotIdentity(
+                context.b,
+                &aot_bundle.manifest_sha256_hex,
+            ),
         ),
     );
     return root;

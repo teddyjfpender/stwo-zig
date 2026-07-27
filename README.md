@@ -63,7 +63,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
 | `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Staged CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
-| `stwo-cairo-metal` | macOS with Apple Metal | Staged source-JIT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance on all-opcodes |
+| `stwo-cairo-metal` | macOS with Apple Metal | Staged authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance on all-opcodes |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
@@ -150,8 +150,29 @@ zig-out/bin/stwo-cairo-cpu run-and-prove \
 
 Run `zig build test-cairo-cpu-oracle -Doptimize=ReleaseFast` to replay the
 serial corpus and require acceptance from the exact official Rust
-`verify_cairo`. Metal remains fail-closed until its corresponding release
-matrix is complete.
+`verify_cairo`.
+
+The focused Metal product admits only an authenticated offline core library.
+On a full-Xcode host the build produces, probes, retains, installs, and consumes
+that bundle automatically:
+
+```sh
+zig build stwo-cairo-metal -Doptimize=ReleaseFast
+zig build test-cairo-metal-oracle -Doptimize=ReleaseFast
+```
+
+Another macOS host can consume the retained directory without installing
+Xcode:
+
+```sh
+zig build stwo-cairo-metal -Doptimize=ReleaseFast \
+  -Dmetal-core-aot-bundle=/absolute/path/to/native-metal-core-aot
+```
+
+The bundle path is not trusted. Its canonical manifest digest is embedded in
+the product identity, and runtime admission remeasures the manifest, shader
+library, ABI, exports, and compiler artifacts before creating the Metal
+runtime. Metal remains staged until its full release corpus is green.
 
 ## RISC-V frontend
 

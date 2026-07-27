@@ -16,6 +16,7 @@ pub const Options = struct {
     cuda_library_dir: ?[]const u8,
     cuda_architectures: ?[]const u8,
     cuda_build_jobs: ?u16,
+    metal_core_aot_bundle: ?[]const u8,
     cairo_test_filter: ?[]const u8,
     identity: ?build_identity.Identity,
 
@@ -53,6 +54,11 @@ pub const Options = struct {
             .cuda_library_dir = b.option([]const u8, "cuda-library-dir", "Explicit CUDA library directory"),
             .cuda_architectures = b.option([]const u8, "cuda-arch", "Comma-separated numeric CUDA SM targets"),
             .cuda_build_jobs = b.option(u16, "cuda-build-jobs", "Maximum parallel nvcc processes"),
+            .metal_core_aot_bundle = b.option(
+                []const u8,
+                "metal-core-aot-bundle",
+                "Authenticated core Metal AOT bundle consumed by production Metal products",
+            ),
             .cairo_test_filter = b.option(
                 []const u8,
                 "cairo-test-filter",
@@ -131,6 +137,32 @@ fn commandFor(
         std.mem.eql(u8, scope, "native_cuda") or
         std.mem.eql(u8, scope, "cairo_cuda"))
         addCudaArguments(b, command, options);
+    if (std.mem.eql(u8, scope, "cairo_metal")) {
+        const bundle = if (options.metal_core_aot_bundle) |configured|
+            if (std.fs.path.isAbsolute(configured))
+                configured
+            else
+                b.pathFromRoot(configured)
+        else blk: {
+            const producer = commandFor(
+                b,
+                target,
+                optimize,
+                options,
+                "metal_tools",
+                "metal-core-aot-acceptance",
+            );
+            command.step.dependOn(&producer.step);
+            break :blk b.getInstallPath(
+                .prefix,
+                "share/stwo-zig/metal/core",
+            );
+        };
+        command.addArg(b.fmt(
+            "-Dmetal-core-aot-bundle={s}",
+            .{bundle},
+        ));
+    }
     if (std.mem.eql(u8, scope, "compatibility_tools")) {
         if (options.cairo_test_filter) |filter| command.addArg(b.fmt(
             "-Dcairo-test-filter={s}",

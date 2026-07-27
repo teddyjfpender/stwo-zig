@@ -4,6 +4,7 @@ const std = @import("std");
 const package = @import("stwo_cairo_metal");
 const application = @import("cairo_product").application;
 const capability_surface = @import("capabilities.zig");
+const metal_aot_config = @import("metal_aot_config");
 const product_identity = @import("identity.zig");
 
 const backend_transaction =
@@ -29,7 +30,14 @@ const Product = struct {
     ) !ProofContext {
         const lifecycle_before =
             backend_transaction.runtimeLifecycleSnapshot();
-        try backend_transaction.initializeRuntime(allocator, .source_jit);
+        const bundle_path = try resolveBundlePath(allocator);
+        defer allocator.free(bundle_path);
+        try backend_transaction.initializeRuntime(allocator, .{
+            .authenticated_aot = .{
+                .bundle_path = bundle_path,
+                .manifest_sha256 = metal_aot_config.manifest_sha256,
+            },
+        });
         return .{
             .before = try backend_transaction.telemetrySnapshot(),
             .lifecycle_before = lifecycle_before,
@@ -72,6 +80,30 @@ const Product = struct {
     }
 };
 
+fn resolveBundlePath(allocator: std.mem.Allocator) ![]u8 {
+    const configured = std.process.getEnvVarOwned(
+        allocator,
+        "STWO_CAIRO_METAL_AOT_BUNDLE",
+    ) catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return err,
+    };
+    if (configured) |path| {
+        errdefer allocator.free(path);
+        if (path.len == 0 or !std.fs.path.isAbsolute(path))
+            return error.InvalidMetalAotBundlePath;
+        return path;
+    }
+    const executable = try std.fs.selfExePathAlloc(allocator);
+    defer allocator.free(executable);
+    const bin_dir = std.fs.path.dirname(executable) orelse
+        return error.InvalidExecutablePath;
+    return std.fs.path.resolve(
+        allocator,
+        &.{ bin_dir, "..", metal_aot_config.install_subdir },
+    );
+}
+
 pub fn main() !void {
     return application.run(Product);
 }
@@ -79,4 +111,44 @@ pub fn main() !void {
 test "Cairo Metal application requires no-fallback telemetry" {
     try std.testing.expectEqualStrings("metal", Product.backend_name);
     _ = &backend_transaction.TelemetryDelta.requireAcceleratedWithoutFallbacks;
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &metal_aot_config.manifest_sha256,
+        &([_]u8{0} ** 32),
+    ));
+}
+
+test "authenticated runtime ownership supports repeated sessions" {
+    const allocator = std.testing.allocator;
+    const bundle_path = try resolveBundlePath(allocator);
+    defer allocator.free(bundle_path);
+    const before = backend_transaction.runtimeLifecycleSnapshot();
+    try std.testing.expect(!before.initialized);
+    for (0..2) |_| {
+        try backend_transaction.initializeRuntime(allocator, .{
+            .authenticated_aot = .{
+                .bundle_path = bundle_path,
+                .manifest_sha256 = metal_aot_config.manifest_sha256,
+            },
+        });
+        const active = backend_transaction.runtimeLifecycleSnapshot();
+        try std.testing.expect(active.initialized);
+        try std.testing.expectEqualStrings(
+            "authenticated_core_aot",
+            @tagName(active.identity.?.origin),
+        );
+        try backend_transaction.shutdown();
+        try std.testing.expect(
+            !backend_transaction.runtimeLifecycleSnapshot().initialized,
+        );
+    }
+    const after = backend_transaction.runtimeLifecycleSnapshot();
+    try std.testing.expectEqual(
+        before.initialization_count + 2,
+        after.initialization_count,
+    );
+    try std.testing.expectEqual(
+        before.shutdown_count + 2,
+        after.shutdown_count,
+    );
 }

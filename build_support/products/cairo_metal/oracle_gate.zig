@@ -6,6 +6,7 @@ pub fn add(
     b: *std.Build,
     metal_executable: *std.Build.Step.Compile,
     cpu_executable: *std.Build.Step.Compile,
+    aot_bundle_path: []const u8,
 ) void {
     const gate = b.step(
         "test-cairo-metal-oracle",
@@ -33,6 +34,10 @@ pub fn add(
         "cairo-metal-candidate.proof.json",
         "cairo-metal-candidate.report.json",
     );
+    metal.run.setEnvironmentVariable(
+        "STWO_CAIRO_METAL_AOT_BUNDLE",
+        aot_bundle_path,
+    );
     metal.run.step.dependOn(&cpu.run.step);
 
     const compare = b.addSystemCommand(&.{"cmp"});
@@ -48,7 +53,7 @@ pub fn add(
     report.addFileArg(metal.report);
     report.addArg("--proof");
     report.addFileArg(metal.proof);
-    report.addArgs(&.{ "--runtime-mode", "source-jit" });
+    report.addArgs(&.{ "--runtime-mode", "authenticated-aot" });
 
     const verify = b.addSystemCommand(&.{
         oraclePath(b),
