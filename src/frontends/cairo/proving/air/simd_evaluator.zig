@@ -5,6 +5,7 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const eval = @import("../../witness/eval_program.zig");
 const audit = @import("composition_audit.zig");
+const program_plan = @import("program_plan.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -222,9 +223,44 @@ fn runRange(
     defer allocator.free(extension);
     var sink = PackedQm31.zero();
 
+    var plan = try program_plan.build(allocator, program);
+    defer plan.deinit(allocator);
+
+    // Row-invariant registers are materialised once for the whole range. Each
+    // hoisted destination is written exactly once in the stream, so the row
+    // loop reads the same value it would have recomputed per group.
+    for (plan.invariantBase()) |instruction| {
+        base[instruction.dst] = @splat(instruction.a);
+    }
+    for (plan.invariantExt()) |instruction| {
+        extension[instruction.dst] = switch (instruction.op) {
+            .param => PackedQm31.splat(input.extension_parameters[instruction.a]),
+            .constant => PackedQm31.splat(QM31.fromU32Unchecked(
+                instruction.a,
+                instruction.b,
+                instruction.c,
+                instruction.d,
+            )),
+            else => unreachable,
+        };
+    }
+
+    // The constraint fold multiplies by one fixed coefficient per root on
+    // every group; splat them once instead of per group.
+    const root_coefficients = try allocator.alloc(
+        PackedQm31,
+        program.constraint_roots.len,
+    );
+    defer allocator.free(root_coefficients);
+    for (root_coefficients, 0..) |*value, index| {
+        value.* = PackedQm31.splat(
+            input.random_coefficients[input.constraint_base + index],
+        );
+    }
+
     var row = row_start;
     while (row < row_end) : (row += lane_count) {
-        for (program.base_insts) |instruction| {
+        for (plan.loopBase()) |instruction| {
             base[instruction.dst] = switch (instruction.op) {
                 .trace_col, .preprocessed_col => if (mode == .no_read)
                     @as(PackedM31, @splat(
@@ -247,7 +283,7 @@ fn runRange(
                 .inv => inverse(base[instruction.a]),
             };
         }
-        for (program.ext_insts) |instruction| {
+        for (plan.loopExt()) |instruction| {
             extension[instruction.dst] = switch (instruction.op) {
                 .secure_col => .{ .coordinates = .{
                     base[instruction.a],
@@ -279,15 +315,10 @@ fn runRange(
         }
 
         var evaluation = PackedQm31.zero();
-        for (program.constraint_roots, 0..) |root, local_index| {
-            const coefficient_index =
-                input.constraint_base + local_index;
+        for (program.constraint_roots, root_coefficients) |root, coefficient| {
             evaluation = PackedQm31.add(
                 evaluation,
-                PackedQm31.mul(
-                    extension[root],
-                    PackedQm31.splat(input.random_coefficients[coefficient_index]),
-                ),
+                PackedQm31.mul(extension[root], coefficient),
             );
         }
         var denominator: PackedM31 = undefined;
