@@ -8,6 +8,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cli"))
 from stwo_perf import workspace
+from stwo_perf.__main__ import build_parser
 from stwo_perf.manifest import Manifest
 
 
@@ -141,6 +142,13 @@ class SetupTest(unittest.TestCase):
                 workspace.WorkspaceError, "board has no workload group"
             ):
                 workspace.setup(self.root, self.manifest, board="unknown")
+
+    def test_setup_parser_defers_board_validation_to_manifest(self):
+        args = build_parser().parse_args(
+            ["setup", "--board", "manifest_defined_future_board"]
+        )
+
+        self.assertEqual(args.board, "manifest_defined_future_board")
 
 
 if __name__ == "__main__":
