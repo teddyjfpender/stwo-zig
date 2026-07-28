@@ -1,12 +1,12 @@
 {
   "artifacts": {
-    "RiscvRefinement/Air/Generated/Pilot.lean": "4968a9cb298b73cd7779fa01f0e70251179b6d97efe166e1783fff06c0bec33e",
+    "RiscvRefinement/Air/Generated/Pilot.lean": "ec032e5401f652e3755f050bf8b1eb522f6ca7c14fbbf0b8fbba692cdeb0bd4b",
     "RiscvRefinement/Sail/Generated/Pilot.lean": "a407f40e35eb85f1f592f89a2ec2b6d15e3cfa724bbb513e08d17d4aacf8906f",
-    "generated/air/addi.json": "34df378eed5bd204ab01d3cee22d67c87e1512d5616f55a80921be2e55123f69",
-    "generated/air/lui.json": "f47b92ee2426dd025f419b32557b1bd7f02cd731cc88f58ed51e6c6b530d211c",
+    "generated/air/addi.json": "f999e616163cb9ce7f1186d5b5b8a305dc5271676f9930dc0b7b69c3386abbc0",
+    "generated/air/lui.json": "1c3b9b6febfa876c6dc9a05fe234fc1eeca4be7cc426bce365deeafdc0e32723",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "c4487d0301f4570e1696ddbf9c5ba37f6953fa9d7f4f347af33f2b2dc51e5626",
+  "canonical_digest": "5595ccf4ee6a9d2fa23c1881bea94ca4b8c0c56f99f886329579ee43c8b6a27a",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
@@ -26,7 +26,7 @@
   "lean_toolchain": "leanprover/lean4:v4.29.0",
   "opcodes": [
     {
-      "air_digest": "d9160151ffa202a8166fc6ac01667c55afeeffd3270d0f3f299cfdd2af083c6e",
+      "air_digest": "c3363eaffb9b9cc69e149298aa6d9010e7167d54c37f1ed29f0f479e3bb73e73",
       "coverage_kind": "normalized-predicate",
       "id": 35,
       "mnemonic": "lui",
@@ -34,7 +34,7 @@
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_refines"
     },
     {
-      "air_digest": "1194f253ccb702c7f4f35995c815b32e00c460a9af0d2c9056bdc0b16b8dd61a",
+      "air_digest": "a6a35daa4d7b5433523ada6c4d6fe70d9f60ac3dd553b86566473bb21359c235",
       "coverage_kind": "normalized-predicate",
       "id": 10,
       "mnemonic": "addi",
@@ -65,9 +65,9 @@
     "build_support/products/matrix.zig": "ef4f7bd7fd79e450cf75a96507250603d041e4f78ee94bfc32f06c3e192be1f6",
     "build_support/products/package_dependencies.zig": "c35109c9209739c54bceb267f762e37d91d910990f3c4ebc63d875dbcc40feb8",
     "build_support/products/product_specs.zig": "383906d151de99d39d7d5187a660af3ed485ce8ef7a41557570094aaa1f97671",
-    "build_support/products/riscv_cpu.zig": "12037ea3dbc74d0a8681de17ac5f53b5aff795184d6e6c11af3ef7b1a6583655",
+    "build_support/products/riscv_cpu.zig": "0b08576cd3523e9037208e05ea4358d166f7ea14c35b32cd5e97bf72ef49e116",
     "build_support/products/riscv_refinement.zig": "b938f8bc863efbfa664ed90ada442ff1f035ce4cdc414b1ca8e38f382e99e383",
-    "build_support/products/riscv_test_filter.zig": "e6730f2ab50b2ee973592eb4ac8d1d1c27ee532794c0e720f8ed98166fca2456",
+    "build_support/products/riscv_test_filter.zig": "04eb79170d0954fd3b06cc6bcb50b7399eab76e06917a0858235c8e2a0c3783b",
     "src/core/build.zig": "f36357d012657d4fded7fd245e5debfff623d76acdd1d68715bfc9dd5343dd92",
     "src/core/build.zig.zon": "9ff0157486046d10c50ec8386d27871729eec5f6ad9266cba0d91d074036085c",
     "src/core/fields/cm31.zig": "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
@@ -224,7 +224,7 @@
     "src/frontends/riscv/runner/memory_state.zig": "65b5b96d6e0c09ef2d68f6d00cd1329c8a2f7382338c111c6d96338626aa17a5",
     "src/frontends/riscv/runner/mod.zig": "b428a4e992807ff8a18dd0dd163e3f80e25582e74248d1bef463df0a9461d03d",
     "src/frontends/riscv/runner/result.zig": "ad6401a2f6e10b70c688f3d450922efac34a55a456aba6a61ecc3a43110003f3",
-    "src/frontends/riscv/runner/sail_oracle.zig": "798517f1a275f19724c5217018c8502a92e159bc01105cf15e4016889f612177",
+    "src/frontends/riscv/runner/sail_oracle.zig": "98c05dd7ee01764ad182a389be18caa8517bf3422d0de9d13d7c53fe385b24f4",
     "src/frontends/riscv/runner/state_chain.zig": "2f4351f4d6c4a796cafe14c8714e610a21be076d826b6bd6b972ad8ccaf84303",
     "src/frontends/riscv/runner/trace.zig": "907b9b1a93141ad01bc2113d8c8c1f2fb4e54327bfffb8b26297e0fa8ce9556c",
     "src/frontends/riscv/runner/trace_dump.zig": "cc13b36de57bcb9f209c4698c409807ec1f3d07d0663f390d0f514867f15b496",
