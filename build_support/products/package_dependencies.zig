@@ -42,6 +42,10 @@ pub const cairo_cpu_integration_package_roots = &.{
     "dependency:../src/integrations/cairo_cpu:mod.zig",
 };
 
+pub const riscv_metal_integration_package_roots = &.{
+    "dependency:../src/integrations/riscv_metal:mod.zig",
+};
+
 pub const metal_backend_package_roots = &.{
     "dependency:../src/backends/metal:mod.zig",
 };
@@ -168,6 +172,7 @@ pub const riscv_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/integrations/riscv_metal:mod.zig",
     "dependency:../src/prover:mod.zig",
 };
 

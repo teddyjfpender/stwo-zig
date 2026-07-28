@@ -50,6 +50,46 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             consumers={"cairo_cpu", "cairo_metal"},
         )
 
+    def test_riscv_metal_integration_has_an_independent_package_lane(self) -> None:
+        self.assert_package_lane(
+            path="src/integrations/riscv_metal/mod.zig",
+            lane="riscv_metal_integration",
+            build_file="src/integrations/riscv_metal/build.zig",
+            consumers={"riscv_metal"},
+        )
+        self.assertEqual(
+            "macos",
+            self.policy["lanes"]["riscv_metal_integration"]["host"],
+        )
+
+    def test_submission_diff_selects_only_the_link_reach(self) -> None:
+        # Submission metadata is externally validated; only the prover edits
+        # should expand this diff beyond the always-on lane.
+        changed = [
+            "autoresearch/submissions/2026-07-20-x/delta.json",
+            "autoresearch/submissions/2026-07-20-x/note.md",
+            "autoresearch/submissions/2026-07-20-x/verdict.json",
+            "src/prover/pcs/quotient_tile_executor.zig",
+            "src/prover/vcs_lifted/prover.zig",
+        ]
+        lanes, _ = ci_scope_plan.select_lanes(
+            changed,
+            self.catalog,
+            self.policy,
+        )
+        self.assertEqual(
+            sorted(lanes),
+            [
+                "aggregate_cpu", "aggregate_metal", "cairo_cpu",
+                "cairo_cpu_integration", "cairo_frontend", "cairo_metal",
+                "cpu_backend", "metal_backend", "native_cpu",
+                "native_cuda_device", "native_cuda_static", "native_metal",
+                "native_oracle", "package", "prover", "riscv_cpu",
+                "riscv_cpu_integration", "riscv_frontend", "riscv_metal",
+                "riscv_metal_integration", "static",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

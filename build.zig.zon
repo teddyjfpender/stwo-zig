@@ -14,5 +14,6 @@
         .stwo_cuda_backend = .{ .path = "src/backends/cuda" },
         .stwo_riscv_cpu_integration = .{ .path = "src/integrations/riscv_cpu" },
         .stwo_cairo_cpu_integration = .{ .path = "src/integrations/cairo_cpu" },
+        .stwo_riscv_metal_integration = .{ .path = "src/integrations/riscv_metal" },
     },
 }

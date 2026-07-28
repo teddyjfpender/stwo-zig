@@ -169,6 +169,7 @@ class PlannerContractTests(unittest.TestCase):
                 "prover",
                 "riscv_frontend",
                 "riscv_cpu_integration",
+                "riscv_metal_integration",
                 "cairo_frontend",
                 "cairo_cpu_integration",
                 "cpu_backend",
@@ -211,6 +212,7 @@ class PlannerContractTests(unittest.TestCase):
                 "static",
                 "riscv_frontend",
                 "riscv_cpu_integration",
+                "riscv_metal_integration",
                 "package",
                 "riscv_cpu",
                 "riscv_metal",
@@ -271,6 +273,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "metal_backend",
+                "riscv_metal_integration",
                 "package",
                 "native_metal",
                 "riscv_metal",
@@ -522,32 +525,6 @@ class PlannerContractTests(unittest.TestCase):
             lines,
         )
         self.assertIn("macos_count=2", lines)
-
-    def test_submission_diff_selects_only_the_link_reach(self) -> None:
-        # A submission PR's own files: the submission directory is validated
-        # by the autoresearch workflow (externally_validated_prefixes) and
-        # must not trip the conservative unknown-path fallback; the two
-        # prover files select exactly the lanes that link the prover.
-        changed = [
-            "autoresearch/submissions/2026-07-20-x/delta.json",
-            "autoresearch/submissions/2026-07-20-x/note.md",
-            "autoresearch/submissions/2026-07-20-x/verdict.json",
-            "src/prover/pcs/quotient_tile_executor.zig",
-            "src/prover/vcs_lifted/prover.zig",
-        ]
-        lanes, _ = ci_scope_plan.select_lanes(changed, self.catalog, self.policy)
-        self.assertEqual(
-            sorted(lanes),
-            [
-                "aggregate_cpu", "aggregate_metal", "cairo_cpu",
-                "cairo_cpu_integration",
-                "cairo_frontend", "cairo_metal", "cpu_backend", "metal_backend",
-                "native_cpu", "native_cuda_device",
-                "native_cuda_static", "native_metal", "native_oracle", "package",
-                "prover", "riscv_cpu", "riscv_cpu_integration",
-                "riscv_frontend", "riscv_metal", "static",
-            ],
-        )
 
     def test_submission_only_diff_selects_always_lanes_only(self) -> None:
         changed = [

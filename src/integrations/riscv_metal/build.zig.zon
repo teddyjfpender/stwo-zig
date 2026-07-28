@@ -1,0 +1,12 @@
+.{
+    .fingerprint = 0x291f6059df35eaee,
+    .name = .stwo_riscv_metal_integration,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_prover_impl = .{ .path = "../../prover" },
+        .stwo_metal_backend = .{ .path = "../../backends/metal" },
+        .stwo_riscv_frontend = .{ .path = "../../frontends/riscv" },
+    },
+}
