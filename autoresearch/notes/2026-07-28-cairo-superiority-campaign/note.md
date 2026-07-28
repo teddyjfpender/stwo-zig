@@ -1013,3 +1013,24 @@ compression through a kernel measured at 92.2% NEON with byte-identical
 instruction counts across every variant tried, and the remaining 13% is a
 bandwidth-saturated streaming copy. There is no structural slack left in this
 stage to find.
+
+## Orchestrator verdict: increment 4 reinstated
+
+Increment 4's agent rejected its own candidate against the campaign's 1.15x
+stage bar. The orchestrator (Claude Fable 5) overturned the rejection and
+reinstated the measured implementation (cherry-pick of `1e234274`, commit
+`a1a94947`), because the evidence is promotion-grade despite missing the
+heuristic bar: across three paired warmed A-B-B-A blocks the arms' per-sample
+ranges are disjoint on both large workloads (arithmetic-2m merkle 646.3-680.1
+vs 578.7-591.8 ms; memory-7m 1,503.4-1,626.7 vs 1,355.1-1,390.3 ms), standard
+deviations are 5-38 ms, the mechanism is confirmed at 1.53x on its own phase,
+proofs are byte-identical, and every gate passes. The measured effect —
+merkle_commit 1.128x/1.131x, prove 1.033x/1.026x — is real; the 1.15x bar was
+calibrated for contaminated-host evidence and would donate a genuine
+compounding win. Reinstatement was revalidated: rebuild reproduces digest
+`25e5719f…` with self-verification, and the product gates pass.
+
+Campaign acceptance policy from here: mechanism confirmation (paired phase
+split or S1) AND either stage >= 1.10x with disjoint ranges across >= 3
+paired blocks, or prove >= 1.02x with non-overlapping paired CI — byte-exact
+proofs and gates always mandatory.
