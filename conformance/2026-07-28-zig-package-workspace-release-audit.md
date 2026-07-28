@@ -186,7 +186,10 @@ core -> backend contracts -> prover
 
 The aggregate build still exists as a product composer. It consumes named
 modules from smaller packages and is no longer the only place capable of
-constructing those closures.
+constructing those closures. Direct protocol tests and one-shot CLI commands
+also discover each selected module's source and exact dependency scope from
+the authoritative package contracts; commit `36214c8b` removes the former
+second, manually maintained copy of that graph.
 
 The Cairo frontend's package tests intentionally consume authenticated
 monorepo conformance vectors. Commit `87c8deda` binds both test runners to the
@@ -251,7 +254,8 @@ The following commands passed on the audited macOS host with Zig 0.15.2:
 | `python3 scripts/check_registry_parity.py` | 6 Native AIRs |
 | `python3 scripts/check_source_conformance.py` | 0 explained legacy findings, 0 new |
 | `python3 scripts/check_api_parity.py` | PASS |
-| `python3 scripts/ci.py --fast` | 1,060 tests, 2 intentional skips |
+| `python3 scripts/ci.py --fast` | 1,064 tests, 2 intentional skips |
+| `python3 scripts/zig_protocol_test.py src/stwo_deep.zig -OReleaseFast` | 112/112 tests |
 | `zig build test-downstream-modules -Doptimize=ReleaseFast -j2` | PASS |
 | `zig build test -Daggregate-metal=false -Doptimize=ReleaseFast -j2` | 422-source closure PASS |
 | `zig build riscv-release-gate -Driscv-release-phase=promoted -Doptimize=ReleaseFast -j2` | promoted smoke and committed Sail evidence PASS |
