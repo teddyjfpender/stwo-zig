@@ -666,12 +666,24 @@ workload, equal to the campaign value:
 
 ### What this leaves
 
-The implementation is preserved at `4b106372` (+ the conformance fix) and
-reverted, per the rejection protocol. `plane_widths.zig` is the durable output:
-a sound, structural, bytecode-only width oracle, with the `@min`-narrowing trap
-documented. Anything that later wants per-column widths — a layout change, a
-generated writer, a device-side plane ABI — can reuse it directly rather than
-rediscovering the abstract interpretation and its one sharp edge.
+The implementation is preserved at `4b106372` (the narrowing) and `f9ae3149`
+(the conformance-harness fix), and reverted at `c8481364`, per the rejection
+protocol. `src/` is bit-identical to `f7012f6d`, and a proof built from the
+reverted head is byte-identical to the predecessor's own proof file, not merely
+to its digest.
+
+The two diagnostic arms — hoist-only (width predicate forced `false`) and
+per-row-branch — were local edits and are deliberately **not** committed; both
+are one-site changes to `plane_widths.plan` and `program.zig`'s `col_write` arm
+respectively, described precisely enough above to reproduce from `4b106372`.
+
+`plane_widths.zig` is the durable output: a sound, structural, bytecode-only
+width oracle, with the `@min` result-type-narrowing trap documented. Anything
+that later wants per-column widths — a layout change, a generated writer, a
+device-side plane ABI, a narrower device transfer — can reuse it directly rather
+than rediscovering the abstract interpretation and its one sharp edge. The
+census itself (40.2% of columns and 44.2% of lookup words provably <= 16 bits)
+is reusable evidence independent of this increment's verdict.
 
 ### D1 readiness: what the plane lifetimes force
 
