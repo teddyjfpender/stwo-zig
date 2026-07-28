@@ -56,20 +56,19 @@ pub const ApprovedMetallib = struct {
 /// The manifest. Entries are added only with an accompanying provenance record
 /// in the campaign note and an independent security review of the artifact.
 ///
-/// `sn_pie_2_composition_v1` is `vectors/cairo/sn_pie_2_composition.metallib`,
-/// the conformance-vector composition library compiled offline by CI
-/// (`.github/workflows/ci.yml`, the only producer — there is no local build
-/// step, and this host has no full Xcode). It covers 58 components / 279 parts
-/// / 1,325 constraints at `max_evaluation_log_size = 24`, unfused.
-///
-/// It is retained after increment 3.13 even though it is now inert: 3.8 §1(b)
-/// measured `|its 271 semantic hashes ∩ the AIR template library's 69| = 0`, so
-/// no proving path can resolve a kernel out of it and a load declines the whole
-/// stage at gate 3. Retention is deliberate rather than inertia — it keeps the
-/// corrupt-metallib and pinned-digest fail-closed regressions pointed at a
-/// checked-in artifact, and dropping the entry would not remove the blob, which
-/// lives under `vectors/` and is out of this increment's scope. An inert
-/// approved entry costs nothing at admission, which is by digest and length.
+/// `sn_pie_2_composition_v1` was dropped in increment 3.13. It named
+/// `vectors/cairo/sn_pie_2_composition.metallib`, the conformance-vector library
+/// CI compiled from `sn_pie_2_composition.bin`, and 3.8 §1(b) measured
+/// `|its 271 semantic hashes ∩ the AIR template library's 69| = 0` — it can
+/// resolve no kernel any proving path asks for, so every load of it declined the
+/// whole stage after paying a 7.7 MB SHA-256. An approved entry that admits an
+/// artifact nothing can use is pure attack surface: it is a second accepted
+/// digest for the one env var (`STWO_ZIG_COMPOSITION_METALLIB`) that chooses
+/// which file the prover opens. Dropping it makes the manifest describe exactly
+/// the libraries this campaign loads. The blob itself stays under `vectors/`
+/// (out of scope here) but is no longer admissible, and the fail-closed
+/// regressions below were repointed at the eval-domain library, so they now
+/// guard the artifact that is actually loaded.
 ///
 /// `air_template_composition_eval_domain_v1` and
 /// `air_template_composition_stored_domain_v1` are the issue-#124 mint,
@@ -84,11 +83,6 @@ pub const ApprovedMetallib = struct {
 /// byte-reproducible across Xcode versions, so these are artifact identities,
 /// not build-recipe identities.
 pub const approved_metallibs = [_]ApprovedMetallib{
-    .{
-        .label = "sn_pie_2_composition_v1",
-        .sha256_hex = "85db09e024a661d78e34e53ed2ae36c150567977223f34bba88f119b3c7b21ab",
-        .length = 7740844,
-    },
     .{
         .label = "air_template_composition_eval_domain_v1",
         .sha256_hex = "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb",
@@ -248,31 +242,67 @@ test "non-canonical digest encodings are rejected" {
     );
 }
 
+/// The library the product actually opens, and therefore the one the
+/// authentication regressions below are written against.
+const eval_domain_path =
+    "vectors/cairo/official/air_template_composition_eval_domain.metallib";
+
 test "the checked-in composition metallib is admitted by the manifest" {
-    const admission = try authenticate(
-        "vectors/cairo/sn_pie_2_composition.metallib",
-        .approved_manifest,
-    );
-    try std.testing.expectEqualStrings("sn_pie_2_composition_v1", admission.label.?);
-    try std.testing.expectEqual(@as(u64, 7740844), admission.measurement.length);
+    const admission = try authenticate(eval_domain_path, .approved_manifest);
     try std.testing.expectEqualStrings(
-        "85db09e024a661d78e34e53ed2ae36c150567977223f34bba88f119b3c7b21ab",
+        "air_template_composition_eval_domain_v1",
+        admission.label.?,
+    );
+    try std.testing.expectEqual(@as(u64, 5933764), admission.measurement.length);
+    try std.testing.expectEqualStrings(
+        "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb",
         &admission.measurement.hex(),
     );
 }
 
+test "the superseded sn_pie_2 library is no longer admissible" {
+    // Increment 3.13 dropped the entry rather than leaving an inert approval in
+    // place. The blob is still in the tree, so assert the manifest refuses it:
+    // this is the regression that would fire if the entry were ever restored.
+    const admission = authenticate(
+        "vectors/cairo/sn_pie_2_composition.metallib",
+        .approved_manifest,
+    );
+    try std.testing.expectError(Error.UnapprovedCompositionMetallib, admission);
+}
+
+test "the stored-domain library is admitted but is not the resolved path" {
+    // Library 2 is admission-only until the consumption increment. It must
+    // authenticate, and it must be a *different* artifact from the one the
+    // product resolves, or the ABI split has collapsed.
+    const admission = try authenticate(
+        "vectors/cairo/official/air_template_composition_stored_domain.metallib",
+        .approved_manifest,
+    );
+    try std.testing.expectEqualStrings(
+        "air_template_composition_stored_domain_v1",
+        admission.label.?,
+    );
+    try std.testing.expectEqual(@as(u64, 6335107), admission.measurement.length);
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &admission.measurement.hex(),
+        "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb",
+    ));
+}
+
 test "a pinned digest admits only that digest" {
     const approved = try parseDigest(approved_metallibs[0].sha256_hex);
-    const admission = try authenticate(
-        "vectors/cairo/sn_pie_2_composition.metallib",
-        .{ .pinned_digest = approved },
+    const admission = try authenticate(eval_domain_path, .{ .pinned_digest = approved });
+    try std.testing.expectEqualStrings(
+        "air_template_composition_eval_domain_v1",
+        admission.label.?,
     );
-    try std.testing.expectEqualStrings("sn_pie_2_composition_v1", admission.label.?);
 
     var wrong = approved;
     wrong[0] ^= 0xff;
     try std.testing.expectError(Error.CompositionMetallibDigestMismatch, authenticate(
-        "vectors/cairo/sn_pie_2_composition.metallib",
+        eval_domain_path,
         .{ .pinned_digest = wrong },
     ));
 }
@@ -283,7 +313,7 @@ test "a corrupted library fails closed under the manifest" {
 
     const original = try std.fs.cwd().readFileAlloc(
         std.testing.allocator,
-        "vectors/cairo/sn_pie_2_composition.metallib",
+        eval_domain_path,
         16 * 1024 * 1024,
     );
     defer std.testing.allocator.free(original);
