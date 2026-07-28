@@ -7,7 +7,6 @@ const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
-
 const product = graph.Product{
     .name = "stwo-riscv-cpu",
     .frontend = .riscv,
@@ -68,7 +67,6 @@ const source_closure = product_policy.SourceClosure{
         "cuda",
     },
 };
-
 pub const Context = struct {
     b: *std.Build,
     target: std.Build.ResolvedTarget,
@@ -76,7 +74,6 @@ pub const Context = struct {
     identity: build_identity.Identity,
     protocol: graph.ProtocolModules,
 };
-
 pub const descriptor = product_policy.Descriptor{
     .product = product,
     .state = .released,
@@ -89,7 +86,6 @@ pub const descriptor = product_policy.Descriptor{
     .dependencies = .{ .module_roots = source_closure.entry_roots },
     .source_closure = source_closure,
 };
-
 pub fn addProduct(context: Context) void {
     descriptor.validate() catch |err| std.debug.panic(
         "invalid RISC-V CPU descriptor: {s}",
@@ -203,7 +199,6 @@ pub fn addProduct(context: Context) void {
     });
     test_step.dependOn(&marker_check.step);
 }
-
 fn addTraceExecutable(
     context: Context,
     target: std.Build.ResolvedTarget,
@@ -234,7 +229,6 @@ fn addTraceExecutable(
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     return b.addExecutable(.{ .name = "riscv-trace-dump", .root_module = root });
 }
-
 fn addExecutable(
     context: Context,
     protocol: graph.ProtocolModules,
@@ -265,7 +259,6 @@ fn addExecutable(
     );
     return b.addExecutable(.{ .name = name, .root_module = root });
 }
-
 fn addTests(context: Context) *std.Build.Step.Compile {
     const b = context.b;
     const stwo = createStwoModule(b, context.protocol, context.target, context.optimize);
@@ -321,7 +314,6 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     );
     return b.addTest(.{ .root_module = root });
 }
-
 /// Which suites a `src/tests.zig` binary compiles in, and which of its tests it
 /// runs. Named rather than positional: four booleans at a call site say nothing
 /// about which sweep a step is paying for.
@@ -335,7 +327,6 @@ const TestRoot = struct {
     rigidity_exhaustive: bool = false,
     filters: []const []const u8 = &.{},
 };
-
 fn addIntegrationTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{});
 }
@@ -343,7 +334,6 @@ fn addIntegrationTests(context: Context) *std.Build.Step.Compile {
 fn addCoreProverTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{ .exhaustive = true });
 }
-
 fn addExhaustiveTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{
         .exhaustive = true,

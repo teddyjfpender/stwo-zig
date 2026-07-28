@@ -8,14 +8,15 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import riscv_csp_benchmark as csp
+from scripts.riscv_csp_benchmark_lib import contract as csp_contract
 
 
 class ManifestContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.manifest, cls.cases = csp.validate_manifest()
+        cls.manifest, cls.cases, cls.negative_cases = csp.validate_manifest()
 
-    def test_checked_manifest_is_the_complete_pinned_hash_matrix(self) -> None:
+    def test_checked_manifest_is_the_complete_pinned_workload_matrix(self) -> None:
         self.assertEqual(
             "269c43cc32d3127e3d9ce74d20652887d894cca3",
             self.manifest["upstream"]["commit"],
@@ -24,22 +25,28 @@ class ManifestContractTests(unittest.TestCase):
             [
                 (target, size)
                 for target in csp.TARGET_ORDER
-                for size in csp.CANONICAL_SIZES
+                for size in csp.TARGET_SIZES[target]
             ],
             [(case.target, case.input_size) for case in self.cases],
         )
         self.assertTrue(all(not case.uses_precompile for case in self.cases))
+        self.assertEqual(
+            [("ecdsa_secp256k1_bad_signature", "ecdsa_secp256k1")],
+            [(case.name, case.target) for case in self.negative_cases],
+        )
 
     def test_every_committed_fixture_is_authenticated(self) -> None:
         for case in self.cases:
             self.assertEqual(case.input_sha256, csp.sha256_file(case.input_path))
             self.assertEqual(case.guest_sha256, csp.sha256_file(case.guest_path))
+        for case in self.negative_cases:
+            self.assertEqual(case.input_sha256, csp.sha256_file(case.input_path))
 
     def test_manifest_rejects_duplicate_json_fields(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             path = Path(raw) / "duplicate.json"
             path.write_text(
-                '{"schema":"stwo_riscv_csp_suite_v1","schema":"substitution"}',
+                '{"schema":"stwo_riscv_csp_suite_v2","schema":"substitution"}',
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(csp.BenchmarkError, "repeats field"):
@@ -48,15 +55,34 @@ class ManifestContractTests(unittest.TestCase):
     def test_manifest_target_substitution_fails_closed(self) -> None:
         changed = copy.deepcopy(self.manifest)
         changed["targets"]["sha256"]["uses_precompile"] = True
-        with mock.patch.object(csp, "load_json", return_value=changed):
+        with mock.patch.object(csp_contract, "load_json", return_value=changed):
             with self.assertRaisesRegex(csp.BenchmarkError, "explicit RV32IM"):
                 csp.validate_manifest()
 
     def test_unsupported_target_ledger_cannot_silently_shrink(self) -> None:
         changed = copy.deepcopy(self.manifest)
-        del changed["unsupported_targets"]["ecdsa"]
-        with mock.patch.object(csp, "load_json", return_value=changed):
+        del changed["unsupported_targets"]["ecdsa_p256"]
+        with mock.patch.object(csp_contract, "load_json", return_value=changed):
             with self.assertRaisesRegex(csp.BenchmarkError, "ledger drifted"):
+                csp.validate_manifest()
+
+    def test_poseidon_extension_cannot_be_relabelled_canonical(self) -> None:
+        changed = copy.deepcopy(self.manifest)
+        changed["targets"]["poseidon2_m31"]["comparison_class"] = "csp_canonical"
+        with mock.patch.object(csp_contract, "load_json", return_value=changed):
+            with self.assertRaisesRegex(csp.BenchmarkError, "workload contract"):
+                csp.validate_manifest()
+
+    def test_repository_guest_source_mutation_fails_closed(self) -> None:
+        changed = copy.deepcopy(self.manifest)
+        changed["targets"]["ecdsa_secp256k1"]["guest"]["source_files"][0][
+            "sha256"
+        ] = "0" * 64
+        with mock.patch.object(csp_contract, "load_json", return_value=changed):
+            with self.assertRaisesRegex(
+                csp.BenchmarkError,
+                "repository source binding drifted",
+            ):
                 csp.validate_manifest()
 
     def test_input_fixture_bit_flip_is_rejected(self) -> None:
@@ -73,6 +99,53 @@ class ManifestContractTests(unittest.TestCase):
 
         with mock.patch.object(Path, "read_bytes", read_with_mutation):
             with self.assertRaisesRegex(csp.BenchmarkError, "input digest drifted"):
+                csp.validate_manifest()
+
+    def test_negative_signature_fixture_bit_flip_is_rejected(self) -> None:
+        target = (
+            csp.ROOT
+            / "vectors"
+            / "riscv_csp"
+            / "inputs"
+            / "ecdsa_secp256k1_bad_signature.bin"
+        )
+        original_read_bytes = Path.read_bytes
+
+        def read_with_mutation(path: Path) -> bytes:
+            value = original_read_bytes(path)
+            if path.resolve() == target.resolve():
+                mutated = bytearray(value)
+                mutated[-2] ^= 1
+                return bytes(mutated)
+            return value
+
+        with mock.patch.object(Path, "read_bytes", read_with_mutation):
+            with self.assertRaisesRegex(
+                csp.BenchmarkError,
+                "negative fixture 0 binding drifted",
+            ):
+                csp.validate_manifest()
+
+    def test_noncanonical_m31_fixture_is_rejected_before_hash_check(self) -> None:
+        target = (
+            csp.ROOT
+            / "vectors"
+            / "riscv_csp"
+            / "inputs"
+            / "field_m31_2.bin"
+        )
+        original_read_bytes = Path.read_bytes
+
+        def read_with_mutation(path: Path) -> bytes:
+            value = original_read_bytes(path)
+            if path.resolve() == target.resolve():
+                mutated = bytearray(value)
+                mutated[4:8] = ((1 << 31) - 1).to_bytes(4, "little")
+                return bytes(mutated)
+            return value
+
+        with mock.patch.object(Path, "read_bytes", read_with_mutation):
+            with self.assertRaisesRegex(csp.BenchmarkError, "noncanonical M31"):
                 csp.validate_manifest()
 
 
@@ -170,42 +243,62 @@ class RetainedReportTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.report = csp.load_json(csp.DEFAULT_REPORT)
-        cls.manifest, cls.cases = csp.validate_manifest()
+        cls.manifest_path = csp.ROOT / cls.report["suite_manifest"]
+        cls.manifest = csp.load_json(cls.manifest_path)
+        cls.raw_cases = [
+            (target, case, spec["guest"])
+            for target, spec in cls.manifest["targets"].items()
+            for case in spec["cases"]
+        ]
 
     def test_report_is_the_complete_verified_standard_matrix(self) -> None:
         report = self.report
-        self.assertEqual(csp.SCHEMA, report["schema"])
+        expected_schema = (
+            "stwo_riscv_csp_benchmark_v2"
+            if self.manifest["schema"] == "stwo_riscv_csp_suite_v2"
+            else "stwo_riscv_csp_benchmark_v1"
+        )
+        self.assertEqual(expected_schema, report["schema"])
         self.assertEqual(report["measurement_commit"], report["repository_head"])
         self.assertRegex(report["measurement_commit"], csp.HEX_40)
         self.assertEqual(
-            csp.sha256_file(csp.MANIFEST),
+            csp.sha256_file(self.manifest_path),
             report["suite_manifest_sha256"],
         )
+        summary = report["summary"]
+        self.assertTrue(summary["all_outputs_match"])
+        self.assertTrue(summary["all_peak_memory_available"])
+        self.assertTrue(summary["all_proofs_verified"])
+        self.assertEqual(len(self.raw_cases), summary["row_count"])
+        self.assertEqual(len(self.manifest["targets"]), summary["target_count"])
         self.assertEqual(
-            {
-                "all_outputs_match": True,
-                "all_peak_memory_available": True,
-                "all_proofs_verified": True,
-                "row_count": 10,
-                "target_count": 2,
-            },
-            report["summary"],
+            list(self.manifest["targets"]),
+            report["run"]["targets"],
         )
-        self.assertEqual(list(csp.TARGET_ORDER), report["run"]["targets"])
-        self.assertEqual(list(csp.CANONICAL_SIZES), report["run"]["sizes"])
+        self.assertEqual(
+            sorted({case["input_size"] for _, case, _ in self.raw_cases}),
+            report["run"]["sizes"],
+        )
         self.assertEqual(1, report["run"]["warmups"])
         self.assertEqual(10, report["run"]["samples"])
         self.assertTrue(report["run"]["complete_matrix"])
 
         measurements = report["measurements"]
         self.assertEqual(
-            [(case.target, case.input_size) for case in self.cases],
+            [
+                (target, case["input_size"])
+                for target, case, _ in self.raw_cases
+            ],
             [(row["target"], row["input_size"]) for row in measurements],
         )
-        for case, row in zip(self.cases, measurements, strict=True):
-            with self.subTest(target=case.target, size=case.input_size):
-                self.assertEqual(case.expected_cycles, row["cycles"])
-                self.assertEqual(case.guest_bytes, row["preprocessing_size"])
+        for (target, case, guest), row in zip(
+            self.raw_cases,
+            measurements,
+            strict=True,
+        ):
+            with self.subTest(target=target, size=case["input_size"]):
+                self.assertEqual(case["expected_cycles"], row["cycles"])
+                self.assertEqual(guest["bytes"], row["preprocessing_size"])
                 self.assertFalse(row["uses_precompile"])
                 self.assertGreater(row["proof_duration"], 0)
                 self.assertGreater(row["verify_duration"], 0)
@@ -214,11 +307,11 @@ class RetainedReportTests(unittest.TestCase):
 
                 evidence = row["evidence"]
                 self.assertEqual("verified", evidence["status"])
-                self.assertEqual(case.input_sha256, evidence["input_sha256"])
-                self.assertEqual(case.guest_sha256, evidence["guest_sha256"])
-                self.assertEqual(case.expected_digest, evidence["output_digest"])
+                self.assertEqual(case["input_sha256"], evidence["input_sha256"])
+                self.assertEqual(guest["sha256"], evidence["guest_sha256"])
+                self.assertEqual(case["expected_digest"], evidence["output_digest"])
                 self.assertEqual(
-                    case.expected_digest,
+                    case["expected_digest"],
                     evidence["expected_output_digest"],
                 )
                 self.assertRegex(evidence["proof_sha256"], csp.HEX_32)
@@ -235,6 +328,23 @@ class RetainedReportTests(unittest.TestCase):
                     receipt["implementation_commit"],
                 )
                 self.assertFalse(receipt["implementation_dirty"])
+
+        if self.manifest["schema"] == "stwo_riscv_csp_suite_v2":
+            self.assertTrue(summary["all_negative_fixtures_rejected"])
+            self.assertEqual(
+                [
+                    (
+                        fixture["name"],
+                        fixture["target"],
+                        "rejected_as_expected",
+                    )
+                    for fixture in self.manifest["negative_fixtures"]
+                ],
+                [
+                    (item["name"], item["target"], item["status"])
+                    for item in report["negative_validation"]
+                ],
+            )
 
     def test_report_preserves_security_and_host_qualification(self) -> None:
         report = self.report

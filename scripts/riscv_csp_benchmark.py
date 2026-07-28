@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Run the pinned EthProofs CSP hash suite through the RISC-V CPU product.
+"""Run the pinned EthProofs CSP suite through the RISC-V CPU product.
 
 The ordinary benchmark is self-contained: committed inputs and RV32IM guest
-ELFs are authenticated by ``vectors/riscv_csp/manifest-v1.json``.  Passing
+ELFs are authenticated by ``vectors/riscv_csp/manifest-v2.json``.  Passing
 ``--audit-csp-source`` additionally checks an external checkout of the pinned
-CSP repository and regenerates every canonical input with its own utility.
+CSP repository and regenerates every canonical input from the pinned upstream
+generators.
 
 The CSP-compatible proving duration is execution + witness construction + proof
 generation.  Verification is reported separately.  The production CLI still
@@ -16,17 +17,13 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
 import json
 import os
-import platform
-import re
 import struct
 import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -35,241 +32,38 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts import riscv_cli_admission  # noqa: E402
+from scripts.riscv_csp_benchmark_lib.contract import (  # noqa: E402
+    BenchmarkError,
+    CANONICAL_SIZES,
+    Case,
+    DEFAULT_CLI,
+    DEFAULT_REPORT,
+    DEFAULT_TRACE_CLI,
+    HEX_32,
+    HEX_40,
+    MANIFEST,
+    MAX_CAPTURE_BYTES,
+    NegativeCase,
+    SECURE_PCS_CONFIG,
+    TARGET_ORDER,
+    TARGET_SIZES,
+    _strict_object,
+    load_json,
+    sha256_bytes,
+    sha256_file,
+    validate_manifest,
+)
+from scripts.riscv_csp_benchmark_lib.host import (  # noqa: E402
+    collect_host,
+    official_host_match,
+)
+from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
+    audit_csp_source,
+)
 
 
-SCHEMA = "stwo_riscv_csp_benchmark_v1"
-MANIFEST = ROOT / "vectors" / "riscv_csp" / "manifest-v1.json"
-DEFAULT_REPORT = ROOT / "vectors" / "reports" / "riscv_csp_benchmark_report.json"
-DEFAULT_CLI = ROOT / "zig-out" / "bin" / "stwo-zig-riscv-cpu"
-DEFAULT_TRACE_CLI = ROOT / "zig-out" / "bin" / "riscv-trace-dump"
-TARGET_ORDER = ("sha256", "keccak")
-CANONICAL_SIZES = (128, 256, 512, 1024, 2048)
-SECURE_PCS_CONFIG = {
-    "pow_bits": 26,
-    "fri_config": {
-        "log_blowup_factor": 1,
-        "log_last_layer_degree_bound": 0,
-        "n_queries": 70,
-        "fold_step": 1,
-    },
-    "lifting_log_size": None,
-}
-MAX_CAPTURE_BYTES = 16 * 1024 * 1024
-HEX_32 = re.compile(r"^[0-9a-f]{64}$")
-HEX_40 = re.compile(r"^[0-9a-f]{40}$")
-
-
-class BenchmarkError(RuntimeError):
-    """The suite cannot produce trustworthy benchmark evidence."""
-
-
-@dataclass(frozen=True)
-class Case:
-    target: str
-    input_size: int
-    input_path: Path
-    input_sha256: str
-    expected_digest: str
-    expected_cycles: int
-    guest_path: Path
-    guest_sha256: str
-    guest_bytes: int
-    uses_precompile: bool
-
-
-def _strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise BenchmarkError(f"JSON repeats field {key!r}")
-        result[key] = value
-    return result
-
-
-def load_json(path: Path) -> Any:
-    raw = path.read_bytes()
-    if len(raw) > MAX_CAPTURE_BYTES:
-        raise BenchmarkError(f"oversized JSON input: {path}")
-    try:
-        return json.loads(raw, object_pairs_hook=_strict_object)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise BenchmarkError(f"invalid JSON in {path}: {error}") from error
-
-
-def sha256_bytes(value: bytes) -> str:
-    return hashlib.sha256(value).hexdigest()
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for block in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def _repo_path(raw: Any, label: str) -> Path:
-    if not isinstance(raw, str) or not raw or Path(raw).is_absolute():
-        raise BenchmarkError(f"{label} is not a repository-relative path")
-    resolved = (ROOT / raw).resolve()
-    try:
-        resolved.relative_to(ROOT.resolve())
-    except ValueError as error:
-        raise BenchmarkError(f"{label} escapes the repository") from error
-    return resolved
-
-
-def _exact_fields(value: Mapping[str, Any], expected: set[str], label: str) -> None:
-    actual = set(value)
-    if actual != expected:
-        raise BenchmarkError(
-            f"{label} fields drifted "
-            f"(missing={sorted(expected - actual)}, unknown={sorted(actual - expected)})"
-        )
-
-
-def validate_manifest(path: Path = MANIFEST) -> tuple[dict[str, Any], list[Case]]:
-    manifest = load_json(path)
-    if not isinstance(manifest, dict):
-        raise BenchmarkError("CSP manifest root is not an object")
-    _exact_fields(
-        manifest,
-        {
-            "schema",
-            "suite",
-            "upstream",
-            "vm_input_encoding",
-            "targets",
-            "unsupported_targets",
-        },
-        "CSP manifest",
-    )
-    if manifest["schema"] != "stwo_riscv_csp_suite_v1":
-        raise BenchmarkError("unsupported CSP manifest schema")
-    if manifest["suite"] != "ethproofs_client_side_proving":
-        raise BenchmarkError("CSP suite identity drifted")
-
-    upstream = manifest["upstream"]
-    if not isinstance(upstream, dict):
-        raise BenchmarkError("upstream manifest entry is not an object")
-    commit = upstream.get("commit")
-    if not isinstance(commit, str) or not HEX_40.fullmatch(commit):
-        raise BenchmarkError("upstream CSP commit is not canonical")
-    if upstream.get("repository") != "https://github.com/privacy-ethereum/csp-benchmarks":
-        raise BenchmarkError("upstream CSP repository drifted")
-
-    targets = manifest["targets"]
-    if not isinstance(targets, dict) or tuple(targets) != TARGET_ORDER:
-        raise BenchmarkError("CSP target order or membership drifted")
-
-    cases: list[Case] = []
-    shared_inputs: dict[int, tuple[Path, str]] = {}
-    for target in TARGET_ORDER:
-        spec = targets[target]
-        if not isinstance(spec, dict):
-            raise BenchmarkError(f"{target} target is not an object")
-        _exact_fields(
-            spec,
-            {"guest", "uses_precompile", "output_encoding", "cases"},
-            f"{target} target",
-        )
-        if spec["uses_precompile"] is not False:
-            raise BenchmarkError(f"{target} must remain an explicit RV32IM workload")
-        guest = spec["guest"]
-        if not isinstance(guest, dict):
-            raise BenchmarkError(f"{target} guest is not an object")
-        required_guest_fields = {
-            "path",
-            "sha256",
-            "bytes",
-            "source_path",
-            "source_sha256",
-            "lockfile_path",
-            "lockfile_sha256",
-        }
-        _exact_fields(guest, required_guest_fields, f"{target} guest")
-        guest_path = _repo_path(guest["path"], f"{target} guest path")
-        if not guest_path.is_file():
-            raise BenchmarkError(f"missing {target} guest: {guest_path}")
-        guest_bytes = guest_path.stat().st_size
-        if guest_bytes != guest["bytes"]:
-            raise BenchmarkError(f"{target} guest size differs from its manifest")
-        guest_digest = sha256_file(guest_path)
-        if guest_digest != guest["sha256"]:
-            raise BenchmarkError(f"{target} guest digest differs from its manifest")
-
-        raw_cases = spec["cases"]
-        if not isinstance(raw_cases, list):
-            raise BenchmarkError(f"{target} cases are not an array")
-        sizes = tuple(case.get("input_size") for case in raw_cases if isinstance(case, dict))
-        if sizes != CANONICAL_SIZES:
-            raise BenchmarkError(f"{target} does not contain the canonical CSP size sweep")
-        for index, raw_case in enumerate(raw_cases):
-            if not isinstance(raw_case, dict):
-                raise BenchmarkError(f"{target} case {index} is not an object")
-            _exact_fields(
-                raw_case,
-                {
-                    "input_size",
-                    "input_path",
-                    "input_sha256",
-                    "expected_digest",
-                    "expected_cycles",
-                },
-                f"{target} case {index}",
-            )
-            input_size = raw_case["input_size"]
-            expected_cycles = raw_case["expected_cycles"]
-            if (
-                not isinstance(input_size, int)
-                or isinstance(input_size, bool)
-                or not isinstance(expected_cycles, int)
-                or isinstance(expected_cycles, bool)
-                or expected_cycles <= 0
-            ):
-                raise BenchmarkError(f"{target} case {index} has invalid numeric fields")
-            input_path = _repo_path(raw_case["input_path"], f"{target} input path")
-            if not input_path.is_file():
-                raise BenchmarkError(f"missing CSP input: {input_path}")
-            input_bytes = input_path.read_bytes()
-            if len(input_bytes) != input_size + 4:
-                raise BenchmarkError(f"{target}/{input_size}: VM input length drifted")
-            if struct.unpack("<I", input_bytes[:4])[0] != input_size:
-                raise BenchmarkError(f"{target}/{input_size}: input prefix drifted")
-            input_digest = sha256_bytes(input_bytes)
-            if input_digest != raw_case["input_sha256"]:
-                raise BenchmarkError(f"{target}/{input_size}: input digest drifted")
-            expected_digest = raw_case["expected_digest"]
-            if not isinstance(expected_digest, str) or not HEX_32.fullmatch(expected_digest):
-                raise BenchmarkError(f"{target}/{input_size}: expected digest is not canonical")
-            shared = shared_inputs.setdefault(input_size, (input_path, input_digest))
-            if shared != (input_path, input_digest):
-                raise BenchmarkError(f"{target}/{input_size}: shared CSP input drifted")
-            cases.append(
-                Case(
-                    target=target,
-                    input_size=input_size,
-                    input_path=input_path,
-                    input_sha256=input_digest,
-                    expected_digest=expected_digest,
-                    expected_cycles=expected_cycles,
-                    guest_path=guest_path,
-                    guest_sha256=guest_digest,
-                    guest_bytes=guest_bytes,
-                    uses_precompile=False,
-                )
-            )
-
-    unsupported = manifest["unsupported_targets"]
-    if not isinstance(unsupported, dict) or set(unsupported) != {
-        "ecdsa",
-        "poseidon",
-        "poseidon2",
-    }:
-        raise BenchmarkError("unsupported CSP target ledger drifted")
-    if any(not isinstance(reason, str) or not reason.strip() for reason in unsupported.values()):
-        raise BenchmarkError("unsupported CSP target has no reason")
-    return manifest, cases
+SCHEMA = "stwo_riscv_csp_benchmark_v2"
+MAX_EXECUTION_STEPS = 10_000_000
 
 
 def _run(
@@ -358,39 +152,84 @@ def reconstruct_public_output(public_values: Mapping[str, Any]) -> bytes:
     return bytes(encoded[:output_len])
 
 
-def execute_case(case: Case, trace_cli: Path, timeout: int) -> dict[str, Any]:
+def _execute_guest(
+    *,
+    label: str,
+    guest_path: Path,
+    input_path: Path,
+    expected_digest: str,
+    expected_cycles: int,
+    trace_cli: Path,
+    timeout: int,
+) -> dict[str, Any]:
     completed = _run(
         [
             trace_cli,
             "--public-values",
-            case.guest_path,
+            guest_path,
             "--input",
-            case.input_path,
+            input_path,
+            "--max-steps",
+            str(MAX_EXECUTION_STEPS),
         ],
         timeout=timeout,
     )
     if len(completed.stdout) > MAX_CAPTURE_BYTES:
-        raise BenchmarkError(f"{case.target}/{case.input_size}: public values are oversized")
+        raise BenchmarkError(f"{label}: public values are oversized")
     try:
         public_values = json.loads(completed.stdout, object_pairs_hook=_strict_object)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise BenchmarkError(
-            f"{case.target}/{case.input_size}: invalid public-values JSON"
-        ) from error
+        raise BenchmarkError(f"{label}: invalid public-values JSON") from error
     output = reconstruct_public_output(public_values)
-    if output.hex() != case.expected_digest:
-        raise BenchmarkError(f"{case.target}/{case.input_size}: digest mismatch")
+    if output.hex() != expected_digest:
+        raise BenchmarkError(f"{label}: digest mismatch")
     public_data = public_values["public_data"]
     cycles = public_data.get("clock")
-    if cycles != case.expected_cycles:
+    if cycles != expected_cycles:
         raise BenchmarkError(
-            f"{case.target}/{case.input_size}: cycles={cycles}, "
-            f"expected={case.expected_cycles}"
+            f"{label}: cycles={cycles}, expected={expected_cycles}"
         )
     return {
         "cycles": cycles,
         "output_digest": output.hex(),
         "public_values_sha256": sha256_bytes(completed.stdout),
+    }
+
+
+def execute_case(case: Case, trace_cli: Path, timeout: int) -> dict[str, Any]:
+    return _execute_guest(
+        label=f"{case.target}/{case.input_size}",
+        guest_path=case.guest_path,
+        input_path=case.input_path,
+        expected_digest=case.expected_digest,
+        expected_cycles=case.expected_cycles,
+        trace_cli=trace_cli,
+        timeout=timeout,
+    )
+
+
+def execute_negative_case(
+    case: NegativeCase,
+    trace_cli: Path,
+    timeout: int,
+) -> dict[str, Any]:
+    evidence = _execute_guest(
+        label=f"negative/{case.name}",
+        guest_path=case.guest_path,
+        input_path=case.input_path,
+        expected_digest=case.expected_digest,
+        expected_cycles=case.expected_cycles,
+        trace_cli=trace_cli,
+        timeout=timeout,
+    )
+    return {
+        "name": case.name,
+        "target": case.target,
+        "status": "rejected_as_expected",
+        "input_sha256": case.input_sha256,
+        "output_digest": evidence["output_digest"],
+        "cycles": evidence["cycles"],
+        "public_values_sha256": evidence["public_values_sha256"],
     }
 
 
@@ -688,126 +527,6 @@ def benchmark_case(
     return row, implementation_commit
 
 
-def _sysctl(name: str) -> str | None:
-    try:
-        value = subprocess.run(
-            ["sysctl", "-n", name],
-            capture_output=True,
-            check=False,
-            timeout=5,
-            text=True,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return value.stdout.strip() if value.returncode == 0 and value.stdout.strip() else None
-
-
-def collect_host() -> dict[str, Any]:
-    cpu = _sysctl("machdep.cpu.brand_string") or platform.processor() or "unknown"
-    memory_raw = _sysctl("hw.memsize")
-    memory = int(memory_raw) if memory_raw and memory_raw.isdigit() else None
-    logical_cpus = os.cpu_count()
-    return {
-        "os": platform.system(),
-        "os_version": platform.mac_ver()[0] or platform.release(),
-        "kernel": platform.release(),
-        "architecture": platform.machine(),
-        "cpu": cpu,
-        "logical_cpu_count": logical_cpus,
-        "memory_bytes": memory,
-        "python": platform.python_version(),
-    }
-
-
-def official_host_match(host: Mapping[str, Any]) -> tuple[bool, list[str]]:
-    reasons: list[str] = []
-    if host.get("cpu") != "Apple M1":
-        reasons.append("CSP publication host requires Apple M1")
-    if host.get("logical_cpu_count") != 8:
-        reasons.append("CSP publication host requires 8 logical CPUs")
-    if host.get("memory_bytes") != 16 * 1024 * 1024 * 1024:
-        reasons.append("CSP publication host requires 16 GiB RAM")
-    return not reasons, reasons
-
-
-def audit_csp_source(manifest: Mapping[str, Any], source: Path) -> dict[str, Any]:
-    source = source.resolve()
-    if not (source / ".git").exists():
-        raise BenchmarkError(f"CSP source is not a Git checkout: {source}")
-    expected_commit = manifest["upstream"]["commit"]
-    actual_commit = _git_output("rev-parse", "HEAD", cwd=source)
-    if actual_commit != expected_commit:
-        raise BenchmarkError(
-            f"CSP source is {actual_commit}, expected pinned {expected_commit}"
-        )
-    if _git_output("status", "--short", cwd=source):
-        raise BenchmarkError("CSP source checkout is dirty")
-
-    upstream = manifest["upstream"]
-    bound_files = [
-        upstream["input_generator"],
-        upstream["size_metadata"],
-        upstream["rust_toolchain"],
-    ]
-    for target in TARGET_ORDER:
-        guest = manifest["targets"][target]["guest"]
-        bound_files.extend(
-            [
-                {"path": guest["source_path"], "sha256": guest["source_sha256"]},
-                {"path": guest["lockfile_path"], "sha256": guest["lockfile_sha256"]},
-            ]
-        )
-    for binding in bound_files:
-        path = (source / binding["path"]).resolve()
-        try:
-            path.relative_to(source)
-        except ValueError as error:
-            raise BenchmarkError("CSP source binding escapes its checkout") from error
-        if not path.is_file() or sha256_file(path) != binding["sha256"]:
-            raise BenchmarkError(f"CSP source binding drifted: {binding['path']}")
-
-    utils = source / "target" / "release" / "utils"
-    if not utils.is_file():
-        raise BenchmarkError(
-            "CSP utility is missing; run `cargo build --release --locked -p utils` "
-            "inside the pinned checkout"
-        )
-    regenerated: dict[int, bytes] = {}
-    for target in TARGET_ORDER:
-        for case in manifest["targets"][target]["cases"]:
-            size = case["input_size"]
-            completed = _run(
-                [utils, target, "--size", str(size)],
-                cwd=source,
-                timeout=60,
-            )
-            lines = completed.stdout.decode("ascii", "strict").splitlines()
-            if len(lines) != 2:
-                raise BenchmarkError(f"CSP utility output drifted for {target}/{size}")
-            try:
-                message = bytes.fromhex(lines[0])
-            except ValueError as error:
-                raise BenchmarkError(
-                    f"CSP utility emitted invalid input for {target}/{size}"
-                ) from error
-            vm_input = struct.pack("<I", size) + message
-            expected_file = _repo_path(case["input_path"], "CSP input path")
-            if vm_input != expected_file.read_bytes():
-                raise BenchmarkError(f"CSP input fixture drifted for {target}/{size}")
-            if lines[1] != case["expected_digest"]:
-                raise BenchmarkError(f"CSP expected digest drifted for {target}/{size}")
-            prior = regenerated.setdefault(size, vm_input)
-            if prior != vm_input:
-                raise BenchmarkError(f"CSP targets generated different input for size {size}")
-    return {
-        "status": "passed",
-        "source": str(source),
-        "commit": actual_commit,
-        "bound_file_count": len(bound_files),
-        "regenerated_input_count": len(regenerated),
-    }
-
-
 def _parse_csv(raw: str, allowed: Iterable[str], label: str) -> tuple[str, ...]:
     values = tuple(item.strip() for item in raw.split(",") if item.strip())
     allowed_set = set(allowed)
@@ -847,7 +566,10 @@ def _atomic_write_json(path: Path, value: Mapping[str, Any]) -> None:
             temporary.unlink()
 
 
-def _summary(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def _summary(
+    rows: Sequence[Mapping[str, Any]],
+    negative_evidence: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
     return {
         "row_count": len(rows),
         "target_count": len({row["target"] for row in rows}),
@@ -860,6 +582,10 @@ def _summary(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             row["evidence"]["status"] == "verified" for row in rows
         ),
         "all_peak_memory_available": all(row["peak_memory"] is not None for row in rows),
+        "all_negative_fixtures_rejected": all(
+            item["status"] == "rejected_as_expected"
+            for item in negative_evidence
+        ),
     }
 
 
@@ -889,7 +615,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     targets = _parse_csv(args.targets, TARGET_ORDER, "targets")
     sizes = _parse_sizes(args.sizes)
-    manifest, all_cases = validate_manifest(args.manifest.resolve())
+    manifest, all_cases, all_negative_cases = validate_manifest(
+        args.manifest.resolve()
+    )
     selected = [
         case
         for case in all_cases
@@ -909,6 +637,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.audit_csp_source
         else {"status": "not_requested"}
     )
+    selected_negative = [
+        case for case in all_negative_cases if case.target in targets
+    ]
+    negative_evidence: list[dict[str, Any]] = []
+    for case in selected_negative:
+        print(f"[negative] {case.name}: execute and reject", flush=True)
+        negative_evidence.append(
+            execute_negative_case(case, trace_cli, args.timeout)
+        )
 
     host = collect_host()
     host_matches, host_mismatch = official_host_match(host)
@@ -970,7 +707,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     complete_matrix = (
         targets == TARGET_ORDER
         and sizes == CANONICAL_SIZES
-        and len(rows) == len(TARGET_ORDER) * len(CANONICAL_SIZES)
+        and len(rows) == sum(len(values) for values in TARGET_SIZES.values())
     )
     memory_available = all(row["peak_memory"] is not None for row in rows)
     official_comparable = host_matches and complete_matrix and memory_available
@@ -1024,6 +761,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "methodology": {
             "canonical_inputs": True,
             "canonical_sizes": list(CANONICAL_SIZES),
+            "target_sizes": {
+                target: list(TARGET_SIZES[target]) for target in TARGET_ORDER
+            },
             "uses_precompile": False,
             "proof_duration": "mean execution + witness + proof generation",
             "verify_duration": "mean production verification",
@@ -1070,7 +810,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "unsupported_targets": manifest["unsupported_targets"],
         },
         "limitations": limitations,
-        "summary": _summary(rows),
+        "negative_validation": negative_evidence,
+        "summary": _summary(rows, negative_evidence),
         "measurements": rows,
     }
     _atomic_write_json(args.report_out.resolve(), report)

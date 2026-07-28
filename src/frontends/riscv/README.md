@@ -104,12 +104,12 @@ zig build stwo-riscv-metal -Doptimize=ReleaseFast
 
 ## EthProofs CSP benchmark
 
-The standard client-side proving benchmark runs the exact SHA-256 and
-Keccak-256 workloads pinned in
-[`vectors/riscv_csp/manifest-v1.json`](../../../vectors/riscv_csp/manifest-v1.json).
-The manifest authenticates the upstream CSP revision, guest sources and
-lockfiles, committed RV32IM ELFs, deterministic inputs, expected digests, and
-expected retirement counts.
+The standard client-side proving benchmark runs SHA-256, Keccak-256,
+Poseidon2-M31, and pure-software secp256k1 ECDSA workloads pinned in
+[`vectors/riscv_csp/manifest-v2.json`](../../../vectors/riscv_csp/manifest-v2.json).
+The manifest authenticates the upstream CSP revision and generators, every
+guest source and lockfile, committed RV32IM ELFs, deterministic inputs,
+expected outputs, exact retirement counts, and precompile classification.
 
 Run the complete canonical matrix with:
 
@@ -118,9 +118,10 @@ zig build riscv-csp-bench -Doptimize=ReleaseFast
 ```
 
 The build step installs the production CPU prover and trace diagnostic, then
-runs both targets over 128, 256, 512, 1024, and 2048 input bytes with the
-`secure` protocol. It performs one warmup and ten verified samples per row and
-writes `vectors/reports/riscv_csp_benchmark_report.json`.
+runs sixteen rows with the `secure` protocol: five byte sizes for each hash,
+five field-element sizes for Poseidon2-M31, and the exact dynamic k256 ECDSA
+case. It performs one warmup and ten verified samples per row and writes
+`vectors/reports/riscv_csp_benchmark_report.json`.
 
 For a quick, non-headline development run:
 
@@ -139,8 +140,15 @@ statement digest.
 
 Results collected away from CSP's AWS `mac2.metal` Apple M1, 8-core, 16-GiB
 host are deliberately labelled `host-qualified-non-comparable`. The command
-never uploads a result. ECDSA, Poseidon, and Poseidon2 remain in the manifest's
-explicit unsupported ledger until workload-identical guests are committed.
+never uploads a result.
+
+SHA-256, Keccak-256, and secp256k1 ECDSA are canonical CSP zkVM workloads.
+Poseidon2-M31 is an explicitly labelled field-native extension: it uses CSP's
+exact seeded M31 inputs but is not relabelled as CSP's BN254 `poseidon2`
+target. Classic Poseidon, BN254 Poseidon2, and P-256 ECDSA remain in the
+unsupported ledger. All four implemented targets use ordinary RV32IM software,
+not precompiles. A one-byte-mutated k256 signature is retained as a negative
+fixture and must produce the all-zero rejection output.
 
 An audit can additionally regenerate every input and expected digest from a
 clean checkout of the pinned upstream repository:
@@ -152,9 +160,10 @@ python3 scripts/riscv_csp_benchmark.py \
 ```
 
 The upstream checkout must be at the manifest commit, be clean, contain the
-authenticated source files, and have its locked release `utils` executable
-built. Audit failure is fatal and cannot silently fall back to committed
-fixtures.
+authenticated source files, and have its locked release `utils` executable and
+library built. The audit recompiles the repository adapter against that
+library, regenerates the byte, M31, k256, and negative fixtures, and fails
+rather than falling back to committed inputs.
 
 ## Contract and invariants
 
