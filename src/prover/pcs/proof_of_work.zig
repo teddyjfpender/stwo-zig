@@ -72,7 +72,7 @@ fn grindBlake2sInPool(
     pow_bits: u32,
     pool: *work_pool_mod.WorkPool,
 ) u64 {
-    const worker_count = pool.workerCount();
+    const worker_count = @min(pool.workerCount(), 4);
     std.debug.assert(worker_count >= 2);
     std.debug.assert(worker_count <= work_pool_mod.MAX_WORKERS);
 
