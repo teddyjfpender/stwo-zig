@@ -171,13 +171,19 @@ pub fn execute(
         .pedersen_table = pedersen_table,
     };
 
-    const Work = struct {
+    const Shared = struct {
         program: program_mod.Program,
         input_columns: []const []const u32,
         output_columns: []const []u32,
         auxiliary: program_mod.AuxiliaryOutputs,
-        start: usize,
-        end: usize,
+        row_count: usize,
+        chunk_rows: usize,
+        chunk_count: usize,
+        cursor: std.atomic.Value(usize) = .init(0),
+    };
+
+    const Work = struct {
+        shared: *Shared,
         registers: []u32,
         deduce_args: []u32,
         tables: program_mod.TableContext,
@@ -185,37 +191,45 @@ pub fn execute(
         failure: ?anyerror = null,
 
         fn run(self: *@This()) void {
-            program_mod.executeAllRange(
-                self.program,
-                self.input_columns,
-                self.output_columns,
-                self.auxiliary,
-                self.start,
-                self.end,
-                self.registers,
-                self.deduce_args,
-                self.tables,
-                self.deduce,
-            ) catch |err| {
-                self.failure = err;
-            };
+            const shared = self.shared;
+            while (true) {
+                const index = shared.cursor.fetchAdd(1, .monotonic);
+                if (index >= shared.chunk_count) return;
+                const start = index * shared.chunk_rows;
+                const end = @min(shared.row_count, start + shared.chunk_rows);
+                program_mod.executeAllRange(
+                    shared.program,
+                    shared.input_columns,
+                    shared.output_columns,
+                    shared.auxiliary,
+                    start,
+                    end,
+                    self.registers,
+                    self.deduce_args,
+                    self.tables,
+                    self.deduce,
+                ) catch |err| {
+                    self.failure = err;
+                    return;
+                };
+            }
         }
     };
-    const chunk_len = std.math.divCeil(
-        usize,
-        row_count,
-        worker_count,
-    ) catch unreachable;
+    const chunk_rows = scheduleChunkRows(row_count, worker_count, rows_per_worker);
+    var shared = Shared{
+        .program = witness_program,
+        .input_columns = input_columns,
+        .output_columns = result.output_columns,
+        .auxiliary = auxiliary,
+        .row_count = row_count,
+        .chunk_rows = chunk_rows,
+        .chunk_count = std.math.divCeil(usize, row_count, chunk_rows) catch
+            unreachable,
+    };
     var works: [work_pool.MAX_WORKERS]Work = undefined;
     for (0..worker_count) |worker| {
-        const start = worker * chunk_len;
         works[worker] = .{
-            .program = witness_program,
-            .input_columns = input_columns,
-            .output_columns = result.output_columns,
-            .auxiliary = auxiliary,
-            .start = start,
-            .end = @min(row_count, start + chunk_len),
+            .shared = &shared,
             .registers = register_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .deduce_args = deduce_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .tables = execution_tables.fromInput(input),
@@ -239,6 +253,38 @@ pub fn execute(
     return result;
 }
 
+/// Row ranges used to be handed out as one static chunk per worker. That is
+/// only balanced on a homogeneous machine: a big.LITTLE host retires an
+/// efficiency-core chunk several times slower than a performance-core chunk,
+/// and the component's span is set by the slowest chunk, so the pool idles
+/// behind one straggler. Cutting the range into many more chunks than there
+/// are workers and letting each worker claim the next one turns the split
+/// self-balancing — fast cores simply claim more chunks.
+///
+/// Chunks stay contiguous row ranges, so a worker still streams the outputs
+/// of whatever chunk it holds; only the assignment of ranges to workers
+/// changes, and that assignment cannot affect results because every range
+/// writes disjoint rows.
+const target_chunks_per_worker: usize = 16;
+
+fn scheduleChunkRows(
+    row_count: usize,
+    worker_count: usize,
+    min_chunk_rows: usize,
+) usize {
+    if (worker_count <= 1) return @max(row_count, 1);
+    const target_chunks = worker_count * target_chunks_per_worker;
+    const even = std.math.divCeil(usize, row_count, target_chunks) catch
+        unreachable;
+    // Never go below the granularity the program's cost profile asks for, and
+    // never above an even static split — that is the previous behaviour and
+    // the worst case this schedule may degrade to.
+    const balanced = @max(even, min_chunk_rows);
+    const static_split = std.math.divCeil(usize, row_count, worker_count) catch
+        unreachable;
+    return @max(1, @min(balanced, static_split));
+}
+
 /// Recorded deductions can contain field inversions, hash rounds, or elliptic
 /// curve arithmetic. Their row cost is orders of magnitude above the scalar
 /// interpreter, so use finer ranges whenever a program contains a deduction.
@@ -248,6 +294,31 @@ fn parallelRowsPerWorker(witness_program: program_mod.Program) usize {
             return 32;
     }
     return 4096;
+}
+
+test "Cairo component executor cuts many chunks per worker on large ranges" {
+    // Large plain program: chunks are bounded below by the program's own
+    // granularity, and there are many more of them than there are workers.
+    const rows: usize = 1 << 20;
+    const chunk = scheduleChunkRows(rows, 18, 4096);
+    try std.testing.expectEqual(@as(usize, 4096), chunk);
+    try std.testing.expectEqual(@as(usize, 256), rows / chunk);
+
+    // Deduction program: the 32-row floor does not bind, so the schedule lands
+    // on the 16-chunks-per-worker target.
+    const deduce_chunk = scheduleChunkRows(rows, 18, 32);
+    try std.testing.expectEqual(
+        @as(usize, std.math.divCeil(usize, rows, 18 * 16) catch unreachable),
+        deduce_chunk,
+    );
+
+    // Small range: the schedule never produces a chunk larger than the static
+    // even split it replaces, and never smaller than one row.
+    try std.testing.expectEqual(@as(usize, 256), scheduleChunkRows(4096, 16, 4096));
+    try std.testing.expectEqual(@as(usize, 1), scheduleChunkRows(4, 8, 4096));
+
+    // Single worker keeps one range covering the whole component.
+    try std.testing.expectEqual(@as(usize, 4096), scheduleChunkRows(4096, 1, 4096));
 }
 
 test "Cairo component executor assigns finer ranges to computed deductions" {
