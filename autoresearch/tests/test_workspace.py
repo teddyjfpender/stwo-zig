@@ -2,7 +2,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cli"))
 from stwo_perf import workspace
@@ -84,6 +86,61 @@ class RestoreTest(unittest.TestCase):
         m = Manifest(root=self.root, raw=raw)
         restored = workspace.restore_editable_from(self.root, m, self.c1)
         self.assertTrue(any("absent in source" in r for r in restored))
+
+
+class SetupTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        raw = deepcopy(MANIFEST_RAW)
+        raw["workload_registry"]["groups"]["metal"] = {
+            "enabled": True,
+            "promotion_eligible": True,
+            "board": "core_metal",
+            "build_step": "false",
+            "binary": "true",
+            "report_schema": "native_proof_v7",
+            "workloads": {},
+        }
+        self.manifest = Manifest(root=self.root, raw=raw)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    @mock.patch("stwo_perf.workspace.subprocess.run")
+    def test_board_scoped_setup_builds_only_selected_group(self, run):
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="0.15.2\n")
+
+        built = workspace.setup(self.root, self.manifest, board="core_cpu")
+
+        self.assertEqual(built, ["native"])
+        self.assertEqual(
+            [call.args[0] for call in run.call_args_list],
+            [["zig", "version"], ["true"]],
+        )
+
+    @mock.patch("stwo_perf.workspace.platform.system", return_value="Linux")
+    @mock.patch("stwo_perf.workspace.subprocess.run")
+    def test_default_setup_skips_apple_metal_on_linux(self, run, _system):
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="0.15.2\n")
+
+        built = workspace.setup(self.root, self.manifest)
+
+        self.assertEqual(built, ["native"])
+        self.assertEqual(
+            [call.args[0] for call in run.call_args_list],
+            [["zig", "version"], ["true"]],
+        )
+
+    def test_unknown_board_is_rejected(self):
+        with mock.patch(
+            "stwo_perf.workspace.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, stdout="0.15.2\n"),
+        ):
+            with self.assertRaisesRegex(
+                workspace.WorkspaceError, "board has no workload group"
+            ):
+                workspace.setup(self.root, self.manifest, board="unknown")
 
 
 if __name__ == "__main__":
