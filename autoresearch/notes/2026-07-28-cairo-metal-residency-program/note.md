@@ -1053,3 +1053,223 @@ host materialization. Its measured prize is real — 624.1 ms on pedersen and
 machinery" premise is weakest, and the 33-of-68 coverage means a live-geometry
 witness needs **new generated writers for components the SN2 bundle never
 contained**.
+
+---
+
+## Phase 1: composition residency
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `bf03954c`, clean. Raw data: `/private/tmp/p1-verify/`.
+Predecessor binaries: `/private/tmp/p1-pred/bin/` (built at `bf03954c`,
+`dirty = false`, verified via `identity`).
+
+### The headline: the program gate could not be measured, and why that is the finding
+
+**Verdict: the composition hook is a rejected candidate — rejected by a
+structural precondition, not by measurement. The `>= 2.0x` program gate on
+arithmetic-2m and memory-7m is NOT MEASURED, and cannot be measured until trace
+residency exists.** The digest binding and the telemetry counter landed and stand
+on their own.
+
+§6.7-§6.8 scoped Phase 1 as "wire the existing composition metallib into the
+product prove path", on four premises that are each individually true: the
+metallib exists and is log-size-independent (§6.2), the composition bundle is
+already claim-derived and already runs in-product (§6.1), the arena planner is
+row-count-agnostic (§3.2), and `Engine`-style backend hooks already exist (§3.5).
+All four hold. They are not sufficient, because of a fifth fact the survey did
+not reach: **the AOT eval kernel ABI is single-arena-offset-only.**
+
+| fact | file:line |
+| --- | --- |
+| every eval dispatch takes one `ResidentBuffer` arena and a plan | `src/backends/metal/runtime/prepared_execution.zig:544` `evalPrepared(self, arena: ResidentBuffer, plan: EvalPlan)` |
+| batched eval dispatch, same single-arena signature | `prepared_execution.zig:566` `evalBatchPrepared(self, arena: ResidentBuffer, batch)` |
+| `EvalLayout` is 11 `u32` **offsets into that one arena** — trace, interaction, base/ext params, random coeffs, denominator inverses, four output coordinates | `src/backends/metal/runtime/resource_plans.zig:172-184`; the 14-argument ABI at `:204-212` |
+| the Cairo composition front/finalize recipes take arena offsets for every input and output | `src/integrations/cairo_metal/arena_binding.zig:1470-1506` (`prepareCompositionInputs`, `prepareCompositionFront`, `prepareCompositionFinalize`) |
+| the product prove path holds **host** trace columns and has no resident arena | `src/prover/prove.zig:250-262` (`scheme.trace(allocator)`); `src/integrations/cairo_metal/prover/transaction.zig` imports neither `arena_binding` nor `resident/` |
+
+There is no host-pointer eval surface. So `Engine.evaluateComposition` cannot
+dispatch the composition metallib over host-allocated trace columns at all. To
+dispatch it the base and interaction LDE evaluation columns, the preprocessed
+columns, the denominator-inverse tables, the parameter tables, the random
+coefficient powers and the output coordinates must all already live at planned
+offsets inside **one** resident arena. Getting them there is either a
+plane-sized host→arena pack per proof — which is R1, and which R4 already
+recorded as a rejected retrofit (*"Metal accepts a true no-copy host source only
+when all columns cover one contiguous arena. Cairo component execution produces
+multiple independent allocations, so Metal still had to pack them"*) — or it is
+trace residency, which is Phase 2/Phase 4 scope.
+
+The volume makes the pack option unarguable rather than merely unattractive: the
+composition bundle's `max_evaluation_log_size` is 24 (§6.2), so one column is
+2^24 x 4 B = 64 MB, and Cairo composition reads the full base and interaction
+column set across trees. Campaign 2 priced the comparable transfer at 3,420 MB
+on memory-7m.
+
+**Consequence for the program plan: Phase 1 is not independent of Phase 2.**
+§6.7's reordering put composition first because it needs no new kernels and has
+no Fiat-Shamir constraint. Both remain true. But composition residency is
+downstream of *trace* residency, and trace residency is the arena work in
+Phases 2/4. The correct Phase 1 is therefore either (a) the arena/residency
+plumbing itself, priced and measured on its own, with composition as its first
+consumer, or (b) a genuinely non-arena device composition path — for which the
+precedent exists at `secure_composition.zig:48-107`
+(`evaluateLargeRecurrenceComposition` binds a host column pointer plus an
+optional resident tree handle and dispatches a bespoke kernel), but which would
+require new Cairo composition kernels outside the AOT metallib and so forfeits
+the "reuse the existing library" premise that made Phase 1 cheap.
+
+One correction to §3.6/§6.6 while here: `scheme.backendResidencyHandles`
+(`src/prover/pcs/scheme_views.zig:51-64`) yields `B.quotientResidencyHandle`,
+which is a **Merkle tree handle** (`src/backends/metal/merkle_tree.zig:208-213`
+returns `resident.tree.handle`), i.e. the hash arena of a committed tree — not
+the LDE evaluation columns. Composition cannot read its inputs from it.
+
+### Work item 1 (landed): digest-binding the composition metallib
+
+The composition metallib was the only Metal artifact on any Cairo path loaded
+with no integrity check anywhere in-tree. §6.3.1 identified it; this closes it.
+`src/integrations/cairo_metal/composition_aot.zig` (new, 355 lines):
+
+- `authenticate(path, policy)` measures the file with stat / full read / re-stat,
+  so a library swapped between the digest check and `loadEvalLibrary` is caught
+  by the re-stat rather than loaded. Same TOCTOU handling as
+  `witness_aot.zig:130-160`.
+- `approved_metallibs` is the in-tree manifest. `vectors/` is protected, so the
+  manifest is a source constant rather than a provenance JSON; the single entry
+  is `sn_pie_2_composition_v1`, sha256
+  `85db09e024a661d78e34e53ed2ae36c150567977223f34bba88f119b3c7b21ab`,
+  length 7,740,844. Admission is by digest **and** length; `label` is evidence
+  only and never participates, so renaming, relocating or path-substituting an
+  artifact cannot affect admission.
+- `Policy` has **no unchecked variant**. `approved_manifest` is the default and
+  the only policy a proving path may use. `pinned_digest` admits one named
+  digest — the escape hatch for a CI-compiled library that predates a manifest
+  entry, via `STWO_ZIG_COMPOSITION_METALLIB_SHA256`; a malformed value is an
+  error, never a downgrade. `report_only` measures and admits, reserved for
+  offline codegen tooling (`metal-eval-prepare` operates on libraries it has just
+  generated, which by construction cannot be in a checked-in manifest) and
+  documented as forbidden on any path that produces a proof. `Policy.gates()`
+  lets a caller assert it holds a gating policy.
+- Digest parsing rejects non-canonical spellings (uppercase included) so a digest
+  in a report is byte-comparable with a digest in the manifest.
+
+Enforcement point: `resident/composition/config.zig` gained `loadAuthenticated`,
+and `arena_binding.zig:1192`'s `.metallib` arm now calls it. Library selection
+already lived in `config.zig`, so integrity lives there too: there is now exactly
+one place a `.metallib` can enter a resident composition and it cannot be reached
+without a digest check. `composition_prewarm.Inputs` gained a `policy` field
+defaulting to `approved_manifest`, and `Evidence` now carries the measured
+`metallib_sha256` / `metallib_length` / `metallib_label` of the library actually
+loaded.
+
+**This is a security fix independent of the performance work and it deserves
+independent security review, not only a performance review.** What it defends
+against specifically: by-name kernel resolution
+(`composition_prewarm.zig:46-62`) is a *completeness* check. A library that
+exports correctly-named kernels with substituted bodies resolves every pipeline
+cleanly and evaluates the wrong AIR for a full proof. The verifier does reject
+the result (it recomputes composition at the OODS point, R5), but only after the
+prover has paid the entire proving cost, and no artifact anywhere names the swap.
+
+Two limitations recorded rather than hidden:
+
+1. `metal_prover_session/app.zig`'s prewarm passes `report_only`. It warms
+   pipelines over a content-addressed artifact-store snapshot and is not a proof;
+   the session gates that object separately through
+   `preparation.authorizeCompositionProgram`, whose own default is `.diagnostic`
+   (permissive), and the library a session proof actually loads is gated at the
+   runner. Threading the session's `--composition-metallib-sha256` down to this
+   prewarm as a `pinned_digest` so both gates read one value is an identified
+   follow-up.
+2. The manifest has one entry because CI is the only producer of this artifact
+   and this host has no full Xcode (§6.3.2). Any phase minting new semantic
+   hashes needs a CI round trip and a manifest addition.
+
+### Work item 2 (landed): counting interaction and composition dispatches
+
+§6.3.3 is closed. `metalDispatchTotal` summed exactly ten counters and had no
+relation or composition variant, so the measured 74-79 provably contained zero
+interaction device work and the `accelerated_without_fallbacks` gate could not
+have seen any.
+
+- `Event.metal_relation_dispatch` and `Event.metal_composition_eval_dispatch`,
+  both added to `metalDispatchTotal`.
+- `metal_relation_dispatch` is recorded where the fused LogUp kernel chain is
+  actually submitted: `src/backends/metal/recipes/relation.zig:165`
+  (`RelationRecipe.execute`, after `relationPrepared`).
+- `Event.cpu_composition_evaluation` added to `cpuFallbackTotal`, recorded at
+  `composition_aot.authenticateFromProcess`'s failure path — so a declined device
+  composition is a *counted* fallback and cannot report
+  `accelerated_without_fallbacks`.
+
+The judgement worth flagging: `cpu_composition_evaluation` is deliberately **not**
+recorded for the default host placement of composition. That is a placement, not
+a fallback. Recording it there would make every hybrid Metal proof report a
+fallback and would destroy the meaning of the classification the whole program
+uses as its invariant.
+
+### Verification
+
+Cache-off (`STWO_CAIRO_PREPROCESSED_CACHE=0`), `run-and-prove`, single cold runs.
+These are correctness evidence, not paired timing evidence — no A-B was run,
+because there is no mechanism change to price.
+
+| workload | Metal proof sha-256 | campaign value | match | dispatches | Phase 0 baseline | fallbacks | classification |
+| --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| all-opcodes | `79ae76e1ac0c` | `79ae76e1…` | yes | 75 | 75 | 0 | `accelerated_without_fallbacks` |
+| arithmetic-2m | `25e5719f4c57` | `25e5719f…` | yes | 74 | 74 | 0 | `accelerated_without_fallbacks` |
+| memory-7m | `e3317e55a5db` | `e3317e55…` | yes | 79 | 79 | 0 | `accelerated_without_fallbacks` |
+
+CPU all-opcodes: `79ae76e1ac0c`, byte-identical to Metal, `host-only`, 0
+dispatches — the program invariant holds and the host path is untouched.
+Dispatch counts are **unchanged from the Phase 0 baseline on every row**, which
+is the check that three new counters defaulting to zero cannot move an existing
+workload's evidence; it is also asserted directly as a unit test against a
+74-dispatch hybrid profile.
+
+Prove times for the record (single cold runs, host load 4.73 1-minute, so these
+are not comparable with Phase 0's numbers and no speedup is claimed from them):
+all-opcodes Metal 1,215.9 / CPU 1,340.1 ms; arithmetic-2m 1,691.3 ms;
+memory-7m 4,450.0 ms.
+
+Tests: `test-cairo-metal-product`, `test-cairo-frontend`, `test-native-metal` all
+pass (Metal product closure PASS, 385 sources; native Metal lifecycle PASS).
+`composition_aot.zig`'s 8 tests pass, including the fail-closed cases: a
+length-preserving single-byte flip in a kernel body is rejected as
+`UnapprovedCompositionMetallib` under the manifest and as
+`CompositionMetallibDigestMismatch` under a pinned digest, and empty / missing /
+zero-length paths are rejected.
+
+**Honest gap in the fail-closed evidence.** The brief asked for an end-to-end
+corrupt-the-metallib test showing host fallback with the fallback counted in
+`backend_evidence`. That cannot be demonstrated in the product, because the
+product prove path never loads the composition metallib — which is precisely the
+finding above. The fail-closed behaviour is demonstrated at the module level and
+the fallback counter is unit-tested; the end-to-end demonstration becomes
+available in the same increment that first puts a device composition on the
+prove path.
+
+Pre-existing, noted not chased: `metal-prover-session-test` fails to compile at
+`bf03954c` with 5 errors (`metal_arena_plan_cli has no member named
+PreparedStateKey` / `canonical_protocol` / `PreparedHostGeometry` /
+`protocolObjectIsCanonical`) — confirmed pre-existing by stashing all changes and
+reproducing. `composition_aot.zig`'s tests are consequently not reachable from
+any green build step: `src/integrations/cairo_metal` is excluded from both
+aggregate closures (`build_support/products/aggregate.zig:141-156`) and the
+cairo_metal product owns only `src/integrations/cairo_metal/prover`
+(`build_support/products/cairo_metal.zig:47`). They were run directly with
+`zig test`. Wiring them into a green step is a follow-up worth doing before the
+security review.
+
+### Where Phase 2 should start
+
+The interaction increment's blocker is the same one, and it is worth stating that
+plainly: `relation.metal`'s kernels are reached through
+`metal.relationPrepared(self.arena.buffer, self.prepared)`
+(`recipes/relation.zig:164`) — the identical single-arena surface. Interaction
+residency is therefore also downstream of trace residency, and `z` and the alpha
+powers are already bound *from inside* the resident arena
+(`runtime/prepared_auxiliary.m:199-200`), not uploaded per call. So the arena is
+not one phase's incidental cost; it is the shared precondition for composition
+**and** interaction, and it should be planned, built and measured as its own
+increment rather than absorbed into either.
