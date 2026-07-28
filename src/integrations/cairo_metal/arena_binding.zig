@@ -1186,7 +1186,7 @@ fn prepareCompositionRecipe(
             defer allocator.free(source_bytes);
             break :source try metal.compileEvalLibrary(source_bytes);
         },
-        .metallib => try metal.loadEvalLibrary(metallib_path),
+        .metallib => try composition_config.loadAuthenticated(metal, metallib_path),
     };
     library_config.deinit(allocator);
     library_config_live = false;

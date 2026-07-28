@@ -2,6 +2,8 @@
 
 const std = @import("std");
 const eval_codegen = @import("../../eval_codegen.zig");
+const composition_aot = @import("../../composition_aot.zig");
+const metal_runtime = @import("../../../../backends/metal/runtime.zig");
 const Error = @import("../errors.zig").Error;
 
 const enable_fusion_env = "STWO_ZIG_SN2_ENABLE_COMPOSITION_PART_FUSION";
@@ -254,4 +256,18 @@ test "composition config diagnostics disable part fusion" {
     try std.testing.expect(fusionEnabled(true, null));
     try std.testing.expect(!fusionEnabled(true, 0));
     try std.testing.expect(!fusionEnabled(false, null));
+}
+
+/// Loads an AOT composition metallib only after it authenticates.
+///
+/// Library selection already lives here, so integrity belongs here too: there
+/// is then exactly one place a `.metallib` can enter a resident composition,
+/// and it cannot be reached without a digest check. Failures propagate; the
+/// caller must fall back to the host evaluator, never to an unchecked load.
+pub fn loadAuthenticated(
+    metal: *metal_runtime.Runtime,
+    metallib_path: []const u8,
+) !metal_runtime.EvalLibrary {
+    _ = try composition_aot.authenticateFromProcess(std.heap.page_allocator, metallib_path);
+    return metal.loadEvalLibrary(metallib_path);
 }
