@@ -77,9 +77,15 @@ comptime {
     if (@sizeOf(M31) != @sizeOf(u32)) @compileError("M31 is no longer one word");
 }
 
-/// Set to `0` to keep the host composition stage on a Metal proof without
-/// removing the hook. The default is on, which is safe because admission has to
-/// hold for anything to change.
+/// Set to `1` to arm the hook. **The default is off**, and that is a measured
+/// decision rather than caution: the checked-in metallib was compiled from
+/// `vectors/cairo/sn_pie_2_composition.bin`, whose 271 kernels share *zero*
+/// semantic hashes with the 69 the AIR template library emits, so admission
+/// resolves no kernel on any portfolio workload and declines every time. Arming
+/// it therefore buys nothing and costs a measured 15-40 ms per proof — a 7.7 MB
+/// SHA-256, a library load, and 29-46 failed pipeline resolutions. Flip the
+/// default back the moment a metallib minted from the template library's own
+/// program bundles is in the manifest.
 pub const enable_env = "STWO_ZIG_COMPOSITION_DEVICE";
 /// Overrides the metallib path. This is how the fail-closed test points the
 /// product at a corrupted copy: it names a different artifact, it never relaxes
@@ -152,9 +158,8 @@ fn open(
     allocator: std.mem.Allocator,
     components: []const composition.Component,
 ) anyerror!?device_stage.Session {
-    if (std.posix.getenv(enable_env)) |value| {
-        if (std.mem.eql(u8, value, "0")) return null;
-    }
+    const armed = std.posix.getenv(enable_env) orelse return null;
+    if (!std.mem.eql(u8, armed, "1")) return null;
     if (components.len == 0) return null;
 
     const path = try resolveMetallib(allocator, settings);
