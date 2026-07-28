@@ -4,12 +4,18 @@ const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const cairo_oracle_gate = @import("cairo_cpu/oracle_gate.zig");
 const cairo_support = @import("cairo_support.zig");
+const cairo_witness_cpu_aot = @import("cairo_witness_cpu_aot.zig");
 const cairo_vm_adapter = @import("cairo_cpu/vm_adapter.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const policy = @import("../graph/product.zig");
+
+const protocol_features =
+    cairo_support.protocol_features ++
+    "+authenticated-witness-cpu-aot-v1";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -22,9 +28,15 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cairo_cpu", .source = "src/stwo_cairo_cpu.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     },
-    .generated_imports = &.{"product_identity"},
+    .generated_imports = &.{
+        "cairo_witness_cpu_aot",
+        "product_identity",
+    },
     .allowed_files = &.{
         "src/stwo_cairo_cpu.zig",
         "src/interop/atomic_file.zig",
@@ -85,11 +97,18 @@ pub fn addProduct(context: Context) void {
     );
     const stwo = createStwoModule(context, .library);
     const shared = createSharedProductModule(context, .library, stwo);
+    const witness_aot = cairo_witness_cpu_aot.createModule(
+        context.b,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const root = createProductModule(
         context,
         descriptor.product,
         stwo,
         shared,
+        witness_aot,
     );
     const installed = graph_install.executable(
         context.b,
@@ -103,11 +122,18 @@ pub fn addProduct(context: Context) void {
     cairo_support.installProfile(context.b, installed.build_step);
 
     const test_stwo = createStwoModule(context, .@"test");
+    const test_witness_aot = cairo_witness_cpu_aot.createModule(
+        context.b,
+        context.target,
+        context.optimize,
+        test_stwo,
+    );
     const test_root = createProductModule(
         context,
         product(.@"test"),
         test_stwo,
         createSharedProductModule(context, .@"test", test_stwo),
+        test_witness_aot,
     );
     const tests = context.b.addTest(.{ .root_module = test_root });
     cairo_support.linkBzip2(context.b, tests);
@@ -142,6 +168,12 @@ pub fn addReferenceExecutable(
 ) *std.Build.Step.Compile {
     const stwo = createStwoModule(context, .gate);
     const shared = createSharedProductModule(context, .gate, stwo);
+    const witness_aot = cairo_witness_cpu_aot.createModule(
+        context.b,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const executable = context.b.addExecutable(.{
         .name = "stwo-cairo-cpu-reference",
         .root_module = createProductModule(
@@ -149,6 +181,7 @@ pub fn addReferenceExecutable(
             product(.gate),
             stwo,
             shared,
+            witness_aot,
         ),
     });
     cairo_support.linkBzip2(context.b, executable);
@@ -166,6 +199,14 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    integration_graph.addCairoCpuStack(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     return module;
 }
 
@@ -174,6 +215,7 @@ fn createProductModule(
     product_descriptor: graph.Product,
     stwo: *std.Build.Module,
     shared: *std.Build.Module,
+    witness_aot: *std.Build.Module,
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = product_descriptor,
@@ -184,6 +226,7 @@ fn createProductModule(
     context.protocol.addImports(root);
     root.addImport("stwo_cairo_cpu", stwo);
     root.addImport("cairo_product", shared);
+    root.addImport("cairo_witness_cpu_aot", witness_aot);
     root.addOptions(
         "product_identity",
         graph_identity.productOptions(
@@ -217,7 +260,7 @@ fn product(role: graph.Role) graph.Product {
         .frontend = .cairo,
         .backend = .cpu,
         .role = role,
-        .protocol_features = cairo_support.protocol_features,
+        .protocol_features = protocol_features,
     };
 }
 

@@ -1,6 +1,6 @@
 const std = @import("std");
-const backend = @import("../../integrations/cairo_metal/process/backend.zig");
-const runner = @import("../../integrations/cairo_metal/process/runner.zig");
+const backend = @import("stwo_cairo_metal_integration").process_backend;
+const runner = @import("stwo_cairo_metal_integration").process_runner;
 
 test {
     std.testing.refAllDecls(backend);

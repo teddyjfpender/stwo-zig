@@ -71,7 +71,7 @@ pub const SemanticComponent = struct {
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
-        return self.log_size + 1;
+        return semantic_eval.constraintLogDegreeBound(self.family, self.log_size);
     }
 
     pub fn traceLogDegreeBounds(
@@ -170,7 +170,7 @@ pub const SemanticComponent = struct {
         }
 
         const allocator = accumulator.allocator;
-        const eval_log_size = self.log_size + 1;
+        const eval_log_size = self.maxConstraintLogDegreeBound();
         const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
         const eval_size = eval_domain.size();
         const evaluations = try allocator.alloc([]const M31, 1 + n_main);

@@ -1,8 +1,6 @@
 //! Native Plonk binding to the generic indexed-recurrence trace primitive.
 
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const geometry_mod = @import("geometry.zig");
 const trace = @import("trace.zig");
 
@@ -44,9 +42,7 @@ test "Plonk device trace binds the exact four-by-four destinations" {
     try std.testing.expectEqual(@as(u64, 1), session.launches);
 }
 
-const indexed_recurrence = @import(
-    "../../../backends/cuda/runtime/traces/indexed_recurrence.zig",
-);
+const indexed_recurrence = @import("stwo_cuda_backend").runtime.traces.indexed_recurrence;
 
 const TestSession = struct {
     context: TestContext = .{},
@@ -54,11 +50,9 @@ const TestSession = struct {
 
     pub fn launchKernel(
         self: *TestSession,
-        kernel: @import(
-            "../../../backends/cuda/runtime/kernel.zig",
-        ).Kernel,
+        kernel: @import("stwo_cuda_backend").runtime.kernel.Kernel,
         arguments: []const ?*anyopaque,
-    ) @import("../../../backends/cuda/runtime/error.zig").Error!void {
+    ) @import("stwo_cuda_backend").runtime.runtime_error.Error!void {
         try kernel.validate();
         if (arguments.len != indexed_recurrence.argument_count)
             return error.ArgumentCountMismatch;
@@ -67,16 +61,12 @@ const TestSession = struct {
 };
 
 const TestContext = struct {
-    active_stage: @import(
-        "../../../backends/cuda/runtime/telemetry.zig",
-    ).Stage = .trace_generation,
+    active_stage: @import("stwo_cuda_backend").runtime.telemetry.Stage = .trace_generation,
 
     pub fn requireStage(
         self: *TestContext,
-        expected: @import(
-            "../../../backends/cuda/runtime/telemetry.zig",
-        ).Stage,
-    ) @import("../../../backends/cuda/runtime/error.zig").Error!void {
+        expected: @import("stwo_cuda_backend").runtime.telemetry.Stage,
+    ) @import("stwo_cuda_backend").runtime.runtime_error.Error!void {
         if (self.active_stage != expected) return error.StageOrderViolation;
     }
 
@@ -85,7 +75,7 @@ const TestContext = struct {
         comptime F: type,
         slice: anytype,
         minimum: usize,
-    ) @import("../../../backends/cuda/runtime/error.zig").Error![*]F {
+    ) @import("stwo_cuda_backend").runtime.runtime_error.Error![*]F {
         if (minimum == 0 or slice.len < minimum or
             slice.owner != 7 or slice.generation != 11)
         {

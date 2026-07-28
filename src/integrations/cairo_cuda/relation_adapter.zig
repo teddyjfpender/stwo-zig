@@ -6,11 +6,11 @@
 //! the Cairo proof plan and semantic bundle.
 
 const std = @import("std");
-const relation_abi = @import("../../backends/cuda/abi/stages/relation.zig");
-const relation_stage = @import("../../backends/cuda/runtime/stages/relation.zig");
-const common = @import("../../backends/cuda/runtime/stages/common.zig");
-const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
-const relation_bundle = @import("../../frontends/cairo/witness/relation_bundle.zig");
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
 const ingress = @import("relation_adapter/ingress.zig");
 
 const pointer_words = @sizeOf(usize) / @sizeOf(u32);

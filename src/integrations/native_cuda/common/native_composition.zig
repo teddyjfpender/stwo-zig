@@ -2,9 +2,7 @@
 
 const commit_tree = @import("commit_tree.zig");
 const proof_assembly = @import("proof_assembly.zig");
-const stages = @import(
-    "../../../backends/cuda/runtime/stages/mod.zig",
-);
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const transcript = @import("transcript_executor.zig");
 
 const NativeOps = struct {
@@ -62,9 +60,7 @@ pub fn ExecutorForWithPrelude(
             const challenge = try views
                 .constraint_buffers
                 .challenge_parameters
-                .cast(@import(
-                "../../../backends/cuda/abi/field.zig",
-            ).SecureField);
+                .cast(@import("stwo_cuda_backend").abi.field.SecureField);
 
             try Prelude.run(session, prepared, views);
             try transcript.drawSecure(

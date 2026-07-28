@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-"""Pack or verify immutable, exact-source RISC-V release evidence."""
+"""Archived pre-Sail bundle CLI; retained only for format forensics."""
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from scripts.riscv_release_bundle_lib.controller import main  # noqa: E402
+def main(_argv: list[str] | None = None) -> int:
+    raise SystemExit(
+        "retired pre-Sail bundle command; use scripts/riscv_release_gate.py "
+        "--strict with a pinned formal workspace"
+    )
 
 
 if __name__ == "__main__":

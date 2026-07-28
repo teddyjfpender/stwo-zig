@@ -6,4 +6,5 @@ test {
     _ = @import("backend/commitment_test.zig");
     _ = @import("backend/circle_pipeline_test.zig");
     _ = @import("backend/cache_lifecycle_test.zig");
+    _ = @import("backend/native_examples_contract_test.zig");
 }

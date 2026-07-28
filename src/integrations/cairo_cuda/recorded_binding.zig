@@ -1,8 +1,8 @@
 //! Canonical identities and ingress metadata for recorded Cairo CUDA writers.
 
 const std = @import("std");
-const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
-const common = @import("../../backends/cuda/runtime/stages/common.zig");
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 
 const pointer_words = @sizeOf(usize) / @sizeOf(u32);
 const execution_table_count = 37;

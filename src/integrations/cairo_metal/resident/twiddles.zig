@@ -1,7 +1,7 @@
 //! Resident Cairo twiddle-bank layout and materialization.
 
 const std = @import("std");
-const arena_plan = @import("../../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const schedule_bindings = @import("../schedule_bindings.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const twiddles_mod = @import("stwo_prover_impl").poly.twiddles;

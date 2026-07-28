@@ -1,10 +1,8 @@
 //! Geometry-only proof-program emission for the Native state-machine AIR.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const geometry_mod = @import("geometry.zig");
 const identities = @import("identities.zig");
 const layout_mod = @import("layout.zig");
@@ -152,9 +150,7 @@ fn emitWithBuffers(
     });
 }
 
-fn stage(value: @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-).Stage) ir.Stage {
+fn stage(value: @import("stwo_cuda_backend").runtime.telemetry.Stage) ir.Stage {
     return @enumFromInt(@intFromEnum(value));
 }
 
@@ -572,7 +568,7 @@ test "state-machine proof program matches the AIR topology" {
 
 test "state-machine program sample topology matches a CPU proof" {
     const allocator = std.testing.allocator;
-    const cpu_state_machine = @import("../../../examples/state_machine.zig");
+    const cpu_state_machine = @import("stwo_native_examples").state_machine;
     const pcs = @import("stwo_core").pcs;
     const M31 = @import("stwo_core").fields.m31.M31;
     const protocol = pcs.PcsConfig.default();

@@ -7,6 +7,11 @@ pub const Context = struct {
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     stwo_module: *std.Build.Module,
+    cpu_backend: *std.Build.Module,
+    metal_backend: *std.Build.Module,
+    cairo_frontend: *std.Build.Module,
+    metal_session: *std.Build.Module,
+    cairo_metal_integration: *std.Build.Module,
     protocol: graph.ProtocolModules,
     test_step: ?*std.Build.Step,
 };
@@ -156,6 +161,7 @@ pub fn addProducts(context: Context) void {
         .name = "metal-witness-source",
         .root_module = metal_witness_source_module,
     });
+    metal_backend.linkRuntime(b, metal_witness_source);
     const install_metal_witness_source = b.addInstallArtifact(metal_witness_source, .{});
     const metal_witness_source_step = b.step(
         "metal-witness-source",
@@ -164,6 +170,38 @@ pub fn addProducts(context: Context) void {
     metal_witness_source_step.dependOn(&install_metal_witness_source.step);
 
     const metal_test_module = consumer(context, "src/tests.zig");
+    metal_test_module.addImport("stwo_cpu_backend", context.cpu_backend);
+    metal_test_module.addImport("stwo_metal_backend", context.metal_backend);
+    metal_test_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
+    metal_test_module.addImport("stwo_metal_session", context.metal_session);
+    const test_product = graph.Product{
+        .name = "stwo-native-metal-tools",
+        .frontend = .native,
+        .backend = .metal,
+        .role = .@"test",
+    };
+    const proof_wire = graph.addProofWireImport(
+        b,
+        context.protocol,
+        test_product,
+        target,
+        context.optimize,
+        metal_test_module,
+    );
+    _ = graph.addNativeExamplesImport(
+        b,
+        context.protocol,
+        test_product,
+        target,
+        context.optimize,
+        context.cpu_backend,
+        proof_wire,
+        metal_test_module,
+    );
+    metal_test_module.addImport(
+        "stwo_cairo_metal_integration",
+        context.cairo_metal_integration,
+    );
     const metal_test_options = b.addOptions();
     metal_test_options.addOption(bool, "metal_only", true);
     metal_test_options.addOption(bool, "riscv_only", false);
@@ -193,16 +231,6 @@ pub fn addProducts(context: Context) void {
     const install_metal_bench = b.addInstallArtifact(metal_bench, .{});
     const metal_bench_step = b.step("metal-bench", "Build resident Metal commitment benchmark");
     metal_bench_step.dependOn(&install_metal_bench.step);
-
-    const riscv_metal_module = consumer(context, "src/riscv_metal_bench_cli.zig");
-    const riscv_metal_bench = b.addExecutable(.{
-        .name = "riscv-metal-bench",
-        .root_module = riscv_metal_module,
-    });
-    metal_backend.linkRuntime(b, riscv_metal_bench);
-    const install_riscv_metal_bench = b.addInstallArtifact(riscv_metal_bench, .{});
-    const riscv_metal_step = b.step("riscv-metal-bench", "Build RISC-V prover with Metal commitments");
-    riscv_metal_step.dependOn(&install_riscv_metal_bench.step);
 }
 
 fn consumer(context: Context, root_source_file: []const u8) *std.Build.Module {
@@ -233,7 +261,6 @@ fn addUnavailableProducts(b: *std.Build) void {
         "metal-test",
         "metal-check",
         "metal-bench",
-        "riscv-metal-bench",
     }) |name| {
         const step = b.step(name, reason);
         step.dependOn(&failure.step);

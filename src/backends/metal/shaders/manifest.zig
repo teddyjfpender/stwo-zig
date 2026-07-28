@@ -202,6 +202,29 @@ const relation_source = @embedFile("core/relation.metal");
 const decommit_kernels_source = @embedFile("core/decommit.metal");
 const polynomial_eval_source = @embedFile("core/polynomial_eval.metal");
 
+pub const WitnessCodegenSupport = struct {
+    base: []const u8,
+    m31: []const u8,
+    felt252: []const u8,
+    ec: []const u8,
+    witness_abi: []const u8,
+    witness_tables: []const u8,
+    witness_deductions: []const u8,
+};
+
+/// Backend-owned shader headers admitted to Cairo witness code generation.
+/// Consumers receive immutable bytes rather than filesystem access to this
+/// package's private shader tree.
+pub const witness_codegen_support = WitnessCodegenSupport{
+    .base = base_source,
+    .m31 = m31_source,
+    .felt252 = felt252_source,
+    .ec = ec_source,
+    .witness_abi = witness_abi_source,
+    .witness_tables = witness_tables_source,
+    .witness_deductions = witness_deductions_source,
+};
+
 pub const support_headers = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/include/base.metal", .source = base_source },
     .{ .path = "src/backends/metal/shaders/include/blake2s.metal", .source = blake2s_source },

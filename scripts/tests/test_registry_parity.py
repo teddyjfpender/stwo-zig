@@ -18,8 +18,8 @@ class RegistryParityTests(unittest.TestCase):
                     "backends": ["cpu"],
                 },
                 {
-                    "adapter": "stark-v-rv32im-elf",
-                    "air": "stark_v_rv32im",
+                    "adapter": "sail-rv32im-zkvm-elf",
+                    "air": "sail_rv32im_zkvm_v1",
                     "status": "release_gated",
                     "backends": ["cpu"],
                 },

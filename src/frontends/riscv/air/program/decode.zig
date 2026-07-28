@@ -1,11 +1,11 @@
-//! Exact decoded program-tuple rules from pinned Stark-V.
+//! Program-relation projection of the canonical Sail-facing decoder.
 //!
-//! This decoder intentionally does not call the broader Zig execution
-//! decoder: the release-gated statement supports RV32IM only, and accepting
-//! RV32A, SYSTEM, or FENCE here would create program rows with no sound AIR.
+//! There is one instruction decoder in the repository. This module only maps
+//! an admitted architectural instruction into its proof-protocol tuple.
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
+const isa_decode = @import("../../isa/decode.zig");
 const opcode_manifest = @import("../../opcode_manifest.zig");
 const opcode_mod = @import("opcode.zig");
 
@@ -26,90 +26,16 @@ pub const DecodedInstruction = struct {
 };
 
 pub fn decodeInstruction(word: u32) Error!DecodedInstruction {
-    const opcode_bits: u7 = @truncate(word);
-    const rd: u5 = @truncate(word >> 7);
-    const funct3: u3 = @truncate(word >> 12);
-    const rs1: u5 = @truncate(word >> 15);
-    const rs2: u5 = @truncate(word >> 20);
-    const funct7: u7 = @truncate(word >> 25);
-
-    return switch (opcode_bits) {
-        0b0110011 => .{
-            .opcode = try decodeRegisterOpcode(funct3, funct7),
-            .rd = rd,
-            .rs1 = rs1,
-            .rs2 = rs2,
-            .imm = 0,
-        },
-        0b0010011 => blk: {
-            const op: Opcode = switch (funct3) {
-                0b000 => .addi,
-                0b010 => .slti,
-                0b011 => .sltiu,
-                0b100 => .xori,
-                0b110 => .ori,
-                0b111 => .andi,
-                // Preserve the pinned decoder: SLLI does not inspect funct7,
-                // and funct3=101 is SRAI only when funct7 is exactly 0x20.
-                0b001 => .slli,
-                0b101 => if (funct7 == 0b0100000) .srai else .srli,
-            };
-            const is_shift = op == .slli or op == .srli or op == .srai;
-            break :blk .{
-                .opcode = op,
-                .rd = rd,
-                .rs1 = rs1,
-                .rs2 = rs2,
-                .imm = if (is_shift) @intCast((word >> 20) & 0x1f) else decodeIImmediate(word),
-            };
-        },
-        0b0000011 => .{
-            .opcode = switch (funct3) {
-                0b000 => .lb,
-                0b001 => .lh,
-                0b010 => .lw,
-                0b100 => .lbu,
-                0b101 => .lhu,
-                else => return Error.InvalidInstruction,
-            },
-            .rd = rd,
-            .rs1 = rs1,
-            .rs2 = rs2,
-            .imm = decodeIImmediate(word),
-        },
-        0b0100011 => .{
-            .opcode = switch (funct3) {
-                0b000 => .sb,
-                0b001 => .sh,
-                0b010 => .sw,
-                else => return Error.InvalidInstruction,
-            },
-            .rd = rd,
-            .rs1 = rs1,
-            .rs2 = rs2,
-            .imm = decodeSImmediate(word),
-        },
-        0b1100011 => .{
-            .opcode = switch (funct3) {
-                0b000 => .beq,
-                0b001 => .bne,
-                0b100 => .blt,
-                0b101 => .bge,
-                0b110 => .bltu,
-                0b111 => .bgeu,
-                else => return Error.InvalidInstruction,
-            },
-            .rd = rd,
-            .rs1 = rs1,
-            .rs2 = rs2,
-            .imm = decodeBImmediate(word),
-        },
-        0b1101111 => .{ .opcode = .jal, .rd = rd, .rs1 = rs1, .rs2 = rs2, .imm = decodeJImmediate(word) },
-        0b1100111 => .{ .opcode = .jalr, .rd = rd, .rs1 = rs1, .rs2 = rs2, .imm = decodeIImmediate(word) },
-        0b0110111 => .{ .opcode = .lui, .rd = rd, .rs1 = rs1, .rs2 = rs2, .imm = @bitCast(word & 0xfffff000) },
-        0b0010111 => .{ .opcode = .auipc, .rd = rd, .rs1 = rs1, .rs2 = rs2, .imm = @bitCast(word & 0xfffff000) },
-        0b0101111, 0b1110011, 0b0001111 => Error.UnsupportedInstructionClass,
-        else => Error.InvalidInstruction,
+    const decoded = isa_decode.DecodedInst.decode(word) catch
+        return Error.InvalidInstruction;
+    const proof_opcode = isa_decode.proofOpcode(decoded.opcode) catch
+        return Error.UnsupportedInstructionClass;
+    return .{
+        .opcode = proof_opcode,
+        .rd = decoded.rd,
+        .rs1 = decoded.rs1,
+        .rs2 = decoded.rs2,
+        .imm = decoded.imm,
     };
 }
 
@@ -138,6 +64,12 @@ pub fn decodeProgramWord(word: u32) Error!ProgramValues {
             inst.rs2,
             immediateToFelt(inst.imm),
         },
+        .fence => .{
+            id,
+            inst.rd,
+            inst.rs1,
+            @as(u32, @bitCast(inst.imm)) & 0xfff,
+        },
     };
 }
 
@@ -145,68 +77,6 @@ pub fn immediateToFelt(immediate: i32) u32 {
     const signed: i64 = immediate;
     const modulus: i64 = m31.Modulus;
     return @intCast(@mod(signed, modulus));
-}
-
-fn decodeRegisterOpcode(funct3: u3, funct7: u7) Error!Opcode {
-    return switch (funct7) {
-        0b0000000 => switch (funct3) {
-            0b000 => .add,
-            0b001 => .sll,
-            0b010 => .slt,
-            0b011 => .sltu,
-            0b100 => .xor,
-            0b101 => .srl,
-            0b110 => .@"or",
-            0b111 => .@"and",
-        },
-        0b0100000 => if (funct3 == 0b000)
-            .sub
-        else if (funct3 == 0b101)
-            .sra
-        else
-            Error.InvalidInstruction,
-        0b0000001 => switch (funct3) {
-            0b000 => .mul,
-            0b001 => .mulh,
-            0b010 => .mulhsu,
-            0b011 => .mulhu,
-            0b100 => .div,
-            0b101 => .divu,
-            0b110 => .rem,
-            0b111 => .remu,
-        },
-        else => Error.InvalidInstruction,
-    };
-}
-
-fn decodeIImmediate(word: u32) i32 {
-    return @as(i32, @bitCast(word)) >> 20;
-}
-
-fn decodeSImmediate(word: u32) i32 {
-    const value = ((word >> 25) << 5) | ((word >> 7) & 0x1f);
-    return signExtend(value, 12);
-}
-
-fn decodeBImmediate(word: u32) i32 {
-    const value = ((word >> 31) << 12) |
-        (((word >> 7) & 1) << 11) |
-        (((word >> 25) & 0x3f) << 5) |
-        (((word >> 8) & 0xf) << 1);
-    return signExtend(value, 13);
-}
-
-fn decodeJImmediate(word: u32) i32 {
-    const value = ((word >> 31) << 20) |
-        (((word >> 12) & 0xff) << 12) |
-        (((word >> 20) & 1) << 11) |
-        (((word >> 21) & 0x3ff) << 1);
-    return signExtend(value, 21);
-}
-
-fn signExtend(value: u32, comptime bits: u5) i32 {
-    const shift: u5 = @intCast(32 - @as(u6, bits));
-    return @as(i32, @bitCast(value << shift)) >> shift;
 }
 
 fn encodeR(funct7: u32, funct3: u32) u32 {
@@ -226,7 +96,7 @@ fn encodeB(funct3: u32) u32 {
     return (3 << 20) | (2 << 15) | (funct3 << 12) | (4 << 8) | 0x63;
 }
 
-test "decoded program: all 45 RV32IM words map to pinned protocol ids" {
+test "decoded program: every proof-bearing RV32IM word maps to its protocol id" {
     const Case = struct { word: u32, opcode: Opcode };
     const cases = [_]Case{
         .{ .word = encodeR(0x00, 0), .opcode = .add },
@@ -274,8 +144,9 @@ test "decoded program: all 45 RV32IM words map to pinned protocol ids" {
         .{ .word = encodeR(0x01, 5), .opcode = .divu },
         .{ .word = encodeR(0x01, 6), .opcode = .rem },
         .{ .word = encodeR(0x01, 7), .opcode = .remu },
+        .{ .word = 0x0ff0000f, .opcode = .fence },
     };
-    try std.testing.expectEqual(@as(usize, 45), cases.len);
+    try std.testing.expectEqual(@as(usize, 46), cases.len);
     for (cases) |case| {
         const decoded = try decodeInstruction(case.word);
         try std.testing.expectEqual(case.opcode, decoded.opcode);
@@ -294,6 +165,7 @@ test "decoded program: pinned numeric tuple vectors" {
         .{ .word = 0x10000417, .expected = .{ 36, 8, 0x10000000, 0 } },
         .{ .word = 0x010000ef, .expected = .{ 33, 1, 16, 0 } },
         .{ .word = 0x00208463, .expected = .{ 27, 1, 2, 8 } },
+        .{ .word = 0xf5358f8f, .expected = .{ 45, 31, 11, 0xf53 } },
     };
     for (cases) |case| try std.testing.expectEqual(case.expected, try decodeProgramWord(case.word));
 }
@@ -312,13 +184,5 @@ test "decoded program: rejects the manifest-owned proof preflight matrix" {
             .invalid_instruction => Error.InvalidInstruction,
         };
         try std.testing.expectError(expected, decodeProgramWord(vector.word));
-    }
-}
-
-test "decoded program: preserves pinned permissive encoding behavior" {
-    for (opcode_manifest.pinned_permissive_encodings) |vector| {
-        const decoded = try decodeInstruction(vector.word);
-        try std.testing.expectEqual(vector.opcode, decoded.opcode);
-        try std.testing.expectEqual(vector.opcode.protocolId(), (try decodeProgramWord(vector.word))[0]);
     }
 }

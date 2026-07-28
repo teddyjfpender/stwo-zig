@@ -5,10 +5,13 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const infra = @import("../../infra_trace.zig");
 const memory_state = @import("../../runner/memory_state.zig");
 const sparse_merkle = @import("../memory_commitment/sparse_merkle.zig");
+const profile = @import("../../isa/profile.zig");
 const decode = @import("decode.zig");
 const table = @import("table.zig");
 
-pub const N_MAIN_COLUMNS: usize = 8;
+/// enabler, byte address, four decoded values, multiplicity, root,
+/// `(address / 4) mod 2^20`, and `(address / 4) >> 20`.
+pub const N_MAIN_COLUMNS: usize = 10;
 
 pub const Row = struct {
     addr: u32,
@@ -31,6 +34,8 @@ pub const Commitment = struct {
         try self.tree.validate(allocator);
         if (self.rows.len * 4 != self.tree.leaves.len) return error.InvalidProgramCommitment;
         for (self.rows, 0..) |row, index| {
+            profile.requireProgramWordAddress(row.addr) catch
+                return error.InvalidProgramCommitment;
             if (row.root != self.tree.root) return error.InvalidProgramCommitment;
             for (row.values, 0..) |value, limb| {
                 const leaf = self.tree.leaves[4 * index + limb];
@@ -67,7 +72,7 @@ pub fn build(
     defer pending.deinit(allocator);
     if (program_words.len != 0) {
         for (program_words) |word| {
-            if ((word.addr & 3) != 0) return error.MisalignedProgramWord;
+            try profile.requireProgramWordAddress(word.addr);
             // Pinned Stark-V omits zero words from the declared program table.
             // Fetched words were decoded above, so an executed zero instruction
             // still fails closed before this source-level omission is applied.
@@ -135,12 +140,16 @@ pub fn generateMain(
     const placement = try infra.BitReversalTable.init(allocator, log_size);
     defer placement.deinit(allocator);
     for (rows, 0..) |row, index| {
+        try profile.requireProgramWordAddress(row.addr);
         const dst = placement.map(index);
         columns[0][dst] = M31.one();
         columns[1][dst] = M31.fromU64(row.addr);
         for (row.values, 0..) |value, limb| columns[2 + limb][dst] = M31.fromU64(value);
         columns[6][dst] = M31.fromU64(row.multiplicity);
         columns[7][dst] = M31.fromU64(row.root);
+        const word_address = row.addr >> 2;
+        columns[8][dst] = M31.fromU64(word_address & ((@as(u32, 1) << 20) - 1));
+        columns[9][dst] = M31.fromU64(word_address >> 20);
     }
     return .{ .values = columns };
 }
@@ -212,5 +221,30 @@ test "program commitment: fetched zero instruction fails closed" {
     try std.testing.expectError(
         error.InvalidInstruction,
         build(std.testing.allocator, &fetches, &words),
+    );
+}
+
+test "program commitment: declared and fetch-only addresses fail closed at protocol boundary" {
+    const instruction: u32 = 0x00100093;
+    try std.testing.expectError(
+        error.MisalignedProgramWord,
+        build(
+            std.testing.allocator,
+            &.{.{ .pc = 0x1002, .word = instruction }},
+            &.{},
+        ),
+    );
+    try std.testing.expectError(
+        error.ProgramAddressOutOfRange,
+        build(
+            std.testing.allocator,
+            &.{},
+            &.{.{
+                .addr = profile.program_commitment_size,
+                .initial_word = instruction,
+                .final_word = instruction,
+                .final_clock = 0,
+            }},
+        ),
     );
 }

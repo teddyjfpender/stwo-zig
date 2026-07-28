@@ -1,24 +1,12 @@
 //! Normalized direct witness inputs derived from an authenticated Cairo input.
 
 const std = @import("std");
-const adapter = @import(
-    "../../../../frontends/cairo/adapter/mod.zig",
-);
-const proof_plan = @import(
-    "../../../../frontends/cairo/proof_plan.zig",
-);
-const direct_inputs = @import(
-    "../../../../frontends/cairo/witness/direct_inputs.zig",
-);
-const witness = @import(
-    "../../../../frontends/cairo/witness/bundle.zig",
-);
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const adapter = @import("stwo_cairo_frontend").adapter;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const direct_inputs = @import("stwo_cairo_frontend").witness.direct_inputs;
+const witness = @import("stwo_cairo_frontend").witness.bundle;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const resident_plan = @import("../resident_plan.zig");
 
 pub const Entry = struct {

@@ -1,27 +1,13 @@
 //! Gather and compact input-action ingress mapper boundary.
 
 const std = @import("std");
-const proof_plan = @import(
-    "../../../../frontends/cairo/proof_plan.zig",
-);
-const witness_bundle = @import(
-    "../../../../frontends/cairo/witness/bundle.zig",
-);
-const witness_abi = @import(
-    "../../../../backends/cuda/abi/stages/cairo_witness.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const cairo_witness = @import(
-    "../../../../backends/cuda/runtime/stages/cairo_witness.zig",
-);
-const witness_plan = @import(
-    "../../../../backends/cuda/runtime/stages/cairo_witness_plan.zig",
-);
-const ec_contract = @import(
-    "../../../../backends/cuda/runtime/stages/cairo_ec_op_contract.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
+const witness_abi = @import("stwo_cuda_backend").abi.stages.cairo_witness;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const cairo_witness = @import("stwo_cuda_backend").runtime.stages.cairo_witness;
+const witness_plan = @import("stwo_cuda_backend").runtime.stages.cairo_witness_plan;
+const ec_contract = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op_contract;
 const recorded_witness = @import("../../recorded_witness.zig");
 const recorded_binding = @import("../../recorded_binding.zig");
 const request_compiler = @import("../../request_compiler.zig");
@@ -46,9 +32,7 @@ comptime {
 pub const Action = struct {
     component_index: u32,
     gather: ?trace_writer.GatherBinding = null,
-    compact: ?@import(
-        "../../../../backends/cuda/runtime/stages/cairo_witness.zig",
-    ).Compact = null,
+    compact: ?@import("stwo_cuda_backend").runtime.stages.cairo_witness.Compact = null,
 };
 
 pub const Bound = struct {

@@ -4,6 +4,7 @@ const std = @import("std");
 const package = @import("stwo_cairo_metal");
 const application = @import("cairo_product").application;
 const capability_surface = @import("capabilities.zig");
+const witness_cpu_aot = @import("cairo_witness_cpu_aot");
 const metal_aot_config = @import("metal_aot_config");
 const product_identity = @import("identity.zig");
 
@@ -19,6 +20,22 @@ pub const Product = struct {
     pub const transaction = backend_transaction;
     pub const capabilities = capability_surface;
     pub const identity = product_identity;
+
+    pub fn witnessExecutor() ?package.frontends.cairo.witness.generated_executor.Executor {
+        return witness_cpu_aot.executor();
+    }
+
+    pub fn interactionExecutor(
+        _: *ProofContext,
+    ) ?package.frontends.cairo.witness.interaction_executor.Executor {
+        const enabled = std.posix.getenv(
+            "STWO_CAIRO_METAL_RESIDENT_LOGUP",
+        ) orelse std.posix.getenv(
+            "STWO_CAIRO_METAL_HOST_BRIDGED_LOGUP",
+        ) orelse return null;
+        if (!std.mem.eql(u8, enabled, "1")) return null;
+        return package.integrations.cairo_metal.interaction_executor.executor();
+    }
 
     pub const ProofContext = struct {
         before: backend_transaction.TelemetrySnapshot,
@@ -116,6 +133,22 @@ test "Cairo Metal application requires no-fallback telemetry" {
         &metal_aot_config.manifest_sha256,
         &([_]u8{0} ** 32),
     ));
+}
+
+test "Cairo Metal host writers cover every authenticated program" {
+    var bundle = try package.frontends.cairo.witness.bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer bundle.deinit();
+    try std.testing.expectEqual(
+        bundle.entries.len,
+        witness_cpu_aot.generated_program_count,
+    );
+    const executor = Product.witnessExecutor().?;
+    for (bundle.entries) |entry| {
+        try std.testing.expect(executor.resolve(entry.program) != null);
+    }
 }
 
 test "authenticated runtime ownership supports repeated sessions" {

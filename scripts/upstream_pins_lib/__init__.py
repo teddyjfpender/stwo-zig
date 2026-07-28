@@ -1,1 +1,1 @@
-"""Focused validators used by the upstream authority ledger gate."""
+"""Stable upstream-ledger models and focused authority validators."""

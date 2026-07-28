@@ -1,6 +1,6 @@
 const std = @import("std");
-const runtime_error = @import("../../backends/cuda/runtime/error.zig");
-const telemetry = @import("../../backends/cuda/runtime/telemetry.zig");
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const casm = @import("casm_input.zig");
 
 const owner: usize = 29;
@@ -111,7 +111,7 @@ const FakeSession = struct {
 
 var fake_stream_storage: u8 = 0;
 
-fn words(values: []u32) @import("../../backends/cuda/runtime/stages/common.zig").Words {
+fn words(values: []u32) @import("stwo_cuda_backend").runtime.stages.common.Words {
     return .{
         .address = @intFromPtr(values.ptr),
         .len = values.len,
@@ -119,14 +119,14 @@ fn words(values: []u32) @import("../../backends/cuda/runtime/stages/common.zig")
     };
 }
 
-fn none() @import("../../backends/cuda/runtime/stages/common.zig").Words {
+fn none() @import("stwo_cuda_backend").runtime.stages.common.Words {
     return .{ .address = 0, .len = 0, .owner = owner };
 }
 
 fn matrix(
     values: []u32,
     stride_words: usize,
-) @import("../../backends/cuda/runtime/stages/common.zig").WordMatrix {
+) @import("stwo_cuda_backend").runtime.stages.common.WordMatrix {
     return .{
         .storage = words(values),
         .column_stride_words = stride_words,

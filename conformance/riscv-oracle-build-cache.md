@@ -1,9 +1,14 @@
 # RISC-V Oracle Build Cache
 
-CP-11 executes the pinned Rust Stark-V oracle at commit
+**Status:** ARCHIVED. This cache format is retained for old-bundle forensics
+and optional benchmark tooling only. The CP-11 producer is retired, no active
+workflow writes this release cache, and a cache hit is not release evidence.
+
+The retired CP-11 path executed the pinned Rust Stark-V oracle at commit
 `d478f783055aa0d73a93768a433a3c6c31c91d1c`. Recompiling the `cp11_dump`
 adapter does not add evidence when every build input is unchanged, so the
-release producer maintains a persistent content-addressed binary cache.
+historical release producer maintained a persistent content-addressed binary
+cache.
 
 The cache is an acceleration layer, not an oracle substitute. Every cache hit
 still executes the complete Rust/Zig corpus and compares every CP-11 boundary.

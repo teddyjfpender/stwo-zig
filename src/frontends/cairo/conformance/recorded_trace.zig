@@ -265,6 +265,9 @@ fn executeComponent(
         allocator,
         input,
         witness_program,
+        null,
+        null,
+        0,
         source,
         try base_execution.layout(expected),
         null,
@@ -283,7 +286,7 @@ fn executeComponent(
     else blk: {
         const sub_words = execution.takeSubWords();
         errdefer allocator.free(sub_words);
-        const lookup_words = execution.takeLookupWords();
+        const lookup = execution.takeLookup();
         break :blk ProducerOutput{
             .label = expected.label,
             .row_count = @intCast(execution.row_count),
@@ -291,7 +294,8 @@ fn executeComponent(
             .words_per_row = witness_program.n_sub_words,
             .words = sub_words,
             .lookup_words_per_row = witness_program.n_lookup_words,
-            .lookup_words = lookup_words,
+            .lookup_words = lookup.words,
+            .lookup_allocation = lookup.allocation,
         };
     };
     return .{ .mismatch = mismatch, .producer = producer };

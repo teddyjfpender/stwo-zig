@@ -1,11 +1,11 @@
 //! Checked-in CUDA matrix fixture derived by the Zig SIMD witness interpreter.
 
 const std = @import("std");
-const bundle_mod = @import("../../frontends/cairo/witness/bundle.zig");
+const bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
 const oracle_mod = @import("recorded_witness_oracle.zig");
 const pedersen_rows = @import("pedersen_fixture_rows.zig");
-const program_mod = @import("../../frontends/cairo/witness/program.zig");
-const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
+const program_mod = @import("stwo_cairo_frontend").witness.program;
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
 
 const golden_path =
     "tests/cuda/fixtures/recorded_witness_matrix_fixture.bin";
@@ -85,11 +85,11 @@ fn writeCase(
     for (output_columns, 0..) |*column, index| {
         column.* = outputs[index * row_count ..][0..row_count];
     }
-    const lookup_row_major = try allocator.alloc(
+    const lookup_word_major = try allocator.alloc(
         u32,
         program.n_lookup_words * row_count,
     );
-    defer allocator.free(lookup_row_major);
+    defer allocator.free(lookup_word_major);
     const sub_row_major = try allocator.alloc(
         u32,
         program.n_sub_words * row_count,
@@ -104,7 +104,7 @@ fn writeCase(
         input_columns,
         output_columns,
         .{
-            .lookup_words = lookup_row_major,
+            .lookup_words = lookup_word_major,
             .sub_words = sub_row_major,
             .multiplicity_tables = &.{},
         },
@@ -113,12 +113,6 @@ fn writeCase(
         .zero(),
         oracle.context(),
     );
-    const lookup_word_major = try transposeAuxiliary(
-        allocator,
-        program.n_lookup_words,
-        lookup_row_major,
-    );
-    defer allocator.free(lookup_word_major);
     const sub_word_major = try transposeAuxiliary(
         allocator,
         program.n_sub_words,

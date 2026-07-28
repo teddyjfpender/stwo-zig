@@ -10,12 +10,8 @@ pub fn run(
     views: anytype,
 ) !void {
     const Ops = struct {
-        const Transcript = @import(
-            "../../../../backends/cuda/runtime/stages/transcript.zig",
-        ).Native;
-        const Oods = @import(
-            "../../../../backends/cuda/runtime/stages/oods.zig",
-        ).Native;
+        const Transcript = @import("stwo_cuda_backend").runtime.stages.transcript.Native;
+        const Oods = @import("stwo_cuda_backend").runtime.stages.oods.Native;
         const Capture = @import("../../common/proof_assembly.zig");
     };
     return runWith(Ops, transaction, prepared, ingress, views);

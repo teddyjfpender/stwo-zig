@@ -1,8 +1,6 @@
 //! Strict-AOT boundary for the exact mixed-height State Machine v2 trace.
 
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const geometry_mod = @import("geometry.zig");
 
 pub const Buffers = struct {

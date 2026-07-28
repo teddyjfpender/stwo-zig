@@ -1,10 +1,6 @@
 const std = @import("std");
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const telemetry = @import(
-    "../../../../backends/cuda/runtime/telemetry.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const subject = @import("controller.zig");
 const schedule_mod = @import("schedule.zig");
 const fixture = @import("test_fixture.zig");

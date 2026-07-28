@@ -14,11 +14,11 @@ pub const Event = enum {
     metal_fri_line_fold_dispatch,
     metal_fri_fold_commit_epoch,
     metal_qm31_coordinate_dispatch,
+    /// One LogUp relation epoch (`relation.metal`'s fused/scan kernel chain).
+    metal_relation_epoch,
     metal_trace_generation_dispatch,
     metal_trace_generation_synchronization,
     metal_trace_generation_copyback,
-    /// One LogUp relation epoch (`relation.metal`'s fused/scan kernel chain).
-    metal_relation_dispatch,
     /// One AIR composition-evaluation epoch dispatched from the composition
     /// metallib.
     metal_composition_eval_dispatch,
@@ -48,10 +48,10 @@ pub const CounterValues = struct {
     metal_fri_line_fold_dispatches: u64 = 0,
     metal_fri_fold_commit_epochs: u64 = 0,
     metal_qm31_coordinate_dispatches: u64 = 0,
+    metal_relation_epochs: u64 = 0,
     metal_trace_generation_dispatches: u64 = 0,
     metal_trace_generation_synchronizations: u64 = 0,
     metal_trace_generation_copybacks: u64 = 0,
-    metal_relation_dispatches: u64 = 0,
     metal_composition_eval_dispatches: u64 = 0,
     cpu_small_merkle_commits: u64 = 0,
     cpu_streaming_merkle_commits: u64 = 0,
@@ -81,8 +81,8 @@ pub const CounterValues = struct {
             self.metal_fri_line_fold_dispatches,
             self.metal_fri_fold_commit_epochs,
             self.metal_qm31_coordinate_dispatches,
+            self.metal_relation_epochs,
             self.metal_trace_generation_dispatches,
-            self.metal_relation_dispatches,
             self.metal_composition_eval_dispatches,
         }) |value| total +|= value;
         return total;
@@ -305,10 +305,10 @@ const CounterBank = struct {
     metal_fri_line_fold_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_fri_fold_commit_epochs: AtomicCounter = AtomicCounter.init(0),
     metal_qm31_coordinate_dispatches: AtomicCounter = AtomicCounter.init(0),
+    metal_relation_epochs: AtomicCounter = AtomicCounter.init(0),
     metal_trace_generation_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_trace_generation_synchronizations: AtomicCounter = AtomicCounter.init(0),
     metal_trace_generation_copybacks: AtomicCounter = AtomicCounter.init(0),
-    metal_relation_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_composition_eval_dispatches: AtomicCounter = AtomicCounter.init(0),
     cpu_small_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     cpu_streaming_merkle_commits: AtomicCounter = AtomicCounter.init(0),
@@ -333,10 +333,10 @@ pub fn record(event: Event) void {
         .metal_fri_line_fold_dispatch => &counter_bank.metal_fri_line_fold_dispatches,
         .metal_fri_fold_commit_epoch => &counter_bank.metal_fri_fold_commit_epochs,
         .metal_qm31_coordinate_dispatch => &counter_bank.metal_qm31_coordinate_dispatches,
+        .metal_relation_epoch => &counter_bank.metal_relation_epochs,
         .metal_trace_generation_dispatch => &counter_bank.metal_trace_generation_dispatches,
         .metal_trace_generation_synchronization => &counter_bank.metal_trace_generation_synchronizations,
         .metal_trace_generation_copyback => &counter_bank.metal_trace_generation_copybacks,
-        .metal_relation_dispatch => &counter_bank.metal_relation_dispatches,
         .metal_composition_eval_dispatch => &counter_bank.metal_composition_eval_dispatches,
         .cpu_small_merkle_commit => &counter_bank.cpu_small_merkle_commits,
         .cpu_streaming_merkle_commit => &counter_bank.cpu_streaming_merkle_commits,
@@ -464,7 +464,7 @@ test "relation and composition dispatches count toward the Metal total" {
     // proof that dispatched only those would have classified as
     // `no_backend_work` and the zero-fallback gate would have under-reported.
     const relation = Delta{
-        .counters = .{ .metal_relation_dispatches = 3 },
+        .counters = .{ .metal_relation_epochs = 3 },
         .pipeline_cache = .{},
     };
     try std.testing.expectEqual(@as(u64, 3), relation.counters.metalDispatchTotal());

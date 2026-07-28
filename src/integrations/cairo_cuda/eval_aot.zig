@@ -5,7 +5,7 @@
 //! source geometry are statement semantics rather than codegen details.
 
 const std = @import("std");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const codegen = @import("eval_codegen.zig");
 
 pub const abi_schema = "cairo_eval_part_v1";

@@ -1,0 +1,29 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_cuda_backend",
+  "owner": "cuda-backend",
+  "public_modules": {
+    "stwo_cuda_backend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "CudaBackend",
+    "abi",
+    "aot",
+    "product_aot",
+    "runtime",
+    "upstream_sources"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

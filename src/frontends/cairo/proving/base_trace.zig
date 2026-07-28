@@ -38,17 +38,19 @@ pub const BaseTrace = struct {
     arena_backed: bool = false,
     /// True when the caller supplied both the geometry and the arena.
     borrowed_geometry: bool = false,
+    /// False once `releaseWitnessFeeds` has handed the execution back early.
+    execution_owned: bool = true,
 
     pub fn deinit(self: *BaseTrace) void {
         if (self.arena_backed) {
             self.allocator.free(self.columns);
-            self.execution.deinit();
+            if (self.execution_owned) self.execution.deinit();
             if (!self.borrowed_geometry) self.geometry.deinit();
             self.* = undefined;
             return;
         }
         deinitColumns(self.allocator, self.columns);
-        self.execution.deinit();
+        if (self.execution_owned) self.execution.deinit();
         if (!self.borrowed_geometry) self.geometry.deinit();
         self.* = undefined;
     }
@@ -58,12 +60,20 @@ pub const BaseTrace = struct {
         self.columns = &.{};
         return columns;
     }
+
+    pub fn releaseWitnessFeeds(self: *BaseTrace) void {
+        if (!self.execution_owned) return;
+        self.execution.deinit();
+        self.execution_owned = false;
+    }
 };
 
 pub fn build(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     programs: *const witness_bundle.Bundle,
+    generated_executor: ?@import("../witness/generated_executor.zig").Executor,
+    interaction_executor: ?@import("../witness/interaction_executor.zig").Executor,
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     variant: claim_generator.PreprocessedVariant,
@@ -74,6 +84,8 @@ pub fn build(
         allocator,
         input,
         programs,
+        generated_executor,
+        interaction_executor,
         topology,
         fixed,
         variant,
@@ -91,6 +103,8 @@ pub fn buildInto(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     programs: *const witness_bundle.Bundle,
+    generated_executor: ?@import("../witness/generated_executor.zig").Executor,
+    interaction_executor: ?@import("../witness/interaction_executor.zig").Executor,
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     variant: claim_generator.PreprocessedVariant,
@@ -105,6 +119,8 @@ pub fn buildInto(
             allocator,
             input,
             programs,
+            generated_executor,
+            interaction_executor,
             topology,
             fixed,
             pedersen_table,
@@ -134,6 +150,8 @@ pub fn buildInto(
         allocator,
         input,
         programs,
+        generated_executor,
+        interaction_executor,
         topology,
         fixed,
         pedersen_table,
@@ -148,6 +166,8 @@ fn buildWithCollector(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     programs: *const witness_bundle.Bundle,
+    generated_executor: ?@import("../witness/generated_executor.zig").Executor,
+    interaction_executor: ?@import("../witness/interaction_executor.zig").Executor,
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     pedersen_table: ?deductions.PedersenTable,
@@ -167,6 +187,9 @@ fn buildWithCollector(
             allocator,
             input,
             programs,
+            generated_executor,
+            interaction_executor,
+            topology,
             geometry,
             .{
                 .context = collector,

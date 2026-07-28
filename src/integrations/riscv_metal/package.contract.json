@@ -1,0 +1,32 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_riscv_metal_integration",
+  "owner": "riscv-metal-integration",
+  "public_modules": {
+    "stwo_riscv_metal_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_metal_backend": "../../backends/metal",
+    "stwo_prover_impl": "../../prover",
+    "stwo_riscv_frontend": "../../frontends/riscv"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "MetalProverEngine",
+    "proveAndVerifyElf",
+    "proveRiscV",
+    "proveRiscVWithPublicData",
+    "proveRiscVWithRecorder",
+    "verifyRiscV"
+  ],
+  "ci": {
+    "host": "macos",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseSafe"
+    ]
+  }
+}

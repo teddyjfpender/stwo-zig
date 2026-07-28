@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_cpu_backend",
+  "owner": "cpu-backend",
+  "public_modules": {
+    "stwo_cpu_backend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend",
+    "stwo_core": "../../core",
+    "stwo_prover_impl": "../../prover"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "CpuBackend"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

@@ -39,6 +39,7 @@ pub fn proveAndVerifyElfWithEngine(
         .program_root = null,
         .initial_rw_root = null,
         .final_rw_root = null,
+        .completion = try public_data_mod.completionFromRun(run_result),
         .io_entries = .{
             .input_start = run_result.input_start,
             .input_len = @intCast(run_result.input.len),
@@ -60,6 +61,7 @@ pub fn proveAndVerifyElfWithEngine(
         null,
         public_data,
     );
+    defer output.deinitAfterProofMoved(allocator);
 
     try verifier.verifyRiscVWithEngine(
         Engine,

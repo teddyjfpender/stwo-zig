@@ -2,9 +2,7 @@
 
 const std = @import("std");
 const geometry_mod = @import("geometry.zig");
-const stark = @import(
-    "../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig",
-);
+const stark = @import("stwo_cuda_backend").runtime.proof_assembly.stark_bundle;
 
 pub const Descriptor = struct {
     pub fn validateProtocol(protocol: stark.Protocol) stark.Error!void {

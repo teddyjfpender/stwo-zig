@@ -10,7 +10,14 @@ const StateChainTracker = state_chain.StateChainTracker;
 
 pub const MEM_CLOCK_UPDATE_COLS: usize = trace_columns.MemClockUpdateColumns.N_COLUMNS;
 pub const REG_CLOCK_UPDATE_COLS: usize = trace_columns.RegClockUpdateColumns.N_COLUMNS;
-pub const CLOCK_UPDATE_COLS: usize = 8;
+/// enabler, address space, address, previous clock, four value bytes,
+/// previous-clock low20, previous-clock high6.
+///
+/// The decomposition is a soundness boundary, not redundant witness data.
+/// Opcode access clocks are four-wide refinements of at most `2^24`
+/// instruction clocks. Bounding every synthetic predecessor below `2^26`
+/// prevents an M31-wrapped clock cycle from balancing the memory bus.
+pub const CLOCK_UPDATE_COLS: usize = 10;
 
 pub fn genMemClockUpdateColumns(
     allocator: std.mem.Allocator,
@@ -138,4 +145,18 @@ fn placeClockUpdateRow(
     for (update.value_limbs, 0..) |value, limb| {
         permutation.placeValue(columns[4 + limb], row, placement, value);
     }
+    permutation.placeValue(
+        columns[8],
+        row,
+        placement,
+        M31.fromCanonical(
+            update.clk_prev & ((@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1),
+        ),
+    );
+    permutation.placeValue(
+        columns[9],
+        row,
+        placement,
+        M31.fromCanonical(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS),
+    );
 }

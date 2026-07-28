@@ -176,6 +176,8 @@ fn proveFile(
         .{
             .input = &input,
             .programs = &programs,
+            .generated_executor = Product.witnessExecutor(),
+            .interaction_executor = Product.interactionExecutor(&proof_context),
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,

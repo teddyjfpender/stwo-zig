@@ -4,6 +4,7 @@ const std = @import("std");
 const cuda = @import("cuda.zig");
 const construction_observer = @import("../graph/construction_observer.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 
 pub const Options = struct {
     nvcc: ?[]const u8,
@@ -126,7 +127,12 @@ pub fn addProducts(
 
     const runtime_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/backends/cuda/mod.zig"),
+            .root_source_file = graph.source(
+                b,
+                "src/backends/cuda/mod.zig",
+                target,
+                optimize,
+            ),
             .target = target,
             .optimize = optimize,
         }),
@@ -134,7 +140,12 @@ pub fn addProducts(
     runtime_tests.root_module.addImport(
         "stwo_backend_contracts",
         b.createModule(.{
-            .root_source_file = b.path("src/backend/mod.zig"),
+            .root_source_file = graph.source(
+                b,
+                "src/backend/mod.zig",
+                target,
+                optimize,
+            ),
             .target = target,
             .optimize = optimize,
         }),
@@ -154,12 +165,137 @@ pub fn addProducts(
         target,
         optimize,
     );
+    const tool_product = graph.Product{
+        .name = "stwo-native-cuda-tools",
+        .frontend = .native,
+        .backend = .cuda,
+        .role = .library,
+    };
     const stwo = b.createModule(.{
         .root_source_file = b.path("src/stwo.zig"),
         .target = target,
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    const proof_wire = graph.addProofWireImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const metal_session = graph.addMetalSessionImport(
+        b,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const cpu_backend = graph.addCpuBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const native_examples = graph.addNativeExamplesImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        proof_wire,
+        stwo,
+    );
+    const metal_backend = graph.addMetalBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        stwo,
+    );
+    const cuda_backend = graph.addCudaBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const native_cuda = integration_graph.addNativeCudaImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
+        stwo,
+    );
+    const riscv_frontend = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        riscv_frontend,
+        stwo,
+    );
+    const cairo_frontend = graph.addCairoFrontendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const cairo_cuda = integration_graph.addCairoCudaImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
+        stwo,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        cairo_frontend,
+        stwo,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
+        stwo,
+    );
     const ec_oracle_root = b.createModule(.{
         .root_source_file = b.path(
             "src/tools/cuda_native_ec_composite_oracle/main.zig",
@@ -167,7 +303,8 @@ pub fn addProducts(
         .target = target,
         .optimize = .ReleaseFast,
     });
-    ec_oracle_root.addImport("stwo_under_test", stwo);
+    ec_oracle_root.addImport("stwo_cairo_frontend", cairo_frontend);
+    ec_oracle_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
     const ec_oracle = b.addExecutable(.{
         .name = "cuda-native-ec-composite-oracle",
         .root_module = ec_oracle_root,

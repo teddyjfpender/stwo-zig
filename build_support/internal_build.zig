@@ -11,6 +11,7 @@ const native_gates = @import("gates/native.zig");
 const release_evidence = @import("gates/release_evidence.zig");
 const riscv_gates = @import("gates/riscv.zig");
 const graph = @import("graph/modules.zig");
+const integration_graph = @import("graph/integrations.zig");
 const metal_core_aot = @import("backends/metal_aot.zig");
 const metal_products = @import("benchmarks/metal.zig");
 const native_benchmarks = @import("benchmarks/native.zig");
@@ -56,7 +57,7 @@ pub fn build(b: *std.Build) void {
             baseline.addGate(b);
             construction_observer.recordConstructor(b, "gates/baseline.addGate");
         },
-        .core, .prover, .native_cpu, .native_cuda, .native_metal, .riscv_cpu, .cairo_cpu, .cairo_metal, .cairo_cuda => constructProduct(
+        .core, .prover, .native_cpu, .native_cuda, .native_metal, .riscv_cpu, .riscv_metal, .cairo_cpu, .cairo_metal, .cairo_cuda => constructProduct(
             b,
             target,
             optimize,
@@ -213,25 +214,140 @@ fn addMetalTools(
     optimize: std.builtin.OptimizeMode,
 ) void {
     const protocol = graph.createPrivateProtocolModules(b, target, optimize);
+    const tool_product = graph.Product{
+        .name = "stwo-native-metal-tools",
+        .frontend = .native,
+        .backend = .metal,
+        .role = .library,
+    };
     const stwo = graph.create(b, .{
-        .product = .{
-            .name = "stwo-native-metal-tools",
-            .frontend = .native,
-            .backend = .metal,
-            .role = .library,
-        },
+        .product = tool_product,
         .root_source_file = "src/stwo.zig",
         .target = target,
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    const proof_wire = graph.addProofWireImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const metal_session = graph.addMetalSessionImport(
+        b,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const cpu_backend = graph.addCpuBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const native_examples = graph.addNativeExamplesImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        proof_wire,
+        stwo,
+    );
+    const metal_backend = graph.addMetalBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        stwo,
+    );
+    const cuda_backend = graph.addCudaBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    const native_cuda = integration_graph.addNativeCudaImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
+        stwo,
+    );
+    const riscv_frontend = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        riscv_frontend,
+        stwo,
+    );
+    const cairo_frontend = graph.addCairoFrontendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCudaImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cuda_backend,
+        cairo_frontend,
+        native_cuda,
+        stwo,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        cairo_frontend,
+        stwo,
+    );
+    const cairo_metal_integration = integration_graph.addCairoMetalImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
+        stwo,
+    );
     const shader_manifest = graph.create(b, .{
-        .product = .{
-            .name = "stwo-native-metal-tools",
-            .frontend = .native,
-            .backend = .metal,
-            .role = .library,
-        },
+        .product = tool_product,
         .root_source_file = "src/backends/metal/shader_manifest.zig",
         .target = target,
         .optimize = optimize,
@@ -249,6 +365,11 @@ fn addMetalTools(
         .target = target,
         .optimize = optimize,
         .stwo_module = stwo,
+        .cpu_backend = cpu_backend,
+        .metal_backend = metal_backend,
+        .cairo_frontend = cairo_frontend,
+        .metal_session = metal_session,
+        .cairo_metal_integration = cairo_metal_integration,
         .protocol = protocol,
         .test_step = null,
     });
@@ -261,6 +382,7 @@ fn addPolicyGates(b: *std.Build) void {
         .{ "api-parity", "Validate API parity ledger coverage", &.{ "python3", "scripts/check_api_parity.py" } },
         .{ "upstream-pins", "Validate Native and Cairo pin carriers against the upstream ledger", &.{ "python3", "scripts/check_upstream_pins.py" } },
         .{ "source-conformance", "Reject new source layout, dependency direction, and file-size violations", &.{ "python3", "scripts/check_source_conformance.py" } },
+        .{ "package-workspace", "Audit package ownership, API, and dependency boundaries", &.{ "python3", "scripts/check_package_workspace.py" } },
         .{ "registry-parity", "Compare focused and aggregate compiled capability registries", &.{ "python3", "scripts/check_registry_parity.py" } },
         .{ "upstream-surface", "Validate API parity rust_path entries against pinned upstream commit", &.{ "python3", "scripts/check_upstream_surface.py" } },
     }) |gate| {

@@ -1,11 +1,10 @@
 //! Compact Zig SIMD oracle receipt for the native EC composite consumer.
 
 const std = @import("std");
-const bundle_mod = @import("../../frontends/cairo/witness/bundle.zig");
-const program_mod = @import("../../frontends/cairo/witness/program.zig");
-const oracle_mod = @import(
-    "../../integrations/cairo_cuda/recorded_witness_oracle.zig",
-);
+const bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
+const program_mod = @import("stwo_cairo_frontend").witness.program;
+const oracle_mod =
+    @import("stwo_cairo_cuda_integration").recorded_witness_oracle;
 
 const fixture_path = "vectors/cairo/ec_op_parity.bin";
 const partial_columns = 127;

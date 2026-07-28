@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const metal = @import("../../backends/metal/runtime.zig");
-const metal_telemetry = @import("../../backends/metal/telemetry.zig");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
+const metal = @import("stwo_metal_backend").runtime;
+const metal_telemetry = @import("stwo_metal_backend").telemetry;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const codegen = @import("eval_codegen.zig");
 const composition_aot = @import("composition_aot.zig");
 

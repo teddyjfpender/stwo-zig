@@ -1,19 +1,11 @@
 //! PoW, decommitment, and terminal resident bindings for Cairo CUDA.
 
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import("../../../backends/cuda/abi/field.zig");
-const shared_proof = @import(
-    "../../native_cuda/common/resident_proof_binding.zig",
-);
-const shared_bundle = @import(
-    "../../native_cuda/common/proof_bundle.zig",
-);
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const shared_proof = @import("stwo_native_cuda_integration").common.resident_proof_binding;
+const shared_bundle = @import("stwo_native_cuda_integration").common.proof_bundle;
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const resident_plan = @import("resident_plan.zig");
 const slots = @import("pcs_slot_binding.zig");
 const terminal_bundle = @import("terminal_bundle.zig");

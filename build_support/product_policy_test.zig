@@ -7,6 +7,11 @@ const product_policy = @import("graph/product.zig");
 const native_metal = @import("products/native_metal.zig");
 const matrix = @import("products/matrix.zig");
 
+test {
+    _ = @import("graph/modules_product_test.zig");
+    _ = @import("graph/package_ownership.zig");
+}
+
 test "deferred compositions are named, reasoned, and non-installable" {
     for (matrix.descriptors) |descriptor| {
         if (descriptor.isConstructible()) continue;
@@ -30,10 +35,16 @@ test "Cairo products expose deliberate release states" {
     }
 }
 
-test "RISC-V accelerators remain unavailable" {
+test "RISC-V accelerators expose deliberate release states" {
     for (matrix.descriptors) |descriptor| {
-        if (descriptor.product.frontend == .riscv and descriptor.product.backend != .cpu)
-            try std.testing.expectEqual(product_policy.State.unavailable, descriptor.state);
+        if (descriptor.product.frontend != .riscv or descriptor.product.backend == .cpu)
+            continue;
+        const expected: product_policy.State = switch (descriptor.product.backend) {
+            .metal => .parity_gated,
+            .cuda => .unavailable,
+            .none, .contracts, .cpu => unreachable,
+        };
+        try std.testing.expectEqual(expected, descriptor.state);
     }
 }
 

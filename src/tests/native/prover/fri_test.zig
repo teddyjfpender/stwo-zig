@@ -15,7 +15,7 @@ const FriProverError = fri.FriProverError;
 const FriProver = fri.FriProver;
 
 test "prover fri: commit and decommit roundtrip with verifier" {
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
@@ -69,7 +69,7 @@ test "prover fri: commit and decommit roundtrip with verifier" {
 }
 
 test "prover fri: commit rejects non-canonic domain" {
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
@@ -100,7 +100,7 @@ test "prover fri: commit rejects non-canonic domain" {
 }
 
 test "prover fri: commit rejects high-degree last layer" {
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;

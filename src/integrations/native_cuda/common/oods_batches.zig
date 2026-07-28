@@ -1,13 +1,9 @@
 //! Explicit OODS evaluation batches over resident trace-tree subviews.
 
 const std = @import("std");
-const compact_source = @import(
-    "../../../backends/cuda/abi/compact_source.zig",
-);
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const oods_stage = @import(
-    "../../../backends/cuda/runtime/stages/oods.zig",
-);
+const compact_source = @import("stwo_cuda_backend").abi.compact_source;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
 const resident_views = @import("resident_views.zig");
 const trace_layout = @import("uniform_layout.zig");
 

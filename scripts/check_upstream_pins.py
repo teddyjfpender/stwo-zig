@@ -12,42 +12,38 @@ import sys
 import tomllib
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+try:
+    from upstream_pins_lib import model
+    from upstream_pins_lib.blake_oracle_source import check as _check_blake_oracle_source
+    from upstream_pins_lib.cairo_vm_adapter import check as check_cairo_vm_adapter
+    from upstream_pins_lib.official_cairo_manifest import (
+        check as _check_official_cairo_manifest,
+    )
+    from upstream_pins_lib.official_cairo_vectors import (
+        check as check_official_cairo_vectors,
+    )
+except ModuleNotFoundError:  # Imported as scripts.check_upstream_pins in tests.
+    from scripts.upstream_pins_lib import model
+    from scripts.upstream_pins_lib.blake_oracle_source import (
+        check as _check_blake_oracle_source,
+    )
+    from scripts.upstream_pins_lib.cairo_vm_adapter import (
+        check as check_cairo_vm_adapter,
+    )
+    from scripts.upstream_pins_lib.official_cairo_vectors import (
+        check as check_official_cairo_vectors,
+    )
+    from scripts.upstream_pins_lib.official_cairo_manifest import (
+        check as _check_official_cairo_manifest,
+    )
 
-from upstream_pins_lib.official_cairo_vectors import check as check_official_cairo_vectors
-from upstream_pins_lib.cairo_vm_adapter import check as check_cairo_vm_adapter
 
-
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_LEDGER = ROOT / "conformance" / "upstream.md"
-REVISION_RE = r"[0-9a-f]{40}"
-
-
-class PinLedgerError(ValueError):
-    """The checked-in upstream ledger is missing or ambiguous."""
-
-
-@dataclasses.dataclass(frozen=True)
-class PinLedger:
-    native_repository: str
-    native_revision: str
-    riscv_repository: str
-    riscv_revision: str
-    official_cairo_repository: str
-    official_cairo_revision: str
-    official_cairo_stwo_repository: str
-    official_cairo_stwo_revision: str
-    cairo_language_repository: str
-    cairo_language_revision: str
-    cairo_language_version: str
-    cairo_vm_version: str
-    cairo_repository: str
-    cairo_revision: str
-    cairo_stwo_repository: str
-    cairo_stwo_revision: str
-    cairo_prover_stwo_revision: str
+ROOT = model.ROOT
+DEFAULT_LEDGER = model.DEFAULT_LEDGER
+REVISION_RE = model.REVISION_RE
+PinLedgerError = model.PinLedgerError
+PinLedger = model.PinLedger
+parse_ledger = model.parse_ledger
 
 
 @dataclasses.dataclass(frozen=True)
@@ -56,94 +52,6 @@ class TextPin:
     label: str
     pattern: str
     expected: str
-
-
-def _single_field(text: str, pattern: str, label: str) -> str:
-    matches = re.findall(pattern, text, flags=re.MULTILINE)
-    if len(matches) != 1:
-        raise PinLedgerError(f"expected exactly one {label}, found {len(matches)}")
-    return matches[0]
-
-
-def parse_ledger(path: Path = DEFAULT_LEDGER) -> PinLedger:
-    text = path.read_text(encoding="utf-8")
-    return PinLedger(
-        native_repository=_single_field(
-            text, r"^- Upstream repository: `([^`]+)`$", "Native Stwo repository"
-        ),
-        native_revision=_single_field(
-            text, rf"^- Pinned commit: `({REVISION_RE})`$", "Native Stwo revision"
-        ),
-        riscv_repository=_single_field(
-            text, r"^- Stark-V repository: `([^`]+)`$", "Stark-V repository"
-        ),
-        riscv_revision=_single_field(
-            text,
-            rf"^- Pinned Stark-V commit: `({REVISION_RE})`$",
-            "Stark-V revision",
-        ),
-        official_cairo_repository=_single_field(
-            text,
-            r"^- Official Stwo-Cairo repository: `([^`]+)`$",
-            "official Stwo-Cairo repository",
-        ),
-        official_cairo_revision=_single_field(
-            text,
-            rf"^- Pinned official Stwo-Cairo commit: `({REVISION_RE})`$",
-            "official Stwo-Cairo revision",
-        ),
-        official_cairo_stwo_repository=_single_field(
-            text,
-            r"^- Official Cairo Stwo repository: `([^`]+)`$",
-            "official Cairo Stwo repository",
-        ),
-        official_cairo_stwo_revision=_single_field(
-            text,
-            rf"^- Pinned official Cairo Stwo commit: `({REVISION_RE})`$",
-            "official Cairo Stwo revision",
-        ),
-        cairo_language_repository=_single_field(
-            text,
-            r"^- Cairo language repository: `([^`]+)`$",
-            "Cairo language repository",
-        ),
-        cairo_language_revision=_single_field(
-            text,
-            rf"^- Pinned Cairo language commit: `({REVISION_RE})`$",
-            "Cairo language revision",
-        ),
-        cairo_language_version=_single_field(
-            text,
-            r"^- Cairo language version: `([0-9]+\.[0-9]+\.[0-9]+)`$",
-            "Cairo language version",
-        ),
-        cairo_vm_version=_single_field(
-            text,
-            r"^- Cairo VM version: `([0-9]+\.[0-9]+\.[0-9]+)`$",
-            "Cairo VM version",
-        ),
-        cairo_repository=_single_field(
-            text, r"^- Stwo-Cairo repository: `([^`]+)`$", "Cairo Stwo-Cairo repository"
-        ),
-        cairo_revision=_single_field(
-            text,
-            rf"^- Pinned Stwo-Cairo commit: `({REVISION_RE})`$",
-            "Cairo Stwo-Cairo revision",
-        ),
-        cairo_stwo_repository=_single_field(
-            text, r"^- Stwo repository: `([^`]+)`$", "Cairo Stwo repository"
-        ),
-        cairo_stwo_revision=_single_field(
-            text,
-            rf"^- Pinned Cairo verifier Stwo commit: `({REVISION_RE})`$",
-            "Cairo verifier Stwo revision",
-        ),
-        cairo_prover_stwo_revision=_single_field(
-            text,
-            rf"^- Pinned Cairo prover Stwo commit: `({REVISION_RE})`$",
-            "Cairo prover Stwo revision",
-        ),
-    )
 
 
 def _check_text_pin(root: Path, pin: TextPin) -> list[str]:
@@ -227,66 +135,6 @@ def _check_cairo_manifest(root: Path, ledger: PinLedger) -> list[str]:
             ledger.cairo_stwo_revision,
         )
     )
-    return errors
-
-
-def _check_official_cairo_manifest(root: Path, ledger: PinLedger) -> list[str]:
-    relative_path = "tools/stwo-cairo-official-verifier-rs/Cargo.toml"
-    try:
-        manifest = _load_toml(root / relative_path)
-    except (OSError, tomllib.TOMLDecodeError) as error:
-        return [f"{relative_path}: unable to parse manifest: {error}"]
-
-    metadata = manifest.get("package", {}).get("metadata", {}).get("official-verifier", {})
-    expected_metadata = {
-        "stwo-cairo-repository": ledger.official_cairo_repository,
-        "stwo-cairo-revision": ledger.official_cairo_revision,
-        "stwo-repository": ledger.official_cairo_stwo_repository,
-        "stwo-revision": ledger.official_cairo_stwo_revision,
-    }
-    errors = [
-        f"{relative_path}: metadata {key!r} is {metadata.get(key)!r}, expected {expected!r}"
-        for key, expected in expected_metadata.items()
-        if metadata.get(key) != expected
-    ]
-    dependencies = manifest.get("dependencies", {})
-    expected_dependencies = {
-        "cairo-air": (
-            ledger.official_cairo_repository,
-            ledger.official_cairo_revision,
-        ),
-        "stwo-cairo-adapter": (
-            ledger.official_cairo_repository,
-            ledger.official_cairo_revision,
-        ),
-        "stwo-cairo-common": (
-            ledger.official_cairo_repository,
-            ledger.official_cairo_revision,
-        ),
-        # Stwo-Cairo uses this short rev spelling. Matching it prevents Cargo
-        # from creating two incompatible identities for the same Stwo commit.
-        "stwo": (
-            ledger.official_cairo_stwo_repository,
-            ledger.official_cairo_stwo_revision[:8],
-        ),
-    }
-    for dependency, (repository, revision) in expected_dependencies.items():
-        value = dependencies.get(dependency)
-        if not isinstance(value, dict):
-            errors.append(f"{relative_path}: missing table dependency {dependency!r}")
-            continue
-        if value.get("git") != repository or value.get("rev") != revision:
-            errors.append(
-                f"{relative_path}: dependency {dependency!r} is "
-                f"{value.get('git')!r}@{value.get('rev')!r}, "
-                f"expected {repository!r}@{revision!r}"
-            )
-    for name, value in dependencies.items():
-        if isinstance(value, dict) and "path" in value:
-            errors.append(f"{relative_path}: path dependency {name!r} is forbidden")
-    for key in ("patch", "replace"):
-        if key in manifest:
-            errors.append(f"{relative_path}: [{key}] is forbidden in the official oracle")
     return errors
 
 
@@ -398,87 +246,268 @@ def _check_lock_source(
     return []
 
 
-def _check_blake_oracle_source(root: Path, ledger: PinLedger) -> list[str]:
-    base = root / "tools" / "stwo-interop-rs"
-    provenance_path = base / "upstream_blake_provenance.json"
-    label = provenance_path.relative_to(root)
+def _check_riscv_formal_profile(root: Path, ledger: PinLedger) -> list[str]:
+    relative_path = "conformance/riscv/rv32im-sail-profile.json"
     try:
-        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+        profile = json.loads((root / relative_path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        return [f"{provenance_path.relative_to(root)}: invalid provenance: {error}"]
-    expected_fields = {
-        "schema",
-        "repository",
-        "commit",
-        "source_path",
-        "source_tree_sha256",
-        "source_files",
-        "transport_patch",
-    }
-    if not isinstance(provenance, dict) or set(provenance) != expected_fields:
-        return ["tools/stwo-interop-rs/upstream_blake_provenance.json: invalid schema"]
-    errors: list[str] = []
-    if provenance["repository"] != ledger.native_repository:
-        errors.append(f"{label}: Blake oracle provenance repository does not match Native pin")
-    if provenance["commit"] != ledger.native_revision:
-        errors.append(f"{label}: Blake oracle provenance commit does not match Native pin")
-    files = provenance["source_files"]
-    if not isinstance(files, list) or not files or any(
-        not isinstance(path, str) or Path(path).is_absolute() for path in files
-    ):
-        return errors + ["Blake oracle provenance source_files is invalid"]
-    source_root = base / "src" / "upstream_blake"
-    actual = sorted(
-        path.relative_to(source_root).as_posix()
-        for path in source_root.rglob("*.rs")
-        if path.name != "transport.rs"
-    )
-    if actual != sorted(files):
-        errors.append("Blake oracle vendored source file set drifted")
-        return errors
+        return [f"{relative_path}: unable to parse formal profile: {error}"]
 
-    digest = hashlib.sha256()
-    for relative in sorted(files):
-        path = source_root / relative
-        data = path.read_bytes()
-        if relative == "mod.rs":
-            if data.count(b"pub mod air;") != 1:
-                errors.append("Blake oracle air visibility patch drifted")
+    if not isinstance(profile, dict):
+        return [f"{relative_path}: formal profile must be a JSON object"]
+    authorities = profile.get("authorities")
+    legacy = profile.get("legacy_protocol_layout")
+    transport = profile.get("rvfi_transport")
+    if (
+        not isinstance(authorities, dict)
+        or not isinstance(legacy, dict)
+        or not isinstance(transport, dict)
+    ):
+        return [f"{relative_path}: missing authority objects"]
+
+    expected_authorities = {
+        ("sail", "repository"): ledger.riscv_sail_repository,
+        ("sail", "revision"): ledger.riscv_sail_revision,
+        ("sail", "compiler"): ledger.riscv_sail_compiler_version,
+        ("spike", "repository"): ledger.riscv_spike_repository,
+        ("spike", "revision"): ledger.riscv_spike_revision,
+        ("riscv_arch_test", "repository"): ledger.riscv_arch_test_repository,
+        ("riscv_arch_test", "revision"): ledger.riscv_arch_test_revision,
+    }
+    errors: list[str] = []
+    expected_decode_exclusions = [
+        {
+            "instruction": "FENCE.I",
+            "word": 0x0000_100F,
+            "reason": "Zifencei is outside the proof profile",
+            "pinned_sail_disposition": (
+                "retires despite extensions.Zifencei.supported=false"
+            ),
+        }
+    ]
+    if profile.get("isa", {}).get("decode_exclusions") != expected_decode_exclusions:
+        errors.append(
+            f"{relative_path}: ISA decode exclusions are not the audited closed set"
+        )
+    for (authority, field), expected in expected_authorities.items():
+        value = authorities.get(authority)
+        actual = value.get(field) if isinstance(value, dict) else None
+        if actual != expected:
+            errors.append(
+                f"{relative_path}: authorities.{authority}.{field} is "
+                f"{actual!r}, expected {expected!r}"
+            )
+
+    for field, expected in (
+        ("repository", ledger.riscv_legacy_repository),
+        ("revision", ledger.riscv_legacy_revision),
+        ("semantic_authority", False),
+    ):
+        if legacy.get(field) != expected:
+            errors.append(
+                f"{relative_path}: legacy_protocol_layout.{field} is "
+                f"{legacy.get(field)!r}, expected {expected!r}"
+            )
+
+    sail = authorities.get("sail")
+    if isinstance(sail, dict):
+        expected_overrides = [
+            "conformance/riscv/sail-rv32im-override.json",
+            "conformance/riscv/sail-rv32im-tagged-options.json",
+        ]
+        if sail.get("configuration_overrides_in_order") != expected_overrides:
+            errors.append(
+                f"{relative_path}: Sail configuration override order is not canonical"
+            )
+        if sail.get("validated_isa_string") != "rv32im":
+            errors.append(f"{relative_path}: Sail validated ISA string must be 'rv32im'")
+        for override in expected_overrides:
+            path = root / override
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                errors.append(f"{override}: unable to parse Sail override: {error}")
                 continue
-            data = data.replace(b"pub mod air;", b"mod air;")
-        elif relative == "air.rs":
-            marker = b"pub mod transport;\n\n"
-            if data.count(marker) != 1:
-                errors.append("Blake oracle transport declaration drifted")
-                continue
-            data = data.replace(marker, b"")
-        encoded = relative.encode("utf-8")
-        digest.update(len(encoded).to_bytes(8, "big"))
-        digest.update(encoded)
-        digest.update(len(data).to_bytes(8, "big"))
-        digest.update(data)
-    if digest.hexdigest() != provenance["source_tree_sha256"]:
-        errors.append("Blake oracle vendored AIR differs from pinned upstream source")
+            if not isinstance(payload, dict):
+                errors.append(f"{override}: Sail override must be a JSON object")
+
+    expected_transport = {
+        "protocol": "RVFI-DII v1",
+        "entry_point": 0x0001_0000,
+        "upstream_entry_point": 0x8000_0000,
+        "scope": "c_emulator harness entry only; Sail ISA model sources are unchanged",
+    }
+    for field, expected in expected_transport.items():
+        if transport.get(field) != expected:
+            errors.append(
+                f"{relative_path}: rvfi_transport.{field} is "
+                f"{transport.get(field)!r}, expected {expected!r}"
+            )
+
+    patch = transport.get("patch")
+    expected_patch_path = "conformance/riscv/sail-rvfi-zkvm-entry.patch"
+    if not isinstance(patch, dict):
+        errors.append(f"{relative_path}: rvfi_transport.patch must be an object")
+    else:
+        patch_path = patch.get("path")
+        patch_sha256 = patch.get("sha256")
+        if patch_path != expected_patch_path:
+            errors.append(
+                f"{relative_path}: rvfi_transport.patch.path is "
+                f"{patch_path!r}, expected {expected_patch_path!r}"
+            )
+        if not isinstance(patch_sha256, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", patch_sha256
+        ):
+            errors.append(
+                f"{relative_path}: rvfi_transport.patch.sha256 is not a lowercase SHA-256"
+            )
+        else:
+            try:
+                actual_patch_sha256 = hashlib.sha256(
+                    (root / expected_patch_path).read_bytes()
+                ).hexdigest()
+            except OSError as error:
+                errors.append(f"{expected_patch_path}: unable to read patch: {error}")
+            else:
+                if patch_sha256 != actual_patch_sha256:
+                    errors.append(
+                        f"{expected_patch_path}: SHA-256 is {actual_patch_sha256}, "
+                        f"profile expects {patch_sha256}"
+                    )
+            errors.extend(
+                _check_text_pin(
+                    root,
+                    TextPin(
+                        "scripts/riscv_equivalence.py",
+                        "RVFI transport patch SHA-256",
+                        r'^PINNED_RVFI_TRANSPORT_PATCH_SHA256 = \(\n    "([0-9a-f]{64})"\n\)$',
+                        patch_sha256,
+                    ),
+                )
+            )
+
+    try:
+        equivalence_source = (root / "scripts/riscv_equivalence.py").read_text(
+            encoding="utf-8"
+        )
+    except OSError as error:
+        errors.append(f"scripts/riscv_equivalence.py: unable to read RVFI entry: {error}")
+    else:
+        entries = re.findall(
+            r"^RVFI_DII_ENTRY = (0x[0-9A-Fa-f_]+)$",
+            equivalence_source,
+            flags=re.MULTILINE,
+        )
+        if len(entries) != 1:
+            errors.append(
+                "scripts/riscv_equivalence.py: expected exactly one RVFI_DII_ENTRY"
+            )
+        elif int(entries[0].replace("_", ""), 16) != transport.get("entry_point"):
+            errors.append(
+                "scripts/riscv_equivalence.py: RVFI_DII_ENTRY disagrees with "
+                f"{relative_path}"
+            )
     return errors
 
 
 def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
     native = ledger.native_revision
-    riscv = ledger.riscv_revision
+    legacy_riscv = ledger.riscv_legacy_revision
     cairo = ledger.cairo_revision
     cairo_stwo = ledger.cairo_stwo_revision
     return (
         TextPin(
             "scripts/riscv_equivalence.py",
-            "Stark-V PINNED_STARK_V_REVISION",
-            rf'^PINNED_STARK_V_REVISION = "({REVISION_RE})"$',
-            riscv,
+            "Sail PINNED_SAIL_REVISION",
+            rf'^PINNED_SAIL_REVISION = "({REVISION_RE})"$',
+            ledger.riscv_sail_revision,
+        ),
+        TextPin(
+            "scripts/riscv_equivalence.py",
+            "Spike PINNED_SPIKE_REVISION",
+            rf'^PINNED_SPIKE_REVISION = "({REVISION_RE})"$',
+            ledger.riscv_spike_revision,
+        ),
+        TextPin(
+            "scripts/riscv_equivalence.py",
+            "Sail compiler version",
+            r'^PINNED_SAIL_COMPILER_VERSION = "([^"]+)"$',
+            ledger.riscv_sail_compiler_version,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "Sail repository",
+            r'^pub const sail_repository = "([^"]+)";$',
+            ledger.riscv_sail_repository,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "Sail revision",
+            rf'^pub const sail_revision = "({REVISION_RE})";$',
+            ledger.riscv_sail_revision,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "Sail compiler version",
+            r'^pub const sail_compiler_version = "([^"]+)";$',
+            ledger.riscv_sail_compiler_version,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "Spike repository",
+            r'^pub const spike_repository = "([^"]+)";$',
+            ledger.riscv_spike_repository,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "Spike revision",
+            rf'^pub const spike_revision = "({REVISION_RE})";$',
+            ledger.riscv_spike_revision,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "architecture-test repository",
+            r'^pub const arch_test_repository = "([^"]+)";$',
+            ledger.riscv_arch_test_repository,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "architecture-test revision",
+            rf'^pub const arch_test_revision = "({REVISION_RE})";$',
+            ledger.riscv_arch_test_revision,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "legacy Stark-V repository",
+            r'^pub const legacy_stark_v_repository = "([^"]+)";$',
+            ledger.riscv_legacy_repository,
+        ),
+        TextPin(
+            "src/frontends/riscv/isa/authority.zig",
+            "legacy Stark-V revision",
+            rf'^pub const legacy_stark_v_revision = "({REVISION_RE})";$',
+            legacy_riscv,
+        ),
+        TextPin(
+            "src/frontends/riscv/opcode_manifest.zig",
+            "Sail semantic-authority revision",
+            rf'^pub const semantic_authority_revision = "({REVISION_RE})";$',
+            ledger.riscv_sail_revision,
+        ),
+        TextPin(
+            "src/frontends/riscv/opcode_manifest.zig",
+            "legacy Stark-V protocol revision",
+            rf'^pub const legacy_layout_revision = "({REVISION_RE})";$',
+            legacy_riscv,
         ),
         TextPin(
             "vectors/riscv_elfs/trace_vectors.json",
-            "Stark-V trace vector provenance commit",
-            rf'^ "stark_v_commit": "({REVISION_RE})",$',
-            riscv,
+            "legacy Stark-V trace-layout provenance commit",
+            rf'^ "legacy_protocol_layout": \{{\n'
+            rf'  "repository": "[^"]+",\n'
+            rf'  "revision": "({REVISION_RE})",$',
+            legacy_riscv,
         ),
         TextPin(
             "scripts/e2e_interop_lib/controller.py",
@@ -668,6 +697,8 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
     for pin in _text_pins(ledger):
         errors.extend(_check_text_pin(root, pin))
 
+    errors.extend(_check_riscv_formal_profile(root, ledger))
+
     native_manifests = {
         "tools/stwo-interop-rs/Cargo.toml": ("stwo",),
         "tools/stwo-vector-gen/Cargo.toml": ("stwo",),
@@ -803,7 +834,9 @@ def main(argv: list[str] | None = None) -> int:
         for error in errors:
             print(f"- {error}", file=sys.stderr)
         return 1
-    print("upstream pin ledger matches all Native, Stark-V, and Cairo carriers")
+    print(
+        "upstream pin ledger matches all Native, RISC-V formal/legacy, and Cairo carriers"
+    )
     return 0
 
 

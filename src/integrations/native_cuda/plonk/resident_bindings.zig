@@ -48,9 +48,7 @@ const TestProvider = struct {
     pub fn slot(
         self: *const TestProvider,
         id: slots.SlotId,
-    ) !@import(
-        "../../../backends/cuda/runtime/column.zig",
-    ).DeviceSlice(u32) {
+    ) !@import("stwo_cuda_backend").runtime.column.DeviceSlice(u32) {
         const placement = try self
             .prepared
             .cuda_plan

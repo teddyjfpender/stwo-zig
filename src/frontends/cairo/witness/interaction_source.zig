@@ -8,6 +8,7 @@ const std = @import("std");
 const m31_mod = @import("stwo_core").fields.m31;
 const M31 = m31_mod.M31;
 const relation_bundle = @import("relation_bundle.zig");
+const interaction_residency = @import("interaction_residency.zig");
 
 pub const Error = error{
     InvalidDescriptor,
@@ -184,6 +185,7 @@ pub const SourceView = struct {
     storage: Storage,
     real_rows: usize,
     source_offset_rows: u32,
+    residency: ?interaction_residency.Residency = null,
 
     pub fn lookupWords(columns: LookupColumns, real_rows: usize) Error!SourceView {
         try validateRows(columns.rows, real_rows);
@@ -256,6 +258,56 @@ pub const SourceView = struct {
         return switch (self.storage) {
             inline else => |source| source.rows,
         };
+    }
+
+    pub fn realRows(self: SourceView) usize {
+        return self.real_rows;
+    }
+
+    pub fn sourceOffsetRows(self: SourceView) u32 {
+        return self.source_offset_rows;
+    }
+
+    pub fn backendResidency(self: SourceView) ?interaction_residency.Residency {
+        return self.residency;
+    }
+
+    pub fn withResidency(
+        self: SourceView,
+        residency: ?interaction_residency.Residency,
+    ) SourceView {
+        var result = self;
+        result.residency = residency;
+        return result;
+    }
+
+    /// Physical columns in the relation-kernel ABI. Lookup words form one
+    /// dense column-major slab; the other layouts bind sparse columns.
+    pub fn physicalColumnCount(self: SourceView) usize {
+        return switch (self.storage) {
+            .lookup_words => |source| source.columns,
+            inline else => |source| source.values.len,
+        };
+    }
+
+    pub fn copyPhysicalColumn(
+        self: SourceView,
+        column: usize,
+        destination: []u32,
+    ) Error!void {
+        if (destination.len != self.rows() or
+            column >= self.physicalColumnCount())
+            return Error.InvalidSourceShape;
+        switch (self.storage) {
+            .lookup_words => |source| {
+                for (destination, 0..) |*value, row|
+                    value.* = (try source.value(column, row)).v;
+            },
+            inline else => |source| {
+                for (destination, 0..) |*value, row|
+                    value.* = (try source.value(column, row)).v;
+            },
+        }
     }
 
     pub fn layout(self: SourceView) relation_bundle.SourceLayout {

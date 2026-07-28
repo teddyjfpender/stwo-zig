@@ -21,7 +21,7 @@
 //! full proving cost, and it does so without any artifact naming the swap.
 
 const std = @import("std");
-const telemetry = @import("../../backends/metal/telemetry.zig");
+const telemetry = @import("stwo_metal_backend").telemetry;
 
 pub const Error = error{
     InvalidCompositionMetallibPath,

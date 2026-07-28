@@ -1,8 +1,8 @@
 const std = @import("std");
-const claim_generator = @import("../../frontends/cairo/claim_generator.zig");
-const claim_registry = @import("../../frontends/cairo/air/official_claim_registry.zig");
-const adapter = @import("../../frontends/cairo/adapter/mod.zig");
-const opcodes = @import("../../frontends/cairo/adapter/opcodes.zig");
+const claim_generator = @import("stwo_cairo_frontend").claim_generator;
+const claim_registry = @import("stwo_cairo_frontend").claim_registry;
+const adapter = @import("stwo_cairo_frontend").adapter;
+const opcodes = @import("stwo_cairo_frontend").adapter.opcodes;
 
 const OracleComponent = struct {
     name: []const u8,

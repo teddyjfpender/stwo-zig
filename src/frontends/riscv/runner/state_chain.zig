@@ -9,6 +9,15 @@ const M31 = @import("stwo_core").fields.m31.M31;
 
 /// Maximum clock difference before gap-filling is required (2^20 - 1).
 pub const MAX_CLOCK_DIFF: u32 = (1 << 20) - 1;
+/// The shifted opcode lookup admits a positive access gap of at most 2^20.
+pub const MAX_ACCESS_CLOCK_DIFF: u32 = 1 << 20;
+/// Synthetic clock predecessors are decomposed as low20 + high6 * 2^20.
+/// The proof geometry admits at most 2^24 opcode rows with four-wide access
+/// clock buckets, so every honest predecessor is strictly below this bound.
+pub const CLOCK_PREV_LOW_BITS: u5 = 20;
+pub const CLOCK_PREV_HIGH_BITS: u5 = 6;
+pub const CLOCK_PREV_BOUND: u32 =
+    @as(u32, 1) << (CLOCK_PREV_LOW_BITS + CLOCK_PREV_HIGH_BITS);
 
 /// A recorded access to memory or a register.
 pub const Access = struct {

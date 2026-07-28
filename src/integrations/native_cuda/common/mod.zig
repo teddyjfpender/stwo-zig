@@ -17,6 +17,7 @@ pub const proof_decode = @import("proof_decode.zig");
 pub const quotient_executor = @import("quotient_executor.zig");
 pub const resident_views = @import("resident_views.zig");
 pub const resident_bindings = @import("resident_bindings.zig");
+pub const resident_proof_binding = @import("resident_proof_binding.zig");
 pub const scheduled_executor = @import("scheduled_executor.zig");
 pub const transcript_executor = @import("transcript_executor.zig");
 pub const transcript_schedule = @import("transcript_schedule.zig");
@@ -42,6 +43,7 @@ test {
     _ = quotient_executor;
     _ = resident_views;
     _ = resident_bindings;
+    _ = resident_proof_binding;
     _ = scheduled_executor;
     _ = transcript_executor;
     _ = transcript_schedule;

@@ -1,0 +1,23 @@
+{
+  "family": "toy_bitwise_xor_byte",
+  "modulus": 2147483647,
+  "notes": "Smallest model that exercises the non-box `bitwise` table: the result\nbyte is pinned by nothing except the lookup. Unsat only if the lookup really\ndefines `value` as a function of `(lhs, rhs, op)`. Expected verdict: unsat.",
+  "columns": [
+    {"name": "lhs", "role": "input"},
+    {"name": "rhs", "role": "input"},
+    {"name": "xor_out", "role": "output"}
+  ],
+  "exprs": {
+    "one": ["const", 1],
+    "xor_op": ["const", 2]
+  },
+  "constraints": [],
+  "lookups": [
+    {
+      "label": "xor_out = lhs ^ rhs",
+      "domain": "bitwise",
+      "numerator": "one",
+      "tuple": [["col", "lhs"], ["col", "rhs"], ["col", "xor_out"], "xor_op"]
+    }
+  ]
+}

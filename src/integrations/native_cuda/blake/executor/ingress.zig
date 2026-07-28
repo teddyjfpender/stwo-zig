@@ -1,8 +1,6 @@
 //! Canonical host-to-resident initialization for Native Blake.
 
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
 const canonical = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");

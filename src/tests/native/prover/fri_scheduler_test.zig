@@ -1,7 +1,7 @@
 //! Generic FRI pending-tree scheduler tests.
 
 const std = @import("std");
-const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const core_fri = @import("stwo_core").fri;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;

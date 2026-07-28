@@ -30,3 +30,6 @@ vectors/.profile*
 vectors/reports/*.json
 vectors/reports/interop_artifacts/
 vectors/reports/prove_checkpoints_artifacts/
+
+# Local unattended night-run scratch: prompt, runner, log, report.
+.riscv-night-run/

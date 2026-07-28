@@ -163,7 +163,7 @@ pub const RelationRecipe = struct {
 
     pub fn execute(self: *RelationRecipe) !void {
         self.accumulated_gpu_ms += try self.metal.relationPrepared(self.arena.buffer, self.prepared);
-        telemetry.record(.metal_relation_dispatch);
+        telemetry.record(.metal_relation_epoch);
     }
 
     fn run(raw: *anyopaque, tick: u16, requested: arena_plan.Binding, _: []u8) !void {

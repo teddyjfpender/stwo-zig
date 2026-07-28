@@ -6,16 +6,15 @@ pub const core = @import("stwo_core");
 pub const prover = @import("stwo_prover_impl");
 
 pub const backends = struct {
-    pub const metal = @import("backends/metal/mod.zig");
+    pub const metal = @import("stwo_metal_backend");
 };
 
 pub const frontends = struct {
-    pub const cairo = @import("frontends/cairo/mod.zig");
+    pub const cairo = @import("stwo_cairo_frontend");
 };
 
 pub const integrations = struct {
-    pub const cairo_metal =
-        @import("integrations/cairo_metal/prover/mod.zig");
+    pub const cairo_metal = @import("stwo_cairo_metal_integration").prover;
 };
 
 pub const interop = struct {

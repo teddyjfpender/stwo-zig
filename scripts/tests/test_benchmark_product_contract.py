@@ -296,10 +296,10 @@ class BenchmarkProductContractTests(unittest.TestCase):
             ),
             (
                 "stwo-riscv-cpu",
-                "stark-v-rv32im",
+                "sail-rv32im-zkvm",
                 "cpu",
                 "benchmark",
-                "stark-v-rv32im-v1+lifted-pcs-v1",
+                "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1",
             ),
             ("stwo-zig", "aggregate", "cpu", "gate", "aggregate-gate-v1"),
         )

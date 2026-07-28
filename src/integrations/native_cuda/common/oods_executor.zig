@@ -1,17 +1,13 @@
 //! AIR-neutral resident OODS evaluation and transcript boundaries.
 
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const oods_stage = @import(
-    "../../../backends/cuda/runtime/stages/oods.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
 const oods_batches = @import("oods_batches.zig");
-const transcript_stage = @import(
-    "../../../backends/cuda/runtime/stages/transcript.zig",
-);
+const transcript_stage = @import("stwo_cuda_backend").runtime.stages.transcript;
 const proof_assembly = @import("proof_assembly.zig");
 const resident_views = @import("resident_views.zig");
 const transcript_schedule = @import("transcript_schedule.zig");

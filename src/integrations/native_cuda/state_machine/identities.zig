@@ -2,9 +2,7 @@
 
 const std = @import("std");
 const ir = @import("stwo_backend_contracts").proof_program;
-const cpu_state_machine = @import(
-    "../../../examples/state_machine/input.zig",
-);
+const cpu_state_machine = @import("stwo_native_examples").backend_support.state_machine.input;
 const pcs = @import("stwo_core").pcs;
 
 pub const rust_oracle_repository =

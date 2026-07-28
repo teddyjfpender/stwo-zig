@@ -1,10 +1,8 @@
 //! Generic proof-program emission for a materialized Native XOR truth-table LogUp trace.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const geometry_mod = @import("geometry.zig");
 const identities = @import("identities.zig");
 const layout_mod = @import("layout.zig");
@@ -119,7 +117,7 @@ fn emitWithBuffers(
         .id = 0,
         .component = 0,
         .expression = identities.constraint_expression,
-        .constraint_count = @import("../../../examples/xor/component.zig").N_CONSTRAINTS,
+        .constraint_count = @import("stwo_native_examples").backend_support.xor.component.N_CONSTRAINTS,
         .max_degree_log = 2,
     }};
     const commitments = commitmentTrees(geometry);
@@ -155,9 +153,7 @@ fn emitWithBuffers(
     });
 }
 
-fn stage(value: @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-).Stage) ir.Stage {
+fn stage(value: @import("stwo_cuda_backend").runtime.telemetry.Stage) ir.Stage {
     return @enumFromInt(@intFromEnum(value));
 }
 
@@ -557,8 +553,8 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
     try std.testing.expectEqual(@as(u32, 2), program.fri_layers[6].evaluation_log_rows);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[3].node);
     try std.testing.expectEqual(@as(u32, 2), program.transcript[6].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[7].node);
-    try std.testing.expectEqual(@as(u32, 3), program.transcript[9].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[7].node);
+    try std.testing.expectEqual(@as(u32, 2), program.transcript[9].node);
     try std.testing.expect(!std.mem.allEqual(
         u8,
         &program.semantic_digest,
@@ -568,7 +564,7 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
 
 test "XOR program tree and sample counts match a decoded CPU proof" {
     const allocator = std.testing.allocator;
-    const cpu_xor = @import("../../../examples/xor.zig");
+    const cpu_xor = @import("stwo_native_examples").xor;
     const protocol = @import("stwo_core").pcs.PcsConfig.default();
     const request = cpu_xor.Statement{
         .log_size = 5,

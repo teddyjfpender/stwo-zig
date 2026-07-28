@@ -6,6 +6,7 @@ const cuda = @import("../backends/cuda.zig");
 const cuda_tools = @import("../backends/cuda_tools.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
 
@@ -25,18 +26,36 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_native_cuda", .source = "src/stwo.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
+        .{ .name = "stwo_cairo_metal_integration", .source = "src/integrations/cairo_metal/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
+        .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
+        .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
+        .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
+        .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
+        .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
+        .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
     },
     .allowed_files = &.{"src/stwo.zig"},
     .allowed_prefixes = &.{
         "src/backend",
         "src/backends/cuda",
+        "src/backends/cpu_scalar",
+        "src/backends/metal",
         "src/core",
         "src/examples",
+        "src/frontends/cairo",
+        "src/frontends/riscv",
         "src/integrations/native_cuda",
+        "src/integrations/cairo_metal",
         "src/interop",
         "src/products/native_cuda",
         "src/prover",
+        "src/tools/metal_session",
     },
     .required_dynamic_dependencies = &.{ "cuda", "cudart", "libstdc++.so.6" },
     .forbidden_dynamic_dependencies = &.{
@@ -181,6 +200,114 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    const proof_wire = graph.addProofWireImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    const metal_session = graph.addMetalSessionImport(
+        context.b,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    const cpu_backend = graph.addCpuBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    const native_examples = graph.addNativeExamplesImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
+        module,
+    );
+    const metal_backend = graph.addMetalBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        module,
+    );
+    const cuda_backend = graph.addCudaBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    _ = integration_graph.addNativeCudaImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cuda_backend,
+        native_examples,
+        proof_wire,
+        module,
+    );
+    const riscv_frontend = graph.addRiscVFrontendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    _ = integration_graph.addRiscVCpuImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        riscv_frontend,
+        module,
+    );
+    const cairo_frontend = graph.addCairoFrontendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
+        module,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
+        module,
+    );
     return module;
 }
 

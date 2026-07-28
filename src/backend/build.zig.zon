@@ -1,0 +1,9 @@
+.{
+    .fingerprint = 0x1125f3aac01852dc,
+    .name = .stwo_backend_contracts,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../core" },
+    },
+}

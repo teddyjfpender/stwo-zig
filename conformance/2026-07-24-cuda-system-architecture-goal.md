@@ -248,9 +248,9 @@ Every admitted program and optimization must pass:
 11. allocation-failure and device-error unwind tests;
 12. exact AOT admission with zero JIT misses.
 
-RISC-V additionally uses the pinned Stark-V oracle. Cairo additionally uses the
-pinned Rust stwo-cairo implementation. Neither frontend may weaken the Native
-PCS or transcript gates.
+RISC-V additionally uses pinned Sail semantics with Spike as its independent
+execution cross-check. Cairo additionally uses the pinned Rust stwo-cairo
+implementation. Neither frontend may weaken the Native PCS or transcript gates.
 
 ## Autoresearch Activation Gate
 

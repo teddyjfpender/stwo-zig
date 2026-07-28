@@ -1,10 +1,8 @@
 //! Generic proof-program emission for a materialized Native Plonk/LogUp trace.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const geometry_mod = @import("geometry.zig");
 const identities = @import("identities.zig");
 const layout_mod = @import("layout.zig");
@@ -155,9 +153,7 @@ fn emitWithBuffers(
     });
 }
 
-fn stage(value: @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-).Stage) ir.Stage {
+fn stage(value: @import("stwo_cuda_backend").runtime.telemetry.Stage) ir.Stage {
     return @enumFromInt(@intFromEnum(value));
 }
 
@@ -565,7 +561,7 @@ test "Plonk emits exact generic Native AIR geometry and proof semantics" {
 
 test "Plonk program tree and sample counts match a decoded CPU proof" {
     const allocator = std.testing.allocator;
-    const cpu_plonk = @import("../../../examples/plonk_logup.zig");
+    const cpu_plonk = @import("stwo_native_examples").plonk_logup;
     const protocol = @import("stwo_core").pcs.PcsConfig.default();
     const request = cpu_plonk.Request{ .log_n_rows = 5 };
     var materialized = try trace_mod.Materialized.init(
@@ -586,11 +582,15 @@ test "Plonk program tree and sample counts match a decoded CPU proof" {
     try std.testing.expectEqual(@as(usize, 4), proof.queried_values.items.len);
     const widths = [_]usize{ 4, 4, 8, 8 };
     var samples: usize = 0;
-    for (proof.sampled_values.items, widths) |sampled_tree, width| {
+    for (proof.sampled_values.items, widths, 0..) |
+        sampled_tree,
+        width,
+        tree_index,
+    | {
         try std.testing.expectEqual(width, sampled_tree.len);
-        for (sampled_tree) |column| {
+        for (sampled_tree, 0..) |column, column_index| {
             const expected_points: usize =
-                if (sampled_tree.len == 8 and samples == 8) 2 else 1;
+                if (tree_index == 2 and column_index >= 4) 2 else 1;
             try std.testing.expectEqual(expected_points, column.len);
             samples += column.len;
         }

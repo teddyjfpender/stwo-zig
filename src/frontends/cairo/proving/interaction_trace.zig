@@ -15,6 +15,7 @@ const fixed_tables = @import("../witness/fixed_table_bundle.zig");
 const implicit = @import("../witness/implicit_interaction_sources.zig");
 const interaction_topology = @import("../witness/interaction_topology.zig");
 const interaction_trace = @import("../witness/interaction_trace.zig");
+const interaction_executor = @import("../witness/interaction_executor.zig");
 const memory_tables = @import("../witness/memory_tables.zig");
 const relation_bundle = @import("../witness/relation_bundle.zig");
 const base_trace = @import("base_trace.zig");
@@ -60,10 +61,16 @@ pub fn build(
     lookup_z: QM31,
     lookup_alpha: QM31,
     pedersen: ?*const pedersen_table.Table,
+    executor: ?interaction_executor.Executor,
     recorder: ?*prover.stage_profile.Recorder,
 ) !InteractionTrace {
     const alpha_powers = deriveAlphaPowers(lookup_alpha);
-    var collector = try Collector.init(allocator, &base.geometry, recorder);
+    var collector = try Collector.init(
+        allocator,
+        &base.geometry,
+        executor,
+        recorder,
+    );
     defer collector.deinit();
 
     for (base.execution.producers) |producer| {
@@ -82,13 +89,13 @@ pub fn build(
             producer.row_count,
         );
         defer compiled.deinit();
-        const source = try interaction_trace.SourceView.lookupWords(
+        const source = (try interaction_trace.SourceView.lookupWords(
             try interaction_trace.LookupColumns.init(
                 producer.lookup_words,
                 producer.row_count,
             ),
             producer.active_rows,
-        );
+        )).withResidency(producer.lookupResidency());
         try collector.capture(
             producer.label,
             compiled.descriptors,
@@ -309,11 +316,13 @@ const Collector = struct {
     allocator: std.mem.Allocator,
     geometry: *const claim_generator.OwnedClaimGeometry,
     components: []?ComponentColumns,
+    executor: ?interaction_executor.Executor,
     recorder: ?*prover.stage_profile.Recorder,
 
     fn init(
         allocator: std.mem.Allocator,
         geometry: *const claim_generator.OwnedClaimGeometry,
+        executor: ?interaction_executor.Executor,
         recorder: ?*prover.stage_profile.Recorder,
     ) !Collector {
         const components = try allocator.alloc(?ComponentColumns, geometry.components.len);
@@ -322,6 +331,7 @@ const Collector = struct {
             .allocator = allocator,
             .geometry = geometry,
             .components = components,
+            .executor = executor,
             .recorder = recorder,
         };
     }
@@ -427,7 +437,11 @@ const Collector = struct {
                 "Interaction fraction materialization",
             );
             defer stage.end();
-            break :blk try recorded_interaction.materializeCoordinates(
+            // Default path, and the configuration both products ship: the
+            // relation evaluator writes the committed base-field coordinate
+            // planes directly, so no secure column-major intermediate is ever
+            // materialized (campaign 1 increment 2).
+            const executor = self.executor orelse break :blk try recorded_interaction.materializeCoordinates(
                 self.allocator,
                 descriptors,
                 source,
@@ -435,6 +449,27 @@ const Collector = struct {
                 alpha_powers,
                 allocated.planes,
             );
+            // Opt-in backend executor. Its ABI returns a secure column-major
+            // trace, so it is lowered into the same pre-allocated planes rather
+            // than into a second column allocation. `lowerLastColumn` is the
+            // generic secure-to-four-plane primitive, applied per column.
+            var materialized = try executor.execute(self.allocator, .{
+                .descriptors = descriptors,
+                .source = source,
+                .z = lookup_z,
+                .alpha_powers = alpha_powers,
+            });
+            defer materialized.deinit();
+            if (materialized.row_count != row_count or
+                materialized.column_count * 4 != allocated.planes.len)
+                return error.InvalidInteractionGeometry;
+            for (0..materialized.column_count) |column| {
+                interaction_trace.lowerLastColumn(
+                    allocated.planes[column * 4 ..][0..4],
+                    materialized.column(column),
+                );
+            }
+            break :blk materialized.claimed_sum;
         };
         self.allocator.free(allocated.planes);
         self.components[component_index] = .{

@@ -1,8 +1,8 @@
 //! Fail-closed Native Poseidon proof geometry from the public statement.
 
 const std = @import("std");
-const cpu_poseidon = @import("../../../examples/poseidon.zig");
-const poseidon_input = @import("../../../examples/poseidon/input.zig");
+const cpu_poseidon = @import("stwo_native_examples").poseidon;
+const poseidon_input = @import("stwo_native_examples").backend_support.poseidon.input;
 const pcs = @import("stwo_core").pcs;
 
 pub const preprocessed_columns: u32 = 0;

@@ -1,9 +1,9 @@
 //! Exact arena capacities and lifetimes for a resident Native Plonk proof.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const geometry_mod = @import("geometry.zig");
 const proof_bundle = @import("proof_bundle.zig");
 const slots = @import("slots.zig");

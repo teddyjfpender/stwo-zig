@@ -1,10 +1,10 @@
 //! Exact mixed-height Blake commitment over packed resident LDE groups.
 
 const std = @import("std");
-const field = @import("../../../../backends/cuda/abi/field.zig");
-const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
-const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
-const telemetry = @import("../../../../backends/cuda/runtime/telemetry.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const commit_tree = @import("../../common/commit_tree.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle

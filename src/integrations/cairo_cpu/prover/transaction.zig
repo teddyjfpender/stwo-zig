@@ -3,10 +3,10 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_impl");
-const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
-const adapter = @import("../../../frontends/cairo/adapter/mod.zig");
-const generic = @import("../../../frontends/cairo/proving/transaction.zig");
-const preprocessed = @import("../../../frontends/cairo/preprocessed/mod.zig");
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
+const adapter = @import("stwo_cairo_frontend").adapter;
+const generic = @import("stwo_cairo_frontend").proving.transaction;
+const preprocessed = @import("stwo_cairo_frontend").preprocessed;
 
 pub const Hasher =
     core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;

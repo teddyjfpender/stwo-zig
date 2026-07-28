@@ -1,14 +1,8 @@
 //! Exact resident two-component LogUp interaction and composition.
 
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
-const relation_stage = @import(
-    "../../../../backends/cuda/runtime/stages/relation.zig",
-);
-const stages = @import(
-    "../../../../backends/cuda/runtime/stages/mod.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const commit_tree = @import("../../common/commit_tree.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");
 const transcript = @import("../../common/transcript_executor.zig");
@@ -243,18 +237,12 @@ fn evaluateAndCommitComposition(
 fn inverseMixed(
     comptime Transform: type,
     session: anytype,
-    stage: @import(
-        "../../../../backends/cuda/runtime/telemetry.zig",
-    ).Stage,
-    matrix: @import(
-        "../../../../backends/cuda/runtime/stages/common.zig",
-    ).WordMatrix,
+    stage: @import("stwo_cuda_backend").runtime.telemetry.Stage,
+    matrix: @import("stwo_cuda_backend").runtime.stages.common.WordMatrix,
     max_log_rows: u32,
     full_columns: usize,
     half_columns: usize,
-    inverse_twiddles: @import(
-        "../../../../backends/cuda/runtime/stages/common.zig",
-    ).Words,
+    inverse_twiddles: @import("stwo_cuda_backend").runtime.stages.common.Words,
 ) !void {
     const full = try matrixColumns(matrix, 0, full_columns);
     const half = try matrixColumns(
@@ -281,9 +269,7 @@ fn inverseMixed(
 }
 
 fn matrixColumns(
-    matrix: @import(
-        "../../../../backends/cuda/runtime/stages/common.zig",
-    ).WordMatrix,
+    matrix: @import("stwo_cuda_backend").runtime.stages.common.WordMatrix,
     first: usize,
     count: usize,
 ) !@TypeOf(matrix) {

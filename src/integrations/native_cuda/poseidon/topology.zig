@@ -1,9 +1,7 @@
 //! Exact OODS and quotient topology for Native Poseidon.
 
 const std = @import("std");
-const quotient_abi = @import(
-    "../../../backends/cuda/abi/stages/quotient.zig",
-);
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
 const geometry_mod = @import("geometry.zig");
 const layout = @import("layout.zig");
 const oods_batches = @import("../common/oods_batches.zig");

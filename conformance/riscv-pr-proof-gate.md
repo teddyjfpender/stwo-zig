@@ -13,9 +13,9 @@ production focused CLI can still produce real proof artifacts and that a fresh,
 separate verifier process accepts them. Compilation, field unit tests, trace
 parity, and one synthetic AIR test are not substitutes for this gate.
 
-This is the bounded pull-request prevention gate. It complements rather than
-replaces the exhaustive hosted release protocol in
-[riscv-release-evidence.md](riscv-release-evidence.md).
+This is the bounded pull-request prevention gate. It complements the live
+Sail/Spike differential and strict release runner; it is not itself a
+universal refinement proof or an independent proof-system verifier.
 
 ## Trigger contract
 
@@ -87,12 +87,13 @@ The receipt must agree with the prove report on statement digest, transcript
 state, executable identity, implementation commit, release status, and protocol.
 Artifacts and receipts are retained so a green check is auditable.
 
-The pinned Stark-V implementation remains the final oracle for shared RISC-V
-execution, public values, and relation semantics. Ordinary PR CI uses the
-already pinned and separately gated trace-vector evidence so it can remain
-fast. The live Stark-V comparison, full adversarial suite, clean candidate
-anchor, and randomized challenge remain mandatory release gates. Zig
-prove/verify agreement alone cannot authorize release or oracle-parity claims.
+Pinned Sail is the semantic authority, with Spike as the independent execution
+cross-check. Ordinary PR CI uses committed Sail/Spike trace-vector evidence so
+it can remain fast; the live differential re-derives that evidence whenever
+its meaning changes and on schedule. Strict release execution also runs the
+formal workspace and the full adversarial suite. Zig prove/verify agreement
+alone cannot establish AIR-to-Sail refinement or independent proof-system
+soundness.
 
 ## Failure policy
 

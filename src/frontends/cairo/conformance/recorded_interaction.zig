@@ -5,6 +5,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const producer_output = @import("../witness/producer_output.zig");
 const interaction_checkpoint = @import("interaction_checkpoint.zig");
+const interaction_executor = @import("../witness/interaction_executor.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 const interaction_topology = @import("../witness/interaction_topology.zig");
 const interaction_trace = @import("../witness/interaction_trace.zig");
@@ -34,23 +35,7 @@ pub const LookupSource = struct {
     column_major_words: []const u32,
 };
 
-pub const MaterializedTrace = struct {
-    allocator: std.mem.Allocator,
-    values: []QM31,
-    row_count: usize,
-    column_count: usize,
-    claimed_sum: QM31,
-
-    pub fn deinit(self: *MaterializedTrace) void {
-        self.allocator.free(self.values);
-        self.* = undefined;
-    }
-
-    pub fn column(self: MaterializedTrace, index: usize) []const QM31 {
-        std.debug.assert(index < self.column_count);
-        return self.values[index * self.row_count ..][0..self.row_count];
-    }
-};
+pub const MaterializedTrace = interaction_executor.MaterializedTrace;
 
 /// Compares one generated component against an official interaction receipt.
 ///

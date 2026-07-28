@@ -11,6 +11,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const memory_logup = @import("memory_logup.zig");
 const relation_challenges = @import("relation_challenges.zig");
 const trace_mod = @import("../runner/trace.zig");
+const access_clock = @import("../access_clock.zig");
 
 pub const N_ACCESSES: usize = 3;
 pub const N_COLUMNS: usize = N_ACCESSES * 4;
@@ -78,15 +79,31 @@ pub fn accessFromMain(
 ) !memory_logup.AccessWitness {
     if (main.len < trace_mod.nColumnsForFamily(family)) return error.InvalidOracleTraceShape;
     if (slot >= accessCount(family)) return disabledAccess();
-    const clock = main[clockColumn(family)];
+    const instruction_clock = main[clockColumn(family)];
 
     if (family == .load_store) {
         const is_load = main[42].add(main[43]).add(main[44]).add(main[45]).add(main[46]);
         const is_store = main[47].add(main[48]).add(main[49]);
+        const first = derivedClock(instruction_clock, .first);
+        const second = derivedClock(instruction_clock, .second);
         return switch (slot) {
-            0 => fromMainAccess(main, 2, is_store, main[37], clock, is_active),
-            1 => fromMainAccess(main, 12, QM31.zero(), main[12], clock, is_active),
-            2 => fromMainAccess(main, 22, is_load, main[36], clock, is_active),
+            0 => fromMainAccess(
+                main,
+                2,
+                is_store,
+                main[37],
+                second.add(is_store),
+                is_active,
+            ),
+            1 => fromMainAccess(main, 12, QM31.zero(), main[12], first, is_active),
+            2 => fromMainAccess(
+                main,
+                22,
+                is_load,
+                main[36],
+                second.add(is_load),
+                is_active,
+            ),
             else => unreachable,
         };
     }
@@ -96,7 +113,7 @@ pub fn accessFromMain(
         accessOffset(family, slot),
         QM31.zero(),
         main[accessOffset(family, slot)],
-        clock,
+        derivedClock(instruction_clock, accessOrdinal(family, slot)),
         is_active,
     );
 }
@@ -135,31 +152,32 @@ pub fn deriveRegisterBoundary(rows: []const trace_mod.TraceRow) !RegisterBoundar
         const family = trace_mod.opcodeFamily(row.opcode);
         switch (family) {
             .base_alu_reg, .shifts_reg, .lt_reg, .mul, .mulh, .div => {
-                try observe(&result, &seen, rs1Trace(row));
-                try observe(&result, &seen, rs2Trace(row));
-                try observe(&result, &seen, rdTrace(row));
+                try observe(&result, &seen, rs1Trace(row, .first));
+                try observe(&result, &seen, rs2Trace(row, .second));
+                try observe(&result, &seen, rdTrace(row, .third));
             },
             .base_alu_imm, .shifts_imm, .lt_imm => {
-                try observe(&result, &seen, rs1Trace(row));
-                try observe(&result, &seen, rdTrace(row));
+                try observe(&result, &seen, rs1Trace(row, .first));
+                try observe(&result, &seen, rdTrace(row, .second));
             },
             .branch_eq, .branch_lt => {
-                try observe(&result, &seen, rs1Trace(row));
-                try observe(&result, &seen, rs2Trace(row));
+                try observe(&result, &seen, rs1Trace(row, .first));
+                try observe(&result, &seen, rs2Trace(row, .second));
             },
-            .lui, .auipc, .jal => try observe(&result, &seen, rdTrace(row)),
+            .lui, .auipc, .jal => try observe(&result, &seen, rdTrace(row, .first)),
             .jalr => {
-                try observe(&result, &seen, rs1Trace(row));
-                try observe(&result, &seen, rdTrace(row));
+                try observe(&result, &seen, rs1Trace(row, .first));
+                try observe(&result, &seen, rdTrace(row, .second));
             },
             .load_store => {
-                try observe(&result, &seen, rs1Trace(row));
+                try observe(&result, &seen, rs1Trace(row, .first));
                 if (row.is_load) {
-                    try observe(&result, &seen, rdTrace(row));
+                    try observe(&result, &seen, rdTrace(row, .second));
                 } else {
-                    try observe(&result, &seen, rs2Trace(row));
+                    try observe(&result, &seen, rs2Trace(row, .second));
                 }
             },
+            .fence => {},
         }
     }
     return result;
@@ -170,12 +188,13 @@ pub fn accessCount(family: trace_mod.OpcodeFamily) usize {
         .base_alu_reg, .shifts_reg, .lt_reg, .load_store, .mul, .mulh, .div => 3,
         .base_alu_imm, .shifts_imm, .lt_imm, .branch_eq, .branch_lt, .jalr => 2,
         .lui, .auipc, .jal => 1,
+        .fence => 0,
     };
 }
 
 pub fn clockColumn(family: trace_mod.OpcodeFamily) usize {
     return switch (family) {
-        .lui, .auipc, .jalr, .jal, .mul => 1,
+        .lui, .auipc, .jalr, .jal, .mul, .fence => 1,
         else => 0,
     };
 }
@@ -184,6 +203,7 @@ fn accessOffset(family: trace_mod.OpcodeFamily, slot: usize) usize {
     return switch (family) {
         .lui, .auipc, .jal => 3,
         .jalr, .mul => 3 + slot * 10,
+        .fence => unreachable,
         else => 2 + slot * 10,
     };
 }
@@ -194,15 +214,22 @@ fn accessFromTrace(
     slot: usize,
 ) memory_logup.AccessWitness {
     if (family == .load_store) return switch (slot) {
-        0 => if (row.is_store) memoryAccess(row) else rdAccess(row),
-        1 => rs1Access(row),
-        2 => if (row.is_load) memoryAccess(row) else rs2Access(row),
+        0 => if (row.is_store)
+            memoryAccess(row, .third)
+        else
+            rdAccess(row, .second),
+        1 => rs1Access(row, .first),
+        2 => if (row.is_load)
+            memoryAccess(row, .third)
+        else
+            rs2Access(row, .second),
         else => unreachable,
     };
+    const ordinal = accessOrdinal(family, slot);
     return switch (accessKind(family, slot)) {
-        .rd => rdAccess(row),
-        .rs1 => rs1Access(row),
-        .rs2 => rs2Access(row),
+        .rd => rdAccess(row, ordinal),
+        .rs1 => rs1Access(row, ordinal),
+        .rs2 => rs2Access(row, ordinal),
     };
 }
 
@@ -221,48 +248,95 @@ fn accessKind(family: trace_mod.OpcodeFamily, slot: usize) AccessKind {
         .branch_eq, .branch_lt => if (slot == 0) .rs1 else .rs2,
         .lui, .auipc, .jal => .rd,
         .jalr => if (slot == 0) .rd else .rs1,
+        .fence => unreachable,
         else => @enumFromInt(slot),
     };
 }
 
-fn rdAccess(row: trace_mod.TraceRow) memory_logup.AccessWitness {
-    return witness(0, row.rd, row.rd_prev_clk, row.rd_prev_val, row.clk, row.rd_val);
+fn accessOrdinal(
+    family: trace_mod.OpcodeFamily,
+    slot: usize,
+) access_clock.Ordinal {
+    return switch (accessKind(family, slot)) {
+        .rs1 => .first,
+        .rs2 => .second,
+        .rd => switch (family) {
+            .base_alu_reg, .shifts_reg, .lt_reg, .mul, .mulh, .div => .third,
+            .base_alu_imm, .shifts_imm, .lt_imm, .jalr => .second,
+            .lui, .auipc, .jal => .first,
+            .branch_eq, .branch_lt, .load_store, .fence => unreachable,
+        },
+    };
 }
 
-fn rdTrace(row: trace_mod.TraceRow) TraceAccess {
+fn rdAccess(
+    row: trace_mod.TraceRow,
+    ordinal: access_clock.Ordinal,
+) memory_logup.AccessWitness {
+    return witness(
+        0,
+        row.rd,
+        row.rd_prev_clk,
+        row.rd_prev_val,
+        access_clock.encode(row.clk, ordinal),
+        row.rd_val,
+    );
+}
+
+fn rdTrace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess {
     return .{
         .addr = row.rd,
         .previous_clock = row.rd_prev_clk,
         .previous = row.rd_prev_val,
-        .clock = row.clk,
+        .clock = access_clock.encode(row.clk, ordinal),
         .next = row.rd_val,
     };
 }
 
-fn rs1Access(row: trace_mod.TraceRow) memory_logup.AccessWitness {
-    return witness(0, row.rs1, row.rs1_prev_clk, row.rs1_val, row.clk, row.rs1_val);
+fn rs1Access(
+    row: trace_mod.TraceRow,
+    ordinal: access_clock.Ordinal,
+) memory_logup.AccessWitness {
+    return witness(
+        0,
+        row.rs1,
+        row.rs1_prev_clk,
+        row.rs1_val,
+        access_clock.encode(row.clk, ordinal),
+        row.rs1_val,
+    );
 }
 
-fn rs1Trace(row: trace_mod.TraceRow) TraceAccess {
+fn rs1Trace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess {
     return .{
         .addr = row.rs1,
         .previous_clock = row.rs1_prev_clk,
         .previous = row.rs1_val,
-        .clock = row.clk,
+        .clock = access_clock.encode(row.clk, ordinal),
         .next = row.rs1_val,
     };
 }
 
-fn rs2Access(row: trace_mod.TraceRow) memory_logup.AccessWitness {
-    return witness(0, row.rs2, row.rs2_prev_clk, row.rs2_val, row.clk, row.rs2_val);
+fn rs2Access(
+    row: trace_mod.TraceRow,
+    ordinal: access_clock.Ordinal,
+) memory_logup.AccessWitness {
+    return witness(
+        0,
+        row.rs2,
+        row.rs2_prev_clk,
+        row.rs2_val,
+        access_clock.encode(row.clk, ordinal),
+        row.rs2_val,
+    );
 }
 
-fn rs2Trace(row: trace_mod.TraceRow) TraceAccess {
+fn rs2Trace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess {
     return .{
         .addr = row.rs2,
         .previous_clock = row.rs2_prev_clk,
         .previous = row.rs2_val,
-        .clock = row.clk,
+        .clock = access_clock.encode(row.clk, ordinal),
         .next = row.rs2_val,
     };
 }
@@ -282,13 +356,16 @@ fn observe(boundary: *RegisterBoundary, seen: *[32]bool, access: TraceAccess) !v
     boundary.final[index] = access.next;
 }
 
-fn memoryAccess(row: trace_mod.TraceRow) memory_logup.AccessWitness {
+fn memoryAccess(
+    row: trace_mod.TraceRow,
+    ordinal: access_clock.Ordinal,
+) memory_logup.AccessWitness {
     return witness(
         1,
         row.mem_addr & ~@as(u32, 3),
         row.mem_prev_clk,
         row.mem_prev_word,
-        row.clk,
+        access_clock.encode(row.clk, ordinal),
         row.mem_next_word,
     );
 }
@@ -331,6 +408,15 @@ fn fromMainAccess(
     };
 }
 
+fn derivedClock(
+    instruction_clock: QM31,
+    ordinal: access_clock.Ordinal,
+) QM31 {
+    return instruction_clock.sub(QM31.one())
+        .mul(base(access_clock.STRIDE))
+        .add(base(@intFromEnum(ordinal) + 1));
+}
+
 fn disabledAccess() memory_logup.AccessWitness {
     return .{
         .addr_space = QM31.zero(),
@@ -361,7 +447,7 @@ fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {
 }
 
 test "opcode memory: committed load/store selectors choose address spaces" {
-    var main = [_]QM31{QM31.zero()} ** 50;
+    var main = [_]QM31{QM31.zero()} ** trace_mod.MAX_FAMILY_COLUMNS;
     main[0] = base(9);
     main[12] = base(3);
     main[22] = base(0x1000);
@@ -378,7 +464,7 @@ test "opcode memory: committed load/store selectors choose address spaces" {
 }
 
 test "opcode memory: absent family slots are disabled" {
-    var main = [_]QM31{QM31.zero()} ** 16;
+    var main = [_]QM31{QM31.zero()} ** trace_mod.MAX_FAMILY_COLUMNS;
     const absent = try accessFromMain(.lui, &main, 1, QM31.one());
     try std.testing.expect(absent.enabler.isZero());
     try std.testing.expectEqual(@as(usize, 1), accessCount(.lui));

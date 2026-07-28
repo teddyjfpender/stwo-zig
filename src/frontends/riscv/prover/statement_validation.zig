@@ -12,19 +12,30 @@ const program_commitment = @import("../air/program/commitment.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
 const infra = @import("../infra_trace.zig");
+const access_clock = @import("../access_clock.zig");
+const state_chain = @import("../runner/state_chain.zig");
 const trace_mod = @import("../runner/trace.zig");
 const preprocessed_trace = @import("preprocessed.zig");
 const types = @import("types.zig");
 
 const MAX_OPCODE_SHARD_LOG_SIZE: u32 = 16;
 const MAX_OPCODE_SHARD_ROWS: usize = @as(usize, 1) << MAX_OPCODE_SHARD_LOG_SIZE;
-const MAX_EXECUTION_STEPS: usize = types.MAX_COMPONENTS * MAX_OPCODE_SHARD_ROWS;
+pub const MAX_EXECUTION_STEPS: usize = types.MAX_COMPONENTS * MAX_OPCODE_SHARD_ROWS;
 const MAX_MEMORY_SHARD_LOG_SIZE: u32 = 16;
 const MAX_MEMORY_SHARD_ROWS: usize = @as(usize, 1) << MAX_MEMORY_SHARD_LOG_SIZE;
+const MAX_MERKLE_ROWS_WITHOUT_COEFFICIENT_WRAP: u32 = (m31.Modulus - 1) / 2;
+const MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY: u64 = 3;
+const MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY: u64 = 2;
 
 comptime {
     if (MAX_EXECUTION_STEPS >= m31.Modulus) {
         @compileError("RISC-V execution geometry must fit in one M31 field cycle");
+    }
+    if (MAX_EXECUTION_STEPS * access_clock.STRIDE != state_chain.CLOCK_PREV_BOUND) {
+        @compileError("clock predecessor decomposition drifted from execution capacity");
+    }
+    if (access_clock.maximum(@intCast(MAX_EXECUTION_STEPS)) >= m31.Modulus) {
+        @compileError("maximum RISC-V access clock must be canonical in M31");
     }
 }
 
@@ -41,8 +52,7 @@ pub fn computeOpcodeLogSize(count: usize) u32 {
 pub const AdmissionPolicy = enum {
     /// Proofs and verification admit only fully constrained opcode families.
     proof,
-    /// CP-11 diagnostics may inspect the exact committed relation sources for
-    /// the pinned MULH family limitation. This never authorizes a proof.
+    /// Diagnostics use the same family admission policy as production proofs.
     relation_diagnostic,
 };
 
@@ -94,7 +104,8 @@ pub fn validate(
     const memory_start: usize = 1;
     var index = memory_start;
     while (index < statement.n_infra and statement.infra_descs[index].kind == .memory) : (index += 1) {}
-    try validateMemoryShards(statement.infra_descs[memory_start..index]);
+    const memory_shards = statement.infra_descs[memory_start..index];
+    try validateMemoryShards(memory_shards);
     if (index + 3 + component_order.LOOKUP_TABLE_COUNT != statement.n_infra)
         return types.ProverError.InvalidStatement;
     const merkle_desc = statement.infra_descs[index];
@@ -113,6 +124,12 @@ pub fn validate(
         clock_update.log_size != @max(@as(u32, 4), computeLogSize(clock_update.n_rows)))
         return types.ProverError.InvalidStatement;
     if (poseidon_desc.n_rows != merkle_desc.n_rows) return types.ProverError.InvalidStatement;
+    try validateMerkleCoefficientLift(program.n_rows, memory_shards, merkle_desc.n_rows);
+    try validateMemoryRelationCoefficientLift(
+        statement.total_steps,
+        memory_shards,
+        clock_update.n_rows,
+    );
     index += 3;
     for (component_order.lookupTables()) |kind| {
         const desc = statement.infra_descs[index];
@@ -131,17 +148,65 @@ pub fn validate(
 
 fn validateTotalStepsFieldCycle(total_steps: u32) types.ProverError!void {
     // The state bus exposes clocks 1 through total_steps + 1. Keep that final
-    // endpoint canonical so a long execution cannot close through M31 wraparound.
-    if (total_steps >= m31.Modulus - 1) return types.ProverError.InvalidStatement;
+    // endpoint canonical, and keep all derived access subclocks inside the
+    // predecessor decomposition window.
+    if (total_steps > MAX_EXECUTION_STEPS or
+        total_steps >= m31.Modulus - 1 or
+        access_clock.maximum(total_steps) >= state_chain.CLOCK_PREV_BOUND)
+        return types.ProverError.InvalidStatement;
+}
+
+fn validateMerkleCoefficientLift(
+    program_rows: u32,
+    memory_shards: []const statement_mod.InfraComponentDesc,
+    merkle_rows: u32,
+) types.ProverError!void {
+    // A malicious tuple need not occupy an honest depth: its negative side can
+    // combine a coefficient-two node parent with one term from every program
+    // or RW-boundary row, while its positive side can combine a
+    // coefficient-two child with all three public roots. Bound the union of
+    // every possible same-sign source below p. Then equality in M31 lifts to
+    // ordinary-integer coefficient equality for every Merkle tuple. The node
+    // bound also excludes the weaker p-row depth cycle.
+    if (merkle_rows > MAX_MERKLE_ROWS_WITHOUT_COEFFICIENT_WRAP)
+        return types.ProverError.InvalidStatement;
+
+    var terms_per_side =
+        @as(u64, merkle_rows) * 2 +
+        @as(u64, program_rows) +
+        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY;
+    for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows);
+    if (terms_per_side >= m31.Modulus)
+        return types.ProverError.InvalidStatement;
+}
+
+fn validateMemoryRelationCoefficientLift(
+    total_steps: u32,
+    memory_shards: []const statement_mod.InfraComponentDesc,
+    clock_update_rows: u32,
+) types.ProverError!void {
+    // Every opcode contributes at most three access edges. Clock-update and
+    // RW-boundary rows contribute one edge/term apiece; at most one output
+    // word can coincide with the halt tuple, giving public multiplicity two.
+    // A total below p prevents a nonzero integer coefficient from disappearing
+    // in M31 and supplies the lift used by the strict-clock memory-path lemma.
+    var terms_per_side =
+        @as(u64, total_steps) * @as(u64, access_clock.MAX_ACCESSES_PER_INSTRUCTION) +
+        @as(u64, clock_update_rows) + MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY;
+    for (memory_shards) |desc| terms_per_side += @as(u64, desc.n_rows);
+    if (terms_per_side >= m31.Modulus)
+        return types.ProverError.InvalidStatement;
 }
 
 fn validateFamily(
     family: trace_mod.OpcodeFamily,
     policy: AdmissionPolicy,
 ) types.ProverError!void {
+    _ = policy;
     if (semantic_eval.isTraceCompatible(family)) return;
-    if (policy == .relation_diagnostic and family == .mulh) return;
-    return types.ProverError.UnsupportedProofFamily;
+    // Every enum value is an admitted RV32IM proof family. A future family
+    // cannot enter statement geometry before its semantic component lands.
+    return types.ProverError.InvalidStatement;
 }
 
 fn validateMemoryShards(shards: []const statement_mod.InfraComponentDesc) types.ProverError!void {
@@ -215,10 +280,14 @@ test "statement validation: memory shard partition is canonical" {
 }
 
 test "statement validation: execution clock cannot wrap the base field" {
-    try validateTotalStepsFieldCycle(m31.Modulus - 2);
+    try validateTotalStepsFieldCycle(@intCast(MAX_EXECUTION_STEPS));
     try std.testing.expectError(
         error.InvalidStatement,
-        validateTotalStepsFieldCycle(m31.Modulus - 1),
+        validateTotalStepsFieldCycle(@intCast(MAX_EXECUTION_STEPS + 1)),
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateTotalStepsFieldCycle(m31.Modulus - 2),
     );
     try std.testing.expectError(
         error.InvalidStatement,
@@ -230,15 +299,61 @@ test "statement validation: execution clock cannot wrap the base field" {
     );
 }
 
+test "statement validation: every Merkle coefficient side lifts to integers" {
+    try validateMerkleCoefficientLift(1, &.{}, 0);
+    try validateMerkleCoefficientLift(
+        1,
+        &.{},
+        (m31.Modulus - 5) / 2,
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateMerkleCoefficientLift(
+            1,
+            &.{},
+            (m31.Modulus - 3) / 2,
+        ),
+    );
+    try validateMerkleCoefficientLift(m31.Modulus - 4, &.{}, 0);
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateMerkleCoefficientLift(m31.Modulus - 3, &.{}, 0),
+    );
+    try validateMerkleCoefficientLift(
+        m31.Modulus - 20,
+        &.{memoryShard(16)},
+        0,
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateMerkleCoefficientLift(
+            m31.Modulus - 20,
+            &.{memoryShard(17)},
+            0,
+        ),
+    );
+}
+
+test "statement validation: memory relation coefficients cannot wrap the base field" {
+    try validateMemoryRelationCoefficientLift(0, &.{}, m31.Modulus - 3);
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateMemoryRelationCoefficientLift(0, &.{}, m31.Modulus - 2),
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateMemoryRelationCoefficientLift(
+            @intCast(MAX_EXECUTION_STEPS),
+            &.{memoryShard(MAX_MEMORY_SHARD_ROWS)},
+            m31.Modulus - 3,
+        ),
+    );
+}
+
 test "statement validation: only semantically constrained opcode families are admitted" {
     for (component_order.opcodeFamilies()) |family| {
-        if (family == .mulh) {
-            try std.testing.expectError(error.UnsupportedProofFamily, validateFamily(family, .proof));
-            try validateFamily(family, .relation_diagnostic);
-        } else {
-            try validateFamily(family, .proof);
-            try validateFamily(family, .relation_diagnostic);
-            try std.testing.expect(semantic_eval.constraintCount(family) > 0);
-        }
+        try validateFamily(family, .proof);
+        try validateFamily(family, .relation_diagnostic);
+        try std.testing.expect(semantic_eval.constraintCount(family) > 0);
     }
 }

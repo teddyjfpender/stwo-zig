@@ -45,6 +45,8 @@ test "official Cairo all-opcodes commitment traces match Rust" {
         allocator,
         &input,
         &programs,
+        null,
+        null,
         topology,
         &fixed,
         .canonical_small,
@@ -92,6 +94,8 @@ test "official Cairo all-opcodes commitment traces match Rust" {
             alpha_limbs[2],
             alpha_limbs[3],
         ),
+        null,
+        null,
         null,
     );
     defer interaction.deinit();

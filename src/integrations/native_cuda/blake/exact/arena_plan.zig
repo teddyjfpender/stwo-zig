@@ -1,15 +1,11 @@
 //! Lifetime-sealed proof arena for exact mixed-height CUDA Blake.
 
 const std = @import("std");
-const field = @import("../../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import(
-    "../../../../backends/cuda/abi/stages/quotient.zig",
-);
-const arena = @import("../../../../backends/cuda/runtime/arena.zig");
-const relation_abi = @import(
-    "../../../../backends/cuda/abi/stages/relation.zig",
-);
-const telemetry = @import("../../../../backends/cuda/runtime/telemetry.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const completion_plan = @import("completion_plan.zig");
 const geometry_mod = @import("geometry.zig");
 const interaction_plan = @import("interaction_plan.zig");

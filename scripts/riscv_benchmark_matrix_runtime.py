@@ -24,7 +24,7 @@ from scripts.riscv_release_oracle_lib import build_cache
 from scripts.riscv_release_oracle_lib.oracle_build import build_oracle, resolve_build_inputs
 from scripts.riscv_release_oracle_lib.public_values import (
     IMPLEMENTATION_REPOSITORY,
-    PINNED_ORACLE,
+    PINNED_STARK_V,
     PUBLIC_DATA_FIELDS,
     validate_public_data_shape,
 )
@@ -209,9 +209,9 @@ def prepare_oracle(
     store: EvidenceStore,
 ) -> tuple[Path, Path, dict[str, Any]]:
     source = source.resolve(strict=True)
-    before = resolve_build_inputs(source, PINNED_ORACLE)
+    before = resolve_build_inputs(source, PINNED_STARK_V)
     receipt: dict[str, Any] = {}
-    cp11 = build_oracle(source, receipt, PINNED_ORACLE, cache_dir)
+    cp11 = build_oracle(source, receipt, PINNED_STARK_V, cache_dir)
     build_started = time.monotonic_ns()
     try:
         result = subprocess.run(
@@ -229,7 +229,7 @@ def prepare_oracle(
     if result.returncode != 0:
         diagnostic = (result.stderr or result.stdout).decode(errors="replace")[-4096:]
         raise MatrixRunError(f"stark-v-bench locked parallel build failed: {diagnostic}")
-    after = resolve_build_inputs(source, PINNED_ORACLE)
+    after = resolve_build_inputs(source, PINNED_STARK_V)
     if before.identity != after.identity:
         raise MatrixRunError("Stark-V source/build identity changed while preparing timing lane")
     timing_binary = _rust_timing_binary(source, after)
@@ -237,7 +237,7 @@ def prepare_oracle(
     correctness["executable"] = file_identity(cp11)
     timing = {
         "repository": correctness["repository"],
-        "commit": PINNED_ORACLE,
+        "commit": PINNED_STARK_V,
         "source_build_identity_sha256": build_cache.cache_key(after.identity),
         "source_build_identity": after.identity,
         "build_command": list(STARK_V_BUILD_COMMAND),
@@ -339,33 +339,44 @@ def run_oracle_semantics(
         "--max-steps", str(workload.max_steps), *input_args(workload),
     ]
     capture = run_capture(argv, store, f"logs/{safe}.oracle-semantics")
-    successful(capture, f"{workload.row_id}: CP-11 semantic oracle")
-    payload = contract.strict_json_bytes(capture.stdout, f"{workload.row_id} CP-11 output")
+    successful(capture, f"{workload.row_id}: legacy Stark-V execution comparator")
+    payload = contract.strict_json_bytes(
+        capture.stdout, f"{workload.row_id} legacy comparator output"
+    )
     if set(payload) != {"trace", "public_data"}:
-        raise MatrixRunError(f"{workload.row_id}: CP-11 output fields drifted")
+        raise MatrixRunError(f"{workload.row_id}: legacy comparator fields drifted")
     trace = payload["trace"]
     if not isinstance(trace, dict) or set(trace) != {"final_pc", "final_regs", "total_steps"}:
-        raise MatrixRunError(f"{workload.row_id}: CP-11 trace fields drifted")
-    public = validate_public_data_shape(payload["public_data"], "CP-11 public_data")
+        raise MatrixRunError(f"{workload.row_id}: legacy comparator trace fields drifted")
+    public = validate_public_data_shape(
+        payload["public_data"], "legacy comparator public_data"
+    )
     if (
         trace["total_steps"] != public["clock"]
         or trace["final_pc"] != public["final_pc"]
         or trace["final_regs"] != public["final_regs"]
     ):
-        raise MatrixRunError(f"{workload.row_id}: CP-11 trace/public-data self-parity failed")
-    validate_public_input(public, workload, "CP-11")
+        raise MatrixRunError(
+            f"{workload.row_id}: legacy comparator trace/public-data self-check failed"
+        )
+    validate_public_input(public, workload, "legacy comparator")
     if workload.suite == "corpus" and (
         public["clock"] != workload.fixture["expected_total_steps"]
         or public["final_pc"] != workload.fixture["expected_final_pc"]
     ):
-        raise MatrixRunError(f"{workload.row_id}: CP-11 differs from committed corpus metadata")
+        raise MatrixRunError(
+            f"{workload.row_id}: legacy comparator differs from corpus metadata"
+        )
     return public, semantic_summary(public, capture.stdout_identity, capture.duration_ns)
 
 
 def semantic_parity(oracle: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
     mismatches = [field for field in PUBLIC_DATA_FIELDS if oracle[field] != candidate[field]]
     if mismatches:
-        raise MatrixRunError(f"semantic oracle mismatch: {', '.join(mismatches)}")
+        raise MatrixRunError(
+            f"benchmark execution mismatch against legacy comparator: "
+            f"{', '.join(mismatches)}"
+        )
     digest = canonical_digest(oracle)
     if digest != canonical_digest(candidate):
         raise MatrixRunError("semantic public-data digest differs despite field comparison")

@@ -38,6 +38,8 @@ pub const official_pcs_config = core.pcs.PcsConfig{
 pub const Fixture = struct {
     input: *const adapter.ProverInput,
     programs: *const witness.bundle.Bundle,
+    generated_executor: ?witness.generated_executor.Executor = null,
+    interaction_executor: ?witness.interaction_executor.Executor = null,
     topology: witness.feed_topology.Loaded,
     fixed: *const witness.fixed_table_bundle.Bundle,
     relations: *const witness.relation_bundle.Bundle,
@@ -219,6 +221,8 @@ pub fn proveFixtureWithRecorder(
             allocator,
             fixture.input,
             fixture.programs,
+            fixture.generated_executor,
+            fixture.interaction_executor,
             fixture.topology,
             fixture.fixed,
             claimVariant(variant),
@@ -371,10 +375,12 @@ pub fn proveFixtureWithRecorder(
             lookup.z,
             lookup.alpha,
             if (pedersen_initialized) &pedersen else null,
+            fixture.interaction_executor,
             recorder,
         );
     };
     defer interaction.deinit();
+    base.releaseWitnessFeeds();
     const public_sum = try statement.public_logup.sum(
         allocator,
         fixture.input,

@@ -11,7 +11,13 @@ pub const composition_aot = @import("composition_aot.zig");
 pub const composition_prewarm = @import("composition_prewarm.zig");
 pub const witness_aot = @import("witness_aot.zig");
 pub const witness_codegen = @import("witness_codegen.zig");
+pub const prover = @import("prover/mod.zig");
+pub const interaction_executor = @import("prover/interaction_executor.zig");
+pub const resident_lookup = @import("prover/resident_lookup.zig");
 pub const process_backend = @import("process/backend.zig");
+pub const process_runner = @import("process/runner.zig");
+pub const recipe_requirements = @import("recipe_requirements.zig");
+pub const schedule_bindings = @import("schedule_bindings.zig");
 
 test {
     _ = @import("schedule_bindings_test.zig");
@@ -26,5 +32,7 @@ test {
     _ = composition_prewarm;
     _ = witness_aot;
     _ = witness_codegen;
+    _ = interaction_executor;
+    _ = resident_lookup;
     _ = process_backend;
 }

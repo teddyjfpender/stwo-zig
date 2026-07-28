@@ -1,0 +1,11 @@
+.{
+    .fingerprint = 0xfe94d6b9cccf129f,
+    .name = .stwo_cairo_frontend,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_backend_contracts = .{ .path = "../../backend" },
+        .stwo_prover_impl = .{ .path = "../../prover" },
+    },
+}

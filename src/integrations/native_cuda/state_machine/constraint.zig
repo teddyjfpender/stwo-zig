@@ -1,9 +1,7 @@
 //! Exact two-component State Machine v2 constraint composition policy.
 
-const field = @import("../../../backends/cuda/abi/field.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const geometry_mod = @import("geometry.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;

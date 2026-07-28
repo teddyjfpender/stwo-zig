@@ -3,8 +3,8 @@
 **Make the prover faster across scale, on CPU, Metal, and RISC-V.** Reduce
 end-to-end prove time on the manifest-owned scored classes, including the large
 geometries where GPU throughput should dominate, while preserving the pinned
-Rust Stwo and Stark-V correctness authorities. That is the whole task;
-everything below is contract.
+Rust Stwo authority for Native and the pinned Sail/Spike evidence for RISC-V.
+That is the whole task; everything below is contract.
 
 This file is written to be handed to a coding agent verbatim, together with the
 Participate block on [autoresearch.fun](https://autoresearch.fun/p/stwo-zig-metal).
@@ -85,9 +85,10 @@ The Native frontend currently exercises six AIR families (`wide_fibonacci`,
 `xor`, `plonk`, `state_machine`, `blake`, and `poseidon`) at multiple shapes on
 both CPU/SIMD and Metal. The five-class scale basket extends that evidence from
 latency through 104,857,600 committed cells. RISC-V is a live, isolated
-three-class board with a release-gated adapter, pinned Stark-V authority, and
-20-program workload basket. Cairo is a future frontend and must not be inferred
-from Native or RISC-V results.
+three-class board with a release-gated adapter, pinned Sail/Spike correctness
+evidence, an optional Stark-V performance reference, and a 20-program workload
+basket. Cairo is a future frontend and must not be inferred from Native or
+RISC-V results.
 
 Every optimization hypothesis must therefore name its expected movement across
 AIR family, shape, frontend, and backend. Profile before changing code, retain
@@ -153,10 +154,11 @@ The RISC-V board scores portfolios rather than one convenient ELF:
 | `deep` | 7 | PRNG, iterative Fibonacci, GCD, multi-shard execution, SHA2-512/1024/2048 |
 
 Every RISC-V score must retain a schema-v2 proof report, independently verify
-the published artifact, and validate the immutable promoted Stark-V release
-receipt. RISC-V frontend/AIR sources remain outside the editable surface; the
-live board currently evaluates shared backend and prover optimizations without
-letting a submission weaken its statement or oracle.
+the published artifact, and validate the immutable Sail/Spike corpus binding.
+The pinned Stark-V lane is an optional performance comparator only. RISC-V
+frontend/AIR sources remain outside the editable surface; the live board
+currently evaluates shared backend and prover optimizations without letting a
+submission weaken its statement or correctness authority.
 
 Ballpark you are attacking (matrix run `2026-07-18-064334-matrix-v5-789feb4c`,
 CPU lane): small-class wide_fibonacci proves in ~18.4 ms. `stwo-perf benchmark`
@@ -333,8 +335,9 @@ note below), and one remote submission per user may be active at a time.
 ## What winning means
 
 - **G1 conformance**: Native proofs are accepted by pinned Rust Stwo; RISC-V
-  artifacts bind the promoted Stark-V release authority and pass independent
-  artifact verification.
+  artifacts bind pinned Sail/Spike corpus evidence and pass separate-process
+  artifact verification. This remains finite evidence, not universal
+  AIR-to-Sail refinement.
 - **G2 identity**: statement, protocol, and workload digests unchanged.
 - **G3 mechanism**: your predicted mechanism visible in telemetry, not just a delta.
 - **G4 budgets**: RSS, caches, handles, threads within bounds; other classes

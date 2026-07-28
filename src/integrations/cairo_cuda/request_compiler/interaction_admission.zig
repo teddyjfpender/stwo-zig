@@ -1,12 +1,8 @@
 //! Request-local admission map for the authenticated Cairo relation graph.
 
 const std = @import("std");
-const proof_plan = @import(
-    "../../../frontends/cairo/proof_plan.zig",
-);
-const relation_bundle = @import(
-    "../../../frontends/cairo/witness/relation_bundle.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
 const relation_adapter = @import("../relation_adapter.zig");
 
 pub const production_ready = false;
@@ -105,9 +101,7 @@ fn hashInt(
 
 test "SN2 interaction admission binds all canonical relation instances" {
     const allocator = std.testing.allocator;
-    const composition_bundle = @import(
-        "../../../frontends/cairo/witness/composition_bundle.zig",
-    );
+    const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
     var composition = try composition_bundle.Bundle.readFile(
         allocator,
         "vectors/cairo/sn_pie_2_composition.bin",

@@ -1,8 +1,8 @@
-//! Canonical component order at the pinned Stark-V revision.
+//! Canonical component order for the Sail-authoritative proof schema.
 //!
-//! Local enum ordinals are implementation details. Proving phases must iterate
-//! these lists so main, interaction, claim, prover, and verifier placement all
-//! follow `crates/prover/src/components/mod.rs` at the pinned oracle commit.
+//! The legacy sixteen-family block retains its order. New locally specified
+//! families are appended before infrastructure so every proving phase shares
+//! one explicit main/interaction/claim placement.
 
 const std = @import("std");
 const opcode_manifest = @import("../opcode_manifest.zig");
@@ -13,10 +13,10 @@ pub const OpcodeFamily = opcode_manifest.Family;
 pub const TableKind = table_schema.Kind;
 pub const TranscriptComponent = transcript_claims.Component;
 
-pub const OPCODE_FAMILY_COUNT: usize = 16;
+pub const OPCODE_FAMILY_COUNT: usize = 17;
 pub const LOOKUP_TABLE_COUNT: usize = 6;
-pub const LOOKUP_TABLE_COMPONENT_START: usize = 21;
-pub const TRANSCRIPT_COMPONENT_COUNT: usize = 27;
+pub const LOOKUP_TABLE_COMPONENT_START: usize = 22;
+pub const TRANSCRIPT_COMPONENT_COUNT: usize = 28;
 
 pub const OPCODE_FAMILIES = [OPCODE_FAMILY_COUNT]OpcodeFamily{
     .auipc,
@@ -35,6 +35,7 @@ pub const OPCODE_FAMILIES = [OPCODE_FAMILY_COUNT]OpcodeFamily{
     .mulh,
     .shifts_imm,
     .shifts_reg,
+    .fence,
 };
 
 pub const LOOKUP_TABLES = [LOOKUP_TABLE_COUNT]TableKind{
@@ -80,6 +81,7 @@ pub fn opcodeFamilyIndex(family: OpcodeFamily) usize {
         .mulh => 13,
         .shifts_imm => 14,
         .shifts_reg => 15,
+        .fence => 16,
     };
 }
 
@@ -112,6 +114,7 @@ pub fn transcriptComponentForOpcodeFamily(family: OpcodeFamily) TranscriptCompon
         .mulh => .mulh,
         .shifts_imm => .shifts_imm,
         .shifts_reg => .shifts_reg,
+        .fence => .fence,
     };
 }
 

@@ -1,7 +1,7 @@
 //! Fail-closed geometry for the exact Native XOR truth-table LogUp protocol.
 
 const std = @import("std");
-const cpu_xor = @import("../../../examples/xor.zig");
+const cpu_xor = @import("stwo_native_examples").xor;
 const pcs = @import("stwo_core").pcs;
 
 pub const preprocessed_columns: u32 = 7;

@@ -1,10 +1,60 @@
-//! Canonical preprocessed-column construction for RISC-V proof components.
+//! Tree 0: canonical preprocessed columns for RISC-V components, and their
+//! commitment.
+//!
+//! Every column here is a function of the statement geometry alone -- no
+//! execution value reaches it -- which is why Tree 0 is committed first, before
+//! any witness-derived column exists. `logSizes` states the same geometry for
+//! the verifier, and the two must be read as one declaration: a column added to
+//! `generate` without a matching entry in `logSizes` is a prover and a verifier
+//! that disagree about the shape of the same tree.
 
 const std = @import("std");
 const prover_pcs = @import("stwo_prover_impl").pcs;
+const stage_profile = @import("stwo_prover_impl").stage_profile;
 const table_schema = @import("../air/lookups/tables/schema.zig");
 const statement_mod = @import("../air/statement.zig");
 const opcode_trace = @import("opcode_trace.zig");
+const relation_diagnostic = @import("relation_diagnostic.zig");
+const test_witness_hook = @import("test_witness_hook.zig");
+const types = @import("types.zig");
+
+/// Generates the preprocessed columns and commits them as Tree 0.
+///
+/// The diagnostic snapshot is taken *before* any test mutation, unlike Tree 1's:
+/// a preprocessed mutation is a claim that the verifier's own recomputation
+/// rejects it, so the diagnostic must retain the canonical columns to compare
+/// against. The column array is **transferred** to the scheme at the commit
+/// point and released here on every path that does not reach it.
+pub fn generateAndCommit(
+    comptime Engine: type,
+    comptime mode: types.RunMode,
+    allocator: std.mem.Allocator,
+    statement: *const statement_mod.RiscVStatement,
+    scheme: *Engine.Scheme,
+    channel: *Engine.Channel,
+    recorder: ?*stage_profile.Recorder,
+    test_mutation: ?test_witness_hook.Mutation,
+    retained_tree: *?relation_diagnostic.RetainedTree,
+) !void {
+    var stage = try stage_profile.StageScope.begin(recorder, "riscv_preprocessed_commit", "RISC-V preprocessed trace commit");
+    defer stage.end();
+
+    const columns = try generate(allocator, statement.*);
+    var moved = false;
+    errdefer if (!moved) {
+        for (columns) |column| allocator.free(@constCast(column.values));
+        allocator.free(columns);
+    };
+
+    if (comptime mode == .relation_diagnostic) {
+        retained_tree.* = try relation_diagnostic.RetainedTree.capture(allocator, columns);
+    }
+    if (test_mutation) |mutation|
+        try test_witness_hook.applyPreprocessed(allocator, statement.*, columns, mutation);
+
+    moved = true;
+    try Engine.commit(scheme, allocator, columns, recorder, channel);
+}
 
 pub fn generate(
     allocator: std.mem.Allocator,

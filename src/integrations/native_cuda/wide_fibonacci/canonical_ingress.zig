@@ -7,7 +7,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_impl");
-const field = @import("../../../backends/cuda/abi/field.zig");
+const field = @import("stwo_cuda_backend").abi.field;
 const request = @import("request.zig");
 
 const CirclePointM31 = core.circle.CirclePointM31;

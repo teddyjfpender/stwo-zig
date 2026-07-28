@@ -1,7 +1,7 @@
 const std = @import("std");
-const runtime_mod = @import("../../../backends/metal/runtime.zig");
+const runtime_mod = @import("stwo_metal_backend").runtime;
 const m31 = @import("stwo_core").fields.m31;
-const trace = @import("../../../examples/wide_fibonacci/trace.zig");
+const trace = @import("stwo_native_examples").backend_support.wide_fibonacci.trace;
 
 const M31 = m31.M31;
 

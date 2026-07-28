@@ -1,13 +1,13 @@
 //! Deterministic construction of resident Cairo interaction traces.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const metal_runtime = @import("../../../../backends/metal/runtime.zig");
-const protocol_recipes = @import("../../../../backends/metal/protocol_recipes.zig");
-const cairo_adapter = @import("../../../../frontends/cairo/adapter/mod.zig");
-const cairo_proof_plan = @import("../../../../frontends/cairo/proof_plan.zig");
-const witness_bundle_mod = @import("../../../../frontends/cairo/witness/bundle.zig");
-const witness_scheduler = @import("../../../../frontends/cairo/witness_scheduler.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const protocol_recipes = @import("stwo_metal_backend").protocol_recipes;
+const cairo_adapter = @import("stwo_cairo_frontend").adapter;
+const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
+const witness_scheduler = @import("stwo_cairo_frontend").witness_scheduler;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const interaction_diagnostics = @import("diagnostics.zig");
 const preprocessed_coefficients = @import("../preprocessed/coefficients.zig");

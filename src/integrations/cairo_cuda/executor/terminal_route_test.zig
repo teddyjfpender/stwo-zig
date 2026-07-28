@@ -1,10 +1,8 @@
 const std = @import("std");
-const compact = @import("../../../frontends/cairo/compact_verifier_interchange.zig");
-const prover = @import("../../../frontends/cairo/prover.zig");
-const decommit = @import(
-    "../../../backends/cuda/runtime/proof_assembly/decommit_bundle.zig",
-);
-const common = @import("../../native_cuda/common/proof_bundle.zig");
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const prover = @import("stwo_cairo_frontend").prover;
+const decommit = @import("stwo_cuda_backend").runtime.proof_assembly.decommit_bundle;
+const common = @import("stwo_native_cuda_integration").common.proof_bundle;
 const terminal = @import("terminal_bundle.zig");
 const decode = @import("terminal_decode.zig");
 const route = @import("proof_route.zig");

@@ -6,18 +6,10 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
-const relation_abi = @import(
-    "../../../../backends/cuda/abi/stages/relation.zig",
-);
-const relation_stage = @import(
-    "../../../../backends/cuda/runtime/stages/relation.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const relation_adapter = @import("../../relation_adapter.zig");
 const resident_plan = @import("../resident_plan.zig");
 const trace_schedule = @import("../trace_schedule.zig");

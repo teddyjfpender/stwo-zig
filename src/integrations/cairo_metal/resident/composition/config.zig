@@ -3,7 +3,7 @@
 const std = @import("std");
 const eval_codegen = @import("../../eval_codegen.zig");
 const composition_aot = @import("../../composition_aot.zig");
-const metal_runtime = @import("../../../../backends/metal/runtime.zig");
+const metal_runtime = @import("stwo_metal_backend").runtime;
 const Error = @import("../errors.zig").Error;
 
 const enable_fusion_env = "STWO_ZIG_SN2_ENABLE_COMPOSITION_PART_FUSION";

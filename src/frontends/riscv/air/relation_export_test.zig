@@ -116,10 +116,10 @@ test "relation export: committed opcode stream binds a fixed native claim" {
     const shard = oneShard(&columns);
     var native_sums = [_]QM31{QM31.zero()} ** relation_export.COMPONENT_COUNT;
     native_sums[@intFromEnum(relation_export.Component.auipc)] = QM31.fromU32Unchecked(
-        780134934,
-        1021902651,
-        1526496420,
-        482472235,
+        329023804,
+        1517245229,
+        476668728,
+        845289624,
     );
     const native = claims.InteractionClaim.init(native_sums, &.{});
     var ledger = try relation_export.ClaimLedger.init(.{3} ** 32, .{1} ** 32, .{2} ** 32, &native);
@@ -134,11 +134,11 @@ test "relation export: committed opcode stream binds a fixed native claim" {
         &sequence,
         &observer,
     );
-    try std.testing.expectEqual(@as(u64, 128), evidence.all.entries);
-    try std.testing.expectEqual(@as(u64, 120), evidence.zero.entries);
-    try std.testing.expectEqual(@as(u64, 8), evidence.nonzero.entries);
-    try std.testing.expectEqual(@as(usize, 8), observer.real_requests);
-    try std.testing.expectEqual(@as(usize, 120), observer.padding_requests);
+    try std.testing.expectEqual(@as(u64, 192), evidence.all.entries);
+    try std.testing.expectEqual(@as(u64, 180), evidence.zero.entries);
+    try std.testing.expectEqual(@as(u64, 12), evidence.nonzero.entries);
+    try std.testing.expectEqual(@as(usize, 12), observer.real_requests);
+    try std.testing.expectEqual(@as(usize, 180), observer.padding_requests);
     try std.testing.expectError(error.IncompleteClaims, ledger.finish());
     try std.testing.expectError(error.IncompleteComponents, sequence.finish());
 }
@@ -221,10 +221,10 @@ test "relation export: ordered two-shard family checks one aggregate claim" {
     }
     var native_sums = [_]QM31{QM31.zero()} ** relation_export.COMPONENT_COUNT;
     native_sums[@intFromEnum(relation_export.Component.auipc)] = QM31.fromU32Unchecked(
-        1286973860,
-        564928384,
-        537065416,
-        441995620,
+        1494796886,
+        943261898,
+        172869581,
+        1009213607,
     );
     const native = claims.InteractionClaim.init(native_sums, &.{});
     var ledger = try relation_export.ClaimLedger.init(.{3} ** 32, .{1} ** 32, .{2} ** 32, &native);
@@ -240,9 +240,9 @@ test "relation export: ordered two-shard family checks one aggregate claim" {
         &observer,
     );
     try std.testing.expectEqual(@as(u32, 2), evidence.shard_count);
-    try std.testing.expectEqual(@as(u64, 256), evidence.all.entries);
-    try std.testing.expectEqual(@as(u64, 136), evidence.nonzero.entries);
-    try std.testing.expectEqual(@as(u64, 120), evidence.zero.entries);
+    try std.testing.expectEqual(@as(u64, 384), evidence.all.entries);
+    try std.testing.expectEqual(@as(u64, 204), evidence.nonzero.entries);
+    try std.testing.expectEqual(@as(u64, 180), evidence.zero.entries);
 
     try expectShardFailure(error.InvalidShardCount, shards[0..1]);
     const reordered = [_]relation_export.OpcodeShard{ shards[1], shards[0] };

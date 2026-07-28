@@ -1,11 +1,7 @@
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const telemetry = @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const fixture_module = @import("pcs_controller_test_fixture.zig");
 const pcs_hooks = @import("pcs_hooks.zig");
 const subject = @import("pcs_fri_controller.zig");

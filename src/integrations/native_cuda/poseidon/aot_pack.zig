@@ -2,16 +2,10 @@
 
 const std = @import("std");
 const ir = @import("stwo_backend_contracts").proof_program;
-const schema = @import("../../../backends/cuda/abi/schema.zig");
-const telemetry = @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-);
-const witness = @import(
-    "../../../backends/cuda/runtime/traces/m31_permutation.zig",
-);
-const constraint = @import(
-    "../../../backends/cuda/runtime/constraints/poseidon.zig",
-);
+const schema = @import("stwo_cuda_backend").abi.schema;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
+const witness = @import("stwo_cuda_backend").runtime.traces.m31_permutation;
+const constraint = @import("stwo_cuda_backend").runtime.constraints.poseidon;
 
 pub const sm89: u32 = 89;
 

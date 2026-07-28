@@ -1,7 +1,7 @@
 //! Protocol-stage contract and completed Native CUDA binding ledger.
 
 const std = @import("std");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 
 pub const Stage = telemetry.Stage;
 

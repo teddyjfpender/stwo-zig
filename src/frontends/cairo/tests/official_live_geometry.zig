@@ -39,6 +39,11 @@ fn expectLiveCase(case: Case) !void {
         "vectors/cairo/official/witness_programs_v1.bin",
     );
     defer programs.deinit();
+    var topology = try cairo.witness.feed_topology.readOfficial(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_feed_topology_v1.json",
+    );
+    defer topology.deinit();
     var expected = try cairo.conformance.receipt.readFile(
         std.testing.allocator,
         case.checkpoint_path,
@@ -63,6 +68,9 @@ fn expectLiveCase(case: Case) !void {
         std.testing.allocator,
         &input,
         &programs,
+        null,
+        null,
+        topology,
         &geometry,
         .{
             .context = &observer,

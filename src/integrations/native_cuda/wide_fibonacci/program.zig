@@ -2,11 +2,9 @@
 
 const std = @import("std");
 const backend = @import("stwo_backend_contracts");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const layout_mod = @import("layout.zig");
 const request = @import("request.zig");
 const topology = @import("topology.zig");
@@ -345,7 +343,11 @@ fn transcriptNode(operation: transcript.Operation) u32 {
         .mix_main_root,
         .mix_statement,
         => 1,
-        .draw_composition_alpha, .mix_composition_root => 2,
+        .draw_lookup_elements,
+        .mix_interaction_root,
+        .draw_composition_alpha,
+        .mix_composition_root,
+        => 2,
         .draw_oods_point,
         .mix_sampled_values,
         .draw_quotient_alpha,
@@ -362,11 +364,13 @@ fn transcriptKind(operation: transcript.Operation) ir.TranscriptKind {
         .mix_preprocessed_root,
         .mix_main_root,
         .mix_statement,
+        .mix_interaction_root,
         .mix_composition_root,
         .mix_sampled_values,
         .mix_fri_root,
         .mix_last_layer,
         => .mix,
+        .draw_lookup_elements,
         .draw_composition_alpha,
         .draw_oods_point,
         .draw_quotient_alpha,

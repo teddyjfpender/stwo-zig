@@ -5,6 +5,9 @@ const adapter = @import("../adapter/mod.zig");
 const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const execution_tables = @import("execution_tables.zig");
+const generated = @import("generated_executor.zig");
+const interaction_executor = @import("interaction_executor.zig");
+const interaction_residency = @import("interaction_residency.zig");
 const program_mod = @import("program.zig");
 const prover = @import("stwo_prover_impl");
 const work_pool = prover.work_pool;
@@ -22,20 +25,29 @@ pub const Execution = struct {
     output_storage: []u32,
     output_columns: [][]u32,
     lookup_words: []u32,
+    lookup_allocation: ?interaction_residency.LookupAllocation,
     sub_words: []u32,
 
     pub fn deinit(self: *Execution) void {
         self.allocator.free(self.sub_words);
-        self.allocator.free(self.lookup_words);
+        var lookup = interaction_residency.RetainedLookup{
+            .words = self.lookup_words,
+            .allocation = self.lookup_allocation,
+        };
+        lookup.deinit(self.allocator);
         self.allocator.free(self.output_columns);
         self.allocator.free(self.output_storage);
         self.* = undefined;
     }
 
-    pub fn takeLookupWords(self: *Execution) []u32 {
-        const words = self.lookup_words;
+    pub fn takeLookup(self: *Execution) interaction_residency.RetainedLookup {
+        const retained = interaction_residency.RetainedLookup{
+            .words = self.lookup_words,
+            .allocation = self.lookup_allocation,
+        };
         self.lookup_words = &.{};
-        return words;
+        self.lookup_allocation = null;
+        return retained;
     }
 
     pub fn takeSubWords(self: *Execution) []u32 {
@@ -49,6 +61,9 @@ pub fn execute(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     witness_program: program_mod.Program,
+    generated_executor: ?generated.Executor,
+    interaction_backend: ?interaction_executor.Executor,
+    interaction_columns: usize,
     source: anytype,
     layout: component_layout.ComponentLayout,
     pedersen_table: ?deductions.PedersenTable,
@@ -83,11 +98,20 @@ pub fn execute(
     defer allocator.free(input_storage);
     const input_columns = try allocator.alloc([]const u32, source.columnCount());
     defer allocator.free(input_columns);
+    const native_input_columns = try allocator.alloc(
+        generated.ConstColumnView,
+        source.columnCount(),
+    );
+    defer allocator.free(native_input_columns);
     for (input_columns, 0..) |*column, column_index| {
         const start = column_index * row_count;
         const values = input_storage[start .. start + row_count];
         try source.writeColumn(column_index, values);
         column.* = values;
+        native_input_columns[column_index] = .{
+            .ptr = values.ptr,
+            .len = values.len,
+        };
     }
     input_stage.end();
 
@@ -103,6 +127,7 @@ pub fn execute(
         .output_storage = try allocator.alloc(u32, output_words),
         .output_columns = &.{},
         .lookup_words = &.{},
+        .lookup_allocation = null,
         .sub_words = &.{},
     };
     errdefer allocator.free(result.output_storage);
@@ -112,8 +137,38 @@ pub fn execute(
         const start = column_index * row_count;
         column.* = result.output_storage[start .. start + row_count];
     }
-    result.lookup_words = try allocator.alloc(u32, lookup_words);
-    errdefer allocator.free(result.lookup_words);
+    const native_output_columns = try allocator.alloc(
+        generated.ColumnView,
+        witness_program.n_cols,
+    );
+    defer allocator.free(native_output_columns);
+    for (result.output_columns, native_output_columns) |column, *view| {
+        view.* = .{ .ptr = column.ptr, .len = column.len };
+    }
+    if (interaction_backend) |backend| {
+        if (try backend.allocateLookup(allocator, .{
+            .rows = row_count,
+            .word_columns = witness_program.n_lookup_words,
+            .interaction_columns = interaction_columns,
+        })) |allocation| {
+            if (allocation.words.len != lookup_words) {
+                var invalid = allocation;
+                invalid.deinit();
+                return Error.InvalidReceiptGeometry;
+            }
+            result.lookup_words = allocation.words;
+            result.lookup_allocation = allocation;
+        }
+    }
+    if (result.lookup_allocation == null) {
+        result.lookup_words = try allocator.alloc(u32, lookup_words);
+    }
+    errdefer {
+        if (result.lookup_allocation) |*allocation|
+            allocation.deinit()
+        else
+            allocator.free(result.lookup_words);
+    }
     result.sub_words = try allocator.alloc(u32, sub_words);
     errdefer allocator.free(result.sub_words);
     output_stage.end();
@@ -175,6 +230,8 @@ pub fn execute(
         program: program_mod.Program,
         input_columns: []const []const u32,
         output_columns: []const []u32,
+        native_input_columns: []const generated.ConstColumnView,
+        native_output_columns: []const generated.ColumnView,
         auxiliary: program_mod.AuxiliaryOutputs,
         start: usize,
         end: usize,
@@ -182,21 +239,38 @@ pub fn execute(
         deduce_args: []u32,
         tables: program_mod.TableContext,
         deduce: program_mod.DeduceContext,
+        generated_writer: ?generated.Writer,
         failure: ?anyerror = null,
 
         fn run(self: *@This()) void {
-            program_mod.executeAllRange(
-                self.program,
-                self.input_columns,
-                self.output_columns,
-                self.auxiliary,
-                self.start,
-                self.end,
-                self.registers,
-                self.deduce_args,
-                self.tables,
-                self.deduce,
-            ) catch |err| {
+            const execution_result = if (self.generated_writer) |writer|
+                writer(.{
+                    .input_columns = self.input_columns,
+                    .output_columns = self.output_columns,
+                    .native_input_columns = self.native_input_columns,
+                    .native_output_columns = self.native_output_columns,
+                    .auxiliary = self.auxiliary,
+                    .start = self.start,
+                    .end = self.end,
+                    .registers = self.registers,
+                    .deduce_args = self.deduce_args,
+                    .tables = self.tables,
+                    .deduce = self.deduce,
+                })
+            else
+                program_mod.executeAllRange(
+                    self.program,
+                    self.input_columns,
+                    self.output_columns,
+                    self.auxiliary,
+                    self.start,
+                    self.end,
+                    self.registers,
+                    self.deduce_args,
+                    self.tables,
+                    self.deduce,
+                );
+            execution_result catch |err| {
                 self.failure = err;
             };
         }
@@ -213,6 +287,8 @@ pub fn execute(
             .program = witness_program,
             .input_columns = input_columns,
             .output_columns = result.output_columns,
+            .native_input_columns = native_input_columns,
+            .native_output_columns = native_output_columns,
             .auxiliary = auxiliary,
             .start = start,
             .end = @min(row_count, start + chunk_len),
@@ -220,6 +296,10 @@ pub fn execute(
             .deduce_args = deduce_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .tables = execution_tables.fromInput(input),
             .deduce = deductions.contextWithConfig(&deduction_config),
+            .generated_writer = if (generated_executor) |executor|
+                executor.resolve(witness_program)
+            else
+                null,
         };
     }
     if (worker_count > 1) {

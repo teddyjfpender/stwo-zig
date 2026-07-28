@@ -10,19 +10,11 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
-const composition_bundle = @import(
-    "../../frontends/cairo/witness/composition_bundle.zig",
-);
-const interaction = @import(
-    "../../frontends/cairo/witness/interaction_trace.zig",
-);
-const relation_bundle = @import(
-    "../../frontends/cairo/witness/relation_bundle.zig",
-);
-const relation_abi = @import(
-    "../../backends/cuda/abi/stages/relation.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const interaction = @import("stwo_cairo_frontend").witness.interaction_trace;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
 const adapter = @import("relation_adapter.zig");
 
 pub const drawn_z = [4]u32{ 101, 103, 107, 109 };

@@ -50,7 +50,7 @@ pub fn sampleCountFor(
 }
 
 test "Plonk decoder descriptor admits the canonical protocol" {
-    const protocol = @import("../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig").Protocol{
+    const protocol = @import("stwo_cuda_backend").runtime.proof_assembly.stark_bundle.Protocol{
         .log_n_rows = 14,
         .sequence_len = 0,
         .pow_bits = 10,

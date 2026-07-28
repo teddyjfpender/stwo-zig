@@ -1,12 +1,8 @@
 //! Exact Plonk/LogUp policy for the generic resident relation graph.
 
 const std = @import("std");
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
-const relation_stage = @import(
-    "../../../backends/cuda/runtime/stages/relation.zig",
-);
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 
 pub const source_pointer_count: u32 = 7;
 pub const output_coordinate_count: u32 = 8;
@@ -144,10 +140,8 @@ test "exact Plonk relation topology is immutable and host validated" {
 test "generic descriptor rows equal exact CPU Plonk relation fractions" {
     const M31 = @import("stwo_core").fields.m31.M31;
     const QM31 = @import("stwo_core").fields.qm31.QM31;
-    const cpu_input = @import("../../../examples/plonk_logup/input.zig");
-    const cpu_interaction = @import(
-        "../../../examples/plonk_logup/interaction.zig",
-    );
+    const cpu_input = @import("stwo_native_examples").backend_support.plonk_logup.input;
+    const cpu_interaction = @import("stwo_native_examples").backend_support.plonk_logup.interaction;
 
     var trace = try cpu_input.genTrace(
         std.testing.allocator,
@@ -209,9 +203,7 @@ fn evaluateColumn(
     descriptor: relation_abi.ColumnDescriptor,
     sources: []const []const @import("stwo_core").fields.m31.M31,
     row: usize,
-    lookup: *const @import(
-        "../../../examples/plonk_logup/interaction.zig",
-    ).LookupElements,
+    lookup: *const @import("stwo_native_examples").backend_support.plonk_logup.interaction.LookupElements,
 ) !@import("stwo_core").fields.qm31.QM31 {
     const first = try evaluateUse(descriptor.first, sources, row, lookup);
     if (descriptor.arity == 1) return first.fraction;
@@ -225,9 +217,7 @@ fn evaluateUse(
     use: relation_abi.UseDescriptor,
     sources: []const []const @import("stwo_core").fields.m31.M31,
     row: usize,
-    lookup: *const @import(
-        "../../../examples/plonk_logup/interaction.zig",
-    ).LookupElements,
+    lookup: *const @import("stwo_native_examples").backend_support.plonk_logup.interaction.LookupElements,
 ) !struct {
     fraction: @import("stwo_core").fields.qm31.QM31,
     multiplicity: @import("stwo_core").fields.qm31.QM31,

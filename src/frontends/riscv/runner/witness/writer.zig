@@ -27,8 +27,23 @@ pub fn limbs(value: u32) [4]M31 {
     return .{ u(value & 0xff), u((value >> 8) & 0xff), u((value >> 16) & 0xff), u(value >> 24) };
 }
 
-fn writeLimbs(columns: anytype, row: usize, start: usize, value: u32) void {
+pub fn writeLimbs(columns: anytype, row: usize, start: usize, value: u32) void {
     for (limbs(value), 0..) |limb, i| set(columns, row, start + i, limb);
+}
+
+/// Commit the exact architectural write-enable and its address inverse.
+/// Keeping the enable as its own bit witness lets AIR result links remain
+/// degree two, including for writes that Sail discards at x0.
+pub fn destination(columns: anytype, row: usize, start: usize, address: u5) void {
+    const address_felt = u(address);
+    const nonzero = address != 0;
+    set(columns, row, start, bit(nonzero));
+    set(
+        columns,
+        row,
+        start + 1,
+        if (nonzero) address_felt.invUncheckedNonZero() else M31.zero(),
+    );
 }
 
 fn access(

@@ -546,6 +546,9 @@ fn validateNativeAir(
                 geometry.component + geometry.component_count)
             return error.InvalidNativeAir;
     }
+    for (program.commitments) |tree| {
+        if (tree.role == .fri) return error.InvalidNativeAir;
+    }
 
     const roles = [_]CommitmentRole{
         .preprocessed,
@@ -625,6 +628,7 @@ fn columnRole(role: CommitmentRole) ColumnRole {
 }
 
 pub fn identityDigest(bytes: []const u8) Digest {
+    @setEvalBranchQuota(100_000);
     var digest: Digest = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
     return digest;

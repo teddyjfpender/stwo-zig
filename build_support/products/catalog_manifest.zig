@@ -294,6 +294,7 @@ pub fn constructorName(constructor: specs.Constructor) []const u8 {
         .native_cuda => "products/matrix.construct.native_cuda",
         .native_metal => "products/matrix.construct.native_metal",
         .riscv_cpu => "products/matrix.construct.riscv_cpu",
+        .riscv_metal => "products/matrix.construct.riscv_metal",
         .unavailable => "products/matrix.addDeferredProducts",
     };
 }

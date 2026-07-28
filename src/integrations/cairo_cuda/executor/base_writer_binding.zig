@@ -1,18 +1,10 @@
 //! Sealed fixed-table and memory writer preparation at CUDA ingress.
 
 const std = @import("std");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const layout = @import(
-    "../../../backends/cuda/runtime/stages/resident_layout.zig",
-);
-const fixed_runtime = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/fixed_tables.zig",
-);
-const memory_runtime = @import(
-    "../../../backends/cuda/runtime/stages/cairo_base/memory.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const layout = @import("stwo_cuda_backend").runtime.stages.resident_layout;
+const fixed_runtime = @import("stwo_cuda_backend").runtime.stages.cairo_base.fixed_tables;
+const memory_runtime = @import("stwo_cuda_backend").runtime.stages.cairo_base.memory;
 const fixed_plan = @import("../base_writer_plan/fixed_tables.zig");
 const memory_plan = @import("../base_writer_plan/memory.zig");
 const recorded_binding = @import("../recorded_binding.zig");

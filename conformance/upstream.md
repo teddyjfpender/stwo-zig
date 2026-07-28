@@ -1,10 +1,11 @@
 # Upstream Pin Ledger
 
-This file is the single source-pin ledger for the repository's independent Rust correctness
-oracles. A revision applies only to the compatibility lane that names it. Native Stwo acceptance
-does not establish Cairo acceptance, and Cairo acceptance does not establish Native Stwo parity.
+This file is the single source-pin ledger for the repository's independent correctness
+authorities. A revision applies only to the compatibility lane that names it. Native Stwo
+acceptance does not establish Cairo acceptance, and neither establishes RISC-V ISA conformance.
 `python3 scripts/check_upstream_pins.py` rejects drift in manifests, lockfiles, source constants,
-generated registries, persistent sessions, prover boundaries, and hosted CI checkout metadata.
+formal-profile metadata, generated registries, persistent sessions, prover boundaries, and hosted
+CI checkout metadata.
 
 ## Native Stwo Lane
 
@@ -16,16 +17,70 @@ checkers.
 - Pinned commit: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Pin date: `2026-02-07`
 
-## RISC-V (Stark-V) Lane
+## RISC-V Formal ISA Lane
 
-This lane governs the RV32IM frontend's executor semantics, trace format, and AIR parity target.
-Stark-V is a work in progress upstream; pinning a commit turns parity into a concrete, testable
-contract instead of a moving reference. Native Stwo or Cairo acceptance does not establish
-Stark-V parity, and Stark-V acceptance establishes neither of the other lanes.
+This lane governs RV32IM decode and architectural retirement semantics. Sail is the normative
+executable ISA model, Spike is the independent implementation cross-check, and riscv-arch-test is
+the architectural corpus. The exact Sail compiler is part of the pin because generated simulator
+behavior is not attributed to an unversioned toolchain.
 
-- Stark-V repository: `https://github.com/ClementWalter/stark-v`
-- Pinned Stark-V commit: `d478f783055aa0d73a93768a433a3c6c31c91d1c`
-- Stark-V pin date: `2026-06-12`
+- Sail RISC-V repository: `https://github.com/riscv/sail-riscv`
+- Pinned Sail RISC-V commit: `8c7f2da58de0ba5e4457e4de07e0046f0439f35f`
+- Pinned Sail compiler version: `0.20.2`
+- Sail RISC-V pin date: `2026-07-26`
+- Spike repository: `https://github.com/riscv-software-src/riscv-isa-sim`
+- Pinned Spike commit: `520a5f185083ac3c97b751501dfac02a6c1f5970`
+- RISC-V Architectural Tests repository: `https://github.com/riscv-non-isa/riscv-arch-test`
+- Pinned RISC-V Architectural Tests commit: `426e1598ebc3688eaf9aba7b4a1b8a81dae9807f`
+
+The normative environment and refinement boundary are
+`conformance/2026-07-26-riscv-sail-contract.md` and
+`conformance/riscv/rv32im-sail-profile.json`. A semantic disagreement is resolved in favor of the
+pinned Sail model under those exact configuration overrides. Sail is the only RV32IM semantic
+authority in this repository; the legacy lane below cannot override it, and neither lane arbitrates
+AIR soundness, which is proved by the constraint- and lookup-level tests in the frontend.
+
+## RISC-V Legacy Protocol Layout Lane
+
+Stark-V is retained as a non-normative historical layout and performance reference. Its pin makes
+old receipts and benchmark results reproducible; it has no current release-admission, semantic,
+AIR-soundness, transcript, relation, or proof-acceptance authority. Source-level legacy opcode IDs
+and column ordering may still be documented or compared for migration archaeology, but current
+Zig protocol specifications and tests own those invariants.
+
+The pinned revision admits the under-constraints enumerated in the
+`Opcode AIR constraint and lookup layout` row of `conformance/divergence-log.md`, which is the
+authoritative disclosure: a source register access may emit a value it did not consume (which also
+leaves any witness derived from that value, including the `LB`/`LH` and `SRL`/`SRA` sign witnesses,
+a free prover choice); `SB`/`SH` leave every unmarked destination byte free; the `AUIPC` immediate
+admits a second byte decomposition offset by `p + 2`; and `composeU32(rs1.next)` is unbounded in
+`JALR`; DIV permits non-byte divisors and an ambiguous quotient sign; the shift carry lookup admits
+negative carries; and every operand access in one instruction reuses the same clock while a zero
+clock gap is admissible. That last pair permits an aliased read to hide an arbitrary value in a
+same-tuple/same-clock memory-relation self-loop. Zig therefore derives three ordered access
+subclocks inside a four-wide instruction bucket and range-checks `current - previous - 1`.
+It also rejects statement geometries whose combined memory or Merkle relation-source
+coefficients could reach the M31 modulus, including malicious cross-source tuple collisions.
+An oracle that accepts an unsound AIR cannot arbitrate AIR soundness, so agreement with it is no
+longer evidence of correctness on those surfaces and disagreement with it is no longer evidence
+of a defect.
+
+The pre-Sail CP-11 producer, bundle, challenge, owner-dispatch inputs, and fast
+producer-linked smoke profile are retired. Their top-level CLIs fail closed,
+and `contract.receipt_errors` rejects even a structurally valid archived
+receipt as current evidence. The old parser and divergence-shape code remain
+read-only so historical bundles can be inspected; no shape can be added to
+authorize release. `scripts/riscv_stark_v_benchmark.py` and the Stark-V side of
+the autoresearch performance lane remain optional performance comparisons
+only. Pinned Sail/Spike evidence and the current Zig constraint/proof suites
+own correctness admission.
+
+Pins:
+
+- Legacy Stark-V repository: `https://github.com/ClementWalter/stark-v`
+- Pinned legacy Stark-V commit: `d478f783055aa0d73a93768a433a3c6c31c91d1c`
+- Legacy Stark-V pin date: `2026-06-12`
+- Legacy Stark-V AIR-oracle demotion date: `2026-07-26`
 
 ## Cairo Lane
 
@@ -137,6 +192,9 @@ The current Native Stwo increment targets:
 3. Update manifests, lockfiles, constants, proof envelopes, receipts, and generated artifacts that
    carry those revisions.
 4. Re-run vector generation for all committed fixtures in the affected lane.
-5. Require the affected Zig parity, bidirectional interoperability, and exact Rust-oracle tests to
-   pass before merging.
-6. Document any intentional divergence in `conformance/divergence-log.md`.
+5. For RISC-V ISA changes, validate the exact Sail configuration, run retirement-level Sail and
+   Spike differentials, and run every applicable architectural test through execute → prove →
+   independent verify.
+6. Require the affected Zig parity, bidirectional interoperability, and exact external-authority
+   tests to pass before merging.
+7. Document any intentional divergence in `conformance/divergence-log.md`.

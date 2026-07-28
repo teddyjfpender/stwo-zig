@@ -55,6 +55,19 @@ pub fn genProgramColumns(
             placement,
             M31.fromU64(row.multiplicity),
         );
+        const word_address = row.pc >> 2;
+        permutation.placeValue(
+            columns[7],
+            row_index,
+            placement,
+            M31.fromU64(word_address & ((@as(u32, 1) << 20) - 1)),
+        );
+        permutation.placeValue(
+            columns[8],
+            row_index,
+            placement,
+            M31.fromU64(word_address >> 20),
+        );
     }
     return .{ .columns = columns, .n_real_rows = decoded.rows.len };
 }

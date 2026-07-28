@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const construction_observer = @import("../graph/construction_observer.zig");
+pub const package_dependencies = @import("package_dependencies.zig");
 
 pub const Scope = enum {
     aggregate,
@@ -23,6 +24,7 @@ pub const Scope = enum {
     release,
     riscv_cpu,
     riscv_cpu_compat,
+    riscv_metal,
     verification,
 };
 
@@ -91,15 +93,19 @@ pub const steps = [_]Step{
     .{ .name = "test-cairo-frontend", .description = "Run focused backend-neutral Cairo conformance tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-air", .description = "Run Cairo CPU AIR integration tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-proof", .description = "Run the complete official Cairo CPU proof gate", .scope = .compatibility_tools },
-    .{ .name = "riscv-opcode-manifest", .description = "Dump the canonical Stark-V opcode and proof-family policy as JSON", .scope = .compatibility_tools },
-    .{ .name = "riscv-opcode-manifest-check", .description = "Validate exact Stark-V opcode IDs and execution-only classifications", .scope = .compatibility_tools },
+    .{ .name = "riscv-opcode-manifest", .description = "Dump the Sail-authoritative opcode and proof-family policy as JSON", .scope = .compatibility_tools },
+    .{ .name = "riscv-opcode-manifest-check", .description = "Validate stable RV32IM protocol IDs and proof classifications", .scope = .compatibility_tools },
     .{ .name = "test-riscv", .description = "Run RISC-V runner tests (trace_dump)", .scope = .riscv_cpu_compat },
     .{ .name = "test-riscv-prover", .description = "Run RISC-V prover tests (prove+verify)", .scope = .riscv_cpu_compat },
     .{ .name = "riscv-bench", .description = "Build RISC-V benchmark CLI", .scope = .compatibility_tools },
     .{ .name = "native-proof-bench-cpu", .description = "Build the machine-readable native CPU full-proof benchmark with SIMD hot paths", .scope = .compatibility_tools },
     .{ .name = "riscv-trace-dump", .description = "Build RISC-V trace dumper CLI", .scope = .riscv_cpu },
     .{ .name = "stwo-zig-riscv-cpu-static", .description = "Build the static x86_64-linux-musl RISC-V CPU challenge executable", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-prover-core", .description = "Run the RISC-V prover corpus without the separately retained committed-witness mutation suites", .scope = .riscv_cpu },
     .{ .name = "test-riscv-release-exhaustive", .description = "Run the exhaustive RISC-V proof and adversarial release suites", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-rigidity", .description = "Run the full witness-rigidity sweep over every committed opcode column", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-air-satisfaction-export", .description = "Export committed traces for the independent AIR satisfaction checker", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-air-satisfaction", .description = "Export and independently check all RISC-V AIR main-trace components", .scope = .riscv_cpu },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },
     .{ .name = "metal-arena-session", .description = "Build persistent Metal SN PIE prover session", .scope = .metal_tools },
     .{ .name = "metal-prover-session-test", .description = "Run persistent Metal prover-session unit tests", .scope = .metal_tools },
@@ -114,9 +120,8 @@ pub const steps = [_]Step{
     .{ .name = "metal-test", .description = "Run resident Metal backend parity tests", .scope = .metal_tools },
     .{ .name = "metal-check", .description = "Compile and link resident Metal backend tests without executing them", .scope = .metal_tools },
     .{ .name = "metal-bench", .description = "Build resident Metal commitment benchmark", .scope = .metal_tools },
-    .{ .name = "riscv-metal-bench", .description = "Build RISC-V prover with Metal commitments", .scope = .metal_tools },
     .{ .name = "cuda-test", .description = "Unavailable compatibility alias; CUDA now requires an explicit product toolchain", .scope = .deferred },
-    .{ .name = "riscv-release-gate", .description = "Run the staged CLI and validate complete candidate-bound CP-11 evidence", .scope = .verification },
+    .{ .name = "riscv-release-gate", .description = "Run the staged CLI and validate committed Sail/Spike evidence", .scope = .verification },
     .{ .name = "deep-gate", .description = "Run expanded deep graph coverage", .scope = .verification },
     .{ .name = "vectors", .description = "Validate committed parity vectors", .scope = .verification },
     .{ .name = "interop", .description = "Run interoperability harness (Rust <-> Zig proof exchange)", .scope = .verification },
@@ -146,6 +151,7 @@ pub const steps = [_]Step{
     .{ .name = "api-parity", .description = "Validate API parity ledger coverage", .scope = .policy },
     .{ .name = "upstream-pins", .description = "Validate upstream pin carriers", .scope = .policy },
     .{ .name = "source-conformance", .description = "Reject source conformance regressions", .scope = .policy },
+    .{ .name = "package-workspace", .description = "Audit package ownership, API, and dependency boundaries", .scope = .policy },
     .{ .name = "upstream-surface", .description = "Validate upstream API surface", .scope = .policy },
     .{ .name = "build-configure-closure", .description = "Verify focused configure closure", .scope = .policy },
     .{ .name = "registry-parity", .description = "Compare focused and aggregate registries", .scope = .policy },
@@ -158,22 +164,46 @@ pub const steps = [_]Step{
 pub const configure = [_]Configure{
     .{ .scope = .architecture, .role = .gates, .external_tools = &.{"python3"}, .constructors = &.{ "gates/architecture_receipts.addGates", "gates/baseline.addGate" } },
     .{ .scope = .riscv_cpu_compat, .role = .product, .inherited_product_scope = .riscv_cpu, .constructors = &.{ "products/matrix.construct.riscv_cpu", "compatibility aliases" } },
-    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/core/mod.zig", "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/core", "src/backend", "src/prover", "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
+    .{
+        .scope = .riscv_metal,
+        .role = .product,
+        .product_ids = &.{"stwo-riscv-metal"},
+        .module_roots = &.{
+            "src/riscv_metal_bench_cli.zig",
+            "src/products/riscv_metal/root.zig",
+            "src/integrations/riscv_metal/mod.zig",
+            "src/tests/riscv/metal_backend_test.zig",
+            "src/frontends/riscv/mod.zig",
+        },
+        .dependency_module_roots = package_dependencies.riscv_metal_cpu_protocol_package_roots,
+        .external_tools = &.{"python3"},
+        .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
+        .allowed_module_files = &.{
+            "src/backends/metal/runtime.m",
+        },
+        .constructors = &.{"products/matrix.construct.riscv_metal"},
+        .constructed_products = &.{.{
+            .product_id = "stwo-riscv-metal",
+            .frontend = "riscv",
+            .backend = "metal",
+            .role = "cli",
+            .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1",
+        }},
+    },
+    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
         .{ .product_id = "stwo-core", .frontend = "none", .backend = "none", .role = "library", .protocol_manifest = "stwo-core-v1" },
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },
     } },
-    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/core", "src/backend", "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/prover", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
+    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.metal_tools_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
     .{
         .scope = .cuda_tools,
         .role = .backend_tools,
         .product_ids = &.{"stwo-native-cuda-tools"},
         .module_roots = &.{"build_support/backends/cuda.zig"},
+        .dependency_module_roots = package_dependencies.frontend_cuda_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
-            "src/backend/mod.zig",
-            "src/core/mod.zig",
             "src/products/native_cuda/blake_route.zig",
-            "src/prover/mod.zig",
             "src/stwo.zig",
             "src/tools/cuda_native_ec_composite_oracle/main.zig",
             "tests/native_cuda_blake_exact_structure.zig",
@@ -204,11 +234,9 @@ pub const configure = [_]Configure{
             "src/riscv_bench_cli.zig",
             "src/tools/native_proof_bench/cpu.zig",
         },
+        .dependency_module_roots = package_dependencies.compatibility_package_roots,
         .allowed_module_files = &.{"src/stwo.zig"},
         .allowed_module_prefixes = &.{
-            "src/core",
-            "src/backend",
-            "src/prover",
             "src/frontends/cairo",
             "src/frontends/riscv",
             "src/integrations/riscv_cpu",

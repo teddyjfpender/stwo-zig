@@ -1,18 +1,14 @@
 //! Plonk-owned policy for the generic constant-QM31 CUDA constraint kernel.
 
-const field = @import(
-    "../../../backends/cuda/abi/field.zig",
-);
-const constant_qm31 = @import(
-    "../../../backends/cuda/runtime/constraints/constant_qm31.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const constant_qm31 = @import("stwo_cuda_backend").runtime.constraints.constant_qm31;
 const geometry_mod = @import("geometry.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 
 pub const Buffers = constant_qm31.Buffers;
 
 pub fn compositionValue(
-    statement: @import("../../../examples/plonk.zig").Statement,
+    statement: @import("stwo_native_examples").plonk.Statement,
 ) field.SecureField {
     return .{
         .a = M31.fromCanonical(statement.log_n_rows).toU32(),

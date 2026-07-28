@@ -6,18 +6,10 @@
 //! input into authenticated resident views.
 
 const std = @import("std");
-const compact = @import(
-    "../../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const relation_stage = @import(
-    "../../../../backends/cuda/runtime/stages/relation.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const request_compiler = @import("../../request_compiler.zig");
 const eval_controller = @import("../eval/controller.zig");
 const decommit_controller = @import("../pcs_decommit_controller.zig");
@@ -31,9 +23,7 @@ const trace_commit = @import("../trace_commit.zig");
 const trace_writer = @import("../trace_writer_controller.zig");
 const proof_session = @import("../proof_session.zig");
 const preprocessed_cache = @import("../preprocessed_cache.zig");
-const proof_capture = @import(
-    "../../../native_cuda/common/proof_assembly.zig",
-);
+const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
 const resident_plan = @import("../resident_plan.zig");
 const transcript_controller = @import("../transcript/controller.zig");
 const transcript_schedule = @import("../transcript/schedule.zig");

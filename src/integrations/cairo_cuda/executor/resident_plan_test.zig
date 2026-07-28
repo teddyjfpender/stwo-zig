@@ -1,18 +1,12 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const compact = @import("../../../frontends/cairo/compact_verifier_interchange.zig");
-const compact_geometry = @import("../../../frontends/cairo/compact_protocol_geometry.zig");
-const semantic_authority = @import(
-    "../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const compact_geometry = @import("stwo_cairo_frontend").compact_protocol_geometry;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const cairo_identity = @import("../identity.zig");
-const fixed_table = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
+const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const subject = @import("resident_plan.zig");
 const test_support = @import("resident_plan_test_support.zig");
 
