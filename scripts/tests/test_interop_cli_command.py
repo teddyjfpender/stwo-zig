@@ -36,6 +36,10 @@ class InteropCliCommandTests(unittest.TestCase):
         self.assertIn("-Mroot=src/tools/interop/main.zig", command)
         self.assertIn("-Mstwo=src/stwo.zig", command)
         self.assertIn("-Mstwo_core=src/core/mod.zig", command)
+        self.assertIn(
+            "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+            command,
+        )
         self.assertIn("-Mstwo_backend_contracts=src/backend/mod.zig", command)
         self.assertIn("-Mstwo_prover_impl=src/prover/mod.zig", command)
         self.assertIn(

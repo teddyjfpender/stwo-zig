@@ -17,5 +17,6 @@
         .stwo_riscv_metal_integration = .{ .path = "src/integrations/riscv_metal" },
         .stwo_cairo_metal_integration = .{ .path = "src/integrations/cairo_metal" },
         .stwo_metal_session = .{ .path = "src/tools/metal_session" },
+        .stwo_proof_wire = .{ .path = "src/interop/proof_wire" },
     },
 }

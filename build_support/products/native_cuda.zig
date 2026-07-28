@@ -36,6 +36,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
         .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
     },
     .allowed_files = &.{"src/stwo.zig"},
     .allowed_prefixes = &.{
@@ -197,6 +198,14 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    _ = graph.addProofWireImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     const metal_session = graph.addMetalSessionImport(
         context.b,
         product(role),

@@ -49,6 +49,14 @@ pub fn addPublicModules(context: Context) Result {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addProofWireImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const metal_session = graph.addMetalSessionImport(
         context.b,
         sdkProduct(),
@@ -155,6 +163,14 @@ pub fn addProducts(context: Context) Result {
     });
     construction_observer.recordProduct(context.b, sdkProduct());
     prover.protocol.addImports(stwo);
+    _ = graph.addProofWireImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const metal_session = graph.addMetalSessionImport(
         context.b,
         sdkProduct(),

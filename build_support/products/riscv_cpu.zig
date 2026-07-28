@@ -26,6 +26,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
@@ -370,6 +371,14 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
+    _ = graph.addProofWireImport(
+        b,
+        context.protocol,
+        test_product,
+        context.target,
+        context.optimize,
+        root,
+    );
     integration_graph.addRiscVCpuStack(
         b,
         context.protocol,
@@ -407,6 +416,14 @@ fn createStwoModule(
         .optimize = optimize,
     });
     protocol.addImports(module);
+    _ = graph.addProofWireImport(
+        b,
+        protocol,
+        moduleProduct(.library),
+        target,
+        optimize,
+        module,
+    );
     integration_graph.addRiscVCpuStack(
         b,
         protocol,

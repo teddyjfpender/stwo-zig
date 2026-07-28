@@ -88,6 +88,24 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             },
         )
 
+    def test_proof_wire_has_an_independent_package_lane(self) -> None:
+        self.assert_package_lane(
+            path="src/interop/proof_wire/mod.zig",
+            lane="proof_wire",
+            build_file="src/interop/proof_wire/build.zig",
+            consumers={
+                "aggregate_cpu",
+                "aggregate_metal",
+                "metal_compile",
+                "native_cpu",
+                "native_cuda_device",
+                "native_cuda_static",
+                "native_metal",
+                "native_oracle",
+                "riscv_cpu",
+            },
+        )
+
     def test_submission_diff_selects_only_the_link_reach(self) -> None:
         # Submission metadata is externally validated; only the prover edits
         # should expand this diff beyond the always-on lane.

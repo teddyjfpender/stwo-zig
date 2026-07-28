@@ -601,7 +601,7 @@ test "examples xor: prove and prove_ex wrappers emit identical proof bytes" {
     defer output_prove_ex.proof.aux.deinit(alloc);
     defer output_prove_ex.proof.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire/mod.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
     defer alloc.free(prove_bytes);
     const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);

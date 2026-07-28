@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const artifacts = @import("examples_artifact.zig");
-const proof_wire = @import("proof_wire/mod.zig");
+const proof_wire = @import("stwo_proof_wire");
 const blake = @import("../examples/blake.zig");
 const plonk = @import("../examples/plonk.zig");
 const plonk_logup = @import("../examples/plonk_logup.zig");

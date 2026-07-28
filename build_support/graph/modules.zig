@@ -385,6 +385,45 @@ pub fn addMetalSessionImport(
     return metal_session;
 }
 
+/// Constructs the package-owned proof interchange codec against the selected
+/// protocol core.
+pub fn createProofWire(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const proof_wire = create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/proof_wire/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    proof_wire.addImport("stwo_core", protocol.core);
+    return proof_wire;
+}
+
+/// Declares a consumer's dependency on the package-owned proof-wire API.
+pub fn addProofWireImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const proof_wire = createProofWire(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_proof_wire", proof_wire);
+    return proof_wire;
+}
+
 pub fn coreProduct(role: Role) Product {
     return .{
         .name = "stwo-core",

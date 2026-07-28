@@ -16,6 +16,7 @@ pub const Package = enum {
     riscv_metal_integration,
     cairo_metal_integration,
     metal_session,
+    proof_wire,
 };
 
 pub const Source = struct {
@@ -43,6 +44,7 @@ const owners = [_]Owner{
     .{ .prefix = "src/integrations/riscv_metal/", .package = .riscv_metal_integration, .dependency_name = "stwo_riscv_metal_integration" },
     .{ .prefix = "src/integrations/cairo_metal/", .package = .cairo_metal_integration, .dependency_name = "stwo_cairo_metal_integration" },
     .{ .prefix = "src/tools/metal_session/", .package = .metal_session, .dependency_name = "stwo_metal_session" },
+    .{ .prefix = "src/interop/proof_wire/", .package = .proof_wire, .dependency_name = "stwo_proof_wire" },
 };
 
 pub fn resolve(root_source_file: []const u8) ?Source {
@@ -115,6 +117,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         Package.metal_session,
         resolve("src/tools/metal_session/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        Package.proof_wire,
+        resolve("src/interop/proof_wire/mod.zig").?.package,
     );
     try std.testing.expect(resolve("src/products/prover/root.zig") == null);
 }

@@ -27,6 +27,14 @@ pub fn addProducts(context: Context) void {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addProofWireImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const metal_session = graph.addMetalSessionImport(
         b,
         compatibility_product,

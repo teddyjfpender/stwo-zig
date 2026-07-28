@@ -2,7 +2,7 @@ const std = @import("std");
 const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const fri = @import("stwo_core").fri;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../../interop/proof_wire/mod.zig");
+const proof_wire = @import("stwo_proof_wire");
 const wide_fibonacci = @import("../../../examples/wide_fibonacci.zig");
 
 const DispatchProof = struct {

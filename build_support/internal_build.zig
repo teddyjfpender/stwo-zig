@@ -227,6 +227,14 @@ fn addMetalTools(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addProofWireImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
     const metal_session = graph.addMetalSessionImport(
         b,
         tool_product,

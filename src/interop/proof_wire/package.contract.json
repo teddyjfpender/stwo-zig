@@ -1,0 +1,41 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_proof_wire",
+  "owner": "proof-wire",
+  "public_modules": {
+    "stwo_proof_wire": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "CodecError",
+    "FriConfigWire",
+    "FriLayerWire",
+    "FriProofWire",
+    "HashWire",
+    "Hasher",
+    "MerkleDecommitmentWire",
+    "PcsConfigWire",
+    "Proof",
+    "ProofWire",
+    "Qm31Wire",
+    "decodeProofBytes",
+    "decodeProofBytesBinary",
+    "encodeProofBytes",
+    "encodeProofBytesBinary",
+    "encodeProofHexAlloc",
+    "proofToWire",
+    "wireToProof"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

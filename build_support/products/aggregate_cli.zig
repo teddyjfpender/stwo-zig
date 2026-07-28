@@ -39,6 +39,14 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addProofWireImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        stwo,
+    );
     const cpu_backend = graph.addCpuBackendImport(
         b,
         protocol,
@@ -98,6 +106,14 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         .target = target,
         .optimize = optimize,
     });
+    _ = graph.addProofWireImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        aggregate_tests,
+    );
     const test_riscv_frontend = graph.addRiscVFrontendImport(
         b,
         protocol,

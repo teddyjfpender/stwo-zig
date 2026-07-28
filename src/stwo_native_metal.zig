@@ -26,7 +26,7 @@ pub const interop = struct {
     pub const examples_artifact = @import("interop/examples_artifact.zig");
     pub const examples_artifact_verifier = @import("interop/examples_artifact_verifier.zig");
     pub const postcard = @import("interop/postcard.zig");
-    pub const proof_wire = @import("interop/proof_wire/mod.zig");
+    pub const proof_wire = @import("stwo_proof_wire");
 };
 
 test {

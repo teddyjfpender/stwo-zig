@@ -15,6 +15,10 @@ class ZigProtocolCommandTests(unittest.TestCase):
         self.assertIn("-Mroot=src/stwo_deep.zig", arguments)
         self.assertLess(
             arguments.index("-Mstwo_core=src/core/mod.zig"),
+            arguments.index("-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"),
+        )
+        self.assertLess(
+            arguments.index("-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"),
             arguments.index("-Mstwo_backend_contracts=src/backend/mod.zig"),
         )
         self.assertLess(
