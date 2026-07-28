@@ -43,6 +43,10 @@ class InteropCliCommandTests(unittest.TestCase):
             command,
         )
         self.assertIn(
+            "-Mstwo_metal_backend=src/backends/metal/mod.zig",
+            command,
+        )
+        self.assertIn(
             "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
             command,
         )

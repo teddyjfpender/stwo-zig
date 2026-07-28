@@ -1,7 +1,7 @@
 //! Direct adapted-input materialization for resident Cairo witnesses.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const cairo_adapter = @import("stwo_cairo_frontend").adapter;
 const cairo_opcodes = @import("stwo_cairo_frontend").adapter.opcodes;
 const direct_inputs = @import("stwo_cairo_frontend").witness.direct_inputs;

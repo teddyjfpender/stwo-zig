@@ -1,7 +1,7 @@
 //! Validated resident-arena binding address conversion.
 
 const std = @import("std");
-const arena_plan = @import("../../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const Error = @import("errors.zig").Error;
 
 pub fn wordOffset(binding: arena_plan.Binding) !u32 {

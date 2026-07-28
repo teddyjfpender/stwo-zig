@@ -89,6 +89,7 @@ const OwnedPackage = enum {
     prover,
     cairo_frontend,
     cpu_backend,
+    metal_backend,
     riscv_frontend,
 };
 
@@ -136,6 +137,10 @@ pub fn source(
             "stwo_cpu_backend",
             dependency_options,
         ).path(owned.sub_path),
+        .metal_backend => b.dependency(
+            "stwo_metal_backend",
+            dependency_options,
+        ).path(owned.sub_path),
         .riscv_frontend => b.dependency(
             "stwo_riscv_frontend",
             dependency_options,
@@ -155,6 +160,7 @@ fn ownedSource(root_source_file: []const u8) ?OwnedSource {
         .{ "src/prover/", OwnedPackage.prover },
         .{ "src/frontends/cairo/", OwnedPackage.cairo_frontend },
         .{ "src/backends/cpu_scalar/", OwnedPackage.cpu_backend },
+        .{ "src/backends/metal/", OwnedPackage.metal_backend },
         .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
     };
     inline for (prefixes) |entry| {
@@ -325,6 +331,48 @@ pub fn addCpuBackendImport(
     return backend;
 }
 
+/// Constructs the canonical Metal backend with one shared CPU fallback module.
+pub fn createMetalBackend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cpu_backend: *std.Build.Module,
+) *std.Build.Module {
+    const backend = create(b, .{
+        .product = product,
+        .root_source_file = "src/backends/metal/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(backend);
+    backend.addImport("stwo_cpu_backend", cpu_backend);
+    return backend;
+}
+
+/// Declares a consumer's dependency on the package-owned Metal backend API.
+pub fn addMetalBackendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cpu_backend: *std.Build.Module,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const backend = createMetalBackend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+        cpu_backend,
+    );
+    consumer.addImport("stwo_metal_backend", backend);
+    return backend;
+}
+
 pub fn coreProduct(role: Role) Product {
     return .{
         .name = "stwo-core",
@@ -401,6 +449,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         OwnedPackage.cpu_backend,
         ownedSource("src/backends/cpu_scalar/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.metal_backend,
+        ownedSource("src/backends/metal/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         OwnedPackage.riscv_frontend,

@@ -77,6 +77,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/backend",
                 "src/prover",
                 "src/backends/cpu_scalar",
+                "src/backends/metal",
                 "src/frontends/cairo",
                 "src/integrations/cairo_metal",
                 "src/products/cairo_metal",
@@ -90,12 +91,24 @@ def catalog_fixture() -> dict[str, object]:
                 "src/backends/metal",
             ),
             product(
+                "riscv_metal",
+                "src/core",
+                "src/backend",
+                "src/prover",
+                "src/backends/cpu_scalar",
+                "src/backends/metal",
+                "src/frontends/riscv",
+                "src/integrations/riscv_metal",
+                "src/products/riscv_metal",
+            ),
+            product(
                 "native_cuda",
                 "src/core",
                 "src/backend",
                 "src/prover",
                 "src/backends/cuda",
                 "src/backends/cpu_scalar",
+                "src/backends/metal",
                 "src/frontends/cairo",
                 "src/frontends/riscv",
                 "src/integrations/native_cuda",
@@ -155,6 +168,7 @@ class PlannerContractTests(unittest.TestCase):
                 "riscv_frontend",
                 "cairo_frontend",
                 "cpu_backend",
+                "metal_backend",
                 "package",
                 "native_cpu",
                 "native_oracle",
@@ -163,6 +177,7 @@ class PlannerContractTests(unittest.TestCase):
                 "native_cuda_static",
                 "native_cuda_device",
                 "native_metal",
+                "riscv_metal",
                 "aggregate_metal",
             }.issubset(selected)
         )
@@ -178,6 +193,7 @@ class PlannerContractTests(unittest.TestCase):
                 "riscv_frontend",
                 "cairo_frontend",
                 "cpu_backend",
+                "metal_backend",
                 "package",
             }.issubset(selected)
         )
@@ -191,6 +207,7 @@ class PlannerContractTests(unittest.TestCase):
                 "riscv_frontend",
                 "package",
                 "riscv_cpu",
+                "riscv_metal",
                 "aggregate_cpu",
                 "aggregate_metal",
             }.issubset(selected)
@@ -222,6 +239,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "cpu_backend",
+                "metal_backend",
                 "package",
                 "native_cpu",
                 "riscv_cpu",
@@ -229,6 +247,7 @@ class PlannerContractTests(unittest.TestCase):
                 "native_cuda_static",
                 "native_cuda_device",
                 "native_metal",
+                "riscv_metal",
                 "aggregate_cpu",
                 "aggregate_metal",
             }.issubset(selected)
@@ -236,6 +255,26 @@ class PlannerContractTests(unittest.TestCase):
         commands = self.policy["lanes"]["cpu_backend"]["commands"]
         self.assertEqual(1, len(commands))
         self.assertIn("src/backends/cpu_scalar/build.zig", commands[0])
+
+    def test_metal_backend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/backends/metal/mod.zig")
+        self.assertTrue(
+            {
+                "static",
+                "metal_backend",
+                "package",
+                "native_metal",
+                "riscv_metal",
+                "aggregate_metal",
+                "metal_compile",
+            }.issubset(selected)
+        )
+        lane = self.policy["lanes"]["metal_backend"]
+        self.assertEqual("macos", lane["host"])
+        self.assertNotIn("hosted", lane)
+        commands = lane["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/backends/metal/build.zig", commands[0])
 
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]
@@ -320,13 +359,19 @@ class PlannerContractTests(unittest.TestCase):
         runtime = self.lanes_for("src/backends/metal/runtime.m")
         self.assertIn("metal_aot", shader)
         self.assertIn("metal_compile", shader)
+        self.assertIn("metal_backend", shader)
+        self.assertIn("package", shader)
         self.assertIn("native_metal", shader)
+        self.assertIn("riscv_metal", shader)
         self.assertNotIn("native_cpu", shader)
         self.assertNotIn("riscv_cpu", shader)
         self.assertNotIn("metal_aot", runtime)
         self.assertNotIn("build_graph", runtime)
         self.assertIn("metal_compile", runtime)
+        self.assertIn("metal_backend", runtime)
+        self.assertIn("package", runtime)
         self.assertIn("native_metal", runtime)
+        self.assertIn("riscv_metal", runtime)
 
     def test_multiple_paths_take_the_conservative_union(self) -> None:
         selected = self.lanes_for(
@@ -335,7 +380,14 @@ class PlannerContractTests(unittest.TestCase):
             "src/backends/metal/runtime.m",
         )
         self.assertTrue(
-            {"static", "native_cpu", "native_metal", "metal_compile"}.issubset(
+            {
+                "static",
+                "native_cpu",
+                "metal_backend",
+                "native_metal",
+                "riscv_metal",
+                "metal_compile",
+            }.issubset(
                 selected
             )
         )
@@ -422,13 +474,16 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("cuda_required=true", lines)
 
     def test_hosted_capable_macos_lane_still_emitted(self) -> None:
-        plan = {"lanes": ["native_metal", "aggregate_metal"]}
+        plan = {"lanes": ["native_metal", "riscv_metal", "aggregate_metal", "metal_backend"]}
         with tempfile.TemporaryDirectory() as raw:
             output = Path(raw) / "github-output"
             ci_scope_plan.emit_github_output(output, plan, self.policy)
             lines = output.read_text(encoding="utf-8").splitlines()
-        self.assertIn('macos_matrix={"lane":["aggregate_metal"]}', lines)
-        self.assertIn("macos_count=1", lines)
+        self.assertIn(
+            'macos_matrix={"lane":["aggregate_metal","metal_backend"]}',
+            lines,
+        )
+        self.assertIn("macos_count=2", lines)
 
     def test_submission_diff_selects_only_the_link_reach(self) -> None:
         # A submission PR's own files: the submission directory is validated
@@ -447,10 +502,10 @@ class PlannerContractTests(unittest.TestCase):
             sorted(lanes),
             [
                 "aggregate_cpu", "aggregate_metal", "cairo_cpu",
-                "cairo_frontend", "cairo_metal", "cpu_backend",
+                "cairo_frontend", "cairo_metal", "cpu_backend", "metal_backend",
                 "native_cpu", "native_cuda_device",
                 "native_cuda_static", "native_metal", "native_oracle", "package",
-                "prover", "riscv_cpu", "riscv_frontend", "static",
+                "prover", "riscv_cpu", "riscv_frontend", "riscv_metal", "static",
             ],
         )
 

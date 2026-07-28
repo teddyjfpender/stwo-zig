@@ -1,8 +1,8 @@
 //! Metal-resident storage retained from witness generation through LogUp.
 
 const std = @import("std");
-const arena_plan = @import("../../../backends/metal/arena_plan.zig");
-const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const shared_runtime = @import("stwo_metal_backend").shared_runtime;
 const interaction_residency =
     @import("stwo_cairo_frontend").witness.interaction_residency;
 

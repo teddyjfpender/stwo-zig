@@ -165,7 +165,7 @@ pub fn addProducts(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addCpuBackendImport(
+    const cpu_backend = graph.addCpuBackendImport(
         b,
         protocol,
         .{
@@ -176,6 +176,20 @@ pub fn addProducts(
         },
         target,
         optimize,
+        stwo,
+    );
+    _ = graph.addMetalBackendImport(
+        b,
+        protocol,
+        .{
+            .name = "stwo-native-cuda-tools",
+            .frontend = .native,
+            .backend = .cuda,
+            .role = .library,
+        },
+        target,
+        optimize,
+        cpu_backend,
         stwo,
     );
     _ = graph.addRiscVFrontendImport(

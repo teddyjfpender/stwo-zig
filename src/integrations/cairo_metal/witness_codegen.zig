@@ -1,6 +1,6 @@
 const std = @import("std");
 const witness = @import("stwo_cairo_frontend").witness.program;
-const shader_manifest = @import("../../backends/metal/shaders/manifest.zig");
+const shader_manifest = @import("stwo_metal_backend").shaders.manifest;
 
 pub const codegen_version: u64 = 7;
 pub const support_version: u64 = shader_manifest.witness_codegen_support_version;

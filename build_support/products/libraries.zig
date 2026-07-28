@@ -48,12 +48,21 @@ pub fn addPublicModules(context: Context) Result {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addCpuBackendImport(
+    const cpu_backend = graph.addCpuBackendImport(
         context.b,
         protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = graph.addMetalBackendImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
         stwo,
     );
     _ = graph.addRiscVFrontendImport(
@@ -99,12 +108,21 @@ pub fn addProducts(context: Context) Result {
     });
     construction_observer.recordProduct(context.b, sdkProduct());
     prover.protocol.addImports(stwo);
-    _ = graph.addCpuBackendImport(
+    const cpu_backend = graph.addCpuBackendImport(
         context.b,
         prover.protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = graph.addMetalBackendImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
         stwo,
     );
     _ = graph.addRiscVFrontendImport(

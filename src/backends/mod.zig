@@ -5,7 +5,7 @@
 
 pub const cpu_scalar = @import("stwo_cpu_backend");
 pub const cuda = @import("cuda/mod.zig");
-pub const metal = @import("metal/mod.zig");
+pub const metal = @import("stwo_metal_backend");
 
 /// The default backend: scalar CPU operations on plain slices.
 pub const CpuBackend = cpu_scalar.CpuBackend;

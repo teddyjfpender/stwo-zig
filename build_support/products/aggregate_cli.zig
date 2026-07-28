@@ -46,6 +46,18 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         optimize,
         stwo,
     );
+    const metal_backend = if (metal_enabled)
+        graph.addMetalBackendImport(
+            b,
+            protocol,
+            aggregate.product(true),
+            target,
+            optimize,
+            cpu_backend,
+            stwo,
+        )
+    else
+        null;
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,
@@ -84,6 +96,8 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         aggregate_tests,
     );
     aggregate_tests.addImport("stwo_cpu_backend", cpu_backend);
+    if (metal_backend) |backend|
+        aggregate_tests.addImport("stwo_metal_backend", backend);
     const tests = b.addTest(.{ .root_module = aggregate_tests });
     if (metal_enabled) metal.linkRuntime(b, tests);
     const test_step = b.step("test", "Run aggregate compatibility tests");

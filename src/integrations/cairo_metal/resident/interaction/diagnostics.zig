@@ -1,7 +1,7 @@
 //! Opt-in host/GPU diagnostics for resident Cairo interaction traces.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const circle_poly_mod = @import("stwo_prover_impl").poly.circle.poly;
 const circle_eval_mod = @import("stwo_prover_impl").poly.circle.evaluation;
 const canonic_circle_mod = @import("stwo_core").poly.circle.canonic;

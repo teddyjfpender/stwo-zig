@@ -2,8 +2,8 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const relation_recipe = @import("../../../backends/metal/recipes/relation.zig");
-const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
+const relation_recipe = @import("stwo_metal_backend").recipes.relation;
+const shared_runtime = @import("stwo_metal_backend").shared_runtime;
 const interaction_executor =
     @import("stwo_cairo_frontend").witness.interaction_executor;
 const interaction_trace =
@@ -122,7 +122,7 @@ pub fn execute(
 
 fn writeSecure(
     arena: anytype,
-    binding: @import("../../../backends/metal/arena_plan.zig").Binding,
+    binding: @import("stwo_metal_backend").arena_plan.Binding,
     value: QM31,
 ) !void {
     const destination = try resident_lookup.bindingWords(arena, binding);
@@ -134,7 +134,7 @@ fn writeSecure(
 
 fn writeSecureSlice(
     arena: anytype,
-    binding: @import("../../../backends/metal/arena_plan.zig").Binding,
+    binding: @import("stwo_metal_backend").arena_plan.Binding,
     values: []const QM31,
 ) !void {
     const destination = try resident_lookup.bindingWords(arena, binding);

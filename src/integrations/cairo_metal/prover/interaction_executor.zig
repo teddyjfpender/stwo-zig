@@ -2,9 +2,9 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const arena_plan = @import("../../../backends/metal/arena_plan.zig");
-const relation_recipe = @import("../../../backends/metal/recipes/relation.zig");
-const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const relation_recipe = @import("stwo_metal_backend").recipes.relation;
+const shared_runtime = @import("stwo_metal_backend").shared_runtime;
 const recorded_interaction =
     @import("stwo_cairo_frontend").conformance.recorded_interaction;
 const interaction_executor = @import("stwo_cairo_frontend").witness.interaction_executor;

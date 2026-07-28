@@ -1,11 +1,11 @@
 //! Cairo proving orchestration over the resident Metal arena.
 
 const std = @import("std");
-const arena_plan = @import("../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const schedule_bindings = @import("schedule_bindings.zig");
-const metal_runtime = @import("../../backends/metal/runtime.zig");
-const protocol_recipes = @import("../../backends/metal/protocol_recipes.zig");
-const transcript_fixture = @import("../../backends/metal/cairo/diagnostics/transcript_fixture.zig");
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const protocol_recipes = @import("stwo_metal_backend").protocol_recipes;
+const transcript_fixture = @import("stwo_metal_backend").cairo.diagnostics.transcript_fixture;
 const composition_bundle_mod = @import("stwo_cairo_frontend").witness.composition_bundle;
 const fixed_table_bundle_mod = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const relation_bundle_mod = @import("stwo_cairo_frontend").witness.relation_bundle;

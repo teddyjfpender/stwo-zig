@@ -12,5 +12,5 @@ pub const interop = cpu.interop;
 
 pub const backends = struct {
     pub const cpu = @import("stwo_cpu_backend");
-    pub const metal = @import("backends/metal/mod.zig");
+    pub const metal = @import("stwo_metal_backend");
 };

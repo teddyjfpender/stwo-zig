@@ -6,7 +6,7 @@ pub const core = @import("stwo_core");
 pub const prover = @import("stwo_prover_impl");
 
 pub const backends = struct {
-    pub const metal = @import("backends/metal/mod.zig");
+    pub const metal = @import("stwo_metal_backend");
 };
 
 pub const frontends = struct {

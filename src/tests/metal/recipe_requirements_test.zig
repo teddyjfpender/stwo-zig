@@ -13,7 +13,7 @@ test "Cairo Metal witness recipes match requirements exactly" {
         (arena_binding.WitnessRecipes{}).validate(.{ .verify_instruction = true }),
     );
 
-    var compact: @import("../../backends/metal/protocol_recipes.zig").CompactRecipe = undefined;
+    var compact: @import("stwo_metal_backend").protocol_recipes.CompactRecipe = undefined;
     try std.testing.expectError(
         arena_binding.Error.InvalidSchedule,
         (arena_binding.WitnessRecipes{ .compact_verify = &compact }).validate(.{}),

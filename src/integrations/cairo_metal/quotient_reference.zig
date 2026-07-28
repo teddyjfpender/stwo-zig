@@ -1,7 +1,7 @@
 //! Read-only parity validation for resident Cairo Metal quotient inputs.
 
 const std = @import("std");
-const arena_plan = @import("../../backends/metal/arena_plan.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
 const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
 const geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
 

@@ -27,7 +27,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
-        .{ .name = "stwo_metal_backend", .source = "src/backends/metal_surface.zig" },
+        .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_metal", .source = "src/products/riscv_metal/root.zig" },
@@ -35,7 +35,6 @@ const source_closure = product_policy.SourceClosure{
     },
     .allowed_files = &.{
         "src/riscv_metal_bench_cli.zig",
-        "src/backends/metal_surface.zig",
         "src/products/riscv_metal/root.zig",
         "src/tests/riscv/metal_backend_test.zig",
     },
@@ -221,20 +220,20 @@ fn createDependencies(
         context.optimize,
     );
 
-    const metal_backend = graph.create(context.b, .{
-        .product = logical_product,
-        .root_source_file = "src/backends/metal_surface.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    context.protocol.addImports(metal_backend);
-    _ = graph.addCpuBackendImport(
+    const cpu_backend = graph.createCpuBackend(
         context.b,
         context.protocol,
         logical_product,
         context.target,
         context.optimize,
-        metal_backend,
+    );
+    const metal_backend = graph.createMetalBackend(
+        context.b,
+        context.protocol,
+        logical_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
     );
 
     const integration = graph.create(context.b, .{

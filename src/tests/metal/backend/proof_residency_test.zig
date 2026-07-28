@@ -6,9 +6,9 @@ const host_merkle = @import("stwo_prover_impl").vcs_lifted.prover;
 const proof_wire = @import("../../../interop/proof_wire.zig");
 const wide_fibonacci = @import("../../../examples/wide_fibonacci.zig");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
-const MetalBackend = @import("../../../backends/metal/commit_backend.zig").MetalCommitBackend;
-const MetalTree = @import("../../../backends/metal/merkle_tree.zig").MetalMerkleTree(wide_fibonacci.Hasher);
-const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
+const MetalBackend = @import("stwo_metal_backend").commit_backend.MetalCommitBackend;
+const MetalTree = @import("stwo_metal_backend").merkle_tree.MetalMerkleTree(wide_fibonacci.Hasher);
+const shared_runtime = @import("stwo_metal_backend").shared_runtime;
 
 const M31 = m31.M31;
 

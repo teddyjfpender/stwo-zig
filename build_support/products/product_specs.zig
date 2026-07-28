@@ -58,7 +58,7 @@ pub const products = [_]Spec{
         .configure_tools = &.{ "python3", "xcrun" },
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .generated_module_roots = &.{"generated:options:"},
-        .dependency_module_roots = catalog.native_cpu_protocol_package_roots,
+        .dependency_module_roots = catalog.native_metal_cpu_protocol_package_roots,
         .configure_allowed_files = &.{"build_support/product_policy_test.zig"},
     },
     .{
@@ -104,7 +104,7 @@ pub const products = [_]Spec{
             "generated:options:",
             "generated:cairo-witness-cpu-aot:",
         },
-        .dependency_module_roots = catalog.cairo_cpu_protocol_package_roots,
+        .dependency_module_roots = catalog.cairo_metal_cpu_protocol_package_roots,
         .configure_allowed_files = &.{
             "build_support/products/cairo_witness_cpu_aot.zig",
         },
@@ -119,7 +119,7 @@ pub const products = [_]Spec{
         .constructor = .riscv_metal,
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
-        .dependency_module_roots = catalog.riscv_cpu_protocol_package_roots,
+        .dependency_module_roots = catalog.riscv_metal_cpu_protocol_package_roots,
     },
     .{
         .descriptor = native_cuda.descriptor,
@@ -127,7 +127,7 @@ pub const products = [_]Spec{
         .constructor = .native_cuda,
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
-        .dependency_module_roots = catalog.frontend_cpu_protocol_package_roots,
+        .dependency_module_roots = catalog.frontend_metal_cpu_protocol_package_roots,
     },
     .{
         .descriptor = cairo_cuda.descriptor,

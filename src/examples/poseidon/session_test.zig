@@ -5,7 +5,7 @@ const fri = @import("stwo_core").fri;
 const pcs = @import("stwo_core").pcs;
 const proof_wire = @import("../../interop/proof_wire.zig");
 const prover_engine = @import("stwo_prover_impl").engine;
-const MetalCommitBackend = @import("../../backends/metal/mod.zig").MetalCommitBackend;
+const MetalCommitBackend = @import("stwo_metal_backend").MetalCommitBackend;
 const subject = @import("../poseidon.zig");
 
 fn testConfig() !pcs.PcsConfig {

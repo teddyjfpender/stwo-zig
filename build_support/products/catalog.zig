@@ -88,6 +88,10 @@ pub const cpu_backend_package_roots = &.{
     "dependency:../src/backends/cpu_scalar:mod.zig",
 };
 
+pub const metal_backend_package_roots = &.{
+    "dependency:../src/backends/metal:mod.zig",
+};
+
 pub const cpu_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
@@ -105,6 +109,15 @@ pub const cairo_protocol_package_roots = &.{
 pub const cairo_cpu_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
+pub const cairo_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/prover:mod.zig",
@@ -134,9 +147,39 @@ pub const frontend_cpu_protocol_package_roots = &.{
     "dependency:../src/prover:mod.zig",
 };
 
+pub const frontend_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/metal:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
+pub const metal_tools_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/metal:mod.zig",
+    "dependency:../src/backends/metal:shader_manifest.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
 pub const riscv_cpu_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
+pub const riscv_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/prover:mod.zig",
@@ -160,6 +203,16 @@ pub const native_cpu_protocol_package_roots = &.{
     "dependency:../src/prover:native/runner.zig",
 };
 
+pub const native_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/metal:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover:native/resource_admission.zig",
+    "dependency:../src/prover:native/runner.zig",
+};
+
 pub const native_riscv_cpu_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
@@ -173,6 +226,7 @@ pub const native_riscv_cpu_protocol_package_roots = &.{
 pub const compatibility_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/cairo:tests/mod.zig",
@@ -297,10 +351,9 @@ pub const configure = [_]Configure{
             "src/products/riscv_metal/root.zig",
             "src/integrations/riscv_metal/mod.zig",
             "src/tests/riscv/metal_backend_test.zig",
-            "src/backends/metal_surface.zig",
             "src/frontends/riscv/mod.zig",
         },
-        .dependency_module_roots = riscv_cpu_protocol_package_roots,
+        .dependency_module_roots = riscv_metal_cpu_protocol_package_roots,
         .external_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .allowed_module_files = &.{
@@ -320,13 +373,13 @@ pub const configure = [_]Configure{
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },
     } },
-    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = frontend_cpu_protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
+    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = metal_tools_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
     .{
         .scope = .cuda_tools,
         .role = .backend_tools,
         .product_ids = &.{"stwo-native-cuda-tools"},
         .module_roots = &.{"build_support/backends/cuda.zig"},
-        .dependency_module_roots = frontend_cpu_protocol_package_roots,
+        .dependency_module_roots = frontend_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
             "src/products/native_cuda/blake_route.zig",
             "src/stwo.zig",

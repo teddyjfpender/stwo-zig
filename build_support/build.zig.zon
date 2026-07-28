@@ -10,5 +10,6 @@
         .stwo_riscv_frontend = .{ .path = "../src/frontends/riscv" },
         .stwo_cairo_frontend = .{ .path = "../src/frontends/cairo" },
         .stwo_cpu_backend = .{ .path = "../src/backends/cpu_scalar" },
+        .stwo_metal_backend = .{ .path = "../src/backends/metal" },
     },
 }

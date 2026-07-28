@@ -83,6 +83,10 @@ jobs:
             echo "::notice title=native_metal deferred::Metal device-execution lane selected but excluded from hosted macOS runners (GPU-less VMs). Covered by local pre-push on a real Mac / judge host."
             echo "- native_metal: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if grep -q '"riscv_metal"' "$RUNNER_TEMP/focused-ci-plan.json"; then
+            echo "::notice title=riscv_metal deferred::RISC-V Metal device-execution lane selected but excluded from hosted macOS runners (GPU-less VMs). Covered by local pre-push on a real Mac / judge host."
+            echo "- riscv_metal: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
+          fi
           if grep -q '"cairo_metal"' "$RUNNER_TEMP/focused-ci-plan.json"; then
             echo "::notice title=cairo_metal deferred::Cairo Metal product lane selected but excluded from hosted macOS runners. It requires a real Metal device and an authenticated external AOT bundle."
             echo "- cairo_metal: deferred to a real-device judge host with STWO_METAL_CORE_AOT_BUNDLE" >> "$GITHUB_STEP_SUMMARY"

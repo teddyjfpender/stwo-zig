@@ -34,6 +34,15 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
+    _ = graph.addMetalBackendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        stwo,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,

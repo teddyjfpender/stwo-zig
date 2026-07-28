@@ -5,7 +5,7 @@
 //! import this named module instead of reaching into either backend tree.
 
 pub const MetalProverEngine =
-    @import("metal/prover_engine.zig").MetalProverEngine;
+    @import("stwo_metal_backend").MetalProverEngine;
 
 test {
     @import("std").testing.refAllDecls(@This());

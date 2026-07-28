@@ -1,7 +1,7 @@
 //! Metal binding for the backend-neutral official Cairo transaction.
 
 const std = @import("std");
-const metal = @import("../../../backends/metal/mod.zig");
+const metal = @import("stwo_metal_backend");
 const prover = @import("stwo_prover_impl");
 const adapter = @import("stwo_cairo_frontend").adapter;
 const generic = @import("stwo_cairo_frontend").proving.transaction;

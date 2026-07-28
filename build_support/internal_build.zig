@@ -234,6 +234,15 @@ fn addMetalTools(
         optimize,
         stwo,
     );
+    const metal_backend = graph.addMetalBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        stwo,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,
@@ -270,6 +279,7 @@ fn addMetalTools(
         .optimize = optimize,
         .stwo_module = stwo,
         .cpu_backend = cpu_backend,
+        .metal_backend = metal_backend,
         .cairo_frontend = cairo_frontend,
         .protocol = protocol,
         .test_step = null,

@@ -1,9 +1,9 @@
 //! Fixed-table lookup recipe ownership and active schedule indexing.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const metal_runtime = @import("../../../../backends/metal/runtime.zig");
-const protocol_recipes = @import("../../../../backends/metal/protocol_recipes.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const protocol_recipes = @import("stwo_metal_backend").protocol_recipes;
 const fixed_table_bundle_mod = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const Error = @import("../errors.zig").Error;

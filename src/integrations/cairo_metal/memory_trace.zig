@@ -1,6 +1,6 @@
 const std = @import("std");
-const arena_plan = @import("../../backends/metal/arena_plan.zig");
-const metal_runtime = @import("../../backends/metal/runtime.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const metal_runtime = @import("stwo_metal_backend").runtime;
 const adapter = @import("stwo_cairo_frontend").adapter;
 const fixed_table_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 

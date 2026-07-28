@@ -1,9 +1,9 @@
 //! Relation-component binding, prepared ownership, and execution.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const metal_runtime = @import("../../../../backends/metal/runtime.zig");
-const protocol_recipes = @import("../../../../backends/metal/protocol_recipes.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const protocol_recipes = @import("stwo_metal_backend").protocol_recipes;
 const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const relation_bundle_mod = @import("stwo_cairo_frontend").witness.relation_bundle;
 const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
