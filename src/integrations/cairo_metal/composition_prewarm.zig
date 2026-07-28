@@ -2,7 +2,7 @@ const std = @import("std");
 
 const metal = @import("../../backends/metal/runtime.zig");
 const metal_telemetry = @import("../../backends/metal/telemetry.zig");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const codegen = @import("eval_codegen.zig");
 
 pub const Inputs = struct {

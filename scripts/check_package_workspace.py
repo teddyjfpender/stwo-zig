@@ -14,7 +14,10 @@ from typing import Any
 SCHEMA = "stwo-zig-package-contract-v1"
 CONTRACT_NAME = "package.contract.json"
 BUILTIN_MODULES = {"builtin", "std"}
-IMPORT_RE = re.compile(r'@import\("([^"]+)"\)')
+IMPORT_RE = re.compile(
+    r'@import\(\s*"([^"]+)"\s*,?\s*\)',
+    re.DOTALL,
+)
 PUBLIC_DECL_RE = re.compile(
     r"^pub\s+(?:const|fn|var)\s+([A-Za-z_][A-Za-z0-9_]*)",
     re.MULTILINE,

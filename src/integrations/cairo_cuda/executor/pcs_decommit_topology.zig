@@ -13,9 +13,7 @@ const common = @import(
 const decommit_stage = @import(
     "../../../backends/cuda/runtime/stages/decommit.zig",
 );
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const shared_views = @import(
     "../../native_cuda/common/resident_views.zig",
 );

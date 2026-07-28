@@ -7,9 +7,7 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const eval_abi = @import(
     "../../../../backends/cuda/abi/stages/cairo_eval.zig",
 );

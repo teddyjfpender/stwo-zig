@@ -7,7 +7,7 @@ const cairo_ec_op =
 const common = @import("../../backends/cuda/runtime/stages/common.zig");
 const recorded_binding = @import("recorded_binding.zig");
 const recorded_witness = @import("recorded_witness.zig");
-const witness_program = @import("../../frontends/cairo/witness/program.zig");
+const witness_program = @import("stwo_cairo_frontend").witness.program;
 
 pub const Prepared = struct {
     ec_op: cairo_ec_op.Prepared,

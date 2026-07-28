@@ -2,10 +2,10 @@
 
 const std = @import("std");
 const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const cairo_adapter = @import("../../../../frontends/cairo/adapter/mod.zig");
-const cairo_opcodes = @import("../../../../frontends/cairo/adapter/opcodes.zig");
-const direct_inputs = @import("../../../../frontends/cairo/witness/direct_inputs.zig");
-const witness_bundle_mod = @import("../../../../frontends/cairo/witness/bundle.zig");
+const cairo_adapter = @import("stwo_cairo_frontend").adapter;
+const cairo_opcodes = @import("stwo_cairo_frontend").adapter.opcodes;
+const direct_inputs = @import("stwo_cairo_frontend").witness.direct_inputs;
+const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const Error = @import("../errors.zig").Error;
 

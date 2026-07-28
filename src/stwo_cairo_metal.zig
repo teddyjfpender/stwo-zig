@@ -10,7 +10,7 @@ pub const backends = struct {
 };
 
 pub const frontends = struct {
-    pub const cairo = @import("frontends/cairo/mod.zig");
+    pub const cairo = @import("stwo_cairo_frontend");
 };
 
 pub const integrations = struct {

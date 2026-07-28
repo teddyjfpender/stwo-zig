@@ -1,9 +1,9 @@
 const std = @import("std");
-const statement_bootstrap = @import("../../frontends/cairo/statement_bootstrap.zig");
-const adapter = @import("../../frontends/cairo/adapter/mod.zig");
-const claim_registry = @import("../../frontends/cairo/air/official_claim_registry.zig");
-const memory_mod = @import("../../frontends/cairo/common/memory.zig");
-const composition_bundle = @import("../../frontends/cairo/witness/composition_bundle.zig");
+const statement_bootstrap = @import("stwo_cairo_frontend").statement_bootstrap;
+const adapter = @import("stwo_cairo_frontend").adapter;
+const claim_registry = @import("stwo_cairo_frontend").claim_registry;
+const memory_mod = @import("stwo_cairo_frontend").common.memory;
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
 const M31 = @import("stwo_core").fields.m31.M31;
 
 const ORDINALS = statement_bootstrap.ORDINALS;

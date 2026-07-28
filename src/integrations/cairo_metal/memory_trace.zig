@@ -1,8 +1,8 @@
 const std = @import("std");
 const arena_plan = @import("../../backends/metal/arena_plan.zig");
 const metal_runtime = @import("../../backends/metal/runtime.zig");
-const adapter = @import("../../frontends/cairo/adapter/mod.zig");
-const fixed_table_bundle = @import("../../frontends/cairo/witness/fixed_table_bundle.zig");
+const adapter = @import("stwo_cairo_frontend").adapter;
+const fixed_table_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 
 const rc99_table_size: u32 = 1 << 18;
 const rc99_lut_ordinal: u32 = 7;

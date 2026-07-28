@@ -2,8 +2,8 @@
 
 const std = @import("std");
 const arena_plan = @import("../../backends/metal/arena_plan.zig");
-const composition_bundle = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const geometry = @import("../../frontends/cairo/witness/quotient_geometry.zig");
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
 
 const fixture_magic = "STWZQI01";
 const fixture_version: u32 = 1;

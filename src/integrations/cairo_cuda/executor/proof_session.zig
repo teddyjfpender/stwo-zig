@@ -7,9 +7,7 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const relation_stage = @import(
     "../../../backends/cuda/runtime/stages/relation.zig",
 );

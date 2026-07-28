@@ -11,7 +11,7 @@ const runtime_error = @import("../../backends/cuda/runtime/error.zig");
 const common = @import("../../backends/cuda/runtime/stages/common.zig");
 const layout = @import("../../backends/cuda/runtime/stages/resident_layout.zig");
 const telemetry = @import("../../backends/cuda/runtime/telemetry.zig");
-const witness_program = @import("../../frontends/cairo/witness/program.zig");
+const witness_program = @import("stwo_cairo_frontend").witness.program;
 const binding = @import("recorded_binding.zig");
 
 pub const argument_count: u32 = 8;
@@ -403,7 +403,7 @@ fn auxiliaryWords(
 }
 
 test "recorded witness binding resolves exact product identity and owns name" {
-    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+    const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
     var witnesses = try witness_bundle.Bundle.readFile(
         std.testing.allocator,
         "vectors/cairo/sn_pie_2_witness_programs.bin",
@@ -461,7 +461,7 @@ test "recorded witness binding resolves exact product identity and owns name" {
 }
 
 test "recorded witness binding rejects identity and alias drift" {
-    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+    const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
     var witnesses = try witness_bundle.Bundle.readFile(
         std.testing.allocator,
         "vectors/cairo/sn_pie_2_witness_programs.bin",
@@ -556,7 +556,7 @@ test "recorded witness binding rejects identity and alias drift" {
 }
 
 test "native EC composite is the only admitted partial-EC launch path" {
-    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+    const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
     var witnesses = try witness_bundle.Bundle.readFile(
         std.testing.allocator,
         "vectors/cairo/sn_pie_2_witness_programs.bin",

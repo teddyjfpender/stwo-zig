@@ -21,10 +21,6 @@ const native_cuda_poseidon_transcript =
 
 test {
     _ = @import("backends/metal/telemetry.zig");
-    _ = @import("frontends/cairo/witness/resident_geometry.zig");
-    _ = @import("frontends/cairo/witness/resident_proof.zig");
-    _ = @import("frontends/cairo/witness/resident_types.zig");
-    _ = @import("frontends/cairo/witness/resident_verifier.zig");
     _ = @import("integrations/cairo_cuda/mod.zig");
     _ = @import("integrations/cairo_metal/oods.zig");
     _ = @import("integrations/cairo_metal/quotient_inputs.zig");

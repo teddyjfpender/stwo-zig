@@ -87,6 +87,7 @@ const OwnedPackage = enum {
     core,
     backend_contracts,
     prover,
+    cairo_frontend,
     riscv_frontend,
 };
 
@@ -126,6 +127,10 @@ pub fn source(
             "stwo_prover_impl",
             dependency_options,
         ).path(owned.sub_path),
+        .cairo_frontend => b.dependency(
+            "stwo_cairo_frontend",
+            dependency_options,
+        ).path(owned.sub_path),
         .riscv_frontend => b.dependency(
             "stwo_riscv_frontend",
             dependency_options,
@@ -143,6 +148,7 @@ fn ownedSource(root_source_file: []const u8) ?OwnedSource {
         .{ "src/core/", OwnedPackage.core },
         .{ "src/backend/", OwnedPackage.backend_contracts },
         .{ "src/prover/", OwnedPackage.prover },
+        .{ "src/frontends/cairo/", OwnedPackage.cairo_frontend },
         .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
     };
     inline for (prefixes) |entry| {
@@ -237,6 +243,44 @@ pub fn addRiscVFrontendImport(
     return frontend;
 }
 
+/// Constructs the canonical Cairo frontend against a selected protocol set.
+pub fn createCairoFrontend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const frontend = create(b, .{
+        .product = product,
+        .root_source_file = "src/frontends/cairo/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(frontend);
+    return frontend;
+}
+
+/// Declares a consumer's dependency on the package-owned Cairo API.
+pub fn addCairoFrontendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const frontend = createCairoFrontend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_cairo_frontend", frontend);
+    return frontend;
+}
+
 pub fn coreProduct(role: Role) Product {
     return .{
         .name = "stwo-core",
@@ -305,6 +349,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqualStrings(
         "native/runner.zig",
         ownedSource("src/prover/native/runner.zig").?.sub_path,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.cairo_frontend,
+        ownedSource("src/frontends/cairo/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         OwnedPackage.riscv_frontend,

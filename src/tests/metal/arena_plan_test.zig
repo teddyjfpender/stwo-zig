@@ -1,14 +1,14 @@
 const std = @import("std");
 const arena = @import("../../backends/metal/arena_plan.zig");
 const recovery = @import("stwo_backend_contracts").recovery;
-const cairo_recovery = @import("../../frontends/cairo/witness/recovery.zig");
+const cairo_recovery = @import("stwo_cairo_frontend").witness.recovery;
 const protocol_recipes = @import("../../backends/metal/protocol_recipes.zig");
-const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
-const feed_bundle = @import("../../frontends/cairo/witness/feed_bundle.zig");
-const relation_bundle = @import("../../frontends/cairo/witness/relation_bundle.zig");
-const fixed_table_bundle = @import("../../frontends/cairo/witness/fixed_table_bundle.zig");
-const resident_verifier = @import("../../frontends/cairo/witness/resident_verifier.zig");
-const arena_lifetime = @import("../../frontends/cairo/arena_lifetime.zig");
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
+const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
+const fixed_table_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const resident_verifier = @import("stwo_cairo_frontend").witness.resident_verifier;
+const arena_lifetime = @import("stwo_cairo_frontend").arena_lifetime;
 const schedule_bindings = @import("../../integrations/cairo_metal/schedule_bindings.zig");
 
 test {

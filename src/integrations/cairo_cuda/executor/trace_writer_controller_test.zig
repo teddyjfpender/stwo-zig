@@ -1,5 +1,5 @@
 const std = @import("std");
-const proof_plan = @import("../../../frontends/cairo/proof_plan.zig");
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const recorded_witness = @import("../recorded_witness.zig");
 const native_ec = @import("../native_ec.zig");
 const controller = @import("trace_writer_controller.zig");

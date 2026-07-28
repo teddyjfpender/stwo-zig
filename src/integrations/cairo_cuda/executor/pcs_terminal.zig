@@ -11,9 +11,7 @@ const shared_bundle = @import(
 const shared_views = @import(
     "../../native_cuda/common/resident_views.zig",
 );
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const resident_plan = @import("resident_plan.zig");
 const slots = @import("pcs_slot_binding.zig");
 const terminal_bundle = @import("terminal_bundle.zig");

@@ -1,18 +1,10 @@
 //! Shared resident views for Cairo base-writer ingress mappers.
 
 const std = @import("std");
-const proof_plan = @import(
-    "../../../../frontends/cairo/proof_plan.zig",
-);
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_bundle = @import(
-    "../../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const witness_bundle = @import(
-    "../../../../frontends/cairo/witness/bundle.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const common = @import(
     "../../../../backends/cuda/runtime/stages/common.zig",
 );

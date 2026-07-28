@@ -1,12 +1,8 @@
 //! Gather and compact input-action ingress mapper boundary.
 
 const std = @import("std");
-const proof_plan = @import(
-    "../../../../frontends/cairo/proof_plan.zig",
-);
-const witness_bundle = @import(
-    "../../../../frontends/cairo/witness/bundle.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const witness_abi = @import(
     "../../../../backends/cuda/abi/stages/cairo_witness.zig",
 );

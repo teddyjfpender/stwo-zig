@@ -1,9 +1,7 @@
 //! Immutable product-AOT admission for canonical Cairo constraint bodies.
 
 const std = @import("std");
-const composition = @import(
-    "../../frontends/cairo/witness/composition_bundle.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const eval_aot = @import("eval_aot.zig");
 
 const product_manifest = @embedFile(

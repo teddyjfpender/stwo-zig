@@ -1,8 +1,8 @@
 //! Admission contract for generated Cairo witness metallibs.
 
 const std = @import("std");
-const cairo_proof_plan = @import("../../frontends/cairo/proof_plan.zig");
-const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+const cairo_proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const witness_codegen = @import("witness_codegen.zig");
 
 pub const codegen_version: u64 = 7;

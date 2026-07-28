@@ -135,9 +135,7 @@ test "Cairo PCS stages fail closed until semantic schedules exist" {
 
 test "complete Cairo PCS binder remains type-checked" {
     const proof_ir = @import("stwo_backend_contracts").proof_program;
-    const compact = @import(
-        "../../../frontends/cairo/compact_verifier_interchange.zig",
-    );
+    const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
     const CompileProvider = struct {
         pub fn slot(_: @This(), _: u32) !Words {
             return error.InvalidKernelDescriptor;

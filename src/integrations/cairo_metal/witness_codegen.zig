@@ -1,5 +1,5 @@
 const std = @import("std");
-const witness = @import("../../frontends/cairo/witness/program.zig");
+const witness = @import("stwo_cairo_frontend").witness.program;
 const shader_manifest = @import("../../backends/metal/shaders/manifest.zig");
 
 pub const codegen_version: u64 = 7;

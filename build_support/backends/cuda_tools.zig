@@ -178,6 +178,19 @@ pub fn addProducts(
         optimize,
         stwo,
     );
+    const cairo_frontend = graph.addCairoFrontendImport(
+        b,
+        protocol,
+        .{
+            .name = "stwo-native-cuda-tools",
+            .frontend = .native,
+            .backend = .cuda,
+            .role = .library,
+        },
+        target,
+        optimize,
+        stwo,
+    );
     const ec_oracle_root = b.createModule(.{
         .root_source_file = b.path(
             "src/tools/cuda_native_ec_composite_oracle/main.zig",
@@ -186,6 +199,7 @@ pub fn addProducts(
         .optimize = .ReleaseFast,
     });
     ec_oracle_root.addImport("stwo_under_test", stwo);
+    ec_oracle_root.addImport("stwo_cairo_frontend", cairo_frontend);
     const ec_oracle = b.addExecutable(.{
         .name = "cuda-native-ec-composite-oracle",
         .root_module = ec_oracle_root,

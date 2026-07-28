@@ -1,12 +1,8 @@
 //! Exact active fixed-table inventory derived from the proof semantics.
 
 const std = @import("std");
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_bundle = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 
 pub const identity_domain =
     "stwo-zig/cairo/cuda/fixed-table-lowering/v1\x00";

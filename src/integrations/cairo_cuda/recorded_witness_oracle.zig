@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const pedersen_rows = @import("pedersen_fixture_rows.zig");
-const program = @import("../../frontends/cairo/witness/program.zig");
+const program = @import("stwo_cairo_frontend").witness.program;
 
 const key_source = @embedFile(
     "../../backends/cuda/vendor/upstream/poseidon_witness_round_keys.cuh",

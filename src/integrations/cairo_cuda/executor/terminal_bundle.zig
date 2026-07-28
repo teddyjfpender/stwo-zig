@@ -1,7 +1,7 @@
 //! Cairo cardinalities carried through the common resident proof container.
 
 const std = @import("std");
-const compact = @import("../../../frontends/cairo/compact_verifier_interchange.zig");
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const common = @import("../../native_cuda/common/proof_bundle.zig");
 
 pub const container_header_words = common.header_words;

@@ -7,7 +7,7 @@
 //! executor's responsibility.
 
 const std = @import("std");
-const proof_plan = @import("../../../frontends/cairo/proof_plan.zig");
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const catalog_module = @import("../base_writer_plan/catalog.zig");
 const recorded_witness = @import("../recorded_witness.zig");
 const native_ec = @import("../native_ec.zig");

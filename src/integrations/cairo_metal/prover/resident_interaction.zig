@@ -5,9 +5,9 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const relation_recipe = @import("../../../backends/metal/recipes/relation.zig");
 const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
 const interaction_executor =
-    @import("../../../frontends/cairo/witness/interaction_executor.zig");
+    @import("stwo_cairo_frontend").witness.interaction_executor;
 const interaction_trace =
-    @import("../../../frontends/cairo/witness/interaction_trace.zig");
+    @import("stwo_cairo_frontend").witness.interaction_trace;
 const resident_lookup = @import("resident_lookup.zig");
 
 pub fn execute(

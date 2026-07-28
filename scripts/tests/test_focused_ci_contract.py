@@ -90,6 +90,8 @@ def catalog_fixture() -> dict[str, object]:
                 "src/backend",
                 "src/prover",
                 "src/backends/cuda",
+                "src/frontends/cairo",
+                "src/frontends/riscv",
                 "src/integrations/native_cuda",
                 "src/products/native_cuda",
                 state="staged",
@@ -145,6 +147,7 @@ class PlannerContractTests(unittest.TestCase):
                 "backend_contracts",
                 "prover",
                 "riscv_frontend",
+                "cairo_frontend",
                 "package",
                 "native_cpu",
                 "native_oracle",
@@ -166,6 +169,7 @@ class PlannerContractTests(unittest.TestCase):
                 "backend_contracts",
                 "prover",
                 "riscv_frontend",
+                "cairo_frontend",
                 "package",
             }.issubset(selected)
         )
@@ -186,6 +190,23 @@ class PlannerContractTests(unittest.TestCase):
         commands = self.policy["lanes"]["riscv_frontend"]["commands"]
         self.assertEqual(1, len(commands))
         self.assertIn("src/frontends/riscv/build.zig", commands[0])
+
+    def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")
+        self.assertTrue(
+            {
+                "static",
+                "cairo_frontend",
+                "package",
+                "cairo_cpu",
+                "cairo_metal",
+                "native_cuda_static",
+                "native_cuda_device",
+            }.issubset(selected)
+        )
+        commands = self.policy["lanes"]["cairo_frontend"]["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/frontends/cairo/build.zig", commands[0])
 
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]
@@ -396,7 +417,8 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(
             sorted(lanes),
             [
-                "aggregate_cpu", "aggregate_metal", "cairo_cpu", "cairo_metal",
+                "aggregate_cpu", "aggregate_metal", "cairo_cpu",
+                "cairo_frontend", "cairo_metal",
                 "native_cpu", "native_cuda_device",
                 "native_cuda_static", "native_metal", "native_oracle", "package",
                 "prover", "riscv_cpu", "riscv_frontend", "static",

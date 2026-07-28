@@ -3,15 +3,9 @@ const field = @import("../../../backends/cuda/abi/field.zig");
 const common = @import("../../../backends/cuda/runtime/stages/common.zig");
 const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
 const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_table = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const semantic_authority = @import(
-    "../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
 const resident_plan = @import("resident_plan.zig");
 const resident_test = @import("resident_plan_test_support.zig");
 const resident_fixture = @import("resident_plan_test.zig");

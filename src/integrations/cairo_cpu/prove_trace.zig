@@ -3,7 +3,7 @@
 const std = @import("std");
 const CpuBackend = @import("../../backends/cpu_scalar/mod.zig").CpuBackend;
 const pcs_core = @import("stwo_core").pcs;
-const generic = @import("../../frontends/cairo/prove_trace.zig");
+const generic = @import("stwo_cairo_frontend").prove_trace;
 
 pub const Hasher = generic.Hasher;
 pub const MerkleChannel = generic.MerkleChannel;

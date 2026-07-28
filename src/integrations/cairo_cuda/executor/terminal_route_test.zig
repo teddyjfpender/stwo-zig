@@ -1,6 +1,6 @@
 const std = @import("std");
-const compact = @import("../../../frontends/cairo/compact_verifier_interchange.zig");
-const prover = @import("../../../frontends/cairo/prover.zig");
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const prover = @import("stwo_cairo_frontend").prover;
 const decommit = @import(
     "../../../backends/cuda/runtime/proof_assembly/decommit_bundle.zig",
 );

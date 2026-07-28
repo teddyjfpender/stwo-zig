@@ -7,8 +7,8 @@
 
 const builtin = @import("builtin");
 const std = @import("std");
-const compact = @import("../../../frontends/cairo/compact_verifier_interchange.zig");
-const proof_bundle = @import("../../../frontends/cairo/witness/proof_bundle.zig");
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const proof_bundle = @import("stwo_cairo_frontend").witness.proof_bundle;
 const decommit_bundle = @import(
     "../../../backends/cuda/runtime/proof_assembly/decommit_bundle.zig",
 );

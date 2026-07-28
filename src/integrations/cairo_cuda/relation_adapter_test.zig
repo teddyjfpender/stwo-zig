@@ -6,19 +6,13 @@ const common = @import("../../backends/cuda/runtime/stages/common.zig");
 const relation_stage = @import(
     "../../backends/cuda/runtime/stages/relation.zig",
 );
-const cairo_adapter = @import("../../frontends/cairo/adapter/mod.zig");
-const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
-const composition_bundle = @import(
-    "../../frontends/cairo/witness/composition_bundle.zig",
-);
-const feed_bundle = @import("../../frontends/cairo/witness/feed_bundle.zig");
-const fixed_table_bundle = @import(
-    "../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const relation_bundle = @import(
-    "../../frontends/cairo/witness/relation_bundle.zig",
-);
-const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+const cairo_adapter = @import("stwo_cairo_frontend").adapter;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
+const fixed_table_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
+const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const adapter = @import("relation_adapter.zig");
 
 const Fixture = struct {

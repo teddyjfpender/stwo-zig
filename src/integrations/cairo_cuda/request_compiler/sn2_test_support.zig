@@ -2,16 +2,10 @@
 
 const std = @import("std");
 const cuda_plan = @import("../../../backends/cuda/runtime/execution_plan.zig");
-const proof_plan = @import("../../../frontends/cairo/proof_plan.zig");
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const compact_geometry = @import(
-    "../../../frontends/cairo/compact_protocol_geometry.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const compact_geometry = @import("stwo_cairo_frontend").compact_protocol_geometry;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const subject_identity = @import("../identity.zig");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
@@ -21,16 +15,10 @@ pub fn expectMixedHeightBuffers(
     trace_bytes: anytype,
 ) !void {
     const allocator = std.testing.allocator;
-    const adapter = @import("../../../frontends/cairo/adapter/mod.zig");
-    const fixed_table_bundle = @import(
-        "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-    );
-    const witness_bundle = @import(
-        "../../../frontends/cairo/witness/bundle.zig",
-    );
-    const feed_bundle = @import(
-        "../../../frontends/cairo/witness/feed_bundle.zig",
-    );
+    const adapter = @import("stwo_cairo_frontend").adapter;
+    const fixed_table_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+    const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
+    const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
     const adapted_path = std.process.getEnvVarOwned(
         allocator,
         "STWO_ZIG_TEST_SN2_ADAPTED_INPUT",

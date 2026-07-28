@@ -2,9 +2,9 @@
 
 const std = @import("std");
 const ir = @import("stwo_backend_contracts").proof_program;
-const compact = @import("../../frontends/cairo/compact_verifier_interchange.zig");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const semantic_pack = @import("../../frontends/cairo/witness/semantic_pack.zig");
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const semantic_pack = @import("stwo_cairo_frontend").witness.semantic_pack;
 
 pub const PackIdentity = struct {
     provenance: semantic_pack.Provenance,

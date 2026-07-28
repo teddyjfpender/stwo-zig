@@ -6,9 +6,9 @@ const arena_plan = @import("../../../backends/metal/arena_plan.zig");
 const relation_recipe = @import("../../../backends/metal/recipes/relation.zig");
 const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
 const recorded_interaction =
-    @import("../../../frontends/cairo/conformance/recorded_interaction.zig");
-const interaction_executor = @import("../../../frontends/cairo/witness/interaction_executor.zig");
-const interaction_trace = @import("../../../frontends/cairo/witness/interaction_trace.zig");
+    @import("stwo_cairo_frontend").conformance.recorded_interaction;
+const interaction_executor = @import("stwo_cairo_frontend").witness.interaction_executor;
+const interaction_trace = @import("stwo_cairo_frontend").witness.interaction_trace;
 const resident_interaction = @import("resident_interaction.zig");
 const resident_lookup = @import("resident_lookup.zig");
 

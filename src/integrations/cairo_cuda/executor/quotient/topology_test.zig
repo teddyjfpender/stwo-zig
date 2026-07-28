@@ -6,21 +6,11 @@ const canonic = core.poly.circle.canonic;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const quotients = core.pcs.quotients;
-const compact = @import(
-    "../../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_table = @import(
-    "../../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const semantic_authority = @import(
-    "../../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
-const quotient_geometry = @import(
-    "../../../../frontends/cairo/witness/quotient_geometry.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
+const quotient_geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
 const cairo_identity = @import("../../identity.zig");
 const fixture = @import("../resident_plan_test.zig");
 const subject = @import("topology.zig");

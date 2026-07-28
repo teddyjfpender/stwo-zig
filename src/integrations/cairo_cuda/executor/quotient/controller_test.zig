@@ -5,15 +5,9 @@ const arena = @import(
 const telemetry = @import(
     "../../../../backends/cuda/runtime/telemetry.zig",
 );
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_bundle = @import(
-    "../../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const semantic_authority = @import(
-    "../../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
 const pcs_hooks = @import("../pcs_hooks.zig");
 const resident_plan = @import("../resident_plan.zig");
 const resident_test = @import("../resident_plan_test_support.zig");

@@ -1,9 +1,7 @@
 //! Sole Cairo CUDA terminal read and strict canonical proof reconstruction.
 
 const std = @import("std");
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const runtime_session = @import(
     "../../../backends/cuda/runtime/session.zig",
 );

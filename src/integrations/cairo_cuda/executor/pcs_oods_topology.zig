@@ -14,15 +14,9 @@ const common = @import(
 const oods_stage = @import(
     "../../../backends/cuda/runtime/stages/oods.zig",
 );
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const geometry = @import(
-    "../../../frontends/cairo/witness/quotient_geometry.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
 const batches = @import("../../native_cuda/common/oods_batches.zig");
 const shared_views = @import(
     "../../native_cuda/common/resident_views.zig",

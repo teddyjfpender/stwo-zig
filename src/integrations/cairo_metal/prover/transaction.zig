@@ -3,9 +3,9 @@
 const std = @import("std");
 const metal = @import("../../../backends/metal/mod.zig");
 const prover = @import("stwo_prover_impl");
-const adapter = @import("../../../frontends/cairo/adapter/mod.zig");
-const generic = @import("../../../frontends/cairo/proving/transaction.zig");
-const preprocessed = @import("../../../frontends/cairo/preprocessed/mod.zig");
+const adapter = @import("stwo_cairo_frontend").adapter;
+const generic = @import("stwo_cairo_frontend").proving.transaction;
+const preprocessed = @import("stwo_cairo_frontend").preprocessed;
 
 pub const Engine = metal.PlainMetalProverEngine;
 pub const Fixture = generic.Fixture;

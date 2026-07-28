@@ -5,18 +5,10 @@ const column = @import("../../../backends/cuda/runtime/column.zig");
 const common = @import(
     "../../../backends/cuda/runtime/stages/common.zig",
 );
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_table = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const semantic_authority = @import(
-    "../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
 const shared_views = @import(
     "../../native_cuda/common/resident_views.zig",
 );

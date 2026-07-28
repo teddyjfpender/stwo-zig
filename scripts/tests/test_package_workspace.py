@@ -46,6 +46,14 @@ const std = @import("std");
 """
         self.assertEqual(["std"], subject.IMPORT_RE.findall(subject.strip_comments(text)))
 
+    def test_multiline_imports_with_trailing_commas_are_dependencies(self) -> None:
+        text = """
+const owned = @import(
+    "../owned/mod.zig",
+);
+"""
+        self.assertEqual(["../owned/mod.zig"], subject.IMPORT_RE.findall(text))
+
     def test_relative_import_cannot_enter_a_package_owner(self) -> None:
         with TemporaryDirectory() as directory:
             repository = Path(directory).resolve()

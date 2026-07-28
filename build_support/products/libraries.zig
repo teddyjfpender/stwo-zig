@@ -56,6 +56,14 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
+    _ = graph.addCairoFrontendImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
     return .{ .stwo = stwo, .protocol = protocol };
 }
 
@@ -84,6 +92,14 @@ pub fn addProducts(context: Context) Result {
     construction_observer.recordProduct(context.b, sdkProduct());
     prover.protocol.addImports(stwo);
     _ = graph.addRiscVFrontendImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    _ = graph.addCairoFrontendImport(
         context.b,
         prover.protocol,
         sdkProduct(),

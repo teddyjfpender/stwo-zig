@@ -8,9 +8,7 @@ const shared_views = @import(
 const shared_layout = @import(
     "../../native_cuda/common/uniform_layout.zig",
 );
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const resident_plan = @import("resident_plan.zig");
 const slots = @import("pcs_slot_binding.zig");
 const types = @import("pcs_hooks_types.zig");

@@ -20,9 +20,7 @@ const stages = @import(
     "../../../../backends/cuda/runtime/stages/mod.zig",
 );
 const transform = stages.transform;
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const constraint_catalog = @import(
     "../../request_compiler/constraint_admission.zig",
 );

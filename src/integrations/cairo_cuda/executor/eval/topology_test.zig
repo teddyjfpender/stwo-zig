@@ -1,13 +1,7 @@
 const std = @import("std");
-const semantic_authority = @import(
-    "../../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
-const composition = @import(
-    "../../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_tables = @import(
-    "../../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_tables = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const topology = @import("topology.zig");
 
 test "SN2 eval topology preserves every heterogeneous component domain" {

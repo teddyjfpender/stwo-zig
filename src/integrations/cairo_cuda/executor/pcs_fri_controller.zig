@@ -11,9 +11,7 @@ const common = @import(
     "../../../backends/cuda/runtime/stages/common.zig",
 );
 const stages = @import("../../../backends/cuda/runtime/stages/mod.zig");
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const commit_tree = @import(
     "../../native_cuda/common/commit_tree.zig",
 );

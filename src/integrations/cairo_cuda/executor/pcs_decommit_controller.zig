@@ -15,9 +15,7 @@ const decommit_stage = @import(
 const transcript_stage = @import(
     "../../../backends/cuda/runtime/stages/transcript.zig",
 );
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const cairo_identity = @import("../identity.zig");
 const proof_capture = @import(
     "../../native_cuda/common/proof_assembly.zig",

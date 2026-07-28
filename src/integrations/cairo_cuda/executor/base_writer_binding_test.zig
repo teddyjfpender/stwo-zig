@@ -217,7 +217,7 @@ const TestContext = struct {
 
 fn entry(
     component_index: u32,
-    writer: @import("../../../frontends/cairo/proof_plan.zig").WriterKind,
+    writer: @import("stwo_cairo_frontend").proof_plan.WriterKind,
     api: schedule.PrepareApi,
     identity: [32]u8,
 ) schedule.Entry {

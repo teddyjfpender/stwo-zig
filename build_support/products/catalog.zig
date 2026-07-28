@@ -80,6 +80,17 @@ pub const riscv_frontend_package_roots = &.{
     "dependency:../src/frontends/riscv:mod.zig",
 };
 
+pub const cairo_frontend_package_roots = &.{
+    "dependency:../src/frontends/cairo:mod.zig",
+};
+
+pub const cairo_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
 pub const riscv_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/core:mod.zig",
@@ -87,9 +98,39 @@ pub const riscv_protocol_package_roots = &.{
     "dependency:../src/prover:mod.zig",
 };
 
+pub const frontend_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
 pub const native_riscv_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover:native/resource_admission.zig",
+    "dependency:../src/prover:native/runner.zig",
+};
+
+pub const native_frontend_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover:native/resource_admission.zig",
+    "dependency:../src/prover:native/runner.zig",
+};
+
+pub const compatibility_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/cairo:tests/mod.zig",
+    "dependency:../src/frontends/cairo:witness/composition_bundle.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/prover:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
@@ -233,13 +274,13 @@ pub const configure = [_]Configure{
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },
     } },
-    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = riscv_protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
+    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = frontend_protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
     .{
         .scope = .cuda_tools,
         .role = .backend_tools,
         .product_ids = &.{"stwo-native-cuda-tools"},
         .module_roots = &.{"build_support/backends/cuda.zig"},
-        .dependency_module_roots = riscv_protocol_package_roots,
+        .dependency_module_roots = frontend_protocol_package_roots,
         .allowed_module_files = &.{
             "src/products/native_cuda/blake_route.zig",
             "src/stwo.zig",
@@ -272,7 +313,7 @@ pub const configure = [_]Configure{
             "src/riscv_bench_cli.zig",
             "src/tools/native_proof_bench/cpu.zig",
         },
-        .dependency_module_roots = native_riscv_protocol_package_roots,
+        .dependency_module_roots = compatibility_package_roots,
         .allowed_module_files = &.{"src/stwo.zig"},
         .allowed_module_prefixes = &.{
             "src/frontends/cairo",

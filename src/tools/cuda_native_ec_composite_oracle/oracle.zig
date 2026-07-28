@@ -1,8 +1,8 @@
 //! Compact Zig SIMD oracle receipt for the native EC composite consumer.
 
 const std = @import("std");
-const bundle_mod = @import("../../frontends/cairo/witness/bundle.zig");
-const program_mod = @import("../../frontends/cairo/witness/program.zig");
+const bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
+const program_mod = @import("stwo_cairo_frontend").witness.program;
 const oracle_mod = @import(
     "../../integrations/cairo_cuda/recorded_witness_oracle.zig",
 );

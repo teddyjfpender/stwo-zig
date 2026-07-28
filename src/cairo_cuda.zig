@@ -1,7 +1,7 @@
 //! Focused module root for the Cairo CUDA product.
 
 pub const backend = @import("backends/cuda/mod.zig");
-pub const frontend = @import("frontends/cairo/mod.zig");
+pub const frontend = @import("stwo_cairo_frontend");
 pub const integration = @import("integrations/cairo_cuda/mod.zig");
 
 pub const executor = integration.executor;

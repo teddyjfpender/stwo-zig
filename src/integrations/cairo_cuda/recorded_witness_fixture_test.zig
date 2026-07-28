@@ -1,10 +1,10 @@
 //! Checked-in CUDA matrix fixture derived by the Zig SIMD witness interpreter.
 
 const std = @import("std");
-const bundle_mod = @import("../../frontends/cairo/witness/bundle.zig");
+const bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
 const oracle_mod = @import("recorded_witness_oracle.zig");
 const pedersen_rows = @import("pedersen_fixture_rows.zig");
-const program_mod = @import("../../frontends/cairo/witness/program.zig");
+const program_mod = @import("stwo_cairo_frontend").witness.program;
 const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
 
 const golden_path =

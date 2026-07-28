@@ -34,6 +34,14 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
+    const cairo_frontend = graph.addCairoFrontendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const runner = consumer(context, protocol, "src/prover/native/runner.zig");
     runner.addImport("stwo", stwo);
     runner.addImport("native_resource_admission", consumer(
@@ -67,7 +75,6 @@ pub fn addProducts(context: Context) void {
         false,
     );
 
-    const cairo_frontend = consumer(context, protocol, "src/frontends/cairo/mod.zig");
     const cairo_test_root = consumer(context, protocol, "src/frontends/cairo/tests/mod.zig");
     cairo_test_root.addImport("cairo_frontend", cairo_frontend);
     const cairo_filters: []const []const u8 = if (b.option(

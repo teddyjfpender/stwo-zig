@@ -75,7 +75,7 @@ pub const products = [_]Spec{
             "generated:options:",
             "generated:cairo-witness-cpu-aot:",
         },
-        .dependency_module_roots = catalog.protocol_package_roots,
+        .dependency_module_roots = catalog.cairo_protocol_package_roots,
         .configure_allowed_files = &.{
             "build_support/products/cairo_witness_cpu_aot.zig",
         },
@@ -104,7 +104,7 @@ pub const products = [_]Spec{
             "generated:options:",
             "generated:cairo-witness-cpu-aot:",
         },
-        .dependency_module_roots = catalog.protocol_package_roots,
+        .dependency_module_roots = catalog.cairo_protocol_package_roots,
         .configure_allowed_files = &.{
             "build_support/products/cairo_witness_cpu_aot.zig",
         },
@@ -127,7 +127,7 @@ pub const products = [_]Spec{
         .constructor = .native_cuda,
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
-        .dependency_module_roots = catalog.riscv_protocol_package_roots,
+        .dependency_module_roots = catalog.frontend_protocol_package_roots,
     },
     .{
         .descriptor = cairo_cuda.descriptor,
@@ -136,7 +136,7 @@ pub const products = [_]Spec{
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
         .generated_module_roots = &.{"generated:options:"},
-        .dependency_module_roots = catalog.protocol_package_roots,
+        .dependency_module_roots = catalog.cairo_protocol_package_roots,
     },
     .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable, .dependency_module_roots = catalog.protocol_package_roots },
 };

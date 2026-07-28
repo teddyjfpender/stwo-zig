@@ -4,7 +4,7 @@ const std = @import("std");
 const arena_plan = @import("../../../backends/metal/arena_plan.zig");
 const shared_runtime = @import("../../../backends/metal/shared_runtime.zig");
 const interaction_residency =
-    @import("../../../frontends/cairo/witness/interaction_residency.zig");
+    @import("stwo_cairo_frontend").witness.interaction_residency;
 
 pub const identity: u64 = 0x5354_5743_4d4c_5531; // STWCMLU1
 pub const alpha_power_count: usize = 128;

@@ -1,21 +1,13 @@
 //! Exact ingress-region sizing from admitted Cairo products.
 
 const std = @import("std");
-const adapter = @import("../../../frontends/cairo/adapter/mod.zig");
-const proof_plan = @import("../../../frontends/cairo/proof_plan.zig");
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const witness = @import("../../../frontends/cairo/witness/bundle.zig");
-const direct_inputs = @import(
-    "../../../frontends/cairo/witness/direct_inputs.zig",
-);
-const fixed = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const feed_bundle = @import(
-    "../../../frontends/cairo/witness/feed_bundle.zig",
-);
+const adapter = @import("stwo_cairo_frontend").adapter;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const witness = @import("stwo_cairo_frontend").witness.bundle;
+const direct_inputs = @import("stwo_cairo_frontend").witness.direct_inputs;
+const fixed = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
 const fixed_plan = @import("../base_writer_plan/fixed_tables.zig");
 const memory_plan = @import("../base_writer_plan/memory.zig");
 const relation_adapter = @import("../relation_adapter.zig");

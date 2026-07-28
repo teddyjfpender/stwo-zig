@@ -15,12 +15,8 @@ const oods_stage = @import(
 const transcript_stage = @import(
     "../../../backends/cuda/runtime/stages/transcript.zig",
 );
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const shared_oods = @import(
     "../../native_cuda/common/oods_executor.zig",
 );

@@ -31,6 +31,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cairo_metal", .source = "src/stwo_cairo_metal.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     },
     .generated_imports = &.{
@@ -292,6 +293,14 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    _ = graph.addCairoFrontendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     return module;
 }
 
