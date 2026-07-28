@@ -192,7 +192,13 @@ weaker authority when the pinned binary is absent (exit 3, UNAVAILABLE):
 - `scripts/riscv_sail_oracle.py` asks one question -- does pinned Sail
   agree with a runner retirement trace? -- with the four-verdict contract
   EQUIVALENT/DIVERGENT/ERROR/UNAVAILABLE that `runner/sail_oracle.zig`
-  consumes from tests.
+  consumes from tests. UNAVAILABLE stays a visible skip there by default,
+  but a gate may refuse to accept absence: with
+  `STWO_ZIG_REQUIRE_SAIL_ORACLE` set, every UNAVAILABLE verdict becomes
+  `error.SailOracleUnavailable`, a named failure that is deliberately not
+  the disagreement error. Only a job that has provisioned the pinned
+  workspace may set it; the `differential` job of
+  `.github/workflows/riscv-sail-differential.yml` is currently the only one.
 - `scripts/riscv_operand_classes.py` derives the operand classes the ISA
   admits and the AIR's limb structure distinguishes, executes one case per
   class on pinned Sail over RVFI-DII, and commits Sail's architectural

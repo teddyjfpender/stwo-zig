@@ -139,30 +139,30 @@ pub fn addProduct(context: Context) void {
     const core_prover_tests = addCoreProverTests(context);
     const exhaustive_tests = addExhaustiveTests(context);
     const air_satisfaction_exports = addAirSatisfactionExportTests(context);
-    const run_air_satisfaction_exports = context.b.addRunArtifact(air_satisfaction_exports);
+    const run_air_satisfaction_exports = test_filter.addRun(context.b, air_satisfaction_exports);
     const test_step = context.b.step(
         "test-riscv-cpu-product",
         "Test the focused RISC-V CPU product shell and capability surface",
     );
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
-    test_step.dependOn(&context.b.addRunArtifact(integration_tests).step);
+    test_step.dependOn(test_filter.addRun(context.b, integration_tests));
     context.b.step(
         "test-riscv-release-exhaustive",
         "Run the exhaustive RISC-V proof and adversarial release suites",
-    ).dependOn(&context.b.addRunArtifact(exhaustive_tests).step);
+    ).dependOn(test_filter.addRun(context.b, exhaustive_tests));
     context.b.step(
         "test-riscv-prover-core",
         "Run the RISC-V prover corpus without the separately retained committed-witness mutation suites",
-    ).dependOn(&context.b.addRunArtifact(core_prover_tests).step);
+    ).dependOn(test_filter.addRun(context.b, core_prover_tests));
     context.b.step(
         "test-riscv-rigidity",
         "Run the full witness-rigidity sweep over every committed opcode column",
-    ).dependOn(&context.b.addRunArtifact(addRigidityTests(context)).step);
+    ).dependOn(test_filter.addRun(context.b, addRigidityTests(context)));
     const air_satisfaction_export_step = context.b.step(
         "test-riscv-air-satisfaction-export",
         "Export committed traces for the independent AIR satisfaction checker",
     );
-    air_satisfaction_export_step.dependOn(&run_air_satisfaction_exports.step);
+    air_satisfaction_export_step.dependOn(run_air_satisfaction_exports);
     const air_satisfaction_check = context.b.addSystemCommand(&.{
         "python3",
         "-m",
@@ -170,7 +170,7 @@ pub fn addProduct(context: Context) void {
         "scripts.tests.test_air_satisfaction",
         "scripts.tests.test_air_satisfaction_infrastructure",
     });
-    air_satisfaction_check.step.dependOn(&run_air_satisfaction_exports.step);
+    air_satisfaction_check.step.dependOn(run_air_satisfaction_exports);
     context.b.step(
         "test-riscv-air-satisfaction",
         "Export and independently check all RISC-V AIR main-trace components",

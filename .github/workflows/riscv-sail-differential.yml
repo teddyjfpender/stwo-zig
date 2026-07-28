@@ -132,6 +132,32 @@ jobs:
             --prepare-on-miss \
             --report-out "$RUNNER_TEMP/riscv-sail-differential-report.json"
 
+      # This is the only job in the repository with a verified pinned oracle,
+      # so it is the only place the Sail leg of the malicious-prover harness
+      # can be REQUIRED instead of skipped. On every other host and job that
+      # leg reports "SKIP: pinned Sail oracle unavailable", which is
+      # indistinguishable from a passing check in a summary line.
+      # STWO_ZIG_REQUIRE_SAIL_ORACLE makes an unavailable verdict return
+      # error.SailOracleUnavailable -- a failure that names the absent oracle
+      # and stays distinct from a Sail disagreement, so absence is refused
+      # here without being redefined as divergence anywhere.
+      #
+      # Renaming the malicious-prover tests does NOT silently empty this step:
+      # -Driscv-test-filter carries EmptySelectionGuard, which fails the build
+      # when the filter matches no test name. Keep the filter aligned with
+      # src/tests/riscv/malicious_prover_*.zig anyway -- the guard reports a
+      # drifted filter, it does not repair one.
+      - name: Require the Sail leg of the malicious-prover harness
+        env:
+          STWO_RISCV_FORMAL_WORKSPACE: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
+          STWO_ZIG_REQUIRE_SAIL_ORACLE: "1"
+        run: |
+          # Probe first so a provisioning fault reads as one, rather than
+          # surfacing minutes later inside a test binary.
+          python3 scripts/riscv_sail_oracle.py probe
+          zig build test-riscv-release-exhaustive \
+            -Driscv-test-filter="malicious prover" -Doptimize=ReleaseSafe
+
       # Save even after a red differential: a divergence investigation needs
       # the warm toolchain far more than a green run does.
       - name: Save pinned formal toolchain workspace
