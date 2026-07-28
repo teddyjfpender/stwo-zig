@@ -375,29 +375,82 @@ discarded.
 | memory-7m | 18,841.807 | 17,608.760 | 1.070x | 2,562.211 | 1,283.223 | **1.997x** | 1,879.062 | 1,024.345 | 1.834x |
 | all-opcodes | 3,234.646 | 3,139.203 | 1.030x | 385.291 | 273.896 | **1.407x** | 298.992 | 263.069 | 1.137x |
 
-**Host load must be read with these numbers.** The block opened at load average
-10.35 and closed at 57.79: an unrelated `zig clang` build storm in another
-checkout ran throughout. Absolute prove times are roughly 2.3x inflated against
-increment 1's figures on the same binaries and workloads (arithmetic-2m 7.2 s
-here versus 3.16 s there). A-B-B-A adjacency is the only defence applied, and
-it is why only *ratios* are claimed. The stage ratios 1.73x / 2.00x / 1.41x are
-far outside increment 1's measured ±12% stage-level floor; the prove ratios
-1.03-1.07x are *inside* the ±3% prove-level floor and are **not** claimed as a
-result — the interaction build is only about a tenth of a proof.
+**Host load must be read with these numbers.** This first block opened at load
+average 10.35 and closed at 57.79: an unrelated `zig clang` build storm in
+another checkout ran throughout. Absolute prove times are roughly 2.3x inflated
+against increment 1's figures on the same binaries and workloads
+(arithmetic-2m 7.2 s here versus 3.16 s there). A-B-B-A adjacency is the only
+defence applied, and it is why only *ratios* are read from it. The stage ratios
+1.73x / 2.00x / 1.41x are far outside increment 1's measured ±12% stage-level
+floor; the prove ratios 1.03-1.07x are inside the ±3% prove-level floor and are
+not claimed from this block. It is retained because it is real interleaved
+data and because its agreement with the quiet block below is itself evidence.
 
-A repeat of the A-B-B-A block on a quiet host was scheduled behind a
-load-average gate and abandoned: the interfering build never fell below load 6
-inside this increment's budget (57.8 at the block's close, still 25.8 half an
-hour later). No partial samples from it exist and none are reported.
+#### Repeat block on a quiet host
+
+The interfering build eventually drained and the complete A-B-B-A block was
+repeated, opening at load average 9.02 and closing at 7.07. Absolute times are
+now consistent with increment 1's figures on the same workloads
+(arithmetic-2m predecessor prove 3,243 ms here versus 3,161 ms there;
+memory-7m 7,023 versus 7,415), so this block, not the loaded one, is the
+measurement of record. The candidate binary is the same sources rebuilt at
+clean commit `383e0ac2`; the predecessor tree is untouched.
+
+| Workload | Arm | Prove ms | Interaction build ms | Materialize ms | Lower ms |
+| --- | --- | ---: | ---: | ---: | ---: |
+| arithmetic-2m | pred 1 | 3,519.268 | 469.653 | 390.427 | 34.467 |
+| arithmetic-2m | cand 1 | 2,723.472 | 230.933 | 192.849 | 0.000 |
+| arithmetic-2m | cand 2 | 2,790.749 | 234.934 | 194.651 | 0.000 |
+| arithmetic-2m | pred 2 | 2,967.735 | 372.975 | 296.481 | 34.499 |
+| memory-7m | pred 1 | 7,246.338 | 914.812 | 699.194 | 95.341 |
+| memory-7m | cand 1 | 6,426.321 | 488.209 | 379.161 | 0.000 |
+| memory-7m | cand 2 | 6,255.754 | 479.649 | 369.229 | 0.000 |
+| memory-7m | pred 2 | 6,799.585 | 851.173 | 635.554 | 95.763 |
+| all-opcodes | pred 1 | 1,497.156 | 154.006 | 120.459 | 24.756 |
+| all-opcodes | cand 1 | 1,461.025 | 117.704 | 110.600 | 0.000 |
+| all-opcodes | cand 2 | 1,470.664 | 116.502 | 109.833 | 0.000 |
+| all-opcodes | pred 2 | 1,494.800 | 153.305 | 119.736 | 24.491 |
+
+| Workload | Pred prove | Cand prove | Ratio | Pred build | Cand build | Ratio | Pred materialize | Cand materialize | Ratio |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| arithmetic-2m | 3,243.501 | 2,757.111 | 1.176x | 421.314 | 232.933 | **1.809x** | 343.454 | 193.750 | 1.773x |
+| memory-7m | 7,022.962 | 6,341.038 | 1.108x | 882.993 | 483.929 | **1.825x** | 667.374 | 374.195 | 1.783x |
+| all-opcodes | 1,495.978 | 1,465.845 | 1.021x | 153.656 | 117.103 | **1.312x** | 120.098 | 110.216 | 1.090x |
+
+**One bias in this block must be named.** The A-B-B-A order puts `pred 1`
+first for every workload, and the first sample of each workload is cold in the
+page cache. On arithmetic-2m `pred 1` is 26% above `pred 2` on the stage
+(469.653 versus 372.975) and 18% above on prove; the two candidate samples,
+both taken warm, agree within 2%. Averaging the predecessor arm therefore
+flatters the candidate. The conservative reading discards `pred 1` and compares
+the candidate mean against the warmed `pred 2` alone:
+
+| Workload | Build ratio vs pred 2 | Prove ratio vs pred 2 |
+| --- | ---: | ---: |
+| arithmetic-2m | 1.601x | 1.076x |
+| memory-7m | 1.759x | 1.072x |
+| all-opcodes | 1.309x | 1.020x |
+
+Both readings clear the 1.15x stage bar on all three workloads. At prove level
+the conservative arithmetic-2m and memory-7m figures (1.076x, 1.072x) sit above
+increment 1's ±3% floor and are claimed only weakly — two samples per arm is
+thin for a 7% effect, and the correct follow-up is more samples, not a stronger
+adjective. all-opcodes at prove level is inside the floor and is not claimed.
 
 An independent quiet-host pair taken during the audit, load average 4.01 to
-about 3.8, agrees: arithmetic-2m `Interaction trace build` 362.083 ms
-predecessor versus 204.850 ms candidate, `1.767x`, with materialization
-278.533 → 168.914 (`1.649x`), lowering 40.665 → 0, and `add_opcode_small`
-143.572 → 60.960 (`2.355x`).
+about 3.8, agrees with the stage result: arithmetic-2m `Interaction trace
+build` 362.083 ms predecessor versus 204.850 ms candidate, `1.767x`, with
+materialization 278.533 → 168.914 (`1.649x`), lowering 40.665 → 0, and
+`add_opcode_small` 143.572 → 60.960 (`2.355x`).
 
-Acceptance: stage-level improvement ≥ 1.15x on all three workloads and the S1
-instruction ratio confirms the mechanism. Accepted.
+Across all three independent blocks — loaded, quiet, and the audit pair — the
+arithmetic-2m stage ratio lands at 1.725x, 1.809x and 1.767x. That stability
+under a 2.3x swing in host load is the strongest argument that the effect is
+the treatment and not the machine.
+
+Acceptance: stage-level improvement ≥ 1.15x on all three workloads under both
+the averaged and the conservative reading, and the S1 instruction ratio
+confirms the mechanism. Accepted.
 
 ### Verification
 
