@@ -13,7 +13,7 @@ const QM31 = qm31.QM31;
 pub const lane_count = m31.VEC_WIDTH;
 pub const PackedM31 = m31.Vec4u32;
 
-const PackedQm31 = struct {
+pub const PackedQm31 = struct {
     coordinates: [4]PackedM31,
 
     fn zero() PackedQm31 {
@@ -74,7 +74,45 @@ const PackedQm31 = struct {
         return result;
     }
 
-    fn mul(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
+    /// Karatsuba candidate: 9 `mulVec4` instead of the schoolbook 16.
+    ///
+    /// Every intermediate is produced by `addVec4` / `subVec4` / `mulVec4`,
+    /// each of which returns a canonical value in `[0, p)`. So the SQDMULH
+    /// precondition in `mulVec4Aarch64` (operands are canonical positive
+    /// 31-bit) holds at all nine multiply sites without any extra
+    /// reduction, and the result is the exact field product.
+    pub fn mulKaratsuba(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
+        const a = lhs.coordinates;
+        const b = rhs.coordinates;
+
+        // A*C and B*D, Karatsuba over i (3 multiplies each).
+        const p = cm31MulKaratsuba(a[0], a[1], b[0], b[1]);
+        const q = cm31MulKaratsuba(a[2], a[3], b[2], b[3]);
+
+        // (A+B)*(C+D), Karatsuba over i, on canonical sums.
+        const s = cm31MulKaratsuba(
+            m31.addVec4(a[0], a[2]),
+            m31.addVec4(a[1], a[3]),
+            m31.addVec4(b[0], b[2]),
+            m31.addVec4(b[1], b[3]),
+        );
+
+        // AD + BC = S - P - Q.
+        const cross0 = m31.subVec4(m31.subVec4(s[0], p[0]), q[0]);
+        const cross1 = m31.subVec4(m31.subVec4(s[1], p[1]), q[1]);
+
+        // (2 + i) * Q = (2q0 - q1) + (q0 + 2q1)i.
+        const two_q0 = m31.addVec4(q[0], q[0]);
+        const two_q1 = m31.addVec4(q[1], q[1]);
+        return .{ .coordinates = .{
+            m31.addVec4(p[0], m31.subVec4(two_q0, q[1])),
+            m31.addVec4(p[1], m31.addVec4(q[0], two_q1)),
+            cross0,
+            cross1,
+        } };
+    }
+
+    pub fn mul(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
         const a = lhs.coordinates;
         const b = rhs.coordinates;
         const x0 = m31.subVec4(
@@ -126,6 +164,23 @@ const PackedQm31 = struct {
         );
     }
 };
+
+/// `(a0 + a1 i) * (b0 + b1 i)` with three base multiplies. Inputs are
+/// canonical; `addVec4` / `subVec4` keep every intermediate canonical.
+inline fn cm31MulKaratsuba(
+    a0: PackedM31,
+    a1: PackedM31,
+    b0: PackedM31,
+    b1: PackedM31,
+) [2]PackedM31 {
+    const ac = m31.mulVec4(a0, b0);
+    const bd = m31.mulVec4(a1, b1);
+    const cross = m31.mulVec4(m31.addVec4(a0, a1), m31.addVec4(b0, b1));
+    return .{
+        m31.subVec4(ac, bd),
+        m31.subVec4(m31.subVec4(cross, ac), bd),
+    };
+}
 
 /// A mask column resolved down to the two facts the row loop needs: where its
 /// values live, and the lifting shift that maps an evaluation-domain position
@@ -336,6 +391,64 @@ fn inverse(value: PackedM31) PackedM31 {
 fn checkedPow2(log_size: u32) !usize {
     if (log_size >= @bitSizeOf(usize)) return error.InvalidLogSize;
     return @as(usize, 1) << @intCast(log_size);
+}
+
+test "Cairo SIMD evaluator Karatsuba QM31 multiplication is byte-identical to schoolbook" {
+    var prng = std.Random.DefaultPrng.init(0x2f41_9d0c_71ab_3e55);
+    const rng = prng.random();
+
+    // Per-lane distinct operands, so a lane-crossing error cannot hide.
+    var trial: usize = 0;
+    while (trial < 20_000) : (trial += 1) {
+        var lhs: PackedQm31 = undefined;
+        var rhs: PackedQm31 = undefined;
+        inline for (0..4) |coordinate| {
+            var l: PackedM31 = undefined;
+            var r: PackedM31 = undefined;
+            for (0..lane_count) |slot| {
+                l[slot] = rng.uintLessThan(u32, m31.Modulus);
+                r[slot] = rng.uintLessThan(u32, m31.Modulus);
+            }
+            lhs.coordinates[coordinate] = l;
+            rhs.coordinates[coordinate] = r;
+        }
+
+        const schoolbook = PackedQm31.mul(lhs, rhs);
+        const karatsuba = PackedQm31.mulKaratsuba(lhs, rhs);
+        inline for (0..4) |coordinate| {
+            for (0..lane_count) |slot| {
+                try std.testing.expectEqual(
+                    schoolbook.coordinates[coordinate][slot],
+                    karatsuba.coordinates[coordinate][slot],
+                );
+            }
+        }
+        // And both agree with the scalar field, which is the ground truth.
+        for (0..lane_count) |slot| {
+            try std.testing.expect(karatsuba.lane(slot).eql(lhs.lane(slot).mul(rhs.lane(slot))));
+        }
+    }
+
+    // Boundary operands: 0, 1 and p-1 in every coordinate slot.
+    const edges = [_]u32{ 0, 1, 2, m31.Modulus - 1, m31.Modulus - 2 };
+    for (edges) |e0| for (edges) |e1| for (edges) |e2| for (edges) |e3| {
+        const lhs = PackedQm31{ .coordinates = .{
+            @splat(e0), @splat(e1), @splat(e2), @splat(e3),
+        } };
+        for (edges) |f0| for (edges) |f1| {
+            const rhs = PackedQm31{ .coordinates = .{
+                @splat(f0), @splat(f1), @splat(e3), @splat(e0),
+            } };
+            const schoolbook = PackedQm31.mul(lhs, rhs);
+            const karatsuba = PackedQm31.mulKaratsuba(lhs, rhs);
+            inline for (0..4) |coordinate| {
+                try std.testing.expectEqual(
+                    schoolbook.coordinates[coordinate][0],
+                    karatsuba.coordinates[coordinate][0],
+                );
+            }
+        };
+    };
 }
 
 test "Cairo SIMD evaluator QM31 multiplication matches the scalar field" {
