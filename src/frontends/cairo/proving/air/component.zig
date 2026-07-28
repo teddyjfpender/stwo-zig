@@ -7,6 +7,7 @@ const composition = @import("../../witness/composition_bundle.zig");
 const geometry = @import("../../witness/resident_geometry.zig");
 const verifier_runtime = @import("../../witness/resident_verifier.zig");
 const simd = @import("simd_evaluator.zig");
+const compiled = @import("compiled_evaluator.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -254,18 +255,31 @@ const EvaluationContext = struct {
             .additive = additive,
         };
         for (self.captured.parts) |part| {
+            const input = simd.Input{
+                .evaluation_log_size = self.captured.evaluation_log_size,
+                .trace_log_size = self.captured.trace_log_size,
+                .trace = .{ .context = self.trace, .resolve = resolveTrace },
+                .extension_parameters = self.parameters,
+                .random_coefficients = self.coefficients,
+                .constraint_base = part.rc_base,
+                .denominator_inverses = self.captured.denominator_inverses,
+            };
+            // Structural admission: a generated evaluator runs only when the
+            // captured program's own instruction encoding matches the encoding
+            // it was generated from. Every other program falls through to the
+            // interpreter, which remains the only path for the general case.
+            if (try compiled.tryEvaluatePartRange(
+                self.allocator,
+                part.program,
+                input,
+                output,
+                row_start,
+                row_end,
+            )) continue;
             try simd.evaluatePartRange(
                 self.allocator,
                 part.program,
-                .{
-                    .evaluation_log_size = self.captured.evaluation_log_size,
-                    .trace_log_size = self.captured.trace_log_size,
-                    .trace = .{ .context = self.trace, .resolve = resolveTrace },
-                    .extension_parameters = self.parameters,
-                    .random_coefficients = self.coefficients,
-                    .constraint_base = part.rc_base,
-                    .denominator_inverses = self.captured.denominator_inverses,
-                },
+                input,
                 output,
                 row_start,
                 row_end,
