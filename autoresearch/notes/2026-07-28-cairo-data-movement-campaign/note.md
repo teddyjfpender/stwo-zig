@@ -602,3 +602,84 @@ a sound, structural, bytecode-only width oracle, with the `@min`-narrowing trap
 documented. Anything that later wants per-column widths — a layout change, a
 generated writer, a device-side plane ABI — can reuse it directly rather than
 rediscovering the abstract interpretation and its one sharp edge.
+
+### D1 readiness: what the plane lifetimes force
+
+Tracing every plane end to end for the census also settles most of D1's open
+design questions, and one of the answers is a hard blocker the campaign-1 sketch
+did not anticipate.
+
+**Which consumers can be fused.** The three plane classes have completely
+different lifetimes:
+
+| plane | layout | lifetime | first consumer | fusable with execute? |
+| --- | --- | --- | --- | --- |
+| output columns | column-major `[col][row]` | one component's execution + observer callback, then freed | base lowering (`base_trace.zig`) | **yes** — single consumer, same call |
+| lookup words | column-major `imm*rows + row` | retained from `base_trace_build` into `interaction_trace_build` | `interaction_fraction_materialize` | **no** — see below |
+| sub words | row-major `row*n_sub + imm` | retained until a *downstream component's* execution | gathered/compact input materializers | only per producer→consumer component pair |
+| multiplicity tables | table-indexed accumulate | whole-range only | counting passes | already excluded from partial ranges (`program.zig:351-356`, `component_executor.zig:62`) |
+
+**Lookup words cannot be fused with their interaction consumer, and the reason
+is the transcript, not the code.** The interaction trace is built from
+`lookup_z` and `lookup_alpha`, which are drawn from the channel *after* the base
+commitment is mixed in. `interaction_trace_build` therefore cannot run before
+`main_trace_commit`, and no loop interchange can move it earlier without
+changing the Fiat-Shamir order. D1's largest single target — 3,420 MB of
+lookup-word write traffic and its 387 ms re-read — is out of reach of fusion for
+protocol reasons. That should be settled in the design before any code, because
+the campaign-1 sketch listed `interaction_trace_build` as a D1 target.
+
+What is left fusable is `execute → base lowering` plus increment 8's counting
+passes. That is real but bounded: `witness_base_lower` is **74.7 ms** of a
+5,308 ms proof, and fusion converts its DRAM read into an L2 read rather than
+removing it, so the ceiling is a fraction of 74.7 ms.
+
+**Tile size.** Once lookup words are excluded from the fused set, the per-row
+footprint that has to fit in cache is much smaller than the campaign-1 estimate.
+For `add_opcode_small`: 4 input words + 39 output columns = 172 B/row at u32, or
+~137 B/row with this increment's narrowing (29 of 39 columns at u16), plus a
+~1.2 KB private register file per worker. A 512 KB per-worker slice therefore
+holds roughly **3,000 rows**, not the few hundred the "inputs + outputs + lookup
++ sub words" estimate implies. Lookup and sub words remain pure streaming writes
+inside the tile — written once, never re-read in the fused region — which is the
+cheapest possible traffic pattern and needs no cache residency at all.
+
+Narrowing raises the tile by only ~25% on that footprint, so **D2 is not a
+prerequisite for D1** and the two do not compose as strongly as the ranking
+assumed.
+
+**Ownership boundaries.** `ComponentObserver.visit` (`live_graph.zig:52-59`) is
+currently called once per component with the whole `Execution`. For a tiled
+fusion it must become per-tile, which means `Collector.capture` has to accept a
+row range: allocate the `[]M31` columns once at component entry, then fill
+`values[tile_start..tile_end]` per tile. The label/ordinal validation stays at
+component entry. Worker ranges and tiles are two decompositions of one axis and
+compose naturally as worker-owns-range / tile-within-range — every write is
+already indexed by absolute `row`, rows are disjoint across workers
+(`program.zig:327` and the executor's chunk split), and the shared `[]M31`
+columns need no synchronisation because each worker touches only its own rows.
+The one thing that must not move is the multiplicity accumulation.
+
+**The larger redirect this increment's measurement suggests.** The predecessor
+stage ranking on memory-7m:
+
+| stage | ms | share | cumulative |
+| --- | ---: | ---: | ---: |
+| `composition_evaluation` | 1,063.5 | 20.0% | 20.0% |
+| `main_trace_commit` | 1,020.0 | 19.2% | 39.3% |
+| `interaction_trace_commit` | 802.4 | 15.1% | 54.4% |
+| `base_trace_build` | 763.7 | 14.4% | 68.8% |
+| `fri_quotient_build_and_commit` | 540.4 | 10.2% | 78.9% |
+| `interaction_trace_build` | 419.3 | 7.9% | 86.8% |
+| `sampled_value_evaluation` | 280.7 | 5.3% | 92.1% |
+
+The witness side that D1 and D2 both target is `base_trace_build` +
+`interaction_trace_build` = 1,183 ms, **22.3%**. The commit and evaluation side —
+`main_trace_commit` + `interaction_trace_commit` + `composition_evaluation` +
+`composition_commit` + `fri_quotient_build_and_commit` — is **3,579 ms, 67.4%**,
+and `merkle_commit` alone inside the two trace commits is 686 + 581 = 1,267 ms.
+Even a *perfect* D1 (witness traffic reduced to zero cost) cannot move the proof
+by more than 1.29x, and the measured conversion factors say the realistic figure
+is a few percent. The 1.46x gap against pinned Rust is not in the witness
+writers; on this workload it is overwhelmingly in Merkle commitment and
+constraint evaluation.
