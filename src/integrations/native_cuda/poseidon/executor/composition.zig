@@ -1,17 +1,9 @@
 //! Exact resident Poseidon LogUp interaction and split-depth-two composition.
 
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const relation_stage = @import(
-    "../../../../backends/cuda/runtime/stages/relation.zig",
-);
-const stages = @import(
-    "../../../../backends/cuda/runtime/stages/mod.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const commit_tree = @import("../../common/commit_tree.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");
 const transcript = @import("../../common/transcript_executor.zig");

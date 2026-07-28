@@ -1,10 +1,8 @@
 //! AIR-neutral lifecycle and scheduled dispatch for a resident CUDA proof.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const execution_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const scheduled_executor = @import("scheduled_executor.zig");
 
 /// `Hooks` owns request admission, canonical frontend state, target identity,

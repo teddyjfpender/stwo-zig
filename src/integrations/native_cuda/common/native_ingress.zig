@@ -1,8 +1,6 @@
 //! Shared canonical host-to-resident initialization for Native CUDA AIRs.
 
-const field = @import(
-    "../../../backends/cuda/abi/field.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
 const proof_assembly = @import("proof_assembly.zig");
 
 pub fn ExecutorFor(

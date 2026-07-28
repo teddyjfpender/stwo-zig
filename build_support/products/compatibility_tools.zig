@@ -43,6 +43,14 @@ pub fn addProducts(context: Context) void {
         cpu_backend,
         stwo,
     );
+    _ = graph.addCudaBackendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,

@@ -5,9 +5,7 @@ const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
 const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
-const product_aot = @import(
-    "../../../backends/cuda/aot/product_registry.zig",
-);
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
 const catalog_module = @import("../base_writer_plan/catalog.zig");
 const schedule_module = @import("trace_schedule.zig");
 

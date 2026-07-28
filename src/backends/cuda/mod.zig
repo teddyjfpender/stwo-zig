@@ -5,7 +5,11 @@
 //! generated kernels are strict-AOT, and no CPU fallback API exists.
 
 pub const abi = @import("abi/mod.zig");
-pub const product_aot = @import("aot/product_registry.zig");
+pub const aot = struct {
+    pub const module_globals = @import("aot/module_globals.zig");
+    pub const product_registry = @import("aot/product_registry.zig");
+};
+pub const product_aot = aot.product_registry;
 pub const runtime = @import("runtime/mod.zig");
 
 pub const CudaBackend = struct {

@@ -193,6 +193,7 @@ class PlannerContractTests(unittest.TestCase):
                 "riscv_frontend",
                 "cairo_frontend",
                 "cpu_backend",
+                "cuda_backend",
                 "metal_backend",
                 "package",
             }.issubset(selected)
@@ -276,6 +277,23 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(1, len(commands))
         self.assertIn("src/backends/metal/build.zig", commands[0])
 
+    def test_cuda_backend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/backends/cuda/runtime/session.zig")
+        self.assertTrue(
+            {
+                "static",
+                "cuda_backend",
+                "package",
+                "native_cuda_static",
+                "native_cuda_device",
+            }.issubset(selected)
+        )
+        lane = self.policy["lanes"]["cuda_backend"]
+        self.assertEqual("linux", lane["host"])
+        commands = lane["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/backends/cuda/build.zig", commands[0])
+
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]
         self.assertIn("stwo-zig-riscv-cpu", commands[0])
@@ -298,7 +316,13 @@ class PlannerContractTests(unittest.TestCase):
             "src/backends/cuda/native/commitment/progressive.cu"
         )
         self.assertEqual(
-            {"static", "native_cuda_static", "native_cuda_device"},
+            {
+                "static",
+                "cuda_backend",
+                "package",
+                "native_cuda_static",
+                "native_cuda_device",
+            },
             selected,
         )
         device = self.policy["lanes"]["native_cuda_device"]

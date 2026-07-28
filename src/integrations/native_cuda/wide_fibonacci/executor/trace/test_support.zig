@@ -1,7 +1,7 @@
-const arena = @import("../../../../../backends/cuda/runtime/arena.zig");
-const column = @import("../../../../../backends/cuda/runtime/column.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const column = @import("stwo_cuda_backend").runtime.column;
 const runtime_error =
-    @import("../../../../../backends/cuda/runtime/error.zig");
+    @import("stwo_cuda_backend").runtime.runtime_error;
 const plan_mod = @import("../../plan.zig");
 const request = @import("../../request.zig");
 

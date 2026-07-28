@@ -1,8 +1,6 @@
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;

@@ -8,9 +8,7 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const telemetry = @import(
-    "../../../../backends/cuda/runtime/telemetry.zig",
-);
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const statement_bootstrap = @import("stwo_cairo_frontend").statement_bootstrap;
 const cairo_identity = @import("../../identity.zig");

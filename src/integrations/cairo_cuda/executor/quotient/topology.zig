@@ -12,9 +12,7 @@ const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
 const cairo_identity = @import("../../identity.zig");
-const quotient_abi = @import(
-    "../../../../backends/cuda/abi/stages/quotient.zig",
-);
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
 const types = @import("types.zig");
 
 pub const Topology = types.Topology;

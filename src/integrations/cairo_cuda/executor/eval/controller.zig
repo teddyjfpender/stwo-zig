@@ -7,18 +7,10 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const arena_module = @import(
-    "../../../../backends/cuda/runtime/arena.zig",
-);
-const eval_stage = @import(
-    "../../../../backends/cuda/runtime/stages/cairo_eval.zig",
-);
-const stages = @import(
-    "../../../../backends/cuda/runtime/stages/mod.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const arena_module = @import("stwo_cuda_backend").runtime.arena;
+const eval_stage = @import("stwo_cuda_backend").runtime.stages.cairo_eval;
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const transform = stages.transform;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const constraint_catalog = @import(

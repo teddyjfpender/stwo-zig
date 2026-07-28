@@ -61,9 +61,7 @@ pub fn upload(
         &claim_pointers,
     );
     try transaction.upload(
-        @import(
-            "../../../../backends/cuda/abi/stages/relation.zig",
-        ).Geometry,
+        @import("stwo_cuda_backend").abi.stages.relation.Geometry,
         slots.interaction_geometry,
         &completion.geometry,
     );

@@ -1,11 +1,11 @@
 //! Resident wide-Fibonacci composition evaluation and commitment.
 
 const std = @import("std");
-const field = @import("../../../../backends/cuda/abi/field.zig");
+const field = @import("stwo_cuda_backend").abi.field;
 const constraints =
-    @import("../../../../backends/cuda/runtime/constraints/mod.zig");
-const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
-const stages = @import("../../../../backends/cuda/runtime/stages/mod.zig");
+    @import("stwo_cuda_backend").runtime.constraints;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const commit_tree = @import("../commit_tree.zig");
 const plan_mod = @import("../plan.zig");
 const bindings = @import("../resident_bindings/mod.zig");

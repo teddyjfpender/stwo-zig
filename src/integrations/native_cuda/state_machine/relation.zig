@@ -1,12 +1,8 @@
 //! Exact two-component State Machine v2 policy for the generic relation stage.
 
 const std = @import("std");
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
-const relation_stage = @import(
-    "../../../backends/cuda/runtime/stages/relation.zig",
-);
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 
 pub const instance_count: u32 = 2;
 pub const source_pointer_count: u32 = 2;

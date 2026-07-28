@@ -127,7 +127,7 @@ pub const products = [_]Spec{
         .constructor = .native_cuda,
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
-        .dependency_module_roots = catalog.frontend_metal_cpu_protocol_package_roots,
+        .dependency_module_roots = catalog.frontend_cuda_metal_cpu_protocol_package_roots,
     },
     .{
         .descriptor = cairo_cuda.descriptor,
@@ -136,7 +136,7 @@ pub const products = [_]Spec{
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
         .generated_module_roots = &.{"generated:options:"},
-        .dependency_module_roots = catalog.cairo_protocol_package_roots,
+        .dependency_module_roots = catalog.cairo_cuda_protocol_package_roots,
     },
     .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable, .dependency_module_roots = catalog.protocol_package_roots },
 };

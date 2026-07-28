@@ -2,12 +2,8 @@
 
 const std = @import("std");
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
-const runtime_session = @import(
-    "../../../backends/cuda/runtime/session.zig",
-);
-const proof_transaction = @import(
-    "../../../backends/cuda/runtime/proof_transaction.zig",
-);
+const runtime_session = @import("stwo_cuda_backend").runtime.session;
+const proof_transaction = @import("stwo_cuda_backend").runtime.proof_transaction;
 const resident_plan = @import("resident_plan.zig");
 const terminal_decode = @import("terminal_decode.zig");
 

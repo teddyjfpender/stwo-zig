@@ -6,9 +6,7 @@ const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const direct_inputs = @import("stwo_cairo_frontend").witness.direct_inputs;
 const witness = @import("stwo_cairo_frontend").witness.bundle;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const resident_plan = @import("../resident_plan.zig");
 
 pub const Entry = struct {

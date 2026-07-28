@@ -1,8 +1,8 @@
 //! Resident main-trace generation, commitment, and transcript prefix.
 
 const std = @import("std");
-const stages = @import("../../../../backends/cuda/runtime/stages/mod.zig");
-const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
+const stages = @import("stwo_cuda_backend").runtime.stages;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
 const commit_tree = @import("../commit_tree.zig");
 const ingress = @import("ingress.zig");
 const plan_mod = @import("../plan.zig");
@@ -209,7 +209,7 @@ fn retainedLayers(
     prepared: *const plan_mod.PreparedPlan,
     offset: usize,
     layer_count: usize,
-) []const @import("../../../../backends/cuda/abi/field.zig").MerkleLayerDescriptor {
+) []const @import("stwo_cuda_backend").abi.field.MerkleLayerDescriptor {
     return prepared.decommit.retained_layers[offset..][0..layer_count];
 }
 

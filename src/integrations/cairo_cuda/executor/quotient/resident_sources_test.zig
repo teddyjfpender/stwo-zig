@@ -1,17 +1,9 @@
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const quotient_abi = @import(
-    "../../../../backends/cuda/abi/stages/quotient.zig",
-);
-const column = @import(
-    "../../../../backends/cuda/runtime/column.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const telemetry = @import(
-    "../../../../backends/cuda/runtime/telemetry.zig",
-);
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const pcs_types = @import("../pcs_hooks_types.zig");
 const binding = @import("resident_sources.zig");
 const types = @import("types.zig");
@@ -141,9 +133,7 @@ fn testTopology() !types.Topology {
 fn testQuotient() pcs_types.Quotient {
     return .{
         .challenge = slice(
-            @import(
-                "../../../../backends/cuda/abi/field.zig",
-            ).SecureField,
+            @import("stwo_cuda_backend").abi.field.SecureField,
             0x4_0000,
             1,
         ),
@@ -206,19 +196,13 @@ fn tree(
         .column_log_sizes = metadata,
         .column_offsets = metadata,
         .merkle_hashes = hashes.cast(
-            @import(
-                "../../../../backends/cuda/abi/field.zig",
-            ).Blake2sHash,
+            @import("stwo_cuda_backend").abi.field.Blake2sHash,
         ) catch unreachable,
         .merkle_layers = layers.cast(
-            @import(
-                "../../../../backends/cuda/abi/field.zig",
-            ).MerkleLayerDescriptor,
+            @import("stwo_cuda_backend").abi.field.MerkleLayerDescriptor,
         ) catch unreachable,
         .root = root.cast(
-            @import(
-                "../../../../backends/cuda/abi/field.zig",
-            ).Blake2sHash,
+            @import("stwo_cuda_backend").abi.field.Blake2sHash,
         ) catch unreachable,
     };
 }

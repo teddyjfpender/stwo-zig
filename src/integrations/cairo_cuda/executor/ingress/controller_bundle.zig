@@ -8,12 +8,8 @@
 const std = @import("std");
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
-const relation_stage = @import(
-    "../../../../backends/cuda/runtime/stages/relation.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const request_compiler = @import("../../request_compiler.zig");
 const eval_controller = @import("../eval/controller.zig");
 const decommit_controller = @import("../pcs_decommit_controller.zig");

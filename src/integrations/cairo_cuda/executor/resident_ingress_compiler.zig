@@ -12,15 +12,9 @@ const fixed_plan = @import("../base_writer_plan/fixed_tables.zig");
 const memory_plan = @import("../base_writer_plan/memory.zig");
 const relation_adapter = @import("../relation_adapter.zig");
 const recorded = @import("../recorded_witness.zig");
-const ec_contract = @import(
-    "../../../backends/cuda/runtime/stages/cairo_ec_op_contract.zig",
-);
-const witness_abi = @import(
-    "../../../backends/cuda/abi/stages/cairo_witness.zig",
-);
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
+const ec_contract = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op_contract;
+const witness_abi = @import("stwo_cuda_backend").abi.stages.cairo_witness;
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
 const ingress = @import("resident_plan_ingress.zig");
 
 const pointer_words: u64 = @sizeOf(usize) / @sizeOf(u32);

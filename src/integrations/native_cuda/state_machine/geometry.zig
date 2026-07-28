@@ -178,9 +178,7 @@ pub fn oodsFactorCount(geometry: Geometry) Error!usize {
 
 pub fn oodsScratchCount(geometry: Geometry) Error!usize {
     const rows = try geometry.traceRowCount();
-    const block = @import(
-        "../../../backends/cuda/runtime/stages/oods.zig",
-    ).first_coefficients_per_block;
+    const block = @import("stwo_cuda_backend").runtime.stages.oods.first_coefficients_per_block;
     return std.math.add(
         usize,
         try usizeMul(18, try usizeCeilDiv(rows, block)),

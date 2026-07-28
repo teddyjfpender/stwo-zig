@@ -1,11 +1,7 @@
 //! Concrete exact Blake interaction authority over one proof transaction.
 
-const exact_aot = @import(
-    "../../../../backends/cuda/runtime/interactions/blake_exact.zig",
-);
-const completion = @import(
-    "../../../../backends/cuda/runtime/stages/relation_completion.zig",
-);
+const exact_aot = @import("stwo_cuda_backend").runtime.interactions.blake_exact;
+const completion = @import("stwo_cuda_backend").runtime.stages.relation_completion;
 const completion_bindings = @import("completion_bindings.zig");
 const completion_plan = @import("completion_plan.zig");
 const facades = @import("facades.zig");
@@ -13,9 +9,7 @@ const interaction_ingress = @import("interaction_ingress.zig");
 const interaction_plan = @import("interaction_plan.zig");
 const slots = @import("slots.zig");
 
-pub const abi_schema = @import(
-    "../../../../backends/cuda/abi/schema.zig",
-).KernelSchema.native_blake_exact_interaction_v1;
+pub const abi_schema = @import("stwo_cuda_backend").abi.schema.KernelSchema.native_blake_exact_interaction_v1;
 pub const cache_key = exact_aot.cache_key;
 pub const kernel_name = exact_aot.kernel_name;
 pub const program_identity = exact_aot.program_identity;
@@ -128,8 +122,6 @@ test "exact interaction facade identity is the authenticated AOT closure" {
     );
     try std.testing.expectEqual(
         abi_schema,
-        @import(
-            "../../../../backends/cuda/abi/schema.zig",
-        ).KernelSchema.native_blake_exact_interaction_v1,
+        @import("stwo_cuda_backend").abi.schema.KernelSchema.native_blake_exact_interaction_v1,
     );
 }

@@ -1,8 +1,6 @@
 //! Resident challenge-derived State Machine statement policy.
 
-const runtime = @import(
-    "../../../../backends/cuda/runtime/statements/state_machine.zig",
-);
+const runtime = @import("stwo_cuda_backend").runtime.statements.state_machine;
 
 pub const DeferredTraceMix = struct {
     pub fn mix(

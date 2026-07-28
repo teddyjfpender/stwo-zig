@@ -89,6 +89,7 @@ const OwnedPackage = enum {
     prover,
     cairo_frontend,
     cpu_backend,
+    cuda_backend,
     metal_backend,
     riscv_frontend,
 };
@@ -116,36 +117,17 @@ pub fn source(
         .target = target,
         .optimize = optimize,
     };
-    return switch (owned.package) {
-        .core => b.dependency(
-            "stwo_core",
-            dependency_options,
-        ).path(owned.sub_path),
-        .backend_contracts => b.dependency(
-            "stwo_backend_contracts",
-            dependency_options,
-        ).path(owned.sub_path),
-        .prover => b.dependency(
-            "stwo_prover_impl",
-            dependency_options,
-        ).path(owned.sub_path),
-        .cairo_frontend => b.dependency(
-            "stwo_cairo_frontend",
-            dependency_options,
-        ).path(owned.sub_path),
-        .cpu_backend => b.dependency(
-            "stwo_cpu_backend",
-            dependency_options,
-        ).path(owned.sub_path),
-        .metal_backend => b.dependency(
-            "stwo_metal_backend",
-            dependency_options,
-        ).path(owned.sub_path),
-        .riscv_frontend => b.dependency(
-            "stwo_riscv_frontend",
-            dependency_options,
-        ).path(owned.sub_path),
+    const dependency_name = switch (owned.package) {
+        .core => "stwo_core",
+        .backend_contracts => "stwo_backend_contracts",
+        .prover => "stwo_prover_impl",
+        .cairo_frontend => "stwo_cairo_frontend",
+        .cpu_backend => "stwo_cpu_backend",
+        .cuda_backend => "stwo_cuda_backend",
+        .metal_backend => "stwo_metal_backend",
+        .riscv_frontend => "stwo_riscv_frontend",
     };
+    return b.dependency(dependency_name, dependency_options).path(owned.sub_path);
 }
 
 const OwnedSource = struct {
@@ -160,6 +142,7 @@ fn ownedSource(root_source_file: []const u8) ?OwnedSource {
         .{ "src/prover/", OwnedPackage.prover },
         .{ "src/frontends/cairo/", OwnedPackage.cairo_frontend },
         .{ "src/backends/cpu_scalar/", OwnedPackage.cpu_backend },
+        .{ "src/backends/cuda/", OwnedPackage.cuda_backend },
         .{ "src/backends/metal/", OwnedPackage.metal_backend },
         .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
     };
@@ -331,6 +314,44 @@ pub fn addCpuBackendImport(
     return backend;
 }
 
+/// Constructs the canonical host-independent CUDA backend contract module.
+pub fn createCudaBackend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const backend = create(b, .{
+        .product = product,
+        .root_source_file = "src/backends/cuda/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    backend.addImport("stwo_backend_contracts", protocol.backend_contracts);
+    return backend;
+}
+
+/// Declares a consumer's dependency on the package-owned CUDA backend API.
+pub fn addCudaBackendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const backend = createCudaBackend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_cuda_backend", backend);
+    return backend;
+}
+
 /// Constructs the canonical Metal backend with one shared CPU fallback module.
 pub fn createMetalBackend(
     b: *std.Build,
@@ -449,6 +470,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         OwnedPackage.cpu_backend,
         ownedSource("src/backends/cpu_scalar/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.cuda_backend,
+        ownedSource("src/backends/cuda/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         OwnedPackage.metal_backend,

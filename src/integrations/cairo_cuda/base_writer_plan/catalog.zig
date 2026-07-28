@@ -1,10 +1,8 @@
 //! Fail-closed inventory of every Cairo base-trace producer in one proof.
 
 const std = @import("std");
-const product_aot = @import("../../../backends/cuda/aot/product_registry.zig");
-const ec_contract = @import(
-    "../../../backends/cuda/runtime/stages/cairo_ec_op_contract.zig",
-);
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
+const ec_contract = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op_contract;
 const adapter = @import("stwo_cairo_frontend").adapter;
 const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;

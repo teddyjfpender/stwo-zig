@@ -1,7 +1,7 @@
 //! Exact Poseidon previous/current OODS policy.
 
 const core = @import("stwo_core");
-const field = @import("../../../backends/cuda/abi/field.zig");
+const field = @import("stwo_cuda_backend").abi.field;
 const oods_batches = @import("../common/oods_batches.zig");
 const geometry_mod = @import("geometry.zig");
 const topology = @import("topology.zig");

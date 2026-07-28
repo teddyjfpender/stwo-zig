@@ -6,11 +6,9 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import("../../../backends/cuda/abi/field.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const stages = @import("../../../backends/cuda/runtime/stages/mod.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const commit_tree = @import(
     "../../native_cuda/common/commit_tree.zig",

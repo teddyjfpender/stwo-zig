@@ -88,6 +88,10 @@ pub const cpu_backend_package_roots = &.{
     "dependency:../src/backends/cpu_scalar:mod.zig",
 };
 
+pub const cuda_backend_package_roots = &.{
+    "dependency:../src/backends/cuda:mod.zig",
+};
+
 pub const metal_backend_package_roots = &.{
     "dependency:../src/backends/metal:mod.zig",
 };
@@ -101,6 +105,14 @@ pub const cpu_protocol_package_roots = &.{
 
 pub const cairo_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
+pub const cairo_cuda_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/prover:mod.zig",
@@ -157,9 +169,21 @@ pub const frontend_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/prover:mod.zig",
 };
 
+pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/cuda:mod.zig",
+    "dependency:../src/backends/metal:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/riscv:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
 pub const metal_tools_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/backends/metal:shader_manifest.zig",
     "dependency:../src/core:mod.zig",
@@ -226,6 +250,7 @@ pub const native_riscv_cpu_protocol_package_roots = &.{
 pub const compatibility_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/backends/cuda:mod.zig",
     "dependency:../src/backends/metal:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
@@ -379,7 +404,7 @@ pub const configure = [_]Configure{
         .role = .backend_tools,
         .product_ids = &.{"stwo-native-cuda-tools"},
         .module_roots = &.{"build_support/backends/cuda.zig"},
-        .dependency_module_roots = frontend_metal_cpu_protocol_package_roots,
+        .dependency_module_roots = frontend_cuda_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
             "src/products/native_cuda/blake_route.zig",
             "src/stwo.zig",

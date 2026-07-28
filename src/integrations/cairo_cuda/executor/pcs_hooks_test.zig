@@ -1,7 +1,5 @@
 const std = @import("std");
-const column = @import(
-    "../../../backends/cuda/runtime/column.zig",
-);
+const column = @import("stwo_cuda_backend").runtime.column;
 const resident_plan = @import("resident_plan.zig");
 const subject = @import("pcs_hooks.zig");
 

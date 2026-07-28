@@ -1,7 +1,7 @@
 //! SN PIE 2 request-compiler test fixtures kept outside production ownership.
 
 const std = @import("std");
-const cuda_plan = @import("../../../backends/cuda/runtime/execution_plan.zig");
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const compact_geometry = @import("stwo_cairo_frontend").compact_protocol_geometry;

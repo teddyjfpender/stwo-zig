@@ -4,9 +4,9 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const proof_wire = @import("../../../interop/proof_wire.zig");
 const decommit_bundle =
-    @import("../../../backends/cuda/runtime/proof_assembly/decommit_bundle.zig");
+    @import("stwo_cuda_backend").runtime.proof_assembly.decommit_bundle;
 const stark_bundle =
-    @import("../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig");
+    @import("stwo_cuda_backend").runtime.proof_assembly.stark_bundle;
 const uniform_layout = @import("uniform_layout.zig");
 
 pub const Error = error{

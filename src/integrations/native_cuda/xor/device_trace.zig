@@ -1,11 +1,7 @@
 //! Exact XOR binding to the authenticated 7+4 resident witness kernel.
 
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const exact_trace = @import(
-    "../../../backends/cuda/runtime/traces/xor_logup.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const exact_trace = @import("stwo_cuda_backend").runtime.traces.xor_logup;
 const geometry_mod = @import("geometry.zig");
 
 pub const Buffers = exact_trace.Destinations;

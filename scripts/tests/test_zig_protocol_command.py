@@ -12,7 +12,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
     def test_protocol_modules_are_wired_in_dependency_order(self) -> None:
         arguments = protocol_module_args("src/stwo_deep.zig")
 
-        self.assertEqual("-Mroot=src/stwo_deep.zig", arguments[14])
+        self.assertEqual("-Mroot=src/stwo_deep.zig", arguments[16])
         self.assertLess(
             arguments.index("-Mstwo_core=src/core/mod.zig"),
             arguments.index("-Mstwo_backend_contracts=src/backend/mod.zig"),
@@ -31,6 +31,10 @@ class ZigProtocolCommandTests(unittest.TestCase):
         )
         self.assertLess(
             arguments.index("-Mstwo_metal_backend=src/backends/metal/mod.zig"),
+            arguments.index("-Mstwo_cuda_backend=src/backends/cuda/mod.zig"),
+        )
+        self.assertLess(
+            arguments.index("-Mstwo_cuda_backend=src/backends/cuda/mod.zig"),
             arguments.index("-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig"),
         )
         self.assertLess(

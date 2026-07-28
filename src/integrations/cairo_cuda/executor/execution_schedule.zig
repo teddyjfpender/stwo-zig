@@ -6,12 +6,8 @@
 //! generic node driver from invoking a whole-phase controller repeatedly.
 
 const std = @import("std");
-const execution_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
-const telemetry = @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-);
+const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
 pub const phase_count = 8;

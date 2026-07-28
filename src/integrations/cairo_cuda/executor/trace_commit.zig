@@ -7,11 +7,11 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import("../../../backends/cuda/abi/field.zig");
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const stages = @import("../../../backends/cuda/runtime/stages/mod.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const stages = @import("stwo_cuda_backend").runtime.stages;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const commit_tree = @import("../../native_cuda/common/commit_tree.zig");
 const resident_plan = @import("resident_plan.zig");
 const trace_schedule = @import("trace_schedule.zig");

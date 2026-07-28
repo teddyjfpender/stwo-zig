@@ -5,7 +5,7 @@
 //! staged file and retains proof-derived provenance throughout.
 
 const std = @import("std");
-const execution_plan = @import("../../backends/cuda/runtime/execution_plan.zig");
+const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const adapter = @import("stwo_cairo_frontend").adapter;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const geometry = @import("stwo_cairo_frontend").compact_protocol_geometry;

@@ -1,11 +1,9 @@
 const std = @import("std");
-const relation_abi = @import("../../backends/cuda/abi/stages/relation.zig");
-const field = @import("../../backends/cuda/abi/field.zig");
-const column = @import("../../backends/cuda/runtime/column.zig");
-const common = @import("../../backends/cuda/runtime/stages/common.zig");
-const relation_stage = @import(
-    "../../backends/cuda/runtime/stages/relation.zig",
-);
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 const cairo_adapter = @import("stwo_cairo_frontend").adapter;
 const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
@@ -433,9 +431,7 @@ test "relation adapter fails closed on order descriptor and coverage drift" {
             std.testing.allocator,
             &uploader,
             std.mem.zeroes(
-                @import(
-                    "../../backends/cuda/runtime/stages/relation.zig",
-                ).DeviceBuffers,
+                @import("stwo_cuda_backend").runtime.stages.relation.DeviceBuffers,
             ),
             &.{},
         ),

@@ -1,7 +1,7 @@
 //! Mixed-height trace and OODS resident bindings for Cairo CUDA.
 
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import("../../../backends/cuda/abi/field.zig");
+const field = @import("stwo_cuda_backend").abi.field;
 const shared_views = @import(
     "../../native_cuda/common/resident_views.zig",
 );

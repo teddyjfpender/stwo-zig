@@ -1,5 +1,5 @@
 const std = @import("std");
-const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
 const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 
 test "product registry admits all exact canonical recorded witnesses" {

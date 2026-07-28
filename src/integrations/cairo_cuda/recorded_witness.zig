@@ -5,12 +5,12 @@
 //! boundary can validate ownership, shape, and aliasing before launch.
 
 const std = @import("std");
-const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
-const kernel_module = @import("../../backends/cuda/runtime/kernel.zig");
-const runtime_error = @import("../../backends/cuda/runtime/error.zig");
-const common = @import("../../backends/cuda/runtime/stages/common.zig");
-const layout = @import("../../backends/cuda/runtime/stages/resident_layout.zig");
-const telemetry = @import("../../backends/cuda/runtime/telemetry.zig");
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
+const kernel_module = @import("stwo_cuda_backend").runtime.kernel;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const layout = @import("stwo_cuda_backend").runtime.stages.resident_layout;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const witness_program = @import("stwo_cairo_frontend").witness.program;
 const binding = @import("recorded_binding.zig");
 
@@ -369,7 +369,7 @@ fn prepareImpl(
 }
 
 const product_aot_module_globals =
-    @import("../../backends/cuda/aot/module_globals.zig");
+    @import("stwo_cuda_backend").aot.module_globals;
 
 fn exactResident(
     session: anytype,

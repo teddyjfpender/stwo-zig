@@ -1,9 +1,7 @@
 //! Locked SN2 unified-arena assertions for the authenticated input fixture.
 
 const std = @import("std");
-const telemetry = @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-);
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const resident_plan = @import("resident_plan.zig");
 
 pub fn assert(

@@ -2,9 +2,7 @@
 
 const commit_tree = @import("commit_tree.zig");
 const proof_assembly = @import("proof_assembly.zig");
-const stages = @import(
-    "../../../backends/cuda/runtime/stages/mod.zig",
-);
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const transcript = @import("transcript_executor.zig");
 
 const NativeOps = struct {
@@ -231,9 +229,7 @@ pub fn ExecutorForWithStatement(
             prepared: *const plan_mod.PreparedPlan,
             first: usize,
             count: usize,
-        ) []const @import(
-            "../../../backends/cuda/abi/field.zig",
-        ).MerkleLayerDescriptor {
+        ) []const @import("stwo_cuda_backend").abi.field.MerkleLayerDescriptor {
             return prepared.decommit.retained_layers[first..][0..count];
         }
     };

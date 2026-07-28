@@ -209,13 +209,9 @@ fn assertExecutor(comptime Executor: type) void {
 }
 
 test "generic driver admits before execution and aborts failed transactions" {
-    const arena = @import("../../../backends/cuda/runtime/arena.zig");
-    const execution_plan = @import(
-        "../../../backends/cuda/runtime/execution_plan.zig",
-    );
-    const telemetry = @import(
-        "../../../backends/cuda/runtime/telemetry.zig",
-    );
+    const arena = @import("stwo_cuda_backend").runtime.arena;
+    const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+    const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
     const TestRequest = struct { valid: bool = true };
     const TestGeometry = struct { marker: u32 };
 

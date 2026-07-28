@@ -8,9 +8,7 @@
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
-const eval_abi = @import(
-    "../../../../backends/cuda/abi/stages/cairo_eval.zig",
-);
+const eval_abi = @import("stwo_cuda_backend").abi.stages.cairo_eval;
 const eval_codegen = @import("../../eval_codegen.zig");
 
 pub const expected_component_count = 58;

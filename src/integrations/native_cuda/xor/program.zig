@@ -1,10 +1,8 @@
 //! Generic proof-program emission for a materialized Native XOR truth-table LogUp trace.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const geometry_mod = @import("geometry.zig");
 const identities = @import("identities.zig");
 const layout_mod = @import("layout.zig");
@@ -155,9 +153,7 @@ fn emitWithBuffers(
     });
 }
 
-fn stage(value: @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-).Stage) ir.Stage {
+fn stage(value: @import("stwo_cuda_backend").runtime.telemetry.Stage) ir.Stage {
     return @enumFromInt(@intFromEnum(value));
 }
 

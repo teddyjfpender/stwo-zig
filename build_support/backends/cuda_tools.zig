@@ -126,7 +126,12 @@ pub fn addProducts(
 
     const runtime_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/backends/cuda/mod.zig"),
+            .root_source_file = graph.source(
+                b,
+                "src/backends/cuda/mod.zig",
+                target,
+                optimize,
+            ),
             .target = target,
             .optimize = optimize,
         }),
@@ -190,6 +195,19 @@ pub fn addProducts(
         target,
         optimize,
         cpu_backend,
+        stwo,
+    );
+    _ = graph.addCudaBackendImport(
+        b,
+        protocol,
+        .{
+            .name = "stwo-native-cuda-tools",
+            .frontend = .native,
+            .backend = .cuda,
+            .role = .library,
+        },
+        target,
+        optimize,
         stwo,
     );
     _ = graph.addRiscVFrontendImport(

@@ -6,8 +6,8 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const shared_views = @import("../../native_cuda/common/resident_views.zig");

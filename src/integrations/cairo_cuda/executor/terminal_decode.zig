@@ -9,9 +9,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const proof_bundle = @import("stwo_cairo_frontend").witness.proof_bundle;
-const decommit_bundle = @import(
-    "../../../backends/cuda/runtime/proof_assembly/decommit_bundle.zig",
-);
+const decommit_bundle = @import("stwo_cuda_backend").runtime.proof_assembly.decommit_bundle;
 const common = @import("../../native_cuda/common/proof_bundle.zig");
 const terminal = @import("terminal_bundle.zig");
 

@@ -243,6 +243,14 @@ fn addMetalTools(
         cpu_backend,
         stwo,
     );
+    _ = graph.addCudaBackendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,

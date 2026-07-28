@@ -65,6 +65,14 @@ pub fn addPublicModules(context: Context) Result {
         cpu_backend,
         stwo,
     );
+    _ = graph.addCudaBackendImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
     _ = graph.addRiscVFrontendImport(
         context.b,
         protocol,
@@ -123,6 +131,14 @@ pub fn addProducts(context: Context) Result {
         context.target,
         context.optimize,
         cpu_backend,
+        stwo,
+    );
+    _ = graph.addCudaBackendImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
         stwo,
     );
     _ = graph.addRiscVFrontendImport(

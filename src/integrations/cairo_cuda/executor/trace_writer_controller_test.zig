@@ -91,9 +91,7 @@ test "controller validates ownership and executes dependency order" {
     native.partial_ec_mul = partial;
     native.catalog_identity = ids[4];
     native.binding_identity = sealIdentity(0xb4);
-    const empty = @import(
-        "../../../backends/cuda/runtime/stages/common.zig",
-    ).Words{ .address = 0, .len = 0, .owner = 0 };
+    const empty = @import("stwo_cuda_backend").runtime.stages.common.Words{ .address = 0, .len = 0, .owner = 0 };
     const bindings = [_]controller.Binding{
         .{
             .component_index = 0,
@@ -258,13 +256,9 @@ fn sealIdentity(byte: u8) [32]u8 {
 
 fn fakeFixed(
     scheduled: schedule_module.Entry,
-    empty: @import(
-        "../../../backends/cuda/runtime/stages/common.zig",
-    ).Words,
+    empty: @import("stwo_cuda_backend").runtime.stages.common.Words,
 ) controller.FixedBinding {
-    const buffers = @import(
-        "../../../backends/cuda/runtime/stages/cairo_base/fixed_tables.zig",
-    ).Buffers{
+    const buffers = @import("stwo_cuda_backend").runtime.stages.cairo_base.fixed_tables.Buffers{
         .source_pointer_table = empty,
         .multiplicity_pointer_table = empty,
         .trace_multiplicity_columns = empty,
@@ -310,18 +304,14 @@ fn fakeFixed(
 
 fn fakeMemoryAddress(
     scheduled: schedule_module.Entry,
-    empty: @import(
-        "../../../backends/cuda/runtime/stages/common.zig",
-    ).Words,
+    empty: @import("stwo_cuda_backend").runtime.stages.common.Words,
 ) controller.MemoryAddressBinding {
     const source = controller.MemorySource{
         .resident = empty,
         .value_offset = 1,
         .words_per_value = 1,
     };
-    const buffers = @import(
-        "../../../backends/cuda/runtime/stages/cairo_base/memory.zig",
-    ).AddressBuffers{
+    const buffers = @import("stwo_cuda_backend").runtime.stages.cairo_base.memory.AddressBuffers{
         .address_ids = empty,
         .multiplicities = empty,
         .outputs = &.{},
@@ -352,13 +342,9 @@ fn fakeMemoryAddress(
 
 fn fakeMemoryValue(
     scheduled: schedule_module.Entry,
-    empty: @import(
-        "../../../backends/cuda/runtime/stages/common.zig",
-    ).Words,
+    empty: @import("stwo_cuda_backend").runtime.stages.common.Words,
 ) controller.MemoryValueBinding {
-    const buffers = @import(
-        "../../../backends/cuda/runtime/stages/cairo_base/memory.zig",
-    ).ValueBuffers{
+    const buffers = @import("stwo_cuda_backend").runtime.stages.cairo_base.memory.ValueBuffers{
         .sources = &.{},
         .multiplicities = empty,
         .outputs = &.{},

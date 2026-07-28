@@ -47,6 +47,10 @@ class InteropCliCommandTests(unittest.TestCase):
             command,
         )
         self.assertIn(
+            "-Mstwo_cuda_backend=src/backends/cuda/mod.zig",
+            command,
+        )
+        self.assertIn(
             "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
             command,
         )

@@ -1,10 +1,10 @@
 //! Ordered resident graph for `ec_op_builtin` and `partial_ec_mul_generic`.
 
 const std = @import("std");
-const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
 const cairo_ec_op =
-    @import("../../backends/cuda/runtime/stages/cairo_ec_op.zig");
-const common = @import("../../backends/cuda/runtime/stages/common.zig");
+    @import("stwo_cuda_backend").runtime.stages.cairo_ec_op;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const recorded_binding = @import("recorded_binding.zig");
 const recorded_witness = @import("recorded_witness.zig");
 const witness_program = @import("stwo_cairo_frontend").witness.program;
@@ -176,7 +176,7 @@ fn validateConsumerLink(
 }
 
 const cairo_ec_op_contract =
-    @import("../../backends/cuda/runtime/stages/cairo_ec_op_contract.zig");
+    @import("stwo_cuda_backend").runtime.stages.cairo_ec_op_contract;
 
 test "native EC consumer binding requires exact resident slice identities" {
     var outputs: [cairo_ec_op_contract.partial_input_column_count]common.Words =

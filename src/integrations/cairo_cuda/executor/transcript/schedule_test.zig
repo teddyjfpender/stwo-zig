@@ -1,7 +1,5 @@
 const std = @import("std");
-const telemetry = @import(
-    "../../../../backends/cuda/runtime/telemetry.zig",
-);
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const subject = @import("schedule.zig");
 const fixture = @import("test_fixture.zig");
 

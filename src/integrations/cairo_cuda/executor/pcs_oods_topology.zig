@@ -7,13 +7,9 @@
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const field = @import("../../../backends/cuda/abi/field.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const oods_stage = @import(
-    "../../../backends/cuda/runtime/stages/oods.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
 const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;

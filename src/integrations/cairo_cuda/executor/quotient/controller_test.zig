@@ -1,10 +1,6 @@
 const std = @import("std");
-const arena = @import(
-    "../../../../backends/cuda/runtime/arena.zig",
-);
-const telemetry = @import(
-    "../../../../backends/cuda/runtime/telemetry.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
@@ -99,9 +95,7 @@ test "SN2 quotient controller binds exact topology and stage order" {
 const Provider = struct {
     plan: *const resident_plan.Plan,
 
-    pub fn slot(self: Provider, id: arena.SlotId) !@import(
-        "../../../../backends/cuda/runtime/stages/common.zig",
-    ).Words {
+    pub fn slot(self: Provider, id: arena.SlotId) !@import("stwo_cuda_backend").runtime.stages.common.Words {
         var cursor: usize = 0;
         for (self.plan.slots) |descriptor| {
             cursor = std.mem.alignForward(

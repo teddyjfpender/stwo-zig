@@ -1,9 +1,7 @@
 //! Exact Plonk/LogUp policy for its resident three-constraint composition.
 
 const std = @import("std");
-const runtime_constraint = @import(
-    "../../../backends/cuda/runtime/constraints/plonk_logup.zig",
-);
+const runtime_constraint = @import("stwo_cuda_backend").runtime.constraints.plonk_logup;
 const cpu_component = @import(
     "../../../examples/plonk_logup/component.zig",
 );

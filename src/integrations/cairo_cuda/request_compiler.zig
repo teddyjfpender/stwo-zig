@@ -6,8 +6,8 @@
 //! enumerating every component whose CUDA AOT lowering is still absent.
 
 const std = @import("std");
-const cuda_plan = @import("../../backends/cuda/runtime/execution_plan.zig");
-const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
 const prover = @import("stwo_cairo_frontend").prover;
 const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;

@@ -1,10 +1,8 @@
 //! Descriptor-driven ownership of one compiled resident CUDA proof plan.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const execution_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
 /// The policy owns frontend allocation cardinalities, program emission, the

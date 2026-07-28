@@ -1,12 +1,8 @@
 //! Exact Poseidon policy for the generic resident relation graph.
 
 const std = @import("std");
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
-const relation_stage = @import(
-    "../../../backends/cuda/runtime/stages/relation.zig",
-);
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 const input = @import("../../../examples/poseidon/input.zig");
 
 pub const source_pointer_count: u32 =

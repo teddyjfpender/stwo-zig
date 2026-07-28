@@ -1,18 +1,10 @@
 //! One owned Cairo CUDA writer/feed/relation ingress closure.
 
 const std = @import("std");
-const product_aot = @import(
-    "../../../../backends/cuda/aot/product_registry.zig",
-);
-const module_globals = @import(
-    "../../../../backends/cuda/aot/module_globals.zig",
-);
-const relation_stage = @import(
-    "../../../../backends/cuda/runtime/stages/relation.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
+const module_globals = @import("stwo_cuda_backend").aot.module_globals;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 const adapter = @import("stwo_cairo_frontend").adapter;
 const proof_plan = @import("stwo_cairo_frontend").proof_plan;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
@@ -21,12 +13,8 @@ const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const native_ec = @import("../../native_ec.zig");
 const recorded_witness = @import("../../recorded_witness.zig");
-const ec_contract = @import(
-    "../../../../backends/cuda/runtime/stages/cairo_ec_op_contract.zig",
-);
-const cairo_ec_op = @import(
-    "../../../../backends/cuda/runtime/stages/cairo_ec_op.zig",
-);
+const ec_contract = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op_contract;
+const cairo_ec_op = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op;
 const request_compiler = @import("../../request_compiler.zig");
 const fixed_plan = @import("../../base_writer_plan/fixed_tables.zig");
 const trace_writer = @import("../trace_writer_controller.zig");
@@ -745,6 +733,6 @@ pub fn relationElements(
     if (words.len != descriptor.words)
         return error.InvalidRelationChallengeExtent;
     return (try words.cast(
-        @import("../../../../backends/cuda/abi/field.zig").SecureField,
+        @import("stwo_cuda_backend").abi.field.SecureField,
     )).sub(0, 2);
 }
