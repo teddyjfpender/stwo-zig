@@ -11,7 +11,7 @@
     "src/core/fri/folding.zig": "sha256:39fe1b155dd888a51a162669703a97ee3d301a040d4f1341e27189209676ef39",
     "src/prover/fri.zig": "sha256:e2c6c74b400febca778a1b64830dd34800bf19ff17a3256038b4d2eb1e16bc66",
     "src/prover/pcs/fri_lazy_commit.zig": "sha256:e9e93793d5c36ebab7d462022e4bf44ac241e77955f25bfea298fd418d1815d6",
-    "src/prover/pcs/scheme.zig": "sha256:75911a4cfc83fb970712d40d37cb0c5de64c70d0257de22c55233fecb9d365c6"
+    "src/prover/pcs/scheme.zig": "sha256:21d6d0b53550b7347ef8a25e80c6425ad610582efe74eb22d0da460769746f8f"
   },
   "transcripts": {
     "transcripts/session-01.md": {
@@ -23,7 +23,7 @@
       "captured_by": "submitter"
     },
     "transcripts/session-03.md": {
-      "sha256": "a665ae3f37a724d11bec2337bf8ffb0904d479debcaf58560b3064cbe2137771",
+      "sha256": "c1530efc506aca6a8c9843af8008f6a9b4550037b9d75dd35801f3ea2300bfd7",
       "captured_by": "submitter"
     }
   },

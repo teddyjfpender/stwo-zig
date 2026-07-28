@@ -47,3 +47,22 @@ interval remain evidence for measured candidate
 `97cd41882ff7afa772be82c888b75597418092e4`, not for the merged publication
 tree. No new benchmark, attestation, judged result, promotion, or improvement
 claim is inferred from this integration.
+
+## Publication conformance follow-up
+
+The first focused `static` run on the integrated pull-request head passed its
+1,060 Python tests but rejected `src/prover/pcs/scheme.zig` at 851 lines,
+one line above the repository's manual-source ceiling. The two-line
+inverse-twiddle routing addition had already replaced one separator line, so
+the integration was reduced by one more non-semantic blank line between
+`random_coeff` and `lifting_log_size`. This restores the file to exactly 850
+lines without changing an expression, declaration, or control-flow edge.
+
+Zig formatting and the repository source-conformance checker pass on the
+repaired tree with no new violations. Two attempts to replay the complete
+Linux `static` lane locally were not admissible confirmations: Homebrew Zig
+0.16.0 first failed tests written for the pinned 0.15.2 API, and the pinned
+0.15.2 binary then reached unrelated build-helper tests but failed to link
+Darwin SDK symbols on this host. Those local harness failures are retained as
+environment evidence, not attributed to the candidate. The hosted Linux lane
+remains the authoritative confirmation for the exact publication head.

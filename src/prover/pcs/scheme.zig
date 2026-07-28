@@ -669,7 +669,6 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             }
 
             const random_coeff = channel.drawSecureFelt();
-
             const lifting_log_size = try scheme.proofLiftingLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
             var fri_prover = blk: {

@@ -45,7 +45,12 @@ whole-proof result supersedes it for current prioritization.
 After integrating current `main`, the combined tree passed the core and prover
 library test products in ReleaseFast, including their 79-source and 186-source
 transitive closure checks. This validates the semantic conflict resolution but
-is not a new paired performance run.
+is not a new paired performance run. A publication-only conformance follow-up
+also removes one non-semantic separator line from `scheme.zig`, restoring the
+file to the repository's 850-line ceiling; formatting and source conformance
+pass with no new violations. Hosted Linux CI remains authoritative for the
+complete static lane because the local macOS replay is blocked by unrelated
+SDK linkage failures.
 
 ## Caveats
 
