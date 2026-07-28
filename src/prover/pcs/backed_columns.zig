@@ -33,3 +33,48 @@ pub fn free(
     for (backing_buffers) |buffer| allocator.free(buffer);
     allocator.free(backing_buffers);
 }
+
+/// The outcome of offering a shared backing to a backend.
+pub const Adoption = struct {
+    columns: []ColumnEvaluation,
+    /// Non-null when the backend keeps the single contiguous arena. Its
+    /// lifetime then travels with the prepared coefficients.
+    arena: ?[]M31,
+};
+
+/// Backends that declare `adopts_source_trace_arena` bind one contiguous
+/// source arena directly; every other backend gets ordinary per-column
+/// ownership, because generic code frees each slice independently.
+pub fn adoptOrDetach(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    columns: []ColumnEvaluation,
+    backing_buffers: [][]M31,
+) !Adoption {
+    const adopts = comptime @hasDecl(B, "adopts_source_trace_arena") and
+        B.adopts_source_trace_arena;
+    if (adopts and backing_buffers.len == 1) {
+        const arena = backing_buffers[0];
+        allocator.free(backing_buffers);
+        return .{ .columns = columns, .arena = arena };
+    }
+    const detached = detach(allocator, columns) catch |err| {
+        free(allocator, columns, backing_buffers);
+        return err;
+    };
+    free(allocator, columns, backing_buffers);
+    return .{ .columns = detached, .arena = null };
+}
+
+/// Releases source columns after an adoption decision: an adopted arena owns
+/// its column values, so only the descriptor array is freed.
+pub fn freeSource(
+    allocator: std.mem.Allocator,
+    columns: []ColumnEvaluation,
+    arena: ?[]M31,
+) void {
+    if (arena == null) {
+        for (columns) |column| if (column.values.len != 0) allocator.free(column.values);
+    }
+    allocator.free(columns);
+}

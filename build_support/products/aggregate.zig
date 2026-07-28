@@ -53,6 +53,7 @@ const metal_allowed_files = common_allowed_files ++ .{
     "src/backends/metal/runtime.zig",
     "src/backends/metal/shader_manifest.zig",
     "src/backends/metal/shared_runtime.zig",
+    "src/backends/metal/source_contract.zig",
     "src/backends/metal/telemetry.zig",
 };
 

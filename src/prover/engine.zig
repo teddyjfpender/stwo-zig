@@ -4,6 +4,7 @@ const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
 const proof = @import("stwo_core").proof;
 const component = @import("air/component_prover.zig");
+const device_composition = @import("air/device_composition.zig");
 const pcs = @import("pcs/mod.zig");
 const prove_mod = @import("prove.zig");
 const session_mod = @import("session.zig");
@@ -12,6 +13,10 @@ const stage_profile = @import("stage_profile.zig");
 pub const ProveOptions = struct {
     include_all_preprocessed_columns: bool = false,
     recorder: ?*stage_profile.Recorder = null,
+    /// Optional whole-stage device composition evaluator, scoped to this call.
+    /// Absent by default, so every existing caller is unaffected. See
+    /// `air/device_composition.zig` for the fail-closed contract.
+    composition_stage: ?device_composition.Stage = null,
 };
 
 /// Checks the transaction-level surface expected by backend-neutral frontends.
@@ -175,7 +180,7 @@ pub fn ProverEngine(
             scheme: Scheme,
             options: ProveOptions,
         ) !ExtendedProof {
-            return prove_mod.proveExWithRecorder(
+            return prove_mod.proveExWithStage(
                 B,
                 H,
                 MC,
@@ -185,6 +190,7 @@ pub fn ProverEngine(
                 scheme,
                 options.include_all_preprocessed_columns,
                 options.recorder,
+                options.composition_stage,
             );
         }
     };

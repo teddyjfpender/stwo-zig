@@ -118,8 +118,15 @@ pub fn prepareColumnsForCommitOwnedForBackend(
     retention_policy: CoefficientRetentionPolicy,
     twiddle_source: *TwiddleSource,
     recorder: ?*stage_profile.Recorder,
+    /// One contiguous buffer that every source column already lives inside.
+    /// Adopting backends bind each log-size group's run directly; groups that
+    /// are not contiguous inside it still get their own coefficient buffer.
+    source_arena: ?[]M31,
 ) !PreparedCommitmentColumns {
     const retain_coefficients = column_storage.shouldRetainCoefficients(owned_columns, retention_policy);
+    if (source_arena != null and (log_blowup_factor == 0 or
+        !(comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers"))))
+        return error.UnsupportedTraceArena;
     if (log_blowup_factor == 0 and !retain_coefficients) {
         return .{
             .columns = owned_columns,
@@ -147,8 +154,10 @@ pub fn prepareColumnsForCommitOwnedForBackend(
             log_blowup_factor,
             retain_coefficients,
             twiddle_source,
+            source_arena,
         );
     }
+    if (source_arena != null) return error.UnsupportedTraceArena;
 
     if (log_blowup_factor == 0) {
         {
@@ -216,6 +225,7 @@ fn prepareColumnsCombinedForBackend(
     log_blowup_factor: u32,
     retain_coefficients: bool,
     twiddle_source: *TwiddleSource,
+    source_arena: ?[]M31,
 ) !PreparedCommitmentColumns {
     const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
     for (extended) |*column| column.* = .{ .log_size = 0, .values = &.{} };
@@ -250,8 +260,18 @@ fn prepareColumnsCombinedForBackend(
             B.combined_base_in_place;
         // Keep Metal coefficients independently releasable from the skewed
         // evaluation arena; CPU backends transform their owned inputs in place.
+        // A planned arena already holds this group's columns as one run in
+        // exactly the order the group walks them. Bind that run as the
+        // coefficient arena so the backend sees source == base and can skip
+        // the upload entirely.
+        const adopted = if (base_in_place)
+            null
+        else
+            arenaGroupRun(source_arena, owned_columns, group, base_domain.size());
         const base_buffer: []M31 = if (base_in_place)
             &.{}
+        else if (adopted) |run|
+            run
         else blk: {
             const buffer = try allocator.alloc(
                 M31,
@@ -318,7 +338,13 @@ fn prepareColumnsCombinedForBackend(
         }
     }
 
-    for (owned_columns) |column| if (column.values.len != 0) allocator.free(column.values);
+    if (source_arena) |arena| {
+        // Column values borrow the arena; the arena is released exactly once,
+        // with the coefficients that now live inside it.
+        try coefficient_buffers.append(allocator, arena);
+    } else {
+        for (owned_columns) |column| if (column.values.len != 0) allocator.free(column.values);
+    }
     allocator.free(owned_columns);
 
     const owned_column_buffers = try allocator.dupe([]M31, column_buffers.items);
@@ -349,4 +375,29 @@ fn prepareColumnsCombinedForBackend(
         .column_backing_buffers = owned_column_buffers,
         .coefficient_backing_buffers = owned_coefficient_buffers,
     };
+}
+
+/// Returns the arena run that already holds this group's columns, in group
+/// order, or null when the group is not one contiguous run inside the arena.
+/// The no-copy device binding rests on this being checked, not assumed.
+fn arenaGroupRun(
+    source_arena: ?[]M31,
+    owned_columns: []const ColumnEvaluation,
+    group: circle_transforms.LogSizeGroup,
+    column_len: usize,
+) ?[]M31 {
+    const arena = source_arena orelse return null;
+    if (group.indices.items.len == 0) return null;
+    const first = owned_columns[group.indices.items[0]].values;
+    if (first.len != column_len) return null;
+    const start = (@intFromPtr(first.ptr) -% @intFromPtr(arena.ptr)) / @sizeOf(M31);
+    if (@intFromPtr(first.ptr) < @intFromPtr(arena.ptr)) return null;
+    const words = std.math.mul(usize, group.indices.items.len, column_len) catch return null;
+    if (start + words > arena.len) return null;
+    for (group.indices.items, 0..) |column_index, position| {
+        const column = owned_columns[column_index];
+        if (column.values.len != column_len) return null;
+        if (column.values.ptr != arena.ptr + start + position * column_len) return null;
+    }
+    return arena[start..][0..words];
 }

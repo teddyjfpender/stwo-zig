@@ -37,6 +37,15 @@ pub const Product = struct {
         return package.integrations.cairo_metal.interaction_executor.executor();
     }
 
+    /// The Option-A device composition hook. Admission (metallib digest, arena
+    /// plan, kernel resolution) happens inside `open`; a refusal keeps the
+    /// unchanged host composition stage.
+    pub fn compositionDevice(
+        asset_path: []const u8,
+    ) ?package.frontends.cairo.proving.air.device_stage.Device {
+        return package.integrations.cairo_metal.composition_stage.device(asset_path);
+    }
+
     pub const ProofContext = struct {
         before: backend_transaction.TelemetrySnapshot,
         lifecycle_before: backend_transaction.RuntimeLifecycleSnapshot,
@@ -77,6 +86,9 @@ pub const Product = struct {
                 context.lifecycle_before.initialization_count,
             .runtime_shutdowns = lifecycle.shutdown_count -
                 context.lifecycle_before.shutdown_count,
+            .commit_source_arena_aliases = delta.counters.metal_commit_source_arena_aliases,
+            .commit_source_arena_memcpys = delta.counters.metal_commit_source_arena_memcpys,
+            .commit_source_uploads = delta.counters.metal_commit_source_uploads,
         };
     }
 

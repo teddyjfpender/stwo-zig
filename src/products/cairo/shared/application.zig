@@ -3,6 +3,7 @@
 const std = @import("std");
 const cli = @import("cli.zig");
 const execution_adapter = @import("execution_adapter.zig");
+const preprocessed_cache = @import("preprocessed_cache.zig");
 const profile = @import("profile.zig");
 
 pub const BackendEvidence = struct {
@@ -12,6 +13,16 @@ pub const BackendEvidence = struct {
     cpu_fallbacks: u64 = 0,
     runtime_initializations: u64 = 0,
     runtime_shutdowns: u64 = 0,
+    /// Commit-source attribution for the base/interaction trace commits: how
+    /// many took the page-aligned no-copy arena alias, how many were arena
+    /// sources that still paid one memcpy, and how many uploaded because the
+    /// arena was not adopted. `main_trace_commit_arena_bound` proves the arena
+    /// reached the commit; only these prove which binding the commit took.
+    /// Defaults are zero, so a lane that records none reports exactly what it
+    /// reported before.
+    commit_source_arena_aliases: u64 = 0,
+    commit_source_arena_memcpys: u64 = 0,
+    commit_source_uploads: u64 = 0,
 };
 
 pub fn run(comptime Product: type) !void {
@@ -153,6 +164,8 @@ fn proveFile(
         paths.air_template_library,
     );
     defer air_templates.deinit();
+    var cache_activation = try preprocessed_cache.activate(Product, allocator);
+    defer cache_activation.deinit(Product);
     const started = std.time.Instant.now() catch return error.ClockUnavailable;
     var proof_context = try Product.beginProof(allocator);
     var proof_context_owned = true;
@@ -179,6 +192,10 @@ fn proveFile(
             .fixed = &fixed,
             .relations = &relations,
             .air_templates = &air_templates,
+            .composition_device = if (comptime @hasDecl(Product, "compositionDevice"))
+                Product.compositionDevice(paths.air_template_library)
+            else
+                null,
         },
         paths.variant,
         if (maybe_recorder) |*recorder| recorder else null,
@@ -242,6 +259,7 @@ fn proveFile(
         request.proof_format,
         execution,
         backend_evidence,
+        cairo.preprocessed.product_cache.accountingSnapshot(),
     );
     defer allocator.free(report);
     try Product.stwo.interop.output_transaction.publishResult(
@@ -356,6 +374,7 @@ fn renderReport(
     proof_format: cli.ProofFormat,
     execution: ?execution_adapter.Receipt,
     backend_evidence: anytype,
+    preprocessed_cache_accounting: anytype,
 ) ![]u8 {
     const input_hex = std.fmt.bytesToHex(input_sha256, .lower);
     const proof_hex = std.fmt.bytesToHex(proof_sha256, .lower);
@@ -390,6 +409,10 @@ fn renderReport(
         .frontend = "cairo",
         .backend = Product.backend_name,
         .backend_evidence = backend_evidence,
+        // Ops accounting for the preprocessed product cache. Availability
+        // telemetry only: nothing here reaches the key, the artifact bytes, the
+        // transcript or the proof.
+        .preprocessed_cache = preprocessed_cache_accounting,
         .profile = profile_name,
         .execution = execution_json,
         .input = .{ .sha256 = &input_hex },

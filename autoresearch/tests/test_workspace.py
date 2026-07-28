@@ -143,13 +143,6 @@ class SetupTest(unittest.TestCase):
             ):
                 workspace.setup(self.root, self.manifest, board="unknown")
 
-    def test_setup_parser_defers_board_validation_to_manifest(self):
-        args = build_parser().parse_args(
-            ["setup", "--board", "manifest_defined_future_board"]
-        )
-
-        self.assertEqual(args.board, "manifest_defined_future_board")
-
 
 if __name__ == "__main__":
     unittest.main()

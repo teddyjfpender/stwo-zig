@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const qm31 = @import("stwo_core").fields.qm31;
+const telemetry = @import("telemetry.zig");
 
 /// A Metal-labelled proof admits every non-empty commitment to the resident
 /// implementation. Performance selection belongs to an explicitly hybrid
@@ -37,4 +38,10 @@ pub fn quotientUsesResidentMerkle(lifting_log_size: u32) bool {
 pub fn friFoldCommitUsesResidentMerkle(value_count: usize, fold_count: u32) bool {
     if (fold_count != 1 or value_count == 0 or !std.math.isPowerOfTwo(value_count)) return false;
     return std.math.log2_int(usize, value_count) >= fri_fold_commit_log_threshold;
+}
+
+/// A sampled-value evaluation that declined the device route is a counted CPU
+/// fallback, not a placement.
+pub fn recordSampledValueFallback() void {
+    telemetry.record(.cpu_sampled_value_evaluation);
 }

@@ -599,7 +599,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--board",
         default=None,
-        help="build only the workload group owned by this manifest-defined board",
+        choices=["core_cpu", "core_hybrid", "core_metal", "core_cuda",
+                 "heavy_native", "heavy_cairo", "stream", "riscv"],
+        help="build only the workload group owned by this board",
     )
 
     sub.add_parser(
