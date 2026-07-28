@@ -1,0 +1,158 @@
+{
+  "approved_lean_axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ],
+  "canonical_digest": "d07f72bee01f5c15fff8b3c061072fc74cc7a7e8a579209f2b4e4a672ceaf910",
+  "claim_boundary": "kernel-checked normalized LUI/ADDI AIR predicate to reviewed Sail expression capsule; serialized-M31 and generated-monad normalization theorems remain open",
+  "coverage": {
+    "production_opcodes": 46,
+    "proved_normalized_opcodes": 2
+  },
+  "generated_manifest_digest": "d98673ff02fcb3a0c08da72c55bc787d1eb6dafadcd91f1662c4d90da07044c8",
+  "kind": "stwo-riscv-refinement-receipt",
+  "lean_build": "passed",
+  "negative_controls": [
+    "lui-free-low-limb",
+    "addi-free-high-carry"
+  ],
+  "opcodes": [
+    "lui",
+    "addi"
+  ],
+  "proof_escape_scan": "passed",
+  "repository_dirty": false,
+  "repository_dirty_paths": [],
+  "repository_revision": "6ffafa9ed0faa7f9e93667aef732eb4d1fe6cc92",
+  "schema_version": 1,
+  "semantic_toolchain": {
+    "compiler": {
+      "sha256": "f13e45993e5111cc65395678948fbee213e13a4e9935b2ee05f07981f37ff714",
+      "version": "0.20.2"
+    },
+    "simulator": {
+      "sha256": "79d4b7426a0c786464f807d8ba32d8e2bfec97acdc3a1e03c4c7c8521b78e83a"
+    }
+  },
+  "theorem_axioms": {
+    "RiscvRefinement.Coverage.pilot_coverage_exact": [],
+    "RiscvRefinement.Decode.encode_addi_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Decode.encode_lui_is_canonical": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.NonVacuity.addi_exists": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.NonVacuity.honest_addi_holds": [
+      "propext"
+    ],
+    "RiscvRefinement.NonVacuity.honest_lui_holds": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.NonVacuity.lui_exists": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.addi_arithmetic_from_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.addi_destination_from_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.addi_immediate_refines": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.addi_immediate_value_lt": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.addi_refines": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.addi_source_from_constraints": [
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.addi_value_refines": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.lui_destination_from_constraints": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.lui_refines": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.lui_result_bytes_refine": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.Opcodes.lui_value_refines": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.WordBytes.eq_of_limbs": [
+      "propext"
+    ],
+    "RiscvRefinement.WordBytes.value_lt": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.WordBytes.word_toNat": [
+      "Quot.sound",
+      "propext"
+    ],
+    "RiscvRefinement.WordBytes.zero_word": [],
+    "RiscvRefinement.architecturalValue_zero": [
+      "propext"
+    ],
+    "RiscvRefinement.architecturalWrite_value": [
+      "propext"
+    ],
+    "RiscvRefinement.architecturalWrite_zero": [
+      "propext"
+    ],
+    "RiscvRefinement.toNat_append_arith": [
+      "Quot.sound",
+      "propext"
+    ]
+  },
+  "tier": "level-1-normalized-pilot",
+  "toolchain": {
+    "lake": {
+      "sha256": "93af6b5a84832ce50fdd73ca3bcd8a94ad5e3099f8af0c83837a0f8e7720dfa3",
+      "version": "Lake version 5.0.0-src+98dc76e (Lean version 4.29.0)"
+    },
+    "lean": {
+      "sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+      "version": "Lean (version 4.29.0, arm64-apple-darwin24.6.0, commit 98dc76e3c0a9b856c9b98726b713fb04fab16740, Release)"
+    },
+    "python": {
+      "sha256": "b502cb4c5b46b8d4192ec6bcb600ce8922f1afc396fcf646e8765c6eba74a0bf",
+      "version": "3.14.6"
+    },
+    "zig": {
+      "sha256": "5c57faf6de2baa001be8cc3084d32ded7daf5a227ede514ca7f1161515aafa76",
+      "version": "0.15.2"
+    }
+  }
+}
