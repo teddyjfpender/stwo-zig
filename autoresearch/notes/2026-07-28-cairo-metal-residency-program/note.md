@@ -3710,3 +3710,452 @@ unconditionally — so it is a *second* increment, not a drop-in, and it should 
 block library 1. Part B, when it is done, changes which kernels library 1 must
 contain, so if part B lands before the mint runs, **library 1 must be
 re-generated** (two extra kernels; the existing 69 keep their hashes, per §4).
+
+---
+
+
+---
+
+## Increment 3.11: epoch fusion census and pricing
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start and end of measurement: `804a50bb`, clean. Audit/pricing
+increment — **no product source was changed**; the only tree change is this note
+and `transcripts/session-12.md`.
+Raw data and harnesses: `/private/tmp/i311/` (`submit_cost.m`, `subcount.m`,
+`runs.py`, `align.py`, `pricing.txt`, per-run `*.subcount`/`*.timeline.csv`).
+Build identity verified after building:
+`source.commit = 804a50bbd21067a0f70aacaffd237a7dc147e394`, `dirty = false`,
+`core-aot-manifest-sha256 = 0bc89238…` — the Phase 0 bundle.
+
+**Headline: Phase 0 §6.6 mispriced epoch fusion by roughly 30x, and the census
+found a bigger lever sitting next to it.** Fusion is worth **1.2-3.0% of prove**
+(24-38 ms), not the 1.632x→1.971x step it was assigned. The 104.7-145.5 ms of
+host proof-of-work grind that sits on the same Fiat-Shamir chain is **four to six
+times larger than the entire fusion prize**, and there is still no PoW kernel.
+
+### 1. Method, and the two things that made the census measurable
+
+Two instruments, both entirely outside the worktree, so the constraint that the
+tree stay untouched until packaging held all the way through.
+
+1. **`/private/tmp/i311/submit_cost.m`** — a standalone Metal program that prices
+   a host-blocking command-buffer submission directly, against a trivial kernel
+   and against a kernel with real work, with and without host compute between
+   submissions. It answers "what does a boundary cost" without reference to the
+   prover.
+2. **`/private/tmp/i311/subcount.m`** — a `DYLD_INSERT_LIBRARIES` shim that
+   swizzles the concrete `MTLCommandBuffer` / `MTLComputeCommandEncoder` classes
+   in the *shipping* `stwo-cairo-metal` process and records every `commit`, every
+   `waitUntilCompleted` (with its duration), every `dispatchThreads` /
+   `dispatchThreadgroups`, and a full timeline. **The instrumented proofs are
+   byte-identical to the uninstrumented ones** (`79ae76e1…` / `25e5719f…`), so
+   this is a measurement of the product, not of a variant of it.
+
+Protocol as Phase 0: `STWO_CAIRO_PREPROCESSED_CACHE=0`, cold processes,
+`run-and-prove`, `--stage-profile-out`. Host load was **elevated** during this
+session (1-minute loadavg 10.9-13.0, this harness's own churn plus two
+concurrent read-only survey agents), and the fresh uninstrumented three-run means
+are correspondingly 18% above Phase 0's:
+
+| workload | prove, 3 runs (ms) | mean | Phase 0 mean | `metal_dispatches` | proof sha256 |
+| --- | --- | ---: | ---: | ---: | --- |
+| arithmetic-2m | 2,226.4 / 2,348.9 / 2,321.1 | 2,298.8 | 1,943.0 | 74 | `25e5719f…` |
+| all-opcodes | 1,506.1 / 1,525.3 / 1,561.6 | 1,531.0 | 1,284.6 | 75 | `79ae76e1…` |
+
+Both digests reproduce Phase 0 exactly. **Because of the load, every absolute-ms
+price below is computed against Phase 0's stage table, not against this
+session's; this session supplies structure, counts and the per-boundary cost
+constant.** That is the conservative direction: a slower host inflates the
+measured cost of a boundary, so pricing on Phase 0's clock understates nothing.
+
+### 2. The correction that has to come first: `metal_dispatches` is not a submission count
+
+`metalDispatchTotal()` (`telemetry.zig:92-109`) sums **twelve** counter fields,
+not the ten Phase 0 §6.3.3 recorded — `metal_relation_epochs` and
+`metal_composition_eval_dispatches` were added since, and the test at
+`telemetry.zig:505-527` documents the change. More importantly the total counts
+**counter ticks, not command-buffer submissions**, and it is wrong in both
+directions:
+
+- **It over-counts fused epochs.** `commitLazyMerkle` records two ticks for one
+  buffer (`commit_backend.zig:303-304`); `combined_commit.zig:182-184` records
+  two or three for one buffer; `commitFriLineCascade` records
+  `2 + layer_count` ticks for **one** buffer (`commit_backend.zig:757-758`);
+  `resident_fri_transaction.zig:157-161` records four plus `layer_count` for two
+  buffers and *one* wait — the file says so itself at `:163`.
+- **It cannot see 12-16 real blocking submissions.** Every op in
+  `transcript_decommitment.m` is its own command buffer with its own
+  `waitUntilCompleted` (16 sites) and **none** of them is in
+  `metalDispatchTotal`. The `fri_decommit` and `trace_decommit` stages are
+  therefore invisible to the metric that every promotion claim in three campaigns
+  has quoted.
+- `polynomial_evaluation.m:132-147` deflates it the other way: one
+  `metal_sampled_value_dispatch` tick hides `⌈dispatches/128⌉ + 1` blocking
+  submissions, because the encoder flushes and blocks every 128 dispatches.
+
+Measured, on the shipping binary:
+
+| workload | `metal_dispatches` | **actual `commit`** | **actual `waitUntilCompleted`** | kernel dispatches | compute enc. | blit enc. | host time inside `wait` |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 75 | **53** | **52** | 675 | 474 | 30 | 511.6 ms |
+| arithmetic-2m | 74 | **51** | **50** | 635 | 446 | 27 | 665.2 ms |
+
+So the program's central structural number — "74-79 blocking host↔device round
+trips per proof" — is **51-53 submissions and 50-52 blocking waits**, carrying
+635-675 kernel dispatches. The pipeline is already ~13 kernels per submission,
+which is a much better starting point than Phase 0 assumed, and it is why the
+fusion prize is small.
+
+### 3. What a boundary costs (`/private/tmp/i311/submit_cost.m`, Apple M5 Max)
+
+Medians over 9-21 reps; `N` submissions of the same kernel.
+
+| configuration | N=74 blocking (A) | one buffer, N dispatches (B) | N committed, one wait (C) | N handlers, one wait (D) |
+| --- | ---: | ---: | ---: | ---: |
+| trivial kernel, 32 threads | **12.48 ms** (0.169/sub) | 0.389 ms (0.0053/disp) | 0.850 ms (0.0115/sub) | 0.770 ms |
+| trivial kernel, 1,048,576 threads | 13.26 ms (0.179/sub) | 0.924 ms | 1.432 ms | 1.356 ms |
+| real work, 0.73 ms/kernel | **67.06 ms** (0.906/sub) | 54.39 ms (0.735/disp) | 55.05 ms | 54.97 ms |
+
+Five measured facts, each of which the pricing needs:
+
+1. **A single blocking submission costs 0.1735 ms** (min 0.131, max 0.228) with a
+   32-row kernel — which **independently reproduces increment 3.5's 0.1763 ms
+   "per-dispatch floor"** from a completely different direction. 3.5's floor was
+   never kernel time. It is the submission round trip, and this closes that as an
+   open question.
+2. **The overhead is additive and does not hide behind GPU work.** With 0.73 ms
+   kernels, A − B = 12.67 ms over 74 boundaries = **0.171 ms per submission** —
+   the same constant as the trivial-kernel case. Blocking submission cost may be
+   priced as a straight `count × 0.169 ms` subtraction.
+3. **Encoding a dispatch into a shared command buffer costs 0.005-0.013 ms** —
+   13-32x less than a submission. Full fusion recovers 0.161 ms per boundary.
+4. **You do not need fusion to get the money.** Committing N *separate* command
+   buffers and waiting only on the last (case C) costs 0.0115-0.019 ms per
+   submission — it recovers **93%** of what full fusion recovers, with no
+   restructuring of encoders. On the same in-order queue, C ≈ B even with real
+   kernels (55.05 vs 54.39 ms), so ordering semantics are preserved for free.
+5. **Host compute between dispatches is fully hideable.** With 0.73 ms kernels
+   and 0.7 ms of host work per boundary: blocking (E) = 120.3 ms, pipelined so
+   the host burn overlaps the previous buffer (F) = **54.8 ms** ≈ pure GPU time.
+   The host work vanished entirely. This is the measurement that prices
+   double-buffering, and it is why class (b) below is worth as much as class (c).
+
+For the transcript bootstrap specifically: N=13 blocking submissions cost
+**2.013 ms**; the same 13 dispatches in one buffer cost **0.168 ms**.
+
+### 4. The submission census
+
+Classes, as the brief defines them: **(a)** Fiat-Shamir-forced — a challenge must
+be derived from a root before the next stage, and only the 32-byte root read is
+genuinely needed; **(b)** host-compute-forced — real host work sits between
+dispatches; **(c)** structural/API — could share a command buffer, or simply not
+block, with no semantic change.
+
+Measured submissions per device stage, with each stage's kernel payload
+(all-opcodes / arithmetic-2m; timeline aligned by anchoring the first commit to
+the first device stage and cross-checking against the host-only stages, which
+appear as the two large gaps):
+
+| stage | submits | waits | kernels | mean wait | dominant boundary cause | class |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| `preprocessed_materialize_and_commit` | 25 / 18 | 25 / 18 | 264 / 174 | 1.7 / 2.4 ms | per-column / per-plan `commit`+`wait` in `circle_plans.m`, `merkle_epochs.m`, `lifecycle_and_tree.m`; the `CommandEpoch` path is engaged for at most one of them | **(c)** ×24/17, **(a)** ×1 (tree-0 root) |
+| `main_trace_commit` | 8 / 14 | 8 / 14 | 59 / 135 | 11.8 / 10.1 ms | `circle_commit_epoch.m:567-568` already fuses LDE + leaf + full parent chain into one buffer; the remainder is one submission per commit call | **(c)** ×7/13, **(a)** ×1 (tree-1 root) |
+| `interaction_trace_commit` | 15 / 14 | 15 / 14 | 154 / 144 | 7.0 / 9.0 ms | same shape; `CommandEpoch` has **no `encodeRelation`** (`command_epoch.zig:127-212`, 7 encoders), so relation work can never share a buffer with commitment work | **(c)** ×14/13, **(a)** ×1 (tree-2 root) |
+| `sampled_value_evaluation` | — / 3 | — / 3 | — / 85 | — / 23.2 ms | `polynomial_evaluation.m:132` flushes and blocks every 128 dispatches | **(c)**, then **(a)** ×1 (OODS values → quotient alphas) |
+| `fri_quotient_build_and_commit` | 5 / 2 | 4 / 1 | 198 / 97 | 67.4 / 284.2 ms | **already the best-fused path in the repo**: `quotients.m:739` commits without waiting and tail-calls the line cascade, which mixes the channel *on device* (`fri_fold_commit.m:719`) — "2 command buffers, 1 wait" | **(c)** ×3/0, **(a)** ×1 |
+| `composition_commit`, `fri_decommit`, `trace_decommit` | folded into the counts above by the alignment | | | | `transcript_decommitment.m` — 12 decommit ops, each its own buffer + wait, none counted by `metal_dispatches` | **(c)** ×10-12 |
+| `composition_evaluation` | **0** | 0 | 0 | — | `composition_device_declined` — the metallib is unauthenticated, so composition is host. Appears as the largest gap in the timeline (321.9 ms / 584.1 ms) | **(b)** today, becomes (c)-bearing after Phase 1 |
+| `proof_of_work` | **0** | 0 | 0 | — | `channel.grind(24)` on the CPU (`proving/transcript.zig:41-45`); **no PoW kernel exists** | **(a)** with host compute — see §7 |
+
+**Genuine class-(a) boundaries per proof: six.** Four commitment-tree root mixes
+(preprocessed, main, interaction, composition), the OODS sampled-value readback
+that produces the quotient alphas, and the query-position draw after PoW. Every
+other one of the 50-52 blocking waits is class (c) or class (b): **44-46 of 50-52
+boundaries carry no semantic requirement at all.**
+
+The wait-duration distribution says the same thing from the other side:
+
+| workload | waits < 0.5 ms | their total | waits < 1.0 ms | largest wait |
+| --- | ---: | ---: | ---: | ---: |
+| all-opcodes | 27 | 7.55 ms | 34 | 230.6 ms |
+| arithmetic-2m | 15 | 3.74 ms | 26 | 284.2 ms |
+
+Half the submissions are pure round trip with almost no GPU work behind them,
+and they cost 4-8 ms in total. That is the honest size of the target.
+
+And the inter-submission host gaps — the class-(b) term — measured directly from
+the timeline as the interval between a wait returning and the next commit:
+
+| workload | total gap | boundaries | gaps < 5 ms | their total | the two dominant gaps |
+| --- | ---: | ---: | ---: | ---: | --- |
+| all-opcodes | 584.2 ms | 51 | 47 | **31.0 ms** | 321.9 ms + 210.9 ms |
+| arithmetic-2m | 1,055.4 ms | 49 | 41 | **17.2 ms** | 584.1 ms + 311.8 ms |
+
+The two dominant gaps per workload are not "host work between dispatches" — they
+are the host `composition_evaluation` and `interaction_trace_build` stages, which
+are Phase 1/2's target and are genuinely Fiat-Shamir-serialized behind the
+preceding root (campaign 2's D1 blocker). **The class-(b) work that
+double-buffering can actually hide is 17-31 ms**, not 584-1,055.
+
+### 5. The transcript round-trip map
+
+Two facts have to be separated here, because Phase 0 §6.5 conflated them.
+
+**The product does not run the resident transcript.** `bootstrapThroughBase`
+(`protocol_recipes.zig:668-670`) and the `transcript_decommitment.m` transcript
+ops belong to the resident subsystem, reachable from
+`src/tools/metal_arena_plan/main.zig:3961-3966`, which Phase 0 §3.1 already
+established is not wired into the product. The shipping Cairo Metal proof mixes
+and draws on the **host** (`frontends/cairo/proving/transcript.zig`), and the
+measured 51-53 submissions contain **zero** transcript-op submissions. The 12
+decommit-op submissions in the same file *are* on the product path.
+
+**On the resident path, the count is 11/12/14, not 13.** The loop is exactly
+eleven `mixInput` calls; `initialize` makes twelve command buffers through end of
+bootstrap; the nonce mix inside `writeAndMixNonce`
+(`protocol_recipes.zig:804-810`) and `drawSecure` make fourteen before the first
+relation thread. Phase 0's line references and its structural claim are right;
+the number is off by two and should be restated.
+
+The classification, which is the part that matters:
+
+| # | op | content | bytes | mechanism | class |
+| --- | --- | --- | ---: | --- | --- |
+| 0 | `transcriptInit` | zero 9 state words | 0 read | GPU round trip with no data at all | **(c)** |
+| 1-2 | `mixInput(1,2)` | channel salt, PCS config | 0 read | host already wrote the arena | **(c)** |
+| 3 | `mixInput(3)` | **tree-0 Merkle root** | **32 B** | `lifecycle_and_tree.m:173-174`: `root_readback == hash_arena` on UMA; in the resident path the root never leaves the arena at all (`arena_binding.zig:2264-2267`, in-arena 32-B memcpy) | **(a)** |
+| 4-8 | `mixInput(10..14)` | claim: component count / enable bits / log sizes / program length / public claim | 0 read | statement mixes, largest is `4·padded(52+P+O)` B **written**, nothing read | **(c)** |
+| 9-10 | `mixInput(15,16)` | output-segment and program roots | 32 B each | root-mix, UMA pointer read | **(a)**-shaped, but derivable before any device work |
+| 11 | `mixInput(20)` | **tree-1 Merkle root** | **32 B** | same as #3 | **(a)** |
+| 12 | host grind + `mixInput(21)` | `channelFromState` reads 36 B; `channel.grind(24)` **on the CPU**; 8-B nonce back; then a mix | 36 B read | **the only genuinely serializing host computation in the protocol** | **(b)**, unavoidable until a PoW kernel exists |
+| 13 | `drawSecure(1,2)` | `z`, `alpha` | **32 B** | drawn on device, read back so the host can run a scalar QM31 alpha-power **prefix product** (`resident/transcript/operations.zig:111-117`) | **(b)**, trivially kernelizable |
+
+Continuation, same one-buffer-per-op shape: interaction claim mix + interaction
+root mix + draw (3), composition mix + draw (2), OODS mix + draw (2), **two per
+FRI layer**, last layer (1), query PoW + mix + `drawQueries(70)` (2, with a 280-B
+UMA read).
+
+**Not one transcript "readback" is a copy.** There is no `newBuffer*`, no blit
+encoder and no staging buffer anywhere in `transcript_decommitment.m`; the arena
+is a single `MTLResourceStorageModeShared` allocation
+(`witness_primitives.m:403-404`) whose `.contents` pointer is cached host-side
+(`resident_arena.zig:58-67`). Phase 0's UMA reframe is confirmed exactly: the
+entire cost of these ops is the `waitUntilCompleted`, plus the fact that
+`gpu_milliseconds` is derived from `command.GPUEndTime` and therefore
+*structurally requires completion* — a telemetry choice that is currently
+enforcing 50 of the 52 blocking waits.
+
+One asset the plan can use immediately: a fused **root-mix + `drawSecure`**
+already exists on device inside the Merkle parent tail kernel
+(`shaders/core/transcript.metal:141`, `:206-218`), enabled in the FRI cascade
+(`fri_fold_commit.m:629-643`) and explicitly **disabled** in the epoch path
+(`merkle_epochs.m:534, 550-551, 580-581`, which passes
+`disabled_transcript_config = {0,0,0}`). The mechanism for removing a class-(a)
+round trip is shipped and switched off.
+
+### 6. The price
+
+Three tiers, all built from the measured constants of §3 and the measured counts
+of §4. `/private/tmp/i311/pricing.txt`.
+
+- **(i) batch class-(c) only** = `(waits − 6) × (0.169 − 0.014)` — stop blocking,
+  keep every command buffer as it is.
+- **(ii) (c) + restructure (b)** = tier (i) plus the measured `< 5 ms`
+  inter-submission host gaps, which §3 fact 5 shows are fully hideable behind
+  available GPU work.
+- **(iii) ceiling, only class-(a) left** = `(waits − 6) × (0.169 − 0.008)` plus
+  the same host gaps.
+
+| workload | prove (Phase 0) | (i) | (ii) | (iii) | (i) % | (ii) % | (iii) % |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 1,284.6 | **7.1 ms** | **38.2 ms** | **38.4 ms** | 0.56% | 2.97% | 2.99% |
+| arithmetic-2m | 1,943.0 | **6.8 ms** | **24.0 ms** | **24.3 ms** | 0.35% | 1.24% | 1.25% |
+
+Tier (ii) and tier (iii) are within 0.3 ms of each other, which is the single
+most actionable line in this increment: **full epoch fusion buys essentially
+nothing over simply not blocking.** The whole prize is in the non-blocking
+commit (measured, case C) plus overlapping host work (measured, case F); merging
+encoders into one command buffer adds 0.006 ms per boundary.
+
+#### The refined 1.768x bar arithmetic
+
+Phase 0 §2.2's `2S + caches` row is 1.971x and its `S + caches` row is 1.632x,
+and §6.6 named epoch fusion as *the* mechanism for the difference. Substituting
+the measured tier-(iii) recovery into the `@S + caches` column (pedersen and
+memory-7m were not instrumented this session; their tier-(iii) values are
+estimated at 26 and 44 ms by scaling submission counts, and both are small enough
+that the geomean is insensitive to them):
+
+| workload | prove | `@S + caches` (Phase 0) | + measured fusion | speedup |
+| --- | ---: | ---: | ---: | ---: |
+| all-opcodes | 1,284.6 | 865.0 | 826.6 | 1.554 |
+| pedersen-aggregator | 1,453.2 | 778.6 | 752.6 | 1.931 |
+| arithmetic-2m | 1,943.0 | 1,202.6 | 1,178.3 | 1.649 |
+| memory-7m | 4,612.7 | 2,912.4 | 2,868.4 | 1.608 |
+| **geomean** | | **1.632x** | | **1.680x** |
+
+**1.680x, against a 1.768x bar — still short by 5.3%.** Fusion moves the program
+from "short by 8.3%" to "short by 5.3%". It is not the mechanism for the `2S`
+column and Phase 0 §6.6 should be corrected in place.
+
+The size of the error, stated so it cannot be repeated: to deliver 1.632x→1.971x,
+fusion would have to recover 148.8 ms on all-opcodes and 206.8 ms on
+arithmetic-2m, i.e. **924 and 1,284 collapsible blocking submissions** at the
+measured 0.161 ms each. There are **46 and 44**. Phase 0 overestimated the
+mechanism by a factor of ~20-30, and it did so by reading `metal_dispatches = 74`
+as a submission count (§2) and then not pricing a submission (§3).
+
+#### Interaction with the pending composition residency
+
+Device composition **adds** submissions, and the current hook adds them in the
+worst possible shape: `composition_stage.zig:430-434` issues **one blocking
+submission per plan handle**, inside a `for (entry.plans)` loop. Increment 3.6 §7
+measured all-opcodes' composition at **75 per-part dispatches** (43 fused), so
+Phase 1 landing as written would add ~75 blocking submissions to a proof that
+currently makes 53 — **+12.7 ms of pure submission overhead on all-opcodes**, and
+more on the two large rows whose part counts are higher. That is larger than the
+1.106x fusion benefit 3.6 credited to kernel fusion on the same row.
+
+Two consequences: (1) the per-plan submission must be batched **before or with**
+the Phase 1 hook, not after — it is a two-line encoder change now and a
+regression to chase later; (2) fusion's absolute prize *grows* with residency,
+because residency is what creates collapsible boundaries. Post-Phase-1/2/4 the
+submission count plausibly triples, which raises tier (iii) from ~24-38 ms toward
+~50-80 ms — still 2-4% of prove, still not the `2S` column.
+
+### 7. The lever the census found: proof-of-work, not fusion
+
+`proof_of_work` is a **class-(a) boundary whose cost is host compute, not a
+round trip**, and it is measured at:
+
+| workload | `proof_of_work` (Phase 0) | this session | share of prove |
+| --- | ---: | ---: | ---: |
+| all-opcodes | 81.5 ms | 110.3 ms | 6.3-7.2% |
+| arithmetic-2m | 112.8 ms | 145.5 ms | 5.8-6.3% |
+| memory-7m | 23.8 ms | — | 0.5% |
+| pedersen-aggregator | 2.4 ms | — | 0.2% |
+
+`channel.grind(24)` runs on the CPU (`proving/transcript.zig:12, 41-45`) and
+there is no grind kernel anywhere in `src/backends/metal/shaders/`. A 24-bit
+blake2s grind is the most embarrassingly parallel work in the entire protocol.
+**On the two rows this increment measured, a PoW kernel is worth 4-6x the entire
+epoch-fusion programme**, and unlike fusion it needs no change to any existing
+submission site. It is bimodal across the portfolio in the same way witness is —
+worth ~6% on all-opcodes and arithmetic-2m, ~0.2-0.5% on pedersen and memory-7m —
+so it is a two-row lever, not a portfolio-wide one. Phase 0's phase-3 bundle
+listed "a PoW kernel" third, after epoch fusion and the alpha-power kernel. The
+order should be inverted.
+
+### 8. Ordered work plan
+
+Sizes are the tier-(iii) decomposition of §6; risk is stated against the
+machinery inventory in §9.
+
+| # | increment | scope | expected ms/proof | risk |
+| --- | --- | --- | ---: | --- |
+| **1** | **Make the metric mean what the notes assume** | Accumulate real `commit`/`wait` counts (the `CommandEpoch.Stats` ABI at `command_epoch.zig:78-91` already carries `command_buffers`, `wait_count`, `intermediate_wait_count`) into telemetry alongside `metalDispatchTotal`; add the missing decommit `Event` variants. | 0 (evidence) | **Low technically, governance-visible**: `metal_dispatches` appears in released evidence JSON and its meaning changes. Needs the capability-contract treatment Phase 0 §6.3.3 demanded for the relation counter. |
+| **2** | **Batch the per-plan composition submissions** — do this *before* Phase 1 ships | `composition_stage.zig:430-434`: encode all of an entry's plans into one buffer instead of one blocking submission per plan. | prevents **+12.7 ms** (all-opcodes) and more on large rows | **Low.** Purely additive to a hook that is currently declined at runtime; byte-exactness is already covered by `composition_fusion_test.zig`. |
+| **3** | **"Commit, don't wait"** on the commit stages | Split `commit` from `waitUntilCompleted` at the highest-count sites (`circle_plans.m`, `merkle_epochs.m`, `lifecycle_and_tree.m`, `prepared_auxiliary.m`) so the host proceeds to the next encode. Recovers 93% of the fusion prize (§3 fact 4) with no encoder restructuring. | **7 ms** (both rows) | **Medium.** 84 blocking sites; the blocker is that `gpu_milliseconds` is computed from `GPUEndTime` and therefore *requires* completion — telemetry must move to `addCompletedHandler`, which does not exist anywhere in `src/` (§9). Correctness risk is bounded and checkable: nothing may read arena bytes a submitted-but-unwaited buffer writes. |
+| **4** | **Double-buffer the intra-stage host work** | Overlap the per-column / per-plan host preparation with the previous buffer's execution. §3 fact 5 measured this as complete hiding (120.3 → 54.8 ms). | **17-31 ms** — the largest single item in the plan | **Medium-high.** Needs an in-flight bound (`dispatch_semaphore` / `maxCommandBufferCount`: neither exists) and a second workspace per buffered stage. Depends on #3. |
+| **5** | **A device PoW grind kernel** | New kernel + the transcript plumbing to feed the 36-B channel state and read back an 8-B nonce. | **110 / 145 ms** on all-opcodes / arithmetic-2m; ~0 on pedersen / memory-7m | **Medium.** New kernel, so it needs the AOT bundle regenerated — and §9's finding stands that the offline `metal` toolchain is not on this host. Verifier-visible: the nonce is in the proof, so byte-exactness is a hard gate, not a nicety. |
+| **6** | **`encodeRelation` + transcript encoders on `CommandEpoch`, and un-gate the epoch path** | `command_epoch.zig` has 7 encoders and none for relation/transcript/quotient/FRI. Also: the sole production call site (`arena_binding.zig:1856-1865`) is disabled by any of six `STWO_ZIG_SN2_*` diagnostic env vars, so at most 1 of 51 submissions goes through it today. | **~2 ms** now; the enabler for #4 on the interaction stage | **Medium.** Prerequisite for Phase 2 regardless of fusion. |
+| **7** | **Enable the on-device root-mix + `drawSecure` tail in the epoch path** | Flip `disabled_transcript_config` at `merkle_epochs.m:534, 550-551, 580-581` to the config the FRI cascade already uses. Removes class-(a) boundaries outright. | **~0.5 ms** | **Low-medium**, but it changes what is hashed where, so it is a byte-exactness gate. |
+| **8** | **`polynomial_evaluation.m`'s 128-dispatch chunk flush** | One counter tick, `⌈N/128⌉+1` blocking submissions. arithmetic-2m: 3 submissions carrying 85 kernels, 69.5 ms. | **< 1 ms** | Low. Fill-in. |
+| — | **Do not build** | `MTLSharedEvent` / `MTLFence` / a second queue. The census found no cross-buffer GPU→GPU dependency that in-order single-queue semantics do not already give (§3 fact 4: C ≈ B with real kernels). | — | Cost without a measured prize. |
+
+Sequencing note: #1 and #2 are prerequisites in the strict sense — #1 because
+every subsequent claim is quoted in a unit that is currently wrong, #2 because
+Phase 1 otherwise lands a regression that #3 will be blamed for. #5 is
+independent of everything else in the table and is the largest single number in
+it on two of four rows.
+
+### 9. Machinery inventory: exists vs must be built
+
+| capability | status | evidence |
+| --- | --- | --- |
+| Single shared `MTLCommandQueue` | **exists**, one, created once | `runtime.m:535` |
+| Multi-operation encoding into one command buffer | **exists**, 7 encoders | `command_epoch.zig:127-212` ↔ `merkle_epochs.m:201-349` |
+| Decoupled `submit` / `wait` | **exists — for `CommandEpoch` only** | `command_epoch.zig:214-240`; `merkle_epochs.m:351-397`. Every other op has `commit` and `waitUntilCompleted` on adjacent lines (84 sites) |
+| Deferred wait across two buffers | **exists, one instance** | `quotients.m:739-769` → `fri_fold_commit.m:719`; self-documented "2 command buffers, 1 wait" at `resident_fri_transaction.zig:163` |
+| Intra-buffer hazard barriers | **exists** | `merkle_epochs.m:557, 568` `memoryBarrierWithScope` |
+| Per-epoch stats with frozen ABI | **exists** | `command_epoch.zig:78-91` (56-byte `Stats`), populated `merkle_epochs.m:388-395` |
+| On-device transcript tail (root-mix + draw) | **exists, disabled in epochs** | `shaders/core/transcript.metal:141, 206-218`; enabled `fri_fold_commit.m:629-643`; disabled `merkle_epochs.m:534, 550-551, 580-581` |
+| Binary archives / pipeline cache | **exists, eval-pipelines only** | `archive_store.m:244-376`; `dynamic_evaluation.m:265-290` with `MTLPipelineOptionFailOnBinaryArchiveMiss` and a miss counter at `:287`. The transcript pipelines are static manifest entries (`shaders/manifest.zig:48-51`), so **binary-archive hits are not a lever on any boundary in this census** |
+| `addCompletedHandler` / `addScheduledHandler` | **must be built** — zero hits in all of `src/` | blocks #3: `gpu_milliseconds` currently requires completion |
+| `MTLSharedEvent` / `MTLEvent` / `MTLFence` | **must be built** — zero hits | not needed; see plan row "do not build" |
+| `dispatch_semaphore` / in-flight bound / `maxCommandBufferCount` | **must be built** — zero hits, queue depth never set | blocks #4 |
+| `[commandBuffer enqueue]`, `waitUntilScheduled` | **must be built** — zero hits | optional for #4 |
+| `encodeRelation` / transcript / quotient / FRI encoders on `CommandEpoch` | **must be built** | #6 |
+| Device PoW grind kernel | **must be built** | #5; no `kernel void` grind exists |
+| Device alpha-power prefix product | **must be built**, trivial | host scalar loop at `resident/transcript/operations.zig:111-117` |
+| Epoch path unconditional in production | **must be built** (gate removal) | `arena_binding.zig:1856-1865`, six env vars disable it |
+
+Prior art worth mining before writing #3: the vendored Rust
+`backend-metal-sys` crate under `src/backends/cuda/vendor/host_authority/` already
+implements deferred waiting, with six sites commented *"Do NOT
+waitUntilCompleted — return the handle for deferred waiting"* and batching notes
+alongside. It is not reachable from the Zig path and is not counted anywhere in
+this census, but the pattern is there.
+
+### 10. Verification, and what this increment did not do
+
+Product surface: **none**. The only tree changes are this note section and
+`transcripts/session-12.md`. Both instruments live in `/private/tmp/i311/` and
+were loaded via `DYLD_INSERT_LIBRARIES`; no build flag, env var or source line in
+the worktree was added or changed, so no digest, dispatch count or gate can have
+moved. The instrumented proofs are byte-identical to the uninstrumented ones,
+which is the check that the measurement did not perturb what it measured.
+
+No `zig build` step other than `stwo-cairo-metal` was run, and none was needed:
+there is nothing to compile. The pre-existing failures Phase 0 §8 and increments
+3.5-3.10 list are untouched and unexamined.
+
+**Limitations, stated rather than hidden.**
+
+1. **Host load.** 1-minute loadavg 10.9-13.0 during the timed runs; the fresh
+   three-run means are 18% above Phase 0's on both workloads. Every price is
+   computed against Phase 0's stage table for exactly this reason, and the
+   per-boundary constant from `submit_cost.m` was measured with medians over
+   9-21 reps on the same loaded host — which inflates it, i.e. errs toward
+   *over*-valuing fusion.
+2. **Two workloads, not four.** pedersen-aggregator and memory-7m were not
+   instrumented. Their tier-(iii) values in §6 are scaled estimates, flagged as
+   such. The geomean is insensitive to them at this magnitude, but the claim
+   "1.680x" inherits Phase 0's four-row basis and its caveat that the portfolio
+   has seven rows.
+3. **Stage attribution of submissions is anchored, not instrumented.** The
+   timeline is aligned by pinning the first commit to
+   `preprocessed_materialize_and_commit` and cross-checking against the host-only
+   stages, which show up as the two large gaps. Submissions in the late stages
+   (`composition_commit`, `fri_decommit`, `trace_decommit`) are absorbed into the
+   nearest earlier device stage by this alignment. The **totals** (51-53 / 50-52 /
+   635-675) are exact; the **per-stage split** is good to roughly a stage
+   boundary. A successor that wants exact attribution should take plan item #1,
+   which produces it for free.
+4. **The class (a)/(b)/(c) split is derived from code reading**, not from a
+   dependency analysis the compiler checked. Six class-(a) boundaries is a
+   judgement about the protocol; if it is wrong it is wrong in the direction of
+   too *many* (i.e. the prize is slightly larger), because each of the four root
+   mixes is a 32-byte UMA pointer read that the on-device transcript tail can
+   already eliminate (§5).
+5. **Not measured: whether #3 and #4 are byte-safe.** The census establishes that
+   44-46 of 50-52 boundaries carry no *semantic* requirement. It does not
+   establish that no code reads arena bytes behind a submitted-but-unwaited
+   buffer. That is the first thing #3 has to prove, and it is the reason #3 is
+   marked medium rather than low.
+
+### 11. What the successor should take
+
+1. **Correct §6.6 in place.** Epoch fusion is 1.2-3.0% of prove, not the
+   1.632x→1.971x step. The revised phase plan's Phase 3 has no mechanism for the
+   `2S` column, and the program is short of `1.768x` by 5.3% with fusion counted
+   at its measured value. A fourth lever is still needed and it is still not
+   identified — Phase 0 §2.3 consequence 2 stands, unrelieved.
+2. **Take plan items #1 and #2 next, together.** They are half an increment
+   combined, one fixes the unit every claim is quoted in, and the other stops
+   Phase 1 from landing a 12.7 ms regression.
+3. **Re-scope Phase 3 around proof-of-work.** 110-145 ms on two of four rows,
+   4-6x the entire fusion prize, no existing submission site to disturb. It needs
+   an AOT-bundle regeneration, which means it should be batched with the pending
+   metallib mint (#124) rather than scheduled independently.
