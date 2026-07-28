@@ -118,6 +118,7 @@ pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type, compti
                 self.commitment_scheme.coefficient_retention_policy,
                 &self.commitment_scheme.twiddle_source,
                 null,
+                null,
             );
             errdefer prepared.deinit(self.allocator);
 
@@ -263,6 +264,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 if (batch_retain) CoefficientRetentionPolicy.always else CoefficientRetentionPolicy.never,
                 &self.commitment_scheme.twiddle_source,
                 recorder,
+                null,
             ) catch |err| {
                 column_storage.freeOwnedColumnEvaluations(self.allocator, owned_batch);
                 return err;

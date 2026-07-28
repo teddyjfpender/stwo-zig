@@ -15,20 +15,41 @@ const implicit = @import("../witness/implicit_interaction_sources.zig");
 const live_graph = @import("../witness/live_graph.zig");
 const deductions = @import("../witness/deductions/mod.zig");
 const witness_bundle = @import("../witness/bundle.zig");
+const trace_arena = @import("trace_arena.zig");
 
 const M31 = core.fields.m31.M31;
 const ColumnEvaluation = prover.pcs.ColumnEvaluation;
+
+/// Storage the caller has already planned and allocated. When present every
+/// generated and implicit base column is written directly at its final arena
+/// offset, so no column is ever moved after execution. The arena and the claim
+/// geometry both stay owned by the caller.
+pub const Prepared = struct {
+    geometry: *claim_generator.OwnedClaimGeometry,
+    arena: *const trace_arena.Arena,
+};
 
 pub const BaseTrace = struct {
     allocator: std.mem.Allocator,
     columns: []ColumnEvaluation,
     geometry: claim_generator.OwnedClaimGeometry,
     execution: live_graph.Execution,
+    /// Column values borrow a caller-owned arena and must not be freed here.
+    arena_backed: bool = false,
+    /// True when the caller supplied both the geometry and the arena.
+    borrowed_geometry: bool = false,
 
     pub fn deinit(self: *BaseTrace) void {
+        if (self.arena_backed) {
+            self.allocator.free(self.columns);
+            self.execution.deinit();
+            if (!self.borrowed_geometry) self.geometry.deinit();
+            self.* = undefined;
+            return;
+        }
         deinitColumns(self.allocator, self.columns);
         self.execution.deinit();
-        self.geometry.deinit();
+        if (!self.borrowed_geometry) self.geometry.deinit();
         self.* = undefined;
     }
 
@@ -49,6 +70,50 @@ pub fn build(
     pedersen_table: ?deductions.PedersenTable,
     recorder: ?*prover.stage_profile.Recorder,
 ) !BaseTrace {
+    return buildInto(
+        allocator,
+        input,
+        programs,
+        topology,
+        fixed,
+        variant,
+        pedersen_table,
+        recorder,
+        null,
+    );
+}
+
+/// `prepared` is the allocation-before-execution seam: when it is supplied the
+/// claim geometry has already been derived and one contiguous arena has already
+/// been planned and allocated from it, and every column is written at its final
+/// offset rather than assembled and then moved.
+pub fn buildInto(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    programs: *const witness_bundle.Bundle,
+    topology: feed_topology.Loaded,
+    fixed: *const fixed_tables.Bundle,
+    variant: claim_generator.PreprocessedVariant,
+    pedersen_table: ?deductions.PedersenTable,
+    recorder: ?*prover.stage_profile.Recorder,
+    prepared: ?Prepared,
+) !BaseTrace {
+    if (prepared) |ready| {
+        var collector = try Collector.initPrepared(allocator, ready);
+        defer collector.deinit();
+        return buildWithCollector(
+            allocator,
+            input,
+            programs,
+            topology,
+            fixed,
+            pedersen_table,
+            recorder,
+            ready.geometry,
+            &collector,
+            true,
+        );
+    }
     var geometry = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -65,6 +130,32 @@ pub fn build(
     errdefer geometry.deinit();
     var collector = try Collector.init(allocator, &geometry);
     defer collector.deinit();
+    return buildWithCollector(
+        allocator,
+        input,
+        programs,
+        topology,
+        fixed,
+        pedersen_table,
+        recorder,
+        &geometry,
+        &collector,
+        false,
+    );
+}
+
+fn buildWithCollector(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    programs: *const witness_bundle.Bundle,
+    topology: feed_topology.Loaded,
+    fixed: *const fixed_tables.Bundle,
+    pedersen_table: ?deductions.PedersenTable,
+    recorder: ?*prover.stage_profile.Recorder,
+    geometry: *claim_generator.OwnedClaimGeometry,
+    collector: *Collector,
+    borrowed: bool,
+) !BaseTrace {
     var execution = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -76,9 +167,9 @@ pub fn build(
             allocator,
             input,
             programs,
-            &geometry,
+            geometry,
             .{
-                .context = &collector,
+                .context = collector,
                 .visit = observeGenerated,
             },
             pedersen_table,
@@ -172,8 +263,10 @@ pub fn build(
     return .{
         .allocator = allocator,
         .columns = columns,
-        .geometry = geometry,
+        .geometry = geometry.*,
         .execution = execution,
+        .arena_backed = collector.arena != null,
+        .borrowed_geometry = borrowed,
     };
 }
 
@@ -181,6 +274,18 @@ const Collector = struct {
     allocator: std.mem.Allocator,
     geometry: *const claim_generator.OwnedClaimGeometry,
     components: []?[]ColumnEvaluation,
+    /// When set every captured column is written at its planned arena offset
+    /// and no column values are owned by this collector.
+    arena: ?*const trace_arena.Arena = null,
+
+    fn initPrepared(
+        allocator: std.mem.Allocator,
+        prepared: Prepared,
+    ) !Collector {
+        var collector = try Collector.init(allocator, prepared.geometry);
+        collector.arena = prepared.arena;
+        return collector;
+    }
 
     fn init(
         allocator: std.mem.Allocator,
@@ -197,7 +302,12 @@ const Collector = struct {
 
     fn deinit(self: *Collector) void {
         for (self.components) |maybe_columns| {
-            if (maybe_columns) |columns| deinitColumns(self.allocator, columns);
+            if (maybe_columns) |columns| {
+                if (self.arena == null)
+                    deinitColumns(self.allocator, columns)
+                else
+                    self.allocator.free(columns);
+            }
         }
         self.allocator.free(self.components);
         self.* = undefined;
@@ -228,16 +338,32 @@ const Collector = struct {
         );
         var initialized: usize = 0;
         errdefer {
-            for (evaluations[0..initialized]) |evaluation| {
-                self.allocator.free(evaluation.values);
+            if (self.arena == null) {
+                for (evaluations[0..initialized]) |evaluation| {
+                    self.allocator.free(evaluation.values);
+                }
             }
             self.allocator.free(evaluations);
         }
-        for (source_columns, evaluations) |source, *evaluation| {
+        // A planned arena fixes each column's destination before execution, so
+        // the plan's predicted width for this component must match what the
+        // witness actually produced. A mismatch is a planning bug, not a
+        // fallback condition: fail closed rather than write outside a range.
+        const arena_base: ?usize = if (self.arena) |arena| blk: {
+            if (component_index >= arena.layout.component_widths.len or
+                arena.layout.component_widths[component_index] != source_columns.len)
+                return trace_arena.Error.ArenaPlanMismatch;
+            break :blk arena.layout.component_starts[component_index];
+        } else null;
+        for (source_columns, evaluations, 0..) |source, *evaluation, column| {
             if (source.len < 16 or !std.math.isPowerOfTwo(source.len))
                 return error.InvalidBaseTraceGeometry;
-            const values = try self.allocator.alloc(M31, source.len);
-            errdefer self.allocator.free(values);
+            const values = if (arena_base) |base|
+                try self.arena.?.columnValues(base + column)
+            else
+                try self.allocator.alloc(M31, source.len);
+            errdefer if (arena_base == null) self.allocator.free(values);
+            if (values.len != source.len) return trace_arena.Error.ArenaPlanMismatch;
             for (source, values) |raw, *value| {
                 value.* = M31.fromCanonical(raw);
             }

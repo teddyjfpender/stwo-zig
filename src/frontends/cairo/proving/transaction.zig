@@ -16,6 +16,7 @@ const witness = @import("../witness/mod.zig");
 const proving_air = @import("air/mod.zig");
 const base_trace = @import("base_trace.zig");
 const interaction_trace = @import("interaction_trace.zig");
+const trace_arena = @import("trace_arena.zig");
 const transcript = @import("transcript.zig");
 const geometry = @import("../witness/resident_geometry.zig");
 
@@ -142,6 +143,71 @@ pub fn proveFixtureWithRecorder(
         }
     }
 
+    // Backends that bind one contiguous resident source arena get their base
+    // trace planned and allocated *before* component execution, so every
+    // generated and implicit column is written at its final offset and nothing
+    // is repacked afterwards. Every other backend keeps today's fragmented
+    // allocation exactly as it is: the branch is comptime.
+    const arena_capable = comptime @hasDecl(Engine, "Backend") and
+        @hasDecl(Engine.Backend, "adopts_source_trace_arena") and
+        Engine.Backend.adopts_source_trace_arena;
+
+    var planned_geometry: ?claim_generator.OwnedClaimGeometry = null;
+    errdefer if (planned_geometry) |*owned| owned.deinit();
+    var planned_composition: ?witness.composition_bundle.Bundle = null;
+    errdefer if (planned_composition) |*owned| owned.deinit();
+    var arena: ?trace_arena.Arena = null;
+    errdefer if (arena) |*owned| owned.deinit();
+    if (arena_capable) {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_trace_arena_plan",
+            "Base trace arena plan",
+        );
+        defer stage.end();
+        // Structural admission, and the reason it is not a hard requirement:
+        // a claim derived before witness execution still carries *deferred*
+        // per-component log sizes for every feed-dependent component
+        // (`claim_generator.LogSize.deferred`, resolved by
+        // `resolveFeedGeometry`, "the witness-to-statement handoff"). The AIR
+        // template binder refuses a deferred log size outright
+        // (`air/template_binding.zig:42`, `:104`), so a claim with any deferred
+        // component cannot be laid out before execution. Fall back rather than
+        // fail: the product keeps its unchanged fragmented path.
+        var claim = claim_generator.deriveFromProverInput(
+            allocator,
+            fixture.input,
+            .{ .preprocessed_variant = claimVariant(variant) },
+        ) catch null;
+        var instantiated: ?witness.composition_bundle.Bundle = null;
+        if (claim) |*live| {
+            if (live.deferredCount() == 0) {
+                instantiated = fixture.air_templates.instantiate(
+                    allocator,
+                    live,
+                    variant,
+                    fixture.input.builtin_segments,
+                ) catch null;
+            }
+        }
+        if (instantiated == null) {
+            if (claim) |*live| live.deinit();
+            claim = null;
+        }
+        if (if (instantiated) |ready|
+            trace_arena.tryPrepare(allocator, ready.components)
+        else
+            null) |ready|
+        {
+            planned_geometry = claim;
+            planned_composition = instantiated;
+            arena = ready;
+        } else {
+            if (instantiated) |*owned| owned.deinit();
+            if (claim) |*owned| owned.deinit();
+        }
+    }
+
     var base = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -149,7 +215,7 @@ pub fn proveFixtureWithRecorder(
             "Base trace build",
         );
         defer stage.end();
-        break :blk try base_trace.build(
+        break :blk try base_trace.buildInto(
             allocator,
             fixture.input,
             fixture.programs,
@@ -161,10 +227,18 @@ pub fn proveFixtureWithRecorder(
                 .points = pedersen.points,
             } else null,
             recorder,
+            if (arena) |*ready| .{
+                .geometry = &planned_geometry.?,
+                .arena = ready,
+            } else null,
         );
     };
     defer base.deinit();
     var composition = blk: {
+        if (planned_composition) |ready| {
+            planned_composition = null;
+            break :blk ready;
+        }
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
             "air_template_instantiation",
@@ -240,13 +314,36 @@ pub fn proveFixtureWithRecorder(
             "Main trace commit",
         );
         defer stage.end();
-        try Engine.commit(
-            &scheme,
-            allocator,
-            base.takeColumns(),
-            recorder,
-            &channel,
-        );
+        const base_columns = base.takeColumns();
+        if (arena) |*ready| {
+            // Checked, not assumed: the flat commit-order column list really
+            // does cover the arena at the planned offsets. That equality is the
+            // whole basis of the no-copy device binding.
+            if (!trace_arena.columnsMatchPlan(ready, base_columns))
+                return error.InvalidBaseTraceArena;
+            const backing = try ready.backing(allocator);
+            const words = ready.words;
+            ready.layout.deinit();
+            arena = null;
+            base.arena_backed = false;
+            _ = words;
+            try Engine.commitWithBacking(
+                &scheme,
+                allocator,
+                base_columns,
+                backing,
+                recorder,
+                &channel,
+            );
+        } else {
+            try Engine.commit(
+                &scheme,
+                allocator,
+                base_columns,
+                recorder,
+                &channel,
+            );
+        }
         try Engine.flushPendingCommit(&scheme, allocator, &channel);
     }
 
