@@ -170,9 +170,15 @@ The existing shape is kept and I recommend keeping it:
   per-job `if:` guards. That would be a ~2000-line workflow rewrite for worse
   branch-protection ergonomics.
 - Two changes, both additive:
-  - **push to main takes the full matrix** (`--full-matrix`), not a scoped
-    selection. Post-merge safety net for any selection mistake a PR made, and it
-    keeps every lane's compiler cache warm for the next PR.
+  - **push to main takes the full HOSTED matrix** (`--full-matrix`), not a
+    scoped selection. Post-merge safety net for any hosted-lane selection
+    mistake a PR made, and it keeps every hosted lane's compiler cache warm
+    for the next PR. Lanes marked `hosted: false` (the self-hosted device
+    lanes) keep the diff-scoped selection on push — exactly the behavior they
+    had before this change, so an unrelated merge can never summon an offline
+    device runner. (This section originally described an unconditional full
+    matrix; the hosted partition landed in a follow-up commit and this record
+    was amended to match — reviewer A finding F1.)
   - **`--github-summary`** writes a table of all 34 lanes with
     selected/skipped and the triggering path, so a skipped lane is a visible,
     explained decision rather than a job that never appeared. This is the cheap
@@ -223,7 +229,7 @@ git diff 191e409f -- conformance/ci-touchpoints-v1.json | grep -c '"commands"'  
 
 ### Validation run
 
-- `scripts/tests/test_ci_package_graph.py` — 28 tests (synthetic diamond graph,
+- `scripts/tests/test_ci_package_graph.py` — 30 tests (synthetic diamond graph,
   live repository graph, plan integration, fail-open, determinism)
 - full `python3 -m unittest discover -s scripts/tests` — 1089 tests, OK
 - `python3 scripts/check_source_conformance.py` — no new violations
@@ -270,21 +276,16 @@ git diff 191e409f -- conformance/ci-touchpoints-v1.json | grep -c '"commands"'  
 
 ## Residual risks
 
-0. **The full matrix on push to main now runs the self-hosted CUDA lane on
-   every merge — decide this explicitly.** `emit_github_output` sets
-   `cuda_required=true` whenever `native_cuda_device` is in the plan, so
-   `--full-matrix` means `focused-cuda` fires on **every** push to main, not
-   only merges touching CUDA paths. That lane needs the `[self-hosted, linux,
-   x64, cuda]` runner and a single healthy GPU; it is the one lane for which
-   "cheap insurance" does not hold, and if the runner is offline every
-   push-to-main CI run fails or queues.
-
-   Implemented as briefed (full matrix on push), but this is a deliberate
-   decision for the reviewer, not an obviously-correct default. If the cost is
-   unwanted, the narrower version is to exclude `hosted: false` lanes from the
-   push expansion — one condition in `select_lanes`'s `full_matrix` branch —
-   which keeps the post-merge net for all 30 hosted lanes and leaves the
-   device lanes diff-scoped as they are today.
+0. **RESOLVED before merge: the push-time full matrix spares self-hosted
+   lanes.** As first implemented, `--full-matrix` would have fired
+   `focused-cuda` on every push to main, wedging merges whenever the
+   `[self-hosted, linux, x64, cuda]` runner is offline. The narrower version
+   this risk proposed is what shipped: `hosted: false` lanes are excluded
+   from the push expansion and keep diff-scoped selection (three contract
+   tests pin the partition). Reviewer B additionally established that base
+   pushes were already entirely diff-scoped, so the shipped change strictly
+   EXPANDS push coverage for the 30 hosted lanes and leaves self-hosted push
+   behavior byte-identical to before.
 
 1. **17 lanes are not package-derivable.** Product, aggregate, oracle, and
    global lanes still select via the catalog and the surviving hand rules. The
@@ -300,7 +301,7 @@ git diff 191e409f -- conformance/ci-touchpoints-v1.json | grep -c '"commands"'  
 
 3. **`focused-plan` is a single point of failure** — if it fails,
    `focused-verdict` fails closed (`test "$PLAN_RESULT" = success`). Correct,
-   but it means a resolver bug blocks all PRs. The 28 new contract tests run in
+   but it means a resolver bug blocks all PRs. The 30 new contract tests run in
    the `static` lane, which is always selected.
 
 4. **The 51-edge count is pinned in a test.** Adding a legitimate dependency
