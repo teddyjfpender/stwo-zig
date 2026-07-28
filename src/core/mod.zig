@@ -87,6 +87,17 @@ fn childType(comptime SliceType: type) type {
     return @typeInfo(SliceType).pointer.child;
 }
 
+test "api signature: core vector constructors preserve element types" {
+    comptime {
+        if (ColumnVec(u32) != []u32) {
+            @compileError("ColumnVec must remain a plain slice");
+        }
+        if (@typeInfo(ComponentVec(u32)) != .@"struct") {
+            @compileError("ComponentVec must remain an owning struct");
+        }
+    }
+}
+
 test "component vec: flatten and flatten cols" {
     const alloc = std.testing.allocator;
 

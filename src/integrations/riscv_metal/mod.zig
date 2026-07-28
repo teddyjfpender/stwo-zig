@@ -114,3 +114,9 @@ test "RISC-V Metal engine satisfies the shared prover transaction contract" {
     comptime prover_mod.assertProverEngine(MetalProverEngine);
     std.testing.refAllDecls(MetalProverEngine);
 }
+
+test "api invariant: RISC-V Metal integration cannot select the CPU backend" {
+    try std.testing.expect(
+        MetalProverEngine.Backend == @import("stwo_metal_backend").MetalCommitBackend,
+    );
+}

@@ -64,6 +64,17 @@ pub fn assertBackendForChannel(comptime B: type, comptime H: type) void {
     }
 }
 
+test "api signature: backend accepts a truthful minimum capability set" {
+    const MinimumBackend = struct {
+        pub const capabilities: Capabilities = .{};
+
+        pub fn ColumnType(comptime F: type) type {
+            return []F;
+        }
+    };
+    comptime assertBackend(MinimumBackend);
+}
+
 test "backend: contract modules compile" {
     // Smoke test — importing all contract modules triggers comptime validation.
     _ = column;

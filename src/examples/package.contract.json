@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_native_examples",
+  "version": "0.1.0",
+  "layer": "example",
   "owner": "native-examples",
   "public_modules": {
     "stwo_native_examples": "mod.zig"
@@ -23,13 +25,25 @@
     "wide_fibonacci",
     "xor"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Native example modules expose proving entry points"
+    ],
+    "invariant_tests": [
+      "poseidon.zig::examples poseidon: prove/verify wrapper roundtrip"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "native_examples",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/examples/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_prover_api",
+  "version": "0.1.0",
+  "layer": "api",
   "owner": "prover-api",
   "public_modules": {
     "stwo_prover_api": "mod.zig"
@@ -19,13 +21,25 @@
     "engine",
     "stage_profile"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: prover engine transaction is structurally checked"
+    ],
+    "invariant_tests": [
+      "column.zig::column evaluation validates storage and lifting geometry"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "prover_api",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/prover_api/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

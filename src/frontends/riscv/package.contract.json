@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_frontend",
+  "version": "0.1.0",
+  "layer": "frontend",
   "owner": "riscv-frontend",
   "public_modules": {
     "stwo_riscv_frontend": "mod.zig"
@@ -37,13 +39,25 @@
     "verifyRiscVWithEngine",
     "witness_layout"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: RISC-V facade preserves runner and prover entry points"
+    ],
+    "invariant_tests": [
+      "opcode_coverage_test.zig::all 46 proof opcodes reach witness, semantic, lookup, and component authorities"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "riscv_frontend",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/frontends/riscv/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

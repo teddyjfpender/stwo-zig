@@ -75,7 +75,7 @@ const CountingEngine = struct {
         channel: *Channel,
         scheme: Scheme,
         options: prover_engine.ProveOptions,
-    ) !ExtendedProof {
+    ) !CpuProverEngine.ExtendedProof {
         prove_calls += 1;
         return CpuProverEngine.prove(allocator, components, channel, scheme, options);
     }

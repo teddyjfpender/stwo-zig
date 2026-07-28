@@ -36,6 +36,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cairo_metal_integration", .source = "src/integrations/cairo_metal/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
         .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
     },
     .generated_imports = &.{
@@ -58,6 +59,7 @@ const source_closure = policy.SourceClosure{
         "src/products/cairo",
         "src/products/cairo_metal",
         "src/prover",
+        "src/prover_api",
         "src/tools/metal_session",
     },
     .required_dynamic_dependencies = &.{

@@ -2,9 +2,9 @@
 
 **Status:** PASS  
 **Audit date:** 2026-07-28  
-**Branch:** `feat/zig-package-workspace`  
-**Integrated base:** `6ae02bf7` (`Merge Cairo frontend completion`)  
-**Package epoch:** `9e30e723` through the current branch tip
+**Current branch:** `feat/architecture-hardening`
+**Current base:** `78556fe7` (`Feed: refresh after recorded promotion`)
+**Original package epoch:** `9e30e723` through the package-workspace merge
 
 This audit closes the package-workspace sequence that followed the RISC-V
 conformance work. It records the commit ordering, package graph, enforced
@@ -32,9 +32,17 @@ The requested sequence is complete:
 6. The only package-epoch directory move is a later, mechanical, 100% rename of
    the proof-wire root.
 
-The resulting workspace has 17 packages, 17 primary public modules, and 51
+The resulting workspace has 18 packages, 18 primary public modules, and 59
 declared dependency edges. Every package's independent CI lane passes, the
 downstream consumer smoke test passes, and the normal release gate passes.
+
+The architecture-hardening follow-up adds an independent stable
+`stwo_prover_api` package, renames the orchestration owner to
+`stwo_prover_engine`, removes the Metal backend's concrete dependency on the
+CPU backend, and upgrades every owner contract to
+`stwo-zig-package-contract-v2`. The historical sequence evidence below remains
+the record of the original 17-package introduction; the graph and enforcement
+sections describe the current 18-package workspace.
 
 ## Sequence evidence
 
@@ -115,25 +123,26 @@ The package graph is:
 
 | Package | Owner | Direct package dependencies | CI host |
 | --- | --- | --- | --- |
-| `stwo_core` | protocol-core | none | any |
-| `stwo_backend_contracts` | backend-contracts | core | any |
-| `stwo_prover_engine` | prover-engine | core, backend contracts | any |
-| `stwo_riscv_frontend` | riscv-frontend | core, prover | any |
-| `stwo_cairo_frontend` | cairo-frontend | core, backend contracts, prover | any |
-| `stwo_cpu_backend` | cpu-backend | core, backend contracts, prover | any |
-| `stwo_cuda_backend` | cuda-backend | backend contracts | any |
-| `stwo_metal_backend` | metal-backend | core, backend contracts, CPU backend, prover | macOS |
-| `stwo_riscv_cpu_integration` | riscv-cpu-integration | core, RISC-V frontend, CPU backend, prover | any |
-| `stwo_cairo_cpu_integration` | cairo-cpu-integration | core, Cairo frontend, CPU backend, prover | any |
-| `stwo_riscv_metal_integration` | riscv-metal-integration | core, RISC-V frontend, Metal backend, prover | macOS |
-| `stwo_cairo_metal_integration` | cairo-metal-integration | core, backend contracts, Cairo frontend, Metal backend, Metal session, prover | macOS |
-| `stwo_metal_session` | metal-session | none | any |
-| `stwo_proof_wire` | proof-wire | core | any |
-| `stwo_native_examples` | native-examples | core, CPU backend, prover, proof wire | any |
-| `stwo_native_cuda_integration` | native-cuda-integration | core, backend contracts, CUDA backend, Native examples, proof wire, prover | Linux |
-| `stwo_cairo_cuda_integration` | cairo-cuda-integration | core, backend contracts, Cairo frontend, CUDA backend, Native CUDA integration, prover | Linux |
+| `stwo_core` | protocol-core | none | Linux |
+| `stwo_backend_contracts` | backend-contracts | core | Linux |
+| `stwo_prover_api` | prover-api | core | Linux |
+| `stwo_prover_engine` | prover-engine | core, backend contracts, prover API | Linux |
+| `stwo_riscv_frontend` | riscv-frontend | core, prover API, prover engine | Linux |
+| `stwo_cairo_frontend` | cairo-frontend | core, backend contracts, prover API, prover engine | Linux |
+| `stwo_cpu_backend` | cpu-backend | core, backend contracts, prover engine | Linux |
+| `stwo_cuda_backend` | cuda-backend | backend contracts | Linux |
+| `stwo_metal_backend` | metal-backend | core, backend contracts, prover API, prover engine | macOS |
+| `stwo_riscv_cpu_integration` | riscv-cpu-integration | core, RISC-V frontend, CPU backend, prover API, prover engine | Linux |
+| `stwo_cairo_cpu_integration` | cairo-cpu-integration | core, Cairo frontend, CPU backend, prover API, prover engine | Linux |
+| `stwo_riscv_metal_integration` | riscv-metal-integration | core, RISC-V frontend, Metal backend, prover API, prover engine | macOS |
+| `stwo_cairo_metal_integration` | cairo-metal-integration | core, backend contracts, Cairo frontend, Metal backend, Metal session, prover engine | macOS |
+| `stwo_metal_session` | metal-session | none | Linux |
+| `stwo_proof_wire` | proof-wire | core | Linux |
+| `stwo_native_examples` | native-examples | core, CPU backend, prover API, prover engine, proof wire | Linux |
+| `stwo_native_cuda_integration` | native-cuda-integration | core, backend contracts, CUDA backend, Native examples, proof wire, prover engine | Linux |
+| `stwo_cairo_cuda_integration` | cairo-cuda-integration | core, backend contracts, Cairo frontend, CUDA backend, Native CUDA integration, prover engine | Linux |
 
-Root and internal aggregate manifests enumerate the same 17 packages. They
+Root and internal aggregate manifests enumerate the same 18 packages. They
 assemble products from the public modules; they do not replace the owner-local
 manifests.
 
@@ -143,14 +152,27 @@ manifests.
 inventory. It fails on:
 
 - a manifest dependency not matching the package contract;
+- an undeclared dependency in an owner-local `build.zig`;
+- a dependency forbidden by the declared architectural layer;
 - an undeclared or unknown named import;
 - a dependency cycle;
 - a relative Zig import that leaves an owner;
 - any consumer relative import that enters another owner;
 - an `@embedFile` that leaves or enters an owner;
 - drift in a primary public API ledger;
+- a missing, duplicated, unreachable, or renamed signature/invariant test;
+- drift in the generated package-ownership projection;
+- a missing focused-CI lane, host mismatch, command mismatch, or lane that is
+  not selected by a change to its package;
 - drift between package contracts and the two aggregate manifests; or
 - a missing package build, manifest, public module, or declared dependency.
+
+Every v2 contract declares one semantic layer, an independent version, the
+exact public-module and dependency surface, at least one concrete signature
+test, at least one behavioral invariant test, and one exact focused-CI
+lane/host/command tuple. The checker resolves each named Zig test from the
+package's public root, rather than accepting an arbitrary test elsewhere in the
+repository.
 
 The migration order remained incremental:
 
@@ -217,8 +239,8 @@ The following commands passed on the audited macOS host with Zig 0.15.2:
 
 | Evidence | Result |
 | --- | --- |
-| `python3 scripts/check_package_workspace.py` | 17 packages, 17 public modules, 51 edges |
-| all 17 package `zig build test --build-file ...` lanes | PASS |
+| `python3 scripts/check_package_workspace.py` | 18 packages, 18 public modules, 59 edges |
+| all 18 package `zig build test --build-file ...` lanes | PASS |
 | owner-local `src/frontends/cairo` package test | 38/38 tests |
 | `python3 scripts/check_build_configure_closure.py` | 21 catalog scopes |
 | `python3 scripts/check_registry_parity.py` | 6 Native AIRs |
@@ -226,7 +248,7 @@ The following commands passed on the audited macOS host with Zig 0.15.2:
 | `python3 scripts/check_api_parity.py` | PASS |
 | `python3 scripts/ci.py --fast` | 1,060 tests, 2 intentional skips |
 | `zig build test-downstream-modules -Doptimize=ReleaseFast -j2` | PASS |
-| `zig build test -Daggregate-metal=false -Doptimize=ReleaseFast -j2` | 421-source closure PASS |
+| `zig build test -Daggregate-metal=false -Doptimize=ReleaseFast -j2` | 422-source closure PASS |
 | `zig build riscv-release-gate -Driscv-release-phase=promoted -Doptimize=ReleaseFast -j2` | promoted smoke and committed Sail evidence PASS |
 | `zig build release-gate -Doptimize=ReleaseFast -j2` | PASS |
 

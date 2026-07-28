@@ -47,6 +47,13 @@
         ["zig", "build", "test", "--build-file", "src/prover/build.zig", "-Doptimize=ReleaseFast", "-j2"]
       ]
     },
+    "prover_api": {
+      "host": "linux",
+      "description": "Stable prover transaction API and observability contracts",
+      "commands": [
+        ["zig", "build", "test", "--build-file", "src/prover_api/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+      ]
+    },
     "riscv_frontend": {
       "host": "linux",
       "description": "Independent Sail-authoritative RISC-V frontend package",
@@ -284,11 +291,11 @@
   "rules": [
     {
       "prefixes": ["build.zig", "build.zig.zon", "build_support/graph", "build_support/products/catalog", "build_support/products/matrix.zig", "build_support/products/product_specs.zig", "build_support/internal_build.zig", "build_support/root_dispatcher.zig"],
-      "lanes": ["build_graph", "core", "backend_contracts", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cairo_cpu_integration", "cpu_backend", "cuda_backend", "metal_backend", "riscv_metal_integration", "cairo_metal_integration", "metal_session", "proof_wire", "native_examples", "native_cuda_integration", "cairo_cuda_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "lanes": ["build_graph", "core", "backend_contracts", "prover_api", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cairo_cpu_integration", "cpu_backend", "cuda_backend", "metal_backend", "riscv_metal_integration", "cairo_metal_integration", "metal_session", "proof_wire", "native_examples", "native_cuda_integration", "cairo_cuda_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
     },
     {
       "prefixes": ["build_support/products/core.zig"],
-      "lanes": ["build_graph", "core", "prover", "riscv_cpu_integration", "cairo_cpu_integration", "metal_backend", "riscv_metal_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
+      "lanes": ["build_graph", "core", "prover_api", "prover", "riscv_cpu_integration", "cairo_cpu_integration", "metal_backend", "riscv_metal_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "aggregate_metal"]
     },
     {
       "prefixes": ["build_support/products/prover.zig"],
@@ -315,12 +322,12 @@
       "lanes": ["metal_aot"]
     },
     {
-      "prefixes": ["src/core", "src/prover", "src/backend", "src/backends/cpu_scalar", "src/examples", "src/interop/proof_wire", "tools/stwo-interop-rs"],
+      "prefixes": ["src/core", "src/prover", "src/prover_api", "src/backend", "src/backends/cpu_scalar", "src/examples", "src/interop/proof_wire", "tools/stwo-interop-rs"],
       "lanes": ["native_oracle"]
     },
     {
       "prefixes": ["src/core"],
-      "lanes": ["core", "backend_contracts", "prover", "riscv_frontend", "riscv_cpu_integration", "riscv_metal_integration", "cairo_frontend", "cairo_cpu_integration", "cairo_metal_integration", "cairo_cuda_integration", "cpu_backend", "metal_backend", "proof_wire", "native_examples", "native_cuda_integration", "package", "aggregate_metal"]
+      "lanes": ["core", "backend_contracts", "prover_api", "prover", "riscv_frontend", "riscv_cpu_integration", "riscv_metal_integration", "cairo_frontend", "cairo_cpu_integration", "cairo_metal_integration", "cairo_cuda_integration", "cpu_backend", "metal_backend", "proof_wire", "native_examples", "native_cuda_integration", "package", "aggregate_metal"]
     },
     {
       "prefixes": ["src/backend"],
@@ -329,6 +336,10 @@
     {
       "prefixes": ["src/prover"],
       "lanes": ["prover", "riscv_frontend", "riscv_cpu_integration", "riscv_metal_integration", "cairo_frontend", "cairo_cpu_integration", "cairo_metal_integration", "cairo_cuda_integration", "cpu_backend", "metal_backend", "native_examples", "native_cuda_integration", "package", "aggregate_metal"]
+    },
+    {
+      "prefixes": ["src/prover_api"],
+      "lanes": ["prover_api", "prover", "riscv_frontend", "riscv_cpu_integration", "riscv_metal_integration", "cairo_frontend", "cairo_cpu_integration", "cairo_metal_integration", "cairo_cuda_integration", "cpu_backend", "metal_backend", "native_examples", "native_cuda_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "cairo_cpu", "cairo_metal", "aggregate_cpu", "native_metal", "riscv_metal", "aggregate_metal"]
     },
     {
       "prefixes": ["src/backends/cpu_scalar"],
@@ -396,7 +407,7 @@
     },
     {
       "prefixes": [".github/workflows", ".githooks", "scripts/ci_scope_plan.py", "scripts/ci_scope_run.py", "scripts/ci_scope_push.py", "conformance/ci-touchpoints-v1.json"],
-      "lanes": ["build_graph", "core", "backend_contracts", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cairo_cpu_integration", "cpu_backend", "cuda_backend", "metal_backend", "riscv_metal_integration", "cairo_metal_integration", "metal_session", "proof_wire", "native_examples", "native_cuda_integration", "cairo_cuda_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "deferred", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile", "metal_aot"]
+      "lanes": ["build_graph", "core", "backend_contracts", "prover_api", "prover", "riscv_frontend", "riscv_cpu_integration", "cairo_frontend", "cairo_cpu_integration", "cpu_backend", "cuda_backend", "metal_backend", "riscv_metal_integration", "cairo_metal_integration", "metal_session", "proof_wire", "native_examples", "native_cuda_integration", "cairo_cuda_integration", "package", "native_cpu", "native_oracle", "riscv_cpu", "riscv_metal", "cairo_cpu", "cairo_metal", "aggregate_cpu", "deferred", "native_cuda_static", "native_cuda_device", "native_metal", "aggregate_metal", "metal_compile", "metal_aot"]
     }
   ],
   "documentation_prefixes": ["README.md", "CONTRIBUTING.md", "LICENSE", "docs", "archive", "conformance"],

@@ -18,6 +18,14 @@ comptime {
     prover_mod.assertProverEngine(CpuProverEngine);
 }
 
+test "api signature: RISC-V CPU engine satisfies the stable transaction contract" {
+    comptime @import("stwo_prover_api").assertProverEngine(CpuProverEngine);
+}
+
+test "api invariant: RISC-V CPU integration selects only the CPU backend" {
+    try std.testing.expect(CpuProverEngine.Backend == CpuBackend);
+}
+
 pub fn proveRiscV(
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,

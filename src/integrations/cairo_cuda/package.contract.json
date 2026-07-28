@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_cairo_cuda_integration",
+  "version": "0.1.0",
+  "layer": "integration",
   "owner": "cairo-cuda-integration",
   "public_modules": {
     "stwo_cairo_cuda_integration": "mod.zig"
@@ -34,13 +36,25 @@
     "relation_sn2_parity_fixture",
     "request_compiler"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Cairo CUDA keeps its emitter explicitly development-only"
+    ],
+    "invariant_tests": [
+      "program_test.zig::Cairo production admission uses configured source authority and exact proof plan"
+    ]
+  },
   "ci": {
+    "lane": "cairo_cuda_integration",
     "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/integrations/cairo_cuda/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

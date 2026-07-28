@@ -18,6 +18,12 @@ pub const process_runner = @import("process/runner.zig");
 pub const recipe_requirements = @import("recipe_requirements.zig");
 pub const schedule_bindings = @import("schedule_bindings.zig");
 
+test "api signature: Cairo Metal transaction satisfies the stable prover contract" {
+    comptime @import("stwo_prover_engine").engine.assertProverEngine(
+        prover.transaction.Engine,
+    );
+}
+
 test {
     _ = @import("schedule_bindings_test.zig");
 }

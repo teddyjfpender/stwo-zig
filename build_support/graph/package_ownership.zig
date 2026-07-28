@@ -1,4 +1,7 @@
-//! Canonical source-owner to Zig-package resolution.
+//! Checked source-owner to Zig-package projection.
+//!
+//! `src/**/package.contract.json` is authoritative. The package-workspace gate
+//! rejects any prefix or dependency-name drift in this build-time projection.
 
 const std = @import("std");
 

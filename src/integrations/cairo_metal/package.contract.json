@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_cairo_metal_integration",
+  "version": "0.1.0",
+  "layer": "integration",
   "owner": "cairo-metal-integration",
   "public_modules": {
     "stwo_cairo_metal_integration": "mod.zig"
@@ -33,13 +35,25 @@
     "witness_aot",
     "witness_codegen"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Cairo Metal transaction satisfies the stable prover contract"
+    ],
+    "invariant_tests": [
+      "prover/transaction.zig::Metal binding uses the official plain Blake2s protocol"
+    ]
+  },
   "ci": {
+    "lane": "cairo_metal_integration",
     "host": "macos",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseSafe"
+      "--build-file",
+      "src/integrations/cairo_metal/build.zig",
+      "-Doptimize=ReleaseSafe",
+      "-j2"
     ]
   }
 }

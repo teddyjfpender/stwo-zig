@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_proof_wire",
+  "version": "0.1.0",
+  "layer": "interchange",
   "owner": "proof-wire",
   "public_modules": {
     "stwo_proof_wire": "mod.zig"
@@ -29,13 +31,25 @@
     "proofToWire",
     "wireToProof"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: proof wire codecs preserve owned byte and proof results"
+    ],
+    "invariant_tests": [
+      "mod.zig::proof wire binary decoder rejects truncation and wrong versions"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "proof_wire",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/interop/proof_wire/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

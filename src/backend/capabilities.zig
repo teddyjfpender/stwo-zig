@@ -10,7 +10,7 @@ pub const Set = struct {
     fri_folding: bool = false,
     fri_multi_fold: bool = false,
 
-    pub fn validate(self: Set) void {
+    pub fn validate(comptime self: Set) void {
         if (self.fri_multi_fold and !self.fri_folding) {
             @compileError("`fri_multi_fold` requires `fri_folding`.");
         }

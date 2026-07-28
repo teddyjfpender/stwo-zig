@@ -31,6 +31,7 @@ const common_allowed_prefixes = [_][]const u8{
     "src/interop/postcard",
     "src/interop/riscv_artifact",
     "src/prover",
+    "src/prover_api",
     "src/std_shims",
     "src/tools/prove",
     "src/tracing",
@@ -38,29 +39,10 @@ const common_allowed_prefixes = [_][]const u8{
 
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
-    "src/backends/metal/arena_plan.zig",
-    "src/backends/metal/cairo/diagnostics/transcript_fixture.zig",
-    "src/backends/metal/command_epoch.zig",
-    "src/backends/metal/commit_backend.zig",
-    "src/backends/metal/commit_policy.zig",
-    "src/backends/metal/core_aot.zig",
-    "src/backends/metal/merkle_tree.zig",
-    "src/backends/metal/mod.zig",
-    "src/backends/metal/protocol_recipes.zig",
-    "src/backends/metal/prover_engine.zig",
-    "src/backends/metal/recovery.zig",
-    "src/backends/metal/resident_arena.zig",
-    "src/backends/metal/runtime.zig",
-    "src/backends/metal/shader_manifest.zig",
-    "src/backends/metal/shared_runtime.zig",
-    "src/backends/metal/telemetry.zig",
 };
 
 const metal_allowed_prefixes = common_allowed_prefixes ++ .{
-    "src/backends/metal/recipes",
-    "src/backends/metal/runtime",
-    "src/backends/metal/shaders",
-    "src/backends/metal/tests",
+    "src/backends/metal",
 };
 
 const shared_named_imports = [_]policy.NamedImport{
@@ -69,6 +51,7 @@ const shared_named_imports = [_]policy.NamedImport{
     .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
     .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
     .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
+    .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
     .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
     .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
     .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
