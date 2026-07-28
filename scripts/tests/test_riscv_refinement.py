@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import copy
 import json
+import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
 
 from scripts import riscv_refinement
-from scripts.riscv_refinement_lib import air, codec, negative, sail
+from scripts.riscv_refinement_lib import air, codec, negative, render, sail
 from scripts.riscv_refinement_lib.model import Paths, RefinementError
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +18,26 @@ GENERATED_AIR = ROOT / "formal" / "riscv-refinement" / "generated" / "air"
 
 
 class RefinementAirTest(unittest.TestCase):
+    def test_source_closure_is_version_controlled_and_cache_free(self) -> None:
+        digests = render._source_digests(Paths(ROOT))
+        self.assertIn("src/core/fields/m31.zig", digests)
+        self.assertIn("src/frontends/riscv/air/extract/mod.zig", digests)
+        self.assertFalse(
+            any("/.zig-cache/" in relative for relative in digests),
+        )
+
+    def test_existing_air_export_requires_the_exact_nonempty_family_set(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            for family in render.EXPORTED_FAMILIES:
+                (directory / f"{family}.json").write_text("{}\n", encoding="utf-8")
+            render.validate_air_export(directory)
+            (directory / "stale.json").write_text("{}\n", encoding="utf-8")
+            with self.assertRaisesRegex(RefinementError, "coverage drifted"):
+                render.validate_air_export(directory)
+
     def test_committed_pilot_air_has_the_exact_reviewed_shape(self) -> None:
         air.validate_family(codec.load_json(GENERATED_AIR / "lui.json"), "lui")
         air.validate_family(
@@ -97,6 +118,10 @@ class RefinementAirTest(unittest.TestCase):
             air.validate_family(unused, "lui")
 
     def test_axiom_audit_allows_only_declared_foundations(self) -> None:
+        self.assertEqual(
+            set(riscv_refinement.AUDITED_THEOREMS),
+            set(riscv_refinement._declared_theorems(Paths(ROOT))),
+        )
         lines = "\n".join(
             (
                 f"'{theorem}' does not depend on any axioms"
@@ -120,11 +145,33 @@ class RefinementAirTest(unittest.TestCase):
         with self.assertRaises(RefinementError):
             riscv_refinement._audit_axioms(poisoned)
 
+        duplicate = (
+            lines
+            + "\n"
+            + f"'{riscv_refinement.AUDITED_THEOREMS[0]}' "
+            + "depends on axioms: [propext]"
+        )
+        with self.assertRaisesRegex(RefinementError, "repeated theorem"):
+            riscv_refinement._audit_axioms(duplicate)
+
     def test_release_receipt_cannot_reuse_stale_air(self) -> None:
         with self.assertRaisesRegex(RefinementError, "fresh production AIR"):
             riscv_refinement.receipt(
                 Namespace(no_export_air=True),
                 Paths(ROOT),
+            )
+
+    def test_receipt_theorem_axiom_schema_fails_closed(self) -> None:
+        for malformed in (None, [], {"unknown.theorem": []}):
+            with self.assertRaisesRegex(RefinementError, "theorem set"):
+                riscv_refinement._validate_receipt_theorem_axioms(malformed)
+        malformed_axioms = {
+            theorem: [] for theorem in riscv_refinement.AUDITED_THEOREMS
+        }
+        malformed_axioms[riscv_refinement.AUDITED_THEOREMS[0]] = [1]
+        with self.assertRaisesRegex(RefinementError, "theorem-axiom schema"):
+            riscv_refinement._validate_receipt_theorem_axioms(
+                malformed_axioms,
             )
 
     def test_sail_configuration_comment_parser_preserves_strings(self) -> None:

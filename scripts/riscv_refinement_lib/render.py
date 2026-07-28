@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import tempfile
@@ -13,15 +14,26 @@ from .model import LEAN_TOOLCHAIN, PILOT_OPCODES, SCHEMA_VERSION, Paths, Refinem
 
 SOURCE_PATHS = (
     "build.zig",
+    "build.zig.zon",
+    "build_support/build.zig.zon",
     "build_support/graph/delegation.zig",
     "build_support/internal_build.zig",
     "build_support/products/catalog.zig",
+    "build_support/products/matrix.zig",
     "build_support/products/package_dependencies.zig",
+    "build_support/products/product_specs.zig",
     "build_support/products/riscv_cpu.zig",
     "build_support/products/riscv_refinement.zig",
+    "src/core/build.zig",
+    "src/core/build.zig.zon",
+    "src/core/mod.zig",
     "src/frontends/riscv/refinement_ir_export_test.zig",
 )
-SOURCE_TREES = ("src/frontends/riscv",)
+SOURCE_TREES = (
+    "build_support/graph",
+    "src/core/fields",
+    "src/frontends/riscv",
+)
 
 GENERATOR_PATHS = (
     "scripts/riscv_refinement.py",
@@ -69,6 +81,15 @@ EXPORTED_FAMILIES = frozenset(
         "mulh",
         "shifts_imm",
         "shifts_reg",
+    }
+)
+MANIFEST_ARTIFACTS = frozenset(
+    {
+        "RiscvRefinement/Air/Generated/Pilot.lean",
+        "RiscvRefinement/Sail/Generated/Pilot.lean",
+        "generated/air/addi.json",
+        "generated/air/lui.json",
+        "generated/sail/rv32im-zkvm-v1.json",
     }
 )
 
@@ -387,14 +408,40 @@ def _source_digests(paths: Paths) -> dict[str, str]:
         root = paths.root / tree
         if not root.is_dir():
             raise RefinementError(f"missing production source tree {tree}")
-        relatives.update(
-            path.relative_to(paths.root).as_posix()
-            for path in root.rglob("*")
-            if path.is_file()
-        )
+        try:
+            listed = subprocess.run(
+                [
+                    "git",
+                    "ls-files",
+                    "-z",
+                    "--cached",
+                    "--others",
+                    "--exclude-standard",
+                    "--",
+                    tree,
+                ],
+                cwd=paths.root,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ).stdout
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise RefinementError(
+                f"could not enumerate version-controlled source tree {tree}"
+            ) from exc
+        try:
+            relatives.update(
+                entry.decode("utf-8")
+                for entry in listed.split(b"\0")
+                if entry
+            )
+        except UnicodeDecodeError as exc:
+            raise RefinementError(
+                f"source tree {tree} contains a non-UTF-8 path"
+            ) from exc
     for relative in sorted(relatives):
         path = paths.root / relative
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
             raise RefinementError(f"missing production source {relative}")
         result[relative] = codec.sha256_file(path)
     return result
@@ -420,6 +467,36 @@ def _proof_digests(paths: Paths) -> dict[str, str]:
     return result
 
 
+def validate_air_export(directory: Path) -> None:
+    if directory.is_symlink() or not directory.is_dir():
+        raise RefinementError(f"AIR export is not a directory: {directory}")
+    entries = list(directory.iterdir())
+    invalid = [
+        path.name
+        for path in entries
+        if path.is_symlink() or not path.is_file() or path.suffix != ".json"
+    ]
+    if invalid:
+        raise RefinementError(
+            "production AIR export emitted unexpected entries: "
+            + ", ".join(sorted(invalid))
+        )
+    actual = {path.stem for path in entries}
+    if actual != EXPORTED_FAMILIES:
+        missing = sorted(EXPORTED_FAMILIES - actual)
+        extra = sorted(actual - EXPORTED_FAMILIES)
+        raise RefinementError(
+            "production AIR export coverage drifted: "
+            f"missing={missing}, extra={extra}"
+        )
+    for family in EXPORTED_FAMILIES:
+        artifact = directory / f"{family}.json"
+        if artifact.stat().st_size == 0:
+            raise RefinementError(
+                f"production AIR export {artifact.name} is empty"
+            )
+
+
 def export_air(paths: Paths) -> None:
     output_parent = paths.root / "zig-out"
     output_parent.mkdir(parents=True, exist_ok=True)
@@ -441,29 +518,7 @@ def export_air(paths: Paths) -> None:
             check=True,
             timeout=600,
         )
-        entries = list(staging.iterdir())
-        invalid = [
-            path.name
-            for path in entries
-            if path.is_symlink() or not path.is_file() or path.suffix != ".json"
-        ]
-        if invalid:
-            raise RefinementError(
-                "production AIR export emitted unexpected entries: "
-                + ", ".join(sorted(invalid))
-            )
-        actual = {path.stem for path in entries}
-        if actual != EXPORTED_FAMILIES:
-            missing = sorted(EXPORTED_FAMILIES - actual)
-            extra = sorted(actual - EXPORTED_FAMILIES)
-            raise RefinementError(
-                "production AIR export coverage drifted: "
-                f"missing={missing}, extra={extra}"
-            )
-        for family in EXPORTED_FAMILIES:
-            artifact = staging / f"{family}.json"
-            if artifact.stat().st_size == 0:
-                raise RefinementError(f"production AIR export {artifact.name} is empty")
+        validate_air_export(staging)
         target = paths.uniqueness_ir
         if target.is_symlink():
             raise RefinementError(f"refusing symbolic-link AIR target {target}")
@@ -589,3 +644,71 @@ def check_artifacts(paths: Paths, outputs: dict[Path, bytes]) -> None:
             errors.append(f"generated artifact drifted: {relative}")
     if errors:
         raise RefinementError("; ".join(errors))
+
+
+def validate_committed_manifest(
+    paths: Paths,
+    manifest: dict[str, Any],
+) -> None:
+    if set(manifest) != {
+        "artifacts",
+        "canonical_digest",
+        "claim_boundary",
+        "generators",
+        "kind",
+        "lean_toolchain",
+        "opcodes",
+        "production_sources",
+        "proof_sources",
+        "sail",
+        "schema_version",
+        "tier",
+    }:
+        raise RefinementError("generated refinement manifest schema drifted")
+    if (
+        manifest.get("schema_version") != SCHEMA_VERSION
+        or manifest.get("kind")
+        != "stwo-riscv-refinement-generated-manifest"
+        or manifest.get("tier") != "level-1-normalized-pilot"
+        or manifest.get("lean_toolchain") != LEAN_TOOLCHAIN
+        or manifest.get("claim_boundary")
+        != {
+            "lean_serialized_m31_air_interpreter": False,
+            "lean_generated_sail_monad_normalization": False,
+            "kernel_checked_normalized_refinement": True,
+        }
+        or manifest.get("canonical_digest") != codec.content_digest(manifest)
+    ):
+        raise RefinementError("generated refinement manifest identity is invalid")
+    if manifest.get("production_sources") != _source_digests(paths):
+        raise RefinementError(
+            "generated refinement manifest production-source closure drifted"
+        )
+    if manifest.get("generators") != _generator_digests(paths):
+        raise RefinementError(
+            "generated refinement manifest generator closure drifted"
+        )
+    if manifest.get("proof_sources") != _proof_digests(paths):
+        raise RefinementError(
+            "generated refinement manifest proof-source closure drifted"
+        )
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, dict) or set(artifacts) != MANIFEST_ARTIFACTS:
+        raise RefinementError("generated refinement artifact closure drifted")
+    for relative, expected in artifacts.items():
+        if (
+            not isinstance(expected, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", expected)
+        ):
+            raise RefinementError(
+                f"generated refinement artifact digest is invalid: {relative}"
+            )
+        path = paths.formal / relative
+        if path.is_symlink() or not path.is_file():
+            raise RefinementError(
+                f"generated refinement artifact is missing: {relative}"
+            )
+        if codec.sha256_file(path) != expected:
+            raise RefinementError(
+                f"generated refinement artifact digest drifted: {relative}"
+            )

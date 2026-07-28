@@ -23,9 +23,14 @@ class RefinementError(RuntimeError):
 @dataclass(frozen=True)
 class Paths:
     root: Path
+    uniqueness_ir_override: Path | None = None
 
     @property
     def uniqueness_ir(self) -> Path:
+        if self.uniqueness_ir_override is not None:
+            if self.uniqueness_ir_override.is_absolute():
+                return self.uniqueness_ir_override
+            return self.root / self.uniqueness_ir_override
         return self.root / "zig-out" / "uniqueness-ir"
 
     @property

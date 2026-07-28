@@ -59,6 +59,10 @@ every generated file byte-for-byte, runs coverage and negative controls, runs
 the Python infrastructure tests, builds Lean, scans for proof escapes, and
 audits every exported theorem's axioms.
 
+The current mutations check weakened-row counterexamples and exact-shape
+validator sensitivity. They do not yet invoke pinned Sail on the counterexample
+or feed a mutated predicate through Lean; those are explicit Level-2 gates.
+
 After committing all inputs and generated artifacts, create the evidence
 receipt:
 

@@ -365,9 +365,11 @@ semantics and lookup-entry construction with a symbolic scalar and emits:
 It also runs an eight-assignment-per-family, fixed-seed differential between
 the recorded DAG and the QM31 instantiation of the same production source.
 The dedicated `riscv-refinement-ir` build root executes this frontend-owned
-extractor directly and rejects a missing, extra, empty, or stale family. This
-is a strong pilot foundation, but the random differential is not a universal
-source-binding proof.
+extractor directly. Its default output is cleared first; a caller-supplied
+output must be absent or empty. The public pilot gate additionally rejects a
+missing, extra, or empty family before normalization. This is a strong pilot
+foundation, but the random differential is not a universal source-binding
+proof.
 
 ### 6.2 Canonical refinement IR
 
@@ -467,8 +469,10 @@ semantics of an admitted instruction.
 
 ## 8. Pilot: LUI and ADDI
 
-The first milestone is complete only when both opcodes are universally proved
-and non-vacuous from generated AIR and generated Sail definitions.
+The Level-2 publication milestone is complete only when both opcodes are
+universally proved and non-vacuous from generated AIR and generated Sail
+definitions. The current Level-1 pilot proves the reviewed normalized AIR
+predicates against reviewed Sail expression capsules.
 
 ### 8.1 LUI
 
@@ -681,7 +685,9 @@ The pilot exposes the following interfaces:
 python3 scripts/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 
-# Generate or reproduce committed inputs:
+# Generate or reproduce committed inputs. The default standalone export is
+# freshly replaced; -Driscv-refinement-ir-dir=... must name an absent or empty
+# directory:
 zig build riscv-refinement-ir
 python3 scripts/riscv_refinement.py generate
 python3 scripts/riscv_refinement.py check-generated
@@ -762,8 +768,9 @@ The Level-1 pilot receipt contains:
 - implementation commit and dirty state;
 - Lean version and dependency lock digest;
 - Python, Zig, Lake, and Lean binary identities;
-- Sail repository, commit, compiler, simulator, profile, and exact
-  configuration digests through the generated manifest;
+- Sail repository, commit, compiler version, profile, and exact configuration
+  digests through the portable generated manifest;
+- platform-local Sail compiler and simulator binary identities in the receipt;
 - AIR IR schema and per-opcode digests;
 - generator digests;
 - two exact opcode/theorem and non-vacuity mappings;
@@ -818,6 +825,16 @@ Mandatory pilot/stress mutations include:
 These controls do not strengthen the theorem; they establish that the pipeline
 is connected to the obligations it claims to prove.
 
+The current Level-1 LUI/ADDI controls are deliberately narrower: they construct
+concrete assignments satisfying the weakened M31 direct constraints and range
+requests, demonstrate a result different from the reviewed Sail capsule, and
+require the exact-shape normalizer to reject the mutation. The Sail result is
+not obtained by invoking the pinned Sail backend, and the mutated predicate is
+not fed through Lean. These are validator-sensitivity controls, not yet the
+publication controls specified above. Level 2 must replace them with a
+counterexample checked by pinned Sail or a mutation that reaches and breaks the
+kernel proof.
+
 ## 15. Work packages and gates
 
 ### UR-00 — theorem and trusted-base freeze
@@ -841,10 +858,11 @@ Exit gate: reviewers agree what a green theorem does and does not mean.
 ### UR-01 — formal foundations and LUI
 
 Status: **Level-1 pilot delivered**. The typed word/byte foundations, exact
-LUI shape gate, normalized universal theorem, non-vacuity witness, and mutation
-control are present. “Clean kernel proof from pinned generated inputs” remains
-open in its publication sense until UR-06 removes the Python normalization
-from the semantic trusted base.
+LUI shape gate, normalized universal theorem, non-vacuity witness, and
+validator-sensitivity mutation control are present. “Clean kernel proof from
+pinned generated inputs” remains open in its publication sense until UR-06
+removes the Python normalization from the semantic trusted base and the
+publication-grade mutation reaches Lean or pinned Sail.
 
 Deliver:
 
@@ -860,8 +878,9 @@ Exit gate: clean kernel proof from pinned generated inputs.
 ### UR-02 — ADDI vertical slice
 
 Status: **Level-1 pilot delivered**. Sign extension, byte carries, modular
-addition, source preservation, alias/x0 behavior, non-vacuity, and mutation
-control are kernel checked. The same Level-2 AIR and Sail bindings remain.
+addition, source preservation, alias/x0 behavior, and non-vacuity are kernel
+checked; the mutation is a validator-sensitivity control. The same Level-2 AIR
+and Sail bindings and publication-grade mutation remain.
 
 Deliver:
 
@@ -872,8 +891,9 @@ Deliver:
 - ADDI non-vacuity; and
 - mutation controls.
 
-Exit gate: the entire production-to-Sail vertical path works for a
-nontrivial arithmetic row.
+Level-2 exit gate: the entire kernel-bound production-to-Sail vertical path
+works for a nontrivial arithmetic row. This remains open after the Level-1
+normalized pilot.
 
 ### UR-03 — memory stress
 

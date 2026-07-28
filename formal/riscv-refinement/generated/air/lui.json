@@ -1,5 +1,5 @@
 {
-  "canonical_digest": "239803e2c5bf7786bc00e2824d3ab4c9aff0e1bf30399d64e02389ca9f7a61c7",
+  "canonical_digest": "7a5235dc562821c66cca9d19e79630015e0079a5793ce3e72f6f393e86bb79a5",
   "columns": [
     {
       "name": "enabler",
@@ -543,7 +543,7 @@
     "differential_trials_per_family": 8,
     "extractor": "src/frontends/riscv/air/extract/mod.zig",
     "level": "level-1-exact-shape-normalizer",
-    "source_closure_sha256": "a3ba22511e641e425936964af7acaa7576aa71b29496fecfe1a16a6184838699",
+    "source_closure_sha256": "073dc69637b50aa4bbb1f110cd0fa0991ed3db85630d51c5f036bddbb4617866",
     "source_ir_sha256": "044c5b95350e4f2d8e3381746d70528e0ddc932e784722bf413fc0108913d12e"
   },
   "projection": {

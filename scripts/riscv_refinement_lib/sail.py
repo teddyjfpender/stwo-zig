@@ -614,8 +614,6 @@ def provenance(evidence: SailEvidence) -> dict[str, object]:
         "revision": SAIL_REVISION,
         "checkout_state": evidence.checkout_state,
         "compiler_version": SAIL_VERSION,
-        "compiler_sha256": evidence.compiler_sha256,
-        "simulator_sha256": evidence.simulator_sha256,
         "architectural_profile": "rv32im-zkvm-v1",
         "profile_file_sha256": evidence.profile_file_sha256,
         "model_entry": MODEL_ENTRY.as_posix(),
@@ -633,4 +631,17 @@ def provenance(evidence: SailEvidence) -> dict[str, object]:
         "source_slice_sha256": evidence.source_slice_hashes,
         "normalization": "reviewed exact-hash LUI and ADDI expression capsule",
         "generated_monad_normalization_theorem": False,
+    }
+
+
+def toolchain(evidence: SailEvidence) -> dict[str, object]:
+    """Platform-local binaries recorded in the receipt, not portable inputs."""
+    return {
+        "compiler": {
+            "version": SAIL_VERSION,
+            "sha256": evidence.compiler_sha256,
+        },
+        "simulator": {
+            "sha256": evidence.simulator_sha256,
+        },
     }

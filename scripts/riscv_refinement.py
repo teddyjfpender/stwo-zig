@@ -67,6 +67,15 @@ APPROVED_LEAN_AXIOMS = frozenset(
         "Quot.sound",
     }
 )
+CLAIM_BOUNDARY = (
+    "kernel-checked normalized LUI/ADDI AIR predicate to reviewed "
+    "Sail expression capsule; serialized-M31 and generated-monad "
+    "normalization theorems remain open"
+)
+NEGATIVE_CONTROLS = (
+    "lui-free-low-limb",
+    "addi-free-high-carry",
+)
 
 
 def common_arguments(parser: argparse.ArgumentParser) -> None:
@@ -76,7 +85,12 @@ def common_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--no-export-air",
         action="store_true",
-        help="reuse zig-out/uniqueness-ir instead of invoking the Zig extractor",
+        help="consume an already exported AIR directory",
+    )
+    parser.add_argument(
+        "--air-ir-dir",
+        type=Path,
+        help="exact AIR directory supplied by an upstream exporter",
     )
 
 
@@ -95,6 +109,8 @@ def prepared_outputs(
 ) -> dict[Path, bytes]:
     if not args.no_export_air:
         render.export_air(paths)
+    else:
+        render.validate_air_export(paths.uniqueness_ir)
     return render.artifacts(paths, evidence(args, paths))
 
 
@@ -227,7 +243,11 @@ def _run(argv: list[str], cwd: Path, timeout: int = 600) -> str:
 def _scan_forbidden_proof_terms(paths: Paths) -> None:
     forbidden = re.compile(r"\b(sorry|admit|axiom|unsafe|native_decide)\b")
     errors: list[str] = []
-    for source in sorted((paths.formal / "RiscvRefinement").rglob("*.lean")):
+    sources = [
+        paths.formal / "RiscvRefinement.lean",
+        *sorted((paths.formal / "RiscvRefinement").rglob("*.lean")),
+    ]
+    for source in sources:
         for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
             code = line.split("--", 1)[0]
             if forbidden.search(code):
@@ -235,6 +255,65 @@ def _scan_forbidden_proof_terms(paths: Paths) -> None:
     if errors:
         raise RefinementError(
             "forbidden proof escape appears at " + ", ".join(errors)
+        )
+
+
+def _declared_theorems(paths: Paths) -> tuple[str, ...]:
+    declarations: list[str] = []
+    sources = [
+        paths.formal / "RiscvRefinement.lean",
+        *sorted((paths.formal / "RiscvRefinement").rglob("*.lean")),
+    ]
+    namespace_pattern = re.compile(r"^\s*namespace\s+([A-Za-z0-9_.']+)\s*$")
+    end_pattern = re.compile(r"^\s*end(?:\s+[A-Za-z0-9_.']+)?\s*$")
+    theorem_pattern = re.compile(
+        r"^\s*(?:(?:private|protected)\s+)?(?:theorem|lemma)\s+"
+        r"([A-Za-z0-9_.']+)\b"
+    )
+    for source in sources:
+        namespaces: list[str] = []
+        for line in source.read_text(encoding="utf-8").splitlines():
+            code = line.split("--", 1)[0]
+            namespace_match = namespace_pattern.match(code)
+            if namespace_match is not None:
+                name = namespace_match.group(1)
+                if "." in name or not namespaces:
+                    namespaces.append(name)
+                else:
+                    namespaces.append(f"{namespaces[-1]}.{name}")
+                continue
+            if end_pattern.match(code) is not None:
+                if namespaces:
+                    namespaces.pop()
+                continue
+            theorem_match = theorem_pattern.match(code)
+            if theorem_match is None:
+                continue
+            name = theorem_match.group(1)
+            if name.startswith("RiscvRefinement."):
+                declarations.append(name)
+            elif namespaces:
+                declarations.append(f"{namespaces[-1]}.{name}")
+            else:
+                declarations.append(name)
+    if len(declarations) != len(set(declarations)):
+        raise RefinementError("Lean theorem declaration scan found duplicates")
+    return tuple(declarations)
+
+
+def _check_axiom_audit_coverage(paths: Paths) -> None:
+    declared = set(_declared_theorems(paths))
+    audited = set(AUDITED_THEOREMS)
+    if declared != audited:
+        missing = sorted(declared - audited)
+        stale = sorted(audited - declared)
+        details: list[str] = []
+        if missing:
+            details.append("unaudited " + ", ".join(missing))
+        if stale:
+            details.append("stale " + ", ".join(stale))
+        raise RefinementError(
+            "axiom audit declaration coverage drifted: " + "; ".join(details)
         )
 
 
@@ -252,6 +331,10 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
         match = dependency_pattern.fullmatch(stripped)
         if match is not None:
             theorem = match.group("theorem")
+            if theorem in report:
+                raise RefinementError(
+                    f"axiom audit repeated theorem record {theorem}"
+                )
             axioms = [
                 axiom.strip()
                 for axiom in match.group("axioms").split(",")
@@ -261,7 +344,12 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
             continue
         match = empty_pattern.fullmatch(stripped)
         if match is not None:
-            report[match.group("theorem")] = []
+            theorem = match.group("theorem")
+            if theorem in report:
+                raise RefinementError(
+                    f"axiom audit repeated theorem record {theorem}"
+                )
+            report[theorem] = []
     missing = sorted(set(AUDITED_THEOREMS) - set(report))
     extra = sorted(set(report) - set(AUDITED_THEOREMS))
     if missing or extra:
@@ -295,6 +383,7 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
     coverage(paths)
     negative_controls(paths)
     _scan_forbidden_proof_terms(paths)
+    _check_axiom_audit_coverage(paths)
     _run(
         [
             sys.executable,
@@ -384,17 +473,19 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
             "--no-export-air is forbidden"
         )
     verification = verify(args, paths)
+    sail_evidence = evidence(args, paths)
     manifest = codec.load_json(paths.manifest)
     revision, dirty_paths = _repository_state(paths)
+    if dirty_paths:
+        raise RefinementError(
+            "release receipt requires a clean repository; dirty paths: "
+            + ", ".join(dirty_paths)
+        )
     payload = {
         "schema_version": 1,
         "kind": "stwo-riscv-refinement-receipt",
         "tier": "level-1-normalized-pilot",
-        "claim_boundary": (
-            "kernel-checked normalized LUI/ADDI AIR predicate to reviewed "
-            "Sail expression capsule; serialized-M31 and generated-monad "
-            "normalization theorems remain open"
-        ),
+        "claim_boundary": CLAIM_BOUNDARY,
         "repository_revision": revision,
         "repository_dirty": bool(dirty_paths),
         "repository_dirty_paths": dirty_paths,
@@ -405,14 +496,12 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
             "proved_normalized_opcodes": len(PILOT_OPCODES),
             "production_opcodes": FULL_OPCODE_COUNT,
         },
-        "negative_controls": [
-            "lui-free-low-limb",
-            "addi-free-high-carry",
-        ],
+        "negative_controls": list(NEGATIVE_CONTROLS),
         "approved_lean_axioms": sorted(APPROVED_LEAN_AXIOMS),
         "theorem_axioms": verification.theorem_axioms,
         "proof_escape_scan": "passed",
         "toolchain": _toolchain(paths),
+        "semantic_toolchain": sail.toolchain(sail_evidence),
     }
     payload["canonical_digest"] = codec.content_digest(payload)
     codec.atomic_write(paths.receipt, codec.pretty_bytes(payload))
@@ -423,7 +512,69 @@ def receipt(args: argparse.Namespace, paths: Paths) -> None:
     )
 
 
-def verify_receipt(paths: Paths) -> None:
+def _receipt_revision_matches(paths: Paths, revision: str) -> None:
+    if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+        raise RefinementError("refinement receipt repository revision is invalid")
+    current, dirty_paths = _repository_state(paths)
+    if dirty_paths:
+        raise RefinementError(
+            "receipt verification requires a clean repository; dirty paths: "
+            + ", ".join(dirty_paths)
+        )
+    if current == revision:
+        return
+    try:
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", revision, current],
+            cwd=paths.root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        unchanged = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--quiet",
+                revision,
+                current,
+                "--",
+                ".",
+                f":(exclude){paths.receipt.relative_to(paths.root).as_posix()}",
+            ],
+            cwd=paths.root,
+            check=False,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RefinementError(
+            "could not validate refinement receipt repository revision"
+        ) from exc
+    if unchanged.returncode != 0:
+        raise RefinementError(
+            "repository changed beyond the committed refinement receipt"
+        )
+
+
+def _validate_receipt_theorem_axioms(value: object) -> None:
+    if not isinstance(value, dict) or set(value) != set(AUDITED_THEOREMS):
+        raise RefinementError("refinement receipt theorem set is invalid")
+    for theorem, axioms in value.items():
+        if (
+            not isinstance(theorem, str)
+            or not isinstance(axioms, list)
+            or any(not isinstance(axiom, str) for axiom in axioms)
+        ):
+            raise RefinementError(
+                "refinement receipt theorem-axiom schema is invalid"
+            )
+
+
+def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
+    if args.no_export_air:
+        raise RefinementError(
+            "receipt verification requires a fresh production AIR export; "
+            "--no-export-air is forbidden"
+        )
     payload = codec.load_json(paths.receipt)
     required = {
         "approved_lean_axioms",
@@ -440,28 +591,53 @@ def verify_receipt(paths: Paths) -> None:
         "repository_dirty_paths",
         "repository_revision",
         "schema_version",
+        "semantic_toolchain",
         "theorem_axioms",
         "tier",
         "toolchain",
     }
     if set(payload) != required:
         raise RefinementError("refinement receipt schema drifted")
+    _validate_receipt_theorem_axioms(payload["theorem_axioms"])
+    verification = verify(args, paths)
     if (
         payload["kind"] != "stwo-riscv-refinement-receipt"
         or payload["schema_version"] != 1
         or payload["tier"] != "level-1-normalized-pilot"
+        or payload["claim_boundary"] != CLAIM_BOUNDARY
         or payload["canonical_digest"] != codec.content_digest(payload)
         or payload["opcodes"] != list(PILOT_OPCODES)
+        or payload["coverage"]
+        != {
+            "proved_normalized_opcodes": len(PILOT_OPCODES),
+            "production_opcodes": FULL_OPCODE_COUNT,
+        }
+        or payload["negative_controls"] != list(NEGATIVE_CONTROLS)
+        or payload["lean_build"] != "passed"
+        or payload["proof_escape_scan"] != "passed"
+        or payload["repository_dirty"] is not False
+        or payload["repository_dirty_paths"] != []
         or payload["approved_lean_axioms"] != sorted(APPROVED_LEAN_AXIOMS)
-        or set(payload["theorem_axioms"]) != set(AUDITED_THEOREMS)
+        or payload["theorem_axioms"] != verification.theorem_axioms
     ):
         raise RefinementError("refinement receipt identity or theorem set is invalid")
     manifest = codec.load_json(paths.manifest)
+    render.validate_committed_manifest(paths, manifest)
+    coverage(paths)
     if (
-        manifest.get("tier") != "level-1-normalized-pilot"
-        or payload["generated_manifest_digest"] != manifest["canonical_digest"]
+        payload["generated_manifest_digest"] != manifest["canonical_digest"]
+        or manifest.get("sail") != sail.provenance(evidence(args, paths))
     ):
         raise RefinementError("refinement receipt does not bind the current manifest")
+    if payload["toolchain"] != _toolchain(paths):
+        raise RefinementError(
+            "refinement receipt does not bind the current proof toolchain"
+        )
+    if payload["semantic_toolchain"] != sail.toolchain(evidence(args, paths)):
+        raise RefinementError(
+            "refinement receipt does not bind the current Sail toolchain"
+        )
+    _receipt_revision_matches(paths, payload["repository_revision"])
     unexpected = {
         axiom
         for axioms in payload["theorem_axioms"].values()
@@ -501,14 +677,19 @@ def parser() -> argparse.ArgumentParser:
     coverage_parser = commands.add_parser("coverage")
     coverage_parser.add_argument("--require-full", action="store_true")
     commands.add_parser("negative-controls")
-    commands.add_parser("verify-receipt")
+    verify_receipt_parser = commands.add_parser("verify-receipt")
+    common_arguments(verify_receipt_parser)
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    paths = Paths(repository_root())
+    root = repository_root()
+    air_ir_dir = getattr(args, "air_ir_dir", None)
+    paths = Paths(root, air_ir_dir)
     try:
+        if air_ir_dir is not None and not getattr(args, "no_export_air", False):
+            raise RefinementError("--air-ir-dir requires --no-export-air")
         if args.command == "generate":
             generate(args, paths)
         elif args.command == "check-generated":
@@ -524,7 +705,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "receipt":
             receipt(args, paths)
         elif args.command == "verify-receipt":
-            verify_receipt(paths)
+            verify_receipt(args, paths)
         else:
             raise AssertionError(args.command)
     except RefinementError as exc:
