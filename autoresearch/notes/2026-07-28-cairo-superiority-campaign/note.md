@@ -2431,3 +2431,22 @@ beyond the landed table cache). Beyond those, the structural levers are the
 ones the 2026-07-27 brief priced: generated witness writers only as part of a
 layout change (not scheduling), and algorithmic constraint-evaluation
 reduction in composition.
+
+## Increment 9 addendum (agent's late final report)
+
+Two provenance disclosures from the implementation lane, received after the
+campaign summary was committed: (i) the measured CPU candidate binary was
+built one minute before commit `cd1a68e4`, so its identity string reads
+`3075bd8a` + `dirty=true`; source content was byte-identical (notes-only gap),
+and the orchestrator's independent revalidation at clean `f7270463` reproduced
+the mechanism and digests, so the acceptance rests on clean-tree evidence.
+(ii) Metal received byte-identity, fallback, and mechanism checks but no
+A-B timing series.
+
+Refined follow-up for D3-completion, superseding the coarser "persist the
+committed tree" item: an intermediate artifact holding only the preprocessed
+Merkle root and layer digests could skip `merkle_commit` (126 ms, the largest
+remaining preprocessed item) while recomputing the 36 ms of interpolation and
+extended-domain evaluation the later stages consume — payload tens of MB
+rather than the 150-200 MB full-state artifact, and the integrity surface
+stays frontend-owned. Raw per-sample data: `/private/tmp/inc9-work/`.
