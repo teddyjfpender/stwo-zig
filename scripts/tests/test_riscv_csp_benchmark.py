@@ -147,6 +147,25 @@ class VerificationReceiptContractTests(unittest.TestCase):
             self.validate(changed)
 
 
+class HostEvidenceTests(unittest.TestCase):
+    def test_report_host_metadata_excludes_network_identity(self) -> None:
+        host = csp.collect_host()
+        self.assertNotIn("hostname", host)
+        self.assertEqual(
+            {
+                "architecture",
+                "cpu",
+                "kernel",
+                "logical_cpu_count",
+                "memory_bytes",
+                "os",
+                "os_version",
+                "python",
+            },
+            set(host),
+        )
+
+
 class BuildRegistrationTests(unittest.TestCase):
     def test_standard_build_step_is_registered_once(self) -> None:
         product = (

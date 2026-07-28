@@ -708,7 +708,6 @@ def collect_host() -> dict[str, Any]:
     memory = int(memory_raw) if memory_raw and memory_raw.isdigit() else None
     logical_cpus = os.cpu_count()
     return {
-        "hostname": platform.node(),
         "os": platform.system(),
         "os_version": platform.mac_ver()[0] or platform.release(),
         "kernel": platform.release(),
