@@ -8,7 +8,6 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cli"))
 from stwo_perf import workspace
-from stwo_perf.__main__ import build_parser
 from stwo_perf.manifest import Manifest
 
 
