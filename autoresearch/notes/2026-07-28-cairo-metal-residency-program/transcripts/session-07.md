@@ -30,10 +30,13 @@ Before writing any test I ran the existing tool across the cap range:
     metal-eval-source ... --fusion-cap 1024  dispatches=279->168
     metal-eval-source ... --fusion-cap 4096  dispatches=279->77
 
-**The shipping default cap fuses nothing.** `default_fused_instruction_cap` is
-512 and the *smallest* part in the bundle is larger than that, so the fused
-emission that has been in the tree for eleven days is dead code at its own
-default. That is worth a line in the note independently of anything else I
+**The shipping default cap fuses nothing.** My first explanation for that was
+wrong and the census caught it: I asserted the smallest *part* exceeded 512 and
+the test failed, reporting `ops_per_part_min=28`. The cap bounds a *group's* sum,
+and the smallest adjacent pair in the bundle is 574 operations. Same conclusion —
+the fused emission has been dead code at its own default for eleven days — but
+arrived at by an assertion that failed rather than by a sentence that sounded
+right. That is worth a line in the note independently of anything else I
 measured.
 
 ## The number that turned the increment around
@@ -109,6 +112,21 @@ one enormous straight-line QM31 function grows fast enough that the ceiling is
 practical, not architectural — and, given that the portfolio never exceeds two
 parts, finding its exact location would be spending budget on a case no
 workload has.
+
+## The dividend I did not plan
+
+The 3.5 smoke and my pricing sweep run in the same `metal-test` process. The
+smoke dispatches the AOT metallib; mine dispatches a JIT library from the same
+codegen source. So the closure handed me a controlled AOT-vs-JIT comparison for
+free, and it says the two compilers do not produce equivalent code:
+`partial_ec_mul_generic` 412.45 ms AOT against 135.18 ms JIT, `add_opcode` 46.88
+against 28.44, and `partial_ec_mul_window_bits_18` essentially equal. I had
+written this up as an unexplained cross-run discrepancy and had to rewrite it as
+a measurement, which is the better problem to have. It also forced me to state
+the go/no-go on two bounds rather than one, because a product hook loads the AOT
+library and every price I measured is JIT. The stage is worth moving on either
+bound; whether it clears §2.3's 3.13x requirement depends on which one holds, so
+that experiment is now the first item in the recommendation instead of a footnote.
 
 ## Commits
 

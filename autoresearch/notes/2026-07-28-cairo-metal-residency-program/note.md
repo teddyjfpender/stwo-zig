@@ -2359,8 +2359,9 @@ Head at start: `bcf3ad09`, clean. Raw data: `/private/tmp/i36/`
 reason the increment was scoped around.**
 
 > **Device composition beats the host stage by 4.0x on arithmetic-2m and 4.3x on
-> memory-7m with the UNFUSED per-part kernels that already exist. Fusion adds
-> 1.6% on those two workloads and 10.6% on all-opcodes.** Fusion is not the
+> memory-7m with the UNFUSED per-part kernels that already exist — and by
+> 1.3-1.8x even under the worst AOT-vs-JIT compiler penalty measured (§6.4).
+> Fusion adds 1.6% on those two workloads and 10.6% on all-opcodes.** Fusion is not the
 > precondition for device composition; the program-viability number does not
 > depend on it. What increment 3.5 identified as the blocker — `rows x parts` —
 > is not a portfolio problem, because **no component in any of the four
@@ -2542,18 +2543,31 @@ Four things fall out of this table.
    is slower fused at every size than per-part. Bigger fused functions spill.
    Whatever fusion policy a product ever adopts must be measured per component,
    not derived from a cap.
-4. **One number does not reproduce 3.5 and is flagged rather than explained.**
-   `partial_ec_mul_generic` measures 135.18 ms here against 3.5's 418.82 ms for
-   the same component, same fill, same geometry. The one methodological
-   difference is the library: 3.5 dispatched the **AOT** metallib, this test
-   dispatches a **JIT** library from the same codegen source.
-   `partial_ec_mul_window_bits_18` shows the opposite sign (516.42 JIT vs 484.59
-   AOT), so a single "JIT is faster" story does not fit either. This is a real
-   open item — if the offline Xcode compiler and the runtime compiler produce
-   materially different code from identical source, every device-composition
-   price in this program is uncertain by up to 3x in one direction. **It should
-   be closed by one controlled experiment before any product hook lands:** the
-   same component, both libraries, same process, interleaved.
+4. **The AOT metallib and a JIT library built from the same codegen source do
+   not perform the same, and the gap is up to 3.05x.** This was not planned; it
+   fell out of the fact that the 3.5 smoke (which dispatches the **AOT**
+   metallib) and this test (which dispatches a **JIT** library) run in the *same
+   `metal-test` process*, on the same fill, the same geometry and the same four
+   components. That makes it a controlled comparison rather than a cross-run
+   discrepancy:
+
+   | component | rows | parts | AOT metallib ms | JIT ms | AOT / JIT |
+   | --- | ---: | ---: | ---: | ---: | ---: |
+   | `blake_round_sigma` | 32 | 1 | 0.1895 | 0.1695 | 1.12x |
+   | `add_opcode` | 2,097,152 | 3 | 46.88 | 28.44 | **1.65x** |
+   | `partial_ec_mul_generic` | 524,288 | 90 | 412.45 | 135.18 | **3.05x** |
+   | `partial_ec_mul_window_bits_18` | 2,097,152 | 41 | 508.78 | 516.42 | 0.99x |
+
+   The kernels are named by the same `semanticHash` and generated from the same
+   emitter, so this is a *compiler* difference: the offline Xcode `metal`
+   front end used by CI (§6.3.2) and the runtime `MTLCompilerService` produce
+   materially different code for two of these four kernels. It is not a
+   consistent direction, which rules out a simple optimisation-level story.
+
+   **This is now the program's most consequential open item**, because a product
+   hook must load the authenticated AOT metallib, while every price in §6 above
+   was measured on JIT. §7 therefore reports both an AOT-bounded and a
+   JIT-measured projection, and the two verdicts differ in kind.
 
 ### 7. The projected stage times, and the go/no-go
 
@@ -2576,12 +2590,30 @@ claimed log size for it, and `range_check_20` likewise — so two thirds of
 arithmetic-2m's composition work is measured at its real size with no
 extrapolation at all.
 
-**Go/no-go: GO, and fusion is not on the critical path.**
+**The AOT bound.** §6 finding 4 measured the authenticated AOT metallib at
+1.0-3.05x *slower* than JIT on the same kernels in the same process. A product
+hook loads the AOT library, so the table above — measured on JIT — is an
+optimistic bound and the pessimistic bound scales it by 3.05x:
 
-- Device composition beats the host composition stage by **3.97-5.39x unfused**.
-- §2.3 solved for the required device speedup on the migrated stages: **3.13x
-  with warm caches**, 6.94x cache-off. Composition alone clears 3.13x unfused on
-  all three measured rows.
+| workload | host | device per-part, JIT | vs host | device per-part, AOT-bounded (x3.05) | vs host |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 305.9 | 56.8 | 5.39x | 173.2 | **1.77x** |
+| arithmetic-2m | 435.7 | 109.7 | 3.97x | 334.6 | **1.30x** |
+| memory-7m | 1,219.4 | 286.0 | 4.26x | 872.3 | **1.40x** |
+
+**Go/no-go: GO on placement, with one blocking experiment, and fusion is not on
+the critical path.**
+
+- Device composition beats the host composition stage on *both* bounds: by
+  3.97-5.39x on JIT and by **1.30-1.77x even under the worst AOT penalty
+  observed on any kernel**. So the stage is worth moving either way — this is the
+  finding that replaces the dropped 2.0x gate, and it does not depend on fusion.
+- But §2.3's requirement is **3.13x on the migrated stages with warm caches**.
+  Composition clears that comfortably on the JIT bound and **misses it on the
+  AOT bound**. Which of the two holds is decided entirely by §6 finding 4, and
+  that is why the AOT-vs-JIT experiment is listed first in §9 and called
+  blocking. It is cheap — the evidence above came free from two tests sharing a
+  process — and it moves the program's headline projection by a factor of 3.
 - Fusion adds **1.5-1.6%** on the two large workloads and 10.6% on all-opcodes
   (which is dispatch-floor-bound, 75 -> 43 dispatches, not arithmetic-bound).
 - The ≥ 2.0x composition-stage bar §6.8 set and 3.5 recommended dropping is in
@@ -2607,7 +2639,7 @@ attribution.
 | --- | --- |
 | `package-workspace` | **pass** (17 packages, 17 public modules, 51 edges) |
 | `metal-check` | **pass** |
-| `metal-test` | see below |
+| `metal-test` | **69/73 passed, 2 skipped, 2 failed** — up from 67/71 with 2 failed at `bcf3ad09`; both new tests pass; the 2 failures are the pre-existing `resident_data_test` and `proof_residency_test` |
 
 `package.contract.json` needed no edit: no new public module was added.
 
