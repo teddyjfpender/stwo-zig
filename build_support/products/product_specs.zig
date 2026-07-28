@@ -119,7 +119,7 @@ pub const products = [_]Spec{
         .constructor = .riscv_metal,
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
-        .dependency_module_roots = catalog.package_dependencies.riscv_metal_cpu_protocol_package_roots,
+        .dependency_module_roots = catalog.package_dependencies.riscv_metal_protocol_package_roots,
     },
     .{
         .descriptor = native_cuda.descriptor,

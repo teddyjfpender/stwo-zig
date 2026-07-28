@@ -11,9 +11,13 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     ).module("stwo_backend_contracts");
     const prover = b.dependency(
-        "stwo_prover_impl",
+        "stwo_prover_engine",
         dependency_options,
-    ).module("stwo_prover_impl");
+    ).module("stwo_prover_engine");
+    const prover_api = b.dependency(
+        "stwo_prover_api",
+        dependency_options,
+    ).module("stwo_prover_api");
     const frontend = b.addModule("stwo_cairo_frontend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -21,7 +25,8 @@ pub fn build(b: *std.Build) void {
     });
     frontend.addImport("stwo_core", core);
     frontend.addImport("stwo_backend_contracts", backend_contracts);
-    frontend.addImport("stwo_prover_impl", prover);
+    frontend.addImport("stwo_prover_api", prover_api);
+    frontend.addImport("stwo_prover_engine", prover);
 
     const repository_root: std.Build.LazyPath = .{
         .cwd_relative = b.pathFromRoot("../../.."),
@@ -39,7 +44,8 @@ pub fn build(b: *std.Build) void {
     deep_root.addImport("cairo_frontend", frontend);
     deep_root.addImport("stwo_core", core);
     deep_root.addImport("stwo_backend_contracts", backend_contracts);
-    deep_root.addImport("stwo_prover_impl", prover);
+    deep_root.addImport("stwo_prover_api", prover_api);
+    deep_root.addImport("stwo_prover_engine", prover);
     const deep_tests = b.addRunArtifact(b.addTest(.{ .root_module = deep_root }));
     deep_tests.setCwd(repository_root);
 

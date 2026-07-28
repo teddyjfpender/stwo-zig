@@ -1,34 +1,17 @@
 //! Complete prover transaction contract shared by native and device backends.
 
 const std = @import("std");
+const api = @import("stwo_prover_api");
 const pcs_core = @import("stwo_core").pcs;
 const proof = @import("stwo_core").proof;
 const component = @import("air/component_prover.zig");
-const device_composition = @import("air/device_composition.zig");
 const pcs = @import("pcs/mod.zig");
 const prove_mod = @import("prove.zig");
 const session_mod = @import("session.zig");
-const stage_profile = @import("stage_profile.zig");
+const stage_profile = api.stage_profile;
 
-pub const ProveOptions = struct {
-    include_all_preprocessed_columns: bool = false,
-    recorder: ?*stage_profile.Recorder = null,
-    /// Optional whole-stage device composition evaluator, scoped to this call.
-    /// Absent by default, so every existing caller is unaffected. See
-    /// `air/device_composition.zig` for the fail-closed contract.
-    composition_stage: ?device_composition.Stage = null,
-};
-
-/// Checks the transaction-level surface expected by backend-neutral frontends.
-pub fn assertProverEngine(comptime Engine: type) void {
-    comptime {
-        if (!@hasDecl(Engine, "Scheme")) @compileError("prover engine requires Scheme");
-        if (!@hasDecl(Engine, "init")) @compileError("prover engine requires init");
-        if (!@hasDecl(Engine, "deinit")) @compileError("prover engine requires deinit");
-        if (!@hasDecl(Engine, "commit")) @compileError("prover engine requires commit");
-        if (!@hasDecl(Engine, "prove")) @compileError("prover engine requires prove");
-    }
-}
+pub const ProveOptions = api.ProveOptions;
+pub const assertProverEngine = api.assertProverEngine;
 
 /// Builds a complete proving engine from a PCS backend and protocol types.
 ///
@@ -45,6 +28,7 @@ pub fn ProverEngine(
         pub const Hasher = H;
         pub const MerkleChannel = MC;
         pub const Channel = C;
+        pub const Component = component.ComponentProver;
         pub const Scheme = pcs.CommitmentSchemeProver(B, H, MC);
         pub const Session = session_mod.ProverSession;
         pub const ExtendedProof = proof.ExtendedStarkProof(H);

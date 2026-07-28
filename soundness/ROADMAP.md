@@ -480,8 +480,34 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       `TODO(soundness)` in `air/semantics/div.zig` is replaced by a pointer to
       the test. The DIV divisor byte range still has no row-local check in
       `semantics/div.zig` itself and no recorded adversarial self-check.
-- [ ] Add a deliberately malicious prover harness for skipped instructions,
+- [x] Add a deliberately malicious prover harness for skipped instructions,
       stale reads, forged outputs, and altered completion.
+      `src/tests/riscv/malicious_prover_harness.zig` enters the real proving
+      transaction — witness forgeries are installed before lookup ingestion, so
+      Tree 1, the multiplicities and Tree 2 all derive from the forged witness;
+      statement forgeries are the prover's original public statement, mixed
+      before any challenge is drawn — and each of the four attacks pins both
+      the stage that refuses it and the exact error, in
+      `malicious_prover_{skipped,stale_read,forged_output,completion}_test.zig`.
+      `attempt` classifies four errors and lets every other one escape, so a
+      broken fixture fails the test instead of masquerading as a rejection.
+      The stale read is the load-bearing case: row-locally admissible, it
+      reaches a complete proof and dies at verification with `LogupSumNonZero`,
+      with `memory_access` pinned as the only one of twelve relation domains
+      that fails to close. Forged output likewise dies at verification;
+      an altered-but-canonical halt tuple is refused at admission
+      (`InvalidStatement`) with the channel observably pristine.
+      Two limits are recorded rather than smoothed over. A padded active row is
+      refused at lookup-source ingestion (`source_ingest.zig`,
+      `InactiveRealRow`) strictly before composition, so the active-row
+      placement constraint is pinned row-locally as the unique failing direct
+      constraint but is never reached end to end; a genuinely shortened trace
+      cannot change that, because `is_active` and the committed `active()` are
+      two readings of one row list and a skip shortens the declared geometry
+      instead of leaving a hole in it — such a trace loses on the access chain
+      (`InvalidRegisterAccessChain`) instead. And the Sail leg of the honest
+      obligation skips wherever the pinned oracle is absent.
+      Delivered for [GitHub issue #131](https://github.com/teddyjfpender/stwo-zig/issues/131).
 - [ ] Exhaustively check small-limb component domains where enumeration is
       feasible, with Sail transitions as the reference relation.
 - [ ] Maintain serialized-proof bit-flip, truncation, splice, and wrong-statement
@@ -499,6 +525,11 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       protocol. Sail and Spike independently validate execution semantics, not
       the repository-specific PCS/FRI proof wire. Nothing below closes this
       item: no second implementation reads a proof.
+
+      The implementation boundary, source-isolation rules, schema-v4/Postcard
+      target, adversarial corpus, staged delivery, and promotion gates are
+      specified in
+      [`INDEPENDENT_PROOF_SYSTEM_VALIDATION.md`](INDEPENDENT_PROOF_SYSTEM_VALIDATION.md).
 
       One slice of it exists, named for what it is.
       `scripts/air_satisfaction.py` is an independent AIR **row-satisfaction and
@@ -552,6 +583,10 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
 - [ ] Keep the Fiat–Shamir schedule and all domain-separated extensions in the
       conformance ledger with mutation coverage.
 
+      The review dossier, machine-readable error ledger, reviewer-independence
+      contract, finding policy, and claim-promotion gate are part of
+      [`INDEPENDENT_PROOF_SYSTEM_VALIDATION.md`](INDEPENDENT_PROOF_SYSTEM_VALIDATION.md).
+
 ## Formal and external assurance
 
 - [ ] Machine-check that AIR satisfaction refines the pinned Sail transition
@@ -565,6 +600,12 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       pilot, LH/DIV stress gates, 46-opcode rollout, and completion criteria are
       specified in
       [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+      A Level-1 normalized LUI/ADDI pilot is now implemented: Lean derives the
+      byte/carry arithmetic, decode, x0 behavior, local tuple projections, and
+      non-vacuity with an audited axiom set. It is intentionally not counted as
+      two production opcodes yet because a kernel-checked interpreter for the
+      serialized M31 AIR/lookups and a theorem from generated Sail monadic
+      execution to the normalized capsule remain open.
 - [ ] Obtain independent AIR and protocol audits.
 - [ ] Maintain a public bug-bounty scope for witness construction, statement
       binding, serialization, and verification.

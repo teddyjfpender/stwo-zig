@@ -72,7 +72,6 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
             aggregate.product(true),
             target,
             optimize,
-            cpu_backend,
             stwo,
         )
     else

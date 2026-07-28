@@ -6,7 +6,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const field = @import("stwo_cuda_backend").abi.field;
 const request = @import("request.zig");
 

@@ -65,8 +65,11 @@ test "extraction: emit models when RISCV_AIR_IR_DIR is set" {
     try emitAll(std.testing.allocator, dir);
 }
 
-test "extraction: symbolic and QM31 runs of the same AIR agree pointwise" {
-    const allocator = std.testing.allocator;
+/// Differentially replay every extracted family against the QM31 evaluator.
+///
+/// This is public so focused evidence gates can execute the source-binding
+/// check without relying on nested Zig test discovery.
+pub fn checkDifferential(allocator: std.mem.Allocator) !void {
     var prng = std.Random.DefaultPrng.init(DIFFERENTIAL_SEED);
     const random = prng.random();
 
@@ -119,6 +122,10 @@ test "extraction: symbolic and QM31 runs of the same AIR agree pointwise" {
             }
         }
     }
+}
+
+test "extraction: symbolic and QM31 runs of the same AIR agree pointwise" {
+    try checkDifferential(std.testing.allocator);
 }
 
 test "extraction: every family declares outputs and names its committed columns" {

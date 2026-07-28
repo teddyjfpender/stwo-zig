@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const stwo_prover = @import("stwo_prover_impl");
+const stwo_prover = @import("stwo_prover_engine");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const Hasher = stwo_core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher;

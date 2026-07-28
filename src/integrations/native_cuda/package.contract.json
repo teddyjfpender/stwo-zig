@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_native_cuda_integration",
+  "version": "0.1.0",
+  "layer": "integration",
   "owner": "native-cuda-integration",
   "public_modules": {
     "stwo_native_cuda_integration": "mod.zig"
@@ -11,7 +13,7 @@
     "stwo_cuda_backend": "../../backends/cuda",
     "stwo_native_examples": "../../examples",
     "stwo_proof_wire": "../../interop/proof_wire",
-    "stwo_prover_impl": "../../prover"
+    "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [],
   "api_surface": [
@@ -24,13 +26,25 @@
     "wide_fibonacci",
     "xor"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Native CUDA exposes an owned request and driver boundary"
+    ],
+    "invariant_tests": [
+      "wide_fibonacci/request.zig::admission rejects shapes without a pinned parity contract"
+    ]
+  },
   "ci": {
+    "lane": "native_cuda_integration",
     "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/integrations/native_cuda/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_cairo_cpu_integration",
+  "version": "0.1.0",
+  "layer": "integration",
   "owner": "cairo-cpu-integration",
   "public_modules": {
     "stwo_cairo_cpu_integration": "mod.zig"
@@ -8,7 +10,8 @@
   "dependencies": {
     "stwo_core": "../../core",
     "stwo_cpu_backend": "../../backends/cpu_scalar",
-    "stwo_prover_impl": "../../prover",
+    "stwo_prover_api": "../../prover_api",
+    "stwo_prover_engine": "../../prover",
     "stwo_cairo_frontend": "../../frontends/cairo"
   },
   "injected_modules": [],
@@ -16,13 +19,25 @@
     "prove_trace",
     "prover"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Cairo CPU transaction satisfies the stable prover contract"
+    ],
+    "invariant_tests": [
+      "prover/transaction.zig::CPU binding uses the official plain Blake2s protocol"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "cairo_cpu_integration",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/integrations/cairo_cpu/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

@@ -12,7 +12,7 @@ const device_composition = @import("air/device_composition.zig");
 const prover_air_accumulation = @import("air/accumulation.zig");
 const prover_circle = @import("poly/circle/mod.zig");
 const pcs_prover = @import("pcs/mod.zig");
-const stage_profile = @import("stage_profile.zig");
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;

@@ -5,72 +5,50 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.zig_protocol_lib.command import protocol_module_args, test_command
+from scripts.zig_protocol_lib.command import (
+    PROTOCOL_PACKAGES,
+    protocol_module_args,
+    protocol_package_modules,
+    test_command,
+)
 
 
 class ZigProtocolCommandTests(unittest.TestCase):
     def test_protocol_modules_are_wired_in_dependency_order(self) -> None:
         arguments = protocol_module_args("src/stwo_deep.zig")
+        modules = protocol_package_modules()
+        selected = {module.name for module in modules}
+        positions = {
+            module.name: arguments.index(f"-M{module.name}={module.source}")
+            for module in modules
+        }
 
         self.assertIn("-Mroot=src/stwo_deep.zig", arguments)
-        self.assertLess(
-            arguments.index("-Mstwo_core=src/core/mod.zig"),
-            arguments.index("-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_core=src/core/mod.zig"),
-            arguments.index("-Mstwo_backend_contracts=src/backend/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_backend_contracts=src/backend/mod.zig"),
-            arguments.index("-Mstwo_prover_impl=src/prover/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_prover_impl=src/prover/mod.zig"),
-            arguments.index("-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig"),
-            arguments.index("-Mstwo_native_examples=src/examples/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_native_examples=src/examples/mod.zig"),
-            arguments.index("-Mstwo_metal_backend=src/backends/metal/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_metal_backend=src/backends/metal/mod.zig"),
-            arguments.index("-Mstwo_cuda_backend=src/backends/cuda/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_cuda_backend=src/backends/cuda/mod.zig"),
-            arguments.index("-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig"),
-            arguments.index("-Mstwo_cairo_frontend=src/frontends/cairo/mod.zig"),
-        )
-        self.assertLess(
-            arguments.index("-Mstwo_cairo_frontend=src/frontends/cairo/mod.zig"),
-            arguments.index(
-                "-Mstwo_riscv_cpu_integration=src/integrations/riscv_cpu/mod.zig"
-            ),
-        )
-        self.assertLess(
-            arguments.index(
-                "-Mstwo_riscv_cpu_integration=src/integrations/riscv_cpu/mod.zig"
-            ),
-            arguments.index(
-                "-Mstwo_cairo_cpu_integration=src/integrations/cairo_cpu/mod.zig"
-            ),
-        )
-        self.assertIn(
-            "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
-            arguments,
-        )
-        self.assertIn(
-            "-Mstwo_cairo_metal_integration=src/integrations/cairo_metal/mod.zig",
-            arguments,
-        )
+        for module in modules:
+            for dependency in module.dependencies:
+                if dependency in selected:
+                    self.assertLess(
+                        positions[dependency],
+                        positions[module.name],
+                        f"{dependency} must precede {module.name}",
+                    )
+
+    def test_every_module_scope_uses_its_authoritative_contract_dependencies(self) -> None:
+        modules = protocol_package_modules()
+        self.assertEqual(PROTOCOL_PACKAGES, tuple(module.name for module in modules))
+        arguments = protocol_module_args("src/stwo_deep.zig")
+
+        cursor = arguments.index("-Mroot=src/stwo_deep.zig") + 1
+        for module in modules:
+            module_flag = f"-M{module.name}={module.source}"
+            end = arguments.index(module_flag, cursor)
+            scoped = arguments[cursor:end]
+            self.assertEqual(
+                [item for dependency in module.dependencies for item in ("--dep", dependency)],
+                scoped,
+                module.name,
+            )
+            cursor = end + 1
 
     def test_test_command_preserves_trailing_zig_arguments(self) -> None:
         command = test_command(

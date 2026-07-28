@@ -102,6 +102,24 @@ Metal enters that aggregate only with `-Daggregate-metal=true`. Machine-readable
 build contracts are available through `product-matrix-identity`,
 `identity-stwo-{core,prover,zig}`, and `build-configure-closure`.
 
+### Package owner guides
+
+Every first-party package has an owner guide tied to its machine-readable
+contract. Start with the smallest package that owns the behavior being changed:
+
+| Layer | Package guides |
+| :--- | :--- |
+| Protocol and contracts | [`stwo_core`](src/core/README.md), [`stwo_backend_contracts`](src/backend/README.md), [`stwo_prover_api`](src/prover_api/README.md), [`stwo_prover_engine`](src/prover/README.md), [`stwo_proof_wire`](src/interop/proof_wire/README.md) |
+| Backends | [`stwo_cpu_backend`](src/backends/cpu_scalar/README.md), [`stwo_metal_backend`](src/backends/metal/README.md), [`stwo_cuda_backend`](src/backends/cuda/README.md) |
+| Frontends and services | [`stwo_riscv_frontend`](src/frontends/riscv/README.md), [`stwo_cairo_frontend`](src/frontends/cairo/README.md), [`stwo_native_examples`](src/examples/README.md), [`stwo_metal_session`](src/tools/metal_session/README.md) |
+| CPU integrations | [`stwo_riscv_cpu_integration`](src/integrations/riscv_cpu/README.md), [`stwo_cairo_cpu_integration`](src/integrations/cairo_cpu/README.md) |
+| Metal integrations | [`stwo_riscv_metal_integration`](src/integrations/riscv_metal/README.md), [`stwo_cairo_metal_integration`](src/integrations/cairo_metal/README.md) |
+| CUDA integrations | [`stwo_native_cuda_integration`](src/integrations/native_cuda/README.md), [`stwo_cairo_cuda_integration`](src/integrations/cairo_cuda/README.md) |
+
+The workspace checker rejects a missing or contract-stale package README. The
+[two-pass documentation review](conformance/2026-07-28-package-readme-review.md)
+records the technical and editorial acceptance criteria.
+
 ## Prove
 
 Build the focused CPU product, produce one self-verified proof, then verify its
@@ -184,8 +202,9 @@ and resident-buffer-safe teardown.
 
 The release-gated frontend accepts an `rv32im-zkvm-v1` ELF, executes it, builds
 the sharded witness, proves it through the same PCS/FRI core, self-verifies
-before publication, and emits a bounded schema-v3 artifact. A separate process
-must verify that artifact against a caller-supplied expected-statement digest.
+before publication, and emits a bounded schema-v4 artifact. A separate process
+must verify that artifact against the original ELF and a caller-supplied
+expected-statement digest.
 The exact pinned [Sail RISC-V model](https://github.com/riscv/sail-riscv) is the
 semantic authority; Spike is an independent executor and Stark-V is retained
 only as legacy proof-layout provenance. Published artifacts carry the immutable
@@ -202,7 +221,9 @@ zig-out/bin/stwo-zig prove \
 STATEMENT_DIGEST=$(python3 -c \
   'import json; print(json.load(open("riscv-report.json"))["statement_sha256"])')
 zig-out/bin/stwo-zig verify \
-  --artifact riscv-proof.json --protocol functional \
+  --artifact riscv-proof.json \
+  --elf vectors/riscv_elfs/branch_fib.elf \
+  --protocol functional \
   --expect-statement-digest "$STATEMENT_DIGEST"
 ```
 
@@ -242,6 +263,8 @@ python3 scripts/install_hooks.py
 | :--- | :--- |
 | **[Conformance](conformance/upstream.md)** | Pinned oracle revisions, API parity ledger, and the source-conformance baseline |
 | **[RISC-V release goal](conformance/2026-07-18-riscv-release-goal.md)** | Executable checkpoints, evidence requirements, and the fail-closed promotion contract |
+| **[Soundness roadmap](soundness/ROADMAP.md)** | Current theorem boundaries, adversarial evidence, and open assurance obligations |
+| **[Independent proof validation](soundness/INDEPENDENT_PROOF_SYSTEM_VALIDATION.md)** | Second-verifier, mutation-corpus, and external PCS/FRI/Fiat–Shamir review scope |
 | **[Autoresearch](autoresearch/README.md)** | The stwo-perf harness: judged scoring, submissions, ledger, and site feed |
 | **[Benchmark dashboard](bench/README.md)** | Formal CPU/SIMD and Metal results with commit, machine, capture time, and oracle provenance |
 | **[Benchmark history](vectors/reports/benchmark_history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |

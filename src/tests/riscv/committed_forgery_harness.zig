@@ -216,8 +216,9 @@ pub const Guest = struct {
     /// exactly the rows the prover commits — through the pinned Sail model,
     /// seeding the fixture's declared input word so the prologue's public
     /// input load compares against Sail's own read. Skips visibly (naming
-    /// the guest) when the pinned oracle is absent; any disagreement or
-    /// harness breakage fails the test.
+    /// the guest) when the pinned oracle is absent, unless
+    /// `STWO_ZIG_REQUIRE_SAIL_ORACLE` makes that absence a failure; any
+    /// disagreement or harness breakage fails the test.
     pub fn requireSailAgreement(self: *const Guest, guest_label: []const u8) !void {
         const image = guest_elf.initialMemory();
         try sail_oracle.requireAgreement(
@@ -578,7 +579,7 @@ test "forgery harness: the honest row of a body instruction is admissible where 
 
 // Runtime: about a second when the pinned Sail is present — three oracle
 // round-trips over a nine-instruction guest, no proofs. Skips visibly when the
-// pinned oracle is absent.
+// pinned oracle is absent, or fails under `STWO_ZIG_REQUIRE_SAIL_ORACLE`.
 test "forgery harness: the Sail assertion rejects a forged retirement and a forged input seed" {
     // An oracle never observed disagreeing is not evidence that it agrees.
     // This is the disagreement half of `requireSailAgreement`, on the very
@@ -605,14 +606,11 @@ test "forgery harness: the Sail assertion rejects a forged retirement and a forg
     defer baseline.deinit(allocator);
     switch (baseline.verdict) {
         .equivalent => {},
-        .unavailable => {
-            std.debug.print(
-                "SKIP: pinned Sail oracle unavailable; the forged-retirement and " ++
-                    "forged-seed rejections were NOT checked for the fixture guest.\n{s}\n",
-                .{baseline.report},
-            );
-            return error.SkipZigTest;
-        },
+        .unavailable => return sail_oracle.reportUnavailable(
+            allocator,
+            "the forged-retirement and forged-seed rejections for the fixture guest",
+            baseline.report,
+        ),
         else => {
             std.debug.print("honest fixture guest not EQUIVALENT: {s}\n", .{baseline.report});
             return error.TestUnexpectedResult;

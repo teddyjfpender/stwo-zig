@@ -66,7 +66,6 @@ pub fn addProducts(context: Context) void {
         compatibility_product,
         context.target,
         context.optimize,
-        cpu_backend,
         stwo,
     );
     const cuda_backend = graph.addCudaBackendImport(

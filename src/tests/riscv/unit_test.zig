@@ -27,6 +27,36 @@ test {
     _ = @import("stwo_riscv_frontend").diagnostics.public_values;
 }
 
+test "sail_oracle: absence skips by default, fails under the gate switch, and never reads as disagreement" {
+    // Lives here rather than beside the code because `zig test` only collects
+    // tests from its root module, and every step reaches `sail_oracle.zig` as
+    // an imported dependency.
+    //
+    // Nothing here consults Sail: this is the enforcement flag's policy alone,
+    // which is the part a host without the pinned oracle can still prove.
+    const sail_oracle = runner.sail_oracle;
+    const Policy = sail_oracle.AbsencePolicy;
+
+    try std.testing.expectEqual(Policy.skip, Policy.fromEnvValue(null));
+    for ([_][]const u8{ "", "   ", "0", "false", "FALSE", "no", "Off", " off " }) |unset| {
+        try std.testing.expectEqual(Policy.skip, Policy.fromEnvValue(unset));
+    }
+    // Anything unrecognised requires the oracle: a gate switch must not be
+    // disarmed by a typo in the value a CI job passed it.
+    for ([_][]const u8{ "1", "true", "YES", "on", " 1 ", "ture" }) |set| {
+        try std.testing.expectEqual(Policy.fail, Policy.fromEnvValue(set));
+    }
+
+    // The distinct-error property the module header promises: enforcement
+    // reports the ABSENCE, and never borrows the disagreement error.
+    const Unavailable = sail_oracle.UnavailableError;
+    try std.testing.expectEqual(Unavailable.SkipZigTest, Policy.skip.err());
+    try std.testing.expectEqual(Unavailable.SailOracleUnavailable, Policy.fail.err());
+    const required: anyerror = Policy.fail.err();
+    try std.testing.expect(required != error.SkipZigTest);
+    try std.testing.expect(required != error.SailDisagreesWithRunner);
+}
+
 test "infra_trace: genMemoryColumns caps rows at the domain size" {
     const allocator = std.testing.allocator;
     var chain = StateChainTracker.init(allocator);

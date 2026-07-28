@@ -1,11 +1,11 @@
 //! Backend-independent FRI decommitment tests.
 
 const std = @import("std");
-const fri = @import("stwo_prover_impl").fri;
+const fri = @import("stwo_prover_engine").fri;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
-const secure_column = @import("stwo_prover_impl").secure_column;
-const vcs_lifted_prover = @import("stwo_prover_impl").vcs_lifted.prover;
+const secure_column = @import("stwo_prover_engine").secure_column;
+const vcs_lifted_prover = @import("stwo_prover_engine").vcs_lifted.prover;
 const vcs_lifted_verifier = @import("stwo_core").vcs_lifted.verifier;
 
 const M31 = m31.M31;

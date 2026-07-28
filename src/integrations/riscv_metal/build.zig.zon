@@ -5,7 +5,8 @@
     .paths = .{"."},
     .dependencies = .{
         .stwo_core = .{ .path = "../../core" },
-        .stwo_prover_impl = .{ .path = "../../prover" },
+        .stwo_prover_api = .{ .path = "../../prover_api" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
         .stwo_metal_backend = .{ .path = "../../backends/metal" },
         .stwo_riscv_frontend = .{ .path = "../../frontends/riscv" },
     },

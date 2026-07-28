@@ -88,7 +88,6 @@ pub fn addPublicModules(context: Context) Result {
         sdkProduct(),
         context.target,
         context.optimize,
-        cpu_backend,
         stwo,
     );
     const cuda_backend = graph.addCudaBackendImport(
@@ -234,7 +233,6 @@ pub fn addProducts(context: Context) Result {
         sdkProduct(),
         context.target,
         context.optimize,
-        cpu_backend,
         stwo,
     );
     const cuda_backend = graph.addCudaBackendImport(

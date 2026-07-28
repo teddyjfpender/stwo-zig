@@ -11,9 +11,9 @@ pub fn build(b: *std.Build) void {
     ).module("stwo_backend_contracts");
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
     const prover = b.dependency(
-        "stwo_prover_impl",
+        "stwo_prover_engine",
         dependency_options,
-    ).module("stwo_prover_impl");
+    ).module("stwo_prover_engine");
     const metal_package = b.dependency("stwo_metal_backend", dependency_options);
     const metal_backend = metal_package.module("stwo_metal_backend");
     const cairo_frontend = b.dependency(
@@ -31,7 +31,7 @@ pub fn build(b: *std.Build) void {
     });
     integration.addImport("stwo_backend_contracts", backend_contracts);
     integration.addImport("stwo_core", core);
-    integration.addImport("stwo_prover_impl", prover);
+    integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_metal_backend", metal_backend);
     integration.addImport("stwo_cairo_frontend", cairo_frontend);
     integration.addImport("stwo_metal_session", metal_session);

@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_cairo_frontend",
+  "version": "0.1.0",
+  "layer": "frontend",
   "owner": "cairo-frontend",
   "public_modules": {
     "stwo_cairo_frontend": "mod.zig"
@@ -8,7 +10,8 @@
   "dependencies": {
     "stwo_backend_contracts": "../../backend",
     "stwo_core": "../../core",
-    "stwo_prover_impl": "../../prover"
+    "stwo_prover_api": "../../prover_api",
+    "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [
     "cairo_frontend"
@@ -41,13 +44,25 @@
     "witness",
     "witness_scheduler"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: Cairo facade preserves statement and prover entry points"
+    ],
+    "invariant_tests": [
+      "prover.zig::Cairo prover: rejects noncanonical Rust oracle identity"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "cairo_frontend",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/frontends/cairo/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

@@ -94,6 +94,13 @@ soundness argument — runner ≡ Sail on the corpus. It says nothing about AIR
 satisfaction or uniqueness (legs 2 and 3), and corpus equivalence is not
 all-input equivalence.
 
+The job additionally runs the Sail leg of the malicious-prover harness with
+`STWO_ZIG_REQUIRE_SAIL_ORACLE=1`, because this is the only job with a
+verified pinned oracle. Everywhere else that leg reports a visible skip,
+which is indistinguishable from a passing check in a summary line; here an
+absent oracle is `error.SailOracleUnavailable`, a failure that names the
+absence and is deliberately not the disagreement error.
+
 ## Known limits, recorded deliberately
 
 - **Hosted cold path is estimated, not yet observed.** Every piece is proven
@@ -104,6 +111,26 @@ all-input equivalence.
   fallbacks are, in order: a scheduled job that only refreshes the cache, a
   larger runner, or demoting the PR gate to merge-queue/nightly — each of
   which must be recorded here.
+- **The required malicious-prover leg adds a cold Zig build to this job.**
+  It compiles the RISC-V exhaustive test binary at `-Doptimize=ReleaseSafe`
+  with no warm Zig cache (the restored cache holds the formal toolchain
+  only), which is minutes on top of the differential and eats into the same
+  60-minute budget as the cold toolchain path. If the two together stop
+  fitting, the fallbacks in order are: cache the Zig build alongside the
+  toolchain, or split the required leg into its own job that restores the
+  same workspace — not dropping the requirement, which would return the leg
+  to a skip nobody reads.
+- **A drifted filter fails the step rather than emptying it.** The required
+  leg selects tests with `-Driscv-test-filter="malicious prover"`. The RISC-V
+  test runner does report success for an empty selection -- unnamed
+  `test { _ = @import(...) }` aggregation blocks are never filtered out, so
+  the binary is never actually empty and the exit code alone proves nothing --
+  which is why the flag carries `EmptySelectionGuard`
+  (`build_support/products/riscv_test_filter.zig`): it compares the executed
+  test names against the filter text and fails the build when none match.
+  Renaming `src/tests/riscv/malicious_prover_*.zig` therefore turns this step
+  red instead of hollowing it out. The guard reports the drift; it does not
+  repair it, so the filter still has to be updated with the rename.
 - **A forged snapshot passes `bind`.** Binding is arithmetic over committed
   files; only the live run re-derives truth. The live run is triggered by
   every path that could carry such a forgery (the evidence file itself lives

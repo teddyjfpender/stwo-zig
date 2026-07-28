@@ -1,13 +1,16 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
-  "package": "stwo_prover_impl",
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_prover_engine",
+  "version": "0.1.0",
+  "layer": "engine",
   "owner": "prover-engine",
   "public_modules": {
-    "stwo_prover_impl": "mod.zig"
+    "stwo_prover_engine": "mod.zig"
   },
   "dependencies": {
     "stwo_core": "../core",
-    "stwo_backend_contracts": "../backend"
+    "stwo_backend_contracts": "../backend",
+    "stwo_prover_api": "../prover_api"
   },
   "injected_modules": [
     "native_resource_admission",
@@ -36,13 +39,25 @@
     "vcs_lifted",
     "work_pool"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: engine reexports the stable transaction contract"
+    ],
+    "invariant_tests": [
+      "poly/circle/secure_poly.zig::prover poly circle secure poly: interpolate from evaluation roundtrip"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "prover",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/prover/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

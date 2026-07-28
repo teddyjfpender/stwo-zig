@@ -2,8 +2,8 @@
 
 const std = @import("std");
 const arena_plan = @import("stwo_metal_backend").arena_plan;
-const circle_poly_mod = @import("stwo_prover_impl").poly.circle.poly;
-const circle_eval_mod = @import("stwo_prover_impl").poly.circle.evaluation;
+const circle_poly_mod = @import("stwo_prover_engine").poly.circle.poly;
+const circle_eval_mod = @import("stwo_prover_engine").poly.circle.evaluation;
 const canonic_circle_mod = @import("stwo_core").poly.circle.canonic;
 const relation_bundle_mod = @import("stwo_cairo_frontend").witness.relation_bundle;
 const interaction_trace_mod = @import("stwo_cairo_frontend").witness.interaction_trace;

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const metal = @import("stwo_metal_backend");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const adapter = @import("stwo_cairo_frontend").adapter;
 const generic = @import("stwo_cairo_frontend").proving.transaction;
 const preprocessed = @import("stwo_cairo_frontend").preprocessed;

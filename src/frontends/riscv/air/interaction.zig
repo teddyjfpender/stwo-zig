@@ -10,7 +10,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const CM31 = @import("stwo_core").fields.cm31.CM31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const SECURE_EXTENSION_DEGREE = @import("stwo_core").fields.qm31.SECURE_EXTENSION_DEGREE;
-const prover_pcs = @import("stwo_prover_impl").pcs;
+const prover_pcs = @import("stwo_prover_engine").pcs;
 
 /// Size of the common lookup random element vector.
 /// Must be >= max relation tuple size across all components.

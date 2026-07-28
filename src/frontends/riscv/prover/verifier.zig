@@ -11,7 +11,7 @@ const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
 const pcs_verifier = @import("stwo_core").pcs.verifier;
 const core_verifier = @import("stwo_core").verifier;
-const prover_engine = @import("stwo_prover_impl").engine;
+const prover_engine = @import("stwo_prover_engine").engine;
 const component_order = @import("../air/component_order.zig");
 const clock_update_component = @import("../air/clock_update_component.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
@@ -66,7 +66,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
     claim: *const types.RiscVInteractionClaim,
     channel: *Engine.Channel,
 ) !void {
-    comptime prover_engine.assertProverEngine(Engine);
+    comptime @import("stwo_prover_api").assertProverEngine(Engine);
     var proof = proof_in;
     var proof_moved = false;
     defer if (!proof_moved) proof.deinit(allocator);

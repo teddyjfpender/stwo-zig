@@ -45,7 +45,7 @@
 
 const std = @import("std");
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
-const WorkPool = @import("stwo_prover_impl").work_pool.WorkPool;
+const WorkPool = @import("stwo_prover_engine").work_pool.WorkPool;
 
 pub const Error = error{
     InvalidCompositionComponent,

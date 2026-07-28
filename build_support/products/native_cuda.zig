@@ -34,7 +34,8 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
         .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
         .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
@@ -55,6 +56,7 @@ const source_closure = policy.SourceClosure{
         "src/interop",
         "src/products/native_cuda",
         "src/prover",
+        "src/prover_api",
         "src/tools/metal_session",
     },
     .required_dynamic_dependencies = &.{ "cuda", "cudart", "libstdc++.so.6" },
@@ -239,7 +241,6 @@ fn createStwoModule(
         product(role),
         context.target,
         context.optimize,
-        cpu_backend,
         module,
     );
     const cuda_backend = graph.addCudaBackendImport(

@@ -32,6 +32,20 @@ pub const proveRiscVWithEngineAndPublicData = prover_mod.proveRiscVWithEngineAnd
 pub const verifyRiscVWithEngine = prover_mod.verifyRiscVWithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
 
+test "api signature: RISC-V facade preserves runner and prover entry points" {
+    comptime {
+        if (Opcode != runner.Opcode) @compileError("Opcode facade alias drifted");
+        switch (@typeInfo(@TypeOf(runWithInput))) {
+            .@"fn" => {},
+            else => @compileError("runWithInput must remain a function"),
+        }
+        switch (@typeInfo(@TypeOf(proveRiscVWithEngine))) {
+            .@"fn" => {},
+            else => @compileError("proveRiscVWithEngine must remain a function"),
+        }
+    }
+}
+
 test {
     @import("std").testing.refAllDeclsRecursive(infra_trace);
     _ = @import("opcode_coverage_test.zig");

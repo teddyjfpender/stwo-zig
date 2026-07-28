@@ -1,0 +1,234 @@
+# `stwo_riscv_frontend`
+
+`stwo_riscv_frontend` is the backend-neutral, Sail-authoritative RV32IM zkVM
+frontend. It loads and executes supported ELF programs, constructs sharded
+execution witnesses, defines the RISC-V AIR and claims, and drives any engine
+that satisfies the stable prover transaction contract.
+
+| Property | Value |
+| :--- | :--- |
+| Version | `0.1.0` |
+| Layer | `frontend` |
+| Owner | `riscv-frontend` |
+| Public Zig module | `stwo_riscv_frontend` |
+| Focused CI host | Linux |
+| ISA profile | `rv32im-zkvm-v1` |
+
+The [package contract](package.contract.json) is the API/dependency authority;
+[mod.zig](mod.zig) is the public facade.
+
+## Architecture and semantic authority
+
+```mermaid
+flowchart LR
+    ELF[RV32IM ELF] --> Runner[Decode and execute]
+    Host[Host interface] --> Runner
+    Runner --> Witness[Sharded witness]
+    Witness --> AIR[Opcode and infrastructure AIR]
+    AIR --> Engine[Stable prover engine contract]
+    Sail[Pinned Sail model] -. semantic differential .-> Runner
+    Spike[Spike and arch tests] -. independent checks .-> Runner
+```
+
+The pinned Sail model owns instruction semantics. Spike and architectural tests
+provide independent execution checks. Legacy Stark-V material is not semantic
+or release authority.
+
+The frontend covers all 46 admitted proof opcodes and owns access-clock,
+witness-layout, opcode-manifest, statement, and infrastructure-trace rules. It
+does not select CPU or Metal; integration packages make that decision.
+
+## Public API
+
+```zig
+const riscv = @import("stwo_riscv_frontend");
+
+var result = try riscv.runWithInput(
+    allocator,
+    elf_bytes,
+    public_input,
+    max_steps,
+);
+defer result.deinit();
+
+// Backend integrations call the engine-generic proving entry points.
+const Claim = riscv.RiscVClaim;
+```
+
+| Area | Exports |
+| :--- | :--- |
+| Execution | `runner`, `Cpu`, `Memory`, `Opcode`, `runWithInput`, `runWithHost` |
+| Host boundary | `host`, `HostInterface`, `HostRuntime` |
+| AIR and witness | `air`, `access_clock`, `infra_trace`, `witness_layout`, `opcode_manifest` |
+| ISA and diagnostics | `isa`, `diagnostics`, `testing` |
+| Statement ownership | `RiscVClaim`, `owned_statement` |
+| Engine-generic proving | `prover_mod`, `proveRiscVWithEngine`, `proveRiscVWithEngineAndPublicData`, `verifyRiscVWithEngine`, `proveAndVerifyElfWithEngine` |
+
+The execution result and proof objects contain owned allocations; follow the
+deinitialization methods on the returned concrete types. Host callbacks are
+part of the public statement boundary and must be deterministic.
+
+## Dependencies
+
+- `stwo_core`
+- `stwo_prover_api`
+- `stwo_prover_engine`
+
+No concrete backend dependency is allowed in the frontend.
+
+## Build, test, and run
+
+Focused package tests:
+
+```sh
+zig build test --build-file src/frontends/riscv/build.zig -Doptimize=ReleaseFast -j2
+```
+
+Build and run the released CPU product:
+
+```sh
+zig build stwo-zig-riscv-cpu -Doptimize=ReleaseFast
+
+zig-out/bin/stwo-zig-riscv-cpu prove \
+  --elf vectors/riscv_elfs/branch_fib.elf \
+  --backend cpu \
+  --output riscv-proof.json --report-out riscv-report.json
+```
+
+Use the product help/application registry for the exact command surface. The
+macOS Metal product is separate and fail closed:
+
+```sh
+zig build stwo-riscv-metal -Doptimize=ReleaseFast
+```
+
+## EthProofs CSP benchmark
+
+The standard client-side proving benchmark runs SHA-256, Keccak-256,
+Poseidon2-M31, and pure-software secp256k1 ECDSA workloads pinned in
+[`vectors/riscv_csp/manifest-v2.json`](../../../vectors/riscv_csp/manifest-v2.json).
+The manifest authenticates the upstream CSP revision and generators, every
+guest source and lockfile, committed RV32IM ELFs, deterministic inputs,
+expected outputs, exact retirement counts, and precompile classification.
+
+Run the complete canonical matrix with:
+
+```sh
+zig build riscv-csp-bench -Doptimize=ReleaseFast
+```
+
+The build step installs the production CPU prover and trace diagnostic, then
+runs sixteen rows with the `secure` protocol: five byte sizes for each hash,
+five field-element sizes for Poseidon2-M31, and the exact dynamic k256 ECDSA
+case. It performs one warmup and ten verified samples per row and writes
+`vectors/reports/riscv_csp_benchmark_report.json`.
+
+For a quick, non-headline development run:
+
+```sh
+zig build stwo-zig-riscv-cpu riscv-trace-dump -Doptimize=ReleaseFast
+python3 scripts/riscv_csp_benchmark.py \
+  --targets sha256 --sizes 128 --warmups 0 --samples 1
+```
+
+The CSP proving duration is execution plus witness construction plus proof
+generation; verification is reported separately. Proof size counts the
+canonical Postcard proof bytes, while preprocessing size counts the retained
+guest ELF. Every sample is internally verified, and the retained proof is
+verified again in a separate process against the original ELF and expected
+statement digest.
+
+Results collected away from CSP's AWS `mac2.metal` Apple M1, 8-core, 16-GiB
+host are deliberately labelled `host-qualified-non-comparable`. The command
+never uploads a result.
+
+SHA-256, Keccak-256, and secp256k1 ECDSA are canonical CSP zkVM workloads.
+Poseidon2-M31 is an explicitly labelled field-native extension: it uses CSP's
+exact seeded M31 inputs but is not relabelled as CSP's BN254 `poseidon2`
+target. Classic Poseidon, BN254 Poseidon2, and P-256 ECDSA remain in the
+unsupported ledger. All four implemented targets use ordinary RV32IM software,
+not precompiles. A one-byte-mutated k256 signature is retained as a negative
+fixture and must produce the all-zero rejection output.
+
+### Retained results and CSP rank — 2026-07-28
+
+The table below is the retained secure matrix captured on 2026-07-28 from
+commit `ed573380db2f7ee1bc364a091cf6c82a00500ec3`; the complete machine-readable
+data is in the
+[`riscv_csp_benchmark_report.json`](../../../vectors/reports/riscv_csp_benchmark_report.json)
+report. `Proof` is execution plus witness construction plus proof generation.
+Times are seconds.
+
+| CSP workload | Input | Proof | Verify | RV32IM cycles | CSP proof-time rank/status on 2026-07-28 | Base RV32IM software | Dedicated crypto opcode | Precompile |
+| :--- | ---: | ---: | ---: | ---: | :--- | :---: | :---: | :---: |
+| SHA-256 | 128 B | 1.985 | 0.164 | 14,056 | Unranked; published `stark-v` reference: **#12/16** (1.830 s) | Yes | No | No |
+| SHA-256 | 256 B | 2.572 | 0.176 | 22,832 | Unranked; published `stark-v` reference: **#12/16** (1.861 s) | Yes | No | No |
+| SHA-256 | 512 B | 2.696 | 0.182 | 40,384 | Unranked; published `stark-v` reference: **#11/16** (1.907 s) | Yes | No | No |
+| SHA-256 | 1,024 B | 3.017 | 0.182 | 75,488 | Unranked; published `stark-v` reference: **#9/16** (1.977 s) | Yes | No | No |
+| SHA-256 | 2,048 B | 3.754 | 0.178 | 145,696 | Unranked; published `stark-v` reference: **#7/16** (2.175 s) | Yes | No | No |
+| Keccak-256 | 128 B | 2.252 | 0.175 | 19,114 | Unranked; published `stark-v` reference: **#8/10** (1.828 s) | Yes | No | No |
+| Keccak-256 | 256 B | 2.287 | 0.176 | 36,904 | Unranked; published `stark-v` reference: **#8/10** (1.861 s) | Yes | No | No |
+| Keccak-256 | 512 B | 3.388 | 0.180 | 72,408 | Unranked; published `stark-v` reference: **#5/10** (1.927 s) | Yes | No | No |
+| Keccak-256 | 1,024 B | 3.540 | 0.181 | 143,416 | Unranked; published `stark-v` reference: **#4/10** (2.053 s) | Yes | No | No |
+| Keccak-256 | 2,048 B | 5.209 | 0.191 | 285,456 | Unranked; published `stark-v` reference: **#3/10** (2.329 s) | Yes | No | No |
+| Poseidon2-M31 | 2 elements | 2.670 | 0.179 | 82,297 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 4 elements | 3.607 | 0.185 | 164,403 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 8 elements | 6.490 | 0.209 | 328,615 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 12 elements | 6.829 | 0.232 | 492,827 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| Poseidon2-M31 | 16 elements | 8.906 | 0.240 | 657,039 | **N/A** — M31 extension; CSP `poseidon2` is BN254 | Yes | No | No |
+| secp256k1 ECDSA | 32 B digest | 55.745 | 0.232 | 5,425,005 | **Unranked** — exact CSP workload, not uploaded | Yes | No | No |
+
+Rank methodology: the [EthProofs CSP benchmark
+page](https://ethproofs.org/csp-benchmarks) was checked on 2026-07-28
+(Europe/Lisbon); its dataset reported a last update of 2026-06-30 08:32 UTC.
+The displayed reference ordinal is obtained by sorting all published systems
+for the same target and input size by proof duration, fastest first. It belongs
+to the historical published `stark-v` row, not to the current
+`stwo-zig-riscv` binary. The current report was collected on an Apple M5 Max,
+not CSP's AWS `mac2.metal` Apple M1/8-core/16-GiB host, and was not uploaded;
+therefore its timings are host-qualified and its official CSP rank is
+`Unranked`. Poseidon2-M31 has no ordinal because changing the field changes the
+workload. The upstream workload source is pinned to
+[`privacy-ethereum/csp-benchmarks@269c43c`](https://github.com/privacy-ethereum/csp-benchmarks/tree/269c43cc32d3127e3d9ce74d20652887d894cca3).
+
+An audit can additionally regenerate every input and expected digest from a
+clean checkout of the pinned upstream repository:
+
+```sh
+python3 scripts/riscv_csp_benchmark.py \
+  --audit-csp-source /path/to/csp-benchmarks \
+  --targets sha256 --sizes 128 --warmups 0 --samples 1
+```
+
+The upstream checkout must be at the manifest commit, be clean, contain the
+authenticated source files, and have its locked release `utils` executable and
+library built. The audit recompiles the repository adapter against that
+library, regenerates the byte, M31, k256, and negative fixtures, and fails
+rather than falling back to committed inputs.
+
+## Contract and invariants
+
+- API signature: runner and engine-generic proving entry points remain present.
+- Behavioral invariant: every one of the 46 proof opcodes reaches its witness,
+  semantic, lookup, and component authorities.
+
+Release evidence additionally covers operand classes, trace vectors,
+adversarial witnesses, selector rigidity, access determinacy, Sail
+differentials, and independent artifact verification.
+
+## Change checklist
+
+1. Derive semantic changes from the pinned Sail contract.
+2. Keep execution, witness, AIR, and public statement mappings explicit.
+3. Extend positive, negative, and adversarial coverage for every affected
+   opcode family.
+4. Preserve backend neutrality and deterministic host behavior.
+5. Run the package suite and the complete RISC-V release gate.
+
+## Related documentation
+
+- [RISC-V Sail contract](../../../conformance/2026-07-26-riscv-sail-contract.md)
+- [RISC-V release evidence](../../../conformance/riscv-release-evidence.md)
+- [Universal AIR to Sail refinement plan](../../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
+- [CPU integration](../../integrations/riscv_cpu/README.md)
+- [Metal integration](../../integrations/riscv_metal/README.md)

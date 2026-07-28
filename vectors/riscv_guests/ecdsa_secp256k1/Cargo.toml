@@ -1,0 +1,19 @@
+[package]
+name = "ecdsa-secp256k1-guest"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "ecdsa_secp256k1"
+path = "src/main.rs"
+
+[dependencies]
+k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[workspace]

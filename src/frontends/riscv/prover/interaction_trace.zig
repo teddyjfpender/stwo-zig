@@ -30,8 +30,8 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const prover_pcs = @import("stwo_prover_impl").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_pcs = @import("stwo_prover_engine").pcs;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");

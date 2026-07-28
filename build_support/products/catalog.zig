@@ -106,6 +106,9 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv-rigidity", .description = "Run the full witness-rigidity sweep over every committed opcode column", .scope = .riscv_cpu },
     .{ .name = "test-riscv-air-satisfaction-export", .description = "Export committed traces for the independent AIR satisfaction checker", .scope = .riscv_cpu },
     .{ .name = "test-riscv-air-satisfaction", .description = "Export and independently check all RISC-V AIR main-trace components", .scope = .riscv_cpu },
+    .{ .name = "riscv-refinement-ir", .description = "Export production symbolic AIR for the LUI/ADDI Lean refinement pilot", .scope = .riscv_cpu },
+    .{ .name = "riscv-refinement-pilot", .description = "Verify the LUI/ADDI normalized AIR-to-Sail Lean pilot", .scope = .riscv_cpu },
+    .{ .name = "riscv-csp-bench", .description = "Run the pinned EthProofs CSP benchmark matrix", .scope = .riscv_cpu },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },
     .{ .name = "metal-arena-session", .description = "Build persistent Metal SN PIE prover session", .scope = .metal_tools },
     .{ .name = "metal-prover-session-test", .description = "Run persistent Metal prover-session unit tests", .scope = .metal_tools },
@@ -175,7 +178,7 @@ pub const configure = [_]Configure{
             "src/tests/riscv/metal_backend_test.zig",
             "src/frontends/riscv/mod.zig",
         },
-        .dependency_module_roots = package_dependencies.riscv_metal_cpu_protocol_package_roots,
+        .dependency_module_roots = package_dependencies.riscv_metal_protocol_package_roots,
         .external_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .allowed_module_files = &.{

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const prover_pcs = @import("stwo_prover_impl").pcs;
+const prover_pcs = @import("stwo_prover_engine").pcs;
 const geometry = @import("geometry.zig");
 
 pub const TABLE_COUNT = geometry.XOR_TABLES.len;

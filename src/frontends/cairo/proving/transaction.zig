@@ -5,7 +5,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const adapter = @import("../adapter/mod.zig");
 const cairo_air = @import("../air/mod.zig");
 const claim_generator = @import("../claim_generator.zig");
@@ -94,7 +94,7 @@ pub fn proveFixtureWithRecorder(
     variant: preprocessed.trace.Variant,
     recorder: ?*prover.stage_profile.Recorder,
 ) !Result(Engine) {
-    comptime prover.engine.assertProverEngine(Engine);
+    comptime @import("stwo_prover_api").assertProverEngine(Engine);
     var target = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -610,7 +610,7 @@ pub fn verifyAndConsume(
     input: *const adapter.ProverInput,
     result: *Result(Engine),
 ) !void {
-    comptime prover.engine.assertProverEngine(Engine);
+    comptime @import("stwo_prover_api").assertProverEngine(Engine);
     if (!result.proof_owned) return error.ProofAlreadyConsumed;
     const allocator = result.allocator;
     const composition = &result.composition;

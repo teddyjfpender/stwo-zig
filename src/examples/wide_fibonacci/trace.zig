@@ -3,8 +3,8 @@
 const std = @import("std");
 const core_utils = @import("stwo_core").utils;
 const m31 = @import("stwo_core").fields.m31;
-const prover_pcs = @import("stwo_prover_impl").pcs;
-const work_pool = @import("stwo_prover_impl").work_pool;
+const prover_pcs = @import("stwo_prover_engine").pcs;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const prover_transaction = @import("../common/prover_transaction.zig");
 
 const M31 = m31.M31;

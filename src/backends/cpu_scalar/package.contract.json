@@ -1,6 +1,8 @@
 {
-  "schema": "stwo-zig-package-contract-v1",
+  "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_cpu_backend",
+  "version": "0.1.0",
+  "layer": "backend",
   "owner": "cpu-backend",
   "public_modules": {
     "stwo_cpu_backend": "mod.zig"
@@ -8,19 +10,31 @@
   "dependencies": {
     "stwo_backend_contracts": "../../backend",
     "stwo_core": "../../core",
-    "stwo_prover_impl": "../../prover"
+    "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [],
   "api_surface": [
     "CpuBackend"
   ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::cpu_scalar: CpuBackend satisfies backend contract"
+    ],
+    "invariant_tests": [
+      "mod.zig::cpu_scalar: batchInverse delegates correctly"
+    ]
+  },
   "ci": {
-    "host": "any",
+    "lane": "cpu_backend",
+    "host": "linux",
     "command": [
       "zig",
       "build",
       "test",
-      "-Doptimize=ReleaseFast"
+      "--build-file",
+      "src/backends/cpu_scalar/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
     ]
   }
 }

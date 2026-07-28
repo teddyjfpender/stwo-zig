@@ -4,7 +4,7 @@ const std = @import("std");
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 const core_proof = @import("stwo_core").proof;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover_engine = @import("stwo_prover_impl").engine;
+const prover_engine = @import("stwo_prover_engine").engine;
 const public_data_mod = @import("../air/public_data.zig");
 const statement_mod = @import("../air/statement.zig");
 const relation_diagnostic = @import("relation_diagnostic.zig");
@@ -57,7 +57,7 @@ pub const ProveOutput = struct {
 /// engine owns commitment state, commitment execution, composition, FRI,
 /// decommitment, and proof assembly. `Scheme` is intentionally opaque to the
 /// frontend so a device backend can store a resident arena and command graph.
-pub const assertProverEngine = prover_engine.assertProverEngine;
+pub const assertProverEngine = @import("stwo_prover_api").assertProverEngine;
 
 /// Binds a caller-selected backend to this frontend's protocol types.
 ///

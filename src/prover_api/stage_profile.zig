@@ -1,3 +1,5 @@
+//! Stable hierarchical prover-stage telemetry schema and recorder.
+
 const std = @import("std");
 
 pub const SCHEMA_VERSION: u32 = 1;

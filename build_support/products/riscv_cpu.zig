@@ -1,5 +1,4 @@
 //! Build ownership for the focused Sail RV32IM + CPU/SIMD product.
-
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const closure_gate = @import("../gates/product_closure.zig");
@@ -7,7 +6,8 @@ const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
-
+const riscv_refinement = @import("riscv_refinement.zig");
+const test_filter = @import("riscv_test_filter.zig");
 const product = graph.Product{
     .name = "stwo-riscv-cpu",
     .frontend = .riscv,
@@ -20,6 +20,7 @@ const source_closure = product_policy.SourceClosure{
         "src/products/riscv_cpu/main.zig",
         "src/stwo_riscv_cpu.zig",
         "src/riscv_trace_cli.zig",
+        "src/frontends/riscv/refinement_ir_export_test.zig",
     },
     .named_imports = &.{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
@@ -29,7 +30,8 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu", .source = "src/stwo_riscv_cpu.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
         .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
@@ -52,6 +54,7 @@ const source_closure = product_policy.SourceClosure{
         "src/backend",
         "src/backends/cpu_scalar",
         "src/prover",
+        "src/prover_api",
         "src/frontends/riscv",
         "src/integrations/riscv_cpu",
         "src/products/riscv_cpu",
@@ -66,7 +69,6 @@ const source_closure = product_policy.SourceClosure{
         "cuda",
     },
 };
-
 pub const Context = struct {
     b: *std.Build,
     target: std.Build.ResolvedTarget,
@@ -74,7 +76,6 @@ pub const Context = struct {
     identity: build_identity.Identity,
     protocol: graph.ProtocolModules,
 };
-
 pub const descriptor = product_policy.Descriptor{
     .product = product,
     .state = .released,
@@ -87,7 +88,6 @@ pub const descriptor = product_policy.Descriptor{
     .dependencies = .{ .module_roots = source_closure.entry_roots },
     .source_closure = source_closure,
 };
-
 pub fn addProduct(context: Context) void {
     descriptor.validate() catch |err| std.debug.panic(
         "invalid RISC-V CPU descriptor: {s}",
@@ -140,30 +140,30 @@ pub fn addProduct(context: Context) void {
     const core_prover_tests = addCoreProverTests(context);
     const exhaustive_tests = addExhaustiveTests(context);
     const air_satisfaction_exports = addAirSatisfactionExportTests(context);
-    const run_air_satisfaction_exports = context.b.addRunArtifact(air_satisfaction_exports);
+    const run_air_satisfaction_exports = test_filter.addRun(context.b, air_satisfaction_exports);
     const test_step = context.b.step(
         "test-riscv-cpu-product",
         "Test the focused RISC-V CPU product shell and capability surface",
     );
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
-    test_step.dependOn(&context.b.addRunArtifact(integration_tests).step);
+    test_step.dependOn(test_filter.addRun(context.b, integration_tests));
     context.b.step(
         "test-riscv-release-exhaustive",
         "Run the exhaustive RISC-V proof and adversarial release suites",
-    ).dependOn(&context.b.addRunArtifact(exhaustive_tests).step);
+    ).dependOn(test_filter.addRun(context.b, exhaustive_tests));
     context.b.step(
         "test-riscv-prover-core",
         "Run the RISC-V prover corpus without the separately retained committed-witness mutation suites",
-    ).dependOn(&context.b.addRunArtifact(core_prover_tests).step);
+    ).dependOn(test_filter.addRun(context.b, core_prover_tests));
     context.b.step(
         "test-riscv-rigidity",
         "Run the full witness-rigidity sweep over every committed opcode column",
-    ).dependOn(&context.b.addRunArtifact(addRigidityTests(context)).step);
+    ).dependOn(test_filter.addRun(context.b, addRigidityTests(context)));
     const air_satisfaction_export_step = context.b.step(
         "test-riscv-air-satisfaction-export",
         "Export committed traces for the independent AIR satisfaction checker",
     );
-    air_satisfaction_export_step.dependOn(&run_air_satisfaction_exports.step);
+    air_satisfaction_export_step.dependOn(run_air_satisfaction_exports);
     const air_satisfaction_check = context.b.addSystemCommand(&.{
         "python3",
         "-m",
@@ -171,11 +171,23 @@ pub fn addProduct(context: Context) void {
         "scripts.tests.test_air_satisfaction",
         "scripts.tests.test_air_satisfaction_infrastructure",
     });
-    air_satisfaction_check.step.dependOn(&run_air_satisfaction_exports.step);
+    air_satisfaction_check.step.dependOn(run_air_satisfaction_exports);
     context.b.step(
         "test-riscv-air-satisfaction",
         "Export and independently check all RISC-V AIR main-trace components",
     ).dependOn(&air_satisfaction_check.step);
+    riscv_refinement.addPilot(context.b, context.target, context.optimize, context.protocol);
+
+    const csp_benchmark = context.b.addSystemCommand(&.{
+        "python3",
+        "scripts/riscv_csp_benchmark.py",
+    });
+    csp_benchmark.step.dependOn(&install_host.step);
+    csp_benchmark.step.dependOn(&install_host_trace.step);
+    context.b.step(
+        "riscv-csp-bench",
+        "Run the pinned EthProofs CSP benchmark matrix",
+    ).dependOn(&csp_benchmark.step);
 
     const closure_check = closure_gate.addCheck(.{
         .b = context.b,
@@ -190,7 +202,6 @@ pub fn addProduct(context: Context) void {
     });
     test_step.dependOn(&marker_check.step);
 }
-
 fn addTraceExecutable(
     context: Context,
     target: std.Build.ResolvedTarget,
@@ -221,7 +232,6 @@ fn addTraceExecutable(
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     return b.addExecutable(.{ .name = "riscv-trace-dump", .root_module = root });
 }
-
 fn addExecutable(
     context: Context,
     protocol: graph.ProtocolModules,
@@ -252,7 +262,6 @@ fn addExecutable(
     );
     return b.addExecutable(.{ .name = name, .root_module = root });
 }
-
 fn addTests(context: Context) *std.Build.Step.Compile {
     const b = context.b;
     const stwo = createStwoModule(b, context.protocol, context.target, context.optimize);
@@ -308,7 +317,6 @@ fn addTests(context: Context) *std.Build.Step.Compile {
     );
     return b.addTest(.{ .root_module = root });
 }
-
 /// Which suites a `src/tests.zig` binary compiles in, and which of its tests it
 /// runs. Named rather than positional: four booleans at a call site say nothing
 /// about which sweep a step is paying for.
@@ -322,7 +330,6 @@ const TestRoot = struct {
     rigidity_exhaustive: bool = false,
     filters: []const []const u8 = &.{},
 };
-
 fn addIntegrationTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{});
 }
@@ -330,7 +337,6 @@ fn addIntegrationTests(context: Context) *std.Build.Step.Compile {
 fn addCoreProverTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{ .exhaustive = true });
 }
-
 fn addExhaustiveTests(context: Context) *std.Build.Step.Compile {
     return addTestRoot(context, .{
         .exhaustive = true,
@@ -394,7 +400,7 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
     test_options.addOption(bool, "riscv_committed_mutations", options.committed_mutations);
     test_options.addOption(bool, "riscv_rigidity_exhaustive", options.rigidity_exhaustive);
     root.addOptions("test_options", test_options);
-    return b.addTest(.{ .root_module = root, .filters = options.filters });
+    return b.addTest(.{ .root_module = root, .filters = test_filter.apply(b, options.filters) });
 }
 
 fn createStwoModule(

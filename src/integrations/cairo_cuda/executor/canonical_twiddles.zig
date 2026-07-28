@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const resident_plan = @import("resident_plan.zig");
 
 const CanonicCoset = core.poly.circle.CanonicCoset;

@@ -1,0 +1,6 @@
+name = "riscv-refinement"
+version = "0.1.0"
+defaultTargets = ["RiscvRefinement"]
+
+[[lean_lib]]
+name = "RiscvRefinement"

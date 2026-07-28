@@ -10,9 +10,9 @@ pub fn build(b: *std.Build) void {
     ).module("stwo_backend_contracts");
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
     const prover = b.dependency(
-        "stwo_prover_impl",
+        "stwo_prover_engine",
         dependency_options,
-    ).module("stwo_prover_impl");
+    ).module("stwo_prover_engine");
     const cuda_dependency = b.dependency(
         "stwo_cuda_backend",
         dependency_options,
@@ -34,7 +34,7 @@ pub fn build(b: *std.Build) void {
     });
     integration.addImport("stwo_backend_contracts", backend_contracts);
     integration.addImport("stwo_core", core);
-    integration.addImport("stwo_prover_impl", prover);
+    integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cuda_backend", cuda_backend);
     integration.addImport("stwo_cairo_frontend", cairo_frontend);
     integration.addImport("stwo_native_cuda_integration", native_cuda);

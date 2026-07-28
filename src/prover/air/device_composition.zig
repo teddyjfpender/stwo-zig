@@ -14,7 +14,7 @@
 //!
 //! ## The fail-closed contract, which is the reason for the `?` in the return
 //!
-//! `evaluate` returns `null` to **decline**, and declining is not an error: the
+//! `evaluate` returns `false` to **decline**, and declining is not an error: the
 //! caller then runs the unchanged host composition path for the whole stage.
 //! Implementations must convert every internal refusal — an unauthenticated
 //! library, an unresolvable kernel, an arena that will not plan, a device error
@@ -24,6 +24,7 @@
 
 const std = @import("std");
 const qm31 = @import("stwo_core").fields.qm31;
+const api = @import("stwo_prover_api").device_composition;
 const secure_column = @import("../secure_column.zig");
 
 const QM31 = qm31.QM31;
@@ -35,24 +36,7 @@ const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 /// `component_prover.Trace`; the only producer is the composition stage in
 /// `prove.zig` and the only consumers are frontend-owned stages that already
 /// name that type.
-pub const Stage = struct {
-    context: *anyopaque,
-
-    /// Evaluates the entire composition stage, or returns `null` to decline.
-    ///
-    /// `composition_log_degree_bound` and `total_constraints` are the values the
-    /// host accumulator would have been built with, passed rather than
-    /// recomputed so that the coefficient assignment an implementation performs
-    /// is provably the same one the host path performs.
-    evaluate: *const fn (
-        context: *anyopaque,
-        allocator: std.mem.Allocator,
-        random_coeff: QM31,
-        composition_log_degree_bound: u32,
-        total_constraints: usize,
-        trace: *const anyopaque,
-    ) anyerror!?SecureColumnByCoords,
-};
+pub const Stage = api.Stage;
 
 /// Everything the stage needs, grouped so the call site stays one statement.
 pub const Inputs = struct {
@@ -66,14 +50,17 @@ pub const Inputs = struct {
 /// Consults `stage` if there is one. `null` in, `null` out.
 pub fn tryStage(stage: ?Stage, inputs: Inputs) anyerror!?SecureColumnByCoords {
     const ready = stage orelse return null;
-    return ready.evaluate(
+    var result: SecureColumnByCoords = undefined;
+    const evaluated = try ready.evaluate(
         ready.context,
         inputs.allocator,
         inputs.random_coeff,
         inputs.composition_log_degree_bound,
         inputs.total_constraints,
         inputs.trace,
+        &result,
     );
+    return if (evaluated) result else null;
 }
 
 test "an absent stage is a no-op" {
@@ -95,19 +82,18 @@ test "a stage that declines is representable and returns null" {
             _: u32,
             _: usize,
             _: *const anyopaque,
-        ) anyerror!?SecureColumnByCoords {
-            return null;
+            _: *anyopaque,
+        ) anyerror!bool {
+            return false;
         }
     };
     var context: u8 = 0;
     const stage = Stage{ .context = &context, .evaluate = Declining.evaluate };
-    const declined = try stage.evaluate(
-        stage.context,
-        std.testing.allocator,
-        QM31.zero(),
-        4,
-        1,
-        &context,
-    );
-    try std.testing.expect(declined == null);
+    try std.testing.expect((try tryStage(stage, .{
+        .allocator = std.testing.allocator,
+        .random_coeff = QM31.zero(),
+        .composition_log_degree_bound = 4,
+        .total_constraints = 1,
+        .trace = &context,
+    })) == null);
 }

@@ -9,6 +9,17 @@ pub const state_machine = @import("state_machine/mod.zig");
 pub const wide_fibonacci = @import("wide_fibonacci/mod.zig");
 pub const xor = @import("xor/mod.zig");
 
+test "api signature: Native CUDA exposes an owned request and driver boundary" {
+    comptime {
+        if (@typeInfo(wide_fibonacci.request.Request) != .@"struct") {
+            @compileError("wide-Fibonacci CUDA request must remain a struct");
+        }
+        if (@typeInfo(wide_fibonacci.NativeDriver) != .@"struct") {
+            @compileError("wide-Fibonacci CUDA driver must remain a concrete type");
+        }
+    }
+}
+
 test {
     _ = blake;
     _ = common;

@@ -6,7 +6,7 @@
 //! exactness argument belongs to each pass.
 
 const std = @import("std");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 
 pub const work_pool = prover.work_pool;
 

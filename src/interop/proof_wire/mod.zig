@@ -702,3 +702,32 @@ fn readProofWireBinary(
         },
     };
 }
+
+test "api signature: proof wire codecs preserve owned byte and proof results" {
+    comptime {
+        const encode = @typeInfo(@TypeOf(encodeProofBytes)).@"fn";
+        if (encode.params.len != 2) @compileError("encodeProofBytes parameter count drifted");
+        const encoded = @typeInfo(encode.return_type.?);
+        if (encoded != .error_union or encoded.error_union.payload != []u8) {
+            @compileError("encodeProofBytes must return owned bytes");
+        }
+
+        const decode = @typeInfo(@TypeOf(decodeProofBytes)).@"fn";
+        if (decode.params.len != 2) @compileError("decodeProofBytes parameter count drifted");
+        const decoded = @typeInfo(decode.return_type.?);
+        if (decoded != .error_union or decoded.error_union.payload != Proof) {
+            @compileError("decodeProofBytes must return an owned Proof");
+        }
+    }
+}
+
+test "proof wire binary decoder rejects truncation and wrong versions" {
+    try std.testing.expectError(
+        CodecError.InvalidBinaryProof,
+        decodeProofBytesBinary(std.testing.allocator, ""),
+    );
+    try std.testing.expectError(
+        CodecError.UnsupportedBinaryVersion,
+        decodeProofBytesBinary(std.testing.allocator, "NOTSTWO!"),
+    );
+}

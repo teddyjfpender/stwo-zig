@@ -46,6 +46,17 @@ pub const CasmState = common.CasmState;
 pub const ProverInput = adapter.ProverInput;
 pub const proveCairo = prover.proveCairo;
 
+test "api signature: Cairo facade preserves statement and prover entry points" {
+    comptime {
+        if (Felt252 != common.Felt252) @compileError("Felt252 facade alias drifted");
+        if (ProverInput != adapter.ProverInput) @compileError("ProverInput facade alias drifted");
+        switch (@typeInfo(@TypeOf(proveCairo))) {
+            .@"fn" => {},
+            else => @compileError("proveCairo must remain a function"),
+        }
+    }
+}
+
 test {
     _ = @import("witness/resident_geometry.zig");
     _ = @import("witness/resident_proof.zig");

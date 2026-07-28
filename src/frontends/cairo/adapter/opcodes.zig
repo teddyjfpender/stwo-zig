@@ -268,7 +268,7 @@ test "opcodes: direct witness lanes are explicit and unique" {
             try std.testing.expectEqual(OpcodeTag.blake_compress_opcode, lane.tag);
         }
     }
-    try std.testing.expect(!seen[@intFromEnum(OpcodeTag.generic_opcode)]);
-    try std.testing.expectEqual(N_OPCODES - 1, direct_witness_lanes.len);
+    try std.testing.expect(seen[@intFromEnum(OpcodeTag.generic_opcode)]);
+    try std.testing.expectEqual(N_OPCODES, direct_witness_lanes.len);
     try std.testing.expectEqual(@as(usize, 1), iota_lanes);
 }

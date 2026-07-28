@@ -6,7 +6,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const cairo = @import("cairo_frontend");
 
 const trace_arena = cairo.proving.trace_arena;

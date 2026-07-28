@@ -32,7 +32,7 @@
 //! collision-resistant construction, and it parallelises across the machine.
 
 const std = @import("std");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const product_cache = @import("product_cache.zig");
 
 const magic = "STWOZPT1";

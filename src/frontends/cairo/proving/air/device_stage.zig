@@ -37,7 +37,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const composition = @import("../../witness/composition_bundle.zig");
 const component_mod = @import("component.zig");
 
@@ -121,10 +121,11 @@ fn evaluateAdapter(
     composition_log_degree_bound: u32,
     total_constraints: usize,
     trace: *const anyopaque,
-) anyerror!?SecureColumnByCoords {
+    result: *anyopaque,
+) anyerror!bool {
     const self: *Bound = @ptrCast(@alignCast(context));
     const typed_trace: *const Trace = @ptrCast(@alignCast(trace));
-    return try evaluateStage(
+    const evaluated = try evaluateStage(
         self,
         allocator,
         random_coeff,
@@ -132,6 +133,10 @@ fn evaluateAdapter(
         total_constraints,
         typed_trace,
     );
+    const column = evaluated orelse return false;
+    const typed_result: *SecureColumnByCoords = @ptrCast(@alignCast(result));
+    typed_result.* = column;
+    return true;
 }
 
 fn evaluateStage(

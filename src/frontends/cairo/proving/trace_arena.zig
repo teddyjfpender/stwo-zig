@@ -27,7 +27,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const composition_bundle = @import("../witness/composition_bundle.zig");
 const resident_geometry = @import("../witness/resident_geometry.zig");
 

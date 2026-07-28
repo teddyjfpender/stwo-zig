@@ -10,12 +10,20 @@ const state_chain = @import("stwo_riscv_frontend").runner.state_chain;
 const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const prove_block = @import("stwo_riscv_frontend").host.prove_block;
 const BlockInput = @import("stwo_riscv_frontend").host.block_input.BlockInput;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const CpuProverEngine = prover_mod.ProverEngineForBackend(CpuBackend);
 
 comptime {
     prover_mod.assertProverEngine(CpuProverEngine);
+}
+
+test "api signature: RISC-V CPU engine satisfies the stable transaction contract" {
+    comptime @import("stwo_prover_api").assertProverEngine(CpuProverEngine);
+}
+
+test "api invariant: RISC-V CPU integration selects only the CPU backend" {
+    try std.testing.expect(CpuProverEngine.Backend == CpuBackend);
 }
 
 pub fn proveRiscV(

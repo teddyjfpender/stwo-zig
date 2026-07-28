@@ -17,7 +17,7 @@
 //! mode is handled by silently falling back to computing the data.
 
 const std = @import("std");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const pedersen_table = @import("pedersen_table.zig");
 const trace = @import("trace.zig");
 

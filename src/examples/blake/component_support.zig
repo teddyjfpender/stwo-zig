@@ -7,10 +7,10 @@ const circle = @import("stwo_core").circle;
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_circle = @import("stwo_prover_impl").poly.circle;
-const prover_twiddles = @import("stwo_prover_impl").poly.twiddles;
+const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_circle = @import("stwo_prover_engine").poly.circle;
+const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 
 pub const CirclePointQM31 = circle.CirclePointQM31;
 
