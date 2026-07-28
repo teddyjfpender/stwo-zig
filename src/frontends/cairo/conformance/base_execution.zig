@@ -51,13 +51,28 @@ pub fn compare(
         .expected_count = expected.columns.len,
         .actual_count = execution.output_columns.len,
     };
-    for (expected.columns, execution.output_columns) |expected_column, values| {
-        const actual_digest = try checkpoint.digestColumn(
-            expected.ordinal,
-            expected.label,
-            expected_column.ordinal,
-            values,
-        );
+    for (expected.columns, 0..) |expected_column, column_index| {
+        // Base columns are stored split by width; the oracle digest is defined
+        // over the widened values, so widen before hashing.
+        const actual_digest = switch (execution.plane(column_index)) {
+            .wide => |values| try checkpoint.digestColumn(
+                expected.ordinal,
+                expected.label,
+                expected_column.ordinal,
+                values,
+            ),
+            .narrow => |values| blk: {
+                const widened = try execution.allocator.alloc(u32, values.len);
+                defer execution.allocator.free(widened);
+                for (values, widened) |value, *slot| slot.* = value;
+                break :blk try checkpoint.digestColumn(
+                    expected.ordinal,
+                    expected.label,
+                    expected_column.ordinal,
+                    widened,
+                );
+            },
+        };
         if (!std.mem.eql(u8, &expected_column.sha256, &actual_digest)) return .{
             .kind = .column_digest,
             .component_ordinal = expected.ordinal,
