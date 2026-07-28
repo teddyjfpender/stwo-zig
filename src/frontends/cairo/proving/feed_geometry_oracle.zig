@@ -25,8 +25,41 @@
 //! caller falls back to today's deferred path — whenever any part of the closure
 //! is not fully determined by the topology and the resources: an unknown
 //! producer kind, a producer that is itself unresolved, a deferred component
-//! with no active producer, or an arithmetic overflow. Nothing here is
-//! conservative or approximate; either the closure is exact or it is refused.
+//! with no active producer, a *compaction* consumer (below), or an arithmetic
+//! overflow. Nothing here is conservative or approximate; either the closure is
+//! exact or it is refused.
+//!
+//! **Compaction consumers are not fan-outs, and this is the one class the
+//! formula above does not describe.** `proof_plan` splits derived witness inputs
+//! into two kinds, and only the first obeys `rows(D) = Σ instances × rows(P)`:
+//!
+//!   * `gatheredProducerEdges` — producer slabs concatenated without sorting.
+//!     Every producer instance becomes its own consumer row, so the row count is
+//!     the fan-out sum. `blake_round`, `blake_g`, `triple_xor_32`, `cube_252`,
+//!     `range_check_252_width_27`, `poseidon_full_round_chain`,
+//!     `poseidon_3_partial_rounds_chain`, `partial_ec_mul_*`.
+//!   * `compactGeometry` — producer tuples gathered, **sorted, and deduplicated**
+//!     into a LogUp multiplicity table. The row count is the number of *distinct
+//!     keys*, which is a property of the executed data and not of the topology:
+//!     512 producer rows collapse to 512 consumer rows or to one, depending
+//!     entirely on how many of the hashed inputs repeat. `verify_instruction`,
+//!     `pedersen_aggregator_window_bits_18`, `pedersen_aggregator_window_bits_9`,
+//!     `poseidon_aggregator`.
+//!
+//! Increment 3.4 classified all thirteen deferred components as fan-outs because
+//! the three workloads it verified only ever deferred the three `blake_*`
+//! entries, all gathered. On the poseidon and pedersen aggregator workloads the
+//! deferred set is headed by a *compaction* component, and the fan-out formula
+//! over-counted it by the deduplication factor (32x on both: 512 producer rows
+//! against 16 distinct keys), then propagated that factor into every chain
+//! component beneath it. So compaction consumers are refused outright — there is
+//! no exact pre-execution answer for a distinct-key count, and this module does
+//! not approximate.
+//!
+//! A refusal is total: `resolveInPlace` leaves the whole claim deferred, so a
+//! claim containing any compaction consumer keeps the deferred path and the
+//! arena declines. Components *downstream* of a compaction consumer therefore
+//! need no separate rule — their producer never resolves.
 //!
 //! **Where the equality assertion lives.** The predicted value enters the claim
 //! as `.known`, and `witness/live_graph.zig:validateClaimGeometry` already
@@ -35,12 +68,19 @@
 //! check runs per component, before any commitment exists, and it covers *every*
 //! component rather than only the deferred ones — so it is strictly stronger
 //! than the coverage the deferred path itself provides. A wrong prediction
-//! cannot produce a proof.
+//! cannot produce a *wrong* proof.
+//!
+//! It can no longer stop a *correct* one either. `proving/transaction.zig`
+//! catches that mismatch around the planned base-trace build, discards the arena
+//! and the prediction, and rebuilds on the deferred path — so a prediction bug
+//! costs the arena for that proof and nothing else. Fail-closed abort is kept
+//! only for a disagreement this module did not cause.
 
 const std = @import("std");
 const adapter = @import("../adapter/mod.zig");
 const opcodes = @import("../adapter/opcodes.zig");
 const claim_generator = @import("../claim_generator.zig");
+const proof_plan = @import("../proof_plan.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 
 pub const Error = error{
@@ -122,6 +162,11 @@ fn fanInRows(
     topology: feed_topology.Loaded,
     component: claim_generator.ComponentGeometry,
 ) Error!?u64 {
+    // A deduplicating consumer's row count is its distinct-key count, which the
+    // topology does not state and the resources do not determine. Refuse before
+    // summing anything, so the fan-out formula is never applied to it.
+    if (proof_plan.compactGeometry(component.name) != null)
+        return Error.UnresolvableFeedGeometry;
     var total: u64 = 0;
     var contributors: usize = 0;
     for (topology.parsed.value.components) |producer| {

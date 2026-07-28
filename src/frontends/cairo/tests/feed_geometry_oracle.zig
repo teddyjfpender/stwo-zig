@@ -129,6 +129,58 @@ test "pre-execution feed geometry is a no-op on an already-complete claim" {
     try std.testing.expectEqual(@as(usize, 0), again.deferred);
 }
 
+// Increment 3.14's regression guard. `test_poseidon_aggregator` and
+// `test_pedersen_aggregator` are the workloads that broke the resolver: their
+// deferred set is headed by a *deduplicating* consumer, whose row count is a
+// distinct-key count rather than a fan-out sum, and increment 3.4's three
+// verification workloads contained none. This reproduces the exact shape
+// without needing either program: one compaction consumer deferred behind a
+// live builtin producer. Before the fix the resolver answered `log_size = 9`
+// here (512 producer instances); the executed witness produces 4 (16 distinct
+// keys), and the disagreement aborted the prove.
+//
+// The loop is over the whole registry rather than the two known names, so a
+// compaction consumer added later cannot re-open the hole silently.
+test "pre-execution feed geometry refuses every deduplicating consumer" {
+    const allocator = std.testing.allocator;
+    var topology = try cairo.witness.feed_topology.readOfficial(allocator, topology_path);
+    defer topology.deinit();
+
+    var refused: usize = 0;
+    for (cairo.claim_registry.claim_fields) |field| {
+        const compact = cairo.proof_plan.compactGeometry(field.name) orelse continue;
+        // The producer is present and live, so nothing but the compaction rule
+        // can be what refuses this claim.
+        const producer = compact.edges[0].producer;
+        const components = try allocator.alloc(cairo.claim_generator.ComponentGeometry, 2);
+        components[0] = .{ .name = producer, .instance = 0, .log_size = .{ .known = 9 } };
+        components[1] = .{ .name = field.name, .instance = 0, .log_size = .{ .deferred = .witness_feed_cardinality } };
+        var geometry = cairo.claim_generator.OwnedClaimGeometry{
+            .allocator = allocator,
+            .components = components,
+        };
+        defer geometry.deinit();
+
+        var resources = std.mem.zeroes(cairo.claim_generator.ExecutionResources);
+        resources.builtin_segments = std.mem.zeroes(cairo.adapter.BuiltinSegments);
+        // 512 instances of every builtin, and 512 states of every opcode, so a
+        // fan-out answer would have been available had the rule not fired.
+        resources.builtin_segments.pedersen_builtin = .{ .begin_addr = 0, .stop_ptr = 512 * 3 };
+        resources.builtin_segments.poseidon_builtin = .{ .begin_addr = 0, .stop_ptr = 512 * 6 };
+        for (&resources.opcode_counts) |*count| count.* = 512;
+
+        try std.testing.expectError(
+            oracle.Error.UnresolvableFeedGeometry,
+            oracle.resolveInPlace(allocator, &geometry, resources, topology),
+        );
+        try std.testing.expectEqual(@as(usize, 1), geometry.deferredCount());
+        refused += 1;
+    }
+    // `verify_instruction` plus the three aggregators. If this count drops the
+    // registry changed and the classification needs re-reading, not re-running.
+    try std.testing.expectEqual(@as(usize, 4), refused);
+}
+
 test "pre-execution feed geometry refuses a claim whose producers are absent" {
     const allocator = std.testing.allocator;
     var topology = try cairo.witness.feed_topology.readOfficial(allocator, topology_path);
