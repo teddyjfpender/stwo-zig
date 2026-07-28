@@ -1728,3 +1728,309 @@ reachable from a green build step — `src/integrations/cairo_metal` remains
 excluded from both aggregate closures. Declaring `composition_aot` in the
 package contract does **not** fix that; it only makes the module's public
 surface honest. Wiring those tests into a green step is still the follow-up.
+
+## Increment 3.4: pre-execution geometry and arena activation
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `73dc8790`, clean. Predecessor binaries: `/private/tmp/i34-pred/zig-out`
+(built at `73dc8790`, `identity` verified `dirty = false`,
+`core-aot-manifest-sha256 = 0bc89238…`). Raw data: `/private/tmp/i34/`.
+
+**Verdict: accepted-candidate on the geometry route, rejected on the headline.**
+The pre-execution resolver works and is exact; the arena now engages on all
+three benchmark workloads with byte-identical digests. The composition binding
+smoke test — the Phase 1 unlock — **does not pass**: it dispatches and resolves
+but the host and device evaluators disagree numerically, and it is committed
+failing rather than relaxed.
+
+### 1. The audit, and the finding that reframes the increment
+
+The deferred set was measured, not reasoned, with a temporary probe on
+`OwnedClaimGeometry` (reverted before the first commit; the probe printed every
+component's resolved-or-deferred log size, and the post-execution `FeedGeometry`
+reports, per workload).
+
+| workload | components | deferred | deferred set |
+| --- | ---: | ---: | --- |
+| arithmetic-2m | 29 | **0** | — |
+| memory-7m | 32 | **0** | — |
+| all-opcodes | 46 | **3** | `blake_round`, `blake_g`, `triple_xor_32` |
+
+**Two of the three benchmark workloads never had a deferred claim at all.** The
+Phase 1.5 note recorded the blocker from all-opcodes and did not run the other
+two, so it read as universal; it is not. Everything below follows from that.
+
+#### Classification table
+
+Every deferred component in the registry is a *fan-out* of another component's
+real row count, and the authenticated feed topology already states the fan-out
+multiplicity per producer row. The fan-in is a DAG with a single root per chain,
+computed directly out of `vectors/cairo/official/witness_feed_topology_v1.json`:
+
+| deferred component | fan-in (producer × instances/row) | root | classification |
+| --- | --- | --- | --- |
+| `blake_round` | `blake_compress_opcode` × 10 | opcode count | **pre-computable** |
+| `blake_g` | `blake_round` × 8 | opcode count (2 hops) | **pre-computable** |
+| `triple_xor_32` | `blake_compress_opcode` × 8 | opcode count | **pre-computable** |
+| `poseidon_aggregator` | `poseidon_builtin` × 1 | builtin segment | **pre-computable** |
+| `poseidon_full_round_chain` | `poseidon_aggregator` × 8 | builtin segment | **pre-computable** |
+| `poseidon_3_partial_rounds_chain` | `poseidon_aggregator` × 27 | builtin segment | **pre-computable** |
+| `cube_252` | `poseidon_3_partial_rounds_chain` × 3 + `poseidon_aggregator` × 2 + `poseidon_full_round_chain` × 3 | builtin segment | **pre-computable** |
+| `range_check_252_width_27` | `poseidon_3_partial_rounds_chain` × 3 + `poseidon_aggregator` × 2 | builtin segment | **pre-computable** |
+| `pedersen_aggregator_window_bits_18` | `pedersen_builtin` × 1 | builtin segment | **pre-computable** |
+| `partial_ec_mul_window_bits_18` | `pedersen_aggregator_window_bits_18` × 28 | builtin segment | **pre-computable** |
+| `pedersen_aggregator_window_bits_9` | `pedersen_builtin_narrow_windows` × 1 | builtin segment | **pre-computable** |
+| `partial_ec_mul_window_bits_9` | `pedersen_aggregator_window_bits_9` × 56 | builtin segment | **pre-computable** |
+| `partial_ec_mul_generic` | `ec_op_builtin` × 252 | builtin segment | **pre-computable** |
+
+**Zero execution-dependent entries.** There is no range-check multiplicity spill
+in the deferred set: every range check and every `verify_bitwise_xor_*` is a
+`fixed` field in the pinned registry (full-domain lookup table), so its log size
+was never deferred in the first place. The route the increment was given is the
+right one, and it generalizes past the three benchmark workloads for free.
+
+#### The multiplicity is on *real* rows, and that is measurable
+
+The propagation uses each producer's real (pre-padding) row count, not its
+padded one. all-opcodes settles this without ambiguity — `blake_compress_opcode`
+has 2 real rows and pads to 2^4:
+
+| component | real rows | `paddedLog` | measured resolved log |
+| --- | ---: | ---: | ---: |
+| `blake_round` | 10 × 2 = 20 | 5 | **5** |
+| `blake_g` | 8 × 20 = 160 | 8 | **8** |
+| `triple_xor_32` | 8 × 2 = 16 | 4 | **4** |
+
+Padded producers would give `triple_xor_32` 8 × 16 = 128 → log 7, which is not
+what the witness reports. So the rule is `rows(D) = Σ rows(P) × instances(P→D)`
+on real rows, closed to a fixed point, with the claim's own `paddedLog` applied
+once at the end.
+
+### 2. Resolver design
+
+`src/frontends/cairo/proving/feed_geometry_oracle.zig` (198 lines).
+
+- Seeds real row counts for the root kinds only: opcode state counts from
+  `ExecutionResources.opcode_counts`, builtin instance counts from
+  `(stop_ptr - begin_addr) / cells_per_instance`. Everything else seeds null.
+- Propagates over the topology's feed edges to a fixed point, counting only
+  producers that are *active in this claim*, bounded by the component count.
+- Applies `paddedLog` and writes `.known` back in place.
+- **Structural admission, never a guess.** Refuses — leaving the claim untouched
+  so the caller keeps the deferred path — on: an unknown producer kind, a
+  producer that never resolves, a deferred component with no active producer, a
+  zero total, or an overflow. Nothing is conservative or upper-bounded, because
+  the no-copy commit source forbids a per-group contiguity break, so an
+  inexact bound would be useless (Phase 1.5 §"What a successor needs", route 1).
+
+`transaction.zig` calls it inside the existing `base_trace_arena_plan` stage,
+only when `deferredCount() != 0`, and swallows a refusal into the existing
+fallback. The claim then reaches `air_templates.instantiate` complete and
+`trace_arena.tryPrepare` is reached for the first time on all-opcodes.
+
+### 3. The equality-assertion architecture
+
+The brief asked for the deferred path to stay as the checker, with the
+pre-computed geometry asserted equal to it. **That check already existed and is
+strictly stronger than the deferred path's own coverage**, so no new checker was
+written:
+
+`witness/live_graph.zig:validateClaimGeometry` compares every `.known` claim log
+size against the executed component's padded row count and raises
+`ClaimGeometryMismatch`. It runs per component, inside witness execution, before
+any commitment exists. Before this increment it skipped the deferred entries by
+construction (`.deferred => {}`); now those entries arrive as `.known` and are
+checked like every other. A wrong prediction therefore cannot produce a proof —
+it aborts the prove.
+
+That is fail-closed in the soundness sense but *not* graceful: a mismatch fails
+the run rather than falling back. The honest statement of the residual risk, and
+why it is accepted:
+
+- The prediction is not heuristic; it is the topology document's own arithmetic,
+  and the topology is digest-pinned (`expected_sha256`, `expected_source_tree`).
+- Admission refuses anything the closure does not fully determine, *before*
+  execution, which is where a graceful fallback is actually available.
+- The parity test asserts the resolved values against
+  `vectors/cairo/official/all_opcodes.claim_summary.json` — the pinned official
+  claim, not this repository's own measurement — so registry or topology drift
+  fails a test rather than a prove.
+- Empirically the assertion fired successfully: all-opcodes proves through the
+  resolved path at the campaign digest, and the post-execution feed report set
+  is now empty (0 `FeedGeometry` records where there were 3), which is the direct
+  observation that the resolver replaced the handoff rather than shadowing it.
+
+Three tests in `src/frontends/cairo/tests/feed_geometry_oracle.zig`: bit-parity
+against the official vector, idempotence, and refusal when a producer is absent.
+They are in the frontend *test root* for the same `addTest` collection reason
+the arena layout tests were.
+
+### 4. Arena engagement, and a correction to increment 3.2's record
+
+Stage names `base_trace_arena_engaged` / `base_trace_arena_fallback` /
+`main_trace_commit_arena_bound` now record the decision in
+`--stage-profile-out`. Measured on block 1 of the paired run, cache-off:
+
+| workload | predecessor `arena_plan` | predecessor engaged | candidate `arena_plan` | candidate engaged | commit bound |
+| --- | ---: | --- | ---: | --- | --- |
+| all-opcodes | 0.009 ms | **no** (deferred) | 5.354 ms | **yes** | yes |
+| arithmetic-2m | 20.964 ms | **yes** | 21.235 ms | yes | yes |
+| memory-7m | 68.112 ms | **yes** | 63.448 ms | yes | yes |
+
+**The correction, stated plainly: the arena was already engaging on
+arithmetic-2m and memory-7m at `73dc8790`.** Increment 3.2 recorded the
+machinery as "landed-but-inert" on the strength of one workload and did not run
+the other two. This increment's *new* activation is all-opcodes alone. The
+`base_trace_geometry_oracle` stage costs **0.010 ms** on all-opcodes and does not
+appear on the other two (no deferred entries to resolve), so the geometry
+pre-computation is free as predicted.
+
+### 5. Paired measurement
+
+A-B-B-A, cold processes, caches off both arms
+(`STWO_CAIRO_PREPROCESSED_CACHE=0`), one untimed warmup per arm per workload,
+`prove` on a pinned prover-input, **2 blocks** (4 samples per arm) rather than
+the 3 the brief asked for — the increment ran out of budget, and this is priced
+as a regression screen, not as promotion evidence.
+
+| workload | predecessor mean ms | candidate mean ms | cand/pred | predecessor samples | candidate samples |
+| --- | ---: | ---: | ---: | --- | --- |
+| all-opcodes | 1,301.8 | 1,282.0 | **0.985x** | 1268, 1354, 1286, 1299 | 1258, 1285, 1291, 1294 |
+| arithmetic-2m | 1,807.1 | 1,813.4 | **1.004x** | 1770, 1783, 1833, 1841 | 1800, 1798, 1837, 1819 |
+| memory-7m | 5,351.4 | 4,687.0 | 0.876x | 4586, 5923, 6431, 4466 | 4621, 4487, 5097, 4543 |
+
+**No prove regression on any workload** (the acceptance bar was ≤ ~1.01x;
+arithmetic-2m sits at 1.004x, inside its own arm spread of 1.040x).
+**The memory-7m figure is not a win and is not offered as one**: its predecessor
+arm spread alone is 1.44x (4,466 → 6,431 ms) and host `loadavg` climbed from 4.74
+to 11.72 across the run. Nothing at that granularity is measurable here.
+
+Commit-stage effect, the mechanism the increment hoped to price (block 1):
+
+| workload | predecessor `main_trace_commit` | candidate | delta |
+| --- | ---: | ---: | ---: |
+| all-opcodes | 104.497 ms | 101.707 ms | −2.79 ms |
+| arithmetic-2m | 145.814 ms | 143.579 ms | −2.24 ms |
+| memory-7m | 510.870 ms | 524.844 ms | +13.97 ms |
+
+**No commit-stage win is demonstrated.** Two workloads move down by ~2 ms and one
+moves up by ~14 ms, all far inside the noise the arm spreads establish, and the
+two arena-engaged-on-both-arms rows could not have moved for this reason anyway.
+The fused-upload encoder skip remains unpriced.
+
+### 6. Verification
+
+| check | result |
+| --- | --- |
+| all-opcodes Metal, both arms | `79ae76e1ac0c48b1` = campaign `79ae76e1…` |
+| arithmetic-2m Metal, both arms | `25e5719f4c578eb7` = campaign `25e5719f…` |
+| memory-7m Metal, both arms | `e3317e55a5db5a42` = campaign `e3317e55…` |
+| all-opcodes CPU | `79ae76e1ac0c48b1`, byte-identical to Metal, `host-only`, 0 dispatches |
+| `STWO_ZIG_WORKERS=1` arithmetic-2m CPU | `25e5719f4c578eb7` |
+| `STWO_ZIG_WORKERS=1` arithmetic-2m Metal | `25e5719f4c578eb7`, 74 dispatches |
+| dispatch counts | 75 / 74 / 79 — identical on both arms and to the Phase 0 baseline |
+| `cpu_fallbacks` | 0 on every Metal row; every row `accelerated_without_fallbacks` |
+
+All 16 timed Metal samples produced one digest per workload — the digest sets are
+singletons, so the arena-engaged path is byte-stable across repetitions, not just
+once.
+
+| gate | result |
+| --- | --- |
+| `test-cairo-cpu-product` | pass (closure PASS, 339 sources) |
+| `test-cairo-frontend` | pass |
+| `test-cairo-metal-product` | pass (closure PASS, 439 sources) |
+| `test-stwo-prover` | pass (closure PASS, 188 sources) |
+| `package-workspace` | pass (17 packages, 17 public modules, 51 edges) |
+
+**Official verifier: NOT RUN, and named rather than skipped silently.** No built
+pinned verifier binary was locatable on this host and building one was outside
+the remaining budget. The substitute argument is exact rather than approximate:
+all six proofs are byte-identical to the proofs increment 3.3 fed to the pinned
+official verifier (`stwo_cairo_revision 82f21252`, `stwo_revision 7b211edd`) and
+got `verified: true` for, and a byte-identical proof cannot receive a different
+verdict. The next increment should still run it directly on an arena-engaged
+all-opcodes proof, because that is the one row whose *path* changed.
+
+### 7. The Phase 1 unlock: dispatched, not yet byte-exact
+
+`src/tests/metal/composition_binding_test.zig` binds the digest-verified
+composition metallib against a live resident arena for one real Cairo component
+part and byte-compares against the host evaluator. **It fails.**
+
+What does work, and is worth having:
+
+- `composition_aot.authenticate("vectors/cairo/sn_pie_2_composition.metallib",
+  .approved_manifest)` admits under the gating policy, label
+  `sn_pie_2_composition_v1`.
+- `loadEvalLibrary` + `prepareEvalFromLibrary` resolve the part's kernel **by
+  name out of the approved library** — `codegen.kernelName(part.semantic_hash)`
+  hits. This is the first time in the program that a composition pipeline has
+  been resolved from the authenticated AOT library outside prewarm.
+- `evalPrepared` dispatches against the arena and writes its four coordinate
+  arrays.
+- The host reference runs on the same arena words through
+  `proving/air/simd_evaluator`.
+
+What does not: the first compared word differs (`expected 1825492331, found
+1906854193`). That is a *convention* disagreement between the two evaluators'
+inputs, not a missing binding — the plausible remaining candidates, in order, are
+the denominator-inverse index basis, the random-coefficient/`rc_base` accumulator
+convention, and the column length/lifting shift the host reader is given
+(`shift_amt = 0` against evaluation-domain columns). The test is committed with
+the assertion live and failing; a relaxed assertion would have been worse than no
+test.
+
+**A real latent bug fell out of building it**, and is fixed:
+`proving/air/read_plan.zig:build` returned `offsets[0..offset_count]` while
+`Plan.deinit` frees `offsets`. Freeing a sub-slice of an allocation is invalid;
+a checking allocator aborts (`Invalid free`), which is why no host-evaluator test
+could run under `std.testing.allocator`, and the product's non-checking allocator
+merely mismatched the free length silently. The module's own doc comment says
+`offset_count < read_count` is the normal case for captured Cairo components, so
+this was live on every Cairo prove. Fixed by right-sizing with `realloc`. The
+three campaign digests are unchanged after the fix, which is the evidence that it
+was a free-length bug and not a value bug.
+
+### 8. Build-graph reachability, which decided where the test lives
+
+No green step compiles the `else` branch of `src/tests.zig`: it is selected by
+neither `metal_only` nor `riscv_only`, and nothing sets both false.
+`tests/metal/eval_codegen_test.zig`, `tests/metal/arena_plan_test.zig`,
+`tests/cairo/prover_test.zig` and their neighbours therefore compile nowhere and
+run nowhere today. This is the same class of gap the Phase 1 note flagged for
+`composition_aot.zig`, but wider than that note implied. Per the brief it was
+flagged, not fixed via build changes. The binding smoke was imported under
+`metal_only` instead — `metal-test` is the one step that both owns
+`stwo_cairo_metal_integration` and filters the `metal:` prefix.
+
+`metal-test`'s three other failures (`resident_data_test`,
+`proof_residency_test`, `transform_pipeline_test`) were confirmed pre-existing by
+running `zig build metal-test` at `73dc8790` in a separate clone: the same three
+fail there.
+
+### 9. Pre-existing, noted not chased
+
+`metal-worker-stress` blake_deep `InvalidNRounds`; stale `vectors/reports`
+artifacts; corpus `pedersen.json` `SegmentPointerOverflow`;
+`metal-prover-session-test` broken; `composition_aot.zig` tests unreachable from
+green steps. Additionally found this increment: the
+`/private/tmp/stwo-cairo-holistic-corpus-20260727/memory-7m.prover-input.json`
+artifact fails with `InvalidOutputSegment` (the stale artifact §"the original
+memory corpus" records); `/private/tmp/stwo-cairo-memory-7m.prover-input.json`
+is the one that reproduces `e3317e55…` and is what this increment used.
+
+### 10. What increment 3.5 should do
+
+1. **Close the binding smoke.** It is one convention away. The three candidates
+   are listed in §7 and each is a single-line change to the test's arena setup;
+   the host and device paths are both already wired and both already run.
+2. **Run the official verifier** on an arena-engaged all-opcodes proof.
+3. **Price the commit stage properly** on a quiet host with 3+ blocks. The
+   mechanism (`source_is_base` skipping the fused-upload encoder) is bound on all
+   three workloads now; only its value is unmeasured. Note that
+   `main_trace_commit_arena_bound` proves the arena reached
+   `commitWithBacking`, but nothing yet proves `circle_legacy.m:227-229` took the
+   page-aligned `newBufferWithBytesNoCopy` alias rather than the one-memcpy
+   fallback — a counter there is the cheapest missing piece of evidence in the
+   whole program.
