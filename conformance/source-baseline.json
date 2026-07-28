@@ -18,33 +18,6 @@
       "next_extraction": "Classify and extract the next responsibility named by the remediation plan.",
       "plan": "conformance/decomposition-plan.md",
       "max_lines": 4887
-    },
-    {
-      "key": "file-size:tools/stark-v-trace-dump/src/main.rs",
-      "owner": "source-conformance",
-      "track": "active_native_backend",
-      "reason": "Legacy source-layout debt present when the conformance ratchet was introduced.",
-      "next_extraction": "Classify and extract the next responsibility named by the remediation plan.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 1124
-    },
-    {
-      "key": "file-size:tools/stwo-cairo-verifier-rs/src/compact_codec.rs",
-      "owner": "source-conformance",
-      "track": "active_native_backend",
-      "reason": "Legacy source-layout debt present when the conformance ratchet was introduced.",
-      "next_extraction": "Classify and extract the next responsibility named by the remediation plan.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 2476
-    },
-    {
-      "key": "file-size:tools/stwo-cairo-verifier-rs/src/lib.rs",
-      "owner": "source-conformance",
-      "track": "active_native_backend",
-      "reason": "Legacy source-layout debt present when the conformance ratchet was introduced.",
-      "next_extraction": "Classify and extract the next responsibility named by the remediation plan.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 1439
     }
   ]
 }
