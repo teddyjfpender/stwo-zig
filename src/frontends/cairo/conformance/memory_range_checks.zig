@@ -18,9 +18,9 @@ const std = @import("std");
 const adapter = @import("../adapter/mod.zig");
 const memory_tables = @import("../witness/memory_tables.zig");
 const multiplicity_tables = @import("multiplicity_tables.zig");
-const prover = @import("stwo_prover_impl");
+const pool_split = @import("../witness/pool_split.zig");
 
-const work_pool = prover.work_pool;
+const work_pool = pool_split.work_pool;
 const Tables = multiplicity_tables.Tables;
 
 const table_label = "range_check_9_9";
@@ -54,7 +54,13 @@ pub fn addSmallValueRangeChecks(
     // increment would have charged it.
     const dense = try tables.reserve(table_label);
 
-    const worker_count = workerCount(small_rows, column_words);
+    const worker_count = pool_split.workerCount(.{
+        .rows = small_rows,
+        .min_rows_per_worker = min_rows_per_worker,
+        .private_bytes_per_worker = std.math.mul(usize, column_words, @sizeOf(u32)) catch
+            return error.AllocationSizeOverflow,
+        .max_private_bytes = max_private_bytes,
+    });
     const private = try tables.allocator.alloc(
         u32,
         std.math.mul(usize, column_words, worker_count) catch
@@ -73,7 +79,7 @@ pub fn addSmallValueRangeChecks(
         .worker_count = worker_count,
         .failure = null,
     };
-    try dispatch(Scatter, scatter[0..worker_count]);
+    try pool_split.dispatch(Scatter, scatter[0..worker_count]);
 
     var merge: [work_pool.MAX_WORKERS]Merge = undefined;
     for (merge[0..worker_count], 0..) |*slot, index| slot.* = .{
@@ -85,35 +91,7 @@ pub fn addSmallValueRangeChecks(
         .worker_count = worker_count,
         .failure = null,
     };
-    try dispatch(Merge, merge[0..worker_count]);
-}
-
-fn workerCount(small_rows: usize, column_words: usize) usize {
-    const pool = work_pool.getGlobalPool() orelse return 1;
-    const by_rows = std.math.divCeil(usize, small_rows, min_rows_per_worker) catch 1;
-    const private_bytes = std.math.mul(usize, column_words, @sizeOf(u32)) catch
-        return 1;
-    const by_bytes = if (private_bytes == 0)
-        work_pool.MAX_WORKERS
-    else
-        @max(@as(usize, 1), max_private_bytes / private_bytes);
-    const capped = @min(@min(by_rows, by_bytes), work_pool.MAX_WORKERS);
-    return @max(@as(usize, 1), @min(pool.workerCount(), capped));
-}
-
-fn dispatch(comptime Work: type, works: []Work) !void {
-    if (works.len > 1) {
-        const pool = work_pool.getGlobalPool().?;
-        var wait_group: std.Thread.WaitGroup = .{};
-        for (works[1..]) |*work| pool.spawnWg(&wait_group, Work.run, .{work});
-        Work.run(&works[0]);
-        wait_group.wait();
-    } else {
-        Work.run(&works[0]);
-    }
-    for (works) |work| {
-        if (work.failure) |err| return err;
-    }
+    try pool_split.dispatch(Merge, merge[0..worker_count]);
 }
 
 /// Counts one disjoint row span into a private copy of the small relation
@@ -128,7 +106,7 @@ const Scatter = struct {
     worker_count: usize,
     failure: ?anyerror,
 
-    fn run(self: *Scatter) void {
+    pub fn run(self: *Scatter) void {
         self.accumulate() catch |err| {
             self.failure = err;
         };
@@ -136,12 +114,8 @@ const Scatter = struct {
 
     fn accumulate(self: *Scatter) !void {
         @memset(self.counts, 0);
-        const span = std.math.divCeil(usize, self.small_rows, self.worker_count) catch
-            unreachable;
-        const start = self.index * span;
-        if (start >= self.small_rows) return;
-        const end = @min(self.small_rows, start + span);
-        for (start..end) |row| {
+        const rows = pool_split.span(self.small_rows, self.index, self.worker_count);
+        for (rows.start..rows.end) |row| {
             for (0..self.pair_count) |pair| {
                 const low = try memory_tables.smallValueLimb(self.input, row, pair * 2);
                 const high = try memory_tables.smallValueLimb(self.input, row, pair * 2 + 1);
@@ -166,19 +140,15 @@ const Merge = struct {
     worker_count: usize,
     failure: ?anyerror,
 
-    fn run(self: *Merge) void {
+    pub fn run(self: *Merge) void {
         self.fold() catch |err| {
             self.failure = err;
         };
     }
 
     fn fold(self: *Merge) !void {
-        const span = std.math.divCeil(usize, self.column_words, self.worker_count) catch
-            unreachable;
-        const start = self.index * span;
-        if (start >= self.column_words) return;
-        const end = @min(self.column_words, start + span);
-        for (start..end) |word| {
+        const words = pool_split.span(self.column_words, self.index, self.worker_count);
+        for (words.start..words.end) |word| {
             var total = self.dense[word];
             for (0..self.source_count) |source| {
                 total = std.math.add(

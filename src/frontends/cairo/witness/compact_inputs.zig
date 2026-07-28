@@ -3,8 +3,8 @@
 const std = @import("std");
 const proof_plan = @import("../proof_plan.zig");
 const gathered_inputs = @import("gathered_inputs.zig");
-const prover = @import("stwo_prover_impl");
-const work_pool = prover.work_pool;
+const pool_split = @import("pool_split.zig");
+const work_pool = pool_split.work_pool;
 
 const max_tuple_words: usize = 7;
 
@@ -192,7 +192,7 @@ const CountWorker = struct {
     map: Histogram,
     failure: ?anyerror,
 
-    fn run(self: *CountWorker) void {
+    pub fn run(self: *CountWorker) void {
         self.accumulate() catch |err| {
             self.failure = err;
         };
@@ -202,17 +202,13 @@ const CountWorker = struct {
         const scratch = self.arena.allocator();
         const tuple_words: usize = self.geometry.tuple_words;
         for (self.edges, self.producers) |edge, producer| {
-            const active: usize = producer.active_rows;
-            const span = std.math.divCeil(usize, active, self.worker_count) catch
-                unreachable;
-            const start = self.index * span;
-            if (start >= active) continue;
-            const end = @min(active, start + span);
+            const rows = pool_split.span(producer.active_rows, self.index, self.worker_count);
+            if (rows.isEmpty()) continue;
             const words_per_row: usize = producer.words_per_row;
             for (0..edge.instances) |instance| {
                 const base = @as(usize, edge.word_base) +
                     instance * @as(usize, edge.words_per_instance);
-                for (start..end) |producer_row| {
+                for (rows.start..rows.end) |producer_row| {
                     var key = [_]u32{0} ** max_tuple_words;
                     @memcpy(
                         key[0..tuple_words],
@@ -239,12 +235,10 @@ const Counting = struct {
         producers: []const gathered_inputs.Producer,
         widest_rows: usize,
     ) !Counting {
-        const pool = work_pool.getGlobalPool();
-        const capacity = std.math.divCeil(usize, widest_rows, min_rows_per_worker) catch 1;
-        const worker_count = if (pool) |active|
-            @max(@as(usize, 1), @min(@min(active.workerCount(), work_pool.MAX_WORKERS), capacity))
-        else
-            1;
+        const worker_count = pool_split.workerCount(.{
+            .rows = widest_rows,
+            .min_rows_per_worker = min_rows_per_worker,
+        });
         var counting = Counting{ .slots = undefined, .worker_count = worker_count };
         for (counting.slots[0..worker_count], 0..) |*slot, index| slot.* = .{
             .geometry = geometry,
@@ -265,19 +259,7 @@ const Counting = struct {
     }
 
     fn run(self: *Counting) !void {
-        if (self.worker_count > 1) {
-            const pool = work_pool.getGlobalPool().?;
-            var wait_group: std.Thread.WaitGroup = .{};
-            for (self.slots[1..self.worker_count]) |*slot|
-                pool.spawnWg(&wait_group, CountWorker.run, .{slot});
-            CountWorker.run(&self.slots[0]);
-            wait_group.wait();
-        } else {
-            CountWorker.run(&self.slots[0]);
-        }
-        for (self.slots[0..self.worker_count]) |slot| {
-            if (slot.failure) |err| return err;
-        }
+        try pool_split.dispatch(CountWorker, self.slots[0..self.worker_count]);
         const scratch = self.slots[0].arena.allocator();
         for (self.slots[1..self.worker_count]) |*slot| {
             var iterator = slot.map.iterator();
