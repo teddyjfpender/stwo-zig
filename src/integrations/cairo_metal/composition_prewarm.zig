@@ -148,6 +148,9 @@ fn warmEvidence() Evidence {
             .pipeline_preparation_seconds = 0.25,
             .library_preparation_seconds = 0.125,
         },
+        .metallib_sha256 = [_]u8{0xab} ** 32,
+        .metallib_length = 5_933_764,
+        .metallib_label = "air_template_composition_eval_domain_v1",
     };
 }
 
