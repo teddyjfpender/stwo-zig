@@ -2160,3 +2160,208 @@ D1 and D2 should be scoped together and measured on memory-7m and
 arithmetic-2m; D3 is a separate increment measured on all-opcodes and other
 small-row programs, with the transcript-exactness invariant stated before
 implementation.
+
+## Increment 9: preprocessed product cache
+
+**Outcome: accepted-candidate on the primary workload, and a partial D3.**
+The profile-invariant Pedersen preprocessed table is now cached on disk under a
+structurally derived protocol-identity key. On all-opcodes a cache hit collapses
+`preprocessed_table_build` from 112.560 ms to 1.137 ms and moves complete prove
+by **1.0740x** with a paired 95% interval of `[1.0438, 1.1042]` — disjoint from
+parity and clear of the 1.02x bar. Cache-miss is at parity (1.0027x,
+`[0.9704, 1.0351]`). Every proof in every mode is byte-identical to the
+predecessor's.
+
+Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Transcript: `transcripts/session-09.md`. Predecessor: pristine `zig-out` tree
+from `3075bd8a`. Host: Apple M5 Max, 12 performance + 6 efficiency cores.
+
+### The measurement that retargeted the increment
+
+D3 was scoped as caching the deserialized preprocessed columns. An instrumented
+predecessor run says that is the wrong half of the 222 ms. Inside
+`preprocessed_materialize_and_commit` (164.329 ms on all-opcodes) the children
+account for 162.159 ms:
+
+| Sub-span | ms |
+| --- | ---: |
+| `interpolate_columns` x3 | 11.797 |
+| `evaluate_extended_domain` x3 | 24.215 |
+| `merkle_commit` | 126.147 |
+| residual = **materialize** | **2.170** |
+
+Materializing all 161 `canonical_small` columns — 10,161,776 M31 cells, 40.6 MB
+— costs 2.170 ms. Caching it buys 2 ms for a 40 MB artifact. The whole of
+`preprocessed_table_build` is 124.912 ms in the same run and is a **2 MB**
+object: the window-9 Pedersen affine point table, 32,768 points. That is the
+lever, at a twentieth of the bytes. The columns are not cached at all.
+
+The remaining 162 ms is the commitment. Caching it means persisting committed
+tree state that is retained for later FRI decommitment — roughly 150-200 MB of
+extended-domain evaluations and Merkle layers. The brief made that conditional
+on the format staying simple; it does not, so it is deferred rather than
+half-built.
+
+### Key derivation (structural, never input-derived)
+
+The product hashes **its own authenticated identity document** — the same JSON
+`stwo-cairo-cpu identity` prints: `protocol_manifest_sha256`, `identity_sha256`,
+implementation commit, tree and dirty-content digest, target arch/os/abi and
+`cpu_features_sha256`, optimize mode, runtime/SDK/AOT manifests, and the pinned
+`stwo-cairo` / `stwo` revisions. The frontend then derives the artifact key as
+
+```
+SHA256( "stwo-zig/cairo-preprocessed-product/v1\0"
+      ‖ product_identity_digest
+      ‖ "pedersen-affine-points\0" ‖ variant_tag ‖ "\0"
+      ‖ spec_digest ‖ pcs_digest
+      ‖ format_version ‖ kind ‖ window_bits ‖ row_count ‖ point_bytes )
+```
+
+`spec_digest` is a digest of the preprocessed column specification itself —
+every column identity and log size, in order. `pcs_digest` covers `pow_bits`,
+`log_blowup_factor`, `log_last_layer_degree_bound`, `n_queries`, `fold_step`
+and `lifting_log_size`. The variant reaches the key only through the
+authenticated profile manifest that `profile.zig` already digests every asset
+of. **No program, no input and no user-supplied string is anywhere in the key.**
+A dirty tree gets a different key because `dirty_content_sha256` is in the
+identity document; the CPU and Metal products get different keys because their
+runtime manifests differ, so each writes its own artifact.
+
+### Storage and fallback semantics
+
+`$STWO_CAIRO_PREPROCESSED_CACHE_DIR` if absolute, else
+`$XDG_CACHE_HOME/stwo-zig/cairo-preprocessed`, else
+`$HOME/.cache/stwo-zig/cairo-preprocessed`; with no usable directory the cache
+stays inert. One file per key, `<key-hex>.preprocessed`, mode 0600, bounded at
+1 GiB (window-9 is 2,097,248 bytes; window-18 would be 512 MiB). The artifact
+is self-describing — magic, format version, kind, the key itself, window bits,
+row count and point stride — with a trailing SHA-256 over the header and
+payload. Load checks the exact expected file size, then that the whole header
+equals the header the loader would have written, then the content digest with a
+constant-time compare. Any failure — missing, short, wrong size, wrong header,
+digest mismatch, read error — silently falls back to computing, and the
+subsequent store atomically rewrites a good artifact. Writes go to a
+random-suffixed temporary in the same directory, are `fsync`ed, then renamed;
+concurrent processes cannot corrupt each other and the loser simply recomputes.
+Default-on in the products; `STWO_CAIRO_PREPROCESSED_CACHE=0` (or `false`/`off`/
+`no`) opts out. The frontend module is inert until a product configures it, so
+library callers and tests keep the predecessor's behavior exactly.
+
+### Soundness argument
+
+A hit substitutes bytes for a recomputation whose result then flows into the
+same commitment pipeline. Any deviation in those bytes changes the Pedersen
+preprocessed columns, which changes the preprocessed Merkle root, which changes
+the transcript, which makes the proof fail its own `--verify` replay and the
+official verifier. It also changes `base_trace` and `interaction_trace`, which
+the same table feeds, so a tampered artifact cannot even produce a
+self-consistent proof. The cache is therefore an **availability** risk only —
+never a soundness one — and every failure mode is handled by fail-open to the
+slow path rather than by trusting a path or an unauthenticated entry.
+`--verify` ran in every measured run.
+
+### Reading (a): cache-miss parity — regression check
+
+Predecessor vs candidate with `STWO_CAIRO_PREPROCESSED_CACHE=0`. Complete prove,
+paired by block, 95% interval on the per-block ratio.
+
+| Workload | Blocks | Predecessor | Candidate (miss) | Ratio | 95% CI |
+| --- | ---: | ---: | ---: | ---: | --- |
+| all-opcodes | 4 | 1,326.43 ms | 1,323.30 ms | `1.0027x` | `[0.9704, 1.0351]` |
+| arithmetic-2m | 3 | 2,427.38 ms | 2,424.84 ms | `1.0010x` | `[0.9783, 1.0236]` |
+| memory-7m | 3 | 6,456.76 ms | 6,637.38 ms | `0.9737x` | `[0.8934, 1.0540]` |
+
+Every interval contains parity. `preprocessed_table_build` is unchanged
+(107.21 vs 106.77 ms on all-opcodes). No regression.
+
+### Reading (b): cache-hit — the headline
+
+| Workload | Blocks | Predecessor | Candidate (hit) | Ratio | 95% CI | table build |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| all-opcodes | 4 | 1,351.73 ms | 1,258.90 ms | **`1.0740x`** | **`[1.0438, 1.1042]`** | 112.560 → 1.137 ms |
+| arithmetic-2m | 3 | 2,546.31 ms | 2,452.73 ms | **`1.0381x`** | **`[1.0235, 1.0528]`** | 104.230 → 1.043 ms |
+| memory-7m | 3 | 6,435.10 ms | 6,336.02 ms | `1.0157x` | `[0.9946, 1.0369]` | 114.110 → 1.100 ms |
+
+Mechanism confirmation is unambiguous on all three: the span collapses by about
+100x and the absolute paired delta is +92.82, +93.58 and +99.08 ms — all three
+within 22 ms of the span that was removed, which is the internal consistency
+check. all-opcodes and arithmetic-2m clear the bar with disjoint intervals.
+memory-7m does not: 113 ms of fixed cost on a 6.4-second proof is 1.8%, below
+this host's block-to-block noise on that workload, exactly as the D3 design
+predicted ("approximately zero on memory-7m").
+
+### Reading (c): cache write cost — first run
+
+Predecessor vs candidate with the cache directory removed before every run, so
+each candidate run computes the table *and* writes the 2 MB artifact.
+
+| Workload | Blocks | Predecessor | Candidate (cold) | Ratio | 95% CI | store span |
+| --- | ---: | ---: | ---: | ---: | --- | ---: |
+| all-opcodes | 4 | 1,344.75 ms | 1,355.64 ms | `0.9920x` | `[0.9880, 0.9959]` | 1.48–1.59 ms |
+| arithmetic-2m | 3 | 2,591.94 ms | 2,589.30 ms | `1.0010x` | `[0.9885, 1.0135]` | 1.48–1.59 ms |
+| memory-7m | 3 | 5,906.37 ms | 5,953.83 ms | `0.9926x` | `[0.9428, 1.0423]` | 1.48–1.59 ms |
+
+The instrumented store span is ~1.5 ms, but the honest end-to-end first-run cost
+on all-opcodes is 10.89 ms (`[5.45, 16.32]`) — the `fsync` and rename are
+outside the span and the directory creation happens once. It is a real 0.8%
+first-run penalty, recovered by the second proof roughly thirteen times over.
+
+### Digests
+
+Byte-exact in every mode — cache-hit, cache-miss, cold-write, corrupted-artifact
+fallback, truncated-artifact fallback, `STWO_ZIG_WORKERS=1`, and Metal. Every
+sample in all nine readings produced exactly one digest per workload:
+
+| Workload | SHA-256 |
+| --- | --- |
+| all-opcodes | `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310` |
+| arithmetic-2m | `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6` |
+| memory-7m | `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994` |
+
+### Verification
+
+- **Corrupt artifact** (payload byte flipped): fell back to computing
+  (`table_build` 114.888 ms), digest unchanged, artifact rewritten.
+- **Truncated artifact** (cut to 1024 bytes): fell back
+  (`table_build` 113.163 ms), digest unchanged, artifact rewritten.
+- **`STWO_ZIG_WORKERS=1`** on arithmetic-2m with a warm cache: `25e5719f…`,
+  `table_build` 1.043 ms, prove 13,649.0 ms.
+- **Metal** arithmetic-2m, bundle-flagged build, `identity` reports
+  `source.commit = cd1a68e4`: byte-identical `25e5719f…`, 74 dispatches,
+  `cpu_fallbacks` 0, `accelerated_without_fallbacks`. Metal **also benefits** —
+  it shares the host preprocessed path, so its `table_build` goes
+  109.378 → 1.073 ms. It keys to its own artifact because its runtime manifest
+  is part of the product identity.
+- **Official verifier** (`stwo-cairo-official-verifier`, revision `82f21252`):
+  `verified: true` on the cache-hit proof of all three workloads.
+- `zig build test-cairo-cpu-product test-cairo-frontend -Doptimize=ReleaseFast`
+  passes. Pre-existing and not chased: merkle-worker-stress `blake_deep`
+  `InvalidNRounds`, stale untracked `vectors/`/`reports/` artifacts, corpus
+  `pedersen.json` `SegmentPointerOverflow`.
+
+### What the cache-hit lane means for the comparison
+
+**Cache-hit numbers change the benchmark's meaning against the pinned Rust
+lane.** `stwo-cairo` in Rust rebuilds the Pedersen preprocessed table in every
+prover process; the Zig cache-hit lane does not. A cache-hit comparison is
+therefore a comparison of a warmed serving process against a cold one, and it is
+only the honest number for a deployment that proves more than once per host.
+The cache-miss lane is the like-for-like number. The closing matrix must report
+**both**: the miss lane at parity with `3075bd8a` for the apples-to-apples
+claim, and the hit lane at 1.0740x / 1.0381x / 1.0157x for the product claim.
+
+### What remains for the full D3
+
+The Pedersen table was 124.9 of the 222.4 ms. The other ~162 ms is the
+preprocessed commitment — 36 ms of interpolation and extended-domain evaluation
+and 126 ms of `merkle_commit` — and capturing it requires persisting committed
+tree state, not just source data. That is the natural successor and it is
+strictly larger in both payoff and risk: the artifact grows from 2 MB to
+~150-200 MB, the format has to encode the retained FRI decommitment state
+exactly, and the integrity check has to cover a structure the PCS owns rather
+than one the frontend owns. A cheaper intermediate exists: the 2 MB artifact is
+already hashed and validated in ~1 ms, so a second artifact holding only the
+preprocessed Merkle root and layer digests would let a hit skip `merkle_commit`
+while still recomputing the evaluations that FRI needs — worth scoping before
+the full tree.
