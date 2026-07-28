@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "kind": "claimed",
+  "harness_commit": "596f2ddfb88b",
+  "repo_commit": "2a74f0a152c6",
+  "predecessor_commit": "cfd47be98a10",
+  "scope": "s3",
+  "declared_objective": {
+    "board": "core_cpu",
+    "workload_class": "small",
+    "dimension": "time"
+  },
+  "environment": {
+    "host": "d00bf0abb109",
+    "os": "Darwin 25.5.0",
+    "zig_version": "0.15.2",
+    "release_fast": true,
+    "clean_tree": true,
+    "judge_lock_held": false,
+    "preflight": {
+      "load_ok": true,
+      "load1": 6.86
+    }
+  },
+  "search_health": {
+    "schema_version": 1,
+    "decision": {
+      "schema_version": 1,
+      "board": "core_cpu",
+      "workload_class": "small",
+      "trailing_window": 8,
+      "trailing_evidence_count": 1,
+      "trailing_median_gradient_snr": 0.0,
+      "gradient_snr_threshold": 2.0,
+      "configured_rounds": 15,
+      "auto_boost_rounds": 5,
+      "maximum_rounds": 25,
+      "target_rounds": 20,
+      "workload_count": 1,
+      "class_wall_deadline_seconds": 240.0,
+      "estimated_seconds_per_round": 4.047260127732685,
+      "deadline_round_limit": 59,
+      "auto_boost_applied": true,
+      "auto_boost_reason": "trailing_median_below_threshold",
+      "recorded_before_measurement": true
+    },
+    "decision_sha256": "sha256:9db7f740061d3ef93711d44da55d5ee24cfe4fa0e2efd35e759d868425be2a53",
+    "actual_rounds": 20,
+    "actual_rounds_per_workload": {
+      "wf_log10x8": 20
+    },
+    "objective_wall_seconds": 3.4539882079989184,
+    "measurement_wall_seconds": 32.019344458007254,
+    "measurement_wall_hours": 0.00889426234944646,
+    "gradient_snr": null,
+    "credited_ln_improvement": null,
+    "credited_ln_improvement_per_measurement_hour": null,
+    "credit_status": "pending_ledger_adjudication",
+    "decision_record": "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/search-health-decision.json"
+  },
+  "gates": {
+    "G1": {
+      "pass": true,
+      "detail": "every timed sample verified; cross-arm proof digests byte-identical per round; pinned correctness oracle verified 1/1 workloads"
+    },
+    "G2": {
+      "pass": true,
+      "detail": "no locked or out-of-scope path touched"
+    },
+    "G3": {
+      "pass": true,
+      "detail": "native mechanism telemetry policy unchanged"
+    },
+    "G4": {
+      "pass": true,
+      "detail": "candidate/anchor 0.4772 vs targeted budget x1.02; matrix row upper CIs 1/1 within budget x1.05; request ratios 1/1 present rows within budget x1.05; resource vectors 1/1 within named budgets"
+    },
+    "G5": {
+      "pass": true,
+      "detail": "local advisory run"
+    }
+  },
+  "score": {
+    "per_workload": {
+      "wf_log10x8": {
+        "r": 1.001324,
+        "ci": [
+          0.980883,
+          1.02191
+        ],
+        "rounds": 20,
+        "a_median_ms": 1.334208,
+        "b_median_ms": 1.330875,
+        "request_ratio": 1.007228,
+        "rss_ratio": 0.998741,
+        "resources": {
+          "energy_j": {
+            "ratio": 1.002502,
+            "ci": [
+              0.986006,
+              1.01845
+            ],
+            "observations": 20,
+            "candidate": 0.105832175
+          },
+          "peak_rss_mib": {
+            "ratio": 0.998741,
+            "ci": [
+              0.996216,
+              1.001263
+            ],
+            "observations": 20,
+            "candidate": 6.18804931640625
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 24965.0
+          }
+        },
+        "mechanism_verified": null,
+        "proof_bytes": 24965,
+        "measurement_seconds": 3.096256,
+        "resources_complete": null
+      }
+    },
+    "R_geomean": 1.001324,
+    "portfolio": {
+      "ci_method": "independent_workload_round_bootstrap_percentile_v1",
+      "ci_level": 0.95,
+      "bootstrap_iterations": 4000,
+      "seed": 2000059846,
+      "ci": [
+        0.980664,
+        1.022294
+      ],
+      "prove_ms_method": "geometric_mean_candidate_workload_medians_ms_v1",
+      "b_median_ms_geomean": 1.330875,
+      "proof_bytes_method": "rounded_geometric_mean_candidate_proof_bytes_v1",
+      "proof_bytes": 24965,
+      "measurement_seconds": 3.096256,
+      "measurement_rounds": 20
+    },
+    "theta": 0.037308,
+    "aa_dispersion": 0.018654,
+    "significant": false,
+    "neutral": true,
+    "promotion_significance": {
+      "eligible": true,
+      "method": "independent_workload_round_bootstrap_percentile_v1",
+      "reason": "prove-time objective uses the deterministic workload portfolio CI"
+    },
+    "resource_portfolio": {
+      "peak_rss_mib": {
+        "ratio_geomean": 0.9987406737258018,
+        "upper_ci_geomean": 1.001262514178626,
+        "candidate_geomean": 6.18804931640625
+      },
+      "energy_j": {
+        "ratio_geomean": 1.0025020244726401,
+        "upper_ci_geomean": 1.0184499036274963,
+        "candidate_geomean": 0.105832175
+      },
+      "proof_bytes": {
+        "ratio_geomean": 1.0,
+        "upper_ci_geomean": 1.0,
+        "candidate_geomean": 24965.0
+      }
+    }
+  },
+  "tiebreakers": {
+    "rss_ratio": 0.998741,
+    "waits": null,
+    "dispatches": null,
+    "energy_j": 0.105832175,
+    "proof_bytes": 24965.0
+  },
+  "holdout": null,
+  "guards": {},
+  "rust_oracle": [
+    {
+      "workload": "wf_log10x8",
+      "verified": true,
+      "oracle": "pinned-rust-stwo",
+      "artifact_sha256": "4cabcca685cb0c4168d136ce3fea0f742b0b6a87d6b98beb3e048301f4d7b4e2"
+    }
+  ],
+  "skipped_groups": [
+    {
+      "group": "cuda",
+      "reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated."
+    },
+    {
+      "group": "pr6_supremacy",
+      "reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete."
+    }
+  ],
+  "evidence": {
+    "pairing": "round-level ABBA (bench reports expose medians, not raw samples)",
+    "per_workload": {
+      "wf_log10x8": {
+        "round_ratios": [
+          1.047933,
+          1.046054,
+          0.914212,
+          1.013191,
+          0.922011,
+          1.082445,
+          1.056463,
+          0.948836,
+          1.056397,
+          0.964208,
+          0.997121,
+          0.981457,
+          0.996505,
+          1.038974,
+          0.980883,
+          0.992219,
+          1.049632,
+          0.993569,
+          0.956061,
+          0.988191
+        ],
+        "proof_digest": "91741aec956846d52e50f7b8fef3ac93195dbcd76cdb89e25ed33a148bea5700",
+        "request_ratio": 1.007228,
+        "rss_ratio": 0.998741,
+        "resources": {
+          "energy_j": {
+            "ratio": 1.002502,
+            "ci": [
+              0.986006,
+              1.01845
+            ],
+            "observations": 20,
+            "candidate": 0.105832175
+          },
+          "peak_rss_mib": {
+            "ratio": 0.998741,
+            "ci": [
+              0.996216,
+              1.001263
+            ],
+            "observations": 20,
+            "candidate": 6.18804931640625
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 24965.0
+          }
+        },
+        "report_sha256s": [
+          "336a02e960d552d4ae10a2f1baa23e72d6e5d0e3e381a86567a9d4af0599597f",
+          "7f613eebbf6173c979c5358748df89b360e264ca48319bd332a61e187dccf582",
+          "ce61b0c68ad63a0173ac65b03ba7b5e79ce50f85e84ab9216bba4f360fa2e7a1",
+          "a327068b6b54b32b96dac33602c992903a87f60002ee49a5422947f29fc5982c",
+          "e3bdf247237779d5010e2a35f2095b0cd9704b8d116cba413badffac6841b2bb",
+          "7ad2f7f236a5271b72954c848e49a55c4b83852f59a771f074dfd09bab7a6023",
+          "d3fef40e44e23f08008fe9d5b5aeb2e34f780e012bd78bc157d903db04e0829d",
+          "e8b63998fde1c07e2c2a0e976c664517b8f86984e87fa4328d137bd5509d6fa9",
+          "269cf1dac525ccbfb33ea9a0c5e0dff46777c7bb695ad8f6a3ebacb8cd33944b",
+          "b36e0531a7fbca92508d3f0eeb0de9b32afa5d82ac3efe0e71eaacc5dfd97590",
+          "8b405c779cf2e14a53c88d5b0d61ed0bb833043c889b57f74779b776896a9e09",
+          "33d6166f67c2736461aaeb29762fefe96c905fe8ae9a4a315acf6e6cad10c943",
+          "d042898af07d8779a58d0167761ea45e8a35ca001d15dd40ec75d4e87141efaf",
+          "d7be00b7ff6321c2c82387c377b635a29ae26b449a62d09cf23af860f3ac38fc",
+          "7c21151e9eeb181fa3b7e3e022bc204c18ccfdd1c5963106577c2d927a80304f",
+          "03926bf730b054fe1502acc10a46f32496118408da1adc6b59537d27ed293c07",
+          "9d924d51149b8b8ea2b67bcb2bcd624970793c3061ef5ff696f98a3384d5b606",
+          "9bbbeee0d15b2b1e5026d0265f41b8dfa116c4db046f457868cb0ade82390658",
+          "d93b2df4b99cf77933878521baf0e81ec6830276f54752e48ea04f6914fd6c16",
+          "daa01910082cd2eb9d4b529b5520c67064e8dc6c2486e9fe0e969aa1cc5fe4a1",
+          "0ec126b19e26b1492567c10eef4c6f4152a0a0893fbd57ae33377fa5f2819c2f",
+          "00412ea41061eeda411ebcfd424ff0c45bcaaeb4e96e7ac4419f007f43642c97",
+          "a79eda78da61cbcefa2879463d3a04ecc18f11f987d9e66e492ca2473314d121",
+          "cd9244e3790776df49369135de5f48ab47da13758462611c79210a0b0c47a7c5",
+          "bf58d62858b9f897a825d8da9aa564185dad416cba7c1a1f5eb90dd64105daf1",
+          "6798934633da7f7d196834ca84a3567717bd8a4d1b7d4c57dad5f7f220a07bdc",
+          "a0b45c83be6ab7a4f15c9e7c11d22790923464b669473c101833fc6803b9e6f6",
+          "d23cb50336e380434009e98db2db190e149c7c9a094d927d988b00e87fd0e12a",
+          "f593cfee58411382113bc907d83d4da083a851f75c22b4eaeacae79710c2d3aa",
+          "f3249291a8ab1dc730ef5a9ee76489793ffc82b21153bbff35f680c0a8cf6ad2",
+          "da65cf1d4b64fb0d3f38464653e80128f761fc6d6e36e495c08e9192ad6f7c71",
+          "ee0b7f87f2cd4e0797c5303b5aa696f38b1c0b8acbd5aa77537ef2fcf69e3f2c",
+          "404e87afa7f28d6b118b0dc1b90cfeb7248d14631222eb16d24fbfc020be858e",
+          "406913116ede0818ca51ab7932c5b3bf772b83f676fca370cd361403b34e796c",
+          "9cb5aa4551c35b0583de949b17ba763f687626896cb4246ebe6b0fa6a52f7a6b",
+          "a1135370d3287ab3f8505d48d120caf77356f0f8fbea174184983f7eec924dc2",
+          "1744365ecaaef8be4ed6a989767ba8094dbc58e7d5f4e0c96863a68c40b1ca12",
+          "bb8ab57a60edd9d3bb3c02d2d5dd4275900448f4f1382729ea8f0d4d7a45f6b2",
+          "91e028b9d704902cd490b1c4f9d39955a1ae5e5eb9bd213094dce8845df53d97",
+          "b8530a9d4b7b2ba39eef0297bb4aa05775938d81e04adf1dc2c2946ec285c7a0"
+        ],
+        "mechanism_verified": null,
+        "resources_complete": null
+      }
+    },
+    "reports": [
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a1.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b1.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a2.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b2.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a3.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b3.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a4.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b4.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a5.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b5.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a6.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b6.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a7.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b7.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a8.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b8.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a9.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b9.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a10.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b10.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a11.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b11.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a12.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b12.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a13.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b13.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a14.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b14.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a15.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b15.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a16.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b16.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a17.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b17.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a18.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b18.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a19.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b19.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.a20.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/radix8/autoresearch/.runs/latest/wf_log10x8.b20.json"
+    ]
+  }
+}
