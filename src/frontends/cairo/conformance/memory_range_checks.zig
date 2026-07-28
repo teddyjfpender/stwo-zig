@@ -61,9 +61,14 @@ pub fn addSmallValueRangeChecks(
             return error.AllocationSizeOverflow,
         .max_private_bytes = max_private_bytes,
     });
+    // Worker 0 counts straight into the live columns, which already carry the
+    // big-value loop's increments, so a one-worker split — a null pool, or a
+    // row supply too small to divide — costs no allocation, no zeroing and no
+    // merge. That matters: on a small-row workload this pass is a few
+    // milliseconds and one spurious private copy would dominate it.
     const private = try tables.allocator.alloc(
         u32,
-        std.math.mul(usize, column_words, worker_count) catch
+        std.math.mul(usize, column_words, worker_count - 1) catch
             return error.AllocationSizeOverflow,
     );
     defer tables.allocator.free(private);
@@ -71,7 +76,11 @@ pub fn addSmallValueRangeChecks(
     var scatter: [work_pool.MAX_WORKERS]Scatter = undefined;
     for (scatter[0..worker_count], 0..) |*slot, index| slot.* = .{
         .input = input,
-        .counts = private[index * column_words ..][0..column_words],
+        .counts = if (index == 0)
+            dense[0..column_words]
+        else
+            private[(index - 1) * column_words ..][0..column_words],
+        .zero_first = index != 0,
         .row_count = row_count,
         .pair_count = pair_count,
         .small_rows = small_rows,
@@ -80,13 +89,14 @@ pub fn addSmallValueRangeChecks(
         .failure = null,
     };
     try pool_split.dispatch(Scatter, scatter[0..worker_count]);
+    if (worker_count == 1) return;
 
     var merge: [work_pool.MAX_WORKERS]Merge = undefined;
     for (merge[0..worker_count], 0..) |*slot, index| slot.* = .{
         .dense = dense[0..column_words],
         .private = private,
         .column_words = column_words,
-        .source_count = worker_count,
+        .source_count = worker_count - 1,
         .index = index,
         .worker_count = worker_count,
         .failure = null,
@@ -99,6 +109,7 @@ pub fn addSmallValueRangeChecks(
 const Scatter = struct {
     input: *const adapter.ProverInput,
     counts: []u32,
+    zero_first: bool,
     row_count: usize,
     pair_count: usize,
     small_rows: usize,
@@ -113,7 +124,7 @@ const Scatter = struct {
     }
 
     fn accumulate(self: *Scatter) !void {
-        @memset(self.counts, 0);
+        if (self.zero_first) @memset(self.counts, 0);
         const rows = pool_split.span(self.small_rows, self.index, self.worker_count);
         for (rows.start..rows.end) |row| {
             for (0..self.pair_count) |pair| {
