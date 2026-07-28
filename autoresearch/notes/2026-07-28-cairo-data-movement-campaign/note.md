@@ -235,6 +235,12 @@ values:
 - Predecessor and candidate write **separate** table artifacts, observed on
   disk, because the candidate's dirty tree changes its product identity — the
   key discipline behaving as designed.
+- `zig build test-cairo-cpu-product test-cairo-frontend test-stwo-prover
+  -Doptimize=ReleaseFast` passes (exit 0; `stwo-cairo-cpu closure: PASS`,
+  `prover library markers: PASS`, `stwo-prover closure: PASS`). The
+  merkle-worker-stress `blake_deep` `InvalidNRounds` known-pre-existing item did
+  not surface in this run. Stale untracked `vectors/`/`reports/` artifacts and
+  the corpus `pedersen.json` `SegmentPointerOverflow` remain noted-not-chased.
 
 ### Not measured in this increment
 
