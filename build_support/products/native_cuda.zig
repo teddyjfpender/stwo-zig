@@ -27,6 +27,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
@@ -235,12 +236,22 @@ fn createStwoModule(
         riscv_frontend,
         module,
     );
-    _ = graph.addCairoFrontendImport(
+    const cairo_frontend = graph.addCairoFrontendImport(
         context.b,
         context.protocol,
         product(role),
         context.target,
         context.optimize,
+        module,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
         module,
     );
     return module;

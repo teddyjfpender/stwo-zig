@@ -4,5 +4,6 @@ pub const prove_trace = @import("prove_trace.zig");
 pub const prover = @import("prover/mod.zig");
 
 test {
+    _ = prove_trace;
     _ = prover;
 }

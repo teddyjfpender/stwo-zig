@@ -4,7 +4,7 @@ const pcs_core = @import("stwo_core").pcs;
 const core_fri = @import("stwo_core").fri;
 const verification = @import("stwo_core").verifier_types.VerificationError;
 const generic = @import("stwo_cairo_frontend").prove_trace;
-const scalar = @import("../../integrations/cairo_cpu/prove_trace.zig");
+const scalar = @import("stwo_cairo_cpu_integration").prove_trace;
 
 fn config() !pcs_core.PcsConfig {
     return .{

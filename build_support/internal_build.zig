@@ -278,6 +278,16 @@ fn addMetalTools(
         optimize,
         stwo,
     );
+    _ = integration_graph.addCairoCpuImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        cairo_frontend,
+        stwo,
+    );
     const shader_manifest = graph.create(b, .{
         .product = tool_product,
         .root_source_file = "src/backends/metal/shader_manifest.zig",

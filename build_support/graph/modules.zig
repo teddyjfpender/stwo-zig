@@ -93,6 +93,7 @@ const OwnedPackage = enum {
     metal_backend,
     riscv_frontend,
     riscv_cpu_integration,
+    cairo_cpu_integration,
 };
 
 /// Resolves canonical ownership roots through their package manifests. Other
@@ -128,6 +129,7 @@ pub fn source(
         .metal_backend => "stwo_metal_backend",
         .riscv_frontend => "stwo_riscv_frontend",
         .riscv_cpu_integration => "stwo_riscv_cpu_integration",
+        .cairo_cpu_integration => "stwo_cairo_cpu_integration",
     };
     return b.dependency(dependency_name, dependency_options).path(owned.sub_path);
 }
@@ -148,6 +150,7 @@ fn ownedSource(root_source_file: []const u8) ?OwnedSource {
         .{ "src/backends/metal/", OwnedPackage.metal_backend },
         .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
         .{ "src/integrations/riscv_cpu/", OwnedPackage.riscv_cpu_integration },
+        .{ "src/integrations/cairo_cpu/", OwnedPackage.cairo_cpu_integration },
     };
     inline for (prefixes) |entry| {
         if (std.mem.startsWith(u8, root_source_file, entry[0])) return .{
@@ -457,6 +460,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         OwnedPackage.riscv_cpu_integration,
         ownedSource("src/integrations/riscv_cpu/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.cairo_cpu_integration,
+        ownedSource("src/integrations/cairo_cpu/mod.zig").?.package,
     );
     try std.testing.expect(ownedSource("src/products/prover/root.zig") == null);
 }

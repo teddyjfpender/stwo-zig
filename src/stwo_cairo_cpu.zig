@@ -14,7 +14,7 @@ pub const frontends = struct {
 };
 
 pub const integrations = struct {
-    pub const cairo_cpu = @import("integrations/cairo_cpu/mod.zig");
+    pub const cairo_cpu = @import("stwo_cairo_cpu_integration");
 };
 
 pub const interop = struct {

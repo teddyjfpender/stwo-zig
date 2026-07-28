@@ -10,6 +10,7 @@ const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
@@ -28,6 +29,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     },
@@ -197,15 +199,7 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
-    _ = graph.addCpuBackendImport(
-        context.b,
-        context.protocol,
-        product(role),
-        context.target,
-        context.optimize,
-        module,
-    );
-    _ = graph.addCairoFrontendImport(
+    integration_graph.addCairoCpuStack(
         context.b,
         context.protocol,
         product(role),

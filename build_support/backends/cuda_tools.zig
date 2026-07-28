@@ -165,6 +165,12 @@ pub fn addProducts(
         target,
         optimize,
     );
+    const tool_product = graph.Product{
+        .name = "stwo-native-cuda-tools",
+        .frontend = .native,
+        .backend = .cuda,
+        .role = .library,
+    };
     const stwo = b.createModule(.{
         .root_source_file = b.path("src/stwo.zig"),
         .target = target,
@@ -174,12 +180,7 @@ pub fn addProducts(
     const cpu_backend = graph.addCpuBackendImport(
         b,
         protocol,
-        .{
-            .name = "stwo-native-cuda-tools",
-            .frontend = .native,
-            .backend = .cuda,
-            .role = .library,
-        },
+        tool_product,
         target,
         optimize,
         stwo,
@@ -187,12 +188,7 @@ pub fn addProducts(
     _ = graph.addMetalBackendImport(
         b,
         protocol,
-        .{
-            .name = "stwo-native-cuda-tools",
-            .frontend = .native,
-            .backend = .cuda,
-            .role = .library,
-        },
+        tool_product,
         target,
         optimize,
         cpu_backend,
@@ -201,12 +197,7 @@ pub fn addProducts(
     _ = graph.addCudaBackendImport(
         b,
         protocol,
-        .{
-            .name = "stwo-native-cuda-tools",
-            .frontend = .native,
-            .backend = .cuda,
-            .role = .library,
-        },
+        tool_product,
         target,
         optimize,
         stwo,
@@ -214,12 +205,7 @@ pub fn addProducts(
     const riscv_frontend = graph.addRiscVFrontendImport(
         b,
         protocol,
-        .{
-            .name = "stwo-native-cuda-tools",
-            .frontend = .native,
-            .backend = .cuda,
-            .role = .library,
-        },
+        tool_product,
         target,
         optimize,
         stwo,
@@ -227,12 +213,7 @@ pub fn addProducts(
     _ = integration_graph.addRiscVCpuImport(
         b,
         protocol,
-        .{
-            .name = "stwo-native-cuda-tools",
-            .frontend = .native,
-            .backend = .cuda,
-            .role = .library,
-        },
+        tool_product,
         target,
         optimize,
         cpu_backend,
@@ -242,14 +223,19 @@ pub fn addProducts(
     const cairo_frontend = graph.addCairoFrontendImport(
         b,
         protocol,
-        .{
-            .name = "stwo-native-cuda-tools",
-            .frontend = .native,
-            .backend = .cuda,
-            .role = .library,
-        },
+        tool_product,
         target,
         optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        cairo_frontend,
         stwo,
     );
     const ec_oracle_root = b.createModule(.{

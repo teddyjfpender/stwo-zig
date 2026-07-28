@@ -78,6 +78,16 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
+    _ = integration_graph.addCairoCpuImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
+        stwo,
+    );
     const runner = consumer(context, protocol, "src/prover/native/runner.zig");
     runner.addImport("stwo", stwo);
     runner.addImport("native_resource_admission", consumer(

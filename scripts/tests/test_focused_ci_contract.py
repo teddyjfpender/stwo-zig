@@ -170,6 +170,7 @@ class PlannerContractTests(unittest.TestCase):
                 "riscv_frontend",
                 "riscv_cpu_integration",
                 "cairo_frontend",
+                "cairo_cpu_integration",
                 "cpu_backend",
                 "metal_backend",
                 "package",
@@ -227,6 +228,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static",
                 "cairo_frontend",
+                "cairo_cpu_integration",
                 "package",
                 "cairo_cpu",
                 "cairo_metal",
@@ -245,6 +247,7 @@ class PlannerContractTests(unittest.TestCase):
                 "static",
                 "cpu_backend",
                 "riscv_cpu_integration",
+                "cairo_cpu_integration",
                 "metal_backend",
                 "package",
                 "native_cpu",
@@ -261,17 +264,6 @@ class PlannerContractTests(unittest.TestCase):
         commands = self.policy["lanes"]["cpu_backend"]["commands"]
         self.assertEqual(1, len(commands))
         self.assertIn("src/backends/cpu_scalar/build.zig", commands[0])
-
-    def test_riscv_cpu_integration_has_an_independent_package_lane(self) -> None:
-        selected = self.lanes_for("src/integrations/riscv_cpu/mod.zig")
-        expected = {
-            "static", "riscv_cpu_integration", "package",
-            "riscv_cpu", "aggregate_cpu", "aggregate_metal",
-        }
-        self.assertTrue(expected.issubset(selected))
-        commands = self.policy["lanes"]["riscv_cpu_integration"]["commands"]
-        self.assertEqual(1, len(commands))
-        self.assertIn("src/integrations/riscv_cpu/build.zig", commands[0])
 
     def test_metal_backend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/backends/metal/mod.zig")
@@ -369,7 +361,13 @@ class PlannerContractTests(unittest.TestCase):
 
     def test_cairo_cpu_runs_official_product_and_oracle_gates(self) -> None:
         selected = self.lanes_for("src/integrations/cairo_cpu/prover/transaction.zig")
-        self.assertEqual({"static", "cairo_cpu", "cairo_metal"}, selected)
+        self.assertEqual(
+            {
+                "static", "cairo_cpu_integration", "package",
+                "cairo_cpu", "cairo_metal",
+            },
+            selected,
+        )
         lane = self.policy["lanes"]["cairo_cpu"]
         self.assertEqual("linux", lane["host"])
         self.assertEqual("hosted", lane["local"])
@@ -542,6 +540,7 @@ class PlannerContractTests(unittest.TestCase):
             sorted(lanes),
             [
                 "aggregate_cpu", "aggregate_metal", "cairo_cpu",
+                "cairo_cpu_integration",
                 "cairo_frontend", "cairo_metal", "cpu_backend", "metal_backend",
                 "native_cpu", "native_cuda_device",
                 "native_cuda_static", "native_metal", "native_oracle", "package",

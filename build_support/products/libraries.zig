@@ -92,12 +92,22 @@ pub fn addPublicModules(context: Context) Result {
         riscv_frontend,
         stwo,
     );
-    _ = graph.addCairoFrontendImport(
+    const cairo_frontend = graph.addCairoFrontendImport(
         context.b,
         protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
         stwo,
     );
     return .{ .stwo = stwo, .protocol = protocol };
@@ -170,12 +180,22 @@ pub fn addProducts(context: Context) Result {
         riscv_frontend,
         stwo,
     );
-    _ = graph.addCairoFrontendImport(
+    const cairo_frontend = graph.addCairoFrontendImport(
         context.b,
         prover.protocol,
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = integration_graph.addCairoCpuImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
         stwo,
     );
 

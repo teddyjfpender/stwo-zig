@@ -1,0 +1,28 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_cairo_cpu_integration",
+  "owner": "cairo-cpu-integration",
+  "public_modules": {
+    "stwo_cairo_cpu_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_cpu_backend": "../../backends/cpu_scalar",
+    "stwo_prover_impl": "../../prover",
+    "stwo_cairo_frontend": "../../frontends/cairo"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "prove_trace",
+    "prover"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}
