@@ -2365,3 +2365,69 @@ already hashed and validated in ~1 ms, so a second artifact holding only the
 preprocessed Merkle root and layer digests would let a hit skip `merkle_commit`
 while still recomputing the evaluations that FRI needs — worth scoping before
 the full tree.
+
+## Campaign summary (orchestrator, close of the 8-hour window)
+
+Orchestration: Claude Fable 5. Implementation: Claude Opus 4.5, one lane at a
+time, nine increments, 2026-07-28 00:28-08:28 +0100. Branch movement:
+ad2d3ac5 → f7270463, every commit buildable, notes and reasoning-first
+transcripts committed with each increment (sessions 01-09).
+
+### Accepted (all byte-exact, verifier-accepted, gates green)
+
+1. **Increment 2 — direct interaction coordinate emission** (1dbea2d7):
+   hoisted per-element source dispatch + deleted the interleaved secure trace;
+   stage 1.31-1.83x, prove up to 1.08-1.18x, S1 instructions 1.442x fewer.
+2. **Increment 4 — parallel Merkle hasher replication** (a1a94947, agent
+   self-rejection overturned on disjoint-range evidence): merkle 1.128-1.131x,
+   prove ~1.03x.
+3. **Increment 5 — AIR mask read plans** (9ea1e4bc): 116.8M indirect reads →
+   8,082 resolutions; read bucket 4.59x, stage 1.11-1.13x (8/8 blocks).
+4. **Increment 8 — parallel witness counting passes** (dd32f365..b7b1b63b):
+   touched spans 5.91x/5.64x/1.25x disjoint; ~87 ms/proof on memory-7m.
+5. **Increment 9 — preprocessed product cache** (cd1a68e4): protocol-identity
+   key, fail-open, default-on; cache-hit prove 1.0740x [1.0438,1.1042]
+   (all-opcodes), 1.0381x [1.0235,1.0528] (arithmetic-2m); miss at parity;
+   independently re-verified by the orchestrator including corrupt-artifact
+   fallback.
+6. **W=1 correctness fix** (6d752592): serial composition path clobbered
+   shared fresh columns; ConstraintsNotSatisfied at STWO_ZIG_WORKERS=1 →
+   fixed, validated at W=1/2/default.
+
+### Rejected / negative (evidence committed, implementations preserved)
+
+- Inc 1: CPU FRI quotient fragmentation does NOT exist (one fused pass;
+  R7 closed) + noise-floor calibration (±3% prove / ±12% stage loaded).
+- Inc 3: fused Merkle trailing-group tail 1.128x < bar; audit gold (phase
+  split, compute-bound hash core at 92% NEON, S1-vs-pool-scale rule).
+- Inc 6: interpreter strip-mining — dispatch removal real but issues in
+  superscalar slack (S1 gate caught it pre-implementation-cost).
+- Inc 7: witness row scheduling — premise stale (already pool-split); census
+  proved the stage memory-bandwidth-bound; E-cores keep pace with P-cores.
+
+### Where the gap stands (closing three-lane matrix, quiet host, cache off)
+
+Per-round paired geomean at f7270463 vs pinned Rust (canonical_small,
+pow 26 / 70 queries): **Zig CPU 1.329x slower** (open: 1.41-1.43x),
+**Zig Metal 1.119x slower** — and Metal is already FASTER than Rust on
+fibonacci (0.890), arithmetic-2m (0.871) and memory-7m (0.924). Worst rows:
+pedersen (CPU 1.796) and factorial (CPU 1.673). Cross-matrix comparison is
+drift-limited (the Rust control itself ran 1.283x faster at close than open);
+the causal claim is the per-increment paired evidence, which compounds to
+roughly 1.08-1.17x CPU within this campaign, plus 1.03-1.07x more for warmed
+services from the cache-hit lane. Artifacts:
+`/private/tmp/stwo-cairo-close-three-lane-20260728/` (21/21 byte-identical
+CPU/Metal pairs, all lanes verifier-accepted).
+
+### The road to superiority (evidence-ranked)
+
+The 1.6x-faster bar needs a further ~2.1x CPU geomean. Three sessions of
+audits converge: the remaining cost is DATA MOVEMENT, not instruction count —
+composition is issue-latency-bound, witness execution and Merkle absorb are
+bandwidth-bound. The committed "Next campaign: data movement" section ranks:
+D1 fuse execute→consume per L2-sized row block; D2 narrow the u32 witness
+planes; D3-completion persist the committed preprocessed tree (162 ms/proof
+beyond the landed table cache). Beyond those, the structural levers are the
+ones the 2026-07-27 brief priced: generated witness writers only as part of a
+layout change (not scheduling), and algorithmic constraint-evaluation
+reduction in composition.
