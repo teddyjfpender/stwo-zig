@@ -4,6 +4,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const eval = @import("../../witness/eval_program.zig");
+const audit = @import("composition_audit.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -193,22 +194,50 @@ pub fn evaluatePartRange(
         row_end % lane_count != 0)
         return error.InvalidEvaluationInput;
 
+    switch (audit.ablation()) {
+        inline else => |mode| return runRange(
+            mode,
+            allocator,
+            program,
+            input,
+            output,
+            row_start,
+            row_end,
+        ),
+    }
+}
+
+fn runRange(
+    comptime mode: audit.Ablation,
+    allocator: std.mem.Allocator,
+    program: eval.Program,
+    input: Input,
+    output: anytype,
+    row_start: usize,
+    row_end: usize,
+) !void {
     const base = try allocator.alloc(PackedM31, program.header.max_base_regs);
     defer allocator.free(base);
     const extension = try allocator.alloc(PackedQm31, program.header.max_ext_regs);
     defer allocator.free(extension);
+    var sink = PackedQm31.zero();
 
     var row = row_start;
     while (row < row_end) : (row += lane_count) {
         for (program.base_insts) |instruction| {
             base[instruction.dst] = switch (instruction.op) {
-                .trace_col, .preprocessed_col => try input.trace.read(
-                    input.trace.context,
-                    instruction.interaction,
-                    instruction.a,
-                    row,
-                    instruction.imm,
-                ),
+                .trace_col, .preprocessed_col => if (mode == .no_read)
+                    @as(PackedM31, @splat(
+                        (instruction.a +% @as(u32, @truncate(row))) | 1,
+                    ))
+                else
+                    try input.trace.read(
+                        input.trace.context,
+                        instruction.interaction,
+                        instruction.a,
+                        row,
+                        if (mode == .no_index) 0 else instruction.imm,
+                    ),
                 .param => return error.InvalidEvaluationInput,
                 .constant => @splat(instruction.a),
                 .add => m31.addVec4(base[instruction.a], base[instruction.b]),
@@ -262,16 +291,25 @@ pub fn evaluatePartRange(
             );
         }
         var denominator: PackedM31 = undefined;
-        inline for (0..lane_count) |lane| {
-            denominator[lane] = input.denominator_inverses[
-                (row + lane) >> @intCast(input.trace_log_size)
-            ];
+        if (mode == .no_denominator) {
+            denominator = @splat(input.denominator_inverses[0]);
+        } else {
+            inline for (0..lane_count) |lane| {
+                denominator[lane] = input.denominator_inverses[
+                    (row + lane) >> @intCast(input.trace_log_size)
+                ];
+            }
         }
         evaluation = PackedQm31.mulBase(evaluation, denominator);
-        inline for (0..lane_count) |lane| {
-            output.accumulate(row + lane, evaluation.lane(lane));
+        if (mode == .no_output) {
+            sink = PackedQm31.add(sink, evaluation);
+        } else {
+            inline for (0..lane_count) |lane| {
+                output.accumulate(row + lane, evaluation.lane(lane));
+            }
         }
     }
+    if (mode == .no_output) std.mem.doNotOptimizeAway(sink);
 }
 
 fn inverse(value: PackedM31) PackedM31 {
