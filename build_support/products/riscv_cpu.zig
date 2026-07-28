@@ -24,6 +24,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
@@ -206,6 +207,7 @@ fn addTraceExecutable(
         .optimize = optimize,
     });
     protocol.addImports(root);
+    _ = graph.addCpuBackendImport(b, protocol, product, target, optimize, root);
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,
@@ -275,6 +277,14 @@ fn addTests(context: Context) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
+    _ = graph.addCpuBackendImport(
+        b,
+        context.protocol,
+        test_product,
+        context.target,
+        context.optimize,
+        root,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         context.protocol,
@@ -367,6 +377,14 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
+    _ = graph.addCpuBackendImport(
+        b,
+        context.protocol,
+        test_product,
+        context.target,
+        context.optimize,
+        root,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         context.protocol,
@@ -404,6 +422,14 @@ fn createStwoModule(
         .optimize = optimize,
     });
     protocol.addImports(module);
+    _ = graph.addCpuBackendImport(
+        b,
+        protocol,
+        moduleProduct(.library),
+        target,
+        optimize,
+        module,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,

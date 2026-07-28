@@ -20,6 +20,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo", .source = "src/stwo_native_cpu.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_native_cpu", .source = "src/stwo_native_cpu.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
@@ -173,6 +174,14 @@ fn createStwoModule(context: Context, role: graph.Role) *std.Build.Module {
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    _ = graph.addCpuBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     return module;
 }
 

@@ -3,7 +3,7 @@
 //! Each backend is a zero-sized marker type that satisfies the
 //! `backend.assertBackend` contract.
 
-pub const cpu_scalar = @import("cpu_scalar/mod.zig");
+pub const cpu_scalar = @import("stwo_cpu_backend");
 pub const cuda = @import("cuda/mod.zig");
 pub const metal = @import("metal/mod.zig");
 

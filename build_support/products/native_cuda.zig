@@ -26,6 +26,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
     },
@@ -33,6 +34,7 @@ const source_closure = policy.SourceClosure{
     .allowed_prefixes = &.{
         "src/backend",
         "src/backends/cuda",
+        "src/backends/cpu_scalar",
         "src/core",
         "src/examples",
         "src/frontends/cairo",
@@ -185,6 +187,14 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    _ = graph.addCpuBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     _ = graph.addRiscVFrontendImport(
         context.b,
         context.protocol,

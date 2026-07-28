@@ -7,7 +7,7 @@ pub const backend = @import("stwo_backend_contracts");
 pub const prover = @import("stwo_prover_impl");
 
 pub const backends = struct {
-    pub const cpu = @import("backends/cpu_scalar/mod.zig");
+    pub const cpu = @import("stwo_cpu_backend");
     pub const metal = @import("backends/metal/mod.zig");
 };
 

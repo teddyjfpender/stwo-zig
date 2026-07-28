@@ -26,6 +26,14 @@ pub fn addProducts(context: Context) void {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
+    const cpu_backend = graph.addCpuBackendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,
@@ -142,6 +150,7 @@ pub fn addProducts(context: Context) void {
     ).dependOn(&check.step);
 
     const riscv_bench = consumer(context, protocol, "src/riscv_bench_cli.zig");
+    riscv_bench.addImport("stwo_cpu_backend", cpu_backend);
     _ = graph.addRiscVFrontendImport(
         b,
         protocol,

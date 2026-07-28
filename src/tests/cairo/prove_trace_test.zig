@@ -1,5 +1,5 @@
 const std = @import("std");
-const CpuBackend = @import("../../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const pcs_core = @import("stwo_core").pcs;
 const core_fri = @import("stwo_core").fri;
 const verification = @import("stwo_core").verifier_types.VerificationError;

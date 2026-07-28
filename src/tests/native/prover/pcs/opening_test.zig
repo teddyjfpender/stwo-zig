@@ -27,7 +27,7 @@ test "prover pcs: prove values from samples roundtrip with core verifier" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -116,7 +116,7 @@ test "prover pcs: prove values computes sampled values in prover" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -203,7 +203,7 @@ test "prover pcs: stored coefficients fast path computes sampled values" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -288,7 +288,7 @@ test "prover pcs: prove values handles repeated sampled points across columns" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -406,7 +406,7 @@ test "prover pcs: prove values handles repeated sampled points across mixed log 
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -520,7 +520,7 @@ test "prover pcs: prove values from samples rejects shape mismatch" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -559,7 +559,7 @@ test "prover pcs: prove values paths support non-zero blowup" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -683,7 +683,7 @@ test "prover pcs: inconsistent sampled values are rejected by fri degree check" 
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -747,7 +747,7 @@ test "prover pcs: prove values rejects sampled point on domain" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
     const canonic_domain = canonic.CanonicCoset.new(3).circleDomain();

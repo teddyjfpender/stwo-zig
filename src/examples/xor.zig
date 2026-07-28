@@ -21,7 +21,7 @@ const prover_transaction = @import("common/prover_transaction.zig");
 const component_mod = @import("xor/component.zig");
 const interaction = @import("xor/interaction.zig");
 const trace_input = @import("xor/input.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

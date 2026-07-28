@@ -14,7 +14,7 @@ const prover_transaction = @import("common/prover_transaction.zig");
 const component_mod = @import("poseidon/component.zig");
 const interaction = @import("poseidon/interaction.zig");
 const trace_input = @import("poseidon/input.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 pub const Hasher = blake2_merkle.Blake2sPrefixedMerkleHasher;
 pub const MerkleChannel = blake2_merkle.Blake2sPrefixedMerkleChannel;

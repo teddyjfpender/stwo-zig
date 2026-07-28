@@ -16,7 +16,7 @@ const component_mod = @import("state_machine/component.zig");
 const trace_input = @import("state_machine/input.zig");
 const interaction = @import("state_machine/interaction.zig");
 const statement_impl = @import("state_machine/statement.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

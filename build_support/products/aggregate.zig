@@ -76,6 +76,7 @@ fn sourceClosure(comptime metal: bool) policy.SourceClosure {
             .{ .name = "stwo", .source = if (metal) metal_facade else cpu_facade },
             .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
             .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+            .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
             .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
             .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
             .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },

@@ -26,7 +26,7 @@ test "prover prove: early component and sampled-point errors consume schemes" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = pcs_prover.CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
 
@@ -72,7 +72,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = pcs_prover.CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const VerifierScheme = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -331,7 +331,7 @@ test "prover prove: prepared proof verifies with core verifier" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = pcs_prover.CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -417,7 +417,7 @@ test "prover prove: prove_ex computes sampled values and verifies" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = pcs_prover.CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;
@@ -498,7 +498,7 @@ test "prover prove: prove_ex supports non-zero blowup" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
     const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-    const CpuBackend = @import("../../../backends/cpu_scalar/mod.zig").CpuBackend;
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Scheme = pcs_prover.CommitmentSchemeProver(CpuBackend, Hasher, MerkleChannel);
     const Verifier = @import("stwo_core").pcs.verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel);
     const alloc = std.testing.allocator;

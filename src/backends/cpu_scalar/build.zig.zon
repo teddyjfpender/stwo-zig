@@ -1,0 +1,11 @@
+.{
+    .fingerprint = 0x653f24bc0614d304,
+    .name = .stwo_cpu_backend,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_backend_contracts = .{ .path = "../../backend" },
+        .stwo_prover_impl = .{ .path = "../../prover" },
+    },
+}

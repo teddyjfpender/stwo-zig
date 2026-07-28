@@ -88,6 +88,7 @@ const OwnedPackage = enum {
     backend_contracts,
     prover,
     cairo_frontend,
+    cpu_backend,
     riscv_frontend,
 };
 
@@ -131,6 +132,10 @@ pub fn source(
             "stwo_cairo_frontend",
             dependency_options,
         ).path(owned.sub_path),
+        .cpu_backend => b.dependency(
+            "stwo_cpu_backend",
+            dependency_options,
+        ).path(owned.sub_path),
         .riscv_frontend => b.dependency(
             "stwo_riscv_frontend",
             dependency_options,
@@ -149,6 +154,7 @@ fn ownedSource(root_source_file: []const u8) ?OwnedSource {
         .{ "src/backend/", OwnedPackage.backend_contracts },
         .{ "src/prover/", OwnedPackage.prover },
         .{ "src/frontends/cairo/", OwnedPackage.cairo_frontend },
+        .{ "src/backends/cpu_scalar/", OwnedPackage.cpu_backend },
         .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
     };
     inline for (prefixes) |entry| {
@@ -281,6 +287,44 @@ pub fn addCairoFrontendImport(
     return frontend;
 }
 
+/// Constructs the canonical CPU backend against a selected protocol set.
+pub fn createCpuBackend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const backend = create(b, .{
+        .product = product,
+        .root_source_file = "src/backends/cpu_scalar/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(backend);
+    return backend;
+}
+
+/// Declares a consumer's dependency on the package-owned CPU backend API.
+pub fn addCpuBackendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const backend = createCpuBackend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_cpu_backend", backend);
+    return backend;
+}
+
 pub fn coreProduct(role: Role) Product {
     return .{
         .name = "stwo-core",
@@ -353,6 +397,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         OwnedPackage.cairo_frontend,
         ownedSource("src/frontends/cairo/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.cpu_backend,
+        ownedSource("src/backends/cpu_scalar/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         OwnedPackage.riscv_frontend,

@@ -11,6 +11,6 @@ pub const integrations = cpu.integrations;
 pub const interop = cpu.interop;
 
 pub const backends = struct {
-    pub const cpu = @import("backends/cpu_scalar/mod.zig");
+    pub const cpu = @import("stwo_cpu_backend");
     pub const metal = @import("backends/metal/mod.zig");
 };

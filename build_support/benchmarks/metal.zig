@@ -7,6 +7,7 @@ pub const Context = struct {
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     stwo_module: *std.Build.Module,
+    cpu_backend: *std.Build.Module,
     cairo_frontend: *std.Build.Module,
     protocol: graph.ProtocolModules,
     test_step: ?*std.Build.Step,
@@ -166,6 +167,7 @@ pub fn addProducts(context: Context) void {
     metal_witness_source_step.dependOn(&install_metal_witness_source.step);
 
     const metal_test_module = consumer(context, "src/tests.zig");
+    metal_test_module.addImport("stwo_cpu_backend", context.cpu_backend);
     metal_test_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
     const metal_test_options = b.addOptions();
     metal_test_options.addOption(bool, "metal_only", true);

@@ -15,7 +15,7 @@ const stage_profile = @import("stwo_prover_impl").stage_profile;
 const prover_transaction = @import("common/prover_transaction.zig");
 const component_mod = @import("wide_fibonacci/component.zig");
 const trace_input = @import("wide_fibonacci/trace.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const WideFibonacciComponent = component_mod.Component;

@@ -1,7 +1,7 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
 const std = @import("std");
-const CpuBackend = @import("../../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const pcs_core = @import("stwo_core").pcs;
 const prover_mod = @import("stwo_riscv_frontend").prover_mod;
 const public_data_mod = @import("stwo_riscv_frontend").air.public_data;

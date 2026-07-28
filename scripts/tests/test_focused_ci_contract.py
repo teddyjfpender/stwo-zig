@@ -40,6 +40,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/core",
                 "src/backend",
                 "src/prover",
+                "src/backends/cpu_scalar",
                 "src/frontends/riscv",
             ),
             product("core", "src/core"),
@@ -57,6 +58,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/core",
                 "src/backend",
                 "src/prover",
+                "src/backends/cpu_scalar",
                 "src/frontends/riscv",
             ),
             product(
@@ -64,6 +66,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/core",
                 "src/backend",
                 "src/prover",
+                "src/backends/cpu_scalar",
                 "src/frontends/cairo",
                 "src/integrations/cairo_cpu",
                 "src/products/cairo_cpu",
@@ -73,6 +76,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/core",
                 "src/backend",
                 "src/prover",
+                "src/backends/cpu_scalar",
                 "src/frontends/cairo",
                 "src/integrations/cairo_metal",
                 "src/products/cairo_metal",
@@ -82,6 +86,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/core",
                 "src/backend",
                 "src/prover",
+                "src/backends/cpu_scalar",
                 "src/backends/metal",
             ),
             product(
@@ -90,6 +95,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/backend",
                 "src/prover",
                 "src/backends/cuda",
+                "src/backends/cpu_scalar",
                 "src/frontends/cairo",
                 "src/frontends/riscv",
                 "src/integrations/native_cuda",
@@ -148,6 +154,7 @@ class PlannerContractTests(unittest.TestCase):
                 "prover",
                 "riscv_frontend",
                 "cairo_frontend",
+                "cpu_backend",
                 "package",
                 "native_cpu",
                 "native_oracle",
@@ -170,6 +177,7 @@ class PlannerContractTests(unittest.TestCase):
                 "prover",
                 "riscv_frontend",
                 "cairo_frontend",
+                "cpu_backend",
                 "package",
             }.issubset(selected)
         )
@@ -207,6 +215,27 @@ class PlannerContractTests(unittest.TestCase):
         commands = self.policy["lanes"]["cairo_frontend"]["commands"]
         self.assertEqual(1, len(commands))
         self.assertIn("src/frontends/cairo/build.zig", commands[0])
+
+    def test_cpu_backend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/backends/cpu_scalar/mod.zig")
+        self.assertTrue(
+            {
+                "static",
+                "cpu_backend",
+                "package",
+                "native_cpu",
+                "riscv_cpu",
+                "cairo_cpu",
+                "native_cuda_static",
+                "native_cuda_device",
+                "native_metal",
+                "aggregate_cpu",
+                "aggregate_metal",
+            }.issubset(selected)
+        )
+        commands = self.policy["lanes"]["cpu_backend"]["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/backends/cpu_scalar/build.zig", commands[0])
 
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]
@@ -418,7 +447,7 @@ class PlannerContractTests(unittest.TestCase):
             sorted(lanes),
             [
                 "aggregate_cpu", "aggregate_metal", "cairo_cpu",
-                "cairo_frontend", "cairo_metal",
+                "cairo_frontend", "cairo_metal", "cpu_backend",
                 "native_cpu", "native_cuda_device",
                 "native_cuda_static", "native_metal", "native_oracle", "package",
                 "prover", "riscv_cpu", "riscv_frontend", "static",

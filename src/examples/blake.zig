@@ -12,7 +12,7 @@ const prover_component = @import("stwo_prover_impl").air.component_prover;
 const prover_engine = @import("stwo_prover_impl").engine;
 const stage_profile = @import("stwo_prover_impl").stage_profile;
 const prover_transaction = @import("common/prover_transaction.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 pub const constants = @import("blake/constants.zig");
 pub const geometry = @import("blake/geometry.zig");

@@ -17,7 +17,7 @@ const stage_profile = @import("stwo_prover_impl").stage_profile;
 const secure_column = @import("stwo_prover_impl").secure_column;
 const prover_transaction = @import("common/prover_transaction.zig");
 const trace_input = @import("plonk/input.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

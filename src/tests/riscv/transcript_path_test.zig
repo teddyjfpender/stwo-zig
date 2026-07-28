@@ -1,7 +1,7 @@
 //! CP-08 tracing through the live RISC-V prover and verifier orchestration.
 
 const std = @import("std");
-const CpuBackend = @import("../../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 const pcs_core = @import("stwo_core").pcs;
 const qm31 = @import("stwo_core").fields.qm31;
