@@ -167,11 +167,17 @@ pub const Component = struct {
             .column = column,
         };
         const row_count = try checkedPow2(captured.evaluation_log_size);
-        const pool = maybe_pool orelse
-            return evaluation.evaluateRange(0, row_count, false);
-        if (row_count < parallel_row_threshold or pool.workerCount() <= 1) {
-            return evaluation.evaluateRange(0, row_count, false);
+        // A composition column can be shared by several components. The first
+        // writer stores directly and publishes `next_fresh_index`; every later
+        // writer must accumulate. The serial path has to honour the same
+        // protocol as the parallel one below, or a second component silently
+        // clobbers the first.
+        const serial_pool = maybe_pool orelse
+            return evaluateSerial(&evaluation, column, row_count);
+        if (row_count < parallel_row_threshold or serial_pool.workerCount() <= 1) {
+            return evaluateSerial(&evaluation, column, row_count);
         }
+        const pool = serial_pool;
 
         const worker_count = @min(pool.workerCount(), row_count / simd.lane_count);
         const workers = try accumulator.allocator.alloc(RangeWorker, worker_count);
@@ -201,6 +207,19 @@ pub const Component = struct {
 };
 
 const parallel_row_threshold: usize = 4096;
+
+/// Serial mirror of the parallel path's fresh-column protocol: derive
+/// `additive` from whether the column already carries a written prefix, then
+/// publish the same `next_fresh_index` the parallel path would have published.
+fn evaluateSerial(
+    evaluation: *const EvaluationContext,
+    column: *prover.air.accumulation.ColumnAccumulator,
+    row_count: usize,
+) !void {
+    const direct_store = column.next_fresh_index == 0;
+    try evaluation.evaluateRange(0, row_count, !direct_store);
+    column.next_fresh_index = if (direct_store) row_count else null;
+}
 
 fn evaluateDomainParallelAdapter(
     raw_context: *const anyopaque,
