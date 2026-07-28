@@ -277,6 +277,14 @@ so the full lever projects to roughly **1.011x** on complete prove — below the
 campaign's 1.02x bar and, more damning, below the amplitude of the incidental
 heap-layout shifts the change itself induces in stages it cannot touch.
 
+The one alternative explanation — that the write restructuring rather than the
+conversion factor was the limiter — was tested rather than left as a
+recommendation. A fourth arm using an ordinary per-row width branch instead of
+hoisted write loops is **indistinguishable** from the hoisted candidate
+(`1.0009x`, `[0.9912, 1.0108]`), and both sit at `0.995x` of the predecessor in
+the cleanest window measured. **D2 is closed as a lever, not left as an
+unfinished implementation.**
+
 Implementation model: Claude Opus 4.5. Orchestration: Claude Fable 5.
 Transcript: `transcripts/session-02.md`. Predecessor: pristine `zig-out` tree
 from `f7012f6d`. Host: Apple M5 Max, 12 performance + 6 efficiency cores.
@@ -403,7 +411,7 @@ Predecessor, instrumented, `STWO_CAIRO_PREPROCESSED_CACHE=0`:
 | `interaction_fraction_materialize` | 387.2 | 7.3% |
 | **candidate region** | **1,067.2** | **20.1%** |
 
-10,204 MB across 1,067 ms is an effective 9.6 GB/s — a quarter of this host's
+10,204 MiB (10.70 GB) across 1,067 ms is an effective 10.0 GB/s — a quarter of this host's
 ~40 GB/s streaming ceiling. That is the first warning the increment recorded:
 the region is *bandwidth-influenced*, not bandwidth-saturated, so halving bytes
 cannot be expected to convert 1:1 into time.
@@ -518,8 +526,68 @@ all-opcodes, 3 blocks, load 2.1-7.7 (quiet):
 
 On a workload with no plane traffic to speak of, hoisting costs ~0.5% and
 narrowing returns ~0.5%; both intervals touch parity and the net is parity.
-The useful reading is that **the hoisting tax is small and bounded** — the
-write-side restructuring is not what is limiting the lever.
+
+memory-7m, 4 blocks. The window started quiet (load 3.5) and climbed to 15.1 by
+block 4 despite a load-gated start that waited 460 s for the host:
+
+| | block 1 | block 2 | block 3 | block 4 | geomean | 95% CI |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| A (pred) ms | 6,374.34 | 6,755.30 | 6,903.52 | 6,799.05 | | |
+| H (hoist only) ms | 6,389.51 | 6,779.59 | 6,992.20 | 6,948.76 | | |
+| B (candidate) ms | 6,259.30 | 6,772.52 | 6,912.29 | 6,775.52 | | |
+| hoisting tax `A/H` | 0.9976 | 0.9964 | 0.9873 | 0.9785 | `0.9899x` | `[0.9758, 1.0043]` |
+| narrowing gain `H/B` | 1.0208 | 1.0010 | 1.0116 | 1.0256 | `1.0147x` | `[0.9976, 1.0321]` |
+| total `A/B` | 1.0184 | 0.9975 | 0.9987 | 1.0035 | `1.0045x` | `[0.9894, 1.0198]` |
+
+Per-sample ranges: A `[6,060.2, 7,226.3]`, H `[6,164.6, 7,374.5]`,
+B `[6,203.9, 7,243.0]`.
+
+**This decomposition must not be over-read, and saying why is the point.** Both
+component arms are numerically large — 1.0147x is 98 ms and 0.9899x is 68 ms —
+while the directly measured mechanism is **11.4 ms** (4.8 ms of base lowering
+plus 6.6 ms of execution, from the low-variance instrumented spans). Two
+quantities six to nine times the size of the effect they are supposed to
+decompose are being read off a series whose same-arm spread is ±9%. The honest
+conclusion is that **at an 11 ms mechanism the three arms are not resolvable at
+prove level on this host**, and the span measurements are the only trustworthy
+evidence in this increment.
+
+### (f) The writer question, settled directly
+
+The one way the lever could still have reached the bar was if the hoisted write
+loops were themselves the limiter — the ~1% `A/H` reading above is numerically
+consistent with that. So a fourth arm was built: same narrowing, but the width
+selected by an ordinary **per-row branch** on the plane tag inside the
+`col_write` switch arm, with no hoisting at all. (This deliberately violates the
+increment's "no per-row branching on width" constraint; it is a diagnostic arm,
+not a candidate.) Byte-exact, `e3317e55…`, `--verify` true.
+
+A = predecessor, P = branch + narrow, B = hoist + narrow. A-P-B-B-P-A per block,
+4 blocks, load 4.8-11.2. This is the tightest series of the session — the
+predecessor's own samples span only ±3.7%:
+
+| | block 1 | block 2 | block 3 | block 4 | geomean | 95% CI |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| A (pred) ms | 5,674.96 | 5,828.07 | 5,960.31 | 5,973.16 | | |
+| P (branch) ms | 5,716.23 | 5,825.97 | 5,977.08 | 6,015.09 | | |
+| B (hoist) ms | 5,673.37 | 5,834.77 | 5,992.89 | 6,058.18 | | |
+| `A/P` | 0.9928 | 1.0004 | 0.9972 | 0.9930 | `0.9958x` | `[0.9901, 1.0016]` |
+| `A/B` | 1.0003 | 0.9989 | 0.9946 | 0.9860 | `0.9949x` | `[0.9847, 1.0052]` |
+| `B/P` (hoist vs branch) | 0.9925 | 1.0015 | 1.0026 | 1.0072 | `1.0009x` | `[0.9912, 1.0108]` |
+
+Ranges: A `[5,572.2, 5,999.2]`, P `[5,661.8, 6,061.4]`, B `[5,641.5, 6,112.4]`.
+
+**The two writer designs are indistinguishable** — `B/P = 1.0009x` with an
+interval tight around parity — which retires the ~1% hoisting-tax reading as
+noise and confirms the choice of write structure is not what limits D2. And both
+narrowing arms sit at `0.995x` against the predecessor in the cleanest window
+measured all session, against a mechanism the instrumented spans put at
++11.4 ms (+0.19%).
+
+That is the closing argument. Narrowing delivers its bytes, the spans shrink by
+the predicted amount, the writer structure is irrelevant, and none of it is
+visible at prove level because 11 ms is below this prover's measurement floor on
+this host. **D2 is closed as a lever, not as an unfinished implementation.**
 
 ### Repricing D2
 
@@ -544,7 +612,7 @@ allocations per component produce. At a 16 ms mechanism, incidental layout
 effects are the same size as the signal.
 
 **D2's premise was that a bandwidth-bound region converts bytes into time near
-1:1. Measured, it converts at 0.14-0.37.** The region runs at 9.6 GB/s against
+1:1. Measured, it converts at 0.14-0.37.** The region runs at 10.0 GB/s against
 a ~40 GB/s ceiling, so it is latency- and occupancy-limited rather than
 bandwidth-saturated, and removing bytes from a pass that is not at the
 bandwidth wall buys only the fraction of its time that was actually waiting on
@@ -554,9 +622,11 @@ is *bus-bound*, and this increment is the first to test the difference.
 
 ### Digests
 
-Byte-exact in every mode. Every proof produced by the candidate in every
-reading — 24 memory-7m samples, 12 arithmetic-2m, 24 all-opcodes, plus
-`STWO_ZIG_WORKERS=1` and Metal — equals the campaign value:
+Byte-exact in every mode. Every proof produced in every reading — every timed
+and warmup sample of the candidate arm *and* of the hoist-only diagnostic arm,
+across all four A-B-B-A / A-H-B-B-H-A series, plus the byte-parity runs under
+`--verify`, `STWO_ZIG_WORKERS=1`, and Metal — carried exactly one digest per
+workload, equal to the campaign value:
 
 | Workload | SHA-256 |
 | --- | --- |
@@ -677,7 +747,7 @@ The witness side that D1 and D2 both target is `base_trace_build` +
 `interaction_trace_build` = 1,183 ms, **22.3%**. The commit and evaluation side —
 `main_trace_commit` + `interaction_trace_commit` + `composition_evaluation` +
 `composition_commit` + `fri_quotient_build_and_commit` — is **3,579 ms, 67.4%**,
-and `merkle_commit` alone inside the two trace commits is 686 + 581 = 1,267 ms.
+and `merkle_commit` alone inside the two trace commits is 662.8 + 579.5 = 1,242.3 ms.
 Even a *perfect* D1 (witness traffic reduced to zero cost) cannot move the proof
 by more than 1.29x, and the measured conversion factors say the realistic figure
 is a few percent. The 1.46x gap against pinned Rust is not in the witness

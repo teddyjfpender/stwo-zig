@@ -104,10 +104,10 @@ interaction_fraction_materialize           387.2 ms
                               region     1067.2 ms   (20.1% of 5308 ms prove)
 ```
 
-10,204 MB in 1,067 ms is 9.6 GB/s. The campaign's bandwidth-wall evidence
+10,204 MiB (10.70 GB) in 1,067 ms is 10.0 GB/s. The campaign's bandwidth-wall evidence
 (increment 7's efficiency-core parity, increment 8's three-to-seven-worker
 plateau) shows this region is not *core*-bound. It does not show it is running
-at the bus ceiling, and 9.6 against ~40 GB/s says it is not. I wrote down before
+at the bus ceiling, and 10.0 against ~40 GB/s says it is not. I wrote down before
 measuring that I expected the byte-to-time conversion to be well under 1, and
 that the increment's real product would be the conversion factor.
 
@@ -236,10 +236,62 @@ total         A/B  1.0001x  [0.9920, 1.0083]
 ```
 
 Hoisting costs about half a percent, narrowing returns about half a percent, and
-both intervals touch parity. The useful conclusion is negative and clean: **the
-write restructuring is not what limits the lever.** If it were, the fix would be
-obvious and the increment would continue. It is not, so the limit is the
-conversion factor.
+both intervals touch parity.
+
+memory-7m, 4 blocks, load-gated start (waited 460 s for the host) that still
+drifted 3.5 → 15.1:
+
+```
+block 1: A 6374.34  H 6389.51  B 6259.30
+block 2: A 6755.30  H 6779.59  B 6772.52
+block 3: A 6903.52  H 6992.20  B 6912.29
+block 4: A 6799.05  H 6948.76  B 6775.52
+hoisting tax  A/H  0.9899x  [0.9758, 1.0043]
+narrowing gain H/B 1.0147x  [0.9976, 1.0321]
+total         A/B  1.0045x  [0.9894, 1.0198]
+```
+
+I nearly wrote this up as "hoisting is eating the gain". It is the right shape
+for that story: 1.0147x of narrowing against 0.9899x of hoisting. But 1.0147x is
+98 ms and 0.9899x is 68 ms, and the mechanism the instrumented spans actually
+measure is **11.4 ms**. Decomposing an 11 ms effect into two ~80 ms components
+off a series with ±9% same-arm spread is not decomposition, it is pattern
+matching on noise.
+
+So I tested it instead of writing it up.
+
+## The writer question, settled
+
+Fourth arm: same narrowing, width selected by an ordinary **per-row branch** on
+the plane tag inside the `col_write` arm, no hoisting. This deliberately breaks
+the brief's "no per-row branching on width" constraint — as a diagnostic, not a
+candidate — because if the constraint was costing the increment its result, that
+is worth knowing explicitly rather than inferring. Byte-exact, `e3317e55…`,
+`--verify` true.
+
+A-P-B-B-P-A, 4 blocks, load 4.8-11.2. Tightest series of the session; the
+predecessor's own samples span ±3.7%:
+
+```
+block 1: A 5674.96  P 5716.23  B 5673.37
+block 2: A 5828.07  P 5825.97  B 5834.77
+block 3: A 5960.31  P 5977.08  B 5992.89
+block 4: A 5973.16  P 6015.09  B 6058.18
+branch          A/P  0.9958x  [0.9901, 1.0016]
+hoist           A/B  0.9949x  [0.9847, 1.0052]
+hoist vs branch B/P  1.0009x  [0.9912, 1.0108]
+```
+
+`B/P = 1.0009x`, interval tight around parity. **The two writer designs are
+indistinguishable**, which retires the 1% hoisting-tax reading as noise and
+settles that the write structure is not the limiter. Both narrowing arms sit at
+`0.995x` against the predecessor in the cleanest window I measured all session,
+against a mechanism the spans put at +0.19%.
+
+The useful conclusion is negative and clean: **the write restructuring is not
+what limits the lever, and neither is any implementation choice available inside
+D2.** The limit is the conversion factor, and I have now closed the one
+alternative explanation rather than leaving it as a recommendation.
 
 ## Why I am returning this as rejected rather than pressing on
 
@@ -260,7 +312,7 @@ acceptance no matter how carefully it is measured.
 So the honest statement is not "D2 is too small to implement" but **"D2's
 premise is wrong: this region converts bytes to time at 0.14-0.37, not near
 1."** Increments 7 and 8 established the region is not core-bound. Nobody had
-tested whether it is bus-bound. It is not — it runs at 9.6 GB/s against ~40.
+tested whether it is bus-bound. It is not — it runs at 10.0 GB/s against ~40.
 
 ## Verification
 
@@ -288,6 +340,8 @@ tested whether it is bus-bound. It is not — it runs at 9.6 GB/s against ~40.
 - Lookup words and sub words. Priced, not built. Five consumer sites for the
   lookup feeds against the increment's budget, and the projection says the
   finished lever does not clear the bar anyway.
+- No branch-variant measurement on all-opcodes or arithmetic-2m. memory-7m is
+  where the writer cost would show, and it did not.
 - No attempt to isolate the heap-layout term by forcing identical allocation
   addresses. That would be the only way to measure a 16 ms mechanism cleanly at
   prove level, and it is worth doing *for D1*, which will have the same problem
