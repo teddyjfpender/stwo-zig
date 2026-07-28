@@ -241,7 +241,7 @@ const EvaluationContext = struct {
                 .{
                     .evaluation_log_size = self.captured.evaluation_log_size,
                     .trace_log_size = self.captured.trace_log_size,
-                    .trace = .{ .context = self.trace, .read = readTrace },
+                    .trace = .{ .context = self.trace, .resolve = resolveTrace },
                     .extension_parameters = self.parameters,
                     .random_coefficients = self.coefficients,
                     .constraint_base = part.rc_base,
@@ -292,13 +292,16 @@ const TraceContext = struct {
     evaluation_log_size: u32,
 };
 
-fn readTrace(
+/// Resolves one mask read site to its committed column and lifting shift.
+/// Called once per read instruction per evaluated range; every check it
+/// performs — tree arity, preprocessed index bounds, component span
+/// arithmetic, column length against its log size, and the lifting shift
+/// range — used to be repeated on every four-row group.
+fn resolveTrace(
     raw_context: *const anyopaque,
     interaction: u8,
     local_column: u32,
-    row: usize,
-    offset: i32,
-) !simd.PackedM31 {
+) !simd.ResolvedColumn {
     const context: *const TraceContext = @ptrCast(@alignCast(raw_context));
     if (context.trace.polys.items.len < 3) return error.InvalidTraceShape;
     const column = switch (interaction) {
@@ -327,25 +330,15 @@ fn readTrace(
         else => return error.InvalidTraceShape,
     };
 
-    var values: simd.PackedM31 = undefined;
-    inline for (0..simd.lane_count) |lane| {
-        const position = row + lane;
-        const shifted = if (offset == 0)
-            position
-        else
-            core.utils.offsetBitReversedCircleDomainIndex(
-                position,
-                context.captured.trace_log_size,
-                context.evaluation_log_size,
-                offset,
-            );
-        const value: M31 = try column.valueAtLiftingPosition(
-            context.evaluation_log_size,
-            shifted,
-        );
-        values[lane] = value.toU32();
-    }
-    return values;
+    try column.validate();
+    if (column.log_size > context.evaluation_log_size)
+        return error.InvalidTraceShape;
+    const shift = context.evaluation_log_size - column.log_size;
+    if (shift + 1 >= @bitSizeOf(usize)) return error.InvalidTraceShape;
+    return .{
+        .values = column.values,
+        .shift_amt = @intCast(shift + 1),
+    };
 }
 
 fn orderedCoefficients(

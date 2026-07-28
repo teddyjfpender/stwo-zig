@@ -3,7 +3,9 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
+const utils = @import("stwo_core").utils;
 const eval = @import("../../witness/eval_program.zig");
+const read_plan = @import("read_plan.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -125,15 +127,26 @@ const PackedQm31 = struct {
     }
 };
 
+/// A mask column resolved down to the two facts the row loop needs: where its
+/// values live, and the lifting shift that maps an evaluation-domain position
+/// onto them. `values.len` is `1 << column_log_size`, so
+/// `((position >> shift_amt) << 1) + (position & 1)` is in bounds for every
+/// position below the evaluation domain size.
+pub const ResolvedColumn = struct {
+    values: []const M31,
+    shift_amt: std.math.Log2Int(usize),
+};
+
 pub const TraceReader = struct {
     context: *const anyopaque,
-    read: *const fn (
+    /// Called once per read site per evaluated range, never per row. The
+    /// callee performs the tree lookup, the component span arithmetic and the
+    /// column shape validation that the row loop then never repeats.
+    resolve: *const fn (
         context: *const anyopaque,
         interaction: u8,
         column: u32,
-        row: usize,
-        offset: i32,
-    ) anyerror!PackedM31,
+    ) anyerror!ResolvedColumn,
 };
 
 pub const Input = struct {
@@ -198,17 +211,52 @@ pub fn evaluatePartRange(
     const extension = try allocator.alloc(PackedQm31, program.header.max_ext_regs);
     defer allocator.free(extension);
 
+    var plan = try read_plan.build(
+        ResolvedColumn,
+        allocator,
+        program,
+        input.trace.context,
+        input.trace.resolve,
+    );
+    defer plan.deinit(allocator);
+    const offsets = plan.offsets;
+    const sites = plan.sites;
+    // One mapped lane position per distinct mask offset, refreshed per group.
+    const positions = try allocator.alloc([lane_count]usize, offsets.len);
+    defer allocator.free(positions);
+
     var row = row_start;
     while (row < row_end) : (row += lane_count) {
+        for (offsets, positions) |offset, *mapped| {
+            inline for (0..lane_count) |lane| {
+                mapped[lane] = if (offset == 0)
+                    row + lane
+                else
+                    utils.offsetBitReversedCircleDomainIndex(
+                        row + lane,
+                        input.trace_log_size,
+                        input.evaluation_log_size,
+                        offset,
+                    );
+            }
+        }
+        var site_cursor: usize = 0;
         for (program.base_insts) |instruction| {
             base[instruction.dst] = switch (instruction.op) {
-                .trace_col, .preprocessed_col => try input.trace.read(
-                    input.trace.context,
-                    instruction.interaction,
-                    instruction.a,
-                    row,
-                    instruction.imm,
-                ),
+                .trace_col, .preprocessed_col => blk: {
+                    const site = sites[site_cursor];
+                    site_cursor += 1;
+                    const mapped = positions[site.offset_slot];
+                    var values: PackedM31 = undefined;
+                    inline for (0..lane_count) |lane| {
+                        const position = mapped[lane];
+                        values[lane] = site.column.values[
+                            ((position >> site.column.shift_amt) << 1) +
+                                (position & 1)
+                        ].toU32();
+                    }
+                    break :blk values;
+                },
                 .param => return error.InvalidEvaluationInput,
                 .constant => @splat(instruction.a),
                 .add => m31.addVec4(base[instruction.a], base[instruction.b]),
