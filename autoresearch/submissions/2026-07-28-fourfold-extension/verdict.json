@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "kind": "claimed",
+  "harness_commit": "596f2ddfb88b",
+  "repo_commit": "f3d814b087ab",
+  "predecessor_commit": "cfd47be98a10",
+  "scope": "s3",
+  "declared_objective": {
+    "board": "core_cpu",
+    "workload_class": "small",
+    "dimension": "time"
+  },
+  "environment": {
+    "host": "d00bf0abb109",
+    "os": "Darwin 25.5.0",
+    "zig_version": "0.15.2",
+    "release_fast": true,
+    "clean_tree": true,
+    "judge_lock_held": false,
+    "preflight": {
+      "load_ok": true,
+      "load1": 5.55
+    }
+  },
+  "search_health": {
+    "schema_version": 1,
+    "decision": {
+      "schema_version": 1,
+      "board": "core_cpu",
+      "workload_class": "small",
+      "trailing_window": 8,
+      "trailing_evidence_count": 1,
+      "trailing_median_gradient_snr": 0.0,
+      "gradient_snr_threshold": 2.0,
+      "configured_rounds": 15,
+      "auto_boost_rounds": 5,
+      "maximum_rounds": 25,
+      "target_rounds": 20,
+      "workload_count": 1,
+      "class_wall_deadline_seconds": 240.0,
+      "estimated_seconds_per_round": 4.047260127732685,
+      "deadline_round_limit": 59,
+      "auto_boost_applied": true,
+      "auto_boost_reason": "trailing_median_below_threshold",
+      "recorded_before_measurement": true
+    },
+    "decision_sha256": "sha256:9db7f740061d3ef93711d44da55d5ee24cfe4fa0e2efd35e759d868425be2a53",
+    "actual_rounds": 20,
+    "actual_rounds_per_workload": {
+      "wf_log10x8": 20
+    },
+    "objective_wall_seconds": 3.4310602500045206,
+    "measurement_wall_seconds": 32.19895183300832,
+    "measurement_wall_hours": 0.008944153286946756,
+    "gradient_snr": null,
+    "credited_ln_improvement": null,
+    "credited_ln_improvement_per_measurement_hour": null,
+    "credit_status": "pending_ledger_adjudication",
+    "decision_record": "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/search-health-decision.json"
+  },
+  "gates": {
+    "G1": {
+      "pass": true,
+      "detail": "every timed sample verified; cross-arm proof digests byte-identical per round; pinned correctness oracle verified 1/1 workloads"
+    },
+    "G2": {
+      "pass": true,
+      "detail": "no locked or out-of-scope path touched"
+    },
+    "G3": {
+      "pass": true,
+      "detail": "native mechanism telemetry policy unchanged"
+    },
+    "G4": {
+      "pass": true,
+      "detail": "candidate/anchor 0.4643 vs targeted budget x1.02; matrix row upper CIs 1/1 within budget x1.05; request ratios 1/1 present rows within budget x1.05; resource vectors 1/1 within named budgets"
+    },
+    "G5": {
+      "pass": true,
+      "detail": "local advisory run"
+    }
+  },
+  "score": {
+    "per_workload": {
+      "wf_log10x8": {
+        "r": 0.975219,
+        "ci": [
+          0.96215,
+          0.989141
+        ],
+        "rounds": 20,
+        "a_median_ms": 1.329375,
+        "b_median_ms": 1.295042,
+        "request_ratio": 0.987116,
+        "rss_ratio": 1.0,
+        "resources": {
+          "energy_j": {
+            "ratio": 1.00404,
+            "ci": [
+              0.98516,
+              1.026743
+            ],
+            "observations": 20,
+            "candidate": 0.105745065
+          },
+          "peak_rss_mib": {
+            "ratio": 1.0,
+            "ci": [
+              0.997481,
+              1.001275
+            ],
+            "observations": 20,
+            "candidate": 6.18804931640625
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 24965.0
+          }
+        },
+        "mechanism_verified": null,
+        "proof_bytes": 24965,
+        "measurement_seconds": 3.075885,
+        "resources_complete": null
+      }
+    },
+    "R_geomean": 0.975219,
+    "portfolio": {
+      "ci_method": "independent_workload_round_bootstrap_percentile_v1",
+      "ci_level": 0.95,
+      "bootstrap_iterations": 4000,
+      "seed": 2000059846,
+      "ci": [
+        0.962243,
+        0.9894
+      ],
+      "prove_ms_method": "geometric_mean_candidate_workload_medians_ms_v1",
+      "b_median_ms_geomean": 1.295042,
+      "proof_bytes_method": "rounded_geometric_mean_candidate_proof_bytes_v1",
+      "proof_bytes": 24965,
+      "measurement_seconds": 3.075885,
+      "measurement_rounds": 20
+    },
+    "theta": 0.037308,
+    "aa_dispersion": 0.018654,
+    "significant": false,
+    "neutral": false,
+    "promotion_significance": {
+      "eligible": true,
+      "method": "independent_workload_round_bootstrap_percentile_v1",
+      "reason": "prove-time objective uses the deterministic workload portfolio CI"
+    },
+    "resource_portfolio": {
+      "peak_rss_mib": {
+        "ratio_geomean": 1.0,
+        "upper_ci_geomean": 1.0012753304378719,
+        "candidate_geomean": 6.18804931640625
+      },
+      "energy_j": {
+        "ratio_geomean": 1.0040399739355368,
+        "upper_ci_geomean": 1.026742885164835,
+        "candidate_geomean": 0.10574506499999999
+      },
+      "proof_bytes": {
+        "ratio_geomean": 1.0,
+        "upper_ci_geomean": 1.0,
+        "candidate_geomean": 24965.0
+      }
+    }
+  },
+  "tiebreakers": {
+    "rss_ratio": 1.0,
+    "waits": null,
+    "dispatches": null,
+    "energy_j": 0.10574506499999999,
+    "proof_bytes": 24965.0
+  },
+  "holdout": null,
+  "guards": {},
+  "rust_oracle": [
+    {
+      "workload": "wf_log10x8",
+      "verified": true,
+      "oracle": "pinned-rust-stwo",
+      "artifact_sha256": "4cabcca685cb0c4168d136ce3fea0f742b0b6a87d6b98beb3e048301f4d7b4e2"
+    }
+  ],
+  "skipped_groups": [
+    {
+      "group": "cuda",
+      "reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated."
+    },
+    {
+      "group": "pr6_supremacy",
+      "reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete."
+    }
+  ],
+  "evidence": {
+    "pairing": "round-level ABBA (bench reports expose medians, not raw samples)",
+    "per_workload": {
+      "wf_log10x8": {
+        "round_ratios": [
+          0.979144,
+          0.962243,
+          0.963466,
+          0.950542,
+          0.962277,
+          0.985978,
+          0.914838,
+          1.012086,
+          0.975881,
+          1.017471,
+          0.944723,
+          0.907856,
+          1.009277,
+          0.952412,
+          1.001324,
+          1.015334,
+          1.010861,
+          0.962949,
+          0.972288,
+          0.982225
+        ],
+        "proof_digest": "91741aec956846d52e50f7b8fef3ac93195dbcd76cdb89e25ed33a148bea5700",
+        "request_ratio": 0.987116,
+        "rss_ratio": 1.0,
+        "resources": {
+          "energy_j": {
+            "ratio": 1.00404,
+            "ci": [
+              0.98516,
+              1.026743
+            ],
+            "observations": 20,
+            "candidate": 0.105745065
+          },
+          "peak_rss_mib": {
+            "ratio": 1.0,
+            "ci": [
+              0.997481,
+              1.001275
+            ],
+            "observations": 20,
+            "candidate": 6.18804931640625
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 24965.0
+          }
+        },
+        "report_sha256s": [
+          "dad59522723e80717f030cf628564136e4ec2b31caa1830a78183ebfc40d89ba",
+          "ea7687e6f4c74208bd1aeec186637d785ac1d9c551e2f137ac50af09ee087759",
+          "c39a155af9c425e656792b4f0c80e3824c05c8c5edf436bc18d04d654ee39b54",
+          "465d4d59ef29b1d5b04a37a1f88d3d44f3480284cdc0d14eb90913f0e881f037",
+          "8acd447bc755a1076205ec09c1c82f74f4f80a7c2a7d14a2fb519bf9bcd0ae9e",
+          "9f1d3c1aeb884f4dee2ef1e77d2ec6623ca2aa81d9b12c74c98a4a73a7f80c0a",
+          "df560e958589cdcd38f4d0155b4143ee67f7fa55f00bd539e680f328692f1e29",
+          "9a725f475624b761e93811db61c264589d6959370a0c2f1b0b6d455e9e311703",
+          "9b1f80634efe009ad5ee05903744bb12974116a21f09d92a41442b2bf3a2d5b1",
+          "6d256254c42c7898e164eb967741b219f5c8474609c95d1a625a20047bcde329",
+          "31a22acda7a9a48b5f6033b9ae2e1f2610a49e8424db8d8bbe87e72ab2f9fb2e",
+          "9fbacb90000641ff54e60ab358d1ec7436f869907ba5c7d3beb0348e3c192328",
+          "f965e99e3f56a3ce4c1ceee1d46158f613e9bccf392ff579b7e7dfd081f207d9",
+          "de0aa5fb959468d55c0fa0674eec5e7c41ccce5b5337514ccee70e3e5a891303",
+          "4d246cca658db3155d6ee23094797bc9a355ca5dc1c0554a5c82361bcb40e40b",
+          "ee0e8d73bb9e6375cfa81a3d530f83cf39c1d8175b4cb34a9a2dedf0165cdd8e",
+          "92dd0e00b55a6978bc47ce26b670af589d077b3131ed7f5d512b418e69be1bf6",
+          "f712ab799ad14bf4cdc81f61c9c28edf757c3f3901ff9c6e2b0277a11542a06d",
+          "6e6d2ddbcb6eb3179bc7888cbeb6142ff7a37b9ef0466c91260815ce94e872e5",
+          "5b9718d3f5645d5abc2ca8bfff15f9c331fe05efa2a9e0a9ffc8312599ded25b",
+          "b2716e64ee840e78f9cad7b141da031f4d07675a8b6e2141300cccb210353519",
+          "9c96768156a782fd6f7e1db0bf3ad8951da45ac985177e7687c1086528ea90e4",
+          "ff2b82369ef6222fd95af165ccda186a347e08b277c1cee65edd2417e5bb7218",
+          "1fda5b31a434e7901358303ed129504d3536c69b8b3b6b620bcb3bfc064db11c",
+          "42af40b9c9c9b54b784204691cfa2a37a2945c1ca6d535c3c43cdac9a28cf088",
+          "d753563f3c320427598b58eabaae9c29e42ec884fa9d772c25fd8e237a68d69c",
+          "275ea619c86b851859c43c508357abe289e940706024ed40d9cdfac0d22441e5",
+          "477903c4629fb206b5a4354fa0ffd9add18353999b83e3e88d1978fc8b3b5252",
+          "3df0e392d1476ae4e914cfd8439b2c7210957669bcc40c62ab7823855cb4e82e",
+          "340b8b41660eb1ee9f09f1b77f89d96bff7246359dc9aacdceb88d35ac43b3fe",
+          "d367a7dc23459c59779f6ad3b2c5613a8b85d7e4f70af13bf6a047e40f48e3b7",
+          "d66aafa0606abb17517d0e9dffc008e0f34d0827f3b084ee8a5c03950df3f5b1",
+          "8b0fbb34dad7bffa83604661531ad802cfe9db7bf9816c43073aca9115c1bc0d",
+          "3dc0ea2cce48019a02713ba2c33cc02cb5456c5b9bc4af7598ca3cb9b80eb769",
+          "9fb4583c516d88c10895440dc29c4b404e2c0340dfeab65be562a369ed2ea4ec",
+          "cdbb0e1da78ccf6243eff4f23bc51c112807a32f3ab03cdfd90725e83c7fc3f9",
+          "d4fb753b039451f6b48a71cbb9ea45f2ca577f50f7e435556d5b201e4b4c95ba",
+          "6d76794efa34ec44038a18f7d19e91242d8c79a0e518e1199bbacf46af1e9ed2",
+          "f23088505c86884c546d923bb9886c4b650e848f5413985e984b0b4b31251803",
+          "b5abf9e9d37b17d195713fece0fb969e2d60be5749f41f76efd1d7420399c4ad"
+        ],
+        "mechanism_verified": null,
+        "resources_complete": null
+      }
+    },
+    "reports": [
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a1.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b1.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a2.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b2.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a3.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b3.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a4.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b4.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a5.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b5.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a6.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b6.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a7.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b7.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a8.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b8.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a9.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b9.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a10.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b10.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a11.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b11.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a12.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b12.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a13.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b13.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a14.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b14.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a15.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b15.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a16.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b16.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a17.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b17.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a18.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b18.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a19.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b19.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.a20.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/fourfold/autoresearch/.runs/latest/wf_log10x8.b20.json"
+    ]
+  }
+}
