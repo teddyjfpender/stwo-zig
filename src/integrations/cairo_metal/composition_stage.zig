@@ -111,13 +111,21 @@ pub const metallib_env = "STWO_ZIG_COMPOSITION_METALLIB";
 /// artifact did.
 pub const metallib_leaf = "air_template_composition_eval_domain.metallib";
 
-/// Set to `0` to pin the stage to the Option-A (lifted, Library 1) path.
+/// Set to `1` to prefer the stored-domain (Library 2) tier over Option A.
 ///
-/// Increment 3.15's default is stored-domain **preferred**: when the hook is
-/// armed the stage tries Library 2 first and only falls to Option A if that tier
-/// declines. The switch exists so the two paths are an env-only pairing off one
-/// build, which is what made 3.13's gate clean, and so a deployment that
-/// distrusts the new tier can pin the measured one without a rebuild.
+/// **The default is off, and increment 3.15 turned it off on measurement rather
+/// than on caution.** The tier is byte-exact on all seven portfolio workloads
+/// and resolves the same component census Option A does, but it buys nothing:
+/// every column the product commits is already at evaluation-domain length
+/// (`composition_eval_arena`'s `Volume` diagnostic reports `shifts 1-1` on every
+/// workload), so Library 2's reader computes the identity map, reads the same
+/// words through one extra indirection, and the staging pass it was built to
+/// shrink was never a duplication. Paired A-B-B-A puts the composition stage at
+/// parity within noise. Preferring it by default would trade a measured path for
+/// an unmeasured one at zero gain.
+///
+/// It stays reachable, and armed it is an env-only pairing off one build, which
+/// is what a future column set committed at trace-domain length would need.
 pub const stored_domain_env = "STWO_ZIG_COMPOSITION_STORED_DOMAIN";
 /// Overrides the *stored-domain* library path, independently of `metallib_env`.
 /// Two libraries, two overrides: the corrupt-Library-2 fail-back test has to be
@@ -233,10 +241,10 @@ fn declineName(mode: eval_arena.Mode, reason: Decline) []const u8 {
     };
 }
 
-/// True unless the process pinned the stage to Option A.
+/// True only when the process asked for the stored-domain tier.
 fn storedDomainPreferred() bool {
-    const text = std.posix.getenv(stored_domain_env) orelse return true;
-    return !std.mem.eql(u8, text, "0");
+    const text = std.posix.getenv(stored_domain_env) orelse return false;
+    return std.mem.eql(u8, text, "1");
 }
 
 fn open(
@@ -709,6 +717,12 @@ test "the enable switch and the path override are named, not guessed" {
         "vectors/cairo/official/air_template_composition_eval_domain.metallib",
         default_metallib_path,
     );
+}
+
+test "the stored-domain tier is opt-in, and 3.13's Option-A default is intact" {
+    // 3.15 measured the tier at parity and left the measured path in charge.
+    // A default flip has to change this line, which is where the reason lives.
+    try std.testing.expect(!storedDomainPreferred());
 }
 
 test "the stored-domain tier is named apart from the eval-domain tier" {

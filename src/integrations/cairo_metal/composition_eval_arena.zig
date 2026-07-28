@@ -10,19 +10,23 @@
 //! ```
 //!
 //! with `row` running over the **evaluation** domain, so an arena column must be
-//! `2^eval_log` words long. The product publishes columns at `2^trace_log`
-//! (`pcs/scheme_views.polynomials`), which is why the host evaluator is handed
-//! `shift_amt = evaluation_log_size - column.log_size + 1`. **The eval arena is
-//! therefore not placement — it is placement plus a lift**, and the lift is the
-//! staging pass: writing the lifted copy into the arena is the same bytes as
+//! `2^eval_log` words long. The host evaluator is handed
+//! `shift_amt = evaluation_log_size - column.log_size + 1` for the same reason,
+//! and the lifting map is `component_prover.Poly.at`'s own: evaluation position
+//! `p` reads index `((p >> s) << 1) + (p & 1)`. Writing that map's image into the
+//! arena is the staging pass, and it is the same bytes
 //! `src/tests/metal/composition_lift_bridge_test.zig` verified byte-exact on a
 //! 1-part and a 5-part component of the authenticated bundle.
 //!
-//! The lifting map is `component_prover.Poly.at`'s own: evaluation position `p`
-//! reads trace index `((p >> s) << 1) + (p & 1)` with `s` the column's shift.
-//! That is each adjacent pair emitted `2^(s-1)` times — a streaming 8-byte
-//! granule duplication, not a gather, which is why it runs at 89.84 GB/s
-//! single-threaded ReleaseFast and parallelises per column with no sharing.
+//! **Increment 3.15 measured `s` on the product path and it is 1 on every column
+//! of every portfolio workload**, so that map is the identity and the staging
+//! pass is a copy, not a duplication. Increment 3.7 §3 stated — and this comment
+//! used to repeat — that "the product publishes columns at `2^trace_log`". It
+//! does not: `pcs/scheme_views.polynomials` hands back the committed tree
+//! columns, and `pcs/tree_builders.zig:169` stores the **extended** values in
+//! them. The host's `shift_amt` machinery is correct and general, and on this
+//! product it is exercised only at its identity. The consequence for Option B is
+//! recorded under `Mode` below, and it is the whole finding of 3.15.
 //!
 //! ## Layout
 //!
@@ -72,9 +76,17 @@
 //!    and removes the one shape a fixed stride could not express.
 //!
 //! Reserving the eval-domain capacity means the *allocation* does not shrink.
-//! The **resident** footprint does, and that is the quantity that was costing
-//! 0.76-4.80 GB per proof: the column region is placed last in stored mode, so
-//! the pages past the packed prefix are never touched and are never faulted in.
+//! The **resident** footprint shrinks by whatever the packing leaves untouched,
+//! because the column region is placed last in stored mode and the pages past
+//! the packed prefix are never faulted in.
+//!
+//! **On this product that saving is zero, measured.** Every observed shift is 1,
+//! so the packed prefix is the whole capacity and the stored arena holds exactly
+//! the words the lifted one held. The mode is correct, byte-exact and general —
+//! a column committed at a shorter log size *would* be packed short and *would*
+//! be read correctly by Library 2 — but the portfolio does not contain one, and
+//! the honest statement of what Option B buys here is "one indirection through a
+//! shift table, in exchange for the same bytes". See the `Volume` diagnostic.
 
 const std = @import("std");
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
