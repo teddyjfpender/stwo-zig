@@ -6,7 +6,7 @@
     "generated/air/lui.json": "809b1b729128250df067145ce37019968694b1fd5343d2c1dede8280afbd346d",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "d98673ff02fcb3a0c08da72c55bc787d1eb6dafadcd91f1662c4d90da07044c8",
+  "canonical_digest": "ada903ae7226b423ad9af4d764a847c031a9bea3e021b43e9fc384e8e2f654a7",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
@@ -240,7 +240,7 @@
   "proof_sources": {
     "formal/riscv-refinement/README.md": "f23625311957fbafe679730eb5fa80886a9bfe5c0dabba83658cf310655e8558",
     "formal/riscv-refinement/RiscvRefinement.lean": "e20039c16dacb14b6006ec77a7b8404e051c3069c568a02d2ea9ba830d71210e",
-    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "2bb3433b5d0f64306e37da7b4b590079fb4a8ae2ffda29793f6673b14f87dbab",
+    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "88829e83f5991b7e531165a016d7811ff55ac1f8fdfb93edaa9edfa12512869e",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
     "formal/riscv-refinement/RiscvRefinement/Common.lean": "16ae5e3d8d610c4f34489e4d71a3b828d293b3e9cb1881af1310099d3f8c057c",
     "formal/riscv-refinement/RiscvRefinement/Coverage.lean": "aa18962693f94998f3036681125dbdef5bcb892c49c9a311832422aec7e052b0",

@@ -1,4 +1,4 @@
-import RiscvRefinement.Coverage
+import RiscvRefinement
 import Lean.Elab.Command
 import Lean.Util.CollectAxioms
 
