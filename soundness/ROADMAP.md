@@ -482,6 +482,7 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       `semantics/div.zig` itself and no recorded adversarial self-check.
 - [ ] Add a deliberately malicious prover harness for skipped instructions,
       stale reads, forged outputs, and altered completion.
+      Tracked in [GitHub issue #131](https://github.com/teddyjfpender/stwo-zig/issues/131).
 - [ ] Exhaustively check small-limb component domains where enumeration is
       feasible, with Sail transitions as the reference relation.
 - [ ] Maintain serialized-proof bit-flip, truncation, splice, and wrong-statement
