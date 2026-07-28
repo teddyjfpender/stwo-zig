@@ -186,7 +186,7 @@ enter a hosted matrix). `BEFORE` = the shipped selection at `191e409f`.
 
 | Case | Paths | FULL | BEFORE | AFTER | AFTER vs FULL | Note |
 |---|---|---|---|---|---|---|
-| (a) merged PR #125 `78556fe7...191e409f` | 117 | 30 | 30 | 30 | 0% | fails open — `scripts/riscv_poseidon_table_uniqueness.py`, `scripts/check_build_configure_closure.py`, `scripts/tests/test_ci.py` |
+| (a) merged PR #125 `78556fe7...191e409f` | 117 | 30 | 30 | 30 | 0% | fails open — three `scripts/` paths (the RISC-V Poseidon table-uniqueness operator tool, the build-configure-closure check, and a script test) |
 | (a′) PR #125, `scripts/**` removed | 114 | 30 | 30 | 30 | 0% | **still** full: `build_support/products/aggregate.zig` and `cairo_support.zig` are unmapped and fail open too |
 | (b) notes-only `ceb5b32f` | 1 | 30 | 1 | 1 | **97%** | `static` only |
 | (c) riscv-only `e6303646` | 13 | 30 | 9 | 9 | **70%** | no cairo, metal-device, or cuda-device lane |
@@ -270,6 +270,22 @@ git diff 191e409f -- conformance/ci-touchpoints-v1.json | grep -c '"commands"'  
 
 ## Residual risks
 
+0. **The full matrix on push to main now runs the self-hosted CUDA lane on
+   every merge — decide this explicitly.** `emit_github_output` sets
+   `cuda_required=true` whenever `native_cuda_device` is in the plan, so
+   `--full-matrix` means `focused-cuda` fires on **every** push to main, not
+   only merges touching CUDA paths. That lane needs the `[self-hosted, linux,
+   x64, cuda]` runner and a single healthy GPU; it is the one lane for which
+   "cheap insurance" does not hold, and if the runner is offline every
+   push-to-main CI run fails or queues.
+
+   Implemented as briefed (full matrix on push), but this is a deliberate
+   decision for the reviewer, not an obviously-correct default. If the cost is
+   unwanted, the narrower version is to exclude `hosted: false` lanes from the
+   push expansion — one condition in `select_lanes`'s `full_matrix` branch —
+   which keeps the post-merge net for all 30 hosted lanes and leaves the
+   device lanes diff-scoped as they are today.
+
 1. **17 lanes are not package-derivable.** Product, aggregate, oracle, and
    global lanes still select via the catalog and the surviving hand rules. The
    same drift class can therefore still exist *there* — this increment neither
@@ -300,7 +316,16 @@ git diff 191e409f -- conformance/ci-touchpoints-v1.json | grep -c '"commands"'  
    if vector deliveries are frequent it is the highest-value place to add a
    *narrow, deliberately reviewed* mapping.
 
-7. **Not executed in CI.** Everything above is local replay against historical
+7. **Notes are script-reachability entry points.**
+   `scripts/tests/test_script_reachability.py` seeds its reachability walk from
+   `autoresearch/**/*.md`, so writing a literal `scripts/<name>.py` path in a
+   note marks that script "gate-reachable". The first draft of this note did
+   exactly that and failed the ratchet by sheltering a declared operator tool.
+   Worked around by naming the tool prosaically instead. The underlying
+   sharpness — prose can silence an anti-sprawl ratchet — is worth a separate
+   look; it is not this increment's to fix.
+
+8. **Not executed in CI.** Everything above is local replay against historical
    diffs plus static validation. The first real hosted run is the PR itself, and
    the push-to-main full matrix is what will confirm the post-merge path.
 

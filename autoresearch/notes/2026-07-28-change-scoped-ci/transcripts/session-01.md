@@ -138,8 +138,8 @@ ones touching only RISC-V package paths (`e6303646`, `a0e594e6`), took the
 notes-only `ceb5b32f`, the metallib delivery `19026cae`, and PR #125's
 `78556fe7...191e409f`.
 
-The brief predicted PR #125 would fail open on
-`scripts/riscv_poseidon_table_uniqueness.py`, and asked for the counterfactual
+The brief predicted PR #125 would fail open on the RISC-V Poseidon
+table-uniqueness operator tool under `scripts/`, and asked for the counterfactual
 without it. It does fail open — but the counterfactual **also** comes out full,
 because the same PR touched `build_support/products/aggregate.zig` and
 `build_support/products/cairo_support.zig`, which are unmapped and fail open
