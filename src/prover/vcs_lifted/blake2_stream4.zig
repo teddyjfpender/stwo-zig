@@ -53,6 +53,18 @@ pub fn updateM31Columns4(
     storeStates(hashers, &states);
 }
 
+/// Absorbs `columns` at `position` into four base streams and finalizes them
+/// in one SIMD-resident pass. Equivalent to `updateM31Columns4` followed by
+/// `finalize4`, without the intermediate state scatter and re-gather.
+pub fn finalizeM31Columns4(
+    hashers: *const [4]CoreHasher,
+    columns: anytype,
+    position: usize,
+) [4]CoreHasher.Hash {
+    const states = loadStates(hashers);
+    return BackendHasher.finalizeM31Columns4(&states, columns, position);
+}
+
 pub fn finalize4(hashers: *const [4]CoreHasher) [4]CoreHasher.Hash {
     const states = loadStates(hashers);
     const empty = [_]u8{};
