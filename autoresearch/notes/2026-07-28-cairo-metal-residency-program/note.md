@@ -2948,3 +2948,338 @@ migrated stages with warm caches. Composition alone now projects 4.60-5.87x
 under option A and 5.74-7.00x under option B, on steady-state device measurement
 rather than warmup samples. Both clear it; §2.3's requirement is no longer in
 doubt for this stage and the AOT-bounded row of §7's table should be struck.
+
+---
+
+## Increment 3.8: the Option-A device composition hook
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `c7237d72`, clean. Predecessor binaries: `/private/tmp/i38-pred/zig-out`
+(copied from the pristine `zig-out` at `c7237d72`, `identity` verified
+`source.commit = c7237d72…`, `dirty = false`,
+`core-aot-manifest-sha256 = 0bc89238…`). Raw data: `/private/tmp/i38/`.
+
+**Verdict: partially-delivered. The hook is built, landed, and default-safe, and
+the ≥ 2.0x composition-stage gate was NOT MEASURED — because admission cannot
+resolve a single kernel. The blocker is not the lift and not the ABI. It is that
+the checked-in metallib is compiled from the wrong bundle.**
+
+> **`vectors/cairo/sn_pie_2_composition.metallib` exports 271 kernels whose
+> semantic hashes have *zero* intersection with the 69 that the AIR template
+> library — the artifact the product actually proves with — emits. Every
+> increment from 3.4 to 3.7 tested against `sn_pie_2_composition.bin` directly
+> and none of them ever asked whether the product's own composition programs are
+> the same programs. They are not.**
+>
+> **The fix needs no codegen change and no new design.** The shipping
+> `metal-eval-source` already emits a complete library from
+> `vectors/cairo/official/*.air_programs_v1.bin`, and that emission covers
+> **46/46 of all-opcodes' parts, 31/32 of memory-7m's and 28/29 of
+> arithmetic-2m's**. It needs one CI compile and one `composition_aot` manifest
+> entry — the same external producer Option B needs, for a strictly smaller
+> change.
+
+### 1. The finding, measured three ways
+
+The hook was built first and spot-proved second, per the brief. all-opcodes
+proved to `79ae76e1ac0c48b1` with the stage *declined*, and 30+ lines of
+`Missing Metal function stwo_zig_eval_…` explained why. Three measurements pin
+it down; none is an inference.
+
+**(a) The requested names.** Each workload's `open` logs every kernel it fails
+to resolve, so the product's actual request set is observed rather than derived:
+
+| workload | parts requested | resolved from the checked-in metallib |
+| --- | ---: | ---: |
+| all-opcodes | 46 | **0** |
+| arithmetic-2m | 29 | **0** |
+| memory-7m | 32 | **0** |
+
+**(b) The two emissions are disjoint.** `metal-eval-source` run over the SN2
+bundle and over each of the three AIR template library program bundles, and the
+`stwo_zig_eval_<16 hex>` name sets intersected:
+
+| source bundle | components | plan hash | unique kernels |
+| --- | ---: | --- | ---: |
+| `vectors/cairo/sn_pie_2_composition.bin` (what the metallib is) | 58 | `8fc4db5088697537` | 271 |
+| `official/all_opcodes.air_programs_v1.bin` | 46 | `a3611657b6f2c65f` | 46 |
+| `official/all_builtins_canonical.air_programs_v1.bin` | 48 | `14e5e4baf0058e43` | 48 |
+| `official/all_builtins_canonical_small.air_programs_v1.bin` | 48 | `d9f0a4feaa846596` | 48 |
+| **union of the three template bundles** | — | — | **69** |
+
+`|union ∩ SN2| = 0`. Not a partial overlap, not a subset — disjoint.
+
+**(c) The template emission covers the portfolio almost completely.** Every
+requested name intersected against that 69-kernel union:
+
+| workload | parts | covered by the template emission | uncovered |
+| --- | ---: | ---: | --- |
+| all-opcodes | 46 | **46 (100%)** | — |
+| memory-7m | 32 | **31 (96.9%)** | `stwo_zig_eval_c8aac910405e4430` |
+| arithmetic-2m | 29 | **28 (96.6%)** | `stwo_zig_eval_8b479bd873189790` |
+
+So the artifact that would make this hook work is one CI `xcrun metal` invocation
+away, and the per-component host-fallback coverage mechanism the hook already
+implements absorbs the single straggler per large workload.
+
+**The mechanism for the straggler, and why it is one and not many.**
+`semanticHash` (`witness/eval_program.zig:284`) hashes base constants, both
+instruction streams and the constraint roots — *not* `domain_log_size`, so §6.2's
+log-size independence is confirmed, not contradicted. But
+`air/template_binding.zig` rewrites base constants at instantiation:
+`rebindDomainConstants` replaces `memory_address_to_id`'s chunk strides when the
+claim's log size differs from the template's, and `rebindSegmentConstant`
+replaces builtin segment start addresses. Each rewrite changes `base_consts` and
+therefore the hash. all-opcodes resolves 46/46 precisely because its claim needs
+no rebinding; arithmetic-2m and memory-7m each lose exactly one component to it.
+Confirming *which* component (the arithmetic is `memory_address_to_id`) is the
+successor's first five minutes.
+
+**Why nothing earlier caught this.** 3.4's binding smoke, 3.5's four-component
+byte-exactness, 3.6's fusion census and 3.7's parity and lift-bridge tests all
+load `sn_pie_2_composition.bin` and dispatch its own kernels. That is a coherent
+closed world and every result in it stands. None of them ever went through
+`air_templates.instantiate`, which is the only producer the product uses. The
+gap was in the test *fixture selection*, not in any claim made.
+
+### 2. The hook, as landed
+
+Three new modules and one new field, and the shape is worth stating because the
+seam is reusable for the witness and interaction stages.
+
+**`src/prover/air/device_composition.zig`** declares a backend-neutral whole-stage
+evaluator carried on `ProveOptions`. `ComponentProvers.computeCompositionEvaluationForBackend`
+consults it first and exactly once; `null` means decline and falls through to the
+unchanged host path. This is the second dispatch mechanism alongside the existing
+`B.computeCompositionEvaluation`, and it exists because the *type*-scoped one
+cannot carry a Cairo evaluator — `src/backends/metal` must not know what a
+captured Cairo AIR program is. It is per-call, not process-global, so the
+isolation property `component_prover.zig` documents is preserved.
+
+**`src/frontends/cairo/proving/air/device_stage.zig`** owns the accumulator loop.
+This placement is the load-bearing decision: byte-exactness of the composition
+polynomial is a property of `DomainEvaluationAccumulator.columns`, which hands
+out coefficient powers from the tail of the powers vector in component order —
+`component_parallel.compute` walks `power_cursor` down exactly the order
+`computeCompositionEvaluationSequential` walks `columns` up. The stage reproduces
+that one assignment for *both* device- and host-evaluated components, so a
+per-component refusal cannot perturb the coefficients of the components around
+it. `Fixture.composition_device` is the injection point, supplied by
+`Product.compositionDevice` on the Metal product and absent on the CPU product,
+which keeps the CPU lane the byte-parity reference by construction.
+
+**`src/integrations/cairo_metal/composition_eval_arena.zig`** plans and lifts.
+Per component, one contiguous word range in `EvalLayout` order: lifted columns
+(`columns × 2^eval_log`), `trace_offsets`, `interaction_offsets`, `ext_params`,
+`random_coeffs`, `denom_inv`, four coordinate planes. Every accepted component
+reuses one buffer sized to the largest plan, so the stage costs one resident
+allocation per proof rather than one per component; a plan whose offsets exceed
+`u32` or whose bytes exceed `STWO_ZIG_COMPOSITION_EVAL_ARENA_BYTES` (8 GiB
+default) is a planning refusal. The lift is 3.7's routine unchanged —
+`((p >> s) << 1) + (p & 1)`, pair duplication, per-column shift taken from the
+same `ResolvedColumn.shift_amt` the host evaluator is handed — parallelised
+per column over `work_pool.getGlobalPool()` with a striding worker.
+**The lift is the staging pass**: there is no separate upload, which is the whole
+point of 3.7's byte-exact bridge.
+
+**`src/integrations/cairo_metal/composition_stage.zig`** is admission and dispatch.
+
+### 3. Admission policy, and the three different things "fail closed" means
+
+`open` is the only place a decision is made, and it makes three, in this order:
+
+| gate | refusal | consequence |
+| --- | --- | --- |
+| metallib authentication (`composition_aot.authenticate`, process policy, manifest by default) | rejected or absent | **whole-stage decline**, host composition, `composition_device_declined` marker, logged at error level |
+| arena planning for every expressible component | no component plans, or over the byte cap | **whole-stage decline** |
+| by-name kernel resolution of every part out of the *authenticated* library | some components | those components **evaluated on host inside the stage** — declared coverage, counted as `composition_device_host_components` |
+| — | all components | **whole-stage decline** |
+| a dispatch failing *after* admission held | per component | host evaluation of that component, counted as `composition_device_fallbacks` **and** `.cpu_composition_evaluation`, so the proof can no longer report `accelerated_without_fallbacks` |
+
+The one judgement here worth defending: **a whole-stage decline does not
+increment `cpuFallbackTotal`.** Before this increment every Metal Cairo proof
+evaluated composition on the host and reported `cpu_fallbacks = 0`; a decline
+returns the proof to exactly that path, so counting it as a fallback would
+retroactively mis-classify every proof in this campaign's record. Only a proof
+that *started* composition on the device and finished on the host is a fallback.
+This follows 3.5 §3's precedent for the alias/memcpy/upload codes: count it,
+surface it, do not destroy the meaning of `accelerated_without_fallbacks`.
+
+### 4. The gate: NOT MEASURED, and the honest reason
+
+**GATE RESULT: not measurable at this head.** The bar was composition-stage
+speedup ≥ 2.0x on arithmetic-2m and memory-7m. Zero components reach the device
+on any workload, so the stage speedup is exactly 1.00x by construction, and
+reporting "1.00x, missed" would say nothing about the hook. The projections
+3.7 §4 priced (4.60-5.87x single-threaded, 5.56-6.84x at 8 threads) are
+untouched by this increment: nothing measured here contradicts them and nothing
+measured here supports them either.
+
+What *is* measured is the cost of the hook itself, which turned out to matter.
+
+| lane | `composition_device_admission` span | outcome |
+| --- | ---: | --- |
+| armed, good metallib, arithmetic-2m | **49.53 ms** | declined (0 kernels resolved) |
+| armed, good metallib, arithmetic-2m (paired arms, 6 samples) | 15.05-19.35 ms | declined |
+| armed, good metallib, all-opcodes (6 samples) | 19.70-24.41 ms | declined |
+| armed, good metallib, memory-7m (6 samples) | 19.66-40.51 ms | declined |
+| armed, corrupt metallib | 3.02 ms | declined at authentication |
+| armed, absent metallib | 0.095 ms | declined at `open` |
+| **default (off)** | **0.029 ms** | one env-var read |
+
+Armed, the hook pays a 7.7 MB SHA-256 plus a library load plus 29-46 failed
+pipeline resolutions, for nothing. **So the increment landed with
+`STWO_ZIG_COMPOSITION_DEVICE` defaulting to off** — the brief's
+"prefer landing admission-off" instruction, applied for a measured reason rather
+than out of caution. Off, the whole hook is an env-var read and the proof is
+byte-identical to the predecessor.
+
+### 5. Paired measurement, and why it is a screen and not evidence
+
+A-B-B-A, cold processes, caches off both arms (`STWO_CAIRO_PREPROCESSED_CACHE=0`),
+one untimed warmup per arm per workload, **3 blocks** (6 samples per arm),
+predecessor = pristine `zig-out` at `c7237d72`. The candidate binaries in these
+arms are the **armed** hook (the default-off flip landed after), so this prices
+the worst case rather than the shipped one.
+
+**These arms are contaminated and are offered as a screen only.** The test gates
+were running concurrently; host `loadavg` went 4.52 → 12.45 → 24.61 → 52.55
+across the three workloads. Absolute times are 20-70% above every quiet-host
+figure in this campaign (arithmetic-2m 2,159 ms here against 1,771 ms in 3.5),
+and arithmetic-2m's own predecessor arm spans 1.823x. Nothing at 1-3% is
+resolvable in this data and none is claimed.
+
+| workload | pred mean ms | cand mean ms | cand/pred | 95% CI | pred samples | cand samples | arm spreads |
+| --- | ---: | ---: | ---: | --- | --- | --- | --- |
+| arithmetic-2m | 2,159.0 | 2,138.5 | **0.9905x** | [0.687, 1.294] | 1730, 1733, 1750, 1957, 2630, 3153 | 1734, 1748, 1789, 1824, 2812, 2923 | 1.823x / 1.686x |
+| all-opcodes | 1,922.9 | 1,947.7 | **1.0129x** | [0.984, 1.042] | 1867, 1903, 1917, 1929, 1930, 1991 | 1905, 1914, 1922, 1944, 1947, 2055 | 1.066x / 1.078x |
+| memory-7m | 8,518.4 | 8,766.0 | **1.0291x** | [0.979, 1.080] | 8213, 8219, 8304, 8392, 8639, 9344 | 8433, 8522, 8693, 8822, 8845, 9281 | 1.138x / 1.101x |
+
+all-opcodes' +1.3% and memory-7m's +2.9% are consistent in sign and magnitude
+with the 20-40 ms admission span, which is the only mechanism the armed
+candidate adds. The default-off build removes it, and that is the disposition
+the branch carries.
+
+Composition stage, for completeness and claimed as nothing (mean of 6):
+`composition_evaluation` 538.4 → 509.2 ms (arithmetic-2m), 598.9 → 586.8 ms
+(all-opcodes), 2,955.9 → 3,127.7 ms (memory-7m). Both arms run the identical
+host evaluator, so these are a control, and at this loadavg they behave like a
+noisy one.
+
+**Lift span: not measured, because no lift ran.** The `composition_device_lift`
+instrumentation is in the tree and reached only from an accepted component.
+**Dispatch count delta: zero** — 74 / 75 / 79 on both arms, identical to every
+increment since Phase 0, because `telemetry.record(.metal_composition_eval_dispatch)`
+sits on the accepted path. The ~29-58 added dispatches the brief priced against
+3.5's 0.1763 ms floor remain a projection (5.1-10.2 ms).
+
+### 6. Verification
+
+| check | result |
+| --- | --- |
+| all-opcodes Metal, all 6 candidate samples + spot | `79ae76e1ac0c48b1` = campaign `79ae76e1…` |
+| arithmetic-2m Metal, all 6 candidate samples + spot | `25e5719f4c578eb7` = campaign `25e5719f…` |
+| memory-7m Metal, all 6 candidate samples | `e3317e55a5db5a42` = campaign `e3317e55…` |
+| all-opcodes / arithmetic-2m / memory-7m CPU | `79ae76e1…` / `25e5719f…` / `e3317e55…`, byte-identical to Metal, `host-only`, 0 dispatches |
+| `STWO_ZIG_WORKERS=1` arithmetic-2m, CPU | `25e5719f4c578eb7` |
+| `STWO_ZIG_WORKERS=1` arithmetic-2m, Metal | `25e5719f4c578eb7`, 74 dispatches |
+| dispatch counts | 75 / 74 / 79 — identical on both arms and to Phase 0 |
+| `cpu_fallbacks` | 0 on every Metal row; every row `accelerated_without_fallbacks` |
+| default-off vs armed, arithmetic-2m | both `25e5719f4c578eb7`, 74 dispatches |
+
+Every digest set is a singleton across 18 timed Metal candidate samples, the
+predecessor arms, the CPU lanes and both fail-closed lanes.
+
+**The corrupt-metallib fail-closed test is now REACHABLE, and it passes.** This
+is increment 3.6's and 3.7's carried-forward open item, unreachable until now
+because the product did not load the metallib. A byte-flipped, length-preserving
+copy of `vectors/cairo/sn_pie_2_composition.metallib` (7,740,844 bytes both) was
+written to `/private/tmp/i38/corrupt.metallib` and named through
+`STWO_ZIG_COMPOSITION_METALLIB`:
+
+| lane | admission | markers | digest | dispatches | fallbacks |
+| --- | --- | --- | --- | ---: | ---: |
+| corrupt metallib | rejected (`UnapprovedCompositionMetallib`) | `composition_device_declined` | `25e5719f4c578eb7` | 74 | 0 |
+| absent metallib | rejected (`InvalidCompositionMetallibPath`) | `composition_device_declined` | `25e5719f4c578eb7` | 74 | 0 |
+
+Digest unchanged, decline counted, host stage taken. The override names a
+different artifact and never relaxes the digest policy — only
+`composition_aot.policy_env` can do that, and only by naming a digest.
+
+**Official verifier: RUN, and it accepts.**
+`/private/tmp/stwo-zig-cairo-completion-20260726/tools/stwo-cairo-official-verifier-rs/target/debug/stwo-cairo-official-verifier`
+(`stwo_cairo_revision 82f21252`, `stwo_revision 7b211edd`),
+`verify --channel blake2s --proof-format json`, `verified: true` on four:
+arithmetic-2m CPU, arithmetic-2m Metal with the **corrupt-metallib decline**,
+memory-7m Metal, and `STWO_ZIG_WORKERS=1` arithmetic-2m Metal.
+
+| gate | result |
+| --- | --- |
+| `package-workspace` | **pass** (17 packages, 17 public modules, 51 edges), both commits |
+| `zig fmt --check`, `check_source_conformance.py` | **pass** (pre-commit, both commits) |
+| `test-cairo-cpu-product`, `test-cairo-frontend`, `test-stwo-prover`, `test-cairo-metal-product`, `metal-check` | **STARTED, NOT COMPLETED** inside the budget — see below |
+
+**Budget disclosure.** The 180-minute budget went on building the hook and then
+on diagnosing why it declines, which is where the increment's value is. The five
+test steps were launched and had not returned when the budget closed; they are
+recorded as unrun rather than assumed green. They must be run before this branch
+merges anywhere. The narrower reassurance available: `package-workspace` proves
+the whole 17-package workspace compiles and links at both commits, all four
+product binaries were rebuilt at the clean head (`identity` reports
+`71811833…` / `57c65052…`, `dirty = false`,
+`core-aot-manifest-sha256 = 0bc89238…`), and the digest table above is produced
+by those binaries. `package.contract.json` gained two `api_surface` entries
+(`composition_eval_arena`, `composition_stage`), flagged as the brief requires.
+
+`src/prover/air/component_prover.zig` reached 852 lines on the first attempt and
+the pre-commit ceiling refused it; the stage consultation was moved into
+`device_composition.tryStage`, leaving it at 846.
+
+Pre-existing, noted not chased, unchanged from 3.7's list.
+
+### 7. What increment 3.9 is, priced
+
+The recommendation order changes completely, and the new item 1 is smaller than
+anything the program has queued.
+
+1. **Mint a metallib from the AIR template library's own program bundles.** No
+   codegen change, no ABI change, no design work: `metal-eval-source` already
+   emits the three libraries (46 + 48 + 48 kernels, plan hashes
+   `a3611657b6f2c65f` / `14e5e4baf0058e43` / `d9f0a4feaa846596`), CI already
+   compiles one composition metallib exactly this way
+   (`.github/workflows/ci.yml:418-424`), and `composition_aot.approved_metallibs`
+   already takes an entry with a provenance record. This host cannot do it —
+   `xcode-select --print-path` is `/Library/Developer/CommandLineTools` and both
+   `xcrun --sdk macosx --find metal` and `--find metallib` fail, exactly as 3.7 §1
+   recorded. **This is now the critical path and it unblocks the ≥ 2.0x gate at
+   96.6-100% component coverage with the hook that is already committed.**
+   Priced from 3.7 §4: composition stage 435.7 → 94.8 ms on arithmetic-2m
+   (4.60x), 1,219.4 → 247.1 ms on memory-7m (4.94x), single-threaded lift.
+2. **Then flip `STWO_ZIG_COMPOSITION_DEVICE` to default-on and measure the gate.**
+   The hook, the arena, the lift, the admission policy, the telemetry and the
+   fail-closed test are all landed and all verified; the increment is
+   `git revert` of one commit plus one A-B-B-A run on a quiet host. Expect the
+   arithmetic-2m and memory-7m stage rows to be the first real measurement of
+   device composition in the program.
+3. **Fix the one rebound component per workload, or accept it.** Accepting it is
+   free: it falls back to the host inside the stage and costs its own share of
+   the stage. Fixing it means moving `rebindDomainConstants`'
+   and `rebindSegmentConstant`'s replaced constants out of the instruction stream
+   and into the arena's parameter block — a codegen change that rides the same
+   CI round trip as item 1 and would also make every future claim's programs
+   share one kernel set. Worth scoping only after item 2 says what the straggler
+   costs.
+4. **Option B and fusion stay where 3.7 and 3.6 put them.** Option B (teach
+   `trace_value` the shift, delete the lift, 7.00x/5.74x/6.30x) and the
+   portfolio's 2-part fused groups (1.5-1.6%) are both re-mint riders. Item 1 *is*
+   a re-mint, so both should be evaluated for inclusion in it — but item 1 must
+   not be blocked on either, because item 1 alone clears the gate.
+
+**Amdahl, restated with what this increment did and did not move.** §2.3 requires
+3.13x on the migrated stages with warm caches. Composition still *projects*
+4.60-5.87x under option A on 3.7's steady-state measurement, and this increment
+neither confirms nor weakens that: it moves the projection's precondition from
+"build the arena and the hook" — done, committed, verified byte-exact where it
+can be — to "compile the right metallib", which is one CI job. **The composition
+row of the Amdahl table remains projected, not measured, and the reason is now a
+build artifact rather than an unknown.**
