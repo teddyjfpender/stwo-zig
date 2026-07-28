@@ -1273,3 +1273,154 @@ powers are already bound *from inside* the resident arena
 not one phase's incidental cost; it is the shared precondition for composition
 **and** interaction, and it should be planned, built and measured as its own
 increment rather than absorbed into either.
+
+---
+
+## Phase 1.5: the resident trace arena (stopped mid-increment)
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `ef8e0c2c`, clean. Predecessor binaries: `/private/tmp/p15-pred/zig-out`
+(built at `ef8e0c2c`, `identity` verified `dirty = false`,
+`core-aot-manifest-sha256 = 0bc89238…`). Raw data: `/private/tmp/p15/`.
+
+**Stopped on orchestrator instruction** so the branch can be rebased onto a
+modularity refactor that moves the seams this increment touches. No paired
+A-B-B-A evidence was taken and the composition binding smoke test was not
+written. What follows is the design, the seam map, the one blocker the increment
+measured, and the correctness evidence that exists.
+
+### The headline: the arena can be planned, but not *before* execution
+
+The increment's premise was that the claim-derived geometry is available before
+witness execution, so one arena could be planned from it and every base column
+written at its final offset. The layout half of that is true and landed. The
+timing half is false, and this is the finding:
+
+**A claim derived before witness execution still carries `deferred`
+per-component log sizes.** `claim_generator.LogSize` is a union with a
+`.deferred` arm and `OwnedClaimGeometry.deferredCount()` exists precisely to
+count it; the resolution point is `resolveFeedGeometry`, whose own doc comment
+names it *"the witness-to-statement handoff"*. The AIR template binder refuses
+a deferred log size outright (`air/template_binding.zig:42`, `:104`,
+`error.IncompleteClaimGeometry`), and so does `flatten`
+(`claim_generator.zig:144`).
+
+This was measured, not reasoned: the first wired build failed the all-opcodes
+run with `error: IncompleteClaimGeometry` raised from the pre-execution
+`instantiate` call. So for every live Cairo workload the per-component row
+counts that the layout needs are only known *after* the witness graph has
+reported its feeds.
+
+Phase 0 §3.2 said the arena planner is row-count-agnostic. That is correct and
+it is not the constraint. **The constraint is that the row counts themselves are
+not available in time.** Campaign 1's rejected retrofit was rejected for
+allocating after fragmentation; this increment shows the successor it demanded —
+"allocate one backend-shaped base arena BEFORE component execution" — cannot be
+driven by the live claim alone, because the live claim is not complete before
+component execution.
+
+### Layout design, and the seam map
+
+| concern | file:line |
+| --- | --- |
+| arena layout planner (new, 315 lines) | `src/frontends/cairo/proving/trace_arena.zig` |
+| layout tests (new, 192 lines) | `src/frontends/cairo/tests/base_trace_arena.zig` |
+| allocation-before-execution seam | `src/frontends/cairo/proving/base_trace.zig` `buildInto` + `Collector.capture` |
+| product gate (comptime, Metal only) | `src/frontends/cairo/proving/transaction.zig` `arena_capable` |
+| commit-side adoption decision | `src/prover/pcs/backed_columns.zig` `adoptOrDetach`, `freeSource` |
+| detach bypass | `src/prover/pcs/scheme.zig` `commitOwnedPreparedWithRecorderAndBacking` |
+| per-group arena binding | `src/prover/pcs/columns/preparation.zig` `arenaGroupRun` |
+| backend declaration | `src/backends/metal/commit_backend.zig` `adopts_source_trace_arena` |
+
+**Layout.** Columns are grouped by `log_size` in first-appearance order —
+exactly the order `circle_transforms.buildLogSizeGroupsFromColumns:522-533`
+produces at commit time — and within a group they keep ascending flat-column
+order. Each group starts on a page boundary. The base region is page-padded and
+the interaction region is *reserved* (offsets and length computed and tested)
+but not materialized, because interaction columns are written after the base
+commit per Fiat-Shamir.
+
+**Why that shape.** The no-copy commit source already exists and this is what it
+requires. `runtime/circle_legacy.m:227-229` computes
+`source_is_base = source_columns[column] == base_columns[column]` for every
+column; when it holds, the whole fused-upload encoder is skipped
+(`:265-322`) and the IFFT runs in place from layer 1. `:229-230` additionally
+requires `base_columns[0]` page-aligned and `base_bytes` a page multiple for the
+`newBufferWithBytesNoCopy` alias; failing that costs exactly one memcpy
+(`:322-328`) and stays byte-correct. `combined_commit.zig:91-99` and
+`columnsCoverContiguousBacking:320-332` are the same contract for the uniform
+one-epoch path.
+
+**Why the CPU product is untouched by construction, not by testing.**
+`prepareColumnsCombinedForBackend:249-262` only allocates a group coefficient
+arena when `combined_base_in_place` is absent. `cpu_scalar/mod.zig:39` declares
+it, and `:37-38` cap the combined path at 256 columns — which the Cairo base
+trace exceeds — so the CPU backend neither allocates nor can receive a group
+arena. The product gate is comptime on `Engine.Backend.adopts_source_trace_arena`,
+which only Metal declares.
+
+**Fail-closed vs fall-back, deliberately split.** Planning refusals are a
+*fallback* (`trace_arena.tryPrepare` → `null`, product keeps the fragmented
+path): non-contiguous or empty spans, out-of-range row counts, size overflow, a
+structural size floor, and now an incomplete claim. A plan/actual *width*
+disagreement at capture time is a *hard error* (`ArenaPlanMismatch`), because by
+then storage is already committed and the alternative is writing outside a
+planned range. `transaction.zig` additionally re-checks
+`trace_arena.columnsMatchPlan` before handing the arena to the commit, because
+that pointer equality is the entire basis of the no-copy binding and it is
+cheaper to check than to assume.
+
+### Correctness evidence (single cold runs; no timing claim)
+
+Cache-off (`STWO_CAIRO_PREPROCESSED_CACHE=0`), `run-and-prove`.
+
+| lane | workload | proof sha-256 | campaign value | match | dispatches | fallbacks | classification |
+| --- | --- | --- | --- | --- | ---: | ---: | --- |
+| Metal | all-opcodes | `79ae76e1ac0c` | `79ae76e1…` | yes | 75 | 0 | `accelerated_without_fallbacks` |
+| CPU | all-opcodes | `79ae76e1ac0c` | `79ae76e1…` | yes | 0 | 0 | `host-only` |
+
+Byte-identical CPU/Metal, dispatch count identical to the Phase 0 baseline. That
+is expected and it is also the weakness of this evidence: **the arena path falls
+back on this workload**, so what is verified is that the machinery is inert, not
+that it is correct when engaged. arithmetic-2m and memory-7m were not run.
+
+`test-cairo-metal-product`, `test-cairo-frontend` and `test-cairo-cpu-product`
+all pass (Metal product closure PASS, 386 sources; CPU closure PASS, 335). The
+layout's five tests run inside `test-cairo-frontend`; they were deliberately put
+in the frontend *test root* because `addTest` only collects tests from its root
+module's own files, so tests beside the planner would compile inside the product
+closure and never run — this was verified by breaking an assertion and observing
+the step still pass. That is the same gap the Phase 1 note recorded for
+`composition_aot.zig`, avoided rather than repeated.
+
+### What a successor needs
+
+The arena cannot be driven by the pre-execution claim. Three routes, in
+increasing cost:
+
+1. **A width-and-row oracle that does not need the witness.** The base tree's
+   *widths* are static per component (the AIR template spans); only the *row
+   counts* of feed-dependent components are deferred. A conservative planner
+   could allocate at an upper bound per deferred component and bind only the
+   used prefix — at the cost of a per-group contiguity break, which is exactly
+   what `source_is_base` forbids. So the upper bound would have to be exact, not
+   conservative.
+2. **Resolve feeds before the base graph runs.** `resolveFeedGeometry` consumes
+   `FeedGeometry` reports produced during execution. If the feed row counts can
+   be computed from the prover input alone (a counting pass, not a witness
+   pass), the claim completes before execution and the layout as landed works
+   unchanged. This is the cheapest route that preserves the no-copy binding and
+   it is the one to price first.
+3. **Plan after execution, write once.** Give the witness graph the arena as its
+   output target in a second phase that never materializes fragmented columns —
+   i.e. move the arena decision inside `live_graph.execute`. Larger, and it is
+   adjacent to the Phase 4 witness-residency work.
+
+The composition binding smoke test — `evalPrepared` bound against a live arena
+for one component, byte-compared against the host evaluator — was **not
+written**, so the Phase 1 eval-binding unlock is **not demonstrated**. The
+existing template for it is
+`src/tests/metal/backend/execution_graph_test.zig:234-322`, which already builds
+a resident arena, writes trace words and offsets into it, constructs the eleven
+`EvalLayout` offsets and dispatches `evalPrepared`; what it does not do is use
+the digest-verified metallib or a real Cairo component's program.
