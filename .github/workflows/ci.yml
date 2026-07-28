@@ -14,23 +14,7 @@ on:
           - standard
           - strict
           - architecture
-          - riscv-produce-candidate
-          - riscv-produce-promoted
-          - riscv-candidate
-          - riscv-promoted
         default: standard
-      candidate_sha:
-        description: Full candidate commit SHA (RISC-V gates only)
-        type: string
-        default: ""
-      candidate_ref:
-        description: Explicit candidate source ref (RISC-V gates only)
-        type: string
-        default: ""
-      producer_run_id:
-        description: Exhaustive RISC-V anchor producer run ID (RISC-V fast gates)
-        type: string
-        default: ""
 
 permissions:
   actions: read
@@ -99,6 +83,14 @@ jobs:
             echo "::notice title=native_metal deferred::Metal device-execution lane selected but excluded from hosted macOS runners (GPU-less VMs). Covered by local pre-push on a real Mac / judge host."
             echo "- native_metal: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if grep -q '"riscv_metal"' "$RUNNER_TEMP/focused-ci-plan.json"; then
+            echo "::notice title=riscv_metal deferred::RISC-V Metal device-execution lane selected but excluded from hosted macOS runners (GPU-less VMs). Covered by local pre-push on a real Mac / judge host."
+            echo "- riscv_metal: deferred to local/judge-host runs (no Metal GPU on hosted runners)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if grep -q '"cairo_metal"' "$RUNNER_TEMP/focused-ci-plan.json"; then
+            echo "::notice title=cairo_metal deferred::Cairo Metal product lane selected but excluded from hosted macOS runners. It requires a real Metal device and an authenticated external AOT bundle."
+            echo "- cairo_metal: deferred to a real-device judge host with STWO_METAL_CORE_AOT_BUNDLE" >> "$GITHUB_STEP_SUMMARY"
+          fi
           if grep -q '"native_cuda_device"' "$RUNNER_TEMP/focused-ci-plan.json"; then
             echo "- native_cuda_device: required on the explicitly CUDA-labelled self-hosted runner" >> "$GITHUB_STEP_SUMMARY"
             echo "- CUDA oracle authority: repository Rust source + Cargo.lock + nightly-2025-07-14; its built binary digest is bound into the receipt" >> "$GITHUB_STEP_SUMMARY"
@@ -120,7 +112,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
       needs.focused-plan.outputs.linux_count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.linux_matrix) }}
@@ -461,11 +453,12 @@ jobs:
       - name: Compile broader Metal test graph without execution
         run: zig build metal-check -Doptimize=ReleaseSafe
 
+  # Archived pre-Sail evidence transport. It is retained temporarily so old
+  # bundles remain inspectable, but no workflow input can select it and the
+  # unconditional false guard prevents candidate code from executing it.
   riscv-release-evidence:
-    name: RISC-V exhaustive release evidence
-    if: >-
-      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
-      startsWith(inputs.gate, 'riscv-produce-')
+    name: Archived RISC-V Stark-V layout evidence (disabled)
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     concurrency:
@@ -723,11 +716,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # Consumer half of the archived pre-Sail evidence transport. The active
+  # RISC-V gate is scripts/riscv_release_gate.py with a formal Sail workspace.
   riscv-fast-release-gate:
-    name: RISC-V fast release gate
-    if: >-
-      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
-      (inputs.gate == 'riscv-candidate' || inputs.gate == 'riscv-promoted')
+    name: Archived RISC-V Stark-V replay gate (disabled)
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:

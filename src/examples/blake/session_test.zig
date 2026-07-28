@@ -3,7 +3,7 @@
 const std = @import("std");
 const fri = @import("stwo_core").fri;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../interop/proof_wire.zig");
+const proof_wire = @import("stwo_proof_wire");
 const subject = @import("../blake.zig");
 
 fn testConfig() !pcs.PcsConfig {

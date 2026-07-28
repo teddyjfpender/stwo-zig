@@ -1,7 +1,7 @@
 //! Exact mixed-height geometry for the Native State Machine v2 proof.
 
 const std = @import("std");
-const cpu_state_machine = @import("../../../examples/state_machine/input.zig");
+const cpu_state_machine = @import("stwo_native_examples").backend_support.state_machine.input;
 const pcs = @import("stwo_core").pcs;
 
 pub const preprocessed_columns: u32 = 0;
@@ -178,9 +178,7 @@ pub fn oodsFactorCount(geometry: Geometry) Error!usize {
 
 pub fn oodsScratchCount(geometry: Geometry) Error!usize {
     const rows = try geometry.traceRowCount();
-    const block = @import(
-        "../../../backends/cuda/runtime/stages/oods.zig",
-    ).first_coefficients_per_block;
+    const block = @import("stwo_cuda_backend").runtime.stages.oods.first_coefficients_per_block;
     return std.math.add(
         usize,
         try usizeMul(18, try usizeCeilDiv(rows, block)),

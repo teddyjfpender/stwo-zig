@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import subprocess
@@ -9,178 +8,31 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.riscv_release_gate_lib.contract import (
+    ARCHIVED_STARK_V_COMMIT,
+    ARCHIVED_RECEIPT_ERROR,
     BOUNDARIES,
-    ELF_CORPUS_BOUNDARIES,
-    GENERATED_CORPUS_KEYS,
-    EXPECTED_LIMITATION_REQUESTS,
-    IMPLEMENTATION_REPOSITORY,
-    ORACLE_REPOSITORY,
-    PINNED_ORACLE,
-    NONEMPTY_RELATION_CASE,
     core_purity_errors,
     divergence_errors,
     divergence_ledger_errors,
     frontend_layering_errors,
-    oracle_limitation_source_errors,
     receipt_errors,
-    expected_case_result_keys,
     _relation_case_errors,
 )
 from scripts.riscv_release_gate_lib import controller
 from scripts.riscv_release_gate_lib.controller import command_plan
 from scripts.riscv_release_evidence import _strict_object
-from scripts.tests.riscv_release_receipt_fixture import nonempty_relation_case
+from scripts.tests.riscv_release_receipt_fixture import (
+    TEST_COMMIT as COMMIT,
+    TEST_DIGEST as DIGEST,
+    air_divergence,
+    valid_receipt,
+)
 
 
-COMMIT = "a" * 40
-DIGEST = "b" * 64
-
-def valid_receipt(now: int) -> dict[str, object]:
-    boundaries = {
-        name: {
-            "status": "pass",
-            **({"corpus": [{"name": "alu", "agree": True}]}
-               if name in ELF_CORPUS_BOUNDARIES else {}),
-        }
-        for name in BOUNDARIES
-    }
-    for name in ("relation_tuples", "relation_sums"):
-        boundaries[name]["corpus"][0].update({
-            "proof_admission": {"status": "supported"},
-            "proof_admitted": True,
-            "evidence_mode": "balanced_full",
-        })
-        boundaries[name]["nonempty_public_input"] = nonempty_relation_case(name)
-    keys = expected_case_result_keys(("alu",))
-    digests = {key: DIGEST for key in keys}
-    for boundary in BOUNDARIES:
-        encoded = json.dumps(
-            boundaries[boundary], sort_keys=True, separators=(",", ":")
-        ).encode()
-        digests[f"{boundary}/aggregate"] = hashlib.sha256(encoded).hexdigest()
-        if boundary in ELF_CORPUS_BOUNDARIES:
-            case = boundaries[boundary]["corpus"][0]
-            digests[f"{boundary}/alu"] = hashlib.sha256(
-                json.dumps(case, sort_keys=True, separators=(",", ":")).encode()
-            ).hexdigest()
-            if boundary in {"relation_tuples", "relation_sums"}:
-                special = boundaries[boundary]["nonempty_public_input"]
-                digests[f"{boundary}/{NONEMPTY_RELATION_CASE}"] = hashlib.sha256(
-                    json.dumps(special, sort_keys=True, separators=(",", ":")).encode()
-                ).hexdigest()
-        if boundary in GENERATED_CORPUS_KEYS:
-            digests[GENERATED_CORPUS_KEYS[boundary]] = digests[f"{boundary}/aggregate"]
-    return {
-        "schema": "riscv-oracle-receipt-v2",
-        "candidate_commit": COMMIT,
-        "created_at_unix": now,
-        "witness_layout_digest_sha256": DIGEST,
-        "corpus_digest_sha256": DIGEST,
-        "expected_case_result_keys": keys,
-        "case_result_digests": digests,
-        "verdict": "PASS",
-        "oracle": {
-            "repository": ORACLE_REPOSITORY,
-            "commit": PINNED_ORACLE,
-            "clean": True,
-            "tree_digest_sha256": DIGEST,
-            "lockfile_sha256": DIGEST,
-            "executable_sha256": DIGEST,
-            "toolchain": "rustc 1.90",
-            "build_command": "cargo build --locked --release -p prover",
-            "build_mode": "release",
-            "host_arch": "aarch64",
-            "host_os": "macOS",
-            "submodule_status": [],
-            "adapter_overlay": {
-                "path": "crates/prover/src/bin/cp11_dump.rs",
-                "sha256": DIGEST,
-            },
-        },
-        "implementation": {
-            "repository": IMPLEMENTATION_REPOSITORY,
-            "commit": COMMIT,
-            "clean": True,
-            "executables": {
-                "riscv-trace-dump": DIGEST,
-                "stwo-zig": DIGEST,
-            },
-        },
-        "boundaries": boundaries,
-    }
-
-
-def limitation_core() -> dict[str, object]:
-    return {
-        "schema": "riscv-mulh-limitation-v1",
-        "limitation_id": "stark-v-signed-mulh",
-        "oracle_commit": PINNED_ORACLE,
-        "family": "mulh",
-        "family_rows": 3,
-        "signed_rows": 2,
-        "unsigned_rows": 1,
-        "raw_nonzero_entries": 60,
-        "raw_stream_sha256": "1" * 64,
-        "range811_requests": 24,
-        "range811_stream_sha256": "2" * 64,
-        "invalid_request_count": 8,
-        "invalid_requests_sha256": "3" * 64,
-        "invalid_requests": [
-            {
-                "row": row,
-                "opcode_id": opcode,
-                "request_index": request,
-                "tuple": list(values),
-                "classification": "range_check_8_11_value_out_of_range",
-            }
-            for row, opcode, request, values in EXPECTED_LIMITATION_REQUESTS
-        ],
-        "outcome": "preprocessed_registration_rejected",
-        "source": {
-            "elf_sha256": DIGEST,
-            "input_sha256": hashlib.sha256(b"").hexdigest(),
-        },
-    }
-
-
-def limitation_case(boundary: str) -> dict[str, object]:
-    core = limitation_core()
-    diagnostic = (
-        "stark-v adapter: error=UnsupportedProofFamily "
-        "stage=statement_validation_before_first_commitment "
-        "limitation=stark-v-signed-mulh"
-    )
-    return {
-        "name": "mul_div",
-        "elf_sha256": DIGEST,
-        "proof_admission": {
-            "status": "fail_closed_known_limitation",
-            "known_limitation": "stark-v-signed-mulh",
-        },
-        "proof_admitted": False,
-        "evidence_mode": "pinned_known_limitation",
-        "agree": True,
-        "comparison_outcome": "exact_pinned_limitation_fail_closed",
-        "observation": (
-            "raw_relation_requests" if boundary == "relation_tuples"
-            else "preprocessed_registration"
-        ),
-        "limitation_evidence": {
-            "normalized_core": core,
-            "normalized_core_sha256": hashlib.sha256(
-                json.dumps(core, sort_keys=True, separators=(",", ":")).encode()
-            ).hexdigest(),
-            "production_rejection": {
-                "exit_code": 1,
-                "stdout_sha256": hashlib.sha256(b"").hexdigest(),
-                "stderr_sha256": hashlib.sha256((diagnostic + "\n").encode()).hexdigest(),
-                "diagnostic": diagnostic,
-                "proof_artifact_absent": True,
-                "report_artifact_absent": True,
-                "temporary_residue_absent": True,
-            },
-        },
-    }
+AIR_ROW = (
+    f"| {air_divergence.LEDGER_LANE} | {air_divergence.LEDGER_BOUNDARY} | zig | rust "
+    "| Allowed only with the pinned divergence shape. |"
+)
 
 
 class DivergenceContractTests(unittest.TestCase):
@@ -198,34 +50,11 @@ class DivergenceContractTests(unittest.TestCase):
             "## Closure requirements",
         ))
 
-    def test_current_signed_mulh_oracle_defect_is_documented_but_allowlisted(self) -> None:
-        errors = divergence_errors(Path(__file__).resolve().parents[2])
-        self.assertFalse(
-            any("Signed `MULH` carry relation" in error for error in errors)
-        )
-
-    def test_known_oracle_limitation_cannot_be_hidden_or_loosely_waived(self) -> None:
-        missing = divergence_ledger_errors(self.ledger())
-        self.assertTrue(any("known oracle limitation" in error for error in missing))
-
-        disguised = divergence_ledger_errors(self.ledger(
-            "| RISC-V | Signed `MULH` carry relation | zig | rust | Deferred without condition. |"
-        ))
-        self.assertTrue(
-            any("allowlisted divergence lacks its conditional status" in error for error in disguised)
-        )
-
-    def test_signed_mulh_fix_marker_is_machine_enforced(self) -> None:
-        self.assertEqual([], oracle_limitation_source_errors("// FIX(stark-v-signed-mulh): pinned"))
-        self.assertEqual(
-            ["signed-MULH oracle limitation lacks FIX(stark-v-signed-mulh)"],
-            oracle_limitation_source_errors("// defect mentioned without the stable marker"),
-        )
-
     def test_only_code_owned_conditional_rows_are_allowlisted(self) -> None:
         ledger = self.ledger(
             "| RISC-V | PCS geometry | zig | rust | Allowed only with the self-check. |",
             "| RISC-V | Interaction transcript | zig | rust | Allowed only with the transcript receipt. |",
+            AIR_ROW,
         )
         self.assertEqual([], divergence_ledger_errors(ledger, pinned_oracle="f" * 40))
 
@@ -240,11 +69,27 @@ class DivergenceContractTests(unittest.TestCase):
     def test_architectural_divergences_cannot_be_hidden(self) -> None:
         ledger = self.ledger(
             "| RISC-V | PCS geometry | zig | rust | Allowed only with the self-check. |",
+            AIR_ROW,
         )
         self.assertIn(
             "required architectural divergence is missing: RISC-V / Interaction transcript",
             divergence_ledger_errors(ledger, pinned_oracle="f" * 40),
         )
+
+    def test_air_soundness_row_is_required_not_merely_permitted(self) -> None:
+        """Deleting the row would hide the under-constraints the oracle admits."""
+        ledger = self.ledger(
+            "| RISC-V | PCS geometry | zig | rust | Allowed only with the self-check. |",
+            "| RISC-V | Interaction transcript | zig | rust | Allowed only with the transcript receipt. |",
+        )
+        self.assertIn(
+            "required architectural divergence is missing: "
+            f"{air_divergence.LEDGER_REFERENCE}",
+            divergence_ledger_errors(ledger, pinned_oracle="f" * 40),
+        )
+
+    def test_live_ledger_satisfies_the_machine_read_policy(self) -> None:
+        self.assertEqual([], divergence_errors(Path(__file__).resolve().parents[2]))
 
 
 class LayeringContractTests(unittest.TestCase):
@@ -302,10 +147,10 @@ class ReceiptContractTests(unittest.TestCase):
                 object_pairs_hook=_strict_object,
             )
 
-    def test_complete_current_candidate_receipt_passes(self) -> None:
+    def test_well_formed_archived_receipt_cannot_authorize_release(self) -> None:
         now = int(time.time())
         self.assertEqual(
-            [],
+            [ARCHIVED_RECEIPT_ERROR],
             receipt_errors(valid_receipt(now), COMMIT, now=now, vector_names=("alu",)),
         )
 
@@ -324,7 +169,7 @@ class ReceiptContractTests(unittest.TestCase):
             "schema": "riscv-oracle-receipt-v1",
             "candidate_commit": COMMIT,
             "verdict": "PASS",
-            "oracle": {"commit": PINNED_ORACLE},
+            "oracle": {"commit": ARCHIVED_STARK_V_COMMIT},
             "boundaries": {name: {"status": "pass"} for name in BOUNDARIES},
         }
         errors = receipt_errors(receipt, COMMIT, now=0, vector_names=("alu",))
@@ -394,83 +239,21 @@ class ReceiptContractTests(unittest.TestCase):
         errors = receipt_errors(receipt, COMMIT, now=receipt["created_at_unix"])
         self.assertTrue(any("lacks public-data agreement" in error for error in errors))
 
-    def test_signed_mulh_limitation_mode_is_exact_and_fail_closed(self) -> None:
-        admission = {
-            "status": "fail_closed_known_limitation",
-            "known_limitation": "stark-v-signed-mulh",
-        }
-        for boundary in ("relation_tuples", "relation_sums"):
-            self.assertEqual(
-                [], _relation_case_errors(limitation_case(boundary), boundary, admission)
-            )
-
-        relabeled = limitation_case("relation_tuples")
-        relabeled["evidence_mode"] = "balanced_full"
-        relabeled["proof_admitted"] = True
-        errors = _relation_case_errors(
-            relabeled, "relation_tuples", admission
-        )
-        self.assertTrue(any("not exact pinned-limitation" in error for error in errors))
-        self.assertTrue(any("proof-admitted" in error for error in errors))
-
-        skipped = limitation_case("relation_sums")
-        skipped.pop("limitation_evidence")
-        skipped["comparison_outcome"] = "skipped"
-        errors = _relation_case_errors(skipped, "relation_sums", admission)
-        self.assertTrue(any("exact fail-closed outcome" in error for error in errors))
-        self.assertTrue(any("incomplete limitation evidence" in error for error in errors))
-
-    def test_limitation_rejects_malformed_matrix_and_artifact_creation(self) -> None:
-        admission = {
-            "status": "fail_closed_known_limitation",
-            "known_limitation": "stark-v-signed-mulh",
-        }
-        malformed = limitation_case("relation_tuples")
-        malformed["limitation_evidence"]["normalized_core"]["invalid_requests"][0][
-            "request_index"
-        ] = 9
-        malformed["limitation_evidence"]["production_rejection"][
-            "proof_artifact_absent"
-        ] = False
-        errors = _relation_case_errors(malformed, "relation_tuples", admission)
-        self.assertTrue(any("request matrix is not exact" in error for error in errors))
-        self.assertTrue(any("no-artifact contract" in error for error in errors))
-
-        noncanonical = limitation_case("relation_tuples")
-        noncanonical["limitation_evidence"]["normalized_core"]["invalid_requests"][0][
-            "tuple"
-        ][1] = (1 << 31) - 1
-        errors = _relation_case_errors(noncanonical, "relation_tuples", admission)
-        self.assertTrue(any("invalid request record" in error for error in errors))
-
-        wrong_source = limitation_case("relation_tuples")
-        wrong_source["limitation_evidence"]["normalized_core"]["source"][
-            "elf_sha256"
-        ] = "c" * 64
-        errors = _relation_case_errors(wrong_source, "relation_tuples", admission)
-        self.assertTrue(any("not bound to the live source" in error for error in errors))
-
-    def test_mulhu_diagnostic_requires_nonzero_family_evidence_and_stays_unadmitted(self) -> None:
-        admission = {
-            "status": "diagnostic_balanced_family_fail_closed",
-            "known_limitation": "stark-v-signed-mulh",
-        }
+    def test_every_relation_case_is_balanced_and_proof_admitted(self) -> None:
+        admission = {"status": "supported"}
         case = {
-            "name": "mulhu_only",
+            "name": "mul_div",
             "proof_admission": admission,
-            "proof_admitted": False,
+            "proof_admitted": True,
             "evidence_mode": "balanced_full",
             "agree": True,
-            "mulh_nonzero_entries": 1,
         }
-        self.assertEqual(
-            [], _relation_case_errors(case, "relation_tuples", admission)
-        )
-        case["mulh_nonzero_entries"] = 0
-        case["proof_admitted"] = True
+        self.assertEqual([], _relation_case_errors(case, "relation_tuples", admission))
+        case["proof_admitted"] = False
+        case["limitation_evidence"] = {}
         errors = _relation_case_errors(case, "relation_tuples", admission)
-        self.assertTrue(any("no nonzero MULH" in error for error in errors))
         self.assertTrue(any("proof-admission verdict" in error for error in errors))
+        self.assertTrue(any("obsolete Stark-V limitation" in error for error in errors))
 
     def test_relation_cases_bind_the_live_manifest_elf_digest(self) -> None:
         now = int(time.time())
@@ -492,7 +275,7 @@ class CommandPlanTests(unittest.TestCase):
         plan = command_plan(
             strict=False,
             phase="candidate",
-            stark_v_source=None,
+            formal_workspace=None,
             candidate=COMMIT,
             evidence_dir=Path("/evidence"),
             host_system="Linux",
@@ -512,7 +295,7 @@ class CommandPlanTests(unittest.TestCase):
         plan = command_plan(
             strict=False,
             phase="candidate",
-            stark_v_source=None,
+            formal_workspace=None,
             candidate=COMMIT,
             evidence_dir=Path("/evidence"),
             host_system="Darwin",
@@ -530,7 +313,7 @@ class CommandPlanTests(unittest.TestCase):
         plan = command_plan(
             strict=False,
             phase="candidate",
-            stark_v_source=None,
+            formal_workspace=None,
             candidate=COMMIT,
             evidence_dir=Path("/evidence"),
             host_system="Linux",
@@ -544,11 +327,11 @@ class CommandPlanTests(unittest.TestCase):
         )
 
     def test_strict_plan_generates_then_validates_candidate_bound_oracle_evidence(self) -> None:
-        source = Path("/oracle")
+        source = Path("/formal")
         plan = command_plan(
             strict=True,
             phase="candidate",
-            stark_v_source=source,
+            formal_workspace=source,
             candidate=COMMIT,
             evidence_dir=Path("/evidence"),
             host_system="Linux",
@@ -556,26 +339,25 @@ class CommandPlanTests(unittest.TestCase):
         rendered = [" ".join(command) for command in plan]
         self.assertNotIn("zig build release-gate -Doptimize=ReleaseFast", rendered)
         self.assertEqual(1, rendered.count("zig build release-gate-strict -Doptimize=ReleaseFast"))
-        self.assertFalse(any("test-riscv-prover" in row for row in rendered))
         strict_index = rendered.index("zig build release-gate-strict -Doptimize=ReleaseFast")
-        producer_index = next(i for i, row in enumerate(rendered) if "build-and-compare" in row)
-        oracle_validate_index = next(
-            i for i, row in enumerate(rendered) if "riscv_release_oracle.py validate" in row
-        )
-        evidence_index = next(i for i, row in enumerate(rendered) if "riscv_release_evidence.py" in row)
-        self.assertLess(strict_index, producer_index)
-        self.assertLess(producer_index, oracle_validate_index)
-        self.assertLess(oracle_validate_index, evidence_index)
-        self.assertIn(f"--candidate {COMMIT}", rendered[producer_index])
-        self.assertIn(f"--candidate {COMMIT}", rendered[evidence_index])
-        self.assertIn("riscv_release_evidence.py", rendered[-1])
+        tools_index = next(i for i, row in enumerate(rendered) if "riscv_formal_tools.py verify" in row)
+        corpus_index = next(i for i, row in enumerate(rendered) if "riscv_trace_vectors.py" in row)
+        build_index = next(i for i, row in enumerate(rendered) if "riscv_arch_tests.py build" in row)
+        audit_index = next(i for i, row in enumerate(rendered) if "riscv_arch_tests.py audit" in row)
+        self.assertLess(strict_index, tools_index)
+        self.assertLess(tools_index, corpus_index)
+        self.assertLess(corpus_index, build_index)
+        self.assertLess(build_index, audit_index)
+        self.assertIn("--workspace /formal", rendered[tools_index])
+        self.assertIn("--sail-bin /formal/source/sail-riscv", rendered[corpus_index])
+        self.assertIn("riscv_arch_tests.py audit", rendered[-1])
 
     def test_strict_plan_refuses_an_opaque_oracle_location(self) -> None:
-        with self.assertRaisesRegex(ValueError, "--stark-v-source"):
+        with self.assertRaisesRegex(ValueError, "--formal-workspace"):
             command_plan(
                 strict=True,
                 phase="candidate",
-                stark_v_source=None,
+                formal_workspace=None,
                 candidate=COMMIT,
                 evidence_dir=Path("/evidence"),
             )

@@ -1,4 +1,4 @@
-//! Stark-V RV32IM ELF adapter seam behind the production proof CLI.
+//! Sail-authoritative RV32IM ELF adapter seam behind the production proof CLI.
 //!
 //! The adapter is deliberately fail-closed: `proveElf` is the one call site
 //! the CLI routes `--elf` runs through, and it returns
@@ -10,6 +10,7 @@ const std = @import("std");
 const stwo = @import("stwo");
 const capabilities = @import("riscv_cpu_capabilities");
 const build_identity = @import("build_identity");
+const artifact_validation = @import("proof_adapter/artifact_validation.zig");
 const transcript_state = @import("proof_adapter/transcript_state.zig");
 const verify_receipt = @import("proof_adapter/verify_receipt.zig");
 const wire_arena = @import("proof_adapter/wire_arena.zig");
@@ -21,11 +22,7 @@ const WireArena = wire_arena.WireArena;
 pub const AdapterError = error{AdapterNotReleaseGated};
 
 pub const PENDING_DIAGNOSTIC =
-    "stark-v adapter: staged only; the RISC-V release contract is not yet fully satisfied";
-pub const UNSUPPORTED_PROOF_FAMILY_DIAGNOSTIC =
-    "stark-v adapter: error=UnsupportedProofFamily " ++
-    "stage=statement_validation_before_first_commitment " ++
-    "limitation=stark-v-signed-mulh";
+    "RISC-V adapter: staged only; the formal release contract is not yet fully satisfied";
 
 pub const Benchmark = struct {
     warmups: usize,
@@ -52,9 +49,7 @@ pub const Options = struct {
     proof_report_path: ?[]const u8,
 };
 
-const ProcessIdentity = struct {
-    executable_sha256: [32]u8,
-};
+const ProcessIdentity = artifact_validation.ProcessIdentity;
 
 /// Runs the staged ELF adapter and returns an owned machine-readable report.
 ///
@@ -69,7 +64,7 @@ pub fn run(
 ) ![]u8 {
     try capabilities.requireAdmission(options.experimental);
     if (options.backend != .cpu) return error.AdapterNotReleaseGated;
-    const process_identity = try measureProcessIdentity(allocator);
+    const process_identity = try artifact_validation.measureProcessIdentity(allocator);
     return switch (options.mode) {
         .prove => runProve(allocator, elf_path, input_path, options, process_identity),
         .bench => |benchmark| runBenchmark(
@@ -113,12 +108,13 @@ fn runProve(
     std.crypto.hash.sha2.Sha256.hash(input_bytes, &input_digest, .{});
 
     var execution_timer = try std.time.Timer.start();
-    // The production CLI always enforces the symbol-bearing Stark-V ABI. The
+    // The production CLI always enforces the symbol-bearing zkVM ABI. The
     // compatibility runner deliberately accepts older, undeclared programs and
     // must never become an empty-input bypass around this boundary.
     var run_result = try runner.runWithInput(allocator, elf_bytes, input_bytes, 10_000_000);
     defer run_result.deinit();
-    if (run_result.completion_reason != .halt_flag)
+    if (run_result.completion_reason != .halt_flag and
+        run_result.completion_reason != .self_loop)
         return error.InvalidReleaseCompletion;
     const execution_seconds = seconds(execution_timer.read());
 
@@ -136,7 +132,7 @@ fn runProve(
     var recorder = stwo.prover.stage_profile.Recorder.init(
         allocator,
         @tagName(@import("builtin").mode),
-        "stark_v_rv32im",
+        "sail_rv32im_zkvm_v1",
     );
     defer recorder.deinit();
     var proving_timer = try std.time.Timer.start();
@@ -159,6 +155,7 @@ fn runProve(
             .program_root = null,
             .initial_rw_root = null,
             .final_rw_root = null,
+            .completion = try pd_mod.completionFromRun(run_result),
             .io_entries = .{
                 .input_start = run_result.input_start,
                 .input_len = @intCast(run_result.input.len),
@@ -171,6 +168,7 @@ fn runProve(
         },
         &prove_channel,
     );
+    defer output.deinitAfterProofMoved(allocator);
     const transcript_state_digest = transcript_state.receiptDigest(
         prove_channel.digestBytes(),
         prove_channel.n_draws,
@@ -227,11 +225,26 @@ fn runProve(
         .elf_sha256 = &elf_digest_hex,
         .input_sha256 = &input_digest_hex,
     };
+    const pcs_wire = artifact_mod.PcsConfigWire{
+        .pow_bits = config.pow_bits,
+        .fri_config = .{
+            .log_blowup_factor = config.fri_config.log_blowup_factor,
+            .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
+            .n_queries = config.fri_config.n_queries,
+            .fold_step = config.fri_config.fold_step,
+        },
+        .lifting_log_size = config.lifting_log_size,
+    };
     const layout_digest_hex = std.fmt.bytesToHex(
         stwo.frontends.riscv.witness_layout.digest(),
         .lower,
     );
-    const statement_digest = artifact_mod.statementDigest(source, wires.statement);
+    const statement_digest = artifact_mod.statementDigest(
+        @tagName(options.protocol),
+        pcs_wire,
+        source,
+        wires.statement,
+    );
     const statement_digest_hex = std.fmt.bytesToHex(statement_digest, .lower);
     const transcript_state_digest_hex = std.fmt.bytesToHex(transcript_state_digest, .lower);
     const executable_digest_hex = std.fmt.bytesToHex(
@@ -257,14 +270,7 @@ fn runProve(
             .implementation_dirty = build_identity.implementation_dirty,
             .witness_layout_sha256 = &layout_digest_hex,
         },
-        .pcs_config = .{
-            .pow_bits = config.pow_bits,
-            .fri_config = .{
-                .log_blowup_factor = config.fri_config.log_blowup_factor,
-                .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
-                .n_queries = config.fri_config.n_queries,
-            },
-        },
+        .pcs_config = pcs_wire,
         .statement = wires.statement,
         .interaction_claim = wires.claim,
         .proof_bytes_hex = proof_hex,
@@ -523,6 +529,7 @@ pub fn verifyArtifact(
     artifact: stwo.interop.riscv_artifact.Artifact,
     requested_policy: Protocol,
     expected_statement_digest: [32]u8,
+    elf_path: []const u8,
 ) !void {
     const artifact_mod = stwo.interop.riscv_artifact;
     const prover = stwo.frontends.riscv.prover_mod;
@@ -533,8 +540,14 @@ pub fn verifyArtifact(
         .functional => .functional,
         .smoke => .smoke,
     });
-    try validateLocalProvenance(artifact.provenance);
-    const actual_statement_digest = artifact_mod.statementDigest(artifact.source, artifact.statement);
+    try artifact_validation.validateLocalProvenance(artifact.provenance);
+    try artifact_validation.validateElfBinding(allocator, artifact, elf_path);
+    const actual_statement_digest = artifact_mod.statementDigest(
+        artifact.protocol,
+        artifact.pcs_config,
+        artifact.source,
+        artifact.statement,
+    );
     if (!std.mem.eql(u8, &expected_statement_digest, &actual_statement_digest))
         return error.StatementDigestMismatch;
 
@@ -548,7 +561,7 @@ pub fn verifyArtifact(
         return error.InvalidArtifact;
     try stwo.interop.postcard.proof_preflight.validate(
         proof_raw,
-        try proofPreflightShape(artifact),
+        try artifact_validation.proofPreflightShape(artifact),
     );
     var stream = std.io.fixedBufferStream(proof_raw);
     var proof = try stwo.interop.postcard.deserializeProof(
@@ -569,7 +582,7 @@ pub fn verifyArtifact(
             .n_queries = artifact.pcs_config.fri_config.n_queries,
         },
     };
-    if (!pcsConfigsEqual(config, proof.commitment_scheme_proof.config)) {
+    if (!artifact_validation.pcsConfigsEqual(config, proof.commitment_scheme_proof.config)) {
         proof.deinit(allocator);
         return error.ProofConfigMismatch;
     }
@@ -580,13 +593,13 @@ pub fn verifyArtifact(
         config,
         reconstructed.statement,
         proof,
-        reconstructed.claim,
+        &reconstructed.claim,
         &verify_channel,
     );
 
     var proof_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(proof_raw, &proof_digest, .{});
-    const process_identity = try measureProcessIdentity(allocator);
+    const process_identity = try artifact_validation.measureProcessIdentity(allocator);
     const receipt = try verify_receipt.encode(allocator, .{
         .artifact_kind = artifact.artifact_kind,
         .artifact_schema_version = artifact.schema_version,
@@ -606,116 +619,6 @@ pub fn verifyArtifact(
     defer allocator.free(receipt);
     try std.fs.File.stdout().writeAll(receipt);
     try std.fs.File.stdout().writeAll("\n");
-}
-
-fn measureProcessIdentity(allocator: std.mem.Allocator) !ProcessIdentity {
-    const executable_path = try std.fs.selfExePathAlloc(allocator);
-    defer allocator.free(executable_path);
-    const file = try std.fs.openFileAbsolute(executable_path, .{});
-    defer file.close();
-    const before = try file.stat();
-    if (before.kind != .file or before.size == 0) return error.InvalidExecutable;
-
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    var buffer: [256 * 1024]u8 = undefined;
-    var measured_bytes: u64 = 0;
-    while (true) {
-        const count = try file.read(&buffer);
-        if (count == 0) break;
-        hasher.update(buffer[0..count]);
-        measured_bytes = std.math.add(u64, measured_bytes, count) catch
-            return error.InvalidExecutable;
-    }
-    const after = try file.stat();
-    if (measured_bytes != before.size or before.size != after.size or
-        before.inode != after.inode or before.mtime != after.mtime)
-        return error.ExecutableChangedDuringMeasurement;
-    return .{ .executable_sha256 = hasher.finalResult() };
-}
-
-fn proofPreflightShape(
-    artifact: stwo.interop.riscv_artifact.Artifact,
-) !stwo.interop.postcard.proof_preflight.Shape {
-    const protocol = stwo.interop.riscv_artifact.wire_protocol;
-    const prover = stwo.frontends.riscv.prover_mod;
-
-    var preprocessed_columns: u64 = std.math.mul(
-        u64,
-        artifact.statement.components.len,
-        2,
-    ) catch return error.InvalidArtifact;
-    var main_columns: u64 = 0;
-    var interaction_columns: u64 = 0;
-    var max_log_size: u32 = 0;
-    for (artifact.statement.components) |component| {
-        main_columns = std.math.add(u64, main_columns, component.n_columns) catch
-            return error.InvalidArtifact;
-        const interaction = std.math.mul(
-            u64,
-            component.interaction_batch_count,
-            4,
-        ) catch return error.InvalidArtifact;
-        interaction_columns = std.math.add(u64, interaction_columns, interaction) catch
-            return error.InvalidArtifact;
-        max_log_size = @max(max_log_size, component.log_size);
-    }
-    for (artifact.statement.infrastructure) |component| {
-        const kind = std.meta.intToEnum(protocol.InfraKind, component.kind) catch
-            return error.InvalidArtifact;
-        preprocessed_columns = std.math.add(
-            u64,
-            preprocessed_columns,
-            protocol.preprocessedColumns(kind),
-        ) catch return error.InvalidArtifact;
-        main_columns = std.math.add(u64, main_columns, component.n_columns) catch
-            return error.InvalidArtifact;
-        const interaction = std.math.mul(u64, component.claim_count, 4) catch
-            return error.InvalidArtifact;
-        interaction_columns = std.math.add(u64, interaction_columns, interaction) catch
-            return error.InvalidArtifact;
-        max_log_size = @max(max_log_size, component.log_size);
-    }
-
-    return .{
-        .config = .{
-            .pow_bits = artifact.pcs_config.pow_bits,
-            .log_blowup_factor = artifact.pcs_config.fri_config.log_blowup_factor,
-            .n_queries = artifact.pcs_config.fri_config.n_queries,
-            .log_last_layer_degree_bound = artifact.pcs_config.fri_config.log_last_layer_degree_bound,
-            .fold_step = artifact.pcs_config.fri_config.fold_step,
-            .lifting_log_size = artifact.pcs_config.lifting_log_size,
-        },
-        .tree_columns = .{
-            std.math.cast(u32, preprocessed_columns) orelse return error.InvalidArtifact,
-            std.math.cast(u32, main_columns) orelse return error.InvalidArtifact,
-            std.math.cast(u32, interaction_columns) orelse return error.InvalidArtifact,
-            2 * stwo.core.fields.qm31.SECURE_EXTENSION_DEGREE,
-        },
-        .max_column_log_size = max_log_size,
-        .hash_size = @sizeOf(prover.Hasher.Hash),
-        .max_wire_bytes = stwo.interop.riscv_artifact.MAX_PROOF_BYTES,
-    };
-}
-
-fn validateLocalProvenance(provenance: stwo.interop.riscv_artifact.ProvenanceWire) !void {
-    if (!std.mem.eql(u8, provenance.implementation_commit, build_identity.implementation_commit) or
-        provenance.implementation_dirty != build_identity.implementation_dirty)
-        return error.ImplementationIdentityMismatch;
-    const expected_layout = std.fmt.bytesToHex(
-        stwo.frontends.riscv.witness_layout.digest(),
-        .lower,
-    );
-    if (!std.mem.eql(u8, provenance.witness_layout_sha256, &expected_layout))
-        return error.WitnessLayoutMismatch;
-}
-
-fn pcsConfigsEqual(expected: anytype, actual: @TypeOf(expected)) bool {
-    return expected.pow_bits == actual.pow_bits and
-        expected.fri_config.log_blowup_factor == actual.fri_config.log_blowup_factor and
-        expected.fri_config.log_last_layer_degree_bound == actual.fri_config.log_last_layer_degree_bound and
-        expected.fri_config.n_queries == actual.fri_config.n_queries and
-        expected.fri_config.fold_step == actual.fri_config.fold_step and
-        expected.lifting_log_size == actual.lifting_log_size;
 }
 
 test "adapter preserves the complete sampled benchmark contract" {
@@ -764,18 +667,18 @@ test "staged verifier binds build and witness-layout provenance" {
         .implementation_dirty = build_identity.implementation_dirty,
         .witness_layout_sha256 = &layout,
     };
-    try validateLocalProvenance(provenance);
+    try artifact_validation.validateLocalProvenance(provenance);
 
     provenance.implementation_commit = "00" ** 20;
     try std.testing.expectError(
         error.ImplementationIdentityMismatch,
-        validateLocalProvenance(provenance),
+        artifact_validation.validateLocalProvenance(provenance),
     );
     provenance.implementation_commit = build_identity.implementation_commit;
     provenance.witness_layout_sha256 = "00" ** 32;
     try std.testing.expectError(
         error.WitnessLayoutMismatch,
-        validateLocalProvenance(provenance),
+        artifact_validation.validateLocalProvenance(provenance),
     );
 }
 

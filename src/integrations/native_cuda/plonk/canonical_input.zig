@@ -2,7 +2,7 @@
 
 const geometry_mod = @import("geometry.zig");
 const pcs = @import("stwo_core").pcs;
-const cpu_plonk = @import("../../../examples/plonk.zig");
+const cpu_plonk = @import("stwo_native_examples").plonk;
 
 pub const protocol_word_count: usize = 4;
 pub const statement_word_count: usize = geometry_mod.statement_word_count;

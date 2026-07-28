@@ -29,6 +29,7 @@ pub const Bench = struct {
 
 pub const Verify = struct {
     artifact: []const u8,
+    elf_path: []const u8,
     protocol: Protocol,
     expected_statement_digest: ?[32]u8,
 };
@@ -146,9 +147,10 @@ fn finish(command: Command, scratch: Scratch) !Parsed {
             } };
         },
         .verify => {
-            try requireOnly(scratch, &.{ .artifact, .protocol, .expect_statement_digest });
+            try requireOnly(scratch, &.{ .artifact, .elf, .protocol, .expect_statement_digest });
             return .{ .verify = .{
                 .artifact = try requiredPath(scratch.artifact, error.MissingArtifact),
+                .elf_path = try requiredPath(scratch.elf, error.MissingElf),
                 .protocol = scratch.protocol,
                 .expected_statement_digest = scratch.expected_statement_digest,
             } };
@@ -233,7 +235,7 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
         \\Usage: stwo-zig-riscv-cpu <command> [options]
         \\
         \\Commands:
-        \\  prove          Prove and verify one Stark-V RV32IM ELF
+        \\  prove          Prove and verify one Sail-profile RV32IM ELF
         \\  bench          Benchmark the verified RISC-V proving path
         \\  verify         Verify a RISC-V proof artifact
         \\  applications   List the compiled frontend and backend
@@ -261,7 +263,8 @@ pub fn writeUsage(writer: anytype, command: ?Command) !void {
             \\
         ),
         .verify => try writer.writeAll(
-            \\Usage: stwo-zig-riscv-cpu verify --artifact PATH [options]
+            \\Usage: stwo-zig-riscv-cpu verify --artifact PATH --elf PATH [options]
+            \\  --elf PATH                         Rebuild and bind the decoded program root
             \\  --protocol NAME                    secure, functional, or smoke
             \\  --expect-statement-digest SHA256   Require the external statement digest
             \\
@@ -281,6 +284,16 @@ test "only ELF and CPU are accepted" {
     try std.testing.expectError(error.UnknownArgument, parse(&.{
         "prove", "--air", "wide_fibonacci", "--backend", "cpu", "--output", "proof.json",
     }));
+}
+
+test "focused RISC-V verification requires the source ELF" {
+    try std.testing.expectError(error.MissingElf, parse(&.{
+        "verify", "--artifact", "proof.json",
+    }));
+    const request = (try parse(&.{
+        "verify", "--artifact", "proof.json", "--elf", "guest.elf",
+    })).verify;
+    try std.testing.expectEqualStrings("guest.elf", request.elf_path);
 }
 
 test "help does not advertise unrelated products" {

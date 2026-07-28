@@ -1,0 +1,77 @@
+{
+  "schema": "stwo_cairo_official_oracle_vector_v1",
+  "case": "test_prove_verify_all_opcode_components",
+  "source": {
+    "repository": "https://github.com/starkware-libs/stwo-cairo",
+    "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "prover_input_path": "test_data/test_prove_verify_all_opcode_components/prover_input.json",
+    "prover_input_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+    "stwo_repository": "https://github.com/starkware-libs/stwo",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+  },
+  "proof": {
+    "path": "vectors/cairo/official/all_opcodes_blake2s.proof.bz2",
+    "format": "binary",
+    "channel": "blake2s",
+    "bytes": 875491,
+    "sha256": "2d7acaabc6ac00afd1a840aaa1527c4a73a4807a9153dc3fe1d4fdefa86104f1"
+  },
+  "claim_summary": {
+    "path": "vectors/cairo/official/all_opcodes.claim_summary.json",
+    "schema": "stwo_cairo_official_claim_summary_v1",
+    "bytes": 8315,
+    "sha256": "ea73df8c55e7b25067a262a59f2f500d319756ffa230121c89c95d86602bc391",
+    "generator": "stwo-cairo-official-verifier inspect-blake2s-proof"
+  },
+  "base_trace_checkpoint": {
+    "path": "vectors/cairo/official/all_opcodes.base_trace_checkpoint.json",
+    "schema": "stwo-cairo-base-trace-checkpoint-v1",
+    "bytes": 243996,
+    "sha256": "e0cfb2e402dd53fa25d2d42fbc582b14abe8d81a49c98cbce8f9e8b6a89c42a7",
+    "component_count": 46,
+    "column_count": 1464,
+    "final_accumulator_sha256": "45acd12a96745ee0e9fbc32b5509de84c65676eb4d2a9d2bdb5822b696fd38d6",
+    "generator": "stwo-cairo-trace-oracle"
+  },
+  "interaction_trace_checkpoint": {
+    "path": "vectors/cairo/official/all_opcodes.interaction_trace_checkpoint.json",
+    "schema": "stwo-cairo-interaction-trace-checkpoint-v1",
+    "bytes": 192643,
+    "sha256": "7bba89c0d37a7d5dcd7540f3e183966cd43d72d7199ac8ef45c3c70dfd4a59ca",
+    "component_count": 46,
+    "column_count": 1032,
+    "final_accumulator_sha256": "74386dacef4d5c36da2b02a570e894ed2a8f050f6d32d7e1228c378b3c7d0a60",
+    "generator": "stwo-cairo-trace-oracle"
+  },
+  "air_programs": {
+    "path": "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
+    "format": "STWZEVA/1",
+    "bytes": 490417,
+    "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c",
+    "component_count": 46,
+    "constraint_count": 678,
+    "max_evaluation_log": 21,
+    "plan_hash": "a3611657b6f2c65f",
+    "generator": "tools/stwo-cairo-air-compiler",
+    "generator_closure_sha256": "2e8bcbcb1827689ae04cb725a624bc4d90a54481cb5a507762b4585f4ebc3eea"
+  },
+  "prover_input": {
+    "path": "vectors/cairo/official/all_opcodes.prover_input.json",
+    "format": "official_json",
+    "bytes": 181534,
+    "sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+    "summary": {
+      "path": "vectors/cairo/official/all_opcodes.input_summary.json",
+      "schema": "stwo_cairo_official_input_summary_v2",
+      "bytes": 4871,
+      "sha256": "e07ea85938c5c67ead38b97982f72dd3e7f069a0992f8104c9fe185fa112a464",
+      "generator": "stwo-cairo-official-verifier inspect-input"
+    }
+  },
+  "generation": {
+    "proof_command": "cargo run --profile witness-opt-1 --bin prove -- --prover_input_path INPUT --proof_path PROOF --proof-format json --verify",
+    "transcode_command": "cargo run --example compact_blake2s_fixture -- PROOF VECTOR",
+    "upstream_verify_cairo": true,
+    "isolated_oracle_verify_cairo": true
+  }
+}

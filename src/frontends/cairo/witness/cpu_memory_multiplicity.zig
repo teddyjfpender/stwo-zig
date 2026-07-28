@@ -10,11 +10,13 @@ const checkpoint = @import("../conformance/checkpoint.zig");
 const direct_inputs = @import("direct_inputs.zig");
 const execution_tables = @import("execution_tables.zig");
 const feed_bundle = @import("feed_bundle.zig");
+const feed_topology = @import("feed_topology.zig");
 const memory = @import("../common/memory.zig");
 const memory_tables = @import("memory_tables.zig");
 const program = @import("program.zig");
 const verify_inputs = @import("verify_instruction_inputs.zig");
 const witness_bundle = @import("bundle.zig");
+const producer_output = @import("producer_output.zig");
 
 const none = std.math.maxInt(u32);
 
@@ -92,6 +94,55 @@ pub fn collect(
     return counts;
 }
 
+/// Accumulates memory multiplicities from an already executed official witness
+/// graph. This is the production topology path; it has no fixture row geometry.
+pub fn collectTopology(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    topology: feed_topology.Loaded,
+    producers: []const producer_output.ProducerOutput,
+) !Counts {
+    const address_values = input.memory.address_to_id.len -| 1;
+    var counts = Counts{
+        .allocator = allocator,
+        .address = try allocator.alloc(u32, try memory_tables.packedCount(address_values)),
+        .big = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.f252_values.len)),
+        .small = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.small_values.len)),
+    };
+    errdefer counts.deinit();
+    @memset(counts.address, 0);
+    @memset(counts.big, 0);
+    @memset(counts.small, 0);
+    try addPublicMemory(input, &counts);
+
+    for (producers) |producer| {
+        const component = topology.find(producer.label) orelse
+            return error.MissingProducerTopology;
+        if (component.sub_words_per_row != producer.words_per_row or
+            producer.active_rows > producer.row_count or
+            producer.words.len != @as(usize, producer.row_count) * producer.words_per_row)
+            return error.InvalidDescriptor;
+        for (component.feeds) |feed| {
+            const is_address = std.mem.eql(u8, feed.target, "memory_address_to_id");
+            const is_value = std.mem.eql(u8, feed.target, "memory_id_to_big");
+            if (!is_address and !is_value) continue;
+            if (feed.relation != 0 or feed.words_per_instance != 1)
+                return error.UnsupportedMemoryFeed;
+            for (0..producer.active_rows) |row| {
+                const source_index = @as(usize, row) * producer.words_per_row + feed.word_base;
+                const value = producer.words[source_index];
+                if (is_address) {
+                    if (value == 0 or value > counts.address.len) continue;
+                    try increment(&counts.address[value - 1]);
+                } else {
+                    try addEncodedId(value, &counts);
+                }
+            }
+        }
+    }
+    return counts;
+}
+
 /// `create_cairo_claim_generator` yields public memory before any component
 /// writer runs. These uses are intentionally outside the generated feed files.
 fn addPublicMemory(input: *const adapter.ProverInput, counts: *Counts) Error!void {
@@ -99,22 +150,28 @@ fn addPublicMemory(input: *const adapter.ProverInput, counts: *Counts) Error!voi
         if (address == 0 or address >= input.memory.address_to_id.len or
             address - 1 >= counts.address.len)
             return Error.InvalidDescriptor;
-        counts.address[address - 1] = std.math.add(u32, counts.address[address - 1], 1) catch
-            return Error.CountOverflow;
+        try increment(&counts.address[address - 1]);
         const encoded = input.memory.address_to_id[address].raw;
         if (encoded == memory.DEFAULT_ID) return Error.InvalidDescriptor;
-        const tag = encoded >> 30;
-        const index = encoded & 0x3fff_ffff;
-        if (tag == 1 and index < counts.big.len) {
-            counts.big[index] = std.math.add(u32, counts.big[index], 1) catch
-                return Error.CountOverflow;
-        } else if (tag == 0 and index < counts.small.len) {
-            counts.small[index] = std.math.add(u32, counts.small[index], 1) catch
-                return Error.CountOverflow;
-        } else {
-            return Error.InvalidDescriptor;
-        }
+        try addEncodedId(encoded, counts);
     }
+}
+
+fn addEncodedId(encoded: u32, counts: *Counts) !void {
+    if (encoded == memory.DEFAULT_ID) return;
+    const tag = encoded >> 30;
+    const index = encoded & 0x3fff_ffff;
+    if (tag == 1 and index < counts.big.len) {
+        try increment(&counts.big[index]);
+    } else if (tag == 0 and index < counts.small.len) {
+        try increment(&counts.small[index]);
+    } else {
+        return error.InvalidDescriptor;
+    }
+}
+
+fn increment(value: *u32) !void {
+    value.* = std.math.add(u32, value.*, 1) catch return error.CountOverflow;
 }
 
 fn executeAndAccumulate(

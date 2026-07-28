@@ -1,12 +1,14 @@
-"""Strict public-value wires for the RISC-V CP-11 oracle boundary."""
+"""Strict public-value wires for RISC-V artifacts and benchmark adapters."""
 
 from __future__ import annotations
 
 import json
 
 
-PINNED_ORACLE = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
-ORACLE_REPOSITORY = "https://github.com/ClementWalter/stark-v"
+PINNED_SAIL = "8c7f2da58de0ba5e4457e4de07e0046f0439f35f"
+SAIL_REPOSITORY = "https://github.com/riscv/sail-riscv"
+PINNED_STARK_V = "d478f783055aa0d73a93768a433a3c6c31c91d1c"
+STARK_V_REPOSITORY = "https://github.com/ClementWalter/stark-v"
 IMPLEMENTATION_REPOSITORY = "https://github.com/teddyjfpender/stwo-zig"
 
 PUBLIC_VALUES_SCHEMA = "riscv-public-values-diagnostic-v1"
@@ -23,8 +25,10 @@ PUBLIC_DATA_FIELDS = (
     "program_root",
     "initial_rw_root",
     "final_rw_root",
+    "completion",
     "io_entries",
 )
+COMPLETION_FIELDS = ("kind", "address", "value", "clock")
 PUBLIC_IO_FIELDS = (
     "input_start",
     "input_len",
@@ -124,6 +128,13 @@ def validate_public_data_shape(value: object, label: str) -> dict:
     for field in ("program_root", "initial_rw_root", "final_rw_root"):
         if public[field] is not None:
             require_u32(public[field], f"{label}.{field}")
+    completion = exact_fields(
+        public["completion"], COMPLETION_FIELDS, f"{label}.completion"
+    )
+    if completion["kind"] not in ("halt_flag", "unretired_self_loop"):
+        raise ValueError(f"{label}.completion.kind is unsupported")
+    for field in ("address", "value", "clock"):
+        require_u32(completion[field], f"{label}.completion.{field}")
 
     io = exact_fields(public["io_entries"], PUBLIC_IO_FIELDS, f"{label}.io_entries")
     for field in (
@@ -178,12 +189,14 @@ def _validate_binding(
     expected_provenance = {
         "implementation_commit": candidate,
         "implementation_dirty": candidate_dirty,
-        "oracle_commit": PINNED_ORACLE,
+        # The wire field retains its historical name, but it now binds the
+        # active Sail semantic authority, never the Stark-V benchmark.
+        "oracle_commit": PINNED_SAIL,
         "witness_layout_sha256": witness_layout_sha256,
     }
     if artifact:
         expected_provenance.update({
-            "oracle_repository": ORACLE_REPOSITORY,
+            "oracle_repository": SAIL_REPOSITORY,
             "implementation_repository": IMPLEMENTATION_REPOSITORY,
         })
     for field, expected in expected_provenance.items():
@@ -244,11 +257,11 @@ def parse_proof_artifact_public_data(
     artifact = exact_fields(payload, ARTIFACT_FIELDS, "proof artifact")
     expected_identity = {
         "artifact_kind": "stwo_riscv_proof",
-        "schema_version": 3,
-        "exchange_mode": "riscv_proof_json_wire_v3",
+        "schema_version": 4,
+        "exchange_mode": "riscv_proof_json_wire_v4",
         "release_status": release_status,
         "generator": "zig",
-        "air": "stark_v_rv32im",
+        "air": "sail_rv32im_zkvm_v1",
         "backend": "cpu",
         "protocol": "functional",
     }

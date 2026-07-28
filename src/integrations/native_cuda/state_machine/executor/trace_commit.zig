@@ -4,9 +4,7 @@ const commit_tree = @import("../../common/commit_tree.zig");
 const device_trace = @import("../device_trace.zig");
 const plan_mod = @import("../plan.zig");
 const proof_assembly = @import("../../common/proof_assembly.zig");
-const stages = @import(
-    "../../../../backends/cuda/runtime/stages/mod.zig",
-);
+const stages = @import("stwo_cuda_backend").runtime.stages;
 const transcript = @import("../../common/transcript_executor.zig");
 
 const NativeOps = struct {
@@ -146,13 +144,9 @@ pub fn commitWith(
 fn inverseMixed(
     comptime Transform: type,
     session: anytype,
-    matrix: @import(
-        "../../../../backends/cuda/runtime/stages/common.zig",
-    ).WordMatrix,
+    matrix: @import("stwo_cuda_backend").runtime.stages.common.WordMatrix,
     max_log_rows: u32,
-    inverse_twiddles: @import(
-        "../../../../backends/cuda/runtime/stages/common.zig",
-    ).Words,
+    inverse_twiddles: @import("stwo_cuda_backend").runtime.stages.common.Words,
 ) !void {
     const full = try matrixColumns(matrix, 0, 2);
     const half = try matrixColumns(matrix, 2, 2);
@@ -175,9 +169,7 @@ fn inverseMixed(
 }
 
 fn matrixColumns(
-    matrix: @import(
-        "../../../../backends/cuda/runtime/stages/common.zig",
-    ).WordMatrix,
+    matrix: @import("stwo_cuda_backend").runtime.stages.common.WordMatrix,
     first: usize,
     count: usize,
 ) !@TypeOf(matrix) {

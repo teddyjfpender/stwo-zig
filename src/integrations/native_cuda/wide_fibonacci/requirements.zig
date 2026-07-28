@@ -1,9 +1,9 @@
 //! Exact word capacities and protocol lifetimes for the prepared proof arena.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const oods_stage = @import("../../../backends/cuda/runtime/stages/oods.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const canonical_ingress = @import("canonical_ingress.zig");
 const proof_bundle = @import("proof_bundle.zig");
 const request = @import("request.zig");

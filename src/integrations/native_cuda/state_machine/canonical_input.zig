@@ -2,7 +2,7 @@
 
 const geometry_mod = @import("geometry.zig");
 const pcs = @import("stwo_core").pcs;
-const cpu_state_machine = @import("../../../examples/state_machine/input.zig");
+const cpu_state_machine = @import("stwo_native_examples").backend_support.state_machine.input;
 
 pub const protocol_word_count: usize = 4;
 pub const statement_word_count = geometry_mod.statement_word_count;
@@ -98,9 +98,7 @@ test "State Machine v2 ingress preserves mixed-height column logs" {
 }
 
 test "resident Statement0 words exactly match two CPU mixU64 calls" {
-    const statement = @import(
-        "../../../examples/state_machine/statement.zig",
-    );
+    const statement = @import("stwo_native_examples").backend_support.state_machine.statement;
     const request = cpu_state_machine.Request{
         .log_n_rows = 16,
         .initial_state = .{

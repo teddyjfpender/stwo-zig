@@ -128,7 +128,8 @@ The validator derives every accepted result from raw evidence:
 - installed files, no-op rebuilds, source closure, and link surface from
   versioned raw artifacts;
 - authenticated AOT identity and no runtime compilation; and
-- complete-clock RISC-V challenge against the exact pinned Stark-V bundle.
+- exact-candidate RISC-V product and link closure; semantic correctness remains
+  owned by the separate pinned Sail/Spike release gate.
 
 The throughput lower bound must be at least `0.97`; peak RSS must be at most
 `1.05x`. Native CPU and RISC-V focused cold builds must not exceed their

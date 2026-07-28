@@ -1,0 +1,25 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_metal_session",
+  "owner": "metal-session",
+  "public_modules": {
+    "stwo_metal_session": "mod.zig"
+  },
+  "dependencies": {},
+  "injected_modules": [],
+  "api_surface": [
+    "artifact_manifest",
+    "artifact_store",
+    "artifact_views",
+    "protocol"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

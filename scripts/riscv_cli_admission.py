@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-ADAPTER = "stark-v-rv32im-elf"
-AIR = "stark_v_rv32im"
+ADAPTER = "sail-rv32im-zkvm-elf"
+AIR = "sail_rv32im_zkvm_v1"
 ISA = "rv32im"
 BACKENDS = ["cpu"]
 MAX_REGISTRY_BYTES = 1 << 20
@@ -93,7 +93,7 @@ def parse(raw: bytes | str) -> Admission:
         _exact_fields(product, FOCUSED_PRODUCT_FIELDS, "focused RISC-V product")
         expected_product = {
             "name": "stwo-riscv-cpu",
-            "frontend": "stark-v-rv32im",
+            "frontend": "sail-rv32im-zkvm",
             "backend": "cpu",
         }
         if any(product.get(field) != value for field, value in expected_product.items()):

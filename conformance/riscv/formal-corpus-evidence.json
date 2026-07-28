@@ -1,0 +1,44 @@
+{
+  "schema": "stwo-riscv-formal-corpus-evidence-v1",
+  "profile": "rv32im-zkvm-v1",
+  "result": "equivalent",
+  "semantic_authority": "Sail",
+  "sail": {
+    "repository_revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+    "model_tag": "2026-07-20-8c7f2da",
+    "compiler_version": "0.20.2",
+    "binary_sha256": "79d4b7426a0c786464f807d8ba32d8e2bfec97acdc3a1e03c4c7c8521b78e83a",
+    "transport_patch_sha256": "1309655496ea8c8aae3cade751b1ba695dd19b2048f6118d28371be693dbb734"
+  },
+  "independent_cross_check": "Spike",
+  "spike": {
+    "repository_revision": "520a5f185083ac3c97b751501dfac02a6c1f5970",
+    "banner": "Spike RISC-V ISA Simulator 1.1.1-dev",
+    "binary_sha256": "4606d5de586ebb1a15d427a2c5b7b24c506153875acb4de7a651a8d1bef06be8"
+  },
+  "programs": 17,
+  "retirements": 472827,
+  "negative_decode_and_trap_cases": 6,
+  "comparison_digest": "794fe6683e6210c7fb5178d96590ec64804fcfbafec9df29a05ba10baaeaaae6",
+  "comparison_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "spike_comparison_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc (through the following commit)",
+    "memory.address",
+    "memory.write_value"
+  ]
+}

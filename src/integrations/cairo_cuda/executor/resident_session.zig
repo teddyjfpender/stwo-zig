@@ -8,9 +8,9 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const resident_plan = @import("resident_plan.zig");
 const trace_schedule = @import("trace_schedule.zig");
 

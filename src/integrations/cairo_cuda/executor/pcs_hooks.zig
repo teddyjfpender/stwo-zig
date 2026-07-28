@@ -6,10 +6,8 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import("../../../backends/cuda/abi/field.zig");
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const cairo_identity = @import("../identity.zig");
 const resident_plan = @import("resident_plan.zig");
 const quotient_fri = @import("pcs_quotient_fri.zig");

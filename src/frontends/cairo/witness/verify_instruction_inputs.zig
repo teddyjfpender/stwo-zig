@@ -1,8 +1,10 @@
 //! Canonical compact inputs for the Cairo `verify_instruction` witness.
 //!
-//! Every active opcode component feeds its full padded extent into Rust's
-//! `verify_instruction::ClaimGenerator`. The consumer merges equal instruction
-//! tuples, orders them by pc, and pads the compacted rows with the first tuple.
+//! Every active opcode component feeds only its real rows into Rust's
+//! `verify_instruction::ClaimGenerator`; `add_inputs` deliberately truncates
+//! packed producer output to `n_active_rows`. The consumer merges equal
+//! instruction tuples, orders them by pc, then pads its own trace with the
+//! first tuple and zero multiplicity.
 
 const std = @import("std");
 const adapter = @import("../adapter/mod.zig");
@@ -46,6 +48,10 @@ pub const CompactInput = struct {
             return Error.CountOverflow, 16);
     }
 
+    pub fn realRowCount(self: CompactInput, _: usize) !usize {
+        return self.rows.len;
+    }
+
     pub fn validateRowCount(self: CompactInput, row_count: usize) Error!void {
         if (row_count != try self.paddedRowCount()) return Error.InvalidRowCount;
     }
@@ -76,19 +82,8 @@ pub fn gather(allocator: std.mem.Allocator, input: *const adapter.ProverInput) !
 
     for (input.state_transitions.casm_states_by_opcode.states) |states| {
         if (states.items.len == 0) continue;
-        const padded_rows = @max(std.math.ceilPowerOfTwo(usize, states.items.len) catch
-            return Error.CountOverflow, 16);
         for (states.items) |state| {
             try addMultiplicity(&multiplicities, try instructionTuple(input, state.pc.v), 1);
-        }
-        const padding = padded_rows - states.items.len;
-        if (padding != 0) {
-            const increment = std.math.cast(u32, padding) orelse return Error.CountOverflow;
-            try addMultiplicity(
-                &multiplicities,
-                try instructionTuple(input, states.items[0].pc.v),
-                increment,
-            );
         }
     }
     if (multiplicities.count() == 0) return Error.EmptyInput;
@@ -162,7 +157,7 @@ fn encodeInstruction(offset0: u16, offset1: u16, offset2: u16, felt5_high: u16, 
         (@as(u128, extension) << 63);
 }
 
-test "Cairo verify instruction inputs: opcode padding compacts and counts exactly" {
+test "Cairo verify instruction inputs: only active opcode rows contribute multiplicity" {
     const M31 = @import("stwo_core").fields.m31.M31;
     const memory = @import("../common/memory.zig");
     var grouped = opcodes.CasmStatesByOpcode.init(std.testing.allocator);
@@ -201,8 +196,8 @@ test "Cairo verify instruction inputs: opcode padding compacts and counts exactl
     defer compact.deinit();
     try std.testing.expectEqual(@as(usize, 2), compact.rows.len);
     try std.testing.expectEqual(@as(usize, 16), try compact.paddedRowCount());
-    try std.testing.expectEqual(@as(u32, 15), compact.rows[0].multiplicity);
-    try std.testing.expectEqual(@as(u32, 17), compact.rows[1].multiplicity);
+    try std.testing.expectEqual(@as(u32, 1), compact.rows[0].multiplicity);
+    try std.testing.expectEqual(@as(u32, 2), compact.rows[1].multiplicity);
     try std.testing.expectEqualSlices(u32, &.{ 0, 0x7ffe, 0x7fff, 0x7fff, 88, 130, 0 }, &compact.rows[0].tuple);
     try std.testing.expectEqualSlices(u32, &.{ 1, 0x8001, 0x9234, 0xabcd, 0x118, 0x155, 1 }, &compact.rows[1].tuple);
 
@@ -214,7 +209,7 @@ test "Cairo verify instruction inputs: opcode padding compacts and counts exactl
     try compact.writeColumn(8, &column);
     try std.testing.expectEqualSlices(u32, &.{ 0, 1, 2 }, column[0..3]);
     try compact.writeColumn(9, &column);
-    try std.testing.expectEqualSlices(u32, &.{ 15, 17, 0 }, column[0..3]);
+    try std.testing.expectEqualSlices(u32, &.{ 1, 2, 0 }, column[0..3]);
 }
 
 test "Cairo verify instruction inputs: missing and non-instruction memory fail closed" {

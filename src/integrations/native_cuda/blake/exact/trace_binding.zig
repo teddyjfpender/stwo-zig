@@ -1,15 +1,13 @@
 //! Concrete AOT witness binding for the exact resident Blake arena.
 
 const witness =
-    @import("../../../../backends/cuda/runtime/traces/blake_exact.zig");
+    @import("stwo_cuda_backend").runtime.traces.blake_exact;
 const facades = @import("facades.zig");
 const geometry_mod = @import("geometry.zig");
 const slots = @import("slots.zig");
 const views_mod = @import("views.zig");
 
-pub const abi_schema = @import(
-    "../../../../backends/cuda/abi/schema.zig",
-).KernelSchema.native_blake_exact_trace_v2;
+pub const abi_schema = @import("stwo_cuda_backend").abi.schema.KernelSchema.native_blake_exact_trace_v2;
 pub const cache_key = witness.cache_key;
 pub const kernel_name = witness.kernel_name;
 pub const program_identity = witness.program_identity;

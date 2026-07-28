@@ -1,10 +1,8 @@
 //! Generic proof-program emission for a materialized Native Plonk trace.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const geometry_mod = @import("geometry.zig");
 const identities = @import("identities.zig");
 const layout_mod = @import("layout.zig");
@@ -153,9 +151,7 @@ fn emitWithBuffers(
     });
 }
 
-fn stage(value: @import(
-    "../../../backends/cuda/runtime/telemetry.zig",
-).Stage) ir.Stage {
+fn stage(value: @import("stwo_cuda_backend").runtime.telemetry.Stage) ir.Stage {
     return @enumFromInt(@intFromEnum(value));
 }
 
@@ -536,7 +532,7 @@ test "Plonk emits exact generic Native AIR geometry and proof semantics" {
 
 test "Plonk program tree and sample counts match a decoded CPU proof" {
     const allocator = std.testing.allocator;
-    const cpu_plonk = @import("../../../examples/plonk.zig");
+    const cpu_plonk = @import("stwo_native_examples").plonk;
     const protocol = @import("stwo_core").pcs.PcsConfig.default();
     const statement = cpu_plonk.Statement{ .log_n_rows = 5 };
     var materialized = try trace_mod.Materialized.init(

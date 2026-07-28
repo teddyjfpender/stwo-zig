@@ -230,5 +230,18 @@ def AUIPC(rd, imm):
     return enc_u(imm, rd, 0x17)
 
 
+def FENCE(pred=0xF, succ=0xF, fm=0, rs1=0, rd=0):
+    if any(not 0 <= value <= limit for value, limit in (
+        (pred, 0xF),
+        (succ, 0xF),
+        (fm, 0xF),
+        (rs1, 0x1F),
+        (rd, 0x1F),
+    )):
+        raise ValueError("FENCE fields exceed their architectural encoding width")
+    immediate = fm << 8 | pred << 4 | succ
+    return enc_i(immediate, rs1, 0, rd, 0x0F)
+
+
 def ECALL():
     return 0x0000_0073

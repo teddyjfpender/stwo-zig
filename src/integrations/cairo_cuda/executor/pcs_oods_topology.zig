@@ -7,26 +7,14 @@
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const field = @import("../../../backends/cuda/abi/field.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const oods_stage = @import(
-    "../../../backends/cuda/runtime/stages/oods.zig",
-);
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const geometry = @import(
-    "../../../frontends/cairo/witness/quotient_geometry.zig",
-);
-const batches = @import("../../native_cuda/common/oods_batches.zig");
-const shared_views = @import(
-    "../../native_cuda/common/resident_views.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
+const batches = @import("stwo_native_cuda_integration").common.oods_batches;
+const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
 const pcs_types = @import("pcs_hooks_types.zig");
 const quotient_types = @import("quotient/types.zig");
 

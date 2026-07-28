@@ -34,6 +34,12 @@ fn fixturePublicData() PublicData {
         .program_root = 101,
         .initial_rw_root = 202,
         .final_rw_root = 303,
+        .completion = .{
+            .kind = .unretired_self_loop,
+            .address = 0x1040,
+            .value = 0x0000_006f,
+            .clock = 0,
+        },
         .io_entries = .{
             .input_start = 0x0018_0000,
             .input_len = 0,
@@ -146,10 +152,10 @@ test "claim phase: invalid interaction proof of work fails before relation draws
 }
 
 test "claim phase: deterministic pinned transcript checkpoints" {
-    // Independently reproduced with Stark-V d478f783 and its pinned Stwo
-    // submodule 52a5d60d. These checkpoints bind mix-call boundaries, not only
-    // a flattened value stream. The 1-bit grind retains the upstream debug
-    // reference vector; production helpers always use INTERACTION_POW_BITS.
+    // The first two checkpoints preserve the legacy public-data/root prefix.
+    // Later checkpoints bind the Sail-authoritative 28-component schema and
+    // exact mix-call boundaries. The one-bit grind is a deterministic fixture;
+    // production helpers always use INTERACTION_POW_BITS.
     const data = fixturePublicData();
     const main_claim = fixtureMainClaim();
     const interaction_claim = fixtureInteractionClaim();
@@ -157,40 +163,46 @@ test "claim phase: deterministic pinned transcript checkpoints" {
 
     data.mixInto(&channel);
     try expectDigest(channel.digestBytes(), .{
-        243, 94, 114, 83,  220, 199, 43, 226, 66,  39,  152, 20, 239, 247, 175, 39,
-        12,  54, 75,  142, 118, 103, 93, 142, 216, 187, 46,  57, 208, 248, 9,   71,
+        67,  48,  110, 191, 120, 36, 9,   40, 113, 113, 198, 101, 80,  46,  213, 58,
+        114, 227, 178, 70,  8,   57, 224, 40, 196, 108, 167, 179, 132, 126, 169, 152,
     });
 
     Blake2sMerkleChannel.mixRoot(&channel, [_]u8{0x11} ** 32);
     try expectDigest(channel.digestBytes(), .{
-        92, 49, 1,  163, 41, 55,  72,  115, 200, 9,  204, 91, 67, 215, 172, 130,
-        63, 16, 45, 101, 49, 178, 146, 31,  136, 92, 189, 88, 80, 216, 150, 121,
+        197, 221, 67, 34,  167, 148, 253, 140, 83,  65,  253, 8,   146, 49, 22,  128,
+        56,  208, 33, 129, 228, 96,  209, 51,  162, 161, 196, 125, 231, 20, 147, 29,
     });
 
     Blake2sMerkleChannel.mixRoot(&channel, [_]u8{0x22} ** 32);
     main_claim.mixInto(&channel);
     try expectDigest(channel.digestBytes(), .{
-        137, 69,  61,  44,  39, 159, 75,  59,  233, 220, 0,   19,  73,  11, 99,  227,
-        246, 218, 139, 174, 37, 126, 158, 202, 92,  183, 122, 142, 118, 69, 172, 183,
+        33, 120, 47,  140, 74, 81, 212, 253, 169, 67,  110, 253, 213, 217, 125, 154,
+        42, 10,  235, 84,  64, 78, 148, 124, 189, 167, 165, 173, 88,  164, 101, 56,
     });
 
     const nonce = channel.grind(1);
-    try std.testing.expectEqual(@as(u64, 1), nonce);
+    try std.testing.expectEqual(@as(u64, 0), nonce);
     channel.mixU64(nonce);
     const relations = try @import("../relation_challenges.zig").Relations.draw(
         std.testing.allocator,
         &channel,
     );
     try expectLimbs(relations.registers_state.z, .{
-        785836679, 449169374, 69398469, 247787857,
+        1211976735,
+        1092870877,
+        1930337713,
+        1027156036,
     });
     try expectLimbs(relations.range_check_m31.alpha, .{
-        519161478, 1731743397, 1523336811, 607284992,
+        1459832336,
+        724782805,
+        1683350619,
+        1917464742,
     });
     try std.testing.expectEqual(@as(u32, 12), channel.n_draws);
     try expectDigest(channel.digestBytes(), .{
-        206, 246, 152, 149, 32, 235, 37,  145, 27, 223, 93, 98, 14, 149, 192, 249,
-        170, 138, 134, 94,  72, 10,  167, 184, 12, 26,  89, 93, 42, 230, 146, 59,
+        87,  44,  30,  9,   218, 170, 59,  160, 57, 191, 219, 144, 105, 126, 143, 6,
+        222, 110, 240, 191, 133, 97,  176, 99,  34, 96,  55,  250, 54,  73,  150, 116,
     });
 
     finishWithInteractionRoot(
@@ -200,8 +212,8 @@ test "claim phase: deterministic pinned transcript checkpoints" {
         [_]u8{0x33} ** 32,
     );
     try expectDigest(channel.digestBytes(), .{
-        6,   139, 114, 95,  103, 97,  239, 120, 229, 228, 56, 26,  70,  172, 27, 72,
-        198, 42,  235, 157, 152, 192, 193, 95,  191, 175, 48, 206, 172, 231, 28, 80,
+        196, 41, 67,  137, 218, 58, 130, 184, 143, 180, 142, 164, 78, 234, 86,  228,
+        30,  83, 196, 127, 232, 16, 70,  147, 63,  176, 197, 40,  38, 58,  156, 229,
     });
 }
 

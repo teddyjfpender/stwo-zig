@@ -36,6 +36,12 @@ pub const MulColumns = struct {
     rs2_next_1: M31,
     rs2_next_2: M31,
     rs2_next_3: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
 
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
@@ -82,6 +88,12 @@ pub const MulhColumns = struct {
     opcode_mulh_flag: M31,
     opcode_mulhsu_flag: M31,
     opcode_mulhu_flag: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
 
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
@@ -152,6 +164,8 @@ pub const DivColumns = struct {
     opcode_divu_flag: M31,
     opcode_rem_flag: M31,
     opcode_remu_flag: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
 
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
@@ -161,15 +175,17 @@ test "RV32M layouts expose exact oracle boundary fields" {
     const mul = @typeInfo(MulColumns).@"struct".fields;
     const mulh = @typeInfo(MulhColumns).@"struct".fields;
     const div = @typeInfo(DivColumns).@"struct".fields;
-    try std.testing.expectEqual(@as(usize, 33), mul.len);
+    try std.testing.expectEqual(@as(usize, 39), mul.len);
     try std.testing.expectEqualStrings("enabler", mul[0].name);
     try std.testing.expectEqualStrings("clock", mul[1].name);
     try std.testing.expectEqualStrings("pc", mul[2].name);
     try std.testing.expectEqualStrings("rd_high_0", mulh[32].name);
     try std.testing.expectEqualStrings("opcode_mulhu_flag", mulh[40].name);
+    try std.testing.expectEqualStrings("rd_nonzero", mulh[45].name);
     try std.testing.expectEqualStrings("zero_divisor", div[32].name);
     try std.testing.expectEqualStrings("q_0", div[34].name);
     try std.testing.expectEqualStrings("r_abs_0", div[48].name);
     try std.testing.expectEqualStrings("lt_diff", div[60].name);
     try std.testing.expectEqualStrings("opcode_remu_flag", div[64].name);
+    try std.testing.expectEqualStrings("rd_inv", div[66].name);
 }

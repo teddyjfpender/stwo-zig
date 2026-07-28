@@ -1,9 +1,7 @@
 //! Checked row and resident-range geometry for writer preactions.
 
 const std = @import("std");
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
 
 pub fn contains(outer: common.Words, inner: common.Words) bool {
     if (outer.owner != inner.owner or

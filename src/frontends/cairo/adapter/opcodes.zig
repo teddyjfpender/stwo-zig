@@ -38,8 +38,7 @@ pub const OpcodeTag = enum {
 pub const N_OPCODES: usize = @typeInfo(OpcodeTag).@"enum".fields.len;
 
 /// One opcode component whose adapted CASM states directly seed a recorded
-/// witness program. `generic_opcode` is intentionally absent: it is not a
-/// direct recorded lane in the Cairo witness bundle.
+/// witness program.
 pub const DirectWitnessLane = struct {
     label: []const u8,
     tag: OpcodeTag,
@@ -47,6 +46,7 @@ pub const DirectWitnessLane = struct {
 };
 
 pub const direct_witness_lanes = [_]DirectWitnessLane{
+    .{ .label = "generic_opcode", .tag = .generic_opcode },
     .{ .label = "add_ap_opcode", .tag = .add_ap_opcode },
     .{ .label = "add_opcode", .tag = .add_opcode },
     .{ .label = "add_opcode_small", .tag = .add_opcode_small },

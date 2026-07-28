@@ -3,7 +3,8 @@
 
 This is a correctness gate, not a performance benchmark. The selected programs
 exercise branch, memory, cross-shard, and crypto shapes while keeping the warm
-CI path short. The exhaustive Stark-V oracle gate remains the release authority.
+CI path short. Pinned Sail/Spike evidence owns the external ISA boundary; AIR
+soundness and proof acceptance remain separate obligations.
 """
 
 from __future__ import annotations
@@ -185,7 +186,7 @@ def validate_verify_receipt(
         "schema": "riscv_verify_v1",
         "status": "verified",
         "artifact_kind": "stwo_riscv_proof",
-        "artifact_schema_version": 3,
+        "artifact_schema_version": 4,
         "release_status": admission.release_status,
         "security_policy": "functional",
         "statement_sha256": statement,
@@ -242,6 +243,7 @@ def run_workload(
 
     verify_command = [
         str(cli), "verify", "--artifact", str(proof_path),
+        "--elf", str(elf),
         "--protocol", "functional", "--expect-statement-digest", statement,
     ]
     verify_result, verify_duration_ns = run_command(verify_command)
@@ -317,7 +319,8 @@ def main(argv: list[str] | None = None) -> int:
             "experimental": admission.experimental,
             "oracle_boundary": (
                 "independent Zig artifact verification plus separately gated pinned "
-                "Stark-V trace vectors; exhaustive live Stark-V comparison remains release-only"
+                "Sail/Spike corpus evidence; finite ISA agreement is not universal "
+                "AIR refinement or independent proof-system verification"
             ),
             "duration_ns": time.monotonic_ns() - started,
             "workloads": rows,

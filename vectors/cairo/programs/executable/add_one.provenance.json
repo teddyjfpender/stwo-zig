@@ -1,0 +1,39 @@
+{
+  "schema": "stwo_cairo_executable_program_vector_v1",
+  "compiler": {
+    "package": "cairo-execute",
+    "version": "2.20.0",
+    "repository": "https://github.com/starkware-libs/cairo",
+    "revision": "eea264fa54fac04a1a5745ad533a0c0ab3106ab3",
+    "tag": "v2.20.0",
+    "command": "cairo-execute add_one.cairo --single-file --build-only --output-path add_one.executable.json"
+  },
+  "source": {
+    "path": "vectors/cairo/programs/executable/add_one.cairo",
+    "bytes": 59,
+    "sha256": "ded46e3773dfeb3ff9aa27c7f82842e45ab9408b34c3f64c1b16944f331c19c5"
+  },
+  "program": {
+    "path": "vectors/cairo/programs/executable/add_one.executable.json",
+    "bytes": 3348,
+    "sha256": "5e3e01819c1078a2768715b0e63be7ade9c6a8ea149ee0bc8b325cb013a1e23a",
+    "entrypoint": "Standalone",
+    "builtins": [
+      "output",
+      "range_check"
+    ]
+  },
+  "arguments": {
+    "path": "vectors/cairo/programs/executable/add_one.arguments.json",
+    "bytes": 9,
+    "sha256": "06cf6beb6e226f69df36ef04e4b8c27ddd113aa28f585e6043ea897dea4a8734",
+    "encoding": "hex-felt-array"
+  },
+  "execution": {
+    "adapter": "tools/stwo-cairo-vm-adapter-rs",
+    "cairo_language_version": "2.20.0",
+    "cairo_vm_version": "3.2.0",
+    "layout": "all_cairo_stwo",
+    "params": "vectors/cairo/official/all_opcodes.params.json"
+  }
+}

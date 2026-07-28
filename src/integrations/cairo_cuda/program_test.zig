@@ -1,11 +1,11 @@
 const std = @import("std");
-const compact = @import("../../frontends/cairo/compact_verifier_interchange.zig");
-const compact_geometry = @import("../../frontends/cairo/compact_protocol_geometry.zig");
-const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
-const staged = @import("../../frontends/cairo/staged_arena_planner.zig");
-const statement = @import("../../frontends/cairo/statement_bootstrap.zig");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const source_semantic_pack = @import("../../frontends/cairo/witness/source_semantic_pack.zig");
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const compact_geometry = @import("stwo_cairo_frontend").compact_protocol_geometry;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const staged = @import("stwo_cairo_frontend").staged_arena_planner;
+const statement = @import("stwo_cairo_frontend").statement_bootstrap;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const source_semantic_pack = @import("stwo_cairo_frontend").witness.source_semantic_pack;
 const subject = @import("program.zig");
 const identities = @import("identity.zig");
 const execution_schedule = @import("executor/execution_schedule.zig");
@@ -342,7 +342,7 @@ fn testStatement(
     var flat = try statement.deriveFlatClaimGeometry(allocator, bundle);
     defer flat.deinit();
     const total = statement.compact_statement_header_bytes +
-        @as(usize, 20) * @import("../../frontends/cairo/adapter/mod.zig").N_PUBLIC_SEGMENTS +
+        @as(usize, 20) * @import("stwo_cairo_frontend").adapter.N_PUBLIC_SEGMENTS +
         4 * (flat.component_enable_bits.len + flat.component_log_sizes.len);
     const encoded = try allocator.alloc(u8, total);
     @memset(encoded, 0);
@@ -354,7 +354,7 @@ fn testStatement(
     std.mem.writeInt(
         u32,
         encoded[64..68],
-        @import("../../frontends/cairo/adapter/mod.zig").N_PUBLIC_SEGMENTS,
+        @import("stwo_cairo_frontend").adapter.N_PUBLIC_SEGMENTS,
         .little,
     );
     std.mem.writeInt(
@@ -364,7 +364,7 @@ fn testStatement(
         .little,
     );
     var cursor = statement.compact_statement_header_bytes +
-        @as(usize, 20) * @import("../../frontends/cairo/adapter/mod.zig").N_PUBLIC_SEGMENTS;
+        @as(usize, 20) * @import("stwo_cairo_frontend").adapter.N_PUBLIC_SEGMENTS;
     for (flat.component_enable_bits) |enabled| {
         std.mem.writeInt(u32, encoded[cursor..][0..4], @intFromBool(enabled), .little);
         cursor += 4;

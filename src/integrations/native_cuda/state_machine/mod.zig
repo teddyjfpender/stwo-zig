@@ -5,7 +5,7 @@
 //! exact v2 trace and constraint AOT entries are built and hardware evidence
 //! satisfies every activation gate.
 
-const exact_state_machine = @import("../../../examples/state_machine.zig");
+const exact_state_machine = @import("stwo_native_examples").state_machine;
 
 pub const legacy_protocol_name = "raw-stwo-state-machine-v1";
 pub const exact_protocol_name = exact_state_machine.protocol_name;

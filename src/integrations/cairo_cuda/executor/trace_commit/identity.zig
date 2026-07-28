@@ -2,8 +2,8 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import("../../../../backends/cuda/abi/field.zig");
-const telemetry = @import("../../../../backends/cuda/runtime/telemetry.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const types = @import("types.zig");
 
 pub fn compute(

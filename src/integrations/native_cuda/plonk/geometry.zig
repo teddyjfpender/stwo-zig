@@ -1,7 +1,7 @@
 //! Fail-closed structural geometry for Native Plonk proof emission.
 
 const std = @import("std");
-const cpu_plonk = @import("../../../examples/plonk/input.zig");
+const cpu_plonk = @import("stwo_native_examples").backend_support.plonk.input;
 const pcs = @import("stwo_core").pcs;
 
 pub const preprocessed_columns: u32 = 4;

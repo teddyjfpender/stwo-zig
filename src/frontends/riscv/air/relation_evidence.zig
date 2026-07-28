@@ -136,7 +136,7 @@ pub const Binding = struct {
 
     pub fn validate(self: Binding) Error!void {
         if (!isLowerCommit(self.implementation_commit) or
-            !std.mem.eql(u8, self.oracle_commit, opcode_manifest.stark_v_revision) or
+            !std.mem.eql(u8, self.oracle_commit, opcode_manifest.legacy_layout_revision) or
             isZeroDigest(self.elf_sha256) or isZeroDigest(self.input_sha256))
             return error.InvalidEvidenceBinding;
     }
@@ -379,7 +379,7 @@ fn testBinding() Binding {
     return .{
         .implementation_commit = "0123456789abcdef0123456789abcdef01234567",
         .implementation_dirty = true,
-        .oracle_commit = opcode_manifest.stark_v_revision,
+        .oracle_commit = opcode_manifest.legacy_layout_revision,
         .elf_sha256 = .{4} ** 32,
         .input_sha256 = .{5} ** 32,
     };
@@ -424,7 +424,7 @@ test "relation evidence serializes one complete canonical registry" {
         tuples.items,
         "schema=riscv-relation-tuples-v3\nbinding=zig_diagnostic ",
     ));
-    try std.testing.expectEqual(@as(usize, 366), std.mem.count(u8, tuples.items, "\n"));
+    try std.testing.expectEqual(@as(usize, 379), std.mem.count(u8, tuples.items, "\n"));
 
     var sums: std.ArrayList(u8) = .{};
     defer sums.deinit(allocator);
@@ -439,7 +439,7 @@ test "relation evidence serializes one complete canonical registry" {
         sums.items,
         "schema=riscv-relation-sums-v2\nbinding=zig_diagnostic ",
     ));
-    try std.testing.expectEqual(@as(usize, 57), std.mem.count(u8, sums.items, "\n"));
+    try std.testing.expectEqual(@as(usize, 58), std.mem.count(u8, sums.items, "\n"));
 
     var changed_root = bundle;
     changed_root.claims.main_tree[0] ^= 1;

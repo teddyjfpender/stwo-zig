@@ -1,0 +1,61 @@
+{
+  "schema": "stwo-zig-cairo-air-template-library-v1",
+  "version": 1,
+  "authority": {
+    "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+  },
+  "sources": [
+    {
+      "role": "opcodes",
+      "preprocessed_variant": "canonical",
+      "input_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+      "bundle": {
+        "path": "all_opcodes.air_programs_v1.bin",
+        "bytes": 490417,
+        "sha256": "73bae8ed0b8bf3d68e523a0eb4993918135cd1dfa9a8074118f8f9042302ec6c"
+      },
+      "segment_starts": {}
+    },
+    {
+      "role": "canonical",
+      "preprocessed_variant": "canonical",
+      "input_sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+      "bundle": {
+        "path": "all_builtins_canonical.air_programs_v1.bin",
+        "bytes": 1176050,
+        "sha256": "2572dea6e6d3faf6dc91931f298116e3dc33a0cdda68d013913e0790f22f3b66"
+      },
+      "segment_starts": {
+        "add_mod_builtin": 7711,
+        "bitwise_builtin": 6495,
+        "mul_mod_builtin": 8159,
+        "pedersen_builtin": 6239,
+        "poseidon_builtin": 7263,
+        "range_check96_builtin": 7647,
+        "range_check_builtin": 6431,
+        "ec_op_builtin": 6815
+      }
+    },
+    {
+      "role": "canonical_small",
+      "preprocessed_variant": "canonical_small",
+      "input_sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+      "bundle": {
+        "path": "all_builtins_canonical_small.air_programs_v1.bin",
+        "bytes": 1183006,
+        "sha256": "55a0e17c348e5a3d92fad35cd4d80260927ed73ab556a87b02085f562886d026"
+      },
+      "segment_starts": {
+        "add_mod_builtin": 7711,
+        "bitwise_builtin": 6495,
+        "mul_mod_builtin": 8159,
+        "pedersen_builtin_narrow_windows": 6239,
+        "poseidon_builtin": 7263,
+        "range_check96_builtin": 7647,
+        "range_check_builtin": 6431,
+        "ec_op_builtin": 6815
+      }
+    }
+  ]
+}

@@ -6,22 +6,12 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const decommit_stage = @import(
-    "../../../backends/cuda/runtime/stages/decommit.zig",
-);
-const transcript_stage = @import(
-    "../../../backends/cuda/runtime/stages/transcript.zig",
-);
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const decommit_stage = @import("stwo_cuda_backend").runtime.stages.decommit;
+const transcript_stage = @import("stwo_cuda_backend").runtime.stages.transcript;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const cairo_identity = @import("../identity.zig");
-const proof_capture = @import(
-    "../../native_cuda/common/proof_assembly.zig",
-);
+const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
 const bindings_module = @import("pcs_hooks_types.zig");
 const topology_module = @import("pcs_decommit_topology.zig");
 const resident_plan = @import("resident_plan.zig");

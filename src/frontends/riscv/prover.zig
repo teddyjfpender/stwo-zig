@@ -147,6 +147,7 @@ pub fn proveRiscVWithEngineAndPublicDataUsingChannel(
         public_data,
         channel,
         null,
+        null,
     );
 }
 

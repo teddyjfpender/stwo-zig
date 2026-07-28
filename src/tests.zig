@@ -24,9 +24,9 @@ test {
         _ = @import("tests/metal/eval_codegen_test.zig");
         _ = @import("tests/metal/recipe_requirements_test.zig");
         _ = @import("tests/metal/runtime_decommit_geometry_test.zig");
-        _ = @import("tools/metal_session/artifacts/manifest.zig");
-        _ = @import("tools/metal_session/artifacts/store.zig");
-        _ = @import("tools/metal_session/artifacts/views.zig");
+        _ = @import("stwo_metal_session").artifact_manifest;
+        _ = @import("stwo_metal_session").artifact_store;
+        _ = @import("stwo_metal_session").artifact_views;
     }
     std.testing.refAllDecls(@This());
 }

@@ -40,6 +40,12 @@ pub const BaseAluRegColumns = struct {
     opcode_xor_flag: M31,
     opcode_or_flag: M31,
     opcode_and_flag: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 
@@ -73,6 +79,12 @@ pub const BaseAluImmColumns = struct {
     opcode_xor_flag: M31,
     opcode_or_flag: M31,
     opcode_and_flag: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 
@@ -131,6 +143,12 @@ pub const ShiftsRegColumns = struct {
     bit_shift_carry_1: M31,
     bit_shift_carry_2: M31,
     bit_shift_carry_3: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };
 
@@ -180,5 +198,11 @@ pub const ShiftsImmColumns = struct {
     bit_shift_carry_1: M31,
     bit_shift_carry_2: M31,
     bit_shift_carry_3: M31,
+    result_0: M31,
+    result_1: M31,
+    result_2: M31,
+    result_3: M31,
+    rd_nonzero: M31,
+    rd_inv: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };

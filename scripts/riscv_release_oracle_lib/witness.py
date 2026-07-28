@@ -7,15 +7,45 @@ import json
 import subprocess
 from pathlib import Path
 
-from riscv_trace_vectors_lib import admission as admission_policy
+try:
+    from riscv_trace_vectors_lib import admission as admission_policy
+except ModuleNotFoundError:  # Imported as scripts.riscv_release_oracle_lib in tests.
+    from scripts.riscv_trace_vectors_lib import admission as admission_policy
+
+try:
+    from riscv_release_oracle_lib import superseded_air
+except ModuleNotFoundError:  # Imported as scripts.riscv_release_oracle_lib in tests.
+    from scripts.riscv_release_oracle_lib import superseded_air
+
+
+WITNESS_ROW_LINEAGE = "family set and per-family column count and column names"
 
 
 def load_trace_vectors(root: Path, pinned: str, receipt: dict) -> dict:
+    """Load and content-verify the corpus manifest, binding it to both authorities.
+
+    ``pinned`` is the Sail semantic authority. The manifest also carries the
+    legacy Stark-V layout revision, which must declare itself non-authoritative
+    for semantics: Stark-V is a layout-lineage reference, not an ISA or AIR
+    oracle. ``scripts/check_upstream_pins.py`` owns the exact legacy revision, so
+    this check requires the declaration rather than duplicating the commit here.
+    """
     manifest_path = root / "vectors" / "riscv_elfs" / "trace_vectors.json"
     manifest_bytes = manifest_path.read_bytes()
     vectors = json.loads(manifest_bytes)
-    if not isinstance(vectors, dict) or vectors.get("stark_v_commit") != pinned:
-        raise SystemExit("trace vectors pinned to a different oracle commit")
+    if not isinstance(vectors, dict):
+        raise SystemExit("trace vector manifest root is not an object")
+    authorities = vectors.get("authorities")
+    sail = authorities.get("sail") if isinstance(authorities, dict) else None
+    if not isinstance(sail, dict) or sail.get("revision") != pinned:
+        raise SystemExit("trace vectors pinned to a different Sail oracle commit")
+    legacy = vectors.get("legacy_protocol_layout")
+    if not isinstance(legacy, dict) or not isinstance(legacy.get("revision"), str):
+        raise SystemExit("trace vectors declare no legacy protocol-layout revision")
+    if legacy.get("semantic_authority") is not False:
+        raise SystemExit(
+            "trace vectors must declare the legacy Stark-V layout non-authoritative"
+        )
 
     digest = hashlib.sha256()
     digest.update(manifest_bytes)
@@ -122,46 +152,63 @@ def _compare_canonical_dump(
 ) -> None:
     zig_exe = root / "zig-out" / "bin" / "riscv-trace-dump"
     vectors = load_trace_vectors(root, pinned, receipt)
+    demoted = boundary == "per_family_witness_rows"
     cases = []
     layouts: set[str] = set()
+    declared: set[str] = set()
     all_ok = True
+    lineage_agree = True
     for vector in vectors["vectors"]:
         elf = root / vector["elf"]
         rust = _run([str(oracle_exe), rust_flag, "--elf", str(elf)])
         zig = _run([str(zig_exe), zig_flag, str(elf)], cwd=root)
-        rust_digest = hashlib.sha256(rust.encode()).hexdigest()
-        zig_digest = hashlib.sha256(zig.encode()).hexdigest()
         agree = rust == zig
         all_ok = all_ok and agree
         case = {
             "name": vector["name"],
             "elf_sha256": vector["elf_sha256"],
             "agree": agree,
-            "rust_sha256": rust_digest,
-            "zig_sha256": zig_digest,
+            "rust_sha256": hashlib.sha256(rust.encode()).hexdigest(),
+            "zig_sha256": hashlib.sha256(zig.encode()).hexdigest(),
             "bytes": len(zig.encode()),
             "records": sum(1 for line in zig.splitlines() if line.startswith("row="))
-            if boundary == "per_family_witness_rows"
+            if demoted
             else len(zig.splitlines()),
         }
-        if agree:
-            receipt["case_result_digests"][f"{boundary}/{vector['name']}"] = zig_digest
-            if boundary == "per_family_witness_rows":
-                layouts.add(hashlib.sha256(_witness_layout(zig)).hexdigest())
-        else:
+        if demoted:
+            # The layout digest is Zig-side identity, not a parity verdict, so it
+            # is recorded whether or not the demoted row comparison agrees.
+            layouts.add(hashlib.sha256(_witness_layout(zig)).hexdigest())
+            try:
+                paths, lineage_ok = superseded_air.witness_row_divergence(rust, zig)
+            except ValueError as error:
+                raise SystemExit(
+                    f"witness-row dump for {vector['name']} is malformed: {error}"
+                ) from error
+            lineage_agree = lineage_agree and lineage_ok
+            if not agree:
+                case["divergence_paths"] = paths
+                declared.update(paths)
+        if not agree:
             case["first_disagreement"] = _first_line_difference(rust, zig)
         cases.append(case)
 
-    layout_ok = boundary != "per_family_witness_rows" or len(layouts) == 1
-    if boundary == "per_family_witness_rows" and layout_ok:
+    layout_ok = not demoted or len(layouts) == 1
+    if demoted and layout_ok:
         receipt["witness_layout_digest_sha256"] = next(iter(layouts))
-    receipt["boundaries"][boundary] = {
-        "status": "pass" if all_ok and layout_ok else "fail",
+    result = {
         "comparison": "byte-for-byte canonical serialization of production buffers",
         "corpus": cases,
     }
-    if boundary == "per_family_witness_rows":
-        receipt["boundaries"][boundary]["layout_digests"] = sorted(layouts)
+    if demoted and not all_ok and layout_ok:
+        result.update(superseded_air.declaration(
+            declared, {"agree": lineage_agree, "comparison": WITNESS_ROW_LINEAGE}
+        ))
+    else:
+        result["status"] = "pass" if all_ok and layout_ok else "fail"
+    if demoted:
+        result["layout_digests"] = sorted(layouts)
+    receipt["boundaries"][boundary] = result
 
 
 def compare_per_family_witness_rows(

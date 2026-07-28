@@ -1,10 +1,10 @@
 //! Example AIR oracle vectors.
 
 const std = @import("std");
-const example_plonk_mod = @import("../../../examples/plonk.zig");
-const example_state_machine_mod = @import("../../../examples/state_machine.zig");
-const example_wide_fibonacci_mod = @import("../../../examples/wide_fibonacci.zig");
-const example_xor_mod = @import("../../../examples/xor.zig");
+const example_plonk_mod = @import("stwo_native_examples").plonk;
+const example_state_machine_mod = @import("stwo_native_examples").state_machine;
+const example_wide_fibonacci_mod = @import("stwo_native_examples").wide_fibonacci;
+const example_xor_mod = @import("stwo_native_examples").xor;
 const m31_mod = @import("stwo_core").fields.m31;
 const qm31_mod = @import("stwo_core").fields.qm31;
 const fixtures = @import("fixtures.zig");

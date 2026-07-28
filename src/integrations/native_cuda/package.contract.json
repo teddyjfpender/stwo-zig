@@ -1,0 +1,36 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_native_cuda_integration",
+  "owner": "native-cuda-integration",
+  "public_modules": {
+    "stwo_native_cuda_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend",
+    "stwo_core": "../../core",
+    "stwo_cuda_backend": "../../backends/cuda",
+    "stwo_native_examples": "../../examples",
+    "stwo_proof_wire": "../../interop/proof_wire",
+    "stwo_prover_impl": "../../prover"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "blake",
+    "common",
+    "plonk",
+    "plonk_logup",
+    "poseidon",
+    "state_machine",
+    "wide_fibonacci",
+    "xor"
+  ],
+  "ci": {
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

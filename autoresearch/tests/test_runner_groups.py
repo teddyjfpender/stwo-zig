@@ -716,7 +716,7 @@ class RunnerGroupTest(unittest.TestCase):
         with mock.patch.object(
             runner, "_native_rust_oracle_check", return_value={"oracle": "native"},
         ) as native_check, mock.patch.object(
-            runner, "_riscv_stark_v_oracle_check", return_value={"oracle": "riscv"},
+            runner, "_riscv_sail_oracle_check", return_value={"oracle": "riscv"},
         ) as riscv_check:
             self.assertEqual(
                 "native",
@@ -732,7 +732,7 @@ class RunnerGroupTest(unittest.TestCase):
         with mock.patch.object(
             runner, "_native_rust_oracle_check", return_value={"oracle": "native"},
         ) as native_check, mock.patch.object(
-            runner, "_riscv_stark_v_oracle_check", return_value={"oracle": "riscv"},
+            runner, "_riscv_sail_oracle_check", return_value={"oracle": "riscv"},
         ) as riscv_check:
             self.assertEqual(
                 "riscv",
@@ -786,16 +786,18 @@ class RunnerGroupTest(unittest.TestCase):
         )
         self.assertRegex(receipt["canonical_proof_sha256"], r"^[0-9a-f]{64}$")
 
-    def test_riscv_oracle_validates_anchor_and_retained_artifact_without_rebuild(self):
+    def test_riscv_oracle_validates_sail_evidence_and_retained_artifact(self):
         self._set_riscv_phase(promoted=True)
-        script = self.root / "scripts/riscv_release_evidence.py"
+        script = self.root / "scripts/riscv_sail_gate.py"
         script.parent.mkdir(parents=True)
         script.write_text("# fixture\n")
         manifest = self._riscv_manifest()
         group = manifest.group("riscv")
         object.__setattr__(group, "correctness_oracle", {
-            "authority": "stark-v",
-            "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "authority": "sail-riscv",
+            "repository": "https://github.com/riscv/sail-riscv",
+            "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+            "final_validator": True,
         })
         workload = manifest.workloads("wide", board="riscv")[0]
         _bench_commands, bench_run = self._riscv_run("release_gated", False)
@@ -803,21 +805,23 @@ class RunnerGroupTest(unittest.TestCase):
             runner.bench_once(
                 self.root, manifest, workload, 0, 1, self.out_dir, "b1",
             )
-        anchor = self.root / "release-anchor.json"
-        anchor.write_text(json.dumps({
-            "schema": "riscv-oracle-receipt-v2",
-            "candidate_commit": "a" * 40,
-            "verdict": "PASS",
-            "oracle": {
-                "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+        evidence = self.root / "sail-evidence.json"
+        evidence.write_text(json.dumps({
+            "schema": "stwo-riscv-formal-corpus-evidence-v1",
+            "result": "equivalent",
+            "semantic_authority": "Sail",
+            "independent_cross_check": "Spike",
+            "programs": 17,
+            "retirements": 472827,
+            "sail": {
+                "repository_revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
             },
         }))
         object.__setattr__(group, "correctness_oracle", {
             **group.correctness_oracle,
-            "release_anchor": {
-                "receipt": "release-anchor.json",
-                "sha256": hashlib.sha256(anchor.read_bytes()).hexdigest(),
-                "candidate_commit": "a" * 40,
+            "evidence": {
+                "path": "sail-evidence.json",
+                "sha256": hashlib.sha256(evidence.read_bytes()).hexdigest(),
             },
         })
         report = json.loads((self.out_dir / "riscv_alu.b1.json").read_text())
@@ -835,27 +839,31 @@ class RunnerGroupTest(unittest.TestCase):
 
         with mock.patch.dict(os.environ, {}, clear=True), \
                 mock.patch.object(runner, "_run", side_effect=fake_run):
-            result = runner._riscv_stark_v_oracle_check(
+            result = runner._riscv_sail_oracle_check(
                 self.root, group, workload, self.out_dir,
             )
-        self.assertEqual(result["oracle"], "pinned-stark-v-release-anchor")
-        self.assertTrue(any("riscv_release_evidence.py" in command and
-                            "--at-receipt-time" in command for command in commands))
+        self.assertEqual(result["oracle"], "pinned-sail-corpus-evidence")
+        self.assertTrue(any(
+            "riscv_sail_gate.py" in command and command.endswith(" bind")
+            for command in commands
+        ))
         self.assertTrue(any(" verify " in f" {command} " for command in commands))
         self.assertFalse(any("build-and-compare" in command for command in commands))
         self.assertFalse(any("stwo-interop-rs" in command for command in commands))
 
-    def test_riscv_oracle_requires_precomputed_release_anchor(self):
+    def test_riscv_oracle_requires_precomputed_sail_evidence(self):
         manifest = self._riscv_manifest()
         group = manifest.group("riscv")
         object.__setattr__(group, "correctness_oracle", {
-            "authority": "stark-v",
-            "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+            "authority": "sail-riscv",
+            "repository": "https://github.com/riscv/sail-riscv",
+            "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+            "final_validator": True,
         })
         workload = manifest.workloads("wide", board="riscv")[0]
         with mock.patch.dict(os.environ, {}, clear=True), \
-                self.assertRaisesRegex(runner.RunError, "RELEASE_ANCHOR_RECEIPT"):
-            runner._riscv_stark_v_oracle_check(
+                self.assertRaisesRegex(runner.RunError, "RISCV_SAIL_EVIDENCE"):
+            runner._riscv_sail_oracle_check(
                 self.root, group, workload, self.out_dir,
             )
 
@@ -880,7 +888,7 @@ class RunnerGroupTest(unittest.TestCase):
         group = manifest.group("riscv")
         workload = manifest.workloads("wide", board="riscv")[0]
         with self.assertRaisesRegex(runner.RunError, "not bound to the pinned"):
-            runner._riscv_stark_v_oracle_check(
+            runner._riscv_sail_oracle_check(
                 self.root, group, workload, self.out_dir,
             )
 

@@ -1,14 +1,16 @@
-//! Public LogUp compensation terms for a Stark-V RV32IM statement.
+//! Public LogUp compensation terms for an RV32IM statement.
 //!
-//! This is an exact port of pinned Stark-V `PublicData::logup_sum`. Each domain
-//! is exposed separately so callers cannot accidentally offset an unclosed
-//! claim against another relation. The production proof consumes all three
-//! public domains independently.
+//! The relation algebra and serialized field order follow pinned Stark-V
+//! `PublicData::logup_sum`; memory-boundary clock values use this
+//! implementation's strict derived access clocks. Each domain is exposed
+//! separately so callers cannot accidentally offset an unclosed claim against
+//! another relation.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const public_data = @import("public_data.zig");
+const program_decode = @import("program/decode.zig");
 const relation_challenges = @import("relation_challenges.zig");
 
 pub const Error = public_data.ValidationError || error{ ZeroDenominator, ClockOverflow };
@@ -20,9 +22,13 @@ pub const Sums = struct {
     registers_state: QM31,
     merkle: QM31,
     memory_access: QM31,
+    program_access: QM31,
 
     pub fn total(self: Sums) QM31 {
-        return self.registers_state.add(self.merkle).add(self.memory_access);
+        return self.registers_state
+            .add(self.merkle)
+            .add(self.memory_access)
+            .add(self.program_access);
     }
 };
 
@@ -44,6 +50,7 @@ pub fn relationSums(
         .registers_state = try registersStateSum(data, relations),
         .merkle = try merkleSum(data, relations),
         .memory_access = try memoryAccessSum(data, relations),
+        .program_access = try programAccessSum(data, relations),
     };
 
     return result;
@@ -134,6 +141,36 @@ pub fn memoryAccessSum(
             word.value,
         )), .consume);
     }
+    if (data.completion) |completion| {
+        if (completion.kind == .halt_flag) {
+            try addInverse(&result, relations.memory_access.combineBase(memoryTuple(
+                1,
+                base(completion.address),
+                base(completion.clock),
+                completion.value,
+            )), .consume);
+        }
+    }
+    return result;
+}
+
+/// The unretired completion sentinel is present in the committed program with
+/// multiplicity one and is consumed only by this public boundary term.
+pub fn programAccessSum(
+    data: *const public_data.PublicData,
+    relations: *const relation_challenges.Relations,
+) Error!QM31 {
+    var result = QM31.zero();
+    const completion = data.completion orelse return error.MissingCompletion;
+    if (completion.kind != .unretired_self_loop) return result;
+    const values = program_decode.decodeProgramWord(completion.value) catch unreachable;
+    try addInverse(&result, relations.program_access.combineBase(.{
+        base(completion.address),
+        base(values[0]),
+        base(values[1]),
+        base(values[2]),
+        base(values[3]),
+    }), .consume);
     return result;
 }
 
@@ -174,6 +211,7 @@ fn emptyPublicData() public_data.PublicData {
         .program_root = null,
         .initial_rw_root = null,
         .final_rw_root = null,
+        .completion = public_data.Completion.canonicalSelfLoop(0),
         .io_entries = .{
             .input_start = 0,
             .input_len = 0,
@@ -186,10 +224,11 @@ fn emptyPublicData() public_data.PublicData {
     };
 }
 
-test "public LogUp: exact pinned Stark-V dummy-relation vector" {
+test "public LogUp: exact strict-access public-boundary dummy-relation vector" {
     var data = emptyPublicData();
     data.initial_pc = 0x1000;
     data.final_pc = 0x1040;
+    data.completion = public_data.Completion.canonicalSelfLoop(data.final_pc);
     data.clock = 17;
     data.initial_regs[1] = 0x0403_0201;
     data.final_regs[1] = 0x0807_0605;
@@ -200,8 +239,8 @@ test "public LogUp: exact pinned Stark-V dummy-relation vector" {
     data.final_rw_root = 303;
     const input_words = [_]u32{ 0x0403_0201, 0x0000_0605 };
     const output_words = [_]public_data.OutputWord{
-        .{ .addr = 0x0010_0004, .value = 4, .clock = 15 },
-        .{ .addr = 0x0010_0008, .value = 0x4443_4241, .clock = 16 },
+        .{ .addr = 0x0010_0004, .value = 4, .clock = 14 },
+        .{ .addr = 0x0010_0008, .value = 0x4443_4241, .clock = 15 },
     };
     data.io_entries = .{
         .input_start = 0x0018_0000,
@@ -214,10 +253,15 @@ test "public LogUp: exact pinned Stark-V dummy-relation vector" {
     };
 
     const actual = try sum(&data, &relation_challenges.Relations.dummy());
-    const expected = [_]u32{ 673401415, 755770749, 1943640833, 2140834143 };
-    for (actual.toM31Array(), expected) |limb, expected_limb| {
-        try std.testing.expectEqual(expected_limb, limb.toU32());
-    }
+    const previous_combined_sum = QM31.fromU32Unchecked(
+        748137912,
+        668873569,
+        1441913112,
+        794627628,
+    );
+    try std.testing.expect(actual.eql(
+        previous_combined_sum.add(try programAccessSum(&data, &relation_challenges.Relations.dummy())),
+    ));
 }
 
 test "public LogUp: clock-zero state and untouched register remain constrained" {
@@ -268,6 +312,7 @@ test "public LogUp: relation domains are independent and total is their sum" {
     var data = emptyPublicData();
     data.initial_pc = 0x1000;
     data.final_pc = 0x1010;
+    data.completion = public_data.Completion.canonicalSelfLoop(data.final_pc);
     data.clock = 4;
     data.program_root = 77;
     data.final_regs[5] = 9;
@@ -279,8 +324,12 @@ test "public LogUp: relation domains are independent and total is their sum" {
     try std.testing.expect(!sums.registers_state.eql(QM31.zero()));
     try std.testing.expect(!sums.merkle.eql(QM31.zero()));
     try std.testing.expect(!sums.memory_access.eql(QM31.zero()));
+    try std.testing.expect(!sums.program_access.eql(QM31.zero()));
     try std.testing.expect(sums.total().eql(
-        sums.registers_state.add(sums.merkle).add(sums.memory_access),
+        sums.registers_state
+            .add(sums.merkle)
+            .add(sums.memory_access)
+            .add(sums.program_access),
     ));
     try std.testing.expect((try sum(&data, &relations)).eql(sums.total()));
 
@@ -290,5 +339,6 @@ test "public LogUp: relation domains are independent and total is their sum" {
     const forged_sums = try relationSums(&forged, &relations);
     try std.testing.expect(forged_sums.registers_state.eql(sums.registers_state));
     try std.testing.expect(forged_sums.merkle.eql(sums.merkle));
+    try std.testing.expect(forged_sums.program_access.eql(sums.program_access));
     try std.testing.expect(!forged_sums.memory_access.eql(sums.memory_access));
 }

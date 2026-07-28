@@ -4,9 +4,9 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const mul_semantics = @import("../../air/semantics/mul.zig");
-const mulh_semantics = @import("../../air/semantics/mulh.zig");
-const div_semantics = @import("../../air/semantics/div.zig");
+const mul_semantics = @import("../../air/semantics/mod.zig").mul;
+const mulh_semantics = @import("../../air/semantics/mod.zig").mulh;
+const div_semantics = @import("../../air/semantics/mod.zig").div;
 const Opcode = @import("../decode.zig").Opcode;
 const w = @import("writer.zig");
 
@@ -16,6 +16,9 @@ pub fn mul(columns: anytype, index: usize, row: anytype) void {
     w.rd(columns, index, 3, row);
     w.rs1(columns, index, 13, row);
     w.rs2(columns, index, 23, row);
+    const product: u32 = @truncate(@as(u64, row.rs1_val) *% @as(u64, row.rs2_val));
+    w.writeLimbs(columns, index, 33, product);
+    w.destination(columns, index, 37, row.rd);
 }
 
 fn mulhProduct(lhs: u32, rhs: u32, opcode: Opcode) u64 {
@@ -48,6 +51,8 @@ pub fn mulh(columns: anytype, index: usize, row: anytype) void {
     w.set(columns, index, 38, w.bit(row.opcode == .MULH));
     w.set(columns, index, 39, w.bit(row.opcode == .MULHSU));
     w.set(columns, index, 40, w.bit(row.opcode == .MULHU));
+    w.writeLimbs(columns, index, 41, @truncate(product >> 32));
+    w.destination(columns, index, 45, row.rd);
 }
 
 const DivWitness = struct {
@@ -199,6 +204,7 @@ pub fn div(columns: anytype, index: usize, row: anytype) void {
     w.set(columns, index, 62, w.bit(row.opcode == .DIVU));
     w.set(columns, index, 63, w.bit(row.opcode == .REM));
     w.set(columns, index, 64, w.bit(row.opcode == .REMU));
+    w.destination(columns, index, 65, row.rd);
 }
 
 const TestRow = struct {
@@ -217,7 +223,7 @@ const TestRow = struct {
     rd_val: u32,
 };
 
-const MAX_COLUMNS: usize = 65;
+const MAX_COLUMNS: usize = 67;
 
 fn filledColumns(comptime n: usize, comptime writer: anytype, row: TestRow) [n]QM31 {
     var storage: [MAX_COLUMNS][1]M31 = .{.{M31.zero()}} ** MAX_COLUMNS;
@@ -283,7 +289,7 @@ test "RV32M production MUL rows are enabler-first and range-valid" {
     }
 }
 
-test "RV32M MULH matrix exposes pinned signed carry blocker while MULHU passes" {
+test "RV32M high-multiply matrix has bounded Sail-compatible carries" {
     const Case = struct { opcode: Opcode, lhs: u32, rhs: u32 };
     const cases = [_]Case{
         .{ .opcode = .MULH, .lhs = 0xffff_ffff, .rhs = 0xffff_ffff },
@@ -303,25 +309,16 @@ test "RV32M MULH matrix exposes pinned signed carry blocker while MULHU passes" 
         try std.testing.expect(mulh_semantics.evaluate(semantic_row).allZero());
         try std.testing.expect(mulh_semantics.placementConstraint(semantic_row, QM31.one()).isZero());
         const requests = mulh_semantics.lookups(semantic_row);
-        var signed_range_blocked = false;
         for (requests.product_ranges) |request| {
             try std.testing.expect(try baseValue(request.tuple.limb_0) < 256);
             const carry = try baseValue(request.tuple.limb_1);
-            signed_range_blocked = signed_range_blocked or carry >= 1 << 11;
+            try std.testing.expect(carry < 1 << 11);
         }
-        // At the pin, MULH(-1, -1) derives `carry_4` from top byte 255 plus
-        // another sign-bit 128. The numerator is not divisible by 256, so the
-        // field quotient cannot occur in the 11-bit range table.
-        if (case.opcode == .MULH and case.lhs == 0xffff_ffff and case.rhs == 0xffff_ffff) {
-            try std.testing.expectEqual(
-                @as(u32, 2_139_096_569),
-                try baseValue(requests.product_ranges[4].tuple.limb_1),
-            );
+        for (requests.sign_ranges) |request| {
+            if (request.numerator.isZero()) continue;
+            try std.testing.expectEqual(@as(u32, 0), try baseValue(request.tuple.limb_0));
+            try std.testing.expect(try baseValue(request.tuple.limb_1) < 128);
         }
-        if (case.opcode == .MULHU)
-            try std.testing.expect(!signed_range_blocked)
-        else
-            try std.testing.expect(signed_range_blocked);
         try expectClockRanges(requests);
     }
 }

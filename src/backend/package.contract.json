@@ -1,0 +1,40 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_backend_contracts",
+  "owner": "backend-contracts",
+  "public_modules": {
+    "stwo_backend_contracts": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../core"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "Column",
+    "accumulation_ops",
+    "arena_plan",
+    "assertBackend",
+    "assertBackendForChannel",
+    "column",
+    "field_ops",
+    "fri_ops",
+    "gkr_ops",
+    "line_evaluation",
+    "merkle_ops",
+    "poly_ops",
+    "proof_program",
+    "quotient_ops",
+    "recovery",
+    "resident_storage",
+    "secure_column"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

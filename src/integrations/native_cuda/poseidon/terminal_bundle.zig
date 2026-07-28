@@ -1,9 +1,7 @@
 //! Exact terminal SWPC admission policy for Native Poseidon.
 
 const std = @import("std");
-const stark = @import(
-    "../../../backends/cuda/runtime/proof_assembly/stark_bundle.zig",
-);
+const stark = @import("stwo_cuda_backend").runtime.proof_assembly.stark_bundle;
 const geometry_mod = @import("geometry.zig");
 
 pub const Descriptor = struct {

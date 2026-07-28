@@ -14,6 +14,7 @@ pub const decode = @import("decode.zig");
 pub const opcodes = @import("opcodes.zig");
 pub const trace_reader = @import("trace_reader.zig");
 pub const adapted_input = @import("adapted_input.zig");
+pub const official_input = @import("official_input/mod.zig");
 
 const CasmState = cpu.CasmState;
 const Memory = memory_mod.Memory;

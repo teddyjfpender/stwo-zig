@@ -1,12 +1,8 @@
 //! Canonical ingress for the exact resident XOR/LogUp pointer graph.
 
 const std = @import("std");
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
-const relation_abi = @import(
-    "../../../../backends/cuda/abi/stages/relation.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
 const canonical = @import("../canonical_ingress.zig");
 const plan_mod = @import("../plan.zig");
 const relation_mod = @import("../relation.zig");
@@ -135,9 +131,7 @@ fn pointerWords(
 }
 
 test "pointer tables retain exact 64-bit device addresses" {
-    const Slice = @import(
-        "../../../../backends/cuda/runtime/column.zig",
-    ).DeviceSlice(u32);
+    const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
     const values = [_]Slice{
         .{ .address = 0x1122_3344_5566_7788, .len = 1, .owner = 7 },
         .{ .address = 0x8877_6655_4433_2211, .len = 1, .owner = 7 },

@@ -1,0 +1,45 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_core",
+  "owner": "protocol-core",
+  "public_modules": {
+    "stwo_core": "mod.zig"
+  },
+  "dependencies": {},
+  "injected_modules": [],
+  "api_surface": [
+    "ColumnVec",
+    "ComponentVec",
+    "air",
+    "channel",
+    "circle",
+    "constraint_framework",
+    "constraints",
+    "crypto",
+    "fft",
+    "fields",
+    "fraction",
+    "fri",
+    "pcs",
+    "poly",
+    "proof",
+    "proof_json",
+    "proof_of_work",
+    "queries",
+    "test_utils",
+    "utils",
+    "vcs",
+    "vcs_lifted",
+    "verifier",
+    "verifier_types"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

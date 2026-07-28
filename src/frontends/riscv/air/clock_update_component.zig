@@ -15,13 +15,14 @@ const prover_component = @import("stwo_prover_impl").air.component_prover;
 const interaction = @import("clock_update_interaction.zig");
 const logup = @import("logup.zig");
 const relations_mod = @import("relation_challenges.zig");
+const state_chain = @import("../runner/state_chain.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
 const EMPTY_PREVIOUS: [interaction.N_INTERACTION_COLUMNS][]const M31 =
     .{&.{}} ** interaction.N_INTERACTION_COLUMNS;
 
 pub const Evaluation = struct {
-    values: [3]QM31,
+    values: [interaction.N_SUMS + 3]QM31,
 
     pub fn allZero(self: Evaluation) bool {
         for (self.values) |value| if (!value.isZero()) return false;
@@ -36,7 +37,7 @@ pub const ClockUpdateComponent = struct {
     main_col_offset: usize,
     interaction_col_offset: usize,
     relations: *const relations_mod.Relations,
-    claim: QM31,
+    claims: [interaction.N_SUMS]QM31,
     previous: [interaction.N_INTERACTION_COLUMNS][]const M31 = EMPTY_PREVIOUS,
 
     const Adapter = core_air_derive.ComponentAdapter(
@@ -53,7 +54,7 @@ pub const ClockUpdateComponent = struct {
         main_col_offset: usize,
         interaction_col_offset: usize,
         relations: *const relations_mod.Relations,
-        claim: QM31,
+        claims: [interaction.N_SUMS]QM31,
     ) ClockUpdateComponent {
         return init(
             log_size,
@@ -62,7 +63,7 @@ pub const ClockUpdateComponent = struct {
             main_col_offset,
             interaction_col_offset,
             relations,
-            claim,
+            claims,
             EMPTY_PREVIOUS,
         );
     }
@@ -74,7 +75,7 @@ pub const ClockUpdateComponent = struct {
         main_col_offset: usize,
         interaction_col_offset: usize,
         relations: *const relations_mod.Relations,
-        claim: QM31,
+        claims: [interaction.N_SUMS]QM31,
         previous: [interaction.N_INTERACTION_COLUMNS][]const M31,
     ) !ClockUpdateComponent {
         const size = @as(usize, 1) << @intCast(log_size);
@@ -88,7 +89,7 @@ pub const ClockUpdateComponent = struct {
             main_col_offset,
             interaction_col_offset,
             relations,
-            claim,
+            claims,
             previous,
         );
     }
@@ -100,7 +101,7 @@ pub const ClockUpdateComponent = struct {
         main_col_offset: usize,
         interaction_col_offset: usize,
         relations: *const relations_mod.Relations,
-        claim: QM31,
+        claims: [interaction.N_SUMS]QM31,
         previous: [interaction.N_INTERACTION_COLUMNS][]const M31,
     ) ClockUpdateComponent {
         return .{
@@ -110,7 +111,7 @@ pub const ClockUpdateComponent = struct {
             .main_col_offset = main_col_offset,
             .interaction_col_offset = interaction_col_offset,
             .relations = relations,
-            .claim = claim,
+            .claims = claims,
             .previous = previous,
         };
     }
@@ -124,7 +125,7 @@ pub const ClockUpdateComponent = struct {
     }
 
     pub fn nConstraints(_: *const @This()) usize {
-        return 3;
+        return interaction.N_SUMS + 3;
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
@@ -204,10 +205,17 @@ pub const ClockUpdateComponent = struct {
             if (column.len < 1) return error.InvalidProofShape;
             value.* = column[0];
         }
+        var current: [interaction.N_SUMS]QM31 = undefined;
+        var previous: [interaction.N_SUMS]QM31 = undefined;
+        for (0..interaction.N_SUMS) |index| {
+            const offset = self.interaction_col_offset + index * 4;
+            current[index] = try sampledSecure(secure, offset, 0);
+            previous[index] = try sampledSecure(secure, offset, 1);
+        }
         const evaluation = try self.evaluateRow(
             &sampled,
-            try sampledSecure(secure, self.interaction_col_offset, 0),
-            try sampledSecure(secure, self.interaction_col_offset, 1),
+            current,
+            previous,
             preprocessed[self.is_first_col_idx][0],
             preprocessed[self.is_active_col_idx][0],
         );
@@ -287,13 +295,17 @@ pub const ClockUpdateComponent = struct {
             for (&sampled, evaluations[main_start..][0..interaction.N_MAIN_COLUMNS]) |*value, column| {
                 value.* = QM31.fromBase(column[row]);
             }
+            var current: [interaction.N_SUMS]QM31 = undefined;
+            var previous: [interaction.N_SUMS]QM31 = undefined;
+            for (0..interaction.N_SUMS) |index| {
+                const offset = secure_start + index * 4;
+                current[index] = secureAt(evaluations[offset..][0..4], row);
+                previous[index] = secureAt(evaluations[offset..][0..4], previous_row);
+            }
             const evaluation = try self.evaluateRow(
                 &sampled,
-                secureAt(evaluations[secure_start..][0..interaction.N_INTERACTION_COLUMNS], row),
-                secureAt(
-                    evaluations[secure_start..][0..interaction.N_INTERACTION_COLUMNS],
-                    previous_row,
-                ),
+                current,
+                previous,
                 QM31.fromBase(evaluations[0][row]),
                 QM31.fromBase(evaluations[1][row]),
             );
@@ -312,23 +324,38 @@ pub const ClockUpdateComponent = struct {
     pub fn evaluateRow(
         self: *const @This(),
         main: []const QM31,
-        current: QM31,
-        previous: QM31,
+        current: [interaction.N_SUMS]QM31,
+        previous: [interaction.N_SUMS]QM31,
         is_first: QM31,
         is_active: QM31,
     ) !Evaluation {
         const row = try interaction.Row.fromMain(main);
-        return .{ .values = .{
-            row.enabler.mul(QM31.one().sub(row.enabler)),
-            row.enabler.sub(is_active),
-            logup.pairConstraint(
-                current,
-                previous,
+        const pairs = try interaction.pairs(row, self.relations);
+        var result: Evaluation = undefined;
+        for (0..interaction.N_SUMS) |index| {
+            result.values[index] = logup.pairConstraint(
+                current[index],
+                previous[index],
                 is_first,
-                self.claim,
-                try interaction.pair(row, self.relations),
+                self.claims[index],
+                pairs[index],
+            );
+        }
+        result.values[interaction.N_SUMS] =
+            row.enabler.mul(QM31.one().sub(row.enabler));
+        result.values[interaction.N_SUMS + 1] = row.enabler.sub(is_active);
+        result.values[interaction.N_SUMS + 2] = row.enabler.mul(
+            row.clock_prev.sub(
+                row.clock_prev_low20.add(
+                    row.clock_prev_high6.mul(
+                        QM31.fromBase(M31.fromU64(
+                            @as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS,
+                        )),
+                    ),
+                ),
             ),
-        } };
+        );
+        return result;
     }
 };
 
@@ -339,7 +366,7 @@ fn committedValues(poly: prover_component.Poly, expected_log_size: u32) ![]const
 }
 
 fn sampledSecure(columns: [][]QM31, offset: usize, point: usize) !QM31 {
-    var coordinates: [interaction.N_INTERACTION_COLUMNS]QM31 = undefined;
+    var coordinates: [4]QM31 = undefined;
     for (&coordinates, 0..) |*value, index| {
         if (columns[offset + index].len <= point) return error.InvalidProofShape;
         value.* = columns[offset + index][point];

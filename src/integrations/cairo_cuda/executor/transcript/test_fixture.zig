@@ -2,9 +2,7 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const compact = @import(
-    "../../../../frontends/cairo/compact_verifier_interchange.zig",
-);
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const cairo_identity = @import("../../identity.zig");
 
 pub fn protocol() !compact.CompactProtocolV1 {

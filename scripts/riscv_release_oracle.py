@@ -1,22 +1,11 @@
 #!/usr/bin/env python3
-"""CP-11 producer: build the pinned Stark-V oracle and compare shared boundaries.
+"""Archived pre-Sail CP-11 producer.
 
-Produces the machine-readable receipt required by
-conformance/2026-07-18-riscv-release-goal.md. Every boundary named by the
-contract appears in the receipt with an explicit status; boundaries whose
-comparison is not yet implemented are recorded as "unimplemented" and the
-receipt's overall verdict is FAIL-closed until every boundary passes. The
-receipt never claims a comparison that did not run.
-
-Producer:
-  python3 scripts/riscv_release_oracle.py build-and-compare \
-    --stark-v-source "$STARK_V_SOURCE" \
-    --candidate "$(git rev-parse HEAD)" \
-    --receipt-out zig-out/release-evidence/riscv/oracle-receipt.json
-
-Validator:
-  python3 scripts/riscv_release_oracle.py validate \
-    --receipt zig-out/release-evidence/riscv/oracle-receipt.json
+This source remains temporarily readable for old receipt and bundle forensics,
+but every executable mode fails closed. Stark-V is not an active semantic,
+AIR, or release authority. Use ``scripts/riscv_release_gate.py --strict`` with
+the pinned Sail/Spike formal workspace for live release evidence. Performance
+comparisons use the separately scoped benchmark commands.
 """
 
 from __future__ import annotations
@@ -55,7 +44,7 @@ from riscv_release_oracle_lib.oracle_build import (
 )
 from riscv_release_oracle_lib.public_values import (
     IMPLEMENTATION_REPOSITORY,
-    PINNED_ORACLE,
+    PINNED_STARK_V,
     PUBLIC_DATA_FIELDS,
     PUBLIC_VALUES_DERIVATION,
     PUBLIC_VALUES_SCHEMA,
@@ -67,7 +56,7 @@ from riscv_release_oracle_lib.public_values import (
 from riscv_trace_vectors_lib import admission as trace_admission
 
 ROOT = Path(__file__).resolve().parent.parent
-PINNED = PINNED_ORACLE
+PINNED = PINNED_STARK_V
 MAX_RECEIPT_BYTES = 64 * 1024 * 1024
 UNSUPPORTED_PROOF_FAMILY_STDERR = (
     "stark-v adapter: error=UnsupportedProofFamily "
@@ -644,15 +633,12 @@ def build_and_compare(args) -> int:
     compare_execution(oracle_exe, receipt)
     compare_per_family_witness_rows(oracle_exe, receipt, ROOT, PINNED)
     compare_ordered_accesses(oracle_exe, receipt, ROOT, PINNED)
-    cli_admission = compare_public_values(oracle_exe, receipt)
+    compare_public_values(oracle_exe, receipt)
     compare_decode(oracle_exe, receipt)
     compare_program_tuples(oracle_exe, receipt)
     compare_memory_roots(oracle_exe, receipt)
     compare_poseidon2(oracle_exe, receipt)
-    compare_relation_boundaries(
-        oracle_exe, receipt, ROOT, PINNED,
-        admission_arguments=cli_admission.arguments,
-    )
+    compare_relation_boundaries(oracle_exe, receipt, ROOT, PINNED)
     compare_shared_transcript_prefix(oracle_exe, receipt)
     finalize_case_result_digests(receipt)
     require_clean_candidate(ROOT, args.candidate)
@@ -716,6 +702,10 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("cache-key")
     p.add_argument("--stark-v-source", required=True)
     args = parser.parse_args(argv)
+    parser.error(
+        "retired pre-Sail CP-11 command; use scripts/riscv_release_gate.py "
+        "--strict --formal-workspace <workspace>"
+    )
     if args.mode == "build-and-compare":
         return build_and_compare(args)
     if args.mode == "cache-key":

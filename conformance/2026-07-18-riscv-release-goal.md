@@ -1,6 +1,12 @@
 # RISC-V proving lane release goal
 
-**Status:** ACTIVE
+**Status:** SUPERSEDED on 2026-07-26 by
+[`2026-07-26-riscv-sail-contract.md`](2026-07-26-riscv-sail-contract.md).
+
+This file is a historical record of the pre-Sail CP-00…CP-13 process. Its
+CP-11/CP-13 commands, owner-dispatch inputs, receipts, bundles, divergence
+shapes, and promotion formula must not be executed or cited as current release
+authority.
 
 **Created:** 2026-07-18
 

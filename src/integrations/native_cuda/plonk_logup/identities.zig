@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const ir = @import("stwo_backend_contracts").proof_program;
-const cpu_input = @import("../../../examples/plonk_logup/input.zig");
+const cpu_input = @import("stwo_native_examples").backend_support.plonk_logup.input;
 const pcs = @import("stwo_core").pcs;
 
 pub const rust_oracle_repository =

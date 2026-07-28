@@ -4,8 +4,8 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const Modulus = @import("stwo_core").fields.m31.Modulus;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const cpu = @import("../../../examples/state_machine.zig");
-const input = @import("../../../examples/state_machine/input.zig");
+const cpu = @import("stwo_native_examples").state_machine;
+const input = @import("stwo_native_examples").backend_support.state_machine.input;
 
 pub fn OutputFor(comptime Transaction: type) type {
     const Raw = Transaction.StarkStatementBundleOutput;

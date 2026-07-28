@@ -1,5 +1,5 @@
-const stwo = @import("stwo_under_test");
+const oracle = @import("oracle.zig");
 
 pub fn main() !void {
-    return stwo.integrations.cairo_cuda.native_ec_oracle_receipt.main();
+    return oracle.main();
 }

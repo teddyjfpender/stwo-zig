@@ -6,15 +6,15 @@
 //! enumerating every component whose CUDA AOT lowering is still absent.
 
 const std = @import("std");
-const cuda_plan = @import("../../backends/cuda/runtime/execution_plan.zig");
-const product_aot = @import("../../backends/cuda/aot/product_registry.zig");
-const prover = @import("../../frontends/cairo/prover.zig");
-const proof_plan = @import("../../frontends/cairo/proof_plan.zig");
-const semantic_authority = @import("../../frontends/cairo/proof_plan/semantic_authority.zig");
-const compact = @import("../../frontends/cairo/compact_verifier_interchange.zig");
-const statement_bootstrap = @import("../../frontends/cairo/statement_bootstrap.zig");
-const composition = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const feed_bundle = @import("../../frontends/cairo/witness/feed_bundle.zig");
+const cuda_plan = @import("stwo_cuda_backend").runtime.execution_plan;
+const product_aot = @import("stwo_cuda_backend").aot.product_registry;
+const prover = @import("stwo_cairo_frontend").prover;
+const proof_plan = @import("stwo_cairo_frontend").proof_plan;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const statement_bootstrap = @import("stwo_cairo_frontend").statement_bootstrap;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const feed_bundle = @import("stwo_cairo_frontend").witness.feed_bundle;
 const subject_program = @import("program.zig");
 const subject_identity = @import("identity.zig");
 const relation_adapter = @import("relation_adapter.zig");
@@ -124,18 +124,14 @@ pub const PreparedRequest = struct {
 /// bypasses only the absent semantic-pack manifest; it does not bypass any AIR,
 /// lowering, resident-plan, protocol, or CUDA admission check.
 pub const ProofDerivedDiagnosticInput = struct {
-    adapted_input: *const @import("../../frontends/cairo/adapter/mod.zig").ProverInput,
+    adapted_input: *const @import("stwo_cairo_frontend").adapter.ProverInput,
     adapted_input_bytes: u64,
     adapted_input_identity: [32]u8,
-    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
+    witnesses: @import("stwo_cairo_frontend").witness.bundle.Bundle,
     multiplicity_feeds: feed_bundle.Bundle,
-    fixed_tables: @import(
-        "../../frontends/cairo/witness/fixed_table_bundle.zig",
-    ).Bundle,
+    fixed_tables: @import("stwo_cairo_frontend").witness.fixed_table_bundle.Bundle,
     composition: composition.Bundle,
-    relation_templates: @import(
-        "../../frontends/cairo/witness/relation_bundle.zig",
-    ).Bundle,
+    relation_templates: @import("stwo_cairo_frontend").witness.relation_bundle.Bundle,
     compact_statement: []const u8,
     preprocessed_logs: []const u32,
     pack: subject_identity.PackIdentity,
@@ -258,16 +254,12 @@ fn finishDevelopmentRequest(
     proof: proof_plan.CairoProofPlan,
     buffers: []subject_program.BufferDescription,
     proof_program: proof_ir.ProofProgram,
-    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
+    witnesses: @import("stwo_cairo_frontend").witness.bundle.Bundle,
     feeds: feed_bundle.Bundle,
-    fixed_tables: @import(
-        "../../frontends/cairo/witness/fixed_table_bundle.zig",
-    ).Bundle,
+    fixed_tables: @import("stwo_cairo_frontend").witness.fixed_table_bundle.Bundle,
     bundle: composition.Bundle,
-    relations: @import(
-        "../../frontends/cairo/witness/relation_bundle.zig",
-    ).Bundle,
-    adapted_input: *const @import("../../frontends/cairo/adapter/mod.zig").ProverInput,
+    relations: @import("stwo_cairo_frontend").witness.relation_bundle.Bundle,
+    adapted_input: *const @import("stwo_cairo_frontend").adapter.ProverInput,
     adapted_input_bytes: u64,
     adapted_input_identity: [32]u8,
     protocol: compact.CompactProtocolV1,
@@ -398,16 +390,12 @@ fn buildBufferDescriptions(
 fn compileLoweringAdmission(
     allocator: std.mem.Allocator,
     proof: *const proof_plan.CairoProofPlan,
-    witnesses: @import("../../frontends/cairo/witness/bundle.zig").Bundle,
-    fixed: @import(
-        "../../frontends/cairo/witness/fixed_table_bundle.zig",
-    ).Bundle,
+    witnesses: @import("stwo_cairo_frontend").witness.bundle.Bundle,
+    fixed: @import("stwo_cairo_frontend").witness.fixed_table_bundle.Bundle,
     feeds: feed_bundle.Bundle,
     bundle: composition.Bundle,
-    relations: @import(
-        "../../frontends/cairo/witness/relation_bundle.zig",
-    ).Bundle,
-    input: *const @import("../../frontends/cairo/adapter/mod.zig").ProverInput,
+    relations: @import("stwo_cairo_frontend").witness.relation_bundle.Bundle,
+    input: *const @import("stwo_cairo_frontend").adapter.ProverInput,
     constraints: []const @import("stwo_backend_contracts").proof_program.ConstraintProgram,
     product_registry: product_aot.Registry,
     adapted_input_bytes: u64,
@@ -648,12 +636,10 @@ test "Cairo CUDA request buffers preserve component-local mixed heights" {
 
 test "Cairo CUDA compiles the complete authenticated SN2 structure and only reports AOT gaps" {
     const allocator = std.testing.allocator;
-    const adapter = @import("../../frontends/cairo/adapter/mod.zig");
-    const fixed_table_bundle = @import("../../frontends/cairo/witness/fixed_table_bundle.zig");
-    const relation_bundle = @import(
-        "../../frontends/cairo/witness/relation_bundle.zig",
-    );
-    const witness_bundle = @import("../../frontends/cairo/witness/bundle.zig");
+    const adapter = @import("stwo_cairo_frontend").adapter;
+    const fixed_table_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+    const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
+    const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
     const adapted_path = std.process.getEnvVarOwned(
         allocator,
         "STWO_ZIG_TEST_SN2_ADAPTED_INPUT",
@@ -754,6 +740,7 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
         &proof,
         witnesses,
         fixed_tables,
+        feeds,
         bundle,
         relations,
         &input,

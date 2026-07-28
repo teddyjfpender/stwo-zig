@@ -2,10 +2,11 @@
 
 const std = @import("std");
 const adapter = @import("../adapter/mod.zig");
-const claim_registry = @import("../claim_registry.zig");
+const claim_registry = @import("../air/official_claim_registry.zig");
 const witness_bundle = @import("../witness/bundle.zig");
 const direct_inputs = @import("../witness/direct_inputs.zig");
-const execution_tables = @import("../witness/execution_tables.zig");
+const component_executor = @import("../witness/component_executor.zig");
+const base_execution = @import("base_execution.zig");
 const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
 const program = @import("../witness/program.zig");
 const checkpoint = @import("checkpoint.zig");
@@ -26,21 +27,8 @@ pub const Match = struct {
     column_count: u32,
 };
 
-pub const MismatchKind = enum {
-    column_count,
-    column_digest,
-};
-
-pub const Mismatch = struct {
-    kind: MismatchKind,
-    component_ordinal: u32,
-    component_label: []const u8,
-    column_ordinal: ?u32 = null,
-    expected_count: ?u64 = null,
-    actual_count: ?u64 = null,
-    expected_digest: ?checkpoint.Digest = null,
-    actual_digest: ?checkpoint.Digest = null,
-};
+pub const MismatchKind = base_execution.MismatchKind;
+pub const Mismatch = base_execution.Mismatch;
 
 pub const Report = struct {
     allocator: std.mem.Allocator,
@@ -133,79 +121,20 @@ fn compareComponent(
     source: anytype,
     expected: checkpoint.Component,
 ) !?Mismatch {
-    if (witness_program.n_inputs != source.columnCount())
-        return Error.WitnessInputCountMismatch;
-    if (expected.columns.len != witness_program.n_cols) return .{
-        .kind = .column_count,
-        .component_ordinal = expected.ordinal,
-        .component_label = expected.label,
-        .expected_count = expected.columns.len,
-        .actual_count = witness_program.n_cols,
-    };
-    if (expected.columns.len == 0) return Error.InvalidReceiptGeometry;
-    const row_count = std.math.cast(usize, expected.columns[0].row_count) orelse
-        return Error.InvalidReceiptGeometry;
-    for (expected.columns, 0..) |column, column_index| {
-        if (column.ordinal != column_index or column.row_count != row_count)
-            return Error.InvalidReceiptGeometry;
-    }
-    source.validateRowCount(row_count) catch return Error.InvalidReceiptGeometry;
-
-    const input_words = std.math.mul(usize, source.columnCount(), row_count) catch
-        return Error.AllocationSizeOverflow;
-    const output_words = std.math.mul(usize, witness_program.n_cols, row_count) catch
-        return Error.AllocationSizeOverflow;
-    const input_storage = try allocator.alloc(u32, input_words);
-    defer allocator.free(input_storage);
-    const input_columns = try allocator.alloc([]const u32, source.columnCount());
-    defer allocator.free(input_columns);
-    for (input_columns, 0..) |*column, column_index| {
-        const start = column_index * row_count;
-        const values = input_storage[start .. start + row_count];
-        try source.writeColumn(column_index, values);
-        column.* = values;
-    }
-
-    const output_storage = try allocator.alloc(u32, output_words);
-    defer allocator.free(output_storage);
-    const output_columns = try allocator.alloc([]u32, witness_program.n_cols);
-    defer allocator.free(output_columns);
-    for (output_columns, 0..) |*column, column_index| {
-        const start = column_index * row_count;
-        column.* = output_storage[start .. start + row_count];
-    }
-    const registers = try allocator.alloc(u32, witness_program.n_regs);
-    defer allocator.free(registers);
-    const deduce_args = try allocator.alloc(u32, witness_program.n_regs);
-    defer allocator.free(deduce_args);
-
-    try program.executeAll(
+    var execution = try component_executor.execute(
+        allocator,
+        input,
         witness_program,
-        input_columns,
-        output_columns,
         null,
-        registers,
-        deduce_args,
-        execution_tables.fromInput(input),
-        .unsupported(),
+        null,
+        0,
+        source,
+        try base_execution.layout(expected),
+        null,
+        null,
     );
-    for (expected.columns, output_columns) |expected_column, values| {
-        const actual_digest = try checkpoint.digestColumn(
-            expected.ordinal,
-            expected.label,
-            expected_column.ordinal,
-            values,
-        );
-        if (!std.mem.eql(u8, &expected_column.sha256, &actual_digest)) return .{
-            .kind = .column_digest,
-            .component_ordinal = expected.ordinal,
-            .component_label = expected.label,
-            .column_ordinal = expected_column.ordinal,
-            .expected_digest = expected_column.sha256,
-            .actual_digest = actual_digest,
-        };
-    }
-    return null;
+    defer execution.deinit();
+    return base_execution.compare(expected, execution);
 }
 
 fn testInput(

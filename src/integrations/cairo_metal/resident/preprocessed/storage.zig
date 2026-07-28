@@ -1,8 +1,8 @@
 //! Versioned preprocessed-evaluation artifact storage over resident bindings.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const fixed_table_bundle_mod = @import("../../../../frontends/cairo/witness/fixed_table_bundle.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const fixed_table_bundle_mod = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const schedule_bindings = @import("../../schedule_bindings.zig");
 const commitment_ordering = @import("../commitment/ordering.zig");
 const Error = @import("../errors.zig").Error;

@@ -1,14 +1,8 @@
 //! Resident pointer graph for exact Blake LogUp completion.
 
-const completion = @import(
-    "../../../../backends/cuda/runtime/stages/relation_completion.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const column = @import(
-    "../../../../backends/cuda/runtime/column.zig",
-);
+const completion = @import("stwo_cuda_backend").runtime.stages.relation_completion;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const column = @import("stwo_cuda_backend").runtime.column;
 const completion_plan = @import("completion_plan.zig");
 const geometry_mod = @import("geometry.zig");
 const interaction_plan = @import("interaction_plan.zig");

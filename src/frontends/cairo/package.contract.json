@@ -1,0 +1,53 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_cairo_frontend",
+  "owner": "cairo-frontend",
+  "public_modules": {
+    "stwo_cairo_frontend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_backend_contracts": "../../backend",
+    "stwo_core": "../../core",
+    "stwo_prover_impl": "../../prover"
+  },
+  "injected_modules": [
+    "cairo_frontend"
+  ],
+  "api_surface": [
+    "CasmState",
+    "Felt252",
+    "ProverInput",
+    "adapter",
+    "air",
+    "arena_lifetime",
+    "claim_generator",
+    "claim_registry",
+    "codegen",
+    "common",
+    "compact_protocol_geometry",
+    "compact_verifier_interchange",
+    "conformance",
+    "preprocessed",
+    "proof",
+    "proof_plan",
+    "proveCairo",
+    "prove_trace",
+    "prover",
+    "proving",
+    "rust_oracle",
+    "staged_arena_planner",
+    "statement",
+    "statement_bootstrap",
+    "witness",
+    "witness_scheduler"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

@@ -1,8 +1,8 @@
 //! AIR-neutral resident PoW and authenticated opening assembly.
 
 const std = @import("std");
-const stages = @import("../../../backends/cuda/runtime/stages/mod.zig");
-const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
+const stages = @import("stwo_cuda_backend").runtime.stages;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
 const proof_assembly = @import("proof_assembly.zig");
 
 const NativeOps = struct {

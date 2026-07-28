@@ -1,10 +1,10 @@
 const std = @import("std");
-const examples_blake = @import("../examples/blake.zig");
-const examples_poseidon = @import("../examples/poseidon.zig");
-const examples_plonk = @import("../examples/plonk.zig");
-const examples_xor = @import("../examples/xor.zig");
-const examples_state_machine = @import("../examples/state_machine.zig");
-const examples_wide_fibonacci = @import("../examples/wide_fibonacci.zig");
+const examples_blake = @import("stwo_native_examples").blake;
+const examples_poseidon = @import("stwo_native_examples").poseidon;
+const examples_plonk = @import("stwo_native_examples").plonk;
+const examples_xor = @import("stwo_native_examples").xor;
+const examples_state_machine = @import("stwo_native_examples").state_machine;
+const examples_wide_fibonacci = @import("stwo_native_examples").wide_fibonacci;
 
 /// Freestanding-friendly verifier shim surface.
 ///
@@ -80,7 +80,7 @@ test "std_shims verifier profile: xor verification parity with standard path" {
     var output = try examples_xor.prove(alloc, config, statement);
     defer output.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const bytes = try proof_wire.encodeProofBytes(alloc, output.proof);
     defer alloc.free(bytes);
 
@@ -104,7 +104,7 @@ test "std_shims verifier profile: plonk verification parity with standard path" 
     var output = try examples_plonk.prove(alloc, config, statement);
     defer output.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const bytes = try proof_wire.encodeProofBytes(alloc, output.proof);
     defer alloc.free(bytes);
 
@@ -128,7 +128,7 @@ test "std_shims verifier profile: poseidon verification parity with standard pat
     var output = try examples_poseidon.prove(alloc, config, statement);
     defer output.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const bytes = try proof_wire.encodeProofBytes(alloc, output.proof);
     defer alloc.free(bytes);
 
@@ -153,7 +153,7 @@ test "std_shims verifier profile: blake verification parity with standard path" 
     var output = try examples_blake.prove(alloc, config, statement);
     defer output.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const bytes = try proof_wire.encodeProofBytes(alloc, output.proof);
     defer alloc.free(bytes);
 

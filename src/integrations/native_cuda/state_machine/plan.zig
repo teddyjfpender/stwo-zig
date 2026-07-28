@@ -1,10 +1,8 @@
 //! Descriptor-driven prepared plan for one resident Native state-machine proof.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const execution_plan = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const execution_plan = @import("stwo_cuda_backend").runtime.execution_plan;
 const geometry_mod = @import("geometry.zig");
 const layout = @import("layout.zig");
 const program = @import("program.zig");

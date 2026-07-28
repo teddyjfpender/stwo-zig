@@ -1,7 +1,7 @@
 const std = @import("std");
 const arena_plan = @import("stwo_backend_contracts").arena_plan;
-const composition_bundle = @import("../../frontends/cairo/witness/composition_bundle.zig");
-const geometry_mod = @import("../../integrations/cairo_metal/runtime_decommit_geometry.zig");
+const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
+const geometry_mod = @import("stwo_cairo_metal_integration").runtime_decommit_geometry;
 
 test "runtime decommit geometry derives Fib and exact SN2 shapes from admitted artifacts" {
     try runCase(.{

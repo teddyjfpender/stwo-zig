@@ -2,16 +2,13 @@
 
 const std = @import("std");
 const pedersen_rows = @import("pedersen_fixture_rows.zig");
-const program = @import("../../frontends/cairo/witness/program.zig");
+const program = @import("stwo_cairo_frontend").witness.program;
+const cuda_backend = @import("stwo_cuda_backend");
 
-const key_source = @embedFile(
-    "../../backends/cuda/vendor/upstream/poseidon_witness_round_keys.cuh",
-);
+const key_source = cuda_backend.upstream_sources.poseidon_witness_round_keys;
 const expected_key_source_sha256 =
     "a606868540f59a8e257f3d1b60220d12f0a878f54a2d324f56b9f12ef3b8d34b";
-const pedersen_source = @embedFile(
-    "../../backends/cuda/vendor/upstream/pedersen_table_init.cu",
-);
+const pedersen_source = cuda_backend.upstream_sources.pedersen_table_init;
 
 const key_rounds = 35;
 const keys_per_round = 30;
@@ -491,13 +488,18 @@ fn deduceBlakeSigma(inputs: []const u32, outputs: []u32) !void {
 test "recorded CUDA oracle pins key authority and basic deductions" {
     var oracle = try Oracle.init();
     var sigma: [16]u32 = undefined;
-    try oracle.context().call(1, &.{1}, &sigma);
+    try oracle.context().call(1, &.{1}, &sigma, program.TableContext.zero());
     try std.testing.expectEqualSlices(
         u32,
         blake_sigma[16..32],
         &sigma,
     );
     var cube: [10]u32 = undefined;
-    try oracle.context().call(9, &([_]u32{0} ** 10), &cube);
+    try oracle.context().call(
+        9,
+        &([_]u32{0} ** 10),
+        &cube,
+        program.TableContext.zero(),
+    );
     try std.testing.expect(std.mem.allEqual(u32, &cube, 0));
 }

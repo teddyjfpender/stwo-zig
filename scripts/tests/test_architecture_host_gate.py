@@ -119,12 +119,9 @@ class ArchitectureHostGateTest(unittest.TestCase):
                 protocol_path=self.root / "protocol.json",
                 output_dir=output, candidate=SHA,
                 timeout=1.0, run_id="7", run_attempt="1", repository="owner/repo",
-                repository_id="8", workflow_sha=SHA, riscv_bundle=self.root / "bundle",
+                repository_id="8", workflow_sha=SHA,
                 native_oracle_bundle=self.root / "native-oracle-bundle",
                 native_oracle_trust=self.root / "native-oracle-trust.json",
-                riscv_trust_context=self.root / "trust.json",
-                riscv_policy_context=self.root / "policy-context.json",
-                riscv_phase="candidate",
                 executor=executor,
             )
 

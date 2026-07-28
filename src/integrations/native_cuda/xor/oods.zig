@@ -2,8 +2,8 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const column = @import("../../../backends/cuda/runtime/column.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
 const oods_batches = @import("../common/oods_batches.zig");
 const resident_views = @import("../common/resident_views.zig");
 const geometry_mod = @import("geometry.zig");

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const stwo = @import("stwo_riscv_cpu");
-const adapter = @import("starkv_adapter");
+const adapter = @import("riscv_adapter");
 const cli = @import("cli.zig");
 const registry = @import("registry.zig");
 
@@ -70,13 +70,6 @@ fn runElf(
             try writeLine(std.fs.File.stderr().deprecatedWriter(), adapter.PENDING_DIAGNOSTIC);
             std.process.exit(1);
         },
-        error.UnsupportedProofFamily => {
-            try writeLine(
-                std.fs.File.stderr().deprecatedWriter(),
-                adapter.UNSUPPORTED_PROOF_FAMILY_DIAGNOSTIC,
-            );
-            std.process.exit(1);
-        },
         else => return err,
     };
     defer allocator.free(report);
@@ -109,7 +102,13 @@ fn verifyArtifact(allocator: std.mem.Allocator, request: cli.Verify) !void {
         .riscv => |parsed| {
             const expected = request.expected_statement_digest orelse
                 return error.MissingExpectedStatementDigest;
-            return adapter.verifyArtifact(allocator, parsed.value, protocol(request.protocol), expected);
+            return adapter.verifyArtifact(
+                allocator,
+                parsed.value,
+                protocol(request.protocol),
+                expected,
+                request.elf_path,
+            );
         },
         .other => return error.UnsupportedArtifactKind,
     }
@@ -146,6 +145,7 @@ test "focused verifier rejects non-RISC-V artifacts" {
         std.testing.allocator,
         .{
             .artifact = path,
+            .elf_path = "guest.elf",
             .protocol = .functional,
             .expected_statement_digest = [_]u8{0} ** 32,
         },

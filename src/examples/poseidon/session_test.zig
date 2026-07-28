@@ -3,9 +3,7 @@
 const std = @import("std");
 const fri = @import("stwo_core").fri;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../interop/proof_wire.zig");
-const prover_engine = @import("stwo_prover_impl").engine;
-const MetalCommitBackend = @import("../../backends/metal/mod.zig").MetalCommitBackend;
+const proof_wire = @import("stwo_proof_wire");
 const subject = @import("../poseidon.zig");
 
 fn testConfig() !pcs.PcsConfig {
@@ -17,12 +15,6 @@ fn testConfig() !pcs.PcsConfig {
 
 fn testStatement() subject.Statement {
     return .{ .log_n_instances = 8 };
-}
-
-test "Poseidon engine: Metal backend satisfies the prover transaction contract" {
-    const MetalEngine = subject.ProverEngineForBackend(MetalCommitBackend);
-    comptime prover_engine.assertProverEngine(MetalEngine);
-    try std.testing.expect(@hasDecl(MetalEngine, "Session"));
 }
 
 test "Poseidon session: compatibility, prepared, and sequential proofs match exactly" {

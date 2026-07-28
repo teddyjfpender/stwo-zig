@@ -41,7 +41,7 @@ pub fn encode(allocator: std.mem.Allocator, input: Input) ![]u8 {
 test "verification receipt is one canonical JSON object" {
     const encoded = try encode(std.testing.allocator, .{
         .artifact_kind = "stwo_riscv_proof",
-        .artifact_schema_version = 3,
+        .artifact_schema_version = 4,
         .release_status = "not_release_gated",
         .security_policy = "functional",
         .statement_sha256 = [_]u8{0xab} ** 32,
@@ -56,7 +56,7 @@ test "verification receipt is one canonical JSON object" {
 
     try std.testing.expectEqualStrings(
         "{\"schema\":\"riscv_verify_v1\",\"status\":\"verified\"," ++
-            "\"artifact_kind\":\"stwo_riscv_proof\",\"artifact_schema_version\":3," ++
+            "\"artifact_kind\":\"stwo_riscv_proof\",\"artifact_schema_version\":4," ++
             "\"release_status\":\"not_release_gated\",\"security_policy\":\"functional\"," ++
             "\"statement_sha256\":\"" ++ "ab" ** 32 ++ "\",\"proof_bytes\":17," ++
             "\"proof_sha256\":\"" ++ "cd" ** 32 ++ "\"," ++

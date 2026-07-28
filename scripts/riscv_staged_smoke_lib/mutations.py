@@ -108,8 +108,8 @@ def hostile_json(artifact_text: str, payload: dict[str, Any]) -> dict[str, tuple
     omitted = dict(payload)
     omitted.pop("interaction_claim")
     duplicate = artifact_text.replace(
-        '"schema_version":3,',
-        '"schema_version":3,"schema_version":3,',
+        '"schema_version":4,',
+        '"schema_version":4,"schema_version":4,',
         1,
     )
     return {

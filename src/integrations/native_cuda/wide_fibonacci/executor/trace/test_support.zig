@@ -1,7 +1,7 @@
-const arena = @import("../../../../../backends/cuda/runtime/arena.zig");
-const column = @import("../../../../../backends/cuda/runtime/column.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const column = @import("stwo_cuda_backend").runtime.column;
 const runtime_error =
-    @import("../../../../../backends/cuda/runtime/error.zig");
+    @import("stwo_cuda_backend").runtime.runtime_error;
 const plan_mod = @import("../../plan.zig");
 const request = @import("../../request.zig");
 
@@ -14,7 +14,7 @@ pub const Provider = struct {
         self: *const Provider,
         id: arena.SlotId,
     ) runtime_error.Error!column.DeviceSlice(u32) {
-        const placement = try self.prepared.arena_plan.placement(id);
+        const placement = try self.prepared.cuda_plan.arena_plan.placement(id);
         return .{
             .address = base_address +
                 placement.offset_words * @sizeOf(u32),

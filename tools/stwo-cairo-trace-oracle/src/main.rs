@@ -1,19 +1,17 @@
 mod checkpoint;
-mod input;
 mod interaction;
 
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
-use stwo::prover::backend::simd::SimdBackend;
+use stwo_cairo_adapter::ProverInput;
 use stwo_cairo_common::preprocessed_columns::preprocessed_trace::PreProcessedTrace;
-use stwo_cairo_prover::witness::base_trace::BaseTrace;
 use stwo_cairo_prover::witness::cairo::create_cairo_claim_generator;
 
 struct Arguments {
@@ -33,7 +31,7 @@ fn arguments() -> Result<Arguments> {
         .next()
         .map(PathBuf::from)
         .context(
-            "usage: stwo-cairo-trace-oracle INPUT.stwzcpi [OUTPUT.json]\n       stwo-cairo-trace-oracle interaction INPUT.stwzcpi [OUTPUT.json]",
+            "usage: stwo-cairo-trace-oracle INPUT.json [OUTPUT.json]\n       stwo-cairo-trace-oracle interaction INPUT.json [OUTPUT.json]",
         )?;
     let (mode, input) = if first == Path::new("interaction") {
         let input = values
@@ -120,21 +118,19 @@ fn main() -> Result<()> {
     let bytes = std::fs::read(&arguments.input)
         .with_context(|| format!("failed to read {}", arguments.input.display()))?;
     let input_digest: [u8; 32] = Sha256::digest(&bytes).into();
-    let prover_input = input::decode(&bytes)?;
+    let prover_input: ProverInput =
+        serde_json::from_slice(&bytes).context("failed to decode official ProverInput JSON")?;
 
     let preprocessed = Arc::new(PreProcessedTrace::canonical());
     let generator = create_cairo_claim_generator(prover_input, preprocessed);
-    let (trace, claim, interaction_generator) = generator.write_trace::<SimdBackend>(None, None);
+    let (evals, claim, interaction_generator) = generator.write_trace(None);
     match arguments.mode {
         Mode::Base => {
-            let BaseTrace::Evals(evals) = trace else {
-                bail!("oracle unexpectedly received pipelined base polynomials");
-            };
             let checkpoint = checkpoint::build(input_digest, &claim, evals)?;
             write_checkpoint(arguments.output.as_deref(), &checkpoint)
         }
         Mode::Interaction => {
-            drop(trace);
+            drop(evals);
             let (lookup_elements, challenge) = interaction::diagnostic_lookup_elements()?;
             let (evals, interaction_claim) =
                 interaction_generator.write_interaction_trace(&lookup_elements);

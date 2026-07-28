@@ -1,10 +1,10 @@
 //! AIR-owned binding from Native Blake semantics to a generic CUDA recipe.
 
 const geometry_mod = @import("geometry.zig");
-const common = @import("../../../backends/cuda/runtime/stages/common.zig");
-const runtime_error = @import("../../../backends/cuda/runtime/error.zig");
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
 const seeded_xorshift =
-    @import("../../../backends/cuda/runtime/traces/seeded_xorshift.zig");
+    @import("stwo_cuda_backend").runtime.traces.seeded_xorshift;
 
 pub const recipe = seeded_xorshift.Recipe{
     .seed_offset = 1,
@@ -18,7 +18,7 @@ pub const recipe = seeded_xorshift.Recipe{
 pub fn prepare(
     session: anytype,
     destination: common.WordMatrix,
-    statement: @import("../../../examples/blake.zig").Statement,
+    statement: geometry_mod.LegacyStatement,
 ) !seeded_xorshift.PreparedLaunch {
     _ = try geometry_mod.mainColumnCount(statement);
     return seeded_xorshift.prepare(
@@ -36,7 +36,7 @@ pub fn prepare(
 pub fn generate(
     session: anytype,
     destination: common.WordMatrix,
-    statement: @import("../../../examples/blake.zig").Statement,
+    statement: geometry_mod.LegacyStatement,
 ) !void {
     var launch = try prepare(session, destination, statement);
     try launch.launch(session);
@@ -45,7 +45,7 @@ pub fn generate(
 test "Blake binding contributes only statement geometry and AIR recipe" {
     const std = @import("std");
     var session = TestSession{};
-    const statement = @import("../../../examples/blake.zig").Statement{
+    const statement = geometry_mod.LegacyStatement{
         .log_n_rows = 3,
         .n_rounds = 2,
     };
@@ -71,7 +71,7 @@ const TestSession = struct {
 
     pub fn launchKernel(
         self: *TestSession,
-        kernel: @import("../../../backends/cuda/runtime/kernel.zig").Kernel,
+        kernel: @import("stwo_cuda_backend").runtime.kernel.Kernel,
         arguments: []const ?*anyopaque,
     ) runtime_error.Error!void {
         try kernel.validate();
@@ -82,12 +82,12 @@ const TestSession = struct {
 };
 
 const TestContext = struct {
-    active_stage: @import("../../../backends/cuda/runtime/telemetry.zig").Stage =
+    active_stage: @import("stwo_cuda_backend").runtime.telemetry.Stage =
         .trace_generation,
 
     pub fn requireStage(
         self: *TestContext,
-        expected: @import("../../../backends/cuda/runtime/telemetry.zig").Stage,
+        expected: @import("stwo_cuda_backend").runtime.telemetry.Stage,
     ) runtime_error.Error!void {
         if (self.active_stage != expected) return error.StageOrderViolation;
     }

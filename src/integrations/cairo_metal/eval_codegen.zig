@@ -1,6 +1,6 @@
 const std = @import("std");
-const eval = @import("../../frontends/cairo/witness/eval_program.zig");
-const shared = @import("../../frontends/cairo/codegen/eval_program.zig");
+const eval = @import("stwo_cairo_frontend").witness.eval_program;
+const shared = @import("stwo_cairo_frontend").codegen.eval_program;
 
 pub const codegen_version: u64 = 2;
 pub const default_fused_instruction_cap: usize = 512;

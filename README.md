@@ -18,12 +18,13 @@ Protocol parity with Rust. Portable CPU execution. Resident GPU proving on Metal
 
 `stwo-zig` is a parity-first port of [StarkWare's Stwo](https://github.com/starkware-libs/stwo).
 It brings Stwo's circle-STARK protocol to Zig while making memory, vectorization, and device
-execution explicit. The result is one proving stack: pure Stwo with native examples today,
-and the Cairo frontend (stwo-cairo in Zig) when that effort resumes.
+execution explicit. The result is one proving stack: pure Stwo with native examples,
+an official-oracle-gated Cairo CPU frontend, and independently owned GPU products.
 
 > [!IMPORTANT]
-> The [pinned Rust Stwo revision](conformance/upstream.md) is the final correctness oracle.
-> Gated proofs cross-verify in both directions: Rust to Zig and Zig to Rust.
+> The [pin ledger](conformance/upstream.md) names a separate authority for each
+> frontend. Native proofs use pinned Rust Stwo; RISC-V decode and retirement use
+> pinned Sail, with Spike and the architectural tests as independent checks.
 
 ## Backends
 
@@ -38,8 +39,8 @@ and the Cairo frontend (stwo-cairo in Zig) when that effort resumes.
 | Surface | Current status |
 | :--- | :--- |
 | **Native Stwo** | Blake, Poseidon, Plonk, state-machine, wide-Fibonacci, and XOR AIRs |
-| **Cairo** | Versioned PIE ingestion and SN2-specialized resident proof machinery, parked until the stwo-cairo effort resumes; the general Cairo proof path is not release-gated |
-| **RISC-V** | Release-gated Stark-V RV32IM ELF adapter with sharded AIR components, CPU proving, independent verification, and pinned-Rust oracle evidence |
+| **Cairo** | Official Stwo-Cairo `1.2.2` CPU/SIMD and authenticated Metal proofs, compiled JSON and Cairo 2.20 executable execution |
+| **RISC-V** | Release-gated Sail RV32IM zkVM frontend with sharded AIR components, CPU/SIMD and Metal proving, independent verification, and pinned formal evidence |
 
 ## Quick Start
 
@@ -62,7 +63,9 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 | `stwo-native-metal` | macOS with Apple Metal | Parity-gated, source-JIT, device-only CLI |
 | `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
-| Cairo products | No production host | Deferred until the separate Rust-oracle semantic goal resumes |
+| `stwo-zig-riscv-metal` | macOS with Apple Metal | Parity-gated, device-only RV32IM prove-and-verify CLI |
+| `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Released CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
+| `stwo-cairo-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
 | CUDA products | No production host | Explicitly unavailable; no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
@@ -129,13 +132,64 @@ and maximum-width shapes. Report schema v7 records the selected profile,
 checked geometry, accounting factor, and both budgets so benchmark evidence is
 independently auditable.
 
+## Cairo frontend
+
+The focused CPU product accepts an official `ProverInput`, a compiled Cairo
+JSON program, or a modern Cairo 2.20 executable. Its adjacent identity-bound
+Cairo VM adapter executes programs under `all_cairo_stwo`; Zig owns every
+proving and verification stage.
+
+```sh
+zig build stwo-cairo-cpu -Doptimize=ReleaseFast
+
+zig-out/bin/stwo-cairo-cpu run-and-prove \
+  --program program.executable.json \
+  --program-type executable \
+  --arguments arguments.json \
+  --proof proof.json \
+  --verify
+```
+
+Run `zig build test-cairo-cpu-oracle -Doptimize=ReleaseFast` to replay the
+serial corpus and require acceptance from the exact official Rust
+`verify_cairo`.
+
+The focused Metal product admits only an authenticated offline core library.
+On a full-Xcode host the build produces, probes, retains, installs, and consumes
+that bundle automatically:
+
+```sh
+zig build stwo-cairo-metal -Doptimize=ReleaseFast
+zig build test-cairo-metal-oracle -Doptimize=ReleaseFast
+```
+
+Another macOS host can consume the retained directory without installing
+Xcode:
+
+```sh
+zig build stwo-cairo-metal -Doptimize=ReleaseFast \
+  -Dmetal-core-aot-bundle=/absolute/path/to/native-metal-core-aot
+```
+
+The bundle path is not trusted. Its canonical manifest digest is embedded in
+the product identity, and runtime admission remeasures the manifest, shader
+library, ABI, exports, and compiler artifacts before creating the Metal
+runtime. The serial Metal oracle gate covers both official inputs, all released
+proof transports, the builtin/opcode program corpus, and a Cairo 2.20
+executable. Focused product tests additionally require deterministic
+missing-device failure, repeated authenticated sessions, allocation rollback,
+and resident-buffer-safe teardown.
+
 ## RISC-V frontend
 
-The release-gated adapter accepts an RV32IM ELF, executes it, builds the sharded witness, proves it through
-the same PCS/FRI core, self-verifies before publication, and emits a bounded schema-v3 artifact.
-A separate process must verify that artifact against a caller-supplied expected-statement digest.
-The pinned Rust [Stark-V](https://github.com/ClementWalter/stark-v) implementation remains the final
-oracle at shared boundaries. Published artifacts carry the immutable `release_gated` status.
+The release-gated frontend accepts an `rv32im-zkvm-v1` ELF, executes it, builds
+the sharded witness, proves it through the same PCS/FRI core, self-verifies
+before publication, and emits a bounded schema-v3 artifact. A separate process
+must verify that artifact against a caller-supplied expected-statement digest.
+The exact pinned [Sail RISC-V model](https://github.com/riscv/sail-riscv) is the
+semantic authority; Spike is an independent executor and Stark-V is retained
+only as legacy proof-layout provenance. Published artifacts carry the immutable
+`release_gated` status.
 
 ```sh
 zig build stwo-zig -Doptimize=ReleaseFast
@@ -157,9 +211,16 @@ zig-out/bin/stwo-zig verify \
 ```sh
 zig build test-riscv -Doptimize=ReleaseFast         # runner + trace suites
 zig build test-riscv-prover -Doptimize=ReleaseFast  # prove + verify roundtrips
+zig build test-riscv-metal -Doptimize=ReleaseFast   # macOS, no CPU fallback
 zig build riscv-bench -Doptimize=ReleaseFast        # CPU benchmark CLI
 zig build riscv-metal-bench -Doptimize=ReleaseFast  # Metal commitments CLI (macOS)
 zig build riscv-trace-dump -Doptimize=ReleaseFast   # trace dumper for equivalence runs
+
+python3 scripts/riscv_formal_tools.py verify \
+  --workspace /tmp/stwo-riscv-formal
+python3 scripts/riscv_trace_vectors.py \
+  --sail-bin /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim \
+  --spike-bin /tmp/stwo-riscv-formal/install/spike/bin/spike
 ```
 
 Run the same standard gate used by hosted CI:

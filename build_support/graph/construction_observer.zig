@@ -179,10 +179,20 @@ const Observer = struct {
         switch (path) {
             .src_path => |source| self.put(&self.module_roots, source.sub_path),
             .cwd_relative => |source| self.put(&self.module_roots, source),
-            .generated => |generated| self.put(&self.generated_module_roots, self.b.fmt(
-                "generated:{s}:{s}",
-                .{ generated.file.step.name, generated.sub_path },
-            )),
+            .generated => |generated| {
+                const step_name = generated.file.step.name;
+                if (generatedOutputDirectory(step_name)) |directory| {
+                    self.put(
+                        &self.generated_module_roots,
+                        self.b.fmt("generated:{s}:", .{directory}),
+                    );
+                } else {
+                    self.put(&self.generated_module_roots, self.b.fmt(
+                        "generated:{s}:{s}",
+                        .{ step_name, generated.sub_path },
+                    ));
+                }
+            },
             .dependency => |dependency| self.put(&self.dependency_module_roots, self.b.fmt(
                 "dependency:{s}:{s}",
                 .{ dependency.dependency.builder.pkg_hash, dependency.sub_path },
@@ -232,3 +242,24 @@ const Observer = struct {
         return result;
     }
 };
+
+/// `Run.addOutputDirectoryArg` appends ` (basename)` to the generating step
+/// name. Every file below that directory is one generated module root, so the
+/// configure manifest records the authenticated directory boundary once.
+fn generatedOutputDirectory(step_name: []const u8) ?[]const u8 {
+    if (!std.mem.endsWith(u8, step_name, ")")) return null;
+    const open = std.mem.lastIndexOfScalar(u8, step_name, '(') orelse return null;
+    if (open == 0 or step_name[open - 1] != ' ' or open + 1 >= step_name.len - 1)
+        return null;
+    return step_name[open + 1 .. step_name.len - 1];
+}
+
+test "generated output directories collapse to one configure root" {
+    try std.testing.expectEqualStrings(
+        "cairo-witness-cpu-aot",
+        generatedOutputDirectory(
+            "run exe cairo-witness-cpu-codegen (cairo-witness-cpu-aot)",
+        ).?,
+    );
+    try std.testing.expect(generatedOutputDirectory("options") == null);
+}

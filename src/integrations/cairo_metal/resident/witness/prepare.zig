@@ -1,13 +1,13 @@
 //! Prepared Metal recipe ownership for Cairo base and interaction witnesses.
 
 const std = @import("std");
-const arena_plan = @import("../../../../backends/metal/arena_plan.zig");
-const metal_runtime = @import("../../../../backends/metal/runtime.zig");
-const protocol_recipes = @import("../../../../backends/metal/protocol_recipes.zig");
-const cairo_adapter = @import("../../../../frontends/cairo/adapter/mod.zig");
-const fixed_table_bundle_mod = @import("../../../../frontends/cairo/witness/fixed_table_bundle.zig");
-const witness_bundle_mod = @import("../../../../frontends/cairo/witness/bundle.zig");
-const witness_program_mod = @import("../../../../frontends/cairo/witness/program.zig");
+const arena_plan = @import("stwo_metal_backend").arena_plan;
+const metal_runtime = @import("stwo_metal_backend").runtime;
+const protocol_recipes = @import("stwo_metal_backend").protocol_recipes;
+const cairo_adapter = @import("stwo_cairo_frontend").adapter;
+const fixed_table_bundle_mod = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const witness_bundle_mod = @import("stwo_cairo_frontend").witness.bundle;
+const witness_program_mod = @import("stwo_cairo_frontend").witness.program;
 const witness_aot = @import("../../witness_aot.zig");
 const witness_codegen = @import("../../witness_codegen.zig");
 const recipe_requirements = @import("../../recipe_requirements.zig");
@@ -248,7 +248,7 @@ fn fixedDeductionRequirements(bundle: witness_bundle_mod.Bundle) FixedDeductionR
         for (entry.program.insts) |inst| {
             if (@as(witness_program_mod.Op, @enumFromInt(inst.op)) != .deduce_call) continue;
             switch (inst.imm) {
-                2, 3 => result.pedersen = true,
+                2, 3, 12, 13 => result.pedersen = true,
                 8, 10, 11 => result.poseidon = true,
                 else => {},
             }
@@ -491,7 +491,11 @@ fn prepareAotWitnessBatchForMode(
         workspace_storage.*[workspace_index] = .{ .destination = output_pointers, .binding_offsets = outputs };
         workspace_index += 1;
         workspace_storage.*[workspace_index] = .{ .destination = multiplicity_pointers };
-        name.* = try witness_codegen.kernelNameForMode(allocator, entry.semantic_hash, kernel_mode.*);
+        name.* = try witness_codegen.kernelNameForMode(
+            allocator,
+            entry.program.semanticIdentity(),
+            kernel_mode.*,
+        );
         names_initialized += 1;
         invocation.* = .{
             .kernel_name = name.*,

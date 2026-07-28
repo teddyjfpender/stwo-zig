@@ -1,14 +1,15 @@
 //! Geometry-checked conversion from arena slots to stage-native descriptors.
 
 const std = @import("std");
-const field = @import("../../../../backends/cuda/abi/field.zig");
-const quotient_abi = @import("../../../../backends/cuda/abi/stages/quotient.zig");
-const column = @import("../../../../backends/cuda/runtime/column.zig");
-const runtime_error = @import("../../../../backends/cuda/runtime/error.zig");
-const common = @import("../../../../backends/cuda/runtime/stages/common.zig");
-const oods_stage = @import("../../../../backends/cuda/runtime/stages/oods.zig");
-const quotient_stage = @import("../../../../backends/cuda/runtime/stages/quotient.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const quotient_abi = @import("stwo_cuda_backend").abi.stages.quotient;
+const column = @import("stwo_cuda_backend").runtime.column;
+const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const oods_stage = @import("stwo_cuda_backend").runtime.stages.oods;
+const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
 const canonical_ingress = @import("../canonical_ingress.zig");
+const proof_binding = @import("../../common/resident_proof_binding.zig");
 const plan_mod = @import("../plan.zig");
 const proof_bundle = @import("../proof_bundle.zig");
 const request = @import("../request.zig");
@@ -629,38 +630,13 @@ fn bindProof(
     provider: anytype,
     prepared: *const plan_mod.PreparedPlan,
 ) !types.Proof {
-    const bundle = try exactWords(
+    return proof_binding.bind(
+        request,
+        proof_bundle,
+        slots,
         provider,
-        slots.proof_bundle,
-        prepared.proof.total_words,
+        prepared,
     );
-    return .{
-        .bundle = bundle,
-        .degree_verdict = try bundle.sub(15, 1),
-        .trace_commitments = try section(
-            bundle,
-            prepared,
-            .trace_commitments,
-        ),
-        .sampled_values = try section(bundle, prepared, .sampled_values),
-        .fri_commitments = try section(
-            bundle,
-            prepared,
-            .fri_commitments,
-        ),
-        .fri_last_layer = try section(bundle, prepared, .fri_last_layer),
-        .pow_nonce = try section(bundle, prepared, .proof_of_work),
-        .decommitment = try section(bundle, prepared, .decommitment),
-    };
-}
-
-fn section(
-    bundle: Words,
-    prepared: *const plan_mod.PreparedPlan,
-    kind: proof_bundle.SectionKind,
-) !Words {
-    const descriptor = prepared.proof.section(kind);
-    return bundle.sub(descriptor.offset_words, descriptor.words);
 }
 
 fn validatePrepared(prepared: *const plan_mod.PreparedPlan) !void {

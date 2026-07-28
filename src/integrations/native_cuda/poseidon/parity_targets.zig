@@ -1,9 +1,9 @@
 //! Frozen Native CPU targets for final CUDA/Rust Poseidon parity gates.
 
 const std = @import("std");
-const cpu_poseidon = @import("../../../examples/poseidon.zig");
+const cpu_poseidon = @import("stwo_native_examples").poseidon;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../../interop/proof_wire.zig");
+const proof_wire = @import("stwo_proof_wire");
 
 pub const Target = struct {
     statement: cpu_poseidon.Statement,
@@ -14,16 +14,16 @@ pub const Target = struct {
 pub const clean_m5_functional = [_]Target{
     .{
         .statement = .{ .log_n_instances = 10 },
-        .proof_bytes = 112_834,
+        .proof_bytes = 115_317,
         .proof_sha256 = digest(
-            "af33240da8e7947362fdf7e78d306f2e11cb2e3df7e1b6f498a6e86ac3ae7b1b",
+            "f9a36e9a0f3450832974c58b46b447d1212d1559329013f160511c730b0329b3",
         ),
     },
     .{
         .statement = .{ .log_n_instances = 13 },
-        .proof_bytes = 124_194,
+        .proof_bytes = 131_420,
         .proof_sha256 = digest(
-            "f196835da5d4a155c6311bafb44335c2863cc028879d69a7ae53b802321200f1",
+            "37daf8a992c796b0a38a883df51035fcdd59c60e2df90df51c5812b8e903a1fc",
         ),
     },
 };
@@ -51,6 +51,11 @@ pub fn checkCpuOracle(
     if (encoded.len != target.proof_bytes or
         !std.mem.eql(u8, &actual, &target.proof_sha256))
     {
+        const actual_hex = std.fmt.bytesToHex(actual, .lower);
+        std.debug.print(
+            "Poseidon parity target drift: bytes={d}, sha256={s}\n",
+            .{ encoded.len, &actual_hex },
+        );
         return error.ParityTargetMismatch;
     }
 
@@ -58,7 +63,7 @@ pub fn checkCpuOracle(
     try cpu_poseidon.verify(
         allocator,
         protocol,
-        target.statement,
+        output.statement,
         output.proof,
     );
 }

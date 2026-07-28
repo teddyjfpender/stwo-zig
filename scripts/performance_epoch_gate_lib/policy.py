@@ -176,5 +176,5 @@ def load_protocol(root: Path, path: Path) -> tuple[dict[str, Any], str]:
         "repository": "https://github.com/ClementWalter/stark-v",
         "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
     }:
-        raise EvidenceError("trusted Stark-V authority drifted")
+        raise EvidenceError("pinned Stark-V benchmark reference drifted")
     return value, sha256_file(path)

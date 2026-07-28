@@ -1,20 +1,10 @@
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const compact = @import(
-    "../../../frontends/cairo/compact_verifier_interchange.zig",
-);
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
-const fixed_table = @import(
-    "../../../frontends/cairo/witness/fixed_table_bundle.zig",
-);
-const semantic_authority = @import(
-    "../../../frontends/cairo/proof_plan/semantic_authority.zig",
-);
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
+const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const resident_plan = @import("resident_plan.zig");
 const resident_test = @import("resident_plan_test_support.zig");

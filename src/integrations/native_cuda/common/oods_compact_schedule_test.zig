@@ -1,8 +1,8 @@
 //! CPU-oracle coverage for descriptor-driven compact OODS schedules.
 
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const column = @import("../../../backends/cuda/runtime/column.zig");
+const field = @import("stwo_cuda_backend").abi.field;
+const column = @import("stwo_cuda_backend").runtime.column;
 const batches = @import("oods_batches.zig");
 
 const prime: u64 = 2_147_483_647;

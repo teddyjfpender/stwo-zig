@@ -1,17 +1,11 @@
 //! Exact mixed-height State v2 views over one resident proof arena.
 
 const std = @import("std");
-const field = @import("../../../backends/cuda/abi/field.zig");
-const relation_abi = @import(
-    "../../../backends/cuda/abi/stages/relation.zig",
-);
-const column = @import("../../../backends/cuda/runtime/column.zig");
-const common = @import(
-    "../../../backends/cuda/runtime/stages/common.zig",
-);
-const relation_stage = @import(
-    "../../../backends/cuda/runtime/stages/relation.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const column = @import("stwo_cuda_backend").runtime.column;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 const constraint = @import("constraint.zig");
 const geometry_mod = @import("geometry.zig");
 const plan_mod = @import("plan.zig");

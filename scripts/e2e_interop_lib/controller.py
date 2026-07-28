@@ -745,7 +745,7 @@ def main() -> int:
             ROOT / "scripts/e2e_interop_lib/mutations.py",
             ROOT / "src/interop/examples_artifact.zig",
             ROOT / "src/interop/examples_artifact_verifier.zig",
-            ROOT / "src/interop/proof_wire.zig",
+            ROOT / "src/interop/proof_wire/mod.zig",
             ROOT / "src/examples/plonk_logup.zig",
             *list((ROOT / "src/examples/plonk_logup").glob("*.zig")),
             ROOT / "src/products/native_cpu/app.zig",

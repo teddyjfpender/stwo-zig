@@ -1,0 +1,12 @@
+diff --git a/c_emulator/rvfi_dii.cpp b/c_emulator/rvfi_dii.cpp
+--- a/c_emulator/rvfi_dii.cpp
++++ b/c_emulator/rvfi_dii.cpp
+@@ -22,7 +22,7 @@ rvfi_handler::rvfi_handler(int port, ModelImpl &model) : dii_port(port), m_model
+ }
+ 
+ uint64_t rvfi_handler::get_entry() {
+-  return 0x80000000;
++  return 0x00010000;
+ }
+ 
+ // returns zero on success

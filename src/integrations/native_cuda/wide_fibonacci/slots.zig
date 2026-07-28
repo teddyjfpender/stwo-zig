@@ -1,7 +1,7 @@
 //! Stable arena slot identities for one Native CUDA wide-Fibonacci proof.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
 const request = @import("request.zig");
 
 pub const SlotId = arena.SlotId;

@@ -1,0 +1,56 @@
+{
+  "family": "toy_signed_byte_load (fixed)",
+  "modulus": 2147483647,
+  "notes": "The same model with the shipped fix: a range_check_m31 request whose\nsecond component is `result0 - 128*src_msb`. Its 7-bit box forces that residual\nbelow 128, which binds `src_msb` to bit 7 of the loaded byte. The two candidate\nresiduals differ by 128 and the window is 128 wide, so at most one survives --\nincluding after reduction mod p. Expected verdict: unsat.",
+  "columns": [
+    {"name": "is_signed", "role": "input"},
+    {"name": "mem_byte", "role": "input"},
+    {"name": "result0", "role": "output"},
+    {"name": "result1", "role": "output"},
+    {"name": "result2", "role": "output"},
+    {"name": "result3", "role": "output"},
+    {"name": "src_msb", "role": "witness"}
+  ],
+  "exprs": {
+    "signed_mask": ["prod", ["col", "is_signed"], ["col", "src_msb"], ["const", 255]],
+    "is_signed_bit": ["bit", ["col", "is_signed"]],
+    "src_msb_bit": ["bit", ["col", "src_msb"]],
+    "unsigned_canonical": ["mul", ["sub", ["const", 1], ["col", "is_signed"]], ["col", "src_msb"]],
+    "low_byte": ["sub", ["col", "result0"], ["col", "mem_byte"]],
+    "fill1": ["sub", ["col", "result1"], "signed_mask"],
+    "fill2": ["sub", ["col", "result2"], "signed_mask"],
+    "fill3": ["sub", ["col", "result3"], "signed_mask"],
+    "sign_residual": ["sub", ["col", "result0"], ["mul", ["col", "src_msb"], ["const", 128]]],
+    "one": ["const", 1],
+    "zero": ["const", 0]
+  },
+  "constraints": [
+    "is_signed_bit",
+    "src_msb_bit",
+    "unsigned_canonical",
+    "low_byte",
+    "fill1",
+    "fill2",
+    "fill3"
+  ],
+  "lookups": [
+    {
+      "label": "loaded byte is a byte",
+      "domain": "range_check_8_8",
+      "numerator": "one",
+      "tuple": [["col", "mem_byte"], "zero"]
+    },
+    {
+      "label": "sign witness bound to bit 7 of the result byte",
+      "domain": "range_check_m31",
+      "numerator": ["col", "is_signed"],
+      "tuple": ["zero", "sign_residual"]
+    },
+    {
+      "label": "destination register write (bus, unmodelled)",
+      "domain": "memory_access",
+      "numerator": "one",
+      "tuple": ["zero", "zero", ["col", "result0"], ["col", "result1"], ["col", "result2"], ["col", "result3"], "zero"]
+    }
+  ]
+}

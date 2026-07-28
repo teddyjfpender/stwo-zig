@@ -7,18 +7,10 @@
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const field = @import(
-    "../../../../backends/cuda/abi/field.zig",
-);
-const common = @import(
-    "../../../../backends/cuda/runtime/stages/common.zig",
-);
-const transcript_stage = @import(
-    "../../../../backends/cuda/runtime/stages/transcript.zig",
-);
-const telemetry = @import(
-    "../../../../backends/cuda/runtime/telemetry.zig",
-);
+const field = @import("stwo_cuda_backend").abi.field;
+const common = @import("stwo_cuda_backend").runtime.stages.common;
+const transcript_stage = @import("stwo_cuda_backend").runtime.stages.transcript;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const schedule_mod = @import("schedule.zig");
 
 pub const state_words: usize = 16;

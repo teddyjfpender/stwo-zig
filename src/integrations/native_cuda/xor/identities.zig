@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const ir = @import("stwo_backend_contracts").proof_program;
-const cpu_xor = @import("../../../examples/xor.zig");
+const cpu_xor = @import("stwo_native_examples").xor;
 const pcs = @import("stwo_core").pcs;
 
 pub const rust_oracle_repository =

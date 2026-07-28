@@ -113,7 +113,7 @@ pub const Program = struct {
             const op = std.meta.intToEnum(Op, inst.op) catch continue;
             if (op != .deduce_call) continue;
             switch (inst.imm) {
-                2, 3 => requirements.pedersen_table = true,
+                2, 3, 12, 13 => requirements.pedersen_table = true,
                 8, 10, 11 => requirements.poseidon_constants = true,
                 else => {},
             }
@@ -210,8 +210,18 @@ pub const TableContext = struct {
 pub const DeduceContext = struct {
     context: *anyopaque,
     call_fn: *const fn (*anyopaque, u32, []const u32, []u32) anyerror!void,
+    table_call_fn: ?*const fn (*anyopaque, u32, []const u32, []u32, TableContext) anyerror!void = null,
 
-    pub fn call(self: DeduceContext, selector: u32, args: []const u32, outputs: []u32) !void {
+    pub fn call(
+        self: DeduceContext,
+        selector: u32,
+        args: []const u32,
+        outputs: []u32,
+        tables: TableContext,
+    ) !void {
+        if (self.table_call_fn) |table_call| {
+            return table_call(self.context, selector, args, outputs, tables);
+        }
         try self.call_fn(self.context, selector, args, outputs);
     }
 
@@ -266,6 +276,101 @@ pub const AuxiliaryOutputs = struct {
     multiplicity_tables: []const []u32,
 };
 
+/// Validates and clears the complete output set before one or more disjoint
+/// row ranges are executed. Multiplicity tables cannot be range-parallel
+/// without private reductions and therefore remain a caller-level policy.
+pub fn initializeAllOutputs(
+    program: Program,
+    input_columns: []const []const u32,
+    output_columns: []const []u32,
+    auxiliary: ?AuxiliaryOutputs,
+) !usize {
+    const row_count = try validateAllBuffers(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+    );
+    if (!coversEveryOutput(program, .col_write, program.n_cols)) {
+        for (output_columns) |output| @memset(output, 0);
+    }
+    if (auxiliary) |outputs| {
+        if (!coversEveryOutput(program, .lookup_word, program.n_lookup_words))
+            @memset(outputs.lookup_words, 0);
+        if (!coversEveryOutput(program, .sub_word, program.n_sub_words))
+            @memset(outputs.sub_words, 0);
+        for (outputs.multiplicity_tables) |table| @memset(table, 0);
+    }
+    return row_count;
+}
+
+const max_static_output_count = 1024;
+
+/// Recorded programs are straight-line, so one write instruction covers its
+/// destination for every executed row. Incomplete compatibility programs
+/// retain zero initialization for their unwritten destinations.
+fn coversEveryOutput(program: Program, target: Op, output_count: u32) bool {
+    if (output_count == 0) return true;
+    if (output_count > max_static_output_count) return false;
+    var covered = [_]bool{false} ** max_static_output_count;
+    var covered_count: u32 = 0;
+    for (program.insts) |inst| {
+        if (@as(Op, @enumFromInt(inst.op)) != target or covered[inst.imm])
+            continue;
+        covered[inst.imm] = true;
+        covered_count += 1;
+    }
+    return covered_count == output_count;
+}
+
+/// Executes a disjoint row range into an output set initialized by
+/// `initializeAllOutputs`. Scratch is private to the caller. Concurrent calls
+/// are valid only when their ranges do not overlap and multiplicity tables are
+/// absent.
+pub fn executeAllRange(
+    program: Program,
+    input_columns: []const []const u32,
+    output_columns: []const []u32,
+    auxiliary: ?AuxiliaryOutputs,
+    start: usize,
+    end: usize,
+    registers: []u32,
+    deduce_args: []u32,
+    tables: TableContext,
+    deduce: DeduceContext,
+) !void {
+    const row_count = try validateAllBuffers(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+    );
+    if (start > end or end > row_count or
+        registers.len < program.n_regs or deduce_args.len < program.n_regs)
+        return error.InvalidOutput;
+    if (start != 0 or end != row_count) {
+        if (auxiliary) |outputs| {
+            if (outputs.multiplicity_tables.len != 0)
+                return error.InvalidMultiplicityKey;
+        }
+    }
+    for (start..end) |row| {
+        try executeRow(
+            program,
+            input_columns,
+            @intCast(row),
+            null,
+            null,
+            output_columns,
+            auxiliary,
+            registers,
+            deduce_args,
+            tables,
+            deduce,
+        );
+    }
+}
+
 pub fn executeAll(
     program: Program,
     input_columns: []const []const u32,
@@ -276,28 +381,60 @@ pub fn executeAll(
     tables: TableContext,
     deduce: DeduceContext,
 ) !void {
+    const row_count = try initializeAllOutputs(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+    );
+    try executeAllRange(
+        program,
+        input_columns,
+        output_columns,
+        auxiliary,
+        0,
+        row_count,
+        registers,
+        deduce_args,
+        tables,
+        deduce,
+    );
+}
+
+fn validateAllBuffers(
+    program: Program,
+    input_columns: []const []const u32,
+    output_columns: []const []u32,
+    auxiliary: ?AuxiliaryOutputs,
+) !usize {
     try program.validate();
-    if (input_columns.len < program.n_inputs or output_columns.len != program.n_cols or
-        registers.len < program.n_regs or deduce_args.len < program.n_regs)
+    if (input_columns.len < program.n_inputs or
+        output_columns.len == 0 or output_columns.len != program.n_cols)
         return error.InvalidOutput;
     const row_count = output_columns[0].len;
-    for (input_columns[0..program.n_inputs]) |input| if (input.len < row_count) return error.InvalidInput;
+    for (input_columns[0..program.n_inputs]) |input| {
+        if (input.len < row_count) return error.InvalidInput;
+    }
     for (output_columns) |output| {
         if (output.len != row_count) return error.InvalidOutput;
-        @memset(output, 0);
     }
     if (auxiliary) |outputs| {
-        if (outputs.lookup_words.len != row_count * program.n_lookup_words or
-            outputs.sub_words.len != row_count * program.n_sub_words or
+        const lookup_len = std.math.mul(
+            usize,
+            row_count,
+            program.n_lookup_words,
+        ) catch return error.InvalidOutput;
+        const sub_len = std.math.mul(
+            usize,
+            row_count,
+            program.n_sub_words,
+        ) catch return error.InvalidOutput;
+        if (outputs.lookup_words.len != lookup_len or
+            outputs.sub_words.len != sub_len or
             outputs.multiplicity_tables.len != program.n_mult_tables)
             return error.InvalidOutput;
-        @memset(outputs.lookup_words, 0);
-        @memset(outputs.sub_words, 0);
-        for (outputs.multiplicity_tables) |table| @memset(table, 0);
     }
-    for (0..row_count) |row| {
-        try executeRow(program, input_columns, @intCast(row), null, null, output_columns, auxiliary, registers, deduce_args, tables, deduce);
-    }
+    return row_count;
 }
 
 fn executeRow(
@@ -349,7 +486,12 @@ fn executeRow(
                 continue;
             },
             .lookup_word => {
-                if (auxiliary) |outputs| outputs.lookup_words[@as(usize, row) * program.n_lookup_words + inst.imm] = a;
+                if (auxiliary) |outputs| {
+                    // Interaction consumers read canonical lookup columns
+                    // directly; emitting that layout avoids a full transpose.
+                    const row_count = output_columns.?[0].len;
+                    outputs.lookup_words[@as(usize, inst.imm) * row_count + row] = a;
+                }
                 continue;
             },
             .sub_word => {
@@ -373,7 +515,12 @@ fn executeRow(
             .deduce_call => {
                 const output_count: usize = inst.b;
                 if (inst.dst + output_count > registers.len) return error.InvalidDeduce;
-                try deduce.call(inst.imm, deduce_args[0..pending_args], registers[inst.dst .. inst.dst + output_count]);
+                try deduce.call(
+                    inst.imm,
+                    deduce_args[0..pending_args],
+                    registers[inst.dst .. inst.dst + output_count],
+                    tables,
+                );
                 pending_args = 0;
                 continue;
             },
@@ -494,20 +641,22 @@ test "cairo witness program: grouped execution preserves lookup and feed outputs
         .{ .op = @intFromEnum(Op.input), .dst = 0, .a = 0, .b = 0, .imm = 0 },
         .{ .op = @intFromEnum(Op.col_write), .dst = 0, .a = 0, .b = 0, .imm = 0 },
         .{ .op = @intFromEnum(Op.lookup_word), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+        .{ .op = @intFromEnum(Op.constant), .dst = 1, .a = 0, .b = 0, .imm = 9 },
+        .{ .op = @intFromEnum(Op.lookup_word), .dst = 0, .a = 1, .b = 0, .imm = 1 },
         .{ .op = @intFromEnum(Op.sub_word), .dst = 0, .a = 0, .b = 0, .imm = 0 },
         .{ .op = @intFromEnum(Op.mult_push), .dst = 0, .a = 0, .b = 0, .imm = 0 },
     };
-    const program = Program{ .insts = &insts, .n_regs = 1, .n_inputs = 1, .n_cols = 1, .n_mult_tables = 1, .n_lookup_words = 1, .n_sub_words = 1 };
+    const program = Program{ .insts = &insts, .n_regs = 2, .n_inputs = 1, .n_cols = 1, .n_mult_tables = 1, .n_lookup_words = 2, .n_sub_words = 1 };
     const input = [_]u32{ 1, 2, 1, 3 };
     const inputs = [_][]const u32{&input};
     var trace = [_]u32{0} ** input.len;
     const traces = [_][]u32{&trace};
-    var lookup = [_]u32{0} ** input.len;
+    var lookup = [_]u32{0} ** (input.len * 2);
     var sub = [_]u32{0} ** input.len;
     var counts = [_]u32{0} ** 4;
     const count_tables = [_][]u32{&counts};
-    var registers: [1]u32 = undefined;
-    var deduce_args: [1]u32 = undefined;
+    var registers: [2]u32 = undefined;
+    var deduce_args: [2]u32 = undefined;
     try executeAll(
         program,
         &inputs,
@@ -519,7 +668,57 @@ test "cairo witness program: grouped execution preserves lookup and feed outputs
         .unsupported(),
     );
     try std.testing.expectEqualSlices(u32, &input, &trace);
-    try std.testing.expectEqualSlices(u32, &input, &lookup);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 1, 2, 1, 3, 9, 9, 9, 9 },
+        &lookup,
+    );
     try std.testing.expectEqualSlices(u32, &input, &sub);
     try std.testing.expectEqualSlices(u32, &.{ 0, 2, 1, 1 }, &counts);
+}
+
+test "cairo witness program: incomplete writers clear uncovered outputs" {
+    const insts = [_]Inst{
+        .{ .op = @intFromEnum(Op.input), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+        .{ .op = @intFromEnum(Op.col_write), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+        .{ .op = @intFromEnum(Op.lookup_word), .dst = 0, .a = 0, .b = 0, .imm = 0 },
+    };
+    const program = Program{
+        .insts = &insts,
+        .n_regs = 1,
+        .n_inputs = 1,
+        .n_cols = 2,
+        .n_mult_tables = 0,
+        .n_lookup_words = 2,
+        .n_sub_words = 0,
+    };
+    const input = [_]u32{ 1, 2, 3, 4 };
+    const inputs = [_][]const u32{&input};
+    var trace_a = [_]u32{99} ** input.len;
+    var trace_b = [_]u32{99} ** input.len;
+    const traces = [_][]u32{ &trace_a, &trace_b };
+    var lookup = [_]u32{99} ** (input.len * 2);
+    var registers: [1]u32 = undefined;
+    var deduce_args: [1]u32 = undefined;
+    try executeAll(
+        program,
+        &inputs,
+        &traces,
+        .{
+            .lookup_words = &lookup,
+            .sub_words = &.{},
+            .multiplicity_tables = &.{},
+        },
+        &registers,
+        &deduce_args,
+        .zero(),
+        .unsupported(),
+    );
+    try std.testing.expectEqualSlices(u32, &input, &trace_a);
+    try std.testing.expectEqualSlices(u32, &.{ 0, 0, 0, 0 }, &trace_b);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 1, 2, 3, 4, 0, 0, 0, 0 },
+        &lookup,
+    );
 }

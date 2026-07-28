@@ -159,24 +159,25 @@ class ActivationContractTest(unittest.TestCase):
         (self.root / ".github/workflows").mkdir(parents=True)
         (self.root / "src/products/riscv_cpu").mkdir(parents=True)
         (self.root / "src/interop").mkdir(parents=True)
-        (self.root / "conformance/evidence/riscv").mkdir(parents=True)
+        (self.root / "conformance/riscv").mkdir(parents=True)
         (self.root / "autoresearch/reference/riscv-calibration-epoch-2").mkdir(
             parents=True
         )
         candidate = "a" * 40
-        release_receipt = {
-            "schema": "riscv-oracle-receipt-v2",
-            "candidate_commit": candidate,
-            "verdict": "PASS",
-            "implementation": {"commit": candidate, "clean": True},
-            "oracle": {
-                "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
-                "clean": True,
+        sail_evidence = {
+            "schema": "stwo-riscv-formal-corpus-evidence-v1",
+            "result": "equivalent",
+            "semantic_authority": "Sail",
+            "independent_cross_check": "Spike",
+            "programs": 17,
+            "retirements": 472827,
+            "sail": {
+                "repository_revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
             },
         }
-        release_path = self.root / "conformance/evidence/riscv/release-anchor.json"
-        release_path.write_bytes(canonical(release_receipt))
-        release_digest = hashlib.sha256(release_path.read_bytes()).hexdigest()
+        evidence_path = self.root / "conformance/riscv/formal-corpus-evidence.json"
+        evidence_path.write_bytes(canonical(sail_evidence))
+        evidence_digest = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
         calibration_classes = {}
         for index, workload_class in enumerate(("small", "wide", "deep"), 1):
             raw_receipt = {
@@ -210,7 +211,7 @@ class ActivationContractTest(unittest.TestCase):
                 "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
                 "required_features": ["parallel"],
                 "release_anchor_candidate": candidate,
-                "release_anchor_sha256": release_digest,
+                "release_anchor_sha256": "f" * 64,
             },
             "classes": calibration_classes,
         }
@@ -263,14 +264,18 @@ class ActivationContractTest(unittest.TestCase):
                 "board": "riscv",
                 "report_schema": "riscv_proof_v2",
                 "correctness_oracle": {
-                    "authority": "stark-v",
-                    "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
-                    "required_features": ["parallel"],
+                    "authority": "sail-riscv",
+                    "repository": "https://github.com/riscv/sail-riscv",
+                    "commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
                     "final_validator": True,
-                    "release_anchor": {
-                        "receipt": "conformance/evidence/riscv/release-anchor.json",
-                        "sha256": release_digest,
-                        "candidate_commit": candidate,
+                    "evidence": {
+                        "path": "conformance/riscv/formal-corpus-evidence.json",
+                        "sha256": evidence_digest,
+                    },
+                    "benchmark_reference": {
+                        "authority": "stark-v",
+                        "commit": "d478f783055aa0d73a93768a433a3c6c31c91d1c",
+                        "required_features": ["parallel"],
                     },
                 },
                 "gates_policy": {
@@ -324,27 +329,29 @@ class ActivationContractTest(unittest.TestCase):
         self.receipt.write_text(json.dumps(receipt))
 
     def test_complete_activation_contract_passes(self) -> None:
-        with mock.patch(
-            "scripts.autoresearch_activation_lib.contract.receipt_errors",
-            return_value=[],
-        ):
-            self.assertEqual(activation_errors(
-                self.root,
-                board="riscv",
-                settings_receipt=self.receipt,
-                repository="teddyjfpender/stwo-zig",
-            ), [])
+        self.assertEqual(activation_errors(
+            self.root,
+            board="riscv",
+            settings_receipt=self.receipt,
+            repository="teddyjfpender/stwo-zig",
+        ), [])
 
-    def test_skeletal_release_receipt_cannot_activate_a_board(self) -> None:
+    def test_skeletal_sail_evidence_cannot_activate_a_board(self) -> None:
+        evidence = self.root / "conformance/riscv/formal-corpus-evidence.json"
+        evidence.write_text("{}")
+        manifest_path = self.root / "autoresearch/MANIFEST.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["workload_registry"]["groups"]["riscv"]["correctness_oracle"][
+            "evidence"
+        ]["sha256"] = hashlib.sha256(evidence.read_bytes()).hexdigest()
+        manifest_path.write_text(json.dumps(manifest))
         errors = activation_errors(
             self.root,
             board="riscv",
             settings_receipt=self.receipt,
             repository="teddyjfpender/stwo-zig",
         )
-        self.assertTrue(any(
-            "fails the full evidence contract" in error for error in errors
-        ))
+        self.assertIn("RISC-V Sail evidence identity or verdict is invalid", errors)
 
     def test_non_finite_calibration_cannot_activate_a_board(self) -> None:
         path = self.root / "autoresearch/MANIFEST.json"
@@ -392,9 +399,9 @@ class ActivationContractTest(unittest.TestCase):
         )
         self.assertTrue(any("resource telemetry" in error for error in errors))
 
-    def test_tampered_release_anchor_and_staged_phase_fail(self) -> None:
-        anchor = self.root / "conformance/evidence/riscv/release-anchor.json"
-        anchor.write_text("{}")
+    def test_tampered_sail_evidence_and_staged_phase_fail(self) -> None:
+        evidence = self.root / "conformance/riscv/formal-corpus-evidence.json"
+        evidence.write_text("{}")
         (self.root / "src/products/riscv_cpu/capabilities.zig").write_text(
             "pub const adapter_release_gated = false;\n"
         )
@@ -404,7 +411,7 @@ class ActivationContractTest(unittest.TestCase):
             settings_receipt=self.receipt,
             repository="teddyjfpender/stwo-zig",
         )
-        self.assertIn("RISC-V release anchor receipt digest mismatches", errors)
+        self.assertIn("RISC-V Sail evidence digest mismatches", errors)
         self.assertIn("RISC-V adapter is not release gated", errors)
 
     def test_tampered_calibration_and_manual_anchor_fail(self) -> None:

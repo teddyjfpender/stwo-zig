@@ -4,9 +4,7 @@
 //! only in files imported from `test` blocks.
 
 const proof_ir = @import("stwo_backend_contracts").proof_program;
-const composition = @import(
-    "../../../frontends/cairo/witness/composition_bundle.zig",
-);
+const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const ingress = @import("resident_plan_ingress.zig");
 
 pub fn geometry(

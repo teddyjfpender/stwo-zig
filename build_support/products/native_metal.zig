@@ -20,7 +20,11 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo", .source = "src/stwo_native_metal.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
+        .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
+        .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
         .{ .name = "stwo_native_metal", .source = "src/stwo_native_metal.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
         .{ .name = "native_resource_admission", .source = "src/prover/native/resource_admission.zig" },
@@ -36,7 +40,7 @@ const source_closure = product_policy.SourceClosure{
         "src/interop/examples_artifact.zig",
         "src/interop/examples_artifact_verifier.zig",
         "src/interop/postcard.zig",
-        "src/interop/proof_wire.zig",
+        "src/interop/proof_wire/mod.zig",
         "src/integrations/native/transaction.zig",
         "src/integrations/native/product_identity.zig",
         "src/products/native_cpu/capabilities.zig",
@@ -190,6 +194,41 @@ fn createStwoModule(context: Context, role: graph.Role) *std.Build.Module {
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    const cpu_backend = graph.addCpuBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    _ = graph.addMetalBackendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        module,
+    );
+    const proof_wire = graph.addProofWireImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    _ = graph.addNativeExamplesImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
+        module,
+    );
     return module;
 }
 

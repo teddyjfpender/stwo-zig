@@ -9,16 +9,18 @@
 //! individually, and `verifyRiscV` must reject each mutation.
 
 const std = @import("std");
-const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const prover = @import("../../frontends/riscv/prover.zig");
+const riscv_cpu = @import("stwo_riscv_cpu_integration");
+const prover = @import("stwo_riscv_frontend").prover_mod;
 const postcard = @import("../../interop/postcard.zig");
-const runner_mod = @import("../../frontends/riscv/runner/mod.zig");
+const runner_mod = @import("stwo_riscv_frontend").runner;
 const release_elf_fixture = @import("release_elf_fixture.zig");
-const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
-const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
-const merkle_node = @import("../../frontends/riscv/air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
-const transcript = @import("../../frontends/riscv/air/transcript/mod.zig");
+const public_data_mod = @import("stwo_riscv_frontend").air.public_data;
+const access_clock = @import("stwo_riscv_frontend").access_clock;
+const clock_update_interaction = @import("stwo_riscv_frontend").air.clock_update_interaction;
+const opcode_entries = @import("stwo_riscv_frontend").air.lookups.opcode_entries;
+const merkle_node = @import("stwo_riscv_frontend").air.memory_commitment.merkle_node;
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
+const RejectionMatrix = @import("malicious_witness_matrix.zig").RejectionMatrix;
 const pcs_core = @import("stwo_core").pcs;
 const qm31 = @import("stwo_core").fields.qm31;
 
@@ -36,102 +38,6 @@ const TEST_PCS_CONFIG = pcs_core.PcsConfig{
 fn bump(value: QM31) QM31 {
     return value.add(QM31.one());
 }
-
-/// One prove, many verify attempts: every attempt decodes a fresh proof from
-/// the shared wire bytes because `verifyRiscV` consumes the proof it is given.
-const RejectionMatrix = struct {
-    allocator: std.mem.Allocator,
-    config: pcs_core.PcsConfig,
-    proof_bytes: []const u8,
-    tree0_root: prover.Hasher.Hash,
-    tree1_root: prover.Hasher.Hash,
-    statement: prover.RiscVStatement,
-    claim: prover.RiscVInteractionClaim,
-    rejected: usize = 0,
-    pow_rejected: usize = 0,
-    logup_rejected: usize = 0,
-    bound_pow_classified: usize = 0,
-    bound_logup_classified: usize = 0,
-
-    fn cloneProof(self: *const RejectionMatrix) !prover.Proof {
-        var stream = std.io.fixedBufferStream(self.proof_bytes);
-        return postcard.deserializeProof(prover.Hasher, self.allocator, stream.reader());
-    }
-
-    /// Most shape-preserving statement mutations invalidate the interaction
-    /// nonce. A fixed 10-bit nonce can occasionally remain valid after a
-    /// mutation; in that exact case verification advances to relation closure.
-    fn expectedBoundRejection(
-        self: *RejectionMatrix,
-        statement: prover.RiscVStatement,
-    ) anyerror {
-        var channel = riscv_cpu.CpuProverEngine.Channel{};
-        statement.public_data.mixInto(&channel);
-        riscv_cpu.CpuProverEngine.MerkleChannel.mixRoot(&channel, self.tree0_root);
-        riscv_cpu.CpuProverEngine.MerkleChannel.mixRoot(&channel, self.tree1_root);
-        const main_claim = statement.canonicalMainClaim();
-        main_claim.mixInto(&channel);
-        statement.mixShardManifest(&channel);
-        if (channel.verifyPowNonce(transcript.INTERACTION_POW_BITS, self.claim.interaction_pow)) {
-            self.bound_logup_classified += 1;
-            return error.LogupSumNonZero;
-        }
-        self.bound_pow_classified += 1;
-        return error.InvalidInteractionProofOfWork;
-    }
-
-    fn expectRejected(
-        self: *RejectionMatrix,
-        label: []const u8,
-        index: usize,
-        sub: usize,
-        expected_error: anyerror,
-        statement: prover.RiscVStatement,
-        claim: prover.RiscVInteractionClaim,
-    ) !void {
-        const proof = try self.cloneProof();
-        const result = riscv_cpu.verifyRiscV(self.allocator, self.config, statement, proof, claim);
-        if (result) |_| {
-            std.debug.print("forged {s}[{d}][{d}] was accepted\n", .{ label, index, sub });
-            return error.ForgedWitnessAccepted;
-        } else |actual_error| {
-            if (actual_error != expected_error) {
-                std.debug.print(
-                    "forged {s}[{d}][{d}] rejected as {s}, expected {s}\n",
-                    .{ label, index, sub, @errorName(actual_error), @errorName(expected_error) },
-                );
-                return error.UnexpectedRejectionClass;
-            }
-            switch (actual_error) {
-                error.InvalidInteractionProofOfWork => self.pow_rejected += 1,
-                error.LogupSumNonZero => self.logup_rejected += 1,
-                else => {},
-            }
-        }
-        self.rejected += 1;
-    }
-
-    fn expectClaimRejected(
-        self: *RejectionMatrix,
-        label: []const u8,
-        index: usize,
-        sub: usize,
-        expected_error: anyerror,
-        claim: prover.RiscVInteractionClaim,
-    ) !void {
-        try self.expectRejected(label, index, sub, expected_error, self.statement, claim);
-    }
-
-    fn expectStatementRejected(
-        self: *RejectionMatrix,
-        label: []const u8,
-        index: usize,
-        expected_error: anyerror,
-        statement: prover.RiscVStatement,
-    ) !void {
-        try self.expectRejected(label, index, 0, expected_error, statement, self.claim);
-    }
-};
 
 test "riscv prover: malicious-witness matrix rejects every claim and boundary mutation" {
     const alloc = std.testing.allocator;
@@ -179,6 +85,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
             .program_root = null,
             .initial_rw_root = null,
             .final_rw_root = null,
+            .completion = try public_data_mod.completionFromRun(run_result),
             .io_entries = .{
                 .input_start = run_result.input_start,
                 .input_len = @intCast(run_result.input.len),
@@ -203,7 +110,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         .tree0_root = output.proof.commitment_scheme_proof.commitments.items[0],
         .tree1_root = output.proof.commitment_scheme_proof.commitments.items[1],
         .statement = output.statement,
-        .claim = output.interaction_claim,
+        .claim = output.interaction_claim.*,
     };
 
     // Baseline: an untampered decoded clone must verify, so every rejection
@@ -213,7 +120,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         TEST_PCS_CONFIG,
         matrix.statement,
         try matrix.cloneProof(),
-        matrix.claim,
+        &matrix.claim,
     );
 
     const n_components: usize = matrix.claim.n_components;
@@ -290,15 +197,17 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
             },
             .clock_update => {
                 n_clock_infra += 1;
-                var claim = matrix.claim;
-                claim.clock_claims[i] = bump(claim.clock_claims[i]);
-                try matrix.expectClaimRejected(
-                    "clock_claims",
-                    i,
-                    0,
-                    error.LogupSumNonZero,
-                    claim,
-                );
+                for (0..clock_update_interaction.N_SUMS) |j| {
+                    var claim = matrix.claim;
+                    claim.clock_claims[i][j] = bump(claim.clock_claims[i][j]);
+                    try matrix.expectClaimRejected(
+                        "clock_claims",
+                        i,
+                        j,
+                        error.LogupSumNonZero,
+                        claim,
+                    );
+                }
             },
             .bitwise,
             .range_check_20,
@@ -446,27 +355,39 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
     for (0..matrix.statement.public_data.initial_regs.len) |r| {
         var statement = matrix.statement;
         statement.public_data.initial_regs[r] +%= 1;
+        const expected_error = if (r == 0)
+            error.InvalidStatement
+        else
+            matrix.expectedBoundRejection(statement);
         try matrix.expectStatementRejected(
             "initial_regs",
             r,
-            matrix.expectedBoundRejection(statement),
+            expected_error,
             statement,
         );
     }
     for (0..matrix.statement.public_data.final_regs.len) |r| {
         var statement = matrix.statement;
         statement.public_data.final_regs[r] +%= 1;
+        const expected_error = if (r == 0)
+            error.InvalidStatement
+        else
+            matrix.expectedBoundRejection(statement);
         try matrix.expectStatementRejected(
             "final_regs",
             r,
-            matrix.expectedBoundRejection(statement),
+            expected_error,
             statement,
         );
     }
     for (0..matrix.statement.public_data.reg_last_clock.len) |r| {
         var statement = matrix.statement;
         statement.public_data.reg_last_clock[r] +%= 1;
-        const expected_error = if (statement.public_data.reg_last_clock[r] > statement.total_steps)
+        const expected_error = if (!access_clock.isWithinExecution(
+            statement.public_data.reg_last_clock[r],
+            statement.total_steps,
+            true,
+        ))
             error.InvalidStatement
         else
             matrix.expectedBoundRejection(statement);
@@ -527,6 +448,67 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         statement.public_data.final_rw_root = null;
         try matrix.expectStatementRejected(
             "final_rw_root presence",
+            0,
+            matrix.expectedBoundRejection(statement),
+            statement,
+        );
+    }
+
+    // -- Completion presence, kind, and every relation tuple field. --
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion = null;
+        try matrix.expectStatementRejected(
+            "completion presence",
+            0,
+            error.InvalidStatement,
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion.?.address +%= 4;
+        try matrix.expectStatementRejected(
+            "completion address",
+            0,
+            matrix.expectedBoundRejection(statement),
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion.?.value +%= 1;
+        try matrix.expectStatementRejected(
+            "completion value",
+            0,
+            matrix.expectedBoundRejection(statement),
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion.?.clock -%= 1;
+        const expected_error = if (!access_clock.isWithinExecution(
+            statement.public_data.completion.?.clock,
+            statement.total_steps,
+            false,
+        ))
+            error.InvalidStatement
+        else
+            matrix.expectedBoundRejection(statement);
+        try matrix.expectStatementRejected(
+            "completion clock",
+            0,
+            expected_error,
+            statement,
+        );
+    }
+    {
+        var statement = matrix.statement;
+        statement.public_data.completion =
+            public_data_mod.Completion.canonicalSelfLoop(statement.final_pc);
+        try matrix.expectStatementRejected(
+            "completion kind and tuple",
             0,
             matrix.expectedBoundRejection(statement),
             statement,
@@ -685,7 +667,11 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         );
         word.* = original;
         word.clock +%= 1;
-        const expected_clock_error = if (word.clock > matrix.statement.total_steps)
+        const expected_clock_error = if (!access_clock.isWithinExecution(
+            word.clock,
+            matrix.statement.total_steps,
+            false,
+        ))
             error.InvalidStatement
         else
             matrix.expectedBoundRejection(matrix.statement);
@@ -748,7 +734,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         n_memory_infra * 4 + // memory_claims entries
         n_merkle_infra * merkle_node.N_SUMS +
         n_poseidon_infra * poseidon2_air.N_SUMS +
-        n_clock_infra +
+        n_clock_infra * clock_update_interaction.N_SUMS +
         n_lookup_infra +
         3 + // interaction_pow, claim.n_components, claim.n_infra
         9 + // initial_pc/final_pc/clock: statement, public, and coordinated
@@ -756,6 +742,7 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
         matrix.statement.public_data.final_regs.len +
         matrix.statement.public_data.reg_last_clock.len + // reg_last_clock entries
         6 + // three optional roots, value and presence
+        5 + // completion presence, address, value, clock, and coordinated kind
         2 + // input_start and shape-preserving input_len
         input_words.len + // every input word value
         4 + // input order, short count, long count, and non-canonical padding
@@ -765,6 +752,26 @@ test "riscv prover: malicious-witness matrix rejects every claim and boundary mu
     try std.testing.expectEqual(expected_rejections, matrix.rejected);
     try std.testing.expect(matrix.pow_rejected > 0);
     try std.testing.expect(matrix.logup_rejected > 0);
-    try std.testing.expect(matrix.bound_pow_classified > 0);
-    try std.testing.expect(matrix.bound_logup_classified > 0);
+    // A shape-preserving statement mutation reaches LogUp only when the
+    // original fixed 10-bit interaction nonce happens to remain valid. That
+    // is deliberately rare and must not be a test-coverage requirement.
+    try std.testing.expect(
+        matrix.bound_pow_classified + matrix.bound_logup_classified > 0,
+    );
+
+    // Attribute the sampled honest execution to the pinned architectural
+    // model after every proof-independent mutation assertion has run. The
+    // release fixture supplies the runner's declared public-input image;
+    // Sail reads those words from its own seeded memory rather than trusting
+    // the trace's load claims. This must stay last so an absent oracle skips
+    // only the sampled Sail leg.
+    const sail_memory = try release_elf_fixture.initialMemory(&input);
+    try runner_mod.sail_oracle.requireAgreement(
+        alloc,
+        "malicious-witness matrix public-I/O guest",
+        elf_buf,
+        &run_result.execution_trace,
+        run_result.cpu_final,
+        &sail_memory,
+    );
 }

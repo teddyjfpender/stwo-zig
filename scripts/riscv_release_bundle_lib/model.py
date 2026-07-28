@@ -1,4 +1,4 @@
-"""Content identities and fail-closed bundle validation."""
+"""Archived pre-Sail bundle identities and fail-closed forensic validation."""
 
 from __future__ import annotations
 

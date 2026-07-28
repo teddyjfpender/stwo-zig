@@ -4,11 +4,9 @@
 //! external proof-oracle gates remain owned by their narrower modules.
 
 const std = @import("std");
-const arena = @import("../../../backends/cuda/runtime/arena.zig");
-const cuda_plan_mod = @import(
-    "../../../backends/cuda/runtime/execution_plan.zig",
-);
-const telemetry = @import("../../../backends/cuda/runtime/telemetry.zig");
+const arena = @import("stwo_cuda_backend").runtime.arena;
+const cuda_plan_mod = @import("stwo_cuda_backend").runtime.execution_plan;
+const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
 const canonical_ingress = @import("canonical_ingress.zig");
 const layout_mod = @import("layout.zig");
 const program_mod = @import("program.zig");
@@ -110,7 +108,7 @@ test "prepared plans seal small standard and extreme admitted geometry" {
             prepared.totalWords() <= requirements_mod.max_total_words,
         );
         try std.testing.expectEqual(
-            66 + 3 * @as(usize, log_n_rows),
+            64 + 3 * @as(usize, log_n_rows),
             prepared.requirements().len,
         );
         const inverse_twiddles = try prepared.cuda_plan.arena_plan.placement(

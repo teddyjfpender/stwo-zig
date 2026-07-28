@@ -1,7 +1,7 @@
 //! Metal circle-transform and composition-finalization conformance tests.
 
 const std = @import("std");
-const metal = @import("../../../backends/metal/runtime.zig");
+const metal = @import("stwo_metal_backend").runtime;
 const m31 = @import("stwo_core").fields.m31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const circle_poly = @import("stwo_prover_impl").poly.circle.poly;

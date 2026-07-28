@@ -1,12 +1,8 @@
 //! Immutable fraction-completion geometry for exact mixed-height Blake.
 
 const std = @import("std");
-const relation_abi = @import(
-    "../../../../backends/cuda/abi/stages/relation.zig",
-);
-const completion = @import(
-    "../../../../backends/cuda/runtime/stages/relation_completion.zig",
-);
+const relation_abi = @import("stwo_cuda_backend").abi.stages.relation;
+const completion = @import("stwo_cuda_backend").runtime.stages.relation_completion;
 const interaction_plan = @import("interaction_plan.zig");
 
 pub const Plan = struct {

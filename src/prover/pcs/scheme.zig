@@ -580,7 +580,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             var owns_scheme = true;
             errdefer if (owns_scheme) scheme.deinit(allocator);
 
-            const lifting_log_size = try scheme.maxTreeLogSize();
+            const lifting_log_size = try scheme.proofLiftingLogSize();
             const sampled_values = blk: {
                 var sampled_value_eval_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -669,7 +669,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             }
 
             const random_coeff = channel.drawSecureFelt();
-            const lifting_log_size = try scheme.maxTreeLogSize();
+
+            const lifting_log_size = try scheme.proofLiftingLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
             var fri_prover = blk: {
                 var fri_quotient_stage = try stage_profile.StageScope.begin(
@@ -814,13 +815,13 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             return max_size;
         }
 
-        fn maxTreeLogSize(self: Self) !u32 {
+        /// The final composition tree sets the proof domain. Earlier trees may
+        /// contain larger columns when those columns are left unsampled.
+        fn proofLiftingLogSize(self: Self) !u32 {
             if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
-            var max_size: u32 = 0;
-            for (self.trees.items) |tree| {
-                max_size = @max(max_size, maxLogSize(tree.columns));
-            }
-            return max_size;
+            const final_tree = self.trees.items[self.trees.items.len - 1];
+            if (final_tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
+            return maxLogSize(final_tree.columns);
         }
 
         fn evaluateSampledValuesAndRelease(

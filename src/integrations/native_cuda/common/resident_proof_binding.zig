@@ -1,7 +1,7 @@
 //! Binding for the one-read statement-prefixed SWPC terminal envelope.
 
 const std = @import("std");
-const column = @import("../../../backends/cuda/runtime/column.zig");
+const column = @import("stwo_cuda_backend").runtime.column;
 const views = @import("resident_views.zig");
 
 const Words = column.DeviceSlice(u32);

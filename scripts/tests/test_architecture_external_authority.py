@@ -10,7 +10,6 @@ from unittest import mock
 
 from scripts import architecture_external_authority as authority
 from scripts import architecture_native_oracle_selection as native_selection
-from scripts import architecture_riscv_anchor_selection as riscv_selection
 from scripts.build_architecture_receipt_lib.model import ReceiptError
 
 
@@ -92,39 +91,6 @@ def native_api() -> tuple[dict[str, object], dict[str, object], dict[str, object
     return run, jobs, artifacts
 
 
-def riscv_api() -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
-    run = {
-        "id": RUN_ID,
-        "run_attempt": ATTEMPT,
-        "path": ".github/workflows/ci.yml",
-        "event": "workflow_dispatch",
-        "head_branch": "main",
-        "head_sha": AUTHORITY,
-        "repository": {"full_name": "teddyjfpender/stwo-zig", "id": 1152389958},
-        "actor": {"login": "owner", "id": 92999717},
-        "triggering_actor": {"login": "owner", "id": 92999717},
-        "status": "completed",
-        "conclusion": "success",
-    }
-    jobs = {"jobs": [{
-        "id": 92,
-        "name": "RISC-V exhaustive release evidence",
-        "status": "completed",
-        "conclusion": "success",
-        "run_id": RUN_ID,
-        "run_attempt": ATTEMPT,
-        "head_sha": AUTHORITY,
-    }]}
-    artifacts = {"artifacts": [{
-        "id": 102,
-        "name": f"riscv-exhaustive-bundle-{CANDIDATE}-{RUN_ID}-{ATTEMPT}",
-        "digest": "sha256:" + "e" * 64,
-        "expired": False,
-        "workflow_run": {"id": RUN_ID, "head_sha": AUTHORITY},
-    }]}
-    return run, jobs, artifacts
-
-
 class ArchitectureProducerSelectionTest(unittest.TestCase):
     def test_native_selection_binds_run_job_artifact_and_workflow(self) -> None:
         run, jobs, artifacts = native_api()
@@ -165,56 +131,6 @@ class ArchitectureProducerSelectionTest(unittest.TestCase):
                         artifacts=changed_artifacts, authority_commit=AUTHORITY,
                         authority_root=root,
                     )
-
-    def test_riscv_binding_rejects_self_declared_producer_mutation(self) -> None:
-        run, jobs, artifacts = riscv_api()
-        selected = riscv_selection.select(
-            run=run, jobs=jobs, artifacts=artifacts, authority_commit=AUTHORITY,
-        )
-        source_ref = "refs/heads/feature"
-        expected = {
-            "schema": "riscv-release-producer-trust-v1",
-            "trust_root": "repository-owner-dispatch",
-            "repository": {"full_name": "teddyjfpender/stwo-zig", "id": 1152389958},
-            "candidate": {
-                "sha": CANDIDATE, "tree_oid": TREE,
-                "source_repository": "teddyjfpender/stwo-zig",
-                "source_repository_id": 1152389958, "source_ref": source_ref,
-            },
-            "workflow": {
-                "path": ".github/workflows/ci.yml",
-                "repository": "teddyjfpender/stwo-zig", "repository_id": 1152389958,
-                "ref": "refs/heads/main", "commit_sha": AUTHORITY,
-            },
-            "workflow_base": {"ref": "refs/heads/main", "sha": AUTHORITY},
-            "event": "workflow_dispatch",
-            "run": {"id": RUN_ID, "attempt": ATTEMPT},
-            "actor": {"login": "owner", "id": 92999717},
-            "triggering_actor": {"login": "owner", "id": 92999717},
-            "phase": "candidate",
-            "artifact": {"name": selected["artifact_name"], "retention_days": 30},
-        }
-        manifest = {
-            "schema": "riscv-release-bundle-v3", "candidate_commit": CANDIDATE,
-            "repository_tree_oid": TREE, "phase": "candidate", "producer": expected,
-        }
-        bound = riscv_selection.bind(
-            selection=selected, run=run, jobs=jobs, artifacts=artifacts,
-            commit={"sha": CANDIDATE, "tree": {"sha": TREE}},
-            branches=[{"name": "feature"}], manifest=manifest,
-            authority_commit=AUTHORITY, phase="candidate",
-        )
-        self.assertEqual(expected, bound)
-        changed = copy.deepcopy(manifest)
-        changed["producer"]["actor"]["login"] = "attacker"
-        with self.assertRaises(riscv_selection.SelectionError):
-            riscv_selection.bind(
-                selection=selected, run=run, jobs=jobs, artifacts=artifacts,
-                commit={"sha": CANDIDATE, "tree": {"sha": TREE}},
-                branches=[{"name": "feature"}], manifest=changed,
-                authority_commit=AUTHORITY, phase="candidate",
-            )
-
 
 class ArchitectureExternalAuthorityTest(unittest.TestCase):
     def test_authentication_requires_distinct_protected_authority(self) -> None:
@@ -286,12 +202,9 @@ class ArchitectureExternalAuthorityTest(unittest.TestCase):
                 authority.run_host(
                     role=role, candidate_root=Path("candidate"), candidate=CANDIDATE,
                     output_dir=Path("output"), receipt_root=Path("receipts"),
-                    session_nonce="1" * 64, riscv_bundle=Path("riscv"),
+                    session_nonce="1" * 64,
                     native_oracle_bundle=Path("native"),
                     native_oracle_trust=Path("native-trust.json"),
-                    riscv_trust_context=Path("riscv-trust.json"),
-                    riscv_policy_context=Path("riscv-policy.json"),
-                    riscv_phase="candidate",
                     environment=environment(f"architecture-authority-{role}"),
                 )
         self.assertEqual(2, authenticate.call_count)

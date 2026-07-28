@@ -7,6 +7,8 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const M31_MODULUS = @import("stwo_core").fields.m31.Modulus;
 const Blake2sMerkleHasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
 
+pub const Digest = [std.crypto.hash.sha2.Sha256.digest_length]u8;
+
 pub const Error = error{
     ClaimLengthOverflow,
     InvalidClaimWord,
@@ -21,7 +23,15 @@ pub const Error = error{
 
 pub const PublicStatement = struct {
     program_len: u32,
+    output_len: u32,
     public_claim: []u32,
+    public_claim_word_count: usize,
+    public_claim_sha256: Digest,
+    public_claim_padded_sha256: Digest,
+    output_claim_word_count: usize,
+    output_claim_sha256: Digest,
+    program_claim_word_count: usize,
+    program_claim_sha256: Digest,
     output_root: [8]u32,
     program_root: [8]u32,
 };
@@ -109,29 +119,43 @@ pub fn derive(
     cursor += 2;
 
     var output_hasher = Blake2sMerkleHasher.defaultWithInitialState();
+    var output_digest = std.crypto.hash.sha2.Sha256.init(.{});
     for (0..output_len) |offset| {
         const address = std.math.add(u32, output.start.value, @as(u32, @intCast(offset))) catch
             return Error.SegmentPointerOverflow;
         const entry = try memoryEntryAt(input.memory, address);
         public_claim[cursor] = entry.id;
         cursor += 1;
-        hashMemoryValue(&output_hasher, entry.value);
+        hashMemoryValue(&output_hasher, &output_digest, entry.value);
     }
 
     var program_hasher = Blake2sMerkleHasher.defaultWithInitialState();
+    var program_digest = std.crypto.hash.sha2.Sha256.init(.{});
     for (0..program_len) |offset| {
         const address = std.math.add(u32, initial_pc, @as(u32, @intCast(offset))) catch
             return Error.SegmentPointerOverflow;
         const entry = try memoryEntryAt(input.memory, address);
         public_claim[cursor] = entry.id;
         cursor += 1;
-        hashMemoryValue(&program_hasher, entry.value);
+        hashMemoryValue(&program_hasher, &program_digest, entry.value);
     }
     std.debug.assert(cursor == unpadded_len);
+    const output_claim_word_count = std.math.mul(usize, output_len, 28) catch
+        return Error.ClaimLengthOverflow;
+    const program_claim_word_count = std.math.mul(usize, program_len, 28) catch
+        return Error.ClaimLengthOverflow;
 
     return .{
         .program_len = program_len_u32,
+        .output_len = output_len_u32,
         .public_claim = public_claim,
+        .public_claim_word_count = unpadded_len,
+        .public_claim_sha256 = digestWords(public_claim[0..unpadded_len]),
+        .public_claim_padded_sha256 = digestWords(public_claim),
+        .output_claim_word_count = output_claim_word_count,
+        .output_claim_sha256 = finishDigest(&output_digest),
+        .program_claim_word_count = program_claim_word_count,
+        .program_claim_sha256 = finishDigest(&program_digest),
         .output_root = hashWords(output_hasher.finalize()),
         .program_root = hashWords(program_hasher.finalize()),
     };
@@ -225,7 +249,11 @@ fn memoryValueTailIsZero(words: [8]u32) bool {
     return true;
 }
 
-fn hashMemoryValue(hasher: *Blake2sMerkleHasher, value: memory_mod.MemoryValue) void {
+fn hashMemoryValue(
+    hasher: *Blake2sMerkleHasher,
+    digest: *std.crypto.hash.sha2.Sha256,
+    value: memory_mod.MemoryValue,
+) void {
     const dense = memoryValueWords(value);
     var split: [28]M31 = undefined;
     for (&split, 0..) |*word, index| {
@@ -236,9 +264,29 @@ fn hashMemoryValue(hasher: *Blake2sMerkleHasher, value: memory_mod.MemoryValue) 
         if (shift > 23 and limb + 1 < dense.len) {
             raw |= dense[limb + 1] << @intCast(32 - @as(u6, shift));
         }
-        word.* = M31.fromCanonical(raw & 0x1ff);
+        const canonical = raw & 0x1ff;
+        word.* = M31.fromCanonical(canonical);
+        updateDigestWord(digest, canonical);
     }
     hasher.updateLeaf(&split);
+}
+
+fn digestWords(words: []const u32) Digest {
+    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    for (words) |word| updateDigestWord(&hasher, word);
+    return finishDigest(&hasher);
+}
+
+fn updateDigestWord(hasher: *std.crypto.hash.sha2.Sha256, word: u32) void {
+    var encoded: [4]u8 = undefined;
+    std.mem.writeInt(u32, &encoded, word, .little);
+    hasher.update(&encoded);
+}
+
+fn finishDigest(hasher: *std.crypto.hash.sha2.Sha256) Digest {
+    var digest: Digest = undefined;
+    hasher.final(&digest);
+    return digest;
 }
 
 fn hashWords(hash: [32]u8) [8]u32 {

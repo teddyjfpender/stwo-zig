@@ -16,7 +16,7 @@ const component_mod = @import("state_machine/component.zig");
 const trace_input = @import("state_machine/input.zig");
 const interaction = @import("state_machine/interaction.zig");
 const statement_impl = @import("state_machine/statement.zig");
-const CpuBackend = @import("../backends/cpu_scalar/mod.zig").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -746,7 +746,7 @@ test "examples state_machine: prove and prove_ex wrappers emit identical proof b
     defer output_prove_ex.proof.aux.deinit(alloc);
     defer output_prove_ex.proof.proof.deinit(alloc);
 
-    const proof_wire = @import("../interop/proof_wire.zig");
+    const proof_wire = @import("stwo_proof_wire");
     const prove_bytes = try proof_wire.encodeProofBytes(alloc, output_prove.proof);
     defer alloc.free(prove_bytes);
     const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, output_prove_ex.proof.proof);
