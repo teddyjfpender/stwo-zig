@@ -5,6 +5,7 @@ const adapter = @import("../adapter/mod.zig");
 const component_layout = @import("component_layout.zig");
 const deductions = @import("deductions/mod.zig");
 const execution_tables = @import("execution_tables.zig");
+const plane_widths = @import("plane_widths.zig");
 const program_mod = @import("program.zig");
 const prover = @import("stwo_prover_impl");
 const work_pool = prover.work_pool;
@@ -21,15 +22,38 @@ pub const Execution = struct {
     row_count: usize,
     output_storage: []u32,
     output_columns: [][]u32,
+    /// Sixteen-bit storage for the structurally narrow base columns. Entry `i`
+    /// is non-empty exactly when `output_columns[i]` is empty; see
+    /// `plane_widths` for the admission proof.
+    narrow_storage: []u16,
+    narrow_columns: [][]u16,
     lookup_words: []u32,
     sub_words: []u32,
 
     pub fn deinit(self: *Execution) void {
         self.allocator.free(self.sub_words);
         self.allocator.free(self.lookup_words);
+        self.allocator.free(self.narrow_columns);
+        self.allocator.free(self.narrow_storage);
         self.allocator.free(self.output_columns);
         self.allocator.free(self.output_storage);
         self.* = undefined;
+    }
+
+    /// One base column's storage, tagged by width. The tag is read once per
+    /// column by the lowering consumer, never per row.
+    pub const Plane = union(enum) {
+        wide: []const u32,
+        narrow: []const u16,
+    };
+
+    /// The single pre-extension boundary: the lowering consumer widens here
+    /// and nothing downstream observes a narrow plane, so the PCS keeps
+    /// reading bare `[]const M31`.
+    pub fn plane(self: *const Execution, index: usize) Plane {
+        const wide = self.output_columns[index];
+        if (wide.len != 0) return .{ .wide = wide };
+        return .{ .narrow = self.narrow_columns[index] };
     }
 
     pub fn takeLookupWords(self: *Execution) []u32 {
@@ -66,8 +90,6 @@ pub fn execute(
 
     const input_words = std.math.mul(usize, source.columnCount(), row_count) catch
         return Error.AllocationSizeOverflow;
-    const output_words = std.math.mul(usize, witness_program.n_cols, row_count) catch
-        return Error.AllocationSizeOverflow;
     const lookup_words = std.math.mul(usize, witness_program.n_lookup_words, row_count) catch
         return Error.AllocationSizeOverflow;
     const sub_words = std.math.mul(usize, witness_program.n_sub_words, row_count) catch
@@ -97,21 +119,56 @@ pub fn execute(
         "Witness output allocation",
     );
     defer output_stage.end();
+    var widths = try plane_widths.plan(allocator, witness_program);
+    defer widths.deinit();
+    const narrow_count = widths.narrowCount();
+    const wide_count = witness_program.n_cols - narrow_count;
+    const narrow_cells = std.math.mul(usize, narrow_count, row_count) catch
+        return Error.AllocationSizeOverflow;
+    const wide_cells = std.math.mul(usize, wide_count, row_count) catch
+        return Error.AllocationSizeOverflow;
+
     var result = Execution{
         .allocator = allocator,
         .row_count = row_count,
-        .output_storage = try allocator.alloc(u32, output_words),
+        .output_storage = try allocator.alloc(u32, wide_cells),
         .output_columns = &.{},
+        .narrow_storage = &.{},
+        .narrow_columns = &.{},
         .lookup_words = &.{},
         .sub_words = &.{},
     };
     errdefer allocator.free(result.output_storage);
     result.output_columns = try allocator.alloc([]u32, witness_program.n_cols);
     errdefer allocator.free(result.output_columns);
-    for (result.output_columns, 0..) |*column, column_index| {
-        const start = column_index * row_count;
-        column.* = result.output_storage[start .. start + row_count];
+    result.narrow_storage = try allocator.alloc(u16, narrow_cells);
+    errdefer allocator.free(result.narrow_storage);
+    result.narrow_columns = try allocator.alloc([]u16, witness_program.n_cols);
+    errdefer allocator.free(result.narrow_columns);
+    {
+        var wide_at: usize = 0;
+        var narrow_at: usize = 0;
+        for (0..witness_program.n_cols) |column_index| {
+            if (widths.narrow[column_index]) {
+                const start = narrow_at * row_count;
+                result.narrow_columns[column_index] =
+                    result.narrow_storage[start .. start + row_count];
+                result.output_columns[column_index] = result.output_storage[0..0];
+                narrow_at += 1;
+            } else {
+                const start = wide_at * row_count;
+                result.output_columns[column_index] =
+                    result.output_storage[start .. start + row_count];
+                result.narrow_columns[column_index] = result.narrow_storage[0..0];
+                wide_at += 1;
+            }
+        }
     }
+    const narrow_planes = program_mod.NarrowColumns{
+        .planes = result.narrow_columns,
+        .narrow_writes = widths.narrow_writes,
+        .wide_writes = widths.wide_writes,
+    };
     result.lookup_words = try allocator.alloc(u32, lookup_words);
     errdefer allocator.free(result.lookup_words);
     result.sub_words = try allocator.alloc(u32, sub_words);
@@ -136,6 +193,7 @@ pub fn execute(
             input_columns,
             result.output_columns,
             auxiliary,
+            narrow_planes,
         );
     }
 
@@ -182,6 +240,7 @@ pub fn execute(
         deduce_args: []u32,
         tables: program_mod.TableContext,
         deduce: program_mod.DeduceContext,
+        narrow: program_mod.NarrowColumns,
         failure: ?anyerror = null,
 
         fn run(self: *@This()) void {
@@ -196,6 +255,7 @@ pub fn execute(
                 self.deduce_args,
                 self.tables,
                 self.deduce,
+                self.narrow,
             ) catch |err| {
                 self.failure = err;
             };
@@ -220,6 +280,7 @@ pub fn execute(
             .deduce_args = deduce_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .tables = execution_tables.fromInput(input),
             .deduce = deductions.contextWithConfig(&deduction_config),
+            .narrow = narrow_planes,
         };
     }
     if (worker_count > 1) {
