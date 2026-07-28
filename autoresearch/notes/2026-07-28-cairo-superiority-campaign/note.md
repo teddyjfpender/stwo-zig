@@ -2615,9 +2615,14 @@ on the generated witness C translation units at 100% for over fifty minutes,
 which starved `test-cairo-frontend`'s test binary and left
 `test-cairo-cpu-product` still in AOT compilation when the 90-minute budget
 expired. `package-workspace` passed (17 packages, 17 public modules, 51
-dependency edges), every changed source passes `zig ast-check`, and
-`test-cairo-frontend` compiled cleanly — which is what proves the new module
-code and the 13-case suite type-check — but no test result, no digest and no
-timing was observed. The full list of unrun checks is in
-`transcripts/session-10.md`. A successor inherits a warm AOT cache and should be
-able to close this in one short pass.
+dependency edges) and every changed source passes `zig ast-check`.
+
+`test-cairo-frontend` **passed**, including all 13 new eviction cases — it
+landed after the budget expired, so the increment was packaged without it, and
+the record is corrected here rather than rewritten to look planned.
+
+Still unobserved: `test-cairo-cpu-product`, `test-cairo-metal-product`, every
+byte-exact digest on both lanes with the cache enabled and disabled, the
+evict-then-reprove smoke, the `STWO_ZIG_WORKERS=1` spot, and the store+evict
+timing. The full list is in `transcripts/session-10.md`. A successor inherits a
+warm AOT cache and should be able to close this in one short pass.

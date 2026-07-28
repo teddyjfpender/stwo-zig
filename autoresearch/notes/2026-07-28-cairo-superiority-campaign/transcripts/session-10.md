@@ -110,10 +110,11 @@ zig build package-workspace                            PASS
 pre-commit hooks (both commits)                        PASS
   source conformance: 5 explained legacy findings, no new violations
   21 tests OK
-zig build test-cairo-frontend
-  compiled clean (this is what proves product_cache.zig,
-  tree_digest_cache.zig and the new 13-case suite type-check);
-  test binary still running at budget expiry — result NOT observed
+zig build test-cairo-frontend                          PASS
+  landed after the budget expired, 11m09s of CPU under
+  contention; exit 0 with no output, which is this build
+  system's silent-success signal (the pre-change baseline
+  run behaved identically). Covers all 13 new cases.
 zig build test-cairo-cpu-product
   still in AOT C compilation at budget expiry — NOT observed
 ```
@@ -121,7 +122,6 @@ zig build test-cairo-cpu-product
 What was NOT run, and must be run before this is accepted:
 
 ```
-test-cairo-frontend            (to completion — the 13 new cases)
 test-cairo-cpu-product
 test-cairo-metal-product
 byte-exact digests, CPU + Metal, all-opcodes 79ae76e1… and
