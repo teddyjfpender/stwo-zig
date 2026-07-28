@@ -146,7 +146,12 @@ fn consumer(
     source: []const u8,
 ) *std.Build.Module {
     const module = context.b.createModule(.{
-        .root_source_file = context.b.path(source),
+        .root_source_file = graph.source(
+            context.b,
+            source,
+            context.target,
+            context.optimize,
+        ),
         .target = context.target,
         .optimize = context.optimize,
     });

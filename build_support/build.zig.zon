@@ -1,0 +1,11 @@
+.{
+    .fingerprint = 0x0dad1b69350e6d56,
+    .name = .stwo_zig_internal_build,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../src/core" },
+        .stwo_backend_contracts = .{ .path = "../src/backend" },
+        .stwo_prover_impl = .{ .path = "../src/prover" },
+    },
+}

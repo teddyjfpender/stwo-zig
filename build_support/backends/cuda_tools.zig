@@ -134,7 +134,12 @@ pub fn addProducts(
     runtime_tests.root_module.addImport(
         "stwo_backend_contracts",
         b.createModule(.{
-            .root_source_file = b.path("src/backend/mod.zig"),
+            .root_source_file = graph.source(
+                b,
+                "src/backend/mod.zig",
+                target,
+                optimize,
+            ),
             .target = target,
             .optimize = optimize,
         }),

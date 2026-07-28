@@ -58,6 +58,24 @@ pub const Configure = struct {
     constructed_products: []const construction_observer.ProductIdentity = &.{},
 };
 
+pub const core_package_roots = &.{
+    "dependency:../src/core:mod.zig",
+};
+
+pub const protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/prover:mod.zig",
+};
+
+pub const native_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover:native/resource_admission.zig",
+    "dependency:../src/prover:native/runner.zig",
+};
+
 /// Steps which are not the primary build/test/benchmark/identity steps already
 /// carried by a product descriptor. Root dispatch and closure validation both
 /// consume this exact list.
@@ -174,13 +192,11 @@ pub const configure = [_]Configure{
             "src/backends/metal_surface.zig",
             "src/frontends/riscv/mod.zig",
         },
+        .dependency_module_roots = protocol_package_roots,
         .external_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
         .allowed_module_files = &.{
-            "src/backend/mod.zig",
             "src/backends/metal/runtime.m",
-            "src/core/mod.zig",
-            "src/prover/mod.zig",
         },
         .constructors = &.{"products/matrix.construct.riscv_metal"},
         .constructed_products = &.{.{
@@ -191,22 +207,20 @@ pub const configure = [_]Configure{
             .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1",
         }},
     },
-    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/core/mod.zig", "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/core", "src/backend", "src/prover", "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
+    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
         .{ .product_id = "stwo-core", .frontend = "none", .backend = "none", .role = "library", .protocol_manifest = "stwo-core-v1" },
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },
     } },
-    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/core", "src/backend", "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/prover", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
+    .{ .scope = .metal_tools, .role = .backend_tools, .product_ids = &.{"stwo-native-metal-tools"}, .module_roots = &.{ "src/stwo.zig", "src/backends/metal/shader_manifest.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "src/tests.zig", "src/metal_arena_plan_cli.zig", "src/riscv_metal_bench_cli.zig" }, .allowed_module_prefixes = &.{ "src/backends", "src/bench", "src/examples", "src/frontends", "src/integrations", "src/interop", "src/std_shims", "src/tools", "src/tracing" }, .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" }, .constructors = &.{ "backends/metal_aot.addProducts", "benchmarks/metal.addProducts" } },
     .{
         .scope = .cuda_tools,
         .role = .backend_tools,
         .product_ids = &.{"stwo-native-cuda-tools"},
         .module_roots = &.{"build_support/backends/cuda.zig"},
+        .dependency_module_roots = protocol_package_roots,
         .allowed_module_files = &.{
-            "src/backend/mod.zig",
-            "src/core/mod.zig",
             "src/products/native_cuda/blake_route.zig",
-            "src/prover/mod.zig",
             "src/stwo.zig",
             "src/tools/cuda_native_ec_composite_oracle/main.zig",
             "tests/native_cuda_blake_exact_structure.zig",
@@ -237,11 +251,9 @@ pub const configure = [_]Configure{
             "src/riscv_bench_cli.zig",
             "src/tools/native_proof_bench/cpu.zig",
         },
+        .dependency_module_roots = native_protocol_package_roots,
         .allowed_module_files = &.{"src/stwo.zig"},
         .allowed_module_prefixes = &.{
-            "src/core",
-            "src/backend",
-            "src/prover",
             "src/frontends/cairo",
             "src/frontends/riscv",
             "src/integrations/riscv_cpu",

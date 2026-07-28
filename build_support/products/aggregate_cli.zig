@@ -39,7 +39,12 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
     });
     protocol.addImports(stwo);
     const runner = libraries.consumer(b, protocol, .{
-        .root_source_file = b.path("src/prover/native/runner.zig"),
+        .root_source_file = graph.source(
+            b,
+            "src/prover/native/runner.zig",
+            target,
+            optimize,
+        ),
         .target = target,
         .optimize = optimize,
     });
@@ -61,7 +66,12 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
 
     const runner_tests = b.addTest(.{
         .root_module = libraries.consumer(b, protocol, .{
-            .root_source_file = b.path("src/prover/native/runner.zig"),
+            .root_source_file = graph.source(
+                b,
+                "src/prover/native/runner.zig",
+                target,
+                optimize,
+            ),
             .target = target,
             .optimize = optimize,
         }),

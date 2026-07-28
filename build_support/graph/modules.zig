@@ -65,7 +65,7 @@ pub fn create(b: *std.Build, spec: ModuleSpec) *std.Build.Module {
         .{ spec.product.name, @errorName(err) },
     );
     return b.createModule(.{
-        .root_source_file = b.path(spec.root_source_file),
+        .root_source_file = ownedRootSource(b, spec),
         .target = spec.target,
         .optimize = spec.optimize,
     });
@@ -77,10 +77,75 @@ pub fn addPublic(b: *std.Build, name: []const u8, spec: ModuleSpec) *std.Build.M
         .{ spec.product.name, @errorName(err) },
     );
     return b.addModule(name, .{
-        .root_source_file = b.path(spec.root_source_file),
+        .root_source_file = ownedRootSource(b, spec),
         .target = spec.target,
         .optimize = spec.optimize,
     });
+}
+
+const OwnedPackage = enum {
+    core,
+    backend_contracts,
+    prover,
+};
+
+/// Resolves canonical ownership roots through their package manifests. Other
+/// product-local roots remain relative to the repository aggregate package.
+fn ownedRootSource(b: *std.Build, spec: ModuleSpec) std.Build.LazyPath {
+    return source(
+        b,
+        spec.root_source_file,
+        spec.target,
+        spec.optimize,
+    );
+}
+
+pub fn source(
+    b: *std.Build,
+    root_source_file: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) std.Build.LazyPath {
+    const owned = ownedSource(root_source_file) orelse
+        return b.path(root_source_file);
+    const dependency_options = .{
+        .target = target,
+        .optimize = optimize,
+    };
+    return switch (owned.package) {
+        .core => b.dependency(
+            "stwo_core",
+            dependency_options,
+        ).path(owned.sub_path),
+        .backend_contracts => b.dependency(
+            "stwo_backend_contracts",
+            dependency_options,
+        ).path(owned.sub_path),
+        .prover => b.dependency(
+            "stwo_prover_impl",
+            dependency_options,
+        ).path(owned.sub_path),
+    };
+}
+
+const OwnedSource = struct {
+    package: OwnedPackage,
+    sub_path: []const u8,
+};
+
+fn ownedSource(root_source_file: []const u8) ?OwnedSource {
+    const prefixes = .{
+        .{ "src/core/", OwnedPackage.core },
+        .{ "src/backend/", OwnedPackage.backend_contracts },
+        .{ "src/prover/", OwnedPackage.prover },
+    };
+    inline for (prefixes) |entry| {
+        if (std.mem.startsWith(u8, root_source_file, entry[0])) return .{
+            .package = entry[1],
+            .sub_path = root_source_file[entry[0].len..],
+        };
+    }
+    return null;
 }
 
 pub fn createProtocolModules(
@@ -177,6 +242,26 @@ test "generic prover identifies backend contracts without a concrete backend" {
     const prover = proverProduct(.library);
     try prover.validate();
     try std.testing.expectEqualStrings("contracts", prover.backendManifest());
+}
+
+test "canonical owner roots resolve to package dependencies" {
+    try std.testing.expectEqual(
+        OwnedPackage.core,
+        ownedSource("src/core/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.backend_contracts,
+        ownedSource("src/backend/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.prover,
+        ownedSource("src/prover/mod.zig").?.package,
+    );
+    try std.testing.expectEqualStrings(
+        "native/runner.zig",
+        ownedSource("src/prover/native/runner.zig").?.sub_path,
+    );
+    try std.testing.expect(ownedSource("src/products/prover/root.zig") == null);
 }
 
 test "aggregate SDK facade has an explicit library identity" {
