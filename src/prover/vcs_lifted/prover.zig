@@ -13,6 +13,7 @@ const first_layer_sink = @import("first_layer_sink.zig");
 const leaves_mod = @import("leaves.zig");
 const layers_mod = @import("layers.zig");
 const parameters = @import("parameters.zig");
+const audit = @import("audit.zig");
 
 const M31 = m31.M31;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
@@ -498,6 +499,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
 
                     // Expand leaf hashers if needed for this log_size.
                     if (log_size > self.leaf_log_size) {
+                        const expand_timer = audit.Timer.begin();
                         const log_ratio = log_size - self.leaf_log_size;
                         const layer_size = @as(usize, 1) << @intCast(log_size);
                         const shift_amt: std.math.Log2Int(usize) = @intCast(log_ratio + 1);
@@ -509,6 +511,10 @@ pub fn MerkleProverLifted(comptime H: type) type {
                         self.allocator.free(self.leaf_hashers);
                         self.leaf_hashers = expanded;
                         self.leaf_log_size = log_size;
+                        audit.note(
+                            "expand log_size={d} leaves={d} hasher_bytes={d} ns={d}",
+                            .{ log_size, layer_size, layer_size * @sizeOf(H), expand_timer.endNs() },
+                        );
                     }
 
                     const layer_size = self.leaf_hashers.len;
@@ -516,11 +522,23 @@ pub fn MerkleProverLifted(comptime H: type) type {
 
                     // Feed column values into leaf hashers — same logic as buildLeaves.
                     if (comptime @hasDecl(H, "updateLeafPackedBytes")) {
+                        const update_timer = audit.Timer.begin();
                         try LeafOps.updateHashersPacked(
                             self.allocator,
                             self.leaf_hashers,
                             group_columns,
                             layer_size,
+                        );
+                        audit.note(
+                            "absorb log_size={d} leaves={d} cols={d} hasher_bytes={d} col_bytes={d} ns={d}",
+                            .{
+                                log_size,
+                                layer_size,
+                                group_columns.len,
+                                layer_size * @sizeOf(H),
+                                layer_size * group_columns.len * @sizeOf(M31),
+                                update_timer.endNs(),
+                            },
                         );
                     } else {
                         var idx: usize = 0;
@@ -552,6 +570,16 @@ pub fn MerkleProverLifted(comptime H: type) type {
                     }
                 }
 
+                audit.note(
+                    "commit_begin cols={d} first_log={d} last_log={d} hasher_size={d} tail_start={?d}",
+                    .{
+                        columns.len,
+                        columns[0].log_size,
+                        columns[columns.len - 1].log_size,
+                        @sizeOf(H),
+                        liftedTailStart(columns),
+                    },
+                );
                 const tail_start = liftedTailStart(columns) orelse {
                     try self.addColumns(columns);
                     return self.finalize();
@@ -603,13 +631,25 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 const final_log_size = tail_columns[tail_columns.len - 1].log_size;
                 std.debug.assert(final_log_size > self.leaf_log_size);
                 const leaf_count = @as(usize, 1) << @intCast(final_log_size);
+                const alloc_timer = audit.Timer.begin();
                 const leaves = try layer_alloc.alloc(H.Hash, leaf_count);
+                audit.note("leaf_alloc leaves={d} ns={d}", .{ leaf_count, alloc_timer.endNs() });
+                const tail_timer = audit.Timer.begin();
                 LeafOps.finalizeLiftedTail(
                     self.leaf_hashers,
                     self.leaf_log_size,
                     tail_columns,
                     final_log_size,
                     leaves,
+                );
+                audit.note(
+                    "finalize_lifted_tail leaves={d} base_leaves={d} tail_cols={d} ns={d}",
+                    .{
+                        leaf_count,
+                        self.leaf_hashers.len,
+                        tail_columns.len,
+                        tail_timer.endNs(),
+                    },
                 );
                 allocator.free(self.leaf_hashers);
                 self.leaf_hashers = &[_]H{};
@@ -633,6 +673,12 @@ pub fn MerkleProverLifted(comptime H: type) type {
                     for (layers_bottom_up.items) |layer| layer_alloc.free(layer);
                 }
                 try layers_bottom_up.append(allocator, leaves);
+
+                const parents_timer = audit.Timer.begin();
+                defer audit.note(
+                    "parent_layers leaves={d} ns={d}",
+                    .{ leaves.len, parents_timer.endNs() },
+                );
 
                 if (leaves.len > 1) {
                     std.debug.assert(std.math.isPowerOfTwo(leaves.len));
@@ -683,8 +729,15 @@ pub fn MerkleProverLifted(comptime H: type) type {
 
                 // Finalize leaf hashers into leaf hashes.
                 const leaf_count = self.leaf_hashers.len;
+                const alloc_timer = audit.Timer.begin();
                 const leaves = try layer_alloc.alloc(H.Hash, leaf_count);
+                audit.note("leaf_alloc leaves={d} ns={d}", .{ leaf_count, alloc_timer.endNs() });
+                const finalize_timer = audit.Timer.begin();
                 LeafOps.finalizeHashers(self.leaf_hashers, leaves);
+                audit.note(
+                    "finalize_hashers leaves={d} ns={d}",
+                    .{ leaf_count, finalize_timer.endNs() },
+                );
                 // Free hasher state — column data is no longer needed.
                 allocator.free(self.leaf_hashers);
                 self.leaf_hashers = &[_]H{};
