@@ -89,8 +89,15 @@ pub fn build(
         cursor += 1;
     }
 
+    // Right-size rather than sub-slice. `deinit` frees `offsets`, and freeing a
+    // sub-slice of an allocation is invalid: a checking allocator rejects it
+    // outright and a non-checking one silently mismatches the length. Captured
+    // Cairo components share mask offsets across tens of read sites, so
+    // `offset_count < read_count` is the normal case, not an edge case. The
+    // `errdefer` above stays correct: a failed `realloc` leaves `offsets` valid.
+    const trimmed = try allocator.realloc(offsets, offset_count);
     return .{
-        .offsets = offsets[0..offset_count],
+        .offsets = trimmed,
         .sites = sites,
     };
 }

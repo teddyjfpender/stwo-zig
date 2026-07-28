@@ -6,6 +6,12 @@ const test_options = @import("test_options");
 test {
     if (test_options.metal_only) {
         _ = @import("tests/metal/backend_test.zig");
+        // Reachability, not preference: no green step compiles the `else` branch
+        // below (it is selected by neither `metal_only` nor `riscv_only`), so a
+        // test placed there would compile nowhere and run nowhere. `metal-test`
+        // is the one step that both owns `stwo_cairo_metal_integration` and
+        // filters on the `metal:` prefix this test's name carries.
+        _ = @import("tests/metal/composition_binding_test.zig");
     } else if (test_options.riscv_only) {
         if (test_options.riscv_exhaustive) {
             _ = @import("tests/riscv/trace_test.zig");
