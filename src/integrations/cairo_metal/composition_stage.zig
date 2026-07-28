@@ -175,7 +175,11 @@ const Session = struct {
     entries: []?Entry,
     resolved: []eval_arena.ResolvedScratch = &.{},
     lift_ns: u64 = 0,
-    lifted_bytes: u64 = 0,
+    /// Staged volume, and what Option A would have written for the same
+    /// columns. Equal by construction on the `lifted` path; the gap on the
+    /// `stored` path is the ABI change's whole staging benefit, and it is a
+    /// property of the *committed* column log sizes rather than of the plan.
+    volume: eval_arena.Volume = .{},
     dispatches: u64 = 0,
     /// Blocking submissions actually made. One per evaluated component, against
     /// the `dispatches` above which stay one per part; the gap between the two
@@ -527,12 +531,16 @@ fn closeAdapter(context: *anyopaque) void {
         const seconds = @as(f64, @floatFromInt(self.lift_ns)) / std.time.ns_per_s;
         std.log.info(
             "device composition ({t}): stage {d:.3} ms over {d} MiB ({d:.2} GB/s), " ++
+                "eval-domain equivalent {d} MiB, shifts {d}-{d}, " ++
                 "{d} dispatches in {d} submissions, device {d:.3} ms",
             .{
                 self.mode,
                 @as(f64, @floatFromInt(self.lift_ns)) / std.time.ns_per_ms,
-                self.lifted_bytes >> 20,
-                @as(f64, @floatFromInt(self.lifted_bytes)) / seconds / 1.0e9,
+                self.volume.stored_bytes >> 20,
+                @as(f64, @floatFromInt(self.volume.stored_bytes)) / seconds / 1.0e9,
+                self.volume.lifted_bytes >> 20,
+                self.volume.shift_min,
+                self.volume.shift_max,
                 self.dispatches,
                 self.submissions,
                 self.device_gpu_ms,
@@ -598,7 +606,13 @@ fn evaluate(self: *Session, request: *const device_stage.Request) !void {
                 prover.work_pool.getGlobalPool(),
             );
             self.lift_ns += timer.read();
-            self.lifted_bytes += @as(u64, plan.columns) * plan.eval_rows * @sizeOf(u32);
+            const written = @as(u64, plan.columns) * plan.eval_rows * @sizeOf(u32);
+            self.volume.fold(.{
+                .stored_bytes = written,
+                .lifted_bytes = written,
+                .shift_min = 0,
+                .shift_max = 0,
+            });
             for (0..plan.columns) |column|
                 self.words[plan.trace_offsets + column] = plan.columnOffset(@intCast(column));
         },
@@ -606,12 +620,12 @@ fn evaluate(self: *Session, request: *const device_stage.Request) !void {
         // publishes `trace_offsets` and the shift table itself because both are
         // products of the packing it just did.
         .stored => {
-            self.lifted_bytes += try eval_arena.store(
+            self.volume.fold(try eval_arena.store(
                 self.words,
                 plan,
                 self.resolved[0..plan.columns],
                 prover.work_pool.getGlobalPool(),
-            );
+            ));
             self.lift_ns += timer.read();
         },
     }

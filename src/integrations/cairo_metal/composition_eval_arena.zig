@@ -493,18 +493,41 @@ const StoreWorker = struct {
 /// out of bounds by any row of any part. A column that fails it is refused here,
 /// before a single word is written, and the caller answers with the host
 /// evaluation of that component.
+/// What one component's staging actually moved, and at what shifts.
+///
+/// `lifted_bytes` is the volume the Option-A path would have written for the
+/// same component. Reporting the two side by side is the only way to price the
+/// ABI change honestly: the saving is a property of the *committed* column log
+/// sizes, which no test that builds its own column store can observe.
+pub const Volume = struct {
+    stored_bytes: u64 = 0,
+    lifted_bytes: u64 = 0,
+    shift_min: u32 = std.math.maxInt(u32),
+    shift_max: u32 = 0,
+
+    pub fn fold(self: *Volume, other: Volume) void {
+        self.stored_bytes += other.stored_bytes;
+        self.lifted_bytes += other.lifted_bytes;
+        self.shift_min = @min(self.shift_min, other.shift_min);
+        self.shift_max = @max(self.shift_max, other.shift_max);
+    }
+};
+
 pub fn store(
     words: []u32,
     component_plan: Plan,
     resolved: []const ResolvedScratch,
     pool: ?*WorkPool,
-) !u64 {
+) !Volume {
     if (component_plan.mode != .stored) return Error.EvalArenaColumnShape;
     if (resolved.len != component_plan.columns) return Error.EvalArenaColumnShape;
 
     const limit = component_plan.column_base + component_plan.column_capacity;
     var cursor: u64 = component_plan.column_base;
-    var staged: u64 = 0;
+    var volume = Volume{
+        .lifted_bytes = @as(u64, component_plan.columns) *
+            component_plan.eval_rows * @sizeOf(u32),
+    };
     for (resolved, 0..) |source, index| {
         var shift: u32 = undefined;
         var needed: u64 = undefined;
@@ -526,7 +549,11 @@ pub fn store(
         words[component_plan.trace_offsets + index] = @intCast(cursor);
         words[component_plan.base_params + index] = shift;
         cursor += needed;
-        staged += needed;
+        volume.stored_bytes += needed * @sizeOf(u32);
+        if (source.values.len != 0) {
+            volume.shift_min = @min(volume.shift_min, shift);
+            volume.shift_max = @max(volume.shift_max, shift);
+        }
     }
 
     const ready = pool orelse {
@@ -538,7 +565,7 @@ pub fn store(
             .start = 0,
         };
         worker.run();
-        return staged * @sizeOf(u32);
+        return volume;
     };
     const worker_count = @max(1, @min(ready.workerCount(), resolved.len));
     if (worker_count == 1) {
@@ -550,7 +577,7 @@ pub fn store(
             .start = 0,
         };
         worker.run();
-        return staged * @sizeOf(u32);
+        return volume;
     }
     var buffer: [64]StoreWorker = undefined;
     const workers = buffer[0..@min(worker_count, buffer.len)];
@@ -567,7 +594,7 @@ pub fn store(
     for (workers[1..]) |*worker| ready.spawnWg(&wait_group, StoreWorker.run, .{worker});
     StoreWorker.run(&workers[0]);
     wait_group.wait();
-    return staged * @sizeOf(u32);
+    return volume;
 }
 
 test "the lifting map matches the product's own column reader" {
@@ -647,8 +674,13 @@ test "stored staging packs columns and publishes their shifts" {
         .{ .values = &first, .shift_amt = 2 },
         .{ .values = &second, .shift_amt = 2 },
     };
-    const staged = try store(&words, component_plan, &resolved, null);
-    try std.testing.expectEqual(@as(u64, 8 * @sizeOf(u32)), staged);
+    const volume = try store(&words, component_plan, &resolved, null);
+    try std.testing.expectEqual(@as(u64, 8 * @sizeOf(u32)), volume.stored_bytes);
+    // Two four-word columns against a two-column eval-domain plan: the ABI
+    // change is worth exactly the ratio of these two numbers on this fixture.
+    try std.testing.expectEqual(@as(u64, 16 * @sizeOf(u32)), volume.lifted_bytes);
+    try std.testing.expectEqual(@as(u32, 2), volume.shift_min);
+    try std.testing.expectEqual(@as(u32, 2), volume.shift_max);
     // Packed consecutively from the region base, not strided by `eval_rows`.
     try std.testing.expectEqual(@as(u32, 64), words[component_plan.trace_offsets]);
     try std.testing.expectEqual(@as(u32, 68), words[component_plan.trace_offsets + 1]);
@@ -700,8 +732,8 @@ test "an unread census slot gets a real pair and an index-pinning shift" {
         .{},
         .{ .values = &present, .shift_amt = 2 },
     };
-    const staged = try store(&words, component_plan, &resolved, null);
-    try std.testing.expectEqual(@as(u64, 6 * @sizeOf(u32)), staged);
+    const volume = try store(&words, component_plan, &resolved, null);
+    try std.testing.expectEqual(@as(u64, 6 * @sizeOf(u32)), volume.stored_bytes);
     try std.testing.expectEqual(
         component_plan.eval_log_size,
         words[component_plan.base_params],
