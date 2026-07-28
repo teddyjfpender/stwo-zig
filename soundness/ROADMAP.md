@@ -500,6 +500,11 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       the repository-specific PCS/FRI proof wire. Nothing below closes this
       item: no second implementation reads a proof.
 
+      The implementation boundary, source-isolation rules, schema-v4/Postcard
+      target, adversarial corpus, staged delivery, and promotion gates are
+      specified in
+      [`INDEPENDENT_PROOF_SYSTEM_VALIDATION.md`](INDEPENDENT_PROOF_SYSTEM_VALIDATION.md).
+
       One slice of it exists, named for what it is.
       `scripts/air_satisfaction.py` is an independent AIR **row-satisfaction and
       LogUp-closure checker**. It is not a verifier and must not be cited as
@@ -551,6 +556,10 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
 - [ ] Obtain independent review of the FRI/list-decoding security accounting.
 - [ ] Keep the Fiat–Shamir schedule and all domain-separated extensions in the
       conformance ledger with mutation coverage.
+
+      The review dossier, machine-readable error ledger, reviewer-independence
+      contract, finding policy, and claim-promotion gate are part of
+      [`INDEPENDENT_PROOF_SYSTEM_VALIDATION.md`](INDEPENDENT_PROOF_SYSTEM_VALIDATION.md).
 
 ## Formal and external assurance
 
