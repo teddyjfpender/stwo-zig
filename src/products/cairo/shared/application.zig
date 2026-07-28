@@ -259,6 +259,7 @@ fn proveFile(
         request.proof_format,
         execution,
         backend_evidence,
+        cairo.preprocessed.product_cache.accountingSnapshot(),
     );
     defer allocator.free(report);
     try Product.stwo.interop.output_transaction.publishResult(
@@ -373,6 +374,7 @@ fn renderReport(
     proof_format: cli.ProofFormat,
     execution: ?execution_adapter.Receipt,
     backend_evidence: anytype,
+    preprocessed_cache_accounting: anytype,
 ) ![]u8 {
     const input_hex = std.fmt.bytesToHex(input_sha256, .lower);
     const proof_hex = std.fmt.bytesToHex(proof_sha256, .lower);
@@ -407,6 +409,10 @@ fn renderReport(
         .frontend = "cairo",
         .backend = Product.backend_name,
         .backend_evidence = backend_evidence,
+        // Ops accounting for the preprocessed product cache. Availability
+        // telemetry only: nothing here reaches the key, the artifact bytes, the
+        // transcript or the proof.
+        .preprocessed_cache = preprocessed_cache_accounting,
         .profile = profile_name,
         .execution = execution_json,
         .input = .{ .sha256 = &input_hex },
