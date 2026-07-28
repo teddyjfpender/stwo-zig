@@ -35,6 +35,23 @@ pub const Event = enum {
     /// would make every hybrid Metal proof report a fallback and would destroy
     /// the meaning of `accelerated_without_fallbacks`.
     cpu_composition_evaluation,
+    /// One base-trace commit whose source columns already were the backend's
+    /// contiguous base arena AND whose arena was page-aligned, so the
+    /// coefficient buffer was a `newBufferWithBytesNoCopy` alias of host memory
+    /// and nothing was copied (`circle_legacy.m:229-236`). This is the whole
+    /// point of the trace arena and until now nothing observed it.
+    metal_commit_source_arena_alias,
+    /// One base-trace commit whose source columns were the base arena but whose
+    /// arena missed the page-alignment or page-multiple requirement, so the
+    /// commit paid exactly one `memcpy` per column into a fresh device buffer
+    /// (`circle_legacy.m:324-329`). Still byte-correct, still device-accelerated
+    /// — this is NOT a fallback and is deliberately excluded from
+    /// `cpuFallbackTotal`.
+    metal_commit_source_arena_memcpy,
+    /// One base-trace commit whose source columns were NOT the base arena, i.e.
+    /// the arena was not adopted and the fused-upload/blit encoder ran
+    /// (`circle_legacy.m:267-323`). The pre-arena behaviour.
+    metal_commit_source_upload,
 };
 
 pub const CounterValues = struct {
@@ -60,6 +77,9 @@ pub const CounterValues = struct {
     cpu_small_circle_evaluations: u64 = 0,
     cpu_small_circle_ldes: u64 = 0,
     cpu_composition_evaluations: u64 = 0,
+    metal_commit_source_arena_aliases: u64 = 0,
+    metal_commit_source_arena_memcpys: u64 = 0,
+    metal_commit_source_uploads: u64 = 0,
 
     pub fn delta(after: CounterValues, before: CounterValues) CounterValues {
         var result: CounterValues = .{};
@@ -317,6 +337,9 @@ const CounterBank = struct {
     cpu_small_circle_evaluations: AtomicCounter = AtomicCounter.init(0),
     cpu_small_circle_ldes: AtomicCounter = AtomicCounter.init(0),
     cpu_composition_evaluations: AtomicCounter = AtomicCounter.init(0),
+    metal_commit_source_arena_aliases: AtomicCounter = AtomicCounter.init(0),
+    metal_commit_source_arena_memcpys: AtomicCounter = AtomicCounter.init(0),
+    metal_commit_source_uploads: AtomicCounter = AtomicCounter.init(0),
 };
 
 var counter_bank: CounterBank = .{};
@@ -345,8 +368,29 @@ pub fn record(event: Event) void {
         .cpu_small_circle_evaluation => &counter_bank.cpu_small_circle_evaluations,
         .cpu_small_circle_lde => &counter_bank.cpu_small_circle_ldes,
         .cpu_composition_evaluation => &counter_bank.cpu_composition_evaluations,
+        .metal_commit_source_arena_alias => &counter_bank.metal_commit_source_arena_aliases,
+        .metal_commit_source_arena_memcpy => &counter_bank.metal_commit_source_arena_memcpys,
+        .metal_commit_source_upload => &counter_bank.metal_commit_source_uploads,
     };
     _ = counter.fetchAdd(1, .monotonic);
+}
+
+/// The `source_binding` code the circle-LDE commit reports back, mapped onto its
+/// counter. The classification is made where the decision is made — inside the
+/// Objective-C commit — and is reported, never re-derived here, so the counter
+/// cannot drift away from the branch it claims to observe.
+pub const CommitSourceBinding = enum(u32) {
+    upload = 0,
+    arena_alias = 1,
+    arena_memcpy = 2,
+};
+
+pub fn recordCommitSourceBinding(code: u32) void {
+    record(switch (std.meta.intToEnum(CommitSourceBinding, code) catch return) {
+        .upload => .metal_commit_source_upload,
+        .arena_alias => .metal_commit_source_arena_alias,
+        .arena_memcpy => .metal_commit_source_arena_memcpy,
+    });
 }
 
 pub fn capture(pipeline_cache: runtime.PipelineCacheStats) Snapshot {

@@ -77,6 +77,9 @@ pub const Product = struct {
                 context.lifecycle_before.initialization_count,
             .runtime_shutdowns = lifecycle.shutdown_count -
                 context.lifecycle_before.shutdown_count,
+            .commit_source_arena_aliases = delta.counters.metal_commit_source_arena_aliases,
+            .commit_source_arena_memcpys = delta.counters.metal_commit_source_arena_memcpys,
+            .commit_source_uploads = delta.counters.metal_commit_source_uploads,
         };
     }
 

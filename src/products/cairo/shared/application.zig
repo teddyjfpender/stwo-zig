@@ -13,6 +13,16 @@ pub const BackendEvidence = struct {
     cpu_fallbacks: u64 = 0,
     runtime_initializations: u64 = 0,
     runtime_shutdowns: u64 = 0,
+    /// Commit-source attribution for the base/interaction trace commits: how
+    /// many took the page-aligned no-copy arena alias, how many were arena
+    /// sources that still paid one memcpy, and how many uploaded because the
+    /// arena was not adopted. `main_trace_commit_arena_bound` proves the arena
+    /// reached the commit; only these prove which binding the commit took.
+    /// Defaults are zero, so a lane that records none reports exactly what it
+    /// reported before.
+    commit_source_arena_aliases: u64 = 0,
+    commit_source_arena_memcpys: u64 = 0,
+    commit_source_uploads: u64 = 0,
 };
 
 pub fn run(comptime Product: type) !void {
