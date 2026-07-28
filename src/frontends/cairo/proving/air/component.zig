@@ -305,18 +305,26 @@ const RangeWorker = struct {
     }
 };
 
-const TraceContext = struct {
+/// The mask-resolution context the row loop reads through. Public because the
+/// device composition stage (`device_stage.zig`) has to hand the *same*
+/// resolver to the device path that the host path uses, or the two evaluators
+/// would not be comparing the same columns.
+pub const TraceContext = struct {
     trace: *const Trace,
     captured: *const composition.Component,
     evaluation_log_size: u32,
 };
+
+/// Re-export of the resolver interface so callers outside this file can build a
+/// reader without naming `simd_evaluator` themselves.
+pub const TraceReader = simd.TraceReader;
 
 /// Resolves one mask read site to its committed column and lifting shift.
 /// Called once per read instruction per evaluated range; every check it
 /// performs — tree arity, preprocessed index bounds, component span
 /// arithmetic, column length against its log size, and the lifting shift
 /// range — used to be repeated on every four-row group.
-fn resolveTrace(
+pub fn resolveTrace(
     raw_context: *const anyopaque,
     interaction: u8,
     local_column: u32,
@@ -360,7 +368,9 @@ fn resolveTrace(
     };
 }
 
-fn orderedCoefficients(
+/// Reverses the accumulator's power vector into the orientation
+/// `simd_evaluator` and the compiled kernels both index at `rc_base`.
+pub fn orderedCoefficients(
     allocator: std.mem.Allocator,
     powers: []const QM31,
 ) ![]QM31 {

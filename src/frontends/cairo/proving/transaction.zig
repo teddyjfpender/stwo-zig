@@ -45,6 +45,10 @@ pub const Fixture = struct {
     fixed: *const witness.fixed_table_bundle.Bundle,
     relations: *const witness.relation_bundle.Bundle,
     air_templates: *const cairo_air.template_library.Library,
+    /// Optional whole-stage device composition evaluator. Supplied by the Metal
+    /// product and absent on the CPU product, which keeps the CPU lane the
+    /// byte-parity reference by construction.
+    composition_device: ?proving_air.device_stage.Device = null,
 };
 
 pub fn Result(comptime Engine: type) type {
@@ -481,13 +485,54 @@ pub fn proveFixtureWithRecorder(
         component.* = runtime.asProverComponent();
     }
 
+    // The device composition stage is opened here, after the bundle exists and
+    // before `Engine.prove`, so that admission is a pre-stage decision with a
+    // whole-stage host fallback available. `bound` stays null on refusal.
+    var bound: ?proving_air.device_stage.Bound = null;
+    defer if (bound) |*owned| {
+        owned.close();
+        recordDeviceCompositionCounts(recorder, owned.counts) catch {};
+    };
+    if (fixture.composition_device) |device| {
+        var admit = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "composition_device_admission",
+            "Device composition admission",
+        );
+        const opened = device.open(
+            device.context,
+            allocator,
+            composition.components,
+        ) catch null;
+        admit.end();
+        if (opened) |session| {
+            bound = .{
+                .allocator = allocator,
+                .components = runtime_components,
+                .captured = composition.components,
+                .session = session,
+                .recorder = recorder,
+            };
+        } else {
+            var declined = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "composition_device_declined",
+                "Device composition declined; host stage",
+            );
+            declined.end();
+        }
+    }
+
     scheme_owned = false;
     const proof = try Engine.prove(
         allocator,
         components,
         &channel,
         scheme,
-        .{ .recorder = recorder },
+        .{
+            .recorder = recorder,
+            .composition_stage = if (bound) |*ready| ready.asStage() else null,
+        },
     );
     return .{
         .allocator = allocator,
@@ -623,6 +668,31 @@ pub fn verifyAndConsume(
         &scheme,
         proof,
     );
+}
+
+/// Publishes the stage's coverage as three zero-duration marker scopes, which
+/// is how every other decision in this transaction is made observable in
+/// `--stage-profile-out` without a debug build.
+fn recordDeviceCompositionCounts(
+    recorder: ?*prover.stage_profile.Recorder,
+    counts: proving_air.device_stage.Counts,
+) !void {
+    const markers = [_]struct { usize, []const u8, []const u8 }{
+        .{ counts.device_components, "composition_device_components", "Components evaluated on device" },
+        .{ counts.host_components, "composition_device_host_components", "Components evaluated on host inside the device stage" },
+        .{ counts.device_fallbacks, "composition_device_fallbacks", "Device evaluations that fell back to the host" },
+    };
+    for (markers) |marker| {
+        var index: usize = 0;
+        while (index < marker[0]) : (index += 1) {
+            var scope = try prover.stage_profile.StageScope.begin(
+                recorder,
+                marker[1],
+                marker[2],
+            );
+            scope.end();
+        }
+    }
 }
 
 fn componentTreeLogs(

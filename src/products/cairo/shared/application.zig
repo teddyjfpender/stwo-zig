@@ -192,6 +192,10 @@ fn proveFile(
             .fixed = &fixed,
             .relations = &relations,
             .air_templates = &air_templates,
+            .composition_device = if (comptime @hasDecl(Product, "compositionDevice"))
+                Product.compositionDevice(paths.air_template_library)
+            else
+                null,
         },
         paths.variant,
         if (maybe_recorder) |*recorder| recorder else null,

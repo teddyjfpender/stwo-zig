@@ -17,7 +17,9 @@
   "api_surface": [
     "arena_binding",
     "composition_aot",
+    "composition_eval_arena",
     "composition_prewarm",
+    "composition_stage",
     "eval_codegen",
     "interaction_executor",
     "memory_trace",
