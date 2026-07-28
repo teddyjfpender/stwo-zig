@@ -757,3 +757,259 @@ are the reason this increment insists on warmed, paired, same-block samples.
   NEON on 1,440 instructions and is identical in both arms. There is no width
   left at four lanes; more would need an eight-lane compression, which is the
   rejected register-pressure direction.
+
+## Increment 4: parallel hasher-state replication
+
+**Outcome: rejected candidate.** A three-line, byte-exact change plus one new
+130-line module was built, measured over 36 paired cold runs, and reverted: it
+improves the aggregate commit stage by 1.086x-1.091x and the `merkle_commit`
+children by 1.128x-1.131x, below this increment's 1.15x acceptance bar. The
+source diff is reverted. The phase split is recorded here because it closes R5
+for good: after this change the replication bucket is memory-bandwidth-bound
+and everything left in the stage is BLAKE2s compression.
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+
+The reverted implementation is preserved in history at `1e234274`.
+
+### Mechanism
+
+Increment 3's audit named the largest non-hashing line item in the Cairo commit
+stage: the streaming committer's hasher-array replication at
+`src/prover/vcs_lifted/prover.zig:505` was a serial scalar gather
+(`for (0..layer_size) |idx| expanded[idx] = self.leaf_hashers[src_idx];`) while
+absorb, finalize and the parent layers all ran on the shared work pool.
+
+This increment extracted **only** the `expandHashers` component of the rejected
+`35dcf92e` candidate — not the fused finalization kernel, not the tail policy.
+
+`src/prover/vcs_lifted/expand.zig:44` `expandRange` exploits the fact that the
+lifting map `dst[i] = src[((i >> shift) << 1) + (i & 1)]` is constant across
+each aligned run of `1 << shift` destinations: the whole run alternates between
+exactly two source hashers. It reads those two once per run and broadcasts them,
+turning a strided gather over a multi-hundred-MiB array into a streaming write.
+`src/prover/vcs_lifted/expand.zig:66` `expandHashers` then splits the
+destination range across the work pool with the same
+`parallel_min_nodes_per_worker` capacity rule `leaves.zig` already uses; workers
+own disjoint half-open destination ranges and every index is written once.
+`src/prover/vcs_lifted/prover.zig:509` is the single call site.
+
+Behaviour with no pool is unchanged: `work_pool.getGlobalPool` returns `null`
+under `builtin.is_test` and `builtin.single_threaded`, and `expandHashers` then
+takes the serial branch. Output is bit-identical in every configuration — this
+is pure replication, no value is computed and no absorbed byte moves. A unit
+test in `expand.zig` walks six source sizes × six shifts and asserts the
+run-broadcast result equals the scalar lifting gather elementwise.
+
+### Phase split, before and after
+
+`STWO_MERKLE_AUDIT=1` instrumentation from `495a9cff` was temporarily re-applied
+to **both** arms (predecessor tree at `34b2a898`, candidate at `1e234274`) and
+reverted again. Three interleaved cold runs per arm on arithmetic-2m, means:
+
+| Phase | pred ms | cand ms | Ratio |
+| --- | ---: | ---: | ---: |
+| Leaf absorb (`updateHashersPacked`) | 332.8 | 347.5 | 0.957x |
+| Parent layers | 167.4 | 172.7 | 0.970x |
+| **Hasher-array replication (expand)** | **146.6** | **95.7** | **1.532x** |
+| Leaf finalize (`finalizeHashers`) | 110.0 | 118.5 | 0.928x |
+| Leaf/layer allocation | 0.017 | 0.017 | — |
+| Total | 756.7 | 734.3 | 1.030x |
+
+Per-run expand totals were 145.4 / 147.1 / 147.1 (pred) and 96.2 / 90.9 / 99.9
+(cand) — the phase effect is clean. The individual replications that dominate:
+
+| Replication | Hasher bytes | pred ms | cand ms |
+| --- | ---: | ---: | ---: |
+| main tree, log 22 | 570,425,344 | 32.3 / 32.7 / 32.3 | 11.7 / 11.5 / 12.3 |
+| interaction tree, log 22 | 570,425,344 | 32.2 / 33.2 / 32.7 | 12.2 / 14.3 / 12.8 |
+| log 21 (×3, one per tree) | 285,212,672 | 15.4-16.7 | 9.3-16.3 |
+| log 20 | 142,606,336 | 8.1-8.3 | 8.9-9.2 |
+
+**A correction to increment 3's audit must be recorded.** That audit reported
+the replication phase at 442.5 ms / 33.1% of a 1,335.6 ms instrumented stage.
+Re-measured here on a quiet host with the same instrumentation, it is 146.6 ms
+of 756.7 ms — 19.4%. The earlier figure was taken on a busier machine and the
+serial gather is exactly the phase that degrades worst under contention, so it
+was disproportionately inflated. The expected ~1.4x stage win in this
+increment's brief was derived from the 442.5 ms figure and was therefore never
+achievable: parallelising a 146.6 ms bucket inside a 756.7 ms stage caps the
+stage at about 1.08x even if replication went to zero.
+
+**Where the remaining 95.7 ms goes.** The three trees replicate roughly 2.5 GB
+of hasher state and read roughly 1.3 GB of it, so the candidate pass sustains
+about 40 GB/s. That is at this host's achievable streaming bandwidth. There is
+no further parallel headroom in the phase; the only way to cut it more is to
+*not perform* the replications, which is what `35dcf92e`'s fused tail did — and
+increment 3 measured the fused kernel giving back most of that saving.
+
+The log-20 replication does not improve (8.2 → 9.0 ms). At 142 MiB the pass is
+dominated by first-touch page faults on the fresh allocation, which the worker
+split does not remove.
+
+### Paired measurement
+
+A-B-B-A cold processes, `--verify` on every run, **three blocks per workload**
+(6 paired samples per arm), one untimed warmup process per arm before each
+workload's blocks. Predecessor = pristine full `zig-out` tree built from clean
+head `34b2a898` before any edit and copied whole to
+`/private/tmp/campaign-inc4-pred`. No sample discarded.
+
+Observables are the three `merkle_commit`-bearing stages in `stages.json`:
+`preprocessed_materialize_and_commit`, `main_trace_commit`,
+`interaction_trace_commit`. Both the aggregate stage times (the brief's stated
+observable) and their `merkle_commit` children are reported.
+
+arithmetic-2m:
+
+| Block | Arm | commit agg ms | merkle sum ms | prep mk | main mk | int mk | Prove ms |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | pred 1 | 878.641 | 649.944 | 90.654 | 323.070 | 236.220 | 2,457.427 |
+| 1 | cand 1 | 808.524 | 579.305 | 82.927 | 287.941 | 208.437 | 2,367.904 |
+| 1 | cand 2 | 812.331 | 580.542 | 86.694 | 282.146 | 211.702 | 2,401.244 |
+| 1 | pred 2 | 877.257 | 646.258 | 94.238 | 311.374 | 240.646 | 2,456.921 |
+| 2 | pred 1 | 913.797 | 680.130 | 88.524 | 314.914 | 276.692 | 2,505.864 |
+| 2 | cand 1 | 815.615 | 578.690 | 80.184 | 282.441 | 216.065 | 2,397.596 |
+| 2 | cand 2 | 825.262 | 588.953 | 83.413 | 292.731 | 212.809 | 2,441.012 |
+| 2 | pred 2 | 902.637 | 664.401 | 92.651 | 321.367 | 250.383 | 2,522.373 |
+| 3 | pred 1 | 901.360 | 662.023 | 87.500 | 319.247 | 255.276 | 2,514.068 |
+| 3 | cand 1 | 830.247 | 591.790 | 86.470 | 294.111 | 211.209 | 2,454.291 |
+| 3 | cand 2 | 827.134 | 589.217 | 82.556 | 294.634 | 212.027 | 2,449.000 |
+| 3 | pred 2 | 895.116 | 654.238 | 93.116 | 317.777 | 243.345 | 2,536.610 |
+
+memory-7m:
+
+| Block | Arm | commit agg ms | merkle sum ms | prep mk | main mk | int mk | Prove ms |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | pred 1 | 2,150.187 | 1,503.383 | 94.226 | 756.068 | 653.089 | 6,167.629 |
+| 1 | cand 1 | 2,034.494 | 1,377.717 | 81.552 | 688.935 | 607.230 | 6,103.204 |
+| 1 | cand 2 | 2,016.172 | 1,355.101 | 83.160 | 690.909 | 581.032 | 6,117.940 |
+| 1 | pred 2 | 2,213.219 | 1,552.562 | 90.751 | 793.982 | 667.829 | 6,346.391 |
+| 2 | pred 1 | 2,196.405 | 1,529.704 | 88.736 | 782.817 | 658.151 | 6,356.610 |
+| 2 | cand 1 | 2,042.846 | 1,368.432 | 84.064 | 697.851 | 586.517 | 6,238.921 |
+| 2 | cand 2 | 2,054.030 | 1,382.997 | 82.683 | 712.891 | 587.423 | 6,272.004 |
+| 2 | pred 2 | 2,301.097 | 1,626.709 | 91.726 | 833.322 | 701.661 | 6,484.196 |
+| 3 | pred 1 | 2,229.717 | 1,554.614 | 97.285 | 794.777 | 662.552 | 6,445.990 |
+| 3 | cand 1 | 2,066.709 | 1,390.281 | 85.503 | 723.900 | 580.878 | 6,323.512 |
+| 3 | cand 2 | 2,058.980 | 1,375.360 | 84.568 | 698.441 | 592.351 | 6,297.374 |
+| 3 | pred 2 | 2,240.548 | 1,559.904 | 93.818 | 796.060 | 670.026 | 6,504.237 |
+
+all-opcodes:
+
+| Block | Arm | commit agg ms | merkle sum ms | Prove ms |
+| --- | --- | ---: | ---: | ---: |
+| 1 | pred 1 | 451.990 | 341.620 | 1,275.242 |
+| 1 | cand 1 | 437.416 | 326.289 | 1,258.234 |
+| 1 | cand 2 | 442.881 | 333.499 | 1,264.706 |
+| 1 | pred 2 | 459.229 | 348.769 | 1,274.826 |
+| 2 | pred 1 | 457.905 | 347.449 | 1,286.057 |
+| 2 | cand 1 | 448.502 | 336.437 | 1,286.249 |
+| 2 | cand 2 | 438.113 | 326.857 | 1,273.033 |
+| 2 | pred 2 | 463.102 | 350.278 | 1,294.976 |
+| 3 | pred 1 | 462.958 | 350.170 | 1,308.972 |
+| 3 | cand 1 | 551.717 | 433.784 | 1,509.046 |
+| 3 | cand 2 | 550.731 | 432.593 | 1,468.689 |
+| 3 | pred 2 | 585.233 | 458.334 | 1,531.348 |
+
+Summary (means over all 6 samples per arm):
+
+| Workload | Observable | pred | sd | cand | sd | Ratio |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| arithmetic-2m | commit stage agg | 894.801 | 13.130 | 819.852 | 8.095 | 1.0914x |
+| arithmetic-2m | merkle_commit sum | 659.499 | 11.183 | 584.750 | 5.343 | **1.1278x** |
+| arithmetic-2m | prove | 2,498.877 | 30.913 | 2,418.508 | 31.656 | 1.0332x |
+| memory-7m | commit stage agg | 2,221.862 | 45.733 | 2,045.538 | 16.796 | 1.0862x |
+| memory-7m | merkle_commit sum | 1,554.479 | 37.583 | 1,374.981 | 11.136 | **1.1305x** |
+| memory-7m | prove | 6,384.175 | 113.519 | 6,225.493 | 85.285 | 1.0255x |
+| all-opcodes | commit stage agg | 480.070 | 47.177 | 478.227 | 51.745 | 1.0039x |
+| all-opcodes | merkle_commit sum | 366.103 | 41.350 | 364.910 | 48.411 | 1.0033x |
+| all-opcodes | prove | 1,328.570 | 91.443 | 1,343.326 | 103.923 | 0.9890x |
+
+**No workload reaches 1.15x on either observable. Rejected.**
+
+The effect is nonetheless real and unusually clean. On arithmetic-2m the two
+arms' `merkle_commit` ranges do not overlap at all (pred 646.3-680.1, cand
+578.7-591.8), and the same holds on memory-7m (pred 1,503.4-1,626.7, cand
+1,355.1-1,390.3). The candidate's spread is 2.1x tighter on arithmetic-2m and
+3.4x tighter on memory-7m, reproducing increment 3's observation that removing
+the serial replication removes most of the run-to-run variance. This is a
+measured 75 ms (arithmetic-2m) and 179 ms (memory-7m) saving that simply is not
+large enough against a 1.15x bar.
+
+Prove-level ratios 1.033x / 1.026x sit at or inside increment 1's ±3% floor and
+are not claimed.
+
+**all-opcodes block 3 is contaminated** and is reported rather than hidden: a
+load spike raised every one of its four samples by 25-33% (pred 2 alone is
+585.2 ms against 459.2 and 463.1 in blocks 1 and 2). Restricted to the clean
+blocks 1-2, all-opcodes reads commit agg 458.057 → 441.728 (1.037x),
+merkle sum 347.029 → 330.770 (1.049x), prove 1,282.775 → 1,270.555 (1.010x) —
+the same direction, smaller magnitude, still far below the bar. all-opcodes'
+largest tree is log 21, so it has one fewer 570 MiB replication to save.
+
+Host load: the arithmetic-2m block opened at load average 6.95 and closed at
+6.55; memory-7m opened at 6.03 and closed at 10.86; all-opcodes opened at 1.15
+and closed at 5.99. The instrumented phase-split block closed at 4.18. Absolute
+prove times (arithmetic-2m predecessor 2,499 ms) are *below* increments 1-3's
+figures on the same workload, so the host was quieter here than in any previous
+block despite the nominal load averages.
+
+### Verification
+
+- Proof bytes byte-identical predecessor versus candidate on every workload and
+  every arm — 12 timed proofs per workload, one distinct digest each:
+  arithmetic-2m `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`,
+  memory-7m `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994`,
+  all-opcodes `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`.
+  All three equal the digests increments 1-3 recorded. Both instrumented builds
+  also reproduce the arithmetic-2m digest.
+- Metal arithmetic-2m proof digest on the candidate equals the CPU digest
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`, with
+  `classification: accelerated_without_fallbacks`, 74 Metal dispatches and
+  `cpu_fallbacks: 0`. The streaming committer is host-shared and Metal
+  inherits the parallel replication cleanly.
+- Pinned official Rust verifier accepted a candidate arithmetic-2m proof:
+  `verified: true`, channel `blake2s`, `stwo_cairo_revision`
+  `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`, proof digest
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`.
+- `zig build test-cairo-cpu-product test-cairo-frontend test-stwo-prover
+  -Doptimize=ReleaseFast` passed on the candidate; `stwo-cairo-cpu closure:
+  PASS` over 327 transitive Zig sources, `stwo-prover closure: PASS` over 187;
+  source conformance reported 5 explained legacy findings and no new
+  violations; identity reported `dirty: false`.
+- The reverted tree rebuilds and reproduces
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`.
+
+### Rejected alternatives
+
+- **Keep the change anyway on the strength of the separation.** The two arms'
+  distributions are disjoint and the mechanism is confirmed by the phase split,
+  so the effect is not in doubt — but the bar is 1.15x on a stage and the
+  measurement is 1.09x. Recording the honest number matters more than banking a
+  3% prove-level move that is inside the noise floor.
+- **Re-add the fused trailing-group finalization to close the gap.** That is
+  `35dcf92e` in full, already measured and rejected in increment 3 at
+  1.04x-1.13x. Its fused kernel gives back most of what removing the last
+  replication saves, and this increment's phase split explains why: the
+  replication it eliminates is now only 11.7-14.3 ms, while the fused pass costs
+  hundreds of milliseconds per tree at log 23.
+- **Widen the parallel split or lower `parallel_min_nodes_per_worker` for the
+  replication.** The pass already runs 18 workers on every layer above 2^14 and
+  sustains ~40 GB/s. It is bandwidth-bound, not worker-bound.
+- **Pre-fault or `MADV_WILLNEED` the destination allocation.** Would target the
+  log-20 case, worth about 1 ms on arithmetic-2m. Below any measurable bar.
+- **Replicate with `@memcpy` doubling instead of a per-element broadcast.** Same
+  byte volume, same bandwidth ceiling; the loop is not instruction-bound.
+
+### R5 verdict
+
+R5 (Merkle commit pipeline) closes as fully explored. Two independent
+structural changes have now been built, measured at pool scale and rejected:
+the fused trailing-group finalization (increment 3, 1.04x-1.13x) and the
+parallel hasher-state replication (increment 4, 1.09x-1.13x). After increment
+4's change the instrumented arithmetic-2m stage is 347.5 ms absorb + 172.7 ms
+parent layers + 118.5 ms finalize + 95.7 ms replication: 84% of it is BLAKE2s
+compression through a kernel measured at 92.2% NEON with byte-identical
+instruction counts across every variant tried, and the remaining 13% is a
+bandwidth-saturated streaming copy. There is no structural slack left in this
+stage to find.
