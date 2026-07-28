@@ -4502,3 +4502,245 @@ contained every (block, slot) twice with visibly contaminated spreads (1.30-1.49
 against 1.03-1.15x clean). All of it was discarded, the host was confirmed idle,
 and the reported gate is a single clean run of all three workloads waited on by
 PID. The quarantined data is in `/private/tmp/i313/contaminated_*`.
+
+## Increment 3.14: aggregator geometry regression
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `167e5d30`, clean. Raw data: `/private/tmp/i314/`.
+
+**VERDICT: FIXED, and the escape is now structural rather than remembered.** The
+Metal product crashed with `error: ClaimGeometryMismatch` before proving on both
+aggregator workloads, both hook arms. Root cause: increment 3.4's classification
+table is wrong for nine of its thirteen entries, because it treated a
+*deduplicating* consumer as a fan-out. Both halves of the brief landed — the
+classification is corrected, and a contradicted prediction now degrades instead
+of aborting — and each half was verified to rescue the failure *on its own*.
+
+### 1. Root cause: two kinds of derived witness input, not one
+
+`proof_plan/dependencies.zig` splits derived witness inputs into two kinds, and
+only the first obeys 3.4's formula `rows(D) = Σ instances(P→D) × rows(P)`:
+
+| kind | seam | row count | deferred members |
+| --- | --- | --- | --- |
+| **gathered** | `gatheredProducerEdges` | producer slabs concatenated *without sorting*, so every producer instance is its own consumer row — the fan-out sum | `blake_round`, `blake_g`, `triple_xor_32`, `poseidon_full_round_chain`, `poseidon_3_partial_rounds_chain`, `cube_252`, `range_check_252_width_27`, `partial_ec_mul_*` |
+| **compaction** | `compactGeometry` | producer tuples gathered, **sorted and deduplicated** into a LogUp multiplicity table — the number of *distinct keys* | `poseidon_aggregator`, `pedersen_aggregator_window_bits_18`, `pedersen_aggregator_window_bits_9` (+ `verify_instruction`, never deferred) |
+
+A compaction consumer's row count is a property of the executed data. 512
+producer rows can collapse to 512 consumer rows or to one, entirely according to
+how many of the hashed inputs repeat — and an *aggregator* test program is
+precisely a program that repeats them. The topology cannot state it and
+`ExecutionResources` does not determine it.
+
+**The measured error, oracle against the CPU claim.** Both workloads carry 512
+padded builtin instances (`(stop_ptr − begin_addr)/cells`: poseidon
+`(7631−4559)/6`, pedersen `(5574−4038)/3`) that deduplicate to 16 distinct keys —
+a factor of 32, i.e. exactly +5 logs, propagated multiplicatively down each
+chain:
+
+| workload | component | oracle | CPU claim (truth) | Δ |
+| --- | --- | ---: | ---: | ---: |
+| poseidon | `poseidon_aggregator` | 9 | **4** | +5 |
+| poseidon | `poseidon_3_partial_rounds_chain` | 14 | **9** | +5 |
+| poseidon | `poseidon_full_round_chain` | 12 | **7** | +5 |
+| poseidon | `cube_252` | 16 | **11** | +5 |
+| poseidon | `range_check_252_width_27` | 16 | **11** | +5 |
+| pedersen | `pedersen_aggregator_window_bits_9` | 9 | **4** | +5 |
+| pedersen | `partial_ec_mul_window_bits_9` | 15 | **10** | +5 |
+
+Uniform +5 is the signature: the *arithmetic* 3.4 implemented is right, its
+*classification* of which components the arithmetic describes is not. The
+structural admission accepted the wrong answer because `fanInRows` only checked
+that a producer existed and the sum was non-zero and finite — it had no concept
+of deduplication to check for.
+
+**Why it escaped.** 3.4's own audit table records it: arithmetic-2m and
+memory-7m have **zero** deferred components, and all-opcodes defers exactly
+`blake_round`, `blake_g`, `triple_xor_32` — all three gathered. The three
+verification workloads could not have exercised a compaction consumer. The
+classification generalised from a sample that contained none of the class it got
+wrong.
+
+### 2. Fix (a): compaction consumers are refused
+
+`fanInRows` refuses any deferred component with a `compactGeometry` entry, before
+summing. The refusal is total — `resolveInPlace` leaves the whole claim deferred —
+so components *downstream* of a compaction consumer need no separate rule: their
+producer never resolves. On both aggregator workloads the arena therefore
+declines at **plan** time (`base_trace_arena_fallback`, the pre-existing reason)
+and the product keeps its unchanged fragmented path.
+
+### 3. Fix (b): a contradicted prediction degrades
+
+Fixing the classification removes *this* workload's mismatch; it does not make
+the next one survivable, which is what the brief actually asked for.
+`validateClaimGeometry` fires inside witness execution — early enough for
+soundness, no commitment exists — but far too late for the plan to be withdrawn.
+
+The witness-to-statement handoff is where the deferred path's row counts first
+exist and it is *inside* `base_trace.buildInto`, so the planned attempt is now
+made through a recovery seam in `transaction.zig`: on `ClaimGeometryMismatch` or
+`ArenaPlanMismatch` the arena, the instantiated composition and the predicted
+claim are discarded and the base trace is rebuilt with `prepared = null` — which
+is byte-for-byte the unchanged fragmented product path. The proof completes with
+correct bytes; the arena is declined for that proof only.
+
+`base_trace_arena_geometry_declined` is a deliberately **distinct** decline
+reason from the plan-time `base_trace_arena_fallback`: fallback means the claim
+was never resolvable, decline means it resolved to the *wrong answer*. That is
+the same stage-profile evidence channel 3.4 used for engaged-vs-fallback, chosen
+over a new backend-evidence counter because the decision is a frontend planning
+decision and the backend telemetry bank is not the frontend's to extend.
+
+Recovery is gated on the oracle having actually predicted something. Without a
+prediction the planned claim is exactly what `deriveFromProverInput` produced, so
+a disagreement is the impossible case the brief reserves for fail-closed abort —
+both paths against the committed claim — and it still aborts.
+
+**Fix (b) was verified in isolation, which is the only way to know it works.** A
+control binary was built with fix (a) disabled (`if (false and …)`), so the
+oracle predicts the wrong geometry and the arena *engages* on the bad plan. Both
+workloads then proved to completion:
+
+| control run | stages recorded | digest | `--verify` |
+| --- | --- | --- | --- |
+| poseidon, hook off | `arena_plan`, `geometry_oracle`, **`arena_engaged`**, **`arena_geometry_declined`** | `354eb34dcb2e…` | true |
+| pedersen, hook off | `arena_plan`, `geometry_oracle`, **`arena_engaged`**, **`arena_geometry_declined`** | `99ce64aac828…` | true |
+
+Same digests as the CPU lane. Fix (a) is not load-bearing for correctness; it
+only keeps the wasted planned pass from happening at all.
+
+### 4. Verification: all seven portfolio workloads, both lanes
+
+Cold single runs, `STWO_CAIRO_PREPROCESSED_CACHE=0`, every proof `--verify`.
+Products rebuilt at `2ef95980`, both `identity` reporting `dirty = false`; the
+re-installed Metal binary is byte-identical (`cmp`) to the one that produced the
+rows. **No timing claim is made here** — this is a correctness increment and the
+runs were not paired or replicated.
+
+| workload | CPU digest | Metal hook-off | Metal hook-on | all `--verify` | arena / hook, hook-on |
+| --- | --- | --- | --- | --- | --- |
+| all-opcodes | `79ae76e1ac0c48b1…` | **identical** | **identical** | true ×3 | engaged, oracle ran; 121 dispatches, 0 fallbacks |
+| arithmetic-2m | `25e5719f4c578eb7…` | **identical** | **identical** | true ×3 | engaged (no deferred); 102 dispatches, 0 fallbacks |
+| memory-7m | `e3317e55a5db5a42…` | **identical** | **identical** | true ×3 | engaged (no deferred); 110 dispatches, 0 fallbacks |
+| fibonacci-100k | `84215f82b4083523…` | **identical** | **identical** | true ×3 | engaged (no deferred); 102 dispatches, 0 fallbacks |
+| factorial-100k | `1e90d44933c53ef3…` | **identical** | **identical** | true ×3 | engaged (no deferred); 103 dispatches, 0 fallbacks |
+| **poseidon-aggregator** | `354eb34dcb2eafa7…` | **identical** (was: crash) | **identical** (was: crash) | true ×3 | **declined at plan**, oracle refused; 111 dispatches, 0 fallbacks |
+| **pedersen-aggregator** | `99ce64aac8281e6b…` | **identical** (was: crash) | **identical** (was: crash) | true ×3 | **declined at plan**, oracle refused; 108 dispatches, 0 fallbacks |
+
+Every hook-on row is `accelerated_without_fallbacks` with `cpu_fallbacks = 0`.
+The two CPU aggregator digests match the campaign references given in the brief
+(`354eb34dcb2e…`, `99ce64aac828…`) exactly.
+
+**Official Rust verifier, six aggregator proofs (both previously-crashing rows ×
+three arms):** `verified: true` on all six, `proof_sha256` matching the Zig
+report in every case.
+
+**A fixture defect found on the way, and it is not this increment's.**
+`/private/tmp/stwo-cairo-holistic-corpus-20260727/memory-7m.prover-input.json`
+fails adapter parsing with `error: InvalidOutputSegment` on **both** lanes — it is
+not a prover-side regression, and it is not the file the 3.13 gate used. The
+memory-7m row above is `/private/tmp/stwo-cairo-memory-7m.prover-input.json`,
+which is the gate's own fixture. A corpus with two memory-7m files, one broken,
+is a trap for the next increment.
+
+### 5. The blind spot, closed structurally
+
+`src/frontends/cairo/tests/feed_geometry_oracle.zig` gains
+*"pre-execution feed geometry refuses every deduplicating consumer"*. It
+reproduces the failing shape without needing either aggregator program — one
+compaction consumer deferred behind a live builtin producer with 512 instances,
+which is exactly the input that produced log 9 against the executed 4 — and it
+**loops the whole claim registry** rather than the two names now known to be
+affected, asserting the count of refused components. A compaction consumer added
+later cannot silently re-open the hole, and the count assertion forces a reader
+to re-read the classification rather than re-run the test.
+
+The two aggregator workloads are also added to the per-increment checklist in §7.
+
+### 6. Gates
+
+| gate | result |
+| --- | --- |
+| `zig build package-workspace` | PASS (17 packages, 17 public modules, 51 dependency edges), at every commit |
+| `zig build metal-check` | PASS |
+| `zig build test-cairo-frontend` | PASS (includes the new regression guard) |
+| `zig build test-cairo-cpu-product` | PASS, closure PASS (341 transitive Zig sources) |
+| `zig build test-cairo-metal-product` | **PASS** — see below |
+| official Rust verifier ×6 | `verified: true` |
+
+**A correction to 3.13's standing limitation.** 3.13 recorded that
+`test-cairo-metal-product` "cannot run on this host and did not run" because it
+depends on `metal-core-aot-acceptance`, and that supplying `-Dmetal-core-aot-bundle`
+does not bypass it. On this host, at this head, `zig build test-cairo-metal-product
+-Doptimize=ReleaseFast -Dmetal-core-aot-bundle=/private/tmp/cairo-quotient-baseline-v2/aot-bundle`
+**exits 0** and runs the product test artifact, the `--help`/`capabilities`/`identity`
+contract checks, the AOT fail-closed script and the closure gate. Whatever blocked
+3.13 was not the bundle flag. This does not retroactively discharge 3.13's owed CI
+run for the `composition_aot.zig` / `composition_stage.zig` assertions — those are
+in the *metal backend* test root, not this product's — but the claim "the product
+gate is unrunnable here" should not be carried forward unchecked again.
+
+### 7. Per-increment verification checklist (binding on successors)
+
+The escape in this increment was caused by a three-workload habit that read as
+sufficient. It was not. Every increment that touches claim geometry, the trace
+arena, the witness graph or the composition path must run, and record, **all
+seven**:
+
+| # | workload | prover input | why it is in the set |
+| --- | --- | --- | --- |
+| 1 | all-opcodes | `holistic-corpus-20260727/all-opcodes.prover-input.json` | only workload with a *gathered* deferred set (`blake_*`) |
+| 2 | arithmetic-2m | `holistic-corpus-20260727/arithmetic-2m.prover-input.json` | gate row; zero deferred |
+| 3 | memory-7m | **`/private/tmp/stwo-cairo-memory-7m.prover-input.json`** (not the corpus copy — see §4) | gate row; largest trace |
+| 4 | fibonacci-100k | `holistic-corpus-20260727/fibonacci-100k.prover-input.json` | small, opcode-only |
+| 5 | factorial-100k | `holistic-corpus-20260727/factorial-100k.prover-input.json` | small, opcode-only |
+| 6 | **poseidon-aggregator** | `holistic-corpus-20260727/poseidon-aggregator.prover-input.json` | **only workload with a compaction deferred set + a poseidon chain** |
+| 7 | **pedersen-aggregator** | `holistic-corpus-20260727/pedersen-aggregator.prover-input.json` | **only workload with a compaction deferred set + a pedersen EC chain** |
+
+Rows 6 and 7 are the ones this increment existed to add. The cheap form is
+`/private/tmp/i314/verify.py`: three arms (CPU, Metal hook-off, Metal hook-on),
+`--verify` on every proof, byte-comparison of the two Metal digests against CPU.
+Byte-exactness is the campaign invariant and it is what actually catches this
+class of bug; the arena/hook stage names in `--stage-profile-out` say *which*
+path produced those bytes.
+
+### 8. Does the rest of 3.4's classification deserve re-audit? Yes — it is already
+### re-audited, and it was mostly wrong
+
+3.4 called all thirteen deferred components "pre-computable" with "zero
+execution-dependent entries". Corrected against the seam that actually computes
+the row counts:
+
+| deferred component | 3.4 said | actual | verified by measurement? |
+| --- | --- | --- | --- |
+| `blake_round` | pre-computable | pre-computable (gathered, opcode root) | **yes** — all-opcodes, 3.4 and again here |
+| `blake_g` | pre-computable | pre-computable (gathered, 2 hops) | **yes** — all-opcodes |
+| `triple_xor_32` | pre-computable | pre-computable (gathered, opcode root) | **yes** — all-opcodes |
+| `poseidon_aggregator` | pre-computable | **NOT** — compaction | **refuted here** |
+| `poseidon_full_round_chain` | pre-computable | **NOT** — gathered, but rooted in a compaction consumer | **refuted here** |
+| `poseidon_3_partial_rounds_chain` | pre-computable | **NOT** — same | **refuted here** |
+| `cube_252` | pre-computable | **NOT** — same | **refuted here** |
+| `range_check_252_width_27` | pre-computable | **NOT** — same | **refuted here** |
+| `pedersen_aggregator_window_bits_18` | pre-computable | **NOT** — compaction | refuted by class (no `window_bits_18` workload) |
+| `partial_ec_mul_window_bits_18` | pre-computable | **NOT** — rooted in a compaction consumer | refuted by class |
+| `pedersen_aggregator_window_bits_9` | pre-computable | **NOT** — compaction | **refuted here** |
+| `partial_ec_mul_window_bits_9` | pre-computable | **NOT** — rooted in a compaction consumer | **refuted here** |
+| `partial_ec_mul_generic` | pre-computable | plausibly (gathered, `ec_op_builtin` × 252) | **no** — no portfolio workload uses `ec_op` |
+
+**Three of thirteen are measured, nine are refuted, one is unverified.** The
+oracle's remaining reach is the `blake_*` chain on all-opcodes and nothing else
+the portfolio exercises, so the honest description of the pre-execution resolver
+after this increment is: *a working optimisation for one workload family, with a
+correct refusal everywhere else.* 3.4's "it generalizes past the three benchmark
+workloads for free" was the load-bearing false claim and it is withdrawn.
+
+The one entry still owed evidence is `partial_ec_mul_generic`. It is gathered, so
+the formula's *shape* is right for it, but its root is a **builtin segment** and
+no measurement anywhere in this campaign has yet confirmed that a builtin
+producer's contribution to a gathered consumer uses the padded segment instance
+count (512 here) rather than the real one (450 from the public segment) — every
+verified gathered edge so far has an *opcode* root. An `ec_op` workload would
+settle it. Until one exists, that entry is a fan-out prediction with no
+measurement behind it, and the §3 degrade is what stands between it and an
+aborted prove.
