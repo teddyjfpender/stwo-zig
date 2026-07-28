@@ -138,6 +138,60 @@ class CiTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*diverges"):
             validate_actual_construction(manifest, matrix, "focused")
 
+    def test_backend_tools_allow_declared_dependency_subset_without_host_probes(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = [
+            "dependency:portable:root.zig",
+            "dependency:host_only:root.zig",
+        ]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:portable:root.zig"
+        ]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        validate_actual_construction(manifest, matrix, "focused")  # must not raise
+
+    def test_backend_tools_reject_undeclared_partitioned_dependency(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = ["dependency:portable:root.zig"]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:hidden:root.zig"
+        ]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*undeclared"):
+            validate_actual_construction(manifest, matrix, "focused")
+
+    def test_backend_tools_reject_empty_partitioned_dependencies(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = ["dependency:portable:root.zig"]
+        manifest["actual"]["dependency_module_roots"] = []  # type: ignore[index]
+        manifest["actual"]["runtime_probes"] = []  # type: ignore[index]
+        with self.assertRaisesRegex(SystemExit, "observed no dependencies"):
+            validate_actual_construction(manifest, matrix, "focused")
+
+    def test_backend_tools_require_exact_dependencies_with_host_probes(self) -> None:
+        manifest, matrix = self.construction_fixture()
+        manifest["scope_role"] = "backend_tools"
+        manifest["constructed_products"] = []
+        manifest["actual"]["products"] = []  # type: ignore[index]
+        manifest["dependency_module_roots"] = [
+            "dependency:portable:root.zig",
+            "dependency:host_only:root.zig",
+        ]
+        manifest["actual"]["dependency_module_roots"] = [  # type: ignore[index]
+            "dependency:portable:root.zig"
+        ]
+        with self.assertRaisesRegex(SystemExit, "dependency_module_roots.*diverges"):
+            validate_actual_construction(manifest, matrix, "focused")
+
     def test_standard_plan_runs_tooling_then_release_gate(self) -> None:
         plan = command_plan(False, "ReleaseFast")
         self.assertEqual(sys.executable, plan[0][0])
