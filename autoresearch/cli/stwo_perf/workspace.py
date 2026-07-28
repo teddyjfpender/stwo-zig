@@ -7,10 +7,11 @@ else at the default-branch tip, and both refuse a dirty worktree without
 
 from __future__ import annotations
 
+import platform
 import subprocess
 from pathlib import Path
 
-from .manifest import Manifest
+from .manifest import Manifest, ManifestError
 
 
 class WorkspaceError(RuntimeError):
@@ -42,20 +43,41 @@ def clone(repo_root: Path, dest: Path, ref: str = "HEAD") -> Path:
     return dest
 
 
-def setup(root: Path, manifest: Manifest) -> list[str]:
-    """Verify toolchain and build every enabled group's bench target once.
+def setup(root: Path, manifest: Manifest, board: str | None = None) -> list[str]:
+    """Verify toolchain and build the selected board's bench target.
 
+    With no board, preserve the interactive setup behavior and build every
+    enabled group. Fork qualification supplies its dispatched board so a
+    Linux runner never tries to build unrelated host-specific backends.
     Disabled groups are announced loudly (never silently dropped); returns
     the group ids that were built.
     """
     zig = subprocess.run(["zig", "version"], capture_output=True, text=True)
     if zig.returncode != 0:
         raise WorkspaceError("zig not found on PATH")
+    groups = manifest.groups()
+    if board is not None:
+        try:
+            group = manifest.group_for_board(board)
+        except ManifestError as exc:
+            raise WorkspaceError(str(exc)) from exc
+        if not group.enabled:
+            raise WorkspaceError(
+                f"workload group {group.group_id} for board {board} is disabled: "
+                f"{group.disabled_reason or 'no reason recorded'}"
+            )
+        groups = [group]
     built: list[str] = []
-    for group in manifest.groups():
+    for group in groups:
         if not group.enabled:
             print(f"skipped group {group.group_id}: "
                   f"{group.disabled_reason or 'no reason recorded'}")
+            continue
+        if board is None and group.board == "core_metal" and platform.system() != "Darwin":
+            print(
+                f"skipped group {group.group_id}: core_metal requires a Darwin "
+                "host with the Apple Metal SDK"
+            )
             continue
         proc = subprocess.run(
             group.build_step.split(), cwd=root, capture_output=True, text=True

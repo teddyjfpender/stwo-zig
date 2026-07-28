@@ -7,11 +7,13 @@
 const std = @import("std");
 
 pub const column = @import("column.zig");
+pub const device_composition = @import("device_composition.zig");
 pub const engine = @import("engine.zig");
 pub const stage_profile = @import("stage_profile.zig");
 
 pub const ColumnEvaluation = column.ColumnEvaluation;
 pub const ColumnSource = column.ColumnSource;
+pub const DeviceCompositionStage = device_composition.Stage;
 pub const QuotientOpsError = column.QuotientOpsError;
 pub const ProveOptions = engine.ProveOptions;
 pub const assertProverEngine = engine.assertProverEngine;

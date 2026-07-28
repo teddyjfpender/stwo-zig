@@ -96,6 +96,27 @@ pub fn writeBigValueColumn(
     }
 }
 
+/// One 9-bit small-value limb. Rows past the live value count are the padding
+/// the packed column carries and read as zero.
+pub fn smallValueLimb(
+    input: *const adapter.ProverInput,
+    row: usize,
+    column: usize,
+) Error!u32 {
+    if (column >= small_limb_count) return Error.InvalidColumn;
+    if (row >= input.memory.small_values.len) return 0;
+    const small = input.memory.small_values[row];
+    if (small > input.memory.config.small_max or small >> 72 != 0 or
+        row >= memory.LARGE_MEMORY_VALUE_ID_BASE)
+        return Error.InvalidEncoding;
+    return execution_tables.limb(
+        input,
+        execution_tables.MEMORY_VALUE_TABLE,
+        memory.EncodedMemoryValueId.small(@intCast(row)).raw,
+        @intCast(column),
+    );
+}
+
 /// Writes one of the 8 canonical 9-bit small-value columns.
 pub fn writeSmallValueColumn(
     input: *const adapter.ProverInput,
@@ -104,22 +125,7 @@ pub fn writeSmallValueColumn(
 ) Error!void {
     if (column >= small_limb_count) return Error.InvalidColumn;
     if (destination.len != try smallRowCount(input)) return Error.InvalidRowCount;
-    for (destination, 0..) |*value, row| {
-        if (row >= input.memory.small_values.len) {
-            value.* = 0;
-            continue;
-        }
-        const small = input.memory.small_values[row];
-        if (small > input.memory.config.small_max or small >> 72 != 0 or
-            row >= memory.LARGE_MEMORY_VALUE_ID_BASE)
-            return Error.InvalidEncoding;
-        value.* = execution_tables.limb(
-            input,
-            execution_tables.MEMORY_VALUE_TABLE,
-            memory.EncodedMemoryValueId.small(@intCast(row)).raw,
-            @intCast(column),
-        );
-    }
+    for (destination, 0..) |*value, row| value.* = try smallValueLimb(input, row, column);
 }
 
 fn powerOfTwoRows(rows: usize) Error!usize {

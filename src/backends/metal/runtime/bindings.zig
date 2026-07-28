@@ -618,6 +618,10 @@ pub extern fn stwo_zig_metal_circle_lde(
     inverse_twiddles: [*]const u32,
     forward_twiddles: [*]const u32,
     scale_factor: u32,
+    /// Out: which source binding the commit actually took, as
+    /// `telemetry.CommitSourceBinding`. Reported from the branch itself so the
+    /// no-copy alias can be attributed rather than assumed.
+    source_binding: *u32,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
     error_message_len: usize,

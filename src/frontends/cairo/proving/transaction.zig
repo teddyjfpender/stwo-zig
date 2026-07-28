@@ -15,7 +15,9 @@ const statement_bootstrap = @import("../statement_bootstrap.zig");
 const witness = @import("../witness/mod.zig");
 const proving_air = @import("air/mod.zig");
 const base_trace = @import("base_trace.zig");
+const feed_geometry_oracle = @import("feed_geometry_oracle.zig");
 const interaction_trace = @import("interaction_trace.zig");
+const trace_arena = @import("trace_arena.zig");
 const transcript = @import("transcript.zig");
 const geometry = @import("../witness/resident_geometry.zig");
 
@@ -43,6 +45,10 @@ pub const Fixture = struct {
     fixed: *const witness.fixed_table_bundle.Bundle,
     relations: *const witness.relation_bundle.Bundle,
     air_templates: *const cairo_air.template_library.Library,
+    /// Optional whole-stage device composition evaluator. Supplied by the Metal
+    /// product and absent on the CPU product, which keeps the CPU lane the
+    /// byte-parity reference by construction.
+    composition_device: ?proving_air.device_stage.Device = null,
 };
 
 pub fn Result(comptime Engine: type) type {
@@ -102,6 +108,14 @@ pub fn proveFixtureWithRecorder(
     const preprocessed_logs = try target.logs(allocator);
     defer allocator.free(preprocessed_logs);
 
+    const preprocessed_binding = preprocessed.product_cache.Binding{
+        .variant = variant,
+        .spec_digest = preprocessed.product_cache.specDigest(target),
+        .pcs_digest = preprocessed.product_cache.pcsDigest(
+            official_pcs_config,
+        ),
+    };
+
     var pedersen: preprocessed.pedersen_table.Table = undefined;
     var pedersen_initialized = false;
     defer if (pedersen_initialized) pedersen.deinit();
@@ -112,22 +126,136 @@ pub fn proveFixtureWithRecorder(
             "Preprocessed table build",
         );
         defer stage.end();
+        const binding = preprocessed_binding;
         switch (variant) {
             .canonical_without_pedersen => {},
             .canonical => {
-                pedersen = try preprocessed.pedersen_table.Table.init(
+                pedersen = try preprocessed.product_cache.pedersenTable(
                     allocator,
                     .standard,
+                    binding,
+                    recorder,
                 );
                 pedersen_initialized = true;
             },
             .canonical_small => {
-                pedersen = try preprocessed.pedersen_table.Table.init(
+                pedersen = try preprocessed.product_cache.pedersenTable(
                     allocator,
                     .small,
+                    binding,
+                    recorder,
                 );
                 pedersen_initialized = true;
             },
+        }
+    }
+
+    // Backends that bind one contiguous resident source arena get their base
+    // trace planned and allocated *before* component execution, so every
+    // generated and implicit column is written at its final offset and nothing
+    // is repacked afterwards. Every other backend keeps today's fragmented
+    // allocation exactly as it is: the branch is comptime.
+    const arena_capable = comptime @hasDecl(Engine, "Backend") and
+        @hasDecl(Engine.Backend, "adopts_source_trace_arena") and
+        Engine.Backend.adopts_source_trace_arena;
+
+    var planned_geometry: ?claim_generator.OwnedClaimGeometry = null;
+    errdefer if (planned_geometry) |*owned| owned.deinit();
+    var planned_composition: ?witness.composition_bundle.Bundle = null;
+    errdefer if (planned_composition) |*owned| owned.deinit();
+    var arena: ?trace_arena.Arena = null;
+    errdefer if (arena) |*owned| owned.deinit();
+    // True once `feed_geometry_oracle` has written at least one *predicted* log
+    // size into the planned claim. It is the precondition for treating a
+    // plan-versus-witness geometry disagreement as recoverable rather than as a
+    // soundness abort: without a prediction the planned claim is exactly what
+    // `deriveFromProverInput` produced, and a disagreement there is a real bug.
+    var oracle_predicted = false;
+    if (arena_capable) {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "base_trace_arena_plan",
+            "Base trace arena plan",
+        );
+        defer stage.end();
+        // Structural admission, and the reason it is not a hard requirement:
+        // a claim derived before witness execution still carries *deferred*
+        // per-component log sizes for every feed-dependent component
+        // (`claim_generator.LogSize.deferred`, resolved by
+        // `resolveFeedGeometry`, "the witness-to-statement handoff"). The AIR
+        // template binder refuses a deferred log size outright
+        // (`air/template_binding.zig:42`, `:104`), so a claim with any deferred
+        // component cannot be laid out before execution.
+        //
+        // `feed_geometry_oracle` closes that gap for the components whose row
+        // counts the authenticated feed topology fully determines from the
+        // adapted prover input; anything it cannot determine exactly it refuses,
+        // and then this block falls back rather than fails, so the product keeps
+        // its unchanged fragmented path.
+        var claim = claim_generator.deriveFromProverInput(
+            allocator,
+            fixture.input,
+            .{ .preprocessed_variant = claimVariant(variant) },
+        ) catch null;
+        if (claim) |*live| {
+            if (live.deferredCount() != 0) {
+                var oracle_stage = try prover.stage_profile.StageScope.begin(
+                    recorder,
+                    "base_trace_geometry_oracle",
+                    "Pre-execution feed geometry resolution",
+                );
+                defer oracle_stage.end();
+                if (feed_geometry_oracle.resolveInPlace(
+                    allocator,
+                    live,
+                    claim_generator.ExecutionResources.fromProverInput(fixture.input),
+                    fixture.topology,
+                )) |outcome| {
+                    oracle_predicted = outcome.resolved != 0;
+                } else |_| {}
+            }
+        }
+        var instantiated: ?witness.composition_bundle.Bundle = null;
+        if (claim) |*live| {
+            if (live.deferredCount() == 0) {
+                instantiated = fixture.air_templates.instantiate(
+                    allocator,
+                    live,
+                    variant,
+                    fixture.input.builtin_segments,
+                ) catch null;
+            }
+        }
+        if (instantiated == null) {
+            if (claim) |*live| live.deinit();
+            claim = null;
+        }
+        if (if (instantiated) |ready|
+            trace_arena.tryPrepare(allocator, ready.components)
+        else
+            null) |ready|
+        {
+            planned_geometry = claim;
+            planned_composition = instantiated;
+            arena = ready;
+            // Telemetry, not control flow: the stage name records the decision
+            // so an arena-engaged run is distinguishable from a fallback run in
+            // `--stage-profile-out` without a debug build.
+            var engaged = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "base_trace_arena_engaged",
+                "Base trace arena engaged",
+            );
+            engaged.end();
+        } else {
+            if (instantiated) |*owned| owned.deinit();
+            if (claim) |*owned| owned.deinit();
+            var fell_back = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "base_trace_arena_fallback",
+                "Base trace arena fallback",
+            );
+            fell_back.end();
         }
     }
 
@@ -138,7 +266,60 @@ pub fn proveFixtureWithRecorder(
             "Base trace build",
         );
         defer stage.end();
-        break :blk try base_trace.build(
+        const pedersen_deductions: ?witness.deductions.PedersenTable =
+            if (pedersen_initialized) .{
+                .window_bits = pedersen.window.bits(),
+                .points = pedersen.points,
+            } else null;
+        // The planned attempt. The witness-to-statement handoff is the earliest
+        // point at which the deferred path's own row counts exist, and it is
+        // inside this call: `live_graph.executeComponent` computes each
+        // component's padded row count and `validateClaimGeometry` compares it
+        // against the planned claim. A predicted log size that disagrees is
+        // therefore caught before any commitment exists — but too late to avoid
+        // the work, so the recovery is to discard the plan and rebuild on the
+        // deferred path, which is byte-for-byte the unplanned product path.
+        //
+        // Declining the arena for the proof is the *only* consequence: the proof
+        // completes with correct bytes. Fail-closed abort is kept for the case
+        // this cannot explain — no prediction was made, i.e. the deferred path
+        // and the committed claim disagree by themselves.
+        if (arena) |*ready| {
+            if (base_trace.buildInto(
+                allocator,
+                fixture.input,
+                fixture.programs,
+                fixture.generated_executor,
+                fixture.interaction_executor,
+                fixture.topology,
+                fixture.fixed,
+                claimVariant(variant),
+                pedersen_deductions,
+                recorder,
+                .{ .geometry = &planned_geometry.?, .arena = ready },
+            )) |planned_base| {
+                break :blk planned_base;
+            } else |err| {
+                if (!oracle_predicted or !isPlannedGeometryDisagreement(err))
+                    return err;
+                if (arena) |*owned| owned.deinit();
+                arena = null;
+                if (planned_composition) |*owned| owned.deinit();
+                planned_composition = null;
+                if (planned_geometry) |*owned| owned.deinit();
+                planned_geometry = null;
+                // A distinct decline reason, and deliberately not the plan-time
+                // `base_trace_arena_fallback`: that one means the claim was never
+                // resolvable, this one means it resolved to the wrong answer.
+                var declined = try prover.stage_profile.StageScope.begin(
+                    recorder,
+                    "base_trace_arena_geometry_declined",
+                    "Base trace arena declined: predicted geometry disagreed",
+                );
+                declined.end();
+            }
+        }
+        break :blk try base_trace.buildInto(
             allocator,
             fixture.input,
             fixture.programs,
@@ -147,15 +328,17 @@ pub fn proveFixtureWithRecorder(
             fixture.topology,
             fixture.fixed,
             claimVariant(variant),
-            if (pedersen_initialized) .{
-                .window_bits = pedersen.window.bits(),
-                .points = pedersen.points,
-            } else null,
+            pedersen_deductions,
             recorder,
+            null,
         );
     };
     defer base.deinit();
     var composition = blk: {
+        if (planned_composition) |ready| {
+            planned_composition = null;
+            break :blk ready;
+        }
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
             "air_template_instantiation",
@@ -208,6 +391,11 @@ pub fn proveFixtureWithRecorder(
             allocator,
             if (pedersen_initialized) &pedersen else null,
         );
+        // The preprocessed commitment is a pure function of the protocol
+        // identity, so its Merkle layers may be supplied by the authenticated
+        // artifact cache. Armed for this one commit only.
+        preprocessed.tree_digest_cache.arm(allocator, preprocessed_binding, recorder);
+        defer preprocessed.tree_digest_cache.disarm();
         try Engine.commit(
             &scheme,
             allocator,
@@ -226,13 +414,42 @@ pub fn proveFixtureWithRecorder(
             "Main trace commit",
         );
         defer stage.end();
-        try Engine.commit(
-            &scheme,
-            allocator,
-            base.takeColumns(),
-            recorder,
-            &channel,
-        );
+        const base_columns = base.takeColumns();
+        if (arena) |*ready| {
+            // Checked, not assumed: the flat commit-order column list really
+            // does cover the arena at the planned offsets. That equality is the
+            // whole basis of the no-copy device binding.
+            if (!trace_arena.columnsMatchPlan(ready, base_columns))
+                return error.InvalidBaseTraceArena;
+            const backing = try ready.backing(allocator);
+            const words = ready.words;
+            ready.layout.deinit();
+            arena = null;
+            base.arena_backed = false;
+            _ = words;
+            var bound = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "main_trace_commit_arena_bound",
+                "Main trace commit bound to the base trace arena",
+            );
+            bound.end();
+            try Engine.commitWithBacking(
+                &scheme,
+                allocator,
+                base_columns,
+                backing,
+                recorder,
+                &channel,
+            );
+        } else {
+            try Engine.commit(
+                &scheme,
+                allocator,
+                base_columns,
+                recorder,
+                &channel,
+            );
+        }
         try Engine.flushPendingCommit(&scheme, allocator, &channel);
     }
 
@@ -323,13 +540,54 @@ pub fn proveFixtureWithRecorder(
         component.* = runtime.asProverComponent();
     }
 
+    // The device composition stage is opened here, after the bundle exists and
+    // before `Engine.prove`, so that admission is a pre-stage decision with a
+    // whole-stage host fallback available. `bound` stays null on refusal.
+    var bound: ?proving_air.device_stage.Bound = null;
+    defer if (bound) |*owned| {
+        owned.close();
+        recordDeviceCompositionCounts(recorder, owned.counts) catch {};
+    };
+    if (fixture.composition_device) |device| {
+        var admit = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "composition_device_admission",
+            "Device composition admission",
+        );
+        const opened = device.open(
+            device.context,
+            allocator,
+            composition.components,
+        ) catch null;
+        admit.end();
+        if (opened) |session| {
+            bound = .{
+                .allocator = allocator,
+                .components = runtime_components,
+                .captured = composition.components,
+                .session = session,
+                .recorder = recorder,
+            };
+        } else {
+            var declined = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "composition_device_declined",
+                "Device composition declined; host stage",
+            );
+            declined.end();
+        }
+    }
+
     scheme_owned = false;
     const proof = try Engine.prove(
         allocator,
         components,
         &channel,
         scheme,
-        .{ .recorder = recorder },
+        .{
+            .recorder = recorder,
+            .composition_stage = if (bound) |*ready| ready.asStage() else null,
+        },
     );
     return .{
         .allocator = allocator,
@@ -467,6 +725,31 @@ pub fn verifyAndConsume(
     );
 }
 
+/// Publishes the stage's coverage as three zero-duration marker scopes, which
+/// is how every other decision in this transaction is made observable in
+/// `--stage-profile-out` without a debug build.
+fn recordDeviceCompositionCounts(
+    recorder: ?*prover.stage_profile.Recorder,
+    counts: proving_air.device_stage.Counts,
+) !void {
+    const markers = [_]struct { usize, []const u8, []const u8 }{
+        .{ counts.device_components, "composition_device_components", "Components evaluated on device" },
+        .{ counts.host_components, "composition_device_host_components", "Components evaluated on host inside the device stage" },
+        .{ counts.device_fallbacks, "composition_device_fallbacks", "Device evaluations that fell back to the host" },
+    };
+    for (markers) |marker| {
+        var index: usize = 0;
+        while (index < marker[0]) : (index += 1) {
+            var scope = try prover.stage_profile.StageScope.begin(
+                recorder,
+                marker[1],
+                marker[2],
+            );
+            scope.end();
+        }
+    }
+}
+
 fn componentTreeLogs(
     allocator: std.mem.Allocator,
     composition: *const witness.composition_bundle.Bundle,
@@ -491,6 +774,16 @@ fn componentTreeLogs(
         @memset(logs[span.start..span.end], component.trace_log_size);
     }
     return logs;
+}
+
+/// The two ways a pre-execution geometry plan can be contradicted by the
+/// executed witness: the claim's predicted log size differs from the component's
+/// padded row count (`live_graph.validateClaimGeometry`), or the arena's planned
+/// width or extent for a component differs from what was produced
+/// (`base_trace.Collector.capture`). Every other error keeps aborting.
+pub fn isPlannedGeometryDisagreement(err: anyerror) bool {
+    return err == witness.live_graph.Error.ClaimGeometryMismatch or
+        err == trace_arena.Error.ArenaPlanMismatch;
 }
 
 fn validateComposition(

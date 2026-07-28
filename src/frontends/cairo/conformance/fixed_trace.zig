@@ -17,6 +17,7 @@ const memory_tables = @import("../witness/memory_tables.zig");
 const program = @import("../witness/program.zig");
 const verify_instruction_inputs = @import("../witness/verify_instruction_inputs.zig");
 const checkpoint = @import("checkpoint.zig");
+const memory_range_checks = @import("memory_range_checks.zig");
 const multiplicity_tables = @import("multiplicity_tables.zig");
 const producer_output = @import("../witness/producer_output.zig");
 
@@ -464,19 +465,7 @@ fn addMemoryRangeChecksLive(
         }
     }
 
-    const small_rows = try memory_tables.smallRowCount(input);
-    const first = try tables.allocator.alloc(u32, small_rows);
-    defer tables.allocator.free(first);
-    const second = try tables.allocator.alloc(u32, small_rows);
-    defer tables.allocator.free(second);
-    for (0..memory_tables.small_limb_count / 2) |pair| {
-        try memory_tables.writeSmallValueColumn(input, pair * 2, first);
-        try memory_tables.writeSmallValueColumn(input, pair * 2 + 1, second);
-        for (first, second) |low, high| {
-            const index = (low << 9) | high;
-            try tables.increment("range_check_9_9", @intCast(pair), index);
-        }
-    }
+    try memory_range_checks.addSmallValueRangeChecks(input, tables);
 }
 
 fn validateExpectedGeometry(expected: checkpoint.Component, entry: fixed_table_bundle.Entry) !void {

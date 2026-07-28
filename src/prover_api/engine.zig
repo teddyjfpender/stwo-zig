@@ -3,11 +3,14 @@
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const column = @import("column.zig");
+const device_composition = @import("device_composition.zig");
 const stage_profile = @import("stage_profile.zig");
 
 pub const ProveOptions = struct {
     include_all_preprocessed_columns: bool = false,
     recorder: ?*stage_profile.Recorder = null,
+    /// Optional whole-stage device evaluator scoped to this prove call.
+    composition_stage: ?device_composition.Stage = null,
 };
 
 /// Checks the complete transaction-level surface expected by frontends.

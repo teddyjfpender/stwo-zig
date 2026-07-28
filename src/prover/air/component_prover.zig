@@ -7,6 +7,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
 const accumulation = @import("accumulation.zig");
 const component_parallel = @import("component_parallel.zig");
+const device_composition = @import("device_composition.zig");
 const prover_circle = @import("../poly/circle/mod.zig");
 const prover_twiddles = @import("../poly/twiddles.zig");
 const secure_column = @import("../secure_column.zig");
@@ -205,6 +206,10 @@ pub const ComponentProver = struct {
 pub const ComponentProvers = struct {
     components: []const ComponentProver,
     n_preprocessed_columns: usize,
+    /// Optional whole-stage device composition evaluator for this one proof.
+    /// See `device_composition.zig` for the fail-closed contract; a stage that
+    /// declines leaves every line below unchanged.
+    composition_stage: ?device_composition.Stage = null,
 
     pub const ComponentsView = struct {
         prover_components: []ComponentProver,
@@ -313,6 +318,15 @@ pub const ComponentProvers = struct {
         residency_handles: []const ?*anyopaque,
         composition_twiddles: ?M31TwiddleTree,
     ) anyerror!SecureColumnByCoords {
+        // Consulted first and exactly once; a decline falls through to the
+        // unchanged host path below, which is what makes the hook default-safe.
+        if (try device_composition.tryStage(self.composition_stage, .{
+            .allocator = allocator,
+            .random_coeff = random_coeff,
+            .composition_log_degree_bound = self.compositionLogDegreeBound(),
+            .total_constraints = self.totalConstraints(),
+            .trace = trace,
+        })) |evaluation| return evaluation;
         if (comptime B != void and @hasDecl(B, "computeCompositionEvaluation")) {
             if (try B.computeCompositionEvaluation(
                 allocator,

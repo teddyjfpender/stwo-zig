@@ -1,12 +1,12 @@
 {
   "artifacts": {
-    "RiscvRefinement/Air/Generated/Pilot.lean": "237d830646e43b48381b5cc4acde0b8910ceb8d1df0f45341faa39db31df0644",
+    "RiscvRefinement/Air/Generated/Pilot.lean": "4968a9cb298b73cd7779fa01f0e70251179b6d97efe166e1783fff06c0bec33e",
     "RiscvRefinement/Sail/Generated/Pilot.lean": "a407f40e35eb85f1f592f89a2ec2b6d15e3cfa724bbb513e08d17d4aacf8906f",
-    "generated/air/addi.json": "3586c016b25a432d52e1ce49d5d48cec9428810f30ad04e7a68ab6b5985dcf2c",
-    "generated/air/lui.json": "5805b37ca17d41572645c37b00ce22d7ad74900bbb9f88a7f5cc865f363d7199",
+    "generated/air/addi.json": "34df378eed5bd204ab01d3cee22d67c87e1512d5616f55a80921be2e55123f69",
+    "generated/air/lui.json": "f47b92ee2426dd025f419b32557b1bd7f02cd731cc88f58ed51e6c6b530d211c",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "260d9544008e31f53ec4b991c85c08ac9354e5c62438436f75dd73a01f48a460",
+  "canonical_digest": "c4487d0301f4570e1696ddbf9c5ba37f6953fa9d7f4f347af33f2b2dc51e5626",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
@@ -26,7 +26,7 @@
   "lean_toolchain": "leanprover/lean4:v4.29.0",
   "opcodes": [
     {
-      "air_digest": "e4c4d8d0eb6f2a59720e32c41698928b86e07a20c5458400ba2cfe1ea49d4b81",
+      "air_digest": "d9160151ffa202a8166fc6ac01667c55afeeffd3270d0f3f299cfdd2af083c6e",
       "coverage_kind": "normalized-predicate",
       "id": 35,
       "mnemonic": "lui",
@@ -34,7 +34,7 @@
       "refinement_theorem": "RiscvRefinement.Opcodes.lui_refines"
     },
     {
-      "air_digest": "cc9321b2bcedb54152381d1c8625603a219a0877c59412cf002c48c39c5ea4d3",
+      "air_digest": "1194f253ccb702c7f4f35995c815b32e00c460a9af0d2c9056bdc0b16b8dd61a",
       "coverage_kind": "normalized-predicate",
       "id": 10,
       "mnemonic": "addi",
@@ -71,7 +71,7 @@
     "src/core/build.zig": "f36357d012657d4fded7fd245e5debfff623d76acdd1d68715bfc9dd5343dd92",
     "src/core/build.zig.zon": "9ff0157486046d10c50ec8386d27871729eec5f6ad9266cba0d91d074036085c",
     "src/core/fields/cm31.zig": "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
-    "src/core/fields/m31.zig": "4fc330e004420a64dab38d35a04db0b3fc3ab0c4e53f8088ad5ff1fe13b42789",
+    "src/core/fields/m31.zig": "cb5122f72960fd8bc5fb21f5690e3de5038ab8bbeb47aa345160058e28af2e57",
     "src/core/fields/mod.zig": "26ca5eeb0c09c019d69d77254e68ca1dec3f3f156137ebfc0f04269a4ee3c081",
     "src/core/fields/qm31.zig": "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
     "src/core/fields/tests/m31.zig": "58c23173f6700ebe590a2b94d62d0c8f8371cb6627c020f4eda377d3dbf62513",

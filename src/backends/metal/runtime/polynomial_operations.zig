@@ -2,6 +2,7 @@ const std = @import("std");
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
 const protocol_mode = @import("protocol_mode.zig");
+const telemetry = @import("../telemetry.zig");
 
 const MetalError = runtime.MetalError;
 const Runtime = runtime.Runtime;
@@ -714,6 +715,7 @@ pub fn transformCircleLdeInto(
     const scale_factor = (@import("stwo_core").fields.m31.M31.fromCanonical(@intCast(base_len)).inv() catch
         return MetalError.CircleTransformFailed).v;
     var gpu_ms: f64 = 0;
+    var source_binding: u32 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
     if (!ffi.stwo_zig_metal_circle_lde(
         self.handle,
@@ -729,6 +731,7 @@ pub fn transformCircleLdeInto(
         inverse_words.ptr,
         forward_words.ptr,
         scale_factor,
+        &source_binding,
         &gpu_ms,
         &message,
         message.len,
@@ -736,6 +739,7 @@ pub fn transformCircleLdeInto(
         std.log.err("Metal circle LDE failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.CircleTransformFailed;
     }
+    telemetry.recordCommitSourceBinding(source_binding);
     return gpu_ms;
 }
 

@@ -46,6 +46,8 @@ pub const MetalCommitBackend = struct {
     pub const RuntimeLifecycleSnapshot = shared_runtime.LifecycleSnapshot;
     pub const RuntimeInitializationPolicy = shared_runtime.InitializationPolicy;
     pub const preferMonolithicCommit = true;
+    // No-copy bind when source == coefficient arena (`circle_legacy.m:227`).
+    pub const adopts_source_trace_arena = true;
     pub const lazyFriFoldInverseWorkspace = true;
     pub const prepareAndCommitOwned = combined_commit.prepareAndCommitOwned;
     pub const prepareAndCommitPolys = combined_commit.prepareAndCommitPolys;
@@ -99,9 +101,7 @@ pub const MetalCommitBackend = struct {
         return shared_runtime.shutdown();
     }
 
-    pub fn recordSampledValueFallback() void {
-        telemetry.record(.cpu_sampled_value_evaluation);
-    }
+    pub const recordSampledValueFallback = commit_policy.recordSampledValueFallback;
 
     pub fn MerkleTree(comptime H: type) type {
         return metal_merkle.MetalMerkleTree(H);
