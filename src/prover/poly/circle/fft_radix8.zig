@@ -110,7 +110,7 @@ fn runForwardBatch(
     twiddles: []const M31,
     comptime duplicate_upper_from_lower: bool,
 ) void {
-    std.debug.assert(values_batch.len != 0);
+    if (values_batch.len == 0) return;
     std.debug.assert(log_size < @bitSizeOf(usize));
     const values_len = @as(usize, 1) << @intCast(log_size);
     for (values_batch) |values| std.debug.assert(values.len == values_len);
@@ -297,4 +297,12 @@ test "batched forward matches independent packed radix-8 transforms" {
     forwardBatchFromDuplicatedHalf(&expansion_batch, log_size, 8, twiddles);
     try std.testing.expectEqualSlices(M31, expected, batch_a);
     try std.testing.expectEqualSlices(M31, expected_b, batch_b);
+}
+
+test "empty forward batch is a no-op for RISC-V quotient geometry" {
+    const empty_batch: [0][]M31 = .{};
+    const twiddles = [_]M31{M31.one()} ** 64;
+
+    forwardBatch(&empty_batch, 7, 6, &twiddles);
+    forwardBatchFromDuplicatedHalf(&empty_batch, 7, 6, &twiddles);
 }
