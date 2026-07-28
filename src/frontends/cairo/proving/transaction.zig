@@ -165,6 +165,12 @@ pub fn proveFixtureWithRecorder(
     errdefer if (planned_composition) |*owned| owned.deinit();
     var arena: ?trace_arena.Arena = null;
     errdefer if (arena) |*owned| owned.deinit();
+    // True once `feed_geometry_oracle` has written at least one *predicted* log
+    // size into the planned claim. It is the precondition for treating a
+    // plan-versus-witness geometry disagreement as recoverable rather than as a
+    // soundness abort: without a prediction the planned claim is exactly what
+    // `deriveFromProverInput` produced, and a disagreement there is a real bug.
+    var oracle_predicted = false;
     if (arena_capable) {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -199,12 +205,14 @@ pub fn proveFixtureWithRecorder(
                     "Pre-execution feed geometry resolution",
                 );
                 defer oracle_stage.end();
-                _ = feed_geometry_oracle.resolveInPlace(
+                if (feed_geometry_oracle.resolveInPlace(
                     allocator,
                     live,
                     claim_generator.ExecutionResources.fromProverInput(fixture.input),
                     fixture.topology,
-                ) catch {};
+                )) |outcome| {
+                    oracle_predicted = outcome.resolved != 0;
+                } else |_| {}
             }
         }
         var instantiated: ?witness.composition_bundle.Bundle = null;
@@ -258,6 +266,59 @@ pub fn proveFixtureWithRecorder(
             "Base trace build",
         );
         defer stage.end();
+        const pedersen_deductions: ?witness.deductions.PedersenTable =
+            if (pedersen_initialized) .{
+                .window_bits = pedersen.window.bits(),
+                .points = pedersen.points,
+            } else null;
+        // The planned attempt. The witness-to-statement handoff is the earliest
+        // point at which the deferred path's own row counts exist, and it is
+        // inside this call: `live_graph.executeComponent` computes each
+        // component's padded row count and `validateClaimGeometry` compares it
+        // against the planned claim. A predicted log size that disagrees is
+        // therefore caught before any commitment exists — but too late to avoid
+        // the work, so the recovery is to discard the plan and rebuild on the
+        // deferred path, which is byte-for-byte the unplanned product path.
+        //
+        // Declining the arena for the proof is the *only* consequence: the proof
+        // completes with correct bytes. Fail-closed abort is kept for the case
+        // this cannot explain — no prediction was made, i.e. the deferred path
+        // and the committed claim disagree by themselves.
+        if (arena) |*ready| {
+            if (base_trace.buildInto(
+                allocator,
+                fixture.input,
+                fixture.programs,
+                fixture.generated_executor,
+                fixture.interaction_executor,
+                fixture.topology,
+                fixture.fixed,
+                claimVariant(variant),
+                pedersen_deductions,
+                recorder,
+                .{ .geometry = &planned_geometry.?, .arena = ready },
+            )) |planned_base| {
+                break :blk planned_base;
+            } else |err| {
+                if (!oracle_predicted or !isPlannedGeometryDisagreement(err))
+                    return err;
+                if (arena) |*owned| owned.deinit();
+                arena = null;
+                if (planned_composition) |*owned| owned.deinit();
+                planned_composition = null;
+                if (planned_geometry) |*owned| owned.deinit();
+                planned_geometry = null;
+                // A distinct decline reason, and deliberately not the plan-time
+                // `base_trace_arena_fallback`: that one means the claim was never
+                // resolvable, this one means it resolved to the wrong answer.
+                var declined = try prover.stage_profile.StageScope.begin(
+                    recorder,
+                    "base_trace_arena_geometry_declined",
+                    "Base trace arena declined: predicted geometry disagreed",
+                );
+                declined.end();
+            }
+        }
         break :blk try base_trace.buildInto(
             allocator,
             fixture.input,
@@ -267,15 +328,9 @@ pub fn proveFixtureWithRecorder(
             fixture.topology,
             fixture.fixed,
             claimVariant(variant),
-            if (pedersen_initialized) .{
-                .window_bits = pedersen.window.bits(),
-                .points = pedersen.points,
-            } else null,
+            pedersen_deductions,
             recorder,
-            if (arena) |*ready| .{
-                .geometry = &planned_geometry.?,
-                .arena = ready,
-            } else null,
+            null,
         );
     };
     defer base.deinit();
@@ -719,6 +774,16 @@ fn componentTreeLogs(
         @memset(logs[span.start..span.end], component.trace_log_size);
     }
     return logs;
+}
+
+/// The two ways a pre-execution geometry plan can be contradicted by the
+/// executed witness: the claim's predicted log size differs from the component's
+/// padded row count (`live_graph.validateClaimGeometry`), or the arena's planned
+/// width or extent for a component differs from what was produced
+/// (`base_trace.Collector.capture`). Every other error keeps aborting.
+pub fn isPlannedGeometryDisagreement(err: anyerror) bool {
+    return err == witness.live_graph.Error.ClaimGeometryMismatch or
+        err == trace_arena.Error.ArenaPlanMismatch;
 }
 
 fn validateComposition(
