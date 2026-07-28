@@ -2684,3 +2684,267 @@ Fusion should **not** be the next increment. The recommended scope, in order:
    which currently fuses nothing — is the prerequisite, and that fusion's benefit
    is non-monotonic in group size (§6, finding 3), so any policy must be measured
    per component rather than set as a constant.
+
+---
+
+## Increment 3.7: the AOT-vs-JIT verdict, and the ABI fact that blocks the hook
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+Head at start: `06cf0154`, clean. Raw data: `/private/tmp/i37/`
+(`parity1.log`, `parity2.log`, `lift1.log`, `lift2.log`, `census.txt`,
+`lift_bench.zig`, `project37.py`, `head.metal`, `old.metal`, `diff.txt`).
+
+**Verdict: partially-delivered. Item 1 is settled decisively and in the
+program's favour. Items 2-4 are blocked by a fact neither 3.5 nor 3.6 stated,
+and the ≥ 2.0x composition-stage gate was therefore NOT MEASURED — no hook
+exists to measure it against.**
+
+> **There is no AOT-vs-JIT compiler gap. Steady-state, the authenticated
+> metallib and a JIT library of the same source agree to within 0.4% on mean and
+> 0.1% on best sample across four components including the 3.05x outlier. 3.6's
+> table was first-dispatch cost on both sides, compared across two tests with a
+> fixed order. The program's central number therefore does not need a 3x
+> discount — it needs a small *premium*, because steady state is faster than
+> 3.6's JIT bound.**
+>
+> **And the hook cannot be built against the metallib that exists without one
+> addition nobody had priced: the compiled kernels read columns at
+> evaluation-domain length and the product publishes them at trace-domain
+> length. The eval arena is not placement. It is placement plus a lift.**
+
+### 1. The AOT-vs-JIT experiment: two hypotheses, both excluded
+
+3.6 §6 finding 4 named four candidate causes. Two were cheap to exclude
+outright and are excluded first, because they decide whether a metallib has to
+be re-minted — which on this host is impossible (`xcode-select --print-path`
+reports `/Library/Developer/CommandLineTools`; `xcrun --sdk macosx --find metal`
+and `--find metallib` both fail, so §6.3.2's "CI is the only producer" is a
+constraint on this increment and not only on the pipeline).
+
+**Stale bundle: excluded, offline and exactly.**
+`vectors/cairo/sn_pie_2_composition.metallib` was committed in `7123cc22`
+(2026-07-11) and `eval_codegen.zig` has changed in `a848e034`, `1dc983e3`,
+`154caf4b`, `e6063c5e`, `3f1e2fe1` and `37ba0715` since. Building
+`metal-eval-source` at `7123cc22` and at this head and running both over the
+same `sn_pie_2_composition.bin`:
+
+| emitter | bytes of MSL | plan hash | unique programs |
+| --- | ---: | --- | ---: |
+| at `7123cc22` | 4,306,723 | `8fc4db5088697537` | 271 |
+| at `06cf0154` | 4,322,603 | `8fc4db5088697537` | 271 |
+
+The whole 15,880-byte difference is the identifier rename `acc` -> `part_acc`
+that the fusion work introduced so a fused kernel could hold a separate
+`cumulative`. `sed 's/part_acc/acc/g'` on the new emission makes the two files
+**byte-identical**. So the artifact is not stale in any sense a compiler can
+observe, and no manifest change is warranted. None was made.
+
+**Compile options: excluded by reading both producers.** CI compiles with
+`xcrun metal -mmacosx-version-min=14.0 -std=metal3.1 -fno-fast-math -Werror`
+(`.github/workflows/ci.yml:418-424`). The runtime sets
+`options.mathMode = MTLMathModeSafe` (or `fastMathEnabled = NO` below macOS 15)
+and `languageVersion = MTLLanguageVersion3_1`
+(`runtime/compile_options.h:7-20`). Same language version, same math mode,
+default optimisation on both sides. There is no flag asymmetry to find.
+
+### 2. The controlled comparison, and what 3.6 actually measured
+
+`src/tests/metal/composition_library_parity_test.zig`. Both libraries loaded
+once from one runtime; **one** arena per component filled **once** so both arms
+read byte-identical inputs from byte-identical addresses; pipelines prepared
+**once** outside the timed region; one warmup per arm, excluded from the samples
+but reported; then A-B-B-A over two blocks with every sample printed; and the
+two arms' four QM31 coordinate planes byte-compared on every row before and
+after every block.
+
+| component | rows | parts | AOT mean | JIT mean | mean ratio | AOT best | JIT best | **best ratio** |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `blake_round_sigma` | 32 | 1 | 0.1774 | 0.1788 | 0.992x | 0.1763 | 0.1775 | **0.993x** |
+| `add_opcode` | 2,097,152 | 3 | 19.1128 | 19.0256 | 1.005x | 19.0134 | 19.0163 | **1.000x** |
+| `add_opcode_small` | 4,194,304 | 2 | 43.5365 | 38.0885 | 1.143x | 38.0811 | 38.0468 | **1.001x** |
+| `partial_ec_mul_generic` | 524,288 | 90 | 127.7438 | 127.7518 | 1.000x | 127.5773 | 127.6345 | **1.000x** |
+
+`add_opcode_small`'s mean is carried by a single 59.84 ms sample in an arm whose
+other three are 38.08-38.10; that is host scheduling, and the arm's minimum
+agrees with JIT to 0.1%. An earlier run of the same test before warmup reporting
+was added (`parity1.log`) gives 0.991x / 1.003x / 1.004x / 1.001x on means with
+no outlier at all, so the four-component agreement reproduces across two
+independent runs.
+
+**A third arm names what 3.6 was measuring.** The same AOT library with a plan
+created per dispatch — the protocol both 3.5 and 3.6 used — lands within 0.5% of
+the plans-reused arm on every component. So pipeline creation is not the
+mechanism. The warmup samples are:
+
+| component | AOT warmup | steady mean | warmup / steady |
+| --- | ---: | ---: | ---: |
+| `blake_round_sigma` | 0.1837 | 0.1774 | 1.036x |
+| `add_opcode` | **28.4404** | 19.1128 | **1.488x** |
+| `add_opcode_small` | 47.5630 | 43.5365 | 1.093x |
+| `partial_ec_mul_generic` | 136.1209 | 127.7438 | 1.066x |
+
+`add_opcode`'s AOT warmup is **28.4404 ms**, which to four decimal places is the
+number 3.6 §6 recorded as its *JIT* price for that component (28.44). That is
+the whole explanation. `gpu_ms` is `GPUEndTime - GPUStartTime`, so the first pass
+over a freshly CPU-filled multi-gigabyte resident buffer charges page residency
+to whichever dispatch runs first; 3.5's binding test ran first and had no warmup,
+3.6's sweep ran second and had no warmup, and the difference between two
+unwarmed first passes under different allocation histories was read as a compiler
+difference.
+
+**Consequence, and it is the opposite of a discount.** Steady state is faster
+than 3.6's JIT bound: `add_opcode_small` 38.05 ms against 57.21 (**4.54**
+ns/row-part, not 6.82) and `add_opcode` 19.01 against 28.44 (**3.03**, not 4.52).
+The per-dispatch floor is 0.1763 ms. Every projection below uses the *larger* of
+the two portfolio-shaped marginals, 4.54.
+
+### 3. The fact that blocks the hook
+
+`src/tests/metal/composition_lift_bridge_test.zig`. The emitted preamble reads a
+trace value as
+
+```
+uint target = offset == 0 ? row : offset_circle(row, args.domain_log_size, ctz(args.row_count), offset);
+uint global = arena[args.interaction_offsets + interaction] + column;
+return arena[arena[args.trace_offsets + global] + target];
+```
+
+`row` runs over the evaluation domain (`args.row_count = 2^eval_log`) and indexes
+the column directly, so **an arena column must be `2^eval_log` words long**. The
+product publishes columns straight off the committed trees —
+`pcs/scheme_views.polynomials` sets `Poly.log_size = column.log_size` — so a base
+or interaction column is `2^trace_log` words, and `proving/air/component.zig:355`
+consequently hands the host evaluator
+`shift_amt = evaluation_log_size - column.log_size + 1 = 2`, not the 1 the
+kernels implement. **All 58 eligible components of the authenticated bundle
+disagree with the ABI by exactly the blowup factor**, and the census asserts it.
+
+This is increment 3.5 §1's unstated corollary. 3.5 established that
+`shift_amt = 1` is the identity; it holds *because* that smoke's arena stored
+columns at evaluation-domain length. The product's arena does not, and this
+increment's brief — reasonably, inheriting 3.5 §6 — described the remaining work
+as placement. Placing a `2^trace_log`-word column at a planned offset does not
+make it readable by these kernels.
+
+### 4. Option A: the lift, verified byte-exact and priced
+
+`component_prover.Poly.at` gives the map: evaluation position `p` reads trace
+index `((p >> s) << 1) + (p & 1)`. At the bundle's uniform blowup that is each
+adjacent trace pair emitted twice — `[t0,t1,t0,t1,t2,t3,t2,t3,…]`, a streaming
+8-byte-granule duplication rather than a gather.
+
+**The bridge is verified, not argued.** Host trace-domain columns are lifted into
+the arena, the authenticated kernels are dispatched against it, and the output is
+compared against `simd_evaluator` reading the *same* trace-domain columns at the
+product's own `shift_amt = 2`:
+
+| component | rows | parts | product shift | vs host |
+| --- | ---: | ---: | ---: | --- |
+| `blake_round_sigma` | 32 | 1 | 2 | **byte-exact** |
+| `bitwise_builtin` | 512 | 5 | 2 | **byte-exact** |
+
+`bitwise_builtin` is the load-bearing case again: five parts accumulating into
+the same four coordinate words at their own `rc_base`, so the lift is verified
+against the host where the accumulator and coefficient-offset conventions live,
+not only on a single-part control.
+
+**Price.** Volume is `columns x 2^eval_log` words per component, from the
+in-tree census (log-size-independent per §6.2) against each workload's own proof
+claim. Throughput is 89.84 GB/s single-threaded ReleaseFast
+(`/private/tmp/i37/lift_bench.zig`, best of 3 over 123 columns x 2^21). *The
+1.8 GB/s the test itself prints is a Debug artifact and must not be quoted* —
+Debug is 50x slower here, which is exactly why the standalone measurement exists.
+
+| workload | host stage | device kernels | vs host | lift volume | lift ms | **device + lift** | **vs host** |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 305.9 | 43.7 | 7.00x | 0.76 GB | 8.4 | **52.1** | **5.87x** |
+| arithmetic-2m | 435.7 | 76.0 | 5.74x | 1.69 GB | 18.8 | **94.8** | **4.60x** |
+| memory-7m | 1,219.4 | 193.6 | 6.30x | 4.80 GB | 53.4 | **247.1** | **4.94x** |
+
+The lift is a 19-28% surcharge and it parallelises trivially (per column, no
+sharing); at 8 threads the stage lands at 44.7 / 78.3 / 200.3 ms, i.e. 6.84x /
+5.56x / 6.09x. **Option A does not sink the hook, and the ≥ 2.0x gate is
+reachable with room to spare on either threading assumption.**
+
+Coverage caveat, stated rather than buried: arithmetic-2m is 53.7% measured at
+exact geometry (`add_opcode_small` sits at its claimed log size); all-opcodes and
+memory-7m are 0% this increment, because I re-measured only four components in
+steady state and 3.6's `range_check_20` / `assert_eq_opcode` figures are warmup
+samples I declined to reuse. Their contribution is extrapolated at 4.54
+ns/row-part. all-opcodes additionally has three components absent from the SN2
+bundle (`generic_opcode`, `jump_opcode_abs`, `qm_31_add_mul_opcode`), so its row
+is a lower bound — unchanged from 3.6.
+
+### 5. Option B, which is better and which this host cannot mint
+
+Give `trace_value` the column's stored log size and let it apply
+`((row >> shift) << 1) + (row & 1)` itself. Then trace-domain columns are read
+**in place** out of the arena that is already resident and already page-aligned
+(3.2/3.4): no lift, no 2x memory, no surcharge, and the interaction and
+preprocessed blocks become genuine placement. It is a small codegen change.
+
+It changes the emitted source for every kernel, so it needs a CI metallib round
+trip and a new `composition_aot` manifest digest with the §6.3.2 provenance
+record. This host has no offline Metal compiler, so option B can be *written*
+here but not compiled, digested or measured here. It was deliberately not
+written: emitting a variant that the checked-in metallib does not implement,
+without being able to compile the replacement, would leave the tree in a state
+where the default emission and the authenticated artifact disagree — which is the
+one property §1's staleness experiment just confirmed the tree currently has.
+
+### 6. Verification
+
+Product surface: three new test files' worth of test-only code plus two lines in
+`src/tests.zig`. No product path reaches any of it, so no digest, dispatch count
+or proof can move.
+
+| gate | result |
+| --- | --- |
+| `package-workspace` | **pass** (17 packages, 17 public modules, 51 edges) |
+| `metal-check` | **pass** |
+| `zig fmt --check`, `check_source_conformance.py` | **pass** (pre-commit, both commits) |
+
+`package.contract.json` needed no edit: no new public module was added.
+
+**Budget disclosure, in the same spirit as 3.6's.** The following item-5 checks
+were **not run**: `test-cairo-cpu-product`, `test-cairo-frontend`,
+`test-cairo-metal-product`, `test-stwo-prover`, the two-lane digest reproduction,
+the official verifier, `STWO_ZIG_WORKERS=1`, and the corrupt-metallib
+fail-closed test. They are listed as unrun rather than assumed green. The
+justification is narrower than 3.6's and worth being precise about: the diff is
+additive test-only code, and **no proof was produced by this increment at all**,
+so there is no artifact whose digest could be compared. The corrupt-metallib
+fail-closed test remains **unreachable** for the same reason 3.6 left it
+unreachable — the product still does not load the composition metallib, because
+the hook was not built.
+
+Pre-existing, noted not chased, unchanged from 3.6's list.
+
+### 7. What the next increment is, priced
+
+The recommendation order changes, because item 1 is now closed and item 2 has a
+prerequisite it did not have.
+
+1. **Option B: teach `trace_value` the shift, mint the metallib in CI, add the
+   manifest digest.** This is now the critical path and it is the *only* item
+   that needs an external producer, so it should start first even though the
+   local work is small. It removes the lift entirely and makes the arena
+   extension the placement exercise this increment was scoped as. Priced from
+   §4: it saves 8.4 / 18.8 / 53.4 ms of surcharge and 0.76 / 1.69 / 4.80 GB of
+   arena, and it takes the stage to 7.00x / 5.74x / 6.30x.
+2. **If option B's CI round trip cannot be had, take option A** — it is
+   verified byte-exact here and it clears the gate at 4.60-5.87x
+   single-threaded. This is a real fallback, not a consolation.
+3. **Then the arena extension and the hook**, unchanged in shape from this
+   increment's brief: eval-input blocks at planned offsets, structural admission
+   with whole-stage host fallback, 3.1 telemetry counting it.
+4. **Fusion stays where 3.6 put it** — last, worth 1.5-1.6% on the two large
+   workloads, and free only when the metallib is being re-minted anyway. Note
+   that item 1 *is* that re-mint, so the fused kernels for the portfolio's
+   2-part groups should ride along with it.
+
+**Amdahl, restated with this increment's numbers.** §2.3 requires 3.13x on the
+migrated stages with warm caches. Composition alone now projects 4.60-5.87x
+under option A and 5.74-7.00x under option B, on steady-state device measurement
+rather than warmup samples. Both clear it; §2.3's requirement is no longer in
+doubt for this stage and the AOT-bounded row of §7's table should be struck.
