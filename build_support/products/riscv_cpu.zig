@@ -42,7 +42,7 @@ const source_closure = product_policy.SourceClosure{
         "src/interop/atomic_file.zig",
         "src/interop/output_transaction.zig",
         "src/interop/postcard.zig",
-        "src/interop/proof_wire.zig",
+        "src/interop/proof_wire/mod.zig",
         "src/interop/riscv_artifact.zig",
         "src/products/riscv_cpu/capabilities.zig",
     },

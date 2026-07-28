@@ -37,7 +37,7 @@ const source_closure = product_policy.SourceClosure{
         "src/interop/examples_artifact.zig",
         "src/interop/examples_artifact_verifier.zig",
         "src/interop/postcard.zig",
-        "src/interop/proof_wire.zig",
+        "src/interop/proof_wire/mod.zig",
         "src/integrations/native/transaction.zig",
         "src/integrations/native/product_identity.zig",
     },

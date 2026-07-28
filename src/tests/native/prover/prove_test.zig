@@ -285,7 +285,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     );
     defer proof_from_prove.deinit(alloc);
 
-    const proof_wire = @import("../../../interop/proof_wire.zig");
+    const proof_wire = @import("../../../interop/proof_wire/mod.zig");
     const prove_ex_bytes = try proof_wire.encodeProofBytes(alloc, ext_proof.proof);
     defer alloc.free(prove_ex_bytes);
     const prove_bytes = try proof_wire.encodeProofBytes(alloc, proof_from_prove);

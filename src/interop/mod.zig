@@ -1,4 +1,4 @@
-pub const proof_wire = @import("proof_wire.zig");
+pub const proof_wire = @import("proof_wire/mod.zig");
 pub const stwo_json = @import("stwo_core").proof_json;
 pub const postcard = @import("postcard.zig");
 pub const examples_artifact = @import("examples_artifact.zig");

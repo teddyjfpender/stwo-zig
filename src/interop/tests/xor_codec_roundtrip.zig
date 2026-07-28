@@ -6,7 +6,7 @@ const fri = core.fri;
 const pcs = core.pcs;
 const xor = @import("../../examples/xor.zig");
 const postcard = @import("../postcard.zig");
-const proof_wire = @import("../proof_wire.zig");
+const proof_wire = @import("../proof_wire/mod.zig");
 
 fn config() !pcs.PcsConfig {
     return .{

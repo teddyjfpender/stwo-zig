@@ -3,7 +3,7 @@
 const std = @import("std");
 const cpu_xor = @import("../../../examples/xor.zig");
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../../interop/proof_wire.zig");
+const proof_wire = @import("../../../interop/proof_wire/mod.zig");
 
 pub const Target = struct {
     statement: cpu_xor.Statement,

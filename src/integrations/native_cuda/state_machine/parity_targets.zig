@@ -4,7 +4,7 @@ const std = @import("std");
 const state_machine = @import("../../../examples/state_machine.zig");
 const pcs = @import("stwo_core").pcs;
 const M31 = @import("stwo_core").fields.m31.M31;
-const proof_wire = @import("../../../interop/proof_wire.zig");
+const proof_wire = @import("../../../interop/proof_wire/mod.zig");
 
 pub const Target = struct {
     request: state_machine.Request,

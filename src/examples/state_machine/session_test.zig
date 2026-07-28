@@ -4,7 +4,7 @@ const std = @import("std");
 const fri = @import("stwo_core").fri;
 const m31 = @import("stwo_core").fields.m31;
 const pcs = @import("stwo_core").pcs;
-const proof_wire = @import("../../interop/proof_wire.zig");
+const proof_wire = @import("../../interop/proof_wire/mod.zig");
 const subject = @import("../state_machine.zig");
 
 const M31 = m31.M31;

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const cpu_plonk = @import("../../../examples/plonk.zig");
-const proof_wire = @import("../../../interop/proof_wire.zig");
+const proof_wire = @import("../../../interop/proof_wire/mod.zig");
 
 pub const Target = struct {
     log_n_rows: u32,
