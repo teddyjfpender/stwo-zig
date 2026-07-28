@@ -15,6 +15,7 @@ test {
         _ = @import("tests/metal/composition_fusion_test.zig");
         _ = @import("tests/metal/composition_library_parity_test.zig");
         _ = @import("tests/metal/composition_lift_bridge_test.zig");
+        _ = @import("tests/metal/composition_option_b_test.zig");
     } else if (test_options.riscv_only) {
         if (test_options.riscv_exhaustive) {
             _ = @import("tests/riscv/trace_test.zig");
