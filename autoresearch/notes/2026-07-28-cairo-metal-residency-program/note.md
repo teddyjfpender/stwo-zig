@@ -4744,3 +4744,40 @@ verified gathered edge so far has an *opcode* root. An `ec_op` workload would
 settle it. Until one exists, that entry is a fan-out prediction with no
 measurement behind it, and the §3 degrade is what stands between it and an
 aborted prove.
+
+## Standing at the 3.14 close (orchestrator)
+
+Full seven-row portfolio, Metal lane armed (`STWO_ZIG_COMPOSITION_DEVICE=1`),
+caches off, rotated pairs against the pinned Rust control, all proofs
+byte-exact and verifier-accepted:
+
+| workload | Metal/Rust |
+| --- | ---: |
+| memory-7m | 0.728 |
+| fibonacci-100k | 0.767 |
+| arithmetic-2m | 0.824 |
+| all-opcodes | 1.019 |
+| poseidon-aggregator | 1.054 |
+| factorial-100k | 1.109 |
+| pedersen-aggregator | 1.663 |
+
+Geomean **0.987 — the Zig Metal lane is 1.013x faster than the pinned Rust
+prover across the full portfolio**, the project's first parity-plus crossing;
+the five arena-engaged rows alone stand at 1.140x faster. Program-bar
+arithmetic: 1.982x measured lower bound against the 1.768x requirement.
+Aggregator rows measured post-3.14 fix (poseidon recovered from crash to
+1.054; pedersen 1.663 remains witness-bound — the arena correctly declines
+on compaction-consumer workloads, so those rows receive no device
+composition yet).
+
+Remaining levers, evidence-ranked, for the next engagement: Library-2
+consumption (stored-domain kernels admitted and measured 1.22-2.26x faster
+than eval-domain; kills the 22-31 GB/s in-situ lift), the fib/factorial
+differential (near-twin workloads at 0.767 vs 1.109 — a diagnostic lead, not
+a wall), an input-derived distinct-key pre-pass to restore the arena on
+aggregator workloads, the PoW device kernel (110-145 ms/proof; requires a
+core-AOT re-mint), the 46.5% unattributed composition host residual, and
+Phase-4 witness residency with pedersen as its acceptance row. The one open
+soundness-adjacent item is the builtin-rooted geometry entry
+(partial_ec_mul_generic), unverified and protected by 3.14's
+degrade-don't-abort until an ec_op workload exists to settle it.
