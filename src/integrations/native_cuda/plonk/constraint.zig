@@ -8,7 +8,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 pub const Buffers = constant_qm31.Buffers;
 
 pub fn compositionValue(
-    statement: @import("../../../examples/plonk.zig").Statement,
+    statement: @import("stwo_native_examples").plonk.Statement,
 ) field.SecureField {
     return .{
         .a = M31.fromCanonical(statement.log_n_rows).toU32(),

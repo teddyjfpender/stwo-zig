@@ -171,7 +171,7 @@ pub fn build(
         allocator,
         slots.composition_powers,
         try secureWords(
-            @import("../../../examples/poseidon/component.zig").N_CONSTRAINTS,
+            @import("stwo_native_examples").backend_support.poseidon.component.N_CONSTRAINTS,
         ),
         .constraint_evaluation,
         .constraint_evaluation,

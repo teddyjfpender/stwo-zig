@@ -1,7 +1,7 @@
 //! Frozen Native CPU targets for final CUDA/Rust Poseidon parity gates.
 
 const std = @import("std");
-const cpu_poseidon = @import("../../../examples/poseidon.zig");
+const cpu_poseidon = @import("stwo_native_examples").poseidon;
 const pcs = @import("stwo_core").pcs;
 const proof_wire = @import("stwo_proof_wire");
 

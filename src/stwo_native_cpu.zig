@@ -10,15 +10,7 @@ pub const backends = struct {
     pub const cpu = @import("stwo_cpu_backend");
 };
 
-pub const examples = struct {
-    pub const blake = @import("examples/blake.zig");
-    pub const plonk = @import("examples/plonk.zig");
-    pub const plonk_logup = @import("examples/plonk_logup.zig");
-    pub const poseidon = @import("examples/poseidon.zig");
-    pub const state_machine = @import("examples/state_machine.zig");
-    pub const wide_fibonacci = @import("examples/wide_fibonacci.zig");
-    pub const xor = @import("examples/xor.zig");
-};
+pub const examples = @import("stwo_native_examples");
 
 pub const interop = struct {
     pub const atomic_file = @import("interop/atomic_file.zig");

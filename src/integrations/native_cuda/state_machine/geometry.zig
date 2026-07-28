@@ -1,7 +1,7 @@
 //! Exact mixed-height geometry for the Native State Machine v2 proof.
 
 const std = @import("std");
-const cpu_state_machine = @import("../../../examples/state_machine/input.zig");
+const cpu_state_machine = @import("stwo_native_examples").backend_support.state_machine.input;
 const pcs = @import("stwo_core").pcs;
 
 pub const preprocessed_columns: u32 = 0;

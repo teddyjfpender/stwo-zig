@@ -2,9 +2,7 @@
 
 const std = @import("std");
 const runtime_constraint = @import("stwo_cuda_backend").runtime.constraints.plonk_logup;
-const cpu_component = @import(
-    "../../../examples/plonk_logup/component.zig",
-);
+const cpu_component = @import("stwo_native_examples").backend_support.plonk_logup.component;
 const geometry_mod = @import("geometry.zig");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;

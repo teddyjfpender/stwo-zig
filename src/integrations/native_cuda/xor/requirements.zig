@@ -110,7 +110,7 @@ pub fn build(
         &output,
         allocator,
         slots.composition_powers,
-        try secureWords(@import("../../../examples/xor/component.zig").N_CONSTRAINTS),
+        try secureWords(@import("stwo_native_examples").backend_support.xor.component.N_CONSTRAINTS),
         .constraint_evaluation,
         .constraint_evaluation,
     );

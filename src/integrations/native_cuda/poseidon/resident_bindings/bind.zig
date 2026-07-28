@@ -106,9 +106,7 @@ fn bindConstraint(
             provider,
             field.SecureField,
             slots.composition_powers,
-            @import(
-                "../../../../examples/poseidon/component.zig",
-            ).N_CONSTRAINTS,
+            @import("stwo_native_examples").backend_support.poseidon.component.N_CONSTRAINTS,
         ),
         .denominator_inverses = try exactWords(
             provider,

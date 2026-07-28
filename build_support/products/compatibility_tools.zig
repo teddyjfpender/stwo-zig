@@ -27,7 +27,7 @@ pub fn addProducts(context: Context) void {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addProofWireImport(
+    const proof_wire = graph.addProofWireImport(
         b,
         protocol,
         compatibility_product,
@@ -48,6 +48,16 @@ pub fn addProducts(context: Context) void {
         compatibility_product,
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = graph.addNativeExamplesImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
         stwo,
     );
     const metal_backend = graph.addMetalBackendImport(

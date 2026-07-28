@@ -1,7 +1,7 @@
 //! Canonical CPU-oracle inputs for CUDA parity and release gates.
 
 const std = @import("std");
-const state_machine = @import("../../../examples/state_machine.zig");
+const state_machine = @import("stwo_native_examples").state_machine;
 const pcs = @import("stwo_core").pcs;
 const M31 = @import("stwo_core").fields.m31.M31;
 const proof_wire = @import("stwo_proof_wire");

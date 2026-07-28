@@ -143,9 +143,7 @@ test "State v2 relation topology retains both mixed-height components" {
 test "generic State descriptors equal exact CPU transition fractions" {
     const M31 = @import("stwo_core").fields.m31.M31;
     const QM31 = @import("stwo_core").fields.qm31.QM31;
-    const cpu_statement = @import(
-        "../../../examples/state_machine/statement.zig",
-    );
+    const cpu_statement = @import("stwo_native_examples").backend_support.state_machine.statement;
     const elements = cpu_statement.Elements{
         .z = QM31.fromU32Unchecked(37, 41, 43, 47),
         .alpha = QM31.fromU32Unchecked(3, 5, 7, 11),
@@ -177,9 +175,7 @@ test "generic State descriptors equal exact CPU transition fractions" {
 fn evaluateDescriptor(
     descriptor: relation_abi.ColumnDescriptor,
     state: [2]@import("stwo_core").fields.m31.M31,
-    elements: @import(
-        "../../../examples/state_machine/statement.zig",
-    ).Elements,
+    elements: @import("stwo_native_examples").backend_support.state_machine.statement.Elements,
 ) !@import("stwo_core").fields.qm31.QM31 {
     const QM31 = @import("stwo_core").fields.qm31.QM31;
     const first = combineUse(descriptor.first, state, elements);
@@ -194,9 +190,7 @@ fn evaluateDescriptor(
 fn combineUse(
     use: relation_abi.UseDescriptor,
     state: [2]@import("stwo_core").fields.m31.M31,
-    elements: @import(
-        "../../../examples/state_machine/statement.zig",
-    ).Elements,
+    elements: @import("stwo_native_examples").backend_support.state_machine.statement.Elements,
 ) @import("stwo_core").fields.qm31.QM31 {
     const M31 = @import("stwo_core").fields.m31.M31;
     const QM31 = @import("stwo_core").fields.qm31.QM31;

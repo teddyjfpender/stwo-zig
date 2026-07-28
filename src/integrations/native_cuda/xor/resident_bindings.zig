@@ -197,7 +197,7 @@ pub fn bind(
                 provider,
                 field.SecureField,
                 slots.composition_powers,
-                @import("../../../examples/xor/component.zig").N_CONSTRAINTS,
+                @import("stwo_native_examples").backend_support.xor.component.N_CONSTRAINTS,
             ),
             .denominator_inverses = try exactWords(
                 provider,

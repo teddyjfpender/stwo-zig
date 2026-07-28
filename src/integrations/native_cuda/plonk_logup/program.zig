@@ -561,7 +561,7 @@ test "Plonk emits exact generic Native AIR geometry and proof semantics" {
 
 test "Plonk program tree and sample counts match a decoded CPU proof" {
     const allocator = std.testing.allocator;
-    const cpu_plonk = @import("../../../examples/plonk_logup.zig");
+    const cpu_plonk = @import("stwo_native_examples").plonk_logup;
     const protocol = @import("stwo_core").pcs.PcsConfig.default();
     const request = cpu_plonk.Request{ .log_n_rows = 5 };
     var materialized = try trace_mod.Materialized.init(

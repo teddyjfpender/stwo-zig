@@ -1,7 +1,7 @@
 //! CPU-authoritative materialization boundary for the Native XOR trace.
 
 const std = @import("std");
-const cpu_xor = @import("../../../examples/xor.zig");
+const cpu_xor = @import("stwo_native_examples").xor;
 const geometry_mod = @import("geometry.zig");
 const ir = @import("stwo_backend_contracts").proof_program;
 const pcs = @import("stwo_core").pcs;

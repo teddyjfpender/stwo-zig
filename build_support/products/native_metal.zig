@@ -22,6 +22,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
+        .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
         .{ .name = "stwo_native_metal", .source = "src/stwo_native_metal.zig" },
         .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
@@ -210,12 +211,22 @@ fn createStwoModule(context: Context, role: graph.Role) *std.Build.Module {
         cpu_backend,
         module,
     );
-    _ = graph.addProofWireImport(
+    const proof_wire = graph.addProofWireImport(
         context.b,
         context.protocol,
         product(role),
         context.target,
         context.optimize,
+        module,
+    );
+    _ = graph.addNativeExamplesImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
         module,
     );
     return module;

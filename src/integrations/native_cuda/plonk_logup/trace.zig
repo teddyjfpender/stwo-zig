@@ -1,7 +1,7 @@
 //! CPU oracle boundary and CUDA recipe for the Native Plonk/LogUp trace.
 
 const std = @import("std");
-const cpu_input = @import("../../../examples/plonk_logup/input.zig");
+const cpu_input = @import("stwo_native_examples").backend_support.plonk_logup.input;
 const geometry_mod = @import("geometry.zig");
 const indexed_recurrence =
     @import("stwo_cuda_backend").runtime.traces.indexed_recurrence;

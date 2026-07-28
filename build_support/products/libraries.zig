@@ -49,7 +49,7 @@ pub fn addPublicModules(context: Context) Result {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addProofWireImport(
+    const proof_wire = graph.addProofWireImport(
         context.b,
         protocol,
         sdkProduct(),
@@ -70,6 +70,16 @@ pub fn addPublicModules(context: Context) Result {
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = graph.addNativeExamplesImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
         stwo,
     );
     const metal_backend = graph.addMetalBackendImport(
@@ -163,7 +173,7 @@ pub fn addProducts(context: Context) Result {
     });
     construction_observer.recordProduct(context.b, sdkProduct());
     prover.protocol.addImports(stwo);
-    _ = graph.addProofWireImport(
+    const proof_wire = graph.addProofWireImport(
         context.b,
         prover.protocol,
         sdkProduct(),
@@ -184,6 +194,16 @@ pub fn addProducts(context: Context) Result {
         sdkProduct(),
         context.target,
         context.optimize,
+        stwo,
+    );
+    _ = graph.addNativeExamplesImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
         stwo,
     );
     const metal_backend = graph.addMetalBackendImport(

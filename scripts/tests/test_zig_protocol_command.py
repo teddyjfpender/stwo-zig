@@ -18,7 +18,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             arguments.index("-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"),
         )
         self.assertLess(
-            arguments.index("-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"),
+            arguments.index("-Mstwo_core=src/core/mod.zig"),
             arguments.index("-Mstwo_backend_contracts=src/backend/mod.zig"),
         )
         self.assertLess(
@@ -31,6 +31,10 @@ class ZigProtocolCommandTests(unittest.TestCase):
         )
         self.assertLess(
             arguments.index("-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig"),
+            arguments.index("-Mstwo_native_examples=src/examples/mod.zig"),
+        )
+        self.assertLess(
+            arguments.index("-Mstwo_native_examples=src/examples/mod.zig"),
             arguments.index("-Mstwo_metal_backend=src/backends/metal/mod.zig"),
         )
         self.assertLess(

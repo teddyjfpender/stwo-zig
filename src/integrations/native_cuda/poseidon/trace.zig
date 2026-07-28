@@ -1,6 +1,6 @@
 //! AIR-owned binding from Native Poseidon semantics to a generic CUDA recipe.
 
-const cpu_poseidon = @import("../../../examples/poseidon/input.zig");
+const cpu_poseidon = @import("stwo_native_examples").backend_support.poseidon.input;
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const runtime_error = @import("stwo_cuda_backend").runtime.runtime_error;
 const m31_permutation =

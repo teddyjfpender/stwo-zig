@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const stark = @import("stwo_cuda_backend").runtime.proof_assembly.stark_bundle;
-const cpu_blake = @import("../../../../examples/blake.zig");
+const cpu_blake = @import("stwo_native_examples").blake;
 const geometry_mod = @import("geometry.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const Modulus = @import("stwo_core").fields.m31.Modulus;

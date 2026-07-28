@@ -509,6 +509,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/examples/src/lib.rs",
       "source": "src/stwo.zig"
     },
+    "stwo.examples.backend_support": {
+      "kind": "const",
+      "rationale": "Package-owned accelerator integration hooks; upstream examples expose implementation modules through their Rust crate layout rather than one equivalent namespace.",
+      "rust_path": null,
+      "source": "src/examples/mod.zig"
+    },
     "stwo.examples.blake": {
       "kind": "const",
       "rationale": null,
@@ -519,6 +525,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/examples/src/lib.rs",
+      "source": "src/examples/mod.zig"
+    },
+    "stwo.examples.plonk_logup": {
+      "kind": "const",
+      "rationale": "Zig's exact Plonk/LogUp example is a package-owned application surface without a matching top-level upstream example export.",
+      "rust_path": null,
       "source": "src/examples/mod.zig"
     },
     "stwo.examples.poseidon": {

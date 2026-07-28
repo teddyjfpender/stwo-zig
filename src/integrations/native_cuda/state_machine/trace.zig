@@ -1,7 +1,7 @@
 //! AIR-owned binding from state-machine semantics to a generic CUDA recipe.
 
 const cpu_state_machine =
-    @import("../../../examples/state_machine/input.zig");
+    @import("stwo_native_examples").backend_support.state_machine.input;
 const geometry_mod = @import("geometry.zig");
 const circle_affine =
     @import("stwo_cuda_backend").runtime.traces.circle_affine_state;

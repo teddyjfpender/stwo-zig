@@ -32,6 +32,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
+        .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
@@ -198,7 +199,7 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
-    _ = graph.addProofWireImport(
+    const proof_wire = graph.addProofWireImport(
         context.b,
         context.protocol,
         product(role),
@@ -219,6 +220,16 @@ fn createStwoModule(
         product(role),
         context.target,
         context.optimize,
+        module,
+    );
+    _ = graph.addNativeExamplesImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        proof_wire,
         module,
     );
     const metal_backend = graph.addMetalBackendImport(

@@ -14,6 +14,6 @@
 //! - `cairo` — (future) Full stwo-cairo prover in Zig
 //! - `riscv` — release-gated RV32IM frontend backed by the pinned Sail model
 
-pub const examples = @import("../examples/mod.zig");
+pub const examples = @import("stwo_native_examples");
 pub const cairo = @import("stwo_cairo_frontend");
 pub const riscv = @import("stwo_riscv_frontend");

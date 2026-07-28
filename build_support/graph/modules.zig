@@ -424,6 +424,54 @@ pub fn addProofWireImport(
     return proof_wire;
 }
 
+/// Constructs the package-owned Native example AIR suite against its explicit
+/// protocol, CPU-backend, and proof-codec dependencies.
+pub fn createNativeExamples(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cpu_backend: *std.Build.Module,
+    proof_wire: *std.Build.Module,
+) *std.Build.Module {
+    const examples = create(b, .{
+        .product = product,
+        .root_source_file = "src/examples/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    examples.addImport("stwo_core", protocol.core);
+    examples.addImport("stwo_prover_impl", protocol.prover);
+    examples.addImport("stwo_cpu_backend", cpu_backend);
+    examples.addImport("stwo_proof_wire", proof_wire);
+    return examples;
+}
+
+/// Declares a consumer's dependency on the package-owned Native example API.
+pub fn addNativeExamplesImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cpu_backend: *std.Build.Module,
+    proof_wire: *std.Build.Module,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const examples = createNativeExamples(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+        cpu_backend,
+        proof_wire,
+    );
+    consumer.addImport("stwo_native_examples", examples);
+    return examples;
+}
+
 pub fn coreProduct(role: Role) Product {
     return .{
         .name = "stwo-core",

@@ -177,7 +177,7 @@ pub fn addProducts(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addProofWireImport(
+    const proof_wire = graph.addProofWireImport(
         b,
         protocol,
         tool_product,
@@ -198,6 +198,16 @@ pub fn addProducts(
         tool_product,
         target,
         optimize,
+        stwo,
+    );
+    _ = graph.addNativeExamplesImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        cpu_backend,
+        proof_wire,
         stwo,
     );
     const metal_backend = graph.addMetalBackendImport(

@@ -1,7 +1,7 @@
 //! Frozen Native CPU proof identities for CUDA Plonk release gates.
 
 const std = @import("std");
-const cpu_plonk = @import("../../../examples/plonk.zig");
+const cpu_plonk = @import("stwo_native_examples").plonk;
 const proof_wire = @import("stwo_proof_wire");
 
 pub const Target = struct {

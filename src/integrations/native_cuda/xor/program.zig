@@ -117,7 +117,7 @@ fn emitWithBuffers(
         .id = 0,
         .component = 0,
         .expression = identities.constraint_expression,
-        .constraint_count = @import("../../../examples/xor/component.zig").N_CONSTRAINTS,
+        .constraint_count = @import("stwo_native_examples").backend_support.xor.component.N_CONSTRAINTS,
         .max_degree_log = 2,
     }};
     const commitments = commitmentTrees(geometry);
@@ -564,7 +564,7 @@ test "XOR emits exact generic Native AIR geometry and proof semantics" {
 
 test "XOR program tree and sample counts match a decoded CPU proof" {
     const allocator = std.testing.allocator;
-    const cpu_xor = @import("../../../examples/xor.zig");
+    const cpu_xor = @import("stwo_native_examples").xor;
     const protocol = @import("stwo_core").pcs.PcsConfig.default();
     const request = cpu_xor.Statement{
         .log_size = 5,

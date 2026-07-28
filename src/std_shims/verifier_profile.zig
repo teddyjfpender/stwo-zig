@@ -1,10 +1,10 @@
 const std = @import("std");
-const examples_blake = @import("../examples/blake.zig");
-const examples_poseidon = @import("../examples/poseidon.zig");
-const examples_plonk = @import("../examples/plonk.zig");
-const examples_xor = @import("../examples/xor.zig");
-const examples_state_machine = @import("../examples/state_machine.zig");
-const examples_wide_fibonacci = @import("../examples/wide_fibonacci.zig");
+const examples_blake = @import("stwo_native_examples").blake;
+const examples_poseidon = @import("stwo_native_examples").poseidon;
+const examples_plonk = @import("stwo_native_examples").plonk;
+const examples_xor = @import("stwo_native_examples").xor;
+const examples_state_machine = @import("stwo_native_examples").state_machine;
+const examples_wide_fibonacci = @import("stwo_native_examples").wide_fibonacci;
 
 /// Freestanding-friendly verifier shim surface.
 ///

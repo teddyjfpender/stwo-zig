@@ -4,7 +4,7 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const Modulus = @import("stwo_core").fields.m31.Modulus;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const cpu = @import("../../../examples/poseidon.zig");
+const cpu = @import("stwo_native_examples").poseidon;
 
 pub fn OutputFor(comptime Transaction: type) type {
     const Raw = Transaction.StarkStatementBundleOutput;

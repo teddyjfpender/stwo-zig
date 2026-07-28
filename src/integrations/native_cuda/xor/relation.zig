@@ -126,8 +126,8 @@ test "exact XOR relation topology is immutable and host validated" {
 test "generic descriptor rows equal exact CPU XOR relation fractions" {
     const M31 = @import("stwo_core").fields.m31.M31;
     const QM31 = @import("stwo_core").fields.qm31.QM31;
-    const cpu_input = @import("../../../examples/xor/input.zig");
-    const cpu_interaction = @import("../../../examples/xor/interaction.zig");
+    const cpu_input = @import("stwo_native_examples").backend_support.xor.input;
+    const cpu_interaction = @import("stwo_native_examples").backend_support.xor.interaction;
 
     var prepared = try cpu_input.prepare(std.testing.allocator, .{
         .log_size = 5,
@@ -183,9 +183,7 @@ fn evaluateColumn(
     descriptor: relation_abi.ColumnDescriptor,
     sources: []const []const @import("stwo_core").fields.m31.M31,
     row: usize,
-    lookup: @import(
-        "../../../examples/xor/interaction.zig",
-    ).LookupElements,
+    lookup: @import("stwo_native_examples").backend_support.xor.interaction.LookupElements,
 ) !@import("stwo_core").fields.qm31.QM31 {
     const first = try evaluateUse(descriptor.first, sources, row, lookup);
     if (descriptor.arity == 1) return first.fraction;
@@ -199,9 +197,7 @@ fn evaluateUse(
     use: relation_abi.UseDescriptor,
     sources: []const []const @import("stwo_core").fields.m31.M31,
     row: usize,
-    lookup: @import(
-        "../../../examples/xor/interaction.zig",
-    ).LookupElements,
+    lookup: @import("stwo_native_examples").backend_support.xor.interaction.LookupElements,
 ) !struct {
     fraction: @import("stwo_core").fields.qm31.QM31,
     multiplicity: @import("stwo_core").fields.qm31.QM31,

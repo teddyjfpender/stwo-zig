@@ -174,17 +174,28 @@ pub fn addProducts(context: Context) void {
     metal_test_module.addImport("stwo_metal_backend", context.metal_backend);
     metal_test_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
     metal_test_module.addImport("stwo_metal_session", context.metal_session);
-    _ = graph.addProofWireImport(
+    const test_product = graph.Product{
+        .name = "stwo-native-metal-tools",
+        .frontend = .native,
+        .backend = .metal,
+        .role = .@"test",
+    };
+    const proof_wire = graph.addProofWireImport(
         b,
         context.protocol,
-        .{
-            .name = "stwo-native-metal-tools",
-            .frontend = .native,
-            .backend = .metal,
-            .role = .@"test",
-        },
+        test_product,
         target,
         context.optimize,
+        metal_test_module,
+    );
+    _ = graph.addNativeExamplesImport(
+        b,
+        context.protocol,
+        test_product,
+        target,
+        context.optimize,
+        context.cpu_backend,
+        proof_wire,
         metal_test_module,
     );
     metal_test_module.addImport(

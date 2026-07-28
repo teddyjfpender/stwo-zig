@@ -1,7 +1,7 @@
 //! Fail-closed geometry for the exact Plonk/LogUp proof protocol.
 
 const std = @import("std");
-const cpu_input = @import("../../../examples/plonk_logup/input.zig");
+const cpu_input = @import("stwo_native_examples").backend_support.plonk_logup.input;
 const pcs = @import("stwo_core").pcs;
 
 pub const preprocessed_columns: u32 = 4;
