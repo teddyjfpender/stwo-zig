@@ -35,7 +35,7 @@ const witness_inputs = @import("resident/witness/inputs.zig");
 const witness_prepare = @import("resident/witness/prepare.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const circle_poly_mod = @import("stwo_prover_impl").poly.circle.poly;
+const circle_poly_mod = @import("stwo_prover_engine").poly.circle.poly;
 const canonic_circle_mod = @import("stwo_core").poly.circle.canonic;
 const CairoMerkleHasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
 

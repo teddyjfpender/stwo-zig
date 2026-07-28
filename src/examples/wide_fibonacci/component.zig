@@ -8,10 +8,10 @@ const core_constraints = @import("stwo_core").constraints;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const prover_air_accumulation = @import("stwo_prover_impl").air.accumulation;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_circle = @import("stwo_prover_impl").poly.circle;
-const prover_twiddles = @import("stwo_prover_impl").poly.twiddles;
+const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_circle = @import("stwo_prover_engine").poly.circle;
+const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const trace_input = @import("trace.zig");
 
 const M31 = m31.M31;

@@ -25,17 +25,19 @@ const prover = @import("stwo_riscv_frontend").prover_mod;
 const runner = @import("stwo_riscv_frontend").runner;
 const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const pcs = @import("stwo_core").pcs;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_engine = @import("stwo_prover_impl").engine;
-const prover_pcs = @import("stwo_prover_impl").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_engine = @import("stwo_prover_engine").engine;
+const prover_pcs = @import("stwo_prover_engine").pcs;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 const CpuProverEngine = riscv_cpu.CpuProverEngine;
 const ExtendedProof = prover.ExtendedProof;
 
 const CountingEngine = struct {
+    pub const Component = prover_component.ComponentProver;
     pub const Scheme = CpuProverEngine.Scheme;
     pub const Channel = CpuProverEngine.Channel;
+    pub const ExtendedProof = CpuProverEngine.ExtendedProof;
     pub const MerkleChannel = CpuProverEngine.MerkleChannel;
     var init_calls: usize = 0;
     var commit_calls: usize = 0;

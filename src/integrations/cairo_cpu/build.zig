@@ -7,9 +7,13 @@ pub fn build(b: *std.Build) void {
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
     const prover = b.dependency(
-        "stwo_prover_impl",
+        "stwo_prover_engine",
         dependency_options,
-    ).module("stwo_prover_impl");
+    ).module("stwo_prover_engine");
+    const prover_api = b.dependency(
+        "stwo_prover_api",
+        dependency_options,
+    ).module("stwo_prover_api");
     const cpu_backend = b.dependency(
         "stwo_cpu_backend",
         dependency_options,
@@ -24,7 +28,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     integration.addImport("stwo_core", core);
-    integration.addImport("stwo_prover_impl", prover);
+    integration.addImport("stwo_prover_api", prover_api);
+    integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_cairo_frontend", frontend);
 

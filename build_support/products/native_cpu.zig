@@ -24,7 +24,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
         .{ .name = "stwo_native_cpu", .source = "src/stwo_native_cpu.zig" },
         .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
         .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
         .{ .name = "native_resource_admission", .source = "src/prover/native/resource_admission.zig" },
         .{ .name = "native_transaction", .source = "src/integrations/native/transaction.zig" },

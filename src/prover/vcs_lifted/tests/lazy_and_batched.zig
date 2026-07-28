@@ -3,9 +3,9 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
-const quotient_ops = @import("stwo_prover_impl").pcs.quotient_ops;
-const secure_column = @import("stwo_prover_impl").secure_column;
-const prover_mod = @import("stwo_prover_impl").vcs_lifted.prover;
+const quotient_ops = @import("stwo_prover_engine").pcs.quotient_ops;
+const secure_column = @import("stwo_prover_engine").secure_column;
+const prover_mod = @import("stwo_prover_engine").vcs_lifted.prover;
 
 const M31 = m31.M31;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;

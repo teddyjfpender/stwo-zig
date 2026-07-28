@@ -8,7 +8,8 @@
   "dependencies": {
     "stwo_core": "../../core",
     "stwo_metal_backend": "../../backends/metal",
-    "stwo_prover_impl": "../../prover",
+    "stwo_prover_api": "../../prover_api",
+    "stwo_prover_engine": "../../prover",
     "stwo_riscv_frontend": "../../frontends/riscv"
   },
   "injected_modules": [],

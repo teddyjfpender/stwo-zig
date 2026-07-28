@@ -2,7 +2,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const vcs_test_utils = @import("stwo_core").vcs.test_utils;
 const vcs_verifier = @import("stwo_core").vcs.verifier;
-const vcs_prover = @import("stwo_prover_impl").vcs.prover;
+const vcs_prover = @import("stwo_prover_engine").vcs.prover;
 
 const M31 = m31.M31;
 

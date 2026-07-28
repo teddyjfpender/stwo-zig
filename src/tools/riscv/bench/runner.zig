@@ -9,7 +9,7 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const pcs_core = @import("stwo_core").pcs;
 
 const Timer = struct {

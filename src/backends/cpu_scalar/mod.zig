@@ -20,8 +20,8 @@ const qm31_mod = @import("stwo_core").fields.qm31;
 const fields_mod = @import("stwo_core").fields;
 const core_fri = @import("stwo_core").fri;
 const core_poly = @import("stwo_core").poly;
-const prover_impl = @import("stwo_prover_impl");
-const lifted_merkle = @import("stwo_prover_impl").vcs_lifted.prover;
+const prover_impl = @import("stwo_prover_engine");
+const lifted_merkle = @import("stwo_prover_engine").vcs_lifted.prover;
 const secure_composition = @import("secure_composition.zig");
 
 const M31 = m31_mod.M31;
@@ -46,12 +46,12 @@ pub const CpuBackend = struct {
 
     pub fn computeCompositionEvaluation(
         allocator: std.mem.Allocator,
-        components: []const @import("stwo_prover_impl").air.component_prover.ComponentProver,
+        components: []const @import("stwo_prover_engine").air.component_prover.ComponentProver,
         random_coeff: QM31,
-        trace: *const @import("stwo_prover_impl").air.component_prover.Trace,
+        trace: *const @import("stwo_prover_engine").air.component_prover.Trace,
         residency_handles: []const ?*anyopaque,
-        composition_twiddles: ?@import("stwo_prover_impl").poly.twiddles.TwiddleTree([]const M31),
-    ) !?@import("stwo_prover_impl").secure_column.SecureColumnByCoords {
+        composition_twiddles: ?@import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const M31),
+    ) !?@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
         _ = residency_handles;
         _ = composition_twiddles;
         return secure_composition.evaluateLargeRecurrenceComposition(
@@ -162,7 +162,7 @@ pub const CpuBackend = struct {
             return error.InvalidColumns;
         }
 
-        const prover = @import("stwo_prover_impl");
+        const prover = @import("stwo_prover_engine");
         const BaseDomain = @TypeOf(base_domain);
         const BaseTwiddles = @TypeOf(base_twiddles);
         const ExtendedDomain = @TypeOf(extended_domain);

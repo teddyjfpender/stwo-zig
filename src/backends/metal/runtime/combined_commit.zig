@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const metal_merkle = @import("../merkle_tree.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");

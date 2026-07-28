@@ -15,7 +15,7 @@ const source_closure = product_policy.SourceClosure{
     .named_imports = &.{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_prover", .source = "src/products/prover/root.zig" },
     },
     .allowed_prefixes = &.{

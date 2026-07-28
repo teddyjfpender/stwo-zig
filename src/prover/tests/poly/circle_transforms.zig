@@ -1,10 +1,10 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const eval_mod = @import("stwo_prover_impl").poly.circle.evaluation;
-const fft_kernels = @import("stwo_prover_impl").poly.circle.fft_kernels;
-const circle_poly = @import("stwo_prover_impl").poly.circle.poly;
-const twiddles_mod = @import("stwo_prover_impl").poly.twiddles;
+const eval_mod = @import("stwo_prover_engine").poly.circle.evaluation;
+const fft_kernels = @import("stwo_prover_engine").poly.circle.fft_kernels;
+const circle_poly = @import("stwo_prover_engine").poly.circle.poly;
+const twiddles_mod = @import("stwo_prover_engine").poly.twiddles;
 
 const M31 = m31.M31;
 const CircleCoefficients = circle_poly.CircleCoefficients;

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const adapter = @import("../adapter/mod.zig");
 const claim_generator = @import("../claim_generator.zig");
 const fixed_trace = @import("../conformance/fixed_trace.zig");

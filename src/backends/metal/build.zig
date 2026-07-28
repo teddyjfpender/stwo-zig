@@ -11,9 +11,13 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     ).module("stwo_backend_contracts");
     const prover = b.dependency(
-        "stwo_prover_impl",
+        "stwo_prover_engine",
         dependency_options,
-    ).module("stwo_prover_impl");
+    ).module("stwo_prover_engine");
+    const prover_api = b.dependency(
+        "stwo_prover_api",
+        dependency_options,
+    ).module("stwo_prover_api");
     const cpu_backend = b.dependency(
         "stwo_cpu_backend",
         dependency_options,
@@ -23,7 +27,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    addImports(backend, core, backend_contracts, prover, cpu_backend);
+    addImports(backend, core, backend_contracts, prover_api, prover, cpu_backend);
 
     const test_step = b.step(
         "test",
@@ -42,7 +46,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    addImports(deep_root, core, backend_contracts, prover, cpu_backend);
+    addImports(deep_root, core, backend_contracts, prover_api, prover, cpu_backend);
     const deep_tests = b.addTest(.{ .root_module = deep_root });
     linkRuntime(b, deep_tests);
 
@@ -54,12 +58,14 @@ fn addImports(
     module: *std.Build.Module,
     core: *std.Build.Module,
     backend_contracts: *std.Build.Module,
+    prover_api: *std.Build.Module,
     prover: *std.Build.Module,
     cpu_backend: *std.Build.Module,
 ) void {
     module.addImport("stwo_core", core);
     module.addImport("stwo_backend_contracts", backend_contracts);
-    module.addImport("stwo_prover_impl", prover);
+    module.addImport("stwo_prover_api", prover_api);
+    module.addImport("stwo_prover_engine", prover);
     module.addImport("stwo_cpu_backend", cpu_backend);
 }
 

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const opcode_memory = @import("air/opcode_memory.zig");
 const trace_mod = @import("runner/trace.zig");
 const state_chain = @import("runner/state_chain.zig");

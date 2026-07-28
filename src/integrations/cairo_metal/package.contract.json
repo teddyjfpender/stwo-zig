@@ -11,7 +11,7 @@
     "stwo_core": "../../core",
     "stwo_metal_backend": "../../backends/metal",
     "stwo_metal_session": "../../tools/metal_session",
-    "stwo_prover_impl": "../../prover"
+    "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [],
   "api_surface": [

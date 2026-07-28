@@ -6,6 +6,6 @@
     .dependencies = .{
         .stwo_core = .{ .path = "../../core" },
         .stwo_backend_contracts = .{ .path = "../../backend" },
-        .stwo_prover_impl = .{ .path = "../../prover" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
     },
 }

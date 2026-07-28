@@ -9,7 +9,7 @@ const generated = @import("generated_executor.zig");
 const interaction_executor = @import("interaction_executor.zig");
 const interaction_residency = @import("interaction_residency.zig");
 const program_mod = @import("program.zig");
-const prover = @import("stwo_prover_impl");
+const prover = @import("stwo_prover_engine");
 const work_pool = prover.work_pool;
 
 pub const Error = error{

@@ -4,10 +4,10 @@ const std = @import("std");
 const metal = @import("stwo_metal_backend").runtime;
 const m31 = @import("stwo_core").fields.m31;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const circle_poly = @import("stwo_prover_impl").poly.circle.poly;
-const twiddles = @import("stwo_prover_impl").poly.twiddles;
+const circle_poly = @import("stwo_prover_engine").poly.circle.poly;
+const twiddles = @import("stwo_prover_engine").poly.twiddles;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const merkle_prover = @import("stwo_prover_impl").vcs_lifted.prover;
+const merkle_prover = @import("stwo_prover_engine").vcs_lifted.prover;
 
 const M31 = m31.M31;
 const Hasher = blake2_merkle.Blake2sMerkleHasher;

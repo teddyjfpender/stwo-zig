@@ -9,6 +9,6 @@
         .stwo_cuda_backend = .{ .path = "../../backends/cuda" },
         .stwo_native_examples = .{ .path = "../../examples" },
         .stwo_proof_wire = .{ .path = "../../interop/proof_wire" },
-        .stwo_prover_impl = .{ .path = "../../prover" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
     },
 }

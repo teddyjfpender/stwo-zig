@@ -1,0 +1,31 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_prover_api",
+  "owner": "prover-api",
+  "public_modules": {
+    "stwo_prover_api": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../core"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "ColumnEvaluation",
+    "ColumnSource",
+    "ProveOptions",
+    "QuotientOpsError",
+    "assertProverEngine",
+    "column",
+    "engine",
+    "stage_profile"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

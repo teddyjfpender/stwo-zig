@@ -1,13 +1,14 @@
 {
   "schema": "stwo-zig-package-contract-v1",
-  "package": "stwo_prover_impl",
+  "package": "stwo_prover_engine",
   "owner": "prover-engine",
   "public_modules": {
-    "stwo_prover_impl": "mod.zig"
+    "stwo_prover_engine": "mod.zig"
   },
   "dependencies": {
     "stwo_core": "../core",
-    "stwo_backend_contracts": "../backend"
+    "stwo_backend_contracts": "../backend",
+    "stwo_prover_api": "../prover_api"
   },
   "injected_modules": [
     "native_resource_admission",

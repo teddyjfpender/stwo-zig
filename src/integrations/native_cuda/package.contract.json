@@ -11,7 +11,7 @@
     "stwo_cuda_backend": "../../backends/cuda",
     "stwo_native_examples": "../../examples",
     "stwo_proof_wire": "../../interop/proof_wire",
-    "stwo_prover_impl": "../../prover"
+    "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [],
   "api_surface": [

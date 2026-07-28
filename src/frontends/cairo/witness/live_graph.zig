@@ -20,7 +20,7 @@ const generated_executor_mod = @import("generated_executor.zig");
 const interaction_executor = @import("interaction_executor.zig");
 const producer_output = @import("producer_output.zig");
 const witness_bundle = @import("bundle.zig");
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const Error = error{
     AllocationSizeOverflow,

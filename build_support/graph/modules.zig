@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const package_ownership = @import("package_ownership.zig");
+const protocol_modules = @import("protocol_modules.zig");
 
 pub const Frontend = enum { none, native, riscv, cairo, aggregate };
 pub const Backend = enum { none, contracts, cpu, metal, cuda };
@@ -48,17 +49,7 @@ pub const ModuleSpec = struct {
     optimize: std.builtin.OptimizeMode,
 };
 
-pub const ProtocolModules = struct {
-    core: *std.Build.Module,
-    backend_contracts: *std.Build.Module,
-    prover: *std.Build.Module,
-
-    pub fn addImports(self: ProtocolModules, module: *std.Build.Module) void {
-        module.addImport("stwo_core", self.core);
-        module.addImport("stwo_backend_contracts", self.backend_contracts);
-        module.addImport("stwo_prover_impl", self.prover);
-    }
-};
+pub const ProtocolModules = protocol_modules.ProtocolModules;
 
 pub fn create(b: *std.Build, spec: ModuleSpec) *std.Build.Module {
     spec.product.validate() catch |err| std.debug.panic(
@@ -125,6 +116,14 @@ pub fn createProtocolModules(
     });
     backend_contracts.addImport("stwo_core", core);
 
+    const prover_api = create(b, .{
+        .product = proverProduct(.library),
+        .root_source_file = "src/prover_api/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    prover_api.addImport("stwo_core", core);
+
     const prover = create(b, .{
         .product = proverProduct(.library),
         .root_source_file = "src/prover/mod.zig",
@@ -133,10 +132,12 @@ pub fn createProtocolModules(
     });
     prover.addImport("stwo_core", core);
     prover.addImport("stwo_backend_contracts", backend_contracts);
+    prover.addImport("stwo_prover_api", prover_api);
 
     return .{
         .core = core,
         .backend_contracts = backend_contracts,
+        .prover_api = prover_api,
         .prover = prover,
     };
 }
@@ -442,7 +443,8 @@ pub fn createNativeExamples(
         .optimize = optimize,
     });
     examples.addImport("stwo_core", protocol.core);
-    examples.addImport("stwo_prover_impl", protocol.prover);
+    examples.addImport("stwo_prover_api", protocol.prover_api);
+    examples.addImport("stwo_prover_engine", protocol.prover);
     examples.addImport("stwo_cpu_backend", cpu_backend);
     examples.addImport("stwo_proof_wire", proof_wire);
     return examples;

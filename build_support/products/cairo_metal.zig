@@ -37,7 +37,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
     },
     .generated_imports = &.{
         "cairo_witness_cpu_aot",

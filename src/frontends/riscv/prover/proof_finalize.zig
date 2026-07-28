@@ -9,7 +9,7 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const component_order = @import("../air/component_order.zig");
 const clock_update_component = @import("../air/clock_update_component.zig");
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");

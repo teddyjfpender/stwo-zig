@@ -10,7 +10,7 @@ const state_chain = @import("stwo_riscv_frontend").runner.state_chain;
 const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const prove_block = @import("stwo_riscv_frontend").host.prove_block;
 const BlockInput = @import("stwo_riscv_frontend").host.block_input.BlockInput;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const CpuProverEngine = prover_mod.ProverEngineForBackend(CpuBackend);
 

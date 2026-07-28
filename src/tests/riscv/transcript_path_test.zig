@@ -10,7 +10,7 @@ const prover = @import("stwo_riscv_frontend").prover_mod;
 const relation_challenges = @import("stwo_riscv_frontend").air.relation_challenges;
 const runner = @import("stwo_riscv_frontend").runner;
 const postcard = @import("../../interop/postcard.zig");
-const prover_engine = @import("stwo_prover_impl").engine;
+const prover_engine = @import("stwo_prover_engine").engine;
 
 const QM31 = qm31.QM31;
 const BaseChannel = channel_blake2s.Blake2sChannel;

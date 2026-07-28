@@ -32,7 +32,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
         .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
         .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
-        .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
     },
     .allowed_files = &.{"src/cairo_cuda.zig"},
     .allowed_prefixes = &.{

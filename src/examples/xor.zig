@@ -14,9 +14,9 @@ const pcs_verifier = @import("stwo_core").pcs.verifier;
 const core_proof = @import("stwo_core").proof;
 const core_verifier = @import("stwo_core").verifier;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover_component = @import("stwo_prover_impl").air.component_prover;
-const prover_engine = @import("stwo_prover_impl").engine;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
+const prover_engine = @import("stwo_prover_engine").engine;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const prover_transaction = @import("common/prover_transaction.zig");
 const component_mod = @import("xor/component.zig");
 const interaction = @import("xor/interaction.zig");
@@ -45,7 +45,7 @@ pub fn ProverEngineForBackend(comptime Backend: type) type {
 }
 
 comptime {
-    prover_engine.assertProverEngine(CpuProverEngine);
+    @import("stwo_prover_api").assertProverEngine(CpuProverEngine);
 }
 
 pub const Error = trace_input.Error || error{

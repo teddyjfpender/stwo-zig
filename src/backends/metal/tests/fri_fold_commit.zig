@@ -11,8 +11,8 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const circle = @import("stwo_core").circle;
 const line = @import("stwo_core").poly.line;
-const secure_column = @import("stwo_prover_impl").secure_column;
-const merkle_prover = @import("stwo_prover_impl").vcs_lifted.prover;
+const secure_column = @import("stwo_prover_engine").secure_column;
+const merkle_prover = @import("stwo_prover_engine").vcs_lifted.prover;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 

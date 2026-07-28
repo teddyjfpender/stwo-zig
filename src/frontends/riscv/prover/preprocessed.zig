@@ -9,8 +9,8 @@
 //! that disagree about the shape of the same tree.
 
 const std = @import("std");
-const prover_pcs = @import("stwo_prover_impl").pcs;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_pcs = @import("stwo_prover_engine").pcs;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const table_schema = @import("../air/lookups/tables/schema.zig");
 const statement_mod = @import("../air/statement.zig");
 const opcode_trace = @import("opcode_trace.zig");

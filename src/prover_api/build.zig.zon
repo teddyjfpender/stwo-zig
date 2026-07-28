@@ -1,0 +1,9 @@
+.{
+    .fingerprint = 0xf1582549491d1625,
+    .name = .stwo_prover_api,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../core" },
+    },
+}

@@ -9,10 +9,10 @@ const pcs_utils = @import("stwo_core").pcs.utils;
 const core_quotients = @import("stwo_core").pcs.quotients;
 const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const component_prover = @import("stwo_prover_impl").air.component_prover;
-const prover_circle = @import("stwo_prover_impl").poly.circle;
-const prover_fri = @import("stwo_prover_impl").fri;
-const pcs_prover = @import("stwo_prover_impl").pcs;
+const component_prover = @import("stwo_prover_engine").air.component_prover;
+const prover_circle = @import("stwo_prover_engine").poly.circle;
+const prover_fri = @import("stwo_prover_engine").fri;
+const pcs_prover = @import("stwo_prover_engine").pcs;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

@@ -6,8 +6,8 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const decommit_mod = @import("stwo_prover_impl").vcs_lifted.decommit;
-const host_merkle = @import("stwo_prover_impl").vcs_lifted.prover;
+const decommit_mod = @import("stwo_prover_engine").vcs_lifted.decommit;
+const host_merkle = @import("stwo_prover_engine").vcs_lifted.prover;
 const runtime_mod = @import("runtime.zig");
 const shared_runtime = @import("shared_runtime.zig");
 

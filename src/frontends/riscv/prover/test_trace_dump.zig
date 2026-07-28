@@ -39,7 +39,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const prover_pcs = @import("stwo_prover_impl").pcs;
+const prover_pcs = @import("stwo_prover_engine").pcs;
 
 const public_data_mod = @import("../air/public_data.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");

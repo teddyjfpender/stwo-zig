@@ -6,9 +6,9 @@ const core_fri = @import("stwo_core").fri;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const fri = @import("stwo_prover_impl").fri;
-const prover_line = @import("stwo_prover_impl").line;
-const secure_column = @import("stwo_prover_impl").secure_column;
+const fri = @import("stwo_prover_engine").fri;
+const prover_line = @import("stwo_prover_engine").line;
+const secure_column = @import("stwo_prover_engine").secure_column;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

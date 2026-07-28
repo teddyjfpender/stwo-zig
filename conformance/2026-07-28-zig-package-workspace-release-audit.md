@@ -117,7 +117,7 @@ The package graph is:
 | --- | --- | --- | --- |
 | `stwo_core` | protocol-core | none | any |
 | `stwo_backend_contracts` | backend-contracts | core | any |
-| `stwo_prover_impl` | prover-engine | core, backend contracts | any |
+| `stwo_prover_engine` | prover-engine | core, backend contracts | any |
 | `stwo_riscv_frontend` | riscv-frontend | core, prover | any |
 | `stwo_cairo_frontend` | cairo-frontend | core, backend contracts, prover | any |
 | `stwo_cpu_backend` | cpu-backend | core, backend contracts, prover | any |

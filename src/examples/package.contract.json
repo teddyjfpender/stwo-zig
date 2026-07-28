@@ -9,7 +9,8 @@
     "stwo_core": "../core",
     "stwo_cpu_backend": "../backends/cpu_scalar",
     "stwo_proof_wire": "../interop/proof_wire",
-    "stwo_prover_impl": "../prover"
+    "stwo_prover_api": "../prover_api",
+    "stwo_prover_engine": "../prover"
   },
   "injected_modules": [],
   "api_surface": [

@@ -9,7 +9,8 @@
     "stwo_backend_contracts": "../../backend",
     "stwo_core": "../../core",
     "stwo_cpu_backend": "../cpu_scalar",
-    "stwo_prover_impl": "../../prover"
+    "stwo_prover_api": "../../prover_api",
+    "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [],
   "api_surface": [

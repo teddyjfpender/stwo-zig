@@ -5,7 +5,7 @@ const column_source_materialization = @import("runtime/column_source_materializa
 const commit_policy = @import("commit_policy.zig");
 const combined_commit = @import("runtime/combined_commit.zig");
 const fold_inverses = @import("runtime/fold_inverses.zig");
-const merkle = @import("stwo_prover_impl").vcs_lifted.prover;
+const merkle = @import("stwo_prover_engine").vcs_lifted.prover;
 const metal_merkle = @import("merkle_tree.zig");
 const ownership_testing = @import("runtime/ownership_testing.zig");
 const quadratic_trace = @import("runtime/quadratic_trace_backend.zig");
@@ -109,9 +109,9 @@ pub const MetalCommitBackend = struct {
 
     fn FriLineCascadeResult(comptime H: type) type {
         return struct {
-            columns: []@import("stwo_prover_impl").secure_column.SecureColumnByCoords,
+            columns: []@import("stwo_prover_engine").secure_column.SecureColumnByCoords,
             trees: []MerkleTree(H),
-            last_layer_evaluation: @import("stwo_prover_impl").line.LineEvaluation,
+            last_layer_evaluation: @import("stwo_prover_engine").line.LineEvaluation,
 
             pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
                 for (self.columns) |*column| column.deinit(allocator);
@@ -124,7 +124,7 @@ pub const MetalCommitBackend = struct {
         };
     }
 
-    pub fn allocateSecureColumn(column_len: usize) !@import("stwo_prover_impl").secure_column.SecureColumnByCoords {
+    pub fn allocateSecureColumn(column_len: usize) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
         const M31 = @import("stwo_core").fields.m31.M31;
         const DEGREE = @import("stwo_core").fields.qm31.SECURE_EXTENSION_DEGREE;
         var lease = try shared_runtime.acquire();
@@ -138,7 +138,7 @@ pub const MetalCommitBackend = struct {
         }
         shared_runtime.retainResidentResource();
         errdefer shared_runtime.releaseResidentResource();
-        return @import("stwo_prover_impl").secure_column.SecureColumnByCoords.initResident(
+        return @import("stwo_prover_engine").secure_column.SecureColumnByCoords.initResident(
             columns,
             .{
                 .handle = buffer.handle,
@@ -149,7 +149,7 @@ pub const MetalCommitBackend = struct {
 
     pub fn allocateLineEvaluation(
         domain: @import("stwo_core").poly.line.LineDomain,
-    ) !@import("stwo_prover_impl").line.LineEvaluation {
+    ) !@import("stwo_prover_engine").line.LineEvaluation {
         const QM31 = @import("stwo_core").fields.qm31.QM31;
         var lease = try shared_runtime.acquire();
         defer lease.deinit();
@@ -158,7 +158,7 @@ pub const MetalCommitBackend = struct {
         const values: [*]QM31 = @ptrCast(@alignCast(buffer.contents));
         shared_runtime.retainResidentResource();
         errdefer shared_runtime.releaseResidentResource();
-        return @import("stwo_prover_impl").line.LineEvaluation.initResident(
+        return @import("stwo_prover_engine").line.LineEvaluation.initResident(
             domain,
             values[0..domain.size()],
             .{
@@ -169,8 +169,8 @@ pub const MetalCommitBackend = struct {
     }
 
     pub fn secureColumnFromLine(
-        evaluation: @import("stwo_prover_impl").line.LineEvaluation,
-    ) !@import("stwo_prover_impl").secure_column.SecureColumnByCoords {
+        evaluation: @import("stwo_prover_engine").line.LineEvaluation,
+    ) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
         var column = try allocateSecureColumn(evaluation.len());
         errdefer column.deinit(std.heap.page_allocator);
         const source = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(evaluation.values));
@@ -192,10 +192,10 @@ pub const MetalCommitBackend = struct {
 
     pub fn secureColumnForMerkle(
         allocator: std.mem.Allocator,
-        evaluation: @import("stwo_prover_impl").line.LineEvaluation,
-    ) !@import("stwo_prover_impl").secure_column.SecureColumnByCoords {
+        evaluation: @import("stwo_prover_engine").line.LineEvaluation,
+    ) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
         if (!commit_policy.secureColumnUsesResidentMerkle(evaluation.len())) {
-            return @import("stwo_prover_impl").secure_column.SecureColumnByCoords.fromSecureSlice(
+            return @import("stwo_prover_engine").secure_column.SecureColumnByCoords.fromSecureSlice(
                 allocator,
                 evaluation.values,
             );
@@ -346,10 +346,10 @@ pub const MetalCommitBackend = struct {
         allocator: std.mem.Allocator,
         values: []const []@import("stwo_core").fields.m31.M31,
         domain: @import("stwo_core").poly.circle.domain.CircleDomain,
-        twiddle_tree: @import("stwo_prover_impl").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+        twiddle_tree: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
     ) !void {
         if (domain.logSize() < 3) {
-            try @import("stwo_prover_impl").poly.circle.poly.interpolateBuffersWithTwiddles(values, domain, twiddle_tree);
+            try @import("stwo_prover_engine").poly.circle.poly.interpolateBuffersWithTwiddles(values, domain, twiddle_tree);
             telemetry.record(.cpu_small_circle_interpolation);
             return;
         }
@@ -369,10 +369,10 @@ pub const MetalCommitBackend = struct {
         allocator: std.mem.Allocator,
         values: []const []@import("stwo_core").fields.m31.M31,
         domain: @import("stwo_core").poly.circle.domain.CircleDomain,
-        twiddle_tree: @import("stwo_prover_impl").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+        twiddle_tree: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
     ) !void {
         if (domain.logSize() < 3) {
-            try @import("stwo_prover_impl").poly.circle.poly.evaluateBuffersWithTwiddles(values, domain, twiddle_tree);
+            try @import("stwo_prover_engine").poly.circle.poly.evaluateBuffersWithTwiddles(values, domain, twiddle_tree);
             telemetry.record(.cpu_small_circle_evaluation);
             return;
         }
@@ -397,13 +397,13 @@ pub const MetalCommitBackend = struct {
         extended_start: usize,
         extended_stride: usize,
         base_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
-        base_twiddles: @import("stwo_prover_impl").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+        base_twiddles: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
         extended_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
-        extended_twiddles: @import("stwo_prover_impl").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+        extended_twiddles: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
     ) !void {
         if (base_domain.logSize() < 3) {
             for (source_values, base_values) |source, base| @memcpy(base, source);
-            try @import("stwo_prover_impl").poly.circle.poly.interpolateBuffersWithTwiddles(
+            try @import("stwo_prover_engine").poly.circle.poly.interpolateBuffersWithTwiddles(
                 base_values,
                 base_domain,
                 base_twiddles,
@@ -412,7 +412,7 @@ pub const MetalCommitBackend = struct {
                 @memcpy(extended[0..base.len], base);
                 @memset(extended[base.len..], @import("stwo_core").fields.m31.M31.zero());
             }
-            try @import("stwo_prover_impl").poly.circle.poly.evaluateBuffersWithTwiddles(
+            try @import("stwo_prover_engine").poly.circle.poly.evaluateBuffersWithTwiddles(
                 extended_values,
                 extended_domain,
                 extended_twiddles,
@@ -480,11 +480,11 @@ pub const MetalCommitBackend = struct {
 
     pub fn foldLineEvaluationN(
         allocator: std.mem.Allocator,
-        evaluation: @import("stwo_prover_impl").line.LineEvaluation,
+        evaluation: @import("stwo_prover_engine").line.LineEvaluation,
         alpha: @import("stwo_core").fields.qm31.QM31,
         workspace: *@import("stwo_core").fri.FoldLineWorkspace,
         n_folds: u32,
-    ) !@import("stwo_prover_impl").line.LineEvaluation {
+    ) !@import("stwo_prover_engine").line.LineEvaluation {
         var current = evaluation;
         var owns_current = false;
         var current_alpha = alpha;
@@ -526,13 +526,13 @@ pub const MetalCommitBackend = struct {
     pub fn foldLineAndCommitNext(
         comptime H: type,
         allocator: std.mem.Allocator,
-        evaluation: @import("stwo_prover_impl").line.LineEvaluation,
+        evaluation: @import("stwo_prover_engine").line.LineEvaluation,
         alpha: @import("stwo_core").fields.qm31.QM31,
         workspace: *@import("stwo_core").fri.FoldLineWorkspace,
         n_folds: u32,
     ) !@import("stwo_backend_contracts").fri_ops.FoldLineAndCommitResult(MerkleTree(H)) {
         const M31 = @import("stwo_core").fields.m31.M31;
-        const secure_column = @import("stwo_prover_impl").secure_column;
+        const secure_column = @import("stwo_prover_engine").secure_column;
         if (n_folds == 0 or n_folds >= @bitSizeOf(usize) or
             evaluation.len() >> @intCast(n_folds) == 0)
         {
@@ -637,7 +637,7 @@ pub const MetalCommitBackend = struct {
     pub fn commitFriLineCascade(
         comptime H: type,
         allocator: std.mem.Allocator,
-        evaluation: @import("stwo_prover_impl").line.LineEvaluation,
+        evaluation: @import("stwo_prover_engine").line.LineEvaluation,
         channel: anytype,
         workspace: *@import("stwo_core").fri.FoldLineWorkspace,
         last_layer_size: usize,
@@ -679,7 +679,7 @@ pub const MetalCommitBackend = struct {
             current_domain = current_domain.double();
         }
 
-        const SecureColumn = @import("stwo_prover_impl").secure_column.SecureColumnByCoords;
+        const SecureColumn = @import("stwo_prover_engine").secure_column.SecureColumnByCoords;
         const columns = try allocator.alloc(SecureColumn, layer_count);
         var initialized_columns: usize = 0;
         errdefer {
@@ -780,7 +780,7 @@ pub const MetalCommitBackend = struct {
         comptime InnerLayerProver: type,
         comptime InnerCommitResult: type,
         allocator: std.mem.Allocator,
-        evaluation: @import("stwo_prover_impl").line.LineEvaluation,
+        evaluation: @import("stwo_prover_engine").line.LineEvaluation,
         channel: anytype,
         workspace: *@import("stwo_core").fri.FoldLineWorkspace,
         config: @import("stwo_core").fri.FriConfig,

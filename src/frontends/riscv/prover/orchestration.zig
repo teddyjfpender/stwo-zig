@@ -49,8 +49,8 @@
 
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
-const prover_engine = @import("stwo_prover_impl").engine;
-const stage_profile = @import("stwo_prover_impl").stage_profile;
+const prover_engine = @import("stwo_prover_engine").engine;
+const stage_profile = @import("stwo_prover_api").stage_profile;
 const relation_challenges = @import("../air/relation_challenges.zig");
 const trace_mod = @import("../runner/trace.zig");
 const memory_state = @import("../runner/memory_state.zig");
@@ -132,7 +132,7 @@ pub fn runRiscVWithEngineAndPublicDataUsingChannel(
     test_mutation: ?TestWitnessMutation,
     test_dump: ?*TestTraceDump,
 ) !RunOutput(mode) {
-    comptime prover_engine.assertProverEngine(Engine);
+    comptime @import("stwo_prover_api").assertProverEngine(Engine);
     const workspace = try ProofWorkspace.create(allocator);
     defer workspace.destroy(allocator);
 

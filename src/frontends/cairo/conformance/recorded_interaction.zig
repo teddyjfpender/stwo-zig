@@ -8,7 +8,7 @@ const interaction_executor = @import("../witness/interaction_executor.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 const interaction_topology = @import("../witness/interaction_topology.zig");
 const interaction_trace = @import("../witness/interaction_trace.zig");
-const work_pool = @import("stwo_prover_impl").work_pool;
+const work_pool = @import("stwo_prover_engine").work_pool;
 
 pub const MismatchKind = enum {
     lookup_geometry,

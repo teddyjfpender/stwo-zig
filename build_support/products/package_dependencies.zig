@@ -8,12 +8,14 @@ pub const protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const native_protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
 };
@@ -79,6 +81,7 @@ pub const cpu_protocol_package_roots = &.{
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const cairo_protocol_package_roots = &.{
@@ -86,6 +89,7 @@ pub const cairo_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const cairo_cuda_protocol_package_roots = &.{
@@ -99,6 +103,7 @@ pub const cairo_cuda_protocol_package_roots = &.{
     "dependency:../src/integrations/native_cuda:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const cairo_cpu_protocol_package_roots = &.{
@@ -108,6 +113,7 @@ pub const cairo_cpu_protocol_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const cairo_metal_cpu_protocol_package_roots = &.{
@@ -119,6 +125,7 @@ pub const cairo_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
 };
 
@@ -127,6 +134,7 @@ pub const riscv_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const frontend_protocol_package_roots = &.{
@@ -135,6 +143,7 @@ pub const frontend_protocol_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const frontend_cpu_protocol_package_roots = &.{
@@ -146,6 +155,7 @@ pub const frontend_cpu_protocol_package_roots = &.{
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const frontend_metal_cpu_protocol_package_roots = &.{
@@ -158,6 +168,7 @@ pub const frontend_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
@@ -176,6 +187,7 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
 };
 
@@ -196,6 +208,7 @@ pub const metal_tools_package_roots = &.{
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
 };
 
@@ -208,6 +221,7 @@ pub const riscv_cpu_protocol_package_roots = &.{
     "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const riscv_metal_cpu_protocol_package_roots = &.{
@@ -218,6 +232,7 @@ pub const riscv_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/riscv_metal:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
 };
 
 pub const native_riscv_protocol_package_roots = &.{
@@ -225,6 +240,7 @@ pub const native_riscv_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
 };
@@ -236,6 +252,7 @@ pub const native_cpu_protocol_package_roots = &.{
     "dependency:../src/examples:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
 };
@@ -248,6 +265,7 @@ pub const native_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/examples:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
 };
@@ -262,6 +280,7 @@ pub const native_riscv_cpu_protocol_package_roots = &.{
     "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
 };
@@ -284,6 +303,7 @@ pub const compatibility_package_roots = &.{
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
     "dependency:../src/tools/metal_session:mod.zig",

@@ -5,7 +5,7 @@ const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bu
 const eval_program = @import("stwo_cairo_frontend").witness.eval_program;
 const circle = @import("stwo_core").circle;
 const canonic = @import("stwo_core").poly.circle.canonic;
-const circle_poly = @import("stwo_prover_impl").poly.circle.poly;
+const circle_poly = @import("stwo_prover_engine").poly.circle.poly;
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 

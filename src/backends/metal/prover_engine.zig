@@ -1,7 +1,7 @@
 const std = @import("std");
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover_engine = @import("stwo_prover_impl").engine;
+const prover_engine = @import("stwo_prover_engine").engine;
 const MetalCommitBackend = @import("commit_backend.zig").MetalCommitBackend;
 
 const Hasher = blake2_merkle.Blake2sPrefixedMerkleHasher;
@@ -25,12 +25,12 @@ pub const PlainMetalProverEngine = prover_engine.ProverEngine(
 );
 
 comptime {
-    prover_engine.assertProverEngine(MetalProverEngine);
-    prover_engine.assertProverEngine(PlainMetalProverEngine);
+    @import("stwo_prover_api").assertProverEngine(MetalProverEngine);
+    @import("stwo_prover_api").assertProverEngine(PlainMetalProverEngine);
 }
 
 test "Metal prover engine satisfies the shared transaction contract" {
-    comptime prover_engine.assertProverEngine(MetalProverEngine);
+    comptime @import("stwo_prover_api").assertProverEngine(MetalProverEngine);
     std.testing.refAllDecls(MetalProverEngine);
     _ = MetalProverEngine.TelemetrySnapshot;
     _ = &MetalProverEngine.telemetrySnapshot;
