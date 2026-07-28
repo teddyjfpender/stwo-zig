@@ -243,8 +243,8 @@ class RetainedReportTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.report = csp.load_json(csp.DEFAULT_REPORT)
-        cls.manifest_path = csp.ROOT / cls.report["suite_manifest"]
-        cls.manifest = csp.load_json(cls.manifest_path)
+        cls.manifest_path = csp.MANIFEST
+        cls.manifest, _, cls.negative_cases = csp.validate_manifest()
         cls.raw_cases = [
             (target, case, spec["guest"])
             for target, spec in cls.manifest["targets"].items()
@@ -253,12 +253,11 @@ class RetainedReportTests(unittest.TestCase):
 
     def test_report_is_the_complete_verified_standard_matrix(self) -> None:
         report = self.report
-        expected_schema = (
-            "stwo_riscv_csp_benchmark_v2"
-            if self.manifest["schema"] == "stwo_riscv_csp_suite_v2"
-            else "stwo_riscv_csp_benchmark_v1"
+        self.assertEqual(csp.SCHEMA, report["schema"])
+        self.assertEqual(
+            str(csp.MANIFEST.relative_to(csp.ROOT)),
+            report["suite_manifest"],
         )
-        self.assertEqual(expected_schema, report["schema"])
         self.assertEqual(report["measurement_commit"], report["repository_head"])
         self.assertRegex(report["measurement_commit"], csp.HEX_40)
         self.assertEqual(
@@ -329,22 +328,17 @@ class RetainedReportTests(unittest.TestCase):
                 )
                 self.assertFalse(receipt["implementation_dirty"])
 
-        if self.manifest["schema"] == "stwo_riscv_csp_suite_v2":
-            self.assertTrue(summary["all_negative_fixtures_rejected"])
-            self.assertEqual(
-                [
-                    (
-                        fixture["name"],
-                        fixture["target"],
-                        "rejected_as_expected",
-                    )
-                    for fixture in self.manifest["negative_fixtures"]
-                ],
-                [
-                    (item["name"], item["target"], item["status"])
-                    for item in report["negative_validation"]
-                ],
-            )
+        self.assertTrue(summary["all_negative_fixtures_rejected"])
+        self.assertEqual(
+            [
+                (case.name, case.target, "rejected_as_expected")
+                for case in self.negative_cases
+            ],
+            [
+                (item["name"], item["target"], item["status"])
+                for item in report["negative_validation"]
+            ],
+        )
 
     def test_report_preserves_security_and_host_qualification(self) -> None:
         report = self.report
