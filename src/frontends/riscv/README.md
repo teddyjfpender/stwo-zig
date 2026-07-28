@@ -102,6 +102,60 @@ macOS Metal product is separate and fail closed:
 zig build stwo-riscv-metal -Doptimize=ReleaseFast
 ```
 
+## EthProofs CSP benchmark
+
+The standard client-side proving benchmark runs the exact SHA-256 and
+Keccak-256 workloads pinned in
+[`vectors/riscv_csp/manifest-v1.json`](../../../vectors/riscv_csp/manifest-v1.json).
+The manifest authenticates the upstream CSP revision, guest sources and
+lockfiles, committed RV32IM ELFs, deterministic inputs, expected digests, and
+expected retirement counts.
+
+Run the complete canonical matrix with:
+
+```sh
+zig build riscv-csp-bench -Doptimize=ReleaseFast
+```
+
+The build step installs the production CPU prover and trace diagnostic, then
+runs both targets over 128, 256, 512, 1024, and 2048 input bytes with the
+`secure` protocol. It performs one warmup and ten verified samples per row and
+writes `vectors/reports/riscv_csp_benchmark_report.json`.
+
+For a quick, non-headline development run:
+
+```sh
+zig build stwo-zig-riscv-cpu riscv-trace-dump -Doptimize=ReleaseFast
+python3 scripts/riscv_csp_benchmark.py \
+  --targets sha256 --sizes 128 --warmups 0 --samples 1
+```
+
+The CSP proving duration is execution plus witness construction plus proof
+generation; verification is reported separately. Proof size counts the
+canonical Postcard proof bytes, while preprocessing size counts the retained
+guest ELF. Every sample is internally verified, and the retained proof is
+verified again in a separate process against the original ELF and expected
+statement digest.
+
+Results collected away from CSP's AWS `mac2.metal` Apple M1, 8-core, 16-GiB
+host are deliberately labelled `host-qualified-non-comparable`. The command
+never uploads a result. ECDSA, Poseidon, and Poseidon2 remain in the manifest's
+explicit unsupported ledger until workload-identical guests are committed.
+
+An audit can additionally regenerate every input and expected digest from a
+clean checkout of the pinned upstream repository:
+
+```sh
+python3 scripts/riscv_csp_benchmark.py \
+  --audit-csp-source /path/to/csp-benchmarks \
+  --targets sha256 --sizes 128 --warmups 0 --samples 1
+```
+
+The upstream checkout must be at the manifest commit, be clean, contain the
+authenticated source files, and have its locked release `utils` executable
+built. Audit failure is fatal and cannot silently fall back to committed
+fixtures.
+
 ## Contract and invariants
 
 - API signature: runner and engine-generic proving entry points remain present.

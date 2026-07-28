@@ -179,6 +179,17 @@ pub fn addProduct(context: Context) void {
         "Export and independently check all RISC-V AIR main-trace components",
     ).dependOn(&air_satisfaction_check.step);
 
+    const csp_benchmark = context.b.addSystemCommand(&.{
+        "python3",
+        "scripts/riscv_csp_benchmark.py",
+    });
+    csp_benchmark.step.dependOn(&install_host.step);
+    csp_benchmark.step.dependOn(&install_host_trace.step);
+    context.b.step(
+        "riscv-csp-bench",
+        "Run the pinned EthProofs CSP benchmark matrix",
+    ).dependOn(&csp_benchmark.step);
+
     const closure_check = closure_gate.addCheck(.{
         .b = context.b,
         .descriptor = descriptor,

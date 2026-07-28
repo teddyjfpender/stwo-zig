@@ -499,6 +499,29 @@ def _validate_artifact(
     return proof_bytes, sha256_bytes(proof_bytes)
 
 
+def _validate_verify_receipt(
+    receipt: Mapping[str, Any],
+    case: Case,
+    *,
+    statement_digest: str,
+    proof_bytes: bytes,
+    proof_sha256: str,
+    implementation_commit: str,
+) -> None:
+    if (
+        receipt.get("schema") != "riscv_verify_v1"
+        or receipt.get("status") != "verified"
+        or receipt.get("statement_sha256") != statement_digest
+        or receipt.get("proof_bytes") != len(proof_bytes)
+        or receipt.get("proof_sha256") != proof_sha256
+        or receipt.get("implementation_commit") != implementation_commit
+        or receipt.get("implementation_dirty") is not False
+    ):
+        raise BenchmarkError(
+            f"{case.target}/{case.input_size}: retained-proof receipt drifted"
+        )
+
+
 def benchmark_case(
     case: Case,
     cli: Path,
@@ -586,19 +609,18 @@ def benchmark_case(
         raise BenchmarkError(
             f"{case.target}/{case.input_size}: retained-proof receipt is invalid"
         ) from error
-    if (
-        not isinstance(receipt, dict)
-        or receipt.get("schema") != "riscv_verify_v1"
-        or receipt.get("status") != "verified"
-        or receipt.get("statement_sha256") != statement_digest
-        or receipt.get("proof_bytes") != len(proof_bytes)
-        or receipt.get("proof_sha256") != proof_sha256
-        or receipt.get("implementation_commit") != implementation_commit
-        or receipt.get("implementation_dirty") is not False
-    ):
+    if not isinstance(receipt, dict):
         raise BenchmarkError(
-            f"{case.target}/{case.input_size}: retained-proof receipt drifted"
+            f"{case.target}/{case.input_size}: retained-proof receipt is not an object"
         )
+    _validate_verify_receipt(
+        receipt,
+        case,
+        statement_digest=statement_digest,
+        proof_bytes=proof_bytes,
+        proof_sha256=proof_sha256,
+        implementation_commit=implementation_commit,
+    )
 
     prove_seconds, verify_seconds = _phase_seconds(report)
     peak_memory, memory_source = _peak_memory(report)
