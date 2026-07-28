@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from scripts import check_package_workspace as subject
@@ -44,6 +45,33 @@ const std = @import("std");
 /* @import("also_ignored") */
 """
         self.assertEqual(["std"], subject.IMPORT_RE.findall(subject.strip_comments(text)))
+
+    def test_relative_import_cannot_enter_a_package_owner(self) -> None:
+        with TemporaryDirectory() as directory:
+            repository = Path(directory).resolve()
+            owner = repository / "src/owned"
+            consumer = repository / "src/consumer.zig"
+            owner.mkdir(parents=True)
+            (owner / "mod.zig").write_text("pub const ok = true;\n", encoding="utf-8")
+            consumer.write_text(
+                'const owned = @import("owned/mod.zig");\n',
+                encoding="utf-8",
+            )
+            contract = subject.Contract(
+                directory=owner,
+                package="owned_package",
+                owner="owned-team",
+                public_modules={"owned_package": "mod.zig"},
+                dependencies={},
+                injected_modules=frozenset(),
+                api_surface=("ok",),
+                ci_host="any",
+                ci_command=("zig", "build", "test"),
+            )
+            failures: list[str] = []
+            subject._validate_relative_ingress(repository, [contract], failures)
+            self.assertEqual(1, len(failures))
+            self.assertIn("use one of ['owned_package']", failures[0])
 
 
 if __name__ == "__main__":

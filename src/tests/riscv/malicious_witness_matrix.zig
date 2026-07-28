@@ -2,9 +2,9 @@
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const prover = @import("../../frontends/riscv/prover.zig");
+const prover = @import("stwo_riscv_frontend").prover_mod;
 const postcard = @import("../../interop/postcard.zig");
-const transcript = @import("../../frontends/riscv/air/transcript/mod.zig");
+const transcript = @import("stwo_riscv_frontend").air.transcript;
 const pcs_core = @import("stwo_core").pcs;
 
 /// One prove, many verify attempts: every attempt decodes a fresh proof from

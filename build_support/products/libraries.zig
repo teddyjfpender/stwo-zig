@@ -48,6 +48,14 @@ pub fn addPublicModules(context: Context) Result {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addRiscVFrontendImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
     return .{ .stwo = stwo, .protocol = protocol };
 }
 
@@ -73,14 +81,16 @@ pub fn addProducts(context: Context) Result {
         .target = context.target,
         .optimize = context.optimize,
     });
-    construction_observer.recordProduct(context.b, .{
-        .name = "stwo",
-        .frontend = .aggregate,
-        .backend = .contracts,
-        .role = .library,
-        .protocol_features = "aggregate-sdk-v1",
-    });
+    construction_observer.recordProduct(context.b, sdkProduct());
     prover.protocol.addImports(stwo);
+    _ = graph.addRiscVFrontendImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
 
     const downstream = context.b.addSystemCommand(&.{
         "python3",
@@ -96,6 +106,16 @@ pub fn addProducts(context: Context) Result {
     prover.test_step.dependOn(&downstream.step);
 
     return .{ .stwo = stwo, .protocol = prover.protocol };
+}
+
+fn sdkProduct() graph.Product {
+    return .{
+        .name = "stwo",
+        .frontend = .aggregate,
+        .backend = .contracts,
+        .role = .library,
+        .protocol_features = "aggregate-sdk-v1",
+    };
 }
 
 pub fn consumer(

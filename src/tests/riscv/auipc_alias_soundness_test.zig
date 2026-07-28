@@ -63,8 +63,8 @@ const M31 = m31.M31;
 const harness = @import("committed_forgery_harness.zig");
 const guest_elf = @import("guest_elf_fixture.zig");
 const layout = @import("committed_row_layout.zig");
-const schema = @import("../../frontends/riscv/air/lookups/tables/schema.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
+const schema = @import("stwo_riscv_frontend").air.lookups.tables.schema;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
 
 /// `AUIPC x10, 0x2`: `rd = pc + (0x2 << 12)`. U-type immediates are 4096-aligned,
 /// so `imm_felt = 0x2000` and the honest low limb is zero — the property the pin

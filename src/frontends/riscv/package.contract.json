@@ -1,0 +1,48 @@
+{
+  "schema": "stwo-zig-package-contract-v1",
+  "package": "stwo_riscv_frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_frontend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_prover_impl": "../../prover"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "Cpu",
+    "HostInterface",
+    "HostRuntime",
+    "Memory",
+    "Opcode",
+    "RiscVClaim",
+    "access_clock",
+    "air",
+    "diagnostics",
+    "host",
+    "infra_trace",
+    "isa",
+    "opcode_manifest",
+    "owned_statement",
+    "proveAndVerifyElfWithEngine",
+    "proveRiscVWithEngine",
+    "proveRiscVWithEngineAndPublicData",
+    "prover_mod",
+    "runWithHost",
+    "runWithInput",
+    "runner",
+    "testing",
+    "verifyRiscVWithEngine",
+    "witness_layout"
+  ],
+  "ci": {
+    "host": "any",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "-Doptimize=ReleaseFast"
+    ]
+  }
+}

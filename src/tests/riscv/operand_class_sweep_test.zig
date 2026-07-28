@@ -40,11 +40,11 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const guest_elf = @import("guest_elf_fixture.zig");
 const operand_classes = @import("operand_classes.zig");
 const row_admissibility = @import("row_admissibility.zig");
-const isa_decode = @import("../../frontends/riscv/isa/decode.zig");
-const opcode_manifest = @import("../../frontends/riscv/opcode_manifest.zig");
-const public_values = @import("../../frontends/riscv/diagnostics/public_values.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const isa_decode = @import("stwo_riscv_frontend").isa.decode;
+const opcode_manifest = @import("stwo_riscv_frontend").opcode_manifest;
+const public_values = @import("stwo_riscv_frontend").diagnostics.public_values;
+const runner = @import("stwo_riscv_frontend").runner;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
 
 const Case = operand_classes.Case;

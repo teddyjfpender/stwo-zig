@@ -144,6 +144,7 @@ class PlannerContractTests(unittest.TestCase):
                 "core",
                 "backend_contracts",
                 "prover",
+                "riscv_frontend",
                 "package",
                 "native_cpu",
                 "native_oracle",
@@ -164,10 +165,27 @@ class PlannerContractTests(unittest.TestCase):
                 "static",
                 "backend_contracts",
                 "prover",
+                "riscv_frontend",
                 "package",
             }.issubset(selected)
         )
         self.assertNotIn("core", selected)
+
+    def test_riscv_frontend_has_an_independent_package_lane(self) -> None:
+        selected = self.lanes_for("src/frontends/riscv/air/semantic_eval.zig")
+        self.assertTrue(
+            {
+                "static",
+                "riscv_frontend",
+                "package",
+                "riscv_cpu",
+                "aggregate_cpu",
+                "aggregate_metal",
+            }.issubset(selected)
+        )
+        commands = self.policy["lanes"]["riscv_frontend"]["commands"]
+        self.assertEqual(1, len(commands))
+        self.assertIn("src/frontends/riscv/build.zig", commands[0])
 
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]
@@ -381,7 +399,7 @@ class PlannerContractTests(unittest.TestCase):
                 "aggregate_cpu", "aggregate_metal", "cairo_cpu", "cairo_metal",
                 "native_cpu", "native_cuda_device",
                 "native_cuda_static", "native_metal", "native_oracle", "package",
-                "prover", "riscv_cpu", "static",
+                "prover", "riscv_cpu", "riscv_frontend", "static",
             ],
         )
 

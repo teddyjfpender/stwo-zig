@@ -18,11 +18,11 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
-const entry_mod = @import("../../frontends/riscv/air/lookups/entry.zig");
-const schema = @import("../../frontends/riscv/air/lookups/tables/schema.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const opcode_entries = @import("stwo_riscv_frontend").air.lookups.opcode_entries;
+const entry_mod = @import("stwo_riscv_frontend").air.lookups.entry;
+const schema = @import("stwo_riscv_frontend").air.lookups.tables.schema;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 
 const OpcodeFamily = trace_mod.OpcodeFamily;
 

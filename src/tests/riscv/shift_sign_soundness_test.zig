@@ -74,7 +74,7 @@ const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
 
 const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");

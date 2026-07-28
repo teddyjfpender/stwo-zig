@@ -23,7 +23,7 @@ pub const examples = struct {
 };
 
 pub const frontends = struct {
-    pub const riscv = @import("frontends/riscv/mod.zig");
+    pub const riscv = @import("stwo_riscv_frontend");
 };
 
 pub const integrations = struct {

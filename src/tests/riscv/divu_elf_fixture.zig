@@ -54,8 +54,8 @@ pub fn buildDivuQuotientElf(allocator: std.mem.Allocator) ![]u8 {
 // Tests
 // ---------------------------------------------------------------------------
 
-const runner = @import("../../frontends/riscv/runner/mod.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const runner = @import("stwo_riscv_frontend").runner;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 
 // Runtime: well under a second. The guest retires eleven instructions.
 test "divu fixture: the guest retires one div row whose quotient reaches public output" {

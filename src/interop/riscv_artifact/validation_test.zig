@@ -10,12 +10,14 @@ const BASE_ALU_IMM: u8 = 1;
 const RELEASE_STATUS = "not_release_gated";
 
 const zero: schema.Qm31Wire = .{ 0, 0, 0, 0 };
-const auipc_sums = [_]schema.Qm31Wire{zero} ** 4;
-const immediate_sums = [_]schema.Qm31Wire{zero} ** 8;
-const program_sums = [_]schema.Qm31Wire{zero} ** 3;
-const merkle_sums = [_]schema.Qm31Wire{zero} ** 3;
-const poseidon_sums = [_]schema.Qm31Wire{zero} ** 2;
-const clock_sums = [_]schema.Qm31Wire{zero} ** 2;
+const auipc_sums = [_]schema.Qm31Wire{zero} **
+    protocol.familyByOrdinal(AUIPC).?.n_interaction_batches;
+const immediate_sums = [_]schema.Qm31Wire{zero} **
+    protocol.familyByOrdinal(BASE_ALU_IMM).?.n_interaction_batches;
+const program_sums = [_]schema.Qm31Wire{zero} ** protocol.claimCount(.program);
+const merkle_sums = [_]schema.Qm31Wire{zero} ** protocol.claimCount(.merkle);
+const poseidon_sums = [_]schema.Qm31Wire{zero} ** protocol.claimCount(.poseidon2);
+const clock_sums = [_]schema.Qm31Wire{zero} ** protocol.claimCount(.clock_update);
 const lookup_sums = [_]schema.Qm31Wire{zero};
 const empty_output_words = [_]schema.OutputWordWire{
     .{ .addr = 0, .value = 0, .clock = 2 },
@@ -33,7 +35,7 @@ fn fixture() schema.Artifact {
                 .log_size = 4,
                 .n_rows = 1,
                 .n_columns = protocol.familyByOrdinal(AUIPC).?.n_main_columns,
-                .interaction_batch_count = 4,
+                .interaction_batch_count = protocol.familyByOrdinal(AUIPC).?.n_interaction_batches,
             },
             .{
                 .index = 1,
@@ -44,16 +46,16 @@ fn fixture() schema.Artifact {
                 .log_size = 4,
                 .n_rows = 1,
                 .n_columns = protocol.familyByOrdinal(BASE_ALU_IMM).?.n_main_columns,
-                .interaction_batch_count = 8,
+                .interaction_batch_count = protocol.familyByOrdinal(BASE_ALU_IMM).?.n_interaction_batches,
             },
         };
     }.values;
     const infrastructure = struct {
         const values = [_]schema.InfraComponentWire{
-            infra(0, .program, 1, 1, 8),
-            infra(1, .merkle, 4, 0, 10),
-            infra(2, .poseidon2, 4, 0, 445),
-            infra(3, .clock_update, 4, 0, 10),
+            infra(0, .program, 1, 1, protocol.mainColumns(.program)),
+            infra(1, .merkle, 4, 0, protocol.mainColumns(.merkle)),
+            infra(2, .poseidon2, 4, 0, protocol.mainColumns(.poseidon2)),
+            infra(3, .clock_update, 4, 0, protocol.mainColumns(.clock_update)),
             table(4, .bitwise),
             table(5, .range_check_20),
             table(6, .range_check_8_11),
@@ -217,7 +219,7 @@ test "schema v4 rejects padded and misindexed claim arrays" {
     var infra_claims = [_]schema.InfraClaimWire{
         artifact.interaction_claim.infrastructure_claims[0],
     } ++ artifact.interaction_claim.infrastructure_claims[1..10].*;
-    const padded = [_]schema.Qm31Wire{zero} ** 4;
+    const padded = [_]schema.Qm31Wire{zero} ** (protocol.claimCount(.program) + 1);
     infra_claims[0].claimed_sums = &padded;
     artifact.interaction_claim.infrastructure_claims = &infra_claims;
     try std.testing.expectError(

@@ -38,6 +38,10 @@ class InteropCliCommandTests(unittest.TestCase):
         self.assertIn("-Mstwo_core=src/core/mod.zig", command)
         self.assertIn("-Mstwo_backend_contracts=src/backend/mod.zig", command)
         self.assertIn("-Mstwo_prover_impl=src/prover/mod.zig", command)
+        self.assertIn(
+            "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
+            command,
+        )
         self.assertEqual(["--mode", "verify", "--artifact", "proof.json"], command[-4:])
 
     def test_callers_use_the_shared_command_boundary(self) -> None:

@@ -22,7 +22,7 @@
 //! them at the body's actual placement.
 
 const std = @import("std");
-const isa_decode = @import("../../frontends/riscv/isa/decode.zig");
+const isa_decode = @import("stwo_riscv_frontend").isa.decode;
 
 pub const Opcode = isa_decode.Opcode;
 pub const Class = @import("operand_class_corpus/tags.zig").Class;

@@ -4,11 +4,11 @@
 const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const relation_export = @import("../../frontends/riscv/air/relation_export.zig");
-const public_values = @import("../../frontends/riscv/diagnostics/public_values.zig");
-const orchestration = @import("../../frontends/riscv/prover/orchestration.zig");
-const witness_hook = @import("../../frontends/riscv/prover/test_witness_hook.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
+const relation_export = @import("stwo_riscv_frontend").air.relation_export;
+const public_values = @import("stwo_riscv_frontend").diagnostics.public_values;
+const orchestration = @import("stwo_riscv_frontend").testing.prover_orchestration;
+const witness_hook = @import("stwo_riscv_frontend").testing.witness_hook;
+const runner = @import("stwo_riscv_frontend").runner;
 
 const TEST_PCS_CONFIG = pcs.PcsConfig{
     .pow_bits = 0,
@@ -57,7 +57,7 @@ test "signed high-multiply relation closes and proves through the CPU-SIMD engin
 
     var family_rows: usize = 0;
     for (fixture.run.execution_trace.rows.items) |row| {
-        const family = try @import("../../frontends/riscv/runner/trace.zig")
+        const family = try @import("stwo_riscv_frontend").runner.trace
             .proofOpcodeFamily(row.opcode);
         if (family == .mulh) family_rows += 1;
     }

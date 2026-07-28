@@ -32,13 +32,13 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
-const witness_layout = @import("../../frontends/riscv/witness_layout.zig");
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const witness_layout = @import("stwo_riscv_frontend").witness_layout;
 const layout = @import("committed_row_layout.zig");
-const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
-const lookup_entry = @import("../../frontends/riscv/air/lookups/entry.zig");
-const profile = @import("../../frontends/riscv/isa/profile.zig");
+const opcode_entries = @import("stwo_riscv_frontend").air.lookups.opcode_entries;
+const lookup_entry = @import("stwo_riscv_frontend").air.lookups.entry;
+const profile = @import("stwo_riscv_frontend").isa.profile;
 
 const OpcodeFamily = trace_mod.OpcodeFamily;
 const MODULUS: u64 = (1 << 31) - 1;

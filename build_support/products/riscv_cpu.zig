@@ -24,6 +24,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu", .source = "src/stwo_riscv_cpu.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
@@ -205,6 +206,14 @@ fn addTraceExecutable(
         .optimize = optimize,
     });
     protocol.addImports(root);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+        root,
+    );
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     return b.addExecutable(.{ .name = "riscv-trace-dump", .root_module = root });
 }
@@ -266,6 +275,14 @@ fn addTests(context: Context) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        context.protocol,
+        test_product,
+        context.target,
+        context.optimize,
+        root,
+    );
     root.addImport("stwo", stwo);
     root.addImport("stwo_riscv_cpu", stwo);
     root.addImport("riscv_adapter", adapter);
@@ -350,6 +367,14 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        context.protocol,
+        test_product,
+        context.target,
+        context.optimize,
+        root,
+    );
     const test_options = b.addOptions();
     test_options.addOption(bool, "metal_only", false);
     test_options.addOption(bool, "riscv_only", true);
@@ -379,7 +404,25 @@ fn createStwoModule(
         .optimize = optimize,
     });
     protocol.addImports(module);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        moduleProduct(.library),
+        target,
+        optimize,
+        module,
+    );
     return module;
+}
+
+fn moduleProduct(role: graph.Role) graph.Product {
+    return .{
+        .name = product.name,
+        .frontend = product.frontend,
+        .backend = product.backend,
+        .role = role,
+        .protocol_features = product.protocol_features,
+    };
 }
 
 fn createAdapterModule(

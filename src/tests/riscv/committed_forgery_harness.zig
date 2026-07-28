@@ -47,15 +47,15 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const pcs = @import("stwo_core").pcs;
 
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const orchestration = @import("../../frontends/riscv/prover/orchestration.zig");
-const witness_hook = @import("../../frontends/riscv/prover/test_witness_hook.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
-const entry_mod = @import("../../frontends/riscv/air/lookups/entry.zig");
-const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
-const public_values = @import("../../frontends/riscv/diagnostics/public_values.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
-const sail_oracle = @import("../../frontends/riscv/runner/sail_oracle.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const orchestration = @import("stwo_riscv_frontend").testing.prover_orchestration;
+const witness_hook = @import("stwo_riscv_frontend").testing.witness_hook;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const entry_mod = @import("stwo_riscv_frontend").air.lookups.entry;
+const opcode_entries = @import("stwo_riscv_frontend").air.lookups.opcode_entries;
+const public_values = @import("stwo_riscv_frontend").diagnostics.public_values;
+const runner = @import("stwo_riscv_frontend").runner;
+const sail_oracle = @import("stwo_riscv_frontend").runner.sail_oracle;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 
 const guest_elf = @import("guest_elf_fixture.zig");
 const row_admissibility = @import("row_admissibility.zig");

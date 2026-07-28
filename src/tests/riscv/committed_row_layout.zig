@@ -17,10 +17,10 @@
 //!   map — by the sentinel test in `witness_rigidity_test.zig`.
 
 const std = @import("std");
-const layouts = @import("../../frontends/riscv/air/trace_columns.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
-const isa_decode = @import("../../frontends/riscv/isa/decode.zig");
+const layouts = @import("stwo_riscv_frontend").air.trace_columns;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const isa_decode = @import("stwo_riscv_frontend").isa.decode;
 
 const OpcodeFamily = trace_mod.OpcodeFamily;
 const Opcode = isa_decode.Opcode;

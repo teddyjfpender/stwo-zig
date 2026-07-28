@@ -2,29 +2,29 @@
 
 const std = @import("std");
 
-pub const runner = @import("../../frontends/riscv/runner/mod.zig");
-const infra_trace = @import("../../frontends/riscv/infra_trace.zig");
-const StateChainTracker = @import("../../frontends/riscv/runner/state_chain.zig").StateChainTracker;
+pub const runner = @import("stwo_riscv_frontend").runner;
+const infra_trace = @import("stwo_riscv_frontend").infra_trace;
+const StateChainTracker = @import("stwo_riscv_frontend").runner.state_chain.StateChainTracker;
 
 test {
     std.testing.refAllDeclsRecursive(runner);
-    _ = @import("../../frontends/riscv/air/clock_update_component_test.zig");
-    _ = @import("../../frontends/riscv/air/component_order.zig");
-    _ = @import("../../frontends/riscv/air/extract/mod.zig");
-    _ = @import("../../frontends/riscv/air/logup.zig");
-    _ = @import("../../frontends/riscv/air/interaction.zig");
-    _ = @import("../../frontends/riscv/air/memory_commitment/mod.zig");
-    _ = @import("../../frontends/riscv/air/program/mod.zig");
-    _ = @import("../../frontends/riscv/air/relation_export.zig");
-    _ = @import("../../frontends/riscv/air/relation_export_components.zig");
-    _ = @import("../../frontends/riscv/air/relation_export_components_test.zig");
-    _ = @import("../../frontends/riscv/air/relation_export_test.zig");
-    _ = @import("../../frontends/riscv/air/relation_evidence.zig");
-    _ = @import("../../frontends/riscv/air/relations.zig");
-    _ = @import("../../frontends/riscv/air/semantic_component_test.zig");
-    _ = @import("../../frontends/riscv/air/semantics/mod.zig");
-    _ = @import("../../frontends/riscv/air/transcript/mod.zig");
-    _ = @import("../../frontends/riscv/diagnostics/public_values.zig");
+    _ = @import("stwo_riscv_frontend").testing.clock_update_component_test;
+    _ = @import("stwo_riscv_frontend").air.component_order;
+    _ = @import("stwo_riscv_frontend").air.extract;
+    _ = @import("stwo_riscv_frontend").air.logup;
+    _ = @import("stwo_riscv_frontend").air.interaction;
+    _ = @import("stwo_riscv_frontend").air.memory_commitment;
+    _ = @import("stwo_riscv_frontend").air.program;
+    _ = @import("stwo_riscv_frontend").air.relation_export;
+    _ = @import("stwo_riscv_frontend").air.relation_export_components;
+    _ = @import("stwo_riscv_frontend").testing.relation_export_components_test;
+    _ = @import("stwo_riscv_frontend").testing.relation_export_test;
+    _ = @import("stwo_riscv_frontend").air.relation_evidence;
+    _ = @import("stwo_riscv_frontend").air.relations;
+    _ = @import("stwo_riscv_frontend").testing.semantic_component_test;
+    _ = @import("stwo_riscv_frontend").air.semantics;
+    _ = @import("stwo_riscv_frontend").air.transcript;
+    _ = @import("stwo_riscv_frontend").diagnostics.public_values;
 }
 
 test "infra_trace: genMemoryColumns caps rows at the domain size" {

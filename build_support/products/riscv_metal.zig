@@ -212,13 +212,13 @@ fn createDependencies(
     context: Context,
     logical_product: graph.Product,
 ) Dependencies {
-    const frontend = graph.create(context.b, .{
-        .product = logical_product,
-        .root_source_file = "src/frontends/riscv/mod.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    context.protocol.addImports(frontend);
+    const frontend = graph.createRiscVFrontend(
+        context.b,
+        context.protocol,
+        logical_product,
+        context.target,
+        context.optimize,
+    );
 
     const metal_backend = graph.create(context.b, .{
         .product = logical_product,

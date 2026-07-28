@@ -72,11 +72,11 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 
-const access_clock = @import("../../frontends/riscv/access_clock.zig");
+const access_clock = @import("stwo_riscv_frontend").access_clock;
 const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");
 const layout = @import("committed_row_layout.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
 
 // ---------------------------------------------------------------------------
 // The guest

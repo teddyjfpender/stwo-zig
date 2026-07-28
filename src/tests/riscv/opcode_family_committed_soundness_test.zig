@@ -26,8 +26,8 @@ const std = @import("std");
 const harness = @import("committed_forgery_harness.zig");
 const guest_elf = @import("guest_elf_fixture.zig");
 const layout = @import("committed_row_layout.zig");
-const component_order = @import("../../frontends/riscv/air/component_order.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
+const component_order = @import("stwo_riscv_frontend").air.component_order;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
 
 const OpcodeFamily = harness.OpcodeFamily;
 

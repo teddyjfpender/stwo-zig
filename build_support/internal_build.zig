@@ -213,25 +213,29 @@ fn addMetalTools(
     optimize: std.builtin.OptimizeMode,
 ) void {
     const protocol = graph.createPrivateProtocolModules(b, target, optimize);
+    const tool_product = graph.Product{
+        .name = "stwo-native-metal-tools",
+        .frontend = .native,
+        .backend = .metal,
+        .role = .library,
+    };
     const stwo = graph.create(b, .{
-        .product = .{
-            .name = "stwo-native-metal-tools",
-            .frontend = .native,
-            .backend = .metal,
-            .role = .library,
-        },
+        .product = tool_product,
         .root_source_file = "src/stwo.zig",
         .target = target,
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
     const shader_manifest = graph.create(b, .{
-        .product = .{
-            .name = "stwo-native-metal-tools",
-            .frontend = .native,
-            .backend = .metal,
-            .role = .library,
-        },
+        .product = tool_product,
         .root_source_file = "src/backends/metal/shader_manifest.zig",
         .target = target,
         .optimize = optimize,

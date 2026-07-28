@@ -46,11 +46,11 @@ pub const Spec = struct {
 };
 
 pub const products = [_]Spec{
-    .{ .descriptor = aggregate.descriptor, .scope = .aggregate, .constructor = .aggregate, .identity_step = "identity-stwo-zig", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.native_protocol_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
+    .{ .descriptor = aggregate.descriptor, .scope = .aggregate, .constructor = .aggregate, .identity_step = "identity-stwo-zig", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.native_riscv_protocol_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
     .{ .descriptor = core.descriptor, .scope = .core, .constructor = .core, .identity_step = "identity-stwo-core", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.core_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
     .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.protocol_package_roots, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/core/surface.zig" } },
     .{ .descriptor = native_cpu.descriptor(.cli), .scope = .native_cpu, .constructor = .native_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.native_protocol_package_roots },
-    .{ .descriptor = riscv_cpu.descriptor, .scope = .riscv_cpu, .constructor = .riscv_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.protocol_package_roots, .configure_allowed_files = &.{"src/tests.zig"} },
+    .{ .descriptor = riscv_cpu.descriptor, .scope = .riscv_cpu, .constructor = .riscv_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.riscv_protocol_package_roots, .configure_allowed_files = &.{"src/tests.zig"} },
     .{
         .descriptor = native_metal.descriptor(.cli),
         .scope = .native_metal,
@@ -119,7 +119,7 @@ pub const products = [_]Spec{
         .constructor = .riscv_metal,
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "Metal.framework", "Foundation.framework", "libobjc" },
-        .dependency_module_roots = catalog.protocol_package_roots,
+        .dependency_module_roots = catalog.riscv_protocol_package_roots,
     },
     .{
         .descriptor = native_cuda.descriptor,
@@ -127,7 +127,7 @@ pub const products = [_]Spec{
         .constructor = .native_cuda,
         .configure_tools = &.{"python3"},
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
-        .dependency_module_roots = catalog.protocol_package_roots,
+        .dependency_module_roots = catalog.riscv_protocol_package_roots,
     },
     .{
         .descriptor = cairo_cuda.descriptor,

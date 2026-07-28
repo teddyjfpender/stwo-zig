@@ -3,13 +3,13 @@
 const std = @import("std");
 const CpuBackend = @import("../../backends/cpu_scalar/mod.zig").CpuBackend;
 const pcs_core = @import("stwo_core").pcs;
-const prover_mod = @import("../../frontends/riscv/prover.zig");
-const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
-const state_chain = @import("../../frontends/riscv/runner/state_chain.zig");
-const memory_state = @import("../../frontends/riscv/runner/memory_state.zig");
-const prove_block = @import("../../frontends/riscv/host/prove_block.zig");
-const BlockInput = @import("../../frontends/riscv/host/block_input.zig").BlockInput;
+const prover_mod = @import("stwo_riscv_frontend").prover_mod;
+const public_data_mod = @import("stwo_riscv_frontend").air.public_data;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const state_chain = @import("stwo_riscv_frontend").runner.state_chain;
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
+const prove_block = @import("stwo_riscv_frontend").host.prove_block;
+const BlockInput = @import("stwo_riscv_frontend").host.block_input.BlockInput;
 const stage_profile = @import("stwo_prover_impl").stage_profile;
 
 pub const CpuProverEngine = prover_mod.ProverEngineForBackend(CpuBackend);

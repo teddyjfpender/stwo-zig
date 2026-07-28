@@ -253,6 +253,45 @@ def _validate_api(contract: Contract, failures: list[str]) -> None:
         )
 
 
+def _containing_contract(path: Path, contracts: list[Contract]) -> Contract | None:
+    matches = [contract for contract in contracts if _inside(path, contract.directory)]
+    if not matches:
+        return None
+    return max(matches, key=lambda contract: len(contract.directory.parts))
+
+
+def _validate_relative_ingress(
+    repository: Path,
+    contracts: list[Contract],
+    failures: list[str],
+) -> None:
+    """Prevent consumers from bypassing an owner's named package module."""
+
+    sources = (
+        source
+        for source in repository.rglob("*.zig")
+        if not any(
+            part.startswith(".") or part == "zig-out"
+            for part in source.relative_to(repository).parts
+        )
+    )
+    for source in sorted(sources):
+        source_owner = _containing_contract(source.resolve(), contracts)
+        text = strip_comments(source.read_text(encoding="utf-8"))
+        for imported in IMPORT_RE.findall(text):
+            if not imported.endswith(".zig"):
+                continue
+            target = (source.parent / imported).resolve()
+            target_owner = _containing_contract(target, contracts)
+            if target_owner is None or source_owner == target_owner:
+                continue
+            failures.append(
+                f"{target_owner.package}: relative import enters owner: "
+                f"{source.relative_to(repository)} -> {imported}; "
+                f"use one of {sorted(target_owner.public_modules)}"
+            )
+
+
 def _validate_aggregate_manifests(
     repository: Path,
     contracts: list[Contract],
@@ -327,6 +366,7 @@ def check_repository(repository: Path) -> list[str]:
         _validate_manifest(contract, failures)
         _validate_imports(contract, module_to_package, failures)
         _validate_api(contract, failures)
+    _validate_relative_ingress(repository, contracts, failures)
     _validate_aggregate_manifests(repository, contracts, failures)
     return failures
 

@@ -7,5 +7,6 @@
         .stwo_core = .{ .path = "../src/core" },
         .stwo_backend_contracts = .{ .path = "../src/backend" },
         .stwo_prover_impl = .{ .path = "../src/prover" },
+        .stwo_riscv_frontend = .{ .path = "../src/frontends/riscv" },
     },
 }

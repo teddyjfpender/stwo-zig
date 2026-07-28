@@ -26,12 +26,12 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const lookup_entry = @import("../../frontends/riscv/air/lookups/entry.zig");
-const lookup_table = @import("../../frontends/riscv/air/lookups/tables/schema.zig");
+const lookup_entry = @import("stwo_riscv_frontend").air.lookups.entry;
+const lookup_table = @import("stwo_riscv_frontend").air.lookups.tables.schema;
 const row_admissibility = @import("row_admissibility.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
-const semantics = @import("../../frontends/riscv/air/semantics/mod.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const semantics = @import("stwo_riscv_frontend").air.semantics;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const uniqueness_ir = @import("uniqueness_ir_test.zig");
 
 const OpcodeFamily = trace_mod.OpcodeFamily;

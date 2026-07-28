@@ -54,11 +54,11 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 const corpus_mod = @import("rigidity_corpus.zig");
 const layout = @import("committed_row_layout.zig");
-const opcode_memory = @import("../../frontends/riscv/air/opcode_memory.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
-const execute_mod = @import("../../frontends/riscv/runner/execute.zig");
-const isa_decode = @import("../../frontends/riscv/isa/decode.zig");
+const opcode_memory = @import("stwo_riscv_frontend").air.opcode_memory;
+const runner = @import("stwo_riscv_frontend").runner;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const execute_mod = @import("stwo_riscv_frontend").runner.execute_mod;
+const isa_decode = @import("stwo_riscv_frontend").isa.decode;
 
 const Budget = corpus_mod.Budget;
 const OpcodeFamily = trace_mod.OpcodeFamily;

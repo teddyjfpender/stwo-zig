@@ -6,9 +6,9 @@ const channel_blake2s = @import("stwo_core").channel.blake2s;
 const pcs_core = @import("stwo_core").pcs;
 const qm31 = @import("stwo_core").fields.qm31;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
-const prover = @import("../../frontends/riscv/prover.zig");
-const relation_challenges = @import("../../frontends/riscv/air/relation_challenges.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
+const prover = @import("stwo_riscv_frontend").prover_mod;
+const relation_challenges = @import("stwo_riscv_frontend").air.relation_challenges;
+const runner = @import("stwo_riscv_frontend").runner;
 const postcard = @import("../../interop/postcard.zig");
 const prover_engine = @import("stwo_prover_impl").engine;
 

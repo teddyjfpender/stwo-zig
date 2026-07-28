@@ -3,6 +3,13 @@
 const std = @import("std");
 const graph = @import("../graph/modules.zig");
 
+const compatibility_product = graph.Product{
+    .name = "stwo-compatibility-tools",
+    .frontend = .aggregate,
+    .backend = .cpu,
+    .role = .@"test",
+};
+
 pub const Context = struct {
     b: *std.Build,
     target: std.Build.ResolvedTarget,
@@ -13,17 +20,20 @@ pub fn addProducts(context: Context) void {
     const b = context.b;
     const protocol = graph.createPrivateProtocolModules(b, context.target, context.optimize);
     const stwo = graph.create(b, .{
-        .product = .{
-            .name = "stwo-compatibility-tools",
-            .frontend = .aggregate,
-            .backend = .cpu,
-            .role = .@"test",
-        },
+        .product = compatibility_product,
         .root_source_file = "src/stwo.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const runner = consumer(context, protocol, "src/prover/native/runner.zig");
     runner.addImport("stwo", stwo);
     runner.addImport("native_resource_admission", consumer(
@@ -125,6 +135,14 @@ pub fn addProducts(context: Context) void {
     ).dependOn(&check.step);
 
     const riscv_bench = consumer(context, protocol, "src/riscv_bench_cli.zig");
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        riscv_bench,
+    );
     addExecutable(context, riscv_bench, "riscv-bench", "riscv-bench", "Build RISC-V benchmark CLI", false);
 
     const native_bench = consumer(context, protocol, "src/tools/native_proof_bench/cpu.zig");

@@ -59,9 +59,9 @@ const guest_elf = @import("guest_elf_fixture.zig");
 const layout = @import("committed_row_layout.zig");
 const operand_classes = @import("operand_classes.zig");
 const oracle = @import("row_admissibility.zig");
-const isa_decode = @import("../../frontends/riscv/isa/decode.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const isa_decode = @import("stwo_riscv_frontend").isa.decode;
+const runner = @import("stwo_riscv_frontend").runner;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 
 pub const OpcodeFamily = trace_mod.OpcodeFamily;
 pub const TraceRow = trace_mod.TraceRow;

@@ -65,9 +65,9 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");
 const layout = @import("committed_row_layout.zig");
-const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const opcode_entries = @import("stwo_riscv_frontend").air.lookups.opcode_entries;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 
 // ---------------------------------------------------------------------------
 // The guest

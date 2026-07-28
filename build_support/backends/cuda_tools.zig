@@ -165,6 +165,19 @@ pub fn addProducts(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        .{
+            .name = "stwo-native-cuda-tools",
+            .frontend = .native,
+            .backend = .cuda,
+            .role = .library,
+        },
+        target,
+        optimize,
+        stwo,
+    );
     const ec_oracle_root = b.createModule(.{
         .root_source_file = b.path(
             "src/tools/cuda_native_ec_composite_oracle/main.zig",

@@ -14,6 +14,8 @@ def protocol_module_args(root_source: str) -> list[str]:
         "stwo_backend_contracts",
         "--dep",
         "stwo_prover_impl",
+        "--dep",
+        "stwo_riscv_frontend",
         f"-Mroot={root_source}",
         "-Mstwo_core=src/core/mod.zig",
         "--dep",
@@ -24,6 +26,11 @@ def protocol_module_args(root_source: str) -> list[str]:
         "--dep",
         "stwo_backend_contracts",
         "-Mstwo_prover_impl=src/prover/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_prover_impl",
+        "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
     ]
 
 
@@ -44,6 +51,8 @@ def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
         "stwo_backend_contracts",
         "--dep",
         "stwo_prover_impl",
+        "--dep",
+        "stwo_riscv_frontend",
         f"-Mroot={root_source}",
         "--dep",
         "stwo_core",
@@ -51,6 +60,8 @@ def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
         "stwo_backend_contracts",
         "--dep",
         "stwo_prover_impl",
+        "--dep",
+        "stwo_riscv_frontend",
         "-Mstwo=src/stwo.zig",
         "-Mstwo_core=src/core/mod.zig",
         "--dep",
@@ -61,6 +72,11 @@ def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
         "--dep",
         "stwo_backend_contracts",
         "-Mstwo_prover_impl=src/prover/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_prover_impl",
+        "-Mstwo_riscv_frontend=src/frontends/riscv/mod.zig",
         "--",
         *arguments,
     ]
@@ -73,4 +89,5 @@ def source_contract() -> tuple[Path, ...]:
         root / "src/core/mod.zig",
         root / "src/backend/mod.zig",
         root / "src/prover/mod.zig",
+        root / "src/frontends/riscv/mod.zig",
     )

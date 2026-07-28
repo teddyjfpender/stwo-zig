@@ -87,6 +87,7 @@ const OwnedPackage = enum {
     core,
     backend_contracts,
     prover,
+    riscv_frontend,
 };
 
 /// Resolves canonical ownership roots through their package manifests. Other
@@ -125,6 +126,10 @@ pub fn source(
             "stwo_prover_impl",
             dependency_options,
         ).path(owned.sub_path),
+        .riscv_frontend => b.dependency(
+            "stwo_riscv_frontend",
+            dependency_options,
+        ).path(owned.sub_path),
     };
 }
 
@@ -138,6 +143,7 @@ fn ownedSource(root_source_file: []const u8) ?OwnedSource {
         .{ "src/core/", OwnedPackage.core },
         .{ "src/backend/", OwnedPackage.backend_contracts },
         .{ "src/prover/", OwnedPackage.prover },
+        .{ "src/frontends/riscv/", OwnedPackage.riscv_frontend },
     };
     inline for (prefixes) |entry| {
         if (std.mem.startsWith(u8, root_source_file, entry[0])) return .{
@@ -190,6 +196,45 @@ pub fn createPrivateProtocolModules(
         .optimize = optimize,
     });
     return createProtocolModules(b, core, target, optimize);
+}
+
+/// Constructs the canonical RISC-V frontend module against an already selected
+/// protocol module set. Product roots must opt into this dependency explicitly.
+pub fn createRiscVFrontend(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const frontend = create(b, .{
+        .product = product,
+        .root_source_file = "src/frontends/riscv/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(frontend);
+    return frontend;
+}
+
+/// Declares a consumer's dependency on the package-owned RISC-V API.
+pub fn addRiscVFrontendImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const frontend = createRiscVFrontend(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_riscv_frontend", frontend);
+    return frontend;
 }
 
 pub fn coreProduct(role: Role) Product {
@@ -260,6 +305,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqualStrings(
         "native/runner.zig",
         ownedSource("src/prover/native/runner.zig").?.sub_path,
+    );
+    try std.testing.expectEqual(
+        OwnedPackage.riscv_frontend,
+        ownedSource("src/frontends/riscv/mod.zig").?.package,
     );
     try std.testing.expect(ownedSource("src/products/prover/root.zig") == null);
 }

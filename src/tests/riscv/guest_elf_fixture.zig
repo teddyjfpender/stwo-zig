@@ -38,7 +38,7 @@
 //! straight-line body does.
 
 const std = @import("std");
-const sail_oracle = @import("../../frontends/riscv/runner/sail_oracle.zig");
+const sail_oracle = @import("stwo_riscv_frontend").runner.sail_oracle;
 
 pub const CODE_VADDR: u32 = 0x0001_0000;
 const INPUT_START: u32 = 0x0018_0000;
@@ -328,8 +328,8 @@ fn writeU32(bytes: []u8, offset: usize, value: anytype) void {
 // Tests
 // ---------------------------------------------------------------------------
 
-const elf_loader = @import("../../frontends/riscv/runner/elf_loader.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
+const elf_loader = @import("stwo_riscv_frontend").runner.elf_loader;
+const runner = @import("stwo_riscv_frontend").runner;
 
 /// `ADDI x10, x0, 7`: a one-instruction body for the wrapper's own tests.
 const ADDI_X10_7: u32 = 0x0070_0513;

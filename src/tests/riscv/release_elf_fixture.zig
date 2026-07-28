@@ -1,7 +1,7 @@
 //! Test-only builder for a minimal symbol-bearing Stark-V guest ELF.
 
 const std = @import("std");
-const sail_oracle = @import("../../frontends/riscv/runner/sail_oracle.zig");
+const sail_oracle = @import("stwo_riscv_frontend").runner.sail_oracle;
 
 const CODE_VADDR: u32 = 0x0001_0000;
 const INPUT_START: u32 = 0x0018_0000;

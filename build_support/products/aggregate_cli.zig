@@ -38,6 +38,14 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        stwo,
+    );
     const runner = libraries.consumer(b, protocol, .{
         .root_source_file = graph.source(
             b,
@@ -59,6 +67,14 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         .target = target,
         .optimize = optimize,
     });
+    _ = graph.addRiscVFrontendImport(
+        b,
+        protocol,
+        aggregate.product(metal_enabled),
+        target,
+        optimize,
+        aggregate_tests,
+    );
     const tests = b.addTest(.{ .root_module = aggregate_tests });
     if (metal_enabled) metal.linkRuntime(b, tests);
     const test_step = b.step("test", "Run aggregate compatibility tests");

@@ -2,16 +2,16 @@
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const public_data_mod = @import("../../frontends/riscv/air/public_data.zig");
-const relation_export = @import("../../frontends/riscv/air/relation_export.zig");
-const memory_boundary = @import("../../frontends/riscv/air/memory_commitment/boundary.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
+const public_data_mod = @import("stwo_riscv_frontend").air.public_data;
+const relation_export = @import("stwo_riscv_frontend").air.relation_export;
+const memory_boundary = @import("stwo_riscv_frontend").air.memory_commitment.boundary;
+const runner = @import("stwo_riscv_frontend").runner;
 const pcs = @import("stwo_core").pcs;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const release_elf_fixture = @import("release_elf_fixture.zig");
 
 const PublicData = public_data_mod.PublicData;
-const RelationDiagnostic = @import("../../frontends/riscv/prover.zig").RelationDiagnostic;
+const RelationDiagnostic = @import("stwo_riscv_frontend").prover_mod.RelationDiagnostic;
 
 const TEST_PCS_CONFIG = pcs.PcsConfig{
     .pow_bits = 0,

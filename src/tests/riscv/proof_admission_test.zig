@@ -21,9 +21,9 @@
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const prover = @import("../../frontends/riscv/prover.zig");
-const runner = @import("../../frontends/riscv/runner/mod.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const prover = @import("stwo_riscv_frontend").prover_mod;
+const runner = @import("stwo_riscv_frontend").runner;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const pcs = @import("stwo_core").pcs;
 const prover_component = @import("stwo_prover_impl").air.component_prover;
 const prover_engine = @import("stwo_prover_impl").engine;

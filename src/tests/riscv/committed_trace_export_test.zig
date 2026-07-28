@@ -35,7 +35,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 
-const component_order = @import("../../frontends/riscv/air/component_order.zig");
+const component_order = @import("stwo_riscv_frontend").air.component_order;
 const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");
 const layout = @import("committed_row_layout.zig");

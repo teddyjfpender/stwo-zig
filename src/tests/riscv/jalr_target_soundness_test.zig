@@ -79,9 +79,9 @@ const guest_elf = @import("guest_elf_fixture.zig");
 const harness = @import("committed_forgery_harness.zig");
 const layout = @import("committed_row_layout.zig");
 const row_admissibility = @import("row_admissibility.zig");
-const opcode_entries = @import("../../frontends/riscv/air/lookups/opcode_entries.zig");
-const semantic_eval = @import("../../frontends/riscv/air/semantic_eval.zig");
-const jalr_air = @import("../../frontends/riscv/air/semantics/jalr.zig");
+const opcode_entries = @import("stwo_riscv_frontend").air.lookups.opcode_entries;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const jalr_air = @import("stwo_riscv_frontend").testing.jalr_semantics;
 
 // ---------------------------------------------------------------------------
 // The guest

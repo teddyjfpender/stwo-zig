@@ -20,6 +20,17 @@ pub fn build(b: *std.Build) void {
 
     const tests = b.addTest(.{ .root_module = prover });
     const run_tests = b.addRunArtifact(tests);
+    const deep_tests = b.createModule(.{
+        .root_source_file = b.path("testing.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    deep_tests.addImport("stwo_core", core);
+    deep_tests.addImport("stwo_prover_impl", prover);
+    const run_deep_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = deep_tests,
+    }));
     const test_step = b.step("test", "Compile and test the stwo_prover_impl package");
     test_step.dependOn(&run_tests.step);
+    test_step.dependOn(&run_deep_tests.step);
 }

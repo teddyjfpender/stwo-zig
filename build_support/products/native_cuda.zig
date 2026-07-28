@@ -181,6 +181,14 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    _ = graph.addRiscVFrontendImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     return module;
 }
 

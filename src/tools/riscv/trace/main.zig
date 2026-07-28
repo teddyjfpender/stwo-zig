@@ -11,13 +11,13 @@
 
 const std = @import("std");
 const build_identity = @import("build_identity");
-const runner = @import("../../../frontends/riscv/runner/mod.zig");
-const trace_dump = @import("../../../frontends/riscv/runner/trace_dump.zig");
-const witness_layout = @import("../../../frontends/riscv/witness_layout.zig");
-const opcode_manifest = @import("../../../frontends/riscv/opcode_manifest.zig");
-const public_data = @import("../../../frontends/riscv/air/public_data.zig");
-const relation_evidence = @import("../../../frontends/riscv/air/relation_evidence.zig");
-const public_values_diagnostic = @import("../../../frontends/riscv/diagnostics/public_values.zig");
+const runner = @import("stwo_riscv_frontend").runner;
+const trace_dump = @import("stwo_riscv_frontend").runner.trace_dump;
+const witness_layout = @import("stwo_riscv_frontend").witness_layout;
+const opcode_manifest = @import("stwo_riscv_frontend").opcode_manifest;
+const public_data = @import("stwo_riscv_frontend").air.public_data;
+const relation_evidence = @import("stwo_riscv_frontend").air.relation_evidence;
+const public_values_diagnostic = @import("stwo_riscv_frontend").diagnostics.public_values;
 const riscv_cpu = @import("../../../integrations/riscv_cpu/mod.zig");
 const pcs = @import("stwo_core").pcs;
 
@@ -655,9 +655,9 @@ fn dumpDecodeMatrix(allocator: std.mem.Allocator, path: []const u8) !void {
 /// Program-tuple mode for oracle parity: decode_program rows over the
 /// declared region, canonical line format, byte-compared with the oracle.
 fn dumpProgramTuples(allocator: std.mem.Allocator, path: []const u8) !void {
-    const program_decode = @import("../../../frontends/riscv/air/program/decode.zig");
-    const memory_mod = @import("../../../frontends/riscv/runner/memory.zig");
-    const elf_loader = @import("../../../frontends/riscv/runner/elf_loader.zig");
+    const program_decode = @import("stwo_riscv_frontend").air.program.decode;
+    const memory_mod = @import("stwo_riscv_frontend").runner.memory;
+    const elf_loader = @import("stwo_riscv_frontend").runner.elf_loader;
 
     const elf_bytes = try std.fs.cwd().readFileAlloc(allocator, path, 64 * 1024 * 1024);
     defer allocator.free(elf_bytes);
@@ -690,7 +690,7 @@ fn dumpProgramTuples(allocator: std.mem.Allocator, path: []const u8) !void {
 /// Poseidon2 permutation parity mode: 16-word LE states in, permuted states
 /// out, byte-compared with the pinned oracle over the same corpus.
 fn dumpPoseidon2(allocator: std.mem.Allocator, path: []const u8) !void {
-    const poseidon2 = @import("../../../frontends/riscv/air/memory_commitment/poseidon2.zig");
+    const poseidon2 = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2;
     const M31 = @import("stwo_core").fields.m31.M31;
 
     const raw = try std.fs.cwd().readFileAlloc(allocator, path, 64 * 1024 * 1024);

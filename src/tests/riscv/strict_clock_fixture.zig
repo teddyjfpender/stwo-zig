@@ -4,9 +4,9 @@
 //! tests that construct `TraceRow` values directly use this small mirror so
 //! their predecessor clocks follow the same source-before-destination order.
 
-const access_clock = @import("../../frontends/riscv/access_clock.zig");
-const decode = @import("../../frontends/riscv/runner/decode.zig");
-const trace = @import("../../frontends/riscv/runner/trace.zig");
+const access_clock = @import("stwo_riscv_frontend").access_clock;
+const decode = @import("stwo_riscv_frontend").runner.decode;
+const trace = @import("stwo_riscv_frontend").runner.trace;
 
 pub fn assignRegisterClocks(rows: []trace.TraceRow) void {
     var last_clock = [_]u32{0} ** 32;

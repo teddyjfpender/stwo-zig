@@ -2,10 +2,10 @@
 
 const std = @import("std");
 const riscv_cpu = @import("../../integrations/riscv_cpu/mod.zig");
-const prover = @import("../../frontends/riscv/prover.zig");
-const runner_mod = @import("../../frontends/riscv/runner/mod.zig");
-const memory_state = @import("../../frontends/riscv/runner/memory_state.zig");
-const trace_mod = @import("../../frontends/riscv/runner/trace.zig");
+const prover = @import("stwo_riscv_frontend").prover_mod;
+const runner_mod = @import("stwo_riscv_frontend").runner;
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const strict_clock_fixture = @import("strict_clock_fixture.zig");
 const pcs_core = @import("stwo_core").pcs;
 const qm31 = @import("stwo_core").fields.qm31;
