@@ -66,16 +66,24 @@ jobs:
           # For PRs, diff against the live merge-base — the event's base.sha
           # can lag the base branch, which would count already-merged main
           # commits as part of the PR and select lanes the PR never touched.
+          #
+          # Pushes to main take the full matrix instead of a scoped selection:
+          # it is the post-merge safety net for any selection mistake a PR made,
+          # and it keeps every lane's compiler cache warm for the next PR.
+          SCOPE_ARGS=()
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="$(git merge-base "origin/${{ github.base_ref }}" HEAD)"
           else
             BASE="${{ github.event.before }}"
+            SCOPE_ARGS+=(--full-matrix)
           fi
           python3 scripts/ci_scope_plan.py \
             --base "$BASE" \
             --head "${{ github.sha }}" \
             --output "$RUNNER_TEMP/focused-ci-plan.json" \
-            --github-output "$GITHUB_OUTPUT"
+            --github-output "$GITHUB_OUTPUT" \
+            --github-summary "$GITHUB_STEP_SUMMARY" \
+            "${SCOPE_ARGS[@]}"
 
       - name: Report capability-deferred lanes
         run: |
