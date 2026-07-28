@@ -346,3 +346,710 @@ is device time. That reframes the program's second half — once the stages are
 placed, the lever becomes kernel and epoch efficiency, and the phases should be
 sequenced so that the device stages' own cost is measured after each move rather
 than assumed constant.
+
+---
+
+## 3. Machinery survey
+
+File:line references verified directly in the worktree at `cfad207b`. Where a
+question was not closed inside the budget it is marked **OPEN** rather than
+answered by inference.
+
+### 3.1 The headline correction: the SN2 schedule is a test fixture, and the
+### resident subsystem is not wired into the product
+
+The brief asked what is resident "for the captured SN_PIE_2 schedule" and what
+makes it SN2-only rather than live-geometry. The premise needs one correction
+before the rest of the survey makes sense.
+
+**Every `sn_pie_2_*` reference in `src/` is inside a `test` block.** Checked by
+resolving the nearest enclosing declaration for each hit:
+
+| reference | enclosing declaration |
+| --- | --- |
+| `src/integrations/cairo_metal/witness_aot.zig:169` | `test "witness AOT manifest covers the active base and interaction kernels exactly"` (line 166) |
+| `src/integrations/cairo_metal/resident/witness/prepare.zig:562` | `test "Cairo AOT fixed-table requirements follow witness bytecode capabilities"` (line 559) |
+| `src/integrations/cairo_metal/arena_binding.zig:2422` | `test "Cairo composition parts address global random coefficient powers"` (line 2419) |
+
+The `vectors/cairo/sn_pie_2_{witness.metallib,witness_programs.bin,composition.metallib,composition.bin,arena_schedule.json.gz,multiplicity_feeds.bin}`
+assets are **conformance vectors**, not a product runtime dependency. The
+product's `protocol_features` already advertises `live-geometry-v1`
+(`identity` output), and `src/frontends/cairo/witness/resident_geometry.zig`
+exists.
+
+**And the resident subsystem is not on the product prove path at all.**
+`src/integrations/cairo_metal/arena_binding.zig` (2,502 lines) is the resident
+orchestrator. Its only non-test consumers are:
+
+- `src/bench/cairo_metal/streaming_commitment.zig:6` — a benchmark;
+- `src/tools/metal_arena_plan/proof_layout.zig:6` and `main.zig:21` — the planner tool.
+
+The actual product prove path is `src/integrations/cairo_metal/prover/transaction.zig`,
+which is **71 lines** and imports neither `arena_binding` nor anything under
+`resident/`. It binds `Engine = metal.PlainMetalProverEngine`
+(`transaction.zig:10`) into the *generic* Cairo proving transaction
+(`transaction.zig:7` → `src/frontends/cairo/proving/transaction.zig`).
+
+So the correct statement of the current architecture is:
+
+> The Metal Cairo product is the generic host Cairo frontend with a
+> Metal-backed *prover engine*. The Metal backend plugs in at the PCS/commitment
+> level only. A separate ~4,800-line resident witness/interaction/composition
+> subsystem exists, is tested against the SN2 vectors, and is reachable from a
+> benchmark and a planner tool — but no product proof executes it.
+
+This reframes the program. **Phase 1 is not "write resident kernels." It is
+"wire the existing resident subsystem into the product prove path on live
+geometry, behind the capability contract."** That is a materially cheaper and
+lower-variance first increment than the brief assumed, and it is the reason for
+the Phase 1 recommendation in §5.
+
+### 3.2 What is reusable as-is
+
+| Component | Path | State |
+| --- | --- | --- |
+| resident witness graph execution | `resident/witness/execute.zig:214` `executeScheduledWitnessGraph` (565 lines total) | implemented, SN2-tested |
+| resident witness input prep | `resident/witness/prepare.zig`, `inputs.zig` | implemented |
+| resident interaction graph execution | `resident/interaction/execute.zig:49` `executeScheduledInteractionGraph` (395 lines) | implemented, SN2-tested |
+| resident composition config | `resident/composition/config.zig` (257 lines) | implemented |
+| resident arena orchestration | `arena_binding.zig` (2,502 lines) | implemented |
+| trace interpolation, commitment ordering, lookup fixed tables / multiplicity feeds, transcript, relations | `resident/{trace,commitment,lookups,transcript,relations}/` | implemented |
+| AIR Metal source generator | `src/tools/cairo_metal_codegen/eval_source.zig`, `eval_prepare.zig`; build step `metal-eval-source` (`build_support/benchmarks/metal.zig:143`) | implemented |
+| witness Metal source generator | `src/tools/cairo_metal_codegen/witness_source.zig`; build step `metal-witness-source` (`build_support/benchmarks/metal.zig:156`) | implemented |
+| arena planner | `src/frontends/cairo/staged_arena_planner.zig`; build step `metal-arena-plan` (`build_support/benchmarks/metal.zig:28`) | implemented |
+| proof plan | `src/frontends/cairo/proof_plan.zig:140` `CairoProofPlan.init(allocator, components)` | **already parameterized by a component list, not by a captured asset** |
+| plane width oracle | `plane_widths.zig` (campaign 2 increment 2.2's durable output) | reusable for a narrower device plane ABI |
+
+Two facts here are load-bearing for the live-geometry question:
+
+- `CairoProofPlan.init` takes `components: []const Component` — it is a
+  constructor over a component list, not a deserializer of a pinned plan.
+- `StagedArenaPlanner.derive(allocator, specs: []const BufferSpec)`
+  (`staged_arena_planner.zig:147`) is parameterized by buffer specs, with
+  `Inputs` (line 52) and `BufferSpec` (line 23) as plain structs.
+
+**So the planner and the proof plan are not the SN2 blocker.** They are already
+geometry-parameterized.
+
+### 3.3 What needs generalization: the schedule is the blocker
+
+The SN2-ness lives in exactly one place, and it is in the resident entry-point
+signatures. Both take a **captured JSON schedule**:
+
+```zig
+pub fn executeScheduledWitnessGraph(
+    allocator, metal, resident_arena: *arena_plan.ResidentArena,
+    schedule: []const std.json.Value,          // <-- the captured SN2 schedule
+    arena: arena_plan.Plan,
+    proof: *const cairo_proof_plan.CairoProofPlan,
+    witness_bundle, batch, recipes, interpolation, feeds,
+) !WitnessExecutionTelemetry            // resident/witness/execute.zig:214-226
+```
+
+```zig
+pub fn executeScheduledInteractionGraph(
+    allocator, metal, resident_arena,
+    schedule: []const std.json.Value,          // <-- same
+    arena, proof, witness_bundle, input, batch, recipes, relations,
+) !InteractionExecutionTelemetry        // resident/interaction/execute.zig:49-61
+```
+
+`schedule: []const std.json.Value` is the deserialized
+`vectors/cairo/sn_pie_2_arena_schedule.json.gz`. **This is the whole of the
+SN2-only-ness**: the resident executors are driven by a pinned JSON document
+rather than by a schedule derived from the live claim's per-component row
+counts. Both also validate cardinality against the witness bundle
+(`execute.zig:227`: `if (proof.components.len != witness_bundle.entries.len) return Error.InvalidCardinality`),
+so a live schedule must agree with the bundle's component set exactly.
+
+**What live-geometry planning requires** is therefore a *schedule derivation*
+step, not a planner rewrite: a function from (live claim → per-component log
+row counts → `BufferSpec`s → `arena_plan.Plan` + schedule) that produces the
+same shape the captured JSON carries. `resident_geometry.zig` and
+`quotient_geometry.zig` under `src/frontends/cairo/witness/` are the candidate
+homes and both already reference the geometry concepts; **OPEN**: whether either
+already derives per-component `log_size` from a claim at runtime was not closed
+inside the budget and is the first thing Phase 1 must establish.
+
+### 3.4 The Fiat-Shamir boundary, confirmed from the code
+
+The brief's hypothesis is correct and the code says so exactly, in
+`src/frontends/cairo/proving/transaction.zig`:
+
+| line | operation |
+| ---: | --- |
+| 243-249 | `Engine.commit(&scheme, allocator, base.takeColumns(), recorder, &channel)` — base trace commit |
+| 250 | `Engine.flushPendingCommit(&scheme, allocator, &channel)` — **the base Merkle root is mixed into the channel** |
+| 253-254 | `transcript.grindInteraction(&channel)` |
+| 255-258 | `const lookup = try transcript.drawLookupElements(allocator, &channel)` — **z / alpha drawn here** |
+| 267-278 | `interaction_trace.build(..., lookup.z, lookup.alpha, ...)` |
+| 289-292 | `transcript.mixInteractionClaim(&channel, interaction.claimed_sums)` |
+| 300-307 | `Engine.commit(interaction.takeColumns())` + flush |
+
+**The host-visible value that must come back from the device before interaction
+can begin is the base trace's Merkle root**, because the blake2s channel must
+absorb it before `drawLookupElements` can produce `z` and `alpha`. This is a
+32-byte readback, not a data readback.
+
+Consequences, stated precisely because the design depends on them:
+
+- Interaction **placement** on the device is unconstrained. Interaction
+  **scheduling** is: it cannot share a command-buffer epoch with the base
+  commit. Residency must therefore be structured as at least three epochs —
+  (base witness + base commit) → root readback + host channel work →
+  (interaction build + interaction commit) → claim mix → (composition).
+- The 32-byte root readback per epoch boundary is cheap. The thing to avoid is
+  *column* readback: campaign 2 proved lookup words cannot be fused with their
+  interaction consumer for this same transcript reason, so a hybrid design that
+  computes witness on device and interaction on host would have to download the
+  lookup planes — 3,420 MB of write traffic on memory-7m per that note. **This
+  is the argument that witness and interaction must go resident together or not
+  at all.**
+- `interaction.component_sum` is checked against `public_logup.sum` on the host
+  at `transaction.zig:281-288` (`InvalidGlobalLookupSum`). A resident
+  interaction must produce that QM31 sum as a readback, which is one more small
+  device→host value per proof, not a plane.
+
+### 3.5 The integration seam already exists and is the right one
+
+`Engine` in `frontends/cairo/proving/transaction.zig` is a comptime parameter,
+and `Engine.commit` / `Engine.flushPendingCommit` are **already
+backend-dispatched stage hooks**. Residency does not need a new dispatch
+mechanism — it needs three more hooks of the same kind:
+
+- `Engine.buildBaseTrace` around the `base_trace_build` scope (`transaction.zig:148`);
+- `Engine.buildInteraction` around `interaction_trace_build` (`transaction.zig:263-278`);
+- `Engine.evaluateComposition` around `composition_evaluation`.
+
+with the host implementation as the default, which is exactly item 4 of the
+2026-07-27 four-item architecture list ("Move interaction materialization and
+Cairo AIR evaluation behind explicit CPU-SIMD and Metal backend interfaces").
+The CPU lane then keeps calling the host path unchanged, which is what preserves
+it as the byte-parity reference.
+
+### 3.6 Buffer / transfer inventory — **OPEN**
+
+Not closed inside the budget. What is established:
+
+- 74-79 `metal_dispatches` per proof across the four workloads (§1.1), stable to
+  ±5 across a 4.6x range of proof sizes — so the dispatch count is
+  **geometry-insensitive**, which says the current hybrid issues a roughly fixed
+  schedule of large dispatches rather than per-component ones.
+- `Engine.commit` receives `base.takeColumns()` / `interaction.takeColumns()`
+  (`transaction.zig:246`, `303`) — i.e. **host-owned column arrays are handed to
+  the backend per commit**, which is where the upload happens. Campaign 1's
+  rejected "retrofit base-trace backing ownership" increment recorded the
+  governing constraint directly: *"The Metal backend accepts a true no-copy host
+  source only when all columns cover one contiguous arena. Cairo component
+  execution produces multiple independent allocations, so Metal still had to
+  pack them."*
+- The measured `trace_decommit` inversion (Metal 2.8-5.4x slower than CPU, §1.2)
+  is the available readback calibration.
+
+What Phase 1 must measure: per-proof upload bytes at the two `Engine.commit`
+call sites, and whether the backend uses shared/UMA or private storage with
+explicit blits. The residency credit — uploads eliminated — is currently
+**unpriced**, and it is the main reason the §2.1 `S = 2.43x` estimate is
+conservative.
+
+
+---
+
+## 4. Program design: the phased work breakdown
+
+Sequenced by dependency and information value, not by size. The ordering
+principle: **the schedule-derivation prerequisite is shared by all three stages
+and is the program's single largest unknown, so it must be paid first and on
+the cheapest stage that can prove it works.**
+
+### Risk register (shared across phases, from the measured record)
+
+What killed prior attempts on this branch, with the citation:
+
+| # | Risk | Evidence it is real | Mitigation |
+| --- | --- | --- | --- |
+| R1 | **Readback** | `trace_decommit` is 2.8-5.4x slower on Metal (§1.2). Campaign 2 closed D1 because lookup words cannot cross the Fiat-Shamir boundary without a plane-sized transfer. | No phase may download a *plane*. Only roots (32 B), claimed sums (QM31) and telemetry cross back. Witness+interaction must move together (§3.4). |
+| R2 | **Small-component dispatch overhead** | `fri_quotient_build_and_commit` is 1.62x *slower* on Metal for all-opcodes (§1.2). The 2026-07-27 note's rejected unbounded-scheduling branch launched one full-domain pass per source run and cost 1,291 ms. Dispatch count is geometry-insensitive at 74-79 (§3.6), which is the shape that currently works. | Admission by structural size, as the accepted quotient fix does (byte volume + fragmentation, never a workload name). Batch small components into one dispatch. Keep a host path for components below a measured row threshold — and *measure* the threshold. |
+| R3 | **Schedule capture** | The resident executors take `schedule: []const std.json.Value` (§3.3); the only schedules that exist are the SN2 vectors. | Phase 1 exists specifically to replace this with claim-derived geometry, and to fail closed (`InvalidCardinality`, `MissingBinding` already exist as errors) rather than silently fall back. |
+| R4 | **Host-side representation transform survives the move** | Campaign 1's rejected base-trace ownership retrofit: Metal accepts no-copy only from one contiguous arena, and component execution produces independent allocations, so Metal packed anyway — 3,388.989 vs 3,410.897 ms, and the implementation was removed. Its recorded lesson: *"A valid successor must allocate one backend-shaped base arena before component execution."* | Residency must plan the arena **before** witness execution, which is exactly what `StagedArenaPlanner` is for. Do not retrofit ownership after allocation. |
+| R5 | **Byte-parity drift** | The whole program's licence to exist. | The CPU lane stays the reference and is not touched. Every phase adds a backend hook with the host implementation as default (§3.5), so CPU behaviour is unchanged by construction. Fail-closed is already structural: campaign 2 increment 2.3 demonstrated a sabotaged evaluator yields `ConstraintsNotSatisfied`, never an accepted proof, because the verifier recomputes composition at the OODS point. |
+| R6 | **Governance surface** | `capabilities.zig:23-27` is a released contract; `build.zig*`, `vectors/`, `conformance/` are protected. | Each phase's scope includes its contract edit as a first-class deliverable, reviewed with the code rather than after. |
+
+### Phase 1 — Live-geometry schedule derivation + resident composition
+
+**Scope.** Two things, deliberately coupled:
+
+(a) *The prerequisite.* Derive an arena plan and execution schedule from the
+live claim instead of a captured JSON document. Replace
+`schedule: []const std.json.Value` in the resident entry points
+(`resident/witness/execute.zig:214`, `resident/interaction/execute.zig:49`)
+with a typed schedule produced by a new derivation over
+`CairoProofPlan.init(allocator, components)` (`proof_plan.zig:140`) and
+`StagedArenaPlanner.derive(allocator, specs)` (`staged_arena_planner.zig:147`).
+Home: `src/frontends/cairo/witness/resident_geometry.zig`. The SN2 vectors
+become a *regression test* of the derivation — deriving from the SN_PIE_2 claim
+must reproduce the captured schedule — which converts the fixture from a
+constraint into a correctness oracle at zero cost.
+
+(b) *The cheapest stage that proves it.* Route `composition_evaluation` through
+a new `Engine.evaluateComposition` hook at `transaction.zig`'s
+`composition_evaluation` scope, host default, Metal implementation via
+`resident/composition/config.zig` and the `metal-eval-source` generated kernels.
+
+**Why composition first, not witness.** Four reasons, all measured:
+1. It is the largest single target on three of four rows (305.9 / 131.8 / 435.7 / 1,219.4 ms, §1.4).
+2. Campaign 2 increment 2.3 measured **72.3% of its instructions inside `PackedQm31.mul`** — pure data-parallel field arithmetic, the highest device-suitability work in the pipeline, and the case where beating the 3.13x requirement is most likely.
+3. It sits **after** both commits in the transcript, so it has **no Fiat-Shamir scheduling constraint at all** — unlike interaction. It is the only one of the three that can be moved without also solving epoch sequencing.
+4. It reads the base and interaction columns that the device **already holds** from the two commits, so it is the one stage where residency's upload saving is available immediately.
+
+**Priced expectation.** Composition is 305.9 / 131.8 / 435.7 / 1,219.4 ms.
+At the measured `S = 2.43x`: 1.163x / 1.057x / 1.152x / 1.183x per row,
+**4-row geomean ≈ 1.138x**. At `2S`: geomean ≈ 1.20x. Acceptance bar should be
+set on the *stage*, not on prove: composition stage ≥ 2.0x, which is
+falsifiable in one A-B and is the number that decides whether the whole program
+can reach 3.13x.
+
+**Correctness strategy.** CPU lane untouched (host default). Byte-parity is
+fail-closed by construction (R5). Per-component composition-part parity against
+the host evaluator before any timing, then the four-row digest set from §1.1.
+
+**Acceptance.** (i) Derivation reproduces the SN2 captured schedule exactly.
+(ii) Four-row digests unchanged, `cpu_fallbacks = 0`. (iii) Official verifier
+accepts. (iv) `composition_evaluation` stage ≥ 2.0x on arithmetic-2m and
+memory-7m with disjoint paired intervals. (v) `capabilities.zig`
+`air_constraint_evaluation` updated to `metal`.
+
+### Phase 2 — Resident witness + interaction, together
+
+**Scope.** `Engine.buildBaseTrace` around `transaction.zig:148` and
+`Engine.buildInteraction` around `transaction.zig:263-278`, both backed by
+`executeScheduledWitnessGraph` / `executeScheduledInteractionGraph` on Phase 1's
+derived schedule, with the arena planned **before** witness execution (R4).
+Three-epoch structure per §3.4: (base witness + base commit) → root readback →
+(interaction build + interaction commit).
+
+**Why together.** §3.4's argument: splitting them forces a plane-sized download
+of the lookup words across the Fiat-Shamir boundary, which is R1 and which
+campaign 2 already priced at 3,420 MB on memory-7m. This is a correctness-of-
+design constraint, not a preference.
+
+**Priced expectation.** witness + interaction is 134.2 / 724.8 / 540.8 /
+1,406.4 ms. At `S = 2.43x`: 1.066x / 1.417x / 1.244x / 1.219x,
+**geomean ≈ 1.229x**. Composed with Phase 1 at `S` this reaches the §2.2
+`1.422x` line; with warm caches, `1.632x`.
+
+**Risks specific to this phase.** R2 is acute here: the witness graph has 68
+components of which most are tiny (all-opcodes' entire base trace is 17.5 ms
+across the whole graph, §1.3). Per-component dispatch will lose. Batching is
+part of the scope, not a follow-up. The multiplicity tables are the one
+accumulating output and are already excluded from partial ranges
+(`program.zig:351-356`, `component_executor.zig:62`) — they need device atomics
+or a separate reduction, and campaign 1 increment 8 measured that 30.9M atomic
+increments over a 24 MB table cost *more* than 166 MB of private-copy traffic on
+the host, so the device version needs its own measurement rather than an
+assumption.
+
+**Acceptance.** Four-row digests unchanged; `cpu_fallbacks = 0`; verifier
+accepts; `base_trace_build` + `interaction_trace_build` combined ≥ 2.0x on
+pedersen and memory-7m; **no plane-sized device→host transfer** in the buffer
+inventory; `capabilities.zig` `witness` updated to `metal`.
+
+### Phase 3 — Epoch fusion, dispatch batching, and the cache precondition
+
+**Scope.** Three items that §2.3 says are not optional:
+(a) productize the artifact caches (pruning, ops) — worth the difference between
+a 6.94x and a 3.13x device requirement, the single highest-leverage item in the
+program per unit of work;
+(b) fuse the resident stages into the minimum number of command-buffer epochs
+the transcript permits (three), eliminating the intermediate flushes;
+(c) fix `fri_quotient_build_and_commit` on small rows, where the device is
+currently **1.62x slower than the host** (§1.2) — a bug-shaped target worth
+~1.08x on the portfolio's weakest row.
+
+**Priced expectation.** (a) 1.100x geomean measured directly in §2.2. (c) up to
+~1.08x on all-opcodes alone. (b) unpriced — it is the lever that moves the
+achieved device speedup from `S` toward `2S`, which is the difference between
+`1.632x` and `1.971x`.
+
+### Sequencing rationale and the sufficiency verdict
+
+**Say it plainly: Phases 1 and 2 alone are not sufficient.** §2.2 measures them
+at `1.422x` caches-off and `1.632x` caches-warm against a `1.768x` bar. Phase 3
+is not a polish phase — it is load-bearing, and item (a) within it is a
+precondition that halves the difficulty of Phases 1 and 2 rather than adding to
+their result.
+
+The Amdahl ceiling is `2.502x` (§2.2), so the program can clear the bar. The
+question is entirely whether resident kernels average **> 3.13x** against their
+host implementations. Phase 1 is designed so that its stage-level acceptance
+criterion (composition ≥ 2.0x, expected well above on multiply-bound work)
+answers that question before Phase 2's much larger implementation cost is
+committed. If Phase 1 lands composition at only ~2x, the program should be
+re-planned rather than continued: at 2.43x-class efficiency the three phases
+plus caches top out around 1.63x, and the remaining 8% would have to come from
+the device stages' own throughput, which §2.4 shows is 77-88% of the
+post-residency proof.
+
+---
+
+## 5. Recommendation for Phase 1's exact scope
+
+Phase 1 as specified above, with one narrowing for risk: **split it at the
+derivation boundary and gate on the first half.**
+
+- **Phase 1a** — live-geometry schedule derivation only, validated by
+  reproducing the SN2 captured schedule from the SN_PIE_2 claim. No product
+  behaviour change, no capability-contract edit, nothing on the prove path. This
+  is pure prerequisite, it is the program's largest unknown (§3.3, R3), and it is
+  independently verifiable against an existing fixture. If the derivation cannot
+  reproduce the captured schedule, the program stops here having spent one small
+  increment instead of three large ones.
+- **Phase 1b** — `Engine.evaluateComposition` on that derived geometry, with the
+  stage-level ≥ 2.0x acceptance bar that decides the program's feasibility.
+
+The information value is concentrated in 1a and the pricing decision is
+concentrated in 1b, and neither requires touching witness execution, the
+multiplicity atomics, the Fiat-Shamir epoch structure, or the CPU lane.
+
+### Open items the orchestrator should assign
+
+1. **Buffer/transfer inventory (§3.6)** — unpriced, and it is what makes `S`
+   conservative. Cheap to close and it tightens every projection in §2.
+2. **Whether `resident_geometry.zig` / `quotient_geometry.zig` already derive
+   per-component `log_size` from a live claim (§3.3)** — decides whether Phase 1a
+   is a small or a medium increment.
+3. **The unnamed residual** — 70 ms on three rows, 232.6 ms on memory-7m (5.0%
+   of prove, §1.4). Larger than several stages that have had whole increments
+   spent on them, and currently invisible to the stage recorder.
+4. **The three unmeasured portfolio rows** (fibonacci-100k, factorial-100k,
+   poseidon-aggregator) must be re-measured by the first phase making a
+   promotion claim (§2.3 consequence 3).
+5. **`serialization`** — 1,223.6 ms on memory-7m, outside the `prove` boundary
+   and therefore outside the bar, but over a second of user-visible latency that
+   no increment in three campaigns has examined.
+
+---
+
+## 6. Survey addendum: findings that revise §3 and §4
+
+Two parallel read-only surveys returned after §3-§5 were drafted. They close the
+items §3 marked OPEN and they **change the phase plan**. Where they contradict
+§3, this section is authoritative.
+
+### 6.1 The composition bundle is ALREADY claim-derived and already runs in the product
+
+`src/frontends/cairo/air/template_binding.zig:14-89`:
+
+```zig
+pub fn instantiate(
+    allocator, library: template_library.Library,
+    geometry: *const claim_generator.OwnedClaimGeometry,   // <-- LIVE claim geometry
+    target_variant: preprocessed.Variant,
+    segments: adapter.BuiltinSegments,
+) !composition.Bundle
+```
+
+It takes live `trace_log` from the claim (`:40-43`), selects templates by
+label+log (`:44-48`), derives `evaluation_log = trace_log + blowup delta`
+(`:106-116`), recomputes the denominator inverses (`:158-162`, `:211-237`),
+rebinds `seq_N` preprocessed indices (`:144-157`), rebinds domain and segment
+constants (`:177-188`), and assembles a bundle with fresh `total_constraints`,
+`max_evaluation_log_size` and `plan_hash` (`:80-88`).
+
+**And it is wired into the shipping product**: `application.zig:152-156` →
+`transaction.zig:167-182`. It is the `air_template_instantiation` stage —
+**0.2 ms in every row of §1.3**. The template inputs are properly authenticated
+(sha256 per template bundle, `template_library.zig:222-257`, manifest
+`vectors/cairo/official/air_template_library_v1.json`), unlike the metallib
+(§6.3).
+
+So §3.3's claim that live-geometry derivation is the program's largest unknown is
+**wrong for composition**. Live composition geometry already exists, already
+runs, and costs 0.2 ms.
+
+### 6.2 The composition metallib is log-size-independent — the single most useful fact in the survey
+
+Kernels are named `stwo_zig_eval_{semantic_hash:016x}`
+(`eval_codegen.zig:47-49`), and `semanticHash`
+(`src/frontends/cairo/witness/eval_program.zig:284-308`) hashes only
+`base_consts`, `ext_consts`, `base_insts`, `ext_insts`, `constraint_roots`.
+`setDomainLogSize` (`:258-261`) **does not touch the hash**.
+
+**Therefore pure log-size retargeting reuses the checked-in metallib kernels
+unchanged.** Only stride/segment-constant rebinding
+(`replaceBaseConstant`, `eval_program.zig:265-282`, which recomputes the hash at
+`:280`) mints new semantic hashes and would need a recompiled library — and a
+missing kernel fails closed at `composition_prewarm.zig:50` /
+`IncompleteCompositionAotPrewarm` (`app.zig:625-627`), never silently.
+
+Coverage of the checked-in `vectors/cairo/sn_pie_2_composition.metallib`
+(7.7 MB, git-tracked): **58 components, 279 parts, 1,325 constraints,
+`max_evaluation_log_size = 24`**, unfused (one kernel per part). Fusion requires
+a source artifact and is therefore not in the asset
+(`resident/composition/config.zig:127-130`).
+
+### 6.3 Governance findings that must be fixed inside the program, not after
+
+1. **The composition metallib is unauthenticated by digest anywhere in-tree.**
+   Its sha256 (`85db09e0…`) appears only in `autoresearch/notes/`. There is no
+   provenance JSON (contrast `air_template_library_v1.provenance.json`,
+   `witness_programs_v1.provenance.json`). The `metal-arena-plan` runner derives
+   the metallib path by **string substitution on the `.bin` path with no
+   integrity check** (`src/tools/metal_arena_plan/main.zig:4130-4144`). The only
+   in-repo binding between AIR and library is by-name kernel resolution
+   (`composition_prewarm.zig:46-62`), which is a *completeness* check, not an
+   *integrity* check. The session product does have a content-address policy
+   (`metal_prover_session/preparation.zig:64-77`,
+   `--composition-metallib-sha256`) — that is the pattern to generalize.
+   **This must be closed before any product path loads the metallib.** It is
+   flagged for an independent security review, not just a perf review.
+2. **There is no build step that produces the metallib.** It is generated offline
+   in CI only (`.github/workflows/ci.yml:423-441`) and requires full Xcode —
+   which this host does not have (`/Library/Developer/CommandLineTools` only, per
+   the 2026-07-27 note). So the program cannot regenerate the library locally,
+   and any phase requiring new semantic hashes is blocked on CI or on a
+   toolchain change.
+3. **`metal_dispatches` cannot see interaction work.** `telemetry.zig:6-26` has
+   no relation/interaction `Event` variant, and `metalDispatchTotal()`
+   (`telemetry.zig:57-72`) sums exactly 10 counters. So the measured 74-79
+   provably contains **zero** interaction device work, and wiring
+   `relationPrepared` in without adding an `Event` variant would leave the
+   `accelerated_without_fallbacks` gate (`app.zig:52`, `telemetry.zig:271-274`)
+   silently under-reporting. **Adding the counter is part of the phase scope, not
+   a follow-up** — it is what makes the zero-fallback evidence meaningful.
+
+### 6.4 The interaction kernels already exist and are already in the AOT bundle
+
+`src/backends/metal/shaders/core/relation.metal` (224 lines) — the LogUp
+machinery is named "relation" throughout, which is why §3 missed it:
+
+| kernel | line | role |
+| --- | ---: | --- |
+| `stwo_zig_relation_fused` | 131 | fraction numerators/denominators + batch inversion + per-row cumulative fold |
+| `stwo_zig_relation_block_scan` | 163 | 256-lane threadgroup prefix scan in circle order |
+| `stwo_zig_relation_scan_blocks` | 188 | serial scan of block sums; writes the claimed sum |
+| `stwo_zig_relation_scan_finalize` | 205 | adds block prefix, subtracts the `claimed_sum·rows⁻¹·(i+1)` normalization |
+
+The batch inversion is the same algorithm as the host's — a per-row
+suffix/prefix product across the column axis (`:145-160`) with **exactly one
+`qm_inv` per row**. Pipelines are built **unconditionally in the shipping
+runtime init** (`runtime.m:606-609`, required non-nil at `:659-660`) and the
+kernels **are in the authenticated core AOT bundle**
+(`shaders/manifest.zig:97-100`, `:201`, `:269`, ABI-frozen test `:473-500`).
+Execution is one command buffer with all four kernels
+(`runtime/prepared_auxiliary.m:184-228`), with `z` and alpha-powers bound from
+**inside the resident arena** (`:199-200`), not uploaded per call.
+
+`relationPrepared` has two call sites: the recipe (`recipes/relation.zig:164`)
+and a parity test (`tests/metal/backend/commitment_test.zig:129`). The shipping
+prover never reaches it.
+
+**No prior Metal interaction A/B exists.** All 11 recorded interaction
+experiments across the campaign notes are CPU-side; the two accepted ones
+(`14975401`, `1dbea2d7`) left `metal_dispatches` at exactly 74. The only
+structural rejection on this edge is campaign 2's D1 blocker, which forbids
+moving interaction *earlier*, not moving it *onto the device*. So this lane has
+no negative prior — it is unexplored, not falsified.
+
+### 6.5 The real Fiat-Shamir barrier is CPU proof-of-work, not the root readback
+
+§3.4's conclusion is correct in outcome but wrong in cost attribution. Three
+serialization points, not one:
+
+1. **Root (32 B)** — `lifecycle_and_tree.m:312-318`. On UMA `rootReadback == hash_arena`
+   (`:173-174`), so it is a **pointer read with zero blit**. Cheap.
+2. **Channel digest for PoW (40 B)** — `transcript.grindInteraction` runs
+   `channel.grind(24)` **on the CPU** (`transcript.zig:41-45`;
+   `interaction_pow_bits = 24` at `:12`). **There is no PoW kernel**
+   (`grep 'kernel void.*grind\|pow' src/backends/metal/shaders/` → not found).
+   This is the genuinely unavoidable host round trip.
+3. **`z`, `alpha` (32 B)** — drawn *on-device*
+   (`transcript_decommitment.m:37-52`), then read back only so the host can run
+   an alpha-power **prefix product** in scalar QM31
+   (`resident/transcript/operations.zig:78-117`). That is trivially kernelizable.
+
+Also: **every transcript op is its own command buffer with a blocking wait**
+(`transcript_decommitment.m:14`, `:31`, `:48`, `:66`), so `bootstrapThroughBase`
+(`protocol_recipes.zig:669-671`) costs **13 sequential round trips** before a
+single relation thread runs. And `CommandEpoch` has **no `encodeRelation`**
+(`command_epoch.zig:127-213`; `merkle_epochs.m` has 7 encoders, none for
+relation), so relation dispatches cannot currently be batched with commitment
+work at all.
+
+### 6.6 What "74 dispatches" actually means — and why this reframes R2
+
+**A counted dispatch is one host-blocking command-buffer submission (an epoch),
+not one `dispatchThreads` call.** `combined_commit.zig:182` records **one**
+`metal_circle_lde_dispatch` for an epoch that encodes IFFT + rescale + RFFT
+layers + leaf hashing + the entire Merkle parent chain
+(`circle_commit_epoch.m:4-568`).
+
+So the stable 74-79 across a 4.6x proof-size range (§1.1) is not evidence of
+"large coarse dispatches" as §3.6 inferred — it is **74-79 blocking host↔device
+round trips per proof**. And on UMA, uploads are almost entirely **zero-copy
+aliases** of host allocations (`newBufferWithBytesNoCopy`,
+`circle_commit_epoch.m:88-91`; `grep didModifyRange` → not found; no managed
+buffers anywhere), while downloads reduce to 4×32 B roots, query hashes, and one
+sampled-value block.
+
+**This closes §3.6 with an answer that inverts its premise: the transfer *bytes*
+are already negligible. The cost is serialization.** Residency's win therefore
+does **not** come from eliminating uploads — it comes from eliminating
+round trips. Which means:
+
+- The §2.1 `S = 2.43x` estimate is *not* conservative for the reason stated
+  there (uploads are already zero-copy, so there is no upload to eliminate). Its
+  conservatism rests only on the arithmetic-intensity argument. **The §2 numbers
+  should be treated as the central estimate, not a floor.**
+- Conversely, **epoch fusion moves from Phase 3 polish to a primary lever**: at
+  74-79 blocking submissions per proof, collapsing them is plausibly worth more
+  than any single stage migration, and it is the only mechanism identified that
+  could plausibly deliver the `2S` column of §2.2.
+
+### 6.7 Revised phase plan
+
+The corrections above change the sequencing materially. §4's phases are
+superseded as follows.
+
+| Phase | Revised scope | Why it changed |
+| --- | --- | --- |
+| **1** | `Engine.evaluateComposition` against the **existing** checked-in metallib, driven by the **already-live** `template_binding.instantiate` bundle. Plus the metallib integrity binding (§6.3.1) and the telemetry `Event` variant (§6.3.3). | §6.1: no schedule derivation needed. §6.2: no library regeneration needed for log-size changes. This is now a **much smaller** increment than §4 assumed — the two things §4 called prerequisites do not apply to composition. |
+| **2** | `Engine.buildInteraction` against the **existing** `relation.metal` kernels, which are already in the authenticated AOT bundle. Requires arena residency for the base columns and lookup words, and the `encodeRelation` epoch encoder. | §6.4: kernels exist and are pipeline-loaded. Budget 336 ms (arithmetic-2m) / 467.7 ms (memory-7m). Promoted **ahead of** witness because no kernel authoring is required. |
+| **3** | Epoch fusion + the alpha-power prefix-product kernel + a PoW kernel. Collapse the 13-round-trip transcript bootstrap and the 74-79 per-proof submissions. | §6.5/§6.6: promoted from polish to a **primary lever**. This is the mechanism for the `2S` column, i.e. the difference between 1.632x and 1.971x. |
+| **4** | `Engine.buildBaseTrace` (resident witness) + live-geometry arena schedule derivation (replace `len_words` from the captured JSON, `metal_arena_plan/main.zig:2384-2385`, with claim-computed bytes). | Demoted: it is the only phase that still needs the schedule-derivation work, and the only one with no pre-existing kernels for parts of its scope. The planner itself needs **no change** — it is already row-count-agnostic (`staged_arena_planner.zig:147-170`); only the spec *sizes* are pinned. |
+| **5** | Cache productization; small-row `fri_quotient_build_and_commit` (§1.2 finding 1). | Unchanged in content; the cache remains a precondition per §2.3. |
+
+**The sufficiency verdict in §2.3 is unchanged.** The projections do not move —
+only the order and cost of the work does. Phases 1+2+4 at `S` plus warm caches
+remain `1.632x` against a `1.768x` bar, and Phase 3 (epoch fusion) is now the
+identified mechanism for the remainder rather than an unpriced hope.
+
+### 6.8 Revised Phase 1 recommendation (supersedes §5)
+
+**Phase 1 = `Engine.evaluateComposition` on the existing metallib, with its
+integrity binding and its telemetry counter.** The §5 split at the
+"derivation boundary" is no longer needed: §6.1 shows the derivation already
+exists in-product and §6.2 shows the library does not need regenerating for
+log-size changes. Concretely:
+
+1. Bind the composition metallib by content digest — generalize the session
+   product's `approved_metallib` policy
+   (`metal_prover_session/preparation.zig:64-77`) into the Cairo Metal product,
+   and add the missing provenance JSON. **Do this first**; nothing else should
+   load the library until it does.
+2. Add a relation/composition `Event` variant to `telemetry.zig:6-26` and include
+   it in `metalDispatchTotal()` so the zero-fallback evidence stays meaningful.
+3. Add `Engine.evaluateComposition` at `transaction.zig`'s
+   `composition_evaluation` scope, host default, Metal implementation via
+   `resident/composition/config.zig` + `arena_binding.zig:1470-1506`. Require
+   `isComplete()` (`recipes/composition.zig:152-154`) and fail closed
+   (`PartialCompositionCannotContinue` already exists as the precedent at
+   `metal_arena_plan/main.zig:4163-4169`).
+4. Measure the stage against the ≥2.0x bar on arithmetic-2m and memory-7m —
+   still the number that decides the program's feasibility.
+
+The residual risk concentrates in one place worth naming: the captured schedule's
+own metadata records `pass = false`, `vram_fit = false` and
+`manifest_policy = "Fake {...}"`. Any throughput expectation inherited from SN2
+resident measurements is provisional on that, which is a further argument for
+pricing Phase 1 on a fresh A-B rather than on prior resident numbers.
+
+### 6.9 The witness AOT path is in worse shape than §3.2 implied — Phase 4 demotion confirmed
+
+The third survey closes the witness questions and every answer argues for keeping
+witness last.
+
+**Coverage is 33 of 68, not 68.** `vectors/cairo/sn_pie_2_witness_programs.bin`
+holds **33 entries** (asserted in-tree at
+`src/frontends/cairo/witness/bundle.zig:100`), generating `entries.len * 2` = **66
+kernels** (`witness_aot.zig:28-30`). The 68 figure is the pinned official claim
+registry (`official_claim_registry.zig:46`, `claim_field_count = 68`). The
+separate `vectors/cairo/official/witness_programs_v1.bin` holds **64** entries
+(pinned at `tools/cairo-witness-compiler/orchestrator.py:29`, missing exactly
+`memory_address_to_id`, `memory_id_to_big`, `memory_id_to_small`,
+`verify_bitwise_xor_12`) — and **no Metal path reads it**; it is consumed only by
+CPU/frontend tests. Its provenance records `release_eligible: false` with three
+blockers (`witness_programs_v1.provenance.json:3-8`). The 35 registry components
+absent from the SN2 bundle are covered by other resident writers (fixed tables,
+memory trace, native EC-op recipe), not by the witness batch.
+
+**The checked-in witness metallib is stale and cannot load.**
+`vectors/cairo/sn_pie_2_witness.metallib` exports 33 legacy unsuffixed
+`stwo_zig_witness_<hash>` symbols — zero `_base` / `_interaction` / `_v6`
+symbols. The current contract requires 66 names of the suffixed v6 form
+(`witness_codegen.zig:60-76`), so it fails `validateRequiredExports` with
+`error.WitnessExportCountMismatch` — which is exactly the regression test at
+`witness_aot.zig:264-285`. Nothing in the repo references the file.
+
+**The witness "AOT" path is source-JIT in practice.** The complete authenticated
+admission contract exists and is tested —
+`prepareAuthenticatedAotWitnessBatches` (`resident/witness/prepare.zig:192-233`),
+`AuthenticatedMetallib.authenticate` with codegen-version pin, exact-order export
+validation and TOCTOU re-stat (`witness_aot.zig:63-76`, `:115-164`) — and has
+**no production caller** (only its definition and a re-export at
+`arena_binding.zig:1073`). What the runner actually calls hardcodes `.source_jit`
+(`prepare.zig:143-153`, `:168-178`, terminal switch `:515-534` →
+`metal.compileEvalLibrary`). So both witness libraries are **compiled from
+generated Metal source on every prepared-state miss**. Consistent with this,
+`metal-witness-source` only *builds the generator*; no CI job or script ever runs
+it (contrast the composition metallib, which CI does compile,
+`ci.yml:422-441`).
+
+**The Metal proof plan is structurally 33 components.**
+`CairoProofPlan.fromWitnessSchedule` (`proof_plan.zig:213-239`) is documented as
+"the recorded-witness portion used by the **legacy** Metal schedule", allocates
+exactly `bundle.entries.len` seeds (`:221`), and hardcodes the sole native writer
+by name (`:228-231`). The hard equality
+`if (proof.components.len != witness_bundle.entries.len) return Error.InvalidCardinality`
+(`resident/witness/execute.zig:227`) then pins the plan at 33 — never the 57 in
+the schedule nor the 58 in the composition bundle. The live-geometry constructor
+`fromSemanticArtifacts` (`proof_plan.zig:246-284`) has **zero Metal callers**.
+
+**Residency is gated by a 10-way env-var AND.** `canonical_full_proof_plan`
+(`metal_arena_plan/main.zig:2661-2673`, `eligible()` at `:734-740`) requires ten
+`STWO_ZIG_SN2_*` conditions simultaneously; the session sets exactly that matrix
+(`metal_prover_session/preparation.zig:377-399`). Any product path must replace
+this with a structural predicate.
+
+**Hardcoded cardinalities sit on the executing path**, not in dead code:
+`resident/witness/prepare.zig:94` (`big.len != 28 or small.len != 8`), `:102`
+(`trace.len != 273 or partial.len != 126`), `:88`/`:103-104` fixed arrays
+`[37]`/`[273]`/`[127]`, `:116-121` multiplicity binding ordinals bound to literal
+`(component, ordinal)` pairs, `:430-433` pointer-table caps 2048/8192/2048.
+`resident/preprocessed/coefficients.zig:24-26` states the coupling in its own doc
+comment: *"Binds all 33 canonical witness programs to the captured SN2 arena."*
+SN2 protocol geometry is likewise baked at `compact_protocol_geometry.zig:32-47`
+with the session's "live" derivation overriding only 3 of its fields
+(`metal_prover_session/verification.zig:123-132`), and preprocessed tree-0 width
+is a three-value whitelist (`compact_verifier_interchange.zig:30-37`).
+
+*(One reassurance: the most alarming-looking table, `Sn2Counts`
+(`schedule_bindings.zig:21-31`) with its literal 370/58/161/26/13/18, is
+**residual** — it is reachable only via `PreparedProofBindings.initSn2`
+(`arena_binding.zig:172-180`), which has no callers. The live gate is the list
+above.)*
+
+**Host work does not disappear at a device witness dispatch.** Thirteen host
+items remain per request, of which three are per-dispatch rather than per-proof:
+pointer-table workspace materialization is a host `@memset` + `@memcpy` **before
+every kernel dispatch, per component per epoch**, 5-7 tables each
+(`recipes/aot_witness.zig:160-170`, invoked from `executeIndex` at `:156`);
+direct witness-input lowering is a **per-row host scalar loop**
+(`resident/witness/inputs.zig:55-80` → `direct_inputs.zig:71-97`); and the
+RC9_9 LUT is a host-built 2^18-entry table with two full passes
+(`memory_trace.zig:182-205`). Plus, because the session sets
+`STWO_ZIG_METAL_REPLAY_RETAINED_LOOKUPS=1` (`preparation.zig:395`),
+`retainsLookupInputs` returns false (`proof_plan.zig:56`) and the interaction
+epoch **re-runs a second full witness pass over all 33 programs** rather than
+retaining the lookup slab.
+
+**Verdict.** Phase 4 (witness) is confirmed as last and is materially larger than
+§4 priced it: it needs a live-geometry proof plan (`fromSemanticArtifacts` wired
+for Metal), a regenerated and newly *authenticated* witness metallib plus a build
+step and CI job that do not exist, replacement of ~8 hardcoded cardinality sites,
+a structural replacement for the 10-way env gate, and removal of per-dispatch
+host materialization. Its measured prize is real — 624.1 ms on pedersen and
+938.7 ms on memory-7m (§1.4) — but it is the one phase where the "reuse existing
+machinery" premise is weakest, and the 33-of-68 coverage means a live-geometry
+witness needs **new generated writers for components the SN2 bundle never
+contained**.
