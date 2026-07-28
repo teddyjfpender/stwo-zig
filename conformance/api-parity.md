@@ -149,6 +149,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/constraint-framework/src/lib.rs",
       "source": "src/core/constraint_framework/mod.zig"
     },
+    "stwo.core.constraint_framework.ConstraintProgram": {
+      "kind": "const",
+      "rationale": "Zig-owned, backend-neutral lowering of the upstream ExprEvaluator DAG; upstream evaluates the expression arena directly and exports no equivalent program IR.",
+      "rust_path": "crates/constraint-framework/src/expr/evaluator.rs",
+      "source": "src/core/constraint_framework/mod.zig"
+    },
     "stwo.core.constraint_framework.ExprArena": {
       "kind": "const",
       "rationale": null,
@@ -191,6 +197,18 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/constraint-framework/src/lib.rs",
       "source": "src/core/constraint_framework/mod.zig"
     },
+    "stwo.core.constraint_framework.lowerConstraintProgram": {
+      "kind": "const",
+      "rationale": "Zig lowering entry point for the backend-neutral constraint program; upstream retains and evaluates ExprEvaluator nodes directly.",
+      "rust_path": "crates/constraint-framework/src/expr/evaluator.rs",
+      "source": "src/core/constraint_framework/mod.zig"
+    },
+    "stwo.core.constraint_framework.program": {
+      "kind": "const",
+      "rationale": "Zig-only namespace for the owned constraint-program representation used at package and accelerator boundaries.",
+      "rust_path": null,
+      "source": "src/core/constraint_framework/mod.zig"
+    },
     "stwo.core.constraints": {
       "kind": "const",
       "rationale": null,
@@ -202,6 +220,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/core/mod.zig"
+    },
+    "stwo.core.crypto.blake2s_backend": {
+      "kind": "const",
+      "rationale": "Zig backend-dispatch namespace for scalar and SIMD Blake2s compression; hashes remain differential-tested against the upstream backend implementation.",
+      "rust_path": "crates/stwo/src/prover/backend/simd/blake2s.rs",
+      "source": "src/core/crypto/mod.zig"
     },
     "stwo.core.crypto.hash256": {
       "kind": "const",
@@ -357,6 +381,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
+      "source": "src/core/mod.zig"
+    },
+    "stwo.core.proof_json": {
+      "kind": "const",
+      "rationale": "Zig JSON codec for the upstream serde proof schema; byte transport and decoded proof behavior are checked by the Zig/Rust interoperability gates.",
+      "rust_path": null,
       "source": "src/core/mod.zig"
     },
     "stwo.core.proof_of_work": {
@@ -593,6 +623,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": null,
       "source": "src/interop/mod.zig"
     },
+    "stwo.interop.output_transaction": {
+      "kind": "const",
+      "rationale": "Zig-only atomic CLI publication transaction that prevents partial proof/report outputs; it does not change the proof protocol.",
+      "rust_path": null,
+      "source": "src/interop/mod.zig"
+    },
     "stwo.interop.proof_wire": {
       "kind": "const",
       "rationale": "Zig/Rust interoperability wire helper for conformance harness; no direct upstream crate export symbol.",
@@ -608,6 +644,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
     "stwo.interop.riscv_artifact": {
       "kind": "const",
       "rationale": "Zig-only RISC-V proof artifact envelope pinned to Sail semantic-authority provenance.",
+      "rust_path": null,
+      "source": "src/interop/mod.zig"
+    },
+    "stwo.interop.stwo_json": {
+      "kind": "const",
+      "rationale": "Zig interoperability alias for the package-owned proof JSON codec; upstream uses serde rather than an equivalent public namespace.",
       "rust_path": null,
       "source": "src/interop/mod.zig"
     },
@@ -656,6 +698,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
     "stwo.prover.engine": {
       "kind": "const",
       "rationale": "Zig compile-time composition boundary for complete host and device proving transactions; proof semantics remain final-oracle gated against pinned Rust Stwo.",
+      "rust_path": null,
+      "source": "src/prover/mod.zig"
+    },
+    "stwo.prover.execution": {
+      "kind": "const",
+      "rationale": "Zig backend-neutral proof-request service and owned execution description; upstream composes these calls directly without an equivalent exported service namespace.",
       "rust_path": null,
       "source": "src/prover/mod.zig"
     },
@@ -737,6 +785,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/prover/pcs/mod.zig"
     },
+    "stwo.prover.pcs.ColumnSource": {
+      "kind": "const",
+      "rationale": "Zig ownership descriptor for materialized or structurally deferred commitment columns; upstream commits materialized columns and exports no equivalent source union.",
+      "rust_path": null,
+      "source": "src/prover/pcs/mod.zig"
+    },
     "stwo.prover.pcs.CommitmentSchemeError": {
       "kind": "const",
       "rationale": null,
@@ -771,6 +825,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "fn",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
+      "source": "src/prover/pcs/mod.zig"
+    },
+    "stwo.prover.pcs.flushPendingCommit": {
+      "kind": "fn",
+      "rationale": "Zig scheduling hook that joins a deferred first-tree build before later transcript data; proof bytes and root-mix order remain parity-tested against the upstream sequential commitment path.",
+      "rust_path": null,
       "source": "src/prover/pcs/mod.zig"
     },
     "stwo.prover.pcs.quotient_ops": {
