@@ -1,6 +1,7 @@
 //! Rust-oracle comparison for source-recorded Cairo interaction components.
 
 const std = @import("std");
+const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const producer_output = @import("../witness/producer_output.zig");
 const interaction_checkpoint = @import("interaction_checkpoint.zig");
@@ -172,6 +173,9 @@ pub fn compareTrace(
     return null;
 }
 
+/// Rows per parallel evaluation batch.
+const batch_rows: usize = 1 << 15;
+
 pub fn materializeTrace(
     allocator: std.mem.Allocator,
     descriptors: []const u32,
@@ -195,19 +199,18 @@ pub fn materializeTrace(
     ) catch return error.AllocationSizeOverflow;
     const values = try allocator.alloc(QM31, value_count);
     errdefer allocator.free(values);
-    const batch_rows: usize = 1 << 15;
-    const claimed_sum = if (source.rows() > batch_rows)
-        try evaluateRangesParallel(
-            allocator,
-            descriptors,
-            source,
-            z,
-            alpha_powers,
-            values,
-            batch_rows,
-        ) orelse try evaluateRangesSerial(&reference, values, batch_rows)
-    else
-        try evaluateRangesSerial(&reference, values, batch_rows);
+    const claimed_sum = try evaluateRanges(
+        allocator,
+        &reference,
+        descriptors,
+        source,
+        z,
+        alpha_powers,
+        interaction_trace.SecureSink{
+            .destination = values,
+            .source_rows = source.rows(),
+        },
+    );
     const final_column =
         values[(reference.columnCount() - 1) * source.rows() ..][0..source.rows()];
     const final_prefix = try interaction_trace.scanLastColumnInPlace(
@@ -224,19 +227,97 @@ pub fn materializeTrace(
     };
 }
 
+/// Interaction column count for one relation trace, without evaluating it.
+pub fn columnCount(descriptors: []const u32) usize {
+    return descriptors.len / interaction_trace.descriptor_words;
+}
+
+/// Materializes one interaction component straight into its committed
+/// base-field coordinate planes.
+///
+/// `planes` holds four planes per interaction column, ordered
+/// `column * 4 + coordinate`, each exactly `source.rows()` long. Only the last
+/// column is staged in secure form, because its committed values are the
+/// circle-order scan of the row totals and the scan needs the claimed sum.
+pub fn materializeCoordinates(
+    allocator: std.mem.Allocator,
+    descriptors: []const u32,
+    source: interaction_trace.SourceView,
+    z: QM31,
+    alpha_powers: []const QM31,
+    planes: []const []M31,
+) !QM31 {
+    var reference = try interaction_trace.Reference.init(
+        allocator,
+        descriptors,
+        source,
+        z,
+        alpha_powers,
+    );
+    defer reference.deinit();
+    const columns = reference.columnCount();
+    if (planes.len != columns * 4) return error.InvalidInteractionGeometry;
+    for (planes) |plane| if (plane.len != source.rows())
+        return error.InvalidInteractionGeometry;
+
+    const last_column = try allocator.alloc(QM31, source.rows());
+    defer allocator.free(last_column);
+    const claimed_sum = try evaluateRanges(
+        allocator,
+        &reference,
+        descriptors,
+        source,
+        z,
+        alpha_powers,
+        interaction_trace.CoordinateSink{
+            .planes = planes,
+            .last_column = last_column,
+            .last_index = columns - 1,
+        },
+    );
+    const final_prefix = try interaction_trace.scanLastColumnInPlace(
+        last_column,
+        claimed_sum,
+    );
+    if (!final_prefix.eql(QM31.zero())) return error.InvalidInteractionSum;
+    interaction_trace.lowerLastColumn(planes[(columns - 1) * 4 ..][0..4], last_column);
+    return claimed_sum;
+}
+
+fn evaluateRanges(
+    allocator: std.mem.Allocator,
+    reference: *interaction_trace.Reference,
+    descriptors: []const u32,
+    source: interaction_trace.SourceView,
+    z: QM31,
+    alpha_powers: []const QM31,
+    sink: anytype,
+) !QM31 {
+    if (source.rows() > batch_rows) {
+        if (try evaluateRangesParallel(
+            allocator,
+            descriptors,
+            source,
+            z,
+            alpha_powers,
+            sink,
+        )) |claimed_sum| return claimed_sum;
+    }
+    return evaluateRangesSerial(reference, sink);
+}
+
 fn evaluateRangesSerial(
     reference: *interaction_trace.Reference,
-    values: []QM31,
-    batch_rows: usize,
+    sink: anytype,
 ) !QM31 {
     var claimed_sum = QM31.zero();
     var first_row: usize = 0;
     while (first_row < reference.source.rows()) : (first_row += batch_rows) {
         const rows = @min(batch_rows, reference.source.rows() - first_row);
-        claimed_sum = claimed_sum.add(try reference.evaluateRange(
+        claimed_sum = claimed_sum.add(try reference.evaluateRangeInto(
             first_row,
             rows,
-            values,
+            sink,
         ));
     }
     return claimed_sum;
@@ -248,8 +329,7 @@ fn evaluateRangesParallel(
     source: interaction_trace.SourceView,
     z: QM31,
     alpha_powers: []const QM31,
-    values: []QM31,
-    batch_rows: usize,
+    sink: anytype,
 ) !?QM31 {
     const pool = work_pool.getGlobalPool() orelse return null;
     const batch_count = std.math.divCeil(usize, source.rows(), batch_rows) catch
@@ -268,8 +348,7 @@ fn evaluateRangesParallel(
         source: interaction_trace.SourceView,
         z: QM31,
         alpha_powers: []const QM31,
-        values: []QM31,
-        batch_rows: usize,
+        sink: @TypeOf(sink),
         first_row: usize,
         end_row: usize,
         claimed_sum: QM31 = QM31.zero(),
@@ -289,12 +368,12 @@ fn evaluateRangesParallel(
             defer reference.deinit();
 
             var first_row = self.first_row;
-            while (first_row < self.end_row) : (first_row += self.batch_rows) {
-                const rows = @min(self.batch_rows, self.end_row - first_row);
-                const batch_sum = reference.evaluateRange(
+            while (first_row < self.end_row) : (first_row += batch_rows) {
+                const rows = @min(batch_rows, self.end_row - first_row);
+                const batch_sum = reference.evaluateRangeInto(
                     first_row,
                     rows,
-                    self.values,
+                    self.sink,
                 ) catch |err| {
                     self.failure = err;
                     return;
@@ -316,8 +395,7 @@ fn evaluateRangesParallel(
             .source = source,
             .z = z,
             .alpha_powers = alpha_powers,
-            .values = values,
-            .batch_rows = batch_rows,
+            .sink = sink,
             .first_row = first_batch * batch_rows,
             .end_row = @min(source.rows(), end_batch * batch_rows),
         };

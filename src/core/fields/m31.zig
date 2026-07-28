@@ -29,6 +29,18 @@ pub const M31 = struct {
         return .{ .v = x };
     }
 
+    /// Construct without checking canonicality, matching `CM31.fromU32Unchecked`
+    /// and `QM31.fromU32Unchecked`.
+    ///
+    /// This exists for bulk readers that validate a whole run of borrowed
+    /// words with one vector bound instead of one branch per element. A
+    /// non-canonical value produces a deterministic wrong field element, never
+    /// undefined behaviour, so the caller may defer its rejection to the end of
+    /// the run as long as it discards the run's results.
+    pub inline fn fromU32Unchecked(x: u32) M31 {
+        return .{ .v = x };
+    }
+
     /// Reduce an unsigned integer into F_p.
     pub inline fn fromU64(x: u64) M31 {
         return .{ .v = reduce64(x) };

@@ -18,7 +18,7 @@ pub const Error = error{
 
 /// Column-major lookup words stored in one contiguous allocation.
 pub const LookupColumns = struct {
-    const ReadFn = *const fn (
+    pub const ReadFn = *const fn (
         context: *const anyopaque,
         column: usize,
         row: usize,
@@ -70,6 +70,80 @@ pub const LookupColumns = struct {
         };
         return canonical(raw);
     }
+
+    fn access(self: LookupColumns, column: usize) Error!ColumnAccess {
+        if (column >= self.columns) return Error.InvalidSourceShape;
+        return switch (self.storage) {
+            .dense => |words| .{ .dense = words.ptr + column * self.rows },
+            .virtual => |source| .{ .virtual = .{
+                .context = source.context,
+                .read = source.read,
+                .column = column,
+            } },
+        };
+    }
+};
+
+/// A resolved indirect reader for one virtual lookup column.
+pub const VirtualColumn = struct {
+    context: *const anyopaque,
+    read: LookupColumns.ReadFn,
+    column: usize,
+
+    pub fn value(self: VirtualColumn, row: usize) Error!M31 {
+        return canonical(try self.read(self.context, self.column, row));
+    }
+};
+
+/// A borrowed column reader resolved once per relation use instead of once per
+/// element. `dense` addresses at least the view's visible rows.
+pub const ColumnAccess = union(enum) {
+    dense: [*]const u32,
+    virtual: VirtualColumn,
+};
+
+/// Row-indexed reader for one relation word of one use, resolved once.
+///
+/// Descriptor dispatch, index arithmetic, and bounds validation happen when the
+/// access is built; evaluation then reads rows through a two-way union whose
+/// dense arm is a plain contiguous load.
+pub const WordAccess = union(enum) {
+    dense: [*]const u32,
+    /// `row + base`, range-checked against the modulus.
+    row_plus: u64,
+    /// `((row + base) | 2^30)`, range-checked below `2^30 - 1`.
+    tagged_big: u32,
+    /// Synthesized `verify_bitwise_xor_12` operand words.
+    bitwise: struct { arg: u32, word: usize },
+    virtual: VirtualColumn,
+
+    pub fn value(self: WordAccess, row: usize) Error!M31 {
+        return switch (self) {
+            .dense => |words| canonical(words[row]),
+            .row_plus => |base| canonicalWide(@as(u64, row) + base),
+            .tagged_big => |base| taggedBigAddress(row, base),
+            .bitwise => |synthetic| bitwiseWord(synthetic.arg, synthetic.word, row),
+            .virtual => |source| source.value(row),
+        };
+    }
+};
+
+/// Row-indexed multiplicity reader for one use, resolved once.
+pub const MultiplicityAccess = union(enum) {
+    one,
+    /// `1` while the row is inside the source's real prefix, else `0`.
+    row_enabler: usize,
+    dense: [*]const u32,
+    virtual: VirtualColumn,
+
+    pub fn value(self: MultiplicityAccess, row: usize) Error!M31 {
+        return switch (self) {
+            .one => M31.one(),
+            .row_enabler => |real_rows| M31.fromCanonical(@intFromBool(row < real_rows)),
+            .dense => |words| canonical(words[row]),
+            .virtual => |source| source.value(row),
+        };
+    }
 };
 
 /// Independently borrowed source columns. Columns may be larger than `rows`,
@@ -88,6 +162,12 @@ pub const SparseColumns = struct {
     fn value(self: SparseColumns, column: usize, row: usize) Error!M31 {
         if (column >= self.values.len or row >= self.rows) return Error.InvalidSourceShape;
         return canonical(self.values[column][row]);
+    }
+
+    fn access(self: SparseColumns, column: usize) Error!ColumnAccess {
+        if (column >= self.values.len or self.values[column].len < self.rows)
+            return Error.InvalidSourceShape;
+        return .{ .dense = self.values[column].ptr };
     }
 };
 
@@ -281,6 +361,90 @@ pub const SourceView = struct {
         };
     }
 
+    /// Resolves the row reader for one relation word of one use.
+    ///
+    /// This is the hoisted form of `relationWord`: it performs the same layout
+    /// dispatch, index arithmetic, and bounds validation once per use instead
+    /// of once per element, and the returned access reproduces `relationWord`
+    /// for every row of the view.
+    pub fn resolveWord(
+        self: SourceView,
+        kind: u32,
+        arg: u32,
+        word: usize,
+    ) Error!WordAccess {
+        if (word == 0) return Error.InvalidDescriptor;
+        return switch (self.storage) {
+            .lookup_words => |source| if (kind == 0)
+                fromColumn(try source.access(try addIndex(arg, word)))
+            else
+                Error.InvalidDescriptor,
+            .memory_address => |source| if (kind == 1)
+                if (word == 1)
+                    WordAccess{ .row_plus = 1 + @as(u64, arg) * source.rows }
+                else
+                    fromColumn(try source.access(try mulIndex(arg, 2)))
+            else
+                Error.InvalidDescriptor,
+            .memory_big => |source| switch (kind) {
+                2 => fromColumn(try source.access(try addIndex(arg, word - 1))),
+                3 => if (word == 1)
+                    WordAccess{ .tagged_big = self.source_offset_rows }
+                else
+                    fromColumn(try source.access(word - 2)),
+                else => Error.InvalidDescriptor,
+            },
+            .memory_small => |source| switch (kind) {
+                4 => fromColumn(try source.access(try addIndex(arg, word - 1))),
+                5 => if (word == 1)
+                    WordAccess{ .row_plus = self.source_offset_rows }
+                else
+                    fromColumn(try source.access(word - 2)),
+                else => Error.InvalidDescriptor,
+            },
+            .bitwise_xor_12 => if (kind == 6)
+                WordAccess{ .bitwise = .{ .arg = arg, .word = word } }
+            else
+                Error.InvalidDescriptor,
+        };
+    }
+
+    /// Resolves the row reader for one use's multiplicity. Hoisted form of
+    /// `multiplicity`, with the same dispatch and bounds semantics.
+    pub fn resolveMultiplicity(
+        self: SourceView,
+        kind: u32,
+        arg: u32,
+    ) Error!MultiplicityAccess {
+        return switch (kind) {
+            0 => .one,
+            1 => .{ .row_enabler = self.real_rows },
+            2 => switch (self.storage) {
+                .lookup_words => |source| fromMultiplicityColumn(try source.access(arg)),
+                else => Error.InvalidDescriptor,
+            },
+            3 => switch (self.storage) {
+                .memory_address => |source| fromMultiplicityColumn(
+                    try source.access(try addIndex(try mulIndex(arg, 2), 1)),
+                ),
+                else => Error.InvalidDescriptor,
+            },
+            4 => switch (self.storage) {
+                .memory_big => |source| fromMultiplicityColumn(try source.access(arg)),
+                else => Error.InvalidDescriptor,
+            },
+            5 => switch (self.storage) {
+                .memory_small => |source| fromMultiplicityColumn(try source.access(arg)),
+                else => Error.InvalidDescriptor,
+            },
+            6 => switch (self.storage) {
+                .bitwise_xor_12 => |source| fromMultiplicityColumn(try source.access(arg)),
+                else => Error.InvalidDescriptor,
+            },
+            else => Error.InvalidDescriptor,
+        };
+    }
+
     fn validateSourceUse(self: SourceView, kind: u32, arg: u32, words: u32) Error!void {
         const last_word: usize = words - 1;
         switch (self.storage) {
@@ -330,6 +494,20 @@ pub const SourceView = struct {
         if (!valid) return Error.InvalidDescriptor;
     }
 };
+
+fn fromColumn(column: ColumnAccess) WordAccess {
+    return switch (column) {
+        .dense => |words| .{ .dense = words },
+        .virtual => |source| .{ .virtual = source },
+    };
+}
+
+fn fromMultiplicityColumn(column: ColumnAccess) MultiplicityAccess {
+    return switch (column) {
+        .dense => |words| .{ .dense = words },
+        .virtual => |source| .{ .virtual = source },
+    };
+}
 
 fn validateMemoryColumns(columns: SparseColumns, value_columns: u32, real_rows: usize) Error!void {
     try validateRows(columns.rows, real_rows);
@@ -427,6 +605,154 @@ test "Cairo interaction sources synthesize bitwise xor partitions" {
     try std.testing.expectEqual(@as(u32, 0), (try source.relationWord(6, 4, 2, 0)).v);
     try std.testing.expectEqual(@as(u32, 1024), (try source.relationWord(6, 4, 3, 0)).v);
     try std.testing.expectEqual(@as(u32, 8), (try source.multiplicity(6, 0, 1)).v);
+}
+
+test "Cairo interaction sources resolve row readers that match element addressing" {
+    const words = [_]u32{ 10, 11, 20, 21, 30, 31 };
+    const c0 = [_]u32{ 7, 8 };
+    const c1 = [_]u32{ 9, 10 };
+    const c2 = [_]u32{ 11, 12 };
+    const c3 = [_]u32{ 13, 14 };
+    const address_columns = [_][]const u32{ &c0, &c1, &c2, &c3 };
+    const memory_columns = [_][]const u32{ &c0, &c1, &c2 };
+    const xor_columns = [_][]const u32{&c0} ** 16;
+
+    const Case = struct {
+        view: SourceView,
+        kind: u32,
+        arg: u32,
+        words: usize,
+        multiplicity_kind: u32,
+        multiplicity_arg: u32,
+    };
+    const cases = [_]Case{
+        .{
+            .view = try SourceView.lookupWords(try LookupColumns.init(&words, 2), 1),
+            .kind = 0,
+            .arg = 0,
+            .words = 3,
+            .multiplicity_kind = 2,
+            .multiplicity_arg = 1,
+        },
+        .{
+            .view = try SourceView.lookupWords(try LookupColumns.init(&words, 2), 1),
+            .kind = 0,
+            .arg = 0,
+            .words = 1,
+            .multiplicity_kind = 1,
+            .multiplicity_arg = 0,
+        },
+        .{
+            .view = try SourceView.memoryAddress(
+                try SparseColumns.init(&address_columns, 2),
+                2,
+                2,
+            ),
+            .kind = 1,
+            .arg = 1,
+            .words = 3,
+            .multiplicity_kind = 3,
+            .multiplicity_arg = 1,
+        },
+        .{
+            .view = try SourceView.memoryBig(
+                try SparseColumns.init(&memory_columns, 2),
+                2,
+                2,
+                5,
+            ),
+            .kind = 2,
+            .arg = 1,
+            .words = 3,
+            .multiplicity_kind = 4,
+            .multiplicity_arg = 2,
+        },
+        .{
+            .view = try SourceView.memoryBig(
+                try SparseColumns.init(&memory_columns, 2),
+                2,
+                2,
+                5,
+            ),
+            .kind = 3,
+            .arg = 0,
+            .words = 3,
+            .multiplicity_kind = 0,
+            .multiplicity_arg = 0,
+        },
+        .{
+            .view = try SourceView.memorySmall(
+                try SparseColumns.init(&memory_columns, 2),
+                2,
+                2,
+                5,
+            ),
+            .kind = 5,
+            .arg = 0,
+            .words = 4,
+            .multiplicity_kind = 5,
+            .multiplicity_arg = 2,
+        },
+        .{
+            .view = try SourceView.bitwiseXor12(
+                try SparseColumns.init(&xor_columns, 2),
+                16,
+                2,
+            ),
+            .kind = 6,
+            .arg = 4,
+            .words = 4,
+            .multiplicity_kind = 6,
+            .multiplicity_arg = 0,
+        },
+    };
+
+    for (cases) |case| {
+        for (1..case.words) |word| {
+            const access = try case.view.resolveWord(case.kind, case.arg, word);
+            for (0..case.view.rows()) |row|
+                try std.testing.expectEqual(
+                    (try case.view.relationWord(case.kind, case.arg, word, row)).v,
+                    (try access.value(row)).v,
+                );
+        }
+        const multiplicity = try case.view.resolveMultiplicity(
+            case.multiplicity_kind,
+            case.multiplicity_arg,
+        );
+        for (0..case.view.rows()) |row|
+            try std.testing.expectEqual(
+                (try case.view.multiplicity(
+                    case.multiplicity_kind,
+                    case.multiplicity_arg,
+                    row,
+                )).v,
+                (try multiplicity.value(row)).v,
+            );
+    }
+
+    const Context = struct {
+        fn read(_: *const anyopaque, column: usize, row: usize) Error!u32 {
+            return @intCast(column * 10 + row);
+        }
+    };
+    const context: u8 = 0;
+    const lazy = try SourceView.lookupWords(
+        try LookupColumns.virtual(2, 3, &context, Context.read),
+        2,
+    );
+    const lazy_access = try lazy.resolveWord(0, 1, 1);
+    try std.testing.expectEqual(@as(u32, 21), (try lazy_access.value(1)).v);
+    const lazy_multiplicity = try lazy.resolveMultiplicity(2, 2);
+    try std.testing.expectEqual(@as(u32, 21), (try lazy_multiplicity.value(1)).v);
+    try std.testing.expectError(
+        Error.InvalidDescriptor,
+        lazy.resolveWord(1, 0, 1),
+    );
+    try std.testing.expectError(
+        Error.InvalidSourceShape,
+        lazy.resolveWord(0, 2, 1),
+    );
 }
 
 test "Cairo interaction sources reject shape, bounds, and non-canonical values" {
