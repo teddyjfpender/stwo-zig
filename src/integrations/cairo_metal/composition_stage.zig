@@ -111,6 +111,22 @@ pub const metallib_env = "STWO_ZIG_COMPOSITION_METALLIB";
 /// artifact did.
 pub const metallib_leaf = "air_template_composition_eval_domain.metallib";
 
+/// Set to `0` to pin the stage to the Option-A (lifted, Library 1) path.
+///
+/// Increment 3.15's default is stored-domain **preferred**: when the hook is
+/// armed the stage tries Library 2 first and only falls to Option A if that tier
+/// declines. The switch exists so the two paths are an env-only pairing off one
+/// build, which is what made 3.13's gate clean, and so a deployment that
+/// distrusts the new tier can pin the measured one without a rebuild.
+pub const stored_domain_env = "STWO_ZIG_COMPOSITION_STORED_DOMAIN";
+/// Overrides the *stored-domain* library path, independently of `metallib_env`.
+/// Two libraries, two overrides: the corrupt-Library-2 fail-back test has to be
+/// able to poison tier 1 without touching the tier it must fall back to.
+pub const stored_metallib_env = "STWO_ZIG_COMPOSITION_STORED_METALLIB";
+/// The Option-B stored-domain library (increment 3.10's ABI, minted alongside
+/// Library 1 from the same three AIR template program bundles).
+pub const stored_metallib_leaf = "air_template_composition_stored_domain.metallib";
+
 const Config = struct {
     /// A directory to look for the metallib in, derived from an asset path the
     /// product already resolves. Never owned.
@@ -145,6 +161,7 @@ const Entry = struct {
 };
 
 const Session = struct {
+    mode: eval_arena.Mode,
     allocator: std.mem.Allocator,
     /// Borrowed. The bundle outlives the prove call it was opened for, and this
     /// is what makes a request's component identity recoverable without the
@@ -179,6 +196,45 @@ fn openAdapter(
     };
 }
 
+/// Why a tier did not take the stage. One value per tier boundary, so the
+/// increment-3.8 decline accounting says *which* path refused rather than only
+/// that the stage did — the two tiers fail for different reasons and a
+/// stored-domain refusal that silently reads as an Option-A refusal would hide
+/// exactly the regression this increment could introduce.
+const Decline = enum {
+    /// The tier is switched off by the process.
+    disabled,
+    /// The library did not authenticate, or its path did not resolve.
+    library,
+    /// No component could be planned, or every plan was over the byte cap.
+    arena,
+    /// The library authenticated but resolved no component's kernels.
+    kernels,
+};
+
+fn declineName(mode: eval_arena.Mode, reason: Decline) []const u8 {
+    return switch (mode) {
+        .stored => switch (reason) {
+            .disabled => "stored_domain_disabled",
+            .library => "stored_domain_library",
+            .arena => "stored_domain_arena",
+            .kernels => "stored_domain_kernels",
+        },
+        .lifted => switch (reason) {
+            .disabled => "eval_domain_disabled",
+            .library => "eval_domain_library",
+            .arena => "eval_domain_arena",
+            .kernels => "eval_domain_kernels",
+        },
+    };
+}
+
+/// True unless the process pinned the stage to Option A.
+fn storedDomainPreferred() bool {
+    const text = std.posix.getenv(stored_domain_env) orelse return true;
+    return !std.mem.eql(u8, text, "0");
+}
+
 fn open(
     settings: Config,
     allocator: std.mem.Allocator,
@@ -188,16 +244,58 @@ fn open(
     if (!std.mem.eql(u8, armed, "1")) return null;
     if (components.len == 0) return null;
 
-    const path = try resolveMetallib(allocator, settings);
+    // Tier 1: the stored-domain path. It is *tried*, not asserted: a decline
+    // here is not a stage decline, it is a demotion to the tier increment 3.13
+    // gated. Option A stays whole underneath, and the host path stays whole
+    // underneath that.
+    if (storedDomainPreferred()) {
+        if (attempt(settings, allocator, components, .stored)) |opened| {
+            if (opened) |session| return session;
+        } else |err| {
+            std.log.err("stored-domain composition tier declined: {t}", .{err});
+        }
+    } else {
+        std.log.info(
+            "device composition tier declined: {s}",
+            .{declineName(.stored, .disabled)},
+        );
+    }
+    return attempt(settings, allocator, components, .lifted);
+}
+
+fn attempt(
+    settings: Config,
+    allocator: std.mem.Allocator,
+    components: []const composition.Component,
+    mode: eval_arena.Mode,
+) anyerror!?device_stage.Session {
+    const path = resolveMetallib(allocator, settings, mode) catch |err| {
+        std.log.err(
+            "device composition tier declined: {s} ({t})",
+            .{ declineName(mode, .library), err },
+        );
+        return err;
+    };
     defer allocator.free(path);
-    // Integrity before load, and a rejection is terminal for this path.
-    const admission = try composition_aot.authenticate(
+    // Integrity before load, and a rejection is terminal for this tier.
+    const admission = composition_aot.authenticate(
         path,
         try composition_aot.policyFromProcess(allocator),
-    );
+    ) catch |err| {
+        std.log.err(
+            "device composition tier declined: {s} ({t})",
+            .{ declineName(mode, .library), err },
+        );
+        return err;
+    };
     std.log.info(
-        "device composition metallib admitted: {s} ({s}, {d} bytes)",
-        .{ admission.label orelse "pinned", &admission.measurement.hex(), admission.measurement.length },
+        "device composition metallib admitted: {s} ({s}, {d} bytes, {t} arena)",
+        .{
+            admission.label orelse "pinned",
+            &admission.measurement.hex(),
+            admission.measurement.length,
+            mode,
+        },
     );
 
     var lease = try shared_runtime.acquireExisting();
@@ -220,7 +318,7 @@ fn open(
     var max_columns: u32 = 0;
     for (components, entries) |component, *entry| {
         if (!eval_arena.expressible(component)) continue;
-        var component_plan = eval_arena.plan(allocator, component) catch continue;
+        var component_plan = eval_arena.planFor(allocator, component, mode) catch continue;
         var plan_owned = true;
         defer if (plan_owned) component_plan.deinit(allocator);
         const bytes = component_plan.words * @sizeOf(u32);
@@ -231,7 +329,13 @@ fn open(
         peak_words = @max(peak_words, component_plan.words);
         max_columns = @max(max_columns, component_plan.columns);
     }
-    if (planned == 0) return null;
+    if (planned == 0) {
+        std.log.err(
+            "device composition tier declined: {s}",
+            .{declineName(mode, .arena)},
+        );
+        return null;
+    }
 
     var library = try lease.runtime.loadEvalLibrary(path);
     var library_owned = true;
@@ -245,12 +349,19 @@ fn open(
         const plans = allocator.alloc(metal.EvalPlan, component.parts.len) catch continue;
         var resolved: usize = 0;
         for (component.parts, plans) |part, *plan| {
-            const name = codegen.kernelName(allocator, part.program.header.semantic_hash) catch break;
+            // The name carries the ABI infix, so a library of the other ABI
+            // cannot resolve here: a mismatch is a missing-function decline
+            // rather than a silently wrong column read.
+            const name = codegen.kernelNameFor(
+                allocator,
+                part.program.header.semantic_hash,
+                mode.abi(),
+            ) catch break;
             defer allocator.free(name);
             plan.* = lease.runtime.prepareEvalFromLibrary(
                 library,
                 name,
-                layoutFor(ready.plan, part.rc_base, part.program.header.domain_log_size),
+                layoutFor(ready.plan, part.rc_base, part.program),
             ) catch break;
             resolved += 1;
         }
@@ -277,7 +388,13 @@ fn open(
         accepted_flag.* = true;
         accepted += 1;
     }
-    if (accepted == 0) return null;
+    if (accepted == 0) {
+        std.log.err(
+            "device composition tier declined: {s}",
+            .{declineName(mode, .kernels)},
+        );
+        return null;
+    }
 
     var arena = try lease.runtime.allocateResidentBuffer(peak_words * @sizeOf(u32));
     var arena_owned = true;
@@ -290,6 +407,7 @@ fn open(
     const session = try allocator.create(Session);
     errdefer allocator.destroy(session);
     session.* = .{
+        .mode = mode,
         .allocator = allocator,
         .components = components,
         .lease = lease,
@@ -304,8 +422,9 @@ fn open(
     arena_owned = false;
 
     std.log.info(
-        "device composition stage open: {d}/{d} components accepted, arena {d} MiB",
-        .{ accepted, components.len, (peak_words * @sizeOf(u32)) >> 20 },
+        "device composition stage open: {t} arena, {d}/{d} components accepted " ++
+            "({d} planned), arena {d} MiB",
+        .{ mode, accepted, components.len, planned, (peak_words * @sizeOf(u32)) >> 20 },
     );
     return .{
         .context = session,
@@ -315,11 +434,21 @@ fn open(
     };
 }
 
-fn layoutFor(plan: eval_arena.Plan, rc_base: u32, domain_log_size: u32) metal.EvalLayout {
+fn layoutFor(
+    plan: eval_arena.Plan,
+    rc_base: u32,
+    program: frontend.witness.eval_program.Program,
+) metal.EvalLayout {
+    const domain_log_size = program.header.domain_log_size;
     return .{
         .trace_offsets = plan.trace_offsets,
         .interaction_offsets = plan.interaction_offsets,
-        .base_params = 0,
+        // Option A leaves this at zero: the block is empty and unread. Option B
+        // points it at the block whose tail — `+ n_base_params`, the constant the
+        // kernel bakes in — is this component's shift table. `plan.shiftTable`
+        // is the same computation from the other side and the layout test below
+        // holds them equal.
+        .base_params = plan.base_params,
         .ext_params = plan.ext_params,
         .random_coeffs = plan.random_coeffs,
         .denom_inv = plan.denom_inv,
@@ -338,31 +467,58 @@ fn byteCap() u64 {
         eval_arena.default_byte_cap;
 }
 
-fn resolveMetallib(allocator: std.mem.Allocator, settings: Config) ![]u8 {
-    if (std.posix.getenv(metallib_env)) |override|
+fn leafFor(mode: eval_arena.Mode) []const u8 {
+    return switch (mode) {
+        .lifted => metallib_leaf,
+        .stored => stored_metallib_leaf,
+    };
+}
+
+fn overrideFor(mode: eval_arena.Mode) ?[]const u8 {
+    return switch (mode) {
+        .lifted => std.posix.getenv(metallib_env),
+        .stored => std.posix.getenv(stored_metallib_env),
+    };
+}
+
+fn defaultPathFor(mode: eval_arena.Mode) []const u8 {
+    return switch (mode) {
+        .lifted => default_metallib_path,
+        .stored => default_stored_metallib_path,
+    };
+}
+
+fn resolveMetallib(
+    allocator: std.mem.Allocator,
+    settings: Config,
+    mode: eval_arena.Mode,
+) ![]u8 {
+    if (overrideFor(mode)) |override|
         return allocator.dupe(u8, override);
+    const fallback = defaultPathFor(mode);
     if (settings.search_root) |asset| {
-        // The eval-domain metallib sits *beside* the AIR template library it was
-        // minted from — both are `vectors/cairo/official/` — where the superseded
-        // SN2 artifact sat one directory above it. So this is the asset's own
+        // Both metallibs sit *beside* the AIR template library they were minted
+        // from — all of `vectors/cairo/official/` — where the superseded SN2
+        // artifact sat one directory above. So this is the asset's own
         // directory, not its parent.
         if (std.fs.path.dirname(asset)) |leaf_dir| {
-            const candidate = try std.fs.path.join(allocator, &.{ leaf_dir, metallib_leaf });
+            const candidate = try std.fs.path.join(allocator, &.{ leaf_dir, leafFor(mode) });
             errdefer allocator.free(candidate);
             std.fs.cwd().access(candidate, .{}) catch {
                 allocator.free(candidate);
-                return allocator.dupe(u8, default_metallib_path);
+                return allocator.dupe(u8, fallback);
             };
             return candidate;
         }
     }
-    return allocator.dupe(u8, default_metallib_path);
+    return allocator.dupe(u8, fallback);
 }
 
-/// The in-tree location, used when no asset path was resolved or the sibling
+/// The in-tree locations, used when no asset path was resolved or the sibling
 /// lookup missed. Relative, because every proving path runs with the repository
 /// root as its working directory.
 const default_metallib_path = "vectors/cairo/official/" ++ metallib_leaf;
+const default_stored_metallib_path = "vectors/cairo/official/" ++ stored_metallib_leaf;
 
 fn closeAdapter(context: *anyopaque) void {
     const self: *Session = @ptrCast(@alignCast(context));
@@ -370,9 +526,10 @@ fn closeAdapter(context: *anyopaque) void {
     if (self.lift_ns != 0) {
         const seconds = @as(f64, @floatFromInt(self.lift_ns)) / std.time.ns_per_s;
         std.log.info(
-            "device composition: lift {d:.3} ms over {d} MiB ({d:.2} GB/s), " ++
+            "device composition ({t}): stage {d:.3} ms over {d} MiB ({d:.2} GB/s), " ++
                 "{d} dispatches in {d} submissions, device {d:.3} ms",
             .{
+                self.mode,
                 @as(f64, @floatFromInt(self.lift_ns)) / std.time.ns_per_ms,
                 self.lifted_bytes >> 20,
                 @as(f64, @floatFromInt(self.lifted_bytes)) / seconds / 1.0e9,
@@ -430,19 +587,37 @@ fn evaluate(self: *Session, request: *const device_stage.Request) !void {
     }
 
     var timer = try std.time.Timer.start();
-    try eval_arena.lift(
-        self.words,
-        plan,
-        self.resolved[0..plan.columns],
-        prover.work_pool.getGlobalPool(),
-    );
-    self.lift_ns += timer.read();
-    self.lifted_bytes += @as(u64, plan.columns) * plan.eval_rows * @sizeOf(u32);
+    switch (plan.mode) {
+        // Option A. The lift *is* the staging pass, and it writes twice the
+        // words it reads.
+        .lifted => {
+            try eval_arena.lift(
+                self.words,
+                plan,
+                self.resolved[0..plan.columns],
+                prover.work_pool.getGlobalPool(),
+            );
+            self.lift_ns += timer.read();
+            self.lifted_bytes += @as(u64, plan.columns) * plan.eval_rows * @sizeOf(u32);
+            for (0..plan.columns) |column|
+                self.words[plan.trace_offsets + column] = plan.columnOffset(@intCast(column));
+        },
+        // Option B. The staging pass copies exactly the committed words, and it
+        // publishes `trace_offsets` and the shift table itself because both are
+        // products of the packing it just did.
+        .stored => {
+            self.lifted_bytes += try eval_arena.store(
+                self.words,
+                plan,
+                self.resolved[0..plan.columns],
+                prover.work_pool.getGlobalPool(),
+            );
+            self.lift_ns += timer.read();
+        },
+    }
 
-    // Offsets, parameters, coefficients and denominators. Small blocks, written
-    // after the lift so a lift refusal costs nothing else.
-    for (0..plan.columns) |column|
-        self.words[plan.trace_offsets + column] = plan.columnOffset(@intCast(column));
+    // Parameters, coefficients and denominators. Small blocks, written after
+    // staging so a staging refusal costs nothing else.
     for (plan.bases, 0..) |base, slot|
         self.words[plan.interaction_offsets + slot] = base;
     for (0..plan.ext_param_count) |slot| {
@@ -522,6 +697,101 @@ test "the enable switch and the path override are named, not guessed" {
     );
 }
 
+test "the stored-domain tier is named apart from the eval-domain tier" {
+    try std.testing.expectEqualStrings(
+        "STWO_ZIG_COMPOSITION_STORED_DOMAIN",
+        stored_domain_env,
+    );
+    try std.testing.expectEqualStrings(
+        "STWO_ZIG_COMPOSITION_STORED_METALLIB",
+        stored_metallib_env,
+    );
+    // Two libraries, two leaves, two overrides. Sharing any of the three would
+    // make the fail-back test poison the tier it is supposed to fall back to.
+    try std.testing.expect(!std.mem.eql(u8, metallib_leaf, stored_metallib_leaf));
+    try std.testing.expect(!std.mem.eql(u8, metallib_env, stored_metallib_env));
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        default_metallib_path,
+        default_stored_metallib_path,
+    ));
+    try std.testing.expectEqualStrings(stored_metallib_leaf, leafFor(.stored));
+    try std.testing.expectEqualStrings(metallib_leaf, leafFor(.lifted));
+}
+
+test "every tier boundary has its own decline reason" {
+    // The point of the accounting is that no two boundaries share a name: a
+    // stored-domain refusal read as an Option-A refusal is the one failure mode
+    // that would hide a coverage regression behind an unchanged digest.
+    var seen: [8][]const u8 = undefined;
+    var count: usize = 0;
+    for ([_]eval_arena.Mode{ .stored, .lifted }) |mode| {
+        for ([_]Decline{ .disabled, .library, .arena, .kernels }) |reason| {
+            const name = declineName(mode, reason);
+            for (seen[0..count]) |prior|
+                try std.testing.expect(!std.mem.eql(u8, prior, name));
+            seen[count] = name;
+            count += 1;
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 8), count);
+}
+
+test "the stored-domain layout points base_params at the shift table" {
+    // The two sides of increment 3.10's layout contract, held equal: the host
+    // writes shifts at `plan.base_params` and binds `EvalLayout.base_params` to
+    // the same word, and the kernel reads them at `base_params + n_base_params`.
+    // `expressible` refuses any component with a non-zero `n_base_params`, so
+    // the two agree today; the assertion is here so that stops being silent if
+    // increment 3.10 part B ever lands.
+    var bases = [_]u32{0};
+    const stored = eval_arena.Plan{
+        .mode = .stored,
+        .columns = 3,
+        .interactions = 1,
+        .eval_rows = 8,
+        .eval_log_size = 3,
+        .trace_log_size = 2,
+        .denominator_count = 2,
+        .ext_param_count = 0,
+        .coefficient_count = 1,
+        .column_base = 64,
+        .column_capacity = 24,
+        .base_params = 16,
+        .trace_offsets = 0,
+        .interaction_offsets = 8,
+        .ext_params = 32,
+        .random_coeffs = 36,
+        .denom_inv = 40,
+        .coordinates = .{ 42, 44, 46, 48 },
+        .words = 88,
+        .bases = &bases,
+    };
+    const program = frontend.witness.eval_program.Program{
+        .header = .{
+            .semantic_hash = 0,
+            .n_base_params = 0,
+            .n_ext_params = 0,
+            .n_interactions = 1,
+            .n_constraints = 1,
+            .domain_log_size = 2,
+        },
+        .base_insts = &.{},
+        .ext_insts = &.{},
+        .constraints = &.{},
+    };
+    try std.testing.expectEqual(stored.base_params, stored.shiftTable(program));
+    try std.testing.expectEqual(
+        stored.base_params,
+        layoutFor(stored, 0, program).base_params,
+    );
+
+    var lifted = stored;
+    lifted.mode = .lifted;
+    lifted.base_params = 0;
+    try std.testing.expectEqual(@as(u32, 0), layoutFor(lifted, 0, program).base_params);
+}
+
 test "the default metallib path is the eval-domain entry in the approved manifest" {
     // The path the product resolves and the manifest entry that admits it must
     // not drift apart: a rename on one side has to fail here rather than at a
@@ -533,4 +803,18 @@ test "the default metallib path is the eval-domain entry in the approved manifes
     }
     try std.testing.expect(found);
     try std.testing.expect(std.mem.endsWith(u8, default_metallib_path, metallib_leaf));
+}
+
+test "the stored-domain path is the stored-domain entry in the approved manifest" {
+    var found = false;
+    for (composition_aot.approved_metallibs) |approved| {
+        if (std.mem.eql(u8, approved.label, "air_template_composition_stored_domain_v1"))
+            found = true;
+    }
+    try std.testing.expect(found);
+    try std.testing.expect(std.mem.endsWith(
+        u8,
+        default_stored_metallib_path,
+        stored_metallib_leaf,
+    ));
 }

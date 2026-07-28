@@ -42,10 +42,65 @@
 //! Every accepted component reuses the *same* buffer, sized to the largest
 //! plan, so the stage costs one resident allocation per proof rather than one
 //! per component.
+//!
+//! ## The stored-domain mode (increment 3.15, Option B)
+//!
+//! `Mode.stored` is the same arena with the lift deleted. Library 2's kernels
+//! (`stwo_zig_eval_sd_<hash>`) apply `((row >> shift) << 1) + (row & 1)`
+//! themselves, reading the column at the length the product already published
+//! it at, so staging becomes a `@memcpy` of exactly the committed words instead
+//! of a `2^eval_log`-word duplication. Two things change in the layout and
+//! nothing else does.
+//!
+//! 1. **A shift table.** One word per *global* column, holding the column's own
+//!    `ResolvedColumn.shift_amt`, placed at `args.base_params + n_base_params`
+//!    per `eval_abi.TraceAbi.shiftTableOffset`. `expressible` already refuses any
+//!    component with `n_base_params != 0`, so the table starts exactly at
+//!    `base_params` for every component this arena can plan — but the *offset*
+//!    is computed from the contract rather than assumed, so a future
+//!    parameterized program needs no change here.
+//! 2. **Columns are packed, not strided.** A column's required extent is exactly
+//!    its own length: with `shift = eval_log - column_log + 1`, the largest index
+//!    the reader can form is `((eval_rows - 1) >> shift) << 1 | 1`, i.e.
+//!    `2^column_log - 1`. Column lengths are therefore *not* uniform in general
+//!    (a preprocessed column may be committed at a different log size than the
+//!    component's trace), and they are not known until `resolve` runs — so the
+//!    plan reserves the only capacity that is always sufficient,
+//!    `columns * 2^eval_log`, and `store` packs the actual columns consecutively
+//!    into it, publishing the real offsets through `trace_offsets`. That block is
+//!    written per evaluation in both modes, so runtime placement costs nothing
+//!    and removes the one shape a fixed stride could not express.
+//!
+//! Reserving the eval-domain capacity means the *allocation* does not shrink.
+//! The **resident** footprint does, and that is the quantity that was costing
+//! 0.76-4.80 GB per proof: the column region is placed last in stored mode, so
+//! the pages past the packed prefix are never touched and are never faulted in.
 
 const std = @import("std");
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
+const eval_program = @import("stwo_cairo_frontend").witness.eval_program;
 const WorkPool = @import("stwo_prover_impl").work_pool.WorkPool;
+const eval_abi = @import("eval_abi.zig");
+
+/// Which trace ABI the planned arena feeds. `lifted` is increment 3.8's
+/// Option-A layout, byte-for-byte unchanged; `stored` is Option B.
+pub const Mode = enum {
+    lifted,
+    stored,
+
+    pub fn abi(self: Mode) eval_abi.TraceAbi {
+        return switch (self) {
+            .lifted => .eval_domain,
+            .stored => .stored_domain,
+        };
+    }
+};
+
+/// Words reserved for a census slot no instruction ever reads. The reader can
+/// still *form* an index into it if a kernel were ever emitted that touched it,
+/// so the slot is given a real pair and a shift that pins the index to `{0,1}`
+/// rather than an offset that would address outside the region.
+const null_column_words: u32 = 2;
 
 pub const Error = error{
     InvalidCompositionComponent,
@@ -63,14 +118,25 @@ pub const byte_cap_env = "STWO_ZIG_COMPOSITION_EVAL_ARENA_BYTES";
 
 /// One component's resolved geometry and its offsets inside the shared arena.
 pub const Plan = struct {
+    mode: Mode,
     columns: u32,
     interactions: u32,
     eval_rows: u32,
+    eval_log_size: u32,
     trace_log_size: u32,
     denominator_count: u32,
     ext_param_count: u32,
     coefficient_count: u32,
     column_base: u32,
+    /// Words reserved for the whole column region. In `lifted` mode this is
+    /// exactly `columns * eval_rows` and every column occupies a fixed stride;
+    /// in `stored` mode it is the same bound used as a capacity, and the columns
+    /// packed inside it are shorter.
+    column_capacity: u64,
+    /// Offset of the runtime base-parameter block. Zero in `lifted` mode, where
+    /// no program in this bundle declares a base parameter and nothing reads it;
+    /// in `stored` mode it is the block whose tail is the per-column shift table.
+    base_params: u32,
     trace_offsets: u32,
     interaction_offsets: u32,
     ext_params: u32,
@@ -88,8 +154,17 @@ pub const Plan = struct {
         self.* = undefined;
     }
 
+    /// The fixed stride placement, valid in `lifted` mode only. Stored-domain
+    /// offsets are packed at staging time and published through `trace_offsets`.
     pub fn columnOffset(self: Plan, global: u32) u32 {
         return self.column_base + global * self.eval_rows;
+    }
+
+    /// Where this plan's shift table begins, given a part's own parameter count.
+    /// Routed through the ABI contract rather than open-coded so the two sides
+    /// of the layout cannot drift.
+    pub fn shiftTable(self: Plan, program: eval_program.Program) u32 {
+        return self.mode.abi().shiftTableOffset(self.base_params, program);
     }
 };
 
@@ -137,7 +212,17 @@ pub fn expressible(component: composition.Component) bool {
     return true;
 }
 
+/// The Option-A planner. Retained as the name every existing caller and test
+/// uses, and byte-for-byte the layout increment 3.8 shipped.
 pub fn plan(allocator: std.mem.Allocator, component: composition.Component) !Plan {
+    return planFor(allocator, component, .lifted);
+}
+
+pub fn planFor(
+    allocator: std.mem.Allocator,
+    component: composition.Component,
+    mode: Mode,
+) !Plan {
     if (!expressible(component)) return Error.InvalidCompositionComponent;
     const eval_log = component.evaluation_log_size;
     const trace_log = component.trace_log_size;
@@ -172,13 +257,31 @@ pub fn plan(allocator: std.mem.Allocator, component: composition.Component) !Pla
         return Error.InvalidCompositionComponent;
     coefficient_count = component.n_constraints;
 
+    // `columns * eval_rows` is the column region in both modes: a fixed stride
+    // in `lifted`, a sufficient capacity in `stored` (a column's extent is its
+    // own length, and no legal column exceeds `eval_rows`).
+    const column_capacity: u64 = @as(u64, columns) * eval_rows;
+
     var next: u64 = 0;
-    const column_base = next;
-    next += @as(u64, columns) * eval_rows;
+    // In `stored` mode the column region goes *last*, so every block the stage
+    // writes on every evaluation sits in the low pages and the untouched tail of
+    // the capacity is never faulted in. In `lifted` mode it stays first, because
+    // that layout is what increment 3.8 measured and 3.13 gated.
+    var column_base: u64 = 0;
+    if (mode == .lifted) {
+        column_base = next;
+        next += column_capacity;
+    }
     const trace_offsets = next;
     next += columns;
     const interaction_offsets = next;
     next += bases.len;
+    // The base-parameter block. Empty in `lifted` mode — no eligible program
+    // declares a base parameter and no eval-domain kernel reads the block — and
+    // in `stored` mode it is `n_base_params` (zero, enforced by `expressible`)
+    // program words followed by one shift word per global column.
+    const base_params = next;
+    if (mode == .stored) next += columns;
     const ext_params = next;
     next += 4 * @as(u64, ext_param_count);
     const random_coeffs = next;
@@ -190,19 +293,27 @@ pub fn plan(allocator: std.mem.Allocator, component: composition.Component) !Pla
         offset.* = next;
         next += eval_rows;
     }
+    if (mode == .stored) {
+        column_base = next;
+        next += column_capacity;
+    }
     // Every offset is a `u32` word index in the ABI, so a plan that cannot be
     // addressed is a planning refusal rather than a truncation.
     if (next > std.math.maxInt(u32)) return Error.EvalArenaTooLarge;
 
     return .{
+        .mode = mode,
         .columns = columns,
         .interactions = @intCast(bases.len),
         .eval_rows = eval_rows,
+        .eval_log_size = eval_log,
         .trace_log_size = trace_log,
         .denominator_count = denominator_count,
         .ext_param_count = ext_param_count,
         .coefficient_count = coefficient_count,
         .column_base = @intCast(column_base),
+        .column_capacity = column_capacity,
+        .base_params = @intCast(base_params),
         .trace_offsets = @intCast(trace_offsets),
         .interaction_offsets = @intCast(interaction_offsets),
         .ext_params = @intCast(ext_params),
@@ -344,6 +455,121 @@ pub fn lift(
     for (workers) |worker| if (worker.err) |err| return err;
 }
 
+const StoreWorker = struct {
+    words: []u32,
+    plan: *const Plan,
+    resolved: []const ResolvedScratch,
+    stride: usize,
+    start: usize,
+
+    fn run(self: *StoreWorker) void {
+        var column = self.start;
+        while (column < self.resolved.len) : (column += self.stride) {
+            // The offset was published into `trace_offsets` by the serial pass,
+            // so the workers share nothing and need no offsets array of their
+            // own — they read the same block the kernel will read.
+            const offset: usize = self.words[self.plan.trace_offsets + column];
+            const source = self.resolved[column].values;
+            if (source.len == 0) {
+                @memset(self.words[offset..][0..null_column_words], 0);
+                continue;
+            }
+            @memcpy(self.words[offset..][0..source.len], source);
+        }
+    }
+};
+
+/// Stages one component's columns into the arena **without lifting them**, and
+/// publishes the two blocks that placement produces: `trace_offsets` and the
+/// per-column shift table.
+///
+/// Returns the words actually written, which is the honest staging volume — the
+/// quantity Option A pays twice over.
+///
+/// The serial prefix pass is where correctness lives. For every column it checks
+/// the ABI's own extent identity, `(eval_rows >> shift) << 1 == values.len`: that
+/// is precisely the statement that the largest index Library 2's reader can form
+/// lands inside the committed column, so a column that passes it cannot be read
+/// out of bounds by any row of any part. A column that fails it is refused here,
+/// before a single word is written, and the caller answers with the host
+/// evaluation of that component.
+pub fn store(
+    words: []u32,
+    component_plan: Plan,
+    resolved: []const ResolvedScratch,
+    pool: ?*WorkPool,
+) !u64 {
+    if (component_plan.mode != .stored) return Error.EvalArenaColumnShape;
+    if (resolved.len != component_plan.columns) return Error.EvalArenaColumnShape;
+
+    const limit = component_plan.column_base + component_plan.column_capacity;
+    var cursor: u64 = component_plan.column_base;
+    var staged: u64 = 0;
+    for (resolved, 0..) |source, index| {
+        var shift: u32 = undefined;
+        var needed: u64 = undefined;
+        if (source.values.len == 0) {
+            // Never read. Pin the reader's index to `{0, 1}` inside the pair
+            // rather than leaving a shift that could address the whole arena.
+            shift = component_plan.eval_log_size;
+            needed = null_column_words;
+        } else {
+            if (source.shift_amt == 0) return Error.EvalArenaColumnShape;
+            if (source.shift_amt > component_plan.eval_log_size)
+                return Error.EvalArenaColumnShape;
+            const extent = (@as(u64, component_plan.eval_rows) >> source.shift_amt) << 1;
+            if (extent != source.values.len) return Error.EvalArenaColumnShape;
+            shift = source.shift_amt;
+            needed = source.values.len;
+        }
+        if (cursor + needed > limit) return Error.EvalArenaTooLarge;
+        words[component_plan.trace_offsets + index] = @intCast(cursor);
+        words[component_plan.base_params + index] = shift;
+        cursor += needed;
+        staged += needed;
+    }
+
+    const ready = pool orelse {
+        var worker = StoreWorker{
+            .words = words,
+            .plan = &component_plan,
+            .resolved = resolved,
+            .stride = 1,
+            .start = 0,
+        };
+        worker.run();
+        return staged * @sizeOf(u32);
+    };
+    const worker_count = @max(1, @min(ready.workerCount(), resolved.len));
+    if (worker_count == 1) {
+        var worker = StoreWorker{
+            .words = words,
+            .plan = &component_plan,
+            .resolved = resolved,
+            .stride = 1,
+            .start = 0,
+        };
+        worker.run();
+        return staged * @sizeOf(u32);
+    }
+    var buffer: [64]StoreWorker = undefined;
+    const workers = buffer[0..@min(worker_count, buffer.len)];
+    for (workers, 0..) |*worker, index| {
+        worker.* = .{
+            .words = words,
+            .plan = &component_plan,
+            .resolved = resolved,
+            .stride = workers.len,
+            .start = index,
+        };
+    }
+    var wait_group = std.Thread.WaitGroup{};
+    for (workers[1..]) |*worker| ready.spawnWg(&wait_group, StoreWorker.run, .{worker});
+    StoreWorker.run(&workers[0]);
+    wait_group.wait();
+    return staged * @sizeOf(u32);
+}
+
 test "the lifting map matches the product's own column reader" {
     try std.testing.expectEqual(@as(usize, 0), liftedIndex(0, 2));
     try std.testing.expectEqual(@as(usize, 1), liftedIndex(1, 2));
@@ -378,6 +604,114 @@ test "a mismatched destination is refused rather than asserted" {
         Error.EvalArenaColumnShape,
         liftColumn(destination[0..4], &source, 0),
     );
+}
+
+/// A hand-built two-column stored-domain plan. Building it directly rather than
+/// through `planFor` keeps this test about `store`'s placement contract; the
+/// planner's own layout is pinned by the layout test below it.
+fn storedFixture(bases: []u32, eval_log: u32, columns: u32) Plan {
+    const eval_rows = @as(u32, 1) << @intCast(eval_log);
+    return .{
+        .mode = .stored,
+        .columns = columns,
+        .interactions = @intCast(bases.len),
+        .eval_rows = eval_rows,
+        .eval_log_size = eval_log,
+        .trace_log_size = eval_log - 1,
+        .denominator_count = 2,
+        .ext_param_count = 0,
+        .coefficient_count = 1,
+        .column_base = 64,
+        .column_capacity = @as(u64, columns) * eval_rows,
+        .base_params = 16,
+        .trace_offsets = 0,
+        .interaction_offsets = 8,
+        .ext_params = 32,
+        .random_coeffs = 36,
+        .denom_inv = 40,
+        .coordinates = .{ 42, 44, 46, 48 },
+        .words = 64 + @as(u64, columns) * eval_rows,
+        .bases = bases,
+    };
+}
+
+test "stored staging packs columns and publishes their shifts" {
+    var bases = [_]u32{0};
+    const component_plan = storedFixture(&bases, 3, 2);
+    var words = [_]u32{0} ** 80;
+    // Both columns are committed at the trace log size, so both carry shift 2
+    // and four words: `(8 >> 2) << 1 == 4`.
+    const first = [_]u32{ 1, 2, 3, 4 };
+    const second = [_]u32{ 5, 6, 7, 8 };
+    const resolved = [_]ResolvedScratch{
+        .{ .values = &first, .shift_amt = 2 },
+        .{ .values = &second, .shift_amt = 2 },
+    };
+    const staged = try store(&words, component_plan, &resolved, null);
+    try std.testing.expectEqual(@as(u64, 8 * @sizeOf(u32)), staged);
+    // Packed consecutively from the region base, not strided by `eval_rows`.
+    try std.testing.expectEqual(@as(u32, 64), words[component_plan.trace_offsets]);
+    try std.testing.expectEqual(@as(u32, 68), words[component_plan.trace_offsets + 1]);
+    try std.testing.expectEqual(@as(u32, 2), words[component_plan.base_params]);
+    try std.testing.expectEqual(@as(u32, 2), words[component_plan.base_params + 1]);
+    try std.testing.expectEqualSlices(u32, &first, words[64..68]);
+    try std.testing.expectEqualSlices(u32, &second, words[68..72]);
+
+    // The reader's own map, run over every evaluation row against the words the
+    // staging just placed: this is the property the ABI rests on.
+    for (0..component_plan.eval_rows) |row| {
+        const index = ((row >> 2) << 1) + (row & 1);
+        const offset = words[component_plan.trace_offsets];
+        try std.testing.expectEqual(first[index], words[offset + index]);
+    }
+}
+
+test "a column whose length contradicts its shift is refused before any write" {
+    var bases = [_]u32{0};
+    const component_plan = storedFixture(&bases, 3, 1);
+    var words = [_]u32{0} ** 80;
+    // Shift 2 at `eval_rows = 8` demands a four-word column; this one is eight.
+    const wrong = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    const resolved = [_]ResolvedScratch{.{ .values = &wrong, .shift_amt = 2 }};
+    try std.testing.expectError(
+        Error.EvalArenaColumnShape,
+        store(&words, component_plan, &resolved, null),
+    );
+    try std.testing.expectEqual(@as(u32, 0), words[64]);
+    // And the lifted planner's staging refuses to run against a stored plan.
+    try std.testing.expectError(
+        Error.EvalArenaColumnShape,
+        store(&words, storedLiftedFixture(&bases), &resolved, null),
+    );
+}
+
+fn storedLiftedFixture(bases: []u32) Plan {
+    var lifted = storedFixture(bases, 3, 1);
+    lifted.mode = .lifted;
+    return lifted;
+}
+
+test "an unread census slot gets a real pair and an index-pinning shift" {
+    var bases = [_]u32{0};
+    const component_plan = storedFixture(&bases, 3, 2);
+    var words = [_]u32{0} ** 80;
+    const present = [_]u32{ 1, 2, 3, 4 };
+    const resolved = [_]ResolvedScratch{
+        .{},
+        .{ .values = &present, .shift_amt = 2 },
+    };
+    const staged = try store(&words, component_plan, &resolved, null);
+    try std.testing.expectEqual(@as(u64, 6 * @sizeOf(u32)), staged);
+    try std.testing.expectEqual(
+        component_plan.eval_log_size,
+        words[component_plan.base_params],
+    );
+    // Every row of the unread slot addresses inside its own pair.
+    for (0..component_plan.eval_rows) |row| {
+        const index = ((row >> component_plan.eval_log_size) << 1) + (row & 1);
+        try std.testing.expect(index < null_column_words);
+    }
+    try std.testing.expectEqual(@as(u32, 66), words[component_plan.trace_offsets + 1]);
 }
 
 test "the arena byte cap is read from the process and defaults closed" {
