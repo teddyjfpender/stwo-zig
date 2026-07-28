@@ -15,6 +15,7 @@ const statement_bootstrap = @import("../statement_bootstrap.zig");
 const witness = @import("../witness/mod.zig");
 const proving_air = @import("air/mod.zig");
 const base_trace = @import("base_trace.zig");
+const feed_geometry_oracle = @import("feed_geometry_oracle.zig");
 const interaction_trace = @import("interaction_trace.zig");
 const trace_arena = @import("trace_arena.zig");
 const transcript = @import("transcript.zig");
@@ -174,13 +175,34 @@ pub fn proveFixtureWithRecorder(
         // `resolveFeedGeometry`, "the witness-to-statement handoff"). The AIR
         // template binder refuses a deferred log size outright
         // (`air/template_binding.zig:42`, `:104`), so a claim with any deferred
-        // component cannot be laid out before execution. Fall back rather than
-        // fail: the product keeps its unchanged fragmented path.
+        // component cannot be laid out before execution.
+        //
+        // `feed_geometry_oracle` closes that gap for the components whose row
+        // counts the authenticated feed topology fully determines from the
+        // adapted prover input; anything it cannot determine exactly it refuses,
+        // and then this block falls back rather than fails, so the product keeps
+        // its unchanged fragmented path.
         var claim = claim_generator.deriveFromProverInput(
             allocator,
             fixture.input,
             .{ .preprocessed_variant = claimVariant(variant) },
         ) catch null;
+        if (claim) |*live| {
+            if (live.deferredCount() != 0) {
+                var oracle_stage = try prover.stage_profile.StageScope.begin(
+                    recorder,
+                    "base_trace_geometry_oracle",
+                    "Pre-execution feed geometry resolution",
+                );
+                defer oracle_stage.end();
+                _ = feed_geometry_oracle.resolveInPlace(
+                    allocator,
+                    live,
+                    claim_generator.ExecutionResources.fromProverInput(fixture.input),
+                    fixture.topology,
+                ) catch {};
+            }
+        }
         var instantiated: ?witness.composition_bundle.Bundle = null;
         if (claim) |*live| {
             if (live.deferredCount() == 0) {
@@ -204,9 +226,24 @@ pub fn proveFixtureWithRecorder(
             planned_geometry = claim;
             planned_composition = instantiated;
             arena = ready;
+            // Telemetry, not control flow: the stage name records the decision
+            // so an arena-engaged run is distinguishable from a fallback run in
+            // `--stage-profile-out` without a debug build.
+            var engaged = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "base_trace_arena_engaged",
+                "Base trace arena engaged",
+            );
+            engaged.end();
         } else {
             if (instantiated) |*owned| owned.deinit();
             if (claim) |*owned| owned.deinit();
+            var fell_back = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "base_trace_arena_fallback",
+                "Base trace arena fallback",
+            );
+            fell_back.end();
         }
     }
 
@@ -331,6 +368,12 @@ pub fn proveFixtureWithRecorder(
             arena = null;
             base.arena_backed = false;
             _ = words;
+            var bound = try prover.stage_profile.StageScope.begin(
+                recorder,
+                "main_trace_commit_arena_bound",
+                "Main trace commit bound to the base trace arena",
+            );
+            bound.end();
             try Engine.commitWithBacking(
                 &scheme,
                 allocator,
