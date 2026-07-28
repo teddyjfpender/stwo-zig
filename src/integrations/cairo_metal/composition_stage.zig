@@ -36,10 +36,15 @@
 //! 3. **The kernels.** Every part of every planned component must resolve by
 //!    `kernelName(semantic_hash)` out of the *authenticated* library. A
 //!    component with an unresolvable part is dropped from the accepted set and
-//!    evaluated on the host inside the stage — this is declared coverage, not a
-//!    fallback. all-opcodes needs it: three of its components (`generic_opcode`,
-//!    `jump_opcode_abs`, `qm_31_add_mul_opcode`) are absent from the checked-in
-//!    SN2 bundle, so no kernel for them exists to resolve.
+//!    evaluated on the host inside the stage — this is **declared coverage, not a
+//!    fallback**, and it is the mechanism that lets a workload with one
+//!    unexpressible component still measure the device stage on the rest.
+//!    Against `air_template_composition_eval_domain_v1` (increment 3.13) the
+//!    census is 46/46 components on all-opcodes, 28/29 on arithmetic-2m and
+//!    31/32 on memory-7m: the two stragglers are single components whose parts
+//!    the template library does not emit, and they are declared coverage rather
+//!    than a decline precisely because the whole-stage refusal in the row below
+//!    would otherwise make those two workloads unmeasurable.
 //!
 //! A dispatch that fails *after* admission held is the one genuinely unexpected
 //! case: that proof started composition on the device and finished it on the
@@ -77,22 +82,34 @@ comptime {
     if (@sizeOf(M31) != @sizeOf(u32)) @compileError("M31 is no longer one word");
 }
 
-/// Set to `1` to arm the hook. **The default is off**, and that is a measured
-/// decision rather than caution: the checked-in metallib was compiled from
-/// `vectors/cairo/sn_pie_2_composition.bin`, whose 271 kernels share *zero*
-/// semantic hashes with the 69 the AIR template library emits, so admission
-/// resolves no kernel on any portfolio workload and declines every time. Arming
-/// it therefore buys nothing and costs a measured 15-40 ms per proof — a 7.7 MB
-/// SHA-256, a library load, and 29-46 failed pipeline resolutions. Flip the
-/// default back the moment a metallib minted from the template library's own
-/// program bundles is in the manifest.
+/// Set to `1` to arm the hook. **The default is still off after increment
+/// 3.13**, but the reason changed and it is worth being exact about, because the
+/// old reason is gone.
+///
+/// Through 3.12 the hook resolved against `vectors/cairo/sn_pie_2_composition.metallib`,
+/// whose 271 kernels share *zero* semantic hashes with the 69 the AIR template
+/// library emits (3.8 §1(b)); admission resolved nothing on any portfolio
+/// workload and declined every time, so arming it bought nothing and cost a
+/// measured 15-40 ms. Increment 3.13 repoints resolution at
+/// `air_template_composition_eval_domain_v1`, which is minted from the template
+/// library's own program bundles and *does* resolve — 46/46 on all-opcodes.
+/// Arming it now buys the device composition stage.
+///
+/// The default remains off because flipping it is a promotion decision that
+/// belongs to whoever reads 3.13's gate evidence, not to the increment that
+/// produced the evidence. Off, the whole hook is one env-var read (0.029 ms) and
+/// the proof is byte-identical to the predecessor, which is what makes the gate's
+/// two arms a clean env-only pairing off one build.
 pub const enable_env = "STWO_ZIG_COMPOSITION_DEVICE";
 /// Overrides the metallib path. This is how the fail-closed test points the
 /// product at a corrupted copy: it names a different artifact, it never relaxes
 /// the digest policy (`composition_aot.policy_env` does that, by naming a
 /// digest).
 pub const metallib_env = "STWO_ZIG_COMPOSITION_METALLIB";
-pub const metallib_leaf = "sn_pie_2_composition.metallib";
+/// The Option-A eval-domain library, which sits beside the AIR template library
+/// it was minted from rather than a directory above it like the superseded SN2
+/// artifact did.
+pub const metallib_leaf = "air_template_composition_eval_domain.metallib";
 
 const Config = struct {
     /// A directory to look for the metallib in, derived from an asset path the
@@ -325,22 +342,27 @@ fn resolveMetallib(allocator: std.mem.Allocator, settings: Config) ![]u8 {
     if (std.posix.getenv(metallib_env)) |override|
         return allocator.dupe(u8, override);
     if (settings.search_root) |asset| {
-        // The checked-in metallib sits one directory above the AIR template
-        // library (`vectors/cairo/` against `vectors/cairo/official/`).
+        // The eval-domain metallib sits *beside* the AIR template library it was
+        // minted from — both are `vectors/cairo/official/` — where the superseded
+        // SN2 artifact sat one directory above it. So this is the asset's own
+        // directory, not its parent.
         if (std.fs.path.dirname(asset)) |leaf_dir| {
-            if (std.fs.path.dirname(leaf_dir)) |root| {
-                const candidate = try std.fs.path.join(allocator, &.{ root, metallib_leaf });
-                errdefer allocator.free(candidate);
-                std.fs.cwd().access(candidate, .{}) catch {
-                    allocator.free(candidate);
-                    return allocator.dupe(u8, "vectors/cairo/" ++ metallib_leaf);
-                };
-                return candidate;
-            }
+            const candidate = try std.fs.path.join(allocator, &.{ leaf_dir, metallib_leaf });
+            errdefer allocator.free(candidate);
+            std.fs.cwd().access(candidate, .{}) catch {
+                allocator.free(candidate);
+                return allocator.dupe(u8, default_metallib_path);
+            };
+            return candidate;
         }
     }
-    return allocator.dupe(u8, "vectors/cairo/" ++ metallib_leaf);
+    return allocator.dupe(u8, default_metallib_path);
 }
+
+/// The in-tree location, used when no asset path was resolved or the sibling
+/// lookup missed. Relative, because every proving path runs with the repository
+/// root as its working directory.
+const default_metallib_path = "vectors/cairo/official/" ++ metallib_leaf;
 
 fn closeAdapter(context: *anyopaque) void {
     const self: *Session = @ptrCast(@alignCast(context));
@@ -490,5 +512,25 @@ fn indexOf(self: *Session, captured: *const composition.Component) ?usize {
 test "the enable switch and the path override are named, not guessed" {
     try std.testing.expectEqualStrings("STWO_ZIG_COMPOSITION_DEVICE", enable_env);
     try std.testing.expectEqualStrings("STWO_ZIG_COMPOSITION_METALLIB", metallib_env);
-    try std.testing.expectEqualStrings("sn_pie_2_composition.metallib", metallib_leaf);
+    try std.testing.expectEqualStrings(
+        "air_template_composition_eval_domain.metallib",
+        metallib_leaf,
+    );
+    try std.testing.expectEqualStrings(
+        "vectors/cairo/official/air_template_composition_eval_domain.metallib",
+        default_metallib_path,
+    );
+}
+
+test "the default metallib path is the eval-domain entry in the approved manifest" {
+    // The path the product resolves and the manifest entry that admits it must
+    // not drift apart: a rename on one side has to fail here rather than at a
+    // proof's admission gate.
+    var found = false;
+    for (composition_aot.approved_metallibs) |approved| {
+        if (std.mem.eql(u8, approved.label, "air_template_composition_eval_domain_v1"))
+            found = true;
+    }
+    try std.testing.expect(found);
+    try std.testing.expect(std.mem.endsWith(u8, default_metallib_path, metallib_leaf));
 }

@@ -61,11 +61,43 @@ pub const ApprovedMetallib = struct {
 /// (`.github/workflows/ci.yml`, the only producer — there is no local build
 /// step, and this host has no full Xcode). It covers 58 components / 279 parts
 /// / 1,325 constraints at `max_evaluation_log_size = 24`, unfused.
+///
+/// It is retained after increment 3.13 even though it is now inert: 3.8 §1(b)
+/// measured `|its 271 semantic hashes ∩ the AIR template library's 69| = 0`, so
+/// no proving path can resolve a kernel out of it and a load declines the whole
+/// stage at gate 3. Retention is deliberate rather than inertia — it keeps the
+/// corrupt-metallib and pinned-digest fail-closed regressions pointed at a
+/// checked-in artifact, and dropping the entry would not remove the blob, which
+/// lives under `vectors/` and is out of this increment's scope. An inert
+/// approved entry costs nothing at admission, which is by digest and length.
+///
+/// `air_template_composition_eval_domain_v1` and
+/// `air_template_composition_stored_domain_v1` are the issue-#124 mint,
+/// `vectors/cairo/official/air_template_composition_{eval,stored}_domain.metallib`,
+/// emitted from the AIR template library's own program bundles over all three
+/// portfolio program bundles so one entry covers the whole portfolio. The
+/// eval-domain library is Option A and is what the 3.8 hook resolves against;
+/// the stored-domain library is the Option-B ABI of 3.10 and **nothing loads it
+/// yet** — its consumption (trace-domain placement plus the shift table in
+/// `composition_eval_arena`) is a later increment. Digests were measured from
+/// the checked-in blobs; per issue #124's closing comments they are *not*
+/// byte-reproducible across Xcode versions, so these are artifact identities,
+/// not build-recipe identities.
 pub const approved_metallibs = [_]ApprovedMetallib{
     .{
         .label = "sn_pie_2_composition_v1",
         .sha256_hex = "85db09e024a661d78e34e53ed2ae36c150567977223f34bba88f119b3c7b21ab",
         .length = 7740844,
+    },
+    .{
+        .label = "air_template_composition_eval_domain_v1",
+        .sha256_hex = "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb",
+        .length = 5933764,
+    },
+    .{
+        .label = "air_template_composition_stored_domain_v1",
+        .sha256_hex = "6a71c368c4d974c4f665a7124a17836ffc894dcb6829b869531fbc22d62ee329",
+        .length = 6335107,
     },
 };
 
