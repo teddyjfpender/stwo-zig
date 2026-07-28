@@ -2014,3 +2014,145 @@ byte-exact, mechanism-confirmed stage time for no reason.
   next 22 ms of `base_memory_tables`. Out of this increment's scope; recorded
   for the roadmap, though the budget table above suggests they will hit the
   same bandwidth wall.
+
+## Next campaign: data movement
+
+**Design only. No code was written for anything in this section.**
+
+### The converging diagnosis
+
+Increments 5, 6, 7 and 8 attacked four different parts of the prover with four
+different levers, and three of them failed for the same two reasons. Stating
+them together is the durable output of the campaign so far.
+
+**The composition stage is issue-latency-bound.** Increment 5 measured ~22
+cycles per interpreted instruction over 1.09 G executions at IPC 5.30, with
+output scatter (0.9%), domain bookkeeping and denominator gather all excluded
+as the constraint. Increment 6 then removed 21.4% of the interpreted
+instructions by strip-mining and moved cycles by 1.054x while IPC fell from
+5.30 to 4.34 in lockstep — the dispatch instructions were being issued in
+superscalar slack on an 8-wide core, so deleting them freed slots that were
+never binding. **Removing instructions from this loop does not help.** The one
+thing that did help (increment 5, 1.114x-1.130x) removed 116,856,192 indirect
+calls and 467,424,768 per-lane revalidations — that is, it removed *dependent
+work with load latency in it*, not instruction count.
+
+**The witness stage is bandwidth-bound.** Increment 7 instrumented per-worker
+chunk claims on `add_opcode_small` at 4,194,304 rows and found 15-18 chunks and
+357-373 ms of busy time per worker — a 4.5% spread — with the six
+efficiency-core threads retiring rows at the same rate as the performance-core
+threads. A loop on which a half-speed core keeps pace is not core-bound.
+Increment 8 hit the same wall from the other side: the memory multiplicity
+scatter is flat at 13.0 ms from three workers to seven, and 30.9M atomic
+increments over a 24 MB table cost *more* than 166 MB of private-copy traffic.
+**Adding cores to this stage does not help.**
+
+Both walls point the same way. The next lever is neither more parallelism nor
+fewer instructions: it is **moving fewer bytes, and moving them a shorter
+distance**. Three candidates, ranked by expected prove-level effect per row.
+
+### D1. Fuse execute → consume per row block (highest per-row effect)
+
+`component_executor` (`src/frontends/cairo/witness/component_executor.zig:148`)
+runs `executeAllRange` over a component's whole row range, writing
+`output_columns`, `lookup_words` and `sub_words` as full-height column-major
+planes. Every downstream consumer — base-trace capture, the interaction
+source, and now the three counting passes of increment 8 — then reads those
+planes end to end. On memory-7m `add_opcode_small` alone is 4,194,304 rows, so
+a single output column is 16 MB and the whole plane set is far past any cache;
+each consumer pays a cold DRAM read of the entire witness.
+
+The design is to interchange the loops: process a row block of `B` rows through
+execution *and* its consumers before advancing, with `B` chosen so
+`B x (inputs + outputs + lookup + sub words) x 4 B` fits the per-core L2 slice.
+The witness planes are then written and read at L2 instead of at DRAM once per
+consumer.
+
+What makes this tractable now: consumers have to be block-decomposable and
+order-independent, and increment 8 established exactly that for two of the
+three counting consumers, with the order-dependence argument written down.
+Base-trace capture is a straight copy. Increment 2 already tiled interaction
+consumption at 1,024 rows.
+
+What has to be resolved in the design: the multiplicity tables are the one
+accumulating output and are already excluded from partial ranges
+(`program.zig:349`, `component_executor.zig:62`), so a block loop has to keep
+them whole or make them additive; and the fused form interacts with the
+existing worker split, since blocks and worker ranges are two decompositions of
+the same axis.
+
+Expected effect: largest of the three per row, because it targets
+`base_trace_build` (980 ms on memory-7m) plus `interaction_trace_build`
+together, and it removes traffic rather than adding parallelism to a saturated
+bus. Evidence pointers: increment 7's efficiency-core parity, increment 8's
+three-to-seven-worker plateau.
+
+### D2. Narrow the u32 output planes (second)
+
+Witness output columns, lookup words and sub-words are uniformly `[]u32`, but
+their contents are mostly narrow — the memory value tables are 9-bit limbs
+(`memory_tables.big_limb_count` = 28 nine-bit limbs, `small_limb_count` = 8),
+enablers are one bit, and many opcode sub-words are 16-bit. Storing each plane
+at its natural width, chosen per column from the captured program's declared
+value range, cuts the bytes moved roughly in proportion. On a bandwidth-bound
+pass that converts close to 1:1 into time.
+
+Admission must be structural: the width comes from the witness program's own
+declared per-column range, never from a workload identity. No committed value
+changes — M31 conversion happens at the trace boundary, so this is a storage
+representation change only.
+
+The cost is instructions: the interpreter writes through a uniform `[]u32`
+interface, so narrowing means a per-column tagged plane and a widening read,
+adding work to the row loop. Increment 6's evidence is precisely that this loop
+has issue slack (IPC 5.30, instruction removal worth 1.05x), so trading
+instructions for bytes is the direction the measurements endorse. That
+inversion is the reason D2 is on the list at all.
+
+Expected effect: second largest per row, scaling with the fraction of columns
+that are narrow. It composes with D1 — narrower planes make a larger `B` fit
+in L2.
+
+### D3. The R1 authenticated preprocessed product (largest fixed-cost effect, smallest per-row effect)
+
+On all-opcodes, `preprocessed_table_build` is 107.083 ms and
+`preprocessed_materialize_and_commit` is 115.282 ms — **222.365 ms of a
+1,235.862 ms proof, 18.0%**, matching the ~226 ms the 2026-07-27 note recorded.
+This is fixed cost: it does not scale with the trace, so it dominates small-row
+workloads and is invisible on memory-7m.
+
+The preprocessed tables are a pure function of the protocol parameters, the
+preprocessed variant and the log-size ladder. Nothing about the program enters
+them. So they can be built once and loaded — provided the load is
+transcript-exact: the committed roots bit-identical and the channel observing
+the same bytes in the same order.
+
+Design sketch: an on-disk authenticated product keyed by
+`(protocol_manifest_sha256, preprocessed variant, log-size ladder)`, holding
+the materialized columns and the committed Merkle layers, with an integrity
+digest verified on load and a hard failure — never a silent rebuild-and-differ
+— on mismatch. This is the one place in the campaign where a digest-keyed
+admission is legitimate, and the distinction matters: the key is the *protocol
+identity*, which is exactly what the tables are a function of, not an input
+identity. The 2026-07-27 note sketches the admission constraints; they need to
+be restated as an explicit invariant before any code.
+
+Expected effect: up to 222 ms on all-opcodes (about 1.18x on that workload
+alone) and approximately zero on memory-7m. It is a cold load, so the first
+proof in a process still pays the read; the win is per-proof in a serving
+process, not per-process. Ranked third by per-row effect and first by
+fixed-cost effect — which is why it should be scoped against a small-row
+portfolio and judged on its own bar, not against `base_trace_build`.
+
+### Ranking
+
+| Rank (per row) | Item | Target stages | Expected prove effect | Risk |
+| ---: | --- | --- | --- | --- |
+| 1 | D1 fuse execute → consume | `base_trace_build`, `interaction_trace_build` | large on 2M-7M-row workloads | medium: two decompositions on one axis, multiplicity tables excluded from partial ranges |
+| 2 | D2 narrow output planes | same | proportional to narrow-column share | medium: touches the interpreter's write interface |
+| 3 | D3 preprocessed product | `preprocessed_table_build`, `preprocessed_materialize_and_commit` | ~0 per row; 222 ms fixed | low compute risk, high protocol-correctness risk |
+
+D1 and D2 should be scoped together and measured on memory-7m and
+arithmetic-2m; D3 is a separate increment measured on all-opcodes and other
+small-row programs, with the transcript-exactness invariant stated before
+implementation.
