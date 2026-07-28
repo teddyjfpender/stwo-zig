@@ -77,6 +77,7 @@ pub fn trySpawn(
                 scheme_ptr.coefficient_retention_policy,
                 &scheme_ptr.twiddle_source,
                 null,
+                null,
             ) catch |err| {
                 column_storage.freeOwnedColumnEvaluations(worker_allocator, columns);
                 out.err = err;

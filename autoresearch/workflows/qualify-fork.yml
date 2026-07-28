@@ -64,8 +64,14 @@ jobs:
           --frontier '${{ inputs.frontier_commit }}' --preflight
       - name: Validate the locked harness
         run: python3 -m unittest discover -s autoresearch/tests -v
+      - name: Install pinned Zig toolchain
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: 0.15.2
       - name: Build release benchmark targets
-        run: python3 autoresearch/cli/stwo-perf setup
+        run: >-
+          python3 autoresearch/cli/stwo-perf setup
+          --board '${{ inputs.board }}'
       - name: Materialize the declared frontier
         run: git worktree add --detach "$RUNNER_TEMP/frontier" '${{ inputs.frontier_commit }}'
       - name: Run the public paired qualification benchmark

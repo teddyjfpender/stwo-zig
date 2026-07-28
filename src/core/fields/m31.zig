@@ -29,6 +29,18 @@ pub const M31 = struct {
         return .{ .v = x };
     }
 
+    /// Construct without checking canonicality, matching `CM31.fromU32Unchecked`
+    /// and `QM31.fromU32Unchecked`.
+    ///
+    /// This exists for bulk readers that validate a whole run of borrowed
+    /// words with one vector bound instead of one branch per element. A
+    /// non-canonical value produces a deterministic wrong field element, never
+    /// undefined behaviour, so the caller may defer its rejection to the end of
+    /// the run as long as it discards the run's results.
+    pub inline fn fromU32Unchecked(x: u32) M31 {
+        return .{ .v = x };
+    }
+
     /// Reduce an unsigned integer into F_p.
     pub inline fn fromU64(x: u64) M31 {
         return .{ .v = reduce64(x) };
@@ -231,6 +243,18 @@ pub inline fn addVec4(a: Vec4u32, b: Vec4u32) Vec4u32 {
 
 /// Vectorized M31 subtraction: (a - b) mod p, 4 lanes.
 pub inline fn subVec4(a: Vec4u32, b: Vec4u32) Vec4u32 {
+    if (comptime builtin.cpu.arch == .aarch64) {
+        // Mirror of `addVec4`'s unsigned-minimum reduction. For canonical
+        // `a, b`, the wrapping difference `d = a -% b` is either the true
+        // difference in `[0, p)` -- in which case `d +% p` is in `[p, 2p)`,
+        // does not wrap, and is larger -- or `a - b + 2^32`, which is at
+        // least `2^32 - p + 1 > p`, in which case `d +% p` wraps to exactly
+        // `a - b + p` in `[1, p)` and is smaller. The unsigned minimum
+        // therefore selects the canonical difference in both cases, as one
+        // SUB / ADD / UMIN triple instead of compare + mask + select.
+        const d = a -% b;
+        return @min(d, d +% P_VEC);
+    }
     const lt = a < b;
     // If a < b, result = a + p - b; else result = a - b.
     return @select(u32, lt, (a +% P_VEC) -% b, a -% b);

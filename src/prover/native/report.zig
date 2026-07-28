@@ -159,6 +159,9 @@ pub const BackendCounterDelta = struct {
     cpu_small_circle_interpolations: u64 = 0,
     cpu_small_circle_evaluations: u64 = 0,
     cpu_small_circle_ldes: u64 = 0,
+    metal_commit_source_arena_aliases: u64 = 0,
+    metal_commit_source_arena_memcpys: u64 = 0,
+    metal_commit_source_uploads: u64 = 0,
 };
 
 pub const PipelineCacheDelta = struct {

@@ -620,6 +620,14 @@ fn admitCompositionAot(
         .runtime = runtime,
         .bundle = &bundle,
         .metallib_path = prepared.snapshot(.composition_program).path,
+        // Pipeline prewarm over a content-addressed artifact-store snapshot,
+        // not a proof. The session already gates this object through
+        // `preparation.authorizeCompositionProgram`, and the library that a
+        // proof actually loads is gated at the runner's loader
+        // (`arena_binding.prepareCompositionRecipe`). Threading the session's
+        // `--composition-metallib-sha256` down to here as a `pinned_digest` so
+        // both gates read the same value is the identified follow-up.
+        .policy = .report_only,
     };
     const first = try composition_prewarm.prewarm(inputs);
     if (first.expected_plan_count == 0 or

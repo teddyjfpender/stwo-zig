@@ -1,0 +1,174 @@
+//! Row-parallel `range_check_9_9` accumulation over the packed small-value
+//! memory table.
+//!
+//! The serial form walked the table once per 9-bit limb column, materialized
+//! two full columns per limb pair, then scattered one increment per row. On
+//! memory-7m that is 2^20 rows x 4 pairs — 8.4M limb extractions and 4.2M
+//! scattered increments, and it was the whole of the 43 ms that the fixed
+//! multiplicity stage costs.
+//!
+//! Multiplicity counting is an additive histogram, so the pass splits by row
+//! and merges exactly. Each worker owns a private copy of only the relation
+//! columns the small pass touches — for the small table the relation index *is*
+//! the limb-pair index, so that is `small_limb_count / 2` columns, not the
+//! whole table — and the merged column values are independent of the row
+//! decomposition and of worker completion order.
+
+const std = @import("std");
+const adapter = @import("../adapter/mod.zig");
+const memory_tables = @import("../witness/memory_tables.zig");
+const multiplicity_tables = @import("multiplicity_tables.zig");
+const pool_split = @import("../witness/pool_split.zig");
+
+const work_pool = pool_split.work_pool;
+const Tables = multiplicity_tables.Tables;
+
+const table_label = "range_check_9_9";
+
+/// Smallest row span worth a private histogram of its own.
+const min_rows_per_worker: usize = 1 << 14;
+
+/// Ceiling on the private histogram copies held live during the pass. The
+/// merge re-reads every copy, so past this point the merge traffic costs more
+/// than the extra scatter parallelism saves.
+const max_private_bytes: usize = 192 << 20;
+
+pub fn addSmallValueRangeChecks(
+    input: *const adapter.ProverInput,
+    tables: *Tables,
+) !void {
+    const pair_count = memory_tables.small_limb_count / 2;
+    if (pair_count == 0) return;
+    const small_rows = try memory_tables.smallRowCount(input);
+    if (small_rows == 0) return;
+
+    const table = tables.find(table_label) orelse return error.MissingFixedTable;
+    const row_count: usize = table.entry.row_count;
+    if (pair_count > table.entry.multiplicity_columns)
+        return error.InvalidMultiplicityKey;
+    const column_words = std.math.mul(usize, pair_count, row_count) catch
+        return error.AllocationSizeOverflow;
+    if (column_words == 0) return;
+
+    // Charge the dense allocation here, in the position the first serial
+    // increment would have charged it.
+    const dense = try tables.reserve(table_label);
+
+    const worker_count = pool_split.workerCount(.{
+        .rows = small_rows,
+        .min_rows_per_worker = min_rows_per_worker,
+        .private_bytes_per_worker = std.math.mul(usize, column_words, @sizeOf(u32)) catch
+            return error.AllocationSizeOverflow,
+        .max_private_bytes = max_private_bytes,
+    });
+    // Worker 0 counts straight into the live columns, which already carry the
+    // big-value loop's increments, so a one-worker split — a null pool, or a
+    // row supply too small to divide — costs no allocation, no zeroing and no
+    // merge. That matters: on a small-row workload this pass is a few
+    // milliseconds and one spurious private copy would dominate it.
+    const private = try tables.allocator.alloc(
+        u32,
+        std.math.mul(usize, column_words, worker_count - 1) catch
+            return error.AllocationSizeOverflow,
+    );
+    defer tables.allocator.free(private);
+
+    var scatter: [work_pool.MAX_WORKERS]Scatter = undefined;
+    for (scatter[0..worker_count], 0..) |*slot, index| slot.* = .{
+        .input = input,
+        .counts = if (index == 0)
+            dense[0..column_words]
+        else
+            private[(index - 1) * column_words ..][0..column_words],
+        .zero_first = index != 0,
+        .row_count = row_count,
+        .pair_count = pair_count,
+        .small_rows = small_rows,
+        .index = index,
+        .worker_count = worker_count,
+        .failure = null,
+    };
+    try pool_split.dispatch(Scatter, scatter[0..worker_count]);
+    if (worker_count == 1) return;
+
+    var merge: [work_pool.MAX_WORKERS]Merge = undefined;
+    for (merge[0..worker_count], 0..) |*slot, index| slot.* = .{
+        .dense = dense[0..column_words],
+        .private = private,
+        .column_words = column_words,
+        .source_count = worker_count - 1,
+        .index = index,
+        .worker_count = worker_count,
+        .failure = null,
+    };
+    try pool_split.dispatch(Merge, merge[0..worker_count]);
+}
+
+/// Counts one disjoint row span into a private copy of the small relation
+/// columns.
+const Scatter = struct {
+    input: *const adapter.ProverInput,
+    counts: []u32,
+    zero_first: bool,
+    row_count: usize,
+    pair_count: usize,
+    small_rows: usize,
+    index: usize,
+    worker_count: usize,
+    failure: ?anyerror,
+
+    pub fn run(self: *Scatter) void {
+        self.accumulate() catch |err| {
+            self.failure = err;
+        };
+    }
+
+    fn accumulate(self: *Scatter) !void {
+        if (self.zero_first) @memset(self.counts, 0);
+        const rows = pool_split.span(self.small_rows, self.index, self.worker_count);
+        for (rows.start..rows.end) |row| {
+            for (0..self.pair_count) |pair| {
+                const low = try memory_tables.smallValueLimb(self.input, row, pair * 2);
+                const high = try memory_tables.smallValueLimb(self.input, row, pair * 2 + 1);
+                const key = (low << 9) | high;
+                if (key >= self.row_count) return error.InvalidMultiplicityKey;
+                const slot = &self.counts[pair * self.row_count + key];
+                slot.* = std.math.add(u32, slot.*, 1) catch
+                    return error.MultiplicityOverflow;
+            }
+        }
+    }
+};
+
+/// Folds every private copy into the live dense columns over a disjoint slice
+/// of the output.
+const Merge = struct {
+    dense: []u32,
+    private: []const u32,
+    column_words: usize,
+    source_count: usize,
+    index: usize,
+    worker_count: usize,
+    failure: ?anyerror,
+
+    pub fn run(self: *Merge) void {
+        self.fold() catch |err| {
+            self.failure = err;
+        };
+    }
+
+    fn fold(self: *Merge) !void {
+        const words = pool_split.span(self.column_words, self.index, self.worker_count);
+        for (words.start..words.end) |word| {
+            var total = self.dense[word];
+            for (0..self.source_count) |source| {
+                total = std.math.add(
+                    u32,
+                    total,
+                    self.private[source * self.column_words + word],
+                ) catch return error.MultiplicityOverflow;
+            }
+            self.dense[word] = total;
+        }
+    }
+};

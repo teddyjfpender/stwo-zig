@@ -7,6 +7,7 @@ pub const quotient_ops = scheme.quotient_ops;
 pub const CommitmentSchemeError = scheme.CommitmentSchemeError;
 pub const ColumnEvaluation = scheme.ColumnEvaluation;
 pub const ColumnSource = @import("column_source.zig").ColumnSource;
+pub const merkle_layer_cache = @import("merkle_layer_cache.zig");
 
 pub fn CommitmentTreeProver(comptime H: type) type {
     return scheme.CommitmentTreeProver(H);

@@ -8,6 +8,7 @@ const canonic = @import("stwo_core").poly.circle.canonic;
 const proof_mod = @import("stwo_core").proof;
 const verifier_types = @import("stwo_core").verifier_types;
 const component_prover = @import("air/component_prover.zig");
+const device_composition = @import("air/device_composition.zig");
 const prover_air_accumulation = @import("air/accumulation.zig");
 const prover_circle = @import("poly/circle/mod.zig");
 const pcs_prover = @import("pcs/mod.zig");
@@ -86,6 +87,34 @@ pub fn proveExWithRecorder(
     include_all_preprocessed_columns: bool,
     recorder: ?*stage_profile.Recorder,
 ) !proof_mod.ExtendedStarkProof(H) {
+    return proveExWithStage(
+        B,
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        recorder,
+        null,
+    );
+}
+
+/// As `proveExWithRecorder`, plus an optional whole-stage device composition
+/// evaluator scoped to this one call. See `air/device_composition.zig`.
+pub fn proveExWithStage(
+    comptime B: type,
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+    composition_stage: ?device_composition.Stage,
+) !proof_mod.ExtendedStarkProof(H) {
     return proveExComponentsWithRecorder(
         B,
         H,
@@ -96,6 +125,7 @@ pub fn proveExWithRecorder(
         commitment_scheme,
         include_all_preprocessed_columns,
         recorder,
+        composition_stage,
     );
 }
 
@@ -202,6 +232,7 @@ fn proveExComponents(
         commitment_scheme,
         include_all_preprocessed_columns,
         null,
+        null,
     );
 }
 
@@ -215,6 +246,7 @@ fn proveExComponentsWithRecorder(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
     include_all_preprocessed_columns: bool,
     recorder: ?*stage_profile.Recorder,
+    composition_stage: ?device_composition.Stage,
 ) !proof_mod.ExtendedStarkProof(H) {
     var scheme = commitment_scheme;
     var owns_scheme = true;
@@ -227,6 +259,7 @@ fn proveExComponentsWithRecorder(
     const component_provers = component_prover.ComponentProvers{
         .components = components,
         .n_preprocessed_columns = scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
+        .composition_stage = composition_stage,
     };
 
     const composition_log_size = component_provers.compositionLogDegreeBound();

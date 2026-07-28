@@ -40,6 +40,10 @@ pub fn createProductSupportModule(
     product: graph.Product,
     stwo: *std.Build.Module,
 ) *std.Build.Module {
+    // bzip2.zig belongs to the named Stwo facade module, so its @cImport
+    // needs the vendored header path on that module as well as on the final
+    // compile artifact configured by linkBzip2().
+    stwo.addIncludePath(b.path("third_party/bzip2"));
     const shared = graph.create(b, .{
         .product = product,
         .root_source_file = "src/products/cairo/shared/mod.zig",

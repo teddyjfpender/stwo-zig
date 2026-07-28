@@ -29,6 +29,10 @@ pub fn main() !void {
             .runtime = &runtime,
             .bundle = &bundle,
             .metallib_path = args[2],
+            // Offline codegen tooling: this operates on libraries it or CI has
+            // just compiled, which cannot be in a checked-in manifest. The
+            // digest is still measured and lands in this tool's result.
+            .policy = .report_only,
         });
         return writeResult(.{
             .components = bundle.components.len,
@@ -47,6 +51,7 @@ pub fn main() !void {
                     .runtime = &runtime,
                     .bundle = &bundle,
                     .metallib_path = args[2],
+                    .policy = .report_only,
                 });
                 try composition_prewarm.validateSecondPass(second);
                 break :warm .{
