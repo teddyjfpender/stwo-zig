@@ -4222,3 +4222,283 @@ touched no file this increment touched.
 the first end-to-end measurement of the batched stage against the now-delivered
 metallib — which is the first time the 12.7 ms claim becomes measurable rather
 than priced. The metallib that blocked it is present as of this commit.
+
+## Increment 3.13: device composition live — the gate
+
+**VERDICT: the composition-stage gate is MISSED on arithmetic-2m (1.606x,
+95% CI [1.520, 1.696]) and CLEARED on memory-7m (2.113x, [2.058, 2.170]).**
+The bar was ≥ 2.0x on both. all-opcodes, not a gate row, reads 2.370x
+[2.250, 2.497]. Every proof in this increment is byte-exact against the campaign
+digests and the official Rust verifier accepts all three.
+
+The more important number is one the gate does not ask for: folding the
+**measured** prove-level savings into 3.11 §6's bar arithmetic moves the program
+from **1.680x to 1.982x against the 1.768x bar** — the first time this campaign
+has cleared it. The gate criterion and the program criterion disagree, and §7
+argues the program criterion is the one that matters.
+
+### 1. Integration of the #124 delivery
+
+`git pull --ff-only` fast-forwarded d385ffd9 → f7f8c3a3 (5 commits: the two
+metallibs plus the user's build-closure work). Both blobs verified on disk before
+anything else ran:
+
+| artifact | length | sha256 | expected |
+| --- | ---: | --- | --- |
+| `air_template_composition_eval_domain.metallib` | 5,933,764 | `06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb` | exact match |
+| `air_template_composition_stored_domain.metallib` | 6,335,107 | `6a71c368c4d974c4f665a7124a17836ffc894dcb6829b869531fbc22d62ee329` | exact match |
+
+Both products rebuilt at the merged head; `identity` reports
+`source.commit = f7f8c3a3…`. all-opcodes Metal with the hook off:
+`79ae76e1ac0c48b1`, 75 dispatches, `cpu_fallbacks = 0`,
+`accelerated_without_fallbacks` — **the user's build-closure commits are benign.**
+
+**Increment 3.12 landed concurrently as `f5c0a66c` while this increment was in
+flight.** Its batching change was in the working tree uncommitted when this
+session started and was committed under this session's feet; the head moved from
+f7f8c3a3 to f5c0a66c mid-task. It was reviewed rather than reimplemented (§3),
+and its owed end-to-end verification is discharged here.
+
+### 2. Admission, and dropping SN2
+
+Two manifest entries added with the digests above. `metallib_leaf` becomes
+`air_template_composition_eval_domain.metallib`, and `resolveMetallib` now looks
+in the asset's **own** directory rather than its parent — the eval-domain library
+sits beside the AIR template library it was minted from
+(`vectors/cairo/official/`) where the SN2 artifact sat one level above.
+
+**`sn_pie_2_composition_v1` was dropped.** It is provably inert (3.8 §1(b): zero
+semantic-hash overlap with the template library's 69), so an approved entry for
+it is a second accepted digest for the one env var that chooses which file the
+prover opens, buying nothing. The three authentication regressions written
+against it are repointed at the eval-domain library — they now guard the artifact
+the product actually opens — and two were added: that the SN2 blob is **refused**
+under the manifest, and that the stored-domain library authenticates under its
+own label while remaining a distinct artifact.
+
+Measured after the removal: all-opcodes device composition unchanged at
+`79ae76e1ac0c48b1`, 46/46, 121 dispatches; pointing the override at the SN2 blob
+declines with `UnapprovedCompositionMetallib`, returns to the host path at 75
+dispatches, and still reports `79ae76e1ac0c48b1` with `cpu_fallbacks = 0` and
+`accelerated_without_fallbacks`. That is 3.8 §3's "a whole-stage decline is not a
+CPU fallback" rule, now exercised through the manifest itself.
+
+**Library 2 is admission-only.** Nothing loads it: `open` resolves exactly one
+path and authenticates exactly that file, so a manifest entry for an unrequested
+label is inert by construction, and a unit test pins that it is a different
+artifact from the resolved one. Its consumption (trace-domain placement plus the
+shift table in `composition_eval_arena`) is the next increment.
+
+### 3. The census, and the straggler mechanism that was already there
+
+| workload | components accepted | straggler | missing kernel |
+| --- | ---: | --- | --- |
+| all-opcodes | **46/46** | none | — |
+| arithmetic-2m | **28/29** | one | `stwo_zig_eval_8b479bd873189790` |
+| memory-7m | **31/32** | one | `stwo_zig_eval_c8aac910405e4430` |
+
+Exactly the expected census. **The mixed-coverage path did not need to be built:
+3.8 already implemented it**, and this increment's contribution is to confirm it
+works and to correct the brief's assumption that it did not exist.
+`device_stage.zig:155-167` walks `session.accepts` and routes a non-accepted
+component to `evaluateConstraintQuotientsOnDomainParallel` **inside the stage**,
+against the same `DomainAccumulator` in the same component order — which is why
+mixing is byte-exact rather than merely sound-in-principle. It increments
+`host_components` and never `device_fallbacks`, so the straggler is declared
+coverage and not a fallback event. Measured: both mixed workloads report
+`cpu_fallbacks = 0` and `accelerated_without_fallbacks`.
+
+**Admission cost has a cold cliff worth recording.** The first armed proof pays
+Metal pipeline creation for the whole library: `composition_device_admission` =
+**181,740 ms** (prove = 183,001 ms) on the first all-opcodes run. The runtime's
+on-disk binary archive (`archive_store.m`) then serialises it, and every
+subsequent process pays **11.5-15.9 ms**. Both gate arms therefore need the
+archive warm, which the untimed warmups provide; a cold CI runner does not, and
+that is a deployment fact this campaign had not previously surfaced.
+
+### 4. Byte-exactness, with the device path ON
+
+| check | result |
+| --- | --- |
+| all-opcodes Metal, device ON (6 gate samples + 3 spots) | `79ae76e1ac0c48b1` |
+| arithmetic-2m Metal, device ON (6 gate samples + 1 spot) | `25e5719f4c578eb7` |
+| memory-7m Metal, device ON (6 gate samples + 1 spot) | `e3317e55a5db5a42` |
+| all three CPU (`cpu-simd`, 0 dispatches) | `79ae76e1…` / `25e5719f…` / `e3317e55…`, byte-identical |
+| `cpu_fallbacks` on every device-ON row | **0**, every row `accelerated_without_fallbacks` |
+| composition dispatches counted (3.1 telemetry) | +46 / +28 / +31 over the host arm |
+| official verifier, one proof per workload | **`verified: true`** ×3 |
+
+Every digest set is a singleton across 18 timed device-ON samples, the 18
+predecessor samples, the three CPU lanes and the SN2-decline lane. Full digests
+from the verifier: `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`,
+`79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`,
+`e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994`.
+
+### 5. THE GATE
+
+A-B-B-A, cold processes, 3 blocks (6 samples per arm), 1 untimed warmup per arm
+per workload, `STWO_CAIRO_PREPROCESSED_CACHE=0` both arms. **Both arms are the
+same binaries at `3cea1e66`; they differ only by `STWO_ZIG_COMPOSITION_DEVICE`**,
+which is the cleanest pairing this campaign has managed — no build skew at all.
+Host `loadavg(1m)` 2.09-8.88 across the blocks, quiet by this campaign's
+standards (3.8's screen ran at 12-52).
+
+**Composition stage — the gate rows:**
+
+| workload | pred mean | cand mean | **speedup** | 95% CI | arm spreads | gate |
+| --- | ---: | ---: | ---: | --- | --- | --- |
+| arithmetic-2m | 392.47 | 244.43 | **1.606x** | [1.520, 1.696] | 1.130x / 1.056x | **MISS** |
+| memory-7m | 1,262.69 | 597.51 | **2.113x** | [2.058, 2.170] | 1.056x / 1.061x | **CLEAR** |
+| all-opcodes | 351.49 | 148.28 | **2.370x** | [2.250, 2.497] | 1.154x / 1.035x | (not a gate row) |
+
+Both gate CIs exclude 2.0 — arithmetic-2m's from below, memory-7m's from above.
+Neither verdict is a coin flip.
+
+**Prove level:**
+
+| workload | pred mean | cand mean | speedup | 95% CI | cand/pred | 95% CI |
+| --- | ---: | ---: | ---: | --- | ---: | --- |
+| arithmetic-2m | 1,777.30 | 1,641.74 | **1.083x** | [1.042, 1.125] | 0.924x | [0.889, 0.960] |
+| memory-7m | 4,472.94 | 3,823.19 | **1.170x** | [1.156, 1.184] | 0.855x | [0.845, 0.865] |
+| all-opcodes | 1,368.59 | 1,164.78 | **1.175x** | [1.154, 1.196] | 0.851x | [0.836, 0.866] |
+
+**Lift span, dispatch and submission deltas:**
+
+| workload | lift ms | device GPU ms | admission ms | pred disp | cand disp | Δ | composition submissions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| arithmetic-2m | 71.72-74.11 (73.44) | 54.07-63.48 (57.29) | 11.23-11.76 | 74 | 102 | **+28** | 28 |
+| memory-7m | 156.34-158.99 (157.98) | 144.55-155.22 (149.79) | 11.63-11.96 | 79 | 110 | **+31** | 31 |
+| all-opcodes | 37.02-37.59 (37.32) | 29.20-29.59 (29.44) | 14.46-15.78 | 75 | 121 | **+46** | 46 |
+
+**all-opcodes small-row net.** Stage saved 203.21 ms; the added 46 submissions
+cost 46 × 0.169 = **7.77 ms** at 3.11 §3's measured floor. Net **+195.4 ms**, and
+the prove-level delta (203.81 ms) confirms it lands whole. The small-row workload
+is the *best* row, not the marginal one — the dispatch floor is 3.8% of what the
+stage returns.
+
+### 6. Why arithmetic-2m misses: the bridge, not the kernels
+
+Decomposing the candidate stage (means):
+
+| workload | stage | lift | device GPU | **residual** | lift GB/s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| arithmetic-2m | 244.43 | 73.44 (30.0%) | 57.29 (23.4%) | **113.70 (46.5%)** | 21.9-22.1 |
+| memory-7m | 597.51 | 157.98 (26.4%) | 149.79 (25.1%) | **289.74 (48.5%)** | 27.9-30.8 |
+| all-opcodes | 148.28 | 37.32 (25.2%) | 29.44 (19.9%) | **81.52 (55.0%)** | 19.8-22.1 |
+
+Three errors in 3.7 §4's 4.60x projection, in order of size:
+
+1. **The lift runs at 21.9-30.8 GB/s, not 89.84 GB/s.** 3.7 measured a
+   standalone single-threaded duplication loop; the real lift writes 2x its read
+   volume into a freshly-allocated multi-GB resident arena, across threads that
+   contend for the same memory controller. The projection under-priced it by
+   **~4x** (18.8 ms projected vs 73.44 ms measured on arithmetic-2m).
+2. **A host-side residual the projection did not model at all** — 46-55% of the
+   stage. It contains the per-component coordinate-plane `memset`, the readback
+   accumulate loop, the offset/coefficient/denominator writes, and (on the two
+   mixed rows) the one host-evaluated straggler.
+3. **The host baseline was single-threaded.** 3.7's 435.7 ms "host stage" for
+   arithmetic-2m is a `simd_evaluator` sum; the shipped path is
+   `evaluateConstraintQuotientsOnDomainParallel`, measured here at 392.47 ms.
+   The projection's "at 8 threads" line parallelised the *lift* while leaving the
+   baseline serial.
+
+**The kernels beat their projection.** 57.29 ms measured against 76.0 ms
+projected on arithmetic-2m. If the stage were kernels alone it would read
+392.47/57.29 = **6.85x**. 76.6% of the device stage is bridge, not compute, and
+that — not the GPU — is what caps the gate at 1.606x.
+
+**This is a cost structure, not a bug.** Three independent facts say so: the
+digests are exact, the arm spreads are 1.04-1.15x, and the same decomposition
+explains all three workloads with the same shares.
+
+**3.12's batching benefit is measured at zero, on all three workloads.**
+`dispatches == submissions` everywhere (46/46, 28/28, 31/31): every accepted
+component has exactly **one** part, because 3.10's emitter fuses each component
+into one program. 3.11 §6's "+12.7 ms on all-opcodes" and 3.12's "75 → ~14
+submissions" both assumed parts-per-component > 1 and are **withdrawn**. The
+change is correct, costs nothing, and is insurance for a multi-part emission that
+the template library does not currently produce. Its owed verification is
+discharged: 46/46 accepted, byte-exact, `metal-test` unchanged.
+
+### 7. Program arithmetic: measured, against the 1.768x bar
+
+Substituting this increment's **measured** prove-level savings into 3.11 §6's
+`@S + caches + fusion` column:
+
+| workload | prove | 3.11 col | measured saving | new | speedup |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| all-opcodes | 1,284.6 | 826.6 | 203.8 | 622.8 | 2.063 |
+| pedersen-aggregator | 1,453.2 | 752.6 | — | 752.6 | 1.931 |
+| arithmetic-2m | 1,943.0 | 1,178.3 | 135.6 | 1,042.7 | 1.863 |
+| memory-7m | 4,612.7 | 2,868.4 | 649.7 | 2,218.7 | 2.079 |
+| **geomean** | | **1.632x** | | | **1.982x** |
+
+**1.982x against a 1.768x bar — the bar is cleared by 12.1%, from 5.3% short.**
+Composition residency is worth more than epoch fusion (+0.048x) by a factor of
+~6. pedersen-aggregator is carried unchanged because it was not measured here, so
+the geomean is a **lower bound**.
+
+The gate criterion and the program criterion disagree, and the disagreement is
+informative rather than awkward: a 2.0x *stage* bar is a proxy that assumed the
+stage was most of a proof. On arithmetic-2m the stage is 22% of prove, so 1.606x
+there buys 135.6 ms; on memory-7m it is 28%, and 2.113x buys 649.7 ms. The
+program does not care which side of 2.0x the ratio falls on.
+
+### 8. What remains, and the recommended order
+
+| item | measured size | basis |
+| --- | ---: | --- |
+| composition **residual** | 81.5-289.7 ms | §6, unattributed within the stage |
+| **Library-2 consumption** (kills the lift) | 37.3-158.0 ms | §5 lift column, measured |
+| **PoW kernel** | 110-145 ms (2 rows) | 3.11 §7 |
+| double-buffering | 17-31 ms | 3.11 §4 |
+
+**Recommended order, revised against measurement:**
+
+1. **Instrument the residual** before optimising anything else. It is now the
+   largest single cost in the device stage on every workload — larger than the
+   lift and larger than the kernels — and it is the one term with no measured
+   decomposition, because `composition_evaluation` has no per-component children.
+   This is a cheap span-adding change and it is the difference between guessing
+   and pricing. 3.7's projection failed precisely because this term was assumed
+   to be zero.
+2. **Library-2 consumption.** Removes the lift outright: projected stages
+   170.99 / 439.53 / 110.96 ms → **2.295x / 2.873x / 3.168x**, which would put
+   arithmetic-2m over the 2.0x gate. The library is admitted, the ABI landed in
+   3.10, and the change is confined to `composition_eval_arena`. Highest
+   value-per-risk of anything remaining.
+3. **PoW kernel.** Unchanged from 3.11's finding: 110-145 ms on two rows, no
+   submission-site changes, and now the largest non-composition item.
+4. **Double-buffering** last, at 17-31 ms.
+
+### 9. Verification
+
+| check | result |
+| --- | --- |
+| both delivered metallib digests + lengths | exact match before any other work |
+| `zig build metal-check` | PASS (before and after the SN2 removal) |
+| `zig build package-workspace` | PASS, 17 packages / 51 edges, at every commit |
+| `zig build metal-test` | 75/79, 2 skipped, **2 failed — the same pre-existing pair 3.12 recorded** (`resident_data_test`, `proof_residency_test`), unchanged by this increment |
+| `zig build test-native-metal` | PASS |
+| official verifier ×3 device-composition proofs | `verified: true` |
+| CPU/Metal byte parity ×3 | byte-identical |
+
+**`test-cairo-metal-product` cannot run on this host and did not run.** It
+depends on `metal-core-aot-acceptance`, which mints the core AOT bundle and
+requires full Xcode; this host has CommandLineTools only, and `xcrun` resolves
+neither `metal` nor `metallib` (3.10 §4's standing limitation). Supplying the
+prebuilt bundle via `-Dmetal-core-aot-bundle` does not bypass it. **Consequence:
+the new unit tests in `composition_aot.zig` and `composition_stage.zig` are
+type-checked by `metal-check` but their assertions were never executed** — they
+are owed a CI run, and that is the one honest gap in this increment's
+verification.
+
+**Measurement hygiene failure, recorded because it nearly corrupted the gate.**
+The first two harness runs were waited on with `pgrep -f "python3 gate.py"`,
+which never matches — the process argv is the Python framework path, not
+`python3`. Two gate runs therefore overlapped, and the first all-opcodes dataset
+contained every (block, slot) twice with visibly contaminated spreads (1.30-1.49x
+against 1.03-1.15x clean). All of it was discarded, the host was confirmed idle,
+and the reported gate is a single clean run of all three workloads waited on by
+PID. The quarantined data is in `/private/tmp/i313/contaminated_*`.
