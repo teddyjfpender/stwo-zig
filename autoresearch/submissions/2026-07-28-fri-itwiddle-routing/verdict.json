@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "kind": "claimed",
+  "harness_commit": "596f2ddfb88b",
+  "repo_commit": "97cd41882ff7",
+  "predecessor_commit": "cfd47be98a10",
+  "scope": "s3",
+  "declared_objective": {
+    "board": "core_cpu",
+    "workload_class": "small",
+    "dimension": "time"
+  },
+  "environment": {
+    "host": "d00bf0abb109",
+    "os": "Darwin 25.5.0",
+    "zig_version": "0.15.2",
+    "release_fast": true,
+    "clean_tree": true,
+    "judge_lock_held": false,
+    "preflight": {
+      "load_ok": true,
+      "load1": 5.49
+    }
+  },
+  "search_health": {
+    "schema_version": 1,
+    "decision": {
+      "schema_version": 1,
+      "board": "core_cpu",
+      "workload_class": "small",
+      "trailing_window": 8,
+      "trailing_evidence_count": 1,
+      "trailing_median_gradient_snr": 0.0,
+      "gradient_snr_threshold": 2.0,
+      "configured_rounds": 15,
+      "auto_boost_rounds": 5,
+      "maximum_rounds": 25,
+      "target_rounds": 20,
+      "workload_count": 1,
+      "class_wall_deadline_seconds": 240.0,
+      "estimated_seconds_per_round": 4.047260127732685,
+      "deadline_round_limit": 59,
+      "auto_boost_applied": true,
+      "auto_boost_reason": "trailing_median_below_threshold",
+      "recorded_before_measurement": true
+    },
+    "decision_sha256": "sha256:9db7f740061d3ef93711d44da55d5ee24cfe4fa0e2efd35e759d868425be2a53",
+    "actual_rounds": 20,
+    "actual_rounds_per_workload": {
+      "wf_log10x8": 20
+    },
+    "objective_wall_seconds": 3.4100959580100607,
+    "measurement_wall_seconds": 30.594721500005107,
+    "measurement_wall_hours": 0.00849853375000142,
+    "gradient_snr": null,
+    "credited_ln_improvement": null,
+    "credited_ln_improvement_per_measurement_hour": null,
+    "credit_status": "pending_ledger_adjudication",
+    "decision_record": "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/search-health-decision.json"
+  },
+  "gates": {
+    "G1": {
+      "pass": true,
+      "detail": "every timed sample verified; cross-arm proof digests byte-identical per round; pinned correctness oracle verified 1/1 workloads"
+    },
+    "G2": {
+      "pass": true,
+      "detail": "no locked or out-of-scope path touched"
+    },
+    "G3": {
+      "pass": true,
+      "detail": "native mechanism telemetry policy unchanged"
+    },
+    "G4": {
+      "pass": true,
+      "detail": "candidate/anchor 0.4649 vs targeted budget x1.02; matrix row upper CIs 1/1 within budget x1.05; request ratios 1/1 present rows within budget x1.05; resource vectors 1/1 within named budgets"
+    },
+    "G5": {
+      "pass": true,
+      "detail": "local advisory run"
+    }
+  },
+  "score": {
+    "per_workload": {
+      "wf_log10x8": {
+        "r": 0.991108,
+        "ci": [
+          0.963037,
+          1.025516
+        ],
+        "rounds": 20,
+        "a_median_ms": 1.31825,
+        "b_median_ms": 1.2965,
+        "request_ratio": 1.004886,
+        "rss_ratio": 1.000071,
+        "resources": {
+          "energy_j": {
+            "ratio": 0.996219,
+            "ci": [
+              0.981363,
+              1.017745
+            ],
+            "observations": 20,
+            "candidate": 0.106890131
+          },
+          "peak_rss_mib": {
+            "ratio": 1.000071,
+            "ci": [
+              0.997494,
+              1.004441
+            ],
+            "observations": 20,
+            "candidate": 6.18804931640625
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 24965.0
+          }
+        },
+        "mechanism_verified": null,
+        "proof_bytes": 24965,
+        "measurement_seconds": 3.056054,
+        "resources_complete": null
+      }
+    },
+    "R_geomean": 0.991108,
+    "portfolio": {
+      "ci_method": "independent_workload_round_bootstrap_percentile_v1",
+      "ci_level": 0.95,
+      "bootstrap_iterations": 4000,
+      "seed": 2000059846,
+      "ci": [
+        0.963264,
+        1.026027
+      ],
+      "prove_ms_method": "geometric_mean_candidate_workload_medians_ms_v1",
+      "b_median_ms_geomean": 1.2965,
+      "proof_bytes_method": "rounded_geometric_mean_candidate_proof_bytes_v1",
+      "proof_bytes": 24965,
+      "measurement_seconds": 3.056054,
+      "measurement_rounds": 20
+    },
+    "theta": 0.037308,
+    "aa_dispersion": 0.018654,
+    "significant": false,
+    "neutral": true,
+    "promotion_significance": {
+      "eligible": true,
+      "method": "independent_workload_round_bootstrap_percentile_v1",
+      "reason": "prove-time objective uses the deterministic workload portfolio CI"
+    },
+    "resource_portfolio": {
+      "peak_rss_mib": {
+        "ratio_geomean": 1.000070573743594,
+        "upper_ci_geomean": 1.0044405853758422,
+        "candidate_geomean": 6.18804931640625
+      },
+      "energy_j": {
+        "ratio_geomean": 0.9962192915273861,
+        "upper_ci_geomean": 1.0177453093394004,
+        "candidate_geomean": 0.106890131
+      },
+      "proof_bytes": {
+        "ratio_geomean": 1.0,
+        "upper_ci_geomean": 1.0,
+        "candidate_geomean": 24965.0
+      }
+    }
+  },
+  "tiebreakers": {
+    "rss_ratio": 1.000071,
+    "waits": null,
+    "dispatches": null,
+    "energy_j": 0.106890131,
+    "proof_bytes": 24965.0
+  },
+  "holdout": null,
+  "guards": {},
+  "rust_oracle": [
+    {
+      "workload": "wf_log10x8",
+      "verified": true,
+      "oracle": "pinned-rust-stwo",
+      "artifact_sha256": "4cabcca685cb0c4168d136ce3fea0f742b0b6a87d6b98beb3e048301f4d7b4e2"
+    }
+  ],
+  "skipped_groups": [
+    {
+      "group": "cuda",
+      "reason": "core_cuda is staged only: all six Native AIR families are required, but only wide Fibonacci is exact and release-ready; exact family semantics, the stwo-perf CUDA report adapter, locked-host A/A calibration, pinned Rust verification, and complete structural coverage are not yet release-gated."
+    },
+    {
+      "group": "pr6_supremacy",
+      "reason": "PR6 Supremacy remains disabled until every exact workload port, log22 oracle vector, both timing boundaries, locked-M5 statistical gate, and authenticated judged verdict are complete."
+    }
+  ],
+  "evidence": {
+    "pairing": "round-level ABBA (bench reports expose medians, not raw samples)",
+    "per_workload": {
+      "wf_log10x8": {
+        "round_ratios": [
+          1.025034,
+          1.000754,
+          1.040283,
+          0.949582,
+          0.946733,
+          1.011324,
+          0.962804,
+          1.010749,
+          0.956415,
+          0.95445,
+          1.089695,
+          0.826065,
+          1.152338,
+          0.938242,
+          0.963725,
+          1.0116,
+          1.026568,
+          1.112086,
+          1.029128,
+          0.915038
+        ],
+        "proof_digest": "91741aec956846d52e50f7b8fef3ac93195dbcd76cdb89e25ed33a148bea5700",
+        "request_ratio": 1.004886,
+        "rss_ratio": 1.000071,
+        "resources": {
+          "energy_j": {
+            "ratio": 0.996219,
+            "ci": [
+              0.981363,
+              1.017745
+            ],
+            "observations": 20,
+            "candidate": 0.106890131
+          },
+          "peak_rss_mib": {
+            "ratio": 1.000071,
+            "ci": [
+              0.997494,
+              1.004441
+            ],
+            "observations": 20,
+            "candidate": 6.18804931640625
+          },
+          "proof_bytes": {
+            "ratio": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "observations": 1,
+            "candidate": 24965.0
+          }
+        },
+        "report_sha256s": [
+          "450e5403ccf3a884069f0cc2ca4f5226f984c7543a36bb7c990ad51ef407487a",
+          "63b7249b3ead879c188df7cf711de8be91fc2e8894f34e44da096dbfff455505",
+          "67a2c6da2737995056c63672a3835ea9c9de21154ea65088b7939ddd2df04c53",
+          "3f42038f233d751d0b770345bdd2a538d12b31da83184465acef26f0e5d02d34",
+          "eadaba161791d5845f168d5c4ca468cc1e8a282952bd58f1020407151e1805d6",
+          "c920a519d5be8c2a6042d4159231173bf076e543370bfbc346a234f5ea89444f",
+          "01a1ea3bfd90ba5907017604a51dd1e528264a73ec0381e581bf8ef8155ab6fd",
+          "9b8af8303efdfc73dcf2deeb71cd9e45f5017a648d8364df0f89c3d21e7c9dc9",
+          "2e8a915d52c44844086eb341be68cf3aedb0a262f7bbe30262b70a50163c432b",
+          "05017d90ebbb58a1cc5772fc86910f401039b1d3813b0ccd680522bf5a8d234e",
+          "7404e52f4ee7c7d54beb2934b9aa4bffe1504f35c011926804e4637c834379c2",
+          "289163ab3af4de2995b5ed600b41000bca1b0a7b47a9f4e0ed5e67d967c3c997",
+          "9e9e8eeb3e4337eae5ea7d96b84079c56c16582615512ed753d33d0d66db35c0",
+          "7fa0fcdb3a4299ef803e12ddfd752de6e8a51424e923b6bba3e5f9a49497ed3b",
+          "fc5a076e9203c117119cdff3475842752bc39bde36ee73075b479916cdff5d1b",
+          "c18bee001061265792eeecf4cff0902ff8d6dd0b69fd1c0fa9604796ddc66cc2",
+          "0aa6e905824da97dfac8c648066366f57078c12ca36c4883491c53ec4b9d1f6a",
+          "91b662f81fe17b89525aa9ff6dcc0765fb075053b41212602e14a10bf907f3c6",
+          "80338bbd8dcc555066ed4ed55fc1b02212b76fe43791c61abdbce2236c01b04a",
+          "494bb91b676af14770b2fdbbd02ae2af0a988442d0fa25a46744171666bbb12f",
+          "92421bcd0c4b15f50a75ca7ab8c11c1e1474f1d7a61f7994d2a1ce388d045d34",
+          "1a2395ee0a3be15494e0fb727c9036fea56e7064dccd7d7716657810bfbe146d",
+          "406f3b6edfc77822f2106a5421ea07be253f6d9f27113a23ea8d5d68bd8f9285",
+          "70f84d7a958be3af210ce7a394983e378301c5c95f17dfb0013823afc3e58fb6",
+          "172984ed789c0ad766315ca2033a666f47221d2b681375bcb9e3cfbac92e9a1b",
+          "cbed3d4d98242b9c830f5d6763d4060e832efcbcd2953c57ae2196527e3752e5",
+          "9cfc5a22ce68ebc6cf1c9f9ee125a104409a3a665fc3b5aad02ab0e5e8a05a1d",
+          "b73fb9cc9f8c86d5dc27a71c4e0745bfd60fee123796541dde92f6c109fd7d0b",
+          "8c763b4fbc560cee6ac11328abdd972aabf2726687c79746f1db03ac27e618f1",
+          "0f232bb7f1e19e226180e613b6ef8f6d481db9ce537ca63b68ab70f486fb0ced",
+          "ab00188bfc7e663248a34a08b8bef0832d34e8728aed46fdacae3add12d08b15",
+          "6fa10ec692f71411609858a46e276c4b18f286e8a454770c9c03c56ec9c8cc07",
+          "bbcc153563be8ae2c711905289cea50d2628ee99ec1a5c5580a422345b296b40",
+          "b1691565748ef2ac193fdd400caafb21a395e67b4b10fd20aac4413e28723c56",
+          "4c6ebafe2905c40218bea750a06d591471d94c15d0fa5f1a8edb0355bc4021ce",
+          "adcbb57b72c6a54204713c545ef925aefae96200dc03323f1213faf681fe50c5",
+          "7391024aae90807cf09840a3c94d3d97fd8553068efe0dd8918defeaae4cd971",
+          "688f8a3415539e1940ccc65a7e905316da0817c5efff56c4fea3c86569ad793e",
+          "b67f540b73c7a67eaf9f3245fc35ac50af24117d2d8ec0fb8b809c3864b9dd96",
+          "9a5eb9a1f8f8162b57c2dc09bc54f274676f39d36c0c3451f7ec5364c8ad7e2a"
+        ],
+        "mechanism_verified": null,
+        "resources_complete": null
+      }
+    },
+    "reports": [
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a1.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b1.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a2.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b2.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a3.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b3.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a4.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b4.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a5.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b5.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a6.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b6.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a7.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b7.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a8.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b8.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a9.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b9.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a10.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b10.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a11.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b11.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a12.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b12.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a13.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b13.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a14.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b14.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a15.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b15.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a16.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b16.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a17.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b17.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a18.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b18.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a19.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b19.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.a20.json",
+      "/Users/m1/Documents/Codex/2026-07-28/p/work/autoresearch/stwo-zig/work/records/itwiddle/autoresearch/.runs/latest/wf_log10x8.b20.json"
+    ]
+  }
+}

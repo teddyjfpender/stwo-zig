@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "predecessor_commit": "cfd47be98a10",
+  "declared_objective": {
+    "board": "core_cpu",
+    "workload_class": "small",
+    "dimension": "time"
+  },
+  "declared_scope": "s3",
+  "files": {
+    "src/core/fri/folding.zig": "sha256:39fe1b155dd888a51a162669703a97ee3d301a040d4f1341e27189209676ef39",
+    "src/prover/fri.zig": "sha256:e2c6c74b400febca778a1b64830dd34800bf19ff17a3256038b4d2eb1e16bc66",
+    "src/prover/pcs/fri_lazy_commit.zig": "sha256:e9e93793d5c36ebab7d462022e4bf44ac241e77955f25bfea298fd418d1815d6",
+    "src/prover/pcs/scheme.zig": "sha256:4f322ad6ce6a228651279cb9920e9c636be2c6caac278312e8b5e53f5fe2f53a"
+  },
+  "transcripts": {
+    "transcripts/session-01.md": {
+      "sha256": "410bf9da98daca48b8dc3745767cc4c33060467e7a7f3dbc69e643f47b4d0554",
+      "captured_by": "submitter"
+    },
+    "transcripts/session-02.md": {
+      "sha256": "20d192a09d3269d6fa3bf850a325aa77de64f71b488e1dc0ca44c57d103ce2a5",
+      "captured_by": "submitter"
+    }
+  },
+  "transcripts_declined": false
+}
