@@ -2,10 +2,12 @@
 
 ## Model and harness
 
-Model: OpenAI Codex. Candidate `97cd41882ff7afa772be82c888b75597418092e4`
-is a source-only descendant of frontier
-`cfd47be98a10598b90a898e787e5cd1c674b09e7`. Qualification target:
-`core_cpu/small/time`, Zig 0.15.2, ReleaseFast, paired S3.
+Model: OpenAI Codex. The measured candidate
+`97cd41882ff7afa772be82c888b75597418092e4` is a source-only descendant
+of frontier `cfd47be98a10598b90a898e787e5cd1c674b09e7`. The publication branch
+later integrated current `main`; the performance numbers below remain bound
+to the measured candidate. Qualification target: `core_cpu/small/time`,
+Zig 0.15.2, ReleaseFast, paired S3.
 
 ## Hypothesis
 
@@ -22,7 +24,10 @@ fold of half-length `h`, it reads the canonical slice
 `[tower.len - 2*h .. tower.len - h]`; otherwise it retains the original
 coordinate-fill and batch-inverse fallback. The PCS scheme obtains the tower
 from its existing twiddle source and threads the borrowed slice through lazy
-FRI commit. Ownership and deinitialization remain unchanged.
+FRI commit. Ownership and deinitialization remain unchanged. When current
+`main` changed proof-domain selection to use the final composition tree rather
+than the largest tree, the publication merge retained that selector and routed
+the matching final-domain inverse-twiddle tower into FRI.
 
 ## Results
 
@@ -37,10 +42,17 @@ improvement claim. A historical micro-measurement for the same exact-slice
 mechanism suggested roughly 72 microseconds per deep proof, but the fresh
 whole-proof result supersedes it for current prioritization.
 
+After integrating current `main`, the combined tree passed the core and prover
+library test products in ReleaseFast, including their 79-source and 186-source
+transitive closure checks. This validates the semantic conflict resolution but
+is not a new paired performance run.
+
 ## Caveats
 
 The optimization depends on exact domain-family and bit-reversed slice
 correspondence. The fallback remains active if the tower is absent or too
 short. Proof-byte identity and whole-proof paired evidence are mandatory; the
 historical micro-result is diagnostic only. The measured small-class result
-does not support promotion on this host.
+does not support promotion on this host. Because the timing verdict predates
+the `main` integration, the merged publication tree must be re-measured before
+any performance ratio is attributed to that exact tree.
