@@ -18,6 +18,7 @@ pub const Options = struct {
     cuda_build_jobs: ?u16,
     metal_core_aot_bundle: ?[]const u8,
     cairo_test_filter: ?[]const u8,
+    riscv_test_filter: ?[]const u8,
     identity: ?build_identity.Identity,
 
     pub fn read(b: *std.Build) Options {
@@ -63,6 +64,11 @@ pub const Options = struct {
                 []const u8,
                 "cairo-test-filter",
                 "Compile and run Cairo tests whose names contain this text",
+            ),
+            .riscv_test_filter = b.option(
+                []const u8,
+                "riscv-test-filter",
+                "Run RISC-V tests whose names contain this text",
             ),
             .identity = resolveIdentity(b, .{
                 .commit = implementation_commit,
@@ -166,6 +172,12 @@ fn commandFor(
     if (std.mem.eql(u8, scope, "compatibility_tools")) {
         if (options.cairo_test_filter) |filter| command.addArg(b.fmt(
             "-Dcairo-test-filter={s}",
+            .{filter},
+        ));
+    }
+    if (std.mem.eql(u8, scope, "riscv_cpu") or std.mem.eql(u8, scope, "riscv_cpu_compat")) {
+        if (options.riscv_test_filter) |filter| command.addArg(b.fmt(
+            "-Driscv-test-filter={s}",
             .{filter},
         ));
     }

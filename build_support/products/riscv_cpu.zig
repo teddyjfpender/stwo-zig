@@ -7,6 +7,7 @@ const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
+const test_filter = @import("riscv_test_filter.zig");
 const product = graph.Product{
     .name = "stwo-riscv-cpu",
     .frontend = .riscv,
@@ -397,7 +398,7 @@ fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile {
     test_options.addOption(bool, "riscv_committed_mutations", options.committed_mutations);
     test_options.addOption(bool, "riscv_rigidity_exhaustive", options.rigidity_exhaustive);
     root.addOptions("test_options", test_options);
-    return b.addTest(.{ .root_module = root, .filters = options.filters });
+    return b.addTest(.{ .root_module = root, .filters = test_filter.apply(b, options.filters) });
 }
 
 fn createStwoModule(
