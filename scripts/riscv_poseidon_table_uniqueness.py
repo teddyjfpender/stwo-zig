@@ -95,25 +95,25 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig":
         "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
     "src/frontends/riscv/air/memory_commitment/hash_component.zig":
-        "fdbc208d5fec83f6b84f297a7c0d9bca4cdd452854a47853223e3831ea6a564b",
+        "eacc9bf5fcf7308858204bfb5fef81f3bce40d8344e72792ed5273af926155d5",
     "src/frontends/riscv/air/lookups/tables/schema.zig":
         "8ab73ea534acd89deb9ceb8fad83b1d9e775bf96aeb5a1e7344a0e1551bc3cef",
     "src/frontends/riscv/air/lookups/tables/interaction.zig":
         "429b3385c1352f2a86b1e968fdf6cf143b3916607b29bc41a540bdcef05eac2a",
     "src/frontends/riscv/air/lookups/tables/component.zig":
-        "27678848907a62f3c3710ba44d0d6e2f098873d1f1a2a8b442f5f1e289eac7c0",
+        "a646b7ff53af0e4043ccd505ed5badf328db014a018b311b1c61b8bed51937a7",
     "src/frontends/riscv/air/lookups/tables/counter.zig":
         "c371e5a5146fa1cc6efeca71210b51f2b9635b2af48850352e256f28f79c6d19",
     "src/frontends/riscv/air/lookups/entry.zig":
         "499e9cf1660243e85c0e1163ac078af29ddc75d4791f9719d4b930b2c10aaaf7",
     "src/frontends/riscv/air/logup.zig":
-        "b1d18803eb05c44cc6546e8122c2c4f6e634796fef7df39cfed895c42e61c7f8",
+        "83aff2399844afc6fb733cf50df483bc1a62306d51d77263d37b2f438098aec1",
     "src/frontends/riscv/air/relation_challenges.zig":
         "72929411eef7fd4bf13811db52275fe31dc357187de69344cd46053e839327df",
     "src/frontends/riscv/prover/preprocessed.zig":
-        "ac8c57ce3b164b4254d4f5d8570a929dcbf4f618993e12af85b16189330662dd",
+        "703134062751202f3bae288cded347e5bd869aac787359c05c069d5a6b7812bc",
     "src/frontends/riscv/prover/opcode_trace.zig":
-        "4659a43c81cc442a14403fab0b85b2cdb28cba04ae39454143355ce676bd4d65",
+        "5a2843e281c67d832a4c40906f2e41dd921be5f6d4c971d835e7f0036b16d7bb",
     "src/frontends/riscv/infra_trace/permutation.zig":
         "2e6551f2c758b18f4a620d166b908a269297e9f1a74308c2ebd769dd8a474b98",
     "scripts/air_satisfaction_lib/poseidon2.py":

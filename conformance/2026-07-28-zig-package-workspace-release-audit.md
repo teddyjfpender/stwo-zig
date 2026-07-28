@@ -233,6 +233,11 @@ graph: the compiler module graph is assembled by `build.zig`, and the
 repository checker supplies the boundary rules that Zig's package manager does
 not infer automatically.
 
+The packages are intentionally monorepo-distributed rather than independently
+published. The active version semantics, atomic product-release rule, and
+admission requirements for any future external publishing are defined in
+[`zig-package-release-policy.md`](zig-package-release-policy.md).
+
 ## Verification evidence
 
 The following commands passed on the audited macOS host with Zig 0.15.2:
