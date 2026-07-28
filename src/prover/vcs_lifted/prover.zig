@@ -57,6 +57,43 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return self.layers[0][0];
         }
 
+        /// Allocates an empty layer set shaped for `log_size` (root first,
+        /// `layers[i].len == 1 << i`) using exactly the storage discipline
+        /// `commit` would have used, so the result can be adopted by
+        /// `fromLayers` and released by the ordinary `deinit`.
+        pub fn allocateLayers(
+            allocator: std.mem.Allocator,
+            log_size: u32,
+        ) ![][]H.Hash {
+            const layer_alloc = layerAllocator(allocator);
+            const layers = try allocator.alloc([]H.Hash, @as(usize, log_size) + 1);
+            var filled: usize = 0;
+            errdefer {
+                for (layers[0..filled]) |layer| layer_alloc.free(layer);
+                allocator.free(layers);
+            }
+            while (filled < layers.len) : (filled += 1) {
+                layers[filled] = try layer_alloc.alloc(
+                    H.Hash,
+                    @as(usize, 1) << @intCast(filled),
+                );
+            }
+            return layers;
+        }
+
+        pub fn freeLayers(allocator: std.mem.Allocator, layers: [][]H.Hash) void {
+            const layer_alloc = layerAllocator(allocator);
+            for (layers) |layer| layer_alloc.free(layer);
+            allocator.free(layers);
+        }
+
+        /// Adopts an externally supplied layer set. The caller is responsible
+        /// for having established that the layers are the ones this tree would
+        /// have built; the transcript fails closed otherwise.
+        pub fn fromLayers(allocator: std.mem.Allocator, layers: [][]H.Hash) Self {
+            return .{ .layers = layers, .layer_allocator = layerAllocator(allocator) };
+        }
+
         pub fn commit(
             allocator: std.mem.Allocator,
             columns: []const []const M31,

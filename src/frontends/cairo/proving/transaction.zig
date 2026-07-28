@@ -100,6 +100,14 @@ pub fn proveFixtureWithRecorder(
     const preprocessed_logs = try target.logs(allocator);
     defer allocator.free(preprocessed_logs);
 
+    const preprocessed_binding = preprocessed.product_cache.Binding{
+        .variant = variant,
+        .spec_digest = preprocessed.product_cache.specDigest(target),
+        .pcs_digest = preprocessed.product_cache.pcsDigest(
+            official_pcs_config,
+        ),
+    };
+
     var pedersen: preprocessed.pedersen_table.Table = undefined;
     var pedersen_initialized = false;
     defer if (pedersen_initialized) pedersen.deinit();
@@ -110,13 +118,7 @@ pub fn proveFixtureWithRecorder(
             "Preprocessed table build",
         );
         defer stage.end();
-        const binding = preprocessed.product_cache.Binding{
-            .variant = variant,
-            .spec_digest = preprocessed.product_cache.specDigest(target),
-            .pcs_digest = preprocessed.product_cache.pcsDigest(
-                official_pcs_config,
-            ),
-        };
+        const binding = preprocessed_binding;
         switch (variant) {
             .canonical_without_pedersen => {},
             .canonical => {
@@ -215,6 +217,11 @@ pub fn proveFixtureWithRecorder(
             allocator,
             if (pedersen_initialized) &pedersen else null,
         );
+        // The preprocessed commitment is a pure function of the protocol
+        // identity, so its Merkle layers may be supplied by the authenticated
+        // artifact cache. Armed for this one commit only.
+        preprocessed.tree_digest_cache.arm(allocator, preprocessed_binding, recorder);
+        defer preprocessed.tree_digest_cache.disarm();
         try Engine.commit(
             &scheme,
             allocator,

@@ -51,6 +51,10 @@ pub fn configure(value: Config) void {
     config = value;
 }
 
+pub fn currentConfig() Config {
+    return config;
+}
+
 pub fn isEnabled() bool {
     return config.enabled and config.directory.len != 0;
 }
