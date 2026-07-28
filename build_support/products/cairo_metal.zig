@@ -13,6 +13,7 @@ const closure_gate = @import("../gates/product_closure.zig");
 const graph_identity = @import("../graph/identity.zig");
 const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const policy = @import("../graph/product.zig");
 
 const protocol_features =
@@ -32,8 +33,10 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_metal_integration", .source = "src/integrations/cairo_metal/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
+        .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
     },
     .generated_imports = &.{
@@ -53,10 +56,11 @@ const source_closure = policy.SourceClosure{
         "src/backends/metal",
         "src/core",
         "src/frontends/cairo",
-        "src/integrations/cairo_metal/prover",
+        "src/integrations/cairo_metal",
         "src/products/cairo",
         "src/products/cairo_metal",
         "src/prover",
+        "src/tools/metal_session",
     },
     .required_dynamic_dependencies = &.{
         "Metal.framework",
@@ -303,7 +307,7 @@ fn createStwoModule(
         context.optimize,
         module,
     );
-    _ = graph.addMetalBackendImport(
+    const metal_backend = graph.addMetalBackendImport(
         context.b,
         context.protocol,
         product(role),
@@ -312,12 +316,29 @@ fn createStwoModule(
         cpu_backend,
         module,
     );
-    _ = graph.addCairoFrontendImport(
+    const cairo_frontend = graph.addCairoFrontendImport(
         context.b,
         context.protocol,
         product(role),
         context.target,
         context.optimize,
+        module,
+    );
+    const metal_session = graph.createMetalSession(
+        context.b,
+        product(role),
+        context.target,
+        context.optimize,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
         module,
     );
     return module;

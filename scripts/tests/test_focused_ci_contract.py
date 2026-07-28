@@ -383,7 +383,16 @@ class PlannerContractTests(unittest.TestCase):
         selected = self.lanes_for(
             "src/integrations/cairo_metal/prover/transaction.zig"
         )
-        self.assertEqual({"static", "cairo_metal"}, selected)
+        self.assertEqual(
+            {
+                "static",
+                "cairo_metal_integration",
+                "package",
+                "cairo_metal",
+                "metal_compile",
+            },
+            selected,
+        )
         lane = self.policy["lanes"]["cairo_metal"]
         self.assertEqual("macos", lane["host"])
         self.assertFalse(lane["hosted"])

@@ -22,10 +22,10 @@ const native_cuda_poseidon_transcript =
 test {
     _ = @import("stwo_metal_backend").telemetry;
     _ = @import("integrations/cairo_cuda/mod.zig");
-    _ = @import("integrations/cairo_metal/oods.zig");
-    _ = @import("integrations/cairo_metal/quotient_inputs.zig");
-    _ = @import("integrations/cairo_metal/quotient_reference.zig");
-    _ = @import("integrations/cairo_metal/schedule_bindings.zig");
+    _ = @import("stwo_cairo_metal_integration").oods;
+    _ = @import("stwo_cairo_metal_integration").quotient_inputs;
+    _ = @import("stwo_cairo_metal_integration").quotient_reference;
+    _ = @import("stwo_cairo_metal_integration").schedule_bindings;
     _ = @import("tests/native/prover/mod.zig");
     _ = @import("interop/parity/mod.zig");
     std.testing.refAllDecls(stwo);

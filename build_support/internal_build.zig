@@ -295,6 +295,17 @@ fn addMetalTools(
         cairo_frontend,
         stwo,
     );
+    const cairo_metal_integration = integration_graph.addCairoMetalImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
+        stwo,
+    );
     const shader_manifest = graph.create(b, .{
         .product = tool_product,
         .root_source_file = "src/backends/metal/shader_manifest.zig",
@@ -318,6 +329,7 @@ fn addMetalTools(
         .metal_backend = metal_backend,
         .cairo_frontend = cairo_frontend,
         .metal_session = metal_session,
+        .cairo_metal_integration = cairo_metal_integration,
         .protocol = protocol,
         .test_step = null,
     });

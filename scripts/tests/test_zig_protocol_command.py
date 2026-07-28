@@ -59,6 +59,10 @@ class ZigProtocolCommandTests(unittest.TestCase):
             "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
             arguments,
         )
+        self.assertIn(
+            "-Mstwo_cairo_metal_integration=src/integrations/cairo_metal/mod.zig",
+            arguments,
+        )
 
     def test_test_command_preserves_trailing_zig_arguments(self) -> None:
         command = test_command(

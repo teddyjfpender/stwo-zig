@@ -46,6 +46,10 @@ pub const riscv_metal_integration_package_roots = &.{
     "dependency:../src/integrations/riscv_metal:mod.zig",
 };
 
+pub const cairo_metal_integration_package_roots = &.{
+    "dependency:../src/integrations/cairo_metal:mod.zig",
+};
+
 pub const metal_session_package_roots = &.{
     "dependency:../src/tools/metal_session:mod.zig",
 };
@@ -92,7 +96,9 @@ pub const cairo_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/tools/metal_session:mod.zig",
 };
 
 pub const riscv_protocol_package_roots = &.{
@@ -142,6 +148,7 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
@@ -157,6 +164,7 @@ pub const metal_tools_package_roots = &.{
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
@@ -233,16 +241,10 @@ pub const compatibility_package_roots = &.{
     "dependency:../src/frontends/cairo:witness/composition_bundle.zig",
     "dependency:../src/frontends/riscv:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
-    "dependency:../src/tools/metal_session:mod.zig",
-};
-
-pub const sdk_package_roots = &.{
-    "dependency:../src/backend:mod.zig",
-    "dependency:../src/core:mod.zig",
-    "dependency:../src/prover:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
 };

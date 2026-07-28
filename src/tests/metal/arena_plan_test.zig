@@ -9,7 +9,7 @@ const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
 const fixed_table_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const resident_verifier = @import("stwo_cairo_frontend").witness.resident_verifier;
 const arena_lifetime = @import("stwo_cairo_frontend").arena_lifetime;
-const schedule_bindings = @import("../../integrations/cairo_metal/schedule_bindings.zig");
+const schedule_bindings = @import("stwo_cairo_metal_integration").schedule_bindings;
 
 test {
     std.testing.refAllDecls(recovery);

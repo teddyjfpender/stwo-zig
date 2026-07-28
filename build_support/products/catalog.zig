@@ -190,7 +190,7 @@ pub const configure = [_]Configure{
             .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v1",
         }},
     },
-    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.sdk_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
+    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
         .{ .product_id = "stwo-core", .frontend = "none", .backend = "none", .role = "library", .protocol_manifest = "stwo-core-v1" },
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },

@@ -1,6 +1,6 @@
 const std = @import("std");
 const eval_program = @import("stwo_cairo_frontend").witness.eval_program;
-const eval_codegen = @import("../../integrations/cairo_metal/eval_codegen.zig");
+const eval_codegen = @import("stwo_cairo_metal_integration").eval_codegen;
 const composition_bundle = @import("stwo_cairo_frontend").witness.composition_bundle;
 const eval_source_options = @import("../../tools/cairo_metal_codegen/eval_source_options.zig");
 

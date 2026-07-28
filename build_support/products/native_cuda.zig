@@ -28,6 +28,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
         .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
+        .{ .name = "stwo_cairo_metal_integration", .source = "src/integrations/cairo_metal/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
@@ -47,6 +48,7 @@ const source_closure = policy.SourceClosure{
         "src/frontends/cairo",
         "src/frontends/riscv",
         "src/integrations/native_cuda",
+        "src/integrations/cairo_metal",
         "src/interop",
         "src/products/native_cuda",
         "src/prover",
@@ -195,7 +197,7 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
-    _ = graph.addMetalSessionImport(
+    const metal_session = graph.addMetalSessionImport(
         context.b,
         product(role),
         context.target,
@@ -210,7 +212,7 @@ fn createStwoModule(
         context.optimize,
         module,
     );
-    _ = graph.addMetalBackendImport(
+    const metal_backend = graph.addMetalBackendImport(
         context.b,
         context.protocol,
         product(role),
@@ -261,6 +263,17 @@ fn createStwoModule(
         context.optimize,
         cpu_backend,
         cairo_frontend,
+        module,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
         module,
     );
     return module;

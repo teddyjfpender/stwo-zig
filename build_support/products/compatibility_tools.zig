@@ -27,7 +27,7 @@ pub fn addProducts(context: Context) void {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addMetalSessionImport(
+    const metal_session = graph.addMetalSessionImport(
         b,
         compatibility_product,
         context.target,
@@ -42,7 +42,7 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
-    _ = graph.addMetalBackendImport(
+    const metal_backend = graph.addMetalBackendImport(
         b,
         protocol,
         compatibility_product,
@@ -93,6 +93,17 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         cpu_backend,
         cairo_frontend,
+        stwo,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
         stwo,
     );
     const runner = consumer(context, protocol, "src/prover/native/runner.zig");

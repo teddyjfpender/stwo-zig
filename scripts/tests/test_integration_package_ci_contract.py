@@ -62,6 +62,21 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             self.policy["lanes"]["riscv_metal_integration"]["host"],
         )
 
+    def test_cairo_metal_integration_has_an_independent_package_lane(self) -> None:
+        self.assert_package_lane(
+            path="src/integrations/cairo_metal/mod.zig",
+            lane="cairo_metal_integration",
+            build_file="src/integrations/cairo_metal/build.zig",
+            consumers={
+                "cairo_metal",
+                "metal_compile",
+            },
+        )
+        self.assertEqual(
+            "macos",
+            self.policy["lanes"]["cairo_metal_integration"]["host"],
+        )
+
     def test_metal_session_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
             path="src/tools/metal_session/mod.zig",
@@ -70,8 +85,6 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             consumers={
                 "cairo_metal",
                 "metal_compile",
-                "native_cuda_device",
-                "native_cuda_static",
             },
         )
 
@@ -95,7 +108,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             [
                 "aggregate_cpu", "aggregate_metal", "cairo_cpu",
                 "cairo_cpu_integration", "cairo_frontend", "cairo_metal",
-                "cpu_backend", "metal_backend", "native_cpu",
+                "cairo_metal_integration", "cpu_backend", "metal_backend", "native_cpu",
                 "native_cuda_device", "native_cuda_static", "native_metal",
                 "native_oracle", "package", "prover", "riscv_cpu",
                 "riscv_cpu_integration", "riscv_frontend", "riscv_metal",

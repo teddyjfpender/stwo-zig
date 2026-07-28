@@ -1,6 +1,7 @@
 const std = @import("std");
-const arena_binding = @import("../../integrations/cairo_metal/arena_binding.zig");
-const recipe_requirements = @import("../../integrations/cairo_metal/recipe_requirements.zig");
+const cairo_metal = @import("stwo_cairo_metal_integration");
+const arena_binding = cairo_metal.arena_binding;
+const recipe_requirements = cairo_metal.recipe_requirements;
 
 test {
     std.testing.refAllDecls(recipe_requirements);

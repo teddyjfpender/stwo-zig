@@ -14,8 +14,7 @@ pub const frontends = struct {
 };
 
 pub const integrations = struct {
-    pub const cairo_metal =
-        @import("integrations/cairo_metal/prover/mod.zig");
+    pub const cairo_metal = @import("stwo_cairo_metal_integration").prover;
 };
 
 pub const interop = struct {

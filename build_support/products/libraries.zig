@@ -49,7 +49,7 @@ pub fn addPublicModules(context: Context) Result {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addMetalSessionImport(
+    const metal_session = graph.addMetalSessionImport(
         context.b,
         sdkProduct(),
         context.target,
@@ -64,7 +64,7 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = graph.addMetalBackendImport(
+    const metal_backend = graph.addMetalBackendImport(
         context.b,
         protocol,
         sdkProduct(),
@@ -115,6 +115,17 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         cpu_backend,
         cairo_frontend,
+        stwo,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
         stwo,
     );
     return .{ .stwo = stwo, .protocol = protocol };
@@ -144,7 +155,7 @@ pub fn addProducts(context: Context) Result {
     });
     construction_observer.recordProduct(context.b, sdkProduct());
     prover.protocol.addImports(stwo);
-    _ = graph.addMetalSessionImport(
+    const metal_session = graph.addMetalSessionImport(
         context.b,
         sdkProduct(),
         context.target,
@@ -159,7 +170,7 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         stwo,
     );
-    _ = graph.addMetalBackendImport(
+    const metal_backend = graph.addMetalBackendImport(
         context.b,
         prover.protocol,
         sdkProduct(),
@@ -210,6 +221,17 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         cpu_backend,
         cairo_frontend,
+        stwo,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
         stwo,
     );
 

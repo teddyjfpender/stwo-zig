@@ -177,7 +177,7 @@ pub fn addProducts(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
-    _ = graph.addMetalSessionImport(
+    const metal_session = graph.addMetalSessionImport(
         b,
         tool_product,
         target,
@@ -192,7 +192,7 @@ pub fn addProducts(
         optimize,
         stwo,
     );
-    _ = graph.addMetalBackendImport(
+    const metal_backend = graph.addMetalBackendImport(
         b,
         protocol,
         tool_product,
@@ -243,6 +243,17 @@ pub fn addProducts(
         optimize,
         cpu_backend,
         cairo_frontend,
+        stwo,
+    );
+    _ = integration_graph.addCairoMetalImport(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        metal_backend,
+        cairo_frontend,
+        metal_session,
         stwo,
     );
     const ec_oracle_root = b.createModule(.{

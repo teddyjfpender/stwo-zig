@@ -122,3 +122,28 @@ pub fn addCairoCpuImport(
     consumer.addImport("stwo_cairo_cpu_integration", integration);
     return integration;
 }
+
+pub fn addCairoMetalImport(
+    b: *std.Build,
+    protocol: graph.ProtocolModules,
+    product: graph.Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    metal_backend: *std.Build.Module,
+    cairo_frontend: *std.Build.Module,
+    metal_session: *std.Build.Module,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const integration = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/integrations/cairo_metal/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(integration);
+    integration.addImport("stwo_metal_backend", metal_backend);
+    integration.addImport("stwo_cairo_frontend", cairo_frontend);
+    integration.addImport("stwo_metal_session", metal_session);
+    consumer.addImport("stwo_cairo_metal_integration", integration);
+    return integration;
+}
