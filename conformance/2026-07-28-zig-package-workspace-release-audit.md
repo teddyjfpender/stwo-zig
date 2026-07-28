@@ -244,7 +244,7 @@ The following commands passed on the audited macOS host with Zig 0.15.2:
 | owner-local `src/frontends/cairo` package test | 38/38 tests |
 | `python3 scripts/check_build_configure_closure.py` | 21 catalog scopes |
 | `python3 scripts/check_registry_parity.py` | 6 Native AIRs |
-| `python3 scripts/check_source_conformance.py` | 5 explained legacy findings, 0 new |
+| `python3 scripts/check_source_conformance.py` | 0 explained legacy findings, 0 new |
 | `python3 scripts/check_api_parity.py` | PASS |
 | `python3 scripts/ci.py --fast` | 1,060 tests, 2 intentional skips |
 | `zig build test-downstream-modules -Doptimize=ReleaseFast -j2` | PASS |
@@ -259,20 +259,17 @@ Rust interoperability.
 
 ## Residual debt and non-blocking observations
 
-The source-conformance ratchet retains five pre-existing oversized files:
+The five inherited oversized sources have been decomposed and
+`conformance/source-baseline.json` is empty. The former Rust verifier owners,
+Cairo Metal arena binding, and Metal arena planner now have narrow facades and
+responsibility-specific modules, each below the source ceiling. Future
+oversized-file or package-layering findings fail immediately; there is no
+remaining source-conformance waiver.
 
-- `src/integrations/cairo_metal/arena_binding.zig`;
-- `src/tools/metal_arena_plan/main.zig`;
-- `tools/stark-v-trace-dump/src/main.rs`;
-- `tools/stwo-cairo-verifier-rs/src/compact_codec.rs`; and
-- `tools/stwo-cairo-verifier-rs/src/lib.rs`.
-
-The baseline cannot grow: a sixth finding fails CI immediately. Existing
-entries should be removed in owner-scoped decomposition commits, ideally when
-that owner is already being changed. The open Cairo frontend work can proceed
-independently because its package and integrations have explicit boundaries;
-it does not require a repository-wide move or simultaneous cleanup of these
-five files.
+The open Cairo frontend work can proceed independently because its package and
+integrations have explicit boundaries. It does not require a repository-wide
+move or simultaneous changes to the RISC-V frontend, prover engine, or backend
+implementations.
 
 The static CI tier passes but currently takes about 253 seconds on the audit
 host, above its advisory 60-second budget. This is CI-latency debt, not a

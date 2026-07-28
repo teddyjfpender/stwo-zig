@@ -1,14 +1,4 @@
 {
   "version": 3,
-  "findings": [
-    {
-      "key": "file-size:tools/metal_arena_plan/main.zig",
-      "owner": "source-conformance",
-      "track": "active_native_backend",
-      "reason": "Legacy source-layout debt present when the conformance ratchet was introduced.",
-      "next_extraction": "Classify and extract the next responsibility named by the remediation plan.",
-      "plan": "conformance/decomposition-plan.md",
-      "max_lines": 4887
-    }
-  ]
+  "findings": []
 }

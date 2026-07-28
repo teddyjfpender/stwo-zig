@@ -3,7 +3,15 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-ARENA_CLI = ROOT / "src/tools/metal_arena_plan/main.zig"
+PREPARED_STATE_CACHE = (
+    ROOT / "src" / "tools" / "metal_arena_plan" / "prepared_state_cache.zig"
+)
+PREPARED_GEOMETRY_CACHE = (
+    ROOT / "src" / "tools" / "metal_arena_plan" / "prepared_geometry_cache.zig"
+)
+PREPARED_CACHE_TESTS = (
+    ROOT / "src" / "tools" / "metal_arena_plan" / "prepared_cache_tests.zig"
+)
 MULTIPLICITY_FEEDS = (
     ROOT
     / "src"
@@ -28,38 +36,43 @@ def ordered(source: str, *fragments: str) -> None:
 class PreparedStateCacheSourceContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.arena_source = ARENA_CLI.read_text()
+        cls.state_source = PREPARED_STATE_CACHE.read_text()
+        cls.geometry_source = PREPARED_GEOMETRY_CACHE.read_text()
+        cls.cache_test_source = PREPARED_CACHE_TESTS.read_text()
         cls.feed_source = MULTIPLICITY_FEEDS.read_text()
         cls.session_source = SESSION_CLI.read_text()
 
     def test_admission_covers_miss_commit_hit_key_switch_and_poison_recovery(self):
         ordered(
-            self.arena_source,
-            "Decision.miss, try admission.begin(first, true)",
+            self.cache_test_source,
+            "PreparedStateAdmission.Decision.miss, try admission.begin(first, true)",
             "try admission.commit();",
-            "Decision.hit, try admission.begin(first, true)",
+            "PreparedStateAdmission.Decision.hit, try admission.begin(first, true)",
             "try admission.commit();",
-            "Decision.miss, try admission.begin(second, true)",
+            "PreparedStateAdmission.Decision.miss, try admission.begin(second, true)",
             "admission.poison();",
-            "Status.poisoned, admission.status",
-            "Decision.miss, try admission.begin(first, true)",
+            "PreparedStateAdmission.Status.poisoned, admission.status",
+            "PreparedStateAdmission.Decision.miss, try admission.begin(first, true)",
         )
-        self.assertIn(".pending, .borrowed => return error.PreparedStateAlreadyBorrowed", self.arena_source)
-        self.assertIn(".empty, .poisoned => {}", self.arena_source)
+        self.assertIn(
+            ".pending, .borrowed => return error.PreparedStateAlreadyBorrowed",
+            self.geometry_source,
+        )
+        self.assertIn(".empty, .poisoned => {}", self.geometry_source)
 
     def test_key_switch_miss_clears_only_resident_before_replacement_arena(self):
-        cache_start = self.arena_source.index("pub const PreparedStateCache")
-        transition_start = self.arena_source.index("    fn transition(\n", cache_start)
-        transition_end = self.arena_source.index("    fn begin(\n", transition_start)
-        transition = self.arena_source[transition_start:transition_end]
+        cache_start = self.state_source.index("pub const PreparedStateCache")
+        transition_start = self.state_source.index("    pub fn transition(\n", cache_start)
+        transition_end = self.state_source.index("    pub fn begin(\n", transition_start)
+        transition = self.state_source[transition_start:transition_end]
         ordered(
             transition,
             ".miss => {",
             "self.clearResidentResources();",
         )
         begin_start = transition_end
-        begin_end = self.arena_source.index("    fn capture(\n", begin_start)
-        begin = self.arena_source[begin_start:begin_end]
+        begin_end = self.state_source.index("    pub fn capture(\n", begin_start)
+        begin = self.state_source[begin_start:begin_end]
         ordered(
             begin,
             "const decision = try self.transition(",
@@ -68,10 +81,10 @@ class PreparedStateCacheSourceContractTest(unittest.TestCase):
         )
 
     def test_poison_clears_resident_and_only_the_active_geometry_transaction(self):
-        cache_start = self.arena_source.index("pub const PreparedStateCache")
-        poison_start = self.arena_source.index("    pub fn poison(", cache_start)
-        poison_end = self.arena_source.index("    pub fn requestTelemetry", poison_start)
-        poison = self.arena_source[poison_start:poison_end]
+        cache_start = self.state_source.index("pub const PreparedStateCache")
+        poison_start = self.state_source.index("    pub fn poison(", cache_start)
+        poison_end = self.state_source.index("    pub fn requestTelemetry", poison_start)
+        poison = self.state_source[poison_start:poison_end]
         ordered(
             poison,
             "self.admission.poison();",
@@ -79,9 +92,9 @@ class PreparedStateCacheSourceContractTest(unittest.TestCase):
             "self.geometry.poisonActive();",
         )
 
-        clear_start = self.arena_source.index("    fn clearResidentResources(", cache_start)
-        clear_end = self.arena_source.index("    fn installBaseAotWitness(", clear_start)
-        clear = self.arena_source[clear_start:clear_end]
+        clear_start = self.state_source.index("    pub fn clearResidentResources(", cache_start)
+        clear_end = self.state_source.index("    pub fn compactSlot(", clear_start)
+        clear = self.state_source[clear_start:clear_end]
         ordered(
             clear,
             "if (self.interaction_aot_witness) |*recipe| recipe.deinit();",
@@ -97,10 +110,8 @@ class PreparedStateCacheSourceContractTest(unittest.TestCase):
             "self.ranges = &.{};",
         )
 
-        geometry_start = self.arena_source.index("const PreparedGeometryCache")
-        geometry_end = self.arena_source.index("pub const PreparedStateTelemetry", geometry_start)
-        geometry = self.arena_source[geometry_start:geometry_end]
-        self.assertIn("const prepared_geometry_capacity = 4;", self.arena_source)
+        geometry = self.geometry_source
+        self.assertIn("pub const prepared_geometry_capacity = 4;", geometry)
         self.assertIn(".hit => |raw_index| self.evictIndex(raw_index)", geometry)
         self.assertIn(".pending => |pending|", geometry)
         self.assertIn("owned.deinit();", geometry)
