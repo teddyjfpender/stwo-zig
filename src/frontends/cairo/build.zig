@@ -23,7 +23,14 @@ pub fn build(b: *std.Build) void {
     frontend.addImport("stwo_backend_contracts", backend_contracts);
     frontend.addImport("stwo_prover_impl", prover);
 
+    const repository_root: std.Build.LazyPath = .{
+        .cwd_relative = b.pathFromRoot("../../.."),
+    };
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
+    // The package owns the tests, while the monorepo owns the authenticated
+    // Cairo conformance vectors they consume. Make that test-only boundary
+    // independent of the directory from which `zig build` was invoked.
+    tests.setCwd(repository_root);
     const deep_root = b.createModule(.{
         .root_source_file = b.path("testing.zig"),
         .target = target,
@@ -34,6 +41,7 @@ pub fn build(b: *std.Build) void {
     deep_root.addImport("stwo_backend_contracts", backend_contracts);
     deep_root.addImport("stwo_prover_impl", prover);
     const deep_tests = b.addRunArtifact(b.addTest(.{ .root_module = deep_root }));
+    deep_tests.setCwd(repository_root);
 
     const test_step = b.step(
         "test",

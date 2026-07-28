@@ -242,6 +242,11 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(1, len(commands))
         self.assertIn("src/frontends/cairo/build.zig", commands[0])
 
+    def test_cairo_frontend_package_tests_bind_the_repository_vector_root(self) -> None:
+        build = (ROOT / "src/frontends/cairo/build.zig").read_text(encoding="utf-8")
+        self.assertIn('b.pathFromRoot("../../..")', build)
+        self.assertEqual(2, build.count("setCwd(repository_root)"))
+
     def test_cpu_backend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/backends/cpu_scalar/mod.zig")
         self.assertTrue(
