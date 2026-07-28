@@ -486,18 +486,6 @@ pub const Blake2sHasher = struct {
         );
     }
 
-    /// Absorbs a column group into four independent streams and finalizes
-    /// them without ever writing the intermediate hasher state back.
-    pub fn finalizeM31Columns4(
-        hashers: *const [4]Self,
-        columns: anytype,
-        position: usize,
-    ) [4]Blake2sHash {
-        const toDigests = parallelStatesToDigests;
-        const compress = compressParallel4;
-        return stream4.finalizeM31Columns4(Self, V4, Blake2sHash, hashers, columns, position, compress, toDigests);
-    }
-
     pub fn updateM31Columns4(
         hashers: *[4]Self,
         columns: anytype,

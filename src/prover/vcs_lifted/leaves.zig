@@ -8,7 +8,6 @@ const columns_mod = @import("columns.zig");
 const layers_mod = @import("layers.zig");
 const parameters = @import("parameters.zig");
 const blake2_stream4 = @import("blake2_stream4.zig");
-const audit = @import("audit.zig");
 
 pub fn Operations(comptime H: type) type {
     return struct {
@@ -662,7 +661,6 @@ pub fn Operations(comptime H: type) type {
             else
                 1;
             const actual_workers = @max(@as(usize, 1), worker_count);
-            audit.note("absorb_workers pool={any} workers={d} layer={d}", .{ pool != null, actual_workers, layer_size });
             const scratch_words_per_worker = max_leaf_scratch_bytes / @sizeOf(M31);
             const scratch_words = try allocator.alloc(M31, actual_workers * scratch_words_per_worker);
             defer allocator.free(scratch_words);

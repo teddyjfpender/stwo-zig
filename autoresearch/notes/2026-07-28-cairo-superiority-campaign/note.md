@@ -513,3 +513,247 @@ confirms the mechanism. Accepted.
   and `Memory multiplicities` are 27.1 ms of 362.083 ms on arithmetic-2m and
   live in `fixed_trace` / `cpu_memory`, not in the relation build. Below this
   increment's headroom; recorded for the roadmap.
+
+## Increment 3: Merkle commit pipeline
+
+**Outcome: rejected candidate.** A working, byte-exact structural change was
+built, measured, and reverted: it improves the `merkle_commit` stage by
+1.04x-1.13x, below this increment's 1.15x acceptance bar. The source diff is
+reverted; the audit, the wall verdict, and the rejected mechanism are recorded
+here because they retarget the remaining Merkle work.
+
+Implementation: Claude Opus 4.5. Orchestration: Claude Fable 5.
+
+The reverted implementation is preserved in history at `35dcf92e` (fused
+trailing group) on top of the audit instrumentation at `495a9cff`.
+
+### Audit: what the merkle_commit stage is made of
+
+Cairo commits through the *streaming* path. `commitOwnedPreparedWithRecorder-
+AndBacking` (`src/prover/pcs/scheme.zig:225`) routes any column set of 128 or
+more columns to `commitOwnedStreamingWithRecorder`, and every Cairo tree
+qualifies (156, 293, 304 columns on arithmetic-2m). `tree_builders.zig:283`
+then hands the complete height-sorted set to
+`StreamingCommitter.commitColumnsWithSparseTail`
+(`src/prover/vcs_lifted/prover.zig:542`), so the whole leaf pipeline happens in
+one call.
+
+That pipeline keeps **one BLAKE2s hasher state per leaf**. `@sizeOf(H)` is
+**136 bytes** (measured, not estimated: `h[8]u32`, `t0`, `t1`, a 64-byte
+`buf`, `buf_len`, `finalized`, `selection`). For a `2^22` leaf domain the
+array is **570 MiB**; memory-7m reaches `2^23` and **1.14 GiB**. It is built
+by climbing the column log-size ladder: each new group replicates the array
+onto the larger domain, then absorbs its columns into every entry.
+
+Temporary instrumentation gated behind `STWO_MERKLE_AUDIT=1` split the stage
+into replication, absorb, leaf finalize, parent layers and allocation. It was
+reverted with the rest of the increment. arithmetic-2m, one cold process:
+
+| Phase | ms | Share |
+| --- | ---: | ---: |
+| Leaf absorb (`updateHashersPacked`) | 496.1 | 37.1% |
+| **Hasher-array replication (expand)** | 442.5 | 33.1% |
+| Parent layers | 236.5 | 17.7% |
+| Leaf finalize (`finalizeHashers`) | 160.5 | 12.0% |
+| Leaf/layer allocation | 0.017 | 0.0% |
+| Total | 1,335.6 | |
+
+Per tree: preprocessed (156 columns, max log 21) 194.6 ms; main (293, log 22)
+635.5 ms; interaction (304, log 22) 505.5 ms.
+
+Two findings dominate.
+
+**The replication phase does no hashing at all.** It is a third of the stage
+spent copying hasher states. The single largest line item in the whole audit is
+one replication: `expand log_size=22 leaves=4194304 hasher_bytes=570425344
+ns=111428584` — 111.4 ms to move 855 MiB (285 read, 570 written) so that the
+next group has somewhere to be absorbed into. At head it is also a **serial
+scalar gather** (`prover.zig:505`, a plain `for (0..layer_size)` loop), while
+absorb, finalize and the parent layers all run on the pool.
+
+**The sparse-tail fast path never fires on Cairo.** `liftedTailStart`
+(`prover.zig:563`) can already skip the last replication, but only if the
+trailing columns fit in the currently-open 64-byte block — at most 15 columns
+and only when few words are buffered. Every Cairo tree reports
+`tail_start=null`: the trailing groups are 39, 20 and 4 columns wide against a
+full buffer. The mechanism existed and was structurally excluded.
+
+### Worker-cap finding
+
+**The pool cap does not bind, and the brief's premise was stale.**
+`work_pool.zig:13` declares `MAX_WORKERS = 32`, not 16, and
+`parameters.max_parallel_workers` is also 32. On this 18-core host
+`detectWorkerCount` returns 18. Instrumented worker counts confirm the leaf
+paths actually receive them: `absorb_workers pool=true workers=18
+layer=4194304`, dropping to 16/8/4/2/1 only as layers shrink below the
+`parallel_min_nodes_per_worker = 1024` capacity rule. There is nothing to lift;
+no rider was needed. The real parallelism defect was the *serial* replication
+loop above, which the pool never saw.
+
+### The wall verdict (four walls)
+
+Two `stwo-prof zig` harnesses wired against live `stwo_core` sources
+(`--import stwo_core=src/core/mod.zig`), single-threaded, shape `2^18` base
+hashers → `2^19` leaves × 39 trailing columns. Both arms call the same live
+`Blake2sHasher` primitives; only the traversal differs. Predecessor arm:
+replicate, absorb (`updateM31Columns4`), finalize (`finalizeEqualTail4`).
+Candidate arm: one fused `finalizeM31Columns4`.
+
+| Counter | 3-pass (pred) | fused (cand) | Ratio |
+| --- | ---: | ---: | ---: |
+| instructions/op | 1,360 | 1,233 | 1.103x fewer |
+| cycles/op | 603.1 | 704.6 | 0.856x (worse) |
+| ns/op (median) | 140.2 | 184.6 | **0.759x (worse)** |
+| IPC | 2.255 | 1.750 | — |
+| peak footprint (B) | 206,717,408 | 135,397,808 | 1.53x smaller |
+
+`asm`, per-symbol:
+
+| Symbol | instrs pred | instrs cand | mem pred | mem cand | NEON |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `workload.run` (traversal) | 925 | 551 | 473 | **278** | 10.6% / 8.2% |
+| `compressParallel4` (hashing) | 1,440 | 1,440 | 95 | 95 | 92.2% |
+
+**Verdict: the hashing core is compute-bound and untouchable; the traversal
+around it is memory-traffic-bound, but only at pool scale.** The compression
+kernel is 92.2% NEON and byte-identical between arms — there is no
+vectorization headroom there, and the fused pass was never going to change the
+number of compressions. The traversal issues 41% fewer memory operations, which
+is the predicted mechanism and it is confirmed. But at **one thread** a single
+core cannot saturate memory bandwidth, so removing traffic buys nothing while
+the fused form's extra per-lane work costs 1.32x on wall. The traffic saving
+only pays when 18 workers are competing for bandwidth — which is why the S1
+isolate *understates* this class of fix and why the whole-prover paired runs
+are the governing measurement. Recording this explicitly: **S1 single-thread
+isolation is the wrong instrument for a pass-fusion claim in the Merkle
+pipeline; it will read as a regression even when the parallel stage improves.**
+
+### The rejected mechanism
+
+Three changes, all byte-exact, all reverted.
+
+1. `direct_tail.finalizeDirectTail` — the trailing same-log-size group is
+   absorbed *during* finalization, reading the base state in place. The
+   expanded array is never materialized. This is `finalizeLiftedTail`
+   generalized to arbitrary group width: instead of requiring the tail to land
+   in the open terminal block, the four-lane path compresses whole blocks as
+   they fill. Admission is structural — the column log-size ladder only.
+2. `blake2s_stream4.finalizeM31Columns4` — one SIMD-resident pass replacing
+   `updateM31Columns4` + `finalizeEqualTail4`, so the transposed state is
+   gathered once and no scalar hasher state is written back.
+3. `direct_tail.expandHashers` — the replications that remain read their two
+   source hashers once per aligned run and broadcast them, and split across the
+   pool instead of running serially.
+
+Exactness: the absorbed values, their order, and the block boundaries are
+unchanged; only the storage of intermediate state differs. Byte parity below
+confirms it.
+
+A fourth variant was built and measured: borrowing the four base states by
+pointer (`*const [4]*const State`) instead of copying them into a stack array.
+It was a wash — 582.3 ms versus 575.7 ms candidate mean on arithmetic-2m — the
+compiler had already elided the copy. Recorded so it is not retried.
+
+### Paired measurement
+
+A-B-B-A cold processes, `--verify` on every run, predecessor = pristine
+`zig-out` tree built from clean head `44f2f506` **before** any edit and copied
+whole. Following the methodology finding from increment 2, **one untimed warmup
+process per arm precedes each block** and is discarded; without it the first
+cold sample of an arm carries a page-cache penalty.
+
+arithmetic-2m, three independent A-B-B-A blocks (6 paired samples per arm):
+
+| Block | Arm | merkle_commit ms | Arm | merkle_commit ms |
+| --- | --- | ---: | --- | ---: |
+| 1 | pred 1 | 771.255 | cand 1 | 580.809 |
+| 1 | pred 2 | 631.078 | cand 2 | 585.579 |
+| 2 | pred 1 | 627.871 | cand 1 | 579.148 |
+| 2 | pred 2 | 645.072 | cand 2 | 572.154 |
+| 3 | pred 1 | 629.527 | cand 1 | 590.481 |
+| 3 | pred 2 | 624.058 | cand 2 | 574.144 |
+
+| Statistic | pred | cand |
+| --- | ---: | ---: |
+| mean | 654.8 | 580.4 |
+| sd | 57.5 | **6.9** |
+| range | 624-771 | 572-590 |
+
+Ratio over all samples **1.128x**; excluding the single 771.3 ms predecessor
+outlier **1.088x**. The candidate's spread is 8x tighter than the
+predecessor's, which is itself a result: removing the largest allocation and
+the serial replication removes most of the run-to-run variance.
+
+memory-7m and all-opcodes, one A-B-B-A block each:
+
+| Workload | pred mean merkle ms | cand mean merkle ms | Ratio | Prove ratio |
+| --- | ---: | ---: | ---: | ---: |
+| arithmetic-2m | 654.8 | 580.4 | 1.128x | 1.063x / 1.031x / 1.025x |
+| memory-7m | 1,485.150 | 1,392.601 | 1.066x | 1.016x |
+| all-opcodes | 402.577 | 386.947 | 1.040x | 1.005x |
+
+**No workload reaches 1.15x. Rejected.** The prove-level ratios (1.005x-1.063x)
+are inside increment 1's ±3% floor and are not claimed. The stage ratios for
+memory-7m and all-opcodes are inside the ±12% stage floor. Only arithmetic-2m
+is arguably outside it, at 1.09x-1.13x.
+
+Why memory-7m barely moves, from its audit split: its trees reach log 23, and
+the candidate's fused pass then costs 424.2 ms and 315.0 ms per tree while the
+replications it eliminates cost only 12.9 ms each *after* the parallel
+broadcast lands. The fused kernel gives back most of what the removed pass
+saves — exactly what the S1 counters predicted.
+
+Host: the block opened at load average 2.30 and closed at 4.02; `top` reported
+86-93% idle throughout. An earlier set of single-run measurements taken at load
+15-31 while increment 2's benchmark processes were still on the host suggested
+a 1.57x stage win; those runs compared an *instrumented* predecessor against a
+clean candidate under falling load and are **not** reported as a result. They
+are the reason this increment insists on warmed, paired, same-block samples.
+
+### Verification
+
+- Proof bytes byte-identical predecessor versus candidate on every workload and
+  every arm — 6 proofs per workload, one distinct digest each:
+  arithmetic-2m `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`,
+  memory-7m `e3317e55a5db5a4251e04827b3d4f2ccaeb801feb6a9d2848e71ef23daced994`,
+  all-opcodes `79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310`.
+  All three equal the digests increments 1 and 2 recorded.
+- The reverted tree rebuilds and reproduces
+  `25e5719f4c578eb7ef10d76d6033e65f0a4a9d981c2414c3f7ac1950966deea6`.
+- `zig build test-cairo-cpu-product test-cairo-frontend test-stwo-prover`
+  passed on the candidate; `stwo-prover closure: PASS` over 188 transitive Zig
+  sources; source conformance reported 5 explained legacy findings and no new
+  violations.
+- `zig build merkle-worker-stress` exercised the shared vcs_lifted worker
+  paths: `state_machine_deep` and `plonk_deep` passed in both prove modes with
+  **proof bytes identical across worker counts {2,4,8}**. The gate then failed
+  on `blake_deep` with `error: InvalidNRounds` — a pre-existing branch
+  condition in the blake example's CLI validation
+  (`src/examples/blake/input.zig`), which this increment's diff never touches.
+  The gate also fails before starting if
+  `vectors/reports/merkle_worker_stress_artifacts/` is left over from a prior
+  run (`error: PathAlreadyExists`); that directory is untracked scratch and was
+  cleared.
+- Not run, for budget: the official Rust verifier on a candidate proof, and the
+  Metal parity run. Both are lower value here because the candidate is
+  reverted and its proof bytes are bit-identical to the predecessor's on all
+  three workloads, and the predecessor's digests were already accepted by the
+  pinned verifier in increments 1 and 2.
+
+### Rejected alternatives
+
+- **Lift the worker cap.** No-op: `MAX_WORKERS` is already 32 against 18 cores,
+  and instrumentation shows 18 workers actually reaching the large leaf layers.
+- **Retry the eight-stream generic-leaf continuation.** Out of scope and
+  already rejected on this branch at 1.013x; the audit confirms the leaf
+  *hashing* kernel is not where the stage's slack is.
+- **Fuse more than the trailing group.** Fusing group `g` and everything above
+  it forces every column in `g` to be re-absorbed at the final domain instead of
+  once at its own. arithmetic-2m's main tree absorbs 944 MiB of message today
+  against 4.9 GiB if fully unshared — a 5.2x saving that the ladder exists to
+  provide. Fusing only the trailing group is the unique choice that costs zero
+  extra compressions.
+- **Vectorize the leaf hashing further.** `compressParallel4` is already 92.2%
+  NEON on 1,440 instructions and is identical in both arms. There is no width
+  left at four lanes; more would need an eight-lane compression, which is the
+  rejected register-pressure direction.
