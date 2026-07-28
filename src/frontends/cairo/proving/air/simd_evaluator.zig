@@ -81,7 +81,7 @@ pub const PackedQm31 = struct {
     /// precondition in `mulVec4Aarch64` (operands are canonical positive
     /// 31-bit) holds at all nine multiply sites without any extra
     /// reduction, and the result is the exact field product.
-    pub fn mulKaratsuba(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
+    pub fn mul(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
         const a = lhs.coordinates;
         const b = rhs.coordinates;
 
@@ -112,7 +112,9 @@ pub const PackedQm31 = struct {
         } };
     }
 
-    pub fn mul(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
+    /// Schoolbook reference: 16 `mulVec4`. Retained only as the exactness
+    /// oracle for `mul`; not on any hot path.
+    pub fn mulSchoolbook(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
         const a = lhs.coordinates;
         const b = rhs.coordinates;
         const x0 = m31.subVec4(
@@ -413,8 +415,8 @@ test "Cairo SIMD evaluator Karatsuba QM31 multiplication is byte-identical to sc
             rhs.coordinates[coordinate] = r;
         }
 
-        const schoolbook = PackedQm31.mul(lhs, rhs);
-        const karatsuba = PackedQm31.mulKaratsuba(lhs, rhs);
+        const schoolbook = PackedQm31.mulSchoolbook(lhs, rhs);
+        const karatsuba = PackedQm31.mul(lhs, rhs);
         inline for (0..4) |coordinate| {
             for (0..lane_count) |slot| {
                 try std.testing.expectEqual(
@@ -440,7 +442,7 @@ test "Cairo SIMD evaluator Karatsuba QM31 multiplication is byte-identical to sc
                 @splat(f0), @splat(f1), @splat(e3), @splat(e0),
             } };
             const schoolbook = PackedQm31.mul(lhs, rhs);
-            const karatsuba = PackedQm31.mulKaratsuba(lhs, rhs);
+            const karatsuba = PackedQm31.mul(lhs, rhs);
             inline for (0..4) |coordinate| {
                 try std.testing.expectEqual(
                     schoolbook.coordinates[coordinate][0],
