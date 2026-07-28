@@ -11,5 +11,6 @@ test {
     _ = @import("official_interaction_checkpoint.zig");
     _ = @import("official_live_geometry.zig");
     _ = @import("official_preprocessed.zig");
+    _ = @import("preprocessed_cache_eviction.zig");
     std.testing.refAllDecls(@This());
 }

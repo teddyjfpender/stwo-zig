@@ -80,13 +80,23 @@ const Request = prover.pcs.merkle_layer_cache.Request;
 
 fn loadThunk(ctx: *anyopaque, request: Request, layers: []const []u8) bool {
     const state: *Session = @ptrCast(@alignCast(ctx));
-    load(state, request, layers) catch return false;
+    load(state, request, layers) catch {
+        product_cache.recordMiss();
+        return false;
+    };
+    var loaded: u64 = @as(u64, header_bytes) + @as(u64, digest_bytes);
+    for (layers) |layer| loaded += @as(u64, layer.len);
+    product_cache.recordHit(loaded);
     return true;
 }
 
 fn storeThunk(ctx: *anyopaque, request: Request, layers: []const []const u8) void {
     const state: *Session = @ptrCast(@alignCast(ctx));
-    store(state, request, layers) catch {};
+    store(state, request, layers) catch return;
+    var stored: u64 = @as(u64, header_bytes) + @as(u64, digest_bytes);
+    for (layers) |layer| stored += @as(u64, layer.len);
+    product_cache.recordStore(stored);
+    product_cache.enforceBudget(state.allocator);
 }
 
 fn updateU32(hasher: *std.crypto.hash.sha2.Sha256, value: u32) void {
@@ -267,6 +277,7 @@ fn load(state: *Session, request: Request, layers: []const []u8) !void {
         return error.PreprocessedTreeCacheUnusable;
     const payload = try payloadBytes(request);
     const key = artifactKey(state.binding, request);
+    product_cache.protectKey(key);
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try artifactPath(&path_buffer, key);
 
@@ -300,6 +311,9 @@ fn load(state: *Session, request: Request, layers: []const []u8) !void {
     const actual = try integrityDigest(state.allocator, &actual_header, views);
     if (!std.crypto.timing_safe.eql([digest_bytes]u8, actual, trailer))
         return error.PreprocessedTreeCacheUnusable;
+    // Refreshes the last-used marker the eviction policy reads. Best-effort:
+    // a failure only makes this artifact look older than it is.
+    product_cache.touchArtifact(file);
 }
 
 fn readExact(file: std.fs.File, destination: []u8) !void {
@@ -325,6 +339,7 @@ fn store(state: *Session, request: Request, layers: []const []const u8) !void {
     if (written != payload) return error.PreprocessedTreeCacheUnusable;
 
     const key = artifactKey(state.binding, request);
+    product_cache.protectKey(key);
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try artifactPath(&path_buffer, key);
 
