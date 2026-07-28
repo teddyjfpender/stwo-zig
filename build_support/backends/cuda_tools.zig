@@ -177,6 +177,13 @@ pub fn addProducts(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addMetalSessionImport(
+        b,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
     const cpu_backend = graph.addCpuBackendImport(
         b,
         protocol,

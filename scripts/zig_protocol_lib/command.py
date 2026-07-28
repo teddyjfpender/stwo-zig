@@ -28,6 +28,8 @@ def protocol_module_args(root_source: str) -> list[str]:
         "stwo_riscv_cpu_integration",
         "--dep",
         "stwo_cairo_cpu_integration",
+        "--dep",
+        "stwo_metal_session",
         f"-Mroot={root_source}",
         "-Mstwo_core=src/core/mod.zig",
         "--dep",
@@ -87,6 +89,7 @@ def protocol_module_args(root_source: str) -> list[str]:
         "--dep",
         "stwo_cairo_frontend",
         "-Mstwo_cairo_cpu_integration=src/integrations/cairo_cpu/mod.zig",
+        "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
     ]
 
 
@@ -121,6 +124,8 @@ def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
         "stwo_riscv_cpu_integration",
         "--dep",
         "stwo_cairo_cpu_integration",
+        "--dep",
+        "stwo_metal_session",
         f"-Mroot={root_source}",
         "--dep",
         "stwo_core",
@@ -142,6 +147,8 @@ def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
         "stwo_riscv_cpu_integration",
         "--dep",
         "stwo_cairo_cpu_integration",
+        "--dep",
+        "stwo_metal_session",
         "-Mstwo=src/stwo.zig",
         "-Mstwo_core=src/core/mod.zig",
         "--dep",
@@ -201,6 +208,7 @@ def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
         "--dep",
         "stwo_cairo_frontend",
         "-Mstwo_cairo_cpu_integration=src/integrations/cairo_cpu/mod.zig",
+        "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
         "--",
         *arguments,
     ]
@@ -220,4 +228,5 @@ def source_contract() -> tuple[Path, ...]:
         root / "src/frontends/cairo/mod.zig",
         root / "src/integrations/riscv_cpu/mod.zig",
         root / "src/integrations/cairo_cpu/mod.zig",
+        root / "src/tools/metal_session/mod.zig",
     )

@@ -227,6 +227,13 @@ fn addMetalTools(
         .optimize = optimize,
     });
     protocol.addImports(stwo);
+    const metal_session = graph.addMetalSessionImport(
+        b,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+    );
     const cpu_backend = graph.addCpuBackendImport(
         b,
         protocol,
@@ -310,6 +317,7 @@ fn addMetalTools(
         .cpu_backend = cpu_backend,
         .metal_backend = metal_backend,
         .cairo_frontend = cairo_frontend,
+        .metal_session = metal_session,
         .protocol = protocol,
         .test_step = null,
     });

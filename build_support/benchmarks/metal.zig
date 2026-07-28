@@ -10,6 +10,7 @@ pub const Context = struct {
     cpu_backend: *std.Build.Module,
     metal_backend: *std.Build.Module,
     cairo_frontend: *std.Build.Module,
+    metal_session: *std.Build.Module,
     protocol: graph.ProtocolModules,
     test_step: ?*std.Build.Step,
 };
@@ -171,6 +172,7 @@ pub fn addProducts(context: Context) void {
     metal_test_module.addImport("stwo_cpu_backend", context.cpu_backend);
     metal_test_module.addImport("stwo_metal_backend", context.metal_backend);
     metal_test_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
+    metal_test_module.addImport("stwo_metal_session", context.metal_session);
     const metal_test_options = b.addOptions();
     metal_test_options.addOption(bool, "metal_only", true);
     metal_test_options.addOption(bool, "riscv_only", false);

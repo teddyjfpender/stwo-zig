@@ -27,6 +27,13 @@ pub fn addProducts(context: Context) void {
         .optimize = context.optimize,
     });
     protocol.addImports(stwo);
+    _ = graph.addMetalSessionImport(
+        b,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const cpu_backend = graph.addCpuBackendImport(
         b,
         protocol,

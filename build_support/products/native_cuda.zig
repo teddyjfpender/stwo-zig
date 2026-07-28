@@ -34,6 +34,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_prover_impl", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
         .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
+        .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
     },
     .allowed_files = &.{"src/stwo.zig"},
     .allowed_prefixes = &.{
@@ -49,6 +50,7 @@ const source_closure = policy.SourceClosure{
         "src/interop",
         "src/products/native_cuda",
         "src/prover",
+        "src/tools/metal_session",
     },
     .required_dynamic_dependencies = &.{ "cuda", "cudart", "libstdc++.so.6" },
     .forbidden_dynamic_dependencies = &.{
@@ -193,6 +195,13 @@ fn createStwoModule(
         .optimize = context.optimize,
     });
     context.protocol.addImports(module);
+    _ = graph.addMetalSessionImport(
+        context.b,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     const cpu_backend = graph.addCpuBackendImport(
         context.b,
         context.protocol,

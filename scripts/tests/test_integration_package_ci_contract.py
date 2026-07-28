@@ -62,6 +62,19 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             self.policy["lanes"]["riscv_metal_integration"]["host"],
         )
 
+    def test_metal_session_has_an_independent_package_lane(self) -> None:
+        self.assert_package_lane(
+            path="src/tools/metal_session/mod.zig",
+            lane="metal_session",
+            build_file="src/tools/metal_session/build.zig",
+            consumers={
+                "cairo_metal",
+                "metal_compile",
+                "native_cuda_device",
+                "native_cuda_static",
+            },
+        )
+
     def test_submission_diff_selects_only_the_link_reach(self) -> None:
         # Submission metadata is externally validated; only the prover edits
         # should expand this diff beyond the always-on lane.

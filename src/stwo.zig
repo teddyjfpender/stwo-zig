@@ -9,7 +9,7 @@ pub const frontends = @import("frontends/mod.zig");
 pub const integrations = @import("integrations/mod.zig");
 pub const examples = @import("examples/mod.zig");
 pub const interop = @import("interop/mod.zig");
-pub const metal_session = @import("tools/metal_session/mod.zig");
+pub const metal_session = @import("stwo_metal_session");
 pub const std_shims = @import("std_shims/mod.zig");
 pub const tracing = @import("tracing/mod.zig");
 

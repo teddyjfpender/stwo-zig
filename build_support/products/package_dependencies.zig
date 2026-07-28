@@ -46,6 +46,10 @@ pub const riscv_metal_integration_package_roots = &.{
     "dependency:../src/integrations/riscv_metal:mod.zig",
 };
 
+pub const metal_session_package_roots = &.{
+    "dependency:../src/tools/metal_session:mod.zig",
+};
+
 pub const metal_backend_package_roots = &.{
     "dependency:../src/backends/metal:mod.zig",
 };
@@ -140,6 +144,7 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/tools/metal_session:mod.zig",
 };
 
 pub const metal_tools_package_roots = &.{
@@ -154,6 +159,7 @@ pub const metal_tools_package_roots = &.{
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/tools/metal_session:mod.zig",
 };
 
 pub const riscv_cpu_protocol_package_roots = &.{
@@ -231,4 +237,12 @@ pub const compatibility_package_roots = &.{
     "dependency:../src/prover:mod.zig",
     "dependency:../src/prover:native/resource_admission.zig",
     "dependency:../src/prover:native/runner.zig",
+    "dependency:../src/tools/metal_session:mod.zig",
+};
+
+pub const sdk_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/tools/metal_session:mod.zig",
 };

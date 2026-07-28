@@ -350,6 +350,41 @@ pub fn addMetalBackendImport(
     return backend;
 }
 
+/// Constructs the package-owned persistent Metal-session protocol and artifact
+/// service module. It is host-independent despite being consumed by Metal
+/// products.
+pub fn createMetalSession(
+    b: *std.Build,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    return create(b, .{
+        .product = product,
+        .root_source_file = "src/tools/metal_session/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+}
+
+/// Declares a consumer's dependency on the package-owned Metal-session API.
+pub fn addMetalSessionImport(
+    b: *std.Build,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const metal_session = createMetalSession(
+        b,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_metal_session", metal_session);
+    return metal_session;
+}
+
 pub fn coreProduct(role: Role) Product {
     return .{
         .name = "stwo-core",
