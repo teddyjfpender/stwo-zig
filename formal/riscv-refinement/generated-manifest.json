@@ -6,21 +6,21 @@
     "generated/air/lui.json": "809b1b729128250df067145ce37019968694b1fd5343d2c1dede8280afbd346d",
     "generated/sail/rv32im-zkvm-v1.json": "5c31e516a205d693386564242d623dbaf4dc1566573f9ecfdcb026611c8fc2c1"
   },
-  "canonical_digest": "2c8014a34748cfed557956b94475d7602c7a68da4f221d595d0e0d476177550e",
+  "canonical_digest": "d98673ff02fcb3a0c08da72c55bc787d1eb6dafadcd91f1662c4d90da07044c8",
   "claim_boundary": {
     "kernel_checked_normalized_refinement": true,
     "lean_generated_sail_monad_normalization": false,
     "lean_serialized_m31_air_interpreter": false
   },
   "generators": {
-    "scripts/riscv_refinement.py": "ef37ad2bb1f3b8d21e620c49dd71b84a5d93072f2085a2035f7d08d6f6a8aae8",
+    "scripts/riscv_refinement.py": "c6c01c480e69a09e53d1663a374111f075b1d1ac6ce6e9877f3014f2adc77f24",
     "scripts/riscv_refinement_lib/air.py": "02e16bbec81d87912fc1a2d767075887b94d86520527bedb615a4e5dc02fa3e3",
     "scripts/riscv_refinement_lib/codec.py": "0ae4eaf37dfa9eaec08d26c0a042a1b1e4e8b4b9418e834e28d479e6e3b0b86b",
     "scripts/riscv_refinement_lib/model.py": "ccf52a1d91b30fdea2f618080cdaaa9b9495005518e5c1033a35cf26cb3071bf",
     "scripts/riscv_refinement_lib/negative.py": "350ecd86a9694ee4bace43c74d7fe7518652554d927e8b7b999229c354e93cce",
     "scripts/riscv_refinement_lib/render.py": "3e0a0539231e3ea7159a2a748f7566b47966980dea95d00fe72be95ab1b6618e",
     "scripts/riscv_refinement_lib/sail.py": "1cefcbb2b38bb99f0547140522e876fb71f056da1068bae9c0c0a46258ee4b11",
-    "scripts/tests/test_riscv_refinement.py": "e7685c1b8b942ffa45f83a91407797ca1de23c115b2f95bba9b973a1d86462ef"
+    "scripts/tests/test_riscv_refinement.py": "f0830c0794f6283d1e2a82c14be624b00331ffeda9ffcc30fb2dc0af28334a80"
   },
   "kind": "stwo-riscv-refinement-generated-manifest",
   "lean_toolchain": "leanprover/lean4:v4.29.0",
@@ -240,7 +240,7 @@
   "proof_sources": {
     "formal/riscv-refinement/README.md": "f23625311957fbafe679730eb5fa80886a9bfe5c0dabba83658cf310655e8558",
     "formal/riscv-refinement/RiscvRefinement.lean": "e20039c16dacb14b6006ec77a7b8404e051c3069c568a02d2ea9ba830d71210e",
-    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "8d503d9ec6468a883f97647d5e1ba4b3d7c38527918a0852a509c55c4aed30a5",
+    "formal/riscv-refinement/RiscvRefinement/AxiomAudit.lean": "2bb3433b5d0f64306e37da7b4b590079fb4a8ae2ffda29793f6673b14f87dbab",
     "formal/riscv-refinement/RiscvRefinement/Bridge/Decode.lean": "5234c89b6c2f4fbf3810c8064674f1bd3c7e713ade216cf7b6925802facf0e55",
     "formal/riscv-refinement/RiscvRefinement/Common.lean": "16ae5e3d8d610c4f34489e4d71a3b828d293b3e9cb1881af1310099d3f8c057c",
     "formal/riscv-refinement/RiscvRefinement/Coverage.lean": "aa18962693f94998f3036681125dbdef5bcb892c49c9a311832422aec7e052b0",

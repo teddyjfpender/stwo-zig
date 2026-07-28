@@ -258,91 +258,19 @@ def _scan_forbidden_proof_terms(paths: Paths) -> None:
         )
 
 
-def _declared_theorems(paths: Paths) -> tuple[str, ...]:
-    declarations: list[str] = []
-    sources = [
-        paths.formal / "RiscvRefinement.lean",
-        *sorted((paths.formal / "RiscvRefinement").rglob("*.lean")),
-    ]
-    namespace_pattern = re.compile(r"^\s*namespace\s+([A-Za-z0-9_.']+)\s*$")
-    end_pattern = re.compile(r"^\s*end(?:\s+[A-Za-z0-9_.']+)?\s*$")
-    theorem_pattern = re.compile(
-        r"^\s*(?:(?:private|protected)\s+)?(?:theorem|lemma)\s+"
-        r"([A-Za-z0-9_.']+)\b"
-    )
-    for source in sources:
-        namespaces: list[str] = []
-        for line in source.read_text(encoding="utf-8").splitlines():
-            code = line.split("--", 1)[0]
-            namespace_match = namespace_pattern.match(code)
-            if namespace_match is not None:
-                name = namespace_match.group(1)
-                if "." in name or not namespaces:
-                    namespaces.append(name)
-                else:
-                    namespaces.append(f"{namespaces[-1]}.{name}")
-                continue
-            if end_pattern.match(code) is not None:
-                if namespaces:
-                    namespaces.pop()
-                continue
-            theorem_match = theorem_pattern.match(code)
-            if theorem_match is None:
-                continue
-            name = theorem_match.group(1)
-            if name.startswith("RiscvRefinement."):
-                declarations.append(name)
-            elif namespaces:
-                declarations.append(f"{namespaces[-1]}.{name}")
-            else:
-                declarations.append(name)
-    if len(declarations) != len(set(declarations)):
-        raise RefinementError("Lean theorem declaration scan found duplicates")
-    return tuple(declarations)
-
-
-def _check_axiom_audit_coverage(paths: Paths) -> None:
-    declared = set(_declared_theorems(paths))
-    audited = set(AUDITED_THEOREMS)
-    if declared != audited:
-        missing = sorted(declared - audited)
-        stale = sorted(audited - declared)
-        details: list[str] = []
-        if missing:
-            details.append("unaudited " + ", ".join(missing))
-        if stale:
-            details.append("stale " + ", ".join(stale))
-        raise RefinementError(
-            "axiom audit declaration coverage drifted: " + "; ".join(details)
-        )
-
-
 def _audit_axioms(output: str) -> dict[str, list[str]]:
-    dependency_pattern = re.compile(
-        r"^'(?P<theorem>[^']+)' depends on axioms: "
-        r"\[(?P<axioms>[^\]]*)\]$"
+    theorem_pattern = re.compile(
+        r"^REFINEMENT_THEOREM (?P<theorem>RiscvRefinement\.[^\s]+)$"
     )
-    empty_pattern = re.compile(
-        r"^'(?P<theorem>[^']+)' does not depend on any axioms$"
+    axiom_pattern = re.compile(
+        r"^REFINEMENT_AXIOM "
+        r"(?P<theorem>RiscvRefinement\.[^\s]+) "
+        r"(?P<axiom>[^\s]+)$"
     )
     report: dict[str, list[str]] = {}
     for line in output.splitlines():
         stripped = line.strip()
-        match = dependency_pattern.fullmatch(stripped)
-        if match is not None:
-            theorem = match.group("theorem")
-            if theorem in report:
-                raise RefinementError(
-                    f"axiom audit repeated theorem record {theorem}"
-                )
-            axioms = [
-                axiom.strip()
-                for axiom in match.group("axioms").split(",")
-                if axiom.strip()
-            ]
-            report[theorem] = axioms
-            continue
-        match = empty_pattern.fullmatch(stripped)
+        match = theorem_pattern.fullmatch(stripped)
         if match is not None:
             theorem = match.group("theorem")
             if theorem in report:
@@ -350,6 +278,29 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
                     f"axiom audit repeated theorem record {theorem}"
                 )
             report[theorem] = []
+            continue
+        if stripped.startswith("REFINEMENT_THEOREM"):
+            raise RefinementError(
+                f"axiom audit emitted a malformed theorem record: {stripped}"
+            )
+        match = axiom_pattern.fullmatch(stripped)
+        if match is not None:
+            theorem = match.group("theorem")
+            axiom = match.group("axiom")
+            if theorem not in report:
+                raise RefinementError(
+                    f"axiom audit reported an undeclared theorem {theorem}"
+                )
+            if axiom in report[theorem]:
+                raise RefinementError(
+                    f"axiom audit repeated axiom {axiom} for {theorem}"
+                )
+            report[theorem].append(axiom)
+            continue
+        if stripped.startswith("REFINEMENT_AXIOM"):
+            raise RefinementError(
+                f"axiom audit emitted a malformed axiom record: {stripped}"
+            )
     missing = sorted(set(AUDITED_THEOREMS) - set(report))
     extra = sorted(set(report) - set(AUDITED_THEOREMS))
     if missing or extra:
@@ -358,7 +309,9 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
             details.append("missing " + ", ".join(missing))
         if extra:
             details.append("unexpected " + ", ".join(extra))
-        raise RefinementError("axiom audit coverage drifted: " + "; ".join(details))
+        raise RefinementError(
+            "axiom audit declaration coverage drifted: " + "; ".join(details)
+        )
     unexpected = {
         axiom
         for axioms in report.values()
@@ -370,7 +323,10 @@ def _audit_axioms(output: str) -> dict[str, list[str]]:
             "exported theorem has unapproved axioms: "
             + ", ".join(sorted(unexpected))
         )
-    return {theorem: report[theorem] for theorem in AUDITED_THEOREMS}
+    return {
+        theorem: sorted(report[theorem])
+        for theorem in sorted(report)
+    }
 
 
 @dataclass(frozen=True)
@@ -383,7 +339,6 @@ def verify(args: argparse.Namespace, paths: Paths) -> Verification:
     coverage(paths)
     negative_controls(paths)
     _scan_forbidden_proof_terms(paths)
-    _check_axiom_audit_coverage(paths)
     _run(
         [
             sys.executable,
@@ -556,7 +511,10 @@ def _receipt_revision_matches(paths: Paths, revision: str) -> None:
 
 
 def _validate_receipt_theorem_axioms(value: object) -> None:
-    if not isinstance(value, dict) or set(value) != set(AUDITED_THEOREMS):
+    if (
+        not isinstance(value, dict)
+        or set(value) != set(AUDITED_THEOREMS)
+    ):
         raise RefinementError("refinement receipt theorem set is invalid")
     for theorem, axioms in value.items():
         if (
@@ -567,6 +525,28 @@ def _validate_receipt_theorem_axioms(value: object) -> None:
             raise RefinementError(
                 "refinement receipt theorem-axiom schema is invalid"
             )
+
+
+def _validate_receipt_numeric_identity(payload: dict[str, object]) -> None:
+    coverage_value = payload.get("coverage")
+    expected_coverage = {
+        "proved_normalized_opcodes": len(PILOT_OPCODES),
+        "production_opcodes": FULL_OPCODE_COUNT,
+    }
+    if (
+        type(payload.get("schema_version")) is not int
+        or payload["schema_version"] != 1
+        or not isinstance(coverage_value, dict)
+        or set(coverage_value) != set(expected_coverage)
+        or any(
+            type(coverage_value[key]) is not int
+            or coverage_value[key] != expected
+            for key, expected in expected_coverage.items()
+        )
+    ):
+        raise RefinementError(
+            "refinement receipt numeric identity is invalid"
+        )
 
 
 def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
@@ -598,20 +578,15 @@ def verify_receipt(args: argparse.Namespace, paths: Paths) -> None:
     }
     if set(payload) != required:
         raise RefinementError("refinement receipt schema drifted")
+    _validate_receipt_numeric_identity(payload)
     _validate_receipt_theorem_axioms(payload["theorem_axioms"])
     verification = verify(args, paths)
     if (
         payload["kind"] != "stwo-riscv-refinement-receipt"
-        or payload["schema_version"] != 1
         or payload["tier"] != "level-1-normalized-pilot"
         or payload["claim_boundary"] != CLAIM_BOUNDARY
         or payload["canonical_digest"] != codec.content_digest(payload)
         or payload["opcodes"] != list(PILOT_OPCODES)
-        or payload["coverage"]
-        != {
-            "proved_normalized_opcodes": len(PILOT_OPCODES),
-            "production_opcodes": FULL_OPCODE_COUNT,
-        }
         or payload["negative_controls"] != list(NEGATIVE_CONTROLS)
         or payload["lean_build"] != "passed"
         or payload["proof_escape_scan"] != "passed"

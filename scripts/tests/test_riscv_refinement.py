@@ -118,28 +118,36 @@ class RefinementAirTest(unittest.TestCase):
             air.validate_family(unused, "lui")
 
     def test_axiom_audit_allows_only_declared_foundations(self) -> None:
-        self.assertEqual(
-            set(riscv_refinement.AUDITED_THEOREMS),
-            set(riscv_refinement._declared_theorems(Paths(ROOT))),
-        )
         lines = "\n".join(
-            (
-                f"'{theorem}' does not depend on any axioms"
-                if index == 0
-                else f"'{theorem}' depends on axioms: [propext, Quot.sound]"
+            line
+            for index, theorem in enumerate(
+                riscv_refinement.AUDITED_THEOREMS,
             )
-            for index, theorem in enumerate(riscv_refinement.AUDITED_THEOREMS)
+            for line in (
+                f"REFINEMENT_THEOREM {theorem}",
+                *(
+                    ()
+                    if index == 0
+                    else (
+                        f"REFINEMENT_AXIOM {theorem} propext",
+                        f"REFINEMENT_AXIOM {theorem} Quot.sound",
+                    )
+                ),
+            )
         )
         report = riscv_refinement._audit_axioms(lines)
         self.assertEqual(
-            list(riscv_refinement.AUDITED_THEOREMS),
-            list(report),
+            set(riscv_refinement.AUDITED_THEOREMS),
+            set(report),
         )
-        self.assertEqual([], report[riscv_refinement.AUDITED_THEOREMS[0]])
+        self.assertEqual(
+            [],
+            report[riscv_refinement.AUDITED_THEOREMS[0]],
+        )
 
         poisoned = lines.replace(
-            "[propext, Quot.sound]",
-            "[propext, hidden.native_axiom, Quot.sound]",
+            " propext",
+            " hidden.native_axiom",
             1,
         )
         with self.assertRaises(RefinementError):
@@ -148,11 +156,24 @@ class RefinementAirTest(unittest.TestCase):
         duplicate = (
             lines
             + "\n"
-            + f"'{riscv_refinement.AUDITED_THEOREMS[0]}' "
-            + "depends on axioms: [propext]"
+            + "REFINEMENT_THEOREM "
+            + riscv_refinement.AUDITED_THEOREMS[0]
         )
         with self.assertRaisesRegex(RefinementError, "repeated theorem"):
             riscv_refinement._audit_axioms(duplicate)
+
+        extra = (
+            lines
+            + "\nREFINEMENT_THEOREM "
+            + "RiscvRefinement.Future.attributed_multiline"
+        )
+        with self.assertRaisesRegex(RefinementError, "unexpected"):
+            riscv_refinement._audit_axioms(extra)
+
+        with self.assertRaisesRegex(RefinementError, "malformed theorem"):
+            riscv_refinement._audit_axioms(
+                lines + "\nREFINEMENT_THEOREM malformed name",
+            )
 
     def test_release_receipt_cannot_reuse_stale_air(self) -> None:
         with self.assertRaisesRegex(RefinementError, "fresh production AIR"):
@@ -173,6 +194,35 @@ class RefinementAirTest(unittest.TestCase):
             riscv_refinement._validate_receipt_theorem_axioms(
                 malformed_axioms,
             )
+
+    def test_receipt_numeric_identity_rejects_bool_and_float_coercions(
+        self,
+    ) -> None:
+        valid = {
+            "schema_version": 1,
+            "coverage": {
+                "proved_normalized_opcodes": 2,
+                "production_opcodes": 46,
+            },
+        }
+        riscv_refinement._validate_receipt_numeric_identity(valid)
+        for field, replacement in (
+            ("schema_version", True),
+            ("schema_version", 1.0),
+        ):
+            malformed = copy.deepcopy(valid)
+            malformed[field] = replacement
+            with self.assertRaisesRegex(RefinementError, "numeric identity"):
+                riscv_refinement._validate_receipt_numeric_identity(
+                    malformed,
+                )
+        for replacement in (True, 2.0):
+            malformed = copy.deepcopy(valid)
+            malformed["coverage"]["proved_normalized_opcodes"] = replacement
+            with self.assertRaisesRegex(RefinementError, "numeric identity"):
+                riscv_refinement._validate_receipt_numeric_identity(
+                    malformed,
+                )
 
     def test_sail_configuration_comment_parser_preserves_strings(self) -> None:
         source = '{"repository":"https://example.test/x",// comment\n"value":32}'
