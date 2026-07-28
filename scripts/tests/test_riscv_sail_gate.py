@@ -134,6 +134,25 @@ class ScopeTest(unittest.TestCase):
             self.assertTrue(required, path)
             self.assertIn(path, matched)
 
+    def test_the_required_sail_leg_reruns_when_its_own_harness_moves(self) -> None:
+        # This job is the only one with a verified pinned oracle, so it is the
+        # only place the malicious-prover suite runs with
+        # STWO_ZIG_REQUIRE_SAIL_ORACLE=1. A harness edit that did not re-run it
+        # would leave that leg unproven for precisely the change most likely to
+        # break it.
+        for path in (
+            "src/tests/riscv/committed_forgery_harness.zig",
+            "src/tests/riscv/malicious_prover_harness.zig",
+            "src/tests/riscv/malicious_prover_completion_test.zig",
+            "src/tests/riscv/malicious_prover_forged_output_test.zig",
+            "src/tests/riscv/malicious_prover_skipped_test.zig",
+            "src/tests/riscv/malicious_prover_stale_read_test.zig",
+            "src/frontends/riscv/sail_oracle_test_root.zig",
+        ):
+            required, matched = gate.live_scope([path])
+            self.assertTrue(required, path)
+            self.assertEqual(matched.get(path), path)
+
     def test_unrelated_paths_do_not(self) -> None:
         required, matched = gate.live_scope(
             [
@@ -141,6 +160,21 @@ class ScopeTest(unittest.TestCase):
                 "src/core/fields/m31.zig",
                 "src/frontends/riscv/air/component.zig",
                 "scripts/riscv_sail_oracle.py",
+            ]
+        )
+        self.assertFalse(required)
+        self.assertEqual(matched, {})
+
+    def test_unrelated_riscv_test_edits_do_not_buy_the_60_minute_job(self) -> None:
+        # The narrow file list is the whole point: `src/tests/riscv` wholesale
+        # would fire a pinned-toolchain build plus corpus differential on every
+        # RISC-V test edit, most of which cannot change what Sail would say.
+        required, matched = gate.live_scope(
+            [
+                "src/tests/riscv/metal_backend_test.zig",
+                "src/tests/riscv/witness_rigidity_test.zig",
+                "src/tests/riscv/uniqueness_ir_test.zig",
+                "src/tests/riscv/prover_test.zig",
             ]
         )
         self.assertFalse(required)

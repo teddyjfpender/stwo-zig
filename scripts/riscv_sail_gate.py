@@ -89,6 +89,20 @@ DEFAULT_WORKSPACE = Path("/tmp/stwo-riscv-formal")
 # fixtures are regenerated, which changes vectors/riscv_elfs/ and lands here
 # anyway. Documentation-only paths never appear because every prefix below is
 # an executable or machine-read artifact.
+#
+# The src/tests/riscv entries are a different argument. The differential job
+# is the only job in the repository with a verified pinned Sail oracle, so it
+# is the only place the malicious-prover suite runs with
+# STWO_ZIG_REQUIRE_SAIL_ORACLE=1 and the only place acceptance criterion 6 of
+# issue #131 can be proven. Everywhere else that leg reports a visible skip.
+# Until 2026-07-29 no test path appeared here at all, so editing the very
+# files that leg executes did not put the job in scope: the criterion was not
+# re-proven for exactly the changes most likely to break it. These are listed
+# as individual FILES, not as `src/tests/riscv`, because the directory holds
+# dozens of suites with no Sail relationship and this job costs a pinned
+# toolchain build plus a full corpus differential against a 60-minute budget.
+# Naming files also makes a rename fail loudly:
+# scripts/tests/test_riscv_sail_gate.py asserts every prefix still exists.
 LIVE_TRIGGER_PREFIXES = (
     ".github/workflows/riscv-sail-differential.yml",
     "conformance/riscv",
@@ -100,6 +114,20 @@ LIVE_TRIGGER_PREFIXES = (
     "scripts/riscv_trace_vectors_lib",
     "src/frontends/riscv/isa",
     "src/frontends/riscv/runner",
+    # Test root for the two sail_oracle self-checks; it decides what the job's
+    # `test-riscv-sail-oracle` step actually executes.
+    "src/frontends/riscv/sail_oracle_test_root.zig",
+    # Owns `requireSailAgreement`, the seam every committed-forgery guest uses
+    # to ask the pinned model whether the honest trace is honest.
+    "src/tests/riscv/committed_forgery_harness.zig",
+    # The malicious-prover suite the required leg selects with
+    # -Driscv-test-filter="malicious prover": the shared transaction harness
+    # and its four attack classes.
+    "src/tests/riscv/malicious_prover_completion_test.zig",
+    "src/tests/riscv/malicious_prover_forged_output_test.zig",
+    "src/tests/riscv/malicious_prover_harness.zig",
+    "src/tests/riscv/malicious_prover_skipped_test.zig",
+    "src/tests/riscv/malicious_prover_stale_read_test.zig",
     "vectors/riscv_elfs",
 )
 

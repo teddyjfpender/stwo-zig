@@ -64,7 +64,25 @@ Two mechanisms make the narrow trigger sound rather than optimistic:
 Live-trigger paths (`LIVE_TRIGGER_PREFIXES` in `scripts/riscv_sail_gate.py`
 is authoritative): the corpus fixtures, `conformance/riscv/`, the pin ledger,
 the equivalence comparator, the corpus/vector machinery, the toolchain
-builder, the gate itself, its workflow, and the runner/ISA sources.
+builder, the gate itself, its workflow, the runner/ISA sources, and — added
+2026-07-29 — the harness files this job's required Sail legs actually
+execute:
+
+- `src/tests/riscv/malicious_prover_{harness,completion_test,forged_output_test,skipped_test,stale_read_test}.zig`
+- `src/tests/riscv/committed_forgery_harness.zig`, which owns
+  `requireSailAgreement`
+- `src/frontends/riscv/sail_oracle_test_root.zig`, the test root that decides
+  what `test-riscv-sail-oracle` executes
+
+Those are the *only* things this job proves that no other job can, so a change
+to them that did not re-run it left the criterion unproven for exactly the
+edit most likely to break it — the trigger list previously contained no
+`src/tests/` path at all. They are listed as individual files rather than as
+`src/tests/riscv`: that directory holds dozens of suites with no Sail
+relationship, and this job spends a pinned-toolchain build plus a full corpus
+differential against a 60-minute budget. Listing files also makes a rename
+loud — `scripts/tests/test_riscv_sail_gate.py` asserts every prefix still
+resolves to something in the tree.
 
 ## Fail-closed contract
 
@@ -94,12 +112,30 @@ soundness argument — runner ≡ Sail on the corpus. It says nothing about AIR
 satisfaction or uniqueness (legs 2 and 3), and corpus equivalence is not
 all-input equivalence.
 
-The job additionally runs the Sail leg of the malicious-prover harness with
-`STWO_ZIG_REQUIRE_SAIL_ORACLE=1`, because this is the only job with a
-verified pinned oracle. Everywhere else that leg reports a visible skip,
-which is indistinguishable from a passing check in a summary line; here an
-absent oracle is `error.SailOracleUnavailable`, a failure that names the
-absence and is deliberately not the disagreement error.
+The job additionally runs two suites with `STWO_ZIG_REQUIRE_SAIL_ORACLE=1`,
+because this is the only job with a verified pinned oracle. Everywhere else
+those legs report a visible skip, which is indistinguishable from a passing
+check in a summary line; here an absent oracle is
+`error.SailOracleUnavailable`, a failure that names the absence and is
+deliberately not the disagreement error.
+
+1. The Sail leg of the malicious-prover harness, via
+   `test-riscv-release-exhaustive -Driscv-test-filter="malicious prover"`.
+2. `test-riscv-sail-oracle`, the two `sail_oracle.zig` self-checks — "does
+   the oracle answer at all?" and "is a forged trace really DIVERGENT?".
+   Added 2026-07-29: those two tests previously executed in no build step on
+   any host, because `zig test` collects tests only from its root module and
+   every RISC-V step reached that file as a module dependency. They now also
+   run in the PR-blocking `test-riscv-cpu-product` lane, but only here can
+   they do more than skip, and the forged-trace check is the only place in
+   the repository that requires the pinned model to answer DIVERGENT rather
+   than merely agree.
+
+Step 2 is a separate workflow step rather than another target on step 1's
+`zig build` invocation because `-Driscv-test-filter` REPLACES a step's
+filters and takes a single value: `"malicious prover"` would then apply to
+the sail_oracle artifact too and `EmptySelectionGuard` would fail it for
+matching no test name.
 
 ## Known limits, recorded deliberately
 
@@ -119,7 +155,10 @@ absence and is deliberately not the disagreement error.
   fitting, the fallbacks in order are: cache the Zig build alongside the
   toolchain, or split the required leg into its own job that restores the
   same workspace — not dropping the requirement, which would return the leg
-  to a skip nobody reads.
+  to a skip nobody reads. The `test-riscv-sail-oracle` step added alongside
+  it shares that same Zig cache within the job and compiles only the runner
+  and its dependents, so it is a small increment on top, not a second cold
+  build.
 - **A drifted filter fails the step rather than emptying it.** The required
   leg selects tests with `-Driscv-test-filter="malicious prover"`. The RISC-V
   test runner does report success for an empty selection -- unnamed
@@ -131,6 +170,14 @@ absence and is deliberately not the disagreement error.
   Renaming `src/tests/riscv/malicious_prover_*.zig` therefore turns this step
   red instead of hollowing it out. The guard reports the drift; it does not
   repair it, so the filter still has to be updated with the rename.
+  `test-riscv-sail-oracle` sidesteps the question entirely by carrying no
+  filter at all: its root
+  (`src/frontends/riscv/sail_oracle_test_root.zig`) collects the two Sail
+  self-checks plus whatever runner/ISA/AIR files they analyse — 254 tests as
+  measured on 2026-07-29, 252 passing and the two Sail tests skipping
+  visibly off this job. The guard covers the command-line flag only, never a
+  step's own pinned literals, so a step that needed a pinned filter here
+  would reinstall the reachability defect this step exists to close.
 - **A forged snapshot passes `bind`.** Binding is arithmetic over committed
   files; only the live run re-derives truth. The live run is triggered by
   every path that could carry such a forgery (the evidence file itself lives

@@ -325,19 +325,37 @@ fn findOracleScript(allocator: std.mem.Allocator) ![]u8 {
 
 const runner = @import("mod.zig");
 
-// WARNING, measured 2026-07-28: the two tests below do not run in any build
-// step. `zig test` collects tests only from its ROOT module, and every step
-// that reaches this file reaches it as an imported dependency
-// (`stwo_riscv_frontend`), so their names are absent from every compiled test
-// binary's name table — checked directly. They are exactly the self-check
-// ("does the oracle answer at all?") and the disagreement check ("is a forged
-// trace really DIVERGENT?"), so this is the module's own failure mode turned
-// on itself: a check nobody runs reads as coverage. Making them live means
-// referencing this file from the package test root
-// (`src/frontends/riscv/mod.zig`), which is a scope decision, not a rename.
+// Where the two tests below run, and why it took a dedicated step.
 //
-// The `AbsencePolicy` coverage therefore lives in
-// `src/tests/riscv/unit_test.zig`, which is collected and does run.
+// Until 2026-07-29 they ran in NO build step. `zig test` collects tests only
+// from the files of its ROOT module; every RISC-V step roots at
+// `src/tests.zig` and reaches this file through the `stwo_riscv_frontend`
+// module dependency, and dependency modules contribute no tests. Measured:
+// `zig build test-riscv-release-exhaustive
+// -Driscv-test-filter="runner agrees with pinned Sail"` failed
+// `EmptySelectionGuard` with "matched no test name". They are exactly the
+// self-check ("does the oracle answer at all?") and the disagreement check
+// ("is a forged trace really DIVERGENT?"), so the absence was this module's
+// own failure mode turned on itself: a check nobody runs reads as coverage,
+// and worse than a skip, because a skip at least prints.
+//
+// Two collections now name this file, both by root-module membership:
+//
+//  - `zig build test-riscv-sail-oracle` (also a dependency of
+//    `test-riscv-cpu-product`) roots a test artifact directly here — see
+//    `build_support/products/riscv_sail_oracle_tests.zig`. Renaming either
+//    test cannot empty it: the binary carries no pinned filter to drift.
+//    `.github/workflows/riscv-sail-differential.yml` runs that step with
+//    `STWO_ZIG_REQUIRE_SAIL_ORACLE=1`, which is the only place on earth
+//    these two tests meet a real oracle instead of skipping.
+//  - The package's own `zig build test` (`src/frontends/riscv/build.zig`)
+//    reaches them because `src/frontends/riscv/mod.zig` now names this file
+//    inside a `test` block. The file-scope `pub const sail_oracle =
+//    @import("sail_oracle.zig")` that `runner/mod.zig` has always had is not
+//    enough: nothing referenced it, so it was never analysed.
+//
+// The `AbsencePolicy` coverage additionally lives in
+// `src/tests/riscv/unit_test.zig`, which every exhaustive step collects.
 
 test "sail_oracle: runner agrees with pinned Sail on a small guest (skips visibly when Sail absent; ~0.3s when present)" {
     const alloc = std.testing.allocator;

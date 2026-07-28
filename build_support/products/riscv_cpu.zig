@@ -7,6 +7,7 @@ const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
+const sail_oracle_tests = @import("riscv_sail_oracle_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
 const product = graph.Product{
     .name = "stwo-riscv-cpu",
@@ -146,6 +147,7 @@ pub fn addProduct(context: Context) void {
     );
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
     test_step.dependOn(test_filter.addRun(context.b, integration_tests));
+    test_step.dependOn(sail_oracle_tests.add(context.b, product, context.protocol, context.target, context.optimize));
     context.b.step(
         "test-riscv-release-exhaustive",
         "Run the exhaustive RISC-V proof and adversarial release suites",

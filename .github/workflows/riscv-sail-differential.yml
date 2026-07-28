@@ -158,6 +158,27 @@ jobs:
           zig build test-riscv-release-exhaustive \
             -Driscv-test-filter="malicious prover" -Doptimize=ReleaseSafe
 
+      # sail_oracle.zig's own two self-checks -- "does the oracle answer at
+      # all?" and "is a forged trace really DIVERGENT?" -- ran in NO build step
+      # until 2026-07-29, because zig test collects tests only from its root
+      # module and every RISC-V step reached that file as a module dependency.
+      # test-riscv-sail-oracle is their home; it also runs in the PR-blocking
+      # test-riscv-cpu-product lane, but there and everywhere else they can
+      # only skip. This is the one job that can make them mean something, and
+      # the forged-trace check in particular is the only place the oracle is
+      # asked to say DIVERGENT rather than merely agree.
+      #
+      # A separate step rather than another target on the invocation above:
+      # -Driscv-test-filter REPLACES a step's filters and takes one value, so
+      # "malicious prover" would apply here too and EmptySelectionGuard would
+      # fail this artifact for matching nothing. Unfiltered, this step carries
+      # no filter literal that could drift.
+      - name: Require the pinned oracle for the sail_oracle self-checks
+        env:
+          STWO_RISCV_FORMAL_WORKSPACE: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
+          STWO_ZIG_REQUIRE_SAIL_ORACLE: "1"
+        run: zig build test-riscv-sail-oracle -Doptimize=ReleaseSafe
+
       # Save even after a red differential: a divergence investigation needs
       # the warm toolchain far more than a green run does.
       - name: Save pinned formal toolchain workspace
