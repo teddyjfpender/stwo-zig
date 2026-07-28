@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "predecessor_commit": "cfd47be98a10",
+  "declared_objective": {
+    "board": "core_cpu",
+    "workload_class": "small",
+    "dimension": "time"
+  },
+  "declared_scope": "s3",
+  "files": {
+    "src/prover/pcs/proof_of_work.zig": "sha256:66df1b4f5adf2ae37b509035b01493a5c7621aa4e2b7474949c3cfbb8a4dd54b"
+  },
+  "transcripts": {
+    "transcripts/session-01.md": {
+      "sha256": "cf01c9f18c7150adf3d2a65038789481fff62bab68039629fc1eaa1b4e6b7de7",
+      "captured_by": "submitter"
+    },
+    "transcripts/session-02.md": {
+      "sha256": "4771a763812304b4e0db653df2f16300a3274127a631a42eb906c2798cd4e5c9",
+      "captured_by": "submitter"
+    },
+    "transcripts/session-03.md": {
+      "sha256": "14fb137ce84e5b56f72245506542b18f6fefc4aba15d4e8727977ef7e2e2d533",
+      "captured_by": "submitter"
+    }
+  },
+  "transcripts_declined": false
+}
