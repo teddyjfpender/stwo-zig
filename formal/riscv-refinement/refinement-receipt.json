@@ -4,13 +4,13 @@
     "Quot.sound",
     "propext"
   ],
-  "canonical_digest": "ff38a0551673bf09d6390dc6ac0ab32b9dba13ac4320499ba05fb8d7fc50e4cd",
+  "canonical_digest": "fac52380912c25328a75146e23498d0cc61550ba42b652d43ad925231bf97fd9",
   "claim_boundary": "kernel-checked normalized LUI/ADDI AIR predicate to reviewed Sail expression capsule; serialized-M31 and generated-monad normalization theorems remain open",
   "coverage": {
     "production_opcodes": 46,
     "proved_normalized_opcodes": 2
   },
-  "generated_manifest_digest": "ada903ae7226b423ad9af4d764a847c031a9bea3e021b43e9fc384e8e2f654a7",
+  "generated_manifest_digest": "c4487d0301f4570e1696ddbf9c5ba37f6953fa9d7f4f347af33f2b2dc51e5626",
   "kind": "stwo-riscv-refinement-receipt",
   "lean_build": "passed",
   "negative_controls": [
@@ -24,7 +24,7 @@
   "proof_escape_scan": "passed",
   "repository_dirty": false,
   "repository_dirty_paths": [],
-  "repository_revision": "168ad91fcd4cd28c2d02c981d8e810dc87659f1b",
+  "repository_revision": "bf376be215c0430d86f50cfbff766945fd7e0d7a",
   "schema_version": 1,
   "semantic_toolchain": {
     "compiler": {
