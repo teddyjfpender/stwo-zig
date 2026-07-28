@@ -385,6 +385,11 @@ far outside increment 1's measured ±12% stage-level floor; the prove ratios
 1.03-1.07x are *inside* the ±3% prove-level floor and are **not** claimed as a
 result — the interaction build is only about a tenth of a proof.
 
+A repeat of the A-B-B-A block on a quiet host was scheduled behind a
+load-average gate and abandoned: the interfering build never fell below load 6
+inside this increment's budget (57.8 at the block's close, still 25.8 half an
+hour later). No partial samples from it exist and none are reported.
+
 An independent quiet-host pair taken during the audit, load average 4.01 to
 about 3.8, agrees: arithmetic-2m `Interaction trace build` 362.083 ms
 predecessor versus 204.850 ms candidate, `1.767x`, with materialization
