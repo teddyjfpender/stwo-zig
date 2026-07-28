@@ -4,7 +4,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const utils = @import("stwo_core").utils;
-pub const eval = @import("../../witness/eval_program.zig");
+const eval = @import("../../witness/eval_program.zig");
 const read_plan = @import("read_plan.zig");
 
 const M31 = m31.M31;
@@ -13,16 +13,14 @@ const QM31 = qm31.QM31;
 pub const lane_count = m31.VEC_WIDTH;
 pub const PackedM31 = m31.Vec4u32;
 
-/// Four-lane QM31. Exposed so a compiled evaluator can call the same
-/// primitives the interpreter calls, in the same operand order.
-pub const PackedQm31 = struct {
+const PackedQm31 = struct {
     coordinates: [4]PackedM31,
 
-    pub fn zero() PackedQm31 {
+    fn zero() PackedQm31 {
         return .{ .coordinates = @splat(@as(PackedM31, @splat(0))) };
     }
 
-    pub fn splat(value: QM31) PackedQm31 {
+    fn splat(value: QM31) PackedQm31 {
         const coordinates = value.toM31Array();
         return .{ .coordinates = .{
             @splat(coordinates[0].toU32()),
@@ -32,7 +30,7 @@ pub const PackedQm31 = struct {
         } };
     }
 
-    pub fn add(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
+    fn add(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
         var result: PackedQm31 = undefined;
         inline for (0..4) |coordinate| {
             result.coordinates[coordinate] = m31.addVec4(
@@ -43,7 +41,7 @@ pub const PackedQm31 = struct {
         return result;
     }
 
-    pub fn sub(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
+    fn sub(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
         var result: PackedQm31 = undefined;
         inline for (0..4) |coordinate| {
             result.coordinates[coordinate] = m31.subVec4(
@@ -54,7 +52,7 @@ pub const PackedQm31 = struct {
         return result;
     }
 
-    pub fn neg(value: PackedQm31) PackedQm31 {
+    fn neg(value: PackedQm31) PackedQm31 {
         var result: PackedQm31 = undefined;
         inline for (0..4) |coordinate| {
             result.coordinates[coordinate] = m31.subVec4(
@@ -65,7 +63,7 @@ pub const PackedQm31 = struct {
         return result;
     }
 
-    pub fn mulBase(value: PackedQm31, scalar: PackedM31) PackedQm31 {
+    fn mulBase(value: PackedQm31, scalar: PackedM31) PackedQm31 {
         var result: PackedQm31 = undefined;
         inline for (0..4) |coordinate| {
             result.coordinates[coordinate] = m31.mulVec4(
@@ -76,7 +74,7 @@ pub const PackedQm31 = struct {
         return result;
     }
 
-    pub fn mul(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
+    fn mul(lhs: PackedQm31, rhs: PackedQm31) PackedQm31 {
         const a = lhs.coordinates;
         const b = rhs.coordinates;
         const x0 = m31.subVec4(
@@ -119,7 +117,7 @@ pub const PackedQm31 = struct {
         } };
     }
 
-    pub fn lane(self: PackedQm31, index: usize) QM31 {
+    fn lane(self: PackedQm31, index: usize) QM31 {
         return QM31.fromU32Unchecked(
             self.coordinates[0][index],
             self.coordinates[1][index],
