@@ -4,9 +4,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const utils = @import("stwo_core").utils;
-/// Re-exported so callers (and out-of-tree profiling harnesses) name the same
-/// `Program` type the interpreter itself compiles against.
-pub const eval = @import("../../witness/eval_program.zig");
+const eval = @import("../../witness/eval_program.zig");
 const read_plan = @import("read_plan.zig");
 
 const M31 = m31.M31;
@@ -179,72 +177,7 @@ pub fn evaluatePart(
     );
 }
 
-/// Tile widths the interpreter is specialised for, ascending. A tile of `T`
-/// evaluates `T` four-row groups per pass over the instruction stream, so each
-/// opcode dispatch is amortised over `T` vector operations.
-pub const tile_options = [_]usize{ 1, 2, 4, 8 };
-
-/// Live register-file bytes one tile slot needs for a program. This is a
-/// static property of the captured instruction stream — the register counts
-/// are in its header — and is the only input to the tile choice.
-pub fn registerFileBytes(program: eval.Program) usize {
-    return @as(usize, program.header.max_base_regs) * @sizeOf(PackedM31) +
-        @as(usize, program.header.max_ext_regs) * @sizeOf(PackedQm31);
-}
-
-/// Cache budget the tiled register file must fit inside. Strip-mining trades
-/// dispatch count against register-file footprint: the working set is
-/// `tile * registerFileBytes(program)` and it is re-traversed on every
-/// instruction, so once it leaves the first-level data cache the extra loads
-/// cost more than the removed dispatches. Chosen by the increment-6 S1 sweep
-/// (see the campaign note); expressed as a byte budget so the predicate stays
-/// structural.
-pub const tile_budget_bytes: usize = 96 * 1024;
-
-/// Largest specialised tile whose register file fits the budget.
-pub fn chooseTile(program: eval.Program) usize {
-    const bytes = registerFileBytes(program);
-    var chosen: usize = tile_options[0];
-    inline for (tile_options) |candidate| {
-        if (bytes == 0 or candidate * bytes <= tile_budget_bytes) chosen = candidate;
-    }
-    return chosen;
-}
-
 pub fn evaluatePartRange(
-    allocator: std.mem.Allocator,
-    program: eval.Program,
-    input: Input,
-    output: anytype,
-    row_start: usize,
-    row_end: usize,
-) !void {
-    switch (chooseTile(program)) {
-        inline 1, 2, 4, 8 => |tile| return evaluatePartRangeTiled(
-            tile,
-            allocator,
-            program,
-            input,
-            output,
-            row_start,
-            row_end,
-        ),
-        else => unreachable,
-    }
-}
-
-/// Strip-mined evaluation of `[row_start, row_end)`.
-///
-/// The register files are laid out register-major — slot `t` of register `r`
-/// lives at `r * tile + t` — so the `tile` values an instruction touches are
-/// contiguous and each opcode dispatch feeds a short unrolled run of vector
-/// operations instead of exactly one.
-///
-/// Results are byte-identical to `tile == 1`: every group computes the same
-/// values from the same inputs, no value crosses a slot boundary, and the
-/// output rows are accumulated in ascending order exactly as before.
-pub fn evaluatePartRangeTiled(
-    comptime tile: usize,
     allocator: std.mem.Allocator,
     program: eval.Program,
     input: Input,
@@ -273,9 +206,9 @@ pub fn evaluatePartRangeTiled(
         row_end % lane_count != 0)
         return error.InvalidEvaluationInput;
 
-    const base = try allocator.alloc(PackedM31, program.header.max_base_regs * tile);
+    const base = try allocator.alloc(PackedM31, program.header.max_base_regs);
     defer allocator.free(base);
-    const extension = try allocator.alloc(PackedQm31, program.header.max_ext_regs * tile);
+    const extension = try allocator.alloc(PackedQm31, program.header.max_ext_regs);
     defer allocator.free(extension);
 
     var plan = try read_plan.build(
@@ -288,212 +221,104 @@ pub fn evaluatePartRangeTiled(
     defer plan.deinit(allocator);
     const offsets = plan.offsets;
     const sites = plan.sites;
-    // One mapped lane position per distinct mask offset per tile slot,
-    // refreshed once per tile.
-    const positions = try allocator.alloc([lane_count]usize, offsets.len * tile);
+    // One mapped lane position per distinct mask offset, refreshed per group.
+    const positions = try allocator.alloc([lane_count]usize, offsets.len);
     defer allocator.free(positions);
 
-    const stride = lane_count * tile;
     var row = row_start;
-    while (row + stride <= row_end) : (row += stride) {
-        for (offsets, 0..) |offset, slot| {
-            inline for (0..tile) |t| {
-                const group_row = row + t * lane_count;
-                const mapped = &positions[slot * tile + t];
-                inline for (0..lane_count) |lane| {
-                    mapped[lane] = if (offset == 0)
-                        group_row + lane
-                    else
-                        utils.offsetBitReversedCircleDomainIndex(
-                            group_row + lane,
-                            input.trace_log_size,
-                            input.evaluation_log_size,
-                            offset,
-                        );
-                }
+    while (row < row_end) : (row += lane_count) {
+        for (offsets, positions) |offset, *mapped| {
+            inline for (0..lane_count) |lane| {
+                mapped[lane] = if (offset == 0)
+                    row + lane
+                else
+                    utils.offsetBitReversedCircleDomainIndex(
+                        row + lane,
+                        input.trace_log_size,
+                        input.evaluation_log_size,
+                        offset,
+                    );
             }
         }
         var site_cursor: usize = 0;
         for (program.base_insts) |instruction| {
-            const dst = @as(usize, instruction.dst) * tile;
-            switch (instruction.op) {
-                .trace_col, .preprocessed_col => {
+            base[instruction.dst] = switch (instruction.op) {
+                .trace_col, .preprocessed_col => blk: {
                     const site = sites[site_cursor];
                     site_cursor += 1;
-                    const values = site.column.values;
-                    const shift_amt = site.column.shift_amt;
-                    const slot = @as(usize, site.offset_slot) * tile;
-                    inline for (0..tile) |t| {
-                        const mapped = positions[slot + t];
-                        var gathered: PackedM31 = undefined;
-                        inline for (0..lane_count) |lane| {
-                            const position = mapped[lane];
-                            gathered[lane] = values[
-                                ((position >> shift_amt) << 1) + (position & 1)
-                            ].toU32();
-                        }
-                        base[dst + t] = gathered;
+                    const mapped = positions[site.offset_slot];
+                    var values: PackedM31 = undefined;
+                    inline for (0..lane_count) |lane| {
+                        const position = mapped[lane];
+                        values[lane] = site.column.values[
+                            ((position >> site.column.shift_amt) << 1) +
+                                (position & 1)
+                        ].toU32();
                     }
+                    break :blk values;
                 },
                 .param => return error.InvalidEvaluationInput,
-                .constant => {
-                    inline for (0..tile) |t| {
-                        base[dst + t] = @splat(instruction.a);
-                    }
-                },
-                .add => {
-                    const a = @as(usize, instruction.a) * tile;
-                    const b = @as(usize, instruction.b) * tile;
-                    inline for (0..tile) |t| {
-                        base[dst + t] = m31.addVec4(base[a + t], base[b + t]);
-                    }
-                },
-                .sub => {
-                    const a = @as(usize, instruction.a) * tile;
-                    const b = @as(usize, instruction.b) * tile;
-                    inline for (0..tile) |t| {
-                        base[dst + t] = m31.subVec4(base[a + t], base[b + t]);
-                    }
-                },
-                .mul => {
-                    const a = @as(usize, instruction.a) * tile;
-                    const b = @as(usize, instruction.b) * tile;
-                    inline for (0..tile) |t| {
-                        base[dst + t] = m31.mulVec4(base[a + t], base[b + t]);
-                    }
-                },
-                .neg => {
-                    const a = @as(usize, instruction.a) * tile;
-                    inline for (0..tile) |t| {
-                        base[dst + t] = m31.subVec4(@splat(0), base[a + t]);
-                    }
-                },
-                .inv => {
-                    const a = @as(usize, instruction.a) * tile;
-                    inline for (0..tile) |t| {
-                        base[dst + t] = inverse(base[a + t]);
-                    }
-                },
-            }
+                .constant => @splat(instruction.a),
+                .add => m31.addVec4(base[instruction.a], base[instruction.b]),
+                .sub => m31.subVec4(base[instruction.a], base[instruction.b]),
+                .mul => m31.mulVec4(base[instruction.a], base[instruction.b]),
+                .neg => m31.subVec4(@splat(0), base[instruction.a]),
+                .inv => inverse(base[instruction.a]),
+            };
         }
         for (program.ext_insts) |instruction| {
-            const dst = @as(usize, instruction.dst) * tile;
-            switch (instruction.op) {
-                .secure_col => {
-                    const a = @as(usize, instruction.a) * tile;
-                    const b = @as(usize, instruction.b) * tile;
-                    const c = @as(usize, instruction.c) * tile;
-                    const d = @as(usize, instruction.d) * tile;
-                    inline for (0..tile) |t| {
-                        extension[dst + t] = .{ .coordinates = .{
-                            base[a + t],
-                            base[b + t],
-                            base[c + t],
-                            base[d + t],
-                        } };
-                    }
-                },
-                .param => {
-                    const value = PackedQm31.splat(
-                        input.extension_parameters[instruction.a],
-                    );
-                    inline for (0..tile) |t| {
-                        extension[dst + t] = value;
-                    }
-                },
-                .constant => {
-                    const value = PackedQm31.splat(QM31.fromU32Unchecked(
-                        instruction.a,
-                        instruction.b,
-                        instruction.c,
-                        instruction.d,
-                    ));
-                    inline for (0..tile) |t| {
-                        extension[dst + t] = value;
-                    }
-                },
-                .add => {
-                    const a = @as(usize, instruction.a) * tile;
-                    const b = @as(usize, instruction.b) * tile;
-                    inline for (0..tile) |t| {
-                        extension[dst + t] = PackedQm31.add(
-                            extension[a + t],
-                            extension[b + t],
-                        );
-                    }
-                },
-                .sub => {
-                    const a = @as(usize, instruction.a) * tile;
-                    const b = @as(usize, instruction.b) * tile;
-                    inline for (0..tile) |t| {
-                        extension[dst + t] = PackedQm31.sub(
-                            extension[a + t],
-                            extension[b + t],
-                        );
-                    }
-                },
-                .mul => {
-                    const a = @as(usize, instruction.a) * tile;
-                    const b = @as(usize, instruction.b) * tile;
-                    inline for (0..tile) |t| {
-                        extension[dst + t] = PackedQm31.mul(
-                            extension[a + t],
-                            extension[b + t],
-                        );
-                    }
-                },
-                .neg => {
-                    const a = @as(usize, instruction.a) * tile;
-                    inline for (0..tile) |t| {
-                        extension[dst + t] = PackedQm31.neg(extension[a + t]);
-                    }
-                },
-            }
+            extension[instruction.dst] = switch (instruction.op) {
+                .secure_col => .{ .coordinates = .{
+                    base[instruction.a],
+                    base[instruction.b],
+                    base[instruction.c],
+                    base[instruction.d],
+                } },
+                .param => PackedQm31.splat(input.extension_parameters[instruction.a]),
+                .constant => PackedQm31.splat(QM31.fromU32Unchecked(
+                    instruction.a,
+                    instruction.b,
+                    instruction.c,
+                    instruction.d,
+                )),
+                .add => PackedQm31.add(
+                    extension[instruction.a],
+                    extension[instruction.b],
+                ),
+                .sub => PackedQm31.sub(
+                    extension[instruction.a],
+                    extension[instruction.b],
+                ),
+                .mul => PackedQm31.mul(
+                    extension[instruction.a],
+                    extension[instruction.b],
+                ),
+                .neg => PackedQm31.neg(extension[instruction.a]),
+            };
         }
 
-        var evaluations: [tile]PackedQm31 = undefined;
-        inline for (0..tile) |t| evaluations[t] = PackedQm31.zero();
+        var evaluation = PackedQm31.zero();
         for (program.constraint_roots, 0..) |root, local_index| {
             const coefficient_index =
                 input.constraint_base + local_index;
-            const coefficient = PackedQm31.splat(
-                input.random_coefficients[coefficient_index],
+            evaluation = PackedQm31.add(
+                evaluation,
+                PackedQm31.mul(
+                    extension[root],
+                    PackedQm31.splat(input.random_coefficients[coefficient_index]),
+                ),
             );
-            const source = @as(usize, root) * tile;
-            inline for (0..tile) |t| {
-                evaluations[t] = PackedQm31.add(
-                    evaluations[t],
-                    PackedQm31.mul(extension[source + t], coefficient),
-                );
-            }
         }
-        inline for (0..tile) |t| {
-            const group_row = row + t * lane_count;
-            var denominator: PackedM31 = undefined;
-            inline for (0..lane_count) |lane| {
-                denominator[lane] = input.denominator_inverses[
-                    (group_row + lane) >> @intCast(input.trace_log_size)
-                ];
-            }
-            const evaluation = PackedQm31.mulBase(evaluations[t], denominator);
-            inline for (0..lane_count) |lane| {
-                output.accumulate(group_row + lane, evaluation.lane(lane));
-            }
+        var denominator: PackedM31 = undefined;
+        inline for (0..lane_count) |lane| {
+            denominator[lane] = input.denominator_inverses[
+                (row + lane) >> @intCast(input.trace_log_size)
+            ];
         }
-    }
-
-    // Residual groups below one full tile. `tile == 1` never has any, so this
-    // recursion bottoms out immediately and is comptime-eliminated there.
-    if (comptime tile > 1) {
-        if (row < row_end) return evaluatePartRangeTiled(
-            1,
-            allocator,
-            program,
-            input,
-            output,
-            row,
-            row_end,
-        );
+        evaluation = PackedQm31.mulBase(evaluation, denominator);
+        inline for (0..lane_count) |lane| {
+            output.accumulate(row + lane, evaluation.lane(lane));
+        }
     }
 }
 
